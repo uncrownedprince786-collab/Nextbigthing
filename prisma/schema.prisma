@@ -1,0 +1,234 @@
+// NextBigThing schema. Every column here is read by the app or written by a data job.
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AssetType {
+  stock
+  etf
+  crypto
+  commodity
+}
+
+/// marketCap = company market cap (price x shares).
+/// fundAssets = ETF/fund size (price x shares outstanding).
+/// none = not applicable, so no size figure is stored or shown.
+enum CapBasis {
+  marketCap
+  fundAssets
+  none
+}
+
+enum SignalSource {
+  googleTrends
+  wikipedia
+  reddit
+  hackerNews
+  googleNews
+  market
+}
+
+model Industry {
+  id      String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  slug    String   @unique
+  name    String
+  summary String
+  sort    Int      @default(0)
+
+  assets   Asset[]
+  rankings Ranking[]
+  analysis Analysis[]
+  news     News[]
+
+  createdAt DateTime @default(now())
+}
+
+model Asset {
+  id          String    @id @default(dbgenerated("gen_random_uuid()::text"))
+  industryId  String
+  industry    Industry  @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  symbol      String
+  name        String
+  assetType   AssetType
+  capBasis    CapBasis  @default(marketCap)
+  source      String
+  sourceRef   String
+  description String?
+  /// Text written once per asset by a human. Facts only, no forecasts.
+  note        String?
+
+  snapshots PriceSnapshot[]
+  rankings  Ranking[]
+  analysis  Analysis[]
+  news      News[]
+  productLinks ProductAssetLink[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([industryId, symbol])
+  @@index([symbol])
+}
+
+model PriceSnapshot {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId   String
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  close     Float
+  volume    Float?
+  marketCap Float?
+  source    String
+
+  @@unique([assetId, date])
+  @@index([date])
+}
+
+enum RankingBasis {
+  /// Size at a past date.
+  size
+  /// Size today.
+  sizeNow
+  /// Total return between two dates.
+  totalReturn
+  /// Relative strength over 12 to 24 months, cross-checked against volume trend.
+  rising
+}
+
+model Ranking {
+  id          String       @id @default(dbgenerated("gen_random_uuid()::text"))
+  industryId  String
+  industry    Industry     @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  assetId     String
+  asset       Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  basis       RankingBasis
+  periodStart DateTime?    @db.Date
+  periodEnd   DateTime     @db.Date
+  rank        Int
+  sizeRank    Int?
+  value       Float
+  source      String
+  note        String?
+
+  @@unique([industryId, basis, periodEnd, assetId])
+  @@index([periodEnd])
+}
+
+enum AnalysisKind {
+  /// One line on what moved between the pre-AI and post-AI snapshots.
+  industryShift
+  /// Why an asset is where it is now.
+  assetPosition
+  /// Why an asset is rising.
+  assetRising
+  /// What current data says may matter next. No prediction certainty.
+  forwardLook
+  /// Demand read on a product.
+  productDemand
+  /// Headline for the front page.
+  siteLead
+}
+
+model Analysis {
+  id          String       @id @default(dbgenerated("gen_random_uuid()::text"))
+  kind        AnalysisKind
+  industryId  String?
+  industry    Industry?    @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  assetId     String?
+  asset       Asset?       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  headline    String
+  body        String
+  /// What is missing, and what would fill it.
+  dataNote    String?
+  source      String
+  createdAt   DateTime     @default(now())
+
+  @@index([kind])
+  @@index([industryId])
+  @@index([assetId])
+  @@index([productId])
+}
+
+model News {
+  id          String    @id @default(dbgenerated("gen_random_uuid()::text"))
+  industryId  String?
+  industry    Industry? @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  assetId     String?
+  asset       Asset?    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title       String
+  url         String
+  publisher   String
+  publishedAt DateTime
+  source      String
+  createdAt   DateTime  @default(now())
+
+  @@unique([url])
+  @@index([publishedAt])
+}
+
+model Product {
+  id             String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  slug           String   @unique
+  name           String
+  category       String
+  summary        String
+  /// Wikipedia article title used for the pageview signal.
+  wikiTitle      String
+  /// Google Trends term. Empty means no Trends data for this product.
+  trendsTerm     String
+  /// Subreddits searched through the public RSS endpoint. Comma separated.
+  subreddits     String
+  relatedTickers String
+  /// rising, early, flat, or unknown when there is not enough data.
+  status         String   @default("unknown")
+  demandScore    Float?
+  demandNote     String?
+  computedAt     DateTime?
+
+  signals        ProductSignal[]
+  assetLinks     ProductAssetLink[]
+  analysis       Analysis[]
+  news           News[]
+
+  createdAt DateTime @default(now())
+}
+
+model ProductSignal {
+  id        String        @id @default(dbgenerated("gen_random_uuid()::text"))
+  productId String
+  product   Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  source    SignalSource
+  /// Name of the number, for example "reddit_posts_30d" or "wiki_views_wow".
+  metric    String
+  value     Float?
+  /// Evidence link or quoted text. Null when the source has no single item.
+  evidence  String?
+  periodEnd DateTime      @db.Date
+  note      String?
+  createdAt DateTime      @default(now())
+
+  @@unique([productId, source, metric, periodEnd])
+  @@index([productId, periodEnd])
+}
+
+model ProductAssetLink {
+  id        String  @id @default(dbgenerated("gen_random_uuid()::text"))
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  assetId   String
+  asset     Asset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  /// Why these are related. Factual description of the relationship only.
+  relation  String
+  note      String?
+
+  @@unique([productId, assetId])
+}

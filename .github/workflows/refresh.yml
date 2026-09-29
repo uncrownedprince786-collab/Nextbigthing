@@ -1,0 +1,64 @@
+name: refresh data
+
+# The website only reads rows that a job has already written, so these schedules are the
+# whole data pipeline. Daily keeps prices, news and rankings current. The product signals
+# run weekly because Reddit and Wikipedia rate limit and a daily request mostly gets 429.
+
+on:
+  schedule:
+    - cron: "17 7 * * *"
+    - cron: "43 7 * * 1"
+  workflow_dispatch:
+    inputs:
+      group:
+        description: Which group of jobs to run
+        required: true
+        default: daily
+        type: choice
+        options: [daily, weekly, seed]
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: refresh (${{ github.event.inputs.group || 'scheduled' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      - name: Choose the run
+        id: plan
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "group=${{ inputs.group }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "43 7 * * 1" ]; then
+            echo "group=weekly" >> "$GITHUB_OUTPUT"
+          else
+            echo "group=daily" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run data jobs
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/run.py "${{ steps.plan.outputs.group }}"
+
+      - name: Row counts after the run
+        if: always()
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python jobs/stats.py

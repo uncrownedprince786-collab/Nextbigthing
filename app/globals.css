@@ -1,26 +1,65 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fbfbfa;
+  --foreground: #16181d;
+  --card: #ffffff;
+  --card-foreground: #16181d;
+  --muted: #f1f2f0;
+  --muted-foreground: #5d6570;
+  --border: #e3e5e1;
+  --primary: #1d4ed8;
+  --primary-foreground: #ffffff;
+  --up: #0f7b4f;
+  --down: #b42318;
+  --warn: #8a5a00;
+  --warn-bg: #fdf6e3;
+}
+
+.dark {
+  --background: #0c0d10;
+  --foreground: #e9ebee;
+  --card: #14161a;
+  --card-foreground: #e9ebee;
+  --muted: #1b1e23;
+  --muted-foreground: #969ea9;
+  --border: #262a31;
+  --primary: #7aa2ff;
+  --primary-foreground: #0c0d10;
+  --up: #3ecf8e;
+  --down: #ff8a80;
+  --warn: #e5b567;
+  --warn-bg: #241d0f;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@utility num {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }

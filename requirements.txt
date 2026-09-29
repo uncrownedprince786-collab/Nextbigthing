@@ -1,0 +1,9 @@
+# Python side of NextBigThing. Pinned to the versions the data jobs were tested with.
+# Only the daily and weekly jobs need these; the website itself is Next.js.
+psycopg[binary]==3.3.6
+requests==2.34.2
+urllib3==2.6.3
+python-dotenv==1.2.1
+yfinance==1.7.0
+pandas==2.3.3
+pytrends==4.9.2
