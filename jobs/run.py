@@ -25,7 +25,7 @@ HERE = Path(__file__).resolve().parent
 
 DAILY = [
     ("prices", ["yahoo", "crypto", "news"]),
-    ("rankings", []),
+    ("rank", []),
     ("confidence", ["rankings"]),
     ("analysis", []),
 ]
@@ -33,7 +33,7 @@ DAILY = [
 WEEKLY = [
     ("prices", ["yahoo", "crypto", "news"]),
     ("signals", ["trends", "wiki", "hn", "news", "reddit"]),
-    ("rankings", []),
+    ("rank", []),
     ("confidence", ["rankings"]),
     ("analysis", []),
 ]

@@ -343,7 +343,8 @@ def reddit_signals(cur) -> None:
             continue
         term = p["trendsTerm"] or p["name"]
         recent = prior = 0
-        answered = False
+        answered: list[str] = []
+        missing: list[str] = []
         evidence = None
         for sub in subs[:2]:
             url = (
@@ -353,16 +354,38 @@ def reddit_signals(cur) -> None:
             )
             raw = get(url, cache_key=f"rd-{p['slug']}-{sub}-year", ttl=20 * 3600)
             if not raw:
+                # A blocked subreddit is not the same as a subreddit with nothing to report.
+                missing.append(f"r/{sub}")
                 continue
-            answered = True
+            answered.append(f"r/{sub}")
             recent += count_recent(raw, now - timedelta(days=30), now)
             prior += count_recent(
                 raw, now - timedelta(days=180), now - timedelta(days=90)
             )
             if evidence is None:
                 evidence = first_recent(raw, now - timedelta(days=30))
-        if not answered:
-            print(f"  {p['slug']}: reddit did not answer")
+        if missing:
+            # Counting only the subreddits that answered would understate the product and look
+            # like a collapse in discussion, and next week the same product might be counted
+            # across both subreddits, so the two numbers would not be comparable at all.
+            # Better to publish nothing than to publish a partial count.
+            #
+            # The same period's rows are cleared, because anything already stored for today was
+            # written by a run that did not insist on all subreddits answering, so its value is
+            # a partial count and its note claims the full set. A stale value that looks current
+            # is worse than a visible gap. Older periods keep their own rows and dates, and the
+            # confidence grade already falls when the count is old.
+            cur.execute(
+                'DELETE FROM "ProductSignal" WHERE "productId" = %s AND source = %s::"SignalSource" '
+                'AND "periodEnd" = %s',
+                (p["id"], "reddit", date.today()),
+            )
+            dropped = cur.rowcount
+            print(
+                f"  {p['slug']}: no Reddit count, {', '.join(missing)} did not answer"
+                + (f" (used {', '.join(answered)})" if answered else "")
+                + (f", dropped {dropped} unverified rows" if dropped else "")
+            )
             continue
         write(
             cur,
@@ -415,7 +438,39 @@ def reddit_signals(cur) -> None:
                 f"before, under the {MIN_COUNT_BASE} floor, so no percentage is published"
             )
         got += 1
-    print(f"  products with a Reddit count: {got}")
+    searched = sum(
+        1 for p in products if [s for s in (p["subreddits"] or "").split(",") if s.strip()]
+    )
+    print(
+        f"  products with a Reddit count: {got} of {searched} searched"
+        f" ({searched - got} without one)"
+    )
+
+    # An earlier version of this job counted the subreddits that happened to answer and
+    # labelled the result with the full list, so a rate limited run left a partial count
+    # behind claiming complete coverage. Anything still stored that way is unverifiable,
+    # and a percentage whose base was never recorded cannot be checked by a reader, so it
+    # is removed rather than shown. A product with nothing left simply shows no Reddit
+    # figure until a run fetches all of its subreddits.
+    for metric, why in (
+        ("reddit_posts_30d_change_pct", "has no base to be checked against"),
+        ("reddit_posts_30d", "is a partial count from a rate limited run"),
+    ):
+        cur.execute(
+            """
+            DELETE FROM "ProductSignal" v
+            WHERE v.source = 'reddit' AND v.metric = %s
+              AND NOT EXISTS (
+                SELECT 1 FROM "ProductSignal" b
+                WHERE b."productId" = v."productId" AND b.source = 'reddit'
+                  AND b.metric = 'reddit_posts_90d_base'
+                  AND b."periodEnd" = v."periodEnd"
+              )
+            """,
+            (metric,),
+        )
+        if cur.rowcount:
+            print(f"  removed {cur.rowcount} {metric} rows that {why}")
 
 
 def _items(raw):

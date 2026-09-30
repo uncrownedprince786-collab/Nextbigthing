@@ -6,7 +6,12 @@ export async function getLead() {
 }
 
 export async function getIndustries() {
-  return prisma.industry.findMany({ orderBy: { sort: "asc" } });
+  return prisma.industry.findMany({
+    orderBy: { sort: "asc" },
+    // The home page says how many assets in an industry carry a size figure, which needs
+    // the total even though the assets themselves are never listed there.
+    include: { _count: { select: { assets: true } } },
+  });
 }
 
 export async function getIndustry(slug: string) {

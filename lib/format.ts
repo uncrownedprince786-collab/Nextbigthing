@@ -4,6 +4,21 @@ const SIZE_UNIT: Record<string, string> = {
   none: "size",
 };
 
+/// What a size figure actually is for this asset. "Size" is not one comparable quantity
+/// across the site: a stock's is market capitalisation, a fund's is assets under
+/// management, and a commodity future has none at all. Ranking only ever happens within one
+/// industry, but the label still has to say which of these a number is.
+export function sizeBasisText(basis: string | null | undefined): string {
+  switch (basis) {
+    case "marketCap":
+      return "market capitalisation, price multiplied by shares outstanding";
+    case "fundAssets":
+      return "fund size, the assets the fund holds";
+    default:
+      return "no size figure is published for this instrument";
+  }
+}
+
 export function money(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "not available";
   if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;

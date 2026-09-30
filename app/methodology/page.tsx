@@ -14,7 +14,7 @@ const RANKINGS = [
     basis: "Size at a past date",
     formula: "Price on the snapshot date multiplied by shares outstanding.",
     source: "Yahoo Finance for equities and funds, CoinPaprika for crypto market cap",
-    gap: "Crypto historical market cap is not published by any free source, so crypto only has a current size. Some funds do not publish shares outstanding, so they have no size at all.",
+    gap: "Size is not one comparable quantity across the site. A stock's is market capitalisation, a fund's is assets under management, and a commodity future publishes neither, so it is shown without a size rather than given a proxy. Rankings only ever compare assets inside one industry, and every table says how many assets in that industry actually carry a size figure.",
   },
   {
     basis: "Size now",

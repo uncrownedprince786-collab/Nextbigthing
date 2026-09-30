@@ -45,6 +45,9 @@ BINANCE = "Binance"
 PAPRIKA = "CoinPaprika"
 GNEWS = "Google News RSS"
 NEWS_PER_FEED = 12
+# Asset feeds are narrower than the industry ones, so a smaller cap keeps the run short
+# and stops one busy company filling its own page with the same week of coverage.
+NEWS_PER_ASSET = 6
 
 SNAPSHOT_SET = set(SNAPSHOTS)
 
@@ -261,14 +264,97 @@ NEWS_TERMS = {
     "financials": "bank interest rates earnings credit",
 }
 
+# A bare company name is often the wrong search. "Apple" returns fruit and airlines,
+# "Meta" returns metadata, "Oracle" returns crypto price prediction, and a metal ETF's
+# name rarely appears in a headline. These give the feed a word that means the company.
+ASSET_NEWS_HINTS = {
+    "AAPL": "iPhone",
+    "AMZN": "AWS",
+    "GOOGL": "Google",
+    "META": "Zuckerberg",
+    "ORCL": "cloud",
+    "avax-avalanche": "AVAX",
+    "COPX": "copper",
+    "CPER": "copper",
+    "GC=F": "gold",
+    "GLD": "gold",
+    "IAU": "gold",
+    "PALL": "palladium",
+    "PPLT": "platinum",
+    "SI=F": "silver",
+    "SIVR": "silver",
+    "SLV": "silver",
+    "NFLX": "streaming",
+    "TSLA": "electric vehicle",
+    "NVO": "insulin",
+    "LLY": "GLP-1",
+    "JPM": "banking",
+    "BAC": "banking",
+    "C": "bank",
+    "GS": "investment bank",
+    "MS": "investment bank",
+    "WFC": "bank",
+    "AXP": "credit card",
+    "BLK": "asset management",
+    "SCHW": "brokerage",
+    "PGR": "insurance",
+    "XOM": "oil",
+    "CVX": "oil",
+    "COP": "oil",
+    "EOG": "oil",
+    "MPC": "refining",
+    "PSX": "refining",
+    "VLO": "refining",
+    "OXY": "oil",
+    "SHEL": "oil",
+    "SLB": "oilfield services",
+    "MU": "memory chips",
+    "LRCX": "chip equipment",
+    "KLAC": "chip equipment",
+    "AMGN": "biotech",
+    "GILD": "antiviral",
+    "ISRG": "surgical robot",
+    "DHR": "medical devices",
+    "ABBV": "pharma",
+    "MRK": "vaccine",
+    "VRTX": "biotech",
+    "TSM": "foundry",
+    "ASML": "lithography",
+    "ARM": "chip design",
+    "QCOM": "mobile chips",
+    "INTC": "foundry",
+    "AMD": "accelerator",
+    "TXN": "analog chips",
+}
+
+
+def asset_news_term(a: dict) -> str:
+    """A search that names this asset. Each kind needs a different key."""
+    kind = a["assetType"]
+    hint = ASSET_NEWS_HINTS.get(a["symbol"])
+    if kind == "etf":
+        # A fund's formal name is almost never quoted in a headline, and the brand is
+        # written in lower case, so a quoted "abrdn Silver Shares" returns nothing at all.
+        # The ticker is what financial news prints, so lead with that.
+        base = f'"{a["symbol"]}"'
+    elif kind == "crypto":
+        base = a["name"]
+    elif kind == "commodity":
+        # A futures contract is named by its underlying in every headline, never by symbol.
+        return hint or a["name"]
+    else:
+        base = f'"{a["name"]}"'
+    return f"{base} {hint}" if hint else base
+
 
 def fetch_news(cur) -> int:
     step("news")
     written = 0
     industries = rows(cur, 'SELECT id, slug FROM "Industry"')
     products = rows(cur, 'SELECT id, name FROM "Product"')
+    assets = rows(cur, 'SELECT id, symbol, name, "assetType" FROM "Asset" ORDER BY symbol')
 
-    def ingest(url, cache_key, insert_sql, params_fn):
+    def ingest(url, cache_key, insert_sql, params_fn, cap=NEWS_PER_FEED):
         nonlocal written
         raw = get(url, cache_key=cache_key, ttl=3600)
         if not raw:
@@ -280,7 +366,7 @@ def fetch_news(cur) -> int:
             return
         kept_here = 0
         for item in root.iter():
-            if not item.tag.endswith("item") or kept_here >= NEWS_PER_FEED:
+            if not item.tag.endswith("item") or kept_here >= cap:
                 continue
             gett = {c.tag.split("}")[-1]: (c.text or "").strip() for c in item}
             title = gett.get("title", "")
@@ -308,12 +394,18 @@ def fetch_news(cur) -> int:
     news_sql = """
         INSERT INTO "News" ("industryId", title, url, publisher, "publishedAt", source, "createdAt")
         VALUES (%s,%s,%s,%s,%s,%s, now())
-        ON CONFLICT (url) DO NOTHING
+        ON CONFLICT (url) WHERE "assetId" IS NULL AND "productId" IS NULL DO NOTHING
     """
     prod_sql = """
         INSERT INTO "News" ("productId", title, url, publisher, "publishedAt", source, "createdAt")
         VALUES (%s,%s,%s,%s,%s,%s, now())
-        ON CONFLICT (url) DO NOTHING
+        ON CONFLICT ("productId", url)
+        WHERE "productId" IS NOT NULL AND "assetId" IS NULL DO NOTHING
+    """
+    asset_sql = """
+        INSERT INTO "News" ("assetId", title, url, publisher, "publishedAt", source, "createdAt")
+        VALUES (%s,%s,%s,%s,%s,%s, now())
+        ON CONFLICT ("assetId", url) WHERE "assetId" IS NOT NULL DO NOTHING
     """
 
     for ind in industries:
@@ -342,6 +434,33 @@ def fetch_news(cur) -> int:
             prod_sql,
             lambda w, t, l, p, pr=prod: (pr["id"], t, l, p, w, GNEWS),
         )
+
+    # Asset pages. An article is stored once per target, so the same story can appear on an
+    # asset, a product and an industry at once, which is what a reader of each page wants.
+    # The query stays narrow anyway: naming the company is what finds the coverage stories
+    # for that company rather than generic news about its industry.
+    empty = []
+    for a in assets:
+        term = asset_news_term(a)
+        url = (
+            "https://news.google.com/rss/search?q="
+            + urllib.parse.quote(term)
+            + "&hl=en-US&gl=US&ceid=US:en"
+        )
+        before = written
+        ingest(
+            url,
+            # Versioned: the feed is cached by key, so a term that changes has to change
+            # the key too or a stale response is reused for the rest of the hour.
+            f"gnews-as-v2-{a['symbol']}",
+            asset_sql,
+            lambda w, t, l, p, x=a: (x["id"], t, l, p, w, GNEWS),
+            cap=NEWS_PER_ASSET,
+        )
+        if written == before:
+            empty.append(a["symbol"])
+    if empty:
+        print(f"  {len(empty)} assets matched no new article: {', '.join(empty)}")
 
     cur.execute('DELETE FROM "News" WHERE "publishedAt" < now() - interval \'120 days\'')
     return written

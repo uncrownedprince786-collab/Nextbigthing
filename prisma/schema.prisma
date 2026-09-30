@@ -188,8 +188,12 @@ model News {
   source      String
   createdAt   DateTime  @default(now())
 
-  @@unique([url])
+  // Deduping is per target, not global: the same article can be stored once per asset,
+  // once per product, and once for an industry. Prisma cannot express the partial unique
+  // indexes that does, so they live in the migration and inserts name them in ON CONFLICT.
   @@index([publishedAt])
+  @@index([assetId])
+  @@index([productId])
 }
 
 model Product {

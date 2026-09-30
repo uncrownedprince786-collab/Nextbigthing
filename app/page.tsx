@@ -7,7 +7,7 @@ import {
   getLead,
   getProducts,
 } from "@/lib/queries";
-import { isoDate, money, pct, toneClass } from "@/lib/format";
+import { isoDate, money, pct, sizeLabel, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
 
@@ -35,7 +35,13 @@ export default async function Home() {
     const seen = largestByIndustry.get(r.industryId);
     if (!seen || r.rank < seen.rank) largestByIndustry.set(r.industryId, r);
   }
-
+  // How many assets in each industry actually have a size figure. Precious metals is the
+  // hard case: 3 of its 10 assets publish one, so "largest" there means largest of three
+  // and the card has to say so.
+  const sizeCountByIndustry = new Map<string, number>();
+  for (const r of sizeNow) {
+    sizeCountByIndustry.set(r.industryId, (sizeCountByIndustry.get(r.industryId) ?? 0) + 1);
+  }
 
   return (
     <div className="space-y-2">
@@ -65,6 +71,9 @@ export default async function Home() {
             const top = byIndustry.get(ind.id)?.slice(0, 3) ?? [];
             const largest = largestByIndustry.get(ind.id);
             const l = largest?.asset;
+            const assetTotal = ind._count.assets;
+            const withSize = sizeCountByIndustry.get(ind.id) ?? 0;
+            const partial = withSize > 0 && withSize < assetTotal;
             return (
               <Card key={ind.id} href={`/industry/${ind.slug}`}>
                 <div className="flex items-start justify-between gap-3">
@@ -80,10 +89,20 @@ export default async function Home() {
                     </Link>{" "}
                     <span className="num">{money(largest.value)}</span>
                     <ConfidenceBadge grade={largest.confidence} className="ml-1.5 align-middle" />
+                    <span className="text-muted-foreground ml-1.5 text-xs">
+                      {sizeLabel(l.capBasis)}
+                    </span>
+                    {partial ? (
+                      <span className="text-muted-foreground block text-xs">
+                        Largest of the {withSize} of {assetTotal} assets here that publish a size
+                        figure.
+                      </span>
+                    ) : null}
                   </p>
                 ) : (
                   <p className="text-muted-foreground mt-3 text-sm">
-                    No size figure stored for this industry.
+                    No asset in this industry publishes a size figure, so there is nothing to
+                    rank here. Returns are shown instead.
                   </p>
                 )}
                 {top.length ? (
@@ -124,7 +143,7 @@ export default async function Home() {
                 <th className="px-3 py-2 text-right font-medium">vs industry</th>
                 <th className="px-3 py-2 font-medium">Confidence</th>
                 <th className="px-3 py-2 text-right font-medium">Size now</th>
-                <th className="px-3 py-2 text-right font-medium">In industry</th>
+                <th className="px-3 py-2 text-right font-medium">Size rank in industry</th>
               </>
             }
           >
@@ -142,11 +161,24 @@ export default async function Home() {
                   <td className={`num px-3 py-2 text-right font-medium ${toneClass(r.value)}`}>
                     {pct(r.value)}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2" title={r.confidenceNote ?? undefined}>
                     <ConfidenceBadge grade={r.confidence} />
                   </td>
                   <td className="num px-3 py-2 text-right">
-                    {size ? money(size.value) : <span className="text-muted-foreground">no size stored</span>}
+                    {size ? (
+                      <>
+                        {money(size.value)}
+                        <span className="text-muted-foreground ml-1 text-xs">
+                          {sizeLabel(size.asset.capBasis)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {r.asset.capBasis === "none"
+                          ? "not published"
+                          : "not stored"}
+                      </span>
+                    )}
                   </td>
                   <td className="num text-muted-foreground px-3 py-2 text-right">
                     {size?.sizeRank ?? "-"}

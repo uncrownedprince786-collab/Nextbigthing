@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Sparkline } from "@/components/chart";
 import { Card, ConfidenceBadge, Empty, Note, Pill, Section, Table, weakest } from "@/components/ui";
 import { getAsset, getAssetPrices } from "@/lib/queries";
-import { isoDate, longDate, money, pct, relativeTime, sizeLabel, toneClass } from "@/lib/format";
+import { isoDate, longDate, money, pct, relativeTime, sizeBasisText, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
 
@@ -101,10 +101,10 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
           </p>
           <p className="text-muted-foreground text-xs">
             {sizeNowRow
-              ? `${sizeLabel(asset.capBasis)}, newest stored close`
+              ? `${sizeBasisText(asset.capBasis)}, newest stored close`
               : asset.capBasis === "none"
-                ? "no size figure is published for this instrument"
-                : "no size ranking is stored for this asset"}
+                ? sizeBasisText("none")
+                : "no size ranking is stored for this asset, so no figure is shown"}
           </p>
         </Card>
       </div>
