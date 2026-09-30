@@ -51,7 +51,7 @@ SCORED_SIGNALS = (
     ("googleTrends", "trends_8w_vs_8w_pct", "Google Trends search interest, 8 weeks against the 8 before"),
     ("wikipedia", "wiki_views_8w_vs_8w_pct", "Wikipedia pageviews, 8 weeks against the 8 before"),
     ("hackerNews", "hn_stories_90d_change_pct", "Hacker News stories, 90 days against the 90 before"),
-    ("reddit", "reddit_posts_30d_change_pct", "Reddit posts, 30 days against the 90 before"),
+    ("reddit", "reddit_posts_30d_change_pct", "Reddit posts, the last 30 days against the rate over the 90 days before"),
     ("googleNews", "gnews_articles_30d_change_pct", "Google News articles, 30 days against the 30 before"),
 )
 

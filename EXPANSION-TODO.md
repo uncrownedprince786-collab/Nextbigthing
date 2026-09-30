@@ -38,19 +38,36 @@ live before code was written against it; none of the SQL has executed.
 
 ## Left to do
 
-- [ ] Home page: group industry cards by market so the PSX sectors read as their own
-      list, and say which currency each group is in.
-- [ ] Industry page: `CurrencyNote`, currency passed to `money()`, `HowToRead`.
-- [ ] Asset page: currency on prices and size.
-- [ ] Product page: "Marketplace and local notes" block, `HowToRead`.
-- [ ] Nav: Events and Marketplace links in `app/layout.tsx`.
-- [ ] Methodology page: PSX, events, marketplace, and the research walkthrough.
-- [ ] `brain.md`: source table rows for PSX, Amazon and eBay; the Reddit window rule;
-      the flat-source rule.
-- [ ] `README.md`: new jobs, new sections, PSX limitations.
-- [ ] `.github/workflows/refresh.yml`: nothing needed, `run.py` owns the job list —
-      confirm the 90 minute timeout still fits the PSX backfill.
-- [ ] `npm run build` and `npx tsc --noEmit` clean.
+- [x] Home page grouped by market, with a currency note per group.
+- [x] Industry page: `CurrencyNote`, currency through `money()`, `HowToRead`.
+- [x] Asset page: currency on prices and size.
+- [x] Product page: "Marketplace and local notes" block, `HowToRead`.
+- [x] Nav: Pakistan, Marketplace and Events links.
+- [x] Methodology: a section per new source plus the seven step research walkthrough.
+- [x] `brain.md` and `README.md`.
+- [x] `next build` reaches "Compiled successfully" and "Finished TypeScript". It then
+      fails at "Collecting page data" because there is no database reachable from here,
+      which is expected and is the only failure.
+
+### Still open
+
+- [ ] **Nothing has been run against a database.** No migration has executed, no job has
+      written a row. Do this first, on a scratch database rather than the live one:
+      `npx prisma migrate deploy`, then `python jobs/run.py seed`, then
+      `python jobs/psx.py recent`, `python jobs/events.py`,
+      `python jobs/marketplace.py`, then `python jobs/run.py daily`, then
+      `python jobs/stats.py` to see the per-market coverage line.
+- [ ] Watch for these three on that first run, they are where a mistake would surface:
+      - `ALTER TYPE "AnalysisKind" ADD VALUE 'eventImpact'` — allowed inside a transaction
+        on Postgres 12+, but the new value cannot be *used* in the same transaction. The
+        migration only adds it, so this should pass; if Prisma complains, split it out.
+      - `close_near()` in `jobs/events.py` orders by `abs(date - %s::date)`. Verify the
+        cast behaves on Neon as it does on stock Postgres.
+      - `jobs/psx.py` `full` is around 300 requests on a cold cache, roughly 8 minutes.
+        The workflow's 90 minute timeout has room, but confirm it on the first real run.
+- [ ] `HowToRead` on `app/products/page.tsx` — the only page in the teaching layer that
+      did not get one. The detail page at `app/product/[slug]` has it.
+- [ ] Open a pull request from this branch, or merge it.
 - [ ] Delete this file.
 
 ## Known limitations to state in the final write-up

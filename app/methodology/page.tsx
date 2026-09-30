@@ -54,13 +54,40 @@ const SIGNALS = [
   },
   {
     source: "Reddit",
-    measure: "Posts in the product's subreddits through the public search RSS, last 30 days against the 90 days before, both cut from the year feed.",
+    measure: "Posts in the product's subreddits through the public search RSS. The last 30 days against the rate over the 90 days immediately before, both cut from the year feed. The longer window is divided by three first, so the two figures cover the same length of time.",
     caveat: "Rate limited and often silent, so a missing value is common and shown as missing. Reddit caps the 30 day feed at 25 results, which is why both windows are read from the year feed instead. Post counts here are small: across all thirty products the largest 90 day window is fifteen posts, so a percentage built on a single post is a rounding artifact and is not published.",
   },
   {
     source: "Google News RSS",
     measure: "Article count for the product name, last 30 days against the 30 before.",
     caveat: "News volume follows a story, so a spike usually means something happened rather than that demand grew.",
+  },
+];
+
+const NEW_SECTIONS = [
+  {
+    title: "Pakistan Stock Exchange",
+    source:
+      "The exchange's own end of day file, dps.psx.com.pk/download/mkt_summary/<date>.Z, a ZIP holding one pipe delimited line per listed symbol.",
+    measure:
+      "Close and volume per symbol per trading day. Eight sectors, using the exchange's own sector groupings, and every symbol was checked against the closing files for both 2021-12-31 and the latest trading day before being added.",
+    gap: "Market capitalisation exists for the latest close only. The exchange publishes a current share count with no history behind it, and multiplying today's share count by a 2021 price would produce a figure that was never true, so these sectors show no pre-AI size at all. Prices and returns are in rupees: a return earned over a period of currency depreciation is not the same quantity as a dollar return, and no conversion is applied.",
+  },
+  {
+    title: "Event windows",
+    source:
+      "The event date and description come from the public record, with a source URL shown on each event page. The price moves come from closes already stored by this site.",
+    measure:
+      "For each event, the change between the stored close nearest the event date and the stored close nearest 14 and 30 days later, for every asset that has both. Ranked by the size of the move, largest first, with rises and falls shown separately.",
+    gap: "No causation is measured and none is claimed. Over any thirty day window some asset has the largest move whether or not anything happened, so a large number in an event table is evidence the asset moved and nothing else. Events are chosen by hand rather than detected, because detecting them from the price series would select the dates that sit next to large moves and every row would then confirm a relationship the selection had created.",
+  },
+  {
+    title: "Marketplace rankings",
+    source:
+      "Amazon Best Sellers, the first page of nine categories, read as published. eBay's sold and completed search returns 403 to an ordinary request, so it is not used.",
+    measure:
+      "The top thirty positions of each category, with each listing's movement against the previous stored run of the same category.",
+    gap: "A rank is an order, never a volume: Amazon publishes no units, so nothing here says how much of anything sold. Only the first page is read, because the rank counter restarts on page two and using it would mean guessing an offset. A listing absent from the previous run is reported as new rather than as a rise, because its earlier position was never published. None of this enters any product's demand score.",
   },
 ];
 
@@ -197,6 +224,87 @@ export default function MethodologyPage() {
         </Note>
       </Section>
 
+      <Section
+        title="The three newer sections"
+        lead="Pakistan, events and marketplace rankings arrived after the original build, and each carries a limit worth stating before the numbers are read."
+      >
+        <div className="space-y-4">
+          {NEW_SECTIONS.map((n) => (
+            <Card key={n.title}>
+              <h3 className="font-medium">{n.title}</h3>
+              <dl className="mt-2 space-y-2 text-sm">
+                <div>
+                  <dt className="text-muted-foreground text-xs">Source</dt>
+                  <dd className="leading-relaxed">{n.source}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">What is measured</dt>
+                  <dd className="leading-relaxed">{n.measure}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">What it cannot tell you</dt>
+                  <dd className="text-muted-foreground leading-relaxed">{n.gap}</dd>
+                </div>
+              </dl>
+            </Card>
+          ))}
+        </div>
+      </Section>
+
+      <Section
+        title="How to research something here yourself"
+        lead="The order below is the one the site itself follows, and it is arranged so that the cheap checks come before the expensive ones."
+      >
+        <ol className="space-y-4 text-sm leading-relaxed">
+          <li>
+            <strong>1. Ask what would count as an answer, before looking.</strong>{" "}
+            &ldquo;Is this rising?&rdquo; has no answer until you say rising against what,
+            over what period. Every table on this site names both, and that is the only
+            reason any of it can be checked. A question that cannot be answered wrongly
+            cannot be answered.
+          </li>
+          <li>
+            <strong>2. Find the number, then find its denominator.</strong> A percentage
+            with no base is unreadable. +200% on this site might be six posts against two.
+            The product pages print the raw counts next to every Reddit percentage for
+            exactly this reason, and a figure whose base was never recorded is deleted
+            rather than shown.
+          </li>
+          <li>
+            <strong>3. Count the sources that answered, not the ones that agreed.</strong>{" "}
+            Four sources agreeing on a small move is stronger than one source reporting a
+            huge one. A source that did not answer is not evidence either way, and a source
+            reporting no change still answered.
+          </li>
+          <li>
+            <strong>4. Check whether one input is carrying the result.</strong> An average
+            of five numbers where one supplies most of the magnitude is that one
+            reading with an average written over it. Every demand score on this site
+            discloses its largest contributor&apos;s share.
+          </li>
+          <li>
+            <strong>5. Compare like with like.</strong> A 30 day count against a 90 day
+            count is not a change, it is a ratio of two window lengths. Two assets in
+            different currencies have comparable returns and incomparable sizes. Most
+            errors that survive a first look are this one wearing different clothes.
+          </li>
+          <li>
+            <strong>6. Separate what moved from why it moved.</strong> The first is
+            measurable from a price series and the second is not. When a number sits next
+            to an event, the honest sentence is that both happened, in that order.
+          </li>
+          <li>
+            <strong>7. Write down what would change your mind.</strong> If nothing would,
+            the reading was a conclusion looking for support. The confidence grades here
+            exist so that a figure can be reported and doubted in the same breath.
+          </li>
+        </ol>
+        <Note>
+          None of this is investment advice, and none of it is a method for making money.
+          It is how to avoid being misled by a number, including by one on this site.
+        </Note>
+      </Section>
+
       <Section title="What this site will not do">
         <ul className="text-muted-foreground list-disc space-y-1 pl-5 text-sm leading-relaxed">
           <li>No forecasts, no target prices, no probability of anything happening.</li>
@@ -204,6 +312,19 @@ export default function MethodologyPage() {
           <li>No filling a missing number from a related one. Crypto has no historical size because no free source publishes it.</li>
           <li>No X or Twitter data, because there is no free public source that can be used without a paid account.</li>
           <li>No performance claims. This is a read only archive of measured direction.</li>
+          <li>
+            No claim that an event caused a price move. The event windows measure what
+            moved in a period and stop there.
+          </li>
+          <li>
+            No sales, revenue or margin figures for any product. No marketplace publishes
+            them for free and none of them can be derived from a bestseller rank.
+          </li>
+          <li>
+            No conversion between rupees and dollars. Returns compare across currencies
+            already; sizes do not, and converting them at today&apos;s rate would misstate
+            every historical figure.
+          </li>
         </ul>
         <Note>
           Data can be late, revised or wrong. A price feed that misses a day, a Trends term
@@ -215,8 +336,10 @@ export default function MethodologyPage() {
 
       <Section title="How the data is refreshed">
         <p className="text-muted-foreground max-w-3xl text-sm leading-relaxed">
-          A scheduled job runs the scripts in this repository: prices and news daily,
-          rankings daily, product signals weekly because Reddit and Wikipedia rate limit.
+          A scheduled job runs the scripts in this repository: prices and news daily for
+          both exchanges, rankings and event windows daily, and product signals and the
+          marketplace charts weekly, because Reddit and Wikipedia rate limit and the
+          bestseller charts move faster than anything here is meant to track.
           Each run writes rows with a period end date, and this site reads only what has been
           written. If a job fails, the old rows stay and the freshness table on the front
           page shows the date of the last successful run. Nothing on the site is computed in

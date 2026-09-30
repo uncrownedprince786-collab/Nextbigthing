@@ -3,12 +3,20 @@
 A read only site that ranks what is gaining ground, using only free public data, and
 names the source and the as of date of every number it shows.
 
-Two things are measured separately:
+Four things are measured separately:
 
-- **Markets.** 70 assets across 7 industries, ranked by size at the end of 2021 against
+- **Markets.** 160 assets across 17 industries, ranked by size at the end of 2021 against
   size now, by price return, and by 24 month return measured against their own industry.
+  Nine industries are US listings and crypto; eight are Pakistan Stock Exchange sectors,
+  quoted in rupees and labelled as such.
 - **Products.** 30 consumer products, read from Google Trends, Wikipedia pageviews,
   Hacker News, Reddit and Google News on short, stated windows.
+- **Event windows.** A hand written list of dated public events, and the largest measured
+  price moves in the 14 and 30 days after each. The moves are measured. Why anything moved
+  is not, and the site never says an event caused a price change.
+- **Marketplace rankings.** The first page of Amazon's public Best Sellers charts for nine
+  categories, stored as published, with each listing's movement against the previous
+  stored run. Deliberately kept out of the product demand scores.
 
 Nothing is forecast and nothing is estimated. Where a free source does not publish a
 number, the site says so instead of filling the gap.
@@ -53,14 +61,22 @@ table on the front page shows the date of the last successful run.
 | Command | What it does |
 | --- | --- |
 | `python jobs/run.py seed` | Industries, assets, products, links. Idempotent. |
-| `python jobs/run.py daily` | Prices and news, then rankings, then confidence, then the written lines. |
-| `python jobs/run.py weekly` | The daily run plus all five product signal sources. |
+| `python jobs/run.py daily` | Prices and news for both exchanges, then rankings, confidence, event windows and the written lines. |
+| `python jobs/run.py weekly` | The daily run plus the full PSX backfill, all five product signal sources and the marketplace charts. |
+| `python jobs/psx.py recent` | PSX closes: the snapshot dates and the last 120 days. |
+| `python jobs/psx.py full` | The above plus a monthly grid back to 2019, for the charts. |
+| `python jobs/events.py` | Seeds the event list and measures the window after each one. |
+| `python jobs/marketplace.py` | Amazon Best Sellers, first page of nine categories. |
 | `python jobs/stats.py` | Row counts and newest stored date per table. |
 | `python jobs/confidence.py all` | Grades every ranking row and product. Runs on its own too. |
 | `python jobs/analysis.py` | Rewrites the `Analysis` table from stored numbers. |
 
 Individual scripts take a source name, for example
 `python jobs/prices.py crypto` or `python jobs/signals.py reddit`.
+
+`psx.py` caches hard: a published closing file for a past day never changes, so only the
+last fortnight is refetched and a second `full` run costs almost nothing. The first one is
+around 300 requests and takes a few minutes.
 
 `confidence.py` runs after `rank.py` and before `analysis.py`, so the written lines are
 generated from the same grades the page shows. `analysis.py` grades products again after
@@ -90,6 +106,55 @@ which direction it points.
   The number and the confidence claim are judged separately.
 
 Full rules and the measured data behind them are in `brain.md`.
+
+## Pakistan Stock Exchange
+
+Prices come from the exchange's own end of day file,
+`dps.psx.com.pk/download/mkt_summary/<date>.Z`, a ZIP holding one pipe delimited line per
+listed symbol. No key, no cookie, nothing solved, and files exist back past 2019-12-31, so
+every snapshot date the site ranks on is covered. It is the exchange's own record rather
+than a scrape of a rendered page, so a layout change cannot quietly alter a number.
+
+Two limits are worth knowing before reading those pages:
+
+- **Size exists for the latest close only.** The share count on the exchange's company
+  page is a current figure with no history behind it. Multiplying it by a 2021 price would
+  produce a market capitalisation that was never true, so none is written for any earlier
+  date and the pre-AI size table shows these sectors as blank. This is the same handling
+  crypto already gets.
+- **Returns are in rupees and are not converted.** A 40% gain over a period when the
+  currency weakened is not a 40% gain in purchasing power. Rankings only ever compare
+  assets inside one industry, so a Karachi listing is measured against Karachi peers and
+  the currency never enters the comparison, but a figure read on its own still carries it.
+
+## Event windows
+
+`jobs/events.py` holds a short list of dated events, each with a factual summary and a
+source URL for the date, and measures every asset's price change over the 14 and 30 days
+after. There is no detector and there will not be one: detecting events from the price
+series would select whichever dates sit next to large moves, and every row would then
+appear to confirm a relationship the selection had created.
+
+Adding an event is an edit to `EVENTS` in `jobs/events.py`. The section never claims
+causation, and `jobs/analysis.py` builds its sentences so they stay true if an event
+turned out to have no bearing on the market at all.
+
+## Marketplace rankings
+
+`jobs/marketplace.py` reads the first page of Amazon's Best Sellers chart for nine
+categories and stores it as published, with each listing's movement against the previous
+stored run. eBay is not stored: its sold and completed search returns 403 to an ordinary
+request, and there is no free public endpoint behind it.
+
+These rows never enter a product's demand score. A search trend says people are looking; a
+bestseller rank says one listing is outselling others in its category. Averaging them
+would produce a number whose meaning changed week to week depending on which source
+answered.
+
+Only the first page of each chart is read, because the rank counter restarts on page two
+and using it would mean guessing an offset. An unrecognised category slug does not return
+404, it quietly serves a different category's chart, so every slug in `CATEGORIES` was
+fetched and parsed before being added.
 
 ## Refresh schedule
 
@@ -131,9 +196,15 @@ Keep the local `.env` and the GitHub secret on the writer role.
 
 ## Data sources
 
-Yahoo Finance through `yfinance`, Binance public klines, CoinPaprika, Google Trends,
-Wikipedia pageviews, the Hacker News Algolia API, Reddit public search RSS and Google News
-RSS. X is not covered, because no free public endpoint can supply it.
+Yahoo Finance through `yfinance`, Binance public klines, CoinPaprika, the Pakistan Stock
+Exchange data portal, Google Trends, Wikipedia pageviews, the Hacker News Algolia API,
+Reddit public search RSS, Google News RSS and Amazon Best Sellers.
+
+X is not covered, because no free public endpoint can supply it. eBay is not covered,
+because its completed listings search returns 403. Daraz, OLX and Facebook Marketplace
+publish no free ranking endpoint, so where a local Pakistani angle matters the product
+pages list the checks a reader has to make by hand rather than showing a number that does
+not exist.
 
 `brain.md` holds the verified source table, the ranking formulas and the rules for
 changing any of them.

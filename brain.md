@@ -34,7 +34,12 @@ Readers open the site and read. No invented numbers, ever.
 | FRED | `fred.stlouisfed.org/graph/fredgraph.csv` | Times out from this network. Not used. |
 | Stooq | CSV endpoint | Blocked by a JS challenge. Not used. |
 | X / Twitter | any | No free authentic endpoint. Not used. Replaced by HN, Wikipedia, Reddit, Google News. |
-| Amazon best sellers | HTML | Scraping a JS shell. Replaced by Google Trends, which is a better demand signal. |
+| Amazon best sellers | `amazon.com/Best-Sellers/zgbs/<cat>/` | Re-verified 2026-09-30 and the earlier verdict was wrong, or the page changed: the first 30 positions are server rendered, with the rank inside each item's own link. Used for the marketplace section only, never in a demand score. Page two restarts the rank counter, so only page one is read. An unknown category slug does not 404, it serves a different category, so every slug is fetched before being added. |
+| PSX daily closing file | `dps.psx.com.pk/download/mkt_summary/<date>.Z` | Works. A ZIP holding `closing11.lis`, one pipe delimited line per symbol: date, symbol, sector, name, open, high, low, close, volume, previous close. No key, no cookie, nothing solved. Files exist back past 2019-12-31, so all four snapshot dates are covered. This is the exchange's own record, not a scrape of a rendered page. |
+| PSX company page | `dps.psx.com.pk/company/<SYM>` | Works, server rendered. Used only for the current share count. Verified: OGDC close 316.73 times 4,300,928,400 shares gives 1,362,233,052,132 PKR, against the 1,362,233,052.13 thousand the page publishes itself. There is no history behind the share count, so it is applied to the newest close and no other date. |
+| PSX `dps.psx.com.pk/historical` | POST form | Returns 403. Not needed: the daily closing files cover the same ground. |
+| eBay | `ebay.com/sch/i.html` with sold and completed filters | Returns 403 to an ordinary request. No free public endpoint behind it, so eBay is absent rather than estimated from something else. |
+| Daraz, OLX, Facebook Marketplace | any | No free public ranking or volume endpoint. The product pages list the local checks a reader has to make by hand instead of showing a number that does not exist. |
 
 Puppeteer is not used. The brief asked for stealth logged-in scraping of Reddit and X.
 That breaks both sites' terms of service and risks the accounts. Every source that did
@@ -53,6 +58,41 @@ CoinPaprika, and no pre-AI size row, which the UI shows as a gap rather than a z
 5. Energy: XOM CVX COP SLB OXY EOG PSX VLO MPC SHEL
 6. Healthcare: LLY NVO JNJ MRK ABBV ISRG AMGN GILD VRTX DHR
 7. Banks and Financials: JPM BAC GS MS WFC C BLK SCHW AXP PGR
+8. Automobile: TM GM F STLA HMC RIVN LCID RACE APTV BWA
+9. Software and Cloud: CRM NOW ADBE INTU PANW SNOW PLTR WDAY DDOG MDB
+
+TSLA stays in Mega Cap Tech and is not repeated in Automobile; MSFT and ORCL stay there
+and are not repeated in Software and Cloud. One asset in two industries would sit in two
+rankings and two industry averages, so its peers would be compared against a figure it
+had helped set twice.
+
+## Pakistan Stock Exchange
+Eight sectors using the exchange's own sector groupings, 70 symbols, each one checked
+against the closing file for both 2026-09-30 and 2021-12-31 so it exists now and has a
+pre-AI reading to compare with.
+
+1. PSX Banks: HBL UBL MCB MEBL BAFL BAHL NBP ABL AKBL FABL
+2. PSX Oil and Gas: OGDC PPL POL MARI PSO APL SNGP SSGC ATRL HTL
+3. PSX Cement: LUCK DGKC MLCF FCCL CHCC KOHC PIOC ACPL BWCL GWLC
+4. PSX Fertilizer: FFC EFERT FATIMA AGL AHCL
+5. PSX Power: HUBC KAPCO KEL NCPL NPL ALTN PKGP TSPL
+6. PSX Technology and Communication: SYS NETSOL TRG AVN PTC TELE AIRLINK TPL HUMNL WTL
+7. PSX Textile: NML GATM ILP NCL KTML ANL KOIL TOWL
+8. PSX Automobile: INDU HCAR MTL AGTL SAZEW GHNI ATLH HINO DFML
+
+These are separate industries, not extra rows in the existing ones. Every ranking is
+computed inside one industry, so keeping them apart means a rupee size figure is never
+sorted against a dollar one.
+
+`size` basis is market capitalisation but only against the newest close, because the
+share count has no history. There is no pre-AI size row for any PSX asset and the UI
+shows that as a gap. Returns are in rupees and are not converted: a return earned over a
+period of depreciation is not the same quantity as a dollar return, and saying so is
+cheaper than pretending an exchange rate series exists for every date.
+
+Fertilizer has five listings. That is a real limit on what a ranking inside it can say,
+and the existing peer-count rules already cap it at medium for exactly that reason. It is
+left as five rather than padded with unrelated companies to reach ten.
 
 ## Product hunting
 Rising demand is the plain mean of whichever of these answered, each a percentage change
@@ -64,9 +104,16 @@ over a short, stated window:
   30 titles resolve; the 3 that do not are a known gap, not zero.
 - Hacker News stories: last 90 days against the 90 days before.
 - Google News articles: last 30 days against the 30 days before.
-- Reddit posts: last 30 days against the 90 days before, both cut from the year feed.
-  Reddit's own 30 day feed caps at 25 results, so a capped count could not be compared
-  with an uncapped one; reading both windows from the year feed keeps them comparable.
+- Reddit posts: the last 30 days against the rate over the 90 days immediately before,
+  both cut from the year feed. Reddit's own 30 day feed caps at 25 results, so a capped
+  count could not be compared with an uncapped one; reading both windows from the year
+  feed keeps them comparable.
+  The two windows are adjacent and the longer one is divided by three before the
+  comparison. The first version of this compared the 30 day count directly against a
+  90 day count taken from 180 to 90 days ago, which was wrong twice over: the 60 days in
+  between were measured by neither window, and dividing a 30 day count by a 90 day count
+  is not a change at all, so a product discussed at a perfectly steady rate came out at
+  -67% on every single run.
   A product is counted only when *all* of its subreddits answered. Counting the ones that
   did answer would understate the product and read as falling demand, and because the
   denominator would change between runs the two figures would not be comparable at all. A
@@ -123,6 +170,11 @@ Products:
 - Agreement is measured against the average, not against whichever side is bigger. Three
   sources down and one up is a minority position even though three is the larger number.
 - A split up/down caps the grade at medium however lopsided it is.
+- A source reading exactly zero answered and reported no change. It is not a vote down.
+  It stays in the denominator, because it answered, and it is counted as agreeing with
+  neither direction. Deriving `down` as `answered - up` used to put it on the down side,
+  which invented disagreements: three sources up and one unmoved was described as a split
+  and capped at medium for a conflict that never happened.
 - A mean and a median landing on opposite sides of zero also caps at medium, because the
   total no longer describes what a typical source said.
 - One source supplying more than `DOMINANT_SHARE_LIMIT` (60%) of the average is disclosed
@@ -147,6 +199,16 @@ a base of 6 a single post is 17% of the reading.
 
 ## Jobs
 - `jobs/seed.py` industries, assets, products, asset links, asset notes. Run once.
+- `jobs/psx.py recent|full` PSX closes from the exchange's daily closing files. `recent`
+  is the snapshot dates plus the last 120 days; `full` adds a monthly grid back to 2019.
+  Historical files never change, so they are cached for a year and a rerun is nearly free.
+  Anchor dates walk backwards to the last published day rather than fetching every day in
+  a window, which is the difference between about 300 requests and about 1,000.
+- `jobs/events.py` seeds the hand written event list and measures the price change over
+  the 14 and 30 days after each one. Runs before `analysis.py`, because the sentence under
+  each event table is built from the rows in it.
+- `jobs/marketplace.py` Amazon Best Sellers, first page of nine categories, with each
+  listing's movement against the previous stored run. Weekly.
 - `jobs/prices.py yahoo crypto news` daily closes, volume, share counts, market cap, news.
 - `jobs/rank.py` all four ranking bases.
 - `jobs/signals.py trends wiki hn news reddit` product demand signals.
@@ -176,3 +238,20 @@ a base of 6 a single post is 17% of the reading.
    reading, and the prose has to say that.
 8. Count the sources that answered, not the ones that moved. A source reporting no change
    still answered, and saying "all 3 sources that answered" when 4 did is just wrong.
+9. Two windows compared against each other must be the same length, or one of them must be
+   converted to a rate first. A count over 30 days divided by a count over 90 days is a
+   ratio of window lengths with a real signal buried somewhere underneath it.
+10. Nothing on this site says an event caused a price move. The event section measures what
+    moved in a window that begins on a date. Over any 30 days some asset has the largest
+    move, and a table that puts the two next to each other is already doing as much as the
+    data allows. The words "because", "driven by", "in response to" and "reaction" do not
+    belong in `jobs/analysis.py`.
+11. Marketplace rows never enter a demand score. A search trend and a bestseller rank are
+    different claims, and an average of the two would mean something different every week
+    depending on which source answered.
+12. A size figure carries its currency everywhere it is printed. A rupee market
+    capitalisation shown with a dollar sign is wrong by a factor of nearly 300, in the
+    direction that makes a Karachi listing look like a global one.
+13. Verify a marketplace category slug by fetching it before adding it. An unknown Amazon
+    slug does not 404, it quietly serves a different category, and nothing downstream would
+    look wrong.
