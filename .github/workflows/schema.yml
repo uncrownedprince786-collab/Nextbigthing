@@ -14,9 +14,13 @@ name: schema
 # table the site renders as empty. jobs/seed.py touches no network and every write is an
 # upsert, so a push that changes nothing re-seeds to the same rows.
 
+# main only, and deliberately not master as well. The two branches currently point at the
+# same commit, so listing both ran this twice for one push: two migrations and two seeds
+# against one database, where the second run is pure contention. It is also the branch Vercel
+# deploys to production, so it is the one where the schema has to be ahead of the build.
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   workflow_dispatch:
 
 # Shared with the refresh workflow. Both write to the one database, and a migration running
