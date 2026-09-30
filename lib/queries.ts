@@ -225,6 +225,67 @@ export async function getHumanSignal(where: { assetId: string } | { productId: s
   });
 }
 
+/// Where attention for one product sits, newest stored breakdown only.
+///
+/// Grouped by the list each value came from, because a value is only meaningful against its
+/// own list: "United States 100" among countries and "Wyoming 100" among US states are both
+/// 100 and are not the same measurement.
+export async function getProductRegions(productId: string) {
+  const latest = await prisma.productRegion.aggregate({
+    where: { productId },
+    _max: { periodEnd: true },
+  });
+  const periodEnd = latest._max.periodEnd;
+  if (!periodEnd) return { periodEnd: null, lists: [] };
+
+  const all = await prisma.productRegion.findMany({
+    where: { productId, periodEnd },
+    orderBy: [{ scope: "asc" }, { geo: "asc" }, { rank: "asc" }],
+  });
+
+  const byList = new Map<string, typeof all>();
+  for (const r of all) {
+    const key = `${r.scope}|${r.geo}`;
+    if (!byList.has(key)) byList.set(key, []);
+    byList.get(key)!.push(r);
+  }
+  const LABEL: Record<string, string> = {
+    "country|": "Countries, worldwide",
+    "region|US": "States, inside the United States",
+    "region|PK": "Provinces, inside Pakistan",
+  };
+  const lists = [...byList.entries()].map(([key, rows]) => ({
+    key,
+    label: LABEL[key] ?? key.replace("|", " "),
+    rows,
+    timeframe: rows[0]?.timeframe ?? "",
+    source: rows[0]?.source ?? "",
+  }));
+  return { periodEnd, lists };
+}
+
+/// Everything with a catalyst flagged on its newest reading, assets and products together.
+///
+/// This is the miss-reduction list: the point is to see, in one place, what has started
+/// being written about in the last few days. Ordered by how far above its own baseline the
+/// coverage is running, because a tenfold jump on a quiet name is more likely to be the thing
+/// a reader had not noticed than a 50% rise on a name that is always in the news.
+export async function getCatalysts(take = 12) {
+  const latest = await prisma.humanSignal.aggregate({ _max: { periodEnd: true } });
+  const periodEnd = latest._max.periodEnd;
+  if (!periodEnd) return { periodEnd: null, rows: [] };
+  const rows = await prisma.humanSignal.findMany({
+    where: { periodEnd, catalyst: true },
+    orderBy: [{ spikeRatio: "desc" }],
+    take,
+    include: {
+      asset: { select: { symbol: true, name: true } },
+      product: { select: { slug: true, name: true } },
+    },
+  });
+  return { periodEnd, rows };
+}
+
 /// How the logged readings have actually turned out so far.
 ///
 /// Returns counts, never a bare rate. `enough` is the caller's cue to publish a figure at

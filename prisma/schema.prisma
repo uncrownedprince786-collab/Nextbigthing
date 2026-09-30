@@ -248,6 +248,7 @@ model Product {
   news           News[]
   humanSignals   HumanSignal[]
   signalLogs     SignalLog[]
+  regions        ProductRegion[]
 
   createdAt DateTime @default(now())
 }
@@ -374,6 +375,47 @@ model MarketplaceItem {
   @@index([periodEnd])
 }
 
+/// Where attention for one product sits geographically, as Google Trends reports it.
+///
+/// Written by jobs/geo.py. Three things about this table decide how it may be read, and all
+/// three are properties of the source rather than choices:
+///
+///   1. A value is not a volume. Trends returns 0-100 normalised *within* the area asked
+///      about, so 100 means "the busiest place in this list" and says nothing about how many
+///      searches that was. Two products' values are not comparable with each other either.
+///   2. A small population produces a large number cheaply. Measured on a real term:
+///      Tonga scored 87 and St. Helena 75 against the Netherlands at 59, and Wyoming scored
+///      100 against California at 24. That is the small-denominator problem the Reddit
+///      counts already have, arriving through a different door.
+///   3. City resolution does not exist here. Asked for directly, Trends returned an empty
+///      frame for a term that has 51 US states of data, so the site says city demand is not
+///      available from free sources instead of showing a metro table built from nothing.
+model ProductRegion {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// country, or region for states and provinces inside one country.
+  scope     String
+  /// The area the breakdown was taken inside: empty for worldwide, otherwise a country
+  /// code such as US or PK. Kept because a value only means anything relative to its list.
+  geo       String
+  /// Place name exactly as the source returned it, never translated or tidied.
+  name      String
+  /// 0-100 within this list. See the note above: not a volume, not cross-comparable.
+  value     Float
+  /// Position within this list, 1 being the highest value.
+  rank      Int
+  periodEnd DateTime @db.Date
+  /// The window the breakdown covers, in the source's own words.
+  timeframe String
+  source    String
+  createdAt DateTime @default(now())
+
+  @@unique([productId, scope, geo, name, periodEnd])
+  @@index([productId, periodEnd])
+  @@index([scope, geo, periodEnd])
+}
+
 /// Direction of the headline wording counted for one target in one window.
 ///
 /// This is tone counted from a fixed word list, not sentiment understood by a model. The
@@ -426,6 +468,21 @@ model HumanSignal {
 
   /// Items in the window of equal length immediately before this one.
   priorItems Int
+
+  /// The catalyst side of the reading: not how much was published over a month, but whether
+  /// something arrived in the last few days that was not arriving before. Attention rising
+  /// over 30 days is a trend; four articles landing in three days against a baseline of one
+  /// a week is an event, and the two need separating because only the second is the thing
+  /// that moves a price before a reader has noticed it.
+  recentItems   Int    @default(0)
+  /// Items per day over the comparison window, which is the baseline the spike is measured
+  /// against. Null when that window is too thin to average.
+  baselineDaily Float?
+  /// Recent items per day divided by baselineDaily. Null when there is no baseline.
+  spikeRatio    Float?
+  /// Set when spikeRatio clears its threshold on a baseline solid enough to divide by.
+  catalyst      Boolean @default(false)
+  catalystNote  String?
   /// Change in item count against that window. Null when the prior window was too thin to
   /// divide by, which is a missing measurement and never a zero.
   velocityPct Float?
@@ -447,6 +504,10 @@ model HumanSignal {
   source     String
   computedAt DateTime   @default(now())
 
+  // The catalyst lookup is a partial index on periodEnd where catalyst is true, which
+  // Prisma cannot express, so it lives in the migration alongside the columns. Declaring a
+  // plain index here instead would put the false rows in it, which is nearly the whole
+  // table, and would also drift from what the database actually has.
   @@unique([targetRef, periodEnd, windowDays])
   @@index([assetId, periodEnd])
   @@index([productId, periodEnd])

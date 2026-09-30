@@ -13,6 +13,7 @@ import {
 } from "@/components/ui";
 import {
   getAllIndustriesByBasis,
+  getCatalysts,
   getFreshness,
   getIndustriesByMarket,
   getLead,
@@ -33,14 +34,16 @@ const MARKET_LEAD: Record<string, string> = {
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [lead, byMarket, risers, sizeNow, risingProducts, fresh] = await Promise.all([
-    getLead(),
-    getIndustriesByMarket(),
-    getAllIndustriesByBasis("rising"),
-    getAllIndustriesByBasis("sizeNow"),
-    getProducts("rising"),
-    getFreshness(),
-  ]);
+  const [lead, byMarket, risers, sizeNow, risingProducts, fresh, catalysts] =
+    await Promise.all([
+      getLead(),
+      getIndustriesByMarket(),
+      getAllIndustriesByBasis("rising"),
+      getAllIndustriesByBasis("sizeNow"),
+      getProducts("rising"),
+      getFreshness(),
+      getCatalysts(12),
+    ]);
 
   const byIndustry = new Map<string, typeof risers>();
   for (const r of risers) {
@@ -82,6 +85,65 @@ export default async function Home() {
           </p>
         ) : null}
       </div>
+
+      {/* Directly under the lead, not at the bottom. The whole value of a catalyst is that
+          it is seen before a reader has heard about it elsewhere, and a radar you have to
+          scroll to find is not a radar. It is deliberately the first thing after the
+          headline, ahead of the rankings, which change slowly by comparison. */}
+      <Section
+        title="Catalyst radar"
+        lead="Assets and products where news started arriving in the last three days at several times the rate of the month before. It counts headlines; it does not read them."
+        aside={<AsOf date={catalysts.periodEnd} />}
+      >
+        {catalysts.rows.length ? (
+          <>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {catalysts.rows.map((c) => {
+                const href = c.asset
+                  ? `/asset/${encodeURIComponent(c.asset.symbol)}`
+                  : c.product
+                    ? `/product/${c.product.slug}`
+                    : undefined;
+                const name = c.asset?.name ?? c.product?.name ?? "unknown";
+                return (
+                  <Card key={c.id} href={href}>
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-sm font-medium">{name}</h3>
+                      <Pill tone="warn">
+                        {c.spikeRatio != null ? `${c.spikeRatio.toFixed(1)}×` : "spike"}
+                      </Pill>
+                    </div>
+                    <p className="text-muted-foreground mt-1 text-[11px]">
+                      {c.asset ? c.asset.symbol : "product"}
+                    </p>
+                    <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+                      {c.recentItems} items in 3 days
+                      {c.baselineDaily != null ? (
+                        <> against {c.baselineDaily.toFixed(2)} a day before</>
+                      ) : null}
+                      .
+                    </p>
+                    <div className="mt-2">
+                      <ConfidenceBadge grade={c.confidence} />
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+            <Note>
+              A spike is the shape of news breaking, and nothing more. It cannot tell you
+              whether what arrived was good, bad, or one story rewritten by four outlets, and
+              a quiet name reaches a high multiple on very few articles. Open the target to
+              read the headlines the count is built from.
+            </Note>
+          </>
+        ) : (
+          <Empty>
+            Nothing is above its own news baseline today. That is the ordinary state: a flag
+            here means something changed, so most days this list is short or empty.
+          </Empty>
+        )}
+      </Section>
 
       {byMarket.map(([market, industries]) => (
         <Section

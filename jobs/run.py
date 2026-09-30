@@ -49,6 +49,10 @@ WEEKLY = [
     ("psx", ["full"]),
     ("signals", ["trends", "wiki", "hn", "news", "reddit"]),
     ("marketplace", []),
+    # geo asks Trends too, so it sits behind marketplace rather than next to signals: the
+    # Amazon fetch in between is several minutes of asking a different host, which is the
+    # cheapest separation available between two runs at the same rate limited source.
+    ("geo", []),
     ("rank", []),
     ("confidence", ["rankings"]),
     ("events", []),

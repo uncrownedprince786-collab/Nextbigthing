@@ -213,6 +213,11 @@ export function DiscussionBlock({
     priorItems: number;
     velocityPct: number | null;
     attention: string;
+    recentItems: number;
+    baselineDaily: number | null;
+    spikeRatio: number | null;
+    catalyst: boolean;
+    catalystNote: string | null;
     hypeTerms: number;
     hypeFlag: boolean;
     hypeNote: string | null;
@@ -238,8 +243,35 @@ export function DiscussionBlock({
   const toneTone =
     signal.tone === "positive" ? "up" : signal.tone === "negative" ? "down" : "default";
 
+  // THIN_ITEMS mirrors MIN_ITEMS in jobs/human.py. The page labels a thin reading rather
+  // than hiding it: being early means reading weak evidence, and a reader shown nothing
+  // cannot judge anything. The label is not optional, though — an unlabelled thin reading
+  // is the actual dishonesty.
+  const THIN_ITEMS = 8;
+  const thin = signal.items > 0 && signal.items < THIN_ITEMS;
+
   return (
     <Card>
+      {signal.catalyst ? (
+        <div className="border-warn/40 bg-warn-bg mb-4 rounded-lg border px-3 py-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Pill tone="warn">catalyst</Pill>
+            <span className="text-warn text-sm font-medium">
+              {signal.recentItems} items in the last 3 days
+              {signal.spikeRatio != null ? (
+                <>
+                  , about {signal.spikeRatio.toFixed(1)}&times; the earlier daily rate
+                </>
+              ) : null}
+            </span>
+          </div>
+          <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">
+            Something recent is being written about that was not before. This counts
+            headlines; it does not read them. What arrived is in the news list on this page.
+          </p>
+        </div>
+      ) : null}
+
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <p className="text-muted-foreground text-xs">Attention</p>
@@ -263,19 +295,20 @@ export function DiscussionBlock({
 
         <div>
           <p className="text-muted-foreground text-xs">Headline wording</p>
-          <div className="mt-1">
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
             {signal.tone ? (
               <Pill tone={toneTone as "up" | "down" | "default"}>{signal.tone}</Pill>
             ) : (
-              <Pill>no direction published</Pill>
+              <Pill>no headlines stored</Pill>
             )}
+            {thin ? <Pill tone="warn">thin</Pill> : null}
           </div>
           <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">
             {signal.positive} positive, {signal.negative} negative, {signal.neutral} neither,
             of {signal.items}.
-            {signal.tone
-              ? ""
-              : " Too few headlines to read a direction, so only the counts are shown."}
+            {thin
+              ? ` Read on ${signal.items} headlines, so it is shown early rather than because it is well evidenced.`
+              : ""}
           </p>
         </div>
 
@@ -298,6 +331,12 @@ export function DiscussionBlock({
       {signal.confidenceNote ? (
         <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
           {signal.confidenceNote}.
+        </p>
+      ) : null}
+
+      {signal.catalystNote && !signal.catalyst ? (
+        <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
+          {signal.catalystNote}.
         </p>
       ) : null}
 
@@ -332,12 +371,115 @@ export function DiscussionBlock({
             promoted and overvalued are different claims and only the first is measured here.
           </>,
           <>
+            <strong>A catalyst flag is a count, not a verdict.</strong> It says items arrived
+            in the last three days at several times the earlier rate, which is the shape of
+            news breaking. It has not read them, so it cannot tell you whether what arrived
+            was good, bad, or a rewrite of the same story by four outlets.
+          </>,
+          <>
+            <strong>Thin readings are shown, labelled thin.</strong> A direction built on a
+            few headlines is published rather than withheld, because a signal worth having is
+            usually weak when it first appears. The count is always next to it so the
+            weakness is visible rather than implied.
+          </>,
+          <>
             <strong>None of this is a forecast.</strong> It is what was published in a stated
             window, from {signal.source}.
           </>,
         ]}
       />
     </Card>
+  );
+}
+
+/// Where attention for a product sits geographically.
+///
+/// Every number here is a share normalised inside its own list, which is the single fact a
+/// reader has to hold on to, so it is stated above the tables rather than in a footnote. The
+/// consequence is counter-intuitive enough to spell out: a small population can top a list
+/// on very few searches, and on the term used to verify this source Wyoming outranked
+/// California four to one. So the tables are labelled as where interest is *concentrated
+/// relative to local search volume*, which is what the source measures, and not as where the
+/// buyers are, which it does not.
+///
+/// City level is absent because the source returns nothing at that resolution, and the block
+/// says so instead of leaving a reader to assume it was not looked for.
+export function GeographyBlock({
+  geo,
+}: {
+  geo: {
+    periodEnd: Date | string | null;
+    lists: {
+      key: string;
+      label: string;
+      timeframe: string;
+      source: string;
+      rows: { name: string; value: number; rank: number }[];
+    }[];
+  };
+}) {
+  if (!geo.periodEnd || !geo.lists.length) {
+    return (
+      <Empty>
+        No regional breakdown is stored for this product yet. It is fetched from Google
+        Trends by <code>python jobs/geo.py</code>.
+      </Empty>
+    );
+  }
+
+  return (
+    <div>
+      <p className="text-muted-foreground text-sm leading-relaxed">
+        Each value is 0&ndash;100 <strong>within its own list</strong>, so 100 means the
+        highest place in that list and says nothing about how many searches that was. Values
+        are not comparable between lists, or between products.
+      </p>
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+        {geo.lists.map((list) => (
+          <Card key={list.key}>
+            <h3 className="text-sm font-medium">{list.label}</h3>
+            <p className="text-muted-foreground mt-0.5 text-[11px]">
+              {list.timeframe} &middot; {list.rows.length} places
+            </p>
+            <ul className="mt-3 space-y-1.5">
+              {list.rows.slice(0, 8).map((r) => (
+                <li key={r.name} className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground num w-4 shrink-0 text-right">
+                    {r.rank}
+                  </span>
+                  <span className="flex-1 truncate">{r.name}</span>
+                  <span
+                    aria-hidden="true"
+                    className="bg-primary/25 h-1.5 shrink-0 rounded-full"
+                    style={{ width: `${Math.max(2, Math.round(r.value * 0.42))}px` }}
+                  />
+                  <span className="num text-muted-foreground w-7 shrink-0 text-right">
+                    {Math.round(r.value)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ))}
+      </div>
+
+      <Note>
+        A small population produces a high score cheaply. Because the value is a share of
+        local searching rather than a count of it, a place with little search traffic can
+        reach 100 on very few searches &mdash; on the term used to verify this source,
+        Wyoming scored 100 against California&apos;s 24. Read these as where interest is
+        concentrated relative to local search volume, not as where the buyers are.
+      </Note>
+
+      <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
+        <strong className="text-foreground">City level is not available.</strong> Asked for
+        directly, the source returns an empty result at city resolution for terms that have
+        full state-level data, so no metro table is shown. That is a limit of the free source,
+        not an omission, and nothing here is substituted for it. As of{" "}
+        {isoDate(geo.periodEnd)}, from {geo.lists[0]?.source}.
+      </p>
+    </div>
   );
 }
 

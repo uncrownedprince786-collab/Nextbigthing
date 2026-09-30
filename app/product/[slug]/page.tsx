@@ -7,13 +7,20 @@ import {
   ConfidenceBadge,
   DiscussionBlock,
   Empty,
+  GeographyBlock,
   HowToRead,
   Note,
   Pill,
   Section,
   Table,
 } from "@/components/ui";
-import { getAccuracy, getHumanSignal, getProduct, getProductMarketplace } from "@/lib/queries";
+import {
+  getAccuracy,
+  getHumanSignal,
+  getProduct,
+  getProductMarketplace,
+  getProductRegions,
+} from "@/lib/queries";
 import { count, isoDate, longDate, pct, relativeTime, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
@@ -76,9 +83,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // is a text match, not a measurement of the product category, and it is deliberately
   // fetched after the product rather than joined into the demand score.
   const market = await getProductMarketplace(p.trendsTerm || p.name);
-  const [discussion, accuracy] = await Promise.all([
+  const [discussion, accuracy, geo] = await Promise.all([
     getHumanSignal({ productId: p.id }),
     getAccuracy(30),
+    getProductRegions(p.id),
   ]);
 
   const read = p.analysis[0];
@@ -269,6 +277,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <div className="mt-3">
           <AccuracyNote accuracy={accuracy} />
         </div>
+      </Section>
+
+      <Section
+        title="Where the attention is"
+        lead="The geographic breakdown of search interest for this product, from Google Trends' own regional data. Countries and regions are available from free sources; city level is not."
+      >
+        <GeographyBlock geo={geo} />
       </Section>
 
       <Section

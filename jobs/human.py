@@ -54,11 +54,33 @@ except Exception:  # noqa: BLE001
 # The measured window, and the equal window before it that attention is compared against.
 WINDOW_DAYS = 30
 
-# Below this many headlines no tone direction is published. One article is more than an
-# eighth of a reading built on eight, and a direction set by one article is that article.
-# The counts are still stored, because a reader can check 3 positive against 1 negative and
-# see for themselves that it is four headlines.
+# Below this many headlines the reading is labelled thin rather than withheld.
+#
+# This used to withhold the direction entirely, and that was the wrong call. Hiding a
+# direction because it rests on four headlines does not protect a reader, it just means the
+# site noticed something and said nothing — and the whole point of this thing is to be early,
+# which is precisely when the evidence is thin. So the direction is published, the count is
+# published next to it, and the grade drops to none with a note saying what it rests on. A
+# reader can then decide; a reader shown nothing cannot.
+#
+# What stays forbidden is different and unchanged: inventing a number, or describing four
+# headlines as agreement.
 MIN_ITEMS = 8
+
+# The catalyst window. Attention measured over 30 days is a trend; something arriving in the
+# last three days that was not arriving before is an event, and only the second one moves a
+# price before a reader has noticed. Three days covers a Friday statement read on Monday.
+CATALYST_DAYS = 3
+
+# How many times the baseline daily rate the recent window has to run at. Three times is a
+# rate that would not happen by ordinary variation in a feed that publishes a couple of items
+# a week, and low enough to catch a single significant report rather than only a media storm.
+CATALYST_RATIO = 3.0
+
+# The baseline needs enough items to be a rate rather than an accident. Below this the spike
+# is left unmeasured: two items in a month is not a baseline, and dividing by it turns one
+# ordinary article into a tenfold surge.
+MIN_BASELINE_ITEMS = 4
 
 # Below this many items in the prior window, velocity is left null. Dividing by 2 turns one
 # extra article into +50%, which is arithmetic rather than a change in attention.
@@ -247,9 +269,12 @@ def read_target(cur, column: str, target_id: str, name: str, end: date):
     n = len(items)
     top_share = (max(publishers.values()) / n) if n else None
 
+    # Published whenever there is anything at all to read, and labelled when it is thin.
+    # Withholding it was over-filtering: being early means reading weak evidence, not
+    # refusing to.
     tone = None
     tone_score = None
-    if n >= MIN_ITEMS:
+    if n:
         tone_score = (positive - negative) / n
         if tone_score > NEUTRAL_BAND:
             tone = "positive"
@@ -272,6 +297,37 @@ def read_target(cur, column: str, target_id: str, name: str, end: date):
             else:
                 attention = "flat"
 
+    # Catalyst: the short window against the long window's daily rate. Measured on the same
+    # stored rows, but answering a different question from velocity, so both are kept.
+    recent = news_window(cur, column, target_id, end_dt - timedelta(days=CATALYST_DAYS), end_dt)
+    base_from = end_dt - timedelta(days=WINDOW_DAYS + CATALYST_DAYS)
+    base_to = end_dt - timedelta(days=CATALYST_DAYS)
+    baseline_items = news_window(cur, column, target_id, base_from, base_to)
+
+    recent_n = len(recent)
+    baseline_daily = None
+    spike = None
+    catalyst = False
+    catalyst_note = None
+    if len(baseline_items) >= MIN_BASELINE_ITEMS:
+        baseline_daily = len(baseline_items) / WINDOW_DAYS
+        if baseline_daily > 0:
+            spike = (recent_n / CATALYST_DAYS) / baseline_daily
+            catalyst = spike >= CATALYST_RATIO
+    if catalyst:
+        catalyst_note = (
+            f"{recent_n} items in the last {CATALYST_DAYS} days, about {spike:.1f} times the "
+            f"{baseline_daily:.2f} a day of the {WINDOW_DAYS} days before. Something arrived "
+            "recently that was not arriving before. What it was is in the headlines below; "
+            "this flag counts them and does not read them"
+        )
+    elif recent_n and baseline_daily is None:
+        catalyst_note = (
+            f"{recent_n} items in the last {CATALYST_DAYS} days, but the {WINDOW_DAYS} days "
+            f"before hold fewer than {MIN_BASELINE_ITEMS}, which is too thin to be a rate. No "
+            "spike is reported rather than one measured against almost nothing"
+        )
+
     hype_share = (hype_items / n) if n else None
     hype_flag = bool(
         attention == "rising" and hype_share is not None and hype_share >= HYPE_SHARE_LIMIT
@@ -290,6 +346,11 @@ def read_target(cur, column: str, target_id: str, name: str, end: date):
         )
 
     g, notes = grade(n, len(publishers), top_share)
+    if catalyst:
+        notes.append(
+            "a catalyst is flagged, which is a count of recent items and not a reading of "
+            "what they say"
+        )
     if tone is not None and positive and negative and abs(tone_score) <= NEUTRAL_BAND:
         notes.append(
             f"{positive} headlines worded positively against {negative} negatively, which "
@@ -304,6 +365,11 @@ def read_target(cur, column: str, target_id: str, name: str, end: date):
         "tone": tone,
         "toneScore": tone_score,
         "priorItems": len(prior),
+        "recentItems": recent_n,
+        "baselineDaily": baseline_daily,
+        "spikeRatio": spike,
+        "catalyst": catalyst,
+        "catalystNote": catalyst_note,
         "velocityPct": velocity,
         "attention": attention,
         "hypeTerms": hype_items,
@@ -335,11 +401,20 @@ def claim_text(r: dict, end: date) -> str:
             "compare against, so no change in attention is reported."
         )
     if r["tone"] is None:
+        bits.append("No headlines are stored, so there is no wording to read.")
+    elif r["items"] < MIN_ITEMS:
         bits.append(
-            f"Fewer than {MIN_ITEMS} headlines, so no tone direction is published."
+            f"Net wording reads {r['tone']} on {r['items']} headlines, which is thin: it is "
+            "reported so it can be seen early, not because it is well evidenced."
         )
     else:
         bits.append(f"Net wording reads {r['tone']}.")
+    if r["catalyst"]:
+        bits.append(
+            f"{r['recentItems']} items arrived in the last {CATALYST_DAYS} days against a "
+            f"baseline of {r['baselineDaily']:.2f} a day, so something recent is being "
+            "written about that was not before."
+        )
     if r["hypeFlag"]:
         bits.append("Promotional wording is rising with the coverage.")
     bits.append(
@@ -357,7 +432,10 @@ def factors_text(r: dict) -> str:
         f"priorItems={r['priorItems']}; "
         f"velocityPct={'' if r['velocityPct'] is None else format(r['velocityPct'], '.1f')}; "
         f"attention={r['attention']}; hypeTerms={r['hypeTerms']}; "
-        f"hypeFlag={'yes' if r['hypeFlag'] else 'no'}; window={WINDOW_DAYS}d"
+        f"hypeFlag={'yes' if r['hypeFlag'] else 'no'}; "
+        f"recentItems={r['recentItems']}; "
+        f"spikeRatio={'' if r['spikeRatio'] is None else format(r['spikeRatio'], '.2f')}; "
+        f"catalyst={'yes' if r['catalyst'] else 'no'}; window={WINDOW_DAYS}d"
     )
 
 
@@ -367,16 +445,20 @@ def save_signal(cur, column: str, target_id: str, r: dict, end: date) -> None:
         f"""
         INSERT INTO "HumanSignal" ("{column}", "{other}", "targetRef", "periodEnd",
             "windowDays", items, positive, negative, neutral, tone, "toneScore",
-            "priorItems", "velocityPct", attention, "hypeTerms", "hypeShare", "hypeFlag",
+            "priorItems", "velocityPct", attention, "recentItems", "baselineDaily",
+            "spikeRatio", catalyst, "catalystNote", "hypeTerms", "hypeShare", "hypeFlag",
             "hypeNote", confidence, "confidenceNote", source, "computedAt")
         VALUES (%s, NULL, %s, %s, %s, %s, %s, %s, %s, %s::"Tone", %s, %s, %s, %s, %s, %s,
-                %s, %s, %s::"Confidence", %s, %s, now())
+                %s, %s, %s, %s, %s, %s, %s, %s::"Confidence", %s, %s, now())
         ON CONFLICT ("targetRef", "periodEnd", "windowDays") DO UPDATE SET
             items = EXCLUDED.items, positive = EXCLUDED.positive,
             negative = EXCLUDED.negative, neutral = EXCLUDED.neutral,
             tone = EXCLUDED.tone, "toneScore" = EXCLUDED."toneScore",
             "priorItems" = EXCLUDED."priorItems", "velocityPct" = EXCLUDED."velocityPct",
-            attention = EXCLUDED.attention, "hypeTerms" = EXCLUDED."hypeTerms",
+            attention = EXCLUDED.attention, "recentItems" = EXCLUDED."recentItems",
+            "baselineDaily" = EXCLUDED."baselineDaily",
+            "spikeRatio" = EXCLUDED."spikeRatio", catalyst = EXCLUDED.catalyst,
+            "catalystNote" = EXCLUDED."catalystNote", "hypeTerms" = EXCLUDED."hypeTerms",
             "hypeShare" = EXCLUDED."hypeShare", "hypeFlag" = EXCLUDED."hypeFlag",
             "hypeNote" = EXCLUDED."hypeNote", confidence = EXCLUDED.confidence,
             "confidenceNote" = EXCLUDED."confidenceNote", "computedAt" = now()
@@ -384,9 +466,10 @@ def save_signal(cur, column: str, target_id: str, r: dict, end: date) -> None:
         (
             target_id, target_id, end, WINDOW_DAYS, r["items"], r["positive"],
             r["negative"], r["neutral"], r["tone"], r["toneScore"], r["priorItems"],
-            r["velocityPct"], r["attention"], r["hypeTerms"], r["hypeShare"],
-            r["hypeFlag"], r["hypeNote"], r["confidence"], r["confidenceNote"],
-            "Google News RSS, as stored in News",
+            r["velocityPct"], r["attention"], r["recentItems"], r["baselineDaily"],
+            r["spikeRatio"], r["catalyst"], r["catalystNote"], r["hypeTerms"],
+            r["hypeShare"], r["hypeFlag"], r["hypeNote"], r["confidence"],
+            r["confidenceNote"], "Google News RSS, as stored in News",
         ),
     )
 
@@ -429,7 +512,7 @@ def main() -> None:
         ):
             step(f"human signal for {label}")
             targets = rows(cur, f'SELECT id, name FROM "{table}" ORDER BY name')
-            written = skipped = flagged = 0
+            written = skipped = flagged = sparked = thin = 0
             for t in targets:
                 r = read_target(cur, column, t["id"], t["name"], end)
                 if r is None:
@@ -440,9 +523,14 @@ def main() -> None:
                 written += 1
                 if r["hypeFlag"]:
                     flagged += 1
+                if r["catalyst"]:
+                    sparked += 1
+                if r["items"] and r["items"] < MIN_ITEMS:
+                    thin += 1
             print(
                 f"  {label}: {written} read, {skipped} with no stored coverage, "
-                f"{flagged} hype flagged"
+                f"{sparked} catalyst flagged, {flagged} hype flagged, "
+                f"{thin} published as thin"
             )
 
 
