@@ -224,6 +224,17 @@ a base of 6 a single post is 17% of the reading.
   scheduled workflow, so a run leaves a record.
 - GitHub Actions runs `daily` at 07:17 UTC and `weekly` on Monday 07:43 UTC. Vercel cannot
   run Python, so nothing on the site is computed in the browser.
+- Schema migrations run in the refresh workflow, never in the Vercel build. Vercel holds the
+  read-only role, which has no rights to run DDL, so a migration there could only ever fail.
+  The workflow holds the writer secret and applies `npx prisma migrate deploy` before any job
+  runs, which is also the order the data needs: a job cannot write to a table that does not
+  exist yet. `migrate deploy` skips migrations that have already run, so the step is a no-op
+  on an unchanged schema.
+- The consequence is that a schema change has to reach the database before the deploy that
+  depends on it. The pages read their tables while Next.js collects page data, so a build
+  that runs ahead of its migration fails there. That failure is safe — Vercel keeps serving
+  the previous deployment — but the fix is always to run the migration and rebuild, never to
+  give the site's role write access.
 
 ## Rules for changes
 1. Check whether the number already exists before adding a column.

@@ -166,6 +166,10 @@ repository secrets:
   or writer role.
 - `CONTACT_EMAIL`, optional, used only if identified requests are ever filed.
 
+The workflow applies `npx prisma migrate deploy` before it runs any job. This is the only
+automated place the schema is migrated, because it is the only automated place that holds a
+writer credential, and a job cannot write to a table that does not exist yet.
+
 Product signals run weekly rather than daily because Reddit and Wikipedia rate limit, and
 asking them every day mostly returns `429` and no new data.
 
@@ -173,6 +177,14 @@ asking them every day mostly returns `429` and no new data.
 
 Vercel builds the site. Set `DATABASE_URL` in the project environment, and the front page,
 industry, product, asset and methodology routes are revalidated hourly.
+
+Nothing in the Vercel build touches the schema, and it must stay that way: the role Vercel
+holds is read-only and cannot run DDL. So a release that adds a table has an order to it.
+The migration goes first, from the writer role — the refresh workflow does this, or
+`npx prisma migrate deploy` from a local `.env` — and the deploy follows. A build that runs
+first fails while Next.js collects page data, because the pages query their tables at build
+time. That failure costs nothing: Vercel keeps serving the previous deployment until a build
+succeeds.
 
 The site only ever reads, so the `DATABASE_URL` Vercel uses is a dedicated read-only role
 (`nbt_readonly`), not the connection string the jobs write with. A leaked read-only

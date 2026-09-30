@@ -38,6 +38,28 @@ jobs:
       - name: Install job dependencies
         run: pip install -r requirements.txt
 
+      # The schema is migrated here and nowhere else. This is the only place that holds the
+      # writer credential: Vercel is given the read-only role on purpose, so it cannot run
+      # DDL, and a laptop is not in the loop on a scheduled run. Applying it before the jobs
+      # is also the order the data needs, since a job cannot write a table that is not there.
+      # migrate deploy applies only what has not run yet, so this is a no-op most days.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      # Installed from the lockfile rather than fetched ad hoc, so the migration runs on the
+      # same Prisma version the migrations were written with, and so the CLI can resolve the
+      # datasource config, which imports dotenv and prisma/config. --ignore-scripts skips the
+      # postinstall client generation, which a migration does not need.
+      - name: Install the Prisma CLI
+        run: npm ci --ignore-scripts
+
+      - name: Apply pending schema migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx prisma migrate deploy
+
       - name: Choose the run
         id: plan
         run: |
