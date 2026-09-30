@@ -1,0 +1,73 @@
+name: schema
+
+# The schema has to reach the database before the deploy that depends on it. The pages query
+# their tables while Next.js collects page data, so a build that ships ahead of its migration
+# fails there rather than serving a broken site — which is safe, but it does mean a release
+# that adds a table never lands until something applies the migration.
+#
+# This is that something, and it runs here because this is the only automated place holding a
+# writer credential. Vercel is deliberately given the read-only nbt_readonly role, which has
+# no rights to run DDL, so the migration cannot live in the build that needs it.
+#
+# Seeding follows the migration in the same run because reference rows are part of the shape
+# of a release, not part of the data refresh: a new industry with no row in Industry is a
+# table the site renders as empty. jobs/seed.py touches no network and every write is an
+# upsert, so a push that changes nothing re-seeds to the same rows.
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+# Shared with the refresh workflow. Both write to the one database, and a migration running
+# underneath a data job is the kind of thing that only fails some of the time, which is worse
+# than waiting. cancel-in-progress stays false so a queued migration is never dropped.
+concurrency:
+  group: nbt-database
+  cancel-in-progress: false
+
+jobs:
+  schema:
+    name: migrate and seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      # From the lockfile rather than fetched ad hoc, so the CLI matches the version the
+      # migrations were written with and can resolve prisma7.config.ts, which imports dotenv
+      # and prisma/config. --ignore-scripts skips generating a client, which no step needs.
+      - name: Install the Prisma CLI
+        run: npm ci --ignore-scripts
+
+      - name: Apply pending schema migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx prisma migrate deploy
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      - name: Seed the reference lists
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/seed.py
+
+      - name: Row counts after the run
+        if: always()
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/stats.py

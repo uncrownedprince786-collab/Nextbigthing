@@ -17,8 +17,10 @@ on:
         type: choice
         options: [daily, weekly, seed]
 
+# Shared with the schema workflow, so a migration and a data job never write at the same
+# time. See the note there.
 concurrency:
-  group: refresh-data
+  group: nbt-database
   cancel-in-progress: false
 
 jobs:
