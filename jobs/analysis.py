@@ -965,7 +965,10 @@ def site_lead(cur) -> None:
         ORDER BY "demandScore" DESC LIMIT 3
         """,
     )
-    total_products, thin = rows(
+    # Subscripted, not unpacked. The connection is opened with row_factory=dict_row, so a
+    # row is a dict, and unpacking a dict binds its keys: thin became the string "thin",
+    # which is always truthy, so the front page said "thin of total products" every run.
+    counts = rows(
         cur,
         """
         SELECT count(*) AS total,
@@ -973,6 +976,7 @@ def site_lead(cur) -> None:
         FROM "Product"
         """,
     )[0]
+    total_products, thin = counts["total"], counts["thin"]
     body = (
         f"Data through {latest}. "
         + (
