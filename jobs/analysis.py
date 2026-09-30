@@ -505,7 +505,7 @@ def asset_notes(cur) -> None:
                 where = (
                     "it holds that position"
                     if move == 0
-                    else f"so it sits {moved_word(move)} than it did"
+                    else f"it sits {moved_word(move)} than it did"
                 )
                 parts.append(
                     f"At the end of 2021 it ranked {ordinal(old[0]['rank'])} in the same field, "
