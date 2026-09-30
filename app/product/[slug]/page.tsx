@@ -162,11 +162,24 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             ? "No source answered, so nothing is claimed about this product."
             : up.length && down.length
               ? `${up.length} point up and ${down.length} point down, so the average is a weak read and the grade is capped at medium.`
-              : flat.length && !up.length && !down.length
-                ? `All ${bySource.size} that answered report no change.`
-                : `All ${bySource.size} that answered point ${up.length ? "up" : "down"}.`}{" "}
+              : up.length || down.length
+                ? [
+                    // A source sitting at exactly zero has not moved, so counting it as
+                    // pointing down would overstate how much of this is agreement.
+                    up.length + down.length === 1
+                      ? `The single source that moved points ${up.length ? "up" : "down"}`
+                      : `The ${up.length + down.length} that moved all point ${up.length ? "up" : "down"}`,
+                    flat.length
+                      ? `, and ${flat.length} of ${bySource.size} report no change at all`
+                      : "",
+                    ".",
+                  ]
+                    .join("")
+                    .replace(",.", ".")
+                : `All ${bySource.size} that answered report no change.`}{" "}
           The score is the plain mean of the counted rows, so a large single reading can carry
-          it, which is what the confidence grade is reporting.
+          it, which is what the confidence grade is reporting. A source sitting at zero is
+          counted as answering but is not counted as agreeing on a direction.
         </p>
         {p.confidenceNote ? <Note>{p.confidenceNote}</Note> : null}
       </Section>
