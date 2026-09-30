@@ -170,6 +170,21 @@ The workflow applies `npx prisma migrate deploy` before it runs any job. This is
 automated place the schema is migrated, because it is the only automated place that holds a
 writer credential, and a job cannot write to a table that does not exist yet.
 
+### `main` is the branch
+
+One branch, and it is `main`. It is what Vercel deploys to production and what
+`.github/workflows/schema.yml` triggers on. `master` still exists and is not maintained.
+
+This matters more than a naming preference, because GitHub runs `schedule` and
+`workflow_dispatch` **only from the repository's default branch**, and it takes both the
+workflow file and the checked-out code from there. So while the default is still `master`,
+the nightly refresh runs whatever `master` last held — which is fine today, because the two
+point at the same commit, and wrong the moment `main` moves ahead.
+
+**The repository default has to be set to `main`** for the schedule to keep running current
+code: Settings → Branches → Default branch. Until that is done, a change to a job in `main`
+will not reach the nightly run.
+
 Product signals run weekly rather than daily because Reddit and Wikipedia rate limit, and
 asking them every day mostly returns `429` and no new data.
 

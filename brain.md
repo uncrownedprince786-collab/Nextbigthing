@@ -338,6 +338,12 @@ starts recording immediately so the clock begins, and both product parallels and
 published hit rate stay behind a stated sample-size floor.
 
 ## Rules for changes
+0. One branch, `main`. Vercel deploys production from it and `schema.yml` triggers on it.
+   `master` is left where it was and is not maintained. The catch to remember: GitHub takes
+   `schedule` and `workflow_dispatch` from the repository's *default* branch and nowhere
+   else, both the workflow file and the code, so the nightly refresh only runs current code
+   once the default is `main`. If a job change does not show up in the nightly run, this is
+   why.
 1. Check whether the number already exists before adding a column.
 2. If a source stops answering, mark it unavailable in this file and in the UI. Do not
    substitute a different source without saying so.
