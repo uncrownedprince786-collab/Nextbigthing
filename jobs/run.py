@@ -36,6 +36,13 @@ HERE = Path(__file__).resolve().parent
 DAILY = [
     ("prices", ["yahoo", "crypto", "news"]),
     ("psx", ["recent"]),
+    # analogs reads the closes the two price jobs have just written, so it follows them.
+    # Arithmetic over stored rows, no network.
+    ("analogs", []),
+    # upcoming asks the provider's company calendar, which is the one forward looking source
+    # here. Daily rather than weekly because a date that moves is worth catching the day it
+    # moves, and a reminder set for a date that has changed is worse than none.
+    ("upcoming", []),
     ("rank", []),
     ("confidence", ["rankings"]),
     ("events", []),
@@ -53,6 +60,8 @@ WEEKLY = [
     # Amazon fetch in between is several minutes of asking a different host, which is the
     # cheapest separation available between two runs at the same rate limited source.
     ("geo", []),
+    ("analogs", []),
+    ("upcoming", []),
     ("rank", []),
     ("confidence", ["rankings"]),
     ("events", []),

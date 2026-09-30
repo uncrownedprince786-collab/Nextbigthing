@@ -116,12 +116,20 @@ def fetch_yahoo(cur) -> int:
 
         closes: list[tuple[date, float]] = []
         volumes: dict[date, float] = {}
+        bars: dict[date, tuple[float | None, float | None, float | None]] = {}
+
+        def num(value):
+            """A float, or None for the NaN the source uses for a field it did not publish."""
+            return float(value) if value == value and value is not None else None
+
         for stamp, row in part.iterrows():
             day = stamp.date()
             closes.append((day, float(row["Close"])))
             vol = row.get("Volume")
             if vol == vol:  # not NaN
                 volumes[day] = float(vol)
+            # The source has always sent these; the job used to drop them on the floor.
+            bars[day] = (num(row.get("Open")), num(row.get("High")), num(row.get("Low")))
 
         cur.execute('DELETE FROM "PriceSnapshot" WHERE "assetId" = %s', (a["id"],))
 
@@ -142,7 +150,11 @@ def fetch_yahoo(cur) -> int:
         cap_by_day = {day: val for day, val in cap_rows}
 
         buffer = [
-            (a["id"], day, close, volumes.get(day), cap_by_day.get(day), YAHOO)
+            (
+                a["id"], day,
+                *bars.get(day, (None, None, None)),
+                close, volumes.get(day), cap_by_day.get(day), YAHOO,
+            )
             for day, close in closes
         ]
         insert_snapshots(cur, buffer)
@@ -177,10 +189,11 @@ def insert_snapshots(cur, buffer: list[tuple]) -> None:
     if not buffer:
         return
     with cur.copy(
-        "COPY \"PriceSnapshot\" (\"assetId\", date, close, volume, \"marketCap\", source) FROM STDIN"
+        'COPY "PriceSnapshot" ("assetId", date, open, high, low, close, volume, '
+        '"marketCap", source) FROM STDIN'
     ) as cp:
-        for asset_id, day, close, vol, cap, source in buffer:
-            cp.write_row((asset_id, day, close, vol, cap, source))
+        for asset_id, day, op, hi, lo, close, vol, cap, source in buffer:
+            cp.write_row((asset_id, day, op, hi, lo, close, vol, cap, source))
 
 
 def fetch_crypto(cur) -> int:

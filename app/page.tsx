@@ -10,6 +10,7 @@ import {
   Pill,
   Section,
   Table,
+  UpcomingBlock,
 } from "@/components/ui";
 import {
   getAllIndustriesByBasis,
@@ -18,6 +19,7 @@ import {
   getIndustriesByMarket,
   getLead,
   getProducts,
+  getUpcoming,
 } from "@/lib/queries";
 import { isoDate, money, pct, sizeLabel, toneClass } from "@/lib/format";
 
@@ -34,7 +36,7 @@ const MARKET_LEAD: Record<string, string> = {
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [lead, byMarket, risers, sizeNow, risingProducts, fresh, catalysts] =
+  const [lead, byMarket, risers, sizeNow, risingProducts, fresh, catalysts, upcoming] =
     await Promise.all([
       getLead(),
       getIndustriesByMarket(),
@@ -43,6 +45,7 @@ export default async function Home() {
       getProducts("rising"),
       getFreshness(),
       getCatalysts(12),
+      getUpcoming({ take: 10 }),
     ]);
 
   const byIndustry = new Map<string, typeof risers>();
@@ -143,6 +146,16 @@ export default async function Home() {
             here means something changed, so most days this list is short or empty.
           </Empty>
         )}
+      </Section>
+
+      {/* Next to the radar, because the two answer the same worry from opposite ends: one
+          catches what has already started arriving, the other what is already on the
+          calendar. Between them they cover most of what a reader finds out too late. */}
+      <Section
+        title="Dates ahead"
+        lead="Scheduled items already published: earnings, dividend and ex-dividend dates. Remembering them is the point; nothing here says what a date will do."
+      >
+        <UpcomingBlock events={upcoming} />
       </Section>
 
       {byMarket.map(([market, industries]) => (

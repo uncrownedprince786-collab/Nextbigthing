@@ -90,6 +90,12 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: python jobs/human.py
 
+      - name: Read the near term analogs
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/analogs.py
+
       - name: Measure what followed earlier readings
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

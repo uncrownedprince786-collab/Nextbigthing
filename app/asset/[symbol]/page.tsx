@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Sparkline } from "@/components/chart";
 import {
   AccuracyNote,
+  AnalogBlock,
   Card,
   ConfidenceBadge,
   DiscussionBlock,
@@ -12,9 +13,17 @@ import {
   Pill,
   Section,
   Table,
+  UpcomingBlock,
   weakest,
 } from "@/components/ui";
-import { getAccuracy, getAsset, getAssetPrices, getHumanSignal } from "@/lib/queries";
+import {
+  getAccuracy,
+  getAnalogs,
+  getAsset,
+  getAssetPrices,
+  getHumanSignal,
+  getUpcoming,
+} from "@/lib/queries";
 import { isoDate, longDate, money, pct, relativeTime, sizeBasisText, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
@@ -44,9 +53,11 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
 
   const prices = await getAssetPrices(asset.id, 2019);
   const note = asset.analysis[0];
-  const [discussion, accuracy] = await Promise.all([
+  const [discussion, accuracy, analogs, upcoming] = await Promise.all([
     getHumanSignal({ assetId: asset.id }),
     getAccuracy(30),
+    getAnalogs(asset.id),
+    getUpcoming({ assetId: asset.id, take: 8 }),
   ]);
 
   const byBasis = new Map<string, typeof asset.rankings>();
@@ -177,6 +188,20 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
         ) : (
           <Empty>No ranking rows are stored for this asset.</Empty>
         )}
+      </Section>
+
+      <Section
+        title="What followed days like this one"
+        lead="Past days in the stored history whose one day return, volume multiple and five day trend were close to the latest day's, and what measurably happened next. A record of similar days, not a statement about this one."
+      >
+        <AnalogBlock analogs={analogs} />
+      </Section>
+
+      <Section
+        title="Scheduled dates ahead"
+        lead="Dated items already published for this asset. The point is not to predict them but to not be surprised by them."
+      >
+        <UpcomingBlock events={upcoming} showTargets={false} />
       </Section>
 
       <Section

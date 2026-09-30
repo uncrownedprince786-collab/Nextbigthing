@@ -19,6 +19,7 @@ on:
       - jobs/psx.py
       - jobs/seed.py
       - jobs/geo.py
+      - jobs/upcoming.py
       - .github/workflows/backfill.yml
   workflow_dispatch:
 
@@ -76,6 +77,15 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/geo.py
+
+      # The forward looking half. Here rather than in the schema workflow because it asks a
+      # provider rather than reading stored rows, and here rather than only nightly because a
+      # newly added asset has no scheduled dates until something fetches them once.
+      - name: Fetch scheduled dates
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/upcoming.py
 
       # Prices alone put nothing on the page. A ranking is computed from stored closes, the
       # grade is computed from the ranking, and the written line reads the grade, so the

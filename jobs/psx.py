@@ -106,7 +106,24 @@ def read_day(day: date, today: date) -> dict[str, dict] | None:
         # state, not a price, and storing it would put a vertical drop in the chart.
         if close <= 0:
             continue
-        out[f[1].strip().upper()] = {"close": close, "volume": volume, "name": f[3].strip()}
+
+        # open, high and low sit at 4, 5 and 6 and were being dropped. A zero here is the
+        # same "did not trade" marker the close uses, so it becomes None rather than a price.
+        def bar(idx: int) -> float | None:
+            try:
+                v = float(f[idx])
+            except (ValueError, IndexError):
+                return None
+            return v if v > 0 else None
+
+        out[f[1].strip().upper()] = {
+            "open": bar(4),
+            "high": bar(5),
+            "low": bar(6),
+            "close": close,
+            "volume": volume,
+            "name": f[3].strip(),
+        }
     return out or None
 
 
@@ -179,10 +196,12 @@ def insert(cur, buffer: list[tuple]) -> int:
         return 0
     cur.executemany(
         """
-        INSERT INTO "PriceSnapshot" ("assetId", date, close, volume, "marketCap", source)
-        VALUES (%s,%s,%s,%s,%s,%s)
+        INSERT INTO "PriceSnapshot" ("assetId", date, open, high, low, close, volume,
+                                     "marketCap", source)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
         ON CONFLICT ("assetId", date) DO UPDATE
-        SET close = EXCLUDED.close, volume = EXCLUDED.volume,
+        SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low,
+            close = EXCLUDED.close, volume = EXCLUDED.volume,
             "marketCap" = COALESCE(EXCLUDED."marketCap", "PriceSnapshot"."marketCap"),
             source = EXCLUDED.source
         """,
@@ -274,7 +293,12 @@ def main() -> None:
                 # The symbol did not trade that day, or was not listed yet. Either way
                 # there is no close to store.
                 continue
-            buffer.append((a["id"], day, row["close"], row["volume"], None, CLOSING))
+            buffer.append(
+                (
+                    a["id"], day, row["open"], row["high"], row["low"],
+                    row["close"], row["volume"], None, CLOSING,
+                )
+            )
         if len(buffer) >= 2000:
             batches.append(buffer)
             buffer = []

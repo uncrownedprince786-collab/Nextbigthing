@@ -225,6 +225,71 @@ export async function getHumanSignal(where: { assetId: string } | { productId: s
   });
 }
 
+/// The newest near-term analog rows for one asset, one per horizon.
+export async function getAnalogs(assetId: string) {
+  const latest = await prisma.assetAnalog.aggregate({
+    where: { assetId },
+    _max: { periodEnd: true },
+  });
+  const periodEnd = latest._max.periodEnd;
+  if (!periodEnd) return { periodEnd: null, rows: [] };
+  const rows = await prisma.assetAnalog.findMany({
+    where: { assetId, periodEnd },
+    orderBy: { horizonDays: "asc" },
+  });
+  return { periodEnd, rows };
+}
+
+/// Dated items that have not happened yet, for one asset or across the site.
+///
+/// Ordered by date because that is the only order a diary has. A scheduled row keeps its
+/// flag after its day passes, so the filter is on the date and not on the flag.
+export async function getUpcoming(opts: { assetId?: string; take?: number } = {}) {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  return prisma.event.findMany({
+    where: {
+      scheduled: true,
+      date: { gte: today },
+      ...(opts.assetId ? { links: { some: { assetId: opts.assetId } } } : {}),
+    },
+    orderBy: { date: "asc" },
+    take: opts.take ?? 12,
+    include: {
+      links: {
+        include: {
+          asset: { select: { symbol: true, name: true } },
+          product: { select: { slug: true, name: true } },
+        },
+      },
+    },
+  });
+}
+
+/// What measurably followed past events of the same category, so an upcoming date can be
+/// read next to the record of its own kind rather than in isolation.
+///
+/// Returns counts, never a bare average: below the floor the caller says how many were found
+/// instead of dividing by them.
+export const EVENT_HISTORY_MIN = 5;
+
+export async function getEventCategoryHistory(category: string, windowDays = 30) {
+  const impacts = await prisma.eventImpact.findMany({
+    where: { windowDays, event: { category, scheduled: false } },
+    select: { changePct: true },
+  });
+  const moves = impacts.map((i) => i.changePct);
+  const positive = moves.filter((m) => m > 0).length;
+  return {
+    category,
+    windowDays,
+    measured: moves.length,
+    positive,
+    enough: moves.length >= EVENT_HISTORY_MIN,
+    mean: moves.length ? moves.reduce((a, b) => a + b, 0) / moves.length : null,
+  };
+}
+
 /// Where attention for one product sits, newest stored breakdown only.
 ///
 /// Grouped by the list each value came from, because a value is only meaningful against its

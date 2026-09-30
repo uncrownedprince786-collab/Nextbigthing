@@ -44,7 +44,10 @@ except Exception:  # noqa: BLE001
     pass
 
 
-HORIZONS = (30, 60)
+# Four horizons. A catalyst is a short-horizon thing by nature: whether an arriving story
+# mattered shows up in a day or a week, and measuring it only at 30 days answers a question
+# nobody asked about it. The long horizons stay because a demand read is the opposite shape.
+HORIZONS = (1, 5, 30, 60)
 
 # How far either side of the target day a close may be taken from. A 30 day window landing
 # on a weekend or a holiday has its nearest close a day or two out; five days covers a long
@@ -82,15 +85,19 @@ def close_near(cur, asset_id: str, target: date):
 
 
 def measure(cur, today: date) -> dict[str, int]:
-    counts = {"measured30": 0, "measured60": 0, "still_open": 0, "no_close": 0}
+    counts = {f"measured{h}": 0 for h in HORIZONS}
+    counts.update({"still_open": 0, "no_close": 0})
 
+    # Anything not yet at the final horizon is still worth revisiting, so the filter names
+    # every intermediate state rather than a single one.
     pending = rows(
         cur,
         """
-        SELECT id, "assetId", "issuedOn", "baseClose", "move30Pct", "move60Pct", status
+        SELECT id, "assetId", "issuedOn", "baseClose",
+               "move1Pct", "move5Pct", "move30Pct", "move60Pct", status
         FROM "SignalLog"
         WHERE "baseClose" IS NOT NULL AND "assetId" IS NOT NULL
-          AND status IN ('open', 'measured30')
+          AND status IN ('open', 'measured1', 'measured5', 'measured30')
         ORDER BY "issuedOn"
         """,
     )
@@ -185,8 +192,8 @@ def main() -> None:
         step("measure what followed each logged reading")
         counts = measure(cur, today)
         print(
-            f"  newly measured: {counts['measured30']} at 30 days, "
-            f"{counts['measured60']} at 60 days"
+            "  newly measured: "
+            + ", ".join(f"{counts[f'measured{h}']} at {h} days" for h in HORIZONS)
         )
         print(
             f"  still open: {counts['still_open']}, "

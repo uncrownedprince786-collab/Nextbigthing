@@ -92,6 +92,8 @@ model Asset {
   eventImpacts EventImpact[]
   humanSignals HumanSignal[]
   signalLogs   SignalLog[]
+  analogs      AssetAnalog[]
+  eventLinks   EventLink[]
 
   createdAt DateTime @default(now())
 
@@ -104,6 +106,14 @@ model PriceSnapshot {
   assetId   String
   asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
   date      DateTime @db.Date
+  /// Both sources published these from the start and the job discarded them, which quietly
+  /// put the day's range out of reach: with only a close, "where did it finish inside the
+  /// day" and "how wide was the day" cannot be asked at all. Nullable because a row written
+  /// before this column existed keeps its blank rather than being back-filled with the close,
+  /// which would read as a day that never moved.
+  open      Float?
+  high      Float?
+  low       Float?
   close     Float
   volume    Float?
   marketCap Float?
@@ -111,6 +121,47 @@ model PriceSnapshot {
 
   @@unique([assetId, date])
   @@index([date])
+}
+
+/// What measurably followed the past days that most resembled this asset's latest day.
+///
+/// Written by jobs/analogs.py from stored closes and volumes. The point is narrow and worth
+/// stating exactly: it reports what happened after similar past days, and similarity here
+/// means similar on the handful of factors the database actually holds. It is not a claim
+/// that those factors caused anything, and it is not a forecast — the same setup appears in
+/// the sample with both outcomes, which is why the spread and the count are stored next to
+/// the average rather than under it.
+model AssetAnalog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId    String
+  asset      Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  /// The day the setup was read from.
+  periodEnd  DateTime @db.Date
+  /// How many trading days forward the outcome is measured. 1 and 5 today.
+  horizonDays Int
+
+  /// The setup being matched, kept so a reader can see what "similar" meant here.
+  dayReturnPct   Float
+  volumeRatio    Float?
+  fiveDayPct     Float?
+  /// The tolerances the match used, in the same units, so the window is auditable.
+  toleranceNote  String
+
+  /// How many past days matched, and what followed them.
+  matches    Int
+  positive   Int
+  meanPct    Float?
+  medianPct  Float?
+  minPct     Float?
+  maxPct     Float?
+
+  confidence     Confidence @default(none)
+  confidenceNote String?
+  source     String
+  computedAt DateTime   @default(now())
+
+  @@unique([assetId, periodEnd, horizonDays])
+  @@index([assetId, periodEnd])
 }
 
 enum RankingBasis {
@@ -249,6 +300,7 @@ model Product {
   humanSignals   HumanSignal[]
   signalLogs     SignalLog[]
   regions        ProductRegion[]
+  eventLinks     EventLink[]
 
   createdAt DateTime @default(now())
 }
@@ -304,12 +356,49 @@ model Event {
   sourceUrl String
   sort      Int      @default(0)
 
+  /// Anything a reader would have to know to read the date correctly: that a time is not
+  /// published, that the source calls it estimated, that it has moved once already.
+  notes     String?
+  /// True when the source publishes this as a scheduled or expected date rather than a date
+  /// that has happened. Kept as a column rather than inferred from date > today, because a
+  /// scheduled item does not become a historical fact the moment its day passes — it becomes
+  /// a scheduled item whose day has passed, and the two read differently.
+  scheduled Boolean  @default(false)
+
   impacts  EventImpact[]
   analysis Analysis[]
+  links    EventLink[]
 
   createdAt DateTime @default(now())
 
   @@index([date])
+  @@index([scheduled, date])
+}
+
+/// What an event is about, for events that have not happened yet.
+///
+/// EventImpact already ties an event to an asset, but only by measuring a move after it, so
+/// it cannot exist before the event does. This is the forward half: the reason an upcoming
+/// date is worth showing next to an asset at all. Separate table rather than a column on
+/// Event because one date routinely concerns several assets, and a policy date concerns a
+/// whole sector.
+model EventLink {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  assetId   String?
+  asset     Asset?   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Why this event is attached to this target, in plain words. Factual and stated, never
+  /// a claim that the event will move it.
+  relation  String
+  /// As on HumanSignal: whichever id is set, copied so the unique key can be a plain one.
+  targetRef String
+
+  @@unique([eventId, targetRef])
+  @@index([assetId])
+  @@index([productId])
 }
 
 /// One asset's measured price move over a window that starts at an event's date.
@@ -551,11 +640,20 @@ model SignalLog {
   baseClose Float?
 
   /// Measured, not projected. Null until the day arrives and a close exists.
+  ///
+  /// Four horizons rather than two: a catalyst is a short-horizon thing by nature, and
+  /// measuring it only at 30 days would answer a question nobody asked about it. The 1 and 5
+  /// day marks are where an arriving story either mattered or did not.
+  move1Pct     Float?
+  measured1On  DateTime? @db.Date
+  move5Pct     Float?
+  measured5On  DateTime? @db.Date
   move30Pct    Float?
   measured30On DateTime? @db.Date
   move60Pct    Float?
   measured60On DateTime? @db.Date
-  /// open, measured30, measured60, or unmeasurable when there is no price series.
+  /// open, measured1, measured5, measured30, measured60, or unmeasurable when there is no
+  /// price series. Always the furthest horizon reached.
   status    String   @default("open")
 
   createdAt DateTime @default(now())
