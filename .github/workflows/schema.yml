@@ -37,13 +37,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: npm
 
-      # From the lockfile rather than fetched ad hoc, so the CLI matches the version the
-      # migrations were written with and can resolve prisma7.config.ts, which imports dotenv
-      # and prisma/config. --ignore-scripts skips generating a client, which no step needs.
+      # Installed from the repo rather than fetched ad hoc, because prisma7.config.ts imports
+      # dotenv and prisma/config and the CLI has to match the version the migrations were
+      # written with. --ignore-scripts skips generating a client, which no step here needs.
+      #
+      # npm install rather than npm ci: ci is the stricter command and failed on the runner
+      # while succeeding locally, and the logs for it are not readable without a sign-in.
+      # install is the command Vercel already runs against this lockfile on Linux on every
+      # deploy, so it is the one with evidence behind it.
       - name: Install the Prisma CLI
-        run: npm ci --ignore-scripts
+        run: npm install --ignore-scripts --no-audit --no-fund
 
       - name: Apply pending schema migrations
         env:

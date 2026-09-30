@@ -48,14 +48,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: npm
 
-      # Installed from the lockfile rather than fetched ad hoc, so the migration runs on the
-      # same Prisma version the migrations were written with, and so the CLI can resolve the
-      # datasource config, which imports dotenv and prisma/config. --ignore-scripts skips the
-      # postinstall client generation, which a migration does not need.
+      # Installed from the repo rather than fetched ad hoc, so the migration runs on the same
+      # Prisma version the migrations were written with and the CLI can resolve the datasource
+      # config, which imports dotenv and prisma/config. --ignore-scripts skips the postinstall
+      # client generation, which a migration does not need. See the note in schema.yml for why
+      # this is install rather than ci.
       - name: Install the Prisma CLI
-        run: npm ci --ignore-scripts
+        run: npm install --ignore-scripts --no-audit --no-fund
 
       - name: Apply pending schema migrations
         env:
