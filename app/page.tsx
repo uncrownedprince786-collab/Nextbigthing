@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AsOf, Card, Empty, Note, Pill, Section, Table } from "@/components/ui";
+import { AsOf, Card, ConfidenceBadge, Empty, Note, Pill, Section, Table } from "@/components/ui";
 import {
   getAllIndustriesByBasis,
   getFreshness,
@@ -12,10 +12,11 @@ import { isoDate, money, pct, toneClass } from "@/lib/format";
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [lead, industries, risers, risingProducts, fresh] = await Promise.all([
+  const [lead, industries, risers, sizeNow, risingProducts, fresh] = await Promise.all([
     getLead(),
     getIndustries(),
     getAllIndustriesByBasis("rising"),
+    getAllIndustriesByBasis("sizeNow"),
     getProducts("rising"),
     getFreshness(),
   ]);
@@ -25,6 +26,16 @@ export default async function Home() {
     if (!byIndustry.has(r.industryId)) byIndustry.set(r.industryId, []);
     byIndustry.get(r.industryId)!.push(r);
   }
+
+  // Current size lives in its own table, keyed by asset. It cannot be read off a rising
+  // row, whose value is a return rather than a size.
+  const sizeByAsset = new Map(sizeNow.map((r) => [r.assetId, r]));
+  const largestByIndustry = new Map<string, (typeof sizeNow)[number]>();
+  for (const r of sizeNow) {
+    const seen = largestByIndustry.get(r.industryId);
+    if (!seen || r.rank < seen.rank) largestByIndustry.set(r.industryId, r);
+  }
+
 
   return (
     <div className="space-y-2">
@@ -52,9 +63,7 @@ export default async function Home() {
         <div className="grid gap-3 sm:grid-cols-2">
           {industries.map((ind) => {
             const top = byIndustry.get(ind.id)?.slice(0, 3) ?? [];
-            const largest = risers
-              .filter((r) => r.industryId === ind.id && r.basis === "sizeNow")
-              .sort((a, b) => a.rank - b.rank)[0];
+            const largest = largestByIndustry.get(ind.id);
             const l = largest?.asset;
             return (
               <Card key={ind.id} href={`/industry/${ind.slug}`}>
@@ -69,9 +78,8 @@ export default async function Home() {
                     <Link href={`/asset/${encodeURIComponent(l.symbol)}`} className="underline underline-offset-2">
                       {l.name}
                     </Link>{" "}
-                    <span className="num">
-                      {money(largest.value)}
-                    </span>
+                    <span className="num">{money(largest.value)}</span>
+                    <ConfidenceBadge grade={largest.confidence} className="ml-1.5 align-middle" />
                   </p>
                 ) : (
                   <p className="text-muted-foreground mt-3 text-sm">
@@ -81,9 +89,12 @@ export default async function Home() {
                 {top.length ? (
                   <ul className="mt-2 space-y-0.5 text-sm">
                     {top.map((r) => (
-                      <li key={r.id} className="flex justify-between gap-3">
+                      <li key={r.id} className="flex items-center justify-between gap-3">
                         <span>{r.asset.name}</span>
-                        <span className={`num ${toneClass(r.value)}`}>{pct(r.value)}</span>
+                        <span className="flex items-center gap-2">
+                          <span className={`num ${toneClass(r.value)}`}>{pct(r.value)}</span>
+                          <ConfidenceBadge grade={r.confidence} />
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -111,29 +122,38 @@ export default async function Home() {
                 <th className="px-3 py-2 font-medium">Asset</th>
                 <th className="px-3 py-2 font-medium">Industry</th>
                 <th className="px-3 py-2 text-right font-medium">vs industry</th>
+                <th className="px-3 py-2 font-medium">Confidence</th>
                 <th className="px-3 py-2 text-right font-medium">Size now</th>
                 <th className="px-3 py-2 text-right font-medium">In industry</th>
               </>
             }
           >
-            {risers.slice(0, 20).map((r) => (
-              <tr key={r.id}>
-                <td className="num text-muted-foreground px-3 py-2">{r.rank}</td>
-                <td className="px-3 py-2">
-                  <Link href={`/asset/${encodeURIComponent(r.asset.symbol)}`} className="underline underline-offset-2">
-                    {r.asset.name}
-                  </Link>
-                </td>
-                <td className="text-muted-foreground px-3 py-2">{r.asset.industry.name}</td>
-                <td className={`num px-3 py-2 text-right font-medium ${toneClass(r.value)}`}>
-                  {pct(r.value)}
-                </td>
-                <td className="num px-3 py-2 text-right">
-                  {r.asset.capBasis === "none" ? "not applicable" : money(r.value)}
-                </td>
-                <td className="num text-muted-foreground px-3 py-2 text-right">{r.sizeRank ?? "-"}</td>
-              </tr>
-            ))}
+            {risers.slice(0, 20).map((r) => {
+              const size = sizeByAsset.get(r.assetId);
+              return (
+                <tr key={r.id}>
+                  <td className="num text-muted-foreground px-3 py-2">{r.rank}</td>
+                  <td className="px-3 py-2">
+                    <Link href={`/asset/${encodeURIComponent(r.asset.symbol)}`} className="underline underline-offset-2">
+                      {r.asset.name}
+                    </Link>
+                  </td>
+                  <td className="text-muted-foreground px-3 py-2">{r.asset.industry.name}</td>
+                  <td className={`num px-3 py-2 text-right font-medium ${toneClass(r.value)}`}>
+                    {pct(r.value)}
+                  </td>
+                  <td className="px-3 py-2">
+                    <ConfidenceBadge grade={r.confidence} />
+                  </td>
+                  <td className="num px-3 py-2 text-right">
+                    {size ? money(size.value) : <span className="text-muted-foreground">no size stored</span>}
+                  </td>
+                  <td className="num text-muted-foreground px-3 py-2 text-right">
+                    {size?.sizeRank ?? "-"}
+                  </td>
+                </tr>
+              );
+            })}
           </Table>
         ) : (
           <Empty>No 24 month ranking has been computed yet.</Empty>
@@ -153,8 +173,19 @@ export default async function Home() {
                   <Pill tone="up">rising</Pill>
                 </div>
                 <p className="text-muted-foreground mt-1 text-xs">{p.category}</p>
-                <p className="num mt-3 text-lg font-semibold text-up">{pct(p.demandScore)}</p>
-                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{p.demandNote}</p>
+                <div className="mt-3 flex items-baseline justify-between gap-2">
+                  <span className="num text-lg font-semibold text-up">{pct(p.demandScore)}</span>
+                  <ConfidenceBadge grade={p.confidence} />
+                </div>
+                <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+                  {p.sourcesAnswered} of 5 sources answered, {p.sourcesAgree} point the same
+                  way.
+                </p>
+                {p.confidenceNote ? (
+                  <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                    {p.confidenceNote}
+                  </p>
+                ) : null}
               </Card>
             ))}
           </div>
@@ -166,8 +197,10 @@ export default async function Home() {
           </Empty>
         )}
         <Note>
-          A single source is never enough to call a product rising. Products backed by one
-          answer are marked early or flat on the products page, with the source named.
+          A single source is never enough to call a product rising, and a source that did
+          not answer is not counted as agreement. The average is a plain mean of the sources
+          that answered, so one large reading can carry it, which is why the confidence grade
+          is shown next to every figure and says when that happened.
         </Note>
       </Section>
 

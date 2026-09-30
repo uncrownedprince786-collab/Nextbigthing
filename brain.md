@@ -88,11 +88,54 @@ Snapshot dates: 2019-12-31, 2021-12-31, 2023-12-29, 2025-12-31, plus the last cl
 - Every ranking row keeps `sizeRank` next to its own `rank`, so the size ranking is always
   available even when the primary rank is a return ranking.
 
+## Confidence
+Every ranking row, product and analysis line carries a grade of high, medium, low or none.
+The grade is a claim about how well evidenced a figure is, not about direction, and the
+reason is always stored next to it in `confidenceNote` so the badge can never be read as
+saying more than the note supports.
+
+Rankings:
+- The industry mean is compared with the industry median. If they differ by more than
+  `SKEW_LIMIT` (25 points) the mean is not a fair description of a typical peer, so the row
+  is graded down. The rank itself is left alone, because changing the comparator would
+  change published history; the skew is disclosed instead.
+- High also needs `PEER_HIGH` (8) or more peers in the industry and a passing volume check.
+
+Products:
+- Agreement is measured against the average, not against whichever side is bigger. Three
+  sources down and one up is a minority position even though three is the larger number.
+- A split up/down caps the grade at medium however lopsided it is.
+- A mean and a median landing on opposite sides of zero also caps at medium, because the
+  total no longer describes what a typical source said.
+- One source supplying more than `DOMINANT_SHARE_LIMIT` (60%) of the average is disclosed
+  but does not cap the grade on its own: several sources can agree on direction while one
+  supplies the magnitude, and that is still agreement.
+- High needs `PRODUCT_SOURCES_HIGH` (4) sources answering and 75% agreement.
+
+### Small denominators
+Reddit post counts are the one place where a percentage can be arithmetically true and still
+be worth nothing. Measured across all 30 products the largest 90 day base is 15 posts, so at
+a base of 6 a single post is 17% of the reading.
+- `MIN_COUNT_BASE` (5) in `jobs/signals.py` decides what gets *published*. Below it only the
+  raw counts are stored, because 1 post against 0 is a rounding artifact, not a demand signal.
+- `THIN_BASE` (10) in `jobs/confidence.py` decides what can be *graded*. A Reddit percentage
+  on a base under 10 is published, because 2 against 6 really is -67%, but it caps the
+  product at medium. The number and the confidence claim are separate judgements and only
+  the second one is limited.
+- The effect is that no product currently grades high. The only one that used to, the
+  espresso machine, was high on four agreeing sources while Reddit supplied 93% of its mean
+  from a 6 post base. That was a handful of individual posts wearing the costume of a
+  consensus.
+
 ## Jobs
 - `jobs/seed.py` industries, assets, products, asset links, asset notes. Run once.
 - `jobs/prices.py yahoo crypto news` daily closes, volume, share counts, market cap, news.
 - `jobs/rank.py` all four ranking bases.
 - `jobs/signals.py trends wiki hn news reddit` product demand signals.
+- `jobs/confidence.py rankings|products|all` grades ranking rows and products. Runs between
+  `rank.py` and `analysis.py`, because the analysis prose reads the grades so the badge and
+  the sentence underneath it cannot disagree. `analysis.py` grades products itself, after it
+  recomputes demand scores, so the grade always matches the score beside it.
 - `jobs/analysis.py` the one line shifts, asset positions, rising notes, forward looks,
   product demand reads, front page lead. Deletes and rewrites `Analysis` on every run.
 - `jobs/run.py daily|weekly|seed` runs the above in order, one subprocess per step, and
@@ -109,3 +152,9 @@ Snapshot dates: 2019-12-31, 2021-12-31, 2023-12-29, 2025-12-31, plus the last cl
 3. Never widen a ranking silently. The asset list is fixed in the seed.
 4. Anything a reader could act on must carry the source name and the as of date.
 5. `Analysis` rows are generated. Never hand edit text there, change `jobs/analysis.py`.
+6. A grade must never be more confident than the note beside it. When a rule is added to
+   cap a grade, add the reason to the note in the same change, or the badge is decoration.
+7. Do not describe agreement when fewer than two sources answered. A single reading is one
+   reading, and the prose has to say that.
+8. Count the sources that answered, not the ones that moved. A source reporting no change
+   still answered, and saying "all 3 sources that answered" when 4 did is just wrong.

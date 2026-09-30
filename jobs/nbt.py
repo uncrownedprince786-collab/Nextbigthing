@@ -42,6 +42,33 @@ SNAPSHOTS = [
 PRE_AI_END = date(2021, 12, 31)
 RISING_MONTHS = 24
 
+# The only five signals that make up a product demand score, as (source, metric, label).
+# Long window Trends and Wikipedia rows are stored for the record but deliberately not
+# scored, so a product that has both an 8 week and a 26 week reading is never counted as
+# two independent sources. Defined once here because jobs/confidence.py and jobs/analysis.py
+# both have to agree on exactly this list.
+SCORED_SIGNALS = (
+    ("googleTrends", "trends_8w_vs_8w_pct", "Google Trends search interest, 8 weeks against the 8 before"),
+    ("wikipedia", "wiki_views_8w_vs_8w_pct", "Wikipedia pageviews, 8 weeks against the 8 before"),
+    ("hackerNews", "hn_stories_90d_change_pct", "Hacker News stories, 90 days against the 90 before"),
+    ("reddit", "reddit_posts_30d_change_pct", "Reddit posts, 30 days against the 90 before"),
+    ("googleNews", "gnews_articles_30d_change_pct", "Google News articles, 30 days against the 30 before"),
+)
+
+# A source whose name is used in a sentence with a verb needs to agree with that verb.
+SOURCE_LABEL = {
+    "googleTrends": "Google Trends",
+    "wikipedia": "Wikipedia pageviews",
+    "reddit": "Reddit",
+    "hackerNews": "Hacker News",
+    "googleNews": "Google News",
+}
+
+# Counts that feed a product read. A source that has not returned a value is not counted
+# here, and it is never treated as a zero.
+PRODUCT_SOURCES_HIGH = 4
+PRODUCT_SOURCES_MEDIUM = 2
+
 _ctx = ssl.create_default_context()
 
 # Per host minimum seconds between requests. Measured, not guessed: these hosts
@@ -196,6 +223,16 @@ def pct(a: float, b: float) -> float | None:
 def mean(xs: list[float]) -> float | None:
     xs = [x for x in xs if x is not None]
     return sum(xs) / len(xs) if xs else None
+
+
+def median(xs: list[float]) -> float | None:
+    """Middle value. Unlike the mean this is not dragged around by a single outlier, which
+    matters here because a 8000% crypto return would otherwise describe nobody's peers."""
+    xs = sorted(x for x in xs if x is not None)
+    if not xs:
+        return None
+    mid = len(xs) // 2
+    return xs[mid] if len(xs) % 2 else (xs[mid - 1] + xs[mid]) / 2
 
 
 def step(label: str) -> None:

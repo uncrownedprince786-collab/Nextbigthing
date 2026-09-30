@@ -60,6 +60,12 @@ HN = "Hacker News Algolia API"
 GNEWS = "Google News RSS"
 REDDIT = "Reddit public RSS search"
 
+# Smallest base a count has to reach before a percentage change off it is published.
+# Set from the measured data: of 30 products, 14 post 0 or 1 times in 30 days on the two
+# subreddits searched, and 2 post more than 4. A change off a base of one is a rounding
+# artifact, so below this floor only the raw counts are stored.
+MIN_COUNT_BASE = 5
+
 
 def last_complete_week(today: date) -> date:
     """Sunday that is at least 7 days back, so the newest week is complete."""
@@ -372,11 +378,42 @@ def reddit_signals(cur) -> None:
             cur,
             p["id"],
             "reddit",
-            "reddit_posts_30d_change_pct",
-            pct(float(recent), float(prior)) if prior else None,
+            "reddit_posts_90d_base",
+            float(prior),
             date.today(),
-            note=f"{REDDIT}, last 30 days against the 90 days before, both cut from the year feed",
+            note=f"{REDDIT}, the 90 days before the 30 day window, in "
+            f"r/{', r/'.join(subs[:2])}",
         )
+        # A percentage is only published when the window it is measured against actually
+        # holds something. Most of these products post a handful of times a year on the two
+        # subreddits searched, so a "change" from 1 post to 0 posts comes out as -100% and
+        # reads as collapsing demand when it means the product is barely discussed there.
+        # Below the floor the raw counts are stored and no percentage is invented.
+        if prior >= MIN_COUNT_BASE:
+            write(
+                cur,
+                p["id"],
+                "reddit",
+                "reddit_posts_30d_change_pct",
+                pct(float(recent), float(prior)),
+                date.today(),
+                note=(
+                    f"{REDDIT}, {int(recent)} posts in the last 30 days against "
+                    f"{int(prior)} in the 90 before"
+                ),
+            )
+        else:
+            # Rows written before this floor existed still hold percentages built on a base
+            # of one or two. Leaving them would keep the artifact alive, so they go.
+            cur.execute(
+                'DELETE FROM "ProductSignal" WHERE "productId" = %s AND source = %s::"SignalSource" '
+                "AND metric = 'reddit_posts_30d_change_pct'",
+                (p["id"], "reddit"),
+            )
+            print(
+                f"  {p['slug']}: {int(recent)} posts now against {int(prior)} in the 90 days "
+                f"before, under the {MIN_COUNT_BASE} floor, so no percentage is published"
+            )
         got += 1
     print(f"  products with a Reddit count: {got}")
 

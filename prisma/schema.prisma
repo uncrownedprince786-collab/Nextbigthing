@@ -25,6 +25,17 @@ enum CapBasis {
   none
 }
 
+/// How much weight the stored numbers can carry, decided by rule in jobs/confidence.py
+/// from how many sources agreed, how many peers the figure was measured against, and
+/// whether any required input was missing. It is a description of the evidence, never a
+/// prediction.
+enum Confidence {
+  high
+  medium
+  low
+  none
+}
+
 enum SignalSource {
   googleTrends
   wikipedia
@@ -112,6 +123,10 @@ model Ranking {
   rank        Int
   sizeRank    Int?
   value       Float
+  /// Rule-based evidence grade for this row. See jobs/confidence.py.
+  confidence  Confidence  @default(none)
+  /// Why the confidence is what it is, in one clause. Shown to the reader.
+  confidenceNote String?
   source      String
   note        String?
 
@@ -147,6 +162,8 @@ model Analysis {
   body        String
   /// What is missing, and what would fill it.
   dataNote    String?
+  /// Evidence grade carried from the numbers this line was built from.
+  confidence  Confidence  @default(none)
   source      String
   createdAt   DateTime     @default(now())
 
@@ -192,6 +209,14 @@ model Product {
   status         String   @default("unknown")
   demandScore    Float?
   demandNote     String?
+  /// Rule-based grade of the demand read. See jobs/confidence.py.
+  confidence     Confidence @default(none)
+  /// Number of the 5 possible demand sources that returned a usable value.
+  sourcesAnswered Int      @default(0)
+  /// How many of those sources pointed the same way as the average.
+  sourcesAgree    Int      @default(0)
+  /// One clause on what the grade is based on.
+  confidenceNote  String?
   computedAt     DateTime?
 
   signals        ProductSignal[]

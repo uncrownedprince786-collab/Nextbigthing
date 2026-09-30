@@ -53,17 +53,43 @@ table on the front page shows the date of the last successful run.
 | Command | What it does |
 | --- | --- |
 | `python jobs/run.py seed` | Industries, assets, products, links. Idempotent. |
-| `python jobs/run.py daily` | Prices and news, then rankings, then the written lines. |
+| `python jobs/run.py daily` | Prices and news, then rankings, then confidence, then the written lines. |
 | `python jobs/run.py weekly` | The daily run plus all five product signal sources. |
 | `python jobs/stats.py` | Row counts and newest stored date per table. |
+| `python jobs/confidence.py all` | Grades every ranking row and product. Runs on its own too. |
 | `python jobs/analysis.py` | Rewrites the `Analysis` table from stored numbers. |
 
 Individual scripts take a source name, for example
 `python jobs/prices.py crypto` or `python jobs/signals.py reddit`.
 
+`confidence.py` runs after `rank.py` and before `analysis.py`, so the written lines are
+generated from the same grades the page shows. `analysis.py` grades products again after
+recomputing demand scores, which keeps the badge and the score beside it in step.
+
 HTTP responses are cached under `.cache/` with a per source time to live, so a rerun does
 not hammer a source. Jobs send a real User-Agent, back off on `429` and `403`, and treat a
 failed source as a missing value rather than a zero.
+
+## Confidence
+
+Every ranking row, product and analysis line carries a grade of high, medium, low or none,
+with the reason stored beside it. The grade describes how well evidenced the figure is, not
+which direction it points.
+
+- **Rankings** are graded down when the industry mean sits far from its own median, because
+  a skewed mean is not a fair description of a typical peer, and when the volume check fails
+  or there are too few peers to compare against. The published rank is never changed to suit
+  the grade; the caveat is disclosed instead.
+- **Products** are graded on how many of the five sources answered and whether they point
+  the same way as the average. Sources that split up and down, or where the mean and median
+  land on opposite sides of zero, cap the grade at medium.
+- **Small denominators are separated from bad arithmetic.** A Reddit percentage on a base of
+  fewer than 5 posts is never published, because 1 post against 0 is a rounding artifact. A
+  percentage on a base of 5 to 9 posts is published, because the arithmetic is right, but it
+  caps the grade at medium, because at that scale a single post is 10 to 20% of the reading.
+  The number and the confidence claim are judged separately.
+
+Full rules and the measured data behind them are in `brain.md`.
 
 ## Refresh schedule
 

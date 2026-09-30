@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Card, Empty, Note, Pill, Section } from "@/components/ui";
+import { Card, ConfidenceBadge, Empty, Note, Pill, Section } from "@/components/ui";
 import { getProducts } from "@/lib/queries";
 import { pct, relativeTime, toneClass } from "@/lib/format";
 
@@ -37,7 +37,9 @@ export default async function ProductsPage() {
         </p>
         <p className="text-muted-foreground mt-2 text-xs">
           Demand score is the plain average of the percentage change of each source that
-          answered, with no weighting. As of {all[0]?.computedAt ? relativeTime(all[0].computedAt) : "the last run"}.
+          answered, with no weighting. Confidence says how many sources answered and whether
+          they point the same way. As of{" "}
+          {all[0]?.computedAt ? relativeTime(all[0].computedAt) : "the last run"}.
         </p>
       </div>
 
@@ -51,12 +53,21 @@ export default async function ProductsPage() {
                   <Pill tone={g.tone}>{p.status}</Pill>
                 </div>
                 <p className="text-muted-foreground mt-1 text-xs">{p.category}</p>
-                <p className={`num mt-3 text-lg font-semibold ${toneClass(p.demandScore)}`}>
-                  {pct(p.demandScore)}
+                <div className="mt-3 flex items-baseline justify-between gap-2">
+                  <span className={`num text-lg font-semibold ${toneClass(p.demandScore)}`}>
+                    {pct(p.demandScore)}
+                  </span>
+                  <ConfidenceBadge grade={p.confidence} />
+                </div>
+                <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
+                  {p.sourcesAnswered} of 5 sources answered, {p.sourcesAgree} point the same
+                  way.
                 </p>
                 <p className="text-muted-foreground mt-1 line-clamp-3 text-xs leading-relaxed">{p.summary}</p>
-                {p.demandNote ? (
-                  <p className="text-muted-foreground/90 mt-2 text-[11px] leading-relaxed">{p.demandNote}</p>
+                {p.confidenceNote ? (
+                  <p className="text-muted-foreground/90 mt-2 text-[11px] leading-relaxed">
+                    {p.confidenceNote}
+                  </p>
                 ) : null}
               </Card>
             ))}

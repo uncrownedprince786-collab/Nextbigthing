@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Sparkline } from "@/components/chart";
-import { Card, Empty, Note, Pill, Section, Table } from "@/components/ui";
+import { Card, ConfidenceBadge, Empty, Note, Pill, Section, Table, weakest } from "@/components/ui";
 import { getAsset, getAssetPrices } from "@/lib/queries";
 import { isoDate, longDate, money, pct, relativeTime, sizeLabel, toneClass } from "@/lib/format";
 
@@ -43,6 +43,12 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
   const yearAgo = prices.filter((p) => p.date <= new Date(latestPrice.date.getTime() - 365 * 86_400_000)).pop();
   const oneYear = yearAgo ? ((latestPrice.close / yearAgo.close - 1) * 100) : null;
 
+  // Current size comes from the ranking row rather than the newest price snapshot, so the
+  // figure shown here is the same one the industry table ranks and grades.
+  const sizeNowRow = (byBasis.get("sizeNow") ?? [])[0];
+  const sizePreRow = (byBasis.get("size") ?? [])[0];
+  const sizeGrade = weakest(sizeNowRow?.confidence, sizePreRow?.confidence);
+
   return (
     <div>
       <div>
@@ -63,7 +69,10 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
 
       {note ? (
         <Card className="mt-6">
-          <h2 className="font-medium">Where this sits</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-medium">Where this sits</h2>
+            <ConfidenceBadge grade={note.confidence} />
+          </div>
           <p className="mt-2 text-sm leading-relaxed">{note.body}</p>
           {note.dataNote ? <Note>{note.dataNote}</Note> : null}
         </Card>
@@ -83,12 +92,19 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
           </p>
         </Card>
         <Card>
-          <p className="text-muted-foreground text-xs">Size now</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-muted-foreground text-xs">Size now</p>
+            <ConfidenceBadge grade={sizeGrade} />
+          </div>
           <p className="num mt-1 text-2xl font-semibold">
-            {asset.capBasis === "none" ? "not applicable" : money(latestPrice?.marketCap)}
+            {sizeNowRow ? money(sizeNowRow.value) : "not stored"}
           </p>
           <p className="text-muted-foreground text-xs">
-            {asset.capBasis === "none" ? `${sizeLabel(asset.capBasis)}` : `${sizeLabel(asset.capBasis)}, newest stored close`}
+            {sizeNowRow
+              ? `${sizeLabel(asset.capBasis)}, newest stored close`
+              : asset.capBasis === "none"
+                ? "no size figure is published for this instrument"
+                : "no size ranking is stored for this asset"}
           </p>
         </Card>
       </div>
@@ -114,6 +130,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
                 <th className="px-3 py-2 font-medium">Basis</th>
                 <th className="px-3 py-2 text-right font-medium">Rank</th>
                 <th className="px-3 py-2 text-right font-medium">Value</th>
+                <th className="px-3 py-2 font-medium">Confidence</th>
                 <th className="px-3 py-2 text-right font-medium">From</th>
                 <th className="px-3 py-2 text-right font-medium">To</th>
                 <th className="px-3 py-2 font-medium">Note</th>
@@ -131,9 +148,14 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
                     ? money(r.value)
                     : pct(r.value)}
                 </td>
+                <td className="px-3 py-2" title={r.confidenceNote ?? undefined}>
+                  <ConfidenceBadge grade={r.confidence} />
+                </td>
                 <td className="num text-muted-foreground px-3 py-2 text-right">{isoDate(r.periodStart)}</td>
                 <td className="num text-muted-foreground px-3 py-2 text-right">{isoDate(r.periodEnd)}</td>
-                <td className="text-muted-foreground px-3 py-2 text-xs">{r.note ?? "-"}</td>
+                <td className="text-muted-foreground px-3 py-2 text-xs">
+                  {r.confidenceNote ?? r.note ?? "-"}
+                </td>
               </tr>
             ))}
           </Table>

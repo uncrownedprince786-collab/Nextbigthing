@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AsOf, Card, Empty, Note, Section, Table } from "@/components/ui";
+import { AsOf, Card, ConfidenceBadge, Empty, Note, Section, Table, weakest } from "@/components/ui";
 import { getAllIndustriesByBasis, getIndustry, getRankings } from "@/lib/queries";
 import { isoDate, longDate, money, pct, relativeTime, sizeLabel, toneClass } from "@/lib/format";
 
@@ -42,6 +42,17 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
 
   const preByAsset = new Map(sizePre.map((r) => [r.assetId, r]));
   const ranked = sizeNow.length ? sizeNow : sizePre;
+  // The size table only lists the assets that actually have a size figure, so without this
+  // count a reader of the metals industry sees three rows and may take it for three assets.
+  // The gaps are not all the same kind, so they are counted separately rather than lumped.
+  const nowByAsset = new Map(sizeNow.map((r) => [r.assetId, r]));
+  const withSize = new Set(ranked.map((r) => r.assetId));
+  const missing = ind.assets.filter((a) => !withSize.has(a.id));
+  const noBasis = missing.filter((a) => a.capBasis === "none");
+  const oneDateOnly = missing.filter((a) => preByAsset.has(a.id) || nowByAsset.has(a.id));
+  const noFigure = missing.filter(
+    (a) => !noBasis.includes(a) && !oneDateOnly.includes(a),
+  );
 
   return (
     <div>
@@ -53,14 +64,20 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
       {shift ? (
         <div className="mt-6 space-y-3">
           <Card>
-            <h2 className="font-medium">{shift.headline}</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-medium">{shift.headline}</h2>
+              <ConfidenceBadge grade={shift.confidence} />
+            </div>
             <p className="mt-2 text-sm leading-relaxed">{shift.body}</p>
             {shift.dataNote ? <Note>{shift.dataNote}</Note> : null}
             <p className="text-muted-foreground mt-2 text-xs">Sources: {shift.source}</p>
           </Card>
           {movers ? (
             <Card>
-              <h2 className="font-medium">{movers.headline}</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-medium">{movers.headline}</h2>
+                <ConfidenceBadge grade={movers.confidence} />
+              </div>
               <p className="mt-2 text-sm leading-relaxed">{movers.body}</p>
               {movers.dataNote ? <Note>{movers.dataNote}</Note> : null}
             </Card>
@@ -91,15 +108,21 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
                 <th className="px-3 py-2 font-medium">Asset</th>
                 <th className="px-3 py-2 text-right font-medium">Size at end 2021</th>
                 <th className="px-3 py-2 text-right font-medium">Size now</th>
+                <th className="px-3 py-2 font-medium">Confidence</th>
                 <th className="px-3 py-2 text-right font-medium">Move</th>
               </>
             }
           >
             {ranked.map((r) => {
               const pre = preByAsset.get(r.assetId);
-              const nowRank = sizeNow.find((x) => x.assetId === r.assetId)?.rank;
+              const nowRow = sizeNow.find((x) => x.assetId === r.assetId);
+              const nowRank = nowRow?.rank;
               const preRank = pre?.rank;
               const move = preRank && nowRank ? preRank - nowRank : null;
+              // The weaker of the two dates that were actually stored. An asset with no
+              // 2021 figure is graded on the current one, and its empty cell is the
+              // disclosure, so the badge does not claim "no data" for a known number.
+              const grade = weakest(nowRow?.confidence, pre?.confidence);
               return (
                 <tr key={r.id}>
                   <td className="num text-muted-foreground px-3 py-2">{nowRank ?? preRank}</td>
@@ -114,6 +137,9 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
                   </td>
                   <td className="num px-3 py-2 text-right">
                     {sizeNow.length ? money(r.value) : "not available"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <ConfidenceBadge grade={grade} />
                   </td>
                   <td className={`num px-3 py-2 text-right ${toneClass(move)}`}>
                     {move == null ? "not available" : move === 0 ? "unchanged" : move > 0 ? `up ${move}` : `down ${-move}`}
@@ -131,8 +157,45 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
         {ranked.length ? (
           <p className="text-muted-foreground mt-2 text-xs">
             Size is {sizeLabel(ranked[0].asset.capBasis)}. It is price multiplied by shares,
-            taken from Yahoo Finance, and for crypto from CoinPaprika. It is not a valuation.
+            taken from Yahoo Finance, and for crypto from CoinPaprika. It is not a valuation.{" "}
+            Confidence is the weaker of the two dates stored for that asset. An asset with no
+            pre-AI figure, which is most crypto and a few recent listings, is graded on its
+            current size alone and its empty cell says the earlier date is unavailable.
           </p>
+        ) : null}
+        {ranked.length && missing.length ? (
+          <Note>
+            {ranked.length} of the {ind.assets.length} assets in this industry carry a size
+            figure, so this table is not a ranking of everything here.
+            {noBasis.length ? (
+              <>
+                {" "}
+                {noBasis.length} publish no market capitalisation or fund assets figure at
+                all, including{" "}
+                {noBasis
+                  .slice(0, 3)
+                  .map((a) => a.name)
+                  .join(", ")}
+                {noBasis.length > 3 ? ` and ${noBasis.length - 3} more` : ""}, so there is
+                nothing to rank.
+              </>
+            ) : null}
+            {oneDateOnly.length ? (
+              <>
+                {" "}
+                {oneDateOnly.length} have a figure at one date but not the other, so they
+                cannot be placed in a table that compares two.
+              </>
+            ) : null}
+            {noFigure.length ? (
+              <>
+                {" "}
+                {noFigure.length} expected a size figure but none is stored, which is a gap in
+                the data rather than a fact about the asset.
+              </>
+            ) : null}{" "}
+            Nothing is estimated to fill a gap.
+          </Note>
         ) : null}
       </Section>
 
@@ -148,6 +211,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
                 <th className="px-3 py-2 font-medium">#</th>
                 <th className="px-3 py-2 font-medium">Asset</th>
                 <th className="px-3 py-2 text-right font-medium">Return</th>
+                <th className="px-3 py-2 font-medium">Confidence</th>
                 <th className="px-3 py-2 text-right font-medium">Size rank</th>
               </>
             }
@@ -161,6 +225,9 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
                   </Link>
                 </td>
                 <td className={`num px-3 py-2 text-right font-medium ${toneClass(r.value)}`}>{pct(r.value)}</td>
+                <td className="px-3 py-2">
+                  <ConfidenceBadge grade={r.confidence} />
+                </td>
                 <td className="num text-muted-foreground px-3 py-2 text-right">{r.sizeRank ?? "not applicable"}</td>
               </tr>
             ))}
@@ -172,7 +239,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
 
       <Section
         title="Relative strength over 24 months"
-        lead="24 month return minus the average 24 month return of this industry. Positive means the asset beat its own peers. Volume trend is used as a second check where a volume series exists."
+        lead="24 month return minus the average 24 month return of this industry. Positive means the asset beat its own peers. Volume trend is used as a second check where a volume series exists, and where the industry average sits far from the median the rank is reported but graded down."
         aside={<AsOf date={rising[0]?.periodEnd} />}
       >
         {rising.length ? (
@@ -182,6 +249,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
                 <th className="px-3 py-2 font-medium">#</th>
                 <th className="px-3 py-2 font-medium">Asset</th>
                 <th className="px-3 py-2 text-right font-medium">vs industry</th>
+                <th className="px-3 py-2 font-medium">Confidence</th>
                 <th className="px-3 py-2 font-medium">Check</th>
               </>
             }
@@ -195,6 +263,9 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
                   </Link>
                 </td>
                 <td className={`num px-3 py-2 text-right font-medium ${toneClass(r.value)}`}>{pct(r.value)}</td>
+                <td className="px-3 py-2" title={r.confidenceNote ?? undefined}>
+                  <ConfidenceBadge grade={r.confidence} />
+                </td>
                 <td className="text-muted-foreground px-3 py-2 text-xs">
                   {r.note ?? "volume trend confirmed"}
                 </td>

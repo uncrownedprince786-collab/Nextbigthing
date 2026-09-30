@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Card, Empty, Note, Pill, Section, Table } from "@/components/ui";
+import { Card, ConfidenceBadge, Empty, Note, Pill, Section, Table } from "@/components/ui";
 import { getProduct } from "@/lib/queries";
 import { count, isoDate, longDate, pct, relativeTime, toneClass } from "@/lib/format";
 
@@ -18,6 +18,35 @@ export async function generateMetadata({
   return { title: p.name, description: p.summary };
 }
 
+const METRIC_TEXT: Record<string, string> = {
+  trends_8w_vs_8w_pct: "Search interest, 8 weeks against the 8 before",
+  trends_26w_yoy_pct: "Search interest, 26 weeks against the 26 before",
+  wiki_views_8w_vs_8w_pct: "Pageviews, 8 weeks against the 8 before",
+  wiki_views_26w_yoy_pct: "Pageviews, 26 weeks against the 26 before",
+  hn_stories_90d_change_pct: "Stories, 90 days against the 90 before",
+  reddit_posts_30d_change_pct: "Posts, 30 days against the 90 before",
+  gnews_articles_30d_change_pct: "Articles, 30 days against the 30 before",
+  reddit_posts_30d: "Posts in the last 30 days",
+  reddit_posts_90d_base: "Posts in the 90 days before that",
+  hn_stories_90d: "Stories in the last 90 days",
+  gnews_articles_30d: "Articles in the last 30 days",
+};
+
+/// The five metrics that make up the demand score, kept identical to SCORED_SIGNALS in
+/// jobs/nbt.py. Long window Trends and Wikipedia rows are stored and shown for the record
+/// but never counted, so a product with both an 8 week and a 26 week reading is not
+/// treated as two independent sources. The source is listed here rather than read off a
+/// row, because a metric that never ran has no row to read it from and must still be
+/// reported as missing.
+const SCORED = [
+  { source: "googleTrends", metric: "trends_8w_vs_8w_pct" },
+  { source: "wikipedia", metric: "wiki_views_8w_vs_8w_pct" },
+  { source: "hackerNews", metric: "hn_stories_90d_change_pct" },
+  { source: "reddit", metric: "reddit_posts_30d_change_pct" },
+  { source: "googleNews", metric: "gnews_articles_30d_change_pct" },
+] as const;
+const SCORED_METRICS = new Set<string>(SCORED.map((s) => s.metric));
+
 const SOURCE_NAME: Record<string, string> = {
   googleTrends: "Google Trends",
   wikipedia: "Wikipedia pageviews",
@@ -26,26 +55,38 @@ const SOURCE_NAME: Record<string, string> = {
   googleNews: "Google News",
 };
 
-const METRIC_TEXT: Record<string, string> = {
-  trends_8w_vs_8w_pct: "Search interest, 8 weeks against the 8 before",
-  wiki_views_8w_vs_8w_pct: "Pageviews, 8 weeks against the 8 before",
-  hn_stories_90d_change_pct: "Stories, 90 days against the 90 before",
-  reddit_posts_30d_change_pct: "Posts, 30 days against the 90 before",
-  gnews_articles_30d_change_pct: "Articles, 30 days against the 30 before",
-};
-
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const p = await getProduct(slug);
   if (!p) notFound();
 
   const read = p.analysis[0];
-  const changeSignals = p.signals.filter((s) => s.metric.endsWith("_pct"));
-  const levelSignals = p.signals.filter((s) => !s.metric.endsWith("_pct"));
-  const answered = changeSignals.filter((s) => s.value != null);
-  const missing = ["googleTrends", "wikipedia", "hackerNews", "reddit", "googleNews"].filter(
-    (src) => !answered.some((s) => s.source === src),
-  );
+
+  // A metric can hold more than one stored row, so the newest per metric is the reading.
+  const latest = new Map<string, (typeof p.signals)[number]>();
+  for (const s of [...p.signals].sort((a, b) => b.periodEnd.getTime() - a.periodEnd.getTime())) {
+    if (!latest.has(s.metric)) latest.set(s.metric, s);
+  }
+  const signals = [...latest.values()];
+
+  const scored = signals.filter((s) => SCORED_METRICS.has(s.metric));
+  const context = signals.filter((s) => !SCORED_METRICS.has(s.metric));
+  // A metric with no stored row at all is missing too, so a source that never ran is not
+  // silently dropped from the list the reader is shown.
+  const missing = SCORED.filter(
+    ({ metric }) => signals.find((s) => s.metric === metric)?.value == null,
+  ).map(({ source }) => source);
+
+  // Only one row per source can count, so a product with a duplicate metric cannot look
+  // like it has more voices than there are sources.
+  const bySource = new Map<string, (typeof scored)[number]>();
+  for (const { source, metric } of SCORED) {
+    const s = signals.find((x) => x.metric === metric);
+    if (s && s.value != null) bySource.set(source, s);
+  }
+  const up = [...bySource.values()].filter((s) => (s.value ?? 0) > 0);
+  const down = [...bySource.values()].filter((s) => (s.value ?? 0) < 0);
+  const flat = [...bySource.values()].filter((s) => (s.value ?? 0) === 0);
 
   return (
     <div>
@@ -57,6 +98,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           >
             {p.status}
           </Pill>
+          <ConfidenceBadge grade={p.confidence} />
         </div>
         <p className="text-muted-foreground mt-2 max-w-3xl text-sm">{p.summary}</p>
         <p className="text-muted-foreground mt-2 text-xs">
@@ -75,8 +117,63 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       ) : null}
 
       <Section
+        title="Do the sources agree"
+        lead="One row per source, so agreement can be seen rather than taken on trust. A source that did not answer is shown as missing and is not counted as agreement."
+      >
+        <Table
+          head={
+            <>
+              <th className="px-3 py-2 font-medium">Source</th>
+              <th className="px-3 py-2 font-medium">Direction</th>
+              <th className="px-3 py-2 text-right font-medium">Change</th>
+              <th className="px-3 py-2 text-right font-medium">Counted</th>
+            </>
+          }
+        >
+          {Object.entries(SOURCE_NAME).map(([key, label]) => {
+            const s = bySource.get(key);
+            const v = s?.value ?? null;
+            return (
+              <tr key={key}>
+                <td className="px-3 py-2 whitespace-nowrap">{label}</td>
+                <td className="px-3 py-2">
+                  {v == null ? (
+                    <span className="text-muted-foreground text-xs">did not answer</span>
+                  ) : v > 0 ? (
+                    <Pill tone="up">up</Pill>
+                  ) : v < 0 ? (
+                    <Pill tone="down">down</Pill>
+                  ) : (
+                    <Pill>no change</Pill>
+                  )}
+                </td>
+                <td className={`num px-3 py-2 text-right ${toneClass(v)}`}>
+                  {v == null ? "-" : pct(v)}
+                </td>
+                <td className="num text-muted-foreground px-3 py-2 text-right">
+                  {s ? "yes" : "no"}
+                </td>
+              </tr>
+            );
+          })}
+        </Table>
+        <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+          {bySource.size === 0
+            ? "No source answered, so nothing is claimed about this product."
+            : up.length && down.length
+              ? `${up.length} point up and ${down.length} point down, so the average is a weak read and the grade is capped at medium.`
+              : flat.length && !up.length && !down.length
+                ? `All ${bySource.size} that answered report no change.`
+                : `All ${bySource.size} that answered point ${up.length ? "up" : "down"}.`}{" "}
+          The score is the plain mean of the counted rows, so a large single reading can carry
+          it, which is what the confidence grade is reporting.
+        </p>
+        {p.confidenceNote ? <Note>{p.confidenceNote}</Note> : null}
+      </Section>
+
+      <Section
         title="What each source measured"
-        lead="Change first, then the raw level. A source with no value is listed as missing rather than estimated."
+        lead="Change first, then the raw counts behind it. Long window rows are listed for the record and are not part of the score."
       >
         <Table
           head={
@@ -89,18 +186,25 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </>
           }
         >
-          {[...changeSignals, ...levelSignals].map((s) => (
+          {[...scored, ...context].map((s) => (
             <tr key={s.id}>
               <td className="px-3 py-2 whitespace-nowrap">{SOURCE_NAME[s.source] ?? s.source}</td>
               <td className="text-muted-foreground px-3 py-2 text-xs">
                 {METRIC_TEXT[s.metric] ?? s.metric}
+                {SCORED_METRICS.has(s.metric) ? null : (
+                  <span className="text-muted-foreground/70"> (not scored)</span>
+                )}
               </td>
               <td
                 className={`num px-3 py-2 text-right font-medium ${
-                  s.metric.endsWith("_pct") ? toneClass(s.value) : ""
+                  SCORED_METRICS.has(s.metric) ? toneClass(s.value) : ""
                 }`}
               >
-                {s.value == null ? "not available" : s.metric.endsWith("_pct") ? pct(s.value) : count(s.value)}
+                {s.value == null
+                  ? "not available"
+                  : SCORED_METRICS.has(s.metric)
+                    ? pct(s.value)
+                    : count(s.value)}
               </td>
               <td className="num text-muted-foreground px-3 py-2 text-right">{isoDate(s.periodEnd)}</td>
               <td className="text-muted-foreground px-3 py-2 text-xs">
@@ -111,12 +215,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </Table>
         {missing.length ? (
           <Note>
-            {missing.map((m) => SOURCE_NAME[m]).join(", ")}{" "}
-            {missing.length === 1 ? "did" : "did"} not answer in the last run
-            {p.subreddits ? ` for r/${p.subreddits}` : ""}
-            . {p.wikiTitle
+            {[...new Set(missing)].map((m) => SOURCE_NAME[m]).join(", ")} did not answer in the
+            last run{p.subreddits ? ` for r/${p.subreddits}` : ""}.{" "}
+            {p.wikiTitle
               ? "The Wikipedia article title and the Trends term come from the seed list and can be wrong; if one source is always empty, the mapping is the first thing to check."
-              : "No Wikipedia title is mapped for this product."}
+              : "No Wikipedia title is mapped for this product."}{" "}
+            A missing source is not a zero. Reddit is left out of the score entirely when the
+            90 day window it is measured against holds fewer than five posts, because a
+            change off a base that small is a rounding artifact rather than a demand signal.
           </Note>
         ) : null}
       </Section>

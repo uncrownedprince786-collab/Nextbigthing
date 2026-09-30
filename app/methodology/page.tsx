@@ -55,7 +55,7 @@ const SIGNALS = [
   {
     source: "Reddit",
     measure: "Posts in the product's subreddits through the public search RSS, last 30 days against the 90 days before, both cut from the year feed.",
-    caveat: "Rate limited and often silent, so a missing value is common and shown as missing. Reddit caps the 30 day feed at 25 results, which is why both windows are read from the year feed instead.",
+    caveat: "Rate limited and often silent, so a missing value is common and shown as missing. Reddit caps the 30 day feed at 25 results, which is why both windows are read from the year feed instead. Post counts here are small: across all thirty products the largest 90 day window is fifteen posts, so a percentage built on a single post is a rounding artifact and is not published.",
   },
   {
     source: "Google News RSS",
@@ -141,14 +141,60 @@ export default function MethodologyPage() {
           <h3 className="font-medium">Demand score and status</h3>
           <p className="mt-1 text-sm leading-relaxed">
             The score is the plain average of the percentage change of every source that
-            answered, with no weighting and no adjustment. Status is <strong>rising</strong>{" "}
-            when the average is at least 10 points and at least one source is up,{" "}
-            <strong>early</strong> when the average is positive but under 10 or rests on a
-            single source, <strong>flat</strong> when the net is near zero, and{" "}
-            <strong>unknown</strong> when nothing answered. Status is a label for the
-            measured window and nothing more.
+            answered, with no weighting and no adjustment. A source that did not answer is
+            left out of the average, and is never counted as a zero. Status is{" "}
+            <strong>rising</strong> when every source that answered is up and the average is
+            at least 5 points, or when the average is at least 10,{" "}
+            <strong>early</strong> when the average is positive, something is up, and at
+            least two sources answered, <strong>flat</strong> otherwise, and{" "}
+            <strong>unknown</strong> when nothing answered. A single source answering is
+            reported as <strong>flat</strong>, not as early interest, because one reading is
+            not a trend. Status is a label for the measured window and nothing more.
           </p>
         </Card>
+      </Section>
+
+      <Section
+        title="Confidence"
+        lead="Every ranking, product and written line carries a grade, and the reason for it is stored next to the grade rather than left to the reader."
+      >
+        <p className="text-muted-foreground max-w-3xl text-sm leading-relaxed">
+          A grade of high, medium, low or no data describes how well evidenced a figure is.
+          It is not a view on direction, and it is not a prediction. A number can be accurate
+          and still be thinly measured, so the two are judged separately.
+        </p>
+        <ul className="text-muted-foreground list-disc space-y-1 pl-5 text-sm leading-relaxed">
+          <li>
+            <strong className="text-foreground">Rankings.</strong> An industry average is
+            compared with its own median. If the two are far apart, the average is not a fair
+            description of a typical peer, so the row is graded down and the gap is stated. The
+            published rank is left as it is, because changing the comparator would quietly
+            rewrite history.
+          </li>
+          <li>
+            <strong className="text-foreground">Products.</strong> Agreement is measured
+            against the average, not against whichever side has more sources. Three sources
+            down and one up is a minority position. Sources that split up and down, or where
+            the average and the median fall on opposite sides of zero, cap the grade at
+            medium. One source supplying most of the average is disclosed but does not cap the
+            grade by itself, because several sources can agree on direction while one supplies
+            the size.
+          </li>
+          <li>
+            <strong className="text-foreground">Small denominators.</strong> A Reddit
+            percentage is not published at all when the window it is measured against holds
+            fewer than five posts, because one post against none is a rounding artifact. When
+            the base is between five and nine the percentage is published, since the arithmetic
+            is correct, but the grade is capped at medium: at that scale a single post moves the
+            number by ten to twenty percent. No product currently grades high, and the reason
+            is written on the product rather than left for you to infer.
+          </li>
+        </ul>
+        <Note>
+          A grade is never more confident than the sentence beside it. The site is more
+          willing to show a small number honestly labelled than a large one that hides how
+          little is behind it.
+        </Note>
       </Section>
 
       <Section title="What this site will not do">

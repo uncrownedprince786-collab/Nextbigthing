@@ -1,8 +1,9 @@
 """Run the data jobs in the order a refresh needs them.
 
-    python jobs/run.py daily    prices and news, then rankings, then the written lines
+    python jobs/run.py daily    prices and news, then rankings, then the confidence
+                                grades, then the written lines
     python jobs/run.py weekly   prices and news, then all five product signal sources,
-                                then rankings and the written lines
+                                then rankings, confidence grades and the written lines
     python jobs/run.py seed     the reference lists only, for a first run
 
 Each step is a separate process on purpose. A rate limited source that fails should not
@@ -25,6 +26,7 @@ HERE = Path(__file__).resolve().parent
 DAILY = [
     ("prices", ["yahoo", "crypto", "news"]),
     ("rankings", []),
+    ("confidence", ["rankings"]),
     ("analysis", []),
 ]
 
@@ -32,6 +34,7 @@ WEEKLY = [
     ("prices", ["yahoo", "crypto", "news"]),
     ("signals", ["trends", "wiki", "hn", "news", "reddit"]),
     ("rankings", []),
+    ("confidence", ["rankings"]),
     ("analysis", []),
 ]
 
