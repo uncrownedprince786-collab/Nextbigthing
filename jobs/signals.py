@@ -8,7 +8,8 @@ does not answer produces no row, and the product is then shown with fewer source
   wikipedia     same two windows on the product article
   hackerNews    stories over 10 points, last 90 days vs the 90 before
   googleNews    articles, last 30 days vs the 30 before
-  reddit        posts from the public RSS search, last 30 days vs the 30 before
+  reddit        posts from the public RSS search, last 30 days against the rate over
+                the 90 days immediately before, both cut from the same year feed
 
 Windows are anchored to the last complete week so a partial week cannot distort a
 number. Reddit is the slowest and the most easily blocked, so it runs on its own flag.
@@ -65,6 +66,23 @@ REDDIT = "Reddit public RSS search"
 # subreddits searched, and 2 post more than 4. A change off a base of one is a rounding
 # artifact, so below this floor only the raw counts are stored.
 MIN_COUNT_BASE = 5
+
+# The two Reddit windows, in days, and they have to be adjacent and comparable.
+#
+# The first version of this compared a 30 day count against a count taken from 180 to 90
+# days ago. Two things were wrong with that. The windows were not adjacent, so the 60 days
+# in between were measured by neither and a product that started being discussed two months
+# ago fell in the gap. Worse, a 30 day count was divided by a 90 day count, which is not a
+# change at all: a product posted about at a perfectly steady rate came out at -67% every
+# single run, and the note printed underneath said so out loud without anyone reading it as
+# the bug it was.
+#
+# Now the prior window ends where the recent one begins, and the comparison is made between
+# two rates over the same length of time. A steady product reads 0%.
+REDDIT_RECENT_DAYS = 30
+REDDIT_PRIOR_DAYS = 90
+# What the prior count has to be divided by to become a 30 day rate.
+REDDIT_PRIOR_SCALE = REDDIT_PRIOR_DAYS / REDDIT_RECENT_DAYS
 
 
 def last_complete_week(today: date) -> date:
@@ -330,6 +348,9 @@ def reddit_signals(cur) -> None:
     at 25 results, so a capped count cannot be compared with an uncapped one. The year
     feed is read once and the windows are cut from the entry dates instead, which keeps
     both counts on the same footing.
+
+    The two windows are adjacent and the longer one is converted to a rate before the
+    comparison, so a product discussed at an unchanged rate reads 0% rather than -67%.
     """
     step("reddit")
     products = rows(
@@ -358,12 +379,16 @@ def reddit_signals(cur) -> None:
                 missing.append(f"r/{sub}")
                 continue
             answered.append(f"r/{sub}")
-            recent += count_recent(raw, now - timedelta(days=30), now)
+            # Adjacent windows: the prior one ends exactly where the recent one begins, so
+            # no day is counted twice and no day falls between them uncounted.
+            recent += count_recent(raw, now - timedelta(days=REDDIT_RECENT_DAYS), now)
             prior += count_recent(
-                raw, now - timedelta(days=180), now - timedelta(days=90)
+                raw,
+                now - timedelta(days=REDDIT_RECENT_DAYS + REDDIT_PRIOR_DAYS),
+                now - timedelta(days=REDDIT_RECENT_DAYS),
             )
             if evidence is None:
-                evidence = first_recent(raw, now - timedelta(days=30))
+                evidence = first_recent(raw, now - timedelta(days=REDDIT_RECENT_DAYS))
         if missing:
             # Counting only the subreddits that answered would understate the product and look
             # like a collapse in discussion, and next week the same product might be counted
@@ -404,8 +429,8 @@ def reddit_signals(cur) -> None:
             "reddit_posts_90d_base",
             float(prior),
             date.today(),
-            note=f"{REDDIT}, the 90 days before the 30 day window, in "
-            f"r/{', r/'.join(subs[:2])}",
+            note=f"{REDDIT}, the {REDDIT_PRIOR_DAYS} days immediately before the "
+            f"{REDDIT_RECENT_DAYS} day window, in r/{', r/'.join(subs[:2])}",
         )
         # A percentage is only published when the window it is measured against actually
         # holds something. Most of these products post a handful of times a year on the two
@@ -413,16 +438,22 @@ def reddit_signals(cur) -> None:
         # reads as collapsing demand when it means the product is barely discussed there.
         # Below the floor the raw counts are stored and no percentage is invented.
         if prior >= MIN_COUNT_BASE:
+            # The prior count covers three times as many days, so it is turned into a rate
+            # over the same 30 days before the two are compared. Dividing a 30 day count by
+            # a 90 day count would report a steady product as a third of its former self.
+            prior_rate = float(prior) / REDDIT_PRIOR_SCALE
             write(
                 cur,
                 p["id"],
                 "reddit",
                 "reddit_posts_30d_change_pct",
-                pct(float(recent), float(prior)),
+                pct(float(recent), prior_rate),
                 date.today(),
                 note=(
-                    f"{REDDIT}, {int(recent)} posts in the last 30 days against "
-                    f"{int(prior)} in the 90 before"
+                    f"{REDDIT}, {int(recent)} posts in the last {REDDIT_RECENT_DAYS} days "
+                    f"against {prior_rate:.1f}, which is the {int(prior)} posts of the "
+                    f"{REDDIT_PRIOR_DAYS} days before at the same rate per "
+                    f"{REDDIT_RECENT_DAYS} days"
                 ),
             )
         else:
@@ -434,8 +465,9 @@ def reddit_signals(cur) -> None:
                 (p["id"], "reddit"),
             )
             print(
-                f"  {p['slug']}: {int(recent)} posts now against {int(prior)} in the 90 days "
-                f"before, under the {MIN_COUNT_BASE} floor, so no percentage is published"
+                f"  {p['slug']}: {int(recent)} posts now against {int(prior)} in the "
+                f"{REDDIT_PRIOR_DAYS} days before, under the {MIN_COUNT_BASE} floor, "
+                f"so no percentage is published"
             )
         got += 1
     searched = sum(

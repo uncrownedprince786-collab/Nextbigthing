@@ -44,6 +44,7 @@ COINGECKO = "CoinGecko"
 BINANCE = "Binance"
 PAPRIKA = "CoinPaprika"
 GNEWS = "Google News RSS"
+PSX = "psx"
 NEWS_PER_FEED = 12
 # Asset feeds are narrower than the industry ones, so a smaller cap keeps the run short
 # and stops one busy company filling its own page with the same week of coverage.
@@ -332,6 +333,12 @@ def asset_news_term(a: dict) -> str:
     """A search that names this asset. Each kind needs a different key."""
     kind = a["assetType"]
     hint = ASSET_NEWS_HINTS.get(a["symbol"])
+    if a.get("source") == PSX:
+        # A PSX ticker is three to six letters that mean something else in English news:
+        # "PSO" and "MARI" and "ILP" all return unrelated results, and the company names
+        # are shared with firms in other countries. The country word is what separates
+        # Pakistani coverage from the rest, and it is how the local press writes it.
+        return f'"{a["name"]}" Pakistan'
     if kind == "etf":
         # A fund's formal name is almost never quoted in a headline, and the brand is
         # written in lower case, so a quoted "abrdn Silver Shares" returns nothing at all.
@@ -352,7 +359,9 @@ def fetch_news(cur) -> int:
     written = 0
     industries = rows(cur, 'SELECT id, slug FROM "Industry"')
     products = rows(cur, 'SELECT id, name FROM "Product"')
-    assets = rows(cur, 'SELECT id, symbol, name, "assetType" FROM "Asset" ORDER BY symbol')
+    assets = rows(
+        cur, 'SELECT id, symbol, name, "assetType", source FROM "Asset" ORDER BY symbol'
+    )
 
     def ingest(url, cache_key, insert_sql, params_fn, cap=NEWS_PER_FEED):
         nonlocal written
@@ -394,7 +403,9 @@ def fetch_news(cur) -> int:
     news_sql = """
         INSERT INTO "News" ("industryId", title, url, publisher, "publishedAt", source, "createdAt")
         VALUES (%s,%s,%s,%s,%s,%s, now())
-        ON CONFLICT (url) WHERE "assetId" IS NULL AND "productId" IS NULL DO NOTHING
+        ON CONFLICT ("industryId", url)
+        WHERE "assetId" IS NULL AND "productId" IS NULL AND "industryId" IS NOT NULL
+        DO NOTHING
     """
     prod_sql = """
         INSERT INTO "News" ("productId", title, url, publisher, "publishedAt", source, "createdAt")

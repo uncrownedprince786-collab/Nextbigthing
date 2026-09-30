@@ -92,9 +92,10 @@ def ranking_confidence(cur) -> tuple[int, int]:
     step("ranking confidence")
 
     written = 0
-    # The comparator an industry average actually is, so a skewed mean can be detected
-    # instead of quietly deciding the rank.
-    skew: dict[str, float] = {}
+    # How far each industry's mean relative return sits from its own median. This is the
+    # comparator the rising rank is actually built on, so a mean that no typical peer
+    # resembles can be detected instead of quietly deciding the order.
+    rising_values: dict[str, list[float]] = {}
     for r in rows(
         cur,
         """
@@ -102,13 +103,12 @@ def ranking_confidence(cur) -> tuple[int, int]:
         WHERE basis = 'rising'::"RankingBasis"
         """,
     ):
-        skew.setdefault(r["industryId"], []).append(r["value"])
-    stats: dict[str, dict] = {"skew": {}}
-    for ind, vals in skew.items():
+        rising_values.setdefault(r["industryId"], []).append(r["value"])
+    skew_by_industry: dict[str, float] = {}
+    for ind, vals in rising_values.items():
         if len(vals) < 2:
             continue
-        med = statistics.median(vals)
-        stats["skew"][ind] = abs(statistics.mean(vals) - med)
+        skew_by_industry[ind] = abs(statistics.mean(vals) - statistics.median(vals))
 
     for basis in ("size", "sizeNow", "totalReturn", "rising"):
         got = rows(
@@ -172,7 +172,7 @@ def ranking_confidence(cur) -> tuple[int, int]:
                 # This is the relative ranking, so it is graded hardest. It needs enough
                 # peers, a volume check that actually ran, and a comparator that a
                 # typical peer would recognise.
-                skew = stats["skew"].get(r["industryId"])
+                skew = skew_by_industry.get(r["industryId"])
                 if "volume trend unavailable" in note:
                     if n_peers >= PEER_HIGH:
                         grade = "medium"
@@ -288,9 +288,14 @@ def summarise(measured: list[dict], score: float | None) -> dict:
     the sentence they read underneath it cannot disagree.
     """
     answered = len(measured)
+    # A source reading exactly zero answered and reported no change. It is not a vote
+    # down. Counting it as one used to make "the sources split 3 up and 1 down" appear
+    # over a product where the fourth source had simply not moved, and it capped that
+    # product's grade at medium for a disagreement that never happened. The three counts
+    # are taken independently so they cannot silently sum to something else.
     up = sum(1 for s in measured if s["value"] > 0)
-    down = answered - up
-    flat = answered - up - down
+    down = sum(1 for s in measured if s["value"] < 0)
+    flat = sum(1 for s in measured if s["value"] == 0)
     values = [s["value"] for s in measured]
 
     # Which single source is carrying the average, and by how much. Measured on the stored
@@ -316,7 +321,11 @@ def summarise(measured: list[dict], score: float | None) -> dict:
         "dominant": dominant,
         "dominant_share": dominant_share,
         "split": up > 0 and down > 0,
-        "one_sided": (up == answered or down == answered) and answered > 0,
+        # One sided means nothing pointed the other way. A source at zero did not point the
+        # other way, so it does not break the agreement, but it is not evidence for the
+        # direction either, which is why the sentence built from this says how many of the
+        # sources actually moved.
+        "one_sided": answered > 0 and (up == 0) != (down == 0),
     }
 
 
@@ -326,10 +335,13 @@ def agreement(measured: list[dict], score: float | None) -> tuple[int, int, int]
     Returns (answered, agree, up). Agreement is measured against the average, not against
     whichever side happens to be bigger: three sources down and one up is a minority
     position even though three is the larger number.
+
+    A source at exactly zero agrees with neither direction. It answered, so it stays in the
+    denominator, but it is not counted as agreeing with a rise or a fall it did not report.
     """
     answered = len(measured)
     up = sum(1 for s in measured if s["value"] > 0)
-    down = answered - up
+    down = sum(1 for s in measured if s["value"] < 0)
     if answered == 0 or score is None:
         return answered, 0, up
     if score > 0:
@@ -408,7 +420,12 @@ def product_confidence(cur) -> tuple[int, int]:
                 grade = "low"
 
             reasons = [f"{answered} of {possible} demand sources returned a value"]
-            if s["split"]:
+            if s["flat"] and not up and not down:
+                reasons.append(
+                    f"every source that answered reported no change, so there is a reading "
+                    f"here but no direction in it"
+                )
+            elif s["split"]:
                 reasons.append(
                     f"the sources split {up} up and {down} down, so the grade is capped at "
                     "medium however strong the average is"
@@ -419,6 +436,15 @@ def product_confidence(cur) -> tuple[int, int]:
                 reasons.append(
                     "with one source there is no agreement to report, and that source is the "
                     "whole of the average"
+                )
+            elif s["one_sided"] and s["flat"]:
+                # Nothing pointed the other way, but not everything moved, and saying "all
+                # of them agree" over a set where some reported no change claims more
+                # agreement than there is.
+                moved = up or down
+                reasons.append(
+                    f"the {moved} that moved all point the same way, and the other "
+                    f"{s['flat']} reported no change"
                 )
             elif s["one_sided"]:
                 reasons.append(f"all {answered} point the same way as the average")
