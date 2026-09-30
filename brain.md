@@ -67,10 +67,28 @@ over a short, stated window:
 - Reddit posts: last 30 days against the 90 days before, both cut from the year feed.
   Reddit's own 30 day feed caps at 25 results, so a capped count could not be compared
   with an uncapped one; reading both windows from the year feed keeps them comparable.
+  A product is counted only when *all* of its subreddits answered. Counting the ones that
+  did answer would understate the product and read as falling demand, and because the
+  denominator would change between runs the two figures would not be comparable at all. A
+  rate limited product shows no Reddit figure for that period rather than a partial one,
+  and any stored count left without the base it was measured against is deleted, because a
+  reader cannot check a percentage whose denominator is missing.
 
 `demandNote` names the sources that answered, so a reader can see the strength of the
 signal. A product with one source is never called rising. A product with no sources is
 labelled "no data" and is left out of every list.
+
+News is deduped per target, not per table. One article can be stored once per asset, once
+per product and once for an industry, because the same story genuinely belongs on all
+three. Within a single target the same url is stored once. This is what lets two metal ETFs
+tracking the same metal both hold the same coverage story.
+
+Every asset has its own Google News feed, and the search term is chosen per instrument
+kind rather than from the name alone: a stock uses its quoted name plus a disambiguating
+word, because "Apple" returns fruit and "Oracle" returns crypto price prediction; a fund
+uses its ticker, because a formal fund name is never quoted in a headline and the brand is
+written in lower case, so a quoted "abrdn Silver Shares" matches nothing; and a futures
+contract is searched by its underlying, since that is how headlines name it.
 
 Related assets are a fixed, factual mapping in the seed data. The app shows the asset's
 measured return next to the product. It does not say the product caused the move.

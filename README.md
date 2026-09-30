@@ -97,7 +97,8 @@ Full rules and the measured data behind them are in `brain.md`.
 UTC, and can be triggered by hand with a `seed`, `daily` or `weekly` choice. It needs two
 repository secrets:
 
-- `DATABASE_URL`, the Neon connection string.
+- `DATABASE_URL`, the Neon connection string. The jobs write, so this one needs an owner
+  or writer role.
 - `CONTACT_EMAIL`, optional, used only if identified requests are ever filed.
 
 Product signals run weekly rather than daily because Reddit and Wikipedia rate limit, and
@@ -107,6 +108,26 @@ asking them every day mostly returns `429` and no new data.
 
 Vercel builds the site. Set `DATABASE_URL` in the project environment, and the front page,
 industry, product, asset and methodology routes are revalidated hourly.
+
+The site only ever reads, so the `DATABASE_URL` Vercel uses is a dedicated read-only role
+(`nbt_readonly`), not the connection string the jobs write with. A leaked read-only
+credential cannot change a row. The role is granted `connect`, schema `usage` and `select`
+on every table in `public`, plus `alter default privileges ... grant select on tables`, so a
+table added by a later migration stays readable to the site without a second manual step.
+
+To recreate it after a credential rotation, connect once with the owner role and run:
+
+```sql
+CREATE ROLE nbt_readonly LOGIN PASSWORD '<new password>'
+  NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+GRANT CONNECT ON DATABASE neondb TO nbt_readonly;
+GRANT USAGE ON SCHEMA public TO nbt_readonly;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO nbt_readonly;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO nbt_readonly;
+```
+
+Then set Vercel's `DATABASE_URL` to the same host and database with that role's credential.
+Keep the local `.env` and the GitHub secret on the writer role.
 
 ## Data sources
 
