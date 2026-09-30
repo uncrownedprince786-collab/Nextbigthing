@@ -16,6 +16,17 @@ on:
         default: daily
         type: choice
         options: [daily, weekly, seed]
+  # Editing this file runs the daily group once, on main. Two reasons, and the second is the
+  # awkward one: a change to the pipeline should be proved rather than assumed, and GitHub
+  # offers the workflow_dispatch button only on the repository's default branch, so while the
+  # default is not main there is otherwise no way to run this on main's code at all.
+  # A push event falls through "Choose the run" to daily, which is the group the site depends
+  # on; weekly stays on its schedule, because that is the one that asks the rate limited
+  # sources for anything.
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/refresh.yml
 
 # Shared with the schema workflow, so a migration and a data job never write at the same
 # time. See the note there.
