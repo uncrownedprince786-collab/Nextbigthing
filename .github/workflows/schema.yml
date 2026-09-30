@@ -69,6 +69,19 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: python jobs/seed.py
 
+      # The written lines are generated, never hand edited, so they are a function of this
+      # code and the rows already stored. That makes them part of a release too: a fix to the
+      # wording in jobs/analysis.py does nothing until something regenerates the rows, and
+      # waiting for the next scheduled refresh would leave the site showing prose the code no
+      # longer produces. It is safe to run on its own — it reads stored rows, makes no network
+      # request, and deletes and rewrites Analysis inside one transaction, so a failure rolls
+      # back rather than leaving the front page half written.
+      - name: Regenerate the written lines
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/analysis.py
+
       - name: Row counts after the run
         if: always()
         env:
