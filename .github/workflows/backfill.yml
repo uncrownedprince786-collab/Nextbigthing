@@ -44,8 +44,14 @@ jobs:
       # The exchange's published files for past days never change, so the job caches them
       # for a year on disk. Carrying that cache between runs is what keeps a rerun nearly
       # free instead of three hundred requests every time.
+      #
+      # Restore and save are separate actions rather than one cache step because the single
+      # step only saves when the job succeeds. A run that fetched for ten minutes and then
+      # failed at the write would throw all of it away and ask the exchange for the same
+      # files again on the next attempt, which is precisely the hammering brain.md rule 6
+      # forbids. Saving on always() means a failure costs the exchange nothing twice.
       - name: Restore the fetched file cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: .cache
           key: psx-http-${{ github.run_id }}
@@ -82,9 +88,44 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: python jobs/analysis.py
 
+      # Actions logs cannot be read without a sign-in, so the one question that matters is
+      # asked as its own step: a step's pass or fail is visible where its output is not.
+      # always(), because when the fetch fails this is the only way to tell a run that stored
+      # nothing from one that stored prices and fell over afterwards.
+      - name: Verify PSX prices landed
+        if: always()
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, "jobs")
+          from nbt import db, one
+          from psx import CLOSING
+          conn = db()
+          with conn, conn.cursor() as cur:
+              got = one(cur, '''
+                  SELECT count(*) AS n, count(DISTINCT "assetId") AS assets,
+                         min(date) AS lo, max(date) AS hi
+                  FROM "PriceSnapshot" WHERE source = %s
+              ''', (CLOSING,))
+          conn.close()
+          print(f"PSX rows {got['n']}, assets {got['assets']}, {got['lo']} to {got['hi']}")
+          if not got["n"]:
+              raise SystemExit("no PSX prices are stored")
+          PY
+
       - name: Row counts after the run
         if: always()
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/stats.py
+
+      - name: Save the fetched file cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache
+          key: psx-http-${{ github.run_id }}

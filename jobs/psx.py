@@ -198,6 +198,17 @@ def main() -> None:
         raise SystemExit(2)
 
     today = date.today()
+
+    # The three phases below exist because of one rule: no database connection is held open
+    # while this job is on the network. `full` spends the better part of ten minutes fetching,
+    # and a transaction left open across that is a session sitting idle in transaction for
+    # minutes at a time. Serverless Postgres closes those, and the failure surfaces as an
+    # exception on the *next* statement, which rolls the whole run back — minutes of fetching
+    # discarded, and nothing stored to show for it.
+    #
+    # So: ask what to fetch, hang up. Fetch. Reconnect and write.
+
+    # --- phase 1: what to fill. A question, and then the connection goes away.
     conn = db()
     with conn, conn.cursor() as cur:
         assets = rows(
@@ -205,89 +216,112 @@ def main() -> None:
             'SELECT id, symbol, name FROM "Asset" WHERE source = %s ORDER BY symbol',
             (PSX,),
         )
-        if not assets:
-            print("no PSX assets seeded, nothing to do")
-            return
-        by_symbol = {a["symbol"].upper(): a for a in assets}
-        print(f"  {len(by_symbol)} PSX symbols to fill")
+    conn.close()
 
-        step(f"daily closing files ({mode})")
-        cache: dict[date, dict | None] = {}
-        asked = 0
+    if not assets:
+        print("no PSX assets seeded, nothing to do")
+        return
+    by_symbol = {a["symbol"].upper(): a for a in assets}
+    print(f"  {len(by_symbol)} PSX symbols to fill")
 
-        def load(day: date):
-            """One day, read once however many callers want it."""
-            nonlocal asked
-            if day not in cache:
-                asked += 1
-                cache[day] = read_day(day, today)
-            return cache[day]
+    # --- phase 2: every request this job makes, with nothing to time out behind it.
+    step(f"daily closing files ({mode})")
+    cache: dict[date, dict | None] = {}
+    asked = 0
 
-        def resolve(anchor: date) -> date | None:
-            """The last published day on or before an anchor, or None if the run of
-            closed days is longer than BACKTRACK."""
-            for back in range(BACKTRACK + 1):
-                day = anchor - timedelta(days=back)
-                if day < HISTORY_FROM or day > today:
-                    continue
-                if load(day):
-                    return day
-            return None
+    def load(day: date):
+        """One day, read once however many callers want it."""
+        nonlocal asked
+        if day not in cache:
+            asked += 1
+            cache[day] = read_day(day, today)
+        return cache[day]
 
-        # Newest first, so a run cut short still leaves current prices behind.
-        targets: list[date] = sorted(
-            {d for d in dense_dates(today) if load(d)}
-            | {r for a in anchor_dates(today, mode) if (r := resolve(a))},
-            reverse=True,
-        )
-
-        buffer: list[tuple] = []
-        traded = 0
-        latest_day: date | None = None
-        latest_rows: dict[str, dict] = {}
-
-        for day in targets:
-            got = cache[day]
-            if not got:
+    def resolve(anchor: date) -> date | None:
+        """The last published day on or before an anchor, or None if the run of
+        closed days is longer than BACKTRACK."""
+        for back in range(BACKTRACK + 1):
+            day = anchor - timedelta(days=back)
+            if day < HISTORY_FROM or day > today:
                 continue
-            traded += 1
-            if latest_day is None or day > latest_day:
-                latest_day, latest_rows = day, got
-            for sym, a in by_symbol.items():
-                row = got.get(sym)
-                if not row:
-                    # The symbol did not trade that day, or was not listed yet. Either way
-                    # there is no close to store.
-                    continue
-                buffer.append((a["id"], day, row["close"], row["volume"], None, CLOSING))
-            if len(buffer) >= 2000:
-                insert(cur, buffer)
-                buffer = []
-        insert(cur, buffer)
-        print(f"  {traded} trading days stored, {asked} dates requested")
+            if load(day):
+                return day
+        return None
 
-        # Size, against the newest close only.
-        step("share counts")
-        if latest_day is None:
-            print("  no trading day found, so no size figure is written")
-        else:
-            sized = missing = 0
-            for sym, a in by_symbol.items():
-                row = latest_rows.get(sym)
-                if not row:
-                    continue
-                shares = shares_outstanding(sym)
-                if shares is None:
-                    missing += 1
-                    continue
-                cur.execute(
-                    """
-                    UPDATE "PriceSnapshot" SET "marketCap" = %s
-                    WHERE "assetId" = %s AND date = %s
-                    """,
-                    (row["close"] * shares, a["id"], latest_day),
-                )
-                sized += cur.rowcount
+    # Newest first, so a run cut short still leaves current prices behind.
+    targets: list[date] = sorted(
+        {d for d in dense_dates(today) if load(d)}
+        | {r for a in anchor_dates(today, mode) if (r := resolve(a))},
+        reverse=True,
+    )
+
+    traded = 0
+    latest_day: date | None = None
+    latest_rows: dict[str, dict] = {}
+    batches: list[list[tuple]] = []
+    buffer: list[tuple] = []
+
+    for day in targets:
+        got = cache[day]
+        if not got:
+            continue
+        traded += 1
+        if latest_day is None or day > latest_day:
+            latest_day, latest_rows = day, got
+        for sym, a in by_symbol.items():
+            row = got.get(sym)
+            if not row:
+                # The symbol did not trade that day, or was not listed yet. Either way
+                # there is no close to store.
+                continue
+            buffer.append((a["id"], day, row["close"], row["volume"], None, CLOSING))
+        if len(buffer) >= 2000:
+            batches.append(buffer)
+            buffer = []
+    if buffer:
+        batches.append(buffer)
+    print(f"  {traded} trading days read, {asked} dates requested")
+
+    step("share counts")
+    shares_by_symbol: dict[str, float] = {}
+    missing = 0
+    if latest_day is None:
+        print("  no trading day found, so no size figure is written")
+    else:
+        for sym in by_symbol:
+            if sym not in latest_rows:
+                continue
+            shares = shares_outstanding(sym)
+            if shares is None:
+                missing += 1
+                continue
+            shares_by_symbol[sym] = shares
+
+    # --- phase 3: a fresh connection, and writes only. Committed per batch so a connection
+    # lost late in the run keeps the prices already written rather than discarding them.
+    step("write")
+    conn = db()
+    cur = conn.cursor()
+    try:
+        stored = 0
+        for batch in batches:
+            stored += insert(cur, batch)
+            conn.commit()
+        print(f"  {stored} rows written over {traded} trading days")
+
+        sized = 0
+        for sym, shares in shares_by_symbol.items():
+            cur.execute(
+                """
+                UPDATE "PriceSnapshot" SET "marketCap" = %s
+                WHERE "assetId" = %s AND date = %s
+                """,
+                (latest_rows[sym]["close"] * shares, by_symbol[sym]["id"], latest_day),
+            )
+            sized += cur.rowcount
+        conn.commit()
+
+        if latest_day is not None:
             print(
                 f"  market cap on {latest_day} for {sized} assets"
                 + (f", {missing} publish no share count" if missing else "")
@@ -306,7 +340,9 @@ def main() -> None:
         )
         got = cur.fetchone()
         print(f"\nPSX snapshots stored: {got['n']} from {got['lo']} to {got['hi']}")
-    conn.close()
+    finally:
+        cur.close()
+        conn.close()
 
 
 if __name__ == "__main__":
