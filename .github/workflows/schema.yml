@@ -80,6 +80,22 @@ jobs:
       # longer produces. It is safe to run on its own — it reads stored rows, makes no network
       # request, and deletes and rewrites Analysis inside one transaction, so a failure rolls
       # back rather than leaving the front page half written.
+      # Both are arithmetic over rows already stored — human reads News, accuracy reads
+      # PriceSnapshot — so neither makes a request and both belong with a release rather
+      # than with the rate limited refresh. accuracy follows human so a reading is logged
+      # before the job that measures logged readings runs.
+      - name: Read the current human signal
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/human.py
+
+      - name: Measure what followed earlier readings
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/accuracy.py
+
       - name: Regenerate the written lines
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

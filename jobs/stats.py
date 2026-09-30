@@ -35,6 +35,8 @@ TABLES = [
     ('Event', 'date'),
     ('EventImpact', None),
     ('MarketplaceItem', '"periodEnd"'),
+    ('HumanSignal', '"periodEnd"'),
+    ('SignalLog', '"issuedOn"'),
 ]
 
 
@@ -85,6 +87,26 @@ def main() -> None:
             print(
                 f"market {got['market']:6} {got['assets']:>4} assets, "
                 f"{got['priced']:>4} with a stored price{newest}"
+            )
+
+        # The accuracy log is only worth anything if rows actually mature, so the split
+        # between what is waiting and what has been measured is the line to watch.
+        print()
+        for got in rows(
+            cur,
+            'SELECT status, count(*) AS n FROM "SignalLog" GROUP BY status ORDER BY status',
+        ):
+            print(f"signal log {got['status']:14} {got['n']:>6} rows")
+        for got in rows(
+            cur,
+            """
+            SELECT attention, count(*) AS n, count(tone) AS graded
+            FROM "HumanSignal" GROUP BY attention ORDER BY attention
+            """,
+        ):
+            print(
+                f"attention {got['attention']:10} {got['n']:>5} targets, "
+                f"{got['graded']:>5} with a published tone"
             )
     conn.close()
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { isoDate } from "@/lib/format";
+import { isoDate, pct, toneClass } from "@/lib/format";
 
 export function Section({
   title,
@@ -185,6 +185,201 @@ export function HowToRead({
         ))}
       </ul>
     </details>
+  );
+}
+
+/// What the public discussion around one target currently looks like.
+///
+/// Three readings side by side and never merged into one verdict, because they answer
+/// different questions and disagree often: how much is being written, how it is worded, and
+/// whether it is being written to sell a click. A reader who sees only a merged score cannot
+/// tell which of the three moved.
+///
+/// The counts sit next to every direction on purpose. "Positive" over 40 headlines and
+/// "positive" over 9 are the same word doing very different work, and the second one is the
+/// common case. Where a direction was withheld the block says so rather than showing
+/// neutral, since no reading and a balanced reading are not the same finding.
+export function DiscussionBlock({
+  signal,
+  targetLabel,
+}: {
+  signal: {
+    items: number;
+    positive: number;
+    negative: number;
+    neutral: number;
+    tone: string | null;
+    toneScore: number | null;
+    priorItems: number;
+    velocityPct: number | null;
+    attention: string;
+    hypeTerms: number;
+    hypeFlag: boolean;
+    hypeNote: string | null;
+    windowDays: number;
+    periodEnd: Date | string;
+    confidence: string;
+    confidenceNote: string | null;
+    source: string;
+  } | null;
+  targetLabel: string;
+}) {
+  if (!signal) {
+    return (
+      <Empty>
+        No discussion reading has been written for {targetLabel} yet. It is computed from
+        stored news coverage by <code>python jobs/human.py</code>.
+      </Empty>
+    );
+  }
+
+  const attentionTone =
+    signal.attention === "rising" ? "up" : signal.attention === "falling" ? "down" : "default";
+  const toneTone =
+    signal.tone === "positive" ? "up" : signal.tone === "negative" ? "down" : "default";
+
+  return (
+    <Card>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div>
+          <p className="text-muted-foreground text-xs">Attention</p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <Pill tone={attentionTone as "up" | "down" | "default"}>{signal.attention}</Pill>
+            {signal.velocityPct != null ? (
+              <span className={`num text-sm ${toneClass(signal.velocityPct)}`}>
+                {pct(signal.velocityPct)}
+              </span>
+            ) : null}
+          </div>
+          <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">
+            {signal.items} headlines in {signal.windowDays} days against {signal.priorItems} in
+            the {signal.windowDays} before
+            {signal.velocityPct == null
+              ? ", too few to compare, so no change is reported"
+              : ""}
+            .
+          </p>
+        </div>
+
+        <div>
+          <p className="text-muted-foreground text-xs">Headline wording</p>
+          <div className="mt-1">
+            {signal.tone ? (
+              <Pill tone={toneTone as "up" | "down" | "default"}>{signal.tone}</Pill>
+            ) : (
+              <Pill>no direction published</Pill>
+            )}
+          </div>
+          <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">
+            {signal.positive} positive, {signal.negative} negative, {signal.neutral} neither,
+            of {signal.items}.
+            {signal.tone
+              ? ""
+              : " Too few headlines to read a direction, so only the counts are shown."}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-muted-foreground text-xs">Promotional wording</p>
+          <div className="mt-1">
+            {signal.hypeFlag ? <Pill tone="warn">hype flagged</Pill> : <Pill>not flagged</Pill>}
+          </div>
+          <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">
+            {signal.hypeTerms} of {signal.items} headlines use promotional wording.
+          </p>
+        </div>
+      </div>
+
+      <div className="border-border mt-4 flex flex-wrap items-center gap-2 border-t pt-3">
+        <ConfidenceBadge grade={signal.confidence} />
+        <AsOf date={signal.periodEnd} />
+      </div>
+
+      {signal.confidenceNote ? (
+        <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
+          {signal.confidenceNote}.
+        </p>
+      ) : null}
+
+      {signal.hypeNote ? <Note>{signal.hypeNote}.</Note> : null}
+
+      <HowToRead
+        title="How this reading is produced, and what it cannot see"
+        points={[
+          <>
+            <strong>It is a word list, not sentiment analysis.</strong> Headlines are matched
+            against a fixed list of directional words. There is no model involved, and the
+            match counts are shown above so the arithmetic can be checked.
+          </>,
+          <>
+            <strong>It reads headlines only.</strong> Never article bodies. It cannot see
+            negation, so &ldquo;not a record year&rdquo; counts the positive word, and it
+            cannot see sarcasm or context at all.
+          </>,
+          <>
+            <strong>A headline worded both ways counts as neither.</strong> &ldquo;Revenue
+            beats but guidance misses&rdquo; is genuinely both, so it is left out of the
+            direction rather than assigned to whichever side matched more words.
+          </>,
+          <>
+            <strong>Attention measures coverage, not interest.</strong> A feed that was rate
+            limited returns fewer items, which looks identical to a quieter month. That is why
+            the raw counts are printed next to the percentage.
+          </>,
+          <>
+            <strong>Hype describes the writing, not the asset.</strong> The flag is raised
+            only when promotional wording arrives together with rising coverage. Heavily
+            promoted and overvalued are different claims and only the first is measured here.
+          </>,
+          <>
+            <strong>None of this is a forecast.</strong> It is what was published in a stated
+            window, from {signal.source}.
+          </>,
+        ]}
+      />
+    </Card>
+  );
+}
+
+/// What the accuracy log currently supports, which for a while is nothing.
+///
+/// The honest state of a feedback loop that has just started is that it has no answer yet,
+/// and saying so is the whole point: a hit rate computed over a handful of matured rows would
+/// be exactly the impressive-looking number the project exists not to publish.
+export function AccuracyNote({
+  accuracy,
+}: {
+  accuracy: {
+    horizon: number;
+    measured: number;
+    positive: number;
+    open: number;
+    enough: boolean;
+    mean: number | null;
+    earliest: Date | string | null;
+  };
+}) {
+  if (!accuracy.enough) {
+    return (
+      <p className="text-muted-foreground text-xs leading-relaxed">
+        Every reading on this page is logged on the day it is generated, and the price move
+        over the {accuracy.horizon} days after it is measured once that window has passed.
+        So far {accuracy.measured} readings have matured and {accuracy.open} are still
+        waiting, which is too few to quote a rate from. No accuracy figure is published until
+        there are enough matured rows to divide by.
+      </p>
+    );
+  }
+  return (
+    <p className="text-muted-foreground text-xs leading-relaxed">
+      Of {accuracy.measured} logged readings whose {accuracy.horizon} day window has passed,
+      {" "}
+      {accuracy.positive} were followed by a positive price move, a mean of{" "}
+      <span className="num">{pct(accuracy.mean)}</span>
+      {accuracy.earliest ? <> since {isoDate(accuracy.earliest)}</> : null}. This is what
+      followed the readings, measured from the close stored beside each one. It is not a
+      claim that the readings caused the moves, and it is not a forecast.
+    </p>
   );
 }
 

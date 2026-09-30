@@ -29,12 +29,18 @@ HERE = Path(__file__).resolve().parent
 # events runs before analysis and not after it, because analysis writes the sentence that
 # sits under each event's table and has to read the rows that table is built from. Running
 # it the other way round would print last week's event lines over this week's numbers.
+# human reads the News rows prices has just written, so it follows prices rather than
+# leading it, and accuracy follows human so a reading is in the log before the job that
+# measures logged readings runs. Neither touches the network: both are arithmetic over rows
+# already stored, which is why they sit in the daily group without adding a request to it.
 DAILY = [
     ("prices", ["yahoo", "crypto", "news"]),
     ("psx", ["recent"]),
     ("rank", []),
     ("confidence", ["rankings"]),
     ("events", []),
+    ("human", []),
+    ("accuracy", []),
     ("analysis", []),
 ]
 
@@ -46,6 +52,8 @@ WEEKLY = [
     ("rank", []),
     ("confidence", ["rankings"]),
     ("events", []),
+    ("human", []),
+    ("accuracy", []),
     ("analysis", []),
 ]
 

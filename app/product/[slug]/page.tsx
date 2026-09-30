@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  AccuracyNote,
   Card,
   ConfidenceBadge,
+  DiscussionBlock,
   Empty,
   HowToRead,
   Note,
@@ -11,7 +13,7 @@ import {
   Section,
   Table,
 } from "@/components/ui";
-import { getProduct, getProductMarketplace } from "@/lib/queries";
+import { getAccuracy, getHumanSignal, getProduct, getProductMarketplace } from "@/lib/queries";
 import { count, isoDate, longDate, pct, relativeTime, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
@@ -74,6 +76,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // is a text match, not a measurement of the product category, and it is deliberately
   // fetched after the product rather than joined into the demand score.
   const market = await getProductMarketplace(p.trendsTerm || p.name);
+  const [discussion, accuracy] = await Promise.all([
+    getHumanSignal({ productId: p.id }),
+    getAccuracy(30),
+  ]);
 
   const read = p.analysis[0];
 
@@ -253,6 +259,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             change off a base that small is a rounding artifact rather than a demand signal.
           </Note>
         ) : null}
+      </Section>
+
+      <Section
+        title="Current discussion"
+        lead="What has been published about this product lately, how it was worded, and whether it reads as promotion. Kept separate from the demand score above, which measures search and forum activity rather than wording."
+      >
+        <DiscussionBlock signal={discussion} targetLabel={p.name} />
+        <div className="mt-3">
+          <AccuracyNote accuracy={accuracy} />
+        </div>
       </Section>
 
       <Section

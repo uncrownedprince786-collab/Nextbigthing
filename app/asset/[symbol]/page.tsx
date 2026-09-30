@@ -2,8 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Sparkline } from "@/components/chart";
-import { Card, ConfidenceBadge, Empty, Note, Pill, Section, Table, weakest } from "@/components/ui";
-import { getAsset, getAssetPrices } from "@/lib/queries";
+import {
+  AccuracyNote,
+  Card,
+  ConfidenceBadge,
+  DiscussionBlock,
+  Empty,
+  Note,
+  Pill,
+  Section,
+  Table,
+  weakest,
+} from "@/components/ui";
+import { getAccuracy, getAsset, getAssetPrices, getHumanSignal } from "@/lib/queries";
 import { isoDate, longDate, money, pct, relativeTime, sizeBasisText, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
@@ -33,6 +44,10 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
 
   const prices = await getAssetPrices(asset.id, 2019);
   const note = asset.analysis[0];
+  const [discussion, accuracy] = await Promise.all([
+    getHumanSignal({ assetId: asset.id }),
+    getAccuracy(30),
+  ]);
 
   const byBasis = new Map<string, typeof asset.rankings>();
   for (const r of asset.rankings) {
@@ -162,6 +177,16 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
         ) : (
           <Empty>No ranking rows are stored for this asset.</Empty>
         )}
+      </Section>
+
+      <Section
+        title="Current discussion"
+        lead="What has been published about this asset lately, how it was worded, and whether it reads as promotion. Context for the numbers above, not evidence about them."
+      >
+        <DiscussionBlock signal={discussion} targetLabel={asset.name} />
+        <div className="mt-3">
+          <AccuracyNote accuracy={accuracy} />
+        </div>
       </Section>
 
       <Section title="Products that touch this asset" lead="The stated relationship is why the product was linked, not a recommendation.">

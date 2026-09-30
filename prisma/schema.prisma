@@ -90,6 +90,8 @@ model Asset {
   news      News[]
   productLinks ProductAssetLink[]
   eventImpacts EventImpact[]
+  humanSignals HumanSignal[]
+  signalLogs   SignalLog[]
 
   createdAt DateTime @default(now())
 
@@ -244,6 +246,8 @@ model Product {
   assetLinks     ProductAssetLink[]
   analysis       Analysis[]
   news           News[]
+  humanSignals   HumanSignal[]
+  signalLogs     SignalLog[]
 
   createdAt DateTime @default(now())
 }
@@ -368,4 +372,135 @@ model MarketplaceItem {
   @@unique([marketplace, categorySlug, periodEnd, itemRef])
   @@index([categorySlug, periodEnd])
   @@index([periodEnd])
+}
+
+/// Direction of the headline wording counted for one target in one window.
+///
+/// This is tone counted from a fixed word list, not sentiment understood by a model. The
+/// distinction is not pedantic: the list reads headlines only, it cannot see negation,
+/// sarcasm or context, and it is stored as a count of matches so a reader can see the
+/// arithmetic. Every surface that shows it has to say what produced it.
+enum Tone {
+  positive
+  negative
+  neutral
+}
+
+/// What the public discussion around one asset or product looked like in one window.
+///
+/// Written by jobs/human.py from News rows already stored, so it makes no request of its
+/// own and can only describe coverage the site already holds. Three separate readings live
+/// here and they are deliberately not combined into one score:
+///
+///   * tone, from a fixed word list over headlines
+///   * attention, from how many items the window holds against the window before it
+///   * a hype flag, which is attention rising at the same time as promotional wording
+///
+/// A target with too few items gets a row with the counts and no published direction,
+/// because a tone computed on three headlines is three headlines.
+model HumanSignal {
+  id         String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  /// The asset or product this describes. Exactly one is set.
+  assetId    String?
+  asset      Asset?   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  productId  String?
+  product    Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Whichever of the two ids above is set, copied so the unique key below can be a plain
+  /// one. Postgres treats nulls as distinct in a unique index, so a key spanning two
+  /// nullable columns would not actually stop a second row for the same target, and the
+  /// alternative is the pair of partial indexes the News table needs. One non-null column
+  /// is cheaper to read and cheaper to write an upsert against.
+  targetRef  String
+  periodEnd  DateTime @db.Date
+  windowDays Int
+
+  /// Headlines the word list was run over. The denominator for everything below it.
+  items      Int
+  positive   Int
+  negative   Int
+  neutral    Int
+  /// none when items is below the floor in jobs/human.py.
+  tone       Tone?
+  /// (positive - negative) / items. Kept next to the counts, never shown without them.
+  toneScore  Float?
+
+  /// Items in the window of equal length immediately before this one.
+  priorItems Int
+  /// Change in item count against that window. Null when the prior window was too thin to
+  /// divide by, which is a missing measurement and never a zero.
+  velocityPct Float?
+  /// rising, flat, falling, or unknown when velocityPct could not be computed.
+  attention   String
+
+  /// Headlines containing promotional wording, and their share of the window.
+  hypeTerms  Int
+  hypeShare  Float?
+  /// Attention rising and promotional wording above its threshold at the same time. The
+  /// flag describes the coverage, not the asset: heavily promoted is not the same as
+  /// overvalued, and the note says so.
+  hypeFlag   Boolean  @default(false)
+  hypeNote   String?
+
+  confidence     Confidence @default(none)
+  confidenceNote String?
+  /// The feeds the items came from, so the reading can be traced back.
+  source     String
+  computedAt DateTime   @default(now())
+
+  @@unique([targetRef, periodEnd, windowDays])
+  @@index([assetId, periodEnd])
+  @@index([productId, periodEnd])
+}
+
+/// One observational reading, recorded on the day it was generated, so that what followed
+/// can be measured against it later.
+///
+/// This is the part that stops the site being static. A reading is written here with the
+/// factors it rested on, and jobs/accuracy.py comes back at 30 and 60 days and stores the
+/// move that actually happened. Nothing in this table is a prediction and the stored move
+/// is not a score of one: it is the record needed before any claim about how well these
+/// readings have held up can be made honestly at all.
+///
+/// A row is only measurable when there is a close to measure. Product readings are logged
+/// with no price attached and stay unmeasured until a product has a price series, which is
+/// stated rather than filled in.
+model SignalLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  /// humanSignal or demand today. One string rather than an enum because a new kind of
+  /// reading should not need a migration to start being recorded.
+  kind      String
+  assetId   String?
+  asset     Asset?   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// As on HumanSignal, and for the same reason.
+  targetRef String
+  issuedOn  DateTime @db.Date
+
+  /// The reading in the words it was published in, so the log cannot drift from the page.
+  claim     String
+  /// The factors it rested on, written as a short readable list rather than a blob, so the
+  /// log can be read by a person without a decoder.
+  factors   String
+  confidence Confidence @default(none)
+
+  /// The close the later moves are measured from, and the day it is dated to. Null for a
+  /// target with no price series.
+  baseDate  DateTime? @db.Date
+  baseClose Float?
+
+  /// Measured, not projected. Null until the day arrives and a close exists.
+  move30Pct    Float?
+  measured30On DateTime? @db.Date
+  move60Pct    Float?
+  measured60On DateTime? @db.Date
+  /// open, measured30, measured60, or unmeasurable when there is no price series.
+  status    String   @default("open")
+
+  createdAt DateTime @default(now())
+
+  @@unique([kind, targetRef, issuedOn])
+  @@index([status, issuedOn])
+  @@index([assetId, issuedOn])
+  @@index([productId, issuedOn])
 }

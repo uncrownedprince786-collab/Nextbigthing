@@ -213,3 +213,45 @@ export async function getProductMarketplace(
   });
   return { periodEnd, items };
 }
+
+/// The newest human signal reading for one target, or null when no reading has been written.
+///
+/// Newest rather than a named period: the job writes one row per target per run date, and a
+/// page that pinned a date would go blank the first time a run was skipped.
+export async function getHumanSignal(where: { assetId: string } | { productId: string }) {
+  return prisma.humanSignal.findFirst({
+    where,
+    orderBy: { periodEnd: "desc" },
+  });
+}
+
+/// How the logged readings have actually turned out so far.
+///
+/// Returns counts, never a bare rate. `enough` is the caller's cue to publish a figure at
+/// all: below the floor the page says how many rows exist instead of dividing by them. The
+/// floor is the same judgement MIN_MEASURED makes in jobs/accuracy.py, repeated here because
+/// the page must not be able to publish something the job would have withheld.
+export const ACCURACY_MIN_MEASURED = 20;
+
+export async function getAccuracy(horizon: 30 | 60 = 30) {
+  const col = horizon === 30 ? "move30Pct" : "move60Pct";
+  const measured = await prisma.signalLog.findMany({
+    where: { [col]: { not: null } },
+    select: { move30Pct: true, move60Pct: true, factors: true, issuedOn: true },
+    orderBy: { issuedOn: "asc" },
+  });
+  const moves = measured
+    .map((r) => (horizon === 30 ? r.move30Pct : r.move60Pct))
+    .filter((v): v is number => v != null);
+  const open = await prisma.signalLog.count({ where: { status: "open" } });
+  const positive = moves.filter((m) => m > 0).length;
+  return {
+    horizon,
+    measured: moves.length,
+    positive,
+    open,
+    enough: moves.length >= ACCURACY_MIN_MEASURED,
+    mean: moves.length ? moves.reduce((a, b) => a + b, 0) / moves.length : null,
+    earliest: measured.length ? measured[0].issuedOn : null,
+  };
+}

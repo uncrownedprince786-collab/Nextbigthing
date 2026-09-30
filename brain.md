@@ -236,6 +236,11 @@ a base of 6 a single post is 17% of the reading.
   each event table is built from the rows in it.
 - `jobs/marketplace.py` Amazon Best Sellers, first page of nine categories, with each
   listing's movement against the previous stored run. Weekly.
+- `jobs/human.py` tone, attention and the hype flag per asset and product, from stored `News`
+  rows. Makes no request. Also writes the `SignalLog` row for each reading.
+- `jobs/accuracy.py` measures the move that followed each logged reading at 30 and 60 days,
+  from stored closes. Makes no request. Runs after `human.py` so the day's reading is logged
+  before the job that measures logged readings runs.
 - `jobs/prices.py yahoo crypto news` daily closes, volume, share counts, market cap, news.
 - `jobs/rank.py` all four ranking bases.
 - `jobs/signals.py trends wiki hn news reddit` product demand signals.
@@ -263,11 +268,53 @@ a base of 6 a single post is 17% of the reading.
   the previous deployment — but the fix is always to run the migration and rebuild, never to
   give the site's role write access.
 
+## The current discussion read
+`jobs/human.py` writes one `HumanSignal` row per asset and per product from the `News` rows
+already stored, so it makes no request of its own. Three readings, kept apart on purpose
+because they answer different questions and often disagree.
+
+- **Tone.** A fixed word list over headlines. Both-directions counts as neither, because
+  "revenue beats but guidance misses" is both and picking a winner on match count invents a
+  judgement. Published only at `MIN_ITEMS` (8) headlines or more and past a `NEUTRAL_BAND`
+  (0.15) net share; below either, the counts are stored and no direction is. Ambiguous words
+  are in neither list: `cut` is bad about guidance and good about rates.
+- **Attention.** This 30 day window's item count against the 30 before it, called only past
+  `ATTENTION_BAND` (25 points), and left null below `MIN_PRIOR_ITEMS` (5) rather than
+  divided. It measures coverage collected, not interest: a rate limited feed looks exactly
+  like a quiet month, which is why the raw counts sit next to the percentage everywhere.
+- **Hype.** A separate promotional word list, flagged only when it covers `HYPE_SHARE_LIMIT`
+  (20%) of the window *and* attention is rising. Wording alone is house style. The flag
+  describes the writing, never the asset.
+
+Grades follow principle 1: publisher spread counts as much as volume, and one publisher over
+`DOMINANT_PUBLISHER_LIMIT` (50%) of a window caps the grade and is disclosed.
+
+It is a word list and not sentiment analysis, and every surface that shows it says so. No
+bodies, no negation, no sarcasm, no context.
+
+## Accuracy, and why it reports nothing yet
+`jobs/accuracy.py` is the other half of principle 7. `human.py` logs each reading in
+`SignalLog` on the day it is generated, with the factors it rested on and the close stored
+beside it; `accuracy.py` returns at 30 and 60 days and stores the move that followed.
+
+- Readings with no published direction are logged too. Whether quiet, split coverage is
+  followed by anything is the question the log exists to answer, and logging only the
+  confident readings would make the eventual figure flattering.
+- Nothing is filled in. An unelapsed window stays `open`, a product has no price series so
+  its rows are `unmeasurable`, and a window landing in a gap in the stored prices keeps its
+  null rather than borrowing a close beyond `MAX_DRIFT_DAYS` (5).
+- No rate is published below `MIN_MEASURED` (20) matured rows, in the job and again in
+  `lib/queries.ts`, so the page cannot publish what the job would have withheld. Until then
+  the pages say how many are waiting.
+- A stored move is a measurement, not a score. Coverage turning positive and a price rising
+  in the same month is two things happening. The table is what has to exist before anyone can
+  honestly say whether the two travel together.
+
 ## Planned layers, and what the stored history allows
-Four layers are specified and not yet built: historical parallels with a context delta,
-a current human signal read (sentiment, hype flag, attention velocity), one combined
-contextual block on asset and product pages, and accuracy tracking that measures each
-signal against the move that followed and feeds factor weights back by rule.
+Two of the four specified layers are built: the current discussion read and the accuracy log
+above, both surfaced in one block on the asset and product pages. Still to come: historical
+parallels with a context delta, and rule-based feedback from the accuracy log into factor
+weights, which cannot start until the log has matured rows to learn from.
 
 What can be built now is decided by what is actually stored, not by what is wanted:
 

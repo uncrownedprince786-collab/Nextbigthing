@@ -182,6 +182,95 @@ export default function MethodologyPage() {
       </Section>
 
       <Section
+        title="Current discussion"
+        lead="Three readings taken from the news coverage already stored for each asset and product: how much was published, how it was worded, and whether it reads as promotion."
+      >
+        <Card>
+          <h3 className="font-medium">What produces the wording direction</h3>
+          <p className="mt-1 text-sm leading-relaxed">
+            Every stored headline is matched against a fixed list of directional words. A
+            headline matching only positive words is counted positive, only negative words
+            negative, and a headline matching both is counted as neither, because
+            &ldquo;revenue beats but guidance misses&rdquo; is genuinely both and picking a
+            winner on match count would invent a judgement the wording does not support. The
+            direction is the net share of the window, and it is published only when the
+            window holds at least 8 headlines and the net sits more than 15 points from zero.
+            Below either threshold the counts are shown and no direction is.
+          </p>
+          <p className="mt-2 text-sm leading-relaxed">
+            This is a word list, not sentiment analysis, and the difference is stated on every
+            page that shows it. It reads headlines and never article bodies. It cannot see
+            negation, so &ldquo;not a record year&rdquo; counts the positive word. It cannot
+            see sarcasm or context at all. Words whose direction flips with context are left
+            out of both lists entirely: <em>cut</em> is bad news about guidance and good news
+            about interest rates, so it counts as neither.
+          </p>
+        </Card>
+
+        <Card className="mt-3">
+          <h3 className="font-medium">Attention, and why it is not interest</h3>
+          <p className="mt-1 text-sm leading-relaxed">
+            Attention compares the number of items in the last 30 days with the 30 days
+            immediately before, and is called rising or falling only past 25 points, because
+            news counts are noisy week to week. When the earlier window holds fewer than 5
+            items the comparison is left empty rather than divided: one extra article against
+            a base of two is +50%, which is arithmetic and not a change in attention.
+          </p>
+          <p className="mt-2 text-sm leading-relaxed">
+            It measures coverage collected, not public interest. A feed that was rate limited
+            returns fewer items, which looks identical to a quieter month, so the raw counts
+            are always printed beside the percentage.
+          </p>
+        </Card>
+
+        <Card className="mt-3">
+          <h3 className="font-medium">The hype flag</h3>
+          <p className="mt-1 text-sm leading-relaxed">
+            A separate list of promotional and clickbait wording is counted the same way. The
+            flag is raised only when that wording covers at least a fifth of the window{" "}
+            <em>and</em> attention is rising at the same time. Promotional wording on its own
+            is a publisher&apos;s house style; promotional wording arriving with a jump in
+            coverage is the thing worth naming.
+          </p>
+          <p className="mt-2 text-sm leading-relaxed">
+            The flag describes how a story is being written, not the thing being written
+            about. Heavily promoted and overvalued are different claims and only the first is
+            measured here.
+          </p>
+        </Card>
+      </Section>
+
+      <Section
+        title="Checking these readings against what happened"
+        lead="Every reading is logged on the day it is generated, and the move that followed is measured later. Nothing is published from that log until there is enough of it to divide by."
+      >
+        <Card>
+          <p className="text-sm leading-relaxed">
+            When a discussion reading is written it is stored with the factors it rested on
+            and the closing price on that day. Thirty and sixty days later the price move
+            since that close is measured and stored beside it. Readings with no direction are
+            logged too: whether quiet, split coverage is followed by anything is exactly the
+            question the log exists to answer, and recording only the confident readings would
+            make any eventual figure flattering.
+          </p>
+          <p className="mt-2 text-sm leading-relaxed">
+            Nothing is filled in. A window that has not elapsed stays open. A product has no
+            price series, so its readings are marked unmeasurable rather than given a number.
+            A window falling in a gap in the stored prices keeps its blank instead of
+            borrowing a close more than five days away.
+          </p>
+          <p className="mt-2 text-sm leading-relaxed">
+            No rate is published until at least 20 readings have matured, and the pages say
+            how many are still waiting instead. A hit rate over a handful of rows is the kind
+            of impressive-looking number this site exists not to publish. When there is enough
+            to report, it will be reported as what followed the readings, measured from the
+            stored close — not as a claim that the readings caused the moves, and not as a
+            forecast.
+          </p>
+        </Card>
+      </Section>
+
+      <Section
         title="Confidence"
         lead="Every ranking, product and written line carries a grade, and the reason for it is stored next to the grade rather than left to the reader."
       >
