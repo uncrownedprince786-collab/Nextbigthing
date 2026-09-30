@@ -1,20 +1,41 @@
 import Link from "next/link";
-import { AsOf, Card, ConfidenceBadge, Empty, Note, Pill, Section, Table } from "@/components/ui";
+import {
+  AsOf,
+  Card,
+  ConfidenceBadge,
+  CurrencyNote,
+  Empty,
+  HowToRead,
+  Note,
+  Pill,
+  Section,
+  Table,
+} from "@/components/ui";
 import {
   getAllIndustriesByBasis,
   getFreshness,
-  getIndustries,
+  getIndustriesByMarket,
   getLead,
   getProducts,
 } from "@/lib/queries";
 import { isoDate, money, pct, sizeLabel, toneClass } from "@/lib/format";
 
+const MARKET_NAME: Record<string, string> = {
+  US: "United States listings",
+  PK: "Pakistan Stock Exchange",
+};
+
+const MARKET_LEAD: Record<string, string> = {
+  US: "Seven sectors of US listed assets plus crypto, all quoted in dollars.",
+  PK: "Eight Karachi sectors, quoted in rupees, read from the exchange's own end of day files. Size is published for the latest close only, because the exchange publishes a current share count with no history behind it.",
+};
+
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [lead, industries, risers, sizeNow, risingProducts, fresh] = await Promise.all([
+  const [lead, byMarket, risers, sizeNow, risingProducts, fresh] = await Promise.all([
     getLead(),
-    getIndustries(),
+    getIndustriesByMarket(),
     getAllIndustriesByBasis("rising"),
     getAllIndustriesByBasis("sizeNow"),
     getProducts("rising"),
@@ -62,11 +83,14 @@ export default async function Home() {
         ) : null}
       </div>
 
-      <Section
-        title="Industries"
-        lead="Size, return and relative strength for seven sectors. Open one to see the pre-AI snapshot against today."
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
+      {byMarket.map(([market, industries]) => (
+        <Section
+          key={market}
+          title={MARKET_NAME[market] ?? market}
+          lead={MARKET_LEAD[market]}
+          aside={<CurrencyNote currency={industries[0].currency} market={market} />}
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
           {industries.map((ind) => {
             const top = byIndustry.get(ind.id)?.slice(0, 3) ?? [];
             const largest = largestByIndustry.get(ind.id);
@@ -87,7 +111,7 @@ export default async function Home() {
                     <Link href={`/asset/${encodeURIComponent(l.symbol)}`} className="underline underline-offset-2">
                       {l.name}
                     </Link>{" "}
-                    <span className="num">{money(largest.value)}</span>
+                    <span className="num">{money(largest.value, ind.currency)}</span>
                     <ConfidenceBadge grade={largest.confidence} className="ml-1.5 align-middle" />
                     <span className="text-muted-foreground ml-1.5 text-xs">
                       {sizeLabel(l.capBasis)}
@@ -125,12 +149,43 @@ export default async function Home() {
               </Card>
             );
           })}
-        </div>
-      </Section>
+          </div>
+        </Section>
+      ))}
+
+      <HowToRead
+        points={[
+          <>
+            <strong>Nothing here is a forecast.</strong> Every figure is something that
+            has already happened, measured between two dates that are always shown.
+          </>,
+          <>
+            <strong>The confidence badge grades the evidence, not the direction.</strong>{" "}
+            High means the number is well measured. It does not mean the asset is a good
+            one, and a high confidence fall is still a fall.
+          </>,
+          <>
+            <strong>Compare percentages, not sizes, across markets.</strong> A return is a
+            ratio and travels between currencies. A market capitalisation does not: the
+            Karachi sectors are in rupees and their size figures are not comparable with
+            the dollar figures above them.
+          </>,
+          <>
+            <strong>&ldquo;Beat its peers&rdquo; is not &ldquo;went up&rdquo;.</strong> The
+            relative strength table subtracts the industry average, so an asset can lead
+            its sector while falling, if the sector fell further.
+          </>,
+          <>
+            <strong>Check the freshness table at the bottom.</strong> If a job failed, the
+            previous rows stay and the page keeps working. The dates there are how you
+            find out.
+          </>,
+        ]}
+      />
 
       <Section
         title="Strongest relative performers"
-        lead="24 month return minus the average return of the asset's own industry. A positive number means the asset beat its peers, not that it went up."
+        lead="24 month return minus the average return of the asset's own industry. A positive number means the asset beat its peers, not that it went up. Each asset is only ever compared with its own industry, so a Karachi listing is measured against Karachi peers and the currency never enters the comparison."
         aside={<AsOf date={risers[0]?.periodEnd} />}
       >
         {risers.length ? (
@@ -167,7 +222,7 @@ export default async function Home() {
                   <td className="num px-3 py-2 text-right">
                     {size ? (
                       <>
-                        {money(size.value)}
+                        {money(size.value, size.asset.currency)}
                         <span className="text-muted-foreground ml-1 text-xs">
                           {sizeLabel(size.asset.capBasis)}
                         </span>

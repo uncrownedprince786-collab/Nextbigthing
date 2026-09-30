@@ -12,13 +12,16 @@ export const metadata: Metadata = {
     template: "%s | NextBigThing",
   },
   description:
-    "Which stocks, crypto, funds and consumer products are gaining ground, measured from free public data. Every figure names its source and as of date. No forecasts, no paid data.",
+    "Which stocks, crypto, funds and consumer products are gaining ground on the US and Pakistani markets, measured from free public data. Every figure names its source and as of date. No forecasts, no paid data.",
 };
 
 const NAV = [
   { href: "/", label: "Overview" },
   { href: "/industry/mega-cap-tech", label: "Industries" },
+  { href: "/industry/psx-banks", label: "Pakistan" },
   { href: "/products", label: "Products" },
+  { href: "/marketplace", label: "Marketplace" },
+  { href: "/events", label: "Events" },
   { href: "/methodology", label: "Methodology" },
 ];
 
@@ -54,9 +57,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <footer className="border-border text-muted-foreground mt-8 border-t px-4 py-6 text-xs">
           <div className="mx-auto max-w-6xl space-y-1">
             <p>
-              Figures come from Yahoo Finance, Binance, CoinPaprika, Google Trends, Wikipedia,
-              Hacker News, Reddit and Google News RSS. Data may be late or wrong. Nothing on
-              this site is investment advice or a prediction.
+              Figures come from Yahoo Finance, Binance, CoinPaprika, the Pakistan Stock
+              Exchange, Google Trends, Wikipedia, Hacker News, Reddit, Google News RSS and
+              Amazon Best Sellers. Data may be late or wrong. Nothing on this site is
+              investment advice or a prediction, and where an event sits next to a price
+              move the site is reporting a sequence, not a cause.
             </p>
             <Link href="/methodology" className="underline underline-offset-2">
               How each number is measured, and what is missing

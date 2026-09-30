@@ -14,6 +14,27 @@ export async function getIndustries() {
   });
 }
 
+/// Industries grouped by the exchange they list on, in the order the groups should read.
+///
+/// The grouping is presentational, but the reason for it is not: two industry cards side
+/// by side invite the reader to compare the size figures on them, and a rupee figure next
+/// to a dollar one compares to nothing. Separating the groups puts a heading and a
+/// currency note between them.
+export async function getIndustriesByMarket() {
+  const all = await getIndustries();
+  const order = ["US", "PK"];
+  const groups = new Map<string, typeof all>();
+  for (const ind of all) {
+    if (!groups.has(ind.market)) groups.set(ind.market, []);
+    groups.get(ind.market)!.push(ind);
+  }
+  return [...groups.entries()].sort(
+    (a, b) =>
+      (order.indexOf(a[0]) + 1 || 99) - (order.indexOf(b[0]) + 1 || 99) ||
+      a[0].localeCompare(b[0]),
+  );
+}
+
 export async function getIndustry(slug: string) {
   return prisma.industry.findUnique({
     where: { slug },
@@ -153,7 +174,13 @@ export async function getEventWindows(eventId: string) {
 /// Rows from different runs must never be mixed into one table: a rank of 4 read last week
 /// and a rank of 6 read today are not a ranking, they are two rankings, and putting them
 /// side by side would invent an ordering neither of them published.
-export async function getMarketplace(categorySlug?: string) {
+export type MarketplaceRow = Awaited<
+  ReturnType<typeof prisma.marketplaceItem.findMany>
+>[number];
+
+export async function getMarketplace(
+  categorySlug?: string,
+): Promise<{ periodEnd: Date | null; items: MarketplaceRow[] }> {
   const latest = await prisma.marketplaceItem.aggregate({ _max: { periodEnd: true } });
   const periodEnd = latest._max.periodEnd;
   if (!periodEnd) return { periodEnd: null, items: [] };
@@ -171,7 +198,9 @@ export async function getMarketplace(categorySlug?: string) {
 /// product category is selling well, and the number of matches is not a demand figure. The
 /// term is required to be at least four characters so a short one does not match a
 /// fragment of an unrelated word.
-export async function getProductMarketplace(term: string) {
+export async function getProductMarketplace(
+  term: string,
+): Promise<{ periodEnd: Date | null; items: MarketplaceRow[] }> {
   const cleaned = term.trim();
   if (cleaned.length < 4) return { periodEnd: null, items: [] };
   const latest = await prisma.marketplaceItem.aggregate({ _max: { periodEnd: true } });

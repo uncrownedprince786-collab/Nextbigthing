@@ -1,8 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Card, ConfidenceBadge, Empty, Note, Pill, Section, Table } from "@/components/ui";
-import { getProduct } from "@/lib/queries";
+import {
+  Card,
+  ConfidenceBadge,
+  Empty,
+  HowToRead,
+  Note,
+  Pill,
+  Section,
+  Table,
+} from "@/components/ui";
+import { getProduct, getProductMarketplace } from "@/lib/queries";
 import { count, isoDate, longDate, pct, relativeTime, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
@@ -24,10 +33,11 @@ const METRIC_TEXT: Record<string, string> = {
   wiki_views_8w_vs_8w_pct: "Pageviews, 8 weeks against the 8 before",
   wiki_views_26w_yoy_pct: "Pageviews, 26 weeks against the 26 before",
   hn_stories_90d_change_pct: "Stories, 90 days against the 90 before",
-  reddit_posts_30d_change_pct: "Posts, 30 days against the 90 before",
+  reddit_posts_30d_change_pct:
+    "Posts, the last 30 days against the rate over the 90 days before",
   gnews_articles_30d_change_pct: "Articles, 30 days against the 30 before",
   reddit_posts_30d: "Posts in the last 30 days",
-  reddit_posts_90d_base: "Posts in the 90 days before that",
+  reddit_posts_90d_base: "Posts in the 90 days immediately before that",
   hn_stories_90d: "Stories in the last 90 days",
   gnews_articles_30d: "Articles in the last 30 days",
 };
@@ -59,6 +69,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const p = await getProduct(slug);
   if (!p) notFound();
+
+  // Matched on the search term against listing titles, and reported as exactly that. It
+  // is a text match, not a measurement of the product category, and it is deliberately
+  // fetched after the product rather than joined into the demand score.
+  const market = await getProductMarketplace(p.trendsTerm || p.name);
 
   const read = p.analysis[0];
 
@@ -239,6 +254,151 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           </Note>
         ) : null}
       </Section>
+
+      <Section
+        title="Marketplace and local notes"
+        lead="Where this product shows up on a public marketplace chart, and what a reader would have to check by hand. Kept out of the demand score above."
+      >
+        <Note>
+          A bestseller rank is a different claim from a search trend. It says one listing
+          is outselling others in its category, on one marketplace, on the day the chart
+          was read. It is not a measure of this product category, and none of it is
+          counted in the score above.
+        </Note>
+
+        {market.items.length ? (
+          <>
+            <p className="text-muted-foreground mt-3 mb-2 text-sm">
+              {market.items.length} listing{market.items.length === 1 ? "" : "s"} in the
+              stored charts of {isoDate(market.periodEnd)} have
+              &ldquo;{p.trendsTerm || p.name}&rdquo; in the title.
+            </p>
+            <Table
+              head={
+                <>
+                  <th className="px-3 py-2 font-medium">#</th>
+                  <th className="px-3 py-2 font-medium">Listing</th>
+                  <th className="px-3 py-2 font-medium">Category</th>
+                  <th className="px-3 py-2 font-medium">Since the last run</th>
+                </>
+              }
+            >
+              {market.items.map((it) => {
+                const diff =
+                  it.previousRank == null ? null : it.previousRank - it.rank;
+                return (
+                  <tr key={it.id}>
+                    <td className="num text-muted-foreground px-3 py-2">{it.rank}</td>
+                    <td className="px-3 py-2">
+                      <a
+                        href={it.url}
+                        rel="noopener noreferrer nofollow"
+                        target="_blank"
+                        className="underline underline-offset-2"
+                      >
+                        {it.title}
+                      </a>
+                    </td>
+                    <td className="text-muted-foreground px-3 py-2 text-xs">
+                      {it.categoryName}
+                    </td>
+                    <td className="px-3 py-2">
+                      {diff == null ? (
+                        <Pill>new to this chart</Pill>
+                      ) : diff === 0 ? (
+                        <span className="text-muted-foreground text-xs">unchanged</span>
+                      ) : (
+                        <Pill tone={diff > 0 ? "up" : "down"}>
+                          {diff > 0 ? "up" : "down"} {Math.abs(diff)}
+                        </Pill>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </Table>
+          </>
+        ) : (
+          <Empty>
+            No listing in the stored marketplace charts has this product&apos;s search
+            term in its title. That is a statement about thirty positions in a handful of
+            categories, not about whether the product sells.{" "}
+            <Link href="/marketplace" className="underline underline-offset-2">
+              See what is stored
+            </Link>
+            .
+          </Empty>
+        )}
+
+        <div className="border-border bg-muted/30 mt-4 rounded-lg border px-4 py-3">
+          <h3 className="text-sm font-medium">
+            Checking this product locally, by hand
+          </h3>
+          <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+            No free public endpoint publishes Pakistani marketplace demand, so this site
+            stores no number for it and does not estimate one. These are the checks a
+            reader would have to make themselves, listed so the gap is explicit rather
+            than invisible:
+          </p>
+          <ul className="text-muted-foreground mt-2 space-y-1.5 text-xs leading-relaxed">
+            <li>
+              &bull; Search &ldquo;{p.trendsTerm || p.name}&rdquo; on Daraz and on
+              Facebook Marketplace, and count how many sellers already list it. A category
+              with no sellers is not necessarily an opening; it is often a category that
+              has been tried.
+            </li>
+            <li>
+              &bull; Compare the local asking price against the landed cost: unit price,
+              freight, customs duty and sales tax on the HS code, and the bank&apos;s
+              exchange rate on the day. The margin that survives all four is the real one.
+            </li>
+            <li>
+              &bull; Check whether the item needs certification or a regulated import
+              route. Anything with a battery, a radio, or a medical claim usually does.
+            </li>
+            <li>
+              &bull; Watch the same searches over several weeks before acting. A single
+              reading of a marketplace is one day&apos;s evidence, which is exactly what
+              the confidence rules on this site say about every other single reading.
+            </li>
+          </ul>
+          <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+            None of this is advice about whether to buy or sell anything. It is a list of
+            what has not been measured.
+          </p>
+        </div>
+      </Section>
+
+      <HowToRead
+        title="How to read a demand score"
+        points={[
+          <>
+            <strong>Count the sources before reading the number.</strong> Five sources are
+            possible. A score built on one is that source&apos;s reading with an average
+            written over it, and the page says so where it happens.
+          </>,
+          <>
+            <strong>Agreement matters more than size.</strong> Four sources agreeing on
+            +8% is stronger evidence than one source reporting +300%. The confidence grade
+            is built on exactly this and the badge explains itself on hover.
+          </>,
+          <>
+            <strong>Check whether one source is carrying the average.</strong> The
+            comparison table shows each source&apos;s share. When one supplies most of the
+            magnitude, the direction may still be agreed but the size of the number is
+            that one source&apos;s.
+          </>,
+          <>
+            <strong>Small Reddit bases are published but never graded high.</strong> A
+            change from 2 posts to 6 really is +200%, and it is also six posts. The
+            arithmetic and the confidence claim are judged separately.
+          </>,
+          <>
+            <strong>Attention is not sales.</strong> Everything in the score above measures
+            people looking, reading or posting. Nothing in it measures anyone buying.
+          </>,
+        ]}
+      />
 
       <Section
         title="Assets this product touches"

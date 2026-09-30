@@ -1,7 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AsOf, Card, ConfidenceBadge, Empty, Note, Section, Table, weakest } from "@/components/ui";
+import {
+  AsOf,
+  Card,
+  ConfidenceBadge,
+  CurrencyNote,
+  Empty,
+  HowToRead,
+  Note,
+  Section,
+  Table,
+  weakest,
+} from "@/components/ui";
 import { getAllIndustriesByBasis, getIndustry, getRankings } from "@/lib/queries";
 import { isoDate, longDate, money, pct, relativeTime, sizeLabel, toneClass } from "@/lib/format";
 
@@ -59,6 +70,50 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
       <div>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{ind.name}</h1>
         <p className="text-muted-foreground mt-2 max-w-3xl text-sm">{ind.summary}</p>
+        <div className="mt-2 max-w-3xl">
+          <CurrencyNote currency={ind.currency} market={ind.market} />
+        </div>
+        <HowToRead
+          points={[
+            <>
+              <strong>Start with the size table, then the return table.</strong> They
+              answer different questions: one is how big a company is now, the other is
+              what its price did over a stated period. A small company can top the return
+              table and still be last on size.
+            </>,
+            <>
+              <strong>An empty size cell is a missing figure, not a zero.</strong> Futures
+              publish no size at all, crypto has no history for it, and the Karachi sectors
+              have a current figure only. The paragraph under the table counts each of
+              these separately rather than lumping them.
+            </>,
+            <>
+              <strong>Relative strength subtracts this industry&apos;s own average.</strong>{" "}
+              +20 means the asset beat its peers by 20 points. In a sector that fell 30%,
+              that is still a fall.
+            </>,
+            <>
+              <strong>Read the confidence note, not just the badge.</strong> Hover a badge
+              and it says why. The most common reason for a downgrade here is that the
+              industry average sits far from its median, which means one or two assets are
+              pulling a figure the typical peer does not resemble.
+            </>,
+            ind.market === "PK" ? (
+              <>
+                <strong>Rupee returns include the currency.</strong> A Karachi listing
+                whose price rose 40% over a period when the rupee weakened has not gained
+                40% of purchasing power. No conversion is applied here, and none is
+                implied.
+              </>
+            ) : (
+              <>
+                <strong>Returns are price returns.</strong> Dividends are not added back,
+                so a high yielding asset looks weaker here than a total return figure
+                would make it.
+              </>
+            ),
+          ]}
+        />
       </div>
 
       {shift ? (
@@ -133,10 +188,10 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
                     <span className="text-muted-foreground ml-2 text-xs">{r.asset.symbol}</span>
                   </td>
                   <td className="num px-3 py-2 text-right">
-                    {pre ? money(pre.value) : "not available"}
+                    {pre ? money(pre.value, ind.currency) : "not available"}
                   </td>
                   <td className="num px-3 py-2 text-right">
-                    {sizeNow.length ? money(r.value) : "not available"}
+                    {sizeNow.length ? money(r.value, ind.currency) : "not available"}
                   </td>
                   <td className="px-3 py-2">
                     <ConfidenceBadge grade={grade} />

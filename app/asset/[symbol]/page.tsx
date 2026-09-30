@@ -97,7 +97,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
             <ConfidenceBadge grade={sizeGrade} />
           </div>
           <p className="num mt-1 text-2xl font-semibold">
-            {sizeNowRow ? money(sizeNowRow.value) : "not stored"}
+            {sizeNowRow ? money(sizeNowRow.value, asset.currency) : "not stored"}
           </p>
           <p className="text-muted-foreground text-xs">
             {sizeNowRow
@@ -145,7 +145,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
                   className={`num px-3 py-2 text-right ${r.basis === "totalReturn" || r.basis === "rising" ? toneClass(r.value) : ""}`}
                 >
                   {r.basis === "size" || r.basis === "sizeNow"
-                    ? money(r.value)
+                    ? money(r.value, asset.currency)
                     : pct(r.value)}
                 </td>
                 <td className="px-3 py-2" title={r.confidenceNote ?? undefined}>
