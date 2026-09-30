@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Card, ConfidenceBadge, Empty, Note, Pill, Section } from "@/components/ui";
+import { Card, ConfidenceBadge, Empty, HowToRead, Note, Pill, Section } from "@/components/ui";
 import { getProducts } from "@/lib/queries";
 import { pct, relativeTime, toneClass } from "@/lib/format";
 
@@ -12,11 +12,39 @@ export const metadata: Metadata = {
     "Demand read for consumer products from Google Trends, Wikipedia pageviews, Hacker News, Reddit and Google News. Short windows, named sources, no forecast.",
 };
 
+// The blurbs state the rule in `jobs/analysis.py` rather than a paraphrase of it. "Rising"
+// is reached two ways and only one of them requires every source to agree, so describing it
+// as unanimous would claim more agreement than the group actually holds. There is no
+// falling status either: a product whose average went down lands in `flat` with everything
+// else that did not rise, and the label has to say so or a reader takes "Flat" as no change.
 const GROUPS = [
-  { key: "rising", label: "Rising now", tone: "up" as const, blurb: "Every source that answered points up." },
-  { key: "early", label: "Early signal", tone: "warn" as const, blurb: "Net positive, but weaker or built on few sources." },
-  { key: "flat", label: "Flat", tone: "default" as const, blurb: "No clear direction in the measured window." },
-  { key: "unknown", label: "No data", tone: "default" as const, blurb: "No source answered, so nothing is claimed." },
+  {
+    key: "rising",
+    label: "Rising now",
+    tone: "up" as const,
+    blurb:
+      "Every source that answered points up and the average is at least +5%, or the average is at least +10% on its own.",
+  },
+  {
+    key: "early",
+    label: "Early signal",
+    tone: "warn" as const,
+    blurb:
+      "Two or more sources, an average above zero, at least one of them pointing up — but short of the rising threshold.",
+  },
+  {
+    key: "flat",
+    label: "Flat or falling",
+    tone: "default" as const,
+    blurb:
+      "No net rise in the measured window. Products whose average fell sit here too, because nothing is ranked as falling.",
+  },
+  {
+    key: "unknown",
+    label: "No data",
+    tone: "default" as const,
+    blurb: "No source answered, so nothing is claimed.",
+  },
 ];
 
 export default async function ProductsPage() {
@@ -88,6 +116,38 @@ export default async function ProductsPage() {
           checked rather than trusted.
         </Note>
       )}
+
+      <HowToRead
+        title="How to read this list"
+        points={[
+          <>
+            <strong>The group is a threshold, not a verdict.</strong> Each blurb above
+            states the rule that put a product in that group. Nothing here is a judgement
+            about whether the product is any good, or whether the rise will last.
+          </>,
+          <>
+            <strong>Read the confidence badge before the number.</strong> They are separate
+            claims. A large score with a low grade is usually one source talking loudly,
+            and the grade is the part that says how well evidenced the figure is.
+          </>,
+          <>
+            <strong>The score averages unlike things.</strong> A change in search interest
+            and a change in the number of forum posts are not the same measurement, and the
+            average of the two is a summary of direction rather than a quantity of demand.
+          </>,
+          <>
+            <strong>&ldquo;No data&rdquo; is not zero.</strong> Those products are missing a
+            reading, not reading flat, so they are left out of every ranking rather than
+            placed at the bottom of one.
+          </>,
+          <>
+            <strong>Order inside a group is by score, largest first.</strong> Leading a
+            group is not the same as being the best evidenced figure in it, and the products
+            with no score at all are simply listed by name. Open a product to see each
+            source&apos;s own number and window.
+          </>,
+        ]}
+      />
 
       <p className="text-muted-foreground mt-8 text-xs">
         Looking for the assets behind these products? Each product page lists the tickers it
