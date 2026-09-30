@@ -5,6 +5,33 @@ Show what led before AI, what leads after AI, what is rising, and why. Cover mar
 (stocks, crypto, commodities) and real world products. Free and authentic data only.
 Readers open the site and read. No invented numbers, ever.
 
+The reader can find every one of these sources themselves. What they cannot do is check all
+of them, against every small factor, against every past parallel, fast enough to still be
+early. That is the whole job: not to know something the public data does not, but to have
+already read it. So the site is a research assistant that produces referenced context, and
+it is never a prediction.
+
+## Thinking principles
+The permanent framework. These decide how a question is approached; every conclusion still
+has to come out of stored rows and arithmetic done on them.
+
+1. Several independent sources beat one strong source.
+2. Relative strength against peers matters more than a raw return.
+3. Sample size decides how much weight a parallel earns. It is never left unstated.
+4. A past pattern is only useful when the differences are shown next to it. A similarity
+   presented on its own reads as a forecast whatever words surround it.
+5. Current human attention is context, not proof.
+6. Factors that did not exist in the past window — the AI era, a different rate regime, a
+   change in market structure or regulation — are surfaced every time, not just when they
+   are convenient.
+7. Every signal is checked against what actually happened afterwards.
+8. Honesty beats an impressive number. A thin reading said plainly is worth more than a
+   confident one that cannot be checked.
+
+### What these rule out, in words the code has to honour
+No "will", "likely", "expected to", "should". No advice about what to hold. A parallel is
+described as measured history and a sample count, never as what happens next.
+
 ## Hard rules
 1. Zero paid APIs, zero paid data sources.
 2. Never estimate, interpolate, or fill a missing number. If a value is not published by
@@ -235,6 +262,33 @@ a base of 6 a single post is 17% of the reading.
   that runs ahead of its migration fails there. That failure is safe — Vercel keeps serving
   the previous deployment — but the fix is always to run the migration and rebuild, never to
   give the site's role write access.
+
+## Planned layers, and what the stored history allows
+Four layers are specified and not yet built: historical parallels with a context delta,
+a current human signal read (sentiment, hype flag, attention velocity), one combined
+contextual block on asset and product pages, and accuracy tracking that measures each
+signal against the move that followed and feeds factor weights back by rule.
+
+What can be built now is decided by what is actually stored, not by what is wanted:
+
+- **Assets can support parallels.** `PriceSnapshot` holds daily closes and volume from
+  2019-01-01, so relative strength quartiles and volume trend can be recomputed over any
+  past rolling window. Roughly seven years of daily observations per US asset.
+- **Products cannot yet.** `ProductSignal` is keyed on `periodEnd` so history does
+  accumulate, but the first rows were written on 2026-09-29. Two days is not a history, and
+  attention velocity measured against it would be a number with nothing behind it. Product
+  parallels wait until the weekly signal runs have built a real series, and the honest thing
+  in the meantime is for the product pages to say so rather than to show an empty block.
+- **PSX cannot yet.** Those closes start arriving with this release, and market
+  capitalisation exists for the latest close only, so a Karachi sector has no pre-AI size
+  and no long window to match against.
+- **Accuracy tracking has to be written before it can report.** A signal logged today is
+  measurable in 30 days and not before. The table comes first and the hit rate comes later;
+  showing a hit rate computed on a handful of rows would break principle 3.
+
+The consequence for sequencing: the parallel layer starts with US assets, the accuracy log
+starts recording immediately so the clock begins, and both product parallels and any
+published hit rate stay behind a stated sample-size floor.
 
 ## Rules for changes
 1. Check whether the number already exists before adding a column.
