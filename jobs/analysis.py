@@ -96,15 +96,16 @@ def save(cur, kind, headline, body, source, confidence="none", **keys) -> None:
     cur.execute(
         """
         INSERT INTO "Analysis"
-          (kind, "industryId", "assetId", "productId", headline, body, "dataNote",
-           confidence, source, "createdAt")
-        VALUES (%s::"AnalysisKind",%s,%s,%s,%s,%s,%s,%s::"Confidence",%s, now())
+          (kind, "industryId", "assetId", "productId", "eventId", headline, body,
+           "dataNote", confidence, source, "createdAt")
+        VALUES (%s::"AnalysisKind",%s,%s,%s,%s,%s,%s,%s,%s::"Confidence",%s, now())
         """,
         (
             kind,
             keys.get("industryId"),
             keys.get("assetId"),
             keys.get("productId"),
+            keys.get("eventId"),
             headline,
             body,
             keys.get("dataNote"),
@@ -118,15 +119,22 @@ def pct_text(value: float) -> str:
     return f"{value:+.0f}%"
 
 
-def money(value: float, basis: str) -> str:
+# A size figure is quoted in the currency the exchange quotes it in. A rupee market
+# capitalisation printed with a dollar sign is not a rounding problem, it is off by a
+# factor of nearly 300, so the symbol is never assumed.
+CURRENCY_MARK = {"USD": "$", "PKR": "Rs."}
+
+
+def money(value: float, basis: str, currency: str = "USD") -> str:
     unit = SIZE_WORD.get(basis, "size")
+    mark = CURRENCY_MARK.get(currency, f"{currency} ")
     if value >= 1e12:
-        return f"${value / 1e12:.2f} trillion {unit}"
+        return f"{mark}{value / 1e12:.2f} trillion {unit}"
     if value >= 1e9:
-        return f"${value / 1e9:.1f} billion {unit}"
+        return f"{mark}{value / 1e9:.1f} billion {unit}"
     if value >= 1e6:
-        return f"${value / 1e6:.0f} million {unit}"
-    return f"${value:,.0f} {unit}"
+        return f"{mark}{value / 1e6:.0f} million {unit}"
+    return f"{mark}{value:,.0f} {unit}"
 
 
 def ordinal(n: int) -> str:
@@ -466,7 +474,7 @@ def asset_notes(cur) -> None:
     for a in rows(
         cur,
         """
-        SELECT x.id, x.name, x."capBasis", i.name AS industry
+        SELECT x.id, x.name, x."capBasis", x.currency, i.name AS industry
         FROM "Asset" x JOIN "Industry" i ON i.id = x."industryId"
         ORDER BY x.name
         """,
@@ -495,7 +503,8 @@ def asset_notes(cur) -> None:
             now = size_now[0]
             grades.append(now["grade"])
             parts.append(
-                f"{money(now['value'], a['capBasis'])}, which ranks {ordinal(now['rank'])} in "
+                f"{money(now['value'], a['capBasis'], a['currency'])}, which ranks "
+                f"{ordinal(now['rank'])} in "
                 f"{a['industry']} as of {now['periodEnd']}."
             )
             old = by_basis.get("size", [])
@@ -826,6 +835,110 @@ def product_notes(cur) -> None:
 # ------------------------------------------------------------------ front page
 
 
+def event_notes(cur) -> None:
+    """One line per event window, describing the measured moves and nothing else.
+
+    The grammar here is the whole point. Every sentence is built so that it stays true if
+    the event turns out to have had no bearing on the market at all: "in the 30 days after"
+    is a statement about a calendar, "moved the most" is a statement about a price series,
+    and neither of them becomes a claim about cause when a reader puts them together. The
+    words "because", "driven by", "in response to" and "reaction" do not appear, and a
+    change to this function should keep it that way.
+    """
+    step("event lines")
+    events = rows(
+        cur,
+        'SELECT id, slug, name, date, category, source FROM "Event" ORDER BY sort',
+    )
+    for e in events:
+        windows = rows(
+            cur,
+            """
+            SELECT DISTINCT "windowDays" AS w FROM "EventImpact"
+            WHERE "eventId" = %s ORDER BY w
+            """,
+            (e["id"],),
+        )
+        if not windows:
+            save(
+                cur,
+                "eventImpact",
+                e["name"],
+                f"No asset on this site has stored closes on both sides of the "
+                f"{e['date']} window, so nothing is measured here. That is a gap in the "
+                f"stored price history, not a finding about the event.",
+                e["source"],
+                "none",
+                eventId=e["id"],
+                dataNote="Stored price history does not reach this window.",
+            )
+            continue
+
+        window = max(w["w"] for w in windows)
+        movers = rows(
+            cur,
+            """
+            SELECT i."changePct" AS chg, i.confidence, a.name, a.currency,
+                   ind.name AS industry, ind.market
+            FROM "EventImpact" i
+            JOIN "Asset" a ON a.id = i."assetId"
+            JOIN "Industry" ind ON ind.id = a."industryId"
+            WHERE i."eventId" = %s AND i."windowDays" = %s
+            ORDER BY i.rank ASC LIMIT 5
+            """,
+            (e["id"], window),
+        )
+        total = rows(
+            cur,
+            'SELECT count(*) AS n FROM "EventImpact" WHERE "eventId" = %s AND "windowDays" = %s',
+            (e["id"], window),
+        )[0]["n"]
+        if not movers:
+            continue
+
+        up = [m for m in movers if m["chg"] > 0]
+        down = [m for m in movers if m["chg"] < 0]
+        named = ", ".join(
+            f"{m['name']} {pct_text(m['chg'])}" for m in movers[:3]
+        )
+        body = (
+            f"Over the {window} days from {e['date']}, the largest measured moves among "
+            f"the {total} assets with stored closes on both sides of that window were "
+            f"{named}. "
+        )
+        if up and down:
+            body += (
+                f"They did not move together: {len(up)} of the five largest rose and "
+                f"{len(down)} fell, so there is no single direction to report here. "
+            )
+        elif up:
+            body += "All five of the largest moves were upward. "
+        else:
+            body += "All five of the largest moves were downward. "
+
+        body += (
+            "These are the moves that happened in that window. The site does not measure "
+            "why any of them happened, and a large move inside a window is not evidence "
+            "that the event produced it: over any 30 days some asset on this list has the "
+            "largest move, event or no event."
+        )
+        grade = best_grade([m["confidence"] for m in movers])
+        save(
+            cur,
+            "eventImpact",
+            e["name"],
+            body,
+            "measured from stored closes",
+            grade,
+            eventId=e["id"],
+            dataNote=(
+                f"An asset missing a close on either side of the window is left out "
+                f"entirely rather than counted as unchanged."
+            ),
+        )
+    print(f"  {len(events)} events described")
+
+
 def site_lead(cur) -> None:
     step("front page")
     top = rows(
@@ -914,6 +1027,7 @@ def main() -> None:
             """
         )
 
+        event_notes(cur)
         site_lead(cur)
         print(f"{graded} products graded")
         for got in rows(

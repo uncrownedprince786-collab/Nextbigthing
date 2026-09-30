@@ -32,6 +32,9 @@ TABLES = [
     ('Ranking', '"periodEnd"'),
     ('Analysis', '"createdAt"'),
     ('News', '"publishedAt"'),
+    ('Event', 'date'),
+    ('EventImpact', None),
+    ('MarketplaceItem', '"periodEnd"'),
 ]
 
 
@@ -62,6 +65,27 @@ def main() -> None:
             'SELECT basis, count(*) AS n FROM "Ranking" GROUP BY basis ORDER BY basis',
         ):
             print(f"ranking {got['basis']:14} {got['n']:>6} rows")
+
+        # Coverage per exchange, because a PSX job that quietly fetched nothing looks the
+        # same as a healthy run in the totals above.
+        print()
+        for got in rows(
+            cur,
+            """
+            SELECT i.market, count(DISTINCT a.id) AS assets,
+                   count(DISTINCT p."assetId") AS priced,
+                   max(p.date) AS newest
+            FROM "Industry" i
+            JOIN "Asset" a ON a."industryId" = i.id
+            LEFT JOIN "PriceSnapshot" p ON p."assetId" = a.id
+            GROUP BY i.market ORDER BY i.market
+            """,
+        ):
+            newest = f" newest {got['newest']:%Y-%m-%d}" if got["newest"] else " no prices"
+            print(
+                f"market {got['market']:6} {got['assets']:>4} assets, "
+                f"{got['priced']:>4} with a stored price{newest}"
+            )
     conn.close()
 
 

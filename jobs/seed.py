@@ -72,7 +72,89 @@ INDUSTRIES = [
         "Large US banks, asset managers and payments companies.",
         7,
     ),
+    (
+        "automobile",
+        "Automobile",
+        "Global vehicle makers and the suppliers underneath them, from legacy volume "
+        "manufacturers to the electric only names.",
+        8,
+    ),
+    (
+        "software-cloud",
+        "Software and Cloud",
+        "Enterprise software and the infrastructure it runs on. Separate from Mega Cap "
+        "Tech, which is dominated by hardware and advertising revenue.",
+        9,
+    ),
 ]
+
+# The Pakistan Stock Exchange sectors, using the exchange's own sector groupings.
+#
+# These are separate industries rather than extra rows in the existing ones, and that is
+# deliberate. Every ranking on this site is computed inside one industry, so keeping PSX
+# apart means a rupee size figure is never sorted against a dollar one. Returns are
+# percentages and would compare, but a return computed in a depreciating currency is not
+# the same quantity as one computed in a stable one, and the methodology page says so.
+PSX_MARKET = "PK"
+PKR = "PKR"
+PSX_INDUSTRIES = [
+    (
+        "psx-banks",
+        "PSX Banks",
+        "The largest commercial banks listed in Karachi. The most heavily traded sector "
+        "on the exchange and the one most directly exposed to the policy rate.",
+        20,
+    ),
+    (
+        "psx-oil-gas",
+        "PSX Oil and Gas",
+        "Exploration, marketing and refining. Priced in rupees against a dollar "
+        "denominated commodity, so the currency shows up in the returns.",
+        21,
+    ),
+    (
+        "psx-cement",
+        "PSX Cement",
+        "Cement makers, read locally as the clearest listed proxy for construction and "
+        "public development spending.",
+        22,
+    ),
+    (
+        "psx-fertilizer",
+        "PSX Fertilizer",
+        "Fertilizer producers. A small field of five listings, which is itself a limit "
+        "on how much a ranking within it can say.",
+        23,
+    ),
+    (
+        "psx-power",
+        "PSX Power",
+        "Independent power producers and distribution. Earnings here turn on tariff and "
+        "receivable settlement rather than on demand alone.",
+        24,
+    ),
+    (
+        "psx-technology",
+        "PSX Technology and Communication",
+        "Listed IT services, software exporters and telecoms. The export earners in this "
+        "sector bill in dollars and report in rupees.",
+        25,
+    ),
+    (
+        "psx-textile",
+        "PSX Textile",
+        "Composite textile manufacturers, Pakistan's largest export category.",
+        26,
+    ),
+    (
+        "psx-automobile",
+        "PSX Automobile",
+        "Vehicle and tractor assemblers. Almost entirely an import assembly business, so "
+        "the sector tracks the import regime as much as local demand.",
+        27,
+    ),
+]
+INDUSTRIES = INDUSTRIES + PSX_INDUSTRIES
 
 # industry slug, symbol, name, type, cap basis, source, source ref, note
 YAHOO = "yahoo"
@@ -160,7 +242,126 @@ ASSETS: list[tuple] = [
     ("financials", "SCHW", "Charles Schwab", "stock", "marketCap", YAHOO, "SCHW", "Retail brokerage and custody."),
     ("financials", "AXP", "American Express", "stock", "marketCap", YAHOO, "AXP", "Card issuing and merchant acquiring."),
     ("financials", "PGR", "The Progressive", "stock", "marketCap", YAHOO, "PGR", "Auto and property insurance."),
+    # Automobile. Tesla is not repeated here even though it is a car maker: it already sits
+    # in Mega Cap Tech, and listing one asset in two industries would put it in two
+    # rankings, two industry averages and two news feeds, so its peers would be compared
+    # against an average it had helped set twice.
+    ("automobile", "TM", "Toyota Motor", "stock", "marketCap", YAHOO, "TM", "The largest vehicle maker by unit volume, hybrid led."),
+    ("automobile", "GM", "General Motors", "stock", "marketCap", YAHOO, "GM", "US volume manufacturer, trucks and an electric line."),
+    ("automobile", "F", "Ford Motor", "stock", "marketCap", YAHOO, "F", "US volume manufacturer with a separate electric division."),
+    ("automobile", "STLA", "Stellantis", "stock", "marketCap", YAHOO, "STLA", "Fourteen brand group formed from Fiat Chrysler and PSA."),
+    ("automobile", "HMC", "Honda Motor", "stock", "marketCap", YAHOO, "HMC", "Vehicles and the largest motorcycle business in the world."),
+    ("automobile", "RIVN", "Rivian Automotive", "stock", "marketCap", YAHOO, "RIVN", "Electric trucks, vans and delivery fleets."),
+    ("automobile", "LCID", "Lucid Group", "stock", "marketCap", YAHOO, "LCID", "Electric saloons and powertrain supply."),
+    ("automobile", "RACE", "Ferrari", "stock", "marketCap", YAHOO, "RACE", "Low volume performance cars, priced as a luxury brand."),
+    ("automobile", "APTV", "Aptiv", "stock", "marketCap", YAHOO, "APTV", "Vehicle electrical architecture and software."),
+    ("automobile", "BWA", "BorgWarner", "stock", "marketCap", YAHOO, "BWA", "Drivetrain and electrification components."),
+    # Software and Cloud. Microsoft and Oracle stay in Mega Cap Tech for the same reason
+    # Tesla is not duplicated above.
+    ("software-cloud", "CRM", "Salesforce", "stock", "marketCap", YAHOO, "CRM", "Customer relationship software and its platform."),
+    ("software-cloud", "NOW", "ServiceNow", "stock", "marketCap", YAHOO, "NOW", "Enterprise workflow automation."),
+    ("software-cloud", "ADBE", "Adobe", "stock", "marketCap", YAHOO, "ADBE", "Creative, document and marketing software."),
+    ("software-cloud", "INTU", "Intuit", "stock", "marketCap", YAHOO, "INTU", "Tax, accounting and small business software."),
+    ("software-cloud", "PANW", "Palo Alto Networks", "stock", "marketCap", YAHOO, "PANW", "Network and cloud security platforms."),
+    ("software-cloud", "SNOW", "Snowflake", "stock", "marketCap", YAHOO, "SNOW", "Cloud data warehousing, consumption priced."),
+    ("software-cloud", "PLTR", "Palantir Technologies", "stock", "marketCap", YAHOO, "PLTR", "Data integration and analysis platforms."),
+    ("software-cloud", "WDAY", "Workday", "stock", "marketCap", YAHOO, "WDAY", "Human resources and finance software."),
+    ("software-cloud", "DDOG", "Datadog", "stock", "marketCap", YAHOO, "DDOG", "Infrastructure and application monitoring."),
+    ("software-cloud", "MDB", "MongoDB", "stock", "marketCap", YAHOO, "MDB", "Document database, self hosted and managed."),
 ]
+
+# Pakistan Stock Exchange listings.
+#
+# Every symbol below was checked against the exchange's own closing file for 2026-09-30 and
+# again for 2021-12-31, so each one exists today and has a pre-AI reading to compare with.
+#
+# Size is market capitalisation, but only against the most recent close. The share count on
+# the exchange's company page is a current figure with no history behind it, so jobs/psx.py
+# writes no size for any earlier date rather than multiplying today's share count by an old
+# price. The pre-AI size table therefore shows these sectors as having no figure, which is
+# true, rather than a figure nobody ever published.
+PSX = "psx"
+
+PSX_ASSETS: list[tuple] = [
+    ("psx-banks", "HBL", "Habib Bank", "stock", "marketCap", PSX, "HBL", "The largest bank by assets, with an international network."),
+    ("psx-banks", "UBL", "United Bank", "stock", "marketCap", PSX, "UBL", "Commercial and consumer banking, large government paper holdings."),
+    ("psx-banks", "MCB", "MCB Bank", "stock", "marketCap", PSX, "MCB", "Commercial bank with a long dividend record."),
+    ("psx-banks", "MEBL", "Meezan Bank", "stock", "marketCap", PSX, "MEBL", "The largest Islamic bank in the country."),
+    ("psx-banks", "BAFL", "Bank Alfalah", "stock", "marketCap", PSX, "BAFL", "Commercial and consumer banking."),
+    ("psx-banks", "BAHL", "Bank AL Habib", "stock", "marketCap", PSX, "BAHL", "Trade finance and commercial banking."),
+    ("psx-banks", "NBP", "National Bank of Pakistan", "stock", "marketCap", PSX, "NBP", "State owned commercial bank and government agent."),
+    ("psx-banks", "ABL", "Allied Bank", "stock", "marketCap", PSX, "ABL", "Commercial bank, Ibrahim group."),
+    ("psx-banks", "AKBL", "Askari Bank", "stock", "marketCap", PSX, "AKBL", "Commercial bank, Fauji Foundation controlled."),
+    ("psx-banks", "FABL", "Faysal Bank", "stock", "marketCap", PSX, "FABL", "Converted to full Islamic banking operations."),
+
+    ("psx-oil-gas", "OGDC", "Oil and Gas Development Company", "stock", "marketCap", PSX, "OGDC", "The largest exploration and production company, state majority owned."),
+    ("psx-oil-gas", "PPL", "Pakistan Petroleum", "stock", "marketCap", PSX, "PPL", "Exploration and production, gas weighted."),
+    ("psx-oil-gas", "POL", "Pakistan Oilfields", "stock", "marketCap", PSX, "POL", "Exploration and production, Attock group."),
+    ("psx-oil-gas", "MARI", "Mari Energies", "stock", "marketCap", PSX, "MARI", "Gas producer centred on the Mari field."),
+    ("psx-oil-gas", "PSO", "Pakistan State Oil", "stock", "marketCap", PSX, "PSO", "The largest fuel marketing company, state majority owned."),
+    ("psx-oil-gas", "APL", "Attock Petroleum", "stock", "marketCap", PSX, "APL", "Fuel marketing and lubricants."),
+    ("psx-oil-gas", "SNGP", "Sui Northern Gas Pipelines", "stock", "marketCap", PSX, "SNGP", "Gas transmission and distribution in the north."),
+    ("psx-oil-gas", "SSGC", "Sui Southern Gas Company", "stock", "marketCap", PSX, "SSGC", "Gas transmission and distribution in the south."),
+    ("psx-oil-gas", "ATRL", "Attock Refinery", "stock", "marketCap", PSX, "ATRL", "Crude refining, Attock group."),
+    ("psx-oil-gas", "HTL", "Hi-Tech Lubricants", "stock", "marketCap", PSX, "HTL", "Lubricant blending and retail fuel."),
+
+    ("psx-cement", "LUCK", "Lucky Cement", "stock", "marketCap", PSX, "LUCK", "The largest cement maker, with holdings outside cement."),
+    ("psx-cement", "DGKC", "D.G. Khan Cement", "stock", "marketCap", PSX, "DGKC", "Cement, Nishat group."),
+    ("psx-cement", "MLCF", "Maple Leaf Cement", "stock", "marketCap", PSX, "MLCF", "Cement, Kohinoor Maple Leaf group."),
+    ("psx-cement", "FCCL", "Fauji Cement", "stock", "marketCap", PSX, "FCCL", "Cement, Fauji Foundation controlled."),
+    ("psx-cement", "CHCC", "Cherat Cement", "stock", "marketCap", PSX, "CHCC", "Cement, Ghulam Faruque group."),
+    ("psx-cement", "KOHC", "Kohat Cement", "stock", "marketCap", PSX, "KOHC", "Cement producer in the north west."),
+    ("psx-cement", "PIOC", "Pioneer Cement", "stock", "marketCap", PSX, "PIOC", "Cement producer in central Punjab."),
+    ("psx-cement", "ACPL", "Attock Cement", "stock", "marketCap", PSX, "ACPL", "Cement, Attock group, export exposed."),
+    ("psx-cement", "BWCL", "Bestway Cement", "stock", "marketCap", PSX, "BWCL", "One of the largest producers by capacity."),
+    ("psx-cement", "GWLC", "Gharibwal Cement", "stock", "marketCap", PSX, "GWLC", "Cement producer in central Punjab."),
+
+    ("psx-fertilizer", "FFC", "Fauji Fertilizer", "stock", "marketCap", PSX, "FFC", "The largest urea producer."),
+    ("psx-fertilizer", "EFERT", "Engro Fertilizers", "stock", "marketCap", PSX, "EFERT", "Urea and phosphate fertilizers."),
+    ("psx-fertilizer", "FATIMA", "Fatima Fertilizer", "stock", "marketCap", PSX, "FATIMA", "Urea, CAN and NP fertilizers."),
+    ("psx-fertilizer", "AGL", "Agritech", "stock", "marketCap", PSX, "AGL", "Urea producer, repeatedly gas supply constrained."),
+    ("psx-fertilizer", "AHCL", "Arif Habib Corporation", "stock", "marketCap", PSX, "AHCL", "Holding company the exchange classifies in this sector."),
+
+    ("psx-power", "HUBC", "Hub Power", "stock", "marketCap", PSX, "HUBC", "The largest independent power producer."),
+    ("psx-power", "KAPCO", "Kot Addu Power", "stock", "marketCap", PSX, "KAPCO", "Thermal generation, post concession."),
+    ("psx-power", "KEL", "K-Electric", "stock", "marketCap", PSX, "KEL", "Generation and distribution for Karachi."),
+    ("psx-power", "NCPL", "Nishat Chunian Power", "stock", "marketCap", PSX, "NCPL", "Furnace oil generation, Nishat group."),
+    ("psx-power", "NPL", "Nishat Power", "stock", "marketCap", PSX, "NPL", "Furnace oil generation, Nishat group."),
+    ("psx-power", "ALTN", "Altern Energy", "stock", "marketCap", PSX, "ALTN", "Gas fired generation."),
+    ("psx-power", "PKGP", "Pakgen Power", "stock", "marketCap", PSX, "PKGP", "Thermal generation, Nishat group."),
+    ("psx-power", "TSPL", "Tri-Star Power", "stock", "marketCap", PSX, "TSPL", "Small independent generation."),
+
+    ("psx-technology", "SYS", "Systems Limited", "stock", "marketCap", PSX, "SYS", "IT services and software, largely exported."),
+    ("psx-technology", "NETSOL", "NetSol Technologies", "stock", "marketCap", PSX, "NETSOL", "Leasing and finance software for global lenders."),
+    ("psx-technology", "TRG", "TRG Pakistan", "stock", "marketCap", PSX, "TRG", "Holding company for business process outsourcing."),
+    ("psx-technology", "AVN", "Avanceon", "stock", "marketCap", PSX, "AVN", "Industrial automation and control systems."),
+    ("psx-technology", "PTC", "Pakistan Telecommunication", "stock", "marketCap", PSX, "PTC", "Fixed line, broadband and the Ufone mobile network."),
+    ("psx-technology", "TELE", "Telecard", "stock", "marketCap", PSX, "TELE", "Telecom services and infrastructure."),
+    ("psx-technology", "AIRLINK", "Air Link Communication", "stock", "marketCap", PSX, "AIRLINK", "Mobile phone distribution and local assembly."),
+    ("psx-technology", "TPL", "TPL Corp", "stock", "marketCap", PSX, "TPL", "Holding company across tracking, insurance and property."),
+    ("psx-technology", "HUMNL", "Hum Network", "stock", "marketCap", PSX, "HUMNL", "Television broadcasting and content."),
+    ("psx-technology", "WTL", "WorldCall Telecom", "stock", "marketCap", PSX, "WTL", "Broadband and telecom services, heavily traded at a very low price."),
+
+    ("psx-textile", "NML", "Nishat Mills", "stock", "marketCap", PSX, "NML", "The largest composite textile manufacturer."),
+    ("psx-textile", "GATM", "Gul Ahmed Textile Mills", "stock", "marketCap", PSX, "GATM", "Composite textiles and domestic retail."),
+    ("psx-textile", "ILP", "Interloop", "stock", "marketCap", PSX, "ILP", "Hosiery and apparel, export led."),
+    ("psx-textile", "NCL", "Nishat Chunian", "stock", "marketCap", PSX, "NCL", "Spinning and home textiles."),
+    ("psx-textile", "KTML", "Kohinoor Textile Mills", "stock", "marketCap", PSX, "KTML", "Composite textiles, also holds cement interests."),
+    ("psx-textile", "ANL", "Azgard Nine", "stock", "marketCap", PSX, "ANL", "Denim and apparel manufacturing."),
+    ("psx-textile", "KOIL", "Kohinoor Industries", "stock", "marketCap", PSX, "KOIL", "Textile manufacturing."),
+    ("psx-textile", "TOWL", "Towellers", "stock", "marketCap", PSX, "TOWL", "Towel manufacturing, export led."),
+
+    ("psx-automobile", "INDU", "Indus Motor Company", "stock", "marketCap", PSX, "INDU", "Assembles Toyota vehicles under licence."),
+    ("psx-automobile", "HCAR", "Honda Atlas Cars", "stock", "marketCap", PSX, "HCAR", "Assembles Honda vehicles under licence."),
+    ("psx-automobile", "MTL", "Millat Tractors", "stock", "marketCap", PSX, "MTL", "Tractor assembly, Massey Ferguson licence."),
+    ("psx-automobile", "AGTL", "Al-Ghazi Tractors", "stock", "marketCap", PSX, "AGTL", "Tractor assembly, New Holland licence."),
+    ("psx-automobile", "SAZEW", "Sazgar Engineering", "stock", "marketCap", PSX, "SAZEW", "Three wheelers and, more recently, hybrid vehicles."),
+    ("psx-automobile", "GHNI", "Ghandhara Industries", "stock", "marketCap", PSX, "GHNI", "Commercial vehicle assembly."),
+    ("psx-automobile", "ATLH", "Atlas Honda", "stock", "marketCap", PSX, "ATLH", "Motorcycle assembly, the largest by volume."),
+    ("psx-automobile", "HINO", "Hinopak Motors", "stock", "marketCap", PSX, "HINO", "Truck and bus assembly."),
+    ("psx-automobile", "DFML", "Dewan Farooque Motors", "stock", "marketCap", PSX, "DFML", "Vehicle assembly, intermittently operating."),
+]
+ASSETS = ASSETS + PSX_ASSETS
 
 # slug, name, category, summary, wiki title, trends term, subreddits
 PRODUCTS = [
@@ -254,14 +455,20 @@ def main() -> None:
     with conn, conn.cursor() as cur:
         step("industries")
         for slug, name, summary, sort in INDUSTRIES:
+            # The slug carries the exchange, so the market and the currency are derived
+            # rather than repeated on every row where they could drift out of step.
+            pk = slug.startswith("psx-")
             cur.execute(
                 """
-                INSERT INTO "Industry" (slug, name, summary, sort, "createdAt")
-                VALUES (%s,%s,%s,%s, now())
+                INSERT INTO "Industry" (slug, name, summary, sort, market, currency,
+                                        "createdAt")
+                VALUES (%s,%s,%s,%s,%s,%s, now())
                 ON CONFLICT (slug) DO UPDATE
-                SET name = EXCLUDED.name, summary = EXCLUDED.summary, sort = EXCLUDED.sort
+                SET name = EXCLUDED.name, summary = EXCLUDED.summary,
+                    sort = EXCLUDED.sort, market = EXCLUDED.market,
+                    currency = EXCLUDED.currency
                 """,
-                (slug, name, summary, sort),
+                (slug, name, summary, sort, "PK" if pk else "US", "PKR" if pk else "USD"),
             )
         cur.execute("SELECT count(*) AS n FROM \"Industry\"")
         print(f"  industries: {cur.fetchone()['n']}")
@@ -272,13 +479,15 @@ def main() -> None:
                 """
                 INSERT INTO "Asset"
                   ("industryId", symbol, name, "assetType", "capBasis", source,
-                   "sourceRef", description, note, "createdAt")
-                SELECT i.id, %s, %s, %s::"AssetType", %s::"CapBasis", %s, %s, %s, %s, now()
+                   "sourceRef", description, note, currency, "createdAt")
+                SELECT i.id, %s, %s, %s::"AssetType", %s::"CapBasis", %s, %s, %s, %s,
+                       i.currency, now()
                 FROM "Industry" i WHERE i.slug = %s
                 ON CONFLICT ("industryId", symbol) DO UPDATE
                 SET name = EXCLUDED.name, "assetType" = EXCLUDED."assetType",
                     "capBasis" = EXCLUDED."capBasis", source = EXCLUDED.source,
-                    "sourceRef" = EXCLUDED."sourceRef", note = EXCLUDED.note
+                    "sourceRef" = EXCLUDED."sourceRef", note = EXCLUDED.note,
+                    currency = EXCLUDED.currency
                 """,
                 (symbol, name, atype, cap, source, ref, None, note, slug),
             )

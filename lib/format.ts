@@ -19,12 +19,40 @@ export function sizeBasisText(basis: string | null | undefined): string {
   }
 }
 
-export function money(value: number | null | undefined): string {
+/// What a currency is written as in front of a number. A size figure quoted in rupees and
+/// printed with a dollar sign is not a cosmetic error: it is wrong by a factor of nearly
+/// three hundred, and it is wrong in the direction that makes a Karachi listing look like
+/// a global one. Anything not listed here falls back to the ISO code, which is ugly and
+/// correct, rather than to a symbol that would be neither.
+const CURRENCY_MARK: Record<string, string> = { USD: "$", PKR: "Rs." };
+
+export function currencyMark(currency: string | null | undefined): string {
+  if (!currency) return "$";
+  return CURRENCY_MARK[currency] ?? `${currency} `;
+}
+
+export function money(
+  value: number | null | undefined,
+  currency: string | null | undefined = "USD",
+): string {
   if (value == null || Number.isNaN(value)) return "not available";
-  if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(0)}M`;
-  return `$${value.toFixed(0)}`;
+  const m = currencyMark(currency);
+  if (value >= 1e12) return `${m}${(value / 1e12).toFixed(2)}T`;
+  if (value >= 1e9) return `${m}${(value / 1e9).toFixed(1)}B`;
+  if (value >= 1e6) return `${m}${(value / 1e6).toFixed(0)}M`;
+  return `${m}${value.toFixed(0)}`;
+}
+
+/// A price, which needs more precision than a size and never an abbreviation.
+export function price(
+  value: number | null | undefined,
+  currency: string | null | undefined = "USD",
+): string {
+  if (value == null || Number.isNaN(value)) return "not available";
+  return `${currencyMark(currency)}${value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 export function sizeLabel(basis: string): string {

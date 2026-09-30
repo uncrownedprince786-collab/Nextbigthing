@@ -102,3 +102,85 @@ export async function getFreshness() {
   ]);
   return { snap, rank, signal, news };
 }
+
+export async function getEvents() {
+  return prisma.event.findMany({
+    orderBy: { date: "desc" },
+    include: {
+      analysis: { orderBy: { createdAt: "desc" }, take: 1 },
+      _count: { select: { impacts: true } },
+    },
+  });
+}
+
+export async function getEvent(slug: string) {
+  return prisma.event.findUnique({
+    where: { slug },
+    include: { analysis: { orderBy: { createdAt: "desc" }, take: 1 } },
+  });
+}
+
+/// The movers for one event window, largest absolute move first.
+///
+/// Both ends are taken, not just the top: a table showing only the biggest rises reads as
+/// a list of what the event was good for, and the same window almost always contains falls
+/// of a similar size. Showing one end would be a claim dressed as a selection.
+export async function getEventImpacts(eventId: string, windowDays: number, take = 10) {
+  const rows = await prisma.eventImpact.findMany({
+    where: { eventId, windowDays },
+    orderBy: { changePct: "desc" },
+    include: { asset: { include: { industry: true } } },
+  });
+  return {
+    total: rows.length,
+    risers: rows.slice(0, take),
+    fallers: rows.slice(-take).reverse(),
+  };
+}
+
+export async function getEventWindows(eventId: string) {
+  const rows = await prisma.eventImpact.findMany({
+    where: { eventId },
+    distinct: ["windowDays"],
+    select: { windowDays: true },
+    orderBy: { windowDays: "asc" },
+  });
+  return rows.map((r) => r.windowDays);
+}
+
+/// The newest stored run of each marketplace category.
+///
+/// Rows from different runs must never be mixed into one table: a rank of 4 read last week
+/// and a rank of 6 read today are not a ranking, they are two rankings, and putting them
+/// side by side would invent an ordering neither of them published.
+export async function getMarketplace(categorySlug?: string) {
+  const latest = await prisma.marketplaceItem.aggregate({ _max: { periodEnd: true } });
+  const periodEnd = latest._max.periodEnd;
+  if (!periodEnd) return { periodEnd: null, items: [] };
+  const items = await prisma.marketplaceItem.findMany({
+    where: { periodEnd, ...(categorySlug ? { categorySlug } : {}) },
+    orderBy: [{ categorySlug: "asc" }, { rank: "asc" }],
+  });
+  return { periodEnd, items };
+}
+
+/// Listings in the newest stored run whose title contains the product's search term.
+///
+/// This is a text match on a title, and it is reported as exactly that. It says a listing
+/// in the top thirty of its category has these words in its name; it does not say the
+/// product category is selling well, and the number of matches is not a demand figure. The
+/// term is required to be at least four characters so a short one does not match a
+/// fragment of an unrelated word.
+export async function getProductMarketplace(term: string) {
+  const cleaned = term.trim();
+  if (cleaned.length < 4) return { periodEnd: null, items: [] };
+  const latest = await prisma.marketplaceItem.aggregate({ _max: { periodEnd: true } });
+  const periodEnd = latest._max.periodEnd;
+  if (!periodEnd) return { periodEnd: null, items: [] };
+  const items = await prisma.marketplaceItem.findMany({
+    where: { periodEnd, title: { contains: cleaned, mode: "insensitive" } },
+    orderBy: [{ rank: "asc" }],
+    take: 8,
+  });
+  return { periodEnd, items };
+}

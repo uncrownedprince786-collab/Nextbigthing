@@ -51,6 +51,13 @@ model Industry {
   name    String
   summary String
   sort    Int      @default(0)
+  /// Which exchange group this industry belongs to: US, PK, or Global. Ranking only ever
+  /// happens inside one industry, so this never mixes currencies in a comparison. It is
+  /// what lets the site show the Pakistani sectors as their own list with their own
+  /// currency label.
+  market  String   @default("US")
+  /// ISO code of the currency every size figure in this industry is quoted in.
+  currency String  @default("USD")
 
   assets   Asset[]
   rankings Ranking[]
@@ -73,12 +80,16 @@ model Asset {
   description String?
   /// Text written once per asset by a human. Facts only, no forecasts.
   note        String?
+  /// ISO code of the currency close and marketCap are quoted in. Returns are percentages
+  /// so they compare across currencies; a size figure does not, and is labelled.
+  currency    String    @default("USD")
 
   snapshots PriceSnapshot[]
   rankings  Ranking[]
   analysis  Analysis[]
   news      News[]
   productLinks ProductAssetLink[]
+  eventImpacts EventImpact[]
 
   createdAt DateTime @default(now())
 
@@ -147,6 +158,9 @@ enum AnalysisKind {
   productDemand
   /// Headline for the front page.
   siteLead
+  /// What the largest measured moves were in the window after a dated event. The line
+  /// reports the moves and never says the event caused them.
+  eventImpact
 }
 
 model Analysis {
@@ -158,6 +172,8 @@ model Analysis {
   asset       Asset?       @relation(fields: [assetId], references: [id], onDelete: Cascade)
   productId   String?
   product     Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  eventId     String?
+  event       Event?       @relation(fields: [eventId], references: [id], onDelete: Cascade)
   headline    String
   body        String
   /// What is missing, and what would fill it.
@@ -171,6 +187,7 @@ model Analysis {
   @@index([industryId])
   @@index([assetId])
   @@index([productId])
+  @@index([eventId])
 }
 
 model News {
@@ -260,4 +277,95 @@ model ProductAssetLink {
   note      String?
 
   @@unique([productId, assetId])
+}
+
+/// A dated, publicly recorded event, seeded by hand from the public record.
+///
+/// The site measures what the market did in the window after the date. It never says the
+/// event caused the move. Two things happening in the same fortnight is a sequence, not a
+/// cause, and the only honest claim available from a price series is the size of the move.
+model Event {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  slug      String   @unique
+  name      String
+  /// One or two factual sentences. What happened and when, nothing about what it meant.
+  summary   String
+  /// The day the event is dated to in the public record.
+  date      DateTime @db.Date
+  /// conflict, policy, technology, or market.
+  category  String
+  /// Where the date and the description come from, so a reader can check both.
+  source    String
+  sourceUrl String
+  sort      Int      @default(0)
+
+  impacts  EventImpact[]
+  analysis Analysis[]
+
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}
+
+/// One asset's measured price move over a window that starts at an event's date.
+///
+/// Written by jobs/events.py from rows already in PriceSnapshot, so an event window that
+/// falls outside the stored history produces no rows rather than an estimate.
+model EventImpact {
+  id         String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  eventId    String
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  assetId    String
+  asset      Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  /// Length of the measured window in calendar days. 30 unless stated otherwise.
+  windowDays Int
+  /// The two stored closes the change is computed from, kept so the figure can be checked.
+  startDate  DateTime @db.Date
+  startClose Float
+  endDate    DateTime @db.Date
+  endClose   Float
+  changePct  Float
+  /// Change in 20 day average volume across the same window. Null when the source
+  /// published no volume for this asset.
+  volumeChangePct Float?
+  /// Position within the event, 1 being the largest move by absolute size.
+  rank       Int
+  confidence Confidence @default(none)
+  confidenceNote String?
+  source     String
+
+  @@unique([eventId, assetId, windowDays])
+  @@index([eventId, rank])
+}
+
+/// One row of a public marketplace ranking, as published on the page on the day it was read.
+///
+/// This is deliberately not a ProductSignal. Attention and marketplace position are
+/// different claims: a search trend says people are looking, a bestseller rank says a
+/// listing is selling relative to others in its category. Mixing them into one average
+/// would hide which of the two a number came from, so marketplace rows are stored apart
+/// and never enter the demand score.
+model MarketplaceItem {
+  id           String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  /// Only amazonBestSellers today. eBay is not stored: see brain.md for the verdict.
+  marketplace  String
+  categorySlug String
+  categoryName String
+  rank         Int
+  title        String
+  url          String
+  /// Marketplace item id, Amazon's ASIN today. Used to follow one listing between runs.
+  itemRef      String
+  periodEnd    DateTime @db.Date
+  /// Rank in the previous stored run of the same category, when the listing was in it.
+  /// Null means the listing was not in the previous run, which the UI reports as new
+  /// rather than as a rise from nowhere.
+  previousRank Int?
+  source       String
+
+  createdAt DateTime @default(now())
+
+  @@unique([marketplace, categorySlug, periodEnd, itemRef])
+  @@index([categorySlug, periodEnd])
+  @@index([periodEnd])
 }

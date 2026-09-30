@@ -156,3 +156,50 @@ export function Table({ head, children }: { head: React.ReactNode; children: Rea
     </div>
   );
 }
+
+/// A short lesson in reading the table it sits next to.
+///
+/// This is the teaching layer, and it is a collapsed block rather than a banner on
+/// purpose. Someone who already knows how to read a confidence grade should not have to
+/// scroll past the explanation every time, and someone who does not should not have to
+/// guess that the explanation exists. `<details>` does both with no JavaScript, which
+/// keeps these pages server rendered like everything else here.
+export function HowToRead({
+  title = "How to read this page",
+  points,
+}: {
+  title?: string;
+  points: React.ReactNode[];
+}) {
+  return (
+    <details className="border-border bg-muted/30 mt-4 rounded-lg border px-4 py-3 text-sm">
+      <summary className="cursor-pointer font-medium select-none">{title}</summary>
+      <ul className="text-muted-foreground mt-3 space-y-2 leading-relaxed">
+        {points.map((p, i) => (
+          <li key={i} className="flex gap-2">
+            <span aria-hidden="true" className="text-primary/60">
+              &bull;
+            </span>
+            <span>{p}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/// The currency a set of figures is quoted in, said once above the table rather than
+/// repeated on every row. Returns are percentages and compare across currencies; sizes do
+/// not, and a reader who has scrolled past the heading needs to be told which they are
+/// looking at.
+export function CurrencyNote({ currency, market }: { currency: string; market: string }) {
+  if (currency === "USD") return null;
+  return (
+    <p className="text-muted-foreground text-xs">
+      Every price and size on this page is quoted in {currency}
+      {market === "PK" ? ", as published by the Pakistan Stock Exchange" : ""}. Percentage
+      returns compare across currencies; the size figures do not, and are not comparable
+      with the dollar figures elsewhere on this site.
+    </p>
+  );
+}

@@ -83,6 +83,11 @@ HOST_DELAY = {
     "hn.algolia.com": 1.0,
     "news.google.com": 2.0,
     "data.sec.gov": 0.5,
+    # The exchange's own file server. It answers quickly and a full backfill is a few
+    # hundred small files, but it is a national exchange rather than a CDN, so it gets
+    # the same courtesy as the rest.
+    "dps.psx.com.pk": 1.5,
+    "www.amazon.com": 4.0,
 }
 _last_hit: dict[str, float] = {}
 

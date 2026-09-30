@@ -1,9 +1,10 @@
 """Run the data jobs in the order a refresh needs them.
 
-    python jobs/run.py daily    prices and news, then rankings, then the confidence
-                                grades, then the written lines
-    python jobs/run.py weekly   prices and news, then all five product signal sources,
-                                then rankings, confidence grades and the written lines
+    python jobs/run.py daily    prices and news for both exchanges, then rankings, then
+                                the confidence grades, the written lines and the event
+                                windows
+    python jobs/run.py weekly   the daily run plus the full PSX history backfill, all five
+                                product signal sources and the marketplace rankings
     python jobs/run.py seed     the reference lists only, for a first run
 
 Each step is a separate process on purpose. A rate limited source that fails should not
@@ -23,18 +24,28 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 
+# psx runs before rank for the same reason prices does: the ranking job reads closes out
+# of PriceSnapshot and cannot rank a Karachi sector whose prices arrive after it.
+# events runs before analysis and not after it, because analysis writes the sentence that
+# sits under each event's table and has to read the rows that table is built from. Running
+# it the other way round would print last week's event lines over this week's numbers.
 DAILY = [
     ("prices", ["yahoo", "crypto", "news"]),
+    ("psx", ["recent"]),
     ("rank", []),
     ("confidence", ["rankings"]),
+    ("events", []),
     ("analysis", []),
 ]
 
 WEEKLY = [
     ("prices", ["yahoo", "crypto", "news"]),
+    ("psx", ["full"]),
     ("signals", ["trends", "wiki", "hn", "news", "reddit"]),
+    ("marketplace", []),
     ("rank", []),
     ("confidence", ["rankings"]),
+    ("events", []),
     ("analysis", []),
 ]
 
