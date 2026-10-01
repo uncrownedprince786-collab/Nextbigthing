@@ -1869,6 +1869,127 @@ class IntradayTimezoneIndependence(unittest.TestCase):
             self.assertNotIn(banned, src, f"session_dates() uses {banned}")
 
 
+class UndefinedNames(unittest.TestCase):
+    """Every name a job uses must be bound somewhere in that job.
+
+    This exists because of the bug that broke the nightly refresh for days.
+    `jobs/prices.py` used `timedelta` and imported only `date, datetime, timezone`, so the
+    *first* job of the daily group died with `NameError` 0.1 minutes in — and every one of the
+    sixteen jobs behind it was skipped. Nothing caught it: it imports, it compiles, it passes
+    `compileall`, and the name is only resolved when that branch executes.
+
+    The check is a flat module scope: collect every name bound anywhere in the file — imports,
+    assignments, defs, parameters, comprehension targets, `with`/`except` aliases, globals —
+    then flag any load that is not in that set and not a builtin. Flat rather than properly
+    scoped on purpose: it under-reports slightly (a use-before-definition across two functions
+    reads as fine) and in exchange it has almost no false positives, which is what makes it
+    worth keeping. It would have caught `timedelta` on the commit that introduced it.
+    """
+
+    @staticmethod
+    def _bound_names(tree):
+        import ast
+
+        bound = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for a in node.names:
+                    bound.add((a.asname or a.name).split(".")[0])
+            elif isinstance(node, ast.ImportFrom):
+                for a in node.names:
+                    bound.add(a.asname or a.name)
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                # Lambda has no .name but the same .args shape, and every one of the twenty
+                # false positives the first version produced was a lambda parameter.
+                if not isinstance(node, ast.Lambda):
+                    bound.add(node.name)
+                args = node.args
+                for a in (
+                    list(args.posonlyargs) + list(args.args) + list(args.kwonlyargs)
+                ):
+                    bound.add(a.arg)
+                if args.vararg:
+                    bound.add(args.vararg.arg)
+                if args.kwarg:
+                    bound.add(args.kwarg.arg)
+            elif isinstance(node, ast.ClassDef):
+                bound.add(node.name)
+            elif isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+                bound.add(node.id)
+            elif isinstance(node, ast.ExceptHandler) and node.name:
+                bound.add(node.name)
+            elif isinstance(node, (ast.Global, ast.Nonlocal)):
+                bound.update(node.names)
+            elif isinstance(node, ast.alias):
+                bound.add((node.asname or node.name).split(".")[0])
+        return bound
+
+    def test_no_job_uses_a_name_it_never_binds(self):
+        import ast
+        import builtins
+
+        known = set(dir(builtins)) | {"__file__", "__name__", "__doc__", "__spec__"}
+        offenders = []
+        for path in sorted((ROOT / "jobs").glob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            bound = self._bound_names(tree) | known
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+                    if node.id not in bound:
+                        offenders.append(f"{path.name}:{node.lineno} uses {node.id!r}")
+        self.assertEqual(sorted(set(offenders)), [], "; ".join(sorted(set(offenders))))
+
+    def test_the_check_would_have_caught_the_bug_that_motivated_it(self):
+        """A test that cannot fail is not a test.
+
+        This is the real shape of the prices.py defect: `timedelta` used, and only
+        `date, datetime, timezone` imported.
+        """
+        import ast
+        import builtins
+
+        broken = (
+            "from datetime import date, datetime, timezone\n"
+            "def f(when):\n"
+            "    return when - timedelta(days=3)\n"
+        )
+        tree = ast.parse(broken)
+        bound = self._bound_names(tree) | set(dir(builtins))
+        missing = [
+            n.id
+            for n in ast.walk(tree)
+            if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load) and n.id not in bound
+        ]
+        self.assertIn("timedelta", missing)
+
+    def test_the_check_does_not_flag_the_corrected_form(self):
+        import ast
+        import builtins
+
+        fixed = (
+            "from datetime import date, datetime, timedelta, timezone\n"
+            "def f(when):\n"
+            "    return when - timedelta(days=3)\n"
+        )
+        tree = ast.parse(fixed)
+        bound = self._bound_names(tree) | set(dir(builtins))
+        missing = [
+            n.id
+            for n in ast.walk(tree)
+            if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load) and n.id not in bound
+        ]
+        self.assertEqual(missing, [])
+
+    def test_every_job_imports_cleanly(self):
+        """Catches the import-time half of the same class, which the AST walk cannot see."""
+        import importlib
+
+        for path in sorted((ROOT / "jobs").glob("*.py")):
+            if path.name in {"run.py"}:
+                continue  # run.py spawns subprocesses; importing it is not meaningful
+            importlib.import_module(path.stem)
+
+
 class InsertShape(unittest.TestCase):
     """Every INSERT must name as many columns as it supplies expressions.
 
