@@ -141,7 +141,8 @@ Only genuinely external things:
 
 ## Rules that are load-bearing
 
-Everything in `brain.md` under "Rules for changes" — 18 of them — plus:
+Everything in `brain.md` under "Rules for changes" — 26 of them, the last eight added with
+this pass — and in particular:
 
 - **One migrator.** `schema.yml` and nothing else. The data lanes check.
 - **Retention touches intraday only.** `PriceSnapshot` is the permanent record. A sweep that

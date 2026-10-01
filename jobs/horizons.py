@@ -386,7 +386,10 @@ def run_intraday(cur, today: date) -> int:
             (a["id"], BAR),
         )
         if sess and sess["status"] in ("partial", "stale", "failed"):
-            missing.append(f"a complete session ({sess['status']}: {sess['note'][:90]})")
+            # The whole note, not a slice of it. Truncating cut it mid-word on the page
+            # ("must not be r"), and the second half of this particular sentence is the part
+            # that tells a reader what the gap means.
+            missing.append(f"a complete session ({sess['status']}: {sess['note']})")
 
         write_setup(
             cur, a["id"], today, "intraday", state, head, conds, missing, against,

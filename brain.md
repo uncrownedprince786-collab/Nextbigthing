@@ -226,6 +226,21 @@ a base of 6 a single post is 17% of the reading.
   consensus.
 
 ## Jobs
+- `jobs/schemacheck.py` refuses to let a data lane start when the database is behind this
+  checkout's migrations. Holds no writer privilege and issues no DDL, so it cannot race the one
+  workflow that does migrate. Exit 1 means behind; exit 2 means the check itself could not run,
+  which is a different answer.
+- `jobs/intraday.py` five minute bars for an **active set** chosen from stored rows, with 15, 30
+  and 60 derived from them exactly. Bounded by a per-run request ceiling and swept after ten
+  days. One minute bars are supported in the code and not fetched, because every reader queries
+  five.
+- `jobs/horizons.py` the intraday and longer term condition reads, plus a measured target range
+  per method for every horizon including the swing read `setup.py` owns. Three horizons are
+  three rows and are shown side by side, including when they disagree.
+- `jobs/investigate.py` when a move is unusual against the asset's own sixty-session spread, it
+  checks nine kinds of stored evidence and records `found`, `absent` and `unavailable` as three
+  distinct answers. A move with no story behind it is reported as unexplained rather than
+  attributed to something.
 - `jobs/seed.py` industries, assets, products, asset links, asset notes. Run once.
 - `jobs/psx.py recent|full` PSX closes from the exchange's daily closing files. `recent`
   is the snapshot dates plus the last 120 days; `full` adds a monthly grid back to 2019.
@@ -423,3 +438,31 @@ reads rows that already exist:
     chain this project exists not to produce.
 18. Keep the graph bounded. Raising `MAX_HOPS` past two, or `MAX_GROUP` past the point where
     a hub edge is excluded, makes every asset relevant to every other and the list worthless.
+19. **One workflow migrates.** `schema.yml`, and nothing else. The data lanes run
+    `jobs/schemacheck.py` and refuse to start when the database is behind. Adding a second
+    `prisma migrate deploy` anywhere recreates the race that killed run 36798989654, and a test
+    asserts there is only one.
+20. **Retention never touches `PriceSnapshot`.** It is the permanent record and every other job
+    is built on it. The sweep in `intraday.py` names `IntradayBar` and `IntradaySession`
+    explicitly, and a test asserts those are the only tables it deletes from.
+21. **Absent, zero and unavailable are three values, not one.** A zero-volume bar is a quiet
+    five minutes; an absent one is a hole; an unsupported asset is a fact about the provider.
+    `IntradaySession.status`, `InvestigationFinding.status` and `AssetSetup.missing` all exist
+    to keep them apart, and collapsing any two of them is the silent data loss everything here
+    is arranged to prevent.
+22. **No bar is invented and no interval is approximated.** A derived bar is written only when
+    every component bar is present. An hour built from nine of its twelve five minute bars is a
+    quieter hour than the one that happened.
+23. **A horizon's condition string must stay in `setup.py`'s format.** `thesis.py` parses it to
+    decide whether a reason still holds, so a new horizon written in a new format silently
+    produces theses with nothing to compare. Tests run the parser over every horizon's output.
+24. **Targets are never averaged.** Three methods that disagree are three answers, and
+    `SetupTarget.agreement` is how the disagreement reaches the page. A target is never written
+    without an invalidation level behind it, and a target range never contains the entry.
+25. **Quote identifiers in hand-written SQL.** `leading` is reserved in Postgres because `TRIM`
+    uses it, and the unquoted column cost a production run that could not be diagnosed without
+    a GitHub sign-in. A test scans every `INSERT` in `jobs/` for bare reserved words.
+26. **Verify a provider before designing around it.** The intraday source was fetched and read
+    before a line of schema was written; the crypto symbol mapping was checked against three
+    real pairs; the storage cost was measured rather than estimated, and was six times what the
+    design assumed. Every one of those was cheaper to learn by asking than by shipping.
