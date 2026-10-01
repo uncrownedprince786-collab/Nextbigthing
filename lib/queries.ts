@@ -580,3 +580,44 @@ export async function getIntradayCoverage() {
       .sort((a, b) => (order.indexOf(a.status) + 1 || 99) - (order.indexOf(b.status) + 1 || 99)),
   };
 }
+
+/// Assets with a clear directional read on any horizon, strongest grade first.
+///
+/// Site-wide counterpart to `getHorizons`, for the scan box on the front page. One row per
+/// asset even when two horizons agree: the box answers "what is worth a look", and the same
+/// name twice would spend a slot saying one thing.
+export async function getDirectionalSetups(take = 6) {
+  const rows = await prisma.assetSetup.findMany({
+    where: { state: { in: ["buy", "short"] } },
+    orderBy: [{ periodEnd: "desc" }, { confidence: "asc" }],
+    include: { asset: { select: { symbol: true, name: true } } },
+  });
+  // Newest stored day per horizon, then one row per asset. `confidence` sorts ascending as an
+  // enum, which puts `high` first — relied on here rather than re-sorted in JS.
+  const newest = new Map<string, number>();
+  for (const r of rows) {
+    const t = r.periodEnd.getTime();
+    if (!newest.has(r.horizon) || t > newest.get(r.horizon)!) newest.set(r.horizon, t);
+  }
+  const current = rows.filter((r) => r.periodEnd.getTime() === newest.get(r.horizon));
+  const seen = new Map<string, (typeof current)[number]>();
+  for (const r of current) if (!seen.has(r.assetId)) seen.set(r.assetId, r);
+  return [...seen.values()].slice(0, take);
+}
+
+/// {industryId: how many of its assets have at least one stored close}.
+///
+/// The home page needs this to say *why* an industry has no ranking. "No ranking stored" on
+/// its own reads as a bug; "its ten assets have no stored prices yet" is the actual state and
+/// tells a reader whether to wait or to look into it.
+export async function getPricedAssetsByIndustry(): Promise<Map<string, number>> {
+  const withPrices = await prisma.priceSnapshot.groupBy({ by: ["assetId"] });
+  if (!withPrices.length) return new Map();
+  const assets = await prisma.asset.findMany({
+    where: { id: { in: withPrices.map((r) => r.assetId) } },
+    select: { industryId: true },
+  });
+  const out = new Map<string, number>();
+  for (const a of assets) out.set(a.industryId, (out.get(a.industryId) ?? 0) + 1);
+  return out;
+}

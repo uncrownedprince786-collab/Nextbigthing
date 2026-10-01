@@ -19,6 +19,7 @@ import {
   Pill,
   Section,
   SetupBlock,
+  SimpleRead,
   Table,
   ThesisBlock,
   UpcomingBlock,
@@ -40,6 +41,7 @@ import {
   getUpcoming,
 } from "@/lib/queries";
 import { isoDate, longDate, money, pct, relativeTime, sizeBasisText, toneClass } from "@/lib/format";
+import { assetSimpleRead } from "@/lib/plain";
 
 export const revalidate = 3600;
 
@@ -125,10 +127,26 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
         {asset.note ? <p className="mt-2 max-w-3xl text-sm leading-relaxed">{asset.note}</p> : null}
       </div>
 
-      {/* First, above everything. The whole page below this is the evidence for it, with the
-          numbers, the sources and the as-of dates attached. Simplifying the top is only safe
-          because nothing was removed from underneath it. */}
+      {/* Four lines, then a way down. Everything in it restates a value already computed and
+          already shown below with its source and as-of date, so the block adds no claim: it
+          puts the answer before the evidence instead of after it. */}
       <div className="mt-6">
+        <SimpleRead
+          lines={assetSimpleRead({
+            name: asset.name,
+            dayPct,
+            horizons,
+            thesis,
+            investigation,
+            discussion,
+            nextDated: upcoming[0] ? { name: upcoming[0].name, date: upcoming[0].date } : null,
+            currency: asset.currency,
+          })}
+          detailHref="#detail"
+        />
+      </div>
+
+      <div className="mt-4" id="detail">
         <PlainSummary
           name={asset.name}
           dayPct={dayPct}

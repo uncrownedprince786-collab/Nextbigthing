@@ -8,6 +8,7 @@ import {
   HowToRead,
   NeighbourhoodBlock,
   Note,
+  ScanBox,
   WhatMattersBlock,
   Pill,
   Section,
@@ -20,13 +21,23 @@ import {
   getFreshness,
   getIndustriesByMarket,
   getLead,
+  getDirectionalSetups,
   getNeighbourhood,
+  getPricedAssetsByIndustry,
   getProducts,
   getWhatMatters,
   getThesisTally,
   getUpcoming,
 } from "@/lib/queries";
 import { isoDate, money, pct, sizeLabel, toneClass } from "@/lib/format";
+import { daysUntil } from "@/lib/plain";
+
+// Horizon in the fewest words that still say which window it is, for a one-line scan row.
+const HORIZON_SHORT: Record<string, string> = {
+  intraday: "today",
+  swing: "weeks",
+  longer: "longer term",
+};
 
 const MARKET_NAME: Record<string, string> = {
   US: "United States listings",
@@ -53,6 +64,9 @@ export default async function Home() {
     neighbourhood,
     theses,
     matters,
+    directional,
+    earlyProducts,
+    pricedByIndustry,
   ] = await Promise.all([
     getLead(),
     getIndustriesByMarket(),
@@ -65,6 +79,9 @@ export default async function Home() {
     getNeighbourhood(9),
     getThesisTally(),
     getWhatMatters(8),
+    getDirectionalSetups(5),
+    getProducts("early"),
+    getPricedAssetsByIndustry(),
   ]);
 
   const byIndustry = new Map<string, typeof risers>();
@@ -107,6 +124,60 @@ export default async function Home() {
           </p>
         ) : null}
       </div>
+
+      {/* Three boxes, one number each, directly under the lead.
+          They are a way into the sections below rather than a replacement for them: every row
+          comes from a table this page was already reading. No prose on the cards — the point
+          is that the first screen can be scanned rather than read. */}
+      <Section
+        title="Quick scan"
+        lead="Three questions, answered in one line each from what is already stored. Everything here appears again in full below."
+      >
+        <div className="grid gap-3 md:grid-cols-3">
+          <ScanBox
+            title="Setups to watch"
+            lead="Assets whose conditions currently point one way, best-graded first."
+            empty="No asset has a clear directional read today. That is the ordinary state."
+            rows={directional.map((d) => ({
+              key: d.id,
+              label: `${d.asset.name} · ${HORIZON_SHORT[d.horizon] ?? d.horizon}`,
+              href: `/asset/${encodeURIComponent(d.asset.symbol)}`,
+              value: d.state === "buy" ? "buy setup" : "short setup",
+              tone: d.state === "buy" ? ("up" as const) : ("down" as const),
+            }))}
+          />
+          <ScanBox
+            title="Dates & cautions"
+            lead="The nearest scheduled items. A date can move a price for reasons unrelated to any condition."
+            empty="No scheduled date is stored within the next few weeks."
+            rows={upcoming.slice(0, 5).map((e) => {
+              const days = daysUntil(e.date);
+              const who =
+                e.links.find((l) => l.asset)?.asset?.symbol ??
+                e.links.find((l) => l.product)?.product?.name ??
+                null;
+              return {
+                key: e.id,
+                label: who ? `${who} · ${e.name}` : e.name,
+                value: days <= 0 ? "today" : `${days}d`,
+                tone: days <= 3 ? ("warn" as const) : ("default" as const),
+              };
+            })}
+          />
+          <ScanBox
+            title="Product attention"
+            lead="Products whose short-window sources point up. Attention, not sales."
+            empty="No product is rising or early in the latest stored run."
+            rows={[...risingProducts, ...earlyProducts].slice(0, 5).map((pr) => ({
+              key: pr.id,
+              label: pr.name,
+              href: `/product/${pr.slug}`,
+              value: pr.demandScore != null ? pct(pr.demandScore) : pr.status,
+              tone: pr.status === "rising" ? ("up" as const) : ("warn" as const),
+            }))}
+          />
+        </div>
+      </Section>
 
       {/* The first question, above the radar and above every ranking.
           "What matters now" is not "what moved most": these are the moves that are large for
@@ -248,14 +319,27 @@ export default async function Home() {
             const assetTotal = ind._count.assets;
             const withSize = sizeCountByIndustry.get(ind.id) ?? 0;
             const partial = withSize > 0 && withSize < assetTotal;
+            // An industry with neither a size nor a return ranking gets one combined empty
+            // state instead of three half-sentences. The old card rendered "as of no date",
+            // "nothing to rank, returns are shown instead" and "no 24 month ranking stored"
+            // all at once, which reads as broken rather than as empty — and the middle one
+            // was simply untrue when the returns were missing too.
+            const priced = pricedByIndustry.get(ind.id) ?? 0;
+            const ranked = top.length > 0 || Boolean(largest);
             return (
               <Card key={ind.id} href={`/industry/${ind.slug}`}>
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="font-medium">{ind.name}</h3>
-                  <AsOf date={top[0]?.periodEnd} />
+                  {top[0]?.periodEnd ? <AsOf date={top[0].periodEnd} /> : null}
                 </div>
                 <p className="text-muted-foreground mt-1 text-xs">{ind.summary}</p>
-                {l ? (
+                {!ranked ? (
+                  <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
+                    {priced === 0
+                      ? `No prices are stored for any of the ${assetTotal} assets here yet, so there is nothing to rank. Size and returns appear once the daily price job has fetched them.`
+                      : `No ranking is stored for this industry yet, although ${priced} of its ${assetTotal} assets have prices. The ranking is computed nightly and will appear on the next run.`}
+                  </p>
+                ) : l ? (
                   <p className="mt-3 text-sm">
                     Largest now:{" "}
                     <Link href={`/asset/${encodeURIComponent(l.symbol)}`} className="underline underline-offset-2">
@@ -279,7 +363,7 @@ export default async function Home() {
                     rank here. Returns are shown instead.
                   </p>
                 )}
-                {top.length ? (
+                {!ranked ? null : top.length ? (
                   <ul className="mt-2 space-y-0.5 text-sm">
                     {top.map((r) => (
                       <li key={r.id} className="flex items-center justify-between gap-3">

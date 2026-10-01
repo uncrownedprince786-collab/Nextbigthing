@@ -12,6 +12,7 @@ import {
   Note,
   Pill,
   Section,
+  SimpleRead,
   Table,
 } from "@/components/ui";
 import {
@@ -22,6 +23,7 @@ import {
   getProductRegions,
 } from "@/lib/queries";
 import { count, isoDate, longDate, pct, relativeTime, toneClass } from "@/lib/format";
+import { productSimpleRead } from "@/lib/plain";
 
 export const revalidate = 3600;
 
@@ -137,13 +139,33 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </p>
       </div>
 
-      {read ? (
-        <Card className="mt-6">
-          <h2 className="font-medium">Demand read</h2>
-          <p className="mt-2 text-sm leading-relaxed">{read.body}</p>
-          {read.dataNote ? <Note>{read.dataNote}</Note> : null}
-        </Card>
-      ) : null}
+      {/* Four lines, then a way down. Same contract as the asset page: every sentence
+          restates a stored value that appears again below with its source and window. */}
+      <div className="mt-6">
+        <SimpleRead
+          lines={productSimpleRead({
+            name: p.name,
+            status: p.status,
+            demandScore: p.demandScore,
+            confidence: p.confidence,
+            confidenceNote: p.confidenceNote,
+            sourcesAnswered: p.sourcesAnswered,
+            sourcesAgree: p.sourcesAgree,
+            discussion,
+          })}
+          detailHref="#detail"
+        />
+      </div>
+
+      <div id="detail">
+        {read ? (
+          <Card className="mt-4">
+            <h2 className="font-medium">Demand read</h2>
+            <p className="mt-2 text-sm leading-relaxed">{read.body}</p>
+            {read.dataNote ? <Note>{read.dataNote}</Note> : null}
+          </Card>
+        ) : null}
+      </div>
 
       <Section
         title="Do the sources agree"

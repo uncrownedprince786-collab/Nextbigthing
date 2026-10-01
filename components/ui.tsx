@@ -5,6 +5,7 @@ import {
   FINDING_WORDS,
   HORIZON_WORDS,
   METHOD_WORDS,
+  PRODUCT_STATUS_WORDS,
   SETUP_WORDS,
   THESIS_WORDS,
   direction,
@@ -1835,5 +1836,193 @@ export function WhatMattersBlock({
         and what was not.
       </Note>
     </>
+  );
+}
+
+/// The first thing on an asset or product page: four short lines and a way down to the rest.
+///
+/// Deliberately small. Everything in it is a restatement of a value already computed and
+/// already shown further down with its source and as-of date, so the block adds no claim —
+/// it only puts the answer before the evidence instead of after it.
+///
+/// The caution line is omitted entirely when there is nothing true to put in it. A caution
+/// that is always present is wallpaper, and a reader learns to skip the one time it matters.
+export function SimpleRead({
+  lines,
+  detailHref = "#detail",
+}: {
+  lines: {
+    shows: string;
+    grade: string;
+    gradeWhy: string;
+    caution: string | null;
+    changes: string | null;
+  };
+  detailHref?: string;
+}) {
+  return (
+    <Card className="border-primary/40">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold tracking-tight">Simple read</h2>
+        <ConfidenceBadge grade={lines.grade} />
+      </div>
+
+      <p className="mt-2.5 text-sm leading-relaxed">{lines.shows}</p>
+
+      <dl className="mt-3 space-y-1.5 text-xs">
+        <div className="flex gap-2">
+          <dt className="text-muted-foreground min-w-[7.5rem] shrink-0">Confidence</dt>
+          <dd className="leading-relaxed">
+            {GRADE_PLAIN[lines.grade] ?? lines.grade} — {lines.gradeWhy}
+          </dd>
+        </div>
+        {lines.caution ? (
+          <div className="flex gap-2">
+            <dt className="text-warn min-w-[7.5rem] shrink-0 font-medium">Watch out</dt>
+            <dd className="leading-relaxed">{lines.caution}</dd>
+          </div>
+        ) : null}
+        {lines.changes ? (
+          <div className="flex gap-2">
+            <dt className="text-muted-foreground min-w-[7.5rem] shrink-0">
+              Changes the view
+            </dt>
+            <dd className="leading-relaxed">{lines.changes}</dd>
+          </div>
+        ) : null}
+      </dl>
+
+      <a
+        href={detailHref}
+        className="text-primary mt-3 inline-block text-xs underline underline-offset-2"
+      >
+        Full detail below ↓
+      </a>
+
+      <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
+        A description of measured conditions. Not advice, and it does not say what will happen.
+      </p>
+    </Card>
+  );
+}
+
+/// The grade in a word a reader does not have to decode.
+const GRADE_PLAIN: Record<string, string> = {
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+  none: "Not graded",
+};
+
+/// One product, scannable in a second.
+///
+/// Name, status, score, badge — and nothing else at the top level. The long grade explanation
+/// moved behind a disclosure because it is the reason the first screen of /products could not
+/// be read quickly: thirty cards each carrying a paragraph is thirty paragraphs, and the
+/// reader wanted the shape of the list.
+///
+/// `<details>` rather than React state so the card stays a server component, which keeps this
+/// page free of client JavaScript entirely.
+export function ProductCard({
+  product,
+  tone,
+}: {
+  tone: "up" | "warn" | "default";
+  product: {
+    id: string;
+    slug: string;
+    name: string;
+    category: string;
+    status: string;
+    demandScore: number | null;
+    confidence: string;
+    sourcesAnswered: number;
+    sourcesAgree: number;
+    confidenceNote: string | null;
+    summary: string;
+  };
+}) {
+  return (
+    <Card>
+      <Link href={`/product/${product.slug}`} className="block">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-medium underline-offset-2 hover:underline">{product.name}</h3>
+          <Pill tone={tone}>{PRODUCT_STATUS_WORDS[product.status]?.label ?? product.status}</Pill>
+        </div>
+        <div className="mt-2 flex items-baseline justify-between gap-2">
+          <span className={`num text-lg font-semibold ${toneClass(product.demandScore)}`}>
+            {pct(product.demandScore)}
+          </span>
+          <ConfidenceBadge grade={product.confidence} />
+        </div>
+        <p className="text-muted-foreground mt-1 text-[11px]">
+          {product.category} · {product.sourcesAnswered} of 5 sources answered
+          {product.sourcesAnswered > 0 ? `, ${product.sourcesAgree} agree` : ""}
+        </p>
+      </Link>
+
+      {product.confidenceNote || product.summary ? (
+        <details className="group mt-2">
+          <summary className="text-muted-foreground hover:text-foreground cursor-pointer list-none text-[11px] underline underline-offset-2">
+            Why this grade
+          </summary>
+          {product.confidenceNote ? (
+            <p className="text-muted-foreground mt-1.5 text-[11px] leading-relaxed">
+              {product.confidenceNote}
+            </p>
+          ) : null}
+          {product.summary ? (
+            <p className="text-muted-foreground mt-1.5 text-[11px] leading-relaxed">
+              {product.summary}
+            </p>
+          ) : null}
+        </details>
+      ) : null}
+    </Card>
+  );
+}
+
+/// Three compact boxes near the top of the home page: what to watch, what is dated, what is
+/// getting attention.
+///
+/// One number or state per row and a link, and no prose on the cards. The sections below are
+/// unchanged; this is a way into them rather than a replacement for them. Every row comes from
+/// a table that was already being read on this page.
+export function ScanBox({
+  title,
+  lead,
+  empty,
+  rows,
+}: {
+  title: string;
+  lead: string;
+  empty: string;
+  rows: { key: string; label: string; value: string; href?: string; tone?: "up" | "down" | "warn" | "default" }[];
+}) {
+  return (
+    <Card>
+      <h3 className="text-sm font-medium">{title}</h3>
+      <p className="text-muted-foreground mt-0.5 text-[11px] leading-relaxed">{lead}</p>
+      {rows.length ? (
+        <ul className="mt-2.5 space-y-1.5">
+          {rows.map((r) => (
+            <li key={r.key} className="flex items-baseline justify-between gap-2 text-xs">
+              {r.href ? (
+                <Link href={r.href} className="truncate underline-offset-2 hover:underline">
+                  {r.label}
+                </Link>
+              ) : (
+                <span className="truncate">{r.label}</span>
+              )}
+              <span className={`num shrink-0 ${r.tone ? toneClass(r.tone === "up" ? 1 : r.tone === "down" ? -1 : 0) : ""}`}>
+                {r.value}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-muted-foreground mt-2.5 text-xs leading-relaxed">{empty}</p>
+      )}
+    </Card>
   );
 }

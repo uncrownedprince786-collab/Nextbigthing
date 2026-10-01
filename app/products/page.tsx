@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Card, ConfidenceBadge, Empty, HowToRead, Note, Pill, Section } from "@/components/ui";
+import { Empty, HowToRead, Note, ProductCard, Section } from "@/components/ui";
 import { getProducts } from "@/lib/queries";
-import { pct, relativeTime, toneClass } from "@/lib/format";
+import { relativeTime } from "@/lib/format";
 
 export const revalidate = 3600;
 
@@ -75,29 +75,7 @@ export default async function ProductsPage() {
         <Section key={g.key} title={`${g.label} (${g.items.length})`} lead={g.blurb}>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {g.items.map((p) => (
-              <Card key={p.id} href={`/product/${p.slug}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-medium">{p.name}</h3>
-                  <Pill tone={g.tone}>{p.status}</Pill>
-                </div>
-                <p className="text-muted-foreground mt-1 text-xs">{p.category}</p>
-                <div className="mt-3 flex items-baseline justify-between gap-2">
-                  <span className={`num text-lg font-semibold ${toneClass(p.demandScore)}`}>
-                    {pct(p.demandScore)}
-                  </span>
-                  <ConfidenceBadge grade={p.confidence} />
-                </div>
-                <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
-                  {p.sourcesAnswered} of 5 sources answered, {p.sourcesAgree} point the same
-                  way.
-                </p>
-                <p className="text-muted-foreground mt-1 line-clamp-3 text-xs leading-relaxed">{p.summary}</p>
-                {p.confidenceNote ? (
-                  <p className="text-muted-foreground/90 mt-2 text-[11px] leading-relaxed">
-                    {p.confidenceNote}
-                  </p>
-                ) : null}
-              </Card>
+              <ProductCard key={p.id} product={p} tone={g.tone} />
             ))}
           </div>
         </Section>
