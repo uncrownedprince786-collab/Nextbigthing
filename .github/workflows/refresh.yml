@@ -119,6 +119,11 @@ jobs:
       # timedelta without importing it, so the first job of the group died with NameError and
       # the sixteen behind it were skipped. Nothing was corrupted, because nothing ran. Fixed
       # in a7cdfa4, with an AST test that now walks every job for names it never binds.
+      #
+      # The second cause was events.py holding one transaction across roughly a hundred
+      # thousand round trips, which the Neon pooler closed underneath it. Fixed in 3cc83ee by
+      # resolving the anchors set-based, committing per event and batching the inserts: the
+      # same 1,394 rows in 0.6 minutes instead of failing after several.
       - name: Run data jobs
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
