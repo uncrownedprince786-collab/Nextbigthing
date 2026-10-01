@@ -6,6 +6,7 @@ import {
   CurrencyNote,
   Empty,
   HowToRead,
+  NeighbourhoodBlock,
   Note,
   Pill,
   Section,
@@ -18,7 +19,9 @@ import {
   getFreshness,
   getIndustriesByMarket,
   getLead,
+  getNeighbourhood,
   getProducts,
+  getThesisTally,
   getUpcoming,
 } from "@/lib/queries";
 import { isoDate, money, pct, sizeLabel, toneClass } from "@/lib/format";
@@ -36,17 +39,29 @@ const MARKET_LEAD: Record<string, string> = {
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [lead, byMarket, risers, sizeNow, risingProducts, fresh, catalysts, upcoming] =
-    await Promise.all([
-      getLead(),
-      getIndustriesByMarket(),
-      getAllIndustriesByBasis("rising"),
-      getAllIndustriesByBasis("sizeNow"),
-      getProducts("rising"),
-      getFreshness(),
-      getCatalysts(12),
-      getUpcoming({ take: 10 }),
-    ]);
+  const [
+    lead,
+    byMarket,
+    risers,
+    sizeNow,
+    risingProducts,
+    fresh,
+    catalysts,
+    upcoming,
+    neighbourhood,
+    theses,
+  ] = await Promise.all([
+    getLead(),
+    getIndustriesByMarket(),
+    getAllIndustriesByBasis("rising"),
+    getAllIndustriesByBasis("sizeNow"),
+    getProducts("rising"),
+    getFreshness(),
+    getCatalysts(12),
+    getUpcoming({ take: 10 }),
+    getNeighbourhood(9),
+    getThesisTally(),
+  ]);
 
   const byIndustry = new Map<string, typeof risers>();
   for (const r of risers) {
@@ -147,6 +162,49 @@ export default async function Home() {
           </Empty>
         )}
       </Section>
+
+      {/* Straight after the radar, because it is the radar's second half. The radar lists
+          what the news has reached; this lists what sits one or two recorded relationships
+          away from it and would otherwise be found out about later. */}
+      <Section
+        title="One step from the radar"
+        lead="Assets that sit next to something a catalyst was flagged on, over relationships already stored: a shared product, a shared dated item, or a small enough industry. The chain is shown on every row."
+        aside={<AsOf date={neighbourhood.periodEnd} />}
+      >
+        <NeighbourhoodBlock relevance={neighbourhood} />
+      </Section>
+
+      {/* Counts, never a share. "68% still active" would read as a hit rate, and this
+          measures whether conditions have changed rather than whether anything worked. */}
+      {theses.counts.length ? (
+        <Section
+          title="How the recorded reasons are holding up"
+          lead="Every directional read the site is currently holding, by whether the conditions it was recorded on are still there. A broken reason means the level named in advance was passed; it does not say the read was wrong, and it is left broken rather than revised."
+          aside={<AsOf date={theses.asOf} />}
+        >
+          <div className="grid gap-3 sm:grid-cols-3">
+            {theses.counts.map((c) => (
+              <Card key={c.status}>
+                <p className="text-muted-foreground text-xs">
+                  {c.status === "active"
+                    ? "Reason intact"
+                    : c.status === "weakening"
+                      ? "Reason weakening"
+                      : "Reason broken"}
+                </p>
+                <p className="num mt-1 text-2xl font-semibold">{c.n}</p>
+                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                  {c.status === "active"
+                    ? "every condition that carried a verdict on the opening day still carries the same one"
+                    : c.status === "weakening"
+                      ? "a condition has flipped or become unavailable, and the level named in advance has not been passed"
+                      : "the level named on the opening day was passed, or the read now names the opposite direction"}
+                </p>
+              </Card>
+            ))}
+          </div>
+        </Section>
+      ) : null}
 
       {/* Next to the radar, because the two answer the same worry from opposite ends: one
           catches what has already started arriving, the other what is already on the

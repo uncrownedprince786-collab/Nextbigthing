@@ -70,6 +70,9 @@ table on the front page shows the date of the last successful run.
 | `python jobs/stats.py` | Row counts and newest stored date per table. |
 | `python jobs/confidence.py all` | Grades every ranking row and product. Runs on its own too. |
 | `python jobs/analysis.py` | Rewrites the `Analysis` table from stored numbers. |
+| `python jobs/thesis.py` | Compares each held directional read against the day it first appeared. |
+| `python jobs/attribution.py` | Splits each recent move into market, industry and asset specific parts. |
+| `python jobs/graph.py` | Walks today's flagged catalysts two hops over stored relationships. |
 
 Individual scripts take a source name, for example
 `python jobs/prices.py crypto` or `python jobs/signals.py reddit`.
@@ -81,6 +84,17 @@ around 300 requests and takes a few minutes.
 `confidence.py` runs after `rank.py` and before `analysis.py`, so the written lines are
 generated from the same grades the page shows. `analysis.py` grades products again after
 recomputing demand scores, which keeps the badge and the score beside it in step.
+
+`thesis.py`, `attribution.py` and `graph.py` read stored rows and make no request, so they
+sit in the release lane rather than the refresh lane. The order between them is a real
+dependency: `thesis.py` needs the `AssetSetup` row `setup.py` has just written, and
+`graph.py` walks out from the catalysts `human.py` flagged earlier in the same run.
+
+`thesis.py` never recomputes the opening day's conditions. It reads the row that was written
+on that day, because recomputing them would answer "what would we have said then, knowing
+what we know now" — which is the one question a frozen reason exists to prevent. A broken
+thesis is terminal: once a close has passed the level the opening day named, the row is left
+alone so a later recovery cannot quietly erase it.
 
 HTTP responses are cached under `.cache/` with a per source time to live, so a rerun does
 not hammer a source. Jobs send a real User-Agent, back off on `429` and `403`, and treat a

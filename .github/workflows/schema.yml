@@ -140,6 +140,28 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: python jobs/setup.py
 
+      # All three read rows already stored and make no request, so they belong with a
+      # release rather than with the rate limited refresh. The order is the dependency:
+      # thesis reads the setup row written in the step above, and graph walks out from the
+      # catalysts human flagged earlier in this run.
+      - name: Compare each held state against the day it opened
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/thesis.py
+
+      - name: Split recent moves into market, industry and specific parts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/attribution.py
+
+      - name: Walk today's catalysts across the stored relationships
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/graph.py
+
       - name: Audit coverage and calibration
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

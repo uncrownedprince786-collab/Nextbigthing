@@ -44,44 +44,95 @@ other. Push once, then let it drain.
   with the failing condition named (volume 0.89× its average) and levels $230.10 / $210.96
 - Analog engine: 392 matches on NVDA, 218 rose over 5 sessions
 - Story lineage, robust-z catalyst gating, coverage/calibration/reliability tables
-- 32 tests green; the insert-shape test covers all 21 INSERTs in `jobs/`
+- Event lifecycle, with the pre-event state frozen from observations dated strictly earlier
+
+## Written but not yet run against the database
+
+Three layers were added on 2026-10-02 and are **committed code with a pending migration**.
+They read only rows that already exist, make no network request, and are wired into the
+`schema.yml` release lane and into `run.py`'s daily and weekly plans. None of them has
+produced a row yet, because the migration has not been applied.
+
+- **`jobs/thesis.py` — thesis memory.** A thesis is the run of consecutive `AssetSetup` reads
+  on which one directional state was held. The opening day's conditions are *copied* onto
+  `AssetThesis`, never re-derived, and every later day is compared against them:
+  `active → weakening → broken`. `broken` rests on the invalidation level the opening day
+  named and is **terminal**. `ThesisCheck` keeps one frozen row per assessment date.
+- **`jobs/attribution.py` — competing hypotheses, measured.** `total = market + sector +
+  specific`, from medians over the exchange group and the asset's own industry peers. The
+  three accounts are exclusive by construction. No probability is attached, and every row
+  says so: that is still blocked on matured outcomes.
+- **`jobs/graph.py` — bounded graph neighbourhood.** Carries a flagged catalyst at most two
+  hops over `ProductAssetLink`, `EventLink` and industry membership, skips edge groups above
+  25 members, divides every edge by its group size, and stores the chain in words.
+
+UI: three new blocks on `/asset/[symbol]`, two new sections on the front page, and a
+methodology section stating the limit of each. 78 tests green, types and lint clean.
+
+**First run order matters.** `schema.yml` applies the migration and then runs the three jobs
+in the same run, in the order `setup → thesis → attribution → graph`. `thesis.py` produces
+nothing on its first run beyond opening rows, because a run of one day has nothing to compare
+against; the statuses only become interesting on the second day.
 
 ## Not implemented (deliberately, with reasons)
 
 - **Intraday.** Only daily closes are stored. Do not manufacture intraday from daily bars.
 - **Investigation engine.** Nothing fetches filings or related-company news *in response* to
-  a move. The catalyst flag detects that something arrived; it does not go looking.
-- **Thesis memory.** `AssetSetup` records *why* a state exists, but nothing compares today
-  against the day the state first appeared, so ACTIVE → WEAKENING → BROKEN does not exist.
-- **Competing hypotheses, graph propagation, budget tiers.**
+  a move. The catalyst flag detects that something arrived; `graph.py` now says what sits
+  near it, but neither goes looking.
 - **Bayesian posteriors.** Blocked on data, not effort: a likelihood ratio needs a measured
   `P(E|H)`, and **zero outcome rows have matured**. The log started 2026-10-01, so the
-  earliest honest ones are ~2026-10-31. Choosing those numbers by hand is fabrication.
+  earliest honest ones are ~2026-10-31. `attribution.py` is the half that can be measured
+  without them; the posterior is the half that cannot.
+- **Full attention model.** Two dimensions now (spike size, graph distance). Pareto dominance
+  across the eight in `brain.md` is not built.
+- **Causal / systems (L7), regime engine, Monte Carlo, EVT, hazard models.** All need longer
+  or denser history than is stored.
 
 ## Next, in order
 
-1. **Diagnose the failing `refresh` run.** It fails at "Run data jobs" (the proof step
+1. **Apply the pending migration.** `20261002030000_thesis_attribution_graph` creates
+   `AssetThesis`, `ThesisCheck`, `MoveAttribution` and `GraphRelevance`. A push to `main`
+   does it, and the same run then populates all four. Until it lands, the three new blocks
+   render their empty states — which is correct, but the pages are quietly waiting.
+2. **Diagnose the failing `refresh` run.** It fails at "Run data jobs" (the proof step
    passes, so it is running the right code). `run.py` continues past a failed step and exits
-   non-zero at the end, so at least one of ~14 jobs is failing while the rest work. The log
-   needs a GitHub sign-in to read.
-2. **Product geography has no rows.** `geo.py` works — verified live: 175 countries, 51 US
+   non-zero at the end, so at least one of ~17 jobs is failing while the rest work.
+   `run.py` now prints a table of every step with its exit code as the **last** thing in the
+   log, and writes the same table to `$GITHUB_STEP_SUMMARY`, so the failing step is readable
+   from the run's own page instead of by scrolling the log. **Still needs a GitHub sign-in to
+   read it** — that is the blocker, not the diagnosis.
+3. **Product geography has no rows.** `geo.py` works — verified live: 175 countries, 51 US
    states, 5 PK provinces, and city resolution genuinely returns empty. It kept being
    cancelled by queue churn. Re-run `backfill` and it populates.
-3. **`upcoming.py` has not run against the database yet**, so no scheduled dates are stored.
+4. **`upcoming.py` has not run against the database yet**, so no scheduled dates are stored.
    Verified working against the provider (NVDA 2026-11-18, AAPL 2026-10-30).
-4. Thesis memory, then attribution (company vs sector vs market-wide as competing
-   hypotheses over stored evidence), then bounded graph neighbourhood.
+5. **Thesis memory needs two days to say anything.** After the migration lands, check on the
+   second day that statuses other than the opening ones appear. If every thesis is still
+   `active` after a week of moving prices, the verdict parser in `thesis.py` has stopped
+   matching what `setup.py` writes — which the `ThesisParsing` tests are there to catch, so
+   check them against the current format first.
+6. Attribution's posterior half, once outcome rows mature (~2026-10-31), then the Pareto
+   attention front.
 
 ## Rules that are load-bearing
 
-Everything in `brain.md` under "Rules for changes", plus:
+Everything in `brain.md` under "Rules for changes" — now 18 of them, the last five added
+with these three layers — plus:
 
 - Never count copies as confirmations. Counts that measure *information* count stories
   (`NewsLineage`), not rows.
-- An unavailable input is recorded as unavailable, never as satisfied (`AssetSetup.missing`).
+- An unavailable input is recorded as unavailable, never as satisfied (`AssetSetup.missing`,
+  and a condition that became unavailable counts as *changed* in `AssetThesis`).
 - Conditions that disagree are always rendered (`AssetSetup.against`).
 - No LLM anywhere. `requirements.txt` has no model SDK; every number and sentence is Python
   or SQL. Keep it that way.
 - Pre-event state is frozen from observations dated **strictly earlier** than the event
   (`EventState`), which is what makes look-ahead bias structurally impossible rather than a
-  rule to remember.
+  rule to remember. `AssetThesis.openConditions` is the same idea applied to a state instead
+  of an event: it is a copy, and anything that recomputes it has reintroduced the bias into
+  the one place built to exclude it.
+- Attribution names what a move was shared *with*, never what moved it. The test suite checks
+  the generated sentence for the banned causal words.
+- Relevance from `graph.py` is a reading order, never an impact estimate, and a score is
+  never shown without the path that produced it.

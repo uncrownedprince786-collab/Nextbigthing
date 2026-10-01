@@ -340,6 +340,82 @@ export default function MethodologyPage() {
         </div>
       </Section>
 
+      {/* These three read only rows the site already stored, which is why they could be
+          added without a new source. Each one is a measurement whose limit is sharper than
+          its output, so the limit is stated beside it rather than in a footnote. */}
+      <Section
+        title="Reading a state over time, a move, and a neighbourhood"
+        lead="Three readings added over the stored rows rather than over a new source. Each is arithmetic, and each has a limit worth knowing before the number is used."
+      >
+        <div className="space-y-4">
+          <Card>
+            <h3 className="font-medium">What has happened to the reason</h3>
+            <p className="mt-2 text-sm leading-relaxed">
+              A condition read says what the numbers show today. Once that read has been held
+              for a few days the useful question is a different one: is the reason it exists
+              still there? So the day a directional state first appeared is kept, along with
+              the conditions recorded on that day, and every later day is compared against
+              them. The conditions are a copy of that day&apos;s row and are never recomputed,
+              because recomputing them would answer what we would have said then knowing what
+              we know now.
+            </p>
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+              A reason is <em>weakening</em> when a condition has flipped its verdict or
+              stopped being available, and <em>broken</em> when a stored close has passed the
+              level the opening day named, or the read now points the other way. Broken is
+              final. A later recovery does not reopen it, because the only value of a level
+              written down in advance is that passing it cannot be taken back.
+            </p>
+            <Note>
+              A status says whether the recorded conditions are still measurable. It does not
+              say the read was right, and the counts are never shown as a percentage, which
+              would read as a hit rate for something that measures nothing of the kind.
+            </Note>
+          </Card>
+
+          <Card>
+            <h3 className="font-medium">What a move was shared with</h3>
+            <p className="mt-2 text-sm leading-relaxed">
+              A 20 session move is split three ways: the median move across every asset quoted
+              in the same exchange group, the median across the asset&apos;s own industry peers
+              beyond that, and whatever is left. Medians rather than averages, because one
+              very large crypto return would otherwise describe a sector nobody is in. The
+              three parts add up to the move exactly, so they compete rather than overlap.
+            </p>
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+              Below three industry peers with enough history the last two parts are not
+              separated at all, and the row says the remainder could not be split instead of
+              crediting it to the asset. Where the largest two parts are close, neither is
+              named.
+            </p>
+            <Note>
+              This is co-movement. It says what an asset moved <em>with</em>, never what moved
+              it, and no probability is attached to any of the three: that would need a
+              measured outcome rate, and the outcome log has no matured rows yet.
+            </Note>
+          </Card>
+
+          <Card>
+            <h3 className="font-medium">Why something is near today&apos;s news</h3>
+            <p className="mt-2 text-sm leading-relaxed">
+              When a catalyst is flagged, the relationships already stored are walked outward
+              from it: assets linked to the same product, assets concerned by the same dated
+              item, and assets in a small enough industry. The walk stops at two steps, skips
+              any group large enough that membership says more about the group than about a
+              member, and divides every link by the size of the group it came from, so being
+              one of two assets linked to a product counts for more than being one of twenty
+              in a sector.
+            </p>
+            <Note>
+              A link is a relationship somebody recorded. Something reaching this list is a
+              reason to look at it, and never evidence that a move on one end reached the
+              other. Every row shows the chain that reached it, so a chain you do not accept
+              can be discarded on sight.
+            </Note>
+          </Card>
+        </div>
+      </Section>
+
       <Section
         title="How to research something here yourself"
         lead="The order below is the one the site itself follows, and it is arranged so that the cheap checks come before the expensive ones."

@@ -389,3 +389,91 @@ export async function getAccuracy(horizon: 30 | 60 = 30) {
     earliest: measured.length ? measured[0].issuedOn : null,
   };
 }
+
+/// The newest thesis for one asset, with the dated checks that produced its status.
+///
+/// Newest by opening day, which is not the same as "the active one": a broken thesis is the
+/// most recent thing that happened to this asset's recorded reason, and hiding it in favour
+/// of an older active row would show the reader the state the system has already abandoned.
+///
+/// The checks come oldest first because they are a sequence. Read in that order they show a
+/// reason decaying; read newest first they look like a list of statuses.
+export async function getThesis(assetId: string) {
+  return prisma.assetThesis.findFirst({
+    where: { assetId },
+    orderBy: { openedOn: "desc" },
+    include: { checks: { orderBy: { asOf: "asc" } } },
+  });
+}
+
+/// The newest move attribution for one asset, at one window.
+///
+/// The window is named rather than inferred. Two rows measured over different numbers of
+/// sessions are two different claims, and a page that took whichever arrived last would
+/// change what it was saying without changing a word.
+export async function getAttribution(assetId: string, windowDays = 20) {
+  return prisma.moveAttribution.findFirst({
+    where: { assetId, windowDays },
+    orderBy: { periodEnd: "desc" },
+  });
+}
+
+/// Paths that reached one asset from somewhere a catalyst was flagged, strongest first.
+///
+/// Only the newest stored walk. Mixing two nights of paths would present a neighbourhood
+/// that never existed on any single day.
+export async function getRelevance(assetId: string) {
+  const latest = await prisma.graphRelevance.aggregate({
+    where: { assetId },
+    _max: { periodEnd: true },
+  });
+  const periodEnd = latest._max.periodEnd;
+  if (!periodEnd) return { periodEnd: null, rows: [] };
+  const rows = await prisma.graphRelevance.findMany({
+    where: { assetId, periodEnd },
+    orderBy: { score: "desc" },
+  });
+  return { periodEnd, rows };
+}
+
+/// The strongest path per asset across the whole site, for the reading list on the front
+/// page.
+///
+/// One row per asset, not one per path: an asset reached from four origins has not been
+/// connected to the news four times, and listing it four times would turn a busy
+/// neighbourhood into an apparent pile of evidence.
+export async function getNeighbourhood(take = 9) {
+  const latest = await prisma.graphRelevance.aggregate({ _max: { periodEnd: true } });
+  const periodEnd = latest._max.periodEnd;
+  if (!periodEnd) return { periodEnd: null, rows: [] };
+  const all = await prisma.graphRelevance.findMany({
+    where: { periodEnd },
+    orderBy: { score: "desc" },
+    include: { asset: { select: { symbol: true, name: true } } },
+  });
+  const best = new Map<string, (typeof all)[number]>();
+  for (const r of all) if (!best.has(r.assetId)) best.set(r.assetId, r);
+  return { periodEnd, rows: [...best.values()].slice(0, take) };
+}
+
+/// How the recorded reasons behind the site's directional reads are holding up.
+///
+/// Counts per status, never a share: "68% still active" would read as a hit rate, and this
+/// measures whether conditions have changed rather than whether anything worked.
+export async function getThesisTally() {
+  const latest = await prisma.assetThesis.aggregate({ _max: { asOf: true } });
+  const asOf = latest._max.asOf;
+  if (!asOf) return { asOf: null, counts: [] as { status: string; n: number }[] };
+  const grouped = await prisma.assetThesis.groupBy({
+    by: ["status"],
+    where: { asOf },
+    _count: { _all: true },
+  });
+  const order = ["active", "weakening", "broken"];
+  return {
+    asOf,
+    counts: grouped
+      .map((g) => ({ status: g.status, n: g._count._all }))
+      .sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status)),
+  };
+}

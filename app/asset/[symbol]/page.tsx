@@ -5,15 +5,18 @@ import { Sparkline } from "@/components/chart";
 import {
   AccuracyNote,
   AnalogBlock,
+  AttributionBlock,
   Card,
   ConfidenceBadge,
   DiscussionBlock,
   Empty,
+  NeighbourhoodBlock,
   Note,
   Pill,
   Section,
   SetupBlock,
   Table,
+  ThesisBlock,
   UpcomingBlock,
   weakest,
 } from "@/components/ui";
@@ -22,8 +25,11 @@ import {
   getAnalogs,
   getAsset,
   getAssetPrices,
+  getAttribution,
   getHumanSignal,
+  getRelevance,
   getSetup,
+  getThesis,
   getUpcoming,
 } from "@/lib/queries";
 import { isoDate, longDate, money, pct, relativeTime, sizeBasisText, toneClass } from "@/lib/format";
@@ -55,13 +61,17 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
 
   const prices = await getAssetPrices(asset.id, 2019);
   const note = asset.analysis[0];
-  const [discussion, accuracy, analogs, upcoming, setup] = await Promise.all([
-    getHumanSignal({ assetId: asset.id }),
-    getAccuracy(30),
-    getAnalogs(asset.id),
-    getUpcoming({ assetId: asset.id, take: 8 }),
-    getSetup(asset.id),
-  ]);
+  const [discussion, accuracy, analogs, upcoming, setup, thesis, attribution, relevance] =
+    await Promise.all([
+      getHumanSignal({ assetId: asset.id }),
+      getAccuracy(30),
+      getAnalogs(asset.id),
+      getUpcoming({ assetId: asset.id, take: 8 }),
+      getSetup(asset.id),
+      getThesis(asset.id),
+      getAttribution(asset.id),
+      getRelevance(asset.id),
+    ]);
 
   const byBasis = new Map<string, typeof asset.rankings>();
   for (const r of asset.rankings) {
@@ -201,6 +211,31 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
         lead="Measured conditions over stored prices, news readings and historical analogs. Every condition tested is listed, including the ones that failed and the inputs that were unavailable."
       >
         <SetupBlock setup={setup} currency={asset.currency} />
+      </Section>
+
+      {/* Immediately under the current read, because the two are one question asked twice.
+          The block above says what the conditions are today; this one says whether the
+          conditions the last directional read was recorded on are still there. Putting them
+          apart would let a reader take a two week old reason as a fresh one. */}
+      <Section
+        title="What has happened to the reason"
+        lead="The last directional read held on this asset, compared against the day it first appeared rather than against yesterday. The conditions from that day are the ones stored on the row, never recomputed from today's data."
+      >
+        <ThesisBlock thesis={thesis} currency={asset.currency} />
+      </Section>
+
+      <Section
+        title="What this move was shared with"
+        lead="Its recent move split into the part its whole exchange group made, the part its own industry made beyond that, and what is left. A decomposition of co-movement; it names no cause."
+      >
+        <AttributionBlock attribution={attribution} />
+      </Section>
+
+      <Section
+        title="Why this asset is near today's news"
+        lead="Paths from somewhere a catalyst was flagged to this asset, over relationships already stored. A reason to look, bounded at two hops, with the chain shown so it can be rejected."
+      >
+        <NeighbourhoodBlock relevance={relevance} showAsset={false} />
       </Section>
 
       <Section

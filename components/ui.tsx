@@ -937,3 +937,340 @@ export function CurrencyNote({ currency, market }: { currency: string; market: s
     </p>
   );
 }
+
+/// What has happened to the reason behind a directional read since the day it was recorded.
+///
+/// The opening sentence is shown above the current status on purpose. A reader arriving at a
+/// weakening thesis needs the claim first and the decay second, because a status with no
+/// claim attached is a colour.
+///
+/// The checks are rendered oldest first, as a sequence. A reason that has gone
+/// active → active → weakening is a different thing from one that has been weakening since
+/// the day it opened, and only the order shows that.
+export function ThesisBlock({
+  thesis,
+  currency = "USD",
+}: {
+  currency?: string;
+  thesis: {
+    direction: string;
+    horizon: string;
+    status: string;
+    reason: string;
+    changed: string;
+    held: string;
+    openedOn: Date | string;
+    openHeadline: string;
+    openClose: number | null;
+    lastClose: number | null;
+    invalidateLevel: number | null;
+    changePctSinceOpen: number | null;
+    sessionsSince: number;
+    confidence: string;
+    confidenceNote: string | null;
+    asOf: Date | string;
+    checks: {
+      id: string;
+      asOf: Date | string;
+      status: string;
+      changed: string;
+      changePctSinceOpen: number | null;
+    }[];
+  } | null;
+}) {
+  if (!thesis) {
+    return (
+      <Empty>
+        No directional read has been held long enough to have a recorded reason. A thesis only
+        exists for a buy or short state, and it is written by{" "}
+        <code>python jobs/thesis.py</code>.
+      </Empty>
+    );
+  }
+
+  const STATUS: Record<string, { text: string; tone: "up" | "down" | "warn" | "default" }> = {
+    active: { text: "reason intact", tone: "up" },
+    weakening: { text: "reason weakening", tone: "warn" },
+    broken: { text: "reason broken", tone: "down" },
+  };
+  const label = STATUS[thesis.status] ?? STATUS.weakening;
+  const changed = thesis.changed === "none" ? [] : thesis.changed.split(", ").filter(Boolean);
+  const held = thesis.held === "none" ? [] : thesis.held.split(", ").filter(Boolean);
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center gap-2">
+        <Pill tone={label.tone}>{label.text}</Pill>
+        <Pill>{thesis.direction}</Pill>
+        <Pill>{thesis.horizon}</Pill>
+        <ConfidenceBadge grade={thesis.confidence} />
+        <AsOf date={thesis.asOf} />
+      </div>
+
+      <p className="text-muted-foreground mt-3 text-xs">
+        Recorded on {isoDate(thesis.openedOn)}, {thesis.sessionsSince} stored{" "}
+        {thesis.sessionsSince === 1 ? "session" : "sessions"} ago:
+      </p>
+      <p className="mt-1 text-sm leading-relaxed italic">{thesis.openHeadline}</p>
+
+      <p className="mt-3 text-sm leading-relaxed">{thesis.reason}</p>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div>
+          <p className="text-muted-foreground text-xs">Close when recorded</p>
+          <p className="num mt-0.5 text-sm">{price(thesis.openClose, currency)}</p>
+        </div>
+        <div>
+          <p className="text-muted-foreground text-xs">Close now</p>
+          <p className="num mt-0.5 text-sm">
+            {price(thesis.lastClose, currency)}
+            {thesis.changePctSinceOpen != null ? (
+              <span className={`ml-2 ${toneClass(thesis.changePctSinceOpen)}`}>
+                {pct(thesis.changePctSinceOpen)}
+              </span>
+            ) : null}
+          </p>
+        </div>
+        <div>
+          <p className="text-muted-foreground text-xs">Level named on the day</p>
+          <p className="num mt-0.5 text-sm">{price(thesis.invalidateLevel, currency)}</p>
+        </div>
+      </div>
+
+      {changed.length ? (
+        <div className="border-warn/30 bg-warn-bg mt-4 rounded-lg border px-3 py-2">
+          <p className="text-warn text-xs font-medium">
+            Conditions that no longer read as they did
+          </p>
+          <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+            {changed.join(", ")}
+          </p>
+        </div>
+      ) : null}
+
+      {held.length ? (
+        <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
+          Unchanged since the opening day: {held.join(", ")}.
+        </p>
+      ) : null}
+
+      {thesis.checks.length > 1 ? (
+        <div className="mt-4">
+          <p className="text-muted-foreground text-xs font-medium">Every check, in order</p>
+          <ul className="mt-1.5 space-y-1">
+            {thesis.checks.map((c) => (
+              <li key={c.id} className="text-muted-foreground num text-xs leading-relaxed">
+                {isoDate(c.asOf)} · {c.status}
+                {c.changePctSinceOpen != null ? ` · ${pct(c.changePctSinceOpen)} since open` : ""}
+                {c.changed !== "none" ? ` · changed: ${c.changed}` : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {thesis.confidenceNote ? <Note>{thesis.confidenceNote}.</Note> : null}
+
+      <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
+        A status describes whether the conditions the state was recorded on are still
+        measurable. It is not a score, it does not say the read was right, and a broken
+        reason is left broken rather than revised once the level it named was passed.
+      </p>
+    </Card>
+  );
+}
+
+/// How much of a recent move the asset shared with its market and its own industry.
+///
+/// The bar is three segments sized by share, and it is only drawn when all three parts
+/// exist. A two-segment bar with a gap would read as a measurement with a missing piece
+/// rather than as a split that was never made.
+export function AttributionBlock({
+  attribution,
+}: {
+  attribution: {
+    windowDays: number;
+    totalPct: number;
+    marketPct: number;
+    sectorPct: number | null;
+    specificPct: number | null;
+    marketShare: number | null;
+    sectorShare: number | null;
+    specificShare: number | null;
+    leader: string | null;
+    leaderMargin: number | null;
+    peers: number;
+    groupSize: number;
+    headline: string;
+    confidence: string;
+    confidenceNote: string | null;
+    periodEnd: Date | string;
+  } | null;
+}) {
+  if (!attribution) {
+    return (
+      <Empty>
+        No move split is stored for this asset. It is computed from stored closes by{" "}
+        <code>python jobs/attribution.py</code>, and needs four weeks of them.
+      </Empty>
+    );
+  }
+
+  const PARTS = [
+    {
+      key: "market",
+      label: "Its exchange group",
+      value: attribution.marketPct,
+      share: attribution.marketShare,
+      bar: "bg-muted-foreground/60",
+    },
+    {
+      key: "sector",
+      label: "Its own industry, beyond the group",
+      value: attribution.sectorPct,
+      share: attribution.sectorShare,
+      bar: "bg-muted-foreground/40",
+    },
+    {
+      key: "specific",
+      label: "Left over, particular to this asset",
+      value: attribution.specificPct,
+      share: attribution.specificShare,
+      bar: "bg-primary/70",
+    },
+  ];
+  const complete = PARTS.every((p) => p.value != null && p.share != null);
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center gap-2">
+        <Pill tone={attribution.totalPct >= 0 ? "up" : "down"}>
+          {pct(attribution.totalPct)} over {attribution.windowDays} sessions
+        </Pill>
+        {attribution.leader ? (
+          <Pill>mostly shared with: {attribution.leader}</Pill>
+        ) : (
+          <Pill tone="warn">no component is far enough ahead to name</Pill>
+        )}
+        <ConfidenceBadge grade={attribution.confidence} />
+        <AsOf date={attribution.periodEnd} />
+      </div>
+
+      <p className="mt-3 text-sm leading-relaxed">{attribution.headline}</p>
+
+      {complete ? (
+        <div className="mt-4">
+          <div className="border-border flex h-2.5 w-full overflow-hidden rounded-full border">
+            {PARTS.map((p) => (
+              <div
+                key={p.key}
+                className={p.bar}
+                style={{ width: `${((p.share ?? 0) * 100).toFixed(1)}%` }}
+              />
+            ))}
+          </div>
+          <ul className="mt-2.5 space-y-1">
+            {PARTS.map((p) => (
+              <li key={p.key} className="flex items-baseline justify-between gap-3 text-xs">
+                <span className="text-muted-foreground flex items-center gap-2">
+                  <span className={`inline-block h-2 w-2 rounded-sm ${p.bar}`} />
+                  {p.label}
+                </span>
+                <span className="num">
+                  <span className={toneClass(p.value)}>
+                    {p.value != null ? `${p.value >= 0 ? "+" : ""}${p.value.toFixed(1)} pts` : "-"}
+                  </span>
+                  <span className="text-muted-foreground ml-2">
+                    {p.share != null ? `${(p.share * 100).toFixed(0)}% of the distance` : ""}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
+        Medians over {attribution.peers} industry peers and {attribution.groupSize} assets in
+        its exchange group. The three parts sum to the move by construction, and the shares are
+        taken from absolute values, so a sector that fell while the asset rose still accounts
+        for part of the distance between them.
+      </p>
+
+      {attribution.confidenceNote ? <Note>{attribution.confidenceNote}.</Note> : null}
+
+      <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
+        This is co-movement. It says what the asset moved <em>with</em>, which is a different
+        sentence from one about cause, and no probability is attached to any of the three: a
+        likelihood would need measured outcomes, and none have matured.
+      </p>
+    </Card>
+  );
+}
+
+/// Assets sitting next to something that has started being written about.
+///
+/// Every row shows the chain that reached it, because the chain is the whole claim. A score
+/// with no path behind it would be an unexplained ranking, and an unexplained ranking is the
+/// one thing a reader cannot argue with.
+export function NeighbourhoodBlock({
+  relevance,
+  showAsset = true,
+}: {
+  relevance: {
+    periodEnd: Date | string | null;
+    rows: {
+      id: string;
+      score: number;
+      hops: number;
+      edgeKind: string;
+      path: string;
+      asset?: { symbol: string; name: string };
+    }[];
+  };
+  showAsset?: boolean;
+}) {
+  if (!relevance.rows.length) {
+    return (
+      <Empty>
+        Nothing was reached. Either no catalyst is flagged today, or the names carrying one sit
+        only in edge groups too large to mean anything about a single member.
+      </Empty>
+    );
+  }
+
+  return (
+    <>
+      <ul className="space-y-2">
+        {relevance.rows.map((r) => (
+          <li key={r.id} className="border-border rounded-lg border px-3 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              {showAsset && r.asset ? (
+                <Link
+                  href={`/asset/${encodeURIComponent(r.asset.symbol)}`}
+                  className="text-sm font-medium underline underline-offset-2"
+                >
+                  {r.asset.name}
+                </Link>
+              ) : (
+                <span className="text-sm font-medium">{r.edgeKind} link</span>
+              )}
+              <span className="flex items-center gap-2">
+                <Pill>
+                  {r.hops} {r.hops === 1 ? "hop" : "hops"}
+                </Pill>
+                <Pill>{r.edgeKind}</Pill>
+              </span>
+            </div>
+            <p className="text-muted-foreground mt-1.5 text-xs leading-relaxed">{r.path}.</p>
+          </li>
+        ))}
+      </ul>
+      <Note>
+        An edge is a relationship somebody recorded. Relevance travelling along one is a reason
+        to look, never evidence that a move on one end reached the other. The walk stops at two
+        hops and skips any group too large to say anything about one of its members.
+      </Note>
+    </>
+  );
+}

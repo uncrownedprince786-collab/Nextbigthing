@@ -96,6 +96,9 @@ model Asset {
   eventLinks   EventLink[]
   setups       AssetSetup[]
   eventStates  EventState[]
+  theses       AssetThesis[]
+  attributions MoveAttribution[]
+  relevance    GraphRelevance[]
 
   createdAt DateTime @default(now())
 
@@ -941,4 +944,196 @@ model SignalLog {
   @@index([status, issuedOn])
   @@index([assetId, issuedOn])
   @@index([productId, issuedOn])
+}
+
+/// A reason, remembered from the day it was recorded.
+///
+/// `AssetSetup` is honest about today and silent about yesterday: a `buy` read written two
+/// weeks ago on conditions that have since reversed looked identical to one written this
+/// morning. A thesis is a run — the stretch of consecutive reads on which one directional
+/// state was held — and every later day is measured against the row from the run's first day
+/// rather than against the day before.
+///
+/// The opening conditions are copied onto this row rather than re-derived, which is the whole
+/// point. Recomputing them from today's data would answer "what would we have said then,
+/// knowing what we know now", which is the one question a frozen reason exists to prevent.
+///
+/// Written by jobs/thesis.py.
+model AssetThesis {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId   String
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  horizon   String
+  /// buy or short. Only directional states become theses: `wait` and `none` hold no reason
+  /// that could later stop being true.
+  direction String
+  /// The first day of the run, which is the day the reason was recorded.
+  openedOn  DateTime @db.Date
+
+  /// The sentence and the full condition string from that day, copied verbatim.
+  openHeadline   String
+  openConditions String
+  openClose      Float?
+  /// The level that day named as the point at which the trend being read is no longer there,
+  /// and the entry level beside it. Both from the opening row, never recomputed.
+  invalidateLevel Float?
+  entryLevel      Float?
+
+  /// active, weakening or broken. Broken is terminal and is never reassessed, so a later
+  /// recovery cannot quietly erase the fact that the level named in advance was passed.
+  status    String
+  /// Why it has that status, in plain words.
+  reason    String
+  /// Condition names whose verdict differs from the opening day's, and those that match. A
+  /// condition that has become unavailable counts as changed, never as held.
+  changed   String
+  held      String
+
+  /// The read this assessment was made against.
+  asOf      DateTime @db.Date
+  lastClose Float?
+  changePctSinceOpen Float?
+  /// Stored sessions since the opening day. Sessions, not calendar days, because a weekend is
+  /// not a day on which nothing happened to the conditions.
+  sessionsSince Int   @default(0)
+
+  confidence     Confidence @default(none)
+  /// How much of the opening reason is still measurable. Never how the price has gone:
+  /// grading a thesis on its return would turn a statement about evidence into a scorecard.
+  confidenceNote String?
+  source     String
+  computedAt DateTime @default(now())
+
+  checks ThesisCheck[]
+
+  @@unique([assetId, horizon, openedOn])
+  @@index([status, asOf])
+}
+
+/// One day's assessment of one thesis, frozen.
+///
+/// Separate from AssetThesis because the thesis row is updated and this one is not. A check is
+/// never rewritten, so the record of what the system believed on a Tuesday survives Wednesday
+/// disagreeing with it, and the sequence of rows is the history of a reason decaying rather
+/// than a single status that only ever shows its last value.
+model ThesisCheck {
+  id        String      @id @default(dbgenerated("gen_random_uuid()::text"))
+  thesisId  String
+  thesis    AssetThesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+  asOf      DateTime    @db.Date
+
+  status    String
+  reason    String
+  changed   String
+  held      String
+  close     Float?
+  changePctSinceOpen Float?
+
+  source     String
+  computedAt DateTime @default(now())
+
+  @@unique([thesisId, asOf])
+  @@index([asOf])
+}
+
+/// Three competing accounts of one move, measured rather than asserted.
+///
+///     total = market + sector + specific
+///
+/// where `market` is the median return across the asset's exchange group, `sector` is the
+/// median across its own industry peers minus that market median, and `specific` is the
+/// asset's return minus its peer median. Medians rather than means, because one 400% crypto
+/// return would otherwise describe a sector nobody is in.
+///
+/// This is co-movement and is reported as exactly that. The leading component is the one the
+/// move is most *shared with*, which is a different sentence from one about cause, and no
+/// probability is attached to any of the three: a likelihood ratio needs a measured P(E|H)
+/// and no outcome row in this database has matured.
+///
+/// sectorPct and specificPct are null together when fewer than three industry peers have the
+/// history to take a median from. The remainder is left unsplit rather than credited to the
+/// asset, because crediting it would read as a finding about the asset when all it measures is
+/// that its industry is thinly covered here.
+///
+/// Written by jobs/attribution.py.
+model MoveAttribution {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId   String
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  periodEnd DateTime @db.Date
+  /// Sessions the move is measured over, so a row is never read against the wrong window.
+  windowDays Int
+
+  totalPct    Float
+  marketPct   Float
+  sectorPct   Float?
+  specificPct Float?
+
+  /// Each part's size as a share of the total movement accounted for, from absolute values so
+  /// two parts cannot cancel into a share above one.
+  marketShare   Float?
+  sectorShare   Float?
+  specificShare Float?
+
+  /// market, sector or specific, and null when the top two are too close to separate or the
+  /// sample does not support naming one.
+  leader       String?
+  /// How many times larger the leading component is than the next.
+  leaderMargin Float?
+
+  /// The counts the medians were taken from, stored because a share computed over three peers
+  /// and one computed over thirty are not the same claim.
+  peers     Int
+  groupSize Int
+
+  headline  String
+  confidence     Confidence @default(none)
+  confidenceNote String?
+  /// How the three parts were obtained, in words.
+  method    String
+  source    String
+  computedAt DateTime @default(now())
+
+  @@unique([assetId, periodEnd, windowDays])
+  @@index([periodEnd, leader])
+}
+
+/// A flagged catalyst carried a bounded distance across the relationships already stored.
+///
+/// What travels is relevance, which means a reason to look. It is not impact and not an
+/// effect: an edge states a relationship somebody recorded, and it does not state that a move
+/// on one end reaches the other.
+///
+/// Bounded three ways, because an unbounded walk over a 160 asset graph reaches everything and
+/// tells nobody anything: two hops at most, edge groups above a size limit skipped entirely,
+/// and every edge divided by the size of the group it came from so that being one of two
+/// assets linked to a product counts for more than being one of twenty in a sector.
+///
+/// `path` stores the chain in words, so a reader can follow it and reject it. A score without
+/// its path would be exactly the unsupported chain this project exists not to produce.
+///
+/// Written by jobs/graph.py.
+model GraphRelevance {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId   String
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  periodEnd DateTime @db.Date
+
+  /// asset or product — what carried the catalyst this path started from.
+  originKind String
+  originId   String
+
+  score     Float
+  /// 1 or 2. Never more, by construction.
+  hops      Int
+  /// The kind of edge the last step used: industry, product or event.
+  edgeKind  String
+  path      String
+  note      String
+
+  source     String
+  computedAt DateTime @default(now())
+
+  @@unique([assetId, periodEnd, originKind, originId])
+  @@index([periodEnd, score])
 }

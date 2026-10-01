@@ -242,6 +242,26 @@ a base of 6 a single post is 17% of the reading.
 - `jobs/accuracy.py` measures the move that followed each logged reading at 30 and 60 days,
   from stored closes. Makes no request. Runs after `human.py` so the day's reading is logged
   before the job that measures logged readings runs.
+- `jobs/thesis.py` compares every held directional read against the row written on the day
+  that state first appeared, and moves it through active, weakening and broken. Makes no
+  request. Runs straight after `setup.py`, because it reads the row `setup.py` has just
+  written; running it first would compare today against a run that ends yesterday and miss
+  the day a reason broke. The opening conditions are copied, never recomputed — recomputing
+  them would answer "what would we have said then, knowing what we know now". `broken` is
+  terminal, so a recovery after a named level was passed cannot erase that it was passed.
+- `jobs/attribution.py` splits each asset's 20 session move into the part its whole exchange
+  group made, the part its own industry made beyond that, and the remainder. Medians, so one
+  crypto return cannot describe a sector. Exclusive by construction: the three parts sum to
+  the move. It names what a move was shared *with* and never what moved it, and no
+  probability is attached, because a likelihood needs matured outcomes and none have matured.
+  Below three industry peers the sector and specific parts are left null rather than
+  estimated.
+- `jobs/graph.py` carries each flagged catalyst at most two hops over the relationships
+  already stored — shared product, shared dated item, small enough industry — and writes the
+  chain in words beside every score. Bounded three ways: hops, edge group size, and an edge
+  weight divided by the size of the group it came from. What travels is a reason to look. It
+  is not impact, and nothing in it says a move travelled along an edge. Runs after
+  `human.py`, because the catalysts it walks out from do not exist until then.
 - `jobs/prices.py yahoo crypto news` daily closes, volume, share counts, market cap, news.
 - `jobs/rank.py` all four ranking bases.
 - `jobs/signals.py trends wiki hn news reddit` product demand signals.
@@ -338,6 +358,21 @@ The consequence for sequencing: the parallel layer starts with US assets, the ac
 starts recording immediately so the clock begins, and both product parallels and any
 published hit rate stay behind a stated sample-size floor.
 
+Three of the planned layers have since been built, and each one was only buildable because it
+reads rows that already exist:
+
+- **Thesis memory** needed nothing new. `AssetSetup` already stored a dated condition read
+  per asset per day; the gap was that nobody compared two of them. A run of consecutive reads
+  on one state is the thesis, and the only genuinely new idea is that the opening day's row is
+  the reference rather than yesterday's.
+- **Attribution** needed only closes, which go back to 2019 for the US names. It is the
+  honest half of a hypothesis engine: the hypotheses are exclusive and their magnitudes are
+  measured, and the half that is still missing is the posterior, which is blocked on matured
+  outcomes exactly as the accuracy log is.
+- **Graph propagation** needed only the link tables. What made it safe to build was the
+  bounding, not the arithmetic: an unbounded walk over 160 assets reaches everything, and a
+  list of everything is indistinguishable from no list at all.
+
 ## Rules for changes
 0. One branch, `main`. Vercel deploys production from it and `schema.yml` triggers on it.
    `master` is left where it was and is not maintained. The catch to remember: GitHub takes
@@ -374,3 +409,17 @@ published hit rate stay behind a stated sample-size floor.
 13. Verify a marketplace category slug by fetching it before adding it. An unknown Amazon
     slug does not 404, it quietly serves a different category, and nothing downstream would
     look wrong.
+14. A thesis never re-derives its opening conditions. `AssetThesis.openConditions` is a copy
+    of the row written on the day the state appeared, and anything that recomputes it from
+    today's data has reintroduced look-ahead bias into the one place built to exclude it.
+15. `broken` is terminal. Do not add a path that reassesses a broken thesis, however much a
+    later recovery looks like it should count: the whole value of a level named in advance is
+    that passing it cannot be taken back.
+16. Attribution names what a move was shared with, never what moved it. The decomposition is
+    co-movement; the banned words in rule 10 are banned here too, and the test suite checks
+    the generated sentence for them.
+17. Relevance from `jobs/graph.py` is a reading order and never an impact estimate. If a
+    score is ever shown without the path that produced it, it has become the unsupported
+    chain this project exists not to produce.
+18. Keep the graph bounded. Raising `MAX_HOPS` past two, or `MAX_GROUP` past the point where
+    a hub edge is excluded, makes every asset relevant to every other and the list worthless.
