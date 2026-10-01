@@ -75,16 +75,46 @@ CANONICAL = 5
 # Derived upward only. Each must be a whole multiple of CANONICAL or the aggregation would be
 # assembling bars out of fractions of bars.
 DERIVE_TO = (15, 30, 60)
-# Fetched, not derived, and only for the top slice of the active set.
+# Fetched, not derived, and only for the top slice of the active set — see FINE_SLICE, which
+# is currently zero.
 FINE = 1
 
-# How much history to ask for per interval. The provider's own limits, measured rather than
-# assumed: 1m is served for about a week, 5m for about two months.
-RANGE_FOR = {1: "5d", 5: "1mo"}
+# How much history to ask for per interval - deliberately only what the brain reads, not the
+# most the provider will serve.
+#
+# Measured, not assumed: one run at 5m over a month across 43 assets stored 201,726 bars and
+# took the IntradayBar table to 71 MB against a 500 MB free tier, for data nothing queries.
+# The intraday read looks at two sessions and the structural levels reach back 120 bars, so
+# five days of five minute bars is already more than either needs, and one minute bars are
+# only read within the current session.
+RANGE_FOR = {1: "1d", 5: "5d"}
 
-# How many of the active set get one minute bars. Bounded because 1m is twelve times the rows
-# of 5m for the same window and the provider serves a fraction of the history.
-FINE_SLICE = 8
+# Intraday bars older than this are deleted at the end of each run. Retention by value: the
+# daily series is the permanent history and is never touched by this, while five minute bars
+# have a short useful life and would otherwise grow without limit on a free tier.
+#
+# Ten days, measured against what actually reads them rather than chosen round. The intraday
+# condition read looks at two sessions and the structural levels reach back 120 bars, which is
+# under two sessions; ten calendar days is about seven trading sessions, so there is margin for
+# a weekend and a holiday and still nothing is expired that a reader wants.
+#
+# The number that forced this: a month of five minute bars took IntradayBar to 85 MB, larger
+# than the entire seven year daily history for every asset on the site (71 MB), for data
+# nothing queried beyond the newest two sessions.
+RETAIN_DAYS = 10
+
+# How many of the active set get one minute bars. Zero, deliberately.
+#
+# Five minutes is the canonical interval and every reader in this repository uses it: the
+# intraday condition read, the structural levels and the investigation's timing check all query
+# `interval = 5`. One minute bars cost twelve times the rows for the same window and nothing
+# reads them, which makes them storage spent on nothing — and storing what nothing reads is the
+# same mistake as fetching a month of bars to look at two days of them.
+#
+# The capability is kept rather than removed: raise this and the fetch, the normalisation, the
+# session accounting and the aggregation all already handle `interval = 1`. It turns on the day
+# something needs it, and not before.
+FINE_SLICE = 0
 
 # Hard ceiling on requests per run, whatever the active set says. A selection bug that
 # suddenly thinks every asset is active must cost one capped run, not a ban.
@@ -98,6 +128,25 @@ STALE_AFTER_MIN = 90
 # crypto trades continuously and has no exchange session, so its bars are stored but its
 # session accounting is marked as having no expected count.
 CHART = "https://query1.finance.yahoo.com/v8/finance/chart/"
+
+
+def quote_symbol(asset: dict) -> str | None:
+    """The symbol *this* provider knows the asset by, which is not always the stored reference.
+
+    The adapter boundary in one function. An asset's `sourceRef` is whatever its *daily*
+    provider uses, and for crypto that is a CoinPaprika slug like `btc-bitcoin`, which this
+    quote API answers 404 for - found in a real run, not guessed. The ticker is the first
+    segment of the slug and the provider's crypto pairs are `TICKER-USD`, verified against
+    BTC-USD, ETH-USD and SOL-USD before being relied on.
+
+    None when no mapping exists, which is recorded as unsupported rather than attempted.
+    """
+    ref = (asset.get("sourceRef") or "").strip()
+    src = (asset.get("source") or "").lower()
+    if (asset.get("assetType") or "") == "crypto" or "paprika" in src or "coingecko" in src:
+        ticker = (asset.get("symbol") or ref).split("-")[0].strip().upper()
+        return f"{ticker}-USD" if ticker else None
+    return ref or None
 
 
 def supported(asset: dict) -> tuple[bool, str]:
@@ -114,8 +163,8 @@ def supported(asset: dict) -> tuple[bool, str]:
             "the Pakistan Stock Exchange publishes end of day files and no intraday series, "
             "and this provider does not carry its listings"
         )
-    if not asset.get("sourceRef"):
-        return False, "no provider reference is stored for this asset"
+    if not quote_symbol(asset):
+        return False, "no symbol this provider would recognise could be derived for it"
     return True, ""
 
 
@@ -237,7 +286,11 @@ def active_set(cur, today: date) -> list[dict]:
         r["id"]: r
         for r in rows(
             cur,
-            'SELECT id, symbol, name, "sourceRef", source, currency FROM "Asset" WHERE id = ANY(%s)',
+            """
+            SELECT id, symbol, name, "sourceRef", source, currency,
+                   "assetType"::text AS "assetType"
+            FROM "Asset" WHERE id = ANY(%s)
+            """,
             (list(reasons),),
         )
     }
@@ -376,13 +429,18 @@ def expected_bars(regular: dict | None, interval: int) -> int | None:
 
 
 def classify(stored: int, expected: int | None, holes: int, newest: datetime | None,
-             now: datetime) -> tuple[str, str]:
-    """(status, note) for one fetched session. §8's completeness states, in one place.
+             now: datetime, is_latest: bool = True) -> tuple[str, str]:
+    """(status, note) for one fetched session. The completeness states, in one place.
 
     The order of the checks is the meaning. `failed` and `empty` are answers about the
     provider; `partial` is an answer about the payload; `stale` is an answer about time. A
     half-empty payload is reported as partial even when it is also stale, because the missing
     bars are the finding and the age is a consequence of them.
+
+    `is_latest` exists because staleness is only a question about the session in progress. A
+    five day fetch returns four finished sessions and every one of them has a newest bar hours
+    old by definition - the first run of this job marked 748 sessions stale and none complete
+    for exactly that reason. A finished session is complete or short, never stale.
     """
     if stored == 0 and holes == 0:
         return "empty", (
@@ -399,7 +457,11 @@ def classify(stored: int, expected: int | None, holes: int, newest: datetime | N
             f"{stored} bars arrived where a full session holds about {expected}. The series "
             "is short and must not be read as a quiet session"
         )
-    if newest is not None and (now - newest) > timedelta(minutes=STALE_AFTER_MIN):
+    if (
+        is_latest
+        and newest is not None
+        and (now - newest) > timedelta(minutes=STALE_AFTER_MIN)
+    ):
         age = int((now - newest).total_seconds() // 60)
         return "stale", (
             f"{stored} bars arrived but the newest is {age} minutes old, so this is the last "
@@ -458,28 +520,37 @@ def aggregate(fine: list[dict], minutes: int, base: int = CANONICAL) -> list[dic
 
 
 def write_bars(cur, asset_id: str, bars: list[dict], source: str) -> int:
-    """Upsert bars. Idempotent on (asset, interval, ts), so a rerun stores no duplicate."""
-    written = 0
-    for b in bars:
-        cur.execute(
-            """
-            INSERT INTO "IntradayBar" ("assetId", interval, ts, "sessionDate", open, high,
-                low, close, volume, phase, derived, "derivedFrom", source, "retrievedAt")
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now())
-            ON CONFLICT ("assetId", interval, ts) DO UPDATE SET
-                open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low,
-                close = EXCLUDED.close, volume = EXCLUDED.volume, phase = EXCLUDED.phase,
-                derived = EXCLUDED.derived, "derivedFrom" = EXCLUDED."derivedFrom",
-                source = EXCLUDED.source, "retrievedAt" = now()
-            """,
+    """Upsert bars in one round trip. Idempotent on (asset, interval, ts).
+
+    `executemany` rather than a loop of `execute`, because this is the one place in the
+    repository that writes thousands of rows at a time: a session is 78 five minute bars, a
+    month is around 1,700, and the derived intervals add more on top. One statement per bar
+    against a pooled remote database made a twenty asset run take minutes of pure latency,
+    which is the N+1 write every other job here avoids by only ever writing one row per asset.
+    """
+    if not bars:
+        return 0
+    cur.executemany(
+        """
+        INSERT INTO "IntradayBar" ("assetId", interval, ts, "sessionDate", open, high,
+            low, close, volume, phase, derived, "derivedFrom", source, "retrievedAt")
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now())
+        ON CONFLICT ("assetId", interval, ts) DO UPDATE SET
+            open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low,
+            close = EXCLUDED.close, volume = EXCLUDED.volume, phase = EXCLUDED.phase,
+            derived = EXCLUDED.derived, "derivedFrom" = EXCLUDED."derivedFrom",
+            source = EXCLUDED.source, "retrievedAt" = now()
+        """,
+        [
             (
                 asset_id, b["interval"], b["ts"], b["sessionDate"], b["open"], b["high"],
                 b["low"], b["close"], b["volume"], b.get("phase", "regular"),
                 bool(b.get("derived")), b.get("derivedFrom"), source,
-            ),
-        )
-        written += 1
-    return written
+            )
+            for b in bars
+        ],
+    )
+    return len(bars)
 
 
 def write_session(cur, asset_id: str, sess: date, interval: int, status: str, note: str,
@@ -567,8 +638,8 @@ def main() -> None:
                 {**a, "why": ["a first fill was requested for every supported asset"]}
                 for a in rows(
                     cur,
-                    'SELECT id, symbol, name, "sourceRef", source, currency FROM "Asset" '
-                    "ORDER BY symbol",
+                    'SELECT id, symbol, name, "sourceRef", source, currency, '
+                    '"assetType"::text AS "assetType" FROM "Asset" ORDER BY symbol',
                 )
             ]
             step(f"first fill: {len(chosen)} assets considered")
@@ -620,7 +691,7 @@ def main() -> None:
                 if budget <= 0:
                     break
                 budget -= 1
-                payload = fetch(a["sourceRef"], interval)
+                payload = fetch(quote_symbol(a), interval)
                 if payload is None or payload.get("error"):
                     failed += 1
                     write_session(
@@ -649,9 +720,11 @@ def main() -> None:
                     group.sort(key=lambda x: x["ts"])
                     # Holes are counted across the whole payload, so they are attributed to
                     # the newest session rather than split on a guess.
-                    share = holes if sess == max(by_session) else 0
+                    newest_sess = max(by_session)
+                    share = holes if sess == newest_sess else 0
                     status, note = classify(
-                        len(group), expected, share, group[-1]["ts"], now
+                        len(group), expected, share, group[-1]["ts"], now,
+                        is_latest=sess == newest_sess,
                     )
                     statuses[status] = statuses.get(status, 0) + 1
                     write_session(
@@ -678,6 +751,19 @@ def main() -> None:
         print(
             "  a session marked partial or failed is a gap that is stored, not smoothed. No "
             "bar is invented and no absent volume becomes a zero."
+        )
+
+        # Retention, at the end so a failed fetch never costs stored history as well. Only
+        # intraday bars expire: the daily series is the permanent record and is untouched.
+        cutoff = today - timedelta(days=RETAIN_DAYS)
+        cur.execute('DELETE FROM "IntradayBar" WHERE "sessionDate" < %s', (cutoff,))
+        dropped = cur.rowcount
+        cur.execute('DELETE FROM "IntradaySession" WHERE "sessionDate" < %s', (cutoff,))
+        dropped_sessions = cur.rowcount
+        conn.commit()
+        print(
+            f"  retention: dropped {dropped} bars and {dropped_sessions} session rows dated "
+            f"before {cutoff}. The daily series is untouched."
         )
     finally:
         cur.close()

@@ -73,6 +73,11 @@ table on the front page shows the date of the last successful run.
 | `python jobs/thesis.py` | Compares each held directional read against the day it first appeared. |
 | `python jobs/attribution.py` | Splits each recent move into market, industry and asset specific parts. |
 | `python jobs/graph.py` | Walks today's flagged catalysts two hops over stored relationships. |
+| `python jobs/intraday.py` | Five minute bars for the active set, then the derived intervals. |
+| `python jobs/intraday.py derive` | Rebuilds 15/30/60 minute bars from stored five minute ones. |
+| `python jobs/horizons.py` | The intraday and longer term reads, then target ranges for every horizon. |
+| `python jobs/investigate.py` | Looks into every move that is unusual for the asset that made it. |
+| `python jobs/schemacheck.py` | Exits non-zero if the database is behind this checkout's migrations. |
 
 Individual scripts take a source name, for example
 `python jobs/prices.py crypto` or `python jobs/signals.py reddit`.
@@ -89,6 +94,44 @@ recomputing demand scores, which keeps the badge and the score beside it in step
 sit in the release lane rather than the refresh lane. The order between them is a real
 dependency: `thesis.py` needs the `AssetSetup` row `setup.py` has just written, and
 `graph.py` walks out from the catalysts `human.py` flagged earlier in the same run.
+
+## Intraday, and what it costs
+
+Five minutes is the canonical interval and 15, 30 and 60 are derived from it. The aggregation is
+exact — first open, last close, max high, min low, summed volume — and a group missing any
+component bar is skipped rather than assembled, because an hour built from nine of its twelve
+bars is a quieter hour than the one that happened.
+
+Nothing polls every asset every minute. An **active set** is chosen from stored rows before any
+request is made, and a hard per-run request ceiling bounds the job whatever the selection says.
+
+Two numbers worth knowing, both measured rather than estimated:
+
+- One run fetching a **month** of five minute bars stored 201,726 rows and took `IntradayBar` to
+  **85 MB** — larger than the entire seven year daily history for all 160 assets (71 MB), for
+  data nothing queried beyond the newest two sessions. The fetch window is now five days.
+- One minute bars are **not fetched**. Every reader in this repository queries `interval = 5`,
+  so 1m was storage spent on nothing. The capability is kept in the code path — fetch,
+  normalisation, session accounting and aggregation all handle it — behind `FINE_SLICE = 0`.
+
+Intraday bars are swept after ten days. The daily series is never swept: it is the permanent
+record, and retention here is by value rather than by age alone.
+
+`jobs/intraday.py` is also the one job in this repository that writes thousands of rows at a
+time, so it batches with `executemany`. One statement per bar against a pooled remote database
+turned a twenty asset run into minutes of pure latency.
+
+## Migration has one path
+
+`schema.yml` applies migrations and nothing else does. The data lanes run `jobs/schemacheck.py`,
+which compares the migration directories against `_prisma_migrations` and exits non-zero with
+the pending names if the database is behind. It holds no writer privilege and issues no DDL, so
+it cannot race anything.
+
+This replaced a real failure: `refresh.yml` used to migrate too, and on a push that touched it
+both workflows ran `prisma migrate deploy` against one database in the same second from two
+different concurrency groups. A test asserts that exactly one workflow contains a
+`prisma migrate deploy` run line.
 
 `thesis.py` never recomputes the opening day's conditions. It reads the row that was written
 on that day, because recomputing them would answer "what would we have said then, knowing

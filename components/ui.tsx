@@ -1,5 +1,17 @@
 import Link from "next/link";
 import { isoDate, pct, price, toneClass } from "@/lib/format";
+import {
+  CHECK_WORDS,
+  FINDING_WORDS,
+  HORIZON_WORDS,
+  METHOD_WORDS,
+  SETUP_WORDS,
+  THESIS_WORDS,
+  direction,
+  targetsDisagree,
+  tradingWords,
+  unusualWords,
+} from "@/lib/plain";
 
 export function Section({
   title,
@@ -1270,6 +1282,557 @@ export function NeighbourhoodBlock({
         An edge is a relationship somebody recorded. Relevance travelling along one is a reason
         to look, never evidence that a move on one end reached the other. The walk stops at two
         hops and skips any group too large to say anything about one of its members.
+      </Note>
+    </>
+  );
+}
+
+/// The first thing a reader sees on an asset page, in plain words.
+///
+/// Deliberately above every table. The order of the lines is the order a person asks the
+/// questions in — what is happening, why, what the news is, what goes against it, what is
+/// next, what the setup is, and what would change the view — and each line is one sentence
+/// drawn from a stored row rather than a figure to interpret.
+///
+/// Nothing here is new information. Every line is a restatement of something the deeper
+/// sections show with its numbers, source and as-of date attached, which is what makes the
+/// simplification safe: the evidence has not been replaced, it has been moved down the page.
+export function PlainSummary({
+  name,
+  dayPct,
+  investigation,
+  horizons,
+  thesis,
+  upcoming,
+}: {
+  name: string;
+  dayPct: number | null;
+  investigation: {
+    headline: string;
+    found: string;
+    notFound: string;
+    pointsToward: string;
+    unconfirmed: string;
+    volumeRatio: number | null;
+    robustZ: number | null;
+    periodEnd: Date | string;
+    findings: { id: string; kind: string; status: string; detail: string }[];
+  } | null;
+  horizons: {
+    id: string;
+    horizon: string;
+    state: string;
+    headline: string;
+    against: string;
+    entryLevel: number | null;
+    invalidateLevel: number | null;
+    invalidateNote: string | null;
+  }[];
+  thesis: { status: string; reason: string } | null;
+  upcoming: { id: string; name: string; date: Date | string }[];
+}) {
+  const dir = direction(dayPct);
+  const soonest = horizons.find((h) => h.state === "buy" || h.state === "short") ?? horizons[0];
+  const setup = soonest ? SETUP_WORDS[soonest.state] ?? SETUP_WORDS.none : null;
+  const newsFinding = investigation?.findings.find((f) => f.kind === "news");
+  const trading = tradingWords(investigation?.volumeRatio);
+
+  const against = soonest && soonest.against !== "none"
+    ? soonest.against.split(" | ").filter(Boolean)
+    : [];
+
+  return (
+    <Card className="border-primary/30">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-base font-semibold">{name}</h2>
+        <Pill tone={dir.tone}>
+          {dir.word}
+          {dayPct != null ? ` ${pct(dayPct, 1)}` : ""}
+        </Pill>
+        {setup ? <Pill tone={setup.tone}>{setup.label}</Pill> : null}
+        {thesis && THESIS_WORDS[thesis.status] ? (
+          <Pill tone={THESIS_WORDS[thesis.status].tone}>
+            {THESIS_WORDS[thesis.status].label}
+          </Pill>
+        ) : null}
+      </div>
+
+      <dl className="mt-4 space-y-3 text-sm">
+        <div>
+          <dt className="text-muted-foreground text-xs font-medium">What&apos;s happening</dt>
+          <dd className="mt-0.5 leading-relaxed">
+            {investigation
+              ? investigation.headline
+              : dayPct != null
+                ? `${name} is ${dir.word.toLowerCase()} ${pct(dayPct, 1)} on its latest stored day, which is within what it normally does.`
+                : "No price change is stored for the latest day."}
+            {trading ? ` There was ${trading}.` : ""}
+          </dd>
+        </div>
+
+        <div>
+          <dt className="text-muted-foreground text-xs font-medium">Why</dt>
+          <dd className="mt-0.5 leading-relaxed">
+            {investigation
+              ? investigation.pointsToward
+              : "Nothing unusual happened, so nothing was investigated. The conditions below are the ordinary reading."}
+          </dd>
+        </div>
+
+        <div>
+          <dt className="text-muted-foreground text-xs font-medium">News</dt>
+          <dd className="mt-0.5 leading-relaxed">
+            {newsFinding
+              ? newsFinding.status === "found"
+                ? newsFinding.detail
+                : "No story is stored for it in the days around the move."
+              : "No news check has been run for this asset yet."}
+          </dd>
+        </div>
+
+        <div>
+          <dt className="text-muted-foreground text-xs font-medium">
+            What goes against it
+          </dt>
+          <dd className="mt-0.5 leading-relaxed">
+            {against.length ? (
+              <ul className="space-y-1">
+                {against.map((a, i) => (
+                  <li key={i}>{a}</li>
+                ))}
+              </ul>
+            ) : (
+              "Nothing measured points the other way right now."
+            )}
+          </dd>
+        </div>
+
+        <div>
+          <dt className="text-muted-foreground text-xs font-medium">What&apos;s next</dt>
+          <dd className="mt-0.5 leading-relaxed">
+            {upcoming.length ? (
+              <>
+                {upcoming[0].name} on {isoDate(upcoming[0].date)}
+                {upcoming.length > 1 ? `, and ${upcoming.length - 1} more dated item${upcoming.length > 2 ? "s" : ""}` : ""}.
+              </>
+            ) : (
+              "No scheduled date is stored for it."
+            )}
+          </dd>
+        </div>
+
+        <div>
+          <dt className="text-muted-foreground text-xs font-medium">
+            What would change the view
+          </dt>
+          <dd className="mt-0.5 leading-relaxed">
+            {soonest?.invalidateLevel != null
+              ? `${soonest.invalidateNote ?? "A close past the level named with this read"}. Until then the conditions above are what the data shows.`
+              : "No invalidation level is stored, because there is no directional read to invalidate."}
+          </dd>
+        </div>
+      </dl>
+
+      {investigation ? (
+        <p className="text-muted-foreground mt-4 text-xs leading-relaxed">
+          {investigation.unconfirmed.split(" | ")[0]}.
+        </p>
+      ) : null}
+    </Card>
+  );
+}
+
+/// The same asset on every horizon it has been read on, side by side.
+///
+/// Side by side and not reconciled. `buy` today and `wait` on the quarter are two answers to
+/// two different questions, and a page that showed one would be choosing a window and calling
+/// it the truth.
+export function HorizonStrip({
+  horizons,
+  currency = "USD",
+}: {
+  currency?: string;
+  horizons: {
+    id: string;
+    horizon: string;
+    state: string;
+    headline: string;
+    missing: string;
+    entryLevel: number | null;
+    invalidateLevel: number | null;
+    confidence: string;
+    periodEnd: Date | string;
+    targets: {
+      id: string;
+      method: string;
+      low: number;
+      high: number;
+      rewardRisk: number | null;
+      agreement: number | null;
+      note: string;
+    }[];
+  }[];
+}) {
+  if (!horizons.length) {
+    return (
+      <Empty>
+        No condition read is stored for this asset on any horizon yet. The swing read comes from{" "}
+        <code>python jobs/setup.py</code>, the other two from <code>python jobs/horizons.py</code>.
+      </Empty>
+    );
+  }
+
+  return (
+    <div className="grid gap-3 md:grid-cols-3">
+      {horizons.map((h) => {
+        const words = SETUP_WORDS[h.state] ?? SETUP_WORDS.none;
+        const label = HORIZON_WORDS[h.horizon] ?? { label: h.horizon, window: "" };
+        const missing = h.missing === "none" ? [] : h.missing.split(" | ").filter(Boolean);
+        const disagree = h.targets.some((t) => targetsDisagree(t.agreement));
+        return (
+          <Card key={h.id}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-medium">{label.label}</h3>
+              <ConfidenceBadge grade={h.confidence} />
+            </div>
+            <div className="mt-2">
+              <Pill tone={words.tone}>{words.label}</Pill>
+            </div>
+            <p className="mt-2 text-xs leading-relaxed">{words.plain}</p>
+            <p className="text-muted-foreground mt-2 text-xs leading-relaxed">{h.headline}</p>
+
+            {h.entryLevel != null || h.invalidateLevel != null ? (
+              <dl className="mt-3 space-y-1 text-xs">
+                {h.entryLevel != null ? (
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-muted-foreground">Above</dt>
+                    <dd className="num">{price(h.entryLevel, currency)}</dd>
+                  </div>
+                ) : null}
+                {h.invalidateLevel != null ? (
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-muted-foreground">View changes below</dt>
+                    <dd className="num">{price(h.invalidateLevel, currency)}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            ) : null}
+
+            {h.targets.length ? (
+              <div className="mt-3">
+                <p className="text-muted-foreground text-xs font-medium">
+                  How far it could run, three ways
+                </p>
+                <ul className="mt-1 space-y-1">
+                  {h.targets.map((t) => (
+                    <li key={t.id} className="flex items-baseline justify-between gap-2 text-xs">
+                      <span className="text-muted-foreground">
+                        {METHOD_WORDS[t.method] ?? t.method}
+                      </span>
+                      <span className="num">
+                        {t.low === t.high
+                          ? price(t.low, currency)
+                          : `${price(t.low, currency)} to ${price(t.high, currency)}`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {disagree ? (
+                  <Note>
+                    These three ways of measuring disagree with each other. That disagreement is
+                    shown rather than averaged away: the methods are answering the same question
+                    from different evidence, and when they part company neither one is the
+                    answer.
+                  </Note>
+                ) : null}
+                <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+                  Measured ranges, not forecasts. Hover each note on the deeper table below for
+                  what it was measured from.
+                </p>
+              </div>
+            ) : null}
+
+            {missing.length ? (
+              <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
+                Could not be checked: {missing.join("; ")}.
+              </p>
+            ) : null}
+            <div className="mt-2">
+              <AsOf date={h.periodEnd} />
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+/// What was actually looked at when something moved, including everything that was not found.
+///
+/// The absences get the same visual weight as the findings on purpose. A reader who only sees
+/// what was found cannot tell a thin investigation from a thorough one, and the common honest
+/// outcome here is a move with no story behind it.
+export function InvestigationBlock({
+  investigation,
+}: {
+  investigation: {
+    trigger: string;
+    triggerDetail: string;
+    pointsToward: string;
+    unconfirmed: string;
+    leading: string | null;
+    confidence: string;
+    confidenceNote: string | null;
+    periodEnd: Date | string;
+    findings: {
+      id: string;
+      kind: string;
+      status: string;
+      detail: string;
+      sourceName: string | null;
+      observedAt: Date | string | null;
+    }[];
+    hypotheses: {
+      id: string;
+      label: string;
+      statement: string;
+      priorBase: number | null;
+      priorNote: string | null;
+      magnitude: number | null;
+      supporting: string;
+      contradicting: string;
+      posterior: number | null;
+      posteriorNote: string;
+    }[];
+  } | null;
+}) {
+  if (!investigation) {
+    return (
+      <Empty>
+        Nothing unusual has been measured for this asset, so no investigation was run. That is
+        the ordinary state: the engine only looks when a move is large against the asset&apos;s
+        own history.
+      </Empty>
+    );
+  }
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center gap-2">
+        <Pill tone="warn">looked into: {investigation.trigger}</Pill>
+        <ConfidenceBadge grade={investigation.confidence} />
+        <AsOf date={investigation.periodEnd} />
+      </div>
+      <p className="mt-3 text-sm leading-relaxed">{investigation.triggerDetail}.</p>
+      <p className="mt-2 text-sm leading-relaxed">{investigation.pointsToward}</p>
+
+      <div className="mt-4">
+        <p className="text-muted-foreground text-xs font-medium">
+          Everything that was checked
+        </p>
+        <ul className="mt-1.5 space-y-1.5">
+          {investigation.findings.map((f) => {
+            const words = FINDING_WORDS[f.status] ?? FINDING_WORDS.unavailable;
+            return (
+              <li key={f.id} className="flex flex-wrap items-baseline gap-2 text-xs">
+                <span className="min-w-[8.5rem] font-medium">
+                  {CHECK_WORDS[f.kind] ?? f.kind}
+                </span>
+                <Pill tone={words.tone}>{words.label}</Pill>
+                <span className="text-muted-foreground flex-1 leading-relaxed">
+                  {f.detail}
+                  {f.sourceName ? ` — ${f.sourceName}` : ""}
+                  {f.observedAt ? ` (${isoDate(f.observedAt)})` : ""}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <div className="mt-4">
+        <p className="text-muted-foreground text-xs font-medium">
+          The possible explanations, side by side
+        </p>
+        <ul className="mt-1.5 space-y-2">
+          {investigation.hypotheses.map((h) => (
+            <li key={h.id} className="border-border rounded-lg border px-3 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-medium">{h.statement}</span>
+                {h.label === investigation.leading ? (
+                  <Pill tone="up">most support</Pill>
+                ) : null}
+              </div>
+              {h.magnitude != null ? (
+                <p className="num text-muted-foreground mt-1 text-xs">
+                  measured share {h.magnitude >= 0 ? "+" : ""}
+                  {h.magnitude.toFixed(1)} points of the move
+                </p>
+              ) : null}
+              <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                For: {h.supporting}
+              </p>
+              <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
+                Against: {h.contradicting}
+              </p>
+              {h.priorBase != null ? (
+                <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
+                  Across everything measured so far, this is what leads{" "}
+                  {Math.round(h.priorBase * 100)}% of the time.
+                </p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <Note>
+        No probability is attached to any of these. For the three measured shares the figure
+        <em> is</em> the measurement, so updating a belief with it would be circular; for the
+        news explanation it would need a measured rate of how often a story precedes a move,
+        and no outcome has matured yet.
+      </Note>
+
+      <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
+        {investigation.unconfirmed.split(" | ").join(". ")}.
+      </p>
+    </Card>
+  );
+}
+
+/// Whether the intraday series behind a same-day read can be trusted.
+///
+/// Shown even when everything is complete, because "checked, and complete" is a different
+/// statement from an empty space, and the second is indistinguishable from not having looked.
+export function IntradayHealth({
+  health,
+}: {
+  health: {
+    sessions: {
+      id: string;
+      sessionDate: Date | string;
+      interval: number;
+      status: string;
+      barsExpected: number | null;
+      barsStored: number;
+      note: string;
+    }[];
+    intervals: { interval: number; bars: number; newest: Date | null }[];
+  };
+}) {
+  if (!health.sessions.length) {
+    return (
+      <Empty>
+        No intraday session has been fetched for this asset. Either nothing about it currently
+        warrants the request budget, or this provider does not serve it intraday — the sessions
+        table records which, and an unserved asset is a stored fact rather than a gap.
+      </Empty>
+    );
+  }
+  const TONE: Record<string, "up" | "down" | "warn" | "default"> = {
+    complete: "up",
+    partial: "warn",
+    stale: "warn",
+    empty: "default",
+    failed: "down",
+    unsupported: "default",
+  };
+  return (
+    <Card>
+      <ul className="space-y-1.5">
+        {health.sessions.map((s) => (
+          <li key={s.id} className="flex flex-wrap items-baseline gap-2 text-xs">
+            <span className="num min-w-[5.5rem]">{isoDate(s.sessionDate)}</span>
+            <span className="text-muted-foreground min-w-[3rem]">{s.interval}m</span>
+            <Pill tone={TONE[s.status] ?? "default"}>{s.status}</Pill>
+            <span className="text-muted-foreground num">
+              {s.barsStored}
+              {s.barsExpected != null ? ` of about ${s.barsExpected}` : ""} bars
+            </span>
+            <span className="text-muted-foreground flex-1 leading-relaxed">{s.note}</span>
+          </li>
+        ))}
+      </ul>
+      {health.intervals.length ? (
+        <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
+          Stored:{" "}
+          {health.intervals
+            .map((i) => `${i.bars.toLocaleString("en-US")} bars at ${i.interval}m`)
+            .join(", ")}
+          . The 15, 30 and 60 minute bars are built from the five minute ones and are only
+          written when every component bar is present, so a gap stays a gap.
+        </p>
+      ) : null}
+    </Card>
+  );
+}
+
+/// The front page's answer to "what matters now".
+///
+/// Ordered by how unusual a move was for that asset rather than by how large it was, because a
+/// 3% day is ordinary for one of these names and remarkable for another. Each row leads with
+/// the sentence and keeps the figure beside it.
+export function WhatMattersBlock({
+  matters,
+}: {
+  matters: {
+    periodEnd: Date | string | null;
+    rows: {
+      id: string;
+      headline: string;
+      pointsToward: string;
+      trigger: string;
+      movePct: number | null;
+      robustZ: number | null;
+      volumeRatio: number | null;
+      leading: string | null;
+      confidence: string;
+      asset: { symbol: string; name: string };
+    }[];
+  };
+}) {
+  if (!matters.rows.length) {
+    return (
+      <Empty>
+        Nothing moved unusually against its own history today. That is the ordinary state, and
+        an empty list here is a real answer rather than a missing one.
+      </Empty>
+    );
+  }
+  return (
+    <>
+      <div className="grid gap-3 lg:grid-cols-2">
+        {matters.rows.map((r) => {
+          const unusual = unusualWords(r.robustZ);
+          return (
+            <Card key={r.id} href={`/asset/${encodeURIComponent(r.asset.symbol)}`}>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <h3 className="text-sm font-medium">{r.asset.name}</h3>
+                {r.movePct != null ? (
+                  <Pill tone={r.movePct >= 0 ? "up" : "down"}>{pct(r.movePct, 1)}</Pill>
+                ) : (
+                  <Pill tone="warn">{r.trigger}</Pill>
+                )}
+              </div>
+              <p className="mt-2 text-xs leading-relaxed">{r.headline}</p>
+              <p className="text-muted-foreground mt-1.5 text-xs leading-relaxed">
+                {r.pointsToward}
+              </p>
+              {unusual ? (
+                <p className="text-muted-foreground mt-1.5 text-xs">{unusual}.</p>
+              ) : null}
+              <div className="mt-2">
+                <ConfidenceBadge grade={r.confidence} />
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+      <Note>
+        These are the moves that are large <em>for the asset that made them</em>, not the largest
+        moves on the site. Each one has been checked against company news, its industry, the
+        calendar, the related names and its own history, and the asset page lists what was found
+        and what was not.
       </Note>
     </>
   );

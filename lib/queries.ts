@@ -477,3 +477,106 @@ export async function getThesisTally() {
       .sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status)),
   };
 }
+
+/// Every horizon's condition read for one asset, newest per horizon, with its target ranges.
+///
+/// One row per horizon rather than the single newest row, because the horizons are the point:
+/// the same asset reading `buy` on the hour and `wait` on the quarter is not a contradiction to
+/// be resolved by picking one. Returned in the order a reader thinks in — soonest first.
+export async function getHorizons(assetId: string) {
+  const all = await prisma.assetSetup.findMany({
+    where: { assetId },
+    orderBy: { periodEnd: "desc" },
+    include: { targets: { orderBy: { method: "asc" } } },
+  });
+  const newest = new Map<string, (typeof all)[number]>();
+  for (const row of all) if (!newest.has(row.horizon)) newest.set(row.horizon, row);
+  const order = ["intraday", "swing", "longer"];
+  return [...newest.values()].sort(
+    (a, b) =>
+      (order.indexOf(a.horizon) + 1 || 99) - (order.indexOf(b.horizon) + 1 || 99),
+  );
+}
+
+/// The newest investigation for one asset, with every check and every hypothesis.
+///
+/// Findings ordered so the ones that found something come first and the ones that could not be
+/// checked come last: a reader scanning the list wants the evidence before the gaps, and the
+/// gaps are still there when they reach them.
+export async function getInvestigation(assetId: string) {
+  return prisma.investigation.findFirst({
+    where: { assetId },
+    orderBy: { periodEnd: "desc" },
+    include: {
+      findings: { orderBy: [{ status: "asc" }, { kind: "asc" }] },
+      hypotheses: { orderBy: { label: "asc" } },
+    },
+  });
+}
+
+/// What was investigated across the whole site on the newest day, most unusual first.
+///
+/// This is the front page's answer to "what matters now". Ordered by the robust score rather
+/// than by the raw move, because a 3% day is ordinary for one of these names and extraordinary
+/// for another, and the ordering has to mean "unusual" rather than "large".
+export async function getWhatMatters(take = 8) {
+  const latest = await prisma.investigation.aggregate({ _max: { periodEnd: true } });
+  const periodEnd = latest._max.periodEnd;
+  if (!periodEnd) return { periodEnd: null, rows: [] };
+  const rows = await prisma.investigation.findMany({
+    where: { periodEnd },
+    orderBy: [{ robustZ: "desc" }, { movePct: "desc" }],
+    take,
+    include: {
+      asset: { select: { symbol: true, name: true, currency: true } },
+    },
+  });
+  return { periodEnd, rows };
+}
+
+/// Whether the intraday series behind an intraday read can be trusted, and what is missing.
+///
+/// Returned even when every session is complete, because "we checked and it is complete" is a
+/// different statement from showing nothing, and the second is indistinguishable from not
+/// having looked.
+export async function getIntradayHealth(assetId: string) {
+  const sessions = await prisma.intradaySession.findMany({
+    where: { assetId },
+    orderBy: [{ sessionDate: "desc" }, { interval: "asc" }],
+    take: 6,
+  });
+  const bars = await prisma.intradayBar.groupBy({
+    by: ["interval"],
+    where: { assetId },
+    _count: { _all: true },
+    _max: { ts: true },
+  });
+  return {
+    sessions,
+    intervals: bars
+      .map((b) => ({ interval: b.interval, bars: b._count._all, newest: b._max.ts }))
+      .sort((a, b) => a.interval - b.interval),
+  };
+}
+
+/// How much intraday coverage exists across the site, for the methodology page.
+///
+/// Counts by status, including `unsupported`, because an asset this provider cannot serve is a
+/// stored fact rather than a gap in the job, and the two must not be added together.
+export async function getIntradayCoverage() {
+  const latest = await prisma.intradaySession.aggregate({ _max: { sessionDate: true } });
+  const sessionDate = latest._max.sessionDate;
+  if (!sessionDate) return { sessionDate: null, counts: [] as { status: string; n: number }[] };
+  const grouped = await prisma.intradaySession.groupBy({
+    by: ["status"],
+    where: { sessionDate },
+    _count: { _all: true },
+  });
+  const order = ["complete", "partial", "stale", "empty", "failed", "unsupported"];
+  return {
+    sessionDate,
+    counts: grouped
+      .map((g) => ({ status: g.status, n: g._count._all }))
+      .sort((a, b) => (order.indexOf(a.status) + 1 || 99) - (order.indexOf(b.status) + 1 || 99)),
+  };
+}

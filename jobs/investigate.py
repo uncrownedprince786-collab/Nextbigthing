@@ -688,7 +688,7 @@ def main() -> None:
                 """
                 INSERT INTO "Investigation" ("assetId", "periodEnd", trigger, "triggerDetail",
                     "movePct", "robustZ", "volumeRatio", headline, found, "notFound",
-                    "pointsToward", unconfirmed, leading, confidence, "confidenceNote",
+                    "pointsToward", unconfirmed, "leading", confidence, "confidenceNote",
                     source, "computedAt")
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::"Confidence",%s,%s,now())
                 ON CONFLICT ("assetId", "periodEnd") DO UPDATE SET
@@ -697,7 +697,10 @@ def main() -> None:
                     "volumeRatio" = EXCLUDED."volumeRatio", headline = EXCLUDED.headline,
                     found = EXCLUDED.found, "notFound" = EXCLUDED."notFound",
                     "pointsToward" = EXCLUDED."pointsToward",
-                    unconfirmed = EXCLUDED.unconfirmed, leading = EXCLUDED.leading,
+                    unconfirmed = EXCLUDED.unconfirmed,
+                    -- Quoted: LEADING is a reserved word in Postgres, used by TRIM. Unquoted
+                    -- it is a syntax error, which is how this was found in production.
+                    "leading" = EXCLUDED."leading",
                     confidence = EXCLUDED.confidence,
                     "confidenceNote" = EXCLUDED."confidenceNote", "computedAt" = now()
                 RETURNING id

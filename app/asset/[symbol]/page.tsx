@@ -7,11 +7,15 @@ import {
   AnalogBlock,
   AttributionBlock,
   Card,
+  HorizonStrip,
   ConfidenceBadge,
   DiscussionBlock,
   Empty,
+  IntradayHealth,
+  InvestigationBlock,
   NeighbourhoodBlock,
   Note,
+  PlainSummary,
   Pill,
   Section,
   SetupBlock,
@@ -26,7 +30,10 @@ import {
   getAsset,
   getAssetPrices,
   getAttribution,
+  getHorizons,
   getHumanSignal,
+  getIntradayHealth,
+  getInvestigation,
   getRelevance,
   getSetup,
   getThesis,
@@ -72,6 +79,18 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
       getAttribution(asset.id),
       getRelevance(asset.id),
     ]);
+  const [horizons, investigation, intradayHealth] = await Promise.all([
+    getHorizons(asset.id),
+    getInvestigation(asset.id),
+    getIntradayHealth(asset.id),
+  ]);
+
+  // The latest stored day's change, which is what the plain summary leads with. Computed here
+  // rather than read from a row because no table stores a one day return: every consumer of it
+  // needs a different window, and storing one would invite reading it against another.
+  const prev = prices.length > 1 ? prices[prices.length - 2] : null;
+  const dayPct =
+    prev && prev.close ? (prices[prices.length - 1].close / prev.close - 1) * 100 : null;
 
   const byBasis = new Map<string, typeof asset.rankings>();
   for (const r of asset.rankings) {
@@ -105,6 +124,34 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
         </p>
         {asset.note ? <p className="mt-2 max-w-3xl text-sm leading-relaxed">{asset.note}</p> : null}
       </div>
+
+      {/* First, above everything. The whole page below this is the evidence for it, with the
+          numbers, the sources and the as-of dates attached. Simplifying the top is only safe
+          because nothing was removed from underneath it. */}
+      <div className="mt-6">
+        <PlainSummary
+          name={asset.name}
+          dayPct={dayPct}
+          investigation={investigation}
+          horizons={horizons}
+          thesis={thesis}
+          upcoming={upcoming}
+        />
+      </div>
+
+      <Section
+        title="The same asset on three horizons"
+        lead="Today, the next few weeks, and the longer term. They are computed from different windows and will sometimes disagree, which is not a contradiction to resolve by picking one."
+      >
+        <HorizonStrip horizons={horizons} currency={asset.currency} />
+      </Section>
+
+      <Section
+        title="What was looked at"
+        lead="When a move is large for this asset, the evidence that could bear on it is checked. Everything that was checked is listed, including what was not found."
+      >
+        <InvestigationBlock investigation={investigation} />
+      </Section>
 
       {note ? (
         <Card className="mt-6">
@@ -277,6 +324,13 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
         ) : (
           <Empty>No products are linked to this asset.</Empty>
         )}
+      </Section>
+
+      <Section
+        title="Intraday data behind the same-day read"
+        lead="Whether the five minute series this asset's same-day conditions were read from is complete. A short session is a gap that is stored, never smoothed."
+      >
+        <IntradayHealth health={intradayHealth} />
       </Section>
 
       <Section title="Recent news mentioning this asset">

@@ -8,6 +8,7 @@ import {
   HowToRead,
   NeighbourhoodBlock,
   Note,
+  WhatMattersBlock,
   Pill,
   Section,
   Table,
@@ -21,6 +22,7 @@ import {
   getLead,
   getNeighbourhood,
   getProducts,
+  getWhatMatters,
   getThesisTally,
   getUpcoming,
 } from "@/lib/queries";
@@ -50,6 +52,7 @@ export default async function Home() {
     upcoming,
     neighbourhood,
     theses,
+    matters,
   ] = await Promise.all([
     getLead(),
     getIndustriesByMarket(),
@@ -61,6 +64,7 @@ export default async function Home() {
     getUpcoming({ take: 10 }),
     getNeighbourhood(9),
     getThesisTally(),
+    getWhatMatters(8),
   ]);
 
   const byIndustry = new Map<string, typeof risers>();
@@ -103,6 +107,19 @@ export default async function Home() {
           </p>
         ) : null}
       </div>
+
+      {/* The first question, above the radar and above every ranking.
+          "What matters now" is not "what moved most": these are the moves that are large for
+          the asset that made them, which is a different and more useful list. Each card leads
+          with a sentence and keeps the figure beside it, and the asset page behind it carries
+          the evidence. */}
+      <Section
+        title="What matters now"
+        lead="Assets whose latest day is unusual against their own history, each already checked against company news, its industry, the calendar and the related names. Most unusual first, not largest first."
+        aside={<AsOf date={matters.periodEnd} />}
+      >
+        <WhatMattersBlock matters={matters} />
+      </Section>
 
       {/* Directly under the lead, not at the bottom. The whole value of a catalyst is that
           it is seen before a reader has heard about it elsewhere, and a radar you have to

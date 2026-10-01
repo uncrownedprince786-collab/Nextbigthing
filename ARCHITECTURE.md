@@ -12,19 +12,19 @@ This file is the honest version. `brain.md` is the working brain; this is the ma
 | --- | --- | --- | --- |
 | L0 Acquisition | collect from free sources | `jobs/prices.py`, `psx.py`, `signals.py`, `geo.py`, `marketplace.py`, `upcoming.py` | **built** |
 | L1 Data integrity | validation, no silent loss | `source` on every row, no-invent rules, `Coverage` | **built** |
-| L2 DLD / deterministic logic | boolean gates, state machines | thresholds as named constants; `SignalLog.status`, `Event.lifecycle`, `AssetThesis.status` as explicit states with named transitions | **built** — `jobs/thesis.py` is a real machine: active → weakening → broken, broken terminal |
-| L3 Temporal world state | state at time t | `PriceSnapshot` (now with OHLC), `HumanSignal` per period, `Ranking` per `periodEnd`, `ThesisCheck` per assessment date | **partial** — snapshots and a frozen per-day record, no filtered state estimate |
+| L2 DLD / deterministic logic | boolean gates, state machines | thresholds as named constants; `SignalLog.status`, `Event.lifecycle`, `AssetThesis.status`, `IntradaySession.status` as explicit states with named transitions | **built** — `jobs/thesis.py` is a real machine: active → weakening → broken, broken terminal |
+| L3 Temporal world state | state at time t | `PriceSnapshot` (daily OHLC), `IntradayBar` (five minute OHLCV), `HumanSignal` per period, `Ranking` per `periodEnd`, `ThesisCheck` per assessment date | **partial** — snapshots at two resolutions and a frozen per-day record, no filtered state estimate |
 | L4 Probabilistic inference | `P(S_t \| D_1:t)` | — | **absent** |
 | L5 Statistical signal detection | robust deviation, change detection | `jobs/human.py`: robust z via median/MAD, spike vs persistent | **partial** — no CUSUM, no BOCPD |
 | L6 Knowledge graph | `G_t = (V, E)` with edge provenance | `ProductAssetLink`, `EventLink`, industry membership; `jobs/graph.py` walks them | **built** — bounded two-hop propagation, every path stored in words |
 | L7 Causal / systems | DAGs, mechanisms | — | **absent** |
 | L8 Historical analog | distance, similarity, top-K | `jobs/analogs.py` | **built** — tolerance-based, not kernel-weighted |
-| L9 Hypothesis engine | competing H, posterior odds | `jobs/attribution.py`: market / sector / specific as three exclusive accounts of one move | **partial** — magnitudes and shares measured, no posterior odds |
-| L10 Attention / signal | multi-dimensional priority | catalyst radar, plus the one-step neighbourhood beside it | **partial** — two dimensions, no Pareto front |
+| L9 Hypothesis engine | competing H, posterior odds | `jobs/attribution.py` + `jobs/investigate.py`: market / sector / specific / news, with measured base-rate priors and evidence for and against each | **partial** — hypotheses, priors and evidence stored; posteriors blocked on matured outcomes |
+| L10 Attention / signal | multi-dimensional priority | "What matters now" ordered by robust surprise, the catalyst radar, and the one-step neighbourhood | **partial** — three dimensions, no Pareto front |
 | L11 Outcome engine | measure what followed | `SignalLog` at 1/5/30/60d, `jobs/accuracy.py` | **built** |
 | L12 Learning + calibration | Brier, log loss, reliability | `jobs/audit.py`, `Calibration`, `SourceReliability` | **built** — mechanism live, data immature |
 | L13 Self-audit | coverage, blindness, health | `jobs/audit.py`, `Coverage`, `jobs/stats.py` | **built** |
-| L14 Explanation / UI | evidence package, provenance | every figure carries source, as-of, grade, note | **built** |
+| L14 Explanation / UI | evidence package, provenance | every figure carries source, as-of, grade, note; `lib/plain.ts` puts a sentence above every number and `Investigation` stores what was *not* found | **built** |
 
 ## What was violated and is now fixed
 
@@ -103,6 +103,33 @@ produces a figure, a probability, a date difference or a return anywhere in this
 - **Regime engine (§13), Monte Carlo (§27), EVT (§28), hazard models (§17).** All need
   longer or denser history than is stored. PSX history is monthly before the last 120 days;
   product signals began on 2026-09-29.
+
+## What the final pass added
+
+- **Intraday (L3).** `jobs/intraday.py` fetches five minute OHLCV for an **active set** chosen
+  from stored rows — a directional read, a live thesis, an unusual move for that asset, a
+  flagged catalyst, a graph neighbour of one, or a date within three days — and derives 15, 30
+  and 60 minute bars from them exactly, skipping any group with a missing component bar.
+  `jobs/horizons.py` then reads genuinely intraday conditions from those bars: session range,
+  break of the previous session's extreme, volume against the asset's own recent bars, and
+  measured bar-by-bar true range. No daily figure is relabelled as intraday, and an asset with
+  no stored bars gets no intraday row at all.
+- **Three horizons (L2).** `intraday`, `swing` and `longer` are three `AssetSetup` rows, shown
+  side by side including when they disagree. `AssetSetup.horizon` already keyed on horizon, so
+  this needed no schema change.
+- **Targets (L8/L14).** Three independent methods — structure, volatility, analog — each as its
+  own `SetupTarget` row with its own note, and `agreement` recording how far apart they are.
+  Never averaged: §31 applied.
+- **Investigation (L9/L13).** `jobs/investigate.py` triggers on a move that is unusual against
+  the asset's own sixty-session spread and checks nine kinds of evidence, storing `found`,
+  `absent` and `unavailable` as three distinct answers. A move with no story behind it is
+  reported as unexplained rather than attributed to something.
+- **Scheduler integrity (L1).** `jobs/schemacheck.py` replaced a second `prisma migrate deploy`
+  in the data lanes, which had been racing `schema.yml` against one database from two
+  concurrency groups. Migration is now one controlled path, and the data lanes refuse to start
+  if the schema is behind.
+- **Retention (L1).** Intraday bars expire after ten days. The daily series is the permanent
+  record and is never swept.
 
 ## The rule these gaps follow
 

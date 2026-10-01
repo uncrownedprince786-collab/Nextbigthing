@@ -871,7 +871,7 @@ class IntradayNormalisation(unittest.TestCase):
     def test_an_asset_with_no_provider_reference_is_unsupported(self):
         ok, why = intraday.supported({"source": "Yahoo Finance", "sourceRef": ""})
         self.assertFalse(ok)
-        self.assertIn("no provider reference", why)
+        self.assertIn("recognise", why)
 
     def test_the_request_ceiling_bounds_a_selection_bug(self):
         # The ceiling exists so a selection bug costs one capped run rather than a ban.
@@ -1224,6 +1224,125 @@ class InvestigationWording(unittest.TestCase):
         self.assertLessEqual(investigate.NEWS_WINDOW_DAYS, 7)
 
 
+class IntradayAdapter(unittest.TestCase):
+    """The provider's symbol is not always the stored reference.
+
+    Every case here comes from a real run. The crypto 404 was found by fetching, not by
+    reading the code, which is why the mapping is pinned rather than trusted.
+    """
+
+    def test_a_crypto_slug_becomes_the_providers_pair(self):
+        got = intraday.quote_symbol(
+            {"symbol": "btc-bitcoin", "sourceRef": "btc-bitcoin",
+             "source": "coinpaprika", "assetType": "crypto"}
+        )
+        self.assertEqual(got, "BTC-USD")
+
+    def test_a_multi_word_slug_takes_only_the_ticker(self):
+        got = intraday.quote_symbol(
+            {"symbol": "bnb-binance-coin", "sourceRef": "bnb-binance-coin",
+             "source": "coinpaprika", "assetType": "crypto"}
+        )
+        self.assertEqual(got, "BNB-USD")
+
+    def test_an_equity_reference_is_passed_through_unchanged(self):
+        got = intraday.quote_symbol(
+            {"symbol": "NVDA", "sourceRef": "NVDA", "source": "Yahoo Finance",
+             "assetType": "stock"}
+        )
+        self.assertEqual(got, "NVDA")
+
+    def test_crypto_is_detected_by_source_as_well_as_type(self):
+        # assetType is not always populated on every read path, so the source is a second
+        # route to the same conclusion.
+        got = intraday.quote_symbol(
+            {"symbol": "sol-solana", "sourceRef": "sol-solana", "source": "coinpaprika"}
+        )
+        self.assertEqual(got, "SOL-USD")
+
+    def test_an_asset_with_nothing_to_map_is_unsupported(self):
+        ok, why = intraday.supported({"symbol": "", "sourceRef": "", "source": "Yahoo"})
+        self.assertFalse(ok)
+        self.assertIn("recognise", why)
+
+
+class IntradayStaleness(unittest.TestCase):
+    """Staleness is a question about the session in progress, and only that one."""
+
+    def setUp(self):
+        self.now = datetime(2026, 10, 1, 20, 5)
+        self.hours_old = datetime(2026, 9, 29, 20, 0)
+
+    def test_a_finished_session_is_complete_not_stale(self):
+        # The first run marked 748 sessions stale and none complete, because every finished
+        # session in a five day fetch has a newest bar hours old by definition.
+        status, _ = intraday.classify(78, 78, 0, self.hours_old, self.now, is_latest=False)
+        self.assertEqual(status, "complete")
+
+    def test_the_session_in_progress_is_still_judged_on_age(self):
+        status, _ = intraday.classify(78, 78, 0, self.hours_old, self.now, is_latest=True)
+        self.assertEqual(status, "stale")
+
+    def test_a_finished_session_can_still_be_partial(self):
+        # Age is excused for a finished session; missing bars are not.
+        status, _ = intraday.classify(10, 78, 0, self.hours_old, self.now, is_latest=False)
+        self.assertEqual(status, "partial")
+
+
+class IntradayFootprint(unittest.TestCase):
+    """The free tier is a real constraint, and these are the numbers that keep it one."""
+
+    def test_the_fetch_window_is_only_what_the_brain_reads(self):
+        # One run at a month of five minute bars stored 201,726 rows and took the table to
+        # 71 MB of a 500 MB tier, for data nothing queries.
+        self.assertEqual(intraday.RANGE_FOR[5], "5d")
+        self.assertEqual(intraday.RANGE_FOR[1], "1d")
+
+    def test_five_days_of_bars_covers_what_the_readers_need(self):
+        import horizons
+
+        # A US session is 78 five minute bars, so five days is 390.
+        available = 5 * horizons.SESSION_BARS
+        self.assertGreaterEqual(available, horizons.SESSION_BARS * 2)
+        self.assertGreaterEqual(available, horizons.STRUCTURE_LOOKBACK)
+
+    def test_retention_is_longer_than_anything_that_reads_the_bars(self):
+        import horizons
+
+        # Expiring bars a reader still needs would be worse than keeping them. Ten calendar
+        # days is about seven sessions, against a 120 bar lookback that is under two.
+        self.assertGreaterEqual(intraday.RETAIN_DAYS, 10)
+        sessions_kept = intraday.RETAIN_DAYS * 5 / 7
+        self.assertGreater(
+            sessions_kept * horizons.SESSION_BARS, horizons.STRUCTURE_LOOKBACK * 2
+        )
+
+    def test_nothing_is_fetched_at_an_interval_no_reader_queries(self):
+        # Storing what nothing reads is the same mistake as fetching a month to look at two
+        # days. Every reader in the repository queries interval = 5.
+        import re
+
+        for name in ("horizons.py", "investigate.py"):
+            text = (ROOT / "jobs" / name).read_text(encoding="utf-8")
+            wanted = set(re.findall(r"interval = (\d+)", text))
+            self.assertTrue(
+                wanted <= {str(intraday.CANONICAL)},
+                f"{name} reads intervals {wanted}, which are not all fetched",
+            )
+        if intraday.FINE_SLICE == 0:
+            self.assertEqual(intraday.CANONICAL, 5)
+
+    def test_only_intraday_tables_are_swept(self):
+        # The daily series is the permanent record. A retention sweep that touched
+        # PriceSnapshot would delete the history every other job is built on.
+        text = (ROOT / "jobs" / "intraday.py").read_text(encoding="utf-8")
+        import re
+
+        deletes = re.findall(r'DELETE FROM "(\w+)"', text)
+        self.assertTrue(deletes, "the retention sweep is missing")
+        self.assertEqual(set(deletes), {"IntradayBar", "IntradaySession"})
+
+
 class InsertShape(unittest.TestCase):
     """Every INSERT must name as many columns as it supplies expressions.
 
@@ -1272,6 +1391,51 @@ class InsertShape(unittest.TestCase):
             if current.strip():
                 exprs.append(current.strip())
             yield table, cols, [e for e in exprs if e]
+
+    # Postgres reserved words that are plausible column names. An unquoted one is a syntax
+    # error, not a subtle bug, and it only appears when the statement reaches the database —
+    # which for this repo means two minutes into a workflow nobody can read the log of.
+    # `leading` was the one that found this test: it is reserved because TRIM uses it.
+    RESERVED = (
+        "leading", "trailing", "both", "order", "limit", "offset", "user", "group", "window",
+        "end", "all", "any", "case", "when", "then", "else", "default", "check", "column",
+        "table", "select", "from", "where", "having", "union", "current_date", "current_time",
+        "primary", "references", "unique", "constraint", "collate", "asc", "desc", "natural",
+        "using", "full", "left", "right", "inner", "outer", "on", "and", "or", "not", "null",
+        "true", "false", "is", "in", "like", "between", "symmetric", "distinct", "into",
+        "returning", "do", "with", "as", "for", "to", "set", "values", "cast", "analyse",
+    )
+
+    def test_no_insert_names_an_unquoted_reserved_word(self):
+        import re
+
+        offenders = []
+        for name in self.FILES + ("investigate.py", "horizons.py", "intraday.py"):
+            path = ROOT / "jobs" / name
+            if not path.exists():
+                continue
+            text = path.read_text(encoding="utf-8")
+            for table, cols, _ in self._statements(text):
+                for col in cols:
+                    bare = col.strip()
+                    if bare.startswith('"'):
+                        continue
+                    if bare.lower() in self.RESERVED:
+                        offenders.append(f"{name}: INSERT INTO {table} names bare {bare}")
+        self.assertEqual(offenders, [], "; ".join(offenders))
+
+    def test_the_scanner_would_actually_catch_one(self):
+        # A test that can never fail is not a test. This proves the detector fires.
+        fake = '''
+            INSERT INTO "Thing" ("a", leading, "b")
+            VALUES (%s,%s,%s)
+            ON CONFLICT DO NOTHING
+        '''
+        found = [
+            col for _, cols, _ in self._statements(fake) for col in cols
+            if not col.strip().startswith('"') and col.strip().lower() in self.RESERVED
+        ]
+        self.assertEqual(found, ["leading"])
 
     def test_column_and_expression_counts_match(self):
         checked = 0
