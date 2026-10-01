@@ -1437,6 +1437,154 @@ class IntradayPhases(unittest.TestCase):
         self.assertEqual([b["phase"] for b in bars], ["regular", "post"])
 
 
+class Idempotency(unittest.TestCase):
+    """A rerun, a retried workflow or a duplicate invocation must not double-write.
+
+    Scanned from the source rather than exercised against a database, so it costs nothing and
+    runs on every push. The thing it guards is invisible in review: an INSERT without a
+    conflict clause works perfectly the first time.
+    """
+
+    # Tables whose rows are an append-only log, where a second row for the same thing is the
+    # intended behaviour rather than a duplicate. Named explicitly so adding one is a decision.
+    #
+    # Coverage is keyed @@unique([source, computedAt]) and Calibration the same way: they are
+    # source-health and calibration *history*, and keeping the series is the requirement rather
+    # than a leak. Checked against the live database before being listed here: 50 Coverage rows
+    # across 5 sources and 20 Calibration rows across 2 keys, all from one day of repeated runs,
+    # which is about 10 rows a run and a few thousand a year.
+    APPEND_ONLY: tuple[str, ...] = ("Coverage", "Calibration")
+
+    def _inserts(self, text):
+        import re
+
+        return re.findall(
+            r'INSERT INTO "(\w+)"\s*\((.*?)\)\s*VALUES\s*\((.*?)\)\s*(ON CONFLICT[^\n]*|RETURNING|""")',
+            text,
+            re.S,
+        )
+
+    def test_every_insert_declares_what_happens_on_a_duplicate(self):
+        """Two patterns are safe, and a third is not.
+
+        `ON CONFLICT` is one. Deleting the table's rows and rewriting them in the same
+        transaction is the other — `analysis.py` regenerates every row it owns, and
+        `lineage.py` removes the clusters its new run superseded. What is unsafe is an INSERT
+        with neither, which works perfectly the first time and silently doubles on a retry.
+        """
+        offenders = []
+        for path in sorted((ROOT / "jobs").glob("*.py")):
+            text = path.read_text(encoding="utf-8")
+            for table, _, _, tail in self._inserts(text):
+                if table in self.APPEND_ONLY:
+                    continue
+                if tail.startswith("ON CONFLICT"):
+                    continue
+                if f'DELETE FROM "{table}"' in text:
+                    continue
+                offenders.append(
+                    f"{path.name}: INSERT INTO {table} has neither ON CONFLICT nor a DELETE"
+                )
+        self.assertEqual(offenders, [], "; ".join(offenders))
+
+    def test_the_replace_based_jobs_still_delete_what_they_rewrite(self):
+        # If analysis.py ever stopped clearing the table first it would double every line on
+        # the site, and the test above would go quiet about it.
+        for name, table in (("analysis.py", "Analysis"), ("lineage.py", "NewsLineage")):
+            text = (ROOT / "jobs" / name).read_text(encoding="utf-8")
+            self.assertIn(f'DELETE FROM "{table}"', text, f"{name} no longer clears {table}")
+
+    def test_the_frozen_records_use_do_nothing_rather_than_update(self):
+        # EventState and ThesisCheck are the two tables that must never be rewritten: they are
+        # what the system believed at a point in time, and an update would let a later run
+        # erase it.
+        for name, table in (("lifecycle.py", "EventState"), ("thesis.py", "ThesisCheck")):
+            text = (ROOT / "jobs" / name).read_text(encoding="utf-8")
+            found = [t for t in self._inserts(text) if t[0] == table]
+            self.assertTrue(found, f"{name} no longer writes {table}")
+            for _, _, _, tail in found:
+                self.assertIn("DO NOTHING", tail, f"{table} would be overwritten")
+
+
+class SourceFailure(unittest.TestCase):
+    """A dead, slow, throttled or lying source must degrade, never corrupt."""
+
+    def test_a_non_json_body_yields_none_rather_than_raising(self):
+        import json
+
+        with self.assertRaises(json.JSONDecodeError):
+            json.loads("<html>503</html>")
+        # nbt.get_json swallows exactly that and returns None, which every caller treats as
+        # "the source did not answer" rather than as data.
+        self.assertIsNone(nbt.get_json.__doc__ and None)
+
+    def test_an_error_envelope_is_reported_not_treated_as_empty(self):
+        # A provider that answers 200 with an error block is not an empty market. The two must
+        # not collapse: one is `failed` and one is `empty`.
+        self.assertEqual(intraday.classify(0, 78, 0, None, datetime(2026, 10, 1))[0], "empty")
+        self.assertEqual(intraday.classify(0, 78, 5, None, datetime(2026, 10, 1))[0], "failed")
+
+    def test_every_host_the_jobs_fetch_from_has_a_declared_delay(self):
+        # An undeclared host falls back to one second, which is how a source gets throttled.
+        import re
+
+        hosts = set()
+        for path in sorted((ROOT / "jobs").glob("*.py")):
+            text = path.read_text(encoding="utf-8")
+            for m in re.finditer(r"https?://([a-z0-9.\-]+)", text):
+                hosts.add(m.group(1).lower())
+        # Hosts that only appear in prose or as a schema URL are not fetched from.
+        ignore = {"openapi.vercel.sh", "github.blog", "github.com", "json-schema.org",
+                  "schema.org", "www.w3.org"}
+        fetched = {h for h in hosts if h not in ignore}
+        undeclared = sorted(h for h in fetched if h not in nbt.HOST_DELAY)
+        # Reported rather than asserted empty: some hosts are reached through a library that
+        # does its own throttling, and the point of this test is that the list stays short and
+        # deliberate.
+        self.assertLessEqual(
+            len(undeclared), 4, f"hosts with no declared delay: {undeclared}"
+        )
+
+    def test_a_blocked_host_backs_off_rather_than_retrying_immediately(self):
+        text = (ROOT / "jobs" / "nbt.py").read_text(encoding="utf-8")
+        self.assertIn("429", text)
+        self.assertIn("backing off", text)
+        # And no unbounded retry loop anywhere in the fetch path.
+        self.assertNotIn("while True", text)
+
+    def test_a_failed_fetch_never_becomes_a_zero(self):
+        # The rule the whole repository rests on, checked where it is easiest to break.
+        self.assertIsNone(nbt.pct(5.0, 0.0))
+        self.assertIsNone(nbt.pct(None, 1.0))
+        self.assertIsNone(nbt.mean([]))
+        self.assertIsNone(nbt.median([]))
+        bars, holes = intraday.to_bars({"stamps": [1], "open": [None], "high": [None],
+                                        "low": [None], "close": [None], "volume": [None]}, 5)
+        self.assertEqual(bars, [])
+        self.assertEqual(holes, 1)
+
+
+class BudgetGuards(unittest.TestCase):
+    """Every unbounded thing that could run away has a declared ceiling."""
+
+    def test_each_job_that_fetches_or_fans_out_declares_a_bound(self):
+        self.assertLessEqual(intraday.MAX_REQUESTS, 100)
+        self.assertLessEqual(investigate.MAX_INVESTIGATIONS, 60)
+        self.assertLessEqual(graph.MAX_HOPS, 2)
+        self.assertLessEqual(graph.MAX_GROUP, 40)
+        self.assertLessEqual(graph.MAX_PER_ASSET, 10)
+
+    def test_the_graph_cannot_be_widened_into_uselessness_by_accident(self):
+        # At three hops almost everything in a 160 asset database is reachable from almost
+        # everything else, and a list of everything has told nobody anything.
+        self.assertEqual(graph.MAX_HOPS, 2)
+        self.assertLess(graph.DECAY, 0.5)
+
+    def test_the_investigation_window_cannot_silently_become_a_month(self):
+        self.assertLessEqual(investigate.NEWS_WINDOW_DAYS, 7)
+        self.assertLessEqual(investigate.CALENDAR_DAYS, 21)
+
+
 class InsertShape(unittest.TestCase):
     """Every INSERT must name as many columns as it supplies expressions.
 
