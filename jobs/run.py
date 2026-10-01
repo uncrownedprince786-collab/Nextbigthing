@@ -46,8 +46,13 @@ DAILY = [
     ("rank", []),
     ("confidence", ["rankings"]),
     ("events", []),
+    # lineage runs before human, because the catalyst decision counts stories and stories do
+    # not exist until the clustering has run. Running it the other way round would count
+    # today's syndication as today's news.
+    ("lineage", []),
     ("human", []),
     ("accuracy", []),
+    ("audit", []),
     ("analysis", []),
 ]
 
@@ -65,12 +70,14 @@ WEEKLY = [
     ("rank", []),
     ("confidence", ["rankings"]),
     ("events", []),
+    ("lineage", []),
     ("human", []),
     ("accuracy", []),
+    ("audit", []),
     ("analysis", []),
 ]
 
-GROUPS = {"seed": [[("seed", [])]], "daily": [DAILY], "weekly": [WEEKLY]}
+GROUPS ={"seed": [[("seed", [])]], "daily": [DAILY], "weekly": [WEEKLY]}
 
 
 def run(script: str, args: list[str]) -> tuple[bool, float]:

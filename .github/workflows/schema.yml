@@ -84,6 +84,14 @@ jobs:
       # PriceSnapshot — so neither makes a request and both belong with a release rather
       # than with the rate limited refresh. accuracy follows human so a reading is logged
       # before the job that measures logged readings runs.
+      # Before human, because the catalyst decision counts stories and stories do not exist
+      # until the headlines have been clustered.
+      - name: Cluster headlines into stories
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/lineage.py
+
       - name: Read the current human signal
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -101,6 +109,12 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/accuracy.py
+
+      - name: Audit coverage and calibration
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/audit.py
 
       - name: Regenerate the written lines
         env:

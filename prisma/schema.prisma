@@ -258,12 +258,52 @@ model News {
   source      String
   createdAt   DateTime  @default(now())
 
+  /// Which story this item belongs to, assigned by jobs/lineage.py.
+  ///
+  /// One report syndicated to twenty outlets is one piece of information, and counting it as
+  /// twenty is the difference between a catalyst and a wire pickup. Deduping by url cannot
+  /// see this: twenty outlets means twenty urls, all genuinely distinct. So items are
+  /// clustered by what they say, and every count that is meant to measure *information*
+  /// counts lineages rather than rows.
+  lineageId String?
+  /// True for the earliest item in its lineage, which is the closest thing the stored data
+  /// has to an original report. It is a claim about order of publication, not authorship.
+  isOriginal Boolean @default(false)
+
   // Deduping is per target, not global: the same article can be stored once per asset,
   // once per product, and once for an industry. Prisma cannot express the partial unique
   // indexes that does, so they live in the migration and inserts name them in ON CONFLICT.
   @@index([publishedAt])
   @@index([assetId])
   @@index([productId])
+  @@index([lineageId])
+}
+
+/// One story, as distinct from the items that carry it.
+///
+/// Built by jobs/lineage.py by clustering stored headlines, deterministically and with no
+/// model involved: titles are normalised to token shingles and two items join the same
+/// lineage when their overlap clears a stated threshold inside a stated time window. The rule
+/// is in the job and the threshold is stored on the row, so any cluster can be rechecked.
+model NewsLineage {
+  id         String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  /// The target the clustering was done within. Stories are clustered per asset or product,
+  /// because the same wording about two different companies is two different stories.
+  targetRef  String
+  /// Earliest and latest publication time in the cluster.
+  firstSeen  DateTime
+  lastSeen   DateTime
+  /// Items in the cluster, and how many distinct publishers carried it. The second number is
+  /// the one that says whether a story travelled; the first says how many copies exist.
+  items      Int
+  publishers Int
+  /// The earliest item's title, kept as the cluster's label. Not a summary of the cluster.
+  headline   String
+  /// The Jaccard threshold and window this cluster was built with, so it is auditable.
+  rule       String
+  computedAt DateTime @default(now())
+
+  @@index([targetRef, lastSeen])
 }
 
 model Product {
@@ -505,6 +545,102 @@ model ProductRegion {
   @@index([scope, geo, periodEnd])
 }
 
+/// How reliable a source has turned out to be, learned rather than declared.
+///
+/// A Beta posterior over a single rate: alpha and beta are the prior, successes and
+/// observations accumulate from measured outcomes, and the expected reliability is
+/// (alpha + successes) / (alpha + beta + observations). The point of the prior is that a
+/// source with two observations does not get to look perfect; it starts near the middle and
+/// earns its way out.
+///
+/// No source is hard-coded as trustworthy. What "success" means is stored on the row,
+/// because reliability is only meaningful against a stated question.
+model SourceReliability {
+  id         String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  source     String
+  /// The question the rate is about, e.g. the horizon a signal from this source was
+  /// measured over. Reliability is segmented, never global.
+  eventClass String
+  alpha      Float    @default(2)
+  beta       Float    @default(2)
+  observations Int    @default(0)
+  successes  Int      @default(0)
+  /// (alpha + successes) / (alpha + beta + observations), stored so the page need not
+  /// recompute it and so the value at a point in time is recoverable.
+  expected   Float?
+  /// What counted as a success here, in words.
+  criterion  String
+  updatedAt  DateTime @default(now())
+
+  @@unique([source, eventClass])
+}
+
+/// What the system cannot currently see, measured rather than assumed.
+///
+/// A site that quietly stops receiving a feed looks identical to a quiet week, and the second
+/// is a finding while the first is a fault. So the gap between how often a source should
+/// produce something and how long it has actually been silent is measured, and turned into a
+/// risk of missing something:
+///
+///     gapRatio = actualGap / expectedInterval
+///     missRisk = 1 - exp(-criticality * gapRatio)
+///
+/// The states are deliberately not a single percentage. "Unobserved" and "unknown" are
+/// different claims, and a completeness score folds them together.
+model Coverage {
+  id         String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  source     String
+  /// How often this source is expected to yield something, in hours.
+  expectedIntervalHours Float
+  /// How long it has actually been, in hours, at computedAt.
+  actualGapHours Float
+  gapRatio   Float
+  /// How much a miss here would matter, 0 to 1. A judgement, stored next to the arithmetic
+  /// rather than folded into it.
+  criticality Float
+  missRisk   Float
+  /// healthy, stale, or silent.
+  status     String
+  /// Rows the source has contributed, and the newest one's timestamp.
+  rows       Int
+  newest     DateTime?
+  note       String?
+  computedAt DateTime @default(now())
+
+  @@unique([source, computedAt])
+  @@index([status, computedAt])
+}
+
+/// Whether the system's own confidence grades deserve to be believed.
+///
+/// A grade is a claim about how often something holds. That claim is itself checkable, and
+/// until it is checked a grade is decoration. Each row is one bucket: the grade that was
+/// given, how many of those matured, and how often the thing actually went the way the
+/// reading pointed. Brier and log loss are stored beside the rate because a rate alone
+/// cannot distinguish a well separated forecaster from a lucky one.
+///
+/// Published only above a floor, in the job and again in the query layer.
+model Calibration {
+  id         String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  /// The population the bucket was computed over, e.g. humanSignal readings at 5 days.
+  population String
+  horizonDays Int
+  /// The grade or probability band this bucket represents.
+  bucket     String
+  /// What the system implied would happen at this grade, as a rate between 0 and 1.
+  predicted  Float
+  /// What actually happened, as a rate over `n` matured rows.
+  actual     Float?
+  n          Int
+  brier      Float?
+  logLoss    Float?
+  note       String?
+  computedAt DateTime @default(now())
+
+  @@unique([population, horizonDays, bucket, computedAt])
+  @@index([population, computedAt])
+}
+
 /// Direction of the headline wording counted for one target in one window.
 ///
 /// This is tone counted from a fixed word list, not sentiment understood by a model. The
@@ -572,6 +708,22 @@ model HumanSignal {
   /// Set when spikeRatio clears its threshold on a baseline solid enough to divide by.
   catalyst      Boolean @default(false)
   catalystNote  String?
+
+  /// Distinct stories rather than items, over the same recent window. This is the count the
+  /// catalyst decision is actually made on: a ratio built on copies measures syndication,
+  /// and syndication is a fact about the news industry rather than about the asset.
+  recentStories Int    @default(0)
+  /// The same for the baseline window, as stories per day.
+  baselineStoryDaily Float?
+  /// Robust standardised deviation of the recent story rate against the baseline window's
+  /// own daily history: (x - median) / (1.4826 * MAD). Used instead of a plain ratio because
+  /// a ratio against a mean is dragged around by the one busy day inside the baseline, which
+  /// is exactly the kind of day a news feed produces.
+  robustZ       Float?
+  /// spike when the recent window alone is elevated, persistent when the elevation has held
+  /// across the window, none when neither. A single loud day and a fortnight of steadily
+  /// heavier coverage are different events and only the second changes a baseline.
+  changeKind    String @default("none")
   /// Change in item count against that window. Null when the prior window was too thin to
   /// divide by, which is a missing measurement and never a zero.
   velocityPct Float?

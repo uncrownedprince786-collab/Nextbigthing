@@ -218,6 +218,10 @@ export function DiscussionBlock({
     spikeRatio: number | null;
     catalyst: boolean;
     catalystNote: string | null;
+    recentStories: number;
+    baselineStoryDaily: number | null;
+    robustZ: number | null;
+    changeKind: string;
     hypeTerms: number;
     hypeFlag: boolean;
     hypeNote: string | null;
@@ -256,18 +260,33 @@ export function DiscussionBlock({
         <div className="border-warn/40 bg-warn-bg mb-4 rounded-lg border px-3 py-2">
           <div className="flex flex-wrap items-center gap-2">
             <Pill tone="warn">catalyst</Pill>
+            {signal.changeKind && signal.changeKind !== "none" ? (
+              <Pill>{signal.changeKind}</Pill>
+            ) : null}
             <span className="text-warn text-sm font-medium">
-              {signal.recentItems} items in the last 3 days
+              {signal.recentStories} {signal.recentStories === 1 ? "story" : "stories"} in the
+              last 3 days
               {signal.spikeRatio != null ? (
                 <>
-                  , about {signal.spikeRatio.toFixed(1)}&times; the earlier daily rate
+                  , about {signal.spikeRatio.toFixed(1)}&times; the earlier rate
                 </>
+              ) : null}
+              {signal.robustZ != null ? (
+                <> and {signal.robustZ.toFixed(1)}σ above this feed&apos;s own median</>
               ) : null}
             </span>
           </div>
           <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">
-            Something recent is being written about that was not before. This counts
-            headlines; it does not read them. What arrived is in the news list on this page.
+            Counted as distinct <strong>stories</strong>, not items
+            {signal.recentItems > signal.recentStories ? (
+              <>
+                {" "}
+                &mdash; these {signal.recentStories} arrived as {signal.recentItems} items, so
+                some of it is one report carried more than once
+              </>
+            ) : null}
+            . This counts stories; it does not read them. What arrived is in the news list on
+            this page.
           </p>
         </div>
       ) : null}
@@ -371,10 +390,17 @@ export function DiscussionBlock({
             promoted and overvalued are different claims and only the first is measured here.
           </>,
           <>
-            <strong>A catalyst flag is a count, not a verdict.</strong> It says items arrived
-            in the last three days at several times the earlier rate, which is the shape of
-            news breaking. It has not read them, so it cannot tell you whether what arrived
-            was good, bad, or a rewrite of the same story by four outlets.
+            <strong>A catalyst flag is a count, not a verdict.</strong> It says distinct
+            stories arrived in the last three days at several times the earlier rate{" "}
+            <em>and</em> well above what this feed normally varies by. Both tests have to
+            agree, because a ratio alone fires on a busy Tuesday. It has not read the stories,
+            so it cannot tell you whether what arrived was good or bad.
+          </>,
+          <>
+            <strong>Stories, not articles.</strong> One report syndicated to twenty outlets is
+            one piece of information. Headlines are grouped into stories by word overlap
+            inside a time window, and the counts above are of stories — the item count is
+            shown beside them so the amount of duplication is visible rather than hidden.
           </>,
           <>
             <strong>Thin readings are shown, labelled thin.</strong> A direction built on a

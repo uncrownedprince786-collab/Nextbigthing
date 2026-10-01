@@ -82,6 +82,11 @@ CATALYST_RATIO = 3.0
 # ordinary article into a tenfold surge.
 MIN_BASELINE_ITEMS = 4
 
+# Robust deviations above the feed's own median story rate before a flag is allowed. Paired
+# with CATALYST_RATIO on purpose: the ratio catches a jump off a quiet baseline, and this
+# refuses a jump that is ordinary variation for a noisy feed. Both must agree.
+CATALYST_Z = 3.0
+
 # Below this many items in the prior window, velocity is left null. Dividing by 2 turns one
 # extra article into +50%, which is arithmetic rather than a change in attention.
 MIN_PRIOR_ITEMS = 5
@@ -178,11 +183,59 @@ def news_window(cur, column: str, target_id: str, start: datetime, end: datetime
     return rows(
         cur,
         f"""
-        SELECT title, publisher FROM "News"
+        SELECT title, publisher, "lineageId", "publishedAt" FROM "News"
         WHERE "{column}" = %s AND "publishedAt" >= %s AND "publishedAt" < %s
         """,
         (target_id, start, end),
     )
+
+
+def stories(items: list[dict]) -> int:
+    """Distinct stories in a window, not items.
+
+    An item with no lineage yet counts as its own story rather than being dropped: the
+    alternative is undercounting everything collected since lineage.py last ran, which would
+    silence exactly the newest information.
+    """
+    seen: set[str] = set()
+    loose = 0
+    for it in items:
+        lid = it.get("lineageId")
+        if lid:
+            seen.add(lid)
+        else:
+            loose += 1
+    return len(seen) + loose
+
+
+def robust_z(recent_rate: float, daily_counts: list[float]) -> float | None:
+    """(x - median) / (1.4826 * MAD), or None when the baseline cannot support it.
+
+    Used instead of a ratio against a mean because a news feed reliably produces one busy
+    day, and a mean baseline carries that day into every comparison afterwards. The median
+    and the MAD do not, which is the entire reason to prefer them here. The 1.4826 makes the
+    MAD comparable to a standard deviation for normal data; the data is not normal, which is
+    why this is a robust deviation score and not a p-value.
+    """
+    if len(daily_counts) < 7:
+        return None
+    ordered = sorted(daily_counts)
+    mid = len(ordered) // 2
+    med = (
+        ordered[mid]
+        if len(ordered) % 2
+        else (ordered[mid - 1] + ordered[mid]) / 2
+    )
+    devs = sorted(abs(c - med) for c in daily_counts)
+    dmid = len(devs) // 2
+    mad = devs[dmid] if len(devs) % 2 else (devs[dmid - 1] + devs[dmid]) / 2
+    scale = 1.4826 * mad
+    if scale <= 0:
+        # A feed that published exactly the same amount every day gives MAD 0. Dividing would
+        # return infinity for one extra item, so a floor of half an item a day is used and
+        # the result stays finite and interpretable.
+        scale = 0.5
+    return (recent_rate - med) / scale
 
 
 def base_close(cur, asset_id: str, on: date):
@@ -305,27 +358,84 @@ def read_target(cur, column: str, target_id: str, name: str, end: date):
     baseline_items = news_window(cur, column, target_id, base_from, base_to)
 
     recent_n = len(recent)
+    # Stories, not items. This is the number the decision is made on: a ratio built on copies
+    # measures syndication, which is a fact about the news industry and not about the asset.
+    recent_stories = stories(recent)
+    baseline_stories = stories(baseline_items)
+
     baseline_daily = None
+    baseline_story_daily = None
     spike = None
+    rz = None
+    change_kind = "none"
     catalyst = False
     catalyst_note = None
+
     if len(baseline_items) >= MIN_BASELINE_ITEMS:
         baseline_daily = len(baseline_items) / WINDOW_DAYS
-        if baseline_daily > 0:
-            spike = (recent_n / CATALYST_DAYS) / baseline_daily
-            catalyst = spike >= CATALYST_RATIO
+        baseline_story_daily = baseline_stories / WINDOW_DAYS
+        if baseline_story_daily > 0:
+            spike = (recent_stories / CATALYST_DAYS) / baseline_story_daily
+
+        # Daily story counts across the baseline, for the robust deviation. Built from the
+        # rows already fetched rather than with another query.
+        per_day: dict[date, list[dict]] = {}
+        for it in baseline_items:
+            per_day.setdefault(it["publishedAt"].date(), []).append(it)
+        daily = [float(stories(v)) for v in per_day.values()]
+        # Days the feed published nothing are real zeros in the rate, so they are included
+        # rather than skipped — leaving them out would raise the baseline and hide spikes.
+        daily += [0.0] * max(0, WINDOW_DAYS - len(per_day))
+        rz = robust_z(recent_stories / CATALYST_DAYS, daily)
+
+        # Spike against persistent change. A loud afternoon and a fortnight of steadily
+        # heavier coverage are different events, and only the second one has moved the
+        # baseline the next comparison will be made against.
+        recent_half = stories(
+            [it for it in baseline_items if it["publishedAt"] >= base_to - timedelta(days=10)]
+        ) / 10.0
+        if rz is not None and rz >= CATALYST_Z:
+            change_kind = (
+                "persistent"
+                if baseline_story_daily and recent_half >= 1.5 * baseline_story_daily
+                else "spike"
+            )
+
+        # Both tests have to agree. The ratio catches a jump off a quiet baseline and the
+        # robust score refuses one that is ordinary variation for this feed; requiring both
+        # is what keeps a flag from being either a wire pickup or a busy Tuesday.
+        catalyst = bool(
+            spike is not None
+            and spike >= CATALYST_RATIO
+            and rz is not None
+            and rz >= CATALYST_Z
+        )
+
     if catalyst:
+        copies = ""
+        if recent_n > recent_stories:
+            copies = (
+                f" The {recent_stories} stories arrived as {recent_n} items, so some of it is "
+                "the same report carried more than once"
+            )
         catalyst_note = (
-            f"{recent_n} items in the last {CATALYST_DAYS} days, about {spike:.1f} times the "
-            f"{baseline_daily:.2f} a day of the {WINDOW_DAYS} days before. Something arrived "
-            "recently that was not arriving before. What it was is in the headlines below; "
-            "this flag counts them and does not read them"
+            f"{recent_stories} distinct stories in the last {CATALYST_DAYS} days, about "
+            f"{spike:.1f} times the {baseline_story_daily:.2f} a day of the {WINDOW_DAYS} "
+            f"before, and {rz:.1f} robust deviations above this feed's own median. "
+            f"Read as a {change_kind}.{copies}. What arrived is in the headlines below; this "
+            "flag counts stories and does not read them"
         )
     elif recent_n and baseline_daily is None:
         catalyst_note = (
             f"{recent_n} items in the last {CATALYST_DAYS} days, but the {WINDOW_DAYS} days "
             f"before hold fewer than {MIN_BASELINE_ITEMS}, which is too thin to be a rate. No "
             "spike is reported rather than one measured against almost nothing"
+        )
+    elif spike is not None and spike >= CATALYST_RATIO and (rz is None or rz < CATALYST_Z):
+        catalyst_note = (
+            f"the recent story rate is {spike:.1f} times the baseline, but only {rz:.1f} "
+            "robust deviations above this feed's own median, which is ordinary variation for "
+            "it. No catalyst is flagged on the ratio alone"
         )
 
     hype_share = (hype_items / n) if n else None
@@ -370,6 +480,10 @@ def read_target(cur, column: str, target_id: str, name: str, end: date):
         "spikeRatio": spike,
         "catalyst": catalyst,
         "catalystNote": catalyst_note,
+        "recentStories": recent_stories,
+        "baselineStoryDaily": baseline_story_daily,
+        "robustZ": rz,
+        "changeKind": change_kind,
         "velocityPct": velocity,
         "attention": attention,
         "hypeTerms": hype_items,
@@ -446,10 +560,11 @@ def save_signal(cur, column: str, target_id: str, r: dict, end: date) -> None:
         INSERT INTO "HumanSignal" ("{column}", "{other}", "targetRef", "periodEnd",
             "windowDays", items, positive, negative, neutral, tone, "toneScore",
             "priorItems", "velocityPct", attention, "recentItems", "baselineDaily",
-            "spikeRatio", catalyst, "catalystNote", "hypeTerms", "hypeShare", "hypeFlag",
+            "spikeRatio", catalyst, "catalystNote", "recentStories", "baselineStoryDaily",
+            "robustZ", "changeKind", "hypeTerms", "hypeShare", "hypeFlag",
             "hypeNote", confidence, "confidenceNote", source, "computedAt")
         VALUES (%s, NULL, %s, %s, %s, %s, %s, %s, %s, %s::"Tone", %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s::"Confidence", %s, %s, now())
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::"Confidence", %s, %s, now())
         ON CONFLICT ("targetRef", "periodEnd", "windowDays") DO UPDATE SET
             items = EXCLUDED.items, positive = EXCLUDED.positive,
             negative = EXCLUDED.negative, neutral = EXCLUDED.neutral,
@@ -458,7 +573,11 @@ def save_signal(cur, column: str, target_id: str, r: dict, end: date) -> None:
             attention = EXCLUDED.attention, "recentItems" = EXCLUDED."recentItems",
             "baselineDaily" = EXCLUDED."baselineDaily",
             "spikeRatio" = EXCLUDED."spikeRatio", catalyst = EXCLUDED.catalyst,
-            "catalystNote" = EXCLUDED."catalystNote", "hypeTerms" = EXCLUDED."hypeTerms",
+            "catalystNote" = EXCLUDED."catalystNote",
+            "recentStories" = EXCLUDED."recentStories",
+            "baselineStoryDaily" = EXCLUDED."baselineStoryDaily",
+            "robustZ" = EXCLUDED."robustZ", "changeKind" = EXCLUDED."changeKind",
+            "hypeTerms" = EXCLUDED."hypeTerms",
             "hypeShare" = EXCLUDED."hypeShare", "hypeFlag" = EXCLUDED."hypeFlag",
             "hypeNote" = EXCLUDED."hypeNote", confidence = EXCLUDED.confidence,
             "confidenceNote" = EXCLUDED."confidenceNote", "computedAt" = now()
@@ -467,7 +586,8 @@ def save_signal(cur, column: str, target_id: str, r: dict, end: date) -> None:
             target_id, target_id, end, WINDOW_DAYS, r["items"], r["positive"],
             r["negative"], r["neutral"], r["tone"], r["toneScore"], r["priorItems"],
             r["velocityPct"], r["attention"], r["recentItems"], r["baselineDaily"],
-            r["spikeRatio"], r["catalyst"], r["catalystNote"], r["hypeTerms"],
+            r["spikeRatio"], r["catalyst"], r["catalystNote"], r["recentStories"],
+            r["baselineStoryDaily"], r["robustZ"], r["changeKind"], r["hypeTerms"],
             r["hypeShare"], r["hypeFlag"], r["hypeNote"], r["confidence"],
             r["confidenceNote"], "Google News RSS, as stored in News",
         ),
