@@ -563,8 +563,15 @@ def save_signal(cur, column: str, target_id: str, r: dict, end: date) -> None:
             "spikeRatio", catalyst, "catalystNote", "recentStories", "baselineStoryDaily",
             "robustZ", "changeKind", "hypeTerms", "hypeShare", "hypeFlag",
             "hypeNote", confidence, "confidenceNote", source, "computedAt")
-        VALUES (%s, NULL, %s, %s, %s, %s, %s, %s, %s, %s::"Tone", %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::"Confidence", %s, %s, now())
+        VALUES (
+            %s, NULL, %s, %s, %s,                       -- target, other, ref, period, window
+            %s, %s, %s, %s, %s::"Tone", %s,             -- items, pos, neg, neu, tone, score
+            %s, %s, %s,                                 -- priorItems, velocity, attention
+            %s, %s, %s, %s, %s,                         -- recent, baseline, spike, catalyst, note
+            %s, %s, %s, %s,                             -- stories, storyDaily, robustZ, change
+            %s, %s, %s, %s,                             -- hypeTerms, hypeShare, hypeFlag, note
+            %s::"Confidence", %s, %s, now()             -- confidence, note, source, computedAt
+        )
         ON CONFLICT ("targetRef", "periodEnd", "windowDays") DO UPDATE SET
             items = EXCLUDED.items, positive = EXCLUDED.positive,
             negative = EXCLUDED.negative, neutral = EXCLUDED.neutral,

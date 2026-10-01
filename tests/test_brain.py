@@ -214,5 +214,68 @@ class Analogs(unittest.TestCase):
         self.assertTrue(any("spread" in n for n in notes))
 
 
+class InsertShape(unittest.TestCase):
+    """Every INSERT must name as many columns as it supplies expressions.
+
+    This is here because of a real bug. An edit added four columns to the HumanSignal insert
+    and only three placeholders, so the statement had 31 columns and 30 expressions. Nothing
+    caught it: it compiles, it lints, it type-checks, and it fails only when Postgres sees it
+    — which was two hours into a queued pipeline run.
+
+    The check reads the source rather than the database, so it costs nothing and runs on
+    every push.
+    """
+
+    # (file, pattern-identifying comment) for the inserts whose shape is worth pinning.
+    FILES = ("human.py", "analogs.py", "geo.py", "setup.py", "lineage.py", "audit.py")
+
+    def _statements(self, text: str):
+        """Yield (columns, expressions) for each INSERT ... VALUES (...) in the text."""
+        import re
+
+        for m in re.finditer(
+            r'INSERT INTO "(\w+)"\s*\(([^)]*?)\)\s*VALUES\s*\((.*?)\)\s*(?:ON CONFLICT|RETURNING|""")',
+            text,
+            re.S,
+        ):
+            table, cols_raw, vals_raw = m.group(1), m.group(2), m.group(3)
+            # Strip SQL line comments before counting, so the annotations above do not count.
+            vals_clean = re.sub(r"--[^\n]*", "", vals_raw)
+            cols = [c.strip() for c in cols_raw.split(",") if c.strip()]
+            # Split on top-level commas only: a cast like %s::"Tone" has no commas, but
+            # now() and function calls could, so parenthesis depth is tracked.
+            exprs, depth, current = [], 0, ""
+            for ch in vals_clean:
+                if ch == "(":
+                    depth += 1
+                elif ch == ")":
+                    depth -= 1
+                if ch == "," and depth == 0:
+                    exprs.append(current.strip())
+                    current = ""
+                else:
+                    current += ch
+            if current.strip():
+                exprs.append(current.strip())
+            yield table, cols, [e for e in exprs if e]
+
+    def test_column_and_expression_counts_match(self):
+        checked = 0
+        for name in self.FILES:
+            path = ROOT / "jobs" / name
+            if not path.exists():
+                continue
+            text = path.read_text(encoding="utf-8")
+            for table, cols, exprs in self._statements(text):
+                checked += 1
+                self.assertEqual(
+                    len(cols),
+                    len(exprs),
+                    f"{name}: INSERT INTO {table} names {len(cols)} columns but supplies "
+                    f"{len(exprs)} expressions",
+                )
+        self.assertGreater(checked, 0, "the INSERT scanner matched nothing, so it is broken")
+
+
 if __name__ == "__main__":
     unittest.main()
