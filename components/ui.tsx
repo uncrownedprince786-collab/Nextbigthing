@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { isoDate, pct, toneClass } from "@/lib/format";
+import { isoDate, pct, price, toneClass } from "@/lib/format";
 
 export function Section({
   title,
@@ -414,6 +414,159 @@ export function DiscussionBlock({
           </>,
         ]}
       />
+    </Card>
+  );
+}
+
+/// The measured conditions, in the order a person actually asks about them.
+///
+/// Built from one principle: simplifying the language must not remove the data. Each line is
+/// a plain sentence with the numbers it was derived from sitting next to it, so a reader
+/// learns what the numbers mean by seeing them used rather than by being told a verdict.
+///
+/// The three parts that are not optional, because they are what stop this being a tip:
+/// `against` is always rendered when it exists, `missing` is always rendered when it exists,
+/// and the invalidation is always rendered. A state with its disagreements hidden is a
+/// recommendation wearing a measurement's clothes.
+export function SetupBlock({
+  setup,
+  currency = "USD",
+}: {
+  setup: {
+    state: string;
+    horizon: string;
+    headline: string;
+    conditions: string;
+    missing: string;
+    against: string;
+    entryLevel: number | null;
+    entryNote: string | null;
+    invalidateLevel: number | null;
+    invalidateNote: string | null;
+    rangeNote: string | null;
+    confidence: string;
+    confidenceNote: string | null;
+    periodEnd: Date | string;
+  } | null;
+  currency?: string;
+}) {
+  if (!setup) {
+    return (
+      <Empty>
+        No condition read is stored for this asset yet. It is computed from stored prices,
+        news readings and analogs by <code>python jobs/setup.py</code>.
+      </Empty>
+    );
+  }
+
+  const LABEL: Record<string, { text: string; tone: "up" | "down" | "warn" | "default" }> = {
+    buy: { text: "conditions present", tone: "up" },
+    short: { text: "downside conditions present", tone: "down" },
+    wait: { text: "direction clear, conditions incomplete", tone: "warn" },
+    none: { text: "no clear setup", tone: "default" },
+  };
+  const label = LABEL[setup.state] ?? LABEL.none;
+  const conditions = setup.conditions.split(" | ").filter(Boolean);
+  const against = setup.against === "none" ? [] : setup.against.split(" | ").filter(Boolean);
+  const missing = setup.missing === "none" ? [] : setup.missing.split(" | ").filter(Boolean);
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center gap-2">
+        <Pill tone={label.tone}>{label.text}</Pill>
+        <Pill>{setup.horizon}</Pill>
+        <ConfidenceBadge grade={setup.confidence} />
+        <AsOf date={setup.periodEnd} />
+      </div>
+
+      <p className="mt-3 text-sm leading-relaxed">{setup.headline}</p>
+
+      <div className="mt-4">
+        <p className="text-muted-foreground text-xs font-medium">
+          What the data shows
+        </p>
+        <ul className="mt-1.5 space-y-1">
+          {conditions.map((c, i) => (
+            <li key={i} className="text-muted-foreground num text-xs leading-relaxed">
+              {c}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {against.length ? (
+        <div className="border-warn/30 bg-warn-bg mt-4 rounded-lg border px-3 py-2">
+          <p className="text-warn text-xs font-medium">What goes against it</p>
+          <ul className="mt-1.5 space-y-1">
+            {against.map((c, i) => (
+              <li key={i} className="text-muted-foreground text-xs leading-relaxed">
+                {c}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {missing.length ? (
+        <div className="mt-3">
+          <p className="text-muted-foreground text-xs font-medium">
+            What could not be checked
+          </p>
+          <ul className="mt-1.5 space-y-1">
+            {missing.map((c, i) => (
+              <li key={i} className="text-muted-foreground text-xs leading-relaxed">
+                {c}
+              </li>
+            ))}
+          </ul>
+          <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">
+            An input that could not be evaluated is reported as unavailable, never counted as
+            satisfied.
+          </p>
+        </div>
+      ) : null}
+
+      <div className="border-border mt-4 grid gap-3 border-t pt-3 sm:grid-cols-2">
+        {setup.entryLevel != null ? (
+          <div>
+            <p className="text-muted-foreground text-xs font-medium">Level above</p>
+            <p className="num mt-0.5 text-sm">{price(setup.entryLevel, currency)}</p>
+            <p className="text-muted-foreground mt-0.5 text-[11px] leading-relaxed">
+              {setup.entryNote}
+            </p>
+          </div>
+        ) : null}
+        {setup.invalidateLevel != null ? (
+          <div>
+            <p className="text-muted-foreground text-xs font-medium">
+              What would break the reason
+            </p>
+            <p className="num mt-0.5 text-sm">{price(setup.invalidateLevel, currency)}</p>
+            <p className="text-muted-foreground mt-0.5 text-[11px] leading-relaxed">
+              {setup.invalidateNote}
+            </p>
+          </div>
+        ) : null}
+      </div>
+
+      {setup.rangeNote ? (
+        <p className="text-muted-foreground mt-3 text-[11px] leading-relaxed">
+          {setup.rangeNote}.
+        </p>
+      ) : null}
+
+      {setup.confidenceNote ? (
+        <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
+          {setup.confidenceNote}.
+        </p>
+      ) : null}
+
+      <Note>
+        This describes measured conditions and nothing else. It is not advice, it does not say
+        what will happen, and every condition behind it is listed above so the state can be
+        checked rather than trusted. Conditions change; the invalidation level is the one to
+        read first.
+      </Note>
     </Card>
   );
 }

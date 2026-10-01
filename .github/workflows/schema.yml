@@ -110,6 +110,12 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: python jobs/accuracy.py
 
+      - name: Read the measured conditions
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/setup.py
+
       - name: Audit coverage and calibration
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

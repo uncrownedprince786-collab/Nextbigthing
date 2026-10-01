@@ -225,6 +225,14 @@ export async function getHumanSignal(where: { assetId: string } | { productId: s
   });
 }
 
+/// The newest measured-condition read for one asset.
+export async function getSetup(assetId: string) {
+  return prisma.assetSetup.findFirst({
+    where: { assetId },
+    orderBy: { periodEnd: "desc" },
+  });
+}
+
 /// The newest near-term analog rows for one asset, one per horizon.
 export async function getAnalogs(assetId: string) {
   const latest = await prisma.assetAnalog.aggregate({

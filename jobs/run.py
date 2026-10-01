@@ -51,6 +51,9 @@ DAILY = [
     # today's syndication as today's news.
     ("lineage", []),
     ("human", []),
+    # setup reads prices, the news reading and the analogs, so it is last of the readers and
+    # runs after all three. Rules over stored rows, no network.
+    ("setup", []),
     ("accuracy", []),
     ("audit", []),
     ("analysis", []),
@@ -72,6 +75,7 @@ WEEKLY = [
     ("events", []),
     ("lineage", []),
     ("human", []),
+    ("setup", []),
     ("accuracy", []),
     ("audit", []),
     ("analysis", []),

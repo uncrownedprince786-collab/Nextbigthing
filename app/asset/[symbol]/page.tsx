@@ -12,6 +12,7 @@ import {
   Note,
   Pill,
   Section,
+  SetupBlock,
   Table,
   UpcomingBlock,
   weakest,
@@ -22,6 +23,7 @@ import {
   getAsset,
   getAssetPrices,
   getHumanSignal,
+  getSetup,
   getUpcoming,
 } from "@/lib/queries";
 import { isoDate, longDate, money, pct, relativeTime, sizeBasisText, toneClass } from "@/lib/format";
@@ -53,11 +55,12 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
 
   const prices = await getAssetPrices(asset.id, 2019);
   const note = asset.analysis[0];
-  const [discussion, accuracy, analogs, upcoming] = await Promise.all([
+  const [discussion, accuracy, analogs, upcoming, setup] = await Promise.all([
     getHumanSignal({ assetId: asset.id }),
     getAccuracy(30),
     getAnalogs(asset.id),
     getUpcoming({ assetId: asset.id, take: 8 }),
+    getSetup(asset.id),
   ]);
 
   const byBasis = new Map<string, typeof asset.rankings>();
@@ -188,6 +191,16 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
         ) : (
           <Empty>No ranking rows are stored for this asset.</Empty>
         )}
+      </Section>
+
+      {/* First, because it is the question a reader actually arrives with. Everything under
+          it is the evidence the state was read from, in the order a person asks: what do the
+          numbers show, what disagrees, what is coming, what happened before. */}
+      <Section
+        title="What the conditions say right now"
+        lead="Measured conditions over stored prices, news readings and historical analogs. Every condition tested is listed, including the ones that failed and the inputs that were unavailable."
+      >
+        <SetupBlock setup={setup} currency={asset.currency} />
       </Section>
 
       <Section

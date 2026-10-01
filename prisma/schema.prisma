@@ -94,6 +94,7 @@ model Asset {
   signalLogs   SignalLog[]
   analogs      AssetAnalog[]
   eventLinks   EventLink[]
+  setups       AssetSetup[]
 
   createdAt DateTime @default(now())
 
@@ -543,6 +544,61 @@ model ProductRegion {
   @@unique([productId, scope, geo, name, periodEnd])
   @@index([productId, periodEnd])
   @@index([scope, geo, periodEnd])
+}
+
+/// The measured conditions around one asset, and whether they currently add up to a setup
+/// the stored rules recognise.
+///
+/// Three things about this table are load-bearing and none of them is decoration:
+///
+///  1. The state is produced by explicit rules over stored numbers. There is no model and no
+///     judgement in it. Every condition that was tested is written to `conditions`, including
+///     the ones that failed, so the state can be rederived by hand from the row.
+///  2. `missing` lists the inputs that were not available. A rule that could not be evaluated
+///     is reported as unevaluated, never as satisfied — the difference is the whole reason a
+///     reader can trust the other fields.
+///  3. Entry and invalidation are levels computed from stored prices, not targets. The
+///     invalidation is the one that matters: it is the measurable condition under which the
+///     reason for the state has stopped being true.
+///
+/// It describes conditions. It is not advice, it does not say what will happen, and the
+/// reader decides. The site says so next to every one of these.
+model AssetSetup {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId   String
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  periodEnd DateTime @db.Date
+  /// intraday, swing or longer. The same asset can read differently on each, which is not a
+  /// contradiction: different horizons are computed from different windows.
+  horizon   String
+
+  /// buy, short, wait or none, decided by the rules in jobs/setup.py.
+  state     String
+  /// One plain sentence naming the conditions that produced the state.
+  headline  String
+  /// Every condition tested, as "name=value (pass|fail)", so the state is rederivable.
+  conditions String
+  /// Inputs that could not be evaluated, named. Empty when all were available.
+  missing   String
+  /// Conditions pointing the other way, kept because hiding them is what makes a clean
+  /// signal out of mixed data.
+  against   String
+
+  /// Levels computed from stored closes, with the window they came from stated.
+  entryLevel      Float?
+  entryNote       String?
+  invalidateLevel Float?
+  invalidateNote  String?
+  /// A measured range from the historical analogs, never a projection.
+  rangeNote       String?
+
+  confidence     Confidence @default(none)
+  confidenceNote String?
+  source     String
+  computedAt DateTime   @default(now())
+
+  @@unique([assetId, periodEnd, horizon])
+  @@index([state, periodEnd])
 }
 
 /// How reliable a source has turned out to be, learned rather than declared.
