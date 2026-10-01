@@ -176,6 +176,74 @@ unit tests; all are fixed and re-verified at 29 pass / 0 fail.
 7. **A reserved word.** `leading` is reserved in Postgres; the unquoted column was a syntax
    error that only appeared at the database.
 
+## Where this stands, 2026-10-01 evening — READ THIS FIRST ON RESUME
+
+Everything below the horizontal rule is still accurate. This section is the live state.
+
+### The one thing still red
+
+**`refresh.yml` fails at "Run data jobs".** Latest: run `36918247571` (commit `7df69c6`),
+failure, 17m 11s. The schema guard passed; the failure is inside `jobs/run.py daily`.
+
+Two causes were found and fixed today, and **every job in the daily group now passes when run
+individually against the production database**:
+
+| job | verified |
+| --- | --- |
+| `prices yahoo` | **37,537 rows stored**, PriceSnapshot 154,873 → 191,748, latest 2026-10-01 |
+| `psx recent` | 12,417 snapshots, 2019-01-01 → 2026-10-01 |
+| `upcoming` | 105 earnings dates, 2026-10-13 → 2026-12-24 |
+| `rank`, `confidence rankings`, `analysis` | all clean |
+| `events` | 1,394 impact rows in 0.6 min |
+| `intraday`, `horizons all`, `thesis`, `attribution`, `graph`, `investigate` | all clean |
+
+So the remaining production failure is **environment-specific, not a code defect**. The strong
+hypothesis, and the next thing to check: **`yfinance` is being throttled or blocked from GitHub
+runner IPs.** The evidence is that the same `prices` step stored **0** rows in run `36918247571`
+while storing 37,537 locally minutes later, and `fetch_yahoo` cannot distinguish an empty frame
+from a blocked one — `yf.download` returns an empty DataFrame and `_store_frame` writes nothing
+without raising.
+
+**How to confirm it, since the log needs a GitHub sign-in:** `run.py` already writes a per-step
+table to `$GITHUB_STEP_SUMMARY`, and `schema.yml`'s migrate step writes its output there too.
+GitHub does **not** render job summaries to anonymous visitors, so reading either one needs a
+sign-in. Sign in once, open the failing run, and the table names the step in one line.
+
+If it is the Yahoo block, the honest fix is in `prices.py`: treat an empty frame for an asset
+that was expected to have data as a **failure rather than silence**, so the job reports it
+instead of succeeding with nothing — the same `partial` distinction `jobs/audit.py` already
+makes, which correctly flagged this one (`Yahoo Finance daily closes — partial — the newest day
+holds 2 records against a recent median of 60`).
+
+### Two transient failures, already recovered
+
+`schema.yml` failed twice at "Apply pending schema migrations" (runs `36882681832`,
+`36883475566`), both in ~12s with every other step passing. The schema was current throughout
+(19 of 19 migrations applied, checked directly) and the next run **passed** — run `36917629683`,
+success, 9m 3s, all 20 brain jobs green. Neon's free-tier compute suspends when idle and the
+runner's connect attempt timed out. The migrate step now copies its own output to the run
+summary so a repeat says why.
+
+### Review findings — all five shipped in `9db293f`
+
+1. **Simple read** on `/asset/[symbol]` and `/product/[slug]`, above everything.
+2. **Home scan boxes** — setups to watch, dates & cautions, product attention.
+3. **Product cards** reduced to name / status / score / badge, grade paragraph behind a
+   `<details>` disclosure.
+4. **Automobile and Software & Cloud** were a data gap, not a UI bug: ten assets each with zero
+   stored prices, because `prices.py` had been broken for two days. Both now have 10 `sizeNow`
+   and 10 `rising` rankings. The card also no longer renders "as of no date".
+5. **News honesty** folded into the Simple read caution chain.
+
+### Known data gaps, each with a stated reason
+
+- `ProductRegion` is still empty. `geo.py` works (verified: 175 countries, 51 US states, 5 PK
+  provinces) but keeps being cancelled by queue churn in `backfill.yml`.
+- `MarketplaceItem` is empty and `Coverage` reports Amazon Best Sellers as `silent`. It is a
+  weekly job and has not run.
+- `Binance` crypto closes stop at 2026-09-29.
+- `EventState` is 0 — all 131 scheduled dates are still in the future, so nothing has resolved.
+
 ## What still needs a human
 
 Only genuinely external things:
