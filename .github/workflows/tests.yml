@@ -57,6 +57,14 @@ jobs:
       - name: Generate the Prisma client
         run: npx prisma generate
 
+      # tsconfig includes .next/types, which only exists once Next has generated its route
+      # definitions. A clean checkout has never run a build, so the type check failed here
+      # while passing on a machine that had. `typegen` produces exactly those definitions and
+      # needs no database, which is why it is used instead of a build: `next build` collects
+      # page data, and page data means querying Postgres.
+      - name: Generate route types
+        run: npx next typegen
+
       - name: Type check
         run: npx tsc --noEmit
 
