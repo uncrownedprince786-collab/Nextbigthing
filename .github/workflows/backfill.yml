@@ -33,7 +33,11 @@ jobs:
   backfill:
     name: fetch PSX history and rerank
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Cut from 60. A Trends fetch stuck in rate-limit retries once held this job, and its
+    # concurrency group with it, for over ninety minutes. A backfill that has not finished in
+    # 35 is not going to, and leaving it running costs more than losing it: the fetched-file
+    # cache is saved on always(), so a killed run keeps what it collected.
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
 
@@ -72,7 +76,12 @@ jobs:
       # refresh does not reach back for a product that has just been given a Trends term, and
       # the weekly group is where this otherwise runs. Trends rate limits hard, so a failure
       # here is left to fail rather than retried into a wall of 429s.
+      # P3 enrichment, and bounded so it cannot become the reason a run never ends. Failure
+      # here is tolerated on purpose: a missing regional breakdown is a gap the page states,
+      # whereas a geo fetch that fails the whole job also loses the rerank below it.
       - name: Fetch the product regional breakdown
+        continue-on-error: true
+        timeout-minutes: 14
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PYTHONIOENCODING: utf-8

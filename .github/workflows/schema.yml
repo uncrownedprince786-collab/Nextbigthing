@@ -23,11 +23,20 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Shared with the refresh workflow. Both write to the one database, and a migration running
-# underneath a data job is the kind of thing that only fails some of the time, which is worse
-# than waiting. cancel-in-progress stays false so a queued migration is never dropped.
+# Its own lane, and that is the point.
+#
+# This used to share `nbt-database` with the refresh and backfill workflows, which deadlocked
+# the thing that matters most: a geo backfill hung on rate-limit retries held the group for
+# over ninety minutes, and the migration that the deployed site needed sat queued behind it.
+# Optional enrichment must never be able to block critical ingestion.
+#
+# Safe to run alongside them: `prisma migrate deploy` takes a Postgres advisory lock, so two
+# migrations cannot interleave, and every job in this workflow writes through ON CONFLICT
+# upserts. The one real race is analysis.py, which deletes and rewrites its table inside a
+# transaction — two concurrent runs end with one of them winning, which is correct output
+# either way, and far better than the schema never arriving at all.
 concurrency:
-  group: nbt-database
+  group: nbt-schema
   cancel-in-progress: false
 
 jobs:
