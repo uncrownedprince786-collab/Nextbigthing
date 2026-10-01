@@ -127,15 +127,69 @@ its exit code as the **last** thing in the log, and writes the same table to
 `$GITHUB_STEP_SUMMARY` — which matters because **GitHub requires a sign-in to read Actions logs
 even for a public repository**, and the run summary page does not.
 
+## The refresh failure, found and fixed
+
+Carried as an open item since 2026-09-30 and closed on 2026-10-01. It was one missing import.
+
+`jobs/prices.py` used `timedelta` on two lines and imported only `date, datetime, timezone`.
+The name resolved nowhere, so the **first** job of the daily group died with `NameError` 0.1
+minutes in and all sixteen behind it were skipped. That is why the runs reported failure while
+the site kept serving correctly: nothing ran, so nothing was corrupted, and the previous day's
+rows stayed where they were.
+
+Found by running the production command locally and reading the per-step table, not by guessing:
+
+    === prices yahoo crypto news: FAILED in 0.1 min ===
+    NameError: name 'timedelta' is not defined
+
+Nothing caught it. It imports, it compiles, `compileall` passes it, and the name is resolved
+only when that branch executes — which it does on every run, in the one job every other job
+depends on. `tests/test_brain.py::UndefinedNames` now walks every job's AST for names it never
+binds, with two tests proving the walk fires on this exact shape and stays quiet on the fix.
+
+## Seven more defects the production verification found
+
+An end-to-end check of the intraday chain started at 20 pass / 9 fail. None was visible in the
+unit tests; all are fixed and re-verified at 29 pass / 0 fail.
+
+1. **Naive `datetime.timestamp()`.** `aggregate()` bucketed derived bars through an epoch, and
+   that call reads the *machine's* local timezone. Invisible on the UTC runner; five hours
+   wrong from a UTC+5 laptop, so AAPL's 15-minute bar at 08:00 held the open of the 13:00 bar.
+   A timezone-dependent result is worse than a wrong one. Now pure arithmetic, guarded by one
+   test that states the answer and one that forbids the construct.
+2. **The bar still forming.** The provider's last element is stamped with the quote time, not a
+   bar boundary. It was stored as a complete bar, made aggregation groups look full, and —
+   because each run stamps a different second — accumulated instead of overwriting. 112 had
+   piled up. Now discarded and counted.
+3. **Cross-day session phases.** `currentTradingPeriod` describes today only; the old
+   adjacent-day fallback compared a Monday bar against Friday's window. 1,100 of NVDA's 1,613
+   bars were labelled pre-market, leaving the intraday read a quarter of its series.
+4. **Retention wider than the refetch window.** A bar outside the window keeps whatever phase
+   it was given. `RETAIN_DAYS` is now 7 to match `range=5d`; changing one without the other
+   reintroduces stale labels.
+5. **Analog targets straddling the entry.** The range ran from the median to the favourable
+   extreme, so a median near zero put the near edge on the wrong side: AAPL `buy` at 333.08
+   with an "upside" range starting at 332.77. Seven rows. The analog target now requires a
+   median pointing the same way as the setup.
+6. **Upserts that never retract.** When a method stopped qualifying, the previous row survived.
+   `run_targets` now deletes the methods it did not produce.
+7. **A reserved word.** `leading` is reserved in Postgres; the unquoted column was a syntax
+   error that only appeared at the database.
+
 ## What still needs a human
 
 Only genuinely external things:
 
 1. **Reading a failed `refresh` log** needs a GitHub sign-in. The step summary table is the way
    around it for the common case.
-2. **The deployed site is behind Vercel Authentication**, so the pages cannot be read without
-   signing in to that account. Everything above was verified against the database instead. The
-   page-level look is the one check never performed.
+2. **The deployed site is behind Vercel Authentication.** Re-checked on 2026-10-01: the
+   deployment answers HTTP 200 with 341 KB, and that payload is Vercel's own sign-in challenge
+   rather than the site — reading the status code alone would have been misleading. So visual
+   production acceptance has **not** been performed and is not claimed. What was done instead:
+   the current commit was built and served locally against the production database, and the
+   home page, `/asset/INTC`, `/asset/AAPL`, `/methodology`, `/events` and `/products` were all
+   fetched and read. That verifies the code and the data; it does not verify the deployment.
+   The remedy is one setting — disable Vercel Authentication for production, or grant access.
 3. Provider credential expiry, source format or terms change, provider shutdown, or an
    infrastructure plan change.
 
