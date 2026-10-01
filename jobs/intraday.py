@@ -396,22 +396,78 @@ def session_dates(bars: list[dict], offset_seconds: int | None) -> None:
         b["sessionDate"] = (b["ts"] + shift).date()
 
 
-def phase_of(bars: list[dict], regular: dict | None) -> None:
+def _naive(epoch) -> datetime:
+    return datetime.fromtimestamp(int(epoch), timezone.utc).replace(tzinfo=None)
+
+
+def regular_windows(payload: dict) -> list[tuple[datetime, datetime]]:
+    """Every session's regular trading window, from the provider's per-session array.
+
+    The provider serves `tradingPeriods.regular` as one entry per session, each wrapped in a
+    single-element list. Using it matters: `currentTradingPeriod` describes *today* only, and
+    applying today's window to a five day payload labelled four sessions' worth of regular
+    bars as pre- and post-market. That left three assets with enough `regular` bars to read
+    and thirty-three without, which is how this was found.
+
+    Per session rather than per day-of-week also handles a half day correctly, since the
+    provider shortens that session's own window.
+    """
+    tp = payload.get("trading")
+    rows = tp.get("regular") if isinstance(tp, dict) else None
+    out: list[tuple[datetime, datetime]] = []
+    for entry in rows or []:
+        items = entry if isinstance(entry, list) else [entry]
+        for item in items:
+            if isinstance(item, dict) and item.get("start") and item.get("end"):
+                out.append((_naive(item["start"]), _naive(item["end"])))
+    return sorted(out)
+
+
+def phase_of(bars: list[dict], regular: dict | None,
+             windows: list[tuple[datetime, datetime]] | None = None) -> None:
     """Mark each bar regular, pre or post, in place.
 
-    From the provider's stated regular trading period for the session. When it does not state
-    one every bar is left `regular`: labelling a bar `pre` on a guess would make a thin
-    pre-market print look like a thin regular one, which is the comparison this field exists
-    to protect.
+    Three sources, in order of how much they actually know:
+
+      * the per-session windows, when the provider sent them — exact, including half days
+      * otherwise the single stated period, applied by **local time of day** rather than by
+        absolute timestamp, so one session's 09:30-16:00 still classifies every session
+      * otherwise nothing at all
+
+    The last case leaves every bar `regular` on purpose. Labelling a bar `pre` on a guess
+    would make a thin pre-market print look like a thin regular one, which is the exact
+    comparison this field exists to protect.
     """
+    if windows:
+        for b in bars:
+            ts = b["ts"]
+            same = [w for w in windows if w[0].date() == ts.date()]
+            # A session that opens before midnight UTC and closes after it has bars on both
+            # dates, so a window on the adjacent date is considered too.
+            if not same:
+                same = [w for w in windows if abs((w[0].date() - ts.date()).days) <= 1]
+            if not same:
+                b["phase"] = "regular"
+                continue
+            if any(start <= ts < end for start, end in same):
+                b["phase"] = "regular"
+            elif ts < min(start for start, _ in same):
+                b["phase"] = "pre"
+            else:
+                b["phase"] = "post"
+        return
+
     if not regular or not regular.get("start") or not regular.get("end"):
         return
-    start = datetime.fromtimestamp(regular["start"], timezone.utc).replace(tzinfo=None)
-    end = datetime.fromtimestamp(regular["end"], timezone.utc).replace(tzinfo=None)
+    start = _naive(regular["start"])
+    end = _naive(regular["end"])
+    open_at = start.time()
+    close_at = end.time()
     for b in bars:
-        if b["ts"] < start:
+        at = b["ts"].time()
+        if at < open_at:
             b["phase"] = "pre"
-        elif b["ts"] >= end:
+        elif at >= close_at:
             b["phase"] = "post"
         else:
             b["phase"] = "regular"
@@ -707,7 +763,7 @@ def main() -> None:
                 bars, holes = to_bars(payload, interval)
                 session_dates(bars, payload.get("gmtoffset"))
                 regular = (payload.get("periods") or {}).get("regular")
-                phase_of(bars, regular)
+                phase_of(bars, regular, regular_windows(payload))
 
                 by_session: dict[date, list[dict]] = {}
                 for b in bars:

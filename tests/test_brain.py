@@ -1343,6 +1343,100 @@ class IntradayFootprint(unittest.TestCase):
         self.assertEqual(set(deletes), {"IntradayBar", "IntradaySession"})
 
 
+class IntradayPhases(unittest.TestCase):
+    """Session phases must be right across every session in the payload, not just today's.
+
+    This is here because of a real bug. `currentTradingPeriod` describes today only, and
+    applying it to a five day payload labelled four sessions' worth of regular bars as pre-
+    and post-market. Three assets then had enough `regular` bars for an intraday read and
+    thirty-three did not.
+    """
+
+    @staticmethod
+    def _epoch(y, m, d, hh, mm):
+        import calendar
+
+        return calendar.timegm(datetime(y, m, d, hh, mm).timetuple())
+
+    def _payload_two_sessions(self):
+        return {
+            "trading": {
+                "regular": [
+                    [{"start": self._epoch(2026, 9, 30, 13, 30),
+                      "end": self._epoch(2026, 9, 30, 20, 0)}],
+                    [{"start": self._epoch(2026, 10, 1, 13, 30),
+                      "end": self._epoch(2026, 10, 1, 20, 0)}],
+                ]
+            }
+        }
+
+    def test_the_per_session_windows_are_read(self):
+        got = intraday.regular_windows(self._payload_two_sessions())
+        self.assertEqual(len(got), 2)
+        self.assertEqual(got[0][0], datetime(2026, 9, 30, 13, 30))
+
+    def test_a_missing_array_yields_nothing_rather_than_raising(self):
+        self.assertEqual(intraday.regular_windows({}), [])
+        self.assertEqual(intraday.regular_windows({"trading": None}), [])
+
+    def test_bars_in_both_sessions_are_regular(self):
+        bars = [
+            {"ts": datetime(2026, 9, 30, 15, 0)},
+            {"ts": datetime(2026, 10, 1, 15, 0)},
+        ]
+        intraday.phase_of(bars, None, intraday.regular_windows(self._payload_two_sessions()))
+        self.assertEqual([b["phase"] for b in bars], ["regular", "regular"])
+
+    def test_the_earlier_session_is_not_labelled_post_market(self):
+        # The exact bug: yesterday's 15:00 bar is after today's window has no bearing on it.
+        bars = [{"ts": datetime(2026, 9, 30, 15, 0)}]
+        intraday.phase_of(bars, None, intraday.regular_windows(self._payload_two_sessions()))
+        self.assertEqual(bars[0]["phase"], "regular")
+
+    def test_pre_and_post_are_still_identified_within_a_session(self):
+        bars = [
+            {"ts": datetime(2026, 10, 1, 12, 0)},
+            {"ts": datetime(2026, 10, 1, 15, 0)},
+            {"ts": datetime(2026, 10, 1, 21, 0)},
+        ]
+        intraday.phase_of(bars, None, intraday.regular_windows(self._payload_two_sessions()))
+        self.assertEqual([b["phase"] for b in bars], ["pre", "regular", "post"])
+
+    def test_the_fallback_classifies_every_session_by_local_time_of_day(self):
+        # With no per-session array, one stated period still has to classify all sessions.
+        regular = {"start": self._epoch(2026, 10, 1, 13, 30),
+                   "end": self._epoch(2026, 10, 1, 20, 0)}
+        bars = [
+            {"ts": datetime(2026, 9, 28, 15, 0)},
+            {"ts": datetime(2026, 9, 29, 12, 0)},
+            {"ts": datetime(2026, 9, 30, 21, 0)},
+        ]
+        intraday.phase_of(bars, regular, None)
+        self.assertEqual([b["phase"] for b in bars], ["regular", "pre", "post"])
+
+    def test_no_information_at_all_leaves_every_bar_regular(self):
+        # Guessing would make a thin pre-market print look like a thin regular one.
+        bars = [{"ts": datetime(2026, 10, 1, 3, 0)}]
+        intraday.phase_of(bars, None, None)
+        self.assertNotIn("phase", bars[0])
+
+    def test_a_half_day_session_uses_its_own_shorter_window(self):
+        payload = {
+            "trading": {
+                "regular": [
+                    [{"start": self._epoch(2026, 11, 27, 14, 30),
+                      "end": self._epoch(2026, 11, 27, 18, 0)}],
+                ]
+            }
+        }
+        bars = [
+            {"ts": datetime(2026, 11, 27, 17, 0)},
+            {"ts": datetime(2026, 11, 27, 19, 0)},
+        ]
+        intraday.phase_of(bars, None, intraday.regular_windows(payload))
+        self.assertEqual([b["phase"] for b in bars], ["regular", "post"])
+
+
 class InsertShape(unittest.TestCase):
     """Every INSERT must name as many columns as it supplies expressions.
 
