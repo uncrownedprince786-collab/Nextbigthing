@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import sys
 import unittest
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,8 +27,10 @@ sys.path.insert(0, str(ROOT / "jobs"))
 import analogs  # noqa: E402
 import attribution  # noqa: E402
 import graph  # noqa: E402
+import horizons  # noqa: E402
 import human  # noqa: E402
 import intraday  # noqa: E402
+import investigate  # noqa: E402
 import lineage  # noqa: E402
 import nbt  # noqa: E402
 import run  # noqa: E402
@@ -904,6 +906,322 @@ class IntradayNormalisation(unittest.TestCase):
         bars = [{"ts": datetime(2026, 10, 1, 12, 0)}]
         intraday.phase_of(bars, None)
         self.assertNotIn("phase", bars[0])
+
+
+def _ohlc(closes, highs=None, lows=None, vols=None, session=None):
+    """Bars shaped like the rows horizons.py reads, for the pure-logic tests."""
+    n = len(closes)
+    highs = highs or [c + 1.0 for c in closes]
+    lows = lows or [c - 1.0 for c in closes]
+    vols = vols if vols is not None else [1000.0] * n
+    sess = session or [date(2026, 10, 1)] * n
+    return [
+        {"close": closes[i], "high": highs[i], "low": lows[i], "volume": vols[i],
+         "sessionDate": sess[i], "ts": datetime(2026, 10, 1, 13, 30) + timedelta(minutes=5 * i)}
+        for i in range(n)
+    ]
+
+
+class TrueRange(unittest.TestCase):
+    def test_a_gap_between_bars_counts_as_movement(self):
+        # Close-to-close would see nothing here; the gap from 10 to 20 is real range.
+        bars = _ohlc([10.0, 20.0], highs=[10.0, 20.0], lows=[10.0, 20.0])
+        self.assertAlmostEqual(horizons.true_range(bars, 1), 10.0)
+
+    def test_it_needs_one_more_bar_than_the_window(self):
+        self.assertIsNone(horizons.true_range(_ohlc([1.0, 2.0]), 5))
+
+    def test_a_flat_series_has_a_measurable_range_not_none(self):
+        bars = _ohlc([10.0] * 20, highs=[10.5] * 20, lows=[9.5] * 20)
+        self.assertAlmostEqual(horizons.true_range(bars, 14), 1.0)
+
+
+class Pivots(unittest.TestCase):
+    def test_a_turn_is_found_where_the_series_actually_turned(self):
+        closes = [1.0, 2.0, 5.0, 2.0, 1.0, 2.0, 5.0, 2.0, 1.0]
+        highs, lows = horizons.pivots(_ohlc(closes, highs=closes, lows=closes), 120)
+        self.assertIn(5.0, highs)
+
+    def test_a_series_too_short_to_have_turns_yields_none(self):
+        highs, lows = horizons.pivots(_ohlc([1.0, 2.0, 3.0]), 120)
+        self.assertEqual((highs, lows), ([], []))
+
+    def test_the_next_level_above_is_the_nearest_one(self):
+        self.assertAlmostEqual(horizons.next_level([120.0, 150.0, 200.0], 100.0, True), 120.0)
+
+    def test_the_next_level_below_is_the_nearest_one(self):
+        self.assertAlmostEqual(horizons.next_level([50.0, 80.0, 95.0], 100.0, False), 95.0)
+
+    def test_price_past_every_level_has_no_measured_level_left(self):
+        # None rather than extrapolating one, which would be fake precision.
+        self.assertIsNone(horizons.next_level([50.0, 80.0], 100.0, True))
+
+    def test_a_level_merely_touched_does_not_count_as_beyond(self):
+        self.assertIsNone(horizons.next_level([100.0], 100.0, True))
+
+
+class IntradayRead(unittest.TestCase):
+    """Every intraday condition must come from intraday bars, and say what is missing."""
+
+    def _rising(self, n=50, vol_last=5000.0):
+        closes = [100.0 + i * 0.5 for i in range(n)]
+        vols = [1000.0] * (n - 1) + [vol_last]
+        return _ohlc(closes, vols=vols)
+
+    def test_a_clean_breakout_on_heavy_volume_is_a_buy(self):
+        bars = self._rising()
+        state, head, conds, missing, against, entry, invalid = horizons.intraday_read(
+            bars, prior_high=110.0, prior_low=95.0
+        )
+        self.assertEqual(state, "buy")
+        self.assertIn("cleared the previous session", head)
+        self.assertLess(invalid, entry)
+
+    def test_the_same_trend_without_the_breakout_is_wait(self):
+        bars = self._rising()
+        state, _, _, _, against, _, _ = horizons.intraday_read(
+            bars, prior_high=10_000.0, prior_low=95.0
+        )
+        self.assertEqual(state, "wait")
+        self.assertTrue(any("previous session" in a for a in against))
+
+    def test_the_same_trend_without_volume_is_wait(self):
+        bars = self._rising(vol_last=100.0)
+        state, _, _, _, against, _, _ = horizons.intraday_read(
+            bars, prior_high=110.0, prior_low=95.0
+        )
+        self.assertEqual(state, "wait")
+        self.assertTrue(any("own recent average" in a for a in against))
+
+    def test_absent_volume_is_recorded_as_missing_not_as_quiet(self):
+        bars = self._rising()
+        for b in bars:
+            b["volume"] = None
+        state, _, _, missing, _, _, _ = horizons.intraday_read(bars, 110.0, 95.0)
+        self.assertTrue(any("provider sent no volume" in m for m in missing))
+        self.assertNotEqual(state, "buy", "a buy must not rest on volume that was never sent")
+
+    def test_no_previous_session_is_recorded_as_missing(self):
+        bars = self._rising()
+        _, _, _, missing, _, _, _ = horizons.intraday_read(bars, None, None)
+        self.assertTrue(any("previous session" in m for m in missing))
+
+    def test_a_falling_series_breaking_down_is_a_short(self):
+        closes = [100.0 - i * 0.5 for i in range(50)]
+        bars = _ohlc(closes, vols=[1000.0] * 49 + [5000.0])
+        state, _, _, _, _, _, _ = horizons.intraday_read(bars, 120.0, 90.0)
+        self.assertEqual(state, "short")
+
+    def test_a_flat_series_has_no_clear_setup(self):
+        bars = _ohlc([100.0, 100.5] * 25)
+        state, head, _, _, _, _, _ = horizons.intraday_read(bars, 110.0, 95.0)
+        self.assertEqual(state, "none")
+        self.assertIn("between its intraday averages", head)
+
+    def test_the_conditions_parse_with_the_thesis_verdict_reader(self):
+        # thesis.py reads this exact format to decide whether a reason still holds. A new
+        # horizon written in a new format would silently produce theses with nothing to
+        # compare, so the two are pinned together here.
+        _, _, conds, _, _, _, _ = horizons.intraday_read(self._rising(), 110.0, 95.0)
+        got = thesis.verdicts(" | ".join(conds))
+        self.assertIn("trend", got)
+        self.assertIn("volume", got)
+        self.assertIn(got["trend"], ("up", "down", "mixed"))
+
+
+class LongerRead(unittest.TestCase):
+    def _rising(self, n=260):
+        return _ohlc([100.0 + i * 0.4 for i in range(n)])
+
+    def test_a_long_uptrend_ahead_of_its_industry_is_a_buy(self):
+        state, head, _, _, _, entry, invalid = horizons.longer_read(self._rising(), rel=12.0)
+        self.assertEqual(state, "buy")
+        self.assertIn("multi-year range", head)
+
+    def test_the_same_trend_level_with_its_industry_is_wait(self):
+        state, _, _, _, _, _, _ = horizons.longer_read(self._rising(), rel=0.5)
+        self.assertEqual(state, "wait")
+
+    def test_too_few_peers_is_recorded_as_missing(self):
+        _, _, _, missing, _, _, _ = horizons.longer_read(self._rising(), rel=None)
+        self.assertTrue(any("too few peers" in m for m in missing))
+
+    def test_a_price_above_a_falling_long_mean_is_disclosed(self):
+        # Rising recently, falling over the long window: the long trend has not turned.
+        # A long way down, then a modest recent recovery. The 200 day mean is still falling
+        # because the high bars leaving its window are far above the low bars entering it,
+        # while price has risen enough to clear both averages.
+        closes = [1000.0 - i * 4.2 for i in range(120)] + [100.0 + i * 0.5 for i in range(200)]
+        state, _, _, _, against, _, _ = horizons.longer_read(_ohlc(closes), rel=12.0)
+        self.assertTrue(any("still falling" in a for a in against), f"state was {state}")
+
+    def test_the_longer_conditions_also_parse_with_the_thesis_reader(self):
+        _, _, conds, _, _, _, _ = horizons.longer_read(self._rising(), rel=12.0)
+        got = thesis.verdicts(" | ".join(conds))
+        self.assertIn("trend", got)
+        self.assertIn("relative", got)
+
+    def test_the_longer_windows_are_genuinely_longer_than_the_swing_ones(self):
+        import setup as swing
+
+        self.assertGreater(horizons.LONG_FAST, swing.FAST)
+        self.assertGreater(horizons.LONG_SLOW, swing.SLOW)
+
+
+class Targets(unittest.TestCase):
+    ANALOG = {"matches": 40, "positive": 25, "medianPct": 3.0, "minPct": -6.0, "maxPct": 9.0}
+
+    def test_every_supported_method_produces_a_range(self):
+        got = horizons.target_rows(100.0, 95.0, "buy", atr=2.0, level=112.0, analog=self.ANALOG)
+        self.assertEqual({r["method"] for r in got}, {"structure", "volatility", "analog"})
+
+    def test_no_invalidation_distance_means_no_target_at_all(self):
+        # Reward with no risk behind it is a number with no decision attached.
+        self.assertEqual(
+            horizons.target_rows(100.0, 100.0, "buy", 2.0, 112.0, self.ANALOG), []
+        )
+
+    def test_nothing_supported_yields_nothing_rather_than_a_guess(self):
+        self.assertEqual(horizons.target_rows(100.0, 95.0, "buy", None, None, None), [])
+
+    def test_a_thin_analog_sample_is_not_used(self):
+        thin = {**self.ANALOG, "matches": 3}
+        got = horizons.target_rows(100.0, 95.0, "buy", None, None, thin)
+        self.assertEqual(got, [])
+
+    def test_a_short_setup_gets_a_downside_range(self):
+        got = horizons.target_rows(100.0, 105.0, "short", atr=2.0, level=88.0, analog=self.ANALOG)
+        for row in got:
+            self.assertLess(row["low"], 100.0, f"{row['method']} points the wrong way")
+
+    def test_reward_against_risk_uses_the_setups_own_invalidation(self):
+        got = horizons.target_rows(100.0, 95.0, "buy", atr=None, level=110.0, analog=None)
+        self.assertEqual(len(got), 1)
+        # near edge 100 -> 110 is 10 of reward against 5 of risk.
+        self.assertAlmostEqual(got[0]["rewardRisk"], 2.0)
+
+    def test_the_volatility_range_is_a_multiple_of_its_own_true_range(self):
+        got = horizons.target_rows(100.0, 95.0, "buy", atr=3.0, level=None, analog=None)
+        self.assertAlmostEqual(got[0]["high"], 100.0 + horizons.ATR_MULTIPLE * 3.0)
+
+    def test_disagreement_is_recorded_rather_than_averaged(self):
+        # Structure says 101 (1 away), volatility says 140 (40 away). These are not one
+        # answer, and the spread is 39/40 of the furthest distance.
+        got = horizons.target_rows(100.0, 95.0, "buy", atr=20.0, level=101.0, analog=None)
+        self.assertEqual(len(got), 2)
+        self.assertTrue(all(r.get("agreement") is not None for r in got))
+        self.assertAlmostEqual(got[0]["agreement"], 39.0 / 40.0)
+        self.assertGreaterEqual(got[0]["agreement"], horizons.DISAGREE_AT)
+        # No row is the mean of the two.
+        self.assertNotIn(120.5, [r["high"] for r in got])
+
+    def test_methods_that_broadly_agree_report_a_small_spread(self):
+        got = horizons.target_rows(100.0, 95.0, "buy", atr=6.0, level=110.0, analog=None)
+        self.assertLess(got[0]["agreement"], horizons.DISAGREE_AT)
+
+    def test_a_target_range_never_contains_the_entry(self):
+        # Spanning entry-to-target made the near edge the entry itself, which read as a
+        # reward of zero. Pinned so it cannot come back.
+        for direction, invalid in (("buy", 95.0), ("short", 105.0)):
+            for row in horizons.target_rows(
+                100.0, invalid, direction, atr=2.0, level=112.0 if direction == "buy" else 88.0,
+                analog=self.ANALOG,
+            ):
+                self.assertNotAlmostEqual(
+                    row["low"], 100.0, msg=f"{row['method']} starts at the entry"
+                )
+                self.assertGreater(row["rewardRisk"], 0.0, row["method"])
+
+    def test_one_method_alone_records_no_disagreement(self):
+        got = horizons.target_rows(100.0, 95.0, "buy", atr=None, level=110.0, analog=None)
+        self.assertIsNone(got[0].get("agreement"))
+
+    def test_every_note_says_what_it_is_not(self):
+        got = horizons.target_rows(100.0, 95.0, "buy", atr=2.0, level=112.0, analog=self.ANALOG)
+        for row in got:
+            self.assertTrue(
+                any(w in row["note"] for w in ("not a forecast", "not a direction",
+                                               "not a projection")),
+                f"{row['method']} does not state its limit",
+            )
+
+
+class HorizonGrading(unittest.TestCase):
+    def test_a_horizon_is_not_graded_more_generously_than_the_swing_one(self):
+        import setup as swing
+
+        for state in ("buy", "short"):
+            self.assertEqual(horizons.grade_for(state, [], []), "high")
+            self.assertEqual(horizons.grade_for(state, ["x"], []), "medium")
+            self.assertEqual(horizons.grade_for(state, [], ["y"]), "medium")
+        self.assertEqual(horizons.grade_for("wait", [], []), "low")
+        self.assertEqual(horizons.grade_for("none", [], []), "none")
+        self.assertEqual(swing.HORIZON, "swing")
+
+
+class InvestigationTrigger(unittest.TestCase):
+    """A move is judged unusual against the asset's own history, never a fixed percentage."""
+
+    QUIET = [0.2, -0.3, 0.1, -0.1, 0.4, -0.2, 0.3, 0.0, -0.4, 0.2] * 3
+    WILD = [5.0, -6.0, 4.0, -5.0, 7.0, -4.0, 6.0, -7.0, 5.0, -6.0] * 3
+
+    def test_a_small_move_is_unusual_for_a_quiet_asset(self):
+        z = investigate.robust_z(3.0, self.QUIET)
+        self.assertIsNotNone(z)
+        self.assertGreater(z, investigate.ROBUST_Z)
+
+    def test_the_same_move_is_ordinary_for_a_volatile_asset(self):
+        z = investigate.robust_z(3.0, self.WILD)
+        self.assertLess(abs(z), investigate.ROBUST_Z)
+
+    def test_a_short_history_gives_no_score_rather_than_a_guess(self):
+        self.assertIsNone(investigate.robust_z(5.0, [1.0, 2.0, 3.0]))
+
+    def test_a_flat_history_does_not_divide_by_zero(self):
+        z = investigate.robust_z(2.0, [1.0] * 30)
+        self.assertIsNotNone(z)
+        self.assertTrue(abs(z) < float("inf"))
+
+    def test_a_floor_stops_a_tiny_move_on_a_flat_asset_being_investigated(self):
+        # The robust score alone would flag a 0.3% move on a perfectly flat series. The move
+        # floor is what stops the engine investigating noise.
+        self.assertGreater(investigate.MOVE_FLOOR, 0.0)
+        z = investigate.robust_z(0.3, [1.0] * 30)
+        self.assertGreater(abs(z), investigate.ROBUST_Z)  # the score alone would flag it
+        self.assertLess(0.3, investigate.MOVE_FLOOR)      # the floor does not
+
+
+class InvestigationWording(unittest.TestCase):
+    """Rule 10 applies here too: the engine reports co-movement and sequence, never cause."""
+
+    BANNED = ("because", "driven by", "in response to", "caused", "due to", "reaction",
+              "triggered the", "led to")
+
+    def test_no_hypothesis_statement_claims_a_cause(self):
+        for label, text in investigate.HYPOTHESES.items():
+            low = text.lower()
+            for word in self.BANNED:
+                self.assertNotIn(word, low, f"{label}: {text}")
+
+    def test_the_news_hypothesis_says_preceded_rather_than_caused(self):
+        self.assertIn("preceded", investigate.HYPOTHESES["news"].lower())
+
+    def test_the_three_measured_hypotheses_are_the_attribution_components(self):
+        # They have to be the same three, or the investigation would be reasoning about a
+        # decomposition that does not exist.
+        self.assertEqual(
+            {"market", "sector", "specific"},
+            set(investigate.HYPOTHESES) - {"news"},
+        )
+        self.assertEqual(
+            {"market", "sector", "specific"},
+            set(attribution.COMPONENT_WORDS),
+        )
+
+    def test_the_investigation_is_bounded(self):
+        # It must never become the reason a nightly run does not finish.
+        self.assertLessEqual(investigate.MAX_INVESTIGATIONS, 60)
+        self.assertLessEqual(investigate.NEWS_WINDOW_DAYS, 7)
 
 
 class InsertShape(unittest.TestCase):

@@ -101,6 +101,7 @@ model Asset {
   relevance    GraphRelevance[]
   intraday     IntradayBar[]
   intradaySessions IntradaySession[]
+  investigations Investigation[]
 
   createdAt DateTime @default(now())
 
@@ -672,6 +673,8 @@ model AssetSetup {
   confidenceNote String?
   source     String
   computedAt DateTime   @default(now())
+
+  targets SetupTarget[]
 
   @@unique([assetId, periodEnd, horizon])
   @@index([state, periodEnd])
@@ -1247,4 +1250,189 @@ model IntradaySession {
 
   @@unique([assetId, sessionDate, interval])
   @@index([status, sessionDate])
+}
+
+/// A target range, attached to the setup it was computed for.
+///
+/// Separate from AssetSetup because a target is the part of a setup most likely to be absent.
+/// Making it a set of nullable columns on the setup row would put five holes in the middle of
+/// a row that is otherwise always complete, and would make "no target" and "target not yet
+/// computed" the same state.
+///
+/// A target here is a **measured range**, never a prediction. Every one is derived from one of
+/// three stored things, and the row says which:
+///
+///   structure   the next level above or below where price recently turned, from stored bars
+///   volatility  a multiple of the asset's own measured true range over the window
+///   analog      the distribution of what actually followed similar past days
+///
+/// Where the methods disagree materially the disagreement is preserved rather than averaged:
+/// `agreement` records how far apart they were, and the UI shows the spread. §31 — averaging
+/// two methods that disagree into one number manufactures a certainty neither supports.
+///
+/// A target is only written when `rewardRisk` can also be computed, because a level with no
+/// invalidation behind it is a number with no decision attached to it.
+model SetupTarget {
+  id       String     @id @default(dbgenerated("gen_random_uuid()::text"))
+  setupId  String
+  setup    AssetSetup @relation(fields: [setupId], references: [id], onDelete: Cascade)
+
+  /// structure, volatility or analog.
+  method   String
+  /// The range. Low and high are the same number only when the method produces a single
+  /// level, which is stated in the note rather than implied.
+  low      Float
+  high     Float
+  /// Distance from the entry to the near edge of the range, as a percentage.
+  distancePct Float?
+  /// Reward against risk, using the setup's own invalidation level as the risk. Null when no
+  /// invalidation exists, in which case no target row is written at all.
+  rewardRisk  Float?
+
+  /// How far the methods were from each other, as a share of the widest range. Stored on each
+  /// row so a reader looking at one method can see it was not the only one.
+  agreement Float?
+  /// Plain words: what this range was measured from and what it is not.
+  note     String
+  source   String
+  computedAt DateTime @default(now())
+
+  @@unique([setupId, method])
+}
+
+/// What was actually looked at when something moved unusually, including what was not found.
+///
+/// The catalyst flag detects that news arrived. This is the other half: when an asset moves
+/// materially, something goes looking at the evidence that could bear on it, and records the
+/// search rather than only the conclusion.
+///
+/// The absences are the point. A large move with no story behind it is the common case, and a
+/// system that prints nothing in that case has told the reader less than one that says "we
+/// looked at company news, the sector, the calendar and the related names, and found a sector
+/// move and no company story". `notFound` is therefore a stored field and not an empty state:
+/// §23 forbids stopping when no headline is found, and forbids inventing one.
+///
+/// `pointsToward` is always phrased as what the move was *shared with* or *preceded by*, never
+/// as what moved it. Two things happening in one afternoon is a sequence. The banned words from
+/// brain.md rule 10 are banned here too and the test suite checks the generated text for them.
+///
+/// Targeted, not exhaustive: the investigation reads this asset, its own industry peers, its
+/// bounded graph neighbourhood and its own calendar. It never scans the universe, which is what
+/// keeps it affordable on this infrastructure.
+///
+/// Written by jobs/investigate.py.
+model Investigation {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId   String
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  periodEnd DateTime @db.Date
+
+  /// Why this asset was investigated at all: move, volume, or catalyst. Stored because an
+  /// investigation nobody can see the trigger for is a conclusion without a question.
+  trigger       String
+  triggerDetail String
+
+  /// The measured change that triggered it, with the robust score it was judged unusual by.
+  movePct     Float?
+  robustZ     Float?
+  volumeRatio Float?
+
+  /// Plain language, one line each. These are what the page shows first.
+  headline     String
+  found        String
+  notFound     String
+  pointsToward String
+  unconfirmed  String
+
+  /// The hypothesis with the most measured support, or null when none leads.
+  leading        String?
+  confidence     Confidence @default(none)
+  confidenceNote String?
+
+  source     String
+  computedAt DateTime @default(now())
+
+  findings   InvestigationFinding[]
+  hypotheses InvestigationHypothesis[]
+
+  @@unique([assetId, periodEnd])
+  @@index([periodEnd, trigger])
+}
+
+/// One thing the investigation checked, and what it found there — including nothing.
+///
+/// `status` separates the three answers that an absent row would collapse into one:
+///   found       the evidence exists and is described
+///   absent      it was checked and there is genuinely none
+///   unavailable it could not be checked, which is not the same as there being none
+///
+/// That distinction is the whole value of the table. "No news" and "the news source did not
+/// answer" look identical in a row count and mean opposite things.
+model InvestigationFinding {
+  id              String        @id @default(dbgenerated("gen_random_uuid()::text"))
+  investigationId String
+  investigation   Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  /// What was checked: news, attribution, peers, volume, calendar, graph, analog, intraday
+  /// or product.
+  kind    String
+  status  String
+  /// Plain words, with the figure in them where there is one.
+  detail  String
+  /// Where the evidence came from, so a reader can check it.
+  sourceName String?
+  /// When the evidence itself is dated, which is not when it was looked at. A story published
+  /// after the close cannot be evidence about that close, and only this field can show it.
+  observedAt DateTime?
+
+  @@unique([investigationId, kind])
+}
+
+/// A competing explanation, with its measured support kept separate from its prior.
+///
+/// Four hypotheses, and the honest division between them is which ones arithmetic can settle:
+///
+///   market    the move is what the whole exchange group did
+///   sector    the move is what its own industry did beyond the group
+///   specific  neither accounts for it, so it is particular to this asset
+///   news      a dated story or event preceded the move
+///
+/// The first three are *measured directly* by jobs/attribution.py — they are exclusive by
+/// construction and sum to the move — so no inference is needed and none is performed. The
+/// fourth is the one that genuinely requires evidence, and it is also the one no arithmetic can
+/// confirm: a story dated before a move is a sequence, not a cause.
+///
+/// `priorBase` is a real base rate measured from the stored population — how often each
+/// component has actually led across every attribution row — and not a number chosen by hand.
+/// `posterior` stays null, and `posteriorNote` says why: a likelihood ratio needs a measured
+/// P(E|H), and for the first three hypotheses the evidence defines the hypothesis rather than
+/// bearing on it, which would make any update circular. It is a column rather than an omission
+/// so that it can be filled once matured outcomes exist to measure against.
+model InvestigationHypothesis {
+  id              String        @id @default(dbgenerated("gen_random_uuid()::text"))
+  investigationId String
+  investigation   Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  /// market, sector, specific or news.
+  label     String
+  /// The hypothesis in one plain sentence.
+  statement String
+
+  /// How often this component has led across every stored attribution row. A measured base
+  /// rate, not a declared prior.
+  priorBase Float?
+  priorNote String?
+
+  /// The measured magnitude supporting it, where one exists: percentage points of the move.
+  magnitude Float?
+  /// Evidence for and against, in words. Contradicting is never left empty when something
+  /// contradicts it.
+  supporting    String
+  contradicting String
+
+  /// Null until measured outcomes exist. posteriorNote always states the reason.
+  posterior     Float?
+  posteriorNote String
+
+  @@unique([investigationId, label])
 }

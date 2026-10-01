@@ -76,6 +76,14 @@ DAILY = [
     # flagged catalyst, a graph neighbour, a date within three days. Running it earlier would
     # select on yesterday's findings and spend the request budget on the wrong assets.
     ("intraday", []),
+    # horizons reads the bars intraday has just written, so it follows it. It also writes the
+    # target ranges for every horizon including the swing read setup.py produced earlier, which
+    # is why it is the last of the reasoning jobs rather than sitting beside setup.
+    ("horizons", []),
+    # investigate runs after everything it reads: the attribution it reasons over, the graph
+    # neighbourhood, the clustered stories, the analogs and the intraday bars. It is the last
+    # reasoning step for that reason, and it makes no network request of its own.
+    ("investigate", []),
     ("accuracy", []),
     ("audit", []),
     ("analysis", []),
@@ -103,6 +111,14 @@ WEEKLY = [
     ("attribution", []),
     ("graph", []),
     ("intraday", []),
+    # horizons reads the bars intraday has just written, so it follows it. It also writes the
+    # target ranges for every horizon including the swing read setup.py produced earlier, which
+    # is why it is the last of the reasoning jobs rather than sitting beside setup.
+    ("horizons", []),
+    # investigate runs after everything it reads: the attribution it reasons over, the graph
+    # neighbourhood, the clustered stories, the analogs and the intraday bars. It is the last
+    # reasoning step for that reason, and it makes no network request of its own.
+    ("investigate", []),
     ("accuracy", []),
     ("audit", []),
     ("analysis", []),

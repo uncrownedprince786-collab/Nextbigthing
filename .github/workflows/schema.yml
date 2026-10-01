@@ -162,6 +162,30 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: python jobs/graph.py
 
+      # The longer term read and the target ranges are arithmetic over stored daily closes, so
+      # they belong in the release lane. The intraday read is not here: it needs bars that only
+      # the refresh lane fetches, and `horizons longer` skips it rather than writing an
+      # intraday row from daily data.
+      - name: Read the longer term conditions
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/horizons.py longer
+
+      - name: Attach measured target ranges
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/horizons.py targets
+
+      # Reads stored evidence only and makes no request, so it belongs in the release lane
+      # too. It follows the attribution and target steps because it reasons over both.
+      - name: Investigate the material moves
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/investigate.py
+
       - name: Audit coverage and calibration
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
