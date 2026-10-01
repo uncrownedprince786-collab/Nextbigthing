@@ -45,7 +45,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # Named for the same reason as in refresh.yml: a workflow_dispatch is offered only on
+      # the default branch, so a manual migration would otherwise apply master's migrations
+      # rather than main's. A push event already checks out the pushed commit, and naming
+      # main is a no-op there.
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-node@v4
         with:

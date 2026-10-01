@@ -40,7 +40,35 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
+      # main, explicitly, and this is the fix for a real production hazard rather than a
+      # preference about branch names.
+      #
+      # GitHub takes a scheduled workflow's *file* from the repository's default branch and
+      # nowhere else, and by default checks out that same branch's code. The default here is
+      # master. So every nightly run was executing whatever master last held, and master stops
+      # being the branch anyone pushes to the moment main moves ahead — a pipeline running
+      # silently stale code while reporting success.
+      #
+      # Naming the ref decouples the two: the file may come from the default branch, but the
+      # code that runs is main's. The step below proves it, and fails the run if it is ever
+      # not true, so this cannot quietly regress.
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prove this run is executing main
+        run: |
+          head="$(git rev-parse HEAD)"
+          git fetch origin main --quiet
+          want="$(git rev-parse origin/main)"
+          echo "checked out $head"
+          echo "origin/main  $want"
+          if [ "$head" != "$want" ]; then
+            echo "this run is NOT executing main, refusing to continue"
+            exit 1
+          fi
+          echo "confirmed: this run is executing main"
 
       - uses: actions/setup-python@v5
         with:
