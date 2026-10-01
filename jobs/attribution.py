@@ -85,6 +85,18 @@ COMPONENT_WORDS = {
     "specific": "what is left after both, which is particular to this asset",
 }
 
+# The leading component's own sentence. `specific` needs its own wording rather than a slot
+# in a shared one: "the move is mostly shared with what is left over" is self-contradictory,
+# because the left-over part is by definition the part that is not shared.
+LEADER_SENTENCE = {
+    "market": "The move is mostly shared with what everything quoted in its exchange group did.",
+    "sector": "The move is mostly shared with what its own industry did beyond the group.",
+    "specific": (
+        "The largest of the three is the part left after both, so most of this move is not "
+        "shared with its exchange group or its industry."
+    ),
+}
+
 
 def decompose(asset_pct: float, peer_median: float, market_median: float) -> dict[str, float]:
     """The three parts, which sum to the asset's own return by construction."""
@@ -153,7 +165,7 @@ def sentence(total: float, parts: dict[str, float] | None, market: float, named:
         "points is left over after both."
     )
     if named:
-        return f"{body} The move is mostly shared with {COMPONENT_WORDS[named]}."
+        return f"{body} {LEADER_SENTENCE[named]}"
     return f"{body} No one of the three is far enough ahead of the others to be named."
 
 

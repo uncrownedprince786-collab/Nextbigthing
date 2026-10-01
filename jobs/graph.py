@@ -266,8 +266,16 @@ def main() -> None:
                 # The product is the origin, so every asset linked to it is one hop away and
                 # the weight is shared between them: a product with one linked asset points
                 # at that asset, a product with twelve points at a list.
-                w = KIND_WEIGHT["product"] / len(entries) if entries else None
-                if w is None or len(entries) > MAX_GROUP:
+                #
+                # Scored through the same two functions an asset origin uses, with the product
+                # counted as a member of its own group, so `len(entries) + 1` rather than
+                # `len(entries)`. This is not tidiness. Computing the weight by hand here
+                # skipped DECAY, which gave a product origin's first hop a score of 1.0 while
+                # an asset origin's identical first hop scored 0.4 — so the whole list ordered
+                # by which kind of thing the catalyst happened to sit on rather than by
+                # distance, which is the one claim the score makes.
+                w = hop_score(1.0, "product", len(entries) + 1) if entries else None
+                if w is None:
                     continue
                 for entry in entries:
                     if entry not in assets:

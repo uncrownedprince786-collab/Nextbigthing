@@ -413,6 +413,21 @@ class Attribution(unittest.TestCase):
         self.assertLess(margin, attribution.DOMINANCE)
         self.assertIn("within", why)
 
+    def test_the_left_over_part_is_not_described_as_shared(self):
+        # Caught in production. "The move is mostly shared with what is left after both" is
+        # self-contradictory: the left-over part is by definition the part that is not shared.
+        parts = {"market": 0.1, "sector": 11.6, "specific": 20.5}
+        line = attribution.sentence(32.2, parts, 0.1, "specific")
+        self.assertNotIn("shared with what is left", line)
+        self.assertIn("is not shared with", line)
+
+    def test_each_leader_gets_a_sentence_that_reads(self):
+        parts = {"market": 2.0, "sector": 3.0, "specific": 9.0}
+        for name in ("market", "sector", "specific"):
+            line = attribution.sentence(14.0, parts, 2.0, name)
+            self.assertTrue(line.endswith("."), line)
+            self.assertNotIn("  ", line)
+
     def test_a_dominant_component_is_named(self):
         name, margin, _ = attribution.leader(
             {"market": 1.0, "sector": 1.0, "specific": 9.0}, peers=6, group=40
@@ -504,6 +519,23 @@ class Graph(unittest.TestCase):
         self.assertIn("Humanoid robots", got["b"]["path"])
         self.assertIn("Humanoid robots", got["c"]["path"])
         self.assertIn("Semis", got["c"]["path"])
+
+    def test_a_product_origin_scores_like_any_other_first_hop(self):
+        # Caught in production. The product origin's weight was computed by hand and skipped
+        # DECAY, so its first hop scored 1.0 while an asset origin's identical first hop
+        # scored 0.4. The whole list then ordered by which kind of thing the catalyst sat on
+        # rather than by distance, which is the only claim the score makes.
+        #
+        # A product with N linked assets is its own group of N + 1, which is how the job now
+        # scores it, so this is the number it must produce.
+        product_origin = graph.hop_score(1.0, "product", 2)
+        asset_origin_through_a_pair = graph.hop_score(1.0, "product", 2)
+        self.assertAlmostEqual(product_origin, asset_origin_through_a_pair)
+        self.assertLess(product_origin, 1.0)
+        self.assertAlmostEqual(product_origin, graph.KIND_WEIGHT["product"] * graph.DECAY)
+
+    def test_a_one_hop_product_link_outranks_a_one_hop_industry(self):
+        self.assertGreater(graph.hop_score(1.0, "product", 2), graph.hop_score(1.0, "industry", 10))
 
     def test_the_stronger_of_two_paths_to_one_asset_is_kept(self):
         # a reaches b through a two-asset product and through a twenty-asset industry. The
