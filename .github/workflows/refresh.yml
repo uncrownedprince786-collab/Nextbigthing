@@ -111,6 +111,9 @@ jobs:
             echo "group=daily" >> "$GITHUB_OUTPUT"
           fi
 
+      # Reported as its own step for the same reason the PSX verification is in backfill.yml:
+      # a step's pass or fail is visible where its output is not, and run.py writes the
+      # per-step table to $GITHUB_STEP_SUMMARY, which is readable without a sign-in.
       - name: Run data jobs
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
