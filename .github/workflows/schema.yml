@@ -68,10 +68,35 @@ jobs:
       - name: Install the Prisma CLI
         run: npm install --ignore-scripts --no-audit --no-fund
 
+      # The command's own output is copied to the run summary, which is readable without a
+      # GitHub sign-in where the log is not.
+      #
+      # This is not instrumentation for its own sake. This step failed twice in twelve seconds
+      # while every step around it passed, and the only published detail was "Process completed
+      # with exit code 1" — so the one question that mattered, *why*, was unanswerable from
+      # outside the account. A migration is the step the deployed site depends on most; when it
+      # fails it has to say so somewhere a maintainer can actually read.
+      #
+      # `set +e` and the explicit exit keep the step's pass/fail exactly as it was: the summary
+      # is written either way, and a failure still fails the run.
       - name: Apply pending schema migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npx prisma migrate deploy
+        run: |
+          set +e
+          out="$(npx prisma migrate deploy 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## Migration"
+            echo
+            echo "exit code \`$code\`"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
 
       - uses: actions/setup-python@v5
         with:

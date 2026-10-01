@@ -672,15 +672,22 @@ class WorkflowLanes(unittest.TestCase):
         return (self.WORKFLOWS / name).read_text(encoding="utf-8")
 
     def test_exactly_one_workflow_applies_migrations(self):
-        # Matched on the run line, not on any mention of the command: refresh.yml explains in
-        # a comment why it no longer runs it, and a comment is not a second migrator.
-        import re
+        """Exactly one workflow may apply migrations, and refresh.yml must not be it.
 
-        migrating = [
-            p.name
-            for p in sorted(self.WORKFLOWS.glob("*.yml"))
-            if re.search(r"^\s*run:.*prisma migrate deploy", p.read_text(encoding="utf-8"), re.M)
-        ]
+        Comment lines are stripped first, because refresh.yml explains in a comment why it no
+        longer migrates and a comment is not a second migrator. The command is then matched
+        anywhere in the remaining YAML rather than only on a `run:` line — schema.yml wraps it
+        in a `run: |` block to copy its output to the run summary, and an earlier version of
+        this test went quiet the moment that happened, which is the one failure mode a guard
+        like this must not have.
+        """
+        migrating = []
+        for path in sorted(self.WORKFLOWS.glob("*.yml")):
+            code = chr(10).join(
+                line.split("#", 1)[0] for line in path.read_text(encoding="utf-8").splitlines()
+            )
+            if "prisma migrate deploy" in code:
+                migrating.append(path.name)
         self.assertEqual(migrating, ["schema.yml"], f"migration is applied by {migrating}")
 
     def test_the_data_lanes_check_the_schema_before_writing(self):

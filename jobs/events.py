@@ -30,7 +30,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from nbt import db, one, rows, step  # noqa: E402
+from nbt import db, rows, step  # noqa: E402
 
 try:
     from dotenv import load_dotenv
@@ -161,40 +161,74 @@ def seed(cur) -> None:
     print(f"  {len(EVENTS)} events seeded")
 
 
-def close_near(cur, asset_id: str, target: date):
-    """The stored close nearest to a target date, within MAX_DRIFT_DAYS either side.
+# Sessions the volume comparison averages over, on each side of a window.
+VOLUME_DAYS = 20
 
-    Either side, not just before: an event dated to a Saturday has its nearest close on the
-    Monday, and refusing to look forward would silently shift every weekend event's window
-    start back into the previous week.
+
+def closes_near(cur, target: date) -> dict[str, dict]:
+    """{assetId: the stored close nearest `target`} for every asset, in one query.
+
+    Within MAX_DRIFT_DAYS either side, not just before: an event dated to a Saturday has its
+    nearest close on the Monday, and refusing to look forward would silently shift every
+    weekend event's window start back into the previous week.
+
+    `DISTINCT ON` with the same ordering the per-asset version used picks exactly the row that
+    version picked — nearest by absolute distance, earliest on a tie. There is deliberately no
+    `close IS NOT NULL` filter: the caller skips an asset whose nearest row has no close, and
+    filtering here would instead reach past it to a further date and measure a window the old
+    code would have declined to measure.
     """
-    return one(
+    got = rows(
         cur,
         """
-        SELECT date, close, volume FROM "PriceSnapshot"
-        WHERE "assetId" = %s AND date BETWEEN %s AND %s
-        ORDER BY abs(date - %s::date) ASC, date ASC
-        LIMIT 1
+        SELECT DISTINCT ON ("assetId") "assetId", date, close, volume
+        FROM "PriceSnapshot"
+        WHERE date BETWEEN %s AND %s
+        ORDER BY "assetId", abs(date - %s::date) ASC, date ASC
         """,
         (
-            asset_id,
             target - timedelta(days=MAX_DRIFT_DAYS),
             target + timedelta(days=MAX_DRIFT_DAYS),
             target,
         ),
     )
+    return {r["assetId"]: r for r in got}
 
 
-def avg_volume(cur, asset_id: str, end: date, days: int = 20):
-    got = one(
+def avg_volumes_at(cur, target: date) -> dict[str, float]:
+    """{assetId: average volume over the VOLUME_DAYS before that asset's own anchor close}.
+
+    The anchor differs per asset, because each one's nearest stored close to the target lands
+    on a different day. The CTE resolves the anchor exactly as `closes_near` does and the join
+    then averages against each asset's own anchor, which is what the per-asset version did one
+    round trip at a time.
+    """
+    got = rows(
         cur,
         """
-        SELECT avg(volume) AS v FROM "PriceSnapshot"
-        WHERE "assetId" = %s AND date <= %s AND date > %s AND volume IS NOT NULL
+        WITH anchor AS (
+            SELECT DISTINCT ON ("assetId") "assetId", date
+            FROM "PriceSnapshot"
+            WHERE date BETWEEN %s AND %s
+            ORDER BY "assetId", abs(date - %s::date) ASC, date ASC
+        )
+        SELECT a."assetId", avg(p.volume) AS v
+        FROM anchor a
+        JOIN "PriceSnapshot" p
+          ON p."assetId" = a."assetId"
+         AND p.date <= a.date
+         AND p.date > a.date - (%s * interval '1 day')
+         AND p.volume IS NOT NULL
+        GROUP BY a."assetId"
         """,
-        (asset_id, end, end - timedelta(days=days)),
+        (
+            target - timedelta(days=MAX_DRIFT_DAYS),
+            target + timedelta(days=MAX_DRIFT_DAYS),
+            target,
+            VOLUME_DAYS,
+        ),
     )
-    return got["v"] if got and got["v"] else None
+    return {r["assetId"]: float(r["v"]) for r in got if r["v"]}
 
 
 def grade(peers: int, drift: int, volume_known: bool) -> tuple[str, str]:
@@ -218,8 +252,19 @@ def grade(peers: int, drift: int, volume_known: bool) -> tuple[str, str]:
     return "low", "; ".join(bits)
 
 
-def measure(cur, event) -> int:
-    assets = rows(cur, 'SELECT id, symbol, name FROM "Asset" ORDER BY symbol')
+def measure(cur, event, assets) -> int:
+    """Measure every asset's move across each window after one event.
+
+    Four queries per window rather than four per asset per window. The old shape ran
+    `close_near` and `avg_volume` once per asset — about 160 assets x 2 anchors x 2 volumes
+    across 2 windows and 100-odd events, which is roughly a hundred thousand round trips held
+    inside a single uncommitted transaction. Against a pooled remote database that does not
+    merely run slowly: the pooler closes the connection underneath it, and the job died with
+    `server closed the connection unexpectedly`. That was the whole of the remaining nightly
+    refresh failure, and it reproduced every time.
+
+    `assets` is passed in rather than re-queried, because it is the same list for every event.
+    """
     written = 0
 
     for window in WINDOWS:
@@ -230,18 +275,23 @@ def measure(cur, event) -> int:
             print(f"  {event['slug']} {window}d: window has not closed yet, skipped")
             continue
 
+        starts = closes_near(cur, event["date"])
+        ends = closes_near(cur, target_end)
+        start_vols = avg_volumes_at(cur, event["date"])
+        end_vols = avg_volumes_at(cur, target_end)
+
         measured = []
         for a in assets:
-            start = close_near(cur, a["id"], event["date"])
-            end = close_near(cur, a["id"], target_end)
+            start = starts.get(a["id"])
+            end = ends.get(a["id"])
             if not start or not end or not start["close"]:
                 continue
             if end["date"] <= start["date"]:
                 # The two anchors resolved to the same close, so there is no window here.
                 continue
             change = (end["close"] / start["close"] - 1.0) * 100.0
-            v0 = avg_volume(cur, a["id"], start["date"])
-            v1 = avg_volume(cur, a["id"], end["date"])
+            v0 = start_vols.get(a["id"])
+            v1 = end_vols.get(a["id"])
             vol_change = (v1 / v0 - 1.0) * 100.0 if v0 and v1 else None
             drift = abs((start["date"] - event["date"]).days) + abs(
                 (end["date"] - target_end).days
@@ -250,9 +300,22 @@ def measure(cur, event) -> int:
 
         peers = len(measured)
         measured.sort(key=lambda t: abs(t[3]), reverse=True)
+
+        # One statement for the whole window rather than one per asset. 160 single-row
+        # inserts per window, across two windows and every event, is a few thousand round
+        # trips; `executemany` makes it a handful. The same change intraday.py needed, for the
+        # same reason — this is the only other job here that writes a row per asset at once.
+        payload = []
         for rank, (a, start, end, change, vol_change, drift) in enumerate(measured, 1):
             g, note = grade(peers, drift, vol_change is not None)
-            cur.execute(
+            payload.append(
+                (
+                    event["id"], a["id"], window, start["date"], start["close"],
+                    end["date"], end["close"], change, vol_change, rank, g, note, MEASURED,
+                )
+            )
+        if payload:
+            cur.executemany(
                 """
                 INSERT INTO "EventImpact"
                   ("eventId", "assetId", "windowDays", "startDate", "startClose",
@@ -267,28 +330,34 @@ def measure(cur, event) -> int:
                     rank = EXCLUDED.rank, confidence = EXCLUDED.confidence,
                     "confidenceNote" = EXCLUDED."confidenceNote"
                 """,
-                (
-                    event["id"], a["id"], window, start["date"], start["close"],
-                    end["date"], end["close"], change, vol_change, rank, g, note, MEASURED,
-                ),
+                payload,
             )
-            written += 1
+            written += len(payload)
         print(f"  {event['slug']} {window}d: {peers} assets measurable")
     return written
 
 
 def main() -> None:
     conn = db()
-    with conn, conn.cursor() as cur:
+    cur = conn.cursor()
+    try:
         seed(cur)
+        conn.commit()
 
         step("impacts")
+        assets = rows(cur, 'SELECT id, symbol, name FROM "Asset" ORDER BY symbol')
+
         # Rebuilt rather than updated, because the asset list and the stored history both
-        # change between runs and a stale row would keep a rank it no longer holds.
+        # change between runs and a stale row would keep a rank it no longer holds. The delete
+        # and the first event's rows share a transaction, so the table is never visibly empty.
         cur.execute('DELETE FROM "EventImpact"')
         total = 0
         for event in rows(cur, 'SELECT id, slug, date FROM "Event" ORDER BY sort'):
-            total += measure(cur, event)
+            total += measure(cur, event, assets)
+            # Committed per event rather than once at the end. One transaction spanning every
+            # event is what let the pooler drop the connection mid-run, and it also meant a
+            # failure on the last event discarded the hundred before it.
+            conn.commit()
         print(f"\n{total} impact rows written")
 
         for got in rows(
@@ -300,7 +369,9 @@ def main() -> None:
             """,
         ):
             print(f"  {got['slug']:28} {got['w']:>3}d {got['n']:>4}")
-    conn.close()
+    finally:
+        cur.close()
+        conn.close()
 
 
 if __name__ == "__main__":
