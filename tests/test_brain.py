@@ -823,9 +823,10 @@ class IntradayNormalisation(unittest.TestCase):
             "open": [100.0, None], "high": [101.0, None],
             "low": [99.0, None], "close": [100.5, None], "volume": [10.0, None],
         }
-        bars, holes = intraday.to_bars(payload, 5)
+        bars, holes, forming = intraday.to_bars(payload, 5)
         self.assertEqual(len(bars), 1)
         self.assertEqual(holes, 1, "a padded empty slot must be counted, not silently dropped")
+        self.assertEqual(forming, 0)
 
     def test_absent_volume_stays_absent_and_zero_stays_zero(self):
         payload = {
@@ -833,20 +834,50 @@ class IntradayNormalisation(unittest.TestCase):
             "open": [1.0, 1.0], "high": [1.0, 1.0], "low": [1.0, 1.0], "close": [1.0, 1.0],
             "volume": [None, 0.0],
         }
-        bars, _ = intraday.to_bars(payload, 5)
+        bars, _, _ = intraday.to_bars(payload, 5)
         self.assertIsNone(bars[0]["volume"])
         self.assertEqual(bars[1]["volume"], 0.0)
 
     def test_an_empty_payload_yields_nothing_rather_than_raising(self):
-        self.assertEqual(intraday.to_bars({}, 5), ([], 0))
+        self.assertEqual(intraday.to_bars({}, 5), ([], 0, 0))
 
     def test_a_truncated_quote_array_does_not_raise(self):
         # The provider has been seen to return shorter quote arrays than timestamps.
-        payload = {"stamps": [1, 2, 3], "open": [1.0], "high": [1.0], "low": [1.0],
-                   "close": [1.0], "volume": [1.0]}
-        bars, holes = intraday.to_bars(payload, 5)
+        # Aligned stamps so the truncation is the only thing under test.
+        payload = {"stamps": [1759325400, 1759325700, 1759326000], "open": [1.0],
+                   "high": [1.0], "low": [1.0], "close": [1.0], "volume": [1.0]}
+        bars, holes, _ = intraday.to_bars(payload, 5)
         self.assertEqual(len(bars), 1)
         self.assertEqual(holes, 2)
+
+    def test_the_bar_still_forming_is_discarded_and_counted(self):
+        """Found in production: 100 of these had accumulated.
+
+        The provider's last element is the bar currently forming, stamped with the quote time
+        rather than a bar boundary. It is not an observation of a five minute period, it makes
+        an aggregation group look complete when only part of it exists, and because every run
+        stamps a different second it is a new unique key each time, so they pile up instead of
+        being overwritten.
+        """
+        payload = {
+            # 1759325400 is aligned; +163s is the quote time of an unfinished bar.
+            "stamps": [1759325400, 1759325563],
+            "open": [100.0, 100.4], "high": [101.0, 100.4],
+            "low": [99.0, 100.4], "close": [100.5, 100.4], "volume": [10.0, 0.0],
+        }
+        bars, holes, forming = intraday.to_bars(payload, 5)
+        self.assertEqual(len(bars), 1, "the unfinished bar must not be stored")
+        self.assertEqual(forming, 1, "and it must be counted, not silently dropped")
+        self.assertEqual(holes, 0, "it is not a hole: nothing is missing, it has not closed")
+
+    def test_alignment_is_checked_against_the_interval_not_a_constant(self):
+        aligned_for_five = 1759325400          # :30:00
+        aligned_for_one = 1759325460           # :31:00
+        payload = {"stamps": [aligned_for_one], "open": [1.0], "high": [1.0],
+                   "low": [1.0], "close": [1.0], "volume": [1.0]}
+        self.assertEqual(len(intraday.to_bars(payload, 1)[0]), 1)
+        self.assertEqual(len(intraday.to_bars(payload, 5)[0]), 0)
+        self.assertEqual(aligned_for_five % 300, 0)
 
     def test_expected_bars_comes_from_the_stated_period(self):
         # 09:30 to 16:00 New York is 6.5 hours: 78 five minute bars, 26 fifteens.
@@ -1084,6 +1115,35 @@ class Targets(unittest.TestCase):
     def test_nothing_supported_yields_nothing_rather_than_a_guess(self):
         self.assertEqual(horizons.target_rows(100.0, 95.0, "buy", None, None, None), [])
 
+    def test_an_analog_target_requires_a_median_pointing_the_same_way(self):
+        """Found in production: seven rows read like this.
+
+        AAPL read `buy` at 333.08 with an "upside" analog range starting at 332.77 — below the
+        entry — because the range ran from the median to the favourable extreme and the median
+        was slightly negative. Reaching past an unfavourable median to quote the favourable
+        tail is selecting the evidence that suits the conclusion.
+        """
+        adverse = {"matches": 40, "positive": 12, "medianPct": -0.1, "minPct": -6.0,
+                   "maxPct": 9.0}
+        got = horizons.target_rows(100.0, 95.0, "buy", atr=None, level=None, analog=adverse)
+        self.assertEqual(got, [], "an adverse median must yield no analog target")
+
+        favourable = {**adverse, "medianPct": 3.0}
+        got = horizons.target_rows(100.0, 95.0, "buy", atr=None, level=None, analog=favourable)
+        self.assertEqual(len(got), 1)
+        self.assertGreater(got[0]["low"], 100.0, "the near edge must be beyond the entry")
+
+    def test_a_short_analog_target_requires_a_negative_median(self):
+        rising = {"matches": 40, "positive": 30, "medianPct": 2.0, "minPct": -6.0,
+                  "maxPct": 9.0}
+        self.assertEqual(
+            horizons.target_rows(100.0, 105.0, "short", None, None, rising), []
+        )
+        falling = {**rising, "medianPct": -2.0}
+        got = horizons.target_rows(100.0, 105.0, "short", None, None, falling)
+        self.assertEqual(len(got), 1)
+        self.assertLess(got[0]["high"], 100.0)
+
     def test_a_thin_analog_sample_is_not_used(self):
         thin = {**self.ANALOG, "matches": 3}
         got = horizons.target_rows(100.0, 95.0, "buy", None, None, thin)
@@ -1119,7 +1179,7 @@ class Targets(unittest.TestCase):
         got = horizons.target_rows(100.0, 95.0, "buy", atr=6.0, level=110.0, analog=None)
         self.assertLess(got[0]["agreement"], horizons.DISAGREE_AT)
 
-    def test_a_target_range_never_contains_the_entry(self):
+    def test_no_target_range_contains_the_entry_on_either_side(self):
         # Spanning entry-to-target made the near edge the entry itself, which read as a
         # reward of zero. Pinned so it cannot come back.
         for direction, invalid in (("buy", 95.0), ("short", 105.0)):
@@ -1306,13 +1366,16 @@ class IntradayFootprint(unittest.TestCase):
         self.assertGreaterEqual(available, horizons.SESSION_BARS * 2)
         self.assertGreaterEqual(available, horizons.STRUCTURE_LOOKBACK)
 
-    def test_retention_is_longer_than_anything_that_reads_the_bars(self):
+    def test_retention_matches_the_window_each_run_refetches(self):
         import horizons
 
-        # Expiring bars a reader still needs would be worse than keeping them. Ten calendar
-        # days is about seven sessions, against a 120 bar lookback that is under two.
-        self.assertGreaterEqual(intraday.RETAIN_DAYS, 10)
-        sessions_kept = intraday.RETAIN_DAYS * 5 / 7
+        # Retention has to equal the refetch window, not merely exceed what readers need. A
+        # bar outside the window is never revisited, so it keeps whatever session phase it was
+        # given — and a stale phase silently degrades every read that filters on
+        # `phase = 'regular'`. range=5d spans seven calendar days across a weekend.
+        self.assertEqual(intraday.RANGE_FOR[5], "5d")
+        self.assertEqual(intraday.RETAIN_DAYS, 7)
+        sessions_kept = 5
         self.assertGreater(
             sessions_kept * horizons.SESSION_BARS, horizons.STRUCTURE_LOOKBACK * 2
         )
@@ -1370,10 +1433,11 @@ class IntradayPhases(unittest.TestCase):
             }
         }
 
-    def test_the_per_session_windows_are_read(self):
+    def test_the_per_session_windows_are_read_with_their_session_date(self):
         got = intraday.regular_windows(self._payload_two_sessions())
         self.assertEqual(len(got), 2)
-        self.assertEqual(got[0][0], datetime(2026, 9, 30, 13, 30))
+        self.assertEqual(got[0][0], date(2026, 9, 30))
+        self.assertEqual(got[0][1], datetime(2026, 9, 30, 13, 30))
 
     def test_a_missing_array_yields_nothing_rather_than_raising(self):
         self.assertEqual(intraday.regular_windows({}), [])
@@ -1381,23 +1445,35 @@ class IntradayPhases(unittest.TestCase):
 
     def test_bars_in_both_sessions_are_regular(self):
         bars = [
-            {"ts": datetime(2026, 9, 30, 15, 0)},
-            {"ts": datetime(2026, 10, 1, 15, 0)},
+            {"ts": datetime(2026, 9, 30, 15, 0), "sessionDate": date(2026, 9, 30)},
+            {"ts": datetime(2026, 10, 1, 15, 0), "sessionDate": date(2026, 10, 1)},
         ]
         intraday.phase_of(bars, None, intraday.regular_windows(self._payload_two_sessions()))
         self.assertEqual([b["phase"] for b in bars], ["regular", "regular"])
 
     def test_the_earlier_session_is_not_labelled_post_market(self):
-        # The exact bug: yesterday's 15:00 bar is after today's window has no bearing on it.
-        bars = [{"ts": datetime(2026, 9, 30, 15, 0)}]
+        # The exact bug: yesterday's 15:00 bar being after today's window has no bearing on it.
+        bars = [{"ts": datetime(2026, 9, 30, 15, 0), "sessionDate": date(2026, 9, 30)}]
         intraday.phase_of(bars, None, intraday.regular_windows(self._payload_two_sessions()))
         self.assertEqual(bars[0]["phase"], "regular")
 
+    def test_a_bar_older_than_the_window_array_is_left_alone(self):
+        """The second half of the same production bug.
+
+        The provider returned five session windows while the stored bars spanned ten days. The
+        old adjacent-day fallback compared a Monday bar against Friday's window and called it
+        pre-market, which labelled 1,100 of NVDA's 1,613 bars pre and left the intraday read
+        with a quarter of the series. An uncovered session is now left untouched.
+        """
+        bars = [{"ts": datetime(2026, 9, 21, 15, 0), "sessionDate": date(2026, 9, 21)}]
+        intraday.phase_of(bars, None, intraday.regular_windows(self._payload_two_sessions()))
+        self.assertNotIn("phase", bars[0])
+
     def test_pre_and_post_are_still_identified_within_a_session(self):
         bars = [
-            {"ts": datetime(2026, 10, 1, 12, 0)},
-            {"ts": datetime(2026, 10, 1, 15, 0)},
-            {"ts": datetime(2026, 10, 1, 21, 0)},
+            {"ts": datetime(2026, 10, 1, 12, 0), "sessionDate": date(2026, 10, 1)},
+            {"ts": datetime(2026, 10, 1, 15, 0), "sessionDate": date(2026, 10, 1)},
+            {"ts": datetime(2026, 10, 1, 21, 0), "sessionDate": date(2026, 10, 1)},
         ]
         intraday.phase_of(bars, None, intraday.regular_windows(self._payload_two_sessions()))
         self.assertEqual([b["phase"] for b in bars], ["pre", "regular", "post"])
@@ -1430,8 +1506,8 @@ class IntradayPhases(unittest.TestCase):
             }
         }
         bars = [
-            {"ts": datetime(2026, 11, 27, 17, 0)},
-            {"ts": datetime(2026, 11, 27, 19, 0)},
+            {"ts": datetime(2026, 11, 27, 17, 0), "sessionDate": date(2026, 11, 27)},
+            {"ts": datetime(2026, 11, 27, 19, 0), "sessionDate": date(2026, 11, 27)},
         ]
         intraday.phase_of(bars, None, intraday.regular_windows(payload))
         self.assertEqual([b["phase"] for b in bars], ["regular", "post"])
@@ -1558,8 +1634,10 @@ class SourceFailure(unittest.TestCase):
         self.assertIsNone(nbt.pct(None, 1.0))
         self.assertIsNone(nbt.mean([]))
         self.assertIsNone(nbt.median([]))
-        bars, holes = intraday.to_bars({"stamps": [1], "open": [None], "high": [None],
-                                        "low": [None], "close": [None], "volume": [None]}, 5)
+        bars, holes, _ = intraday.to_bars(
+            {"stamps": [1759325400], "open": [None], "high": [None], "low": [None],
+             "close": [None], "volume": [None]}, 5
+        )
         self.assertEqual(bars, [])
         self.assertEqual(holes, 1)
 
@@ -1583,6 +1661,212 @@ class BudgetGuards(unittest.TestCase):
     def test_the_investigation_window_cannot_silently_become_a_month(self):
         self.assertLessEqual(investigate.NEWS_WINDOW_DAYS, 7)
         self.assertLessEqual(investigate.CALENDAR_DAYS, 21)
+
+
+class SqlSafety(unittest.TestCase):
+    """The injection surface, pinned where it actually is.
+
+    Two surfaces with two different answers:
+
+      * The **jobs** build SQL as text and do interpolate identifiers, because Postgres has no
+        placeholder for a table or column name. Every one of those identifiers comes from a
+        literal in the source — `WATCHED` and `DATE_COLUMN` in audit.py, `TABLES` in stats.py,
+        `HORIZONS` in accuracy.py, and the ("assetId", "Asset") loop in human.py — and every
+        *value* goes through `%s`. No external or user-supplied string reaches an identifier
+        position, because the jobs take no user input at all.
+      * The **web layer** is the only place user input exists: a URL path segment. It must
+        therefore never build SQL, and these tests are what keep it that way.
+
+    Three of these started as cruder regexes that flagged twenty-six prose sentences, three
+    dict lookups and a stray backtick in a doc comment. A test that cries wolf teaches nothing,
+    so each one is now scoped to the construct it actually cares about.
+    """
+
+    WEB = ("app", "lib", "components")
+
+    def _web_files(self):
+        for folder in self.WEB:
+            for p in sorted((ROOT / folder).rglob("*.ts*")):
+                yield p
+
+    def test_the_web_layer_never_runs_raw_sql(self):
+        # The user-input surface must stay entirely on Prisma's parameterised client. A single
+        # $queryRawUnsafe here is the only way a path segment could reach the database as code.
+        offenders = []
+        for p in self._web_files():
+            text = p.read_text(encoding="utf-8")
+            for needle in ("$queryRaw", "$executeRaw", "queryRawUnsafe", "executeRawUnsafe"):
+                if needle in text:
+                    offenders.append(f"{p.relative_to(ROOT)}: {needle}")
+        self.assertEqual(offenders, [], "; ".join(offenders))
+
+    def test_no_sql_statement_is_assembled_in_the_web_layer(self):
+        import re
+
+        # Case-sensitive and newline-bounded: a real statement, not a backtick in prose.
+        pattern = re.compile(r"`[^`\n]*\bSELECT\b[^`\n]*\bFROM\b[^`\n]*`")
+        offenders = []
+        for p in self._web_files():
+            for m in pattern.finditer(p.read_text(encoding="utf-8")):
+                offenders.append(f"{p.relative_to(ROOT)}: {m.group(0)[:60]}")
+        self.assertEqual(offenders, [], "; ".join(offenders))
+
+    def test_every_job_value_placeholder_is_a_bound_parameter(self):
+        import re
+
+        # Only inside a string that is actually SQL, and only where an interpolation sits in a
+        # value position next to a comparison. \b on IN matters: without it, "within" matched.
+        string_lit = re.compile(r'(?:f"""|f")(.*?)(?:"""|")', re.S)
+        is_sql = re.compile(r"\b(SELECT|INSERT|UPDATE|DELETE)\b")
+        value_interp = re.compile(r"(?:=|>|<|\bLIKE\b|\bIN\b)\s*'?\{[a-z_]+\}'?")
+        offenders = []
+        for p in sorted((ROOT / "jobs").glob("*.py")):
+            text = p.read_text(encoding="utf-8")
+            for sm in string_lit.finditer(text):
+                sql = sm.group(1)
+                if not is_sql.search(sql):
+                    continue
+                for m in value_interp.finditer(sql):
+                    line = text[: sm.start() + m.start()].count("\n") + 1
+                    offenders.append(f"{p.name}:{line} {m.group(0)}")
+        self.assertEqual(offenders, [], "; ".join(offenders))
+
+    def test_no_secret_shaped_literal_is_committed(self):
+        import re
+
+        pattern = re.compile(
+            r"(postgres(ql)?://[^\s\"']*:[^\s\"']*@|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9]{20,}"
+            r"|ghp_[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY)"
+        )
+        keep = {".py", ".ts", ".tsx", ".yml", ".sql", ".prisma", ".json", ".md"}
+        offenders = []
+        for folder in ("jobs", "lib", "app", "components", "prisma", ".github"):
+            base = ROOT / folder
+            if not base.is_dir():
+                continue
+            for p in base.rglob("*"):
+                if not p.is_file() or p.suffix not in keep:
+                    continue
+                try:
+                    text = p.read_text(encoding="utf-8")
+                except (UnicodeDecodeError, OSError):
+                    continue
+                for m in pattern.finditer(text):
+                    around = text[max(0, m.start() - 10) : m.end() + 30]
+                    if "USER:PASSWORD" in around:
+                        continue
+                    offenders.append(f"{p.relative_to(ROOT)}")
+        self.assertEqual(offenders, [], "; ".join(offenders))
+
+    def test_nothing_is_exposed_to_the_browser(self):
+        # No NEXT_PUBLIC_ variable and no client component means no server-only value can reach
+        # the browser bundle at all, which is stronger than auditing each one.
+        for p in self._web_files():
+            text = p.read_text(encoding="utf-8")
+            self.assertNotIn("NEXT_PUBLIC_", text, f"{p.relative_to(ROOT)}")
+            self.assertNotIn("use client", text, f"{p.relative_to(ROOT)}")
+
+    def test_the_database_url_is_read_in_exactly_one_web_file(self):
+        readers = [
+            p.relative_to(ROOT).as_posix()
+            for p in self._web_files()
+            if "DATABASE_URL" in p.read_text(encoding="utf-8")
+        ]
+        self.assertEqual(readers, ["lib/db.ts"], f"read in {readers}")
+
+    def test_no_fetch_target_is_built_from_stored_or_fetched_data(self):
+        import re
+
+        # (?<![.\w]) excludes d.get(...) and counts.get(...): a dict lookup is not a fetch.
+        call = re.compile(r"(?<![.\w])get(?:_json)?\(\s*([^,)\n]+)")
+        from_row = re.compile(r"\br\[|\brow\[|\bitem\[|\bn\[")
+        offenders = []
+        for p in sorted((ROOT / "jobs").glob("*.py")):
+            text = p.read_text(encoding="utf-8")
+            for m in call.finditer(text):
+                arg = m.group(1).strip()
+                if from_row.search(arg):
+                    line = text[: m.start()].count("\n") + 1
+                    offenders.append(f"{p.name}:{line} fetches {arg}")
+        self.assertEqual(offenders, [], "; ".join(offenders))
+
+class IntradayTimezoneIndependence(unittest.TestCase):
+    """Derived bars must land on the same timestamp whatever machine runs the job.
+
+    Found in production, and the worst shape a bug can have: `datetime.timestamp()` on a naive
+    datetime interprets it in the machine's local timezone, so the epoch round trip in
+    `aggregate()` was invisible on the UTC workflow runner and shifted every derived bar five
+    hours early when the same job ran from a UTC+5 laptop. The 15 minute bar stored at 08:00
+    held the open of the 13:00 bar and the close of the 13:10 one — real numbers, correctly
+    aggregated, filed under the wrong time.
+
+    Two tests, because one is not enough. The behavioural test states the right answer, and the
+    source test forbids the construct that got it wrong — a behavioural test alone would pass
+    on a UTC runner with the bug still in place, which is exactly how this survived.
+    """
+
+    @staticmethod
+    def _code_only(func):
+        """Source with docstrings and comments removed.
+
+        Needed because the functions under test name the banned construct in their own
+        comments in order to explain why it is banned, and a scanner that counted those would
+        make the explanation unwritable.
+        """
+        import inspect
+        import re as _re
+
+        src = inspect.getsource(func)
+        src = _re.sub(r"\"\"\".*?\"\"\"", "", src, flags=_re.S)
+        return "\n".join(line.split("#", 1)[0] for line in src.splitlines())
+
+
+    def test_a_bucket_is_the_naive_floor_of_its_bars(self):
+        bars = _ibars(3, start=datetime(2026, 9, 24, 13, 0))
+        got = intraday.aggregate(bars, 15)
+        self.assertEqual(len(got), 1)
+        self.assertEqual(got[0]["ts"], datetime(2026, 9, 24, 13, 0))
+
+    def test_a_bucket_floors_a_mid_window_start(self):
+        # Bars at 13:05, 13:10, 13:15 straddle two 15 minute buckets, so the first two group
+        # under 13:00 and the third starts 13:15 with too few parts to be written.
+        bars = _ibars(3, start=datetime(2026, 9, 24, 13, 5))
+        got = intraday.aggregate(bars, 15)
+        self.assertEqual(got, [])
+
+    def test_every_derived_interval_floors_onto_the_hour_grid(self):
+        for minutes in intraday.DERIVE_TO:
+            per = minutes // intraday.CANONICAL
+            bars = _ibars(per, start=datetime(2026, 9, 24, 14, 0))
+            got = intraday.aggregate(bars, minutes)
+            self.assertEqual(len(got), 1, f"{minutes}m did not build")
+            self.assertEqual(got[0]["ts"], datetime(2026, 9, 24, 14, 0), f"{minutes}m")
+
+    def test_an_interval_that_does_not_divide_the_day_is_refused(self):
+        # Day-boundary arithmetic is only exact when the interval divides 1440.
+        self.assertEqual(intraday.aggregate(_ibars(12), 50), [])
+        for minutes in intraday.DERIVE_TO:
+            self.assertEqual(1440 % minutes, 0, f"{minutes} does not divide a day")
+
+    def test_the_aggregator_never_round_trips_through_an_epoch(self):
+        """The construct, not just the outcome.
+
+        A behavioural test passes on a UTC machine with the bug present. This forbids the
+        thing that made the result depend on where it ran.
+        """
+        src = self._code_only(intraday.aggregate)
+        for banned in (".timestamp()", "fromtimestamp", "utcfromtimestamp",
+                       "mktime"):
+            self.assertNotIn(
+                banned, src, f"aggregate() uses {banned}, which is timezone dependent"
+            )
+
+    def test_session_dating_is_also_pure_arithmetic(self):
+        # session_dates shifts by the provider's stated offset and takes .date(); if it ever
+        # reached for a timestamp it would acquire the same defect.
+        src = self._code_only(intraday.session_dates)
+        for banned in (".timestamp()", "mktime", "astimezone"):
+            self.assertNotIn(banned, src, f"session_dates() uses {banned}")
 
 
 class InsertShape(unittest.TestCase):

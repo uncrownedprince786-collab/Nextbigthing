@@ -647,23 +647,34 @@ def target_rows(entry: float, invalid: float, direction: str, atr: float | None,
             ),
         })
 
+    # The analog target exists only when the *median* of what followed similar days points the
+    # same way as the setup. Without that test the range ran from the median to the favourable
+    # extreme, and a median near zero put the near edge on the wrong side of the entry: AAPL
+    # read `buy` at 333.08 with an "upside" range starting at 332.77, a reward-to-risk of 0.03
+    # and a distance of -0.09%. Seven rows in production looked like that.
+    #
+    # Reaching past an unfavourable median to quote the favourable tail is selecting the
+    # evidence that suits the conclusion, which is the one thing this project exists not to do.
+    # When the median disagrees with the direction there is no analog target, and the absence
+    # is the honest answer.
     if analog and analog.get("matches") and int(analog["matches"]) >= ANALOG_MIN:
-        lo_pct, hi_pct = float(analog["medianPct"]), float(analog["maxPct"])
-        if direction == "short":
-            lo_pct, hi_pct = float(analog["minPct"]), float(analog["medianPct"])
-        a = entry * (1 + lo_pct / 100.0)
-        b = entry * (1 + hi_pct / 100.0)
-        low, high = sorted((a, b))
-        out.append({
-            "method": "analog",
-            "low": low, "high": high,
-            "note": (
-                f"what actually followed {analog['matches']} similar past days: a median of "
-                f"{float(analog['medianPct']):+.1f}% and a range to "
-                f"{(hi_pct if direction == 'buy' else lo_pct):+.1f}%. A measured distribution, "
-                "not a projection"
-            ),
-        })
+        median_pct = float(analog["medianPct"])
+        favourable = median_pct > 0 if direction == "buy" else median_pct < 0
+        if favourable:
+            lo_pct, hi_pct = median_pct, float(analog["maxPct"])
+            if direction == "short":
+                lo_pct, hi_pct = float(analog["minPct"]), median_pct
+            low, high = sorted((entry * (1 + lo_pct / 100.0), entry * (1 + hi_pct / 100.0)))
+            out.append({
+                "method": "analog",
+                "low": low, "high": high,
+                "note": (
+                    f"what actually followed {analog['matches']} similar past days: a median of "
+                    f"{median_pct:+.1f}% and a range to "
+                    f"{(hi_pct if direction == 'buy' else lo_pct):+.1f}%. A measured "
+                    "distribution, not a projection"
+                ),
+            })
 
     for row in out:
         near = row["low"] if direction == "buy" else row["high"]
@@ -711,6 +722,7 @@ def run_targets(cur) -> int:
 
     written = 0
     disagreeing = 0
+    dropped = 0
     for s in setups:
         if s["horizon"] == "intraday":
             bars = list(reversed(rows(
@@ -756,6 +768,24 @@ def run_targets(cur) -> int:
         ) if s["horizon"] != "intraday" else None
 
         got = target_rows(entry, float(s["invalidateLevel"]), s["state"], atr, level, analog)
+
+        # Remove any method that no longer qualifies for this setup.
+        #
+        # An upsert alone is not enough: when a method stops producing a range — an analog
+        # whose median has turned against the direction, a structural level price has since
+        # cleared — the previous run's row survives untouched and the page keeps showing a
+        # target the rules would no longer write. Seven of those were found in production,
+        # including an AAPL "upside" range whose near edge sat below the entry.
+        kept = [row["method"] for row in got]
+        if kept:
+            cur.execute(
+                'DELETE FROM "SetupTarget" WHERE "setupId" = %s AND method <> ALL(%s)',
+                (s["id"], kept),
+            )
+        else:
+            cur.execute('DELETE FROM "SetupTarget" WHERE "setupId" = %s', (s["id"],))
+        dropped += cur.rowcount
+
         if not got:
             continue
         if got[0].get("agreement", 0) >= DISAGREE_AT:
@@ -778,7 +808,7 @@ def run_targets(cur) -> int:
                 ),
             )
             written += 1
-    print(f"  {written} target ranges stored")
+    print(f"  {written} target ranges stored, {dropped} stale rows removed")
     print(
         f"  {disagreeing} setups have methods that disagree by {DISAGREE_AT:.0%} or more of "
         "the wider range. The disagreement is stored and shown, never averaged away."

@@ -93,15 +93,22 @@ RANGE_FOR = {1: "1d", 5: "5d"}
 # daily series is the permanent history and is never touched by this, while five minute bars
 # have a short useful life and would otherwise grow without limit on a free tier.
 #
-# Ten days, measured against what actually reads them rather than chosen round. The intraday
-# condition read looks at two sessions and the structural levels reach back 120 bars, which is
-# under two sessions; ten calendar days is about seven trading sessions, so there is margin for
-# a weekend and a holiday and still nothing is expired that a reader wants.
+# Seven days, which is not a round number but the span the fetch window actually covers.
 #
-# The number that forced this: a month of five minute bars took IntradayBar to 85 MB, larger
-# than the entire seven year daily history for every asset on the site (71 MB), for data
+# This has to match what each run refetches, and that is the real constraint rather than
+# storage. A bar outside the refetch window is never revisited, so it keeps whatever session
+# phase it was given - and if the phase rules change, or the provider returns a shorter window
+# array than the bars span, those stale bars silently degrade every read that filters on
+# `phase = 'regular'`. Retaining only what is relabelled every run makes that impossible.
+#
+# `range=5d` returns five trading sessions, which spans seven calendar days across a weekend.
+# Against the readers: the intraday condition read looks at two sessions and the structural
+# levels reach back 120 bars, which is under two sessions. Five sessions is ample for both.
+#
+# The number that forced the first cut: a month of five minute bars took IntradayBar to 85 MB,
+# larger than the entire seven year daily history for every asset on the site (71 MB), for data
 # nothing queried beyond the newest two sessions.
-RETAIN_DAYS = 10
+RETAIN_DAYS = 7
 
 # How many of the active set get one minute bars. Zero, deliberately.
 #
@@ -346,17 +353,33 @@ def fetch(symbol: str, interval: int) -> dict | None:
     }
 
 
-def to_bars(payload: dict, interval: int) -> tuple[list[dict], int]:
-    """(bars, bars the provider served as holes).
+def to_bars(payload: dict, interval: int) -> tuple[list[dict], int, int]:
+    """(bars, holes, in-progress bars discarded).
 
     A bar is kept only when open, high, low and close are all present. The provider pads its
     arrays to the session grid and fills the untraded slots with nulls, so a row with a null
-    close is a hole in the grid rather than an observation — counting it as a bar would
+    close is a hole in the grid rather than an observation - counting it as a bar would
     manufacture a price, and dropping it silently would hide that the series is short.
+
+    The last element is also discarded when its timestamp is not aligned to the interval.
+    That element is the **bar currently forming**, stamped with the quote time rather than a
+    bar boundary: a run at 14:08:43 returns a "five minute bar" covering three minutes, with a
+    volume of zero because nothing has settled yet. Storing it breaks three things at once -
+    it is not an observation of a five minute period, it lands in an aggregation bucket and
+    makes a 15 minute group look complete when only part of it exists, and because each run
+    stamps a different second it is a *new* unique key every time, so the partials accumulate
+    instead of being overwritten. A hundred of them were found in production this way.
+
+    Counted and returned rather than silently dropped, because "the newest bar has not closed
+    yet" is a fact about the series a reader may need.
     """
-    bars, holes = [], 0
+    bars, holes, forming = [], 0, 0
+    step_seconds = interval * 60
     stamps = payload.get("stamps") or []
     for i, ts in enumerate(stamps):
+        if int(ts) % step_seconds:
+            forming += 1
+            continue
 
         def at(field: str):
             seq = payload.get(field) or []
@@ -380,7 +403,7 @@ def to_bars(payload: dict, interval: int) -> tuple[list[dict], int]:
                 "interval": interval,
             }
         )
-    return bars, holes
+    return bars, holes, forming
 
 
 def session_dates(bars: list[dict], offset_seconds: int | None) -> None:
@@ -400,7 +423,7 @@ def _naive(epoch) -> datetime:
     return datetime.fromtimestamp(int(epoch), timezone.utc).replace(tzinfo=None)
 
 
-def regular_windows(payload: dict) -> list[tuple[datetime, datetime]]:
+def regular_windows(payload: dict) -> list[tuple[date, datetime, datetime]]:
     """Every session's regular trading window, from the provider's per-session array.
 
     The provider serves `tradingPeriods.regular` as one entry per session, each wrapped in a
@@ -414,17 +437,21 @@ def regular_windows(payload: dict) -> list[tuple[datetime, datetime]]:
     """
     tp = payload.get("trading")
     rows = tp.get("regular") if isinstance(tp, dict) else None
-    out: list[tuple[datetime, datetime]] = []
+    shift = timedelta(seconds=payload.get("gmtoffset") or 0)
+    out: list[tuple[date, datetime, datetime]] = []
     for entry in rows or []:
         items = entry if isinstance(entry, list) else [entry]
         for item in items:
             if isinstance(item, dict) and item.get("start") and item.get("end"):
-                out.append((_naive(item["start"]), _naive(item["end"])))
+                start, end = _naive(item["start"]), _naive(item["end"])
+                # The window's own session date, computed with the same offset the bars use,
+                # so a window and a bar agree on which session they belong to.
+                out.append(((start + shift).date(), start, end))
     return sorted(out)
 
 
 def phase_of(bars: list[dict], regular: dict | None,
-             windows: list[tuple[datetime, datetime]] | None = None) -> None:
+             windows: list[tuple[date, datetime, datetime]] | None = None) -> None:
     """Mark each bar regular, pre or post, in place.
 
     Three sources, in order of how much they actually know:
@@ -439,15 +466,20 @@ def phase_of(bars: list[dict], regular: dict | None,
     comparison this field exists to protect.
     """
     if windows:
+        by_session: dict[date, list[tuple[datetime, datetime]]] = {}
+        for sess, start, end in windows:
+            by_session.setdefault(sess, []).append((start, end))
         for b in bars:
             ts = b["ts"]
-            same = [w for w in windows if w[0].date() == ts.date()]
-            # A session that opens before midnight UTC and closes after it has bars on both
-            # dates, so a window on the adjacent date is considered too.
+            # Matched on the bar's own session date against the window's own session date.
+            # There is deliberately no adjacent-day fallback: it existed for sessions crossing
+            # midnight UTC and instead compared a Monday bar against Friday's window, which
+            # labelled 1,100 of NVDA's 1,613 bars pre-market and left the intraday read with a
+            # quarter of the series it should have had.
+            same = by_session.get(b.get("sessionDate"))
             if not same:
-                same = [w for w in windows if abs((w[0].date() - ts.date()).days) <= 1]
-            if not same:
-                b["phase"] = "regular"
+                # No window covers this session - usually a bar older than the window array
+                # the provider returned. Left alone rather than guessed at.
                 continue
             if any(start <= ts < end for start, end in same):
                 b["phase"] = "regular"
@@ -540,15 +572,29 @@ def aggregate(fine: list[dict], minutes: int, base: int = CANONICAL) -> list[dic
     Volume is summed only when every component bar carried one. One absent volume makes the
     sum an undercount, and an undercount presented as a total is the same error.
     """
-    if minutes % base:
+    if minutes % base or 1440 % minutes:
         return []
     per = minutes // base
     buckets: dict[tuple[date, datetime], list[dict]] = {}
     for b in sorted(fine, key=lambda x: x["ts"]):
-        epoch = int(b["ts"].timestamp())
-        start = datetime.fromtimestamp(
-            epoch - (epoch % (minutes * 60)), timezone.utc
-        ).replace(tzinfo=None)
+        # Bucketed by arithmetic on the naive UTC datetime, never through an epoch.
+        #
+        # This used to be `int(ts.timestamp())`, and `datetime.timestamp()` on a *naive*
+        # datetime interprets it in the machine's local timezone. Every bar stored here is
+        # naive UTC, so on the UTC workflow runner the round trip was invisible — and running
+        # the same job from a UTC+5 laptop labelled every derived bar five hours early. The
+        # 15 minute bar stored at 08:00 held the open of the 13:00 bar and the close of the
+        # 13:10 one: real numbers, correctly aggregated, filed under the wrong time.
+        #
+        # A timezone-dependent result in a data pipeline is worse than a wrong one, because it
+        # is right on the machine that runs it in production and wrong on the machine that
+        # debugs it. `1440 % minutes` above keeps the day-boundary arithmetic exact.
+        ts = b["ts"]
+        minute_of_day = ts.hour * 60 + ts.minute
+        floored = minute_of_day - (minute_of_day % minutes)
+        start = ts.replace(
+            hour=floored // 60, minute=floored % 60, second=0, microsecond=0
+        )
         buckets.setdefault((b["sessionDate"], start), []).append(b)
 
     out = []
@@ -729,7 +775,7 @@ def main() -> None:
             )
 
         budget = MAX_REQUESTS
-        fetched = failed = bars_total = derived_total = 0
+        fetched = failed = bars_total = derived_total = in_progress = 0
         statuses: dict[str, int] = {}
 
         for rank, a in enumerate(usable):
@@ -760,7 +806,9 @@ def main() -> None:
                     continue
 
                 fetched += 1
-                bars, holes = to_bars(payload, interval)
+                bars, holes, forming = to_bars(payload, interval)
+                if forming:
+                    in_progress += forming
                 session_dates(bars, payload.get("gmtoffset"))
                 regular = (payload.get("periods") or {}).get("regular")
                 phase_of(bars, regular, regular_windows(payload))
@@ -802,6 +850,11 @@ def main() -> None:
             f"{MAX_REQUESTS - budget} of {MAX_REQUESTS} budget used"
         )
         print(f"  {bars_total} fetched bars stored, {derived_total} derived bars stored")
+        if in_progress:
+            print(
+                f"  {in_progress} bars were still forming when they were fetched and were "
+                "discarded. An unfinished period is not an observation of that period."
+            )
         for status, n in sorted(statuses.items()):
             print(f"  {status:<12} {n} sessions")
         print(
