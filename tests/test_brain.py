@@ -227,7 +227,10 @@ class InsertShape(unittest.TestCase):
     """
 
     # (file, pattern-identifying comment) for the inserts whose shape is worth pinning.
-    FILES = ("human.py", "analogs.py", "geo.py", "setup.py", "lineage.py", "audit.py")
+    FILES = (
+        "human.py", "analogs.py", "geo.py", "setup.py", "lineage.py", "audit.py",
+        "lifecycle.py", "upcoming.py", "psx.py", "prices.py", "signals.py", "seed.py",
+    )
 
     def _statements(self, text: str):
         """Yield (columns, expressions) for each INSERT ... VALUES (...) in the text."""

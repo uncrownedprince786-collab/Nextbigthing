@@ -101,6 +101,15 @@ jobs:
       # before the job that measures logged readings runs.
       # Before human, because the catalyst decision counts stories and stories do not exist
       # until the headlines have been clustered.
+      # Advances dated events and freezes the before-state of any that have passed. Reads
+      # stored rows only, so it belongs with a release rather than with the rate limited
+      # refresh.
+      - name: Advance the event lifecycle
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/lifecycle.py
+
       - name: Cluster headlines into stories
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

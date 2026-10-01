@@ -43,6 +43,10 @@ DAILY = [
     # here. Daily rather than weekly because a date that moves is worth catching the day it
     # moves, and a reminder set for a date that has changed is worse than none.
     ("upcoming", []),
+    # lifecycle follows upcoming, because a date has to be discovered before it can be
+    # advanced, and it precedes rank so an event that resolves is frozen and measured in the
+    # same run that resolved it rather than a day later.
+    ("lifecycle", []),
     ("rank", []),
     ("confidence", ["rankings"]),
     ("events", []),
@@ -70,6 +74,7 @@ WEEKLY = [
     ("geo", []),
     ("analogs", []),
     ("upcoming", []),
+    ("lifecycle", []),
     ("rank", []),
     ("confidence", ["rankings"]),
     ("events", []),

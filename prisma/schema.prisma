@@ -95,6 +95,7 @@ model Asset {
   analogs      AssetAnalog[]
   eventLinks   EventLink[]
   setups       AssetSetup[]
+  eventStates  EventState[]
 
   createdAt DateTime @default(now())
 
@@ -406,14 +407,84 @@ model Event {
   /// a scheduled item whose day has passed, and the two read differently.
   scheduled Boolean  @default(false)
 
+  /// Where this event is in its life, advanced by jobs/lifecycle.py:
+  ///
+  ///   discovered  a source published the date; nothing checked yet
+  ///   upcoming    the date is confirmed present and more than APPROACHING_DAYS away
+  ///   approaching inside that window, so it is worth showing prominently
+  ///   live        the date is today
+  ///   resolved    the date has passed and the move after it has been measured
+  ///   historical  resolved, and old enough that it is evidence rather than news
+  ///
+  /// A state and not a derived expression, because the transition to `resolved` is the moment
+  /// the pre-event state is frozen, and that has to happen exactly once.
+  lifecycle String   @default("discovered")
+  /// When the system first saw this date. Distinct from the event date and from createdAt,
+  /// because how long a date was known is itself evidence: a report scheduled three months
+  /// out is different from one announced yesterday.
+  discoveredAt DateTime @default(now())
+  /// Set when lifecycle became resolved, so the freeze cannot silently re-run.
+  resolvedAt   DateTime?
+
   impacts  EventImpact[]
   analysis Analysis[]
   links    EventLink[]
+  states   EventState[]
 
   createdAt DateTime @default(now())
 
   @@index([date])
   @@index([scheduled, date])
+}
+
+/// What was true about an asset immediately before an event, and what was true after it.
+///
+/// This table exists to make look-ahead bias structurally impossible rather than a rule
+/// somebody has to remember. The problem it solves: once an event has passed, every table in
+/// this database holds the post-event world, so asking "what did we know before the earnings
+/// report" by querying current data silently answers with information that did not exist
+/// then. Freezing the before-state at the moment of resolution is the only way to ask the
+/// question honestly later.
+///
+/// `phase` is `before` or `after`. The before row is written once, when the event resolves,
+/// from observations dated strictly earlier than the event. The after row is written when the
+/// measurement window has elapsed. Neither is ever rewritten — a correction becomes a new
+/// row with a later computedAt, so the record of what the system believed at the time
+/// survives its own revisions.
+model EventState {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  assetId   String
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  /// before or after.
+  phase     String
+  /// The observation date the values come from, which is never the event date itself for a
+  /// before row: it is the last trading day strictly before it.
+  asOf      DateTime @db.Date
+
+  close     Float?
+  volume    Float?
+  /// Volume as a multiple of its own trailing average on that date.
+  volumeRatio Float?
+  /// Return over the 20 sessions ending at asOf.
+  trailingPct Float?
+  /// The news reading that existed then: tone, story count, whether a catalyst was flagged.
+  tone      String?
+  stories   Int?
+  catalyst  Boolean?
+  /// What the system's own condition read said at the time, if it had one.
+  setupState String?
+
+  /// Only on an after row: the measured change from the before row's close.
+  changePct Float?
+  windowDays Int?
+
+  source     String
+  computedAt DateTime @default(now())
+
+  @@unique([eventId, assetId, phase])
+  @@index([assetId, asOf])
 }
 
 /// What an event is about, for events that have not happened yet.
