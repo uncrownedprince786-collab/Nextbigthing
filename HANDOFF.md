@@ -141,8 +141,7 @@ Only genuinely external things:
 
 ## Rules that are load-bearing
 
-Everything in `brain.md` under "Rules for changes" — 26 of them, the last eight added with
-this pass — and in particular:
+Everything in `brain.md` under "Rules for changes" — 30 of them — and in particular:
 
 - **One migrator.** `schema.yml` and nothing else. The data lanes check.
 - **Retention touches intraday only.** `PriceSnapshot` is the permanent record. A sweep that
@@ -160,6 +159,11 @@ this pass — and in particular:
   or SQL.
 - **Quote identifiers in hand-written SQL.** `leading` is reserved in Postgres and cost a
   production run; a test now scans every `INSERT` in `jobs/` for bare reserved words.
+- **Never call `.timestamp()` on a naive datetime.** It reads the machine's local timezone, so
+  a result is correct on the UTC runner and wrong everywhere else. This mislabelled every
+  derived intraday bar by five hours when a job was run from a laptop. Two tests guard it.
+- **An upsert does not retract.** A job that writes a set per parent must delete the members it
+  did not produce, or a stale row outlives the rule that stopped producing it.
 
 ## If something looks wrong, first
 

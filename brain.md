@@ -466,3 +466,26 @@ reads rows that already exist:
     before a line of schema was written; the crypto symbol mapping was checked against three
     real pairs; the storage cost was measured rather than estimated, and was six times what the
     design assumed. Every one of those was cheaper to learn by asking than by shipping.
+27. **Never call `.timestamp()` on a naive datetime.** Every timestamp stored here is naive
+    UTC, and `datetime.timestamp()` interprets a naive value in the *machine's* local
+    timezone. `jobs/intraday.py` bucketed derived bars that way: invisible on the UTC workflow
+    runner, and five hours wrong when the same job ran from a UTC+5 laptop, so AAPL's 15 minute
+    bar at 08:00 held the open of the 13:00 bar. A timezone-dependent result is worse than a
+    wrong one, because it is right on the machine that runs it in production and wrong on the
+    machine that debugs it. Bucket and shift with arithmetic on the naive value. Two tests
+    guard it — one states the answer and one forbids the construct, because a behavioural test
+    alone passes on a UTC runner with the bug still present.
+28. **An unfinished period is not an observation of that period.** The quote API's last element
+    is the bar currently forming, stamped with the quote time and carrying no settled volume.
+    Discard anything whose timestamp is not aligned to its interval: it is not a bar, it makes
+    an aggregation group look complete, and because each run stamps a different second it is a
+    new key every time rather than an overwrite.
+29. **An upsert does not retract.** When a rule stops producing a row — an analog median that
+    has turned, a structural level price has cleared — the previous run's row survives and the
+    page keeps showing something the rules would no longer write. A job that writes a *set* per
+    parent must delete the members it did not produce. `jobs/horizons.py` does this for
+    `SetupTarget`.
+30. **Retention must equal what each run refetches.** A row outside the refetch window is never
+    revisited, so it keeps whatever derived label it was given, and a stale label silently
+    degrades every read that filters on it. Intraday retention is 7 days because `range=5d`
+    spans seven calendar days; changing one without the other reintroduces the problem.
