@@ -84,23 +84,106 @@ def day_on_or_before(series: list[tuple[date, float]], target: date):
     return hit[-1] if hit else None
 
 
+# How much history an asset must already hold before it is treated as backfilled. Below
+# this it gets the full download, because a half-filled series would leave permanent holes.
+MIN_HISTORY_ROWS = 200
+
+# How far back an incremental run re-reads. The provider revises recent days — a close is
+# occasionally corrected and a volume frequently is — so the last fortnight is refetched and
+# upserted rather than trusted. Everything older is settled and is never asked for again.
+CORRECTION_DAYS = 14
+
+
+def stored_coverage(cur) -> dict[str, tuple[int, date | None]]:
+    """Rows and newest stored date per asset, so a run can ask only for what it lacks."""
+    out: dict[str, tuple[int, date | None]] = {}
+    for r in rows(
+        cur,
+        """
+        SELECT "assetId" AS id, count(*) AS n, max(date) AS newest
+        FROM "PriceSnapshot" WHERE source = %s GROUP BY "assetId"
+        """,
+        (YAHOO,),
+    ):
+        out[r["id"]] = (int(r["n"]), r["newest"])
+    return out
+
+
 def fetch_yahoo(cur) -> int:
     assets = yahoo_assets(cur)
-    tickers = [a["sourceRef"] for a in assets]
-    step(f"yahoo daily history for {len(tickers)} tickers")
-    if not tickers:
+    if not assets:
         return 0
 
-    frame = yf.download(
-        tickers,
-        start=START.isoformat(),
-        progress=False,
-        auto_adjust=True,
-        group_by="ticker",
-        threads=4,
+    # Incremental by default. The job used to download every ticker's history from 2019 on
+    # every single run and replace the table wholesale, which is some seven years of daily
+    # bars per asset per day for the sake of one new row each. An asset that already holds
+    # its history is now asked only for the correction window.
+    coverage = stored_coverage(cur)
+    full: list[dict] = []
+    recent: list[dict] = []
+    for a in assets:
+        have, newest = coverage.get(a["id"], (0, None))
+        if have < MIN_HISTORY_ROWS or newest is None:
+            full.append(a)
+        else:
+            recent.append(a)
+
+    oldest_newest = min(
+        (coverage[a["id"]][1] for a in recent if coverage.get(a["id"], (0, None))[1]),
+        default=None,
     )
+    step(
+        f"yahoo daily history: {len(full)} full backfill, {len(recent)} incremental"
+        + (f" from {oldest_newest - timedelta(days=CORRECTION_DAYS)}" if oldest_newest else "")
+    )
+
+    frames: list[tuple[list[dict], object, bool]] = []
+    if full:
+        frames.append(
+            (
+                full,
+                yf.download(
+                    [a["sourceRef"] for a in full],
+                    start=START.isoformat(),
+                    progress=False,
+                    auto_adjust=True,
+                    group_by="ticker",
+                    threads=4,
+                ),
+                True,
+            )
+        )
+    if recent and oldest_newest:
+        frames.append(
+            (
+                recent,
+                yf.download(
+                    [a["sourceRef"] for a in recent],
+                    start=(oldest_newest - timedelta(days=CORRECTION_DAYS)).isoformat(),
+                    progress=False,
+                    auto_adjust=True,
+                    group_by="ticker",
+                    threads=4,
+                ),
+                False,
+            )
+        )
+
     written = 0
     today = date.today()
+    for assets_part, frame, is_full in frames:
+        written += _store_frame(cur, assets_part, frame, today, is_full)
+    return written
+
+
+def _store_frame(cur, assets, frame, today: date, is_full: bool) -> int:
+    """Write one downloaded frame. `is_full` decides replace-versus-upsert.
+
+    A full backfill replaces the asset's rows, because it is authoritative for the whole
+    series. An incremental run must never delete: it only holds the correction window, and
+    replacing from it would destroy six years of history to save one fetch.
+    """
+    written = 0
 
     for a in assets:
         sym = a["sourceRef"]
@@ -131,13 +214,20 @@ def fetch_yahoo(cur) -> int:
             # The source has always sent these; the job used to drop them on the floor.
             bars[day] = (num(row.get("Open")), num(row.get("High")), num(row.get("Low")))
 
-        cur.execute('DELETE FROM "PriceSnapshot" WHERE "assetId" = %s', (a["id"],))
+        if is_full:
+            cur.execute('DELETE FROM "PriceSnapshot" WHERE "assetId" = %s', (a["id"],))
 
         # Share count history, forward filled, so size on a past date uses the share
         # count that was in force on that date. Absent share data means no size row.
+        #
+        # An incremental run only holds the correction window, so it only recomputes the
+        # caps that fall inside it. The snapshot-date caps were written by the backfill and
+        # are left alone — asking for a share series covering 2019 on every run is the same
+        # waste the price download just stopped doing.
         shares = share_series(sym)
         cap_rows = []
-        for snap in SNAPSHOTS + [today]:
+        wanted = SNAPSHOTS + [today] if is_full else [today]
+        for snap in wanted:
             close = last_on_or_before(closes, snap)
             if close is None:
                 continue
@@ -157,9 +247,12 @@ def fetch_yahoo(cur) -> int:
             )
             for day, close in closes
         ]
-        insert_snapshots(cur, buffer)
+        insert_snapshots(cur, buffer, replace=is_full)
         written += len(buffer)
-        print(f"  {sym:7} {len(closes)} days, {len(cap_by_day)} size points")
+        print(
+            f"  {sym:7} {len(closes)} days, {len(cap_by_day)} size points"
+            + ("" if is_full else " (incremental)")
+        )
         time.sleep(0.4)
 
     return written
@@ -185,15 +278,36 @@ def share_series(sym: str) -> list[tuple[date, float]]:
     return out
 
 
-def insert_snapshots(cur, buffer: list[tuple]) -> None:
+def insert_snapshots(cur, buffer: list[tuple], replace: bool = True) -> None:
     if not buffer:
         return
-    with cur.copy(
-        'COPY "PriceSnapshot" ("assetId", date, open, high, low, close, volume, '
-        '"marketCap", source) FROM STDIN'
-    ) as cp:
-        for asset_id, day, op, hi, lo, close, vol, cap, source in buffer:
-            cp.write_row((asset_id, day, op, hi, lo, close, vol, cap, source))
+    if replace:
+        # COPY is much faster and the rows for this asset were just deleted, so there is
+        # nothing to conflict with.
+        with cur.copy(
+            'COPY "PriceSnapshot" ("assetId", date, open, high, low, close, volume, '
+            '"marketCap", source) FROM STDIN'
+        ) as cp:
+            for asset_id, day, op, hi, lo, close, vol, cap, source in buffer:
+                cp.write_row((asset_id, day, op, hi, lo, close, vol, cap, source))
+        return
+
+    # Incremental: upsert, and keep an existing marketCap when this run has none for that
+    # day. COALESCE matters — an incremental run computes a cap only for today, and without
+    # it every snapshot-date cap would be overwritten with null on the first daily run.
+    cur.executemany(
+        """
+        INSERT INTO "PriceSnapshot" ("assetId", date, open, high, low, close, volume,
+                                     "marketCap", source)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        ON CONFLICT ("assetId", date) DO UPDATE
+        SET open = EXCLUDED.open, high = EXCLUDED.high, low = EXCLUDED.low,
+            close = EXCLUDED.close, volume = EXCLUDED.volume,
+            "marketCap" = COALESCE(EXCLUDED."marketCap", "PriceSnapshot"."marketCap"),
+            source = EXCLUDED.source
+        """,
+        buffer,
+    )
 
 
 def fetch_crypto(cur) -> int:

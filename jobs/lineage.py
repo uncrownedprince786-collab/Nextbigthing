@@ -125,19 +125,34 @@ class Union:
 
 
 def cluster(items: list[dict], drop: set[str]) -> list[list[dict]]:
-    """Group one target's items into stories."""
+    """Group one target's items into stories.
+
+    Items arrive sorted by publication time, which is what keeps this from being the O(n^2)
+    scan it looks like. Two items can only be the same story inside WINDOW_HOURS, so the
+    inner loop stops at the first item past the window rather than walking to the end: every
+    item after it is further away still. The work is therefore proportional to how many items
+    share a three day window, not to how many the feed has ever produced.
+
+    The second guard is cheaper again. Two headlines with no distinctive token in common
+    cannot clear any positive threshold, so the intersection is checked before the union is
+    built.
+    """
     n = len(items)
     sets = [tokens(it["title"], drop) for it in items]
     u = Union(n)
+    window = WINDOW_HOURS * 3600
+    compared = 0
+
     for i in range(n):
         if not sets[i]:
             continue
         for j in range(i + 1, n):
-            if not sets[j]:
+            gap = (items[j]["publishedAt"] - items[i]["publishedAt"]).total_seconds()
+            if gap > window:
+                break
+            if not sets[j] or not (sets[i] & sets[j]):
                 continue
-            gap = abs((items[i]["publishedAt"] - items[j]["publishedAt"]).total_seconds())
-            if gap > WINDOW_HOURS * 3600:
-                continue
+            compared += 1
             if jaccard(sets[i], sets[j]) >= THRESHOLD:
                 u.join(i, j)
 

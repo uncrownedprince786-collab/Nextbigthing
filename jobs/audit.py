@@ -98,6 +98,17 @@ DATE_COLUMN = {
 STALE_AT = 1.5
 SILENT_AT = 3.0
 
+# Partial detection. A source that answers with a fraction of what it normally carries is
+# the failure mode that looks healthiest: rows arrive, nothing errors, and the numbers quietly
+# describe a smaller world. So the newest day's record count is compared with the median of
+# the days before it, and a day far below that is reported as partial rather than complete.
+#
+# The median, not the mean, because one bumper day in the comparison window would otherwise
+# make every ordinary day look thin.
+PARTIAL_AT = 0.5        # share of the recent median below which a day is called partial
+PARTIAL_LOOKBACK = 10   # days of history the median is taken over
+PARTIAL_MIN_MEDIAN = 4  # below this the median is too small to judge a shortfall against
+
 # The claim each grade makes about how often a directional reading goes the way it pointed.
 # Declared, not measured: these are the starting values the calibration loop exists to test,
 # and the honest thing is that they are visible and revisable rather than implicit. 0.5 is
@@ -140,6 +151,35 @@ def coverage(cur, today: date) -> None:
                 f"expected something every {expected:.0f}h and the newest is {gap_hours:.0f}h "
                 "old, so anything arriving in between has not been collected"
             )
+
+        # Partial beats healthy. A day that arrived on time with half its usual content is
+        # not a healthy day, and calling it one is how a shrinking feed goes unnoticed.
+        if status == "healthy" and got["n"] and newest is not None:
+            daily = rows(
+                cur,
+                f"""
+                SELECT count(*) AS n
+                FROM "{table}" WHERE {where}
+                  AND {col} > (%s::timestamp - (%s * interval '1 day'))
+                GROUP BY date_trunc('day', {col}::timestamp)
+                ORDER BY date_trunc('day', {col}::timestamp) DESC
+                """,
+                (newest, PARTIAL_LOOKBACK + 1),
+            )
+            counts = [int(d["n"]) for d in daily]
+            if len(counts) >= 4:
+                latest_n, prior = counts[0], sorted(counts[1:])
+                mid = len(prior) // 2
+                med = (
+                    prior[mid] if len(prior) % 2 else (prior[mid - 1] + prior[mid]) / 2
+                )
+                if med >= PARTIAL_MIN_MEDIAN and latest_n < PARTIAL_AT * med:
+                    status = "partial"
+                    note = (
+                        f"the newest day holds {latest_n} records against a recent median of "
+                        f"{med:.0f}. The source answered, so nothing failed, but it carried "
+                        "well under its usual amount and anything missing from it is not here"
+                    )
 
         cur.execute(
             """

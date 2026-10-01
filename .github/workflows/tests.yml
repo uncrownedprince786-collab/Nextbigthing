@@ -1,0 +1,64 @@
+name: tests
+
+# No database, no network, no concurrency group, no secrets.
+#
+# That is deliberate on three counts. It cannot block the data lane, so a red test run never
+# delays a migration. It cannot cost anything on the free tier beyond a minute of runner
+# time. And it cannot pass or fail for a reason outside the repository, which is the whole
+# value of a test: a failure here means the logic changed, not that a feed was down.
+#
+# Runs on every push and on pull requests, because the things it guards fail silently. A
+# clustering threshold that merges unrelated stories, a classifier that reads a mixed headline
+# as positive, a robust score that divides by zero — none of those raise, and all of them
+# quietly corrupt what the site tells a reader.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python:
+    name: brain logic
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      - name: Compile every job
+        run: python -m compileall -q jobs
+
+      - name: Brain logic tests
+        run: python -m unittest discover -s tests -v
+
+  frontend:
+    name: types and lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Generate the Prisma client
+        run: npx prisma generate
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint
