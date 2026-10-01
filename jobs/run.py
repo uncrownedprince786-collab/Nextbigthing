@@ -71,6 +71,11 @@ DAILY = [
     # graph walks out from the catalysts human flagged, so it follows human. Arithmetic over
     # stored relationship rows, no network.
     ("graph", []),
+    # intraday is last of the fetchers, not first, because its active set is chosen from what
+    # everything above just found: a directional read, a live thesis, an unusual move, a
+    # flagged catalyst, a graph neighbour, a date within three days. Running it earlier would
+    # select on yesterday's findings and spend the request budget on the wrong assets.
+    ("intraday", []),
     ("accuracy", []),
     ("audit", []),
     ("analysis", []),
@@ -97,6 +102,7 @@ WEEKLY = [
     ("thesis", []),
     ("attribution", []),
     ("graph", []),
+    ("intraday", []),
     ("accuracy", []),
     ("audit", []),
     ("analysis", []),

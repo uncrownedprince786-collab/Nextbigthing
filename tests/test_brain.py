@@ -28,9 +28,11 @@ import analogs  # noqa: E402
 import attribution  # noqa: E402
 import graph  # noqa: E402
 import human  # noqa: E402
+import intraday  # noqa: E402
 import lineage  # noqa: E402
 import nbt  # noqa: E402
 import run  # noqa: E402
+import schemacheck  # noqa: E402
 import thesis  # noqa: E402
 
 
@@ -598,6 +600,14 @@ class RunReport(unittest.TestCase):
                         f"{group} names jobs/{script}.py, which does not exist",
                     )
 
+    def test_intraday_follows_the_jobs_its_active_set_is_chosen_from(self):
+        # The active set is selected from the setup, thesis, graph and news rows, so every one
+        # of those has to be written before the request budget is spent.
+        for plan in (run.DAILY, run.WEEKLY):
+            order = [script for script, _ in plan]
+            for earlier in ("setup", "thesis", "graph", "human"):
+                self.assertLess(order.index(earlier), order.index("intraday"))
+
     def test_the_reading_jobs_follow_the_jobs_they_read(self):
         # thesis reads the AssetSetup row setup.py writes, and graph walks out from the
         # catalysts human.py flags. Either one running first would read yesterday's rows.
@@ -606,6 +616,294 @@ class RunReport(unittest.TestCase):
             self.assertLess(order.index("setup"), order.index("thesis"))
             self.assertLess(order.index("human"), order.index("graph"))
             self.assertLess(order.index("lineage"), order.index("human"))
+
+
+class SchemaGuard(unittest.TestCase):
+    """The refresh lane must refuse to run against a schema that is behind.
+
+    This replaced a second `prisma migrate deploy`. Two workflows migrating one database from
+    two concurrency groups is what killed run 36798989654, so the comparison below is the
+    whole of the fix: it answers the same question without being a second writer.
+    """
+
+    HAVE = ["20260929125054_init", "20260930090154_confidence", "20261002030000_thesis"]
+
+    def test_a_current_database_has_nothing_pending(self):
+        self.assertEqual(schemacheck.pending(self.HAVE, set(self.HAVE)), [])
+        self.assertEqual(schemacheck.extra(self.HAVE, set(self.HAVE)), [])
+
+    def test_a_behind_database_names_what_is_missing_in_apply_order(self):
+        applied = {"20260929125054_init"}
+        self.assertEqual(
+            schemacheck.pending(self.HAVE, applied),
+            ["20260930090154_confidence", "20261002030000_thesis"],
+        )
+
+    def test_a_database_ahead_of_the_checkout_is_reported_not_failed(self):
+        # A scheduled run on an older checkout meeting a newer database. Every write in this
+        # repo is an upsert and a table nothing reads is inert, so this is allowed.
+        applied = set(self.HAVE) | {"20261103000000_later"}
+        self.assertEqual(schemacheck.pending(self.HAVE, applied), [])
+        self.assertEqual(schemacheck.extra(self.HAVE, applied), ["20261103000000_later"])
+
+    def test_the_real_migration_folder_is_read_in_sortable_order(self):
+        got = schemacheck.on_disk(schemacheck.MIGRATIONS)
+        self.assertGreater(len(got), 10)
+        self.assertEqual(got, sorted(got))
+        # migration_lock.toml is a file, not a migration, and must not be counted as one.
+        self.assertNotIn("migration_lock.toml", got)
+
+    def test_a_missing_folder_yields_nothing_rather_than_raising(self):
+        self.assertEqual(schemacheck.on_disk(ROOT / "does-not-exist"), [])
+
+
+class WorkflowLanes(unittest.TestCase):
+    """Only one workflow may migrate, and the data lanes must check instead.
+
+    Pinned as a test because the failure it prevents is invisible in review: both files read
+    correctly on their own, and the race only exists in the pair.
+    """
+
+    WORKFLOWS = ROOT / ".github" / "workflows"
+
+    def _text(self, name):
+        return (self.WORKFLOWS / name).read_text(encoding="utf-8")
+
+    def test_exactly_one_workflow_applies_migrations(self):
+        # Matched on the run line, not on any mention of the command: refresh.yml explains in
+        # a comment why it no longer runs it, and a comment is not a second migrator.
+        import re
+
+        migrating = [
+            p.name
+            for p in sorted(self.WORKFLOWS.glob("*.yml"))
+            if re.search(r"^\s*run:.*prisma migrate deploy", p.read_text(encoding="utf-8"), re.M)
+        ]
+        self.assertEqual(migrating, ["schema.yml"], f"migration is applied by {migrating}")
+
+    def test_the_data_lanes_check_the_schema_before_writing(self):
+        for name in ("refresh.yml", "backfill.yml"):
+            self.assertIn("jobs/schemacheck.py", self._text(name), f"{name} does not check")
+
+    def test_the_schema_lane_keeps_its_own_concurrency_group(self):
+        # A hung enrichment fetch once held the shared group for 90+ minutes while the
+        # migration the deployed site needed sat queued behind it. P3 must never block P0.
+        self.assertIn("group: nbt-schema", self._text("schema.yml"))
+        for name in ("refresh.yml", "backfill.yml"):
+            self.assertIn("group: nbt-database", self._text(name))
+
+    def test_the_scheduled_lane_still_proves_it_is_running_main(self):
+        self.assertIn("Prove this run is executing main", self._text("refresh.yml"))
+        self.assertIn("ref: main", self._text("refresh.yml"))
+
+
+def _ibars(n, start=None, interval=5, vol=100.0, session=None):
+    """n consecutive intraday bars, each one unit higher, for the aggregation tests."""
+    base = start or datetime(2026, 10, 1, 13, 30)
+    out = []
+    for i in range(n):
+        ts = base + timedelta(minutes=interval * i)
+        out.append({
+            "ts": ts,
+            "sessionDate": session or base.date(),
+            "open": 100.0 + i,
+            "high": 101.0 + i,
+            "low": 99.0 + i,
+            "close": 100.5 + i,
+            "volume": vol,
+            "interval": interval,
+            "phase": "regular",
+        })
+    return out
+
+
+class IntradayAggregation(unittest.TestCase):
+    """Derived bars must be exact or absent.
+
+    A 60 minute bar assembled from nine of its twelve five minute bars is a quieter hour than
+    the one that happened, so every case here is about refusing to build it.
+    """
+
+    def test_a_full_group_aggregates_exactly(self):
+        got = intraday.aggregate(_ibars(3, interval=5), 15)
+        self.assertEqual(len(got), 1)
+        bar = got[0]
+        self.assertAlmostEqual(bar["open"], 100.0)     # first open
+        self.assertAlmostEqual(bar["close"], 102.5)    # last close
+        self.assertAlmostEqual(bar["high"], 103.0)     # highest high
+        self.assertAlmostEqual(bar["low"], 99.0)       # lowest low
+        self.assertAlmostEqual(bar["volume"], 300.0)   # summed
+        self.assertTrue(bar["derived"])
+        self.assertEqual(bar["derivedFrom"], 5)
+        self.assertEqual(bar["interval"], 15)
+
+    def test_an_incomplete_group_is_skipped_not_assembled(self):
+        # Two of the three bars a 15 minute bar needs.
+        self.assertEqual(intraday.aggregate(_ibars(2, interval=5), 15), [])
+
+    def test_a_partial_tail_does_not_produce_a_short_bar(self):
+        # Four 5m bars make one complete 15m bar and one incomplete one. Only the first is
+        # written; the leftover is not emitted as a five-minute-long "15 minute" bar.
+        self.assertEqual(len(intraday.aggregate(_ibars(4, interval=5), 15)), 1)
+
+    def test_one_absent_volume_makes_the_sum_absent(self):
+        bars = _ibars(3, interval=5)
+        bars[1]["volume"] = None
+        got = intraday.aggregate(bars, 15)
+        self.assertEqual(len(got), 1)
+        self.assertIsNone(got[0]["volume"], "an undercount must not be presented as a total")
+
+    def test_a_zero_volume_bar_still_sums(self):
+        # Zero is a real quiet five minutes and is not the same as absent.
+        bars = _ibars(3, interval=5)
+        bars[1]["volume"] = 0.0
+        self.assertAlmostEqual(intraday.aggregate(bars, 15)[0]["volume"], 200.0)
+
+    def test_an_interval_that_does_not_divide_is_refused(self):
+        # 7 is not a whole multiple of 5, so there is no exact way to build it.
+        self.assertEqual(intraday.aggregate(_ibars(12, interval=5), 7), [])
+
+    def test_every_declared_derived_interval_divides_the_canonical_one(self):
+        for minutes in intraday.DERIVE_TO:
+            self.assertEqual(minutes % intraday.CANONICAL, 0, f"{minutes} is not buildable")
+
+    def test_bars_from_two_sessions_do_not_merge(self):
+        day1 = _ibars(3, start=datetime(2026, 10, 1, 13, 30))
+        day2 = _ibars(3, start=datetime(2026, 10, 2, 13, 30))
+        got = intraday.aggregate(day1 + day2, 15)
+        self.assertEqual(len(got), 2)
+        self.assertNotEqual(got[0]["sessionDate"], got[1]["sessionDate"])
+
+
+class IntradayCompleteness(unittest.TestCase):
+    """A source returning half its payload must not look healthy."""
+
+    def setUp(self):
+        self.now = datetime(2026, 10, 1, 20, 5)
+        self.recent = datetime(2026, 10, 1, 20, 0)
+        self.old = datetime(2026, 10, 1, 17, 0)
+
+    def test_a_full_session_is_complete(self):
+        status, note = intraday.classify(78, 78, 0, self.recent, self.now)
+        self.assertEqual(status, "complete")
+        self.assertIn("78", note)
+
+    def test_half_a_session_is_partial_and_says_so(self):
+        status, note = intraday.classify(39, 78, 0, self.recent, self.now)
+        self.assertEqual(status, "partial")
+        self.assertIn("must not be read as a quiet session", note)
+
+    def test_no_bars_and_no_holes_is_empty_not_failed(self):
+        # The right answer for a market that has not opened.
+        self.assertEqual(intraday.classify(0, 78, 0, None, self.now)[0], "empty")
+
+    def test_all_holes_is_a_failure(self):
+        self.assertEqual(intraday.classify(0, 78, 78, None, self.now)[0], "failed")
+
+    def test_an_old_newest_bar_is_stale(self):
+        status, note = intraday.classify(78, 78, 0, self.old, self.now)
+        self.assertEqual(status, "stale")
+        self.assertIn("minutes old", note)
+
+    def test_a_short_payload_reports_partial_even_when_also_stale(self):
+        # The missing bars are the finding; the age is a consequence of them.
+        self.assertEqual(intraday.classify(10, 78, 0, self.old, self.now)[0], "partial")
+
+    def test_an_unknown_expected_count_does_not_invent_partial(self):
+        # Crypto has no exchange session, so there is no expected count to compare against.
+        self.assertEqual(intraday.classify(12, None, 0, self.recent, self.now)[0], "complete")
+
+
+class IntradayNormalisation(unittest.TestCase):
+    def test_a_null_close_is_a_hole_not_a_bar(self):
+        payload = {
+            "stamps": [1759325400, 1759325700],
+            "open": [100.0, None], "high": [101.0, None],
+            "low": [99.0, None], "close": [100.5, None], "volume": [10.0, None],
+        }
+        bars, holes = intraday.to_bars(payload, 5)
+        self.assertEqual(len(bars), 1)
+        self.assertEqual(holes, 1, "a padded empty slot must be counted, not silently dropped")
+
+    def test_absent_volume_stays_absent_and_zero_stays_zero(self):
+        payload = {
+            "stamps": [1759325400, 1759325700],
+            "open": [1.0, 1.0], "high": [1.0, 1.0], "low": [1.0, 1.0], "close": [1.0, 1.0],
+            "volume": [None, 0.0],
+        }
+        bars, _ = intraday.to_bars(payload, 5)
+        self.assertIsNone(bars[0]["volume"])
+        self.assertEqual(bars[1]["volume"], 0.0)
+
+    def test_an_empty_payload_yields_nothing_rather_than_raising(self):
+        self.assertEqual(intraday.to_bars({}, 5), ([], 0))
+
+    def test_a_truncated_quote_array_does_not_raise(self):
+        # The provider has been seen to return shorter quote arrays than timestamps.
+        payload = {"stamps": [1, 2, 3], "open": [1.0], "high": [1.0], "low": [1.0],
+                   "close": [1.0], "volume": [1.0]}
+        bars, holes = intraday.to_bars(payload, 5)
+        self.assertEqual(len(bars), 1)
+        self.assertEqual(holes, 2)
+
+    def test_expected_bars_comes_from_the_stated_period(self):
+        # 09:30 to 16:00 New York is 6.5 hours: 78 five minute bars, 26 fifteens.
+        regular = {"start": 1759325400, "end": 1759348800}
+        self.assertEqual(intraday.expected_bars(regular, 5), 78)
+        self.assertEqual(intraday.expected_bars(regular, 15), 26)
+
+    def test_a_missing_period_gives_none_not_a_guess(self):
+        self.assertIsNone(intraday.expected_bars(None, 5))
+        self.assertIsNone(intraday.expected_bars({"start": 1, "end": 1}, 5))
+
+    def test_psx_is_recorded_as_unsupported_rather_than_attempted(self):
+        ok, why = intraday.supported({"source": "PSX daily closing file", "sourceRef": "HBL"})
+        self.assertFalse(ok)
+        self.assertIn("Pakistan", why)
+
+    def test_a_us_listing_is_supported(self):
+        ok, why = intraday.supported({"source": "Yahoo Finance", "sourceRef": "NVDA"})
+        self.assertTrue(ok)
+        self.assertEqual(why, "")
+
+    def test_an_asset_with_no_provider_reference_is_unsupported(self):
+        ok, why = intraday.supported({"source": "Yahoo Finance", "sourceRef": ""})
+        self.assertFalse(ok)
+        self.assertIn("no provider reference", why)
+
+    def test_the_request_ceiling_bounds_a_selection_bug(self):
+        # The ceiling exists so a selection bug costs one capped run rather than a ban.
+        self.assertLessEqual(intraday.MAX_REQUESTS, 100)
+        self.assertLess(intraday.FINE_SLICE, intraday.MAX_REQUESTS)
+
+    def test_the_session_date_uses_the_exchange_offset(self):
+        # A bar at 00:30 UTC belongs to the previous New York session, and splitting it onto
+        # the UTC date would move it into a session it was not part of.
+        bars = [{"ts": datetime(2026, 10, 2, 0, 30)}]
+        intraday.session_dates(bars, -4 * 3600)
+        self.assertEqual(bars[0]["sessionDate"].isoformat(), "2026-10-01")
+
+    def test_phases_split_on_the_stated_regular_period(self):
+        # Built in UTC explicitly. A naive datetime's .timestamp() uses the machine's local
+        # zone, so this test passed or failed depending on where it ran.
+        import calendar
+
+        regular = {
+            "start": calendar.timegm(datetime(2026, 10, 1, 13, 30).timetuple()),
+            "end": calendar.timegm(datetime(2026, 10, 1, 20, 0).timetuple()),
+        }
+        bars = [
+            {"ts": datetime(2026, 10, 1, 12, 0)},
+            {"ts": datetime(2026, 10, 1, 15, 0)},
+            {"ts": datetime(2026, 10, 1, 21, 0)},
+        ]
+        intraday.phase_of(bars, regular)
+        self.assertEqual([b["phase"] for b in bars], ["pre", "regular", "post"])
+
+    def test_no_period_leaves_every_bar_regular_rather_than_guessing(self):
+        bars = [{"ts": datetime(2026, 10, 1, 12, 0)}]
+        intraday.phase_of(bars, None)
+        self.assertNotIn("phase", bars[0])
 
 
 class InsertShape(unittest.TestCase):

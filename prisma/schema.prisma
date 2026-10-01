@@ -99,6 +99,8 @@ model Asset {
   theses       AssetThesis[]
   attributions MoveAttribution[]
   relevance    GraphRelevance[]
+  intraday     IntradayBar[]
+  intradaySessions IntradaySession[]
 
   createdAt DateTime @default(now())
 
@@ -1136,4 +1138,113 @@ model GraphRelevance {
 
   @@unique([assetId, periodEnd, originKind, originId])
   @@index([periodEnd, score])
+}
+
+/// One intraday bar, normalised, with the source and the interval it was actually fetched at.
+///
+/// Stored at a single canonical interval and derived upward rather than fetched per interval.
+/// Five minutes is the canonical one: it is the finest the provider serves more than a week
+/// of, 15m / 30m / 1h all divide into it exactly, and one 5m request covers a whole session
+/// where a 1m request covers a fraction of it at twelve times the rows. A 1m bar is fetched
+/// only for an asset that needs it, and when it is, it is stored here at `interval = 1`
+/// alongside the 5m rows rather than replacing them.
+///
+/// `interval` is minutes, and it is part of the key rather than a column to filter later: a
+/// 5m bar and a 15m bar covering the same minute are two different observations of it, and a
+/// query that forgot to say which it wanted would silently mix them.
+///
+/// `derived` marks a bar this system computed by aggregating finer bars rather than one the
+/// provider served. It is never inferred from the interval, because the provider can serve
+/// 15m directly and that row is not derived. A derived bar is reproducible; a fetched one is
+/// evidence, and §9 says evidence must stay recoverable.
+///
+/// No bar is ever invented. A session with a gap keeps the gap: `barsExpected` on
+/// `IntradaySession` is what makes the gap visible instead of making the series look whole.
+///
+/// Written by jobs/intraday.py.
+model IntradayBar {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId   String
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  /// Bar interval in minutes: 5 is canonical, 1 is fetched only for the active set, and
+  /// 15/30/60 are derived from 5 where every component bar is present.
+  interval  Int
+  /// Bar open time in UTC. The exchange's own timezone is on the session row, so a reader
+  /// never has to guess which clock a timestamp is in.
+  ts        DateTime
+  /// The exchange session date this bar belongs to, in exchange-local terms. Stored rather
+  /// than computed from `ts`, because a session that crosses midnight UTC would otherwise
+  /// split in two.
+  sessionDate DateTime @db.Date
+
+  open   Float
+  high   Float
+  low    Float
+  close  Float
+  /// Null, not zero, when the provider served no volume for the bar. A zero-volume bar is a
+  /// real thing on a quiet five minutes and must stay distinguishable from an absent one.
+  volume Float?
+
+  /// regular, pre or post. Kept because a pre-market breakout on 400 shares is not the same
+  /// observation as the same move in the regular session, and averaging the two would hide it.
+  phase  String  @default("regular")
+
+  /// True when this bar was aggregated from finer stored bars rather than fetched.
+  derived Boolean @default(false)
+  /// The interval it was derived from, when it was.
+  derivedFrom Int?
+
+  source      String
+  retrievedAt DateTime @default(now())
+
+  @@unique([assetId, interval, ts])
+  @@index([assetId, interval, sessionDate])
+  @@index([sessionDate])
+}
+
+/// What one fetch of one asset's intraday series actually returned.
+///
+/// This is the completeness record §8 asks for, and it is a separate table because the
+/// interesting cases are the ones where there is no data to put in `IntradayBar`. A provider
+/// that serves half a session looks identical to a quiet session once the bars are stored;
+/// the only way to tell them apart is to have written down how many bars the session should
+/// have had.
+///
+/// status is one of:
+///   complete    every expected bar arrived
+///   partial     some arrived, fewer than expected
+///   empty       the provider answered, with no bars — a real answer for a closed market
+///   stale       the newest bar is older than the interval should allow
+///   failed      the provider did not answer, or answered unusably
+///   unsupported this asset's class has no intraday source, which is a fact and not a failure
+///
+/// `unsupported` is the row that keeps the capability honest for assets the provider cannot
+/// serve. The architecture holds; the coverage does not, and the page says which.
+model IntradaySession {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId   String
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  sessionDate DateTime @db.Date
+  interval  Int
+
+  status    String
+  /// How many bars a full session at this interval would hold, from the provider's own
+  /// stated trading period rather than from a constant.
+  barsExpected Int?
+  barsStored   Int      @default(0)
+  /// Bars the provider served with a null close, which are holes rather than observations.
+  barsNull     Int      @default(0)
+
+  /// The exchange timezone the session is defined in, as the provider stated it.
+  exchangeTz String?
+  firstTs    DateTime?
+  lastTs     DateTime?
+
+  /// Plain words: what arrived, what did not, and what that means for reading the bars.
+  note      String
+  source      String
+  retrievedAt DateTime @default(now())
+
+  @@unique([assetId, sessionDate, interval])
+  @@index([status, sessionDate])
 }

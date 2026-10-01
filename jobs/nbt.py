@@ -88,6 +88,10 @@ HOST_DELAY = {
     # the same courtesy as the rest.
     "dps.psx.com.pk": 1.5,
     "www.amazon.com": 4.0,
+    # The quote API jobs/intraday.py reads. Measured: it tolerates roughly a request a second
+    # for small volumes and starts answering 429 above that. 1.5s with a per-run request
+    # ceiling in the job is what keeps an intraday run inside the free allowance.
+    "query1.finance.yahoo.com": 1.5,
 }
 _last_hit: dict[str, float] = {}
 

@@ -23,8 +23,12 @@ on:
       - .github/workflows/backfill.yml
   workflow_dispatch:
 
-# Shared with the schema and refresh workflows. One database, and a backfill writing prices
-# underneath the ranking job reading them is the kind of thing that only breaks sometimes.
+# Shared with the refresh workflow. One database, and a backfill writing prices underneath
+# the ranking job reading them is the kind of thing that only breaks sometimes.
+#
+# Not shared with schema.yml, which has its own lane so enrichment can never block a
+# migration. This workflow does not migrate either: schema.yml is the single controlled path,
+# and the check below refuses to start if it has not landed.
 concurrency:
   group: nbt-database
   cancel-in-progress: false
@@ -65,6 +69,15 @@ jobs:
 
       - name: Install job dependencies
         run: pip install -r requirements.txt
+
+      # Same reason as in refresh.yml: this lane writes rows and must not be the second place
+      # that migrates. It checks, and stops with the pending migration named if the deploy has
+      # not reached the database.
+      - name: Refuse to run against a schema that is behind
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/schemacheck.py
 
       - name: Fetch the full PSX history
         env:

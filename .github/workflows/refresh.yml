@@ -28,8 +28,12 @@ on:
     paths:
       - .github/workflows/refresh.yml
 
-# Shared with the schema workflow, so a migration and a data job never write at the same
-# time. See the note there.
+# Shared with the backfill workflow so two ingestion runs never compete for the same rows.
+#
+# Deliberately NOT shared with schema.yml. That separation is the P0 rule: optional enrichment
+# must never be able to block a migration or critical ingestion, and the 90 minute deadlock a
+# hung geo fetch once caused is what it is there to prevent. The migration race that separation
+# used to create is gone, because this lane no longer migrates — see the schema check below.
 concurrency:
   group: nbt-database
   cancel-in-progress: false
@@ -79,27 +83,22 @@ jobs:
       - name: Install job dependencies
         run: pip install -r requirements.txt
 
-      # The schema is migrated here and nowhere else. This is the only place that holds the
-      # writer credential: Vercel is given the read-only role on purpose, so it cannot run
-      # DDL, and a laptop is not in the loop on a scheduled run. Applying it before the jobs
-      # is also the order the data needs, since a job cannot write a table that is not there.
-      # migrate deploy applies only what has not run yet, so this is a no-op most days.
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-
-      # Installed from the repo rather than fetched ad hoc, so the migration runs on the same
-      # Prisma version the migrations were written with and the CLI can resolve the datasource
-      # config, which imports dotenv and prisma/config. --ignore-scripts skips the postinstall
-      # client generation, which a migration does not need. See the note in schema.yml for why
-      # this is install rather than ci.
-      - name: Install the Prisma CLI
-        run: npm install --ignore-scripts --no-audit --no-fund
-
-      - name: Apply pending schema migrations
+      # This lane checks the schema; it does not migrate it. The comment that used to sit here
+      # said the schema was migrated "here and nowhere else", and that stopped being true when
+      # schema.yml took the job. The result was a real production failure: on a push touching
+      # this file, both workflows ran `prisma migrate deploy` against one database in the same
+      # second, from two different concurrency groups with nothing serialising them. The schema
+      # run won and this one died at the migration with every data job skipped (run
+      # 36798989654).
+      #
+      # Migration is now one controlled path — schema.yml — and this lane refuses to start if
+      # the schema has not caught up. The check holds no writer privilege, issues no DDL and
+      # needs no Node, so it cannot race anything: comparing two lists is not a write.
+      - name: Refuse to run against a schema that is behind
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: npx prisma migrate deploy
+          PYTHONIOENCODING: utf-8
+        run: python jobs/schemacheck.py
 
       - name: Choose the run
         id: plan
