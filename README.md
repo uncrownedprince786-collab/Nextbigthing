@@ -1,5 +1,9 @@
 # NextBigThing
 
+> **Picking this up after a break? Read [RESUME.md](RESUME.md) first.** It states where work
+> stopped, what is verified, the one item still open, and what you have to supply before any
+> job will run. `HANDOFF.md` is the detail behind it.
+
 A read only site that ranks what is gaining ground, using only free public data, and
 names the source and the as of date of every number it shows.
 

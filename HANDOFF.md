@@ -1,5 +1,8 @@
 # Handoff — 2026-10-01, final development pass
 
+> For the short version — where work stopped and what to do next — read
+> [RESUME.md](RESUME.md). This file is the detail behind it.
+
 The system is in **production / maintenance only**. This file is the state; `brain.md` is the
 thinking and `ARCHITECTURE.md` is the layer map.
 
