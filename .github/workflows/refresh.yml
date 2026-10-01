@@ -114,6 +114,11 @@ jobs:
       # Reported as its own step for the same reason the PSX verification is in backfill.yml:
       # a step's pass or fail is visible where its output is not, and run.py writes the
       # per-step table to $GITHUB_STEP_SUMMARY, which is readable without a sign-in.
+      #
+      # The failure this lane carried for two days was one missing import: jobs/prices.py used
+      # timedelta without importing it, so the first job of the group died with NameError and
+      # the sixteen behind it were skipped. Nothing was corrupted, because nothing ran. Fixed
+      # in a7cdfa4, with an AST test that now walks every job for names it never binds.
       - name: Run data jobs
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
