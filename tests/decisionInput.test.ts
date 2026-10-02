@@ -63,15 +63,19 @@ test("the entry zone is the range the two stored levels span", () => {
   assert.equal(entryZone(100, 100), null);
 });
 
-test("the swing row is the setup, and a directional row is the fallback", () => {
+test("a direction is preferred over a flat swing row, and the order is swing then longer", () => {
+  // This replaced a test asserting the opposite. Preferring swing unconditionally is what made
+  // every live asset read WAIT: see the production note on `pickSetup`.
   const rows = [
     { horizon: "intraday", state: "buy", entryLevel: null, invalidateLevel: null },
     { horizon: "swing", state: "wait", entryLevel: null, invalidateLevel: null },
     { horizon: "longer", state: "short", entryLevel: null, invalidateLevel: null },
   ];
-  assert.equal(pickSetup(rows)?.horizon, "swing");
-  // No swing row: take the first with an actual direction, matching what lib/plain.ts does.
-  assert.equal(pickSetup([rows[0], rows[2]])?.horizon, "intraday");
+  // Longer beats intraday: the same direction read over a longer window needs acting on less
+  // urgently but survives a single session.
+  assert.equal(pickSetup(rows)?.horizon, "longer");
+  assert.equal(pickSetup([rows[0], rows[1]])?.horizon, "intraday");
+  // One row, no direction: returned anyway, as the measured flat it is.
   assert.equal(
     pickSetup([{ horizon: "longer", state: "none", entryLevel: null, invalidateLevel: null }])
       ?.horizon,
@@ -416,4 +420,66 @@ test("a PSX row is not disturbed by Yahoo being silent", () => {
     toDecisionInput(bundleFromRow(us, health), "2026-10-03").sourceSilent,
     "Yahoo Finance daily closes",
   );
+});
+
+// --- Which horizon is the setup ----------------------------------------------------------------
+//
+// This is the case that mattered in production. jobs/setup.py writes swing rows that are almost
+// always `wait`, and the direction lives in the `longer` rows from jobs/horizons.py. Preferring
+// swing unconditionally made every one of 160 live assets read WAIT.
+
+test("a directional row beats a flat swing row", () => {
+  const rows = [
+    { horizon: "swing", state: "wait", entryLevel: 10, invalidateLevel: 9 },
+    { horizon: "longer", state: "buy", entryLevel: 12, invalidateLevel: 8 },
+  ];
+  const got = pickSetup(rows);
+  assert.equal(got?.horizon, "longer");
+  assert.equal(got?.state, "buy");
+});
+
+test("swing still wins when swing is the directional one", () => {
+  const rows = [
+    { horizon: "swing", state: "buy", entryLevel: 10, invalidateLevel: 9 },
+    { horizon: "longer", state: "short", entryLevel: 12, invalidateLevel: 8 },
+  ];
+  assert.equal(pickSetup(rows)?.horizon, "swing");
+});
+
+test("intraday is used only when nothing longer is directional", () => {
+  const rows = [
+    { horizon: "intraday", state: "buy", entryLevel: 1, invalidateLevel: 2 },
+    { horizon: "swing", state: "wait", entryLevel: 10, invalidateLevel: 9 },
+    { horizon: "longer", state: "none", entryLevel: 12, invalidateLevel: 8 },
+  ];
+  assert.equal(pickSetup(rows)?.horizon, "intraday");
+});
+
+test("nothing directional returns the swing row as a measured flat", () => {
+  const rows = [
+    { horizon: "swing", state: "wait", entryLevel: 10, invalidateLevel: 9 },
+    { horizon: "longer", state: "none", entryLevel: 12, invalidateLevel: 8 },
+  ];
+  assert.equal(pickSetup(rows)?.horizon, "swing");
+});
+
+test("the longer row cannot be both the setup and its own confirmation", () => {
+  // The live shape: swing is flat, longer carries the direction.
+  const input = toDecisionInput(
+    bundleFromRow(
+      row({
+        swing: { state: "wait", entryLevel: 100, invalidateLevel: 94 },
+        longer: { state: "buy", entryLevel: 101, invalidateLevel: 90 },
+      }),
+      [],
+    ),
+    "2026-10-03",
+  );
+  assert.deepEqual(input.setup, { direction: "up", horizon: "longer" });
+  // Null, not { direction: "up" }: it would otherwise agree with itself and be graded as two
+  // timeframes lining up.
+  assert.equal(input.horizon, null);
+  const d = decide(input);
+  assert.equal(d.action, "LONG");
+  assert.match(d.why[1], /Only one horizon is directional/);
 });

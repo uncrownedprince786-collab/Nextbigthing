@@ -254,3 +254,30 @@ test("decide is pure: the same input twice gives the same answer", () => {
   const input = base({ unusualMove: true, newsCount: 1 });
   assert.deepEqual(decide(input), decide(input));
 });
+
+// --- The second why line must not claim corroboration that does not exist ---------------------
+//
+// Added after the live database produced WAIT for all 160 assets. The cause was upstream, in which
+// horizon was read as the setup, but it exposed this too: a single-horizon signal was being
+// described as one the longer view did not disagree with, which a reader hears as a second opinion.
+
+test("an agreeing longer view says so", () => {
+  assert.equal(decide(base()).why[1], "Longer view agrees.");
+  const short = base({
+    setup: { direction: "down", horizon: "swing" },
+    horizon: { direction: "down" },
+  });
+  assert.equal(decide(short).why[1], "Longer view agrees.");
+});
+
+test("no longer view says that, rather than implying one agreed", () => {
+  const d = decide(base({ horizon: null }));
+  assert.equal(d.action, "LONG");
+  assert.match(d.why[1], /Only one horizon is directional/);
+  // And it costs a confidence step, because one horizon is less evidence than two.
+  assert.equal(d.confidence, "Medium");
+});
+
+test("a flat longer view is named as flat", () => {
+  assert.equal(decide(base({ horizon: { direction: "flat" } })).why[1], "Longer view is flat.");
+});

@@ -153,6 +153,19 @@ function confidenceFor(input: DecisionInput, action: Action): Confidence {
   return "Low";
 }
 
+/// The second why line: what the longer view adds, said accurately.
+///
+/// "Longer view does not disagree" was doing duty for three different situations, one of which is
+/// that there is no longer view at all. A reader told a second timeframe does not disagree will
+/// hear corroboration; when the truth is that nothing was there to agree or disagree, that is the
+/// panel overstating its own evidence in the one line meant to qualify it.
+function secondLine(setup: Direction, horizon: Direction): string {
+  if (horizon === setup) return "Longer view agrees.";
+  if (horizon === "unknown") return "Only one horizon is directional, so nothing confirms it.";
+  if (horizon === "flat") return "Longer view is flat.";
+  return "Longer view does not disagree.";
+}
+
 function wait(input: DecisionInput, gate: string, why: string[], missing: string[]): Decision {
   return {
     action: "WAIT",
@@ -238,7 +251,7 @@ export function decide(input: DecisionInput): Decision {
       action: "LONG",
       why: [
         `Setup is up${input.setup?.horizon ? ` on the ${input.setup.horizon} view` : ""}.`,
-        horizon === "up" ? "Longer view agrees." : "Longer view does not disagree.",
+        secondLine("up", horizon),
       ],
       entry: input.entry,
       invalidation: input.invalidation,
@@ -254,7 +267,7 @@ export function decide(input: DecisionInput): Decision {
       action: "SHORT",
       why: [
         `Setup is down${input.setup?.horizon ? ` on the ${input.setup.horizon} view` : ""}.`,
-        horizon === "down" ? "Longer view agrees." : "Longer view does not disagree.",
+        secondLine("down", horizon),
       ],
       entry: input.entry,
       invalidation: input.invalidation,

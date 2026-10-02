@@ -83,16 +83,28 @@ type SetupRow = {
 
 /// Which row answers "what is the setup".
 ///
-/// The swing read is preferred because it is the one the site is built around — daily closes over 20
-/// and 50 sessions, which is the timeframe the entry and invalidation levels are measured on. When
-/// there is no swing row, fall back to the first row that actually has a direction, which is the
-/// same choice `lib/plain.ts` already makes for its summary, so the panel and the prose below it
-/// cannot end up describing different horizons.
+/// A **directional** row wins, and that is the whole point. This function first preferred the swing
+/// read, on the reasoning that swing is the timeframe the levels are measured on — and against the
+/// live database that produced WAIT for all 160 assets, because `jobs/setup.py` had written 125
+/// `wait` and 35 `none` swing rows and not one `buy` or `short`. The direction in this data lives in
+/// the `longer` rows from `jobs/horizons.py`: 17 buy and 12 short. Preferring swing therefore threw
+/// away every signal the site had and printed a verdict of WAIT that no reader could have argued
+/// with, because the input to the rule was wrong rather than the rule.
+///
+/// Preferring a direction is also what `lib/plain.ts` already did for its summary, so this is the
+/// convention the repository had and this file had departed from.
+///
+/// Order among directional rows is swing, then longer, then intraday: the shorter the horizon the
+/// sooner the reader has to act on it, and intraday is last because a front page that re-reads
+/// itself through the session is a different page on every visit. With nothing directional, the
+/// swing row is returned as the honest "measured, and flat".
 export function pickSetup<T extends SetupRow>(rows: T[]): T | null {
-  const swing = rows.find((r) => r.horizon === "swing");
-  if (swing) return swing;
-  const directional = rows.find((r) => r.state === "buy" || r.state === "short");
-  return directional ?? rows[0] ?? null;
+  const directional = (r: T) => r.state === "buy" || r.state === "short";
+  for (const horizon of ["swing", "longer", "intraday"]) {
+    const found = rows.find((r) => r.horizon === horizon && directional(r));
+    if (found) return found;
+  }
+  return rows.find((r) => r.horizon === "swing") ?? rows[0] ?? null;
 }
 
 /// The entry zone, from the two levels that are actually stored.
@@ -183,8 +195,16 @@ export function todayISO(now: Date = new Date()): string {
 export function toDecisionInput(bundle: DecisionBundle, today: string): DecisionInput {
   const market = marketOf(bundle.asset);
   const setup = pickSetup(bundle.setups);
-  const longer = bundle.setups.find((r) => r.horizon === "longer") ?? null;
   const analog = pickAnalog(bundle.analogs);
+
+  // The longer view is a second opinion, so it only counts when it is a second row. In this data
+  // the directional read is usually the longer one itself, and passing it as both the setup and
+  // the thing confirming the setup would have it agree with itself: gate 5 could never fire, and
+  // every single-horizon signal would be graded as though two timeframes had lined up. Null here
+  // instead, which costs the row a confidence step — correctly, because one horizon is less
+  // evidence than two.
+  const longerRow = bundle.setups.find((r) => r.horizon === "longer") ?? null;
+  const longer = longerRow && longerRow !== setup ? longerRow : null;
 
   // A source counts as silent only when the label that feeds *this* market is the silent one. A
   // dead Amazon feed says nothing about whether a US close arrived.
