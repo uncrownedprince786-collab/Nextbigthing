@@ -212,11 +212,40 @@ table to `$GITHUB_STEP_SUMMARY`, and `schema.yml`'s migrate step writes its outp
 GitHub does **not** render job summaries to anonymous visitors, so reading either one needs a
 sign-in. Sign in once, open the failing run, and the table names the step in one line.
 
-If it is the Yahoo block, the honest fix is in `prices.py`: treat an empty frame for an asset
-that was expected to have data as a **failure rather than silence**, so the job reports it
-instead of succeeding with nothing — the same `partial` distinction `jobs/audit.py` already
-makes, which correctly flagged this one (`Yahoo Finance daily closes — partial — the newest day
-holds 2 records against a recent median of 60`).
+**The silence is fixed (2026-10-02).** `require_answer` in `prices.py` fails the step when a
+whole download batch stores **0** rows, which is a blocked or throttled host rather than a
+market with no new bars — the same line `jobs/marketplace.py` draws when every Amazon category
+is blocked, and the same `partial` distinction `jobs/audit.py` already made when it flagged
+this one (`Yahoo Finance daily closes — partial — the newest day holds 2 records against a
+recent median of 60`). A single asset answering nothing is still data and is still only
+printed; brain.md rule **31** records the reasoning, and two tests guard it — one states the
+answer, one forbids storing a download without the check, because the behavioural test passes
+on any host Yahoo does answer.
+
+That makes the next failing run **name** its cause in the step's own output instead of
+succeeding with nothing. It does not route around a block.
+
+**Then the real defect was found, and the "environment-specific, not a code defect" reading
+above is wrong.** Two bugs in `fetch_crypto`, both introduced or exposed on 2026-10-01:
+
+- **The crypto row shape.** `insert_snapshots` gained `open`, `high` and `low` in `aa64785`.
+  The Yahoo caller was updated, the Binance one thirty lines below was not, and a six-field row
+  met a nine-name COPY unpack: `ValueError: not enough values to unpack (expected 9, got 6)` on
+  **every crypto insert** from that commit on — the same day the refresh lane went red. Fixed
+  by building the row in `crypto_rows`, beside the writer that defines the shape, with a test
+  that unpacks it with COPY's nine names. brain.md rule **32**.
+- **A cap dated off an empty series.** `cap_by_day[closes[-1][0]]` ran *before* the
+  `if not closes` guard. CoinPaprika answers where Binance is blocked, so the host with no
+  closes is the host with a live cap: `IndexError` there, nothing locally. The guard moved
+  above it.
+
+Why nothing caught either: COPY unpacks per row at run time, so the arity needs a database to
+surface; and the local runs that proved each job "passes individually" were made from a host
+Binance answers. The suite now has five tests over these paths, all of which fail against the
+pre-fix file.
+
+**Next move:** re-run `refresh.yml`. The sign-in is still the only way to read a step summary,
+but it is no longer the blocking step — if the lane fails again, the guards name the source.
 
 ### Two transient failures, already recovered
 

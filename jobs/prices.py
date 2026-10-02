@@ -172,8 +172,28 @@ def fetch_yahoo(cur) -> int:
     written = 0
     today = date.today()
     for assets_part, frame, is_full in frames:
-        written += _store_frame(cur, assets_part, frame, today, is_full)
+        stored = _store_frame(cur, assets_part, frame, today, is_full)
+        require_answer(stored, len(assets_part))
+        written += stored
     return written
+
+
+def require_answer(stored: int, asked: int, source: str = YAHOO) -> None:
+    """Fail when a whole batch came back empty, instead of finishing quietly with nothing.
+
+    `yf.download` returns an empty DataFrame for a throttled or blocked request and raises
+    nothing, so a blocked host looks exactly like a market with no new bars. That is how the
+    nightly refresh stored 0 rows on a GitHub runner while the same fetch stored 37,537 from
+    a laptop minutes later, and the step still exited 0. One asset answering nothing is data
+    and is printed above; none of a batch answering is a fact about the provider, and rule 21
+    keeps those apart.
+    """
+    if asked and stored == 0:
+        print(
+            f"no row from {source} for any of {asked} assets: treat it as unavailable "
+            "from this host and re-verify it before trusting a later run"
+        )
+        raise SystemExit(1)
 
 
 def _store_frame(cur, assets, frame, today: date, is_full: bool) -> int:
@@ -278,6 +298,25 @@ def share_series(sym: str) -> list[tuple[date, float]]:
     return out
 
 
+def crypto_rows(asset_id, closes, volumes, bars, cap_by_day) -> list[tuple]:
+    """Binance closes in `PriceSnapshot` column order.
+
+    This exists because the row was built inline as six fields — asset, date, close, volume,
+    cap, source — while `insert_snapshots` had grown to the table's nine, and COPY unpacks
+    nine names. Every crypto insert raised `ValueError: not enough values to unpack` from
+    2026-10-01 until it was fixed, and nothing caught it: the arity is only checked when the
+    loop runs, which needs a database. A named builder with a test is the cheap guard.
+    """
+    return [
+        (
+            asset_id, day,
+            *bars.get(day, (None, None, None)),
+            close, volumes.get(day), cap_by_day.get(day), BINANCE,
+        )
+        for day, close in closes
+    ]
+
+
 def insert_snapshots(cur, buffer: list[tuple], replace: bool = True) -> None:
     if not buffer:
         return
@@ -321,6 +360,7 @@ def fetch_crypto(cur) -> int:
     by_id = {t["id"]: t for t in tickers}
 
     written = 0
+    answered = 0
     for a in assets:
         cid = a["sourceRef"]
         meta = by_id.get(cid)
@@ -352,6 +392,23 @@ def fetch_crypto(cur) -> int:
             datetime.fromtimestamp(b[0] / 1000, tz=timezone.utc).date(): float(b[5])
             for b in all_bars
         }
+        # A kline carries open, high and low in positions 1 to 3. They are not fetched for
+        # this, they are already in the response, and `PriceSnapshot` has the columns.
+        bars = {
+            datetime.fromtimestamp(b[0] / 1000, tz=timezone.utc).date(): (
+                float(b[1]), float(b[2]), float(b[3])
+            )
+            for b in all_bars
+        }
+
+        # No closes is the end of this coin, and the check belongs here rather than after
+        # the cap: CoinPaprika is not geo-blocked and Binance is, so the one host where
+        # `closes` is empty is exactly the host where `today_cap` is present, and dating a
+        # cap off `closes[-1]` there raised IndexError instead of reporting a blocked
+        # source. That is a production failure the local run cannot reproduce.
+        if not closes:
+            print(f"  {cid}: no closes from Binance, skipped")
+            continue
 
         # Market cap. CoinPaprika publishes today's market cap for every coin. No free
         # source publishes circulating supply by year, so no historical cap is stored
@@ -362,19 +419,16 @@ def fetch_crypto(cur) -> int:
         if today_cap:
             cap_by_day[closes[-1][0]] = float(today_cap)
 
-        if not closes:
-            print(f"  {cid}: no closes, skipped")
-            continue
-
         cur.execute('DELETE FROM "PriceSnapshot" WHERE "assetId" = %s', (a["id"],))
-        buffer = [
-            (a["id"], day, close, volumes.get(day), cap_by_day.get(day), BINANCE)
-            for day, close in closes
-        ]
+        buffer = crypto_rows(a["id"], closes, volumes, bars, cap_by_day)
         insert_snapshots(cur, buffer)
         written += len(buffer)
+        answered += 1
         print(f"  {sym:6} {len(closes)} days, {len(cap_by_day)} size point")
 
+    # Same line as the Yahoo batch: one coin answering nothing is data, no coin answering is
+    # a fact about Binance, which refuses some hosts outright rather than answering thinly.
+    require_answer(answered, len(assets), source=BINANCE)
     return written
 
 

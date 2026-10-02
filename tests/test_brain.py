@@ -33,6 +33,7 @@ import intraday  # noqa: E402
 import investigate  # noqa: E402
 import lineage  # noqa: E402
 import nbt  # noqa: E402
+import prices  # noqa: E402
 import run  # noqa: E402
 import schemacheck  # noqa: E402
 import thesis  # noqa: E402
@@ -1647,6 +1648,62 @@ class SourceFailure(unittest.TestCase):
         )
         self.assertEqual(bars, [])
         self.assertEqual(holes, 1)
+
+
+    def test_a_whole_yahoo_batch_coming_back_empty_fails_the_step(self):
+        # yf.download returns an empty frame for a blocked or throttled request and raises
+        # nothing, so the count is the only evidence there is. A batch that asked for assets
+        # and stored no row is the provider, not the market.
+        with self.assertRaises(SystemExit) as caught:
+            prices.require_answer(0, 120)
+        self.assertEqual(caught.exception.code, 1)
+        # A batch that answered is left alone, and asking for nothing is not a failure.
+        self.assertIsNone(prices.require_answer(37537, 120))
+        self.assertIsNone(prices.require_answer(0, 0))
+
+    def test_the_yahoo_download_is_never_stored_without_that_check(self):
+        # The behavioural test above passes on a host Yahoo answers from even with the guard
+        # removed from the job, so the construct is asserted too.
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        self.assertIn("require_answer(stored", text)
+        self.assertNotIn("written += _store_frame(", text)
+
+
+    def test_a_coin_with_no_closes_never_dates_a_cap_off_an_empty_series(self):
+        # The host where Binance is blocked is the host where CoinPaprika still answers, so
+        # an empty close series arrives together with a live market cap. Computing the cap
+        # before checking the series raised IndexError there and nowhere else.
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = text[text.index("def fetch_crypto"):text.index("def today_utc")]
+        self.assertLess(
+            body.index("if not closes:"),
+            body.index("cap_by_day[closes[-1][0]]"),
+            "the empty-series guard must come before anything that indexes the series",
+        )
+
+    def test_a_crypto_row_has_every_column_the_copy_writer_unpacks(self):
+        # The real defect: a six-field row handed to a nine-name unpack, which only fails
+        # when the COPY loop runs and so needs a database to surface.
+        rows = prices.crypto_rows(
+            "a1",
+            [(date(2026, 9, 29), 65000.0)],
+            {date(2026, 9, 29): 1234.5},
+            {date(2026, 9, 29): (64000.0, 66000.0, 63500.0)},
+            {date(2026, 9, 29): 1.29e12},
+        )
+        self.assertEqual(len(rows), 1)
+        asset_id, day, op, hi, lo, close, vol, cap, source = rows[0]
+        self.assertEqual((asset_id, day, op, hi, lo), ("a1", date(2026, 9, 29), 64000.0, 66000.0, 63500.0))
+        self.assertEqual((close, vol, cap, source), (65000.0, 1234.5, 1.29e12, "Binance"))
+        # A day the source sent no bar for keeps three Nones rather than a shifted row.
+        (only,) = prices.crypto_rows("a1", [(date(2026, 9, 30), 1.0)], {}, {}, {})
+        self.assertEqual(len(only), 9)
+        self.assertEqual(only[2:5], (None, None, None))
+
+    def test_a_whole_binance_batch_coming_back_empty_fails_the_step(self):
+        with self.assertRaises(SystemExit):
+            prices.require_answer(0, 10, source="Binance")
+        self.assertIsNone(prices.require_answer(3, 10, source="Binance"))
 
 
 class BudgetGuards(unittest.TestCase):

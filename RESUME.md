@@ -1,6 +1,6 @@
 # Resume here
 
-Last worked: **2026-10-01**, commit **`4327f7f`** on `main`. Working tree clean, pushed.
+Last worked: **2026-10-02**, on `main`. See section 3 — the silent-failure half of the open item is fixed; the confirmation still needs one GitHub sign-in.
 
 This file is the sixty-second orientation. `HANDOFF.md` is the detail; read this first, then
 that.
@@ -28,7 +28,7 @@ Verified against the live production database on 2026-10-01, not merely built:
 
 | | |
 | --- | --- |
-| Tests | **221**, all passing, no database or network needed |
+| Tests | **226**, all passing, no database or network needed |
 | Types, lint, build | clean |
 | `schema.yml` (release lane) | **green** — run `36917629683`, 9m 3s, all 20 brain jobs |
 | Every job in the daily group | passes individually against production — see the table in `HANDOFF.md` |
@@ -60,11 +60,35 @@ To confirm it you need **one GitHub sign-in**. `jobs/run.py` already writes a pe
 does not render job summaries to anonymous visitors. Sign in once, open the failing run, and the
 table names the step in a line.
 
-If it is the Yahoo block, the fix belongs in `jobs/prices.py`: treat an unexpectedly empty frame
-as a **failure rather than silence**, so the job reports it instead of succeeding with nothing.
-`jobs/audit.py` already makes exactly that distinction and caught this one — it reports
-`Yahoo Finance daily closes — partial — the newest day holds 2 records against a recent median
-of 60`.
+**Done on 2026-10-02:** the silence itself is fixed. `require_answer` in `jobs/prices.py` now
+fails the step when a whole download batch stores **0** rows — a blocked or throttled host,
+rather than a market with no new bars — on the same line `jobs/marketplace.py` draws when every
+Amazon category is blocked. One asset answering nothing is still data and is still only printed.
+Two tests guard it, and brain.md rule **31** records why. `jobs/audit.py` already made this
+distinction and is what caught the original run: it reports `Yahoo Finance daily closes —
+partial — the newest day holds 2 records against a recent median of 60`.
+
+**And then the actual defect turned up, in `fetch_crypto`.** It is a code bug after all, not
+only an environment:
+
+1. `insert_snapshots` gained `open`, `high` and `low` on 2026-10-01 in `aa64785`. The Yahoo
+   caller was updated; the Binance one was not. Six fields reached a nine-name COPY unpack, so
+   **every crypto insert has raised `ValueError` since that commit** — the same day
+   `refresh.yml` started failing. The rows go through `crypto_rows` now, and a test unpacks it
+   with the nine names COPY uses.
+2. In the same function the market cap was dated off `closes[-1]` **before** the empty-series
+   guard. CoinPaprika is not geo-blocked and Binance is, so the one host where `closes` is
+   empty is exactly the host where a cap is present: `IndexError` on a runner, clean locally.
+   The guard now comes first.
+
+Both are invisible to the 221-test suite and to running each job locally, which is why "every
+job passes individually" held while the group failed. **This is the better explanation of run
+`36918247571` than the Yahoo block**, and it is fixed.
+
+What is still open: the Yahoo-block hypothesis is now only a hypothesis, unconfirmed and no
+longer needed to explain the failure. Confirming anything still wants one GitHub sign-in to
+read the step summary — but the useful next move is simply to **re-run `refresh.yml`** and see
+whether it passes. If it fails again, the new guards name the source in the step's own output.
 
 ## 4. Known data gaps, each with its reason
 
@@ -93,7 +117,7 @@ The remedy is one setting — disable Vercel Authentication for production, or g
 | file | what it holds |
 | --- | --- |
 | `HANDOFF.md` | the live state in full: the acceptance matrix with measured figures, the nine defects the acceptance pass found, the free-tier numbers, and what still needs a human |
-| `brain.md` | **30 rules for changes.** Read these before editing a job; the last eight were earned by real bugs |
+| `brain.md` | **32 rules for changes.** Read these before editing a job; the last ten were earned by real bugs |
 | `ARCHITECTURE.md` | the layer map, with every layer marked built / partial / absent honestly |
 | `tools/README.md` | the four read-only verification harnesses and the two results that are easy to misread |
 | `README.md` | how the system is put together and how to run it |

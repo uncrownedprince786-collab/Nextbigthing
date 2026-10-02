@@ -489,3 +489,23 @@ reads rows that already exist:
     revisited, so it keeps whatever derived label it was given, and a stale label silently
     degrades every read that filters on it. Intraday retention is 7 days because `range=5d`
     spans seven calendar days; changing one without the other reintroduces the problem.
+31. **A batch fetch that returns nothing returned a failure.** `yf.download` answers a
+    throttled or blocked request with an empty DataFrame and raises nothing, so a blocked host
+    is indistinguishable from a market with no new bars unless the row count is checked. The
+    nightly refresh stored 0 rows on a GitHub runner while the same fetch stored 37,537 from a
+    laptop minutes later, and the step still exited 0 — the failure was only visible because
+    `jobs/audit.py` compares the newest day against its own median. One asset answering
+    nothing is data; none of a batch answering is a fact about the provider. `require_answer`
+    in `jobs/prices.py` draws that line, the same one `jobs/marketplace.py` draws when every
+    Amazon category is blocked, and two tests guard it — one states the answer and one forbids
+    storing a download without the check, because the behavioural test passes on any host
+    Yahoo does answer.
+32. **A row is built where the columns are known, or it drifts.** `insert_snapshots` grew
+    `open`, `high` and `low` on 2026-10-01; the Yahoo caller was updated and the Binance one,
+    thirty lines further down, was not. Six fields went to a nine-name unpack and every crypto
+    insert raised `ValueError: not enough values to unpack` from that commit until it was
+    found. Nothing caught it: COPY unpacks per row at run time, so the arity needs a database
+    to surface, the 221 tests could not see it, and each job "passing individually" was
+    measured on a path that stopped before this one. Every caller now goes through a named
+    builder beside the writer — `crypto_rows` — and a test unpacks its output with the nine
+    names COPY uses. When a writer gains a column, the builders are the list of places to fix.
