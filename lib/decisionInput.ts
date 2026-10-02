@@ -50,18 +50,24 @@ export function marketOf(asset: {
 
 /// The `Coverage` label whose silence would explain this market having no rows.
 ///
-/// `Coverage.source` holds labels rather than raw source strings, and there is **no Coverage row
-/// for crypto closes at all** — `jobs/audit.py` watches Yahoo, PSX, news, product signals and
-/// Amazon, and Binance is not among them. So a silent crypto source cannot be detected here and
-/// returns null; gate 2 of the rule table catches it anyway, because a blocked exchange shows up as
-/// a close that stops advancing. That is a weaker signal than naming the source, and it is the
-/// honest limit of what is stored.
+/// `Coverage.source` holds labels rather than raw source strings. Crypto returned null here until
+/// 2026-10-03, because `jobs/audit.py` watched Yahoo, PSX, news, product signals and Amazon and no
+/// exchange at all — so a blocked venue could only be seen as a close that stopped advancing, which
+/// is gate 2 catching late what gate 3 should have named at once.
+///
+/// It now watches the whole venue chain under one label. That it is the chain and not a venue is
+/// the point: `source = 'Binance'` would have read silent for 347 days while every coin had
+/// yesterday's close from Coinbase, and watching Coinbase alone would read silent the first day the
+/// chain fell through to Kraken. The only question Coverage can answer here is whether *any* venue
+/// produced a close.
 export function coverageLabelFor(market: Market): string | null {
   switch (market) {
     case "US":
       return "Yahoo Finance daily closes";
     case "PSX":
       return "PSX daily closing files";
+    case "Crypto":
+      return "crypto daily closes";
     default:
       return null;
   }

@@ -969,6 +969,53 @@ class WorkflowLanes(unittest.TestCase):
         for name in ("refresh.yml", "backfill.yml"):
             self.assertIn("group: nbt-database", self._text(name))
 
+    # Every scheduled data lane, so a new source workflow cannot be added without the guards
+    # that the four-workflow world only ever applied to refresh.yml.
+    SOURCE_LANES = (
+        "cron-crypto.yml", "cron-us-prices.yml", "cron-psx.yml", "cron-news.yml",
+        "cron-products.yml", "cron-decision.yml", "cron-audit.yml",
+    )
+
+    def test_every_source_lane_checks_the_schema_and_never_migrates(self):
+        for name in self.SOURCE_LANES:
+            self.assertIn("jobs/schemacheck.py", self._text(name), f"{name} does not check")
+
+    def test_every_source_lane_proves_it_is_running_main(self):
+        # GitHub takes the file from the default branch, master, which was 34 commits behind main
+        # on 2026-10-03. A lane without this guard refreshes from stale code and passes.
+        for name in self.SOURCE_LANES:
+            text = self._text(name)
+            self.assertIn("Prove this run is executing main", text, name)
+            self.assertIn("ref: main", text, name)
+
+    def test_no_two_source_lanes_share_a_concurrency_group(self):
+        # One pending run per group is GitHub's rule, so a shared group means the newer run
+        # cancels the queued older one. That is why geo.py kept being cancelled.
+        import re
+        seen = {}
+        for name in self.SOURCE_LANES:
+            found = re.findall(r"^concurrency:\n  group: (\S+)", self._text(name), re.M)
+            self.assertEqual(len(found), 1, f"{name} declares {found}")
+            self.assertNotIn(found[0], seen, f"{name} shares {found[0]} with {seen.get(found[0])}")
+            self.assertNotIn(found[0], ("nbt-database", "nbt-schema"), f"{name} reuses a shared lane")
+            seen[found[0]] = name
+
+    def test_every_source_lane_writes_a_readable_summary(self):
+        # An Actions log needs a GitHub sign-in; the run summary page does not.
+        for name in self.SOURCE_LANES:
+            self.assertIn("$GITHUB_STEP_SUMMARY", self._text(name), name)
+
+    def test_chunked_lanes_do_not_cancel_their_sibling_chunks(self):
+        # fail-fast would rebuild the coupling the per-source split exists to remove.
+        for name in ("cron-us-prices.yml", "cron-products.yml"):
+            self.assertIn("fail-fast: false", self._text(name), name)
+
+    def test_a_chunked_lane_only_chunks_a_job_that_slices_its_work(self):
+        # The four-way matrix was pointed at a job that ignored --chunk, so every slot ran all
+        # eighty symbols four times with four writers racing the same rows. Worse than no
+        # chunking, and invisible: each run was green.
+        self.assertIn("--chunk", (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8"))
+
     def test_the_scheduled_lane_still_proves_it_is_running_main(self):
         self.assertIn("Prove this run is executing main", self._text("refresh.yml"))
         self.assertIn("ref: main", self._text("refresh.yml"))
@@ -2709,6 +2756,37 @@ def code_only(text: str) -> str:
             out.append(text[i])
             i += 1
     return "".join(out)
+
+
+class WatchedSources(unittest.TestCase):
+    """What the freshness panel watches has to stay in step with what the jobs write.
+
+    Both of these drifted in production and neither was caught by anything. `Coverage` reported
+    "Amazon Best Sellers" as a source for weeks while `MarketplaceItem` had never held a row, and
+    crypto had no watch at all while its only venue was dead for 347 days.
+    """
+
+    def test_every_watched_table_has_a_date_column(self):
+        # audit.py reads a per-source date column by table name. A source added to WATCHED with
+        # no entry in DATE_COLUMN raises at run time, inside the nightly lane, where nobody is
+        # looking.
+        import audit
+        for row in audit.WATCHED:
+            table = row[0]
+            self.assertIn(table, audit.DATE_COLUMN, f"{table} is watched with no date column")
+
+    def test_the_crypto_watch_covers_every_venue_the_chain_can_use(self):
+        # Watching one venue is the bug this replaced: `source = 'Binance'` would read silent for
+        # a year while every coin had yesterday's close from Coinbase, and watching Coinbase alone
+        # would read silent the first day the chain fell through to Kraken.
+        import audit, prices
+        chain = tuple(name for name, _ in prices.CLOSE_VENUES)
+        self.assertEqual(
+            tuple(audit.CRYPTO_VENUES), chain,
+            "the crypto watch and the close chain have drifted apart",
+        )
+        for venue in chain:
+            self.assertIn(f"'{venue}'", audit.CRYPTO_VENUE_SQL)
 
 
 class NothingBuiltAndUnused(unittest.TestCase):

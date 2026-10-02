@@ -45,12 +45,24 @@ test("market comes from the industry, never from the symbol", () => {
   assert.equal(marketOf({ assetType: "stock", industry: { market: "US" } }), "US");
 });
 
-test("crypto has no coverage label, because nothing watches that feed", () => {
+test("every market whose feed is watched can be named when it goes silent", () => {
   assert.equal(coverageLabelFor("US"), "Yahoo Finance daily closes");
   assert.equal(coverageLabelFor("PSX"), "PSX daily closing files");
-  // jobs/audit.py does not watch Binance or CoinPaprika, so silence there is undetectable.
-  assert.equal(coverageLabelFor("Crypto"), null);
+  // Crypto returned null until jobs/audit.py started watching the venue chain. The label is the
+  // chain rather than a venue: Binance has been dead for ~347 days while every coin has a current
+  // close from Coinbase, so a per-venue watch would report silence that is not there.
+  assert.equal(coverageLabelFor("Crypto"), "crypto daily closes");
   assert.equal(coverageLabelFor("Other"), null);
+});
+
+test("a silent crypto chain is named by gate 3, not left to the staleness gate", () => {
+  const health = [{ source: "crypto daily closes", status: "silent" }];
+  const coin = row({ symbol: "BTC", assetType: "crypto", market: "US", closeDate: "2026-10-02" });
+  const input = toDecisionInput(bundleFromRow(coin, health), "2026-10-03");
+  assert.equal(input.sourceSilent, "crypto daily closes");
+  const d = decide(input);
+  assert.equal(d.gate, "source-silent");
+  assert.match(d.why[0], /crypto daily closes/);
 });
 
 test("the entry zone is the range the two stored levels span", () => {

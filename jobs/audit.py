@@ -14,6 +14,16 @@ source *should* produce something and how long it has actually been silent is me
 Criticality is a judgement and is stored beside the arithmetic rather than folded into it, so
 a reader can disagree with the weight without having to recompute the measurement.
 
+What may be watched is its own rule, and a narrow one. A source earns a row here only once
+somebody has confirmed against the live source that it answers, because the panel has exactly
+two things to say about an empty table — "this feed is broken" or nothing — and saying the
+first about a feed that was never built is the one way this measurement can lie. Watching a
+source that answers but whose table is empty is correct and useful: that reads as a job that
+did not finish, and is the sentence `ProductRegion` is here to make the panel say.
+
+Watching one venue of a multi-venue chain breaks the same rule from the other end. See
+CRYPTO_VENUES: the chain is healthy and its first venue has been dead for a year.
+
 Calibration
 -----------
 A confidence grade is a claim about how often something holds, and until that claim is
@@ -61,8 +71,40 @@ except Exception:  # noqa: BLE001
     pass
 
 
+# The crypto close chain, as `jobs/prices.py` writes it into `PriceSnapshot.source`. Restated
+# here rather than imported because no job in this directory imports another, and audit.py has
+# no business pulling in a 1300 line fetcher to read four strings. If a venue is added to
+# `prices.CLOSE_VENUES` it has to be added here too, or its rows stop being watched.
+#
+# Watching the *chain* and not one venue is the whole point, and it is not a style choice. On
+# 2026-10-03 the stored crypto closes were:
+#
+#     Coinbase   20,918 rows, newest 2026-10-02   <- the venue answering today
+#     Binance     6,491 rows, newest 2025-10-21   <- blocked from CI since 2026-09-29
+#
+# A row watching `source = 'Binance'` would therefore read "silent, 8,000 hours" while every
+# coin on the site has a close from yesterday, and a row watching Coinbase alone would read
+# silent on the first day the chain legitimately falls through to Kraken. Either one is a false
+# alarm about a healthy feed, which is the failure this table exists to avoid making. The
+# question Coverage can actually answer is "did *any* venue produce a close", so that is the
+# question asked.
+CRYPTO_VENUES = ("Binance", "Coinbase", "Kraken", "Bitstamp")
+CRYPTO_VENUE_SQL = "source IN (" + ", ".join(f"'{v}'" for v in CRYPTO_VENUES) + ")"
+
+# Crypto is the one price source with no weekend. Yahoo and the PSX get 96 hours because a
+# Friday close is still the newest thing that exists on a Monday morning and a holiday can
+# stretch that; an exchange that trades every hour of every day owes a close every day, so the
+# only slack this needs is for a lane that ran late. 48 hours is one missed daily run.
+CRYPTO_INTERVAL_HOURS = 48.0
+
 # What each source is expected to produce, and how much a silence there would matter.
 # Intervals are generous where a market closes: a price source is not late on a Sunday.
+#
+# Every entry below was checked against the production database on 2026-10-03 before being
+# kept, because a watched source that has never stored a row does not report "this job has not
+# run", it reports a broken feed — and a panel that cries wolf about a feed nobody built is
+# worse than one that stays quiet. Row counts at that check: News 2,120; Yahoo 152,539;
+# PSX 12,487; ProductSignal 339; crypto 27,409 across two venues; MarketplaceItem 270.
 #
 #   table, source-matching SQL, label, expected interval in hours, criticality 0-1
 WATCHED = (
@@ -78,10 +120,42 @@ WATCHED = (
         "PriceSnapshot", "source = 'Pakistan Stock Exchange daily closing file'",
         "PSX daily closing files", 96.0, 0.8,
     ),
+    # Crypto had no row here at all, which meant the one price source that had actually gone
+    # dark — Binance, blocked from CI on 2026-09-29 — was the only source the freshness panel
+    # could not see. Criticality matches Yahoo's: ten of the site's assets are crypto and every
+    # reading on them is computed from these closes, so a silence here is not a quiet week.
+    (
+        "PriceSnapshot", CRYPTO_VENUE_SQL, "crypto daily closes",
+        CRYPTO_INTERVAL_HOURS, 1.0,
+    ),
     (
         "ProductSignal", "source IS NOT NULL", "product demand signals",
         240.0, 0.6,
     ),
+    # The regional breakdown `jobs/geo.py` writes. It passes the same honesty test as the rest,
+    # but for a different reason: the *table* was empty on 2026-10-03 while the *source* is
+    # live and answering — trends.google.com returned 175 countries, 51 US states and 5 PK
+    # provinces to a plain request that morning. So an empty table here is a job that did not
+    # finish, not a feed that does not exist, and that is exactly the sentence this row makes
+    # the panel say out loud instead of leaving the source off the page entirely.
+    #
+    # 240 hours because geo only runs in the weekly lane: one skipped week is late, not dead.
+    # Criticality 0.5 — below the price feeds because nothing on the site decides anything from
+    # a regional breakdown, above nothing because its absence is the whole geography section.
+    (
+        "ProductRegion", "source IS NOT NULL", "Google Trends regional breakdown",
+        240.0, 0.5,
+    ),
+    # Amazon stays watched because the source is real, which was re-verified rather than
+    # assumed: on 2026-10-03 all nine category pages in `jobs/marketplace.py` answered 200
+    # with 30 parseable positions each, no CAPTCHA and no sign in, and the job stored 270 rows.
+    # Before that run the table held nothing, so this row was reporting a feed that had never
+    # produced anything — the exact false alarm described above. It is reporting a real feed now.
+    #
+    # 240 hours rather than 24 even though the weekly lane runs it: a bestseller chart is a
+    # courtesy read of a public page, Amazon blocks a share of those requests outright, and a
+    # category list that is a few days old is still a true statement about the day it was read.
+    # What this interval is for is noticing that the page stopped answering *at all*.
     (
         "MarketplaceItem", "source IS NOT NULL", "Amazon Best Sellers",
         240.0, 0.4,
@@ -93,6 +167,7 @@ DATE_COLUMN = {
     "PriceSnapshot": "date",
     "ProductSignal": '"periodEnd"',
     "MarketplaceItem": '"periodEnd"',
+    "ProductRegion": '"periodEnd"',
 }
 
 STALE_AT = 1.5

@@ -10,7 +10,7 @@ positions on the first page, the listing title, and its id. A listing's move bet
 is computed from the previous stored run of the same category, so the first run reports no
 movement at all rather than inventing a baseline.
 
-Sources, as verified on 2026-09-30:
+Sources, as verified on 2026-09-30 and re-verified on 2026-10-03:
 
   Amazon Best Sellers  `amazon.com/Best-Sellers/zgbs/<category>/` returns the first 30
                        positions in server rendered markup, with the rank in each item's
@@ -20,6 +20,14 @@ Sources, as verified on 2026-09-30:
   eBay                 Not used. `ebay.com/sch/i.html` with the sold and completed filters
                        returns 403 to an ordinary request. There is no free public
                        endpoint behind it, so eBay is absent rather than estimated.
+
+The 2026-10-03 re-verification exists because `MarketplaceItem` held zero rows while
+`jobs/audit.py` was watching "Amazon Best Sellers" as a source, which meant the site's
+freshness panel was reporting a broken feed for a source that had never stored anything. Two
+answers were possible and only one of them was true: all nine category pages returned 200 with
+thirty parseable positions each, no CAPTCHA and no sign in, and the run stored 270 rows. So the
+source is real and the watch stays; the table was empty because this job had not completed a
+run, not because Amazon stopped answering.
 
 Nothing here identifies a product to buy. A bestseller rank describes one listing's
 position in one category on one marketplace on one day, which is a fact about that listing
@@ -70,6 +78,23 @@ CATEGORIES = [
     ("lawn-garden", "Garden and Outdoor"),
     ("appliances", "Appliances"),
 ]
+
+# How much of the category list has to answer before a run counts as a run.
+#
+# Failing only when *every* category is blocked left a gap wide enough to drive through: eight
+# of nine refused and the job exited 0, printed "8 categories unavailable", and published a
+# marketplace page describing one category as though it described the store. Worse, the
+# freshness panel in jobs/audit.py cannot catch that — its partial detection compares a day
+# against the median of the ten before it, and this job writes one period per weekly run, so
+# there is never enough daily history for it to judge against. A one-category run is therefore
+# invisible everywhere, which is the definition of half-reporting.
+#
+# Two thirds, because Amazon blocks a share of ordinary requests on any given day and losing one
+# or two categories to that is normal weather, while losing a third of the list at once is a
+# host-level change worth a human reading the log. The rows a short run did collect are still
+# committed and still true about the categories they name; what fails is the claim that the run
+# covered the store.
+MIN_CATEGORY_SHARE = 2 / 3
 
 # One item block on the page, which carries its own rank inside the product link.
 ITEM_SPLIT = re.compile(r'(?=<div id="p13n-asin-index-)')
@@ -203,12 +228,33 @@ def main() -> None:
             )
 
         print(f"\n{total} marketplace rows stored" + (f", {blocked} categories unavailable" if blocked else ""))
-        if blocked == len(CATEGORIES):
-            # Every category failing is a source problem, and the run should say so
-            # rather than finish quietly with nothing written.
-            print("no category answered: treat Amazon as unavailable and re-verify it")
-            raise SystemExit(1)
+
+    # Out of the transaction before deciding whether to fail, and that ordering is the whole
+    # point rather than tidiness. `with conn` commits on a clean exit and *rolls back* on an
+    # exception, so raising inside the block would discard the rows the categories that did
+    # answer had already produced — the opposite of what a partial run should do. The rows are
+    # committed above; what follows only decides what the run's exit code claims about them.
     conn.close()
+
+    answered = len(CATEGORIES) - blocked
+    needed = MIN_CATEGORY_SHARE * len(CATEGORIES)
+    if blocked == len(CATEGORIES):
+        # Every category failing is a source problem, and the run should say so
+        # rather than finish quietly with nothing written.
+        raise SystemExit(
+            "no category answered: treat Amazon as unavailable and re-verify it"
+        )
+    if answered < needed:
+        # Rule 31 at the partial end. The rows above are kept, because they are true about the
+        # categories they name; the exit code is what stops a third of the store going missing
+        # behind a green tick.
+        raise SystemExit(
+            f"only {answered} of {len(CATEGORIES)} categories answered, below the "
+            f"{needed:.0f} this run needs before it may be read as covering the store. The rows "
+            "it did collect are kept and are accurate for their own categories, but the set is "
+            "incomplete, and the missing categories are not absent from Amazon, only from here. "
+            "Re-verify the slugs and whether Amazon is rate limiting this host."
+        )
 
 
 if __name__ == "__main__":
