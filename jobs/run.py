@@ -62,6 +62,12 @@ DAILY = [
     ("psx", ["recent"]),
     # analogs reads the closes the two price jobs have just written, so it follows them.
     # Arithmetic over stored rows, no network.
+    # factors reads the closes the two price jobs have just written and nothing else, so it is
+    # the first of the reasoning jobs. Everything downstream that wants a measured number about
+    # a session -- the volume ratio that confirms a direction, the peer-relative strength that
+    # can contradict one -- reads its row rather than deriving its own, which is the only way
+    # the panel, the lists and the audit can be made to agree about what a day looked like.
+    ("factors", []),
     ("analogs", []),
     # upcoming asks the provider's company calendar, which is the one forward looking source
     # here. Daily rather than weekly because a date that moves is worth catching the day it
@@ -119,6 +125,12 @@ WEEKLY = [
     # Amazon fetch in between is several minutes of asking a different host, which is the
     # cheapest separation available between two runs at the same rate limited source.
     ("geo", []),
+    # factors reads the closes the two price jobs have just written and nothing else, so it is
+    # the first of the reasoning jobs. Everything downstream that wants a measured number about
+    # a session -- the volume ratio that confirms a direction, the peer-relative strength that
+    # can contradict one -- reads its row rather than deriving its own, which is the only way
+    # the panel, the lists and the audit can be made to agree about what a day looked like.
+    ("factors", []),
     ("analogs", []),
     ("upcoming", []),
     ("lifecycle", []),
