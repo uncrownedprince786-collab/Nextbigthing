@@ -187,6 +187,13 @@ export interface DecisionBundle {
   analogs: { horizonDays: number; matches: number; minPct: number | null; maxPct: number | null }[];
   human: { recentStories: number } | null;
   investigation: { robustZ: number | null; trigger: string } | null;
+  /// The newest `AssetFactor` row, when one has been computed.
+  ///
+  /// Null is the ordinary state for a name the factor job has not reached yet, and it must stay
+  /// distinguishable from a factor that was computed and came out low: the rules treat an absent
+  /// reading as missing evidence rather than evidence against, which is the only reason adding
+  /// these gates did not empty the lists.
+  factors: { volumeRatio: number | null; relStrength: number | null } | null;
   nextEvent: { date: Date | string } | null;
   /// From `getSourceHealth()`; only the newest row per source is expected.
   sourceHealth: { source: string; status: string }[];
@@ -233,6 +240,8 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
     analogs: analog
       ? { count: analog.matches, lowPct: analog.minPct, highPct: analog.maxPct }
       : null,
+    volumeRatio: bundle.factors?.volumeRatio ?? null,
+    relStrength: bundle.factors?.relStrength ?? null,
     unusualMove: isUnusualMove(bundle.investigation),
     // A missing HumanSignal row means news was never checked for this name, which the rule table
     // reports differently from a row saying zero. Keep the null.
@@ -269,10 +278,17 @@ export interface QueryBundle {
     matches: number;
     minPct: number | null;
     maxPct: number | null;
+    /// Optional because the query layer supplies them only where it selects them. A missing
+    /// median is not a flat one: `analogConfirms` returns null and the direction prints with the
+    /// gap named, rather than being refused for want of a column.
+    medianPct?: number | null;
+    positive?: number | null;
   }[];
   humanSignal: { recentStories: number } | null;
   investigation: { robustZ: number | null; trigger: string } | null;
   nextEvent: { date: Date | string } | null;
+  /// Newest `AssetFactor`, when the factor job has written one for this asset.
+  factor?: { volumeRatio: number | null; relStrength: number | null } | null;
 }
 
 /// `sourceHealth` is passed in rather than fetched, because it is one site-wide read that every
@@ -301,12 +317,17 @@ export function bundleFromQuery(
       matches: a.matches,
       minPct: a.minPct,
       maxPct: a.maxPct,
+      medianPct: a.medianPct ?? null,
+      positive: a.positive ?? null,
     })),
     human: row.humanSignal ? { recentStories: row.humanSignal.recentStories } : null,
     investigation: row.investigation
       ? { robustZ: row.investigation.robustZ, trigger: row.investigation.trigger }
       : null,
     nextEvent: row.nextEvent ? { date: row.nextEvent.date } : null,
+    factors: row.factor
+      ? { volumeRatio: row.factor.volumeRatio, relStrength: row.factor.relStrength }
+      : null,
     sourceHealth,
   };
 }
@@ -332,6 +353,12 @@ export interface QueryRow {
   robustZ: number | null;
   trigger: string | null;
   nextEventDate: Date | string | null;
+  /// From the newest `AssetFactor`. Optional so the lists keep working on a database where the
+  /// factor job has not run yet — the rules then report the confirmation as missing.
+  analogMedianPct?: number | null;
+  analogPositive?: number | null;
+  volumeRatio?: number | null;
+  relStrength?: number | null;
 }
 
 export function bundleFromRow(
@@ -360,12 +387,18 @@ export function bundleFromRow(
                 matches: row.analogMatches,
                 minPct: row.analogMinPct,
                 maxPct: row.analogMaxPct,
+                medianPct: row.analogMedianPct ?? null,
+                positive: row.analogPositive ?? null,
               },
             ]
           : [],
       humanSignal: row.recentStories !== null ? { recentStories: row.recentStories } : null,
       investigation: row.trigger !== null ? { robustZ: row.robustZ, trigger: row.trigger } : null,
       nextEvent: row.nextEventDate ? { date: row.nextEventDate } : null,
+      factor:
+        row.volumeRatio === undefined && row.relStrength === undefined
+          ? null
+          : { volumeRatio: row.volumeRatio ?? null, relStrength: row.relStrength ?? null },
     },
     sourceHealth,
   );

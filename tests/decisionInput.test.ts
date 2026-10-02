@@ -141,6 +141,9 @@ function bundle(over: Partial<DecisionBundle> = {}): DecisionBundle {
     human: { recentStories: 14 },
     investigation: null,
     nextEvent: null,
+    // No factor row by default: that is the ordinary state on a database where the factor job
+    // has not reached this asset, and the rules must still produce a verdict from it.
+    factors: null,
     sourceHealth: [{ source: "Yahoo Finance daily closes", status: "healthy" }],
     ...over,
   };
@@ -494,4 +497,56 @@ test("the longer row cannot be both the setup and its own confirmation", () => {
   const d = decide(input);
   assert.equal(d.action, "LONG");
   assert.match(d.why[1], /Only one horizon is directional/);
+});
+
+/// The fixture is a PSX short; these tests need a clean long, on both horizons. Setting only the
+/// swing leaves the longer view opposed, which gate 5 correctly refuses.
+const UP = { state: "buy", entryLevel: 94, invalidateLevel: 100 };
+
+// --- Factors reaching the rules ----------------------------------------------------------------
+//
+// The gates for volume and peer-relative strength existed before anything fed them, so every live
+// decision came out Low: `DecisionBundle` had no factor fields and the rules could only ever see
+// null. These assert the seam itself, because a silently unwired factor looks exactly like a factor
+// that did not confirm.
+
+test("a factor row reaches the rules and lifts the confidence", () => {
+  const withoutFactors = toDecisionInput(bundleFromRow(row({ swing: UP, longer: UP }), []), "2026-10-03");
+  assert.equal(withoutFactors.volumeRatio, null);
+  assert.equal(decide(withoutFactors).confidence, "Medium");
+
+  const withFactors = toDecisionInput(
+    bundleFromRow(
+      row({
+        swing: UP,
+        longer: UP,
+        volumeRatio: 2.1,
+        analogMedianPct: 1.6,
+        analogPositive: 13,
+      }),
+      [],
+    ),
+    "2026-10-03",
+  );
+  assert.equal(withFactors.volumeRatio, 2.1);
+  const d = decide(withFactors);
+  assert.equal(d.action, "LONG");
+  assert.equal(d.confidence, "High");
+  assert.match(d.why[2], /Confirmed by/);
+});
+
+test("peer-relative strength reaches the gate that uses it", () => {
+  const laggard = toDecisionInput(
+    bundleFromRow(row({ swing: UP, longer: UP, relStrength: -7 }), []),
+    "2026-10-03",
+  );
+  assert.equal(laggard.relStrength, -7);
+  assert.equal(decide(laggard).gate, "peers-against");
+});
+
+test("a database with no factor rows still decides, and says what is missing", () => {
+  // The state on every deployment until the factor job has run once. It must not empty the lists.
+  const d = decide(toDecisionInput(bundleFromRow(row({ swing: UP, longer: UP }), []), "2026-10-03"));
+  assert.equal(d.action, "LONG");
+  assert.ok(d.missing.some((m) => /No volume published/.test(m)), d.missing.join(" | "));
 });
