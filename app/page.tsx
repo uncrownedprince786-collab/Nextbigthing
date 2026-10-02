@@ -9,6 +9,7 @@ import {
   NeighbourhoodBlock,
   Note,
   ScanBox,
+  SourceHealthBlock,
   WhatMattersBlock,
   Pill,
   Section,
@@ -19,6 +20,7 @@ import {
   getAllIndustriesByBasis,
   getCatalysts,
   getFreshness,
+  getSourceHealth,
   getIndustriesByMarket,
   getLead,
   getDirectionalSetups,
@@ -67,6 +69,7 @@ export default async function Home() {
     directional,
     earlyProducts,
     pricedByIndustry,
+    health,
   ] = await Promise.all([
     getLead(),
     getIndustriesByMarket(),
@@ -82,6 +85,7 @@ export default async function Home() {
     getDirectionalSetups(5),
     getProducts("early"),
     getPricedAssetsByIndustry(),
+    getSourceHealth(),
   ]);
 
   const byIndustry = new Map<string, typeof risers>();
@@ -526,6 +530,9 @@ export default async function Home() {
       </Section>
 
       <Section title="Data freshness" lead="What is stored right now, so a stale page is obvious rather than hidden.">
+        <div className="mb-4">
+          <SourceHealthBlock sources={health} brief />
+        </div>
         <Table
           head={
             <>

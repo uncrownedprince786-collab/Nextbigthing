@@ -132,12 +132,28 @@ database, and `/`, `/asset/INTC`, `/asset/AAPL`, `/methodology`, `/events` and `
 all fetched and read. That verifies the code and the data. It does not verify the deployment.
 The remedy is one setting — disable Vercel Authentication for production, or grant access.
 
+## 5a. The audit, and what it found (2026-10-02)
+
+`AUDIT.md` is the authoritative requirement matrix: every row says whether it was verified,
+test-covered, read, unverified or blocked, and nothing reads as a pass on inference alone.
+
+Its finding in one line: **the data and brain layers are well ahead of the output layer.** Of
+33 models, 27 reach a reader. `Coverage` was surfaced in this session — concise on the home
+page, in full on `/methodology`. Four remain written and unread: `SourceReliability`,
+`Calibration`, `NewsLineage` and `EventState`. The first two are time-gated anyway; the third
+hides a distinction the reader would want (four stories across four publishers versus one
+across twenty); the fourth has no rows yet.
+
+The audit's verdict is **NOT FROZEN**, for one reason only: the owner's gate is two consecutive
+green production refreshes and that stands at 0 of 2, unreachable from a session that cannot
+dispatch `refresh.yml` or read its log.
+
 ## 6. Where to read next
 
 | file | what it holds |
 | --- | --- |
 | `HANDOFF.md` | the live state in full: the acceptance matrix with measured figures, the nine defects the acceptance pass found, the free-tier numbers, and what still needs a human |
-| `brain.md` | **34 rules for changes.** Read these before editing a job; the last twelve were earned by real bugs |
+| `brain.md` | **35 rules for changes.** Read these before editing a job; the last thirteen were earned by real bugs |
 | `ARCHITECTURE.md` | the layer map, with every layer marked built / partial / absent honestly |
 | `tools/README.md` | the four read-only verification harnesses and the two results that are easy to misread |
 | `README.md` | how the system is put together and how to run it |

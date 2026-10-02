@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Card, Note, Section, Table } from "@/components/ui";
+import { Card, Note, Section, SourceHealthBlock, Table } from "@/components/ui";
+import { getSourceHealth } from "@/lib/queries";
 
 export const revalidate = 3600;
 
@@ -91,7 +92,8 @@ const NEW_SECTIONS = [
   },
 ];
 
-export default function MethodologyPage() {
+export default async function MethodologyPage() {
+  const health = await getSourceHealth();
   return (
     <div className="max-w-4xl">
       <div>
@@ -497,6 +499,19 @@ export default function MethodologyPage() {
           change what a number means. Every page shows the as of date so a stale figure is
           visible rather than hidden.
         </Note>
+      </Section>
+
+      <Section
+        title="Source health"
+        lead="Every source this site reads, and whether it is currently answering. Measured by the audit job on each run, not asserted here."
+      >
+        <SourceHealthBlock sources={health} />
+        <p className="text-muted-foreground mt-3 max-w-3xl text-xs leading-relaxed">
+          A feed that quietly stops looks exactly like a quiet week in the data. These four
+          states exist to keep those apart: a source can be answering, answering thinly, late,
+          or not answering at all. Nothing here is a verdict on the site — it says what was
+          collected, so a thin reading can be recognised as thin rather than read as a finding.
+        </p>
       </Section>
 
       <Section title="How the data is refreshed">

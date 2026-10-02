@@ -2,6 +2,7 @@ import Link from "next/link";
 import { isoDate, pct, price, toneClass } from "@/lib/format";
 import {
   CHECK_WORDS,
+  COVERAGE_WORDS,
   FINDING_WORDS,
   HORIZON_WORDS,
   METHOD_WORDS,
@@ -2024,5 +2025,72 @@ export function ScanBox({
         <p className="text-muted-foreground mt-2.5 text-xs leading-relaxed">{empty}</p>
       )}
     </Card>
+  );
+}
+
+/// Source health, for the reader.
+///
+/// Two shapes from one component because the two places want different amounts. `brief` is
+/// the home page: a line that says everything is answering, or names only what is not, so a
+/// healthy day costs one line and a fault is impossible to miss. The full form is the
+/// methodology page, where every source is listed whatever its state.
+///
+/// Status words come from COVERAGE_WORDS rather than being written here, so the page cannot
+/// drift from the four states the audit job actually writes.
+export function SourceHealthBlock({
+  sources,
+  brief = false,
+}: {
+  sources: { source: string; status: string; rows: number; newest: Date | null; note: string | null }[];
+  brief?: boolean;
+}) {
+  if (!sources.length) {
+    return <Empty>No source health has been measured yet. It is written by the audit job on every run.</Empty>;
+  }
+  const faults = sources.filter((s) => s.status !== "healthy");
+  const shown = brief ? faults : sources;
+
+  if (brief && !faults.length) {
+    return (
+      <p className="text-muted-foreground text-sm">
+        All {sources.length} measured sources are answering as expected.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {brief ? (
+        <p className="text-muted-foreground text-sm">
+          {faults.length} of {sources.length} measured sources need reading with care. The rest are answering as
+          expected.
+        </p>
+      ) : null}
+      <ul className="divide-border divide-y">
+        {shown.map((s) => {
+          const words = COVERAGE_WORDS[s.status] ?? {
+            label: s.status,
+            plain: "This status has no reader wording yet.",
+            tone: "default" as const,
+          };
+          return (
+            <li key={s.source} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
+              <span className="text-sm font-medium">{s.source}</span>
+              <Pill tone={words.tone}>{words.label}</Pill>
+              <AsOf date={s.newest} />
+              {!brief ? (
+                <span className="text-muted-foreground text-xs">
+                  {s.rows.toLocaleString("en-US")} rows
+                </span>
+              ) : null}
+              <span className="text-muted-foreground w-full text-xs leading-relaxed">
+                {words.plain}
+                {s.note ? ` ${s.note}` : ""}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }

@@ -621,3 +621,35 @@ export async function getPricedAssetsByIndustry(): Promise<Map<string, number>> 
   for (const a of assets) out.set(a.industryId, (out.get(a.industryId) ?? 0) + 1);
   return out;
 }
+
+/// The health of each source, newest reading per source, worst first.
+///
+/// `jobs/audit.py` has written these rows since the day coverage was added and no reader has
+/// ever seen one. A feed that quietly dies looks exactly like a quiet week in the data, and
+/// the whole point of the Coverage table is to tell those apart — which it cannot do for the
+/// reader while it is only visible to whoever opens the database.
+///
+/// Deliberately returns the four reader-facing fields and not the arithmetic behind them.
+/// `gapRatio`, `criticality` and `missRisk` are how the status is decided, not something a
+/// reader needs on the page, and printing them would be exposing the mechanism as if it were
+/// the finding.
+export async function getSourceHealth(): Promise<
+  { source: string; status: string; rows: number; newest: Date | null; note: string | null }[]
+> {
+  const rows = await prisma.coverage.findMany({
+    orderBy: { computedAt: "desc" },
+    select: { source: true, status: true, rows: true, newest: true, note: true, computedAt: true },
+    take: 400,
+  });
+  const latest = new Map<string, (typeof rows)[number]>();
+  for (const r of rows) if (!latest.has(r.source)) latest.set(r.source, r);
+  // Worst first: a reader scanning this wants the fault, not the alphabet.
+  const order = ["silent", "stale", "partial", "healthy"];
+  return [...latest.values()]
+    .sort(
+      (a, b) =>
+        (order.indexOf(a.status) + 1 || 99) - (order.indexOf(b.status) + 1 || 99) ||
+        a.source.localeCompare(b.source),
+    )
+    .map(({ source, status, rows: n, newest, note }) => ({ source, status, rows: n, newest, note }));
+}

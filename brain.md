@@ -534,3 +534,10 @@ reads rows that already exist:
     prints a line per source with its newest date and how far behind that is, because a source
     that answers but is four days stale is a different fault from one that answers nothing, and
     those are the three numbers to read after a refresh.
+35. **A measurement no reader sees is not a feature.** `audit.py` wrote a `Coverage` row per
+    source on every run from the day coverage was added, and for all that time no page read the
+    table: a feed that quietly died looked, to the reader, exactly like a quiet week — the
+    precise confusion the table exists to end. Six of thirty-three models were in that state
+    when it was audited. Before adding another measurement, check that the last one reaches a
+    page, and when a job starts writing a status, the change that surfaces it belongs in the
+    same commit. `AUDIT.md` holds the current list of what is written and never read.

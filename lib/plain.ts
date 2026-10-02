@@ -351,3 +351,34 @@ export const PRODUCT_STATUS_WORDS: Record<
   flat: { label: "Flat", tone: "default" },
   unknown: { label: "No data", tone: "default" },
 };
+
+/// What a source's coverage status means to a reader, rather than to the audit job.
+///
+/// The four words matter separately: a source that answered but is late is a different fault
+/// from one that answered thinly, and both are different from one that has stopped. Collapsing
+/// them into "problem" would throw away the distinction the Coverage table exists to keep.
+export const COVERAGE_WORDS: Record<
+  string,
+  { label: string; plain: string; tone: "up" | "down" | "warn" | "default" }
+> = {
+  healthy: {
+    label: "Answering",
+    plain: "This source is answering as often as expected.",
+    tone: "up",
+  },
+  partial: {
+    label: "Thin",
+    plain: "It answered, but with far less than it usually sends, so treat its newest day as incomplete.",
+    tone: "warn",
+  },
+  stale: {
+    label: "Late",
+    plain: "It has gone longer than expected without anything new. What is stored is still good; it is just older than it should be.",
+    tone: "warn",
+  },
+  silent: {
+    label: "Not answering",
+    plain: "Nothing new has arrived for long enough that this should be read as a fault, not a quiet week.",
+    tone: "down",
+  },
+};
