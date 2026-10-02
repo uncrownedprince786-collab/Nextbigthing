@@ -1780,6 +1780,251 @@ class SourceFailure(unittest.TestCase):
         self.assertLessEqual(worst, 120, f"a dead host could cost {worst}s of the lane")
 
 
+class NoLookAhead(unittest.TestCase):
+    """A state that claims to describe a past moment must not be computed from after it.
+
+    Each test here names a property that is currently true and that an ordinary edit could
+    quietly undo. None of them can be checked behaviourally without a database, so each one
+    asserts the construct that makes the property hold.
+    """
+
+    def test_the_frozen_event_context_filters_strictly_before_the_date(self):
+        text = (ROOT / "jobs" / "lifecycle.py").read_text(encoding="utf-8")
+        body = text[text.index("def context_before"):text.index("def write_state")]
+        # One query per source of evidence, and every one of them bounded.
+        selects = [s for s in body.split("SELECT")[1:]]
+        self.assertGreaterEqual(len(selects), 3, "context_before stopped reading what it used to")
+        for s in selects:
+            clause = s[:s.index("ORDER BY")] if "ORDER BY" in s else s
+            self.assertTrue(
+                "date < %s" in clause or '"periodEnd" < %s' in clause,
+                f"a query in context_before has no strict cutoff: {clause.strip()[:90]}",
+            )
+        # `<=` would include the event day itself, which is the day being predicted.
+        self.assertNotIn("date <= %s", body)
+        self.assertNotIn('"periodEnd" <= %s', body)
+
+    def test_a_frozen_pre_event_state_is_never_rewritten(self):
+        # The value of a state captured before an event is that a later run cannot improve it
+        # with hindsight. DO NOTHING is what makes the freeze a freeze.
+        text = (ROOT / "jobs" / "lifecycle.py").read_text(encoding="utf-8")
+        insert = text[text.index('INSERT INTO "EventState"'):]
+        head = insert[:insert.index('"""')]
+        self.assertIn("DO NOTHING", head)
+        self.assertNotIn("DO UPDATE", head)
+
+    def test_a_thesis_opening_record_is_write_once(self):
+        # Rule 14. The opening row is a copy of the day the state appeared; recomputing any of
+        # it from today's data reintroduces look-ahead into the one place built to exclude it.
+        text = (ROOT / "jobs" / "thesis.py").read_text(encoding="utf-8")
+        insert = text[text.index('INSERT INTO "AssetThesis"'):]
+        update = insert[insert.index("DO UPDATE SET"):insert.index("RETURNING id")]
+        for field in ("openHeadline", "openConditions", "openClose", "invalidateLevel", "entryLevel"):
+            self.assertNotIn(
+                field, update, f"{field} is in the DO UPDATE list, so the opening record is no longer a copy"
+            )
+        self.assertIn("openConditions", insert[:insert.index("DO UPDATE SET")])
+
+    def test_an_outcome_is_measured_from_the_close_that_was_recorded(self):
+        # Measuring from today's price would score a reading against a baseline it never had.
+        text = (ROOT / "jobs" / "accuracy.py").read_text(encoding="utf-8")
+        self.assertIn('"baseClose"', text)
+
+    def test_product_windows_end_on_a_completed_week(self):
+        # A partial week is a smaller week, and comparing it against full ones manufactures a
+        # fall in attention every time a job runs mid-week.
+        text = (ROOT / "jobs" / "signals.py").read_text(encoding="utf-8")
+        self.assertIn("today.weekday() + 7", text)
+
+    def test_every_state_writing_job_is_covered_by_a_look_ahead_rule_or_named_here(self):
+        # The point of this test is to fail when a new state-writing job appears, so the sweep
+        # is redone rather than silently skipped. Each name is either checked above or carries
+        # the reason it needs no cutoff.
+        covered = {
+            "lifecycle.py": "frozen pre-event state, checked above",
+            "thesis.py": "opening record write-once, checked above",
+            "accuracy.py": "measures from the recorded close, checked above",
+            "signals.py": "windows anchored to a completed week, checked above",
+            "setup.py": "writes today's read only, keyed by periodEnd",
+            "horizons.py": "writes today's read only, keyed by horizon and periodEnd",
+            "analogs.py": "describes past days and what followed them, which is the measurement",
+            "attribution.py": "decomposes a window ending at the row's own date",
+            "investigate.py": "investigates a move on the day it is seen",
+            "human.py": "reads coverage as of the row's period",
+            "graph.py": "walks stored relationships, stores no dated claim",
+            "events.py": "stores published dates, computes no state",
+        }
+        writers = set()
+        for path in sorted((ROOT / "jobs").glob("*.py")):
+            text = path.read_text(encoding="utf-8")
+            if 'INSERT INTO "' in text and path.name not in {"seed.py", "prices.py", "psx.py",
+                                                              "intraday.py", "audit.py",
+                                                              "marketplace.py", "geo.py",
+                                                              "upcoming.py", "lineage.py",
+                                                              "analysis.py", "rank.py",
+                                                              "confidence.py", "stats.py"}:
+                writers.add(path.name)
+        missing = sorted(writers - set(covered))
+        self.assertEqual(missing, [], f"state-writing jobs with no look-ahead note: {missing}")
+
+
+class ReaderCanAskWhy(unittest.TestCase):
+    """Every state a job stores has wording a reader gets, in one place.
+
+    These are the end-to-end user questions in the only form a database-free suite can ask
+    them: "is there a setup", "what invalidates it", "how strong is the evidence" are all
+    answerable only if each stored state reaches `lib/plain.ts` with a label and a sentence.
+    A state with no wording renders as a raw database value, which is the project's own
+    definition of exposing the mechanism instead of the finding.
+    """
+
+    PLAIN = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.PLAIN = (ROOT / "lib" / "plain.ts").read_text(encoding="utf-8")
+
+    def keys(self, name: str) -> set[str]:
+        import re
+        m = re.search(name + r"[^=]*=\s*\{(.*?)^\};", self.PLAIN, re.S | re.M)
+        self.assertIsNotNone(m, f"{name} is gone from lib/plain.ts")
+        return set(re.findall(r"^\s{2}([A-Za-z_]\w*)\s*:", m.group(1), re.M))
+
+    def literals(self, pattern: str, only: str | None = None) -> set[str]:
+        import re
+        out = set()
+        for path in sorted((ROOT / "jobs").glob("*.py")):
+            if only and path.name != only:
+                continue
+            out |= set(re.findall(pattern, path.read_text(encoding="utf-8")))
+        return out
+
+    def check(self, vocab: str, pattern: str, only: str | None = None):
+        written = self.literals(pattern, only)
+        self.assertTrue(written, f"the probe for {vocab} matched nothing, so this test is vacuous")
+        missing = sorted(written - self.keys(vocab))
+        self.assertEqual(
+            missing, [],
+            f"{vocab} has no reader wording for {missing}, so the page would print the raw value",
+        )
+
+    def test_every_setup_state_has_wording(self):
+        # setup.py only: run.py also writes `state = "ok"` for a workflow step, which is a
+        # different vocabulary that never reaches an asset page.
+        self.check("SETUP_WORDS", r'state = "(\w+)"', only="setup.py")
+
+    def test_every_thesis_status_has_wording(self):
+        self.check("THESIS_WORDS", r'"(active|weakening|broken)"')
+
+    def test_every_investigation_finding_has_wording(self):
+        self.check("FINDING_WORDS", r'"(found|absent|unavailable)"')
+
+    def test_every_coverage_status_has_wording(self):
+        self.check("COVERAGE_WORDS", r'"(healthy|stale|silent|partial)"')
+
+    def test_every_horizon_has_wording(self):
+        self.check("HORIZON_WORDS", r'"(intraday|swing|longer)"')
+
+    def test_every_target_method_has_wording(self):
+        self.check("METHOD_WORDS", r'"(structure|volatility|analog)"')
+
+    def test_the_four_coverage_states_stay_distinct(self):
+        # Rule 21 at the reader's end: collapsing "late" into "not answering" would throw away
+        # the distinction the Coverage table exists to keep.
+        labels = []
+        import re
+        m = re.search(r"COVERAGE_WORDS[^=]*=\s*\{(.*?)^\};", self.PLAIN, re.S | re.M)
+        labels = re.findall(r'label: "([^"]+)"', m.group(1))
+        self.assertEqual(len(labels), 4)
+        self.assertEqual(len(set(labels)), 4, f"two coverage states share a label: {labels}")
+
+
+class WebSafety(unittest.TestCase):
+    """The web layer's attack surface, which is small on purpose and should stay that way."""
+
+    def test_the_web_layer_runs_no_raw_sql(self):
+        # Dynamic route params reach the database through Prisma, which parameterises. A raw
+        # query would be the first place a path segment could become SQL.
+        for d in ("lib", "app", "components"):
+            for path in (ROOT / d).rglob("*.ts*"):
+                text = path.read_text(encoding="utf-8", errors="ignore")
+                for bad in ("$queryRaw", "$executeRaw", "queryRawUnsafe"):
+                    self.assertNotIn(bad, text, f"{path.name} runs raw SQL")
+
+    def test_a_scraped_link_cannot_change_the_host_it_points_at(self):
+        # The one place remote content shapes a URL. The capture must start with a single
+        # slash: a value beginning "@evil.com" or "//evil.com" would otherwise be appended to
+        # https://www.amazon.com and change where the reader is sent.
+        text = (ROOT / "jobs" / "marketplace.py").read_text(encoding="utf-8")
+        self.assertIn('href="(/[^"]*?/dp/[A-Z0-9]{10}', text)
+        # And the joined form still hard-codes the host.
+        self.assertIn('f"https://www.amazon.com{link.group(1)', text)
+
+    def test_outbound_links_do_not_leak_the_referrer_or_pass_authority(self):
+        text = (ROOT / "app" / "marketplace" / "page.tsx").read_text(encoding="utf-8")
+        self.assertIn('rel="noopener noreferrer nofollow"', text)
+
+    def test_every_fetched_host_is_a_literal_in_the_source(self):
+        # A host assembled from stored data is how a scraper becomes a request forgery. Every
+        # URL in jobs/ starts with a literal scheme and host.
+        import re
+        for path in sorted((ROOT / "jobs").glob("*.py")):
+            text = path.read_text(encoding="utf-8")
+            for m in re.finditer(r'f"https?://\{(\w+)', text):
+                self.assertIn(
+                    m.group(1), {"WIKI"},
+                    f"{path.name} builds a host from {m.group(1)}, which is not a module constant",
+                )
+
+
+class QueryBudget(unittest.TestCase):
+    """A ratchet, not a verdict.
+
+    Several jobs issue a query per asset. Whether that matters has never been measured against
+    the production database, so nothing is rewritten here on a guess. What this does is stop
+    the number growing unnoticed: a new query inside an existing loop multiplies by the asset
+    count, and that is the change worth seeing in a diff.
+    """
+
+    BASELINE = {
+        "accuracy.py": 2, "analogs.py": 1, "analysis.py": 5, "attribution.py": 1,
+        "audit.py": 9, "confidence.py": 3, "events.py": 2, "geo.py": 1, "graph.py": 1,
+        "horizons.py": 10, "investigate.py": 5, "lifecycle.py": 2, "lineage.py": 4,
+        "marketplace.py": 2, "prices.py": 5, "psx.py": 1, "seed.py": 5, "setup.py": 4,
+        "signals.py": 2, "stats.py": 2, "thesis.py": 8, "upcoming.py": 3,
+    }
+
+    @staticmethod
+    def in_loop_calls(path) -> int:
+        import re
+        lines = path.read_text(encoding="utf-8").splitlines()
+        stack, n = [], 0
+        for i, line in enumerate(lines, 1):
+            s = line.strip()
+            if not s or s.startswith("#"):
+                continue
+            indent = len(line) - len(line.lstrip())
+            stack = [(ind, ln) for ind, ln in stack if ind < indent]
+            if s.startswith("for ") and s.endswith(":"):
+                stack.append((indent, i))
+            elif stack and re.search(r"(cur\.execute|cur\.executemany|rows\(|one\()", s):
+                n += 1
+        return n
+
+    def test_no_job_issues_more_queries_inside_a_loop_than_it_did(self):
+        grew = []
+        for path in sorted((ROOT / "jobs").glob("*.py")):
+            n = self.in_loop_calls(path)
+            allowed = self.BASELINE.get(path.name, 0)
+            if n > allowed:
+                grew.append(f"{path.name}: {n} in-loop queries, baseline {allowed}")
+        self.assertEqual(grew, [], "; ".join(grew))
+
+    def test_the_counter_still_counts(self):
+        # A ratchet that measures zero everywhere would pass forever.
+        self.assertGreaterEqual(self.in_loop_calls(ROOT / "jobs" / "thesis.py"), 5)
+
+
 class BudgetGuards(unittest.TestCase):
     """Every unbounded thing that could run away has a declared ceiling."""
 
