@@ -2025,6 +2025,62 @@ class QueryBudget(unittest.TestCase):
         self.assertGreaterEqual(self.in_loop_calls(ROOT / "jobs" / "thesis.py"), 5)
 
 
+# A word-bounded search for an identifier. Built here because a literal backslash-b in a
+# shell heredoc is how this file once acquired a stray control character.
+WORD = chr(92) + "b%s" + chr(92) + "b"
+
+
+class NothingBuiltAndUnused(unittest.TestCase):
+    """An export with no consumer is a measurement no reader sees, in the web layer.
+
+    This is rule 35 applied to TypeScript. `Coverage` was written for months and read by
+    nothing; the same audit found a query that measures what past events of a category were
+    followed by, and wording for a reward-to-risk ratio, both finished and both unwired. The
+    cost of each is the same: work that looks done and answers nobody.
+    """
+
+    # Anything deliberately kept without a consumer goes here, with the reason. Empty is the
+    # healthy state; a name added without a reason is the thing this test exists to catch.
+    ALLOWED: dict[str, str] = {}
+
+    def exports_without_consumers(self) -> list[str]:
+        import re
+        exports = {}
+        for f in sorted(list((ROOT / "lib").glob("*.ts")) + list((ROOT / "components").glob("*.tsx"))):
+            text = f.read_text(encoding="utf-8")
+            for m in re.finditer(r"^export (?:async )?function (\w+)|^export const (\w+)", text, re.M):
+                exports[m.group(1) or m.group(2)] = str(f)
+        files = {}
+        for pattern in ("app/**/*.tsx", "app/*.tsx", "lib/*.ts", "components/*.tsx"):
+            for f in ROOT.glob(pattern):
+                files[str(f)] = f.read_text(encoding="utf-8")
+        self.assertGreater(len(files), 8, "the file scan found almost nothing, so it is broken")
+        orphans = []
+        for name, origin in sorted(exports.items()):
+            uses = 0
+            for path, text in files.items():
+                # Word-bounded: "Bar" must not be found inside "SourceHealthBlock" or "Table".
+                n = len(re.findall(WORD % re.escape(name), text))
+                uses += (n - 1) if path == origin else n
+            if uses <= 0 and name not in self.ALLOWED:
+                orphans.append(f"{name} ({Path(origin).name})")
+        return orphans
+
+    def test_every_export_in_the_web_layer_has_a_consumer(self):
+        orphans = self.exports_without_consumers()
+        self.assertEqual(
+            orphans, [],
+            "built and unused, so wire it to a page or delete it: " + ", ".join(orphans),
+        )
+
+    def test_the_scan_would_notice_an_orphan(self):
+        # Proof the detector fires, since an empty result is also what a broken scan returns.
+        import re
+        text = (ROOT / "lib" / "plain.ts").read_text(encoding="utf-8")
+        names = re.findall(r"^export (?:async )?function (\w+)", text, re.M)
+        self.assertGreater(len(names), 3, "the export pattern no longer matches lib/plain.ts")
+
+
 class BudgetGuards(unittest.TestCase):
     """Every unbounded thing that could run away has a declared ceiling."""
 

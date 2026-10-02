@@ -11,7 +11,13 @@ import {
   Section,
   Table,
 } from "@/components/ui";
-import { getEvent, getEventImpacts, getEventWindows } from "@/lib/queries";
+import {
+  EVENT_HISTORY_MIN,
+  getEvent,
+  getEventCategoryHistory,
+  getEventImpacts,
+  getEventWindows,
+} from "@/lib/queries";
 import { isoDate, longDate, pct, price, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
@@ -94,6 +100,9 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   if (!e) notFound();
 
   const windows = await getEventWindows(e.id);
+  // What past events of this same category were followed by. Measured, floor-gated, and
+  // never presented as what this one will do.
+  const history = await getEventCategoryHistory(e.category);
   const byWindow = await Promise.all(
     windows.map(async (w) => ({ window: w, ...(await getEventImpacts(e.id, w)) })),
   );
@@ -112,6 +121,23 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
       </div>
       <p className="text-muted-foreground num mt-1 text-sm">{longDate(e.date)}</p>
       <p className="mt-3 max-w-3xl text-sm leading-relaxed">{e.summary}</p>
+      <p className="text-muted-foreground mt-2 max-w-3xl text-xs leading-relaxed">
+        {history.enough ? (
+          <>
+            Across {history.measured} past {e.category} events already measured here,{" "}
+            {history.positive} were followed by a rise over {history.windowDays} days and{" "}
+            {history.measured - history.positive} by a fall or no change. That is what was
+            observed around similar dates, not what is expected around this one.
+          </>
+        ) : (
+          <>
+            Only {history.measured} past {e.category} event
+            {history.measured === 1 ? " has" : "s have"} been measured here, below the floor of{" "}
+            {EVENT_HISTORY_MIN} this site needs before reporting what followed similar dates.
+            Nothing is inferred from a sample that small.
+          </>
+        )}
+      </p>
       <p className="text-muted-foreground mt-2 text-xs">
         Date and description from {e.source}.{" "}
         <a

@@ -28,7 +28,7 @@ Verified against the live production database on 2026-10-01, not merely built:
 
 | | |
 | --- | --- |
-| Tests | **233**, all passing, no database or network needed |
+| Tests | **254**, all passing, no database or network needed |
 | Types, lint, build | clean |
 | `schema.yml` (release lane) | **green** — run `36917629683`, 9m 3s, all 20 brain jobs |
 | Every job in the daily group | passes individually against production — see the table in `HANDOFF.md` |
@@ -153,7 +153,7 @@ dispatch `refresh.yml` or read its log.
 | file | what it holds |
 | --- | --- |
 | `HANDOFF.md` | the live state in full: the acceptance matrix with measured figures, the nine defects the acceptance pass found, the free-tier numbers, and what still needs a human |
-| `brain.md` | **35 rules for changes.** Read these before editing a job; the last thirteen were earned by real bugs |
+| `brain.md` | **36 rules for changes.** Read these before editing a job; the last fourteen were earned by real bugs |
 | `ARCHITECTURE.md` | the layer map, with every layer marked built / partial / absent honestly |
 | `tools/README.md` | the four read-only verification harnesses and the two results that are easy to misread |
 | `README.md` | how the system is put together and how to run it |

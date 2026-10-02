@@ -3,6 +3,7 @@ import { isoDate, pct, price, toneClass } from "@/lib/format";
 import {
   CHECK_WORDS,
   COVERAGE_WORDS,
+  rewardWords,
   FINDING_WORDS,
   HORIZON_WORDS,
   METHOD_WORDS,
@@ -1536,6 +1537,11 @@ export function HorizonStrip({
                           ? price(t.low, currency)
                           : `${price(t.low, currency)} to ${price(t.high, currency)}`}
                       </span>
+                      {rewardWords(t.rewardRisk) ? (
+                        <span className="text-muted-foreground w-full text-[11px] leading-relaxed">
+                          {rewardWords(t.rewardRisk)}
+                        </span>
+                      ) : null}
                     </li>
                   ))}
                 </ul>

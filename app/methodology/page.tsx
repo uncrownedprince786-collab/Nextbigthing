@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Card, Note, Section, SourceHealthBlock, Table } from "@/components/ui";
-import { getSourceHealth } from "@/lib/queries";
+import { getIntradayCoverage, getSourceHealth } from "@/lib/queries";
+import { isoDate } from "@/lib/format";
 
 export const revalidate = 3600;
 
@@ -94,6 +95,7 @@ const NEW_SECTIONS = [
 
 export default async function MethodologyPage() {
   const health = await getSourceHealth();
+  const intraday = await getIntradayCoverage();
   return (
     <div className="max-w-4xl">
       <div>
@@ -506,6 +508,14 @@ export default async function MethodologyPage() {
         lead="Every source this site reads, and whether it is currently answering. Measured by the audit job on each run, not asserted here."
       >
         <SourceHealthBlock sources={health} />
+        {intraday.sessionDate ? (
+          <p className="text-muted-foreground mt-3 max-w-3xl text-xs leading-relaxed">
+            Intraday sessions stored for {isoDate(intraday.sessionDate)}:{" "}
+            {intraday.counts.map((c) => `${c.n} ${c.status}`).join(", ")}. A session is counted
+            by what it is, not merged into a total — an empty session is a quiet market and a
+            failed one is a fault, and those are different facts.
+          </p>
+        ) : null}
         <p className="text-muted-foreground mt-3 max-w-3xl text-xs leading-relaxed">
           A feed that quietly stops looks exactly like a quiet week in the data. These four
           states exist to keep those apart: a source can be answering, answering thinly, late,

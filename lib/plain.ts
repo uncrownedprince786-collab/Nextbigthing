@@ -35,27 +35,7 @@ export function tradingWords(ratio: number | null | undefined): string | null {
   return `about as much trading as usual (${ratio.toFixed(1)} times its own average)`;
 }
 
-/// Where a price sits in a range, in words. The share follows in brackets.
-export function positionWords(share: number | null | undefined): string | null {
-  if (share == null || Number.isNaN(share)) return null;
-  const pct = `${Math.round(share * 100)}%`;
-  if (share >= 0.95) return `at the very top of the range it has traded in (${pct} of the way up)`;
-  if (share >= 0.7) return `near the top of the range it has traded in (${pct} of the way up)`;
-  if (share >= 0.3) return `in the middle of the range it has traded in (${pct} of the way up)`;
-  if (share > 0.05) return `near the bottom of the range it has traded in (${pct} of the way up)`;
-  return `at the very bottom of the range it has traded in (${pct} of the way up)`;
-}
 
-/// A historical share as a count, because "about 7 times out of 10" is a frequency and "70%" is
-/// read as a promise. The denominator is kept so a reader can see how thin the sample is.
-export function frequencyWords(
-  positive: number | null | undefined,
-  total: number | null | undefined,
-): string | null {
-  if (positive == null || total == null || total <= 0) return null;
-  const outOfTen = Math.round((positive / total) * 10);
-  return `in similar past cases this happened about ${outOfTen} times out of 10 (${positive} of ${total})`;
-}
 
 /// A robust score as a sentence. The score itself is a statistician's unit and never leads.
 export function unusualWords(z: number | null | undefined): string | null {

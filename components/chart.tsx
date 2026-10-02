@@ -67,21 +67,3 @@ export function Sparkline({
     </figure>
   );
 }
-
-export function Bar({
-  value,
-  max,
-  tone = "primary",
-}: {
-  value: number;
-  max: number;
-  tone?: "primary" | "up" | "down";
-}) {
-  const w = max === 0 ? 0 : Math.min(100, Math.abs(value / max) * 100);
-  const color = tone === "primary" ? "var(--primary)" : tone === "up" ? "var(--up)" : "var(--down)";
-  return (
-    <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
-      <div className="h-full rounded-full" style={{ width: `${w}%`, background: color }} />
-    </div>
-  );
-}

@@ -541,3 +541,13 @@ reads rows that already exist:
     when it was audited. Before adding another measurement, check that the last one reaches a
     page, and when a job starts writing a status, the change that surfaces it belongs in the
     same commit. `AUDIT.md` holds the current list of what is written and never read.
+36. **Built and unused is the recurring fault in this repository, not unbuilt.** The audit
+    that found `Coverage` written and read by nothing found the same shape three more times in
+    the web layer: a query measuring what past events of a category were followed by, wording
+    for a reward-to-risk ratio that is stored on every target row, and intraday session health
+    computed for a page that never called it. All finished, none reachable. Two further exports
+    were genuinely dead — one wording helper superseded by better wording already on the page,
+    one with no stored field behind it — and were deleted rather than wired, because keeping
+    two vocabularies for one idea is the contradiction this file exists to prevent. A test now
+    fails when any export in `lib/` or `components/` has no consumer, with an allowlist that is
+    empty and a reason required to add to it. Before building, check what is already built.
