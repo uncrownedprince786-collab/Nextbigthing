@@ -68,5 +68,11 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
+      # The decision rule table is a pure module with no database, no network and an injected
+      # clock, so it runs here beside the type check rather than in the Python lane. node --test
+      # and TypeScript stripping are both built into Node 24; this adds no dependency.
+      - name: Decision rules
+        run: npm run test:web
+
       - name: Lint
         run: npx eslint
