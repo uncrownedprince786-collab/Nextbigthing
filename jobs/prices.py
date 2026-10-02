@@ -469,11 +469,21 @@ def binance_bars(sym: str) -> list[tuple]:
 
 
 def coinbase_bars(sym: str) -> list[tuple]:
-    """Paged backwards: Coinbase caps a candles response at 300 rows, so history needs windows."""
+    """Paged backwards in windows, because Coinbase caps an explicit range at 300 aggregations.
+
+    Measured, not assumed: a 300-day span returns 301 rows and HTTP 200, a 301-day span returns
+    HTTP 400 "Count of aggregations requested exceeds 300". The window below is 290 to leave
+    margin. With no range at all the endpoint returns 350 rows, which is more than the capped
+    maximum and is the kind of inconsistency that makes a loop sized from the default fail on
+    its second page.
+
+    An empty array means "before this product was listed", not a failure — Coinbase answers 200
+    with `[]` for a window older than the listing — so an empty page ends the walk.
+    """
     bars: dict = {}
     end = datetime.now(timezone.utc)
-    for page in range(12):
-        start = end - timedelta(days=300)
+    for page in range(14):
+        start = end - timedelta(days=290)
         payload = get_json(
             f"https://api.exchange.coinbase.com/products/{sym}-USD/candles"
             f"?granularity=86400&start={start.date().isoformat()}&end={end.date().isoformat()}",
