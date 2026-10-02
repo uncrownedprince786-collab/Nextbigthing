@@ -51,19 +51,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               page; the optimizer's win is for large content images, and routing a 1.3 KB mark
               through it costs a request on first paint for nothing. `width`/`height` are set so
               the row does not reflow when it loads, which is the actual problem worth solving
-              here. Dimensions are the file's own aspect ratio, 1354x266, scaled to the 15px cap
-              height the text had.
+              here. Dimensions are the file's own, 489x96 -- stored at roughly three times the
+              28px it renders at, so a dense display has pixels to use and the file stays small.
             */}
             <Link href="/" className="flex items-center py-1 sm:py-0" aria-label="NextBigThing, home">
               {/* eslint-disable-next-line @next/next/no-img-element -- the rule is about large
-                  content images. This is a 1.3 KB header mark on every page, and Vercel's image
-                  optimization is metered on the free tier, so routing it through the optimizer
-                  spends quota to make a small file smaller. */}
+                  content images. This is a 34 KB header mark on every page, already resized to
+                  roughly three times its rendered height, and Vercel's image optimization is
+                  metered on the free tier. The optimizer earns its cost on large content images,
+                  not on a mark that is already the size it is drawn at. */}
               <img
                 src="/logo.png"
                 alt="NextBigThing"
-                width={1354}
-                height={266}
+                width={489}
+                height={96}
                 decoding="async"
                 fetchPriority="high"
                 className="h-6 w-auto sm:h-7"
