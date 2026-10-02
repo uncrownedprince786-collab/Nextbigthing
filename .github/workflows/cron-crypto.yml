@@ -1,0 +1,109 @@
+name: cron crypto
+
+# One source, one workflow. Crypto closes and nothing else.
+#
+# This lane exists because the thing it replaced could not fail partially. `refresh.yml` ran
+# every source in one `jobs/run.py daily` step for ~30 minutes, so a PSX outage, a Trends 429
+# or a Yahoo timeout all arrived as the same thing: a red run, with the sources behind the
+# failure skipped. Crypto was the clearest case — Binance answered a GitHub runner with
+# nothing from 2026-09-29 and the whole nightly lane went red with it. Splitting by source
+# means a dead venue is now a red *crypto* run next to six green ones.
+#
+# Every 2 hours, which is the fastest band the user asked for and the right one here: crypto
+# has no exchange session, so a close is only ever as fresh as the last fetch, and the
+# four-venue walk in `fetch_crypto` is cheap enough to repeat. 12 runs a day of a few minutes
+# each is the largest share of the Actions budget in this set, and it is the one worth paying.
+on:
+  schedule:
+    # Minute 05 of every even hour. The seven lanes are spread across distinct minutes so a
+    # Neon free tier branch never takes seven connection bursts in the same second: crypto 05,
+    # news 20, audit 35, us-prices 50. Crypto takes the earliest slot because news dedupe and
+    # the audit snapshot both read rows more usefully once the newest closes are stored.
+    - cron: "5 */2 * * *"
+  workflow_dispatch:
+
+# Its own group, and that is the entire point of this file.
+#
+# GitHub keeps exactly ONE pending run per concurrency group, so queuing a newer run cancels
+# the one already waiting. While every data job shared `nbt-database` that rule silently ate
+# work — it is why `geo.py` kept being cancelled. With one group per source, a PSX run can no
+# longer cancel a crypto run, and a crypto run cannot cancel itself out of existence either:
+# cancel-in-progress stays false so a fetch mid-commit is never killed.
+concurrency:
+  group: nbt-crypto
+  cancel-in-progress: false
+
+jobs:
+  crypto:
+    name: crypto closes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # main, explicitly. GitHub takes a scheduled workflow's *file* from the default branch
+      # and nowhere else, and by default checks out that same branch's code. The default here
+      # is `master`, which on 2026-10-03 was found to have been 34 commits behind `main` while
+      # both guards in `refresh.yml` read correctly in the working tree and neither had ever
+      # executed. Naming the ref decouples file from code; the step below proves it and fails
+      # the run rather than quietly refreshing from stale code.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prove this run is executing main
+        run: |
+          head="$(git rev-parse HEAD)"
+          git fetch origin main --quiet
+          want="$(git rev-parse origin/main)"
+          echo "checked out $head"
+          echo "origin/main  $want"
+          if [ "$head" != "$want" ]; then
+            echo "this run is NOT executing main, refusing to continue"
+            exit 1
+          fi
+          echo "confirmed: this run is executing main"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      # This lane checks the schema; it does not migrate it. Migration is one controlled path,
+      # `schema.yml`, and a second place running the deploy is not a theoretical hazard: run
+      # 36798989654 had two lanes deploying against one database from two concurrency groups
+      # with nothing serialising them, and the loser died with every data job skipped. The
+      # check holds no writer privilege and issues no DDL, so it cannot race anything.
+      - name: Refuse to run against a schema that is behind
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/schemacheck.py
+
+      # The output is copied to `$GITHUB_STEP_SUMMARY` the way `schema.yml` does, because
+      # GitHub requires a sign-in to read an Actions log even on a public repository and the
+      # run summary page does not. `set +e` with the explicit exit keeps the step's pass/fail
+      # exactly as it was: the summary is written either way and a failure still fails the run.
+      - name: Fetch crypto closes
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          set +e
+          out="$(python jobs/run.py crypto 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## Crypto closes"
+            echo
+            echo "exit code \`$code\`"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code

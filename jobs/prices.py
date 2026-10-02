@@ -29,6 +29,7 @@ warnings.filterwarnings("ignore")
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from nbt import SNAPSHOTS, db, get_json, get, rows, step  # noqa: E402
+from runlog import parse_chunk, slice_of  # noqa: E402
 
 try:
     from dotenv import load_dotenv
@@ -258,10 +259,24 @@ def yahoo_download(symbols: list[str], start: str):
     return frame if frame is not None else pd.DataFrame()
 
 
-def fetch_yahoo(cur) -> int:
+def fetch_yahoo(cur, chunk: tuple[int, int] | None = None) -> int:
     assets = yahoo_assets(cur)
     if not assets:
         return 0
+
+    # The slice, applied to the symbol list and nothing else. `slice_of` sorts before cutting,
+    # so a symbol lands in the same slice on every run even though the query has no ORDER BY —
+    # without that a retry and the run it is retrying would disagree about what was covered.
+    # Every other number below is then computed from the slice, so the step summary reports
+    # what this slice did rather than what the whole lane would have done.
+    if chunk:
+        i, n = chunk
+        assets = slice_of(assets, i, n, key=lambda a: a["symbol"])
+        step(f"yahoo slice {i}/{n}: {len(assets)} of this lane's symbols")
+        if not assets:
+            # More slices than symbols. Not a failure, and not silence either: there was
+            # nothing in this slice to ask for, so the silence guard must not fire on it.
+            return 0
 
     # Incremental by default. The job used to download every ticker's history from 2019 on
     # every single run and replace the table wholesale, which is some seven years of daily
@@ -1306,14 +1321,33 @@ def fail_on_silent(silent: list[str]) -> None:
 
 def main() -> None:
     conn = db()
-    todo = set(sys.argv[1:]) or {"yahoo", "crypto", "news"}
+    # `--chunk 2/4` means "the second of four slices of this lane's work". The runner passes it
+    # only to jobs whose source contains the literal `--chunk`, which is why the flag is parsed
+    # here rather than tolerated silently: a lane that ignored it would fetch the whole source
+    # once per slice, which for four slices four times a day is sixteen full downloads of the
+    # same eighty symbols and four writers racing on the same rows.
+    argv = list(sys.argv[1:])
+    chunk = None
+    if "--chunk" in argv:
+        at = argv.index("--chunk")
+        if at + 1 >= len(argv):
+            print("--chunk needs a value like 2/4")
+            raise SystemExit(2)
+        try:
+            chunk = parse_chunk(argv[at + 1])
+        except ValueError as e:
+            print(f"--chunk: {e}")
+            raise SystemExit(2) from e
+        del argv[at:at + 2]
+
+    todo = set(argv) or {"yahoo", "crypto", "news"}
     silent: list[str] = []
     with conn, conn.cursor() as cur:
         # Each lane is caught on its own. A SourceSilent is our own exception and not a
         # database error, so the transaction is still usable and the next lane can write.
         if "yahoo" in todo:
             try:
-                n1 = fetch_yahoo(cur)
+                n1 = fetch_yahoo(cur, chunk=chunk)
                 step("yahoo total")
                 print(f"  {n1} price rows")
             except SourceSilent as e:

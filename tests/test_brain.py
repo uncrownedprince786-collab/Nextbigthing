@@ -661,7 +661,7 @@ class ChunkParsing(unittest.TestCase):
     def test_the_runner_refuses_a_chunk_it_cannot_parse(self):
         with self.assertRaises(ValueError):
             run.parse_args(["crypto", "--chunk", "0/4"])
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(ValueError):
             run.parse_args(["crypto", "--chunk"])
 
 
@@ -1804,7 +1804,14 @@ class Idempotency(unittest.TestCase):
     # than a leak. Checked against the live database before being listed here: 50 Coverage rows
     # across 5 sources and 20 Calibration rows across 2 keys, all from one day of repeated runs,
     # which is about 10 rows a run and a few thousand a year.
-    APPEND_ONLY: tuple[str, ...] = ("Coverage", "Calibration")
+    #
+    # ChunkRun is the third, and the most clearly append-only of them: a row is "what the 14:00
+    # crypto slice did", so a second row for the same job and slice is the next run and is the
+    # whole point. It has no unique key to conflict on by design. Volume is bounded by the
+    # schedule rather than by the data — the seven groups at up to eight slices each, a few
+    # sources a slice, which is tens of rows a day and low tens of thousands a year, the same
+    # order as Coverage.
+    APPEND_ONLY: tuple[str, ...] = ("Coverage", "Calibration", "ChunkRun")
 
     def _inserts(self, text):
         import re
@@ -1937,8 +1944,20 @@ class SourceFailure(unittest.TestCase):
         body = text[text.index("def main("):]
         self.assertLess(body.index("conn.close()"), body.index("fail_on_silent(silent)"))
         self.assertEqual(body.count("except SourceSilent as e:"), 3)
-        # And the only SystemExit in the job is the one after the commit.
-        self.assertEqual(text.count("raise SystemExit"), 1)
+        # And no SystemExit is raised while the transaction is open.
+        #
+        # This counted occurrences in the whole file and expected exactly one. That was a proxy
+        # for the real rule and it fired on correct code the moment `main` learned to reject a
+        # malformed `--chunk`: argument validation raises before the connection is opened, so it
+        # cannot unwind a transaction that does not exist yet. The invariant is positional, so
+        # the test is now positional — it reads the block between `with conn` and `conn.close()`
+        # and allows nothing to exit from inside it.
+        opens = body.index("with conn, conn.cursor() as cur:")
+        closes = body.index("conn.close()")
+        self.assertNotIn("raise SystemExit", body[opens:closes])
+        # The exit that does exist is still the one after the commit, and still the only one
+        # that reports a silent source.
+        self.assertEqual(body[closes:].count("fail_on_silent(silent)"), 1)
 
     def test_the_exit_names_every_silent_source_and_keeps_what_landed(self):
         with self.assertRaises(SystemExit) as caught:
@@ -2476,6 +2495,10 @@ class NoLookAhead(unittest.TestCase):
             "human.py": "reads coverage as of the row's period",
             "graph.py": "walks stored relationships, stores no dated claim",
             "events.py": "stores published dates, computes no state",
+            "runlog.py": (
+                "records what a slice of a job did; its only date is the newest row that slice "
+                "stored, which is a fact about the fetch and not a claim about an asset"
+            ),
         }
         writers = set()
         for path in sorted((ROOT / "jobs").glob("*.py")):
@@ -3195,7 +3218,7 @@ class InsertShape(unittest.TestCase):
     FILES = (
         "human.py", "analogs.py", "geo.py", "setup.py", "lineage.py", "audit.py",
         "lifecycle.py", "upcoming.py", "psx.py", "prices.py", "signals.py", "seed.py",
-        "thesis.py", "attribution.py", "graph.py",
+        "thesis.py", "attribution.py", "graph.py", "runlog.py",
     )
 
     def _statements(self, text: str):

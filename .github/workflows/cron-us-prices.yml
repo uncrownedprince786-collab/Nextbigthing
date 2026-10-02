@@ -1,0 +1,121 @@
+name: cron us prices
+
+# US daily prices, in symbol chunks, and the chunking is the load-bearing part.
+#
+# "All assets in one transaction" is the shape that failed here repeatedly. `events.py` once
+# held one transaction across roughly a hundred thousand round trips and the Neon pooler closed
+# it underneath the job; the fix was to commit per unit of work. The same argument applies one
+# level up: a single step fetching every US symbol means one Yahoo timeout on symbol 180 of 200
+# discards, or at best stalls, the 179 in front of it. Four chunks of symbols are four
+# independent jobs with their own commits, so a bad chunk loses a quarter of the list for one
+# cycle instead of the whole list.
+#
+# Every 6 hours rather than 4. The user's band is 4-6h and 6 is the end of it that fits the
+# facts: these are *daily* closes, so more than a handful of fetches a day buys nothing except
+# Actions minutes and Yahoo rate limit exposure — and GitHub's schedules are best-effort and
+# delayed under load, so the extra attempts are the cheap insurance, not the point. Four runs a
+# day times four chunks is 16 short jobs, which is affordable; at 4 hours with 8 chunks it
+# would be 48.
+on:
+  schedule:
+    # Minute 50, on odd hours 1/7/13/19. Odd hours keep this lane out of crypto's and news's
+    # even hours entirely, and minute 50 is the last of the four assigned minutes (crypto 05,
+    # news 20, audit 35, us-prices 50) so nothing starts at the same instant. 01:50 UTC is
+    # after the US close has settled, 13:50 is before the next open, and the other two are
+    # retries that cost one short job each.
+    - cron: "50 1,7,13,19 * * *"
+  workflow_dispatch:
+
+# Its own group. GitHub keeps only one pending run per group, so a shared group means a newer
+# run cancels the queued older one — that is why `geo.py` kept being cancelled. Scoping the
+# group to this source means a PSX or crypto run can never cancel a price fetch, and the four
+# chunks are jobs inside one run so they are not competing for the group with each other.
+concurrency:
+  group: nbt-us-prices
+  cancel-in-progress: false
+
+jobs:
+  prices:
+    name: us prices ${{ matrix.chunk }}/4
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      # fail-fast: false is the whole reason this is a matrix. The default cancels the sibling
+      # jobs the moment one fails, which would rebuild the exact failure mode this split exists
+      # to remove: one bad symbol taking the other three chunks down with it.
+      fail-fast: false
+      # Two at a time, not four. Each chunk opens its own connections, and the Neon free tier
+      # branch is the shared resource every other lane in this repo also needs; four parallel
+      # writers plus whatever else is running is how a pooler starts refusing.
+      max-parallel: 2
+      matrix:
+        chunk: [1, 2, 3, 4]
+    steps:
+      # main, explicitly. GitHub takes a scheduled workflow's file from the default branch,
+      # which here is `master`, and by default runs that branch's code too. On 2026-10-03
+      # `master` was 34 commits behind `main`, so the guards that read correctly in the working
+      # tree had never actually executed. Naming the ref separates file from code; the next
+      # step proves it rather than trusting it.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prove this run is executing main
+        run: |
+          head="$(git rev-parse HEAD)"
+          git fetch origin main --quiet
+          want="$(git rev-parse origin/main)"
+          echo "checked out $head"
+          echo "origin/main  $want"
+          if [ "$head" != "$want" ]; then
+            echo "this run is NOT executing main, refusing to continue"
+            exit 1
+          fi
+          echo "confirmed: this run is executing main"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      # Checks the schema, never migrates it. `schema.yml` is the single controlled migration
+      # path; run 36798989654 is what a second one costs. This check issues no DDL and holds no
+      # writer privilege, so every chunk can run it without racing anything.
+      - name: Refuse to run against a schema that is behind
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/schemacheck.py
+
+      # The chunk index reaches the job through the documented interface and nothing else:
+      # `python jobs/run.py us-prices --chunk i/N`. The per-chunk commit is the job's
+      # responsibility; this file only has to hand it the slice and report the outcome.
+      #
+      # Summary written the way `schema.yml` writes it, because an Actions log needs a GitHub
+      # sign-in to read and the run summary does not. The chunk is named in the heading so four
+      # concurrent jobs produce four distinguishable sections.
+      - name: Fetch US daily prices for this chunk
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          set +e
+          out="$(python jobs/run.py us-prices --chunk ${{ matrix.chunk }}/4 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## US prices, chunk ${{ matrix.chunk }} of 4"
+            echo
+            echo "exit code \`$code\`"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code

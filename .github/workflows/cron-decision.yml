@@ -1,0 +1,155 @@
+name: cron decision
+
+# Decision materialization. This file is the user's requirement in its plainest form: the
+# decision never depends on a 40+ minute monolith job finishing perfectly.
+#
+# It is read-only on prices. It reads the closes the price lanes have already committed and
+# writes the decision rows; it fetches nothing and it issues no DDL. That is what makes it
+# independent: it cannot be blocked by a dead venue, a PSX outage or a Trends 429, because it
+# never asks any of them anything. If crypto failed two hours ago the decision still
+# materializes — from the closes that are stored, which is the only input it ever had.
+#
+# The practical consequence is the one that matters. In the old shape the decision was a late
+# step inside `jobs/run.py daily`, so every upstream source failure arrived at the decision as
+# "skipped", and the site's primary output went stale for reasons that had nothing to do with it.
+on:
+  schedule:
+    # Daily at 15:10 UTC. Daily because the decision is a daily reading over daily closes, so a
+    # second materialization in the same day recomputes the same answer from the same rows.
+    # 15:10 is chosen for ordering rather than for load: it sits after PSX end of day at 12:40
+    # and after the 13:50 US price chunks, so the run reads a day whose closes have landed from
+    # both exchanges. Hour 15 is odd, which keeps it out of crypto's and news's even hours, and
+    # minute 10 is outside the four recurring minutes (05, 20, 35, 50) — the nearest neighbour
+    # is audit at 15:35.
+    - cron: "10 15 * * *"
+  workflow_dispatch:
+
+# Its own group, and for this lane that is a correctness property rather than a convenience.
+# GitHub keeps one pending run per concurrency group, so sharing a group with the ingest lanes
+# would mean the decision run could be cancelled while queued behind a source fetch — the
+# `geo.py` cancellation, applied to the one output the site is built around. `nbt-decision`
+# cannot be cancelled by any source lane.
+concurrency:
+  group: nbt-decision
+  cancel-in-progress: false
+
+jobs:
+  decision:
+    name: materialize the decision
+    runs-on: ubuntu-latest
+    # Arithmetic over stored rows with no network in it. If this has not finished in 20 minutes
+    # something is wrong with the query plan, not with a provider.
+    timeout-minutes: 20
+    steps:
+      # main, explicitly. A scheduled workflow's file is taken from the default branch, `master`,
+      # and its code defaults to the same branch. `master` sat 34 commits behind `main` until
+      # 2026-10-03, so the repository's two branch guards had never run despite reading
+      # correctly in the working tree. For this lane that would mean materializing the decision
+      # with stale rules while reporting success — the worst available outcome — so the step
+      # below compares the checked-out SHA against origin/main and fails the run if they differ.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prove this run is executing main
+        run: |
+          head="$(git rev-parse HEAD)"
+          git fetch origin main --quiet
+          want="$(git rev-parse origin/main)"
+          echo "checked out $head"
+          echo "origin/main  $want"
+          if [ "$head" != "$want" ]; then
+            echo "this run is NOT executing main, refusing to continue"
+            exit 1
+          fi
+          echo "confirmed: this run is executing main"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      # Checks the schema, never migrates it. `schema.yml` is the one controlled migration path;
+      # run 36798989654 is what two migrators against one database cost. This lane especially
+      # must not migrate — it is read-only on prices and holds no reason to carry DDL at all.
+      - name: Refuse to run against a schema that is behind
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/schemacheck.py
+
+      # No CONTACT_EMAIL, because nothing in this lane makes a request. The absence is the
+      # design: the decision's inputs are rows, so no provider can make it fail.
+      #
+      # Summary to `$GITHUB_STEP_SUMMARY` as in `schema.yml`. This is the lane whose outcome a
+      # maintainer most often needs to read, and an Actions log cannot be read without a GitHub
+      # sign-in while the run summary page can.
+      # Two steps, and they are halves of one job rather than alternatives.
+      #
+      # `jobs/run.py decision` runs the derivations — analogs, setup, horizons, thesis and the
+      # rest — which produce the rows a decision is read FROM. `tools/decide.mjs` then applies
+      # the rule table to those rows and writes one DecisionLog row per asset, which is what a
+      # measured hit rate is later computed over. Running only the first leaves the log empty;
+      # running only the second decides from yesterday's derivations.
+      #
+      # The second step is Node rather than Python on purpose. The rule table is TypeScript in
+      # `lib/decision.ts` because the website computes it at read time, and a Python
+      # reimplementation would be a second source of truth for the one thing on this site that
+      # must not have two — rule 36. Node 24 runs the TypeScript directly, so the job and the
+      # page cannot drift.
+      - name: Derive the inputs a decision is read from
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          set +e
+          out="$(python jobs/run.py decision 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## Derivations"
+            echo
+            echo "exit code \`$code\`"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      # --ignore-scripts skips the postinstall `prisma generate`, which this step does not need:
+      # decide.mjs talks to Postgres through `pg` directly rather than through the client.
+      - name: Install the Node dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      # Runs even when the derivations failed. A failed derivation means some inputs are
+      # yesterday's, not that today has no decision, and a day with no row at all is a hole in
+      # the record that a later hit rate cannot tell apart from a day nothing was decided.
+      - name: Write one decision row per asset
+        if: always()
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set +e
+          out="$(node tools/decide.mjs 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## Decision rows"
+            echo
+            echo "exit code \`$code\`"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code

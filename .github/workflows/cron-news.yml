@@ -1,0 +1,104 @@
+name: cron news
+
+# RSS ingest, dedupe and the junk filter. One lane, because news is the one source whose value
+# is a function of how recently it ran, and it was previously hostage to the slowest source in
+# the monolith: `jobs/run.py daily` fetched news as part of a ~30 minute step, so a Yahoo or PSX
+# failure ahead of it meant no headlines at all that night.
+#
+# Ingest, dedupe and filter stay in one lane on purpose. They are not independent sources, they
+# are one pipeline over one set of rows: a dedupe that runs without the ingest that fed it has
+# nothing to collapse, and a junk filter running against half-ingested feeds marks rows on
+# incomplete evidence. Chunking here would split a pipeline, not a source list.
+on:
+  schedule:
+    # Minute 20 of every even hour, 15 minutes behind crypto at 05. Every 2 hours, which is the
+    # slow end of the user's 1-2 hour band, and the choice is deliberate: hourly doubles the
+    # Actions spend and the publisher requests for headlines that a 2-hourly cycle already
+    # catches, and GitHub's scheduled runs are best-effort and delayed under load anyway, so an
+    # hourly cron does not reliably buy an hourly result. Running behind crypto rather than in
+    # front of it means the dedupe pass sees a database whose newest closes are already stored.
+    - cron: "20 */2 * * *"
+  workflow_dispatch:
+
+# Its own group. One pending run per group is GitHub's rule, so any shared group means the next
+# source to queue cancels this one while it waits — the `geo.py` cancellation, exactly. With
+# `nbt-news` scoped to this source, an overrunning news fetch delays only the next news fetch,
+# and cancel-in-progress stays false so a dedupe pass is never killed mid-commit.
+concurrency:
+  group: nbt-news
+  cancel-in-progress: false
+
+jobs:
+  news:
+    name: rss ingest, dedupe, junk filter
+    runs-on: ubuntu-latest
+    # A 2-hourly lane must finish well inside its own interval or it starts stacking against
+    # itself. 15 minutes is generous for the feeds and still half the cycle.
+    timeout-minutes: 15
+    steps:
+      # main, explicitly. A scheduled workflow's file comes from the default branch — `master`
+      # here — and by default its code does too. `master` was found 34 commits behind `main` on
+      # 2026-10-03, which meant both of this repository's branch guards had never executed in
+      # production despite reading correctly. Naming the ref separates the two and the step
+      # below refuses the run if they still disagree.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prove this run is executing main
+        run: |
+          head="$(git rev-parse HEAD)"
+          git fetch origin main --quiet
+          want="$(git rev-parse origin/main)"
+          echo "checked out $head"
+          echo "origin/main  $want"
+          if [ "$head" != "$want" ]; then
+            echo "this run is NOT executing main, refusing to continue"
+            exit 1
+          fi
+          echo "confirmed: this run is executing main"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      # Checks the schema, never migrates it. `schema.yml` is the one migrator; run
+      # 36798989654 is what happened when a data lane was the second one. This is twelve rows
+      # compared against a directory listing, so it races nothing.
+      - name: Refuse to run against a schema that is behind
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/schemacheck.py
+
+      # CONTACT_EMAIL is not decoration for this lane: the feed fetches identify themselves
+      # with it, which is the condition under which publishers tolerate a scheduled reader.
+      #
+      # Output copied to `$GITHUB_STEP_SUMMARY` as `schema.yml` does, because reading an Actions
+      # log needs a GitHub sign-in and reading the run summary does not.
+      - name: Ingest, dedupe and filter the feeds
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          set +e
+          out="$(python jobs/run.py news 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## News ingest, dedupe and junk filter"
+            echo
+            echo "exit code \`$code\`"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code

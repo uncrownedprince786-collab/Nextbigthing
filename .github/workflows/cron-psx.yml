@@ -1,0 +1,128 @@
+name: cron psx
+
+# PSX end of day, in its own workflow, and the reason is written in the repository's history:
+# a PSX outage must never stop crypto.
+#
+# The Karachi exchange is the least reliable source here and the one with the most history of
+# taking everything else down with it. It is ~300 requests to a single publisher of daily
+# files, and when it went quiet the whole `jobs/run.py daily` step went red with every source
+# behind it skipped. It also has the opposite failure: the sectors once sat on the site with
+# names, industries and a currency note and no prices under any of them, because nothing had
+# ever fetched them. Both are failures of coupling, not of PSX.
+on:
+  schedule:
+    # Daily, 12:40 UTC. Daily is not a budget compromise: these are end-of-day closing files
+    # and the exchange publishes one per session, so a second fetch in the same day asks for a
+    # file that has not changed. 12:40 UTC is 17:40 PKT, comfortably after the 15:30 PKT close
+    # and the file's publication, with enough margin that a late publication still lands inside
+    # the same run rather than needing tomorrow's. Minute 40 keeps it clear of crypto at 12:05
+    # and news at 12:20 in the same hour, so the Neon branch sees three staggered arrivals
+    # rather than one burst.
+    - cron: "40 12 * * *"
+  workflow_dispatch:
+
+# Its own group, and here the group name is the user's requirement stated as configuration.
+# While every source shared `nbt-database`, a PSX fetch grinding through retries held the group
+# and a crypto run queued behind it was cancelled the moment a newer one arrived — GitHub keeps
+# one pending run per group, which is exactly how `geo.py` kept disappearing. `nbt-psx` means
+# the worst PSX day costs PSX rows and nothing else.
+#
+# Deliberately NOT `nbt-database`: `backfill.yml` still holds that group and still runs
+# `psx full`. Those two should serialise against each other, which they do through the rows and
+# the idempotent upsert rather than through a group shared with six unrelated sources.
+concurrency:
+  group: nbt-psx
+  cancel-in-progress: false
+
+jobs:
+  psx:
+    name: psx end of day
+    runs-on: ubuntu-latest
+    # 25, not 90. A PSX recent fetch that has not finished in 25 minutes is stuck in retries,
+    # and a stuck job used to be how a lane held its concurrency group for 90+ minutes. Losing
+    # it is cheaper than keeping it: every write is an idempotent upsert, so tomorrow's run
+    # repairs whatever this one did not reach.
+    timeout-minutes: 25
+    steps:
+      # main, explicitly. The scheduled file comes from the default branch, `master`, and by
+      # default so does the code. `master` was 34 commits behind `main` on 2026-10-03 and the
+      # guards that looked right in the working tree had never run. The next step proves which
+      # commit this is and fails rather than fetching with stale code.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prove this run is executing main
+        run: |
+          head="$(git rev-parse HEAD)"
+          git fetch origin main --quiet
+          want="$(git rev-parse origin/main)"
+          echo "checked out $head"
+          echo "origin/main  $want"
+          if [ "$head" != "$want" ]; then
+            echo "this run is NOT executing main, refusing to continue"
+            exit 1
+          fi
+          echo "confirmed: this run is executing main"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      # The exchange's published files for past days never change, so the job caches them on
+      # disk. Restore and save are separate actions rather than one cache step because the
+      # combined step only saves on success, and a run that fetched for ten minutes and then
+      # failed at the write would throw all of it away and ask the exchange for the same files
+      # again — the hammering brain.md rule 6 forbids. Saving on always() means a failed run
+      # costs the exchange nothing twice. Same pattern as `backfill.yml`.
+      - name: Restore the fetched file cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache
+          key: psx-http-${{ github.run_id }}
+          restore-keys: psx-http-
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      # Checks, never migrates. One migrator is `schema.yml`; run 36798989654 is the bill for a
+      # second one. This check reads two lists and writes nothing.
+      - name: Refuse to run against a schema that is behind
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/schemacheck.py
+
+      # Summary to `$GITHUB_STEP_SUMMARY`, as in `schema.yml`, because an Actions log needs a
+      # sign-in and the summary does not — and PSX is the lane whose failures most need to be
+      # readable from outside the account.
+      - name: Fetch the PSX end of day closes
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          set +e
+          out="$(python jobs/run.py psx 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## PSX end of day"
+            echo
+            echo "exit code \`$code\`"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+
+      - name: Save the fetched file cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache
+          key: psx-http-${{ github.run_id }}

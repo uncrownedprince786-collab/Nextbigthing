@@ -48,12 +48,43 @@ working tree says nothing about the file a runner used.
 
 ## Workflow lanes
 
-| Workflow | Trigger | Concurrency | Purpose |
+One workflow per source, so one blocked provider cannot stop the rest. All times UTC.
+
+| Workflow | Schedule | Owns | Concurrency |
 | --- | --- | --- | --- |
-| `schema.yml` | push to `main`, dispatch | `nbt-schema` | migrations + every DB-only Brain job |
-| `refresh.yml` | cron 07:17 / Mon 07:43, push to its own file | `nbt-database` | ingestion + intraday |
-| `backfill.yml` | push touching `psx.py`/`seed.py`/`geo.py`/`upcoming.py` | `nbt-database` | history for newly added things |
-| `tests.yml` | push, PR | none | logic tests, types, lint |
+| `cron-crypto.yml` | `5 */2 * * *` | crypto closes, four-venue chain | `nbt-crypto` |
+| `cron-news.yml` | `20 */2 * * *` | RSS ingest, dedupe, junk filter | `nbt-news` |
+| `cron-audit.yml` | `35 1-23/2 * * *` | coverage and freshness snapshot | `nbt-audit` |
+| `cron-us-prices.yml` | `50 1,7,13,19 * * *` | US daily prices, 4 symbol chunks | `nbt-us-prices` |
+| `cron-products.yml` | `10 3 * * *` | product signals, 2 chunks | `nbt-products` |
+| `cron-psx.yml` | `40 12 * * *` | PSX end of day (17:40 PKT) | `nbt-psx` |
+| `cron-decision.yml` | `10 15 * * *` | decision rows; fetches nothing | `nbt-decision` |
+| `refresh.yml` | `45 6 * * 1` | weekly reconcile across all groups | `nbt-database` |
+| `schema.yml` | push to `main`, dispatch | migrations + DB-only brain jobs | `nbt-schema` |
+| `backfill.yml` | push touching `psx.py`/`seed.py`/`geo.py`/`upcoming.py` | history for new things | `nbt-database` |
+| `tests.yml` | push, PR | logic tests, types, lint | none |
+
+**Why one group each, and this is the load-bearing part.** GitHub keeps exactly one *pending* run
+per concurrency group, so a shared group means the next run to queue cancels the one already
+waiting. That is the mechanism that kept cancelling `geo.py` for days while the notes recorded it
+as a flaky lane. A PSX run can no longer cancel a crypto run. `cancel-in-progress: false`
+everywhere, so nothing is killed mid-commit.
+
+The minutes are staggered — crypto 05, news 20, audit 35, prices 50 — so no two recurring lanes
+start in the same instant against one Neon free-tier branch, and audit sits on odd hours between a
+crypto/news pair so it reads a database that was just written rather than one mid-write.
+
+Chunked lanes set `fail-fast: false`. The default cancels sibling chunks on the first failure,
+which would rebuild exactly the coupling the split exists to remove.
+
+`cron-decision.yml` is structurally independent: it fetches nothing and reads only stored rows, so
+no provider can make it fail and it never waits on a long ingestion job.
+
+`refresh.yml` was the ~30-minute monolith and is now a weekly reconcile. It was kept rather than
+deleted for a reason worth remembering: every lane can be red on its own with nothing stopping, and
+**a source that fails by returning nothing returns nothing successfully** — the Binance silence from
+2026-09-29. One weekly sweep across all seven groups, each failure tolerated, is what closes a gap
+nobody noticed. It is also the only run that exercises the groups in dependency order.
 
 `schema.yml` keeps its own lane so optional enrichment can never block a migration — a hung geo
 fetch once held the shared group for 90+ minutes while the migration the site needed sat queued

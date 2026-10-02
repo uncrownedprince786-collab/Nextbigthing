@@ -1,0 +1,130 @@
+name: cron audit
+
+# Coverage and freshness snapshot. The lane that answers "is anything stale?" and therefore the
+# one lane that must not be able to go stale itself.
+#
+# Splitting the monolith by source buys isolation and costs a single place to look. Seven
+# workflows can each be green while the database is quietly missing a day of PSX closes, because
+# a source that fails by returning nothing returns nothing successfully — which is precisely the
+# Binance behaviour that kept the old lane red from 2026-09-29, and the inverse of it is worse.
+# This snapshot is the replacement for the one-run-to-read-them-all property: it reads stored
+# rows and records what is covered and how fresh it is, so the answer does not depend on any
+# source lane having succeeded.
+#
+# Read-only, no network, and deliberately outside every source's concurrency group — an audit
+# that could be blocked by the thing it audits is not an audit.
+on:
+  schedule:
+    # Minute 35 of every odd hour. Every 2 hours, the slow end of the user's 1-2 hour band,
+    # because a freshness snapshot is only useful at the granularity of the data it watches and
+    # the fastest lane here is 2-hourly; an hourly audit would report the same coverage twice.
+    # The odd hours put it exactly between consecutive crypto and news runs, so it always reads
+    # a database that has just been written rather than one mid-write, and minute 35 is its own
+    # slot in the four-minute spread (crypto 05, news 20, audit 35, us-prices 50).
+    - cron: "35 1-23/2 * * *"
+  workflow_dispatch:
+
+# Its own group. Sharing one with a source lane would mean the audit queues behind the fetch it
+# is supposed to be checking, and GitHub keeps only one pending run per group, so the next
+# source to arrive would cancel it outright — the `geo.py` cancellation. An audit that is
+# cancelled whenever the system is busiest reports health exactly when health is least likely.
+concurrency:
+  group: nbt-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: coverage and freshness snapshot
+    runs-on: ubuntu-latest
+    # Short on purpose. This is counted rows and compared dates; if it has not finished in ten
+    # minutes the database is the finding.
+    timeout-minutes: 10
+    steps:
+      # main, explicitly. GitHub takes a scheduled workflow's file from the default branch,
+      # `master`, and runs that branch's code unless told otherwise — and `master` was 34 commits
+      # behind `main` as late as 2026-10-03, which is how two guards that read correctly in the
+      # working tree turned out never to have executed. An audit running old thresholds while
+      # reporting success is a false all-clear, so the step below proves the commit.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prove this run is executing main
+        run: |
+          head="$(git rev-parse HEAD)"
+          git fetch origin main --quiet
+          want="$(git rev-parse origin/main)"
+          echo "checked out $head"
+          echo "origin/main  $want"
+          if [ "$head" != "$want" ]; then
+            echo "this run is NOT executing main, refusing to continue"
+            exit 1
+          fi
+          echo "confirmed: this run is executing main"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      # Checks the schema, never migrates it. `schema.yml` is the only migrator — run
+      # 36798989654 is the record of what a second one does — and an audit lane carrying DDL
+      # would be absurd in any case.
+      - name: Refuse to run against a schema that is behind
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/schemacheck.py
+
+      # The summary is not optional instrumentation for this lane, it is the deliverable. An
+      # Actions log cannot be read without a GitHub sign-in and the run summary page can, so the
+      # coverage table has to land in `$GITHUB_STEP_SUMMARY` — the same reason `schema.yml`
+      # copies its migration output there — or the snapshot is unreadable by the person who
+      # needs it.
+      - name: Snapshot coverage and freshness
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          set +e
+          out="$(python jobs/run.py audit 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## Coverage and freshness"
+            echo
+            echo "exit code \`$code\`"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+
+      # Row counts next to the audit, on always(), because the two answer different questions:
+      # the audit says whether coverage meets its rules and this says what is physically there.
+      # When the audit itself fails, this is the only thing that distinguishes an empty database
+      # from a broken check.
+      - name: Row counts after the snapshot
+        if: always()
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          set +e
+          out="$(python jobs/stats.py 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## Row counts"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code

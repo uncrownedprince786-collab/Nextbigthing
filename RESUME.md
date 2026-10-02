@@ -2,29 +2,27 @@
 
 ## 0. The first thing to do, before anything else
 
-**Get the `=== prices yahoo crypto news` section out of a `refresh data` run log.** That is the
-one unknown left, and reading it needs a GitHub sign-in. Everything else below is settled.
+**Nothing is on fire. Read this section, then section 0b, then start.**
 
-`refresh data` #11 came back **red**, so the owner's gate is **0 of 2**, not 1 of 2. But the
-step table now does its job: **19 of 20 steps passed**, and the single failure is
-`prices yahoo crypto news`, exit 1 after 9.3 minutes. The crypto defects fixed in `b826d2e` are
-not in play any more — those 20 steps ran with that code.
+`refresh data` #12 went **green on 2026-10-02** — the first green refresh since 2026-09-29 — and the
+three markets are level at **2026-10-02**: Yahoo 152,539 rows, PSX 12,487, crypto 27,409.
 
-**The likeliest reading, and it matters.** The failure is probably the rule 31 guard
-(`require_answer`) working exactly as designed: turning a silent 0-row success into a loud
-failure. If that is what the log says, then the Yahoo-block hypothesis was right all along, and
-the consequence is strategic rather than technical: **if Yahoo and Binance are blocked from
-GitHub runner IPs, no code change can ever make that lane green there.** The choices then are a
-self-hosted runner, a proxy, or ingesting from a machine that is not blocked and leaving the
-runner only the derivation jobs. Do not spend another session trying to fix it in code before
-reading that log section.
+The thing that had been red was never a code defect in the lane. Binance was the only source of
+daily crypto closes and it answers a GitHub runner with nothing while answering a laptop normally,
+so the silence guard failed the step correctly every night with no second venue to try. `fetch_crypto`
+now walks **Binance → Coinbase → Kraken → Bitstamp**, takes the first venue whose series is *current*
+rather than the first that replies, records the venue on every row, and fails only when all four
+refuse every coin. On run #12 Coinbase supplied all ten coins.
 
-Then tell the owner in plain language. They asked for simple, concrete steps rather than
-options and caveats, and they were right to.
+It also deepened the history rather than costing any: BTC, ETH and LTC went from 2,829 rows starting
+2019-01-01 to **3,001 starting 2018-07-16**, because Coinbase pages further back than Binance did. No
+coin lost a row — a shallow venue never replaces a deeper stored series.
 
-Last worked: **2026-10-03**, on `main`.
+**The pipeline is now seven per-source workflows**, not one 30-minute monolith. See the table in
+`HANDOFF.md`; the part to understand before changing anything is why each lane has its own
+concurrency group.
 
----
+Last worked: **2026-10-03**, on `main`. `master` is level with `main` and must be kept so.
 
 ## 0b. What 2026-10-03 found and fixed
 

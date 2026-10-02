@@ -1,17 +1,36 @@
 """Run the data jobs in the order a refresh needs them.
 
-    python jobs/run.py daily    prices and news for both exchanges, then rankings, then
-                                the confidence grades, the condition reads and what has
-                                happened to the reasons behind them, the move attribution,
-                                the bounded graph walk, the written lines and the event
-                                windows
-    python jobs/run.py weekly   the daily run plus the full PSX history backfill, all five
-                                product signal sources and the marketplace rankings
-    python jobs/run.py seed     the reference lists only, for a first run
+    python jobs/run.py <group> [--chunk i/N]
+
+    Groups, one source or one concern each:
+      crypto      the crypto closes
+      us-prices   the US closes
+      psx         the Karachi closes, recent window
+      news        the news fetch and clustering
+      products    the five product signal sources, the marketplace ranks and the geo read
+      decision    everything that reasons over rows already stored, ending in the written lines
+      audit       the coverage flags
+
+    And the three original lanes, unchanged:
+      daily       prices and news for both exchanges, then rankings, then the confidence
+                  grades, the condition reads and what has happened to the reasons behind
+                  them, the move attribution, the bounded graph walk, the written lines and
+                  the event windows
+      weekly      the daily run plus the full PSX history backfill, all five product signal
+                  sources and the marketplace rankings
+      seed        the reference lists only, for a first run
 
 Each step is a separate process on purpose. A rate limited source that fails should not
 undo the rows an earlier step already committed, and the exit code should tell a scheduler
 whether the whole run was healthy.
+
+The small groups exist because one giant job is one transaction's worth of risk: a blocked
+source at minute fifty costs the hour. A group per source commits per source, so a retry asks
+again for the one slice that failed instead of the whole afternoon. `--chunk 3/8` cuts a group
+again, into eight slices of its work list, so a lane that cannot finish inside a runner's
+timeout is eight lanes that can — and because the slicing is a property of the symbol rather
+than of the order a query returned (see runlog.slice_of), a retry of slice 3 covers exactly
+what the first attempt of slice 3 would have.
 
 Daily is what the site depends on. Weekly adds the product signals, because Reddit and
 Wikipedia rate limit and asking them every day gets the site nothing.
@@ -24,6 +43,8 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+import runlog
 
 HERE = Path(__file__).resolve().parent
 
@@ -124,7 +145,88 @@ WEEKLY = [
     ("analysis", []),
 ]
 
-GROUPS ={"seed": [[("seed", [])]], "daily": [DAILY], "weekly": [WEEKLY]}
+# The small groups. Every one of them is a selection over the steps DAILY and WEEKLY already
+# define, never a second copy of a step: the jobs themselves are not touched here, and the
+# argument lists below are the same argument lists those lanes pass.
+#
+# The fetchers are named explicitly because DAILY asks prices.py for all three lanes in one
+# process and the point of the split is that it should not have to. The reasoning chain is
+# filtered out of DAILY instead of being retyped, so the ordering comments above — intraday
+# after the jobs its active set comes from, thesis after setup, graph after human — keep
+# holding for `decision` without anyone having to remember them twice.
+FETCH_STEPS = {"prices", "psx", "signals", "marketplace", "geo"}
+
+# decision is DAILY minus the fetchers and minus audit: the arithmetic over rows already
+# stored, in DAILY's order. audit is its own group because a coverage flag is a judgement about
+# a finished fetch, and running it inside the lane it judges reads the data mid-write.
+DECISION = [(script, args) for script, args in DAILY if script not in FETCH_STEPS | {"audit"}]
+
+PRODUCTS = [
+    ("signals", ["trends", "wiki", "hn", "news", "reddit"]),
+    ("marketplace", []),
+    # geo asks Trends too, so it keeps the Amazon fetch between itself and signals for the same
+    # reason WEEKLY does: several minutes of asking a different host is the cheapest separation
+    # available between two runs at the same rate limited source.
+    ("geo", []),
+]
+
+GROUPS ={
+    "seed": [[("seed", [])]], "daily": [DAILY], "weekly": [WEEKLY],
+    "crypto": [[("prices", ["crypto"])]],
+    "us-prices": [[("prices", ["yahoo"])]],
+    "psx": [[("psx", ["recent"])]],
+    "news": [[("prices", ["news"])]],
+    "products": [PRODUCTS],
+    "decision": [DECISION],
+    "audit": [[("audit", [])]],
+}
+
+
+# Which jobs understand `--chunk`. Read out of the job's own source rather than listed here on
+# purpose: these files belong to other engineers, chunking is landing in them one at a time, and
+# a hand-maintained list in this file would be wrong in one of two directions — passing a flag
+# to a job that does not parse it yet, or silently running a whole source when the job grew the
+# ability to slice it. Reading the source means the runner starts passing the flag the day the
+# job starts accepting it, with no edit here.
+#
+# The cost is that a job which only *mentions* the flag in a comment would be treated as
+# supporting it. That is the harmless direction: it is visible in the summary table and in the
+# job's own usage error, where the other direction is a run that quietly fetched everything.
+CHUNK_FLAG = "--chunk"
+_chunk_support: dict[str, bool] = {}
+
+
+def supports_chunk(script: str) -> bool:
+    """Whether jobs/<script>.py parses --chunk. Cached: a group asks about the same step once."""
+    if script not in _chunk_support:
+        path = HERE / f"{script}.py"
+        try:
+            _chunk_support[script] = CHUNK_FLAG in path.read_text(encoding="utf-8")
+        except OSError:
+            # A missing script is a plan typo, caught by the test that walks every group. Here it
+            # is only "cannot slice", and run() will report the real failure a moment later.
+            _chunk_support[script] = False
+    return _chunk_support[script]
+
+
+def plan_with_chunk(plan: list[tuple[str, list[str]]], chunk: str | None):
+    """The plan with `--chunk i/N` appended to the steps that take it.
+
+    Returns (steps, skipped) so the summary can say which steps ran whole. A step that does not
+    slice is run unsliced rather than skipped: running the whole source is the behaviour that
+    existed before chunking and it is the safe one, where skipping would mean a scheduled
+    `--chunk 1/8` lane silently never fetched that source at all.
+    """
+    if not chunk:
+        return list(plan), []
+    steps, skipped = [], []
+    for script, args in plan:
+        if supports_chunk(script):
+            steps.append((script, [*args, CHUNK_FLAG, chunk]))
+        else:
+            steps.append((script, list(args)))
+            skipped.append(script)
+    return steps, skipped
 
 
 def run(script: str, args: list[str]) -> tuple[int, float]:
@@ -148,7 +250,11 @@ def run(script: str, args: list[str]) -> tuple[int, float]:
     return done.returncode, took
 
 
-def report(which: str, results: list[tuple[str, int, float]]) -> list[str]:
+def report(
+    which: str,
+    results: list[tuple[str, int, float]],
+    notes: list[str] | None = None,
+) -> list[str]:
     """Print every step with its exit code, and return the names that failed.
 
     This exists because of a real problem rather than for tidiness. `run.py` continues past a
@@ -159,12 +265,17 @@ def report(which: str, results: list[tuple[str, int, float]]) -> list[str]:
 
     When GitHub supplies a step summary file the same table is written there, which puts it
     on the run's own page instead of inside the log.
+
+    `notes` are lines about the run rather than about a step — which steps ignored a --chunk,
+    for instance. They go in the same table because the table is the thing a maintainer reads.
     """
     width = max(len(name) for name, _, _ in results)
     lines = [f"run {which}: {len(results)} steps"]
     for name, code, took in results:
         state = "ok" if code == 0 else f"FAILED exit {code}"
         lines.append(f"  {name:<{width}}  {took / 60:>5.1f} min  {state}")
+    for note in notes or []:
+        lines.append(f"  note: {note}")
 
     failed = [name for name, code, _ in results if code != 0]
     if failed:
@@ -193,24 +304,64 @@ def report(which: str, results: list[tuple[str, int, float]]) -> list[str]:
     return failed
 
 
+def parse_args(argv: list[str]) -> tuple[str, str | None]:
+    """(group, chunk) from the command line. The group defaults to daily, the chunk to none.
+
+    A bad --chunk is refused here rather than being handed to a job, because "3/0" reaching a
+    job means one of two things and there is no way to tell which: a workflow with a typo, or a
+    matrix that generated a slice that does not exist. Both want the run to stop at the gate.
+    """
+    args = list(argv)
+    chunk = None
+    if CHUNK_FLAG in args:
+        at = args.index(CHUNK_FLAG)
+        if at + 1 >= len(args):
+            # ValueError rather than SystemExit so main reports it the same way it reports a
+            # bad slice number, and both leave with 2: a usage error, not a failed fetch.
+            raise ValueError(f"{CHUNK_FLAG} needs a value like 3/8")
+        chunk = args[at + 1]
+        del args[at : at + 2]
+        runlog.parse_chunk(chunk)  # raises ValueError on anything that is not i/N
+    which = args[0] if args else "daily"
+    return which, chunk
+
+
 def main() -> None:
-    which = sys.argv[1] if len(sys.argv) > 1 else "daily"
+    try:
+        which, chunk = parse_args(sys.argv[1:])
+    except ValueError as e:
+        print(e)
+        raise SystemExit(2)
     if which not in GROUPS:
         print(f"unknown group {which}, choose from {', '.join(GROUPS)}")
         raise SystemExit(2)
 
+    label_which = which if not chunk else f"{which} {chunk}"
     results: list[tuple[str, int, float]] = []
+    notes: list[str] = []
     for plan in GROUPS[which]:
-        for script, args in plan:
+        steps, unsliced = plan_with_chunk(plan, chunk)
+        if unsliced:
+            notes.append(
+                f"{CHUNK_FLAG} {chunk} was not passed to {', '.join(sorted(set(unsliced)))}: "
+                "those jobs do not parse it yet, so each ran its whole source once. Nothing was "
+                "skipped, but N slices of this group will fetch them N times."
+            )
+        for script, args in steps:
+            # The loop does not break on a failure, and that is the behaviour the whole design
+            # rests on: every later step still runs, every step that worked keeps its committed
+            # rows, and the non-zero exit is raised once at the end from `report`'s answer below.
+            # Aborting here would throw away the eleven jobs that would have worked.
             code, took = run(script, args)
-            label = script if not args else f"{script} {' '.join(args)}"
-            results.append((label, code, took))
+            step_label = script if not args else f"{script} {' '.join(args)}"
+            results.append((step_label, code, took))
 
     # A partial failure still leaves the site serving the last good rows, so this is reported
-    # rather than retried blindly.
-    if report(which, results):
+    # rather than retried blindly. The exit code is non-zero so the workflow goes red even
+    # though the run was allowed to finish.
+    if report(label_which, results, notes):
         raise SystemExit(1)
-    print(f"run {which} finished, every step ok")
+    print(f"run {label_which} finished, every step ok")
 
 
 if __name__ == "__main__":

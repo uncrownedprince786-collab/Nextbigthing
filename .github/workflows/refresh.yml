@@ -1,47 +1,81 @@
-name: refresh data
+name: refresh data (weekly reconcile)
 
-# The website only reads rows that a job has already written, so these schedules are the
-# whole data pipeline. Daily keeps prices, news and rankings current. The product signals
-# run weekly because Reddit and Wikipedia rate limit and a daily request mostly gets 429.
+# WHAT HAPPENED TO THIS FILE, AND WHY IT WAS NOT DELETED.
+#
+# This was the ~30 minute monolith: one `jobs/run.py daily` step that fetched every source in
+# sequence, every night. Its job is now split across seven per-source workflows —
+# `cron-crypto.yml`, `cron-us-prices.yml`, `cron-psx.yml`, `cron-news.yml`, `cron-products.yml`,
+# `cron-decision.yml`, `cron-audit.yml` — each with its own schedule and its own concurrency
+# group, so one dead source can no longer take the other six down with it. Nothing scheduled
+# here is load-bearing any more and **the decision no longer waits on this file for anything**.
+#
+# It survives as a weekly reconcile rather than being retired, for three reasons, and none of
+# them is sentiment:
+#
+# 1. **A gap nobody notices is the real failure mode.** Every new lane is independent, which
+#    means each one can be red on its own without anything stopping. A source that fails by
+#    returning nothing — Binance answering a GitHub runner with silence, which kept the old
+#    lane red from 2026-09-29 — leaves a hole that only a sweep across all seven groups closes.
+#    This run is that sweep, once a week, with every group tolerated so one failure cannot
+#    abandon the ones behind it.
+# 2. **It is the only run that exercises the groups in dependency order.** Prices before
+#    rankings, news before the catalyst count, closes before the decision. The per-source lanes
+#    are scheduled to interleave correctly but they never prove the ordering; this does.
+# 3. **It keeps the branch guard in a scheduled lane that the tests already assert over.** The
+#    "Prove this run is executing main" step and `ref: main` stay here, unchanged and verified,
+#    and `WorkflowLanes` still reads them out of this file.
+#
+# What was removed: the daily cron (the seven lanes own that now), and the `push` trigger on
+# this file's own path. That trigger existed because a `workflow_dispatch` button is offered
+# only on the default branch and `master` was behind `main`, so editing the file was the only
+# way to run it at all. `master` is level with `main` now, so the dispatch button below works
+# and a push no longer has to start a half hour reconcile to prove a one-line change.
+#
+# If this lane is ever retired completely, the coverage question it answers has to move into
+# `cron-audit.yml` first. Do not delete it and leave nothing counting the gaps.
 
 on:
   schedule:
-    - cron: "17 7 * * *"
-    - cron: "43 7 * * 1"
+    # Monday 06:45 UTC, weekly. Weekly because this is a safety net over lanes that each run
+    # between every 2 hours and daily: anything a reconcile would repair is already repaired
+    # within a day by the lane that owns it, and a reconcile is the single most expensive run in
+    # the repository, so paying for it daily buys a second copy of work already done. Monday
+    # because the weekly product signals historically ran then and the rate limited sources are
+    # most forgiving at the start of the week.
+    #
+    # Minute 45 of an even hour: crypto is at 06:05 and news at 06:20, so by 06:45 both have
+    # finished and this run reads a settled database — and no two workflows start in the same
+    # instant against a Neon free tier branch.
+    - cron: "45 6 * * 1"
   workflow_dispatch:
     inputs:
-      group:
-        description: Which group of jobs to run
-        required: true
-        default: daily
+      only:
+        description: Reconcile a single group instead of all seven
+        required: false
+        default: all
         type: choice
-        options: [daily, weekly, seed]
-  # Editing this file runs the daily group once, on main. Two reasons, and the second is the
-  # awkward one: a change to the pipeline should be proved rather than assumed, and GitHub
-  # offers the workflow_dispatch button only on the repository's default branch, so while the
-  # default is not main there is otherwise no way to run this on main's code at all.
-  # A push event falls through "Choose the run" to daily, which is the group the site depends
-  # on; weekly stays on its schedule, because that is the one that asks the rate limited
-  # sources for anything.
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/refresh.yml
+        options: [all, crypto, us-prices, psx, news, products, decision, audit]
 
-# Shared with the backfill workflow so two ingestion runs never compete for the same rows.
+# Still `nbt-database`, and still shared with `backfill.yml`. That is deliberate: these are the
+# two broad lanes that write across many tables at once, and a backfill writing prices
+# underneath a reconcile reading them is the kind of thing that only breaks sometimes. The
+# per-source lanes each took their own group precisely so they would stop sharing this one —
+# GitHub keeps only ONE pending run per group, so a shared group means the next run to queue
+# cancels the one already waiting, which is why `geo.py` kept being cancelled.
 #
-# Deliberately NOT shared with schema.yml. That separation is the P0 rule: optional enrichment
-# must never be able to block a migration or critical ingestion, and the 90 minute deadlock a
-# hung geo fetch once caused is what it is there to prevent. The migration race that separation
-# used to create is gone, because this lane no longer migrates — see the schema check below.
+# Deliberately NOT shared with `schema.yml`, which keeps `nbt-schema` so optional enrichment can
+# never block a migration: a hung geo fetch once held the shared group for 90+ minutes while the
+# migration the deployed site needed sat queued behind it.
 concurrency:
   group: nbt-database
   cancel-in-progress: false
 
 jobs:
-  refresh:
-    name: refresh (${{ github.event.inputs.group || 'scheduled' }})
+  reconcile:
+    name: weekly reconcile (${{ github.event.inputs.only || 'all' }})
     runs-on: ubuntu-latest
+    # Still 90. This is the one lane that is allowed to be long, because being long is now its
+    # only job and nothing waits on it.
     timeout-minutes: 90
     steps:
       # main, explicitly, and this is the fix for a real production hazard rather than a
@@ -51,7 +85,8 @@ jobs:
       # nowhere else, and by default checks out that same branch's code. The default here is
       # master. So every nightly run was executing whatever master last held, and master stops
       # being the branch anyone pushes to the moment main moves ahead — a pipeline running
-      # silently stale code while reporting success.
+      # silently stale code while reporting success. On 2026-10-03 master was found 34 commits
+      # behind main, which meant this guard had read correctly for weeks without ever executing.
       #
       # Naming the ref decouples the two: the file may come from the default branch, but the
       # code that runs is main's. The step below proves it, and fails the run if it is ever
@@ -86,63 +121,104 @@ jobs:
       # This lane checks the schema; it does not migrate it. The comment that used to sit here
       # said the schema was migrated "here and nowhere else", and that stopped being true when
       # schema.yml took the job. The result was a real production failure: on a push touching
-      # this file, both workflows ran `prisma migrate deploy` against one database in the same
-      # second, from two different concurrency groups with nothing serialising them. The schema
-      # run won and this one died at the migration with every data job skipped (run
-      # 36798989654).
+      # this file, both workflows applied migrations against one database in the same second,
+      # from two different concurrency groups with nothing serialising them. The schema run won
+      # and this one died at the migration with every data job skipped (run 36798989654).
       #
-      # Migration is now one controlled path — schema.yml — and this lane refuses to start if
-      # the schema has not caught up. The check holds no writer privilege, issues no DDL and
-      # needs no Node, so it cannot race anything: comparing two lists is not a write.
+      # Migration is now one controlled path — schema.yml, over the direct endpoint, never the
+      # pooler — and every data lane including this one refuses to start if the schema has not
+      # caught up. The check holds no writer privilege, issues no DDL and needs no Node, so it
+      # cannot race anything: comparing two lists is not a write.
       - name: Refuse to run against a schema that is behind
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/schemacheck.py
 
-      - name: Choose the run
-        id: plan
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "group=${{ inputs.group }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = "43 7 * * 1" ]; then
-            echo "group=weekly" >> "$GITHUB_OUTPUT"
-          else
-            echo "group=daily" >> "$GITHUB_OUTPUT"
-          fi
-
-      # Reported as its own step for the same reason the PSX verification is in backfill.yml:
-      # a step's pass or fail is visible where its output is not, and run.py writes the
-      # per-step table to $GITHUB_STEP_SUMMARY, which is readable without a sign-in.
+      # One step, every group, and no group may abandon the groups behind it.
       #
-      # The failure this lane carried for two days was one missing import: jobs/prices.py used
-      # timedelta without importing it, so the first job of the group died with NameError and
-      # the sixteen behind it were skipped. Nothing was corrupted, because nothing ran. Fixed
-      # in a7cdfa4, with an AST test that now walks every job for names it never binds.
+      # The order is the dependency order the seven lanes only achieve by interleaving their
+      # schedules: prices and news first, then the products, then the decision over the closes
+      # those wrote, then the audit over all of it. The loop continues past a failure and
+      # reports every group's exit code, which is the behaviour `jobs/run.py` already has
+      # between its own steps — the point of a reconcile is the table at the end, not the first
+      # error.
       #
-      # The second cause was events.py holding one transaction across roughly a hundred
-      # thousand round trips, which the Neon pooler closed underneath it. Fixed in 3cc83ee by
-      # resolving the anchors set-based, committing per event and batching the inserts: the
-      # same 1,394 rows in 0.6 minutes instead of failing after several.
+      # Groups are named exactly as the job interface defines them — `python jobs/run.py
+      # <group>` with crypto | us-prices | psx | news | products | decision | audit. The chunked
+      # groups are run whole here rather than per chunk: a weekly sweep has the time, and
+      # splitting a reconcile would defeat the one thing it is for.
       #
-      # The third cause, and the one that kept this lane red from 2026-09-29: Binance was the
-      # only source of daily crypto closes, and it answers a GitHub runner with nothing while
-      # answering a laptop normally. The silence guard reported it correctly every night and
-      # there was no second venue to try, so the step failed by design and the data went stale.
-      # `fetch_crypto` now walks Binance, Coinbase, Kraken and Bitstamp, takes the first venue
-      # whose series is current rather than the first that replies, records which one answered
-      # on every row, and only fails when all four refuse every coin. A shallow venue never
-      # replaces a deeper stored series.
-      - name: Run data jobs
+      # Everything lands in $GITHUB_STEP_SUMMARY, the way schema.yml does it, because GitHub
+      # requires a sign-in to read an Actions log even for a public repository and the run
+      # summary page does not. The exit code per group is the readable answer to "which source
+      # is behind".
+      - name: Reconcile every source group
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
           PYTHONIOENCODING: utf-8
-        run: python jobs/run.py "${{ steps.plan.outputs.group }}"
+        run: |
+          set +e
+          only="${{ github.event.inputs.only || 'all' }}"
+          if [ "$only" = "all" ]; then
+            groups="news crypto us-prices psx products decision audit"
+          else
+            groups="$only"
+          fi
+          failed=""
+          {
+            echo "## Weekly reconcile"
+            echo
+            echo "| group | exit code |"
+            echo "| --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for g in $groups; do
+            echo "::group::reconcile $g"
+            out="$(python jobs/run.py "$g" 2>&1)"
+            code=$?
+            echo "$out"
+            echo "::endgroup::"
+            echo "| \`$g\` | \`$code\` |" >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo
+              echo "<details><summary>$g</summary>"
+              echo
+              echo '```'
+              echo "$out"
+              echo '```'
+              echo
+              echo "</details>"
+            } >> "$GITHUB_STEP_SUMMARY"
+            if [ "$code" != "0" ]; then
+              failed="$failed $g"
+            fi
+          done
+          if [ -n "$failed" ]; then
+            {
+              echo
+              echo "**groups that did not reconcile:**$failed"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "groups that did not reconcile:$failed"
+            exit 1
+          fi
+          echo "every group reconciled"
 
       - name: Row counts after the run
         if: always()
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
         run: |
-          python jobs/stats.py
+          set +e
+          out="$(python jobs/stats.py 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## Row counts"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
