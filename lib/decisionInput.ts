@@ -133,10 +133,11 @@ export function pickAnalog<T extends { horizonDays: number; matches: number }>(
 
 /// Was the last move unusual enough to need a published reason?
 ///
-/// `|robustZ| >= 2` is not a new threshold: it is where `unusualWords` in lib/plain.ts starts
-/// calling a move unusual, and reusing it keeps the panel and the sentence under it from
-/// disagreeing. A `trigger` of "move" or "volume" counts on its own, because `jobs/investigate.py`
-/// only writes a row at all when something crossed its own bar.
+/// `|robustZ| >= 2` is not a new threshold: it is the bar `jobs/investigate.py` and the wording
+/// helpers have both used for an unusual move. lib/plain.ts had a copy of it in `unusualWords`,
+/// which went when the prose block that called it was deleted, so this points at the job instead.
+/// A `trigger` of "move" or "volume" counts on its own, because that job only writes a row at all
+/// when something crossed its own bar.
 export function isUnusualMove(
   investigation: { robustZ: number | null; trigger: string } | null,
 ): boolean {

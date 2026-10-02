@@ -1,9 +1,5 @@
 import { prisma } from "@/lib/db";
 
-/// Pages read precomputed rows only. No page fetches an external API.
-export async function getLead() {
-  return prisma.analysis.findFirst({ where: { kind: "siteLead" }, orderBy: { createdAt: "desc" } });
-}
 
 export async function getIndustries() {
   return prisma.industry.findMany({
@@ -337,27 +333,6 @@ export async function getProductRegions(productId: string) {
   return { periodEnd, lists };
 }
 
-/// Everything with a catalyst flagged on its newest reading, assets and products together.
-///
-/// This is the miss-reduction list: the point is to see, in one place, what has started
-/// being written about in the last few days. Ordered by how far above its own baseline the
-/// coverage is running, because a tenfold jump on a quiet name is more likely to be the thing
-/// a reader had not noticed than a 50% rise on a name that is always in the news.
-export async function getCatalysts(take = 12) {
-  const latest = await prisma.humanSignal.aggregate({ _max: { periodEnd: true } });
-  const periodEnd = latest._max.periodEnd;
-  if (!periodEnd) return { periodEnd: null, rows: [] };
-  const rows = await prisma.humanSignal.findMany({
-    where: { periodEnd, catalyst: true },
-    orderBy: [{ spikeRatio: "desc" }],
-    take,
-    include: {
-      asset: { select: { symbol: true, name: true } },
-      product: { select: { slug: true, name: true } },
-    },
-  });
-  return { periodEnd, rows };
-}
 
 /// How the logged readings have actually turned out so far.
 ///
@@ -436,47 +411,6 @@ export async function getRelevance(assetId: string) {
   return { periodEnd, rows };
 }
 
-/// The strongest path per asset across the whole site, for the reading list on the front
-/// page.
-///
-/// One row per asset, not one per path: an asset reached from four origins has not been
-/// connected to the news four times, and listing it four times would turn a busy
-/// neighbourhood into an apparent pile of evidence.
-export async function getNeighbourhood(take = 9) {
-  const latest = await prisma.graphRelevance.aggregate({ _max: { periodEnd: true } });
-  const periodEnd = latest._max.periodEnd;
-  if (!periodEnd) return { periodEnd: null, rows: [] };
-  const all = await prisma.graphRelevance.findMany({
-    where: { periodEnd },
-    orderBy: { score: "desc" },
-    include: { asset: { select: { symbol: true, name: true } } },
-  });
-  const best = new Map<string, (typeof all)[number]>();
-  for (const r of all) if (!best.has(r.assetId)) best.set(r.assetId, r);
-  return { periodEnd, rows: [...best.values()].slice(0, take) };
-}
-
-/// How the recorded reasons behind the site's directional reads are holding up.
-///
-/// Counts per status, never a share: "68% still active" would read as a hit rate, and this
-/// measures whether conditions have changed rather than whether anything worked.
-export async function getThesisTally() {
-  const latest = await prisma.assetThesis.aggregate({ _max: { asOf: true } });
-  const asOf = latest._max.asOf;
-  if (!asOf) return { asOf: null, counts: [] as { status: string; n: number }[] };
-  const grouped = await prisma.assetThesis.groupBy({
-    by: ["status"],
-    where: { asOf },
-    _count: { _all: true },
-  });
-  const order = ["active", "weakening", "broken"];
-  return {
-    asOf,
-    counts: grouped
-      .map((g) => ({ status: g.status, n: g._count._all }))
-      .sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status)),
-  };
-}
 
 /// Every horizon's condition read for one asset, newest per horizon, with its target ranges.
 ///
@@ -514,25 +448,6 @@ export async function getInvestigation(assetId: string) {
   });
 }
 
-/// What was investigated across the whole site on the newest day, most unusual first.
-///
-/// This is the front page's answer to "what matters now". Ordered by the robust score rather
-/// than by the raw move, because a 3% day is ordinary for one of these names and extraordinary
-/// for another, and the ordering has to mean "unusual" rather than "large".
-export async function getWhatMatters(take = 8) {
-  const latest = await prisma.investigation.aggregate({ _max: { periodEnd: true } });
-  const periodEnd = latest._max.periodEnd;
-  if (!periodEnd) return { periodEnd: null, rows: [] };
-  const rows = await prisma.investigation.findMany({
-    where: { periodEnd },
-    orderBy: [{ robustZ: "desc" }, { movePct: "desc" }],
-    take,
-    include: {
-      asset: { select: { symbol: true, name: true, currency: true } },
-    },
-  });
-  return { periodEnd, rows };
-}
 
 /// Whether the intraday series behind an intraday read can be trusted, and what is missing.
 ///
@@ -581,29 +496,6 @@ export async function getIntradayCoverage() {
   };
 }
 
-/// Assets with a clear directional read on any horizon, strongest grade first.
-///
-/// Site-wide counterpart to `getHorizons`, for the scan box on the front page. One row per
-/// asset even when two horizons agree: the box answers "what is worth a look", and the same
-/// name twice would spend a slot saying one thing.
-export async function getDirectionalSetups(take = 6) {
-  const rows = await prisma.assetSetup.findMany({
-    where: { state: { in: ["buy", "short"] } },
-    orderBy: [{ periodEnd: "desc" }, { confidence: "asc" }],
-    include: { asset: { select: { symbol: true, name: true } } },
-  });
-  // Newest stored day per horizon, then one row per asset. `confidence` sorts ascending as an
-  // enum, which puts `high` first — relied on here rather than re-sorted in JS.
-  const newest = new Map<string, number>();
-  for (const r of rows) {
-    const t = r.periodEnd.getTime();
-    if (!newest.has(r.horizon) || t > newest.get(r.horizon)!) newest.set(r.horizon, t);
-  }
-  const current = rows.filter((r) => r.periodEnd.getTime() === newest.get(r.horizon));
-  const seen = new Map<string, (typeof current)[number]>();
-  for (const r of current) if (!seen.has(r.assetId)) seen.set(r.assetId, r);
-  return [...seen.values()].slice(0, take);
-}
 
 /// {industryId: how many of its assets have at least one stored close}.
 ///
@@ -670,5 +562,377 @@ export async function getStories(assetId: string, take = 6) {
       id: true, headline: true, items: true, publishers: true,
       firstSeen: true, lastSeen: true, rule: true,
     },
+  });
+}
+
+/// ---------------------------------------------------------------------------
+/// The decision panel: one asset's read, and the same read across every asset.
+/// ---------------------------------------------------------------------------
+
+/// Every date below leaves as a `Date`, exactly as the rest of this file returns them.
+/// Picked for consistency and not for convenience: a bundle whose `periodEnd` were an ISO
+/// string while `getHorizons` next to it returned a `Date` would be the one place on the site
+/// where two stored days could not be compared with `getTime()`, and that comparison — "is the
+/// setup as new as the price?" — is the one the panel exists to make. The cost is that a caller
+/// handing any of this to a client component must convert first. A `Date` survives the
+/// serialization boundary; a formatted string would be this query's decision about a reader's
+/// locale, which is not a query's decision to make.
+
+/// The newest stored close for one asset: 1 query.
+///
+/// Pages have been answering "is what you are reading current?" by taking the last element of
+/// `getAssetPrices`, which drags every close since 2019 across the wire to learn a single date.
+/// The decision panel asks that question above the fold on every asset page, and a panel whose
+/// whole job is to say how stale the data is must not itself be the slowest thing on the page.
+/// The source travels with the date because "yesterday" means different things coming from
+/// Yahoo and from the PSX closing file, and the panel says which one it is trusting.
+export async function getAssetFreshness(assetId: string): Promise<{
+  newest: Date | null;
+  close: number | null;
+  priceSource: string | null;
+}> {
+  const row = await prisma.priceSnapshot.findFirst({
+    where: { assetId },
+    orderBy: { date: "desc" },
+    select: { date: true, close: true, source: true },
+  });
+  // All three null together rather than a bare null: "no close has ever been stored for this
+  // asset" is a state the panel reports in words, and the caller should not have to branch on
+  // the shape of the object to find out which of the three it is missing.
+  if (!row) return { newest: null, close: null, priceSource: null };
+  return { newest: row.date, close: row.close, priceSource: row.source };
+}
+
+/// Everything the decision panel on one asset page reads: 8 queries, issued together.
+///
+/// Flat and not nested. The panel's whole claim is that these readings are being looked at
+/// together — a `buy` on the swing horizon next to a four-day-old close next to an
+/// investigation that found nothing is a different statement from any one of them alone — and
+/// a caller awaiting each piece separately would be free to render the ones that arrived and
+/// drop the ones that did not, which is the selective reading the panel is built to prevent.
+/// One `Promise.all` also puts the round-trip cost of the panel in one visible place.
+///
+/// `market`, `currency` and `assetType` are carried because US, PSX and crypto are not
+/// interchangeable here: they keep different hours, so "newest close is yesterday" is healthy
+/// for one and stale for another. `market` comes from the industry and never from the symbol —
+/// the ticker PSX is Phillips 66, a US asset, and a panel that read the market off the letters
+/// would call it Pakistani and then judge its freshness against the wrong calendar.
+export async function getDecisionBundle(assetId: string) {
+  const [asset, freshness, horizons, analogs, humanSignal, investigation, upcoming] =
+    await Promise.all([
+      prisma.asset.findUnique({
+        where: { id: assetId },
+        select: {
+          symbol: true,
+          name: true,
+          assetType: true,
+          currency: true,
+          industry: { select: { market: true, slug: true, name: true } },
+        },
+      }),
+      getAssetFreshness(assetId),
+      // Reused rather than reimplemented: the reason one row per horizon is returned instead of
+      // the single newest row is argued at `getHorizons`, and it already pulls the target ranges
+      // the panel needs. Duplicating that logic here would let the panel and the horizons table
+      // on the same page disagree about what the asset currently reads.
+      getHorizons(assetId),
+      getAnalogs(assetId),
+      getHumanSignal({ assetId }),
+      getInvestigation(assetId),
+      // take 1: the panel shows the next dated thing, not a diary. A list here would compete
+      // with the page's own events section and say the same thing twice.
+      getUpcoming({ assetId, take: 1 }),
+    ]);
+
+  return {
+    assetId,
+    symbol: asset?.symbol ?? null,
+    name: asset?.name ?? null,
+    assetType: asset?.assetType ?? null,
+    currency: asset?.currency ?? null,
+    market: asset?.industry.market ?? null,
+    industrySlug: asset?.industry.slug ?? null,
+    industryName: asset?.industry.name ?? null,
+    newestClose: freshness.close,
+    newestCloseDate: freshness.newest,
+    priceSource: freshness.priceSource,
+    horizons,
+    analogPeriodEnd: analogs.periodEnd,
+    analogs: analogs.rows,
+    humanSignal,
+    investigation,
+    nextEvent: upcoming[0] ?? null,
+  };
+}
+
+/// One horizon's stored read, reduced to the fields the home page's lists print.
+export type DecisionSetup = {
+  state: string;
+  entryLevel: number | null;
+  invalidateLevel: number | null;
+  confidence: string;
+  periodEnd: Date;
+  headline: string;
+};
+
+/// What is *stored* about one asset, which is not the same thing as what the home page shows.
+///
+/// Named `DecisionQueryRow` rather than `DecisionRow` because `components/decision.tsx` already
+/// owns that name for the rendered row — symbol, action, entry band, confidence — and the two are
+/// deliberately different objects: this one is evidence, that one is a verdict, and the rule table
+/// in `lib/decision.ts` is the only thing allowed to turn the first into the second. Sharing a
+/// name would invite a page to pass one where the other was expected and have it very nearly work.
+export type DecisionQueryRow = {
+  assetId: string;
+  symbol: string;
+  name: string;
+  assetType: string;
+  currency: string;
+  /// "US" or "PK", from the industry the asset sits in. Never inferred from the symbol.
+  market: string;
+  industrySlug: string;
+  close: number | null;
+  closeDate: Date | null;
+  priceSource: string | null;
+  /// Only the two horizons the home page sorts on. Intraday is deliberately absent: a front
+  /// page that re-ordered itself through the trading day would be a different page every time
+  /// a reader came back to it, and none of the versions would be wrong.
+  swing: DecisionSetup | null;
+  longer: DecisionSetup | null;
+  analogMinPct: number | null;
+  analogMaxPct: number | null;
+  analogMatches: number | null;
+  /// Which horizon the analog band above was measured over. Carried because a band without its
+  /// horizon is not a measurement, and the lists must not print one as if it were.
+  analogHorizonDays: number | null;
+  /// Stories, not items: twenty outlets carrying one wire report is one story. The reasoning is
+  /// at `getStories` and on `HumanSignal.recentStories`.
+  recentStories: number | null;
+  robustZ: number | null;
+  movePct: number | null;
+  trigger: string | null;
+  nextEventDate: Date | null;
+  nextEventName: string | null;
+  nextEventInDays: number | null;
+};
+
+/// The horizons the home page reads. Named once so the `groupBy` and the `findMany` below
+/// cannot drift apart, which would otherwise return a horizon `DecisionQueryRow` has no slot for and
+/// silently drop it.
+const DECISION_HORIZONS = ["swing", "longer"] as const;
+
+/// Newest-first rows reduced to one per key, keeping the first seen — the same dedupe
+/// `getSourceHealth`, `getNeighbourhood` and `getDirectionalSetups` each spell out inline.
+function firstPerKey<T>(rows: T[], key: (row: T) => string): Map<string, T> {
+  const out = new Map<string, T>();
+  for (const row of rows) if (!out.has(key(row))) out.set(key(row), row);
+  return out;
+}
+
+/// The distinct days a per-asset `_max` aggregate came back with. Deduped by millisecond
+/// because the jobs write every asset on the same two or three dates, so 120 aggregate rows
+/// collapse to a handful of values — which is what makes the second query below cheap.
+function distinctDays(maxes: (Date | null)[]): Date[] {
+  const seen = new Map<number, Date>();
+  for (const d of maxes) if (d) seen.set(d.getTime(), d);
+  return [...seen.values()];
+}
+
+/// One row per asset for the home page's three lists: 12 queries, in two waves.
+///
+/// That number does not change when the asset list grows. The obvious shape — call
+/// `getDecisionBundle` once per asset — would be eight queries per name across 120-odd US
+/// tickers plus the PSX names plus crypto, so roughly a thousand round trips to paint one page.
+/// Against Neon's free tier that is not a slow page; it is a page that exhausts the connection
+/// pool and fails, and fails worse the more assets the site covers. So every table is read in
+/// bulk and stitched together here.
+///
+/// Each table costs two queries, and the split is the point:
+///
+///   1. a `groupBy` asking Postgres for the newest stored day per asset. This half has to
+///      happen in the database — it reads an index and returns one small row per asset instead
+///      of the table.
+///   2. a `findMany` confined to the few distinct days that came back, deduped here.
+///
+/// Step 2 filters on `periodEnd in (those days)` rather than on 120 explicit (asset, day) pairs
+/// because the jobs write every asset on the same handful of dates, so the day filter is nearly
+/// exact at a fraction of the SQL. It over-fetches only rows belonging to an asset that also
+/// has a row on some *other* asset's newest day, bounded by assets x distinct-days. Correctness
+/// does not rest on that staying small: each asset's own newest day is guaranteed to be in the
+/// set, and the dedupe keeps the newest row it sees per asset, so an asset that stopped being
+/// written still yields its own stale row rather than someone else's fresh one.
+///
+/// `distinct` was considered and rejected. Without the `nativeDistinct` preview feature Prisma
+/// deduplicates in the client, so `distinct: ["assetId"]` on PriceSnapshot would pull every
+/// close since 2019 into Node to learn 120 dates — the exact waste `getAssetFreshness` exists
+/// to end, moved to the page that can least afford it.
+export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  // Wave one: the asset list, the newest day per asset in each table, and the forward diary.
+  const [assets, priceDays, setupDays, analogDays, signalDays, investigationDays, eventLinks] =
+    await Promise.all([
+      prisma.asset.findMany({
+        orderBy: [{ symbol: "asc" }],
+        select: {
+          id: true,
+          symbol: true,
+          name: true,
+          assetType: true,
+          currency: true,
+          industry: { select: { market: true, slug: true } },
+        },
+      }),
+      prisma.priceSnapshot.groupBy({ by: ["assetId"], _max: { date: true } }),
+      prisma.assetSetup.groupBy({
+        by: ["assetId", "horizon"],
+        where: { horizon: { in: [...DECISION_HORIZONS] } },
+        _max: { periodEnd: true },
+      }),
+      prisma.assetAnalog.groupBy({ by: ["assetId"], _max: { periodEnd: true } }),
+      // HumanSignal also describes products, which have no place in a list of assets.
+      prisma.humanSignal.groupBy({
+        by: ["assetId"],
+        where: { assetId: { not: null } },
+        _max: { periodEnd: true },
+      }),
+      prisma.investigation.groupBy({ by: ["assetId"], _max: { periodEnd: true } }),
+      // One query for the whole site's forward diary — small enough to read whole, so it skips
+      // the two-step. Ordered by the event's own date, ascending, so the dedupe keeps the
+      // *soonest* event per asset: a diary has only one order, and it is not "newest written".
+      // The `scheduled` flag and the date are both tested for the reason given at `getUpcoming`.
+      prisma.eventLink.findMany({
+        where: { assetId: { not: null }, event: { scheduled: true, date: { gte: today } } },
+        orderBy: { event: { date: "asc" } },
+        select: { assetId: true, event: { select: { name: true, date: true } } },
+      }),
+    ]);
+
+  // PriceSnapshot dates its rows `date` rather than `periodEnd`, so its aggregate is unwrapped
+  // here instead of teaching the helper both column names.
+  const priceDayList = distinctDays(priceDays.map((r) => r._max.date));
+  const setupDayList = distinctDays(setupDays.map((r) => r._max.periodEnd));
+  const analogDayList = distinctDays(analogDays.map((r) => r._max.periodEnd));
+  const signalDayList = distinctDays(signalDays.map((r) => r._max.periodEnd));
+  const investigationDayList = distinctDays(investigationDays.map((r) => r._max.periodEnd));
+
+  // Wave two: the rows themselves, confined to the days wave one named. Each `findMany` is
+  // skipped outright when its table turned out to be empty, because `in: []` is a query that can
+  // only return nothing and still costs a round trip on a free-tier database.
+  const [prices, setups, analogs, signals, investigations] = await Promise.all([
+    priceDayList.length
+      ? prisma.priceSnapshot.findMany({
+          where: { date: { in: priceDayList } },
+          orderBy: { date: "desc" },
+          select: { assetId: true, date: true, close: true, source: true },
+        })
+      : [],
+    setupDayList.length
+      ? prisma.assetSetup.findMany({
+          where: { horizon: { in: [...DECISION_HORIZONS] }, periodEnd: { in: setupDayList } },
+          orderBy: { periodEnd: "desc" },
+          select: {
+            assetId: true,
+            horizon: true,
+            state: true,
+            entryLevel: true,
+            invalidateLevel: true,
+            confidence: true,
+            periodEnd: true,
+            headline: true,
+          },
+        })
+      : [],
+    analogDayList.length
+      ? prisma.assetAnalog.findMany({
+          where: { periodEnd: { in: analogDayList } },
+          // Shortest horizon first within a day, so the dedupe keeps the nearest-term analog.
+          // The lists ask "what now", and a 5-day band answers that; letting a 60-day band win
+          // on some assets would print two different measurements in one column.
+          orderBy: [{ periodEnd: "desc" }, { horizonDays: "asc" }],
+          select: { assetId: true, horizonDays: true, minPct: true, maxPct: true, matches: true },
+        })
+      : [],
+    signalDayList.length
+      ? prisma.humanSignal.findMany({
+          where: { assetId: { not: null }, periodEnd: { in: signalDayList } },
+          orderBy: { periodEnd: "desc" },
+          select: { assetId: true, recentStories: true },
+        })
+      : [],
+    investigationDayList.length
+      ? prisma.investigation.findMany({
+          where: { periodEnd: { in: investigationDayList } },
+          orderBy: { periodEnd: "desc" },
+          select: { assetId: true, robustZ: true, movePct: true, trigger: true },
+        })
+      : [],
+  ]);
+
+  const priceByAsset = firstPerKey(prices, (r) => r.assetId);
+  const setupByKey = firstPerKey(setups, (r) => `${r.assetId}|${r.horizon}`);
+  const analogByAsset = firstPerKey(analogs, (r) => r.assetId);
+  // HumanSignal and EventLink both carry a nullable assetId, already excluded in SQL above. The
+  // `?? ""` exists to satisfy the type and can never key a row that reaches this point.
+  const signalByAsset = firstPerKey(signals, (r) => r.assetId ?? "");
+  const investigationByAsset = firstPerKey(investigations, (r) => r.assetId);
+  const eventByAsset = firstPerKey(eventLinks, (r) => r.assetId ?? "");
+
+  const DAY = 24 * 60 * 60 * 1000;
+
+  const setupOf = (assetId: string, horizon: string): DecisionSetup | null => {
+    const row = setupByKey.get(`${assetId}|${horizon}`);
+    if (!row) return null;
+    return {
+      state: row.state,
+      entryLevel: row.entryLevel,
+      invalidateLevel: row.invalidateLevel,
+      confidence: row.confidence,
+      periodEnd: row.periodEnd,
+      headline: row.headline,
+    };
+  };
+
+  // Every asset gets a row, including one with nothing stored against it. Returning only the
+  // assets that happen to have a setup would make the three lists add up to fewer names than the
+  // site covers, and a reader counting them would read that gap as a judgement about the missing
+  // ones rather than as a job that has not run.
+  return assets.map((asset): DecisionQueryRow => {
+    const price = priceByAsset.get(asset.id);
+    const analog = analogByAsset.get(asset.id);
+    const signal = signalByAsset.get(asset.id);
+    const investigation = investigationByAsset.get(asset.id);
+    const event = eventByAsset.get(asset.id);
+    return {
+      assetId: asset.id,
+      symbol: asset.symbol,
+      name: asset.name,
+      assetType: asset.assetType,
+      currency: asset.currency,
+      market: asset.industry.market,
+      industrySlug: asset.industry.slug,
+      close: price?.close ?? null,
+      closeDate: price?.date ?? null,
+      priceSource: price?.source ?? null,
+      swing: setupOf(asset.id, "swing"),
+      longer: setupOf(asset.id, "longer"),
+      analogMinPct: analog?.minPct ?? null,
+      analogMaxPct: analog?.maxPct ?? null,
+      analogMatches: analog?.matches ?? null,
+      analogHorizonDays: analog?.horizonDays ?? null,
+      recentStories: signal?.recentStories ?? null,
+      robustZ: investigation?.robustZ ?? null,
+      movePct: investigation?.movePct ?? null,
+      trigger: investigation?.trigger ?? null,
+      nextEventDate: event?.event.date ?? null,
+      nextEventName: event?.event.name ?? null,
+      // Whole days from today, rounded. Both ends are already UTC midnight — `date` is a
+      // `@db.Date` and `today` was floored above — so this is a subtraction and not a timezone
+      // calculation wearing one's clothes.
+      nextEventInDays: event
+        ? Math.round((event.event.date.getTime() - today.getTime()) / DAY)
+        : null,
+    };
   });
 }

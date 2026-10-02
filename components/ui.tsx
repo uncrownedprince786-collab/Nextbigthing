@@ -1,3 +1,4 @@
+import * as React from "react";
 import Link from "next/link";
 import { isoDate, pct, price, toneClass } from "@/lib/format";
 import {
@@ -11,10 +12,7 @@ import {
   PRODUCT_STATUS_WORDS,
   SETUP_WORDS,
   THESIS_WORDS,
-  direction,
   targetsDisagree,
-  tradingWords,
-  unusualWords,
 } from "@/lib/plain";
 
 export function Section({
@@ -69,7 +67,7 @@ export function Note({ children }: { children: React.ReactNode }) {
 
 export function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-muted-foreground border-border rounded-lg border border-dashed px-4 py-6 text-center text-sm">
+    <p className="text-muted-foreground border-border wrap-hard rounded-lg border border-dashed px-4 py-6 text-center text-sm">
       {children}
     </p>
   );
@@ -88,8 +86,11 @@ export function Pill({ children, tone = "default" }: { children: React.ReactNode
     down: "text-down border-down/30 bg-down/5",
     warn: "text-warn border-warn/30 bg-warn-bg",
   };
+  // Taller on phones. A pill is a label rather than a control, so it is not a tap target and
+  // does not owe anyone 44px; what it does owe is being legible at 375px, which 11px type in
+  // 17px of height was not.
   return (
-    <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] leading-4 ${tones[tone]}`}>
+    <span className={`inline-block rounded-full border px-2 py-1 text-micro leading-4 sm:py-0.5 ${tones[tone]}`}>
       {children}
     </span>
   );
@@ -122,22 +123,68 @@ const CONFIDENCE_COPY: Record<Confidence, { label: string; tone: string; title: 
 
 /// Shows how well a figure is evidenced. The grade is always spelled out rather than left
 /// as a colour, and "none" reads as no data instead of as a weak result.
+/// `explain` prints the reason as text beside the badge instead of leaving it in the
+/// tooltip. A `title` is a hover affordance and a touch screen has no hover, so on a phone
+/// the only explanation of a confidence grade was unreachable. It is opt-in rather than
+/// automatic because a badge appears inside table cells where twenty copies of the sentence
+/// would be the new problem; `ConfidenceKey` covers the reader who needs it once per page.
+///
+/// The badge is deliberately not a `<details>`: several call sites render it inside a
+/// `<Link>`, and a disclosure control nested in an anchor is invalid markup whose toggle
+/// would navigate instead of opening.
 export function ConfidenceBadge({
   grade,
   className = "",
+  explain = false,
 }: {
   grade: Confidence | string | null | undefined;
   className?: string;
+  explain?: boolean;
 }) {
   const key = (grade ?? "none") as Confidence;
   const copy = CONFIDENCE_COPY[key] ?? CONFIDENCE_COPY.none;
-  return (
+  const badge = (
     <span
       title={copy.title}
-      className={`inline-block rounded-full border px-2 py-0.5 text-[11px] leading-4 ${copy.tone} ${className}`}
+      aria-label={`${copy.label}: ${copy.title}`}
+      className={`inline-block rounded-full border px-2 py-1 text-micro leading-4 sm:py-0.5 ${copy.tone} ${className}`}
     >
       {copy.label}
     </span>
+  );
+  if (!explain) return badge;
+  return (
+    <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      {badge}
+      <span className="text-muted-foreground text-micro leading-relaxed">{copy.title}</span>
+    </span>
+  );
+}
+
+/// What the four confidence grades mean, in one reachable place.
+///
+/// The grades are explained on each badge through `title`, which a phone cannot show. This
+/// is the same four sentences as a `<details>` a reader can open with a finger, sized as a
+/// real tap target, and still no JavaScript. Intended once per page that grades anything.
+export function ConfidenceKey({
+  title = "What the confidence grades mean",
+}: {
+  title?: string;
+}) {
+  return (
+    <details className="border-border bg-muted/30 mt-3 rounded-lg border px-4 py-1 text-sm sm:py-3">
+      <summary className="-my-1 cursor-pointer py-3 font-medium select-none sm:my-0 sm:py-0">
+        {title}
+      </summary>
+      <ul className="text-muted-foreground mt-3 mb-3 space-y-2 leading-relaxed sm:mb-0">
+        {(["high", "medium", "low", "none"] as Confidence[]).map((g) => (
+          <li key={g} className="flex flex-wrap items-baseline gap-2">
+            <ConfidenceBadge grade={g} />
+            <span className="text-xs leading-relaxed">{CONFIDENCE_COPY[g].title}.</span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -158,13 +205,75 @@ export function weakest(...grades: (Confidence | string | null | undefined)[]): 
   return out ?? "none";
 }
 
-export function Table({ head, children }: { head: React.ReactNode; children: React.ReactNode }) {
+/// Marks every `<th>` in a header row as a column header.
+///
+/// Pages pass their header cells in as markup, so the attribute cannot be written at the
+/// call site without editing ten page files. Walking the passed tree and adding it here
+/// means every table on the site gets it, including ones written later. An explicit
+/// `scope` already on a cell is left alone, and anything that is not a `th` is returned
+/// untouched, so a page is free to pass something else.
+function withColumnScope(node: React.ReactNode): React.ReactNode {
+  return React.Children.map(node, (child) => {
+    if (!React.isValidElement(child)) return child;
+    if (child.type === React.Fragment) {
+      const props = child.props as { children?: React.ReactNode };
+      return React.cloneElement(
+        child as React.ReactElement<{ children?: React.ReactNode }>,
+        {},
+        withColumnScope(props.children),
+      );
+    }
+    if (child.type === "th") {
+      const props = child.props as React.ThHTMLAttributes<HTMLTableCellElement>;
+      if (props.scope) return child;
+      return React.cloneElement(
+        child as React.ReactElement<React.ThHTMLAttributes<HTMLTableCellElement>>,
+        { scope: "col" },
+      );
+    }
+    return child;
+  });
+}
+
+/// Every table on the site.
+///
+/// The hard part of a table on a 375px screen is not containing the overflow — a scroller
+/// did that already — it is telling the reader that there is overflow at all. Roughly two
+/// fifths of a seven column table is off-screen on a phone with nothing on screen saying
+/// so, which reads as a table that happens to be cut off rather than one that moves.
+/// `scroll-affordance-x` is a shadow on whichever edge still has content behind it, built
+/// out of scroll-attached gradients so it appears and disappears from the scroll position
+/// itself with no JavaScript.
+///
+/// `minWidth` exists because 640px was a single guess serving tables from four columns to
+/// seven. A table that needs more can ask for more and get honest column widths instead of
+/// seven columns crushed into 640px; the default is unchanged, so no existing caller moves.
+///
+/// `stickyFirstColumn` is opt-in rather than automatic. It is the right call for a table
+/// whose first column is the row's identity — an asset name, a basis — and wasted width for
+/// one whose first column is a rank number, and only the caller knows which it has.
+export function Table({
+  head,
+  children,
+  minWidth = "640px",
+  stickyFirstColumn = false,
+}: {
+  head: React.ReactNode;
+  children: React.ReactNode;
+  /// Width below which the table scrolls rather than compresses. Any CSS length.
+  minWidth?: string;
+  /// Pins the first cell of every row while the rest scrolls under it.
+  stickyFirstColumn?: boolean;
+}) {
   return (
-    <div className="border-border overflow-x-auto rounded-lg border">
-      <table className="w-full min-w-[640px] border-collapse text-sm">
+    <div
+      className="border-border scroll-affordance-x overflow-x-auto rounded-lg border"
+      data-ui-table={stickyFirstColumn ? "sticky" : ""}
+    >
+      <table className="w-full border-collapse text-sm" style={{ minWidth }}>
         <thead className="bg-muted/60">
           <tr className="text-muted-foreground text-left text-xs">
-            {head}
+            {withColumnScope(head)}
           </tr>
         </thead>
         <tbody className="divide-border divide-y">{children}</tbody>
@@ -188,9 +297,13 @@ export function HowToRead({
   points: React.ReactNode[];
 }) {
   return (
-    <details className="border-border bg-muted/30 mt-4 rounded-lg border px-4 py-3 text-sm">
-      <summary className="cursor-pointer font-medium select-none">{title}</summary>
-      <ul className="text-muted-foreground mt-3 space-y-2 leading-relaxed">
+    <details className="border-border bg-muted/30 mt-4 rounded-lg border px-4 py-1 text-sm sm:py-3">
+      {/* 44px of height on a phone, through padding that collapses to nothing from `sm` up
+          so the desktop box keeps its measurements. */}
+      <summary className="-my-1 cursor-pointer py-3 font-medium select-none sm:my-0 sm:py-0">
+        {title}
+      </summary>
+      <ul className="text-muted-foreground mt-3 mb-2 space-y-2 leading-relaxed sm:mb-0">
         {points.map((p, i) => (
           <li key={i} className="flex gap-2">
             <span aria-hidden="true" className="text-primary/60">
@@ -292,7 +405,7 @@ export function DiscussionBlock({
               ) : null}
             </span>
           </div>
-          <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">
+          <p className="text-muted-foreground mt-1 text-micro leading-relaxed">
             Counted as distinct <strong>stories</strong>, not items
             {signal.recentItems > signal.recentStories ? (
               <>
@@ -307,7 +420,10 @@ export function DiscussionBlock({
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      {/* Three columns only from `lg`. `sm:grid-cols-3` fired at 640px and gave each of these
+          roughly 190px to hold a pill, a percentage and two lines of explanation. Two
+          columns at `sm` and three at `lg` is the pattern the home page already uses. */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div>
           <p className="text-muted-foreground text-xs">Attention</p>
           <div className="mt-1 flex items-baseline gap-2">
@@ -318,7 +434,7 @@ export function DiscussionBlock({
               </span>
             ) : null}
           </div>
-          <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">
+          <p className="text-muted-foreground mt-1 text-micro leading-relaxed">
             {signal.items} headlines in {signal.windowDays} days against {signal.priorItems} in
             the {signal.windowDays} before
             {signal.velocityPct == null
@@ -338,7 +454,7 @@ export function DiscussionBlock({
             )}
             {thin ? <Pill tone="warn">thin</Pill> : null}
           </div>
-          <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">
+          <p className="text-muted-foreground mt-1 text-micro leading-relaxed">
             {signal.positive} positive, {signal.negative} negative, {signal.neutral} neither,
             of {signal.items}.
             {thin
@@ -352,7 +468,7 @@ export function DiscussionBlock({
           <div className="mt-1">
             {signal.hypeFlag ? <Pill tone="warn">hype flagged</Pill> : <Pill>not flagged</Pill>}
           </div>
-          <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">
+          <p className="text-muted-foreground mt-1 text-micro leading-relaxed">
             {signal.hypeTerms} of {signal.items} headlines use promotional wording.
           </p>
         </div>
@@ -364,13 +480,13 @@ export function DiscussionBlock({
       </div>
 
       {signal.confidenceNote ? (
-        <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
+        <p className="text-muted-foreground mt-2 text-micro leading-relaxed">
           {signal.confidenceNote}.
         </p>
       ) : null}
 
       {signal.catalystNote && !signal.catalyst ? (
-        <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
+        <p className="text-muted-foreground mt-2 text-micro leading-relaxed">
           {signal.catalystNote}.
         </p>
       ) : null}
@@ -535,7 +651,7 @@ export function SetupBlock({
               </li>
             ))}
           </ul>
-          <p className="text-muted-foreground mt-1 text-[11px] leading-relaxed">
+          <p className="text-muted-foreground mt-1 text-micro leading-relaxed">
             An input that could not be evaluated is reported as unavailable, never counted as
             satisfied.
           </p>
@@ -547,7 +663,7 @@ export function SetupBlock({
           <div>
             <p className="text-muted-foreground text-xs font-medium">Level above</p>
             <p className="num mt-0.5 text-sm">{price(setup.entryLevel, currency)}</p>
-            <p className="text-muted-foreground mt-0.5 text-[11px] leading-relaxed">
+            <p className="text-muted-foreground mt-0.5 text-micro leading-relaxed">
               {setup.entryNote}
             </p>
           </div>
@@ -558,7 +674,7 @@ export function SetupBlock({
               What would break the reason
             </p>
             <p className="num mt-0.5 text-sm">{price(setup.invalidateLevel, currency)}</p>
-            <p className="text-muted-foreground mt-0.5 text-[11px] leading-relaxed">
+            <p className="text-muted-foreground mt-0.5 text-micro leading-relaxed">
               {setup.invalidateNote}
             </p>
           </div>
@@ -566,13 +682,13 @@ export function SetupBlock({
       </div>
 
       {setup.rangeNote ? (
-        <p className="text-muted-foreground mt-3 text-[11px] leading-relaxed">
+        <p className="text-muted-foreground mt-3 text-micro leading-relaxed">
           {setup.rangeNote}.
         </p>
       ) : null}
 
       {setup.confidenceNote ? (
-        <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
+        <p className="text-muted-foreground mt-2 text-micro leading-relaxed">
           {setup.confidenceNote}.
         </p>
       ) : null}
@@ -654,7 +770,7 @@ export function AnalogBlock({
             </span>
           ) : null}
         </div>
-        <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
+        <p className="text-muted-foreground mt-2 text-micro leading-relaxed">
           A past day counts as similar when {setup.toleranceNote}. Absolute price and volume
           are deliberately not matched on: they would mostly find days near this price rather
           than days that looked like this one.
@@ -702,7 +818,7 @@ export function AnalogBlock({
             )}
 
             {r.confidenceNote ? (
-              <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
+              <p className="text-muted-foreground mt-2 text-micro leading-relaxed">
                 {r.confidenceNote}.
               </p>
             ) : null}
@@ -773,7 +889,10 @@ export function UpcomingBlock({
                   {days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days}d`}
                 </Pill>
               </span>
-              <span className="min-w-0 flex-1 text-sm">
+              {/* The date and the countdown are already 176px of fixed width, which left a
+                  company name about 155px at 375px. Below `sm` the name takes its own line
+                  under them instead of being the remainder. */}
+              <span className="w-full min-w-0 text-sm sm:w-auto sm:flex-1">
                 {showTargets && e.links?.length ? (
                   <>
                     {e.links[0].asset ? (
@@ -795,7 +914,7 @@ export function UpcomingBlock({
           );
         })}
       </ul>
-      <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
+      <p className="text-muted-foreground mt-2 text-micro leading-relaxed">
         Scheduled dates as the provider publishes them. Companies move these and a time is
         not always published, so the day is the claim and not the hour. Nothing here says what
         a date will do to a price; what followed past events of the same kind is measured
@@ -852,7 +971,7 @@ export function GeographyBlock({
         {geo.lists.map((list) => (
           <Card key={list.key}>
             <h3 className="text-sm font-medium">{list.label}</h3>
-            <p className="text-muted-foreground mt-0.5 text-[11px]">
+            <p className="text-muted-foreground mt-0.5 text-micro">
               {list.timeframe} &middot; {list.rows.length} places
             </p>
             <ul className="mt-3 space-y-1.5">
@@ -1004,24 +1123,27 @@ export function ThesisBlock({
     );
   }
 
-  const STATUS: Record<string, { text: string; tone: "up" | "down" | "warn" | "default" }> = {
-    active: { text: "reason intact", tone: "up" },
-    weakening: { text: "reason weakening", tone: "warn" },
-    broken: { text: "reason broken", tone: "down" },
-  };
-  const label = STATUS[thesis.status] ?? STATUS.weakening;
+  // One vocabulary, in lib/plain.ts beside the other wording maps. This was a second local copy
+  // saying "reason intact" where that map said "Still holds", so a reader moving between two
+  // blocks on one page got two names for one state.
+  const label = THESIS_WORDS[thesis.status] ?? THESIS_WORDS.weakening;
   const changed = thesis.changed === "none" ? [] : thesis.changed.split(", ").filter(Boolean);
   const held = thesis.held === "none" ? [] : thesis.held.split(", ").filter(Boolean);
 
   return (
     <Card>
       <div className="flex flex-wrap items-center gap-2">
-        <Pill tone={label.tone}>{label.text}</Pill>
+        <Pill tone={label.tone}>{label.label}</Pill>
         <Pill>{thesis.direction}</Pill>
         <Pill>{thesis.horizon}</Pill>
         <ConfidenceBadge grade={thesis.confidence} />
         <AsOf date={thesis.asOf} />
       </div>
+
+      {/* The sentence, not only the label. A pill reading "Weakening" says the state; it does not
+          say that something the view was based on has changed. That sentence used to live only in
+          the prose block the decision panel replaced, so it is printed here now. */}
+      <p className="mt-2 text-sm">{label.plain}</p>
 
       <p className="text-muted-foreground mt-3 text-xs">
         Recorded on {isoDate(thesis.openedOn)}, {thesis.sessionsSince} stored{" "}
@@ -1031,7 +1153,8 @@ export function ThesisBlock({
 
       <p className="mt-3 text-sm leading-relaxed">{thesis.reason}</p>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      {/* Three money figures, so the same tablet squeeze as DiscussionBlock. */}
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div>
           <p className="text-muted-foreground text-xs">Close when recorded</p>
           <p className="num mt-0.5 text-sm">{price(thesis.openClose, currency)}</p>
@@ -1264,7 +1387,7 @@ export function NeighbourhoodBlock({
               {showAsset && r.asset ? (
                 <Link
                   href={`/asset/${encodeURIComponent(r.asset.symbol)}`}
-                  className="text-sm font-medium underline underline-offset-2"
+                  className="wrap-hard min-w-0 text-sm font-medium underline underline-offset-2"
                 >
                   {r.asset.name}
                 </Link>
@@ -1291,160 +1414,6 @@ export function NeighbourhoodBlock({
   );
 }
 
-/// The first thing a reader sees on an asset page, in plain words.
-///
-/// Deliberately above every table. The order of the lines is the order a person asks the
-/// questions in — what is happening, why, what the news is, what goes against it, what is
-/// next, what the setup is, and what would change the view — and each line is one sentence
-/// drawn from a stored row rather than a figure to interpret.
-///
-/// Nothing here is new information. Every line is a restatement of something the deeper
-/// sections show with its numbers, source and as-of date attached, which is what makes the
-/// simplification safe: the evidence has not been replaced, it has been moved down the page.
-export function PlainSummary({
-  name,
-  dayPct,
-  investigation,
-  horizons,
-  thesis,
-  upcoming,
-}: {
-  name: string;
-  dayPct: number | null;
-  investigation: {
-    headline: string;
-    found: string;
-    notFound: string;
-    pointsToward: string;
-    unconfirmed: string;
-    volumeRatio: number | null;
-    robustZ: number | null;
-    periodEnd: Date | string;
-    findings: { id: string; kind: string; status: string; detail: string }[];
-  } | null;
-  horizons: {
-    id: string;
-    horizon: string;
-    state: string;
-    headline: string;
-    against: string;
-    entryLevel: number | null;
-    invalidateLevel: number | null;
-    invalidateNote: string | null;
-  }[];
-  thesis: { status: string; reason: string } | null;
-  upcoming: { id: string; name: string; date: Date | string }[];
-}) {
-  const dir = direction(dayPct);
-  const soonest = horizons.find((h) => h.state === "buy" || h.state === "short") ?? horizons[0];
-  const setup = soonest ? SETUP_WORDS[soonest.state] ?? SETUP_WORDS.none : null;
-  const newsFinding = investigation?.findings.find((f) => f.kind === "news");
-  const trading = tradingWords(investigation?.volumeRatio);
-
-  const against = soonest && soonest.against !== "none"
-    ? soonest.against.split(" | ").filter(Boolean)
-    : [];
-
-  return (
-    <Card className="border-primary/30">
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-base font-semibold">{name}</h2>
-        <Pill tone={dir.tone}>
-          {dir.word}
-          {dayPct != null ? ` ${pct(dayPct, 1)}` : ""}
-        </Pill>
-        {setup ? <Pill tone={setup.tone}>{setup.label}</Pill> : null}
-        {thesis && THESIS_WORDS[thesis.status] ? (
-          <Pill tone={THESIS_WORDS[thesis.status].tone}>
-            {THESIS_WORDS[thesis.status].label}
-          </Pill>
-        ) : null}
-      </div>
-
-      <dl className="mt-4 space-y-3 text-sm">
-        <div>
-          <dt className="text-muted-foreground text-xs font-medium">What&apos;s happening</dt>
-          <dd className="mt-0.5 leading-relaxed">
-            {investigation
-              ? investigation.headline
-              : dayPct != null
-                ? `${name} is ${dir.word.toLowerCase()} ${pct(dayPct, 1)} on its latest stored day, which is within what it normally does.`
-                : "No price change is stored for the latest day."}
-            {trading ? ` There was ${trading}.` : ""}
-          </dd>
-        </div>
-
-        <div>
-          <dt className="text-muted-foreground text-xs font-medium">Why</dt>
-          <dd className="mt-0.5 leading-relaxed">
-            {investigation
-              ? investigation.pointsToward
-              : "Nothing unusual happened, so nothing was investigated. The conditions below are the ordinary reading."}
-          </dd>
-        </div>
-
-        <div>
-          <dt className="text-muted-foreground text-xs font-medium">News</dt>
-          <dd className="mt-0.5 leading-relaxed">
-            {newsFinding
-              ? newsFinding.status === "found"
-                ? newsFinding.detail
-                : "No story is stored for it in the days around the move."
-              : "No news check has been run for this asset yet."}
-          </dd>
-        </div>
-
-        <div>
-          <dt className="text-muted-foreground text-xs font-medium">
-            What goes against it
-          </dt>
-          <dd className="mt-0.5 leading-relaxed">
-            {against.length ? (
-              <ul className="space-y-1">
-                {against.map((a, i) => (
-                  <li key={i}>{a}</li>
-                ))}
-              </ul>
-            ) : (
-              "Nothing measured points the other way right now."
-            )}
-          </dd>
-        </div>
-
-        <div>
-          <dt className="text-muted-foreground text-xs font-medium">What&apos;s next</dt>
-          <dd className="mt-0.5 leading-relaxed">
-            {upcoming.length ? (
-              <>
-                {upcoming[0].name} on {isoDate(upcoming[0].date)}
-                {upcoming.length > 1 ? `, and ${upcoming.length - 1} more dated item${upcoming.length > 2 ? "s" : ""}` : ""}.
-              </>
-            ) : (
-              "No scheduled date is stored for it."
-            )}
-          </dd>
-        </div>
-
-        <div>
-          <dt className="text-muted-foreground text-xs font-medium">
-            What would change the view
-          </dt>
-          <dd className="mt-0.5 leading-relaxed">
-            {soonest?.invalidateLevel != null
-              ? `${soonest.invalidateNote ?? "A close past the level named with this read"}. Until then the conditions above are what the data shows.`
-              : "No invalidation level is stored, because there is no directional read to invalidate."}
-          </dd>
-        </div>
-      </dl>
-
-      {investigation ? (
-        <p className="text-muted-foreground mt-4 text-xs leading-relaxed">
-          {investigation.unconfirmed.split(" | ")[0]}.
-        </p>
-      ) : null}
-    </Card>
-  );
-}
 
 /// The same asset on every horizon it has been read on, side by side.
 ///
@@ -1487,7 +1456,9 @@ export function HorizonStrip({
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-3">
+    // `md:grid-cols-3` put three cards in 768px, so each held a price range laid out with
+    // `justify-between` in about 237px. Two columns at `sm`, three only once there is room.
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {horizons.map((h) => {
         const words = SETUP_WORDS[h.state] ?? SETUP_WORDS.none;
         const label = HORIZON_WORDS[h.horizon] ?? { label: h.horizon, window: "" };
@@ -1529,7 +1500,10 @@ export function HorizonStrip({
                 </p>
                 <ul className="mt-1 space-y-1">
                   {h.targets.map((t) => (
-                    <li key={t.id} className="flex items-baseline justify-between gap-2 text-xs">
+                    <li
+                      key={t.id}
+                      className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 text-xs"
+                    >
                       <span className="text-muted-foreground">
                         {METHOD_WORDS[t.method] ?? t.method}
                       </span>
@@ -1539,8 +1513,17 @@ export function HorizonStrip({
                           : `${price(t.low, currency)} to ${price(t.high, currency)}`}
                       </span>
                       {rewardWords(t.rewardRisk) ? (
-                        <span className="text-muted-foreground w-full text-[11px] leading-relaxed">
+                        <span className="text-muted-foreground w-full text-micro leading-relaxed">
                           {rewardWords(t.rewardRisk)}
+                        </span>
+                      ) : null}
+                      {/* What this range was measured from, printed rather than hidden in a
+                          `title` on a table further down the page. A tooltip needs a hover,
+                          a phone has none, and this was the only place the measurement
+                          basis was written. */}
+                      {t.note ? (
+                        <span className="text-muted-foreground w-full text-micro leading-relaxed">
+                          {t.note}
                         </span>
                       ) : null}
                     </li>
@@ -1555,8 +1538,8 @@ export function HorizonStrip({
                   </Note>
                 ) : null}
                 <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
-                  Measured ranges, not forecasts. Hover each note on the deeper table below for
-                  what it was measured from.
+                  Measured ranges, not forecasts. What each one was measured from is printed
+                  under it.
                 </p>
               </div>
             ) : null}
@@ -1644,11 +1627,13 @@ export function InvestigationBlock({
             const words = FINDING_WORDS[f.status] ?? FINDING_WORDS.unavailable;
             return (
               <li key={f.id} className="flex flex-wrap items-baseline gap-2 text-xs">
-                <span className="min-w-[8.5rem] font-medium">
+                {/* Check name, then grade, then detail — each on its own line on a phone,
+                    all on one row from `sm` up as before. */}
+                <span className="w-full font-medium sm:w-auto sm:min-w-[8.5rem]">
                   {CHECK_WORDS[f.kind] ?? f.kind}
                 </span>
                 <Pill tone={words.tone}>{words.label}</Pill>
-                <span className="text-muted-foreground flex-1 leading-relaxed">
+                <span className="text-muted-foreground w-full leading-relaxed sm:w-auto sm:flex-1">
                   {f.detail}
                   {f.sourceName ? ` — ${f.sourceName}` : ""}
                   {f.observedAt ? ` (${isoDate(f.observedAt)})` : ""}
@@ -1751,14 +1736,19 @@ export function IntradayHealth({
       <ul className="space-y-1.5">
         {health.sessions.map((s) => (
           <li key={s.id} className="flex flex-wrap items-baseline gap-2 text-xs">
-            <span className="num min-w-[5.5rem]">{isoDate(s.sessionDate)}</span>
-            <span className="text-muted-foreground min-w-[3rem]">{s.interval}m</span>
+            {/* The minimum widths line the dates and intervals up into columns, which is
+                worth having on a wide screen and is what squeezes the note on a narrow one.
+                They apply from `sm`; the note drops to its own line below that. */}
+            <span className="num sm:min-w-[5.5rem]">{isoDate(s.sessionDate)}</span>
+            <span className="text-muted-foreground sm:min-w-[3rem]">{s.interval}m</span>
             <Pill tone={TONE[s.status] ?? "default"}>{s.status}</Pill>
             <span className="text-muted-foreground num">
               {s.barsStored}
               {s.barsExpected != null ? ` of about ${s.barsExpected}` : ""} bars
             </span>
-            <span className="text-muted-foreground flex-1 leading-relaxed">{s.note}</span>
+            <span className="text-muted-foreground w-full leading-relaxed sm:w-auto sm:flex-1">
+              {s.note}
+            </span>
           </li>
         ))}
       </ul>
@@ -1776,151 +1766,6 @@ export function IntradayHealth({
   );
 }
 
-/// The front page's answer to "what matters now".
-///
-/// Ordered by how unusual a move was for that asset rather than by how large it was, because a
-/// 3% day is ordinary for one of these names and remarkable for another. Each row leads with
-/// the sentence and keeps the figure beside it.
-export function WhatMattersBlock({
-  matters,
-}: {
-  matters: {
-    periodEnd: Date | string | null;
-    rows: {
-      id: string;
-      headline: string;
-      pointsToward: string;
-      trigger: string;
-      movePct: number | null;
-      robustZ: number | null;
-      volumeRatio: number | null;
-      leading: string | null;
-      confidence: string;
-      asset: { symbol: string; name: string };
-    }[];
-  };
-}) {
-  if (!matters.rows.length) {
-    return (
-      <Empty>
-        Nothing moved unusually against its own history today. That is the ordinary state, and
-        an empty list here is a real answer rather than a missing one.
-      </Empty>
-    );
-  }
-  return (
-    <>
-      <div className="grid gap-3 lg:grid-cols-2">
-        {matters.rows.map((r) => {
-          const unusual = unusualWords(r.robustZ);
-          return (
-            <Card key={r.id} href={`/asset/${encodeURIComponent(r.asset.symbol)}`}>
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <h3 className="text-sm font-medium">{r.asset.name}</h3>
-                {r.movePct != null ? (
-                  <Pill tone={r.movePct >= 0 ? "up" : "down"}>{pct(r.movePct, 1)}</Pill>
-                ) : (
-                  <Pill tone="warn">{r.trigger}</Pill>
-                )}
-              </div>
-              <p className="mt-2 text-xs leading-relaxed">{r.headline}</p>
-              <p className="text-muted-foreground mt-1.5 text-xs leading-relaxed">
-                {r.pointsToward}
-              </p>
-              {unusual ? (
-                <p className="text-muted-foreground mt-1.5 text-xs">{unusual}.</p>
-              ) : null}
-              <div className="mt-2">
-                <ConfidenceBadge grade={r.confidence} />
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-      <Note>
-        These are the moves that are large <em>for the asset that made them</em>, not the largest
-        moves on the site. Each one has been checked against company news, its industry, the
-        calendar, the related names and its own history, and the asset page lists what was found
-        and what was not.
-      </Note>
-    </>
-  );
-}
-
-/// The first thing on an asset or product page: four short lines and a way down to the rest.
-///
-/// Deliberately small. Everything in it is a restatement of a value already computed and
-/// already shown further down with its source and as-of date, so the block adds no claim —
-/// it only puts the answer before the evidence instead of after it.
-///
-/// The caution line is omitted entirely when there is nothing true to put in it. A caution
-/// that is always present is wallpaper, and a reader learns to skip the one time it matters.
-export function SimpleRead({
-  lines,
-  detailHref = "#detail",
-}: {
-  lines: {
-    shows: string;
-    grade: string;
-    gradeWhy: string;
-    caution: string | null;
-    changes: string | null;
-  };
-  detailHref?: string;
-}) {
-  return (
-    <Card className="border-primary/40">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold tracking-tight">Simple read</h2>
-        <ConfidenceBadge grade={lines.grade} />
-      </div>
-
-      <p className="mt-2.5 text-sm leading-relaxed">{lines.shows}</p>
-
-      <dl className="mt-3 space-y-1.5 text-xs">
-        <div className="flex gap-2">
-          <dt className="text-muted-foreground min-w-[7.5rem] shrink-0">Confidence</dt>
-          <dd className="leading-relaxed">
-            {GRADE_PLAIN[lines.grade] ?? lines.grade} — {lines.gradeWhy}
-          </dd>
-        </div>
-        {lines.caution ? (
-          <div className="flex gap-2">
-            <dt className="text-warn min-w-[7.5rem] shrink-0 font-medium">Watch out</dt>
-            <dd className="leading-relaxed">{lines.caution}</dd>
-          </div>
-        ) : null}
-        {lines.changes ? (
-          <div className="flex gap-2">
-            <dt className="text-muted-foreground min-w-[7.5rem] shrink-0">
-              Changes the view
-            </dt>
-            <dd className="leading-relaxed">{lines.changes}</dd>
-          </div>
-        ) : null}
-      </dl>
-
-      <a
-        href={detailHref}
-        className="text-primary mt-3 inline-block text-xs underline underline-offset-2"
-      >
-        Full detail below ↓
-      </a>
-
-      <p className="text-muted-foreground mt-2 text-[11px] leading-relaxed">
-        A description of measured conditions. Not advice, and it does not say what will happen.
-      </p>
-    </Card>
-  );
-}
-
-/// The grade in a word a reader does not have to decode.
-const GRADE_PLAIN: Record<string, string> = {
-  high: "High",
-  medium: "Medium",
-  low: "Low",
-  none: "Not graded",
-};
 
 /// One product, scannable in a second.
 ///
@@ -1954,7 +1799,11 @@ export function ProductCard({
     <Card>
       <Link href={`/product/${product.slug}`} className="block">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-medium underline-offset-2 hover:underline">{product.name}</h3>
+          {/* Product names are listing titles from an external feed and run past 150
+              characters with model numbers in them. */}
+          <h3 className="wrap-hard min-w-0 font-medium underline-offset-2 hover:underline">
+            {product.name}
+          </h3>
           <Pill tone={tone}>{PRODUCT_STATUS_WORDS[product.status]?.label ?? product.status}</Pill>
         </div>
         <div className="mt-2 flex items-baseline justify-between gap-2">
@@ -1963,7 +1812,7 @@ export function ProductCard({
           </span>
           <ConfidenceBadge grade={product.confidence} />
         </div>
-        <p className="text-muted-foreground mt-1 text-[11px]">
+        <p className="text-muted-foreground mt-1 text-micro">
           {product.category} · {product.sourcesAnswered} of 5 sources answered
           {product.sourcesAnswered > 0 ? `, ${product.sourcesAgree} agree` : ""}
         </p>
@@ -1971,16 +1820,16 @@ export function ProductCard({
 
       {product.confidenceNote || product.summary ? (
         <details className="group mt-2">
-          <summary className="text-muted-foreground hover:text-foreground cursor-pointer list-none text-[11px] underline underline-offset-2">
+          <summary className="text-muted-foreground hover:text-foreground -my-1 inline-flex min-h-11 cursor-pointer list-none items-center text-micro underline underline-offset-2 sm:my-0 sm:min-h-0">
             Why this grade
           </summary>
           {product.confidenceNote ? (
-            <p className="text-muted-foreground mt-1.5 text-[11px] leading-relaxed">
+            <p className="text-muted-foreground mt-1.5 text-micro leading-relaxed">
               {product.confidenceNote}
             </p>
           ) : null}
           {product.summary ? (
-            <p className="text-muted-foreground mt-1.5 text-[11px] leading-relaxed">
+            <p className="text-muted-foreground mt-1.5 text-micro leading-relaxed">
               {product.summary}
             </p>
           ) : null}
@@ -1990,50 +1839,6 @@ export function ProductCard({
   );
 }
 
-/// Three compact boxes near the top of the home page: what to watch, what is dated, what is
-/// getting attention.
-///
-/// One number or state per row and a link, and no prose on the cards. The sections below are
-/// unchanged; this is a way into them rather than a replacement for them. Every row comes from
-/// a table that was already being read on this page.
-export function ScanBox({
-  title,
-  lead,
-  empty,
-  rows,
-}: {
-  title: string;
-  lead: string;
-  empty: string;
-  rows: { key: string; label: string; value: string; href?: string; tone?: "up" | "down" | "warn" | "default" }[];
-}) {
-  return (
-    <Card>
-      <h3 className="text-sm font-medium">{title}</h3>
-      <p className="text-muted-foreground mt-0.5 text-[11px] leading-relaxed">{lead}</p>
-      {rows.length ? (
-        <ul className="mt-2.5 space-y-1.5">
-          {rows.map((r) => (
-            <li key={r.key} className="flex items-baseline justify-between gap-2 text-xs">
-              {r.href ? (
-                <Link href={r.href} className="truncate underline-offset-2 hover:underline">
-                  {r.label}
-                </Link>
-              ) : (
-                <span className="truncate">{r.label}</span>
-              )}
-              <span className={`num shrink-0 ${r.tone ? toneClass(r.tone === "up" ? 1 : r.tone === "down" ? -1 : 0) : ""}`}>
-                {r.value}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-muted-foreground mt-2.5 text-xs leading-relaxed">{empty}</p>
-      )}
-    </Card>
-  );
-}
 
 /// Source health, for the reader.
 ///
@@ -2140,7 +1945,9 @@ export function StoriesBlock({
       <ul className="mt-3 space-y-3">
         {stories.map((s) => (
           <li key={s.id} className="border-border border-b pb-3 last:border-0">
-            <p className="text-sm">{s.headline}</p>
+            {/* A news headline from an RSS feed: the one string on the site most likely to
+                carry an unbroken token longer than a phone is wide. */}
+            <p className="wrap-hard text-sm">{s.headline}</p>
             <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
               {storyWords(s.items, s.publishers)} · first seen {isoDate(s.firstSeen)}, last{" "}
               {isoDate(s.lastSeen)}
@@ -2148,7 +1955,7 @@ export function StoriesBlock({
           </li>
         ))}
       </ul>
-      <p className="text-muted-foreground mt-3 text-[11px] leading-relaxed">
+      <p className="text-muted-foreground mt-3 text-micro leading-relaxed">
         Clustered with {stories[0].rule}. The earliest item in each cluster is kept as its
         label, which is a headline and not a summary of the story.
       </p>

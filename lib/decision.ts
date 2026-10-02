@@ -48,9 +48,10 @@ export const STALE_AFTER_DAYS: Record<Market, number> = {
 /// Below this many recent stories, news counts as thin. Thin news is only a gate when the price
 /// also moved unusually: a quiet name with no news is normal, a 9% move with no news is not.
 ///
-/// 8 is not a new number. It is `THIN_STORIES` in lib/plain.ts and `MIN_ITEMS` in jobs/human.py,
-/// and a second threshold for the same idea is how two parts of one page come to disagree about
-/// whether a name is covered.
+/// 8 is not a new number: it is `MIN_ITEMS` in jobs/human.py, which is the job that decides what
+/// counts as thin in the first place. lib/plain.ts carried a copy called `THIN_STORIES` until the
+/// simple-read builders that used it were deleted. A second threshold for one idea is how two
+/// parts of a page come to disagree about whether a name is covered, so this points at the job.
 export const THIN_NEWS_BELOW = 8;
 
 /// A dated event this close is worth a CARE, because a position opened today meets it.

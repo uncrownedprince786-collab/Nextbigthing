@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import * as React from "react";
 import { Sparkline } from "@/components/chart";
 import {
   AccuracyNote,
@@ -8,6 +9,7 @@ import {
   AttributionBlock,
   Card,
   ConfidenceBadge,
+  ConfidenceKey,
   DiscussionBlock,
   Empty,
   HorizonStrip,
@@ -16,34 +18,32 @@ import {
   NeighbourhoodBlock,
   Note,
   Pill,
-  PlainSummary,
   Section,
   SetupBlock,
-  SimpleRead,
   StoriesBlock,
   Table,
   ThesisBlock,
   UpcomingBlock,
   weakest,
 } from "@/components/ui";
+import { DecisionPanel } from "@/components/decision";
 import {
   getAccuracy,
-  getAnalogs,
   getAsset,
   getAssetPrices,
   getAttribution,
-  getHorizons,
-  getHumanSignal,
+  getDecisionBundle,
   getIntradayHealth,
-  getInvestigation,
   getRelevance,
+  getSourceHealth,
   getStories,
   getSetup,
   getThesis,
   getUpcoming,
 } from "@/lib/queries";
+import { bundleFromQuery, marketOf, toDecisionInput, todayISO } from "@/lib/decisionInput";
+import { decide } from "@/lib/decision";
 import { isoDate, longDate, money, pct, relativeTime, sizeBasisText, toneClass } from "@/lib/format";
-import { assetSimpleRead } from "@/lib/plain";
 
 export const revalidate = 3600;
 
@@ -65,46 +65,109 @@ const BASIS_LABEL: Record<string, string> = {
   rising: "24 month return against its industry",
 };
 
+/// One closed group inside the Details area.
+///
+/// A plain `<details>`, because that is how this site collapses things: the same pattern as
+/// `HowToRead` and `ConfidenceKey` in components/ui.tsx, and it costs no client JavaScript — this
+/// page has no `'use client'` and gains nothing by acquiring one to hide a table.
+///
+/// Why groups rather than one giant toggle: the decision at the top is the page now, and a reader
+/// who scrolls past it is looking for *one* thing — the levels, the dates, the news. One toggle
+/// would make them open all sixteen to find it. The summary is the whole title, so the list of
+/// summaries reads as a table of contents whether anything is open or not.
+///
+/// `lead` is deliberately capped at one sentence by the call sites below. The old page carried
+/// three-sentence leads explaining the method before the figure; the method has not moved, it is
+/// still inside each block, and a reader who has not yet opened the group does not need it.
+function Detail({
+  title,
+  lead,
+  children,
+}: {
+  title: string;
+  lead?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="border-border bg-muted/30 rounded-lg border px-4 py-1 sm:py-3">
+      {/* 44px tall on a phone through padding that collapses from `sm` up, so the desktop box
+          keeps its measurements. Same trick as the other two disclosures on the site. */}
+      <summary className="-my-1 cursor-pointer py-3 text-sm font-medium select-none sm:my-0 sm:py-0">
+        {title}
+      </summary>
+      <div className="mt-3 mb-3 sm:mb-0">
+        {lead ? <p className="text-muted-foreground mb-3 max-w-3xl text-sm">{lead}</p> : null}
+        {children}
+      </div>
+    </details>
+  );
+}
+
 export default async function AssetPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = await params;
   const asset = await getAsset(decodeURIComponent(symbol));
   if (!asset) notFound();
 
-  const prices = await getAssetPrices(asset.id, 2019);
-  const note = asset.analysis[0];
-  const [discussion, accuracy, analogs, upcoming, setup, thesis, attribution, relevance] =
-    await Promise.all([
-      getHumanSignal({ assetId: asset.id }),
-      getAccuracy(30),
-      getAnalogs(asset.id),
-      getUpcoming({ assetId: asset.id, take: 8 }),
-      getSetup(asset.id),
-      getThesis(asset.id),
-      getAttribution(asset.id),
-      getRelevance(asset.id),
-    ]);
-  const [horizons, investigation, intradayHealth, stories] = await Promise.all([
-    getHorizons(asset.id),
-    getInvestigation(asset.id),
+  // The decision bundle is read with everything else rather than ahead of it. It is eight queries
+  // of its own and the rest of the page is nine more, and the panel is the part a reader waits on,
+  // so there is nothing to gain by making the two round trips sequential.
+  const [
+    bundle,
+    sourceHealth,
+    prices,
+    accuracy,
+    upcoming,
+    setup,
+    thesis,
+    attribution,
+    relevance,
+    intradayHealth,
+    stories,
+  ] = await Promise.all([
+    getDecisionBundle(asset.id),
+    getSourceHealth(),
+    getAssetPrices(asset.id, 2019),
+    getAccuracy(30),
+    getUpcoming({ assetId: asset.id, take: 8 }),
+    getSetup(asset.id),
+    getThesis(asset.id),
+    getAttribution(asset.id),
+    getRelevance(asset.id),
     getIntradayHealth(asset.id),
     getStories(asset.id),
   ]);
 
-  // The latest stored day's change, which is what the plain summary leads with. Computed here
-  // rather than read from a row because no table stores a one day return: every consumer of it
-  // needs a different window, and storing one would invite reading it against another.
-  const prev = prices.length > 1 ? prices[prices.length - 2] : null;
-  const dayPct =
-    prev && prev.close ? (prices[prices.length - 1].close / prev.close - 1) * 100 : null;
+  // The horizons, analogs, news reading and investigation are taken off the bundle instead of
+  // being queried a second time. They are the same rows — `getDecisionBundle` calls the same four
+  // functions — and reading them twice would let the panel and the group below it describe
+  // different states of the same asset within one render.
+  const horizons = bundle.horizons;
+  const investigation = bundle.investigation;
+  const discussion = bundle.humanSignal;
+  const analogs = { periodEnd: bundle.analogPeriodEnd, rows: bundle.analogs };
+
+  // One decision, from the rule table, with today injected once. The freshness gate lives in that
+  // table: this page does not test the close date itself, because a second staleness rule is how
+  // the panel and the page come to disagree about whether the number on screen is today's.
+  const decision = decide(toDecisionInput(bundleFromQuery(bundle, sourceHealth), todayISO()));
+
+  const note = asset.analysis[0];
+  const market = marketOf(asset);
 
   const byBasis = new Map<string, typeof asset.rankings>();
   for (const r of asset.rankings) {
     if (!byBasis.has(r.basis)) byBasis.set(r.basis, []);
     byBasis.get(r.basis)!.push(r);
   }
-  const latestPrice = prices[prices.length - 1];
-  const yearAgo = prices.filter((p) => p.date <= new Date(latestPrice.date.getTime() - 365 * 86_400_000)).pop();
-  const oneYear = yearAgo ? ((latestPrice.close / yearAgo.close - 1) * 100) : null;
+
+  // Guarded, because an asset with no stored closes is a real state here — a name seeded before its
+  // first price run has rankings and news and no series at all, and the old unguarded read of
+  // `latestPrice.date` would have thrown the page away rather than said so.
+  const latestPrice = prices.length ? prices[prices.length - 1] : null;
+  const yearAgo = latestPrice
+    ? prices.filter((p) => p.date <= new Date(latestPrice.date.getTime() - 365 * 86_400_000)).pop()
+    : undefined;
+  const oneYear = latestPrice && yearAgo ? (latestPrice.close / yearAgo.close - 1) * 100 : null;
 
   // Current size comes from the ranking row rather than the newest price snapshot, so the
   // figure shown here is the same one the industry table ranks and grades.
@@ -114,275 +177,333 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
 
   return (
     <div>
-      <div>
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{asset.name}</h1>
-          <Pill>{asset.symbol}</Pill>
-          <Pill>{asset.assetType}</Pill>
-        </div>
-        <p className="text-muted-foreground mt-2 text-sm">
-          In{" "}
-          <Link href={`/industry/${asset.industry.slug}`} className="underline underline-offset-2">
-            {asset.industry.name}
-          </Link>
-          . Price source {asset.source}.
-        </p>
-        {asset.note ? <p className="mt-2 max-w-3xl text-sm leading-relaxed">{asset.note}</p> : null}
+      {/* Name, symbol, market. Nothing else above the decision — not the industry link, not the
+          source, not the stored prose. Each of those was a line a reader had to pass before
+          reaching the one word they came for, and all three are still in Details below. */}
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{asset.name}</h1>
+        <Pill>{asset.symbol}</Pill>
+        <Pill>{market}</Pill>
       </div>
 
-      {/* Four lines, then a way down. Everything in it restates a value already computed and
-          already shown below with its source and as-of date, so the block adds no claim: it
-          puts the answer before the evidence instead of after it. */}
+      {/* The decision, first and alone. Action, the two levels, when, and how well evidenced —
+          and the missing-data list, which the panel renders itself and which is why there is no
+          branch here for an asset with nothing stored. `currency` is the asset's own: PSX names
+          are quoted in rupees and the panel's `price()` prints the right mark. */}
       <div className="mt-6">
-        <SimpleRead
-          lines={assetSimpleRead({
-            name: asset.name,
-            dayPct,
-            horizons,
-            thesis,
-            investigation,
-            discussion,
-            nextDated: upcoming[0] ? { name: upcoming[0].name, date: upcoming[0].date } : null,
-            currency: asset.currency,
-          })}
-          detailHref="#detail"
+        <DecisionPanel
+          decision={decision}
+          symbol={asset.symbol}
+          currency={asset.currency}
+          asOf={bundle.newestCloseDate}
         />
       </div>
 
-      <div className="mt-4" id="detail">
-        <PlainSummary
-          name={asset.name}
-          dayPct={dayPct}
-          investigation={investigation}
-          horizons={horizons}
-          thesis={thesis}
-          upcoming={upcoming}
-        />
-      </div>
+      {/*
+        Everything that is not the decision.
 
-      <Section
-        title="The same asset on three horizons"
-        lead="Today, the next few weeks, and the longer term. They are computed from different windows and will sometimes disagree, which is not a contradiction to resolve by picking one."
-      >
-        <HorizonStrip horizons={horizons} currency={asset.currency} />
-      </Section>
+        `id="detail"` lives here because the old `SimpleRead` card linked to `#detail` and that
+        anchor pointed at the plain-summary wrapper, which is gone. The link still resolves, and it
+        now lands on the list of groups rather than on a restatement of the panel above it.
+        `scroll-mt-4` keeps the heading off the very top edge when it does.
+      */}
+      <div id="detail" className="scroll-mt-4">
+        <Section
+          title="Details"
+          lead="Every measurement the decision was read from. Open what you want."
+        >
+          <div className="space-y-2">
+            {/* The grades are explained once, here, in words. Every confidence badge below
+                carries a `title=` with its reason, and a title is a hover: on a phone it does
+                not exist. This is the same explanation, reachable by tapping. */}
+            <ConfidenceKey />
+            <Detail
+              title="The same asset on three horizons"
+              lead="Today, the next few weeks, and the longer term; they will sometimes disagree."
+            >
+              <HorizonStrip horizons={horizons} currency={asset.currency} />
+            </Detail>
 
-      <Section
-        title="What was looked at"
-        lead="When a move is large for this asset, the evidence that could bear on it is checked. Everything that was checked is listed, including what was not found."
-      >
-        <InvestigationBlock investigation={investigation} />
-      </Section>
+            <Detail
+              title="What the conditions say right now"
+              lead="Every condition tested, including the ones that failed and the inputs that were unavailable."
+            >
+              <SetupBlock setup={setup} currency={asset.currency} />
+            </Detail>
 
-      {note ? (
-        <Card className="mt-6">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-medium">Where this sits</h2>
-            <ConfidenceBadge grade={note.confidence} />
-          </div>
-          <p className="mt-2 text-sm leading-relaxed">{note.body}</p>
-          {note.dataNote ? <Note>{note.dataNote}</Note> : null}
-        </Card>
-      ) : null}
+            {/* Kept next to the conditions above, because the two are one question asked twice:
+                what the conditions are today, and whether the conditions the last read was taken
+                on are still there. Split apart, a two week old reason reads as a fresh one. */}
+            <Detail
+              title="What we said before, and whether it still holds"
+              lead="The last directional read, compared against the day it first appeared rather than against yesterday."
+            >
+              <ThesisBlock thesis={thesis} currency={asset.currency} />
+            </Detail>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <Card>
-          <p className="text-muted-foreground text-xs">Last stored close</p>
-          <p className="num mt-1 text-2xl font-semibold">{latestPrice ? latestPrice.close.toFixed(2) : "not available"}</p>
-          <p className="text-muted-foreground text-xs">{isoDate(latestPrice?.date)}</p>
-        </Card>
-        <Card>
-          <p className="text-muted-foreground text-xs">Return over the last year</p>
-          <p className={`num mt-1 text-2xl font-semibold ${toneClass(oneYear)}`}>{pct(oneYear)}</p>
-          <p className="text-muted-foreground text-xs">
-            {yearAgo ? `${isoDate(yearAgo.date)} to ${isoDate(latestPrice.date)}` : "not enough history"}
-          </p>
-        </Card>
-        <Card>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-muted-foreground text-xs">Size now</p>
-            <ConfidenceBadge grade={sizeGrade} />
-          </div>
-          <p className="num mt-1 text-2xl font-semibold">
-            {sizeNowRow ? money(sizeNowRow.value, asset.currency) : "not stored"}
-          </p>
-          <p className="text-muted-foreground text-xs">
-            {sizeNowRow
-              ? `${sizeBasisText(asset.capBasis)}, newest stored close`
-              : asset.capBasis === "none"
-                ? sizeBasisText("none")
-                : "no size ranking is stored for this asset, so no figure is shown"}
-          </p>
-        </Card>
-      </div>
+            <Detail
+              title="What was looked at"
+              lead="Everything checked when the last large move happened, including what was not found."
+            >
+              <InvestigationBlock investigation={investigation} />
+            </Detail>
 
-      <Section
-        title="Stored price history"
-        lead="Daily closes from 2019 onward, as stored. The line is the closing price only, not adjusted for dividends."
-      >
-        <Card>
-          <Sparkline points={prices} label={asset.name} />
-        </Card>
-        <p className="text-muted-foreground mt-2 text-xs">
-          {prices.length.toLocaleString("en-US")} stored closes from {isoDate(prices[0]?.date)} to{" "}
-          {isoDate(prices[prices.length - 1]?.date)}.
-        </p>
-      </Section>
+            <Detail
+              title="Price and history"
+              lead="Daily closes from 2019 onward, as stored, not adjusted for dividends."
+            >
+              {/* `sm:grid-cols-2 lg:grid-cols-3` and not `sm:grid-cols-3`: three columns at 640px
+                  is about 190px each, which is not enough for a `text-2xl` money figure next to a
+                  badge. Two until there is room for three. */}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <Card>
+                  <p className="text-muted-foreground text-xs">Last stored close</p>
+                  <p className="num mt-1 text-2xl font-semibold">
+                    {latestPrice ? latestPrice.close.toFixed(2) : "not available"}
+                  </p>
+                  <p className="text-muted-foreground text-xs">{isoDate(latestPrice?.date)}</p>
+                </Card>
+                <Card>
+                  <p className="text-muted-foreground text-xs">Return over the last year</p>
+                  <p className={`num mt-1 text-2xl font-semibold ${toneClass(oneYear)}`}>
+                    {pct(oneYear)}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {latestPrice && yearAgo
+                      ? `${isoDate(yearAgo.date)} to ${isoDate(latestPrice.date)}`
+                      : "not enough history"}
+                  </p>
+                </Card>
+                <Card>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-muted-foreground text-xs">Size now</p>
+                    <ConfidenceBadge grade={sizeGrade} />
+                  </div>
+                  <p className="num mt-1 text-2xl font-semibold">
+                    {sizeNowRow ? money(sizeNowRow.value, asset.currency) : "not stored"}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {sizeNowRow
+                      ? `${sizeBasisText(asset.capBasis)}, newest stored close`
+                      : asset.capBasis === "none"
+                        ? sizeBasisText("none")
+                        : "no size ranking is stored for this asset, so no figure is shown"}
+                  </p>
+                </Card>
+              </div>
 
-      <Section title="Stored rankings" lead="Every ranking row for this asset, newest window first.">
-        {asset.rankings.length ? (
-          <Table
-            head={
-              <>
-                <th className="px-3 py-2 font-medium">Basis</th>
-                <th className="px-3 py-2 text-right font-medium">Rank</th>
-                <th className="px-3 py-2 text-right font-medium">Value</th>
-                <th className="px-3 py-2 font-medium">Confidence</th>
-                <th className="px-3 py-2 text-right font-medium">From</th>
-                <th className="px-3 py-2 text-right font-medium">To</th>
-                <th className="px-3 py-2 font-medium">Note</th>
-              </>
-            }
-          >
-            {asset.rankings.map((r) => (
-              <tr key={r.id}>
-                <td className="px-3 py-2 text-xs">{BASIS_LABEL[r.basis] ?? r.basis}</td>
-                <td className="num px-3 py-2 text-right">{r.rank}</td>
-                <td
-                  className={`num px-3 py-2 text-right ${r.basis === "totalReturn" || r.basis === "rising" ? toneClass(r.value) : ""}`}
+              {prices.length ? (
+                <>
+                  <Card className="mt-3">
+                    <Sparkline points={prices} label={asset.name} />
+                  </Card>
+                  <p className="text-muted-foreground mt-2 text-xs">
+                    {prices.length.toLocaleString("en-US")} stored closes from{" "}
+                    {isoDate(prices[0]?.date)} to {isoDate(latestPrice?.date)}.
+                  </p>
+                </>
+              ) : (
+                <div className="mt-3">
+                  <Empty>No closes are stored for this asset from 2019 onward.</Empty>
+                </div>
+              )}
+            </Detail>
+
+            <Detail title="Rankings" lead="Every ranking row for this asset, newest window first.">
+              {asset.rankings.length ? (
+                // 760px rather than the 640px default: seven columns, one of which is free text.
+                // At 640px the note column took whatever width was left and the dates wrapped to
+                // three lines each. The table scrolls instead, which the edge shadow announces.
+                <Table
+                  minWidth="760px"
+                  stickyFirstColumn
+                  head={
+                    <>
+                      <th className="px-3 py-2 font-medium">Basis</th>
+                      <th className="px-3 py-2 text-right font-medium">Rank</th>
+                      <th className="px-3 py-2 text-right font-medium">Value</th>
+                      <th className="px-3 py-2 font-medium">Confidence</th>
+                      <th className="px-3 py-2 text-right font-medium">From</th>
+                      <th className="px-3 py-2 text-right font-medium">To</th>
+                      <th className="px-3 py-2 font-medium">Note</th>
+                    </>
+                  }
                 >
-                  {r.basis === "size" || r.basis === "sizeNow"
-                    ? money(r.value, asset.currency)
-                    : pct(r.value)}
-                </td>
-                <td className="px-3 py-2" title={r.confidenceNote ?? undefined}>
-                  <ConfidenceBadge grade={r.confidence} />
-                </td>
-                <td className="num text-muted-foreground px-3 py-2 text-right">{isoDate(r.periodStart)}</td>
-                <td className="num text-muted-foreground px-3 py-2 text-right">{isoDate(r.periodEnd)}</td>
-                <td className="text-muted-foreground px-3 py-2 text-xs">
-                  {r.confidenceNote ?? r.note ?? "-"}
-                </td>
-              </tr>
-            ))}
-          </Table>
-        ) : (
-          <Empty>No ranking rows are stored for this asset.</Empty>
-        )}
-      </Section>
+                  {asset.rankings.map((r) => (
+                    <tr key={r.id}>
+                      <td className="px-3 py-2 text-xs">{BASIS_LABEL[r.basis] ?? r.basis}</td>
+                      <td className="num px-3 py-2 text-right">{r.rank}</td>
+                      <td
+                        className={`num px-3 py-2 text-right ${r.basis === "totalReturn" || r.basis === "rising" ? toneClass(r.value) : ""}`}
+                      >
+                        {r.basis === "size" || r.basis === "sizeNow"
+                          ? money(r.value, asset.currency)
+                          : pct(r.value)}
+                      </td>
+                      <td className="px-3 py-2" title={r.confidenceNote ?? undefined}>
+                        <ConfidenceBadge grade={r.confidence} />
+                      </td>
+                      <td className="num text-muted-foreground px-3 py-2 text-right">
+                        {isoDate(r.periodStart)}
+                      </td>
+                      <td className="num text-muted-foreground px-3 py-2 text-right">
+                        {isoDate(r.periodEnd)}
+                      </td>
+                      {/* Capped, because this cell is the only free-text column in the table and
+                          an uncapped one lets a long confidence note set the width of all seven. */}
+                      <td className="text-muted-foreground wrap-hard max-w-[18rem] px-3 py-2 text-xs">
+                        {r.confidenceNote ?? r.note ?? "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </Table>
+              ) : (
+                <Empty>No ranking rows are stored for this asset.</Empty>
+              )}
+            </Detail>
 
-      {/* First, because it is the question a reader actually arrives with. Everything under
-          it is the evidence the state was read from, in the order a person asks: what do the
-          numbers show, what disagrees, what is coming, what happened before. */}
-      <Section
-        title="What the conditions say right now"
-        lead="Measured conditions over stored prices, news readings and historical analogs. Every condition tested is listed, including the ones that failed and the inputs that were unavailable."
-      >
-        <SetupBlock setup={setup} currency={asset.currency} />
-      </Section>
+            {/* "What the move was shared with", never "attribution". The reader is owed the
+                finding, not the name of the method that produced it. */}
+            <Detail
+              title="What the move was shared with"
+              lead="Its recent move split into the part the whole exchange group made, the part its industry made, and what is left."
+            >
+              <AttributionBlock attribution={attribution} />
+            </Detail>
 
-      {/* Immediately under the current read, because the two are one question asked twice.
-          The block above says what the conditions are today; this one says whether the
-          conditions the last directional read was recorded on are still there. Putting them
-          apart would let a reader take a two week old reason as a fresh one. */}
-      <Section
-        title="What has happened to the reason"
-        lead="The last directional read held on this asset, compared against the day it first appeared rather than against yesterday. The conditions from that day are the ones stored on the row, never recomputed from today's data."
-      >
-        <ThesisBlock thesis={thesis} currency={asset.currency} />
-      </Section>
+            <Detail
+              title="Why this asset is near today's news"
+              lead="Paths from a flagged catalyst to this asset over stored relationships, bounded at two hops."
+            >
+              <NeighbourhoodBlock relevance={relevance} showAsset={false} />
+            </Detail>
 
-      <Section
-        title="What this move was shared with"
-        lead="Its recent move split into the part its whole exchange group made, the part its own industry made beyond that, and what is left. A decomposition of co-movement; it names no cause."
-      >
-        <AttributionBlock attribution={attribution} />
-      </Section>
+            <Detail
+              title="What followed days like this one"
+              lead="Past days whose move, volume and five day trend were close to the latest one's, and what happened next."
+            >
+              <AnalogBlock analogs={analogs} />
+            </Detail>
 
-      <Section
-        title="Why this asset is near today's news"
-        lead="Paths from somewhere a catalyst was flagged to this asset, over relationships already stored. A reason to look, bounded at two hops, with the chain shown so it can be rejected."
-      >
-        <NeighbourhoodBlock relevance={relevance} showAsset={false} />
-      </Section>
+            <Detail
+              title="Dates ahead"
+              lead="Dated items already published for this asset."
+            >
+              <UpcomingBlock events={upcoming} showTargets={false} />
+            </Detail>
 
-      <Section
-        title="What followed days like this one"
-        lead="Past days in the stored history whose one day return, volume multiple and five day trend were close to the latest day's, and what measurably happened next. A record of similar days, not a statement about this one."
-      >
-        <AnalogBlock analogs={analogs} />
-      </Section>
+            <Detail
+              title="What is being written about it"
+              lead="How much is being published, how it is worded, and whether it reads as promotion."
+            >
+              <DiscussionBlock signal={discussion} targetLabel={asset.name} />
+              <div className="mt-3">
+                <AccuracyNote accuracy={accuracy} />
+              </div>
+            </Detail>
 
-      <Section
-        title="Scheduled dates ahead"
-        lead="Dated items already published for this asset. The point is not to predict them but to not be surprised by them."
-      >
-        <UpcomingBlock events={upcoming} showTargets={false} />
-      </Section>
+            <Detail
+              title="Stories behind the coverage"
+              lead="Headlines grouped into stories, so one report carried by twenty outlets counts once."
+            >
+              <StoriesBlock stories={stories} />
+            </Detail>
 
-      <Section
-        title="Current discussion"
-        lead="What has been published about this asset lately, how it was worded, and whether it reads as promotion. Context for the numbers above, not evidence about them."
-      >
-        <DiscussionBlock signal={discussion} targetLabel={asset.name} />
-        <div className="mt-3">
-          <AccuracyNote accuracy={accuracy} />
-        </div>
-      </Section>
+            <Detail title="Recent news mentioning this asset">
+              {asset.news.length ? (
+                <ul className="space-y-2">
+                  {asset.news.map((n) => (
+                    <li key={n.id} className="border-border border-b pb-2 text-sm last:border-0">
+                      <a
+                        href={n.url}
+                        target="_blank"
+                        rel="noopener noreferrer nofollow"
+                        className="underline underline-offset-2"
+                      >
+                        {n.title}
+                      </a>
+                      <p className="text-muted-foreground mt-0.5 text-xs">
+                        {n.publisher} &middot; {relativeTime(n.publishedAt)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <Empty>No news items matched this asset in the stored window.</Empty>
+              )}
+            </Detail>
 
-      <Section title="Products that touch this asset" lead="The stated relationship is why the product was linked, not a recommendation.">
-        {asset.productLinks.length ? (
-          <ul className="grid gap-2 sm:grid-cols-2">
-            {asset.productLinks.map((l) => (
-              <li key={l.id} className="border-border rounded-lg border px-3 py-2 text-sm">
-                <Link href={`/product/${l.product.slug}`} className="font-medium underline underline-offset-2">
-                  {l.product.name}
+            <Detail
+              title="Products that touch this asset"
+              lead="The stated relationship is why the product was linked, not a recommendation."
+            >
+              {asset.productLinks.length ? (
+                <ul className="grid gap-2 sm:grid-cols-2">
+                  {asset.productLinks.map((l) => (
+                    <li key={l.id} className="border-border rounded-lg border px-3 py-2 text-sm">
+                      <Link
+                        href={`/product/${encodeURIComponent(l.product.slug)}`}
+                        className="font-medium underline underline-offset-2"
+                      >
+                        {l.product.name}
+                      </Link>
+                      <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                        {l.relation}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <Empty>No products are linked to this asset.</Empty>
+              )}
+            </Detail>
+
+            <Detail
+              title="Same-day data health"
+              lead="Whether the five minute series behind the same-day read is complete."
+            >
+              <IntradayHealth health={intradayHealth} />
+            </Detail>
+
+            {/* Last group, and the only home left for the page's stored prose. Both paragraphs
+                used to sit above the fold: `asset.note` as an unlabelled lead, and the analysis
+                row as a card called "Where this sits". Neither carries a figure the decision does
+                not already give in numbers, so they are kept for the reader who wants the
+                background and are no longer in the way of the one who does not. The confidence
+                badge and the data note travel with the analysis row, because a graded claim shown
+                without its grade is worse than the claim being buried. */}
+            <Detail title="What this asset is">
+              <p className="text-sm">
+                In{" "}
+                <Link
+                  href={`/industry/${asset.industry.slug}`}
+                  className="underline underline-offset-2"
+                >
+                  {asset.industry.name}
                 </Link>
-                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{l.relation}</p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Empty>No products are linked to this asset.</Empty>
-        )}
-      </Section>
-
-      <Section
-        title="Intraday data behind the same-day read"
-        lead="Whether the five minute series this asset's same-day conditions were read from is complete. A short session is a gap that is stored, never smoothed."
-      >
-        <IntradayHealth health={intradayHealth} />
-      </Section>
-
-      <Section
-        title="Stories behind the coverage"
-        lead="Headlines grouped into stories, so the count measures information rather than copies. One report carried by twenty outlets is one story."
-      >
-        <StoriesBlock stories={stories} />
-      </Section>
-
-      <Section title="Recent news mentioning this asset">
-        {asset.news.length ? (
-          <ul className="space-y-2">
-            {asset.news.map((n) => (
-              <li key={n.id} className="border-border border-b pb-2 text-sm last:border-0">
-                <a href={n.url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2">
-                  {n.title}
-                </a>
-                <p className="text-muted-foreground mt-0.5 text-xs">
-                  {n.publisher} · {relativeTime(n.publishedAt)}
-                </p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Empty>No news items matched this asset in the stored window.</Empty>
-        )}
-      </Section>
-
-      <p className="text-muted-foreground mt-8 text-xs">
-        Source {asset.source} · reference {asset.sourceRef} · first stored {longDate(asset.createdAt)}.
-      </p>
+                , trading in {market}. Price source {asset.source}.
+              </p>
+              {asset.note ? (
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed">{asset.note}</p>
+              ) : null}
+              {note ? (
+                <Card className="mt-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-sm font-medium">What was written about it</h3>
+                    <ConfidenceBadge grade={note.confidence} />
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed">{note.body}</p>
+                  {note.dataNote ? <Note>{note.dataNote}</Note> : null}
+                </Card>
+              ) : null}
+              <p className="text-muted-foreground mt-3 text-xs">
+                Source {asset.source} &middot; reference {asset.sourceRef} &middot; first stored{" "}
+                {longDate(asset.createdAt)}.
+              </p>
+            </Detail>
+          </div>
+        </Section>
+      </div>
     </div>
   );
 }

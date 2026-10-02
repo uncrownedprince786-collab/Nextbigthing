@@ -1,4 +1,3 @@
-import { count, pct, price } from "@/lib/format";
 
 /// Turning measurements into the sentence a person would actually say.
 ///
@@ -25,27 +24,6 @@ export function direction(pct: number | null | undefined): {
   return { word: "Flat", tone: "default" };
 }
 
-/// A volume multiple as a sentence. The figure follows in brackets, it does not lead.
-export function tradingWords(ratio: number | null | undefined): string | null {
-  if (ratio == null || Number.isNaN(ratio)) return null;
-  if (ratio >= 4) return `far more trading than usual (${ratio.toFixed(1)} times its own average)`;
-  if (ratio >= 2) return `much more trading than usual (${ratio.toFixed(1)} times its own average)`;
-  if (ratio >= 1.2) return `more trading than usual (${ratio.toFixed(1)} times its own average)`;
-  if (ratio <= 0.6) return `less trading than usual (${ratio.toFixed(1)} times its own average)`;
-  return `about as much trading as usual (${ratio.toFixed(1)} times its own average)`;
-}
-
-
-
-/// A robust score as a sentence. The score itself is a statistician's unit and never leads.
-export function unusualWords(z: number | null | undefined): string | null {
-  if (z == null || Number.isNaN(z)) return null;
-  const size = Math.abs(z);
-  if (size >= 5) return "a far bigger move than this asset normally makes";
-  if (size >= 3) return "a much bigger move than this asset normally makes";
-  if (size >= 2) return "a bigger move than this asset normally makes";
-  return "a move within what this asset normally does";
-}
 
 /// What a setup state means, in the words the spec asks for, with the colour that goes with it.
 export const SETUP_WORDS: Record<
@@ -80,8 +58,20 @@ export const HORIZON_WORDS: Record<string, { label: string; window: string }> = 
   longer: { label: "Longer term", window: "from daily closes over 100 and 200 sessions" },
 };
 
-/// What a thesis status means for the reader, rather than for the state machine.
-export const THESIS_WORDS: Record<string, { label: string; plain: string; tone: "up" | "down" | "warn" | "default" }> = {
+
+/// What an investigation found, as a status word rather than a flag.
+/// What a recorded reason's status means, in a label and a sentence.
+///
+/// `ThesisBlock` held its own copy of this as a local `STATUS` map reading "reason intact" /
+/// "reason weakening" / "reason broken", while this map said "Still holds" / "Weakening" /
+/// "Broken" and added the sentence explaining each. Two vocabularies for one idea is the thing
+/// rule 36 exists to stop, so the component now reads this and the local copy is gone. The
+/// sentence is the part that was being lost: it used to appear only in the prose block above
+/// the table, which the decision panel replaced.
+export const THESIS_WORDS: Record<
+  string,
+  { label: string; plain: string; tone: "up" | "down" | "warn" | "default" }
+> = {
   active: {
     label: "Still holds",
     plain: "Everything this view was based on is still true.",
@@ -94,12 +84,12 @@ export const THESIS_WORDS: Record<string, { label: string; plain: string; tone: 
   },
   broken: {
     label: "Broken",
-    plain: "The price passed the level that was named in advance as the point this stops being valid.",
+    plain:
+      "The price passed the level that was named in advance as the point this stops being valid.",
     tone: "down",
   },
 };
 
-/// What an investigation found, as a status word rather than a flag.
 export const FINDING_WORDS: Record<string, { label: string; tone: "up" | "warn" | "default" }> = {
   found: { label: "Found", tone: "up" },
   absent: { label: "Nothing there", tone: "default" },
@@ -159,12 +149,6 @@ export type SimpleReadLines = {
   changes: string | null;
 };
 
-/// How close a scheduled date has to be before it is worth a caution. Matches the window
-/// jobs/setup.py already treats as context for a swing read, so the page and the job agree.
-const DATE_SOON_DAYS = 14;
-/// Below this many distinct stories the news reading is reported as thin rather than used.
-/// Same floor jobs/human.py labels `thin`.
-const THIN_STORIES = 8;
 
 /// Whole days from today to `when`. Exported so a page never calls `Date.now()` inside
 /// render, which the react-hooks purity rule rejects.
@@ -174,152 +158,6 @@ export function daysUntil(when: Date | string): number {
   return Math.round((target.getTime() - today.getTime()) / 86_400_000);
 }
 
-/// The plain-language read for one asset.
-///
-/// `horizons` is expected in the order the page shows them. The line describes the horizon a
-/// reader is most likely to act on: the first with a directional state, or the first of all
-/// when none is directional. Picking the "best" state instead would make the summary
-/// disagree with the three cards beneath it.
-export function assetSimpleRead(input: {
-  name: string;
-  dayPct: number | null;
-  horizons: {
-    horizon: string;
-    state: string;
-    headline: string;
-    against: string;
-    missing: string;
-    confidence: string;
-    confidenceNote: string | null;
-    invalidateLevel: number | null;
-    invalidateNote: string | null;
-  }[];
-  thesis: { status: string; reason: string } | null;
-  investigation: { headline: string; pointsToward: string } | null;
-  discussion: { items: number; recentStories: number; catalyst: boolean } | null;
-  nextDated: { name: string; date: Date | string } | null;
-  currency: string;
-}): SimpleReadLines {
-  const primary =
-    input.horizons.find((h) => h.state === "buy" || h.state === "short") ?? input.horizons[0];
-
-  // --- what the data shows
-  let shows: string;
-  if (input.investigation) {
-    shows = `${input.investigation.headline} ${input.investigation.pointsToward}`;
-  } else if (primary) {
-    const words = SETUP_WORDS[primary.state] ?? SETUP_WORDS.none;
-    const label = HORIZON_WORDS[primary.horizon]?.label ?? primary.horizon;
-    const move =
-      input.dayPct != null
-        ? `${input.name} is ${direction(input.dayPct).word.toLowerCase()} ${pct(input.dayPct, 1)} on its latest stored day`
-        : `${input.name} has no stored move for its latest day`;
-    shows = `${move}, and on the ${label.toLowerCase()} view the reading is "${words.label.toLowerCase()}": ${words.plain.toLowerCase()}`;
-  } else {
-    shows = `No condition read is stored for ${input.name} yet, so nothing is claimed about it.`;
-  }
-
-  // --- confidence, and why in a few words
-  const grade = primary?.confidence ?? "none";
-  let gradeWhy: string;
-  if (!primary) {
-    gradeWhy = "nothing has been computed to grade";
-  } else if (primary.confidenceNote) {
-    // The note's first clause is the reason; the rest repeats the counts shown below.
-    gradeWhy = primary.confidenceNote.split(";")[0].replace(/^./, (c) => c.toLowerCase());
-  } else if (grade === "high") {
-    gradeWhy = "every condition it tested was available and none disagreed";
-  } else {
-    gradeWhy = "graded on how many conditions were measurable, not on the direction";
-  }
-
-  // --- the one caution that is actually true right now, in order of how much it matters
-  const against = primary && primary.against !== "none"
-    ? primary.against.split(" | ").filter(Boolean)
-    : [];
-  const missing = primary && primary.missing !== "none"
-    ? primary.missing.split(" | ").filter(Boolean)
-    : [];
-
-  let caution: string | null = null;
-  if (input.thesis?.status === "broken") {
-    caution = "the level this view named in advance has already been passed";
-  } else if (input.thesis?.status === "weakening") {
-    caution = "something this view was based on has changed since it was recorded";
-  } else if (input.nextDated && daysUntil(input.nextDated.date) <= DATE_SOON_DAYS) {
-    const d = daysUntil(input.nextDated.date);
-    caution = `${input.nextDated.name} is ${d <= 0 ? "due now" : `${d} day${d === 1 ? "" : "s"} away`}, which can move the price for reasons unrelated to the conditions above`;
-  } else if (!input.discussion) {
-    caution = "news coverage has not been checked for this asset yet";
-  } else if (input.discussion.recentStories < THIN_STORIES) {
-    const n = input.discussion.recentStories;
-    caution = `news coverage is thin — ${count(n)} distinct ${n === 1 ? "story" : "stories"} in the recent window, which is too few to read a direction from`;
-  } else if (against.length) {
-    caution = against[0];
-  } else if (missing.length) {
-    caution = `one input could not be checked: ${missing[0]}`;
-  }
-
-  // --- what would change the view
-  let changes: string | null = null;
-  if (primary?.invalidateLevel != null) {
-    changes = `${primary.invalidateNote ?? "a close past the level recorded with this read"} (${price(primary.invalidateLevel, input.currency)})`;
-  } else if (primary) {
-    changes = "a clear direction appearing in the conditions below; there is none to invalidate yet";
-  }
-
-  return { shows, grade, gradeWhy, caution, changes };
-}
-
-/// The plain-language read for one product.
-///
-/// The thresholds are quoted from jobs/analysis.py rather than paraphrased, because "rising"
-/// is reached two different ways and describing it as unanimous would claim more agreement
-/// than the group holds.
-export function productSimpleRead(input: {
-  name: string;
-  status: string;
-  demandScore: number | null;
-  confidence: string;
-  confidenceNote: string | null;
-  sourcesAnswered: number;
-  sourcesAgree: number;
-  discussion: { items: number; recentStories: number; catalyst: boolean } | null;
-}): SimpleReadLines {
-  const words = PRODUCT_STATUS_WORDS[input.status] ?? PRODUCT_STATUS_WORDS.unknown;
-
-  const shows =
-    input.demandScore != null && input.sourcesAnswered > 0
-      ? `Attention on ${input.name} is ${words.label.toLowerCase()}: the ${input.sourcesAnswered} source${input.sourcesAnswered === 1 ? "" : "s"} that answered average ${pct(input.demandScore)} over their own short windows.`
-      : `No source answered for ${input.name}, so nothing is claimed about attention on it.`;
-
-  const grade = input.confidence;
-  const gradeWhy =
-    input.sourcesAnswered > 0
-      ? `${input.sourcesAnswered} of 5 sources answered and ${input.sourcesAgree} point the same way`
-      : "no source answered, so there is nothing to grade";
-
-  let caution: string | null = null;
-  if (input.sourcesAnswered === 0) {
-    caution = "no source answered in this window";
-  } else if (input.sourcesAnswered === 1) {
-    caution = "this rests on a single source, which is one reading rather than agreement";
-  } else if (input.sourcesAgree < input.sourcesAnswered) {
-    caution = `the sources disagree — ${input.sourcesAgree} of ${input.sourcesAnswered} point the same way`;
-  } else if (input.discussion && input.discussion.recentStories < THIN_STORIES) {
-    const n = input.discussion.recentStories;
-    caution = `news coverage is thin — ${count(n)} distinct ${n === 1 ? "story" : "stories"} in the recent window`;
-  }
-
-  const changes =
-    input.status === "rising"
-      ? "it leaves this group if the average falls below +5% with every source still up, or below +10% on its own"
-      : input.status === "early"
-        ? "it reaches rising if every answering source points up and the average passes +5%"
-        : "a source changing direction in the next weekly run; this is a short-window average and one source moves it";
-
-  return { shows, grade, gradeWhy, caution, changes };
-}
 
 /// Product status in words, matching the group blurbs on /products.
 export const PRODUCT_STATUS_WORDS: Record<

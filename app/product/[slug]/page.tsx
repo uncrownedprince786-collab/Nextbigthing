@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import * as React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   AccuracyNote,
-  Card,
+  AsOf,
   ConfidenceBadge,
+  ConfidenceKey,
   DiscussionBlock,
   Empty,
   GeographyBlock,
@@ -12,9 +14,10 @@ import {
   Note,
   Pill,
   Section,
-  SimpleRead,
   Table,
 } from "@/components/ui";
+import { ProductDecisionPanel } from "@/components/decision";
+import { decideProduct } from "@/lib/productDecision";
 import {
   getAccuracy,
   getHumanSignal,
@@ -23,7 +26,6 @@ import {
   getProductRegions,
 } from "@/lib/queries";
 import { count, isoDate, longDate, pct, relativeTime, toneClass } from "@/lib/format";
-import { productSimpleRead } from "@/lib/plain";
 
 export const revalidate = 3600;
 
@@ -76,6 +78,60 @@ const SOURCE_NAME: Record<string, string> = {
   googleNews: "Google News",
 };
 
+/// One collapsed measurement block, and the only disclosure pattern on this page.
+///
+/// Native `<details>` because this repo ships no client JavaScript by design, and the
+/// classes are the same ones `HowToRead` and `ConfidenceKey` already use in
+/// components/ui.tsx — the padding that collapses from `sm` up is what gives the summary a
+/// 44px tap target on a phone without changing the desktop box. Declared here rather than
+/// added to ui.tsx because that file belongs to someone else this week.
+///
+/// Each group gets its own disclosure instead of one block holding the whole page: a single
+/// "Details" toggle means a reader after the marketplace table has to open, and scroll
+/// past, every table above it.
+function Detail({
+  title,
+  lead,
+  children,
+}: {
+  title: string;
+  lead?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="border-border bg-muted/30 mt-3 rounded-lg border px-4 py-1 sm:py-3">
+      <summary className="-my-1 cursor-pointer py-3 text-sm font-medium select-none sm:my-0 sm:py-0">
+        {title}
+      </summary>
+      {lead ? (
+        <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">{lead}</p>
+      ) : null}
+      <div className="mt-3 mb-3 sm:mb-0">{children}</div>
+    </details>
+  );
+}
+
+/// How far a listing moved on the stored chart, as a word plus a number.
+///
+/// A rank that went from 9 to 4 improved by five positions, so the delta is
+/// previous - current and a positive number reads as "up". Note what this is not: a
+/// position on a bestseller chart is an ordering against other listings on one marketplace
+/// on one day. It is never a count of units, and nothing on this page turns it into one.
+///
+/// The same arithmetic is written out at app/marketplace/page.tsx:20 as a `Move` component.
+/// That file is not mine to touch, so this copy is kept as small as it can be rather than
+/// shared; the two should become one component when both pages have the same owner.
+function rankMove(rank: number, previousRank: number | null) {
+  if (previousRank == null) return <Pill>new to this chart</Pill>;
+  const diff = previousRank - rank;
+  if (diff === 0) return <span className="text-muted-foreground text-xs">unchanged</span>;
+  return (
+    <Pill tone={diff > 0 ? "up" : "down"}>
+      {diff > 0 ? "up" : "down"} {Math.abs(diff)}
+    </Pill>
+  );
+}
+
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const p = await getProduct(slug);
@@ -119,383 +175,427 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const down = [...bySource.values()].filter((s) => (s.value ?? 0) < 0);
   const flat = [...bySource.values()].filter((s) => (s.value ?? 0) === 0);
 
+  // The whole decision, computed in one place by lib/productDecision.ts so the rules can be
+  // tested as rules. The counts passed in are the job's own stored columns rather than
+  // `bySource.size`, because `Product.confidence` was graded from exactly this pair — grading
+  // the panel from a differently derived count would print a grade next to a number that did
+  // not produce it. The table further down shows the rows themselves, so the two can be
+  // compared rather than taken on trust.
+  //
+  // `regions` is flattened out of the stored lists. It is empty for most products today: the
+  // geo job keeps being cancelled, so the panel says "geo not stored yet" and means it. The
+  // five "where to check" links are built from the term alone and so survive every source
+  // being silent, which is the one state this page has to stay useful in.
+  const decision = decideProduct({
+    name: p.name,
+    term: p.trendsTerm || p.name,
+    status: p.status,
+    demandScore: p.demandScore,
+    sourcesAnswered: p.sourcesAnswered,
+    sourcesAgree: p.sourcesAgree,
+    confidence: p.confidence,
+    regions: geo.lists.flatMap((l) => l.rows),
+    marketplaceItems: market.items.length,
+  });
+
   return (
     <div>
-      <div>
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{p.name}</h1>
-          <Pill
-            tone={p.status === "rising" ? "up" : p.status === "early" ? "warn" : "default"}
+      {/* Four words and a date. Everything a reader might act on is in the panel below, so
+          the header's whole job is to say which product this is and how fresh it is. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{p.name}</h1>
+        <Pill tone={p.status === "rising" ? "up" : p.status === "early" ? "warn" : "default"}>
+          {p.status}
+        </Pill>
+        <span className="text-muted-foreground text-xs">
+          {p.category} &middot; measured {p.computedAt ? relativeTime(p.computedAt) : "never"}
+        </span>
+      </div>
+
+      {/* The decision, first, on every product page. Nothing is above it because nothing on
+          this page is worth reading before the answer and the links. */}
+      <div className="mt-4">
+        <ProductDecisionPanel decision={decision} name={p.name} />
+      </div>
+
+      {/* Everything that was prose at the top of this page now lives in here, as the
+          measurements it was describing.
+          `id="detail"` is kept because the old simple-read card linked to it, so a bookmark
+          or an inbound link still lands on the evidence rather than on nothing. */}
+      <Section
+        title="Details"
+        lead="Every measurement the panel was built from, each in its own block. Open what you want to check; nothing in here changes the answer above, it is what the answer was read off."
+      >
+        <div id="detail" className="scroll-mt-4">
+          {/* Explained once, in words a tap can reach. The badges below rely on `title=`,
+              which no touch device shows. */}
+          <ConfidenceKey />
+          <Detail
+            title="Do the sources agree"
+            lead="One row per source, so agreement can be seen rather than taken on trust. A source that did not answer is shown as missing and is not counted as agreement."
           >
-            {p.status}
-          </Pill>
-          <ConfidenceBadge grade={p.confidence} />
-        </div>
-        <p className="text-muted-foreground mt-2 max-w-3xl text-sm">{p.summary}</p>
-        <p className="text-muted-foreground mt-2 text-xs">
-          {p.category} · demand score{" "}
-          <span className={toneClass(p.demandScore)}>{pct(p.demandScore)}</span> · measured{" "}
-          {p.computedAt ? relativeTime(p.computedAt) : "never"}
-        </p>
-      </div>
+            <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span className="text-sm">
+                Demand score{" "}
+                <span className={`num font-medium ${toneClass(p.demandScore)}`}>
+                  {pct(p.demandScore)}
+                </span>
+              </span>
+              <ConfidenceBadge grade={p.confidence} />
+            </div>
 
-      {/* Four lines, then a way down. Same contract as the asset page: every sentence
-          restates a stored value that appears again below with its source and window. */}
-      <div className="mt-6">
-        <SimpleRead
-          lines={productSimpleRead({
-            name: p.name,
-            status: p.status,
-            demandScore: p.demandScore,
-            confidence: p.confidence,
-            confidenceNote: p.confidenceNote,
-            sourcesAnswered: p.sourcesAnswered,
-            sourcesAgree: p.sourcesAgree,
-            discussion,
-          })}
-          detailHref="#detail"
-        />
-      </div>
-
-      <div id="detail">
-        {read ? (
-          <Card className="mt-4">
-            <h2 className="font-medium">Demand read</h2>
-            <p className="mt-2 text-sm leading-relaxed">{read.body}</p>
-            {read.dataNote ? <Note>{read.dataNote}</Note> : null}
-          </Card>
-        ) : null}
-      </div>
-
-      <Section
-        title="Do the sources agree"
-        lead="One row per source, so agreement can be seen rather than taken on trust. A source that did not answer is shown as missing and is not counted as agreement."
-      >
-        <Table
-          head={
-            <>
-              <th className="px-3 py-2 font-medium">Source</th>
-              <th className="px-3 py-2 font-medium">Direction</th>
-              <th className="px-3 py-2 text-right font-medium">Change</th>
-              <th className="px-3 py-2 text-right font-medium">Counted</th>
-            </>
-          }
-        >
-          {Object.entries(SOURCE_NAME).map(([key, label]) => {
-            const s = bySource.get(key);
-            const v = s?.value ?? null;
-            return (
-              <tr key={key}>
-                <td className="px-3 py-2 whitespace-nowrap">{label}</td>
-                <td className="px-3 py-2">
-                  {v == null ? (
-                    <span className="text-muted-foreground text-xs">did not answer</span>
-                  ) : v > 0 ? (
-                    <Pill tone="up">up</Pill>
-                  ) : v < 0 ? (
-                    <Pill tone="down">down</Pill>
-                  ) : (
-                    <Pill>no change</Pill>
-                  )}
-                </td>
-                <td className={`num px-3 py-2 text-right ${toneClass(v)}`}>
-                  {v == null ? "-" : pct(v)}
-                </td>
-                <td className="num text-muted-foreground px-3 py-2 text-right">
-                  {s ? "yes" : "no"}
-                </td>
-              </tr>
-            );
-          })}
-        </Table>
-        <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
-          {bySource.size === 0
-            ? "No source answered, so nothing is claimed about this product."
-            : up.length && down.length
-              ? `${up.length} point up and ${down.length} point down, so the average is a weak read and the grade is capped at medium.`
-              : up.length || down.length
-                ? [
-                    // A source sitting at exactly zero has not moved, so counting it as
-                    // pointing down would overstate how much of this is agreement.
-                    up.length + down.length === 1
-                      ? `The single source that moved points ${up.length ? "up" : "down"}`
-                      : `The ${up.length + down.length} that moved all point ${up.length ? "up" : "down"}`,
-                    flat.length
-                      ? `, and ${flat.length} of ${bySource.size} report no change at all`
-                      : "",
-                    ".",
-                  ]
-                    .join("")
-                    .replace(",.", ".")
-                : `All ${bySource.size} that answered report no change.`}{" "}
-          The score is the plain mean of the counted rows, so a large single reading can carry
-          it, which is what the confidence grade is reporting. A source sitting at zero is
-          counted as answering but is not counted as agreeing on a direction.
-        </p>
-        {p.confidenceNote ? <Note>{p.confidenceNote}</Note> : null}
-      </Section>
-
-      <Section
-        title="What each source measured"
-        lead="Change first, then the raw counts behind it. Long window rows are listed for the record and are not part of the score."
-      >
-        <Table
-          head={
-            <>
-              <th className="px-3 py-2 font-medium">Source</th>
-              <th className="px-3 py-2 font-medium">Measure</th>
-              <th className="px-3 py-2 text-right font-medium">Value</th>
-              <th className="px-3 py-2 text-right font-medium">Window end</th>
-              <th className="px-3 py-2 font-medium">Evidence</th>
-            </>
-          }
-        >
-          {[...scored, ...context].map((s) => (
-            <tr key={s.id}>
-              <td className="px-3 py-2 whitespace-nowrap">{SOURCE_NAME[s.source] ?? s.source}</td>
-              <td className="text-muted-foreground px-3 py-2 text-xs">
-                {METRIC_TEXT[s.metric] ?? s.metric}
-                {SCORED_METRICS.has(s.metric) ? null : (
-                  <span className="text-muted-foreground/70"> (not scored)</span>
-                )}
-              </td>
-              <td
-                className={`num px-3 py-2 text-right font-medium ${
-                  SCORED_METRICS.has(s.metric) ? toneClass(s.value) : ""
-                }`}
-              >
-                {s.value == null
-                  ? "not available"
-                  : SCORED_METRICS.has(s.metric)
-                    ? pct(s.value)
-                    : count(s.value)}
-              </td>
-              <td className="num text-muted-foreground px-3 py-2 text-right">{isoDate(s.periodEnd)}</td>
-              <td className="text-muted-foreground px-3 py-2 text-xs">
-                {s.evidence ? s.evidence : "no single item to point at"}
-              </td>
-            </tr>
-          ))}
-        </Table>
-        {missing.length ? (
-          <Note>
-            {[...new Set(missing)].map((m) => SOURCE_NAME[m]).join(", ")} did not answer in the
-            last run{p.subreddits ? ` for r/${p.subreddits}` : ""}.{" "}
-            {p.wikiTitle
-              ? "The Wikipedia article title and the Trends term come from the seed list and can be wrong; if one source is always empty, the mapping is the first thing to check."
-              : "No Wikipedia title is mapped for this product."}{" "}
-            A missing source is not a zero. Reddit is left out of the score entirely when the
-            90 day window it is measured against holds fewer than five posts, because a
-            change off a base that small is a rounding artifact rather than a demand signal.
-          </Note>
-        ) : null}
-      </Section>
-
-      <Section
-        title="Current discussion"
-        lead="What has been published about this product lately, how it was worded, and whether it reads as promotion. Kept separate from the demand score above, which measures search and forum activity rather than wording."
-      >
-        <DiscussionBlock signal={discussion} targetLabel={p.name} />
-        <div className="mt-3">
-          <AccuracyNote accuracy={accuracy} />
-        </div>
-      </Section>
-
-      <Section
-        title="Where the attention is"
-        lead="The geographic breakdown of search interest for this product, from Google Trends' own regional data. Countries and regions are available from free sources; city level is not."
-      >
-        <GeographyBlock geo={geo} />
-      </Section>
-
-      <Section
-        title="Marketplace and local notes"
-        lead="Where this product shows up on a public marketplace chart, and what a reader would have to check by hand. Kept out of the demand score above."
-      >
-        <Note>
-          A bestseller rank is a different claim from a search trend. It says one listing
-          is outselling others in its category, on one marketplace, on the day the chart
-          was read. It is not a measure of this product category, and none of it is
-          counted in the score above.
-        </Note>
-
-        {market.items.length ? (
-          <>
-            <p className="text-muted-foreground mt-3 mb-2 text-sm">
-              {market.items.length} listing{market.items.length === 1 ? "" : "s"} in the
-              stored charts of {isoDate(market.periodEnd)} have
-              &ldquo;{p.trendsTerm || p.name}&rdquo; in the title.
-            </p>
+            {/* 480px rather than the 640px default: four short columns do not need the
+                width, and the source names wrap now instead of being held on one line,
+                which is what was pushing this table sideways at 375px. */}
             <Table
+              minWidth="480px"
               head={
                 <>
-                  <th className="px-3 py-2 font-medium">#</th>
-                  <th className="px-3 py-2 font-medium">Listing</th>
-                  <th className="px-3 py-2 font-medium">Category</th>
-                  <th className="px-3 py-2 font-medium">Since the last run</th>
+                  <th className="px-3 py-2 font-medium">Source</th>
+                  <th className="px-3 py-2 font-medium">Direction</th>
+                  <th className="px-3 py-2 text-right font-medium">Change</th>
+                  <th className="px-3 py-2 text-right font-medium">Counted</th>
                 </>
               }
             >
-              {market.items.map((it) => {
-                const diff =
-                  it.previousRank == null ? null : it.previousRank - it.rank;
+              {Object.entries(SOURCE_NAME).map(([key, label]) => {
+                const s = bySource.get(key);
+                const v = s?.value ?? null;
                 return (
-                  <tr key={it.id}>
-                    <td className="num text-muted-foreground px-3 py-2">{it.rank}</td>
+                  <tr key={key}>
+                    <td className="px-3 py-2">{label}</td>
                     <td className="px-3 py-2">
-                      <a
-                        href={it.url}
-                        rel="noopener noreferrer nofollow"
-                        target="_blank"
-                        className="underline underline-offset-2"
-                      >
-                        {it.title}
-                      </a>
-                    </td>
-                    <td className="text-muted-foreground px-3 py-2 text-xs">
-                      {it.categoryName}
-                    </td>
-                    <td className="px-3 py-2">
-                      {diff == null ? (
-                        <Pill>new to this chart</Pill>
-                      ) : diff === 0 ? (
-                        <span className="text-muted-foreground text-xs">unchanged</span>
+                      {v == null ? (
+                        <span className="text-muted-foreground text-xs">did not answer</span>
+                      ) : v > 0 ? (
+                        <Pill tone="up">up</Pill>
+                      ) : v < 0 ? (
+                        <Pill tone="down">down</Pill>
                       ) : (
-                        <Pill tone={diff > 0 ? "up" : "down"}>
-                          {diff > 0 ? "up" : "down"} {Math.abs(diff)}
-                        </Pill>
+                        <Pill>no change</Pill>
                       )}
+                    </td>
+                    <td className={`num px-3 py-2 text-right ${toneClass(v)}`}>
+                      {v == null ? "-" : pct(v)}
+                    </td>
+                    <td className="num text-muted-foreground px-3 py-2 text-right">
+                      {s ? "yes" : "no"}
                     </td>
                   </tr>
                 );
               })}
             </Table>
-          </>
-        ) : (
-          <Empty>
-            No listing in the stored marketplace charts has this product&apos;s search
-            term in its title. That is a statement about thirty positions in a handful of
-            categories, not about whether the product sells.{" "}
-            <Link href="/marketplace" className="underline underline-offset-2">
-              See what is stored
-            </Link>
-            .
-          </Empty>
-        )}
 
-        <div className="border-border bg-muted/30 mt-4 rounded-lg border px-4 py-3">
-          <h3 className="text-sm font-medium">
-            Checking this product locally, by hand
-          </h3>
-          <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-            No free public endpoint publishes Pakistani marketplace demand, so this site
-            stores no number for it and does not estimate one. These are the checks a
-            reader would have to make themselves, listed so the gap is explicit rather
-            than invisible:
-          </p>
-          <ul className="text-muted-foreground mt-2 space-y-1.5 text-xs leading-relaxed">
-            <li>
-              &bull; Search &ldquo;{p.trendsTerm || p.name}&rdquo; on Daraz and on
-              Facebook Marketplace, and count how many sellers already list it. A category
-              with no sellers is not necessarily an opening; it is often a category that
-              has been tried.
-            </li>
-            <li>
-              &bull; Compare the local asking price against the landed cost: unit price,
-              freight, customs duty and sales tax on the HS code, and the bank&apos;s
-              exchange rate on the day. The margin that survives all four is the real one.
-            </li>
-            <li>
-              &bull; Check whether the item needs certification or a regulated import
-              route. Anything with a battery, a radio, or a medical claim usually does.
-            </li>
-            <li>
-              &bull; Watch the same searches over several weeks before acting. A single
-              reading of a marketplace is one day&apos;s evidence, which is exactly what
-              the confidence rules on this site say about every other single reading.
-            </li>
-          </ul>
-          <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
-            None of this is advice about whether to buy or sell anything. It is a list of
-            what has not been measured.
-          </p>
-        </div>
-      </Section>
+            {/* One sentence on what the rows add up to. The three paragraphs that used to
+                sit here restated the confidence rules a third time; the panel's risk line
+                and the confidence badge above already carry that, so what is left is the
+                count a reader cannot get from the table at a glance. */}
+            <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+              {bySource.size === 0
+                ? "No source answered, so nothing is claimed about this product."
+                : up.length && down.length
+                  ? `${up.length} point up and ${down.length} point down, so the average is a weak read.`
+                  : up.length || down.length
+                    ? [
+                        // A source sitting at exactly zero has not moved, so counting it as
+                        // pointing down would overstate how much of this is agreement.
+                        up.length + down.length === 1
+                          ? `The single source that moved points ${up.length ? "up" : "down"}`
+                          : `The ${up.length + down.length} that moved all point ${up.length ? "up" : "down"}`,
+                        flat.length
+                          ? `, and ${flat.length} of ${bySource.size} report no change at all`
+                          : "",
+                        ".",
+                      ]
+                        .join("")
+                        .replace(",.", ".")
+                    : `All ${bySource.size} that answered report no change.`}{" "}
+              The score is the plain mean of the counted rows. A source sitting at zero counts
+              as answering and not as agreeing on a direction.
+            </p>
+            {p.confidenceNote ? <Note>{p.confidenceNote}</Note> : null}
+          </Detail>
 
-      <HowToRead
-        title="How to read a demand score"
-        points={[
-          <>
-            <strong>Count the sources before reading the number.</strong> Five sources are
-            possible. A score built on one is that source&apos;s reading with an average
-            written over it, and the page says so where it happens.
-          </>,
-          <>
-            <strong>Agreement matters more than size.</strong> Four sources agreeing on
-            +8% is stronger evidence than one source reporting +300%. The confidence grade
-            is built on exactly this and the badge explains itself on hover.
-          </>,
-          <>
-            <strong>Check whether one source is carrying the average.</strong> The
-            comparison table shows each source&apos;s share. When one supplies most of the
-            magnitude, the direction may still be agreed but the size of the number is
-            that one source&apos;s.
-          </>,
-          <>
-            <strong>Small Reddit bases are published but never graded high.</strong> A
-            change from 2 posts to 6 really is +200%, and it is also six posts. The
-            arithmetic and the confidence claim are judged separately.
-          </>,
-          <>
-            <strong>Attention is not sales.</strong> Everything in the score above measures
-            people looking, reading or posting. Nothing in it measures anyone buying.
-          </>,
-        ]}
-      />
+          <Detail
+            title="What each source measured"
+            lead="Change first, then the raw counts behind it. Long window rows are listed for the record and are not part of the score."
+          >
+            {/* Two free-text columns, so this one is given room to be honest about its
+                widths and its first cell is pinned: the reader scrolling right for the
+                evidence needs to keep seeing which source they are reading. The text cells
+                are capped in characters so a long evidence string widens the scroller
+                instead of stretching the table past every other column. */}
+            <Table
+              minWidth="760px"
+              stickyFirstColumn
+              head={
+                <>
+                  <th className="px-3 py-2 font-medium">Source</th>
+                  <th className="px-3 py-2 font-medium">Measure</th>
+                  <th className="px-3 py-2 text-right font-medium">Value</th>
+                  <th className="px-3 py-2 text-right font-medium">Window end</th>
+                  <th className="px-3 py-2 font-medium">Evidence</th>
+                </>
+              }
+            >
+              {[...scored, ...context].map((s) => (
+                <tr key={s.id}>
+                  <td className="px-3 py-2">{SOURCE_NAME[s.source] ?? s.source}</td>
+                  <td className="text-muted-foreground px-3 py-2 text-xs">
+                    <span className="wrap-hard block max-w-[30ch]">
+                      {METRIC_TEXT[s.metric] ?? s.metric}
+                      {SCORED_METRICS.has(s.metric) ? null : (
+                        <span className="text-muted-foreground/70"> (not scored)</span>
+                      )}
+                    </span>
+                  </td>
+                  <td
+                    className={`num px-3 py-2 text-right font-medium ${
+                      SCORED_METRICS.has(s.metric) ? toneClass(s.value) : ""
+                    }`}
+                  >
+                    {s.value == null
+                      ? "not available"
+                      : SCORED_METRICS.has(s.metric)
+                        ? pct(s.value)
+                        : count(s.value)}
+                  </td>
+                  <td className="num text-muted-foreground px-3 py-2 text-right">
+                    {isoDate(s.periodEnd)}
+                  </td>
+                  <td className="text-muted-foreground px-3 py-2 text-xs">
+                    <span className="wrap-hard block max-w-[36ch]">
+                      {s.evidence ? s.evidence : "no single item to point at"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </Table>
+            {missing.length ? (
+              <Note>
+                {[...new Set(missing)].map((m) => SOURCE_NAME[m]).join(", ")} did not answer in
+                the last run{p.subreddits ? ` for r/${p.subreddits}` : ""}.{" "}
+                {p.wikiTitle
+                  ? "The Wikipedia article title and the Trends term come from the seed list and can be wrong; if one source is always empty, the mapping is the first thing to check."
+                  : "No Wikipedia title is mapped for this product."}{" "}
+                A missing source is not a zero. Reddit is left out of the score entirely when
+                the 90 day window it is measured against holds fewer than five posts, because a
+                change off a base that small is a rounding artifact rather than a reading.
+              </Note>
+            ) : null}
+          </Detail>
 
-      <Section
-        title="Assets this product touches"
-        lead="Stated relationships, not recommendations. A product can matter to a company without that company selling it."
-      >
-        {p.assetLinks.length ? (
-          <ul className="grid gap-2 sm:grid-cols-2">
-            {p.assetLinks.map((l) => (
-              <li key={l.id} className="border-border rounded-lg border px-3 py-2 text-sm">
-                <Link href={`/asset/${encodeURIComponent(l.asset.symbol)}`} className="font-medium underline underline-offset-2">
-                  {l.asset.name}
-                </Link>
-                <span className="text-muted-foreground ml-2 text-xs">{l.asset.industry.name}</span>
-                <p className="text-muted-foreground mt-1 text-xs leading-relaxed">{l.relation}</p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Empty>No assets are linked to this product.</Empty>
-        )}
-      </Section>
+          {/* The written read, kept because it is a stored row with a data note attached,
+              and demoted because the panel now says the same thing in four words. */}
+          {read || p.summary ? (
+            <Detail title="The written read for this product">
+              <p className="text-sm leading-relaxed">{read ? read.body : p.summary}</p>
+              {read?.dataNote ? <Note>{read.dataNote}</Note> : null}
+              {read && p.summary ? (
+                <p className="text-muted-foreground mt-3 text-xs leading-relaxed">{p.summary}</p>
+              ) : null}
+              {!read ? (
+                <Note>
+                  No demand read has been written for this product yet, so the line above is the
+                  seed description and not a measurement.
+                </Note>
+              ) : null}
+            </Detail>
+          ) : null}
 
-      <Section title="Recent news collected for this product">
-        {p.news.length ? (
-          <ul className="space-y-2">
-            {p.news.map((n) => (
-              <li key={n.id} className="border-border border-b pb-2 text-sm last:border-0">
-                <a href={n.url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-2">
-                  {n.title}
-                </a>
-                <p className="text-muted-foreground mt-0.5 text-xs">
-                  {n.publisher} · {relativeTime(n.publishedAt)}
+          <Detail
+            title="Current discussion"
+            lead="What has been published about this product lately, how it was worded, and whether it reads as promotion. Kept separate from the demand score, which measures search and forum activity rather than wording."
+          >
+            <DiscussionBlock signal={discussion} targetLabel={p.name} />
+            <div className="mt-3">
+              <AccuracyNote accuracy={accuracy} />
+            </div>
+          </Detail>
+
+          <Detail
+            title="Where the attention is"
+            lead="The geographic breakdown of search interest, from Google Trends' own regional data. Countries and regions are available from free sources; city level is not."
+          >
+            <GeographyBlock geo={geo} />
+            {/* The empty case is the usual case, so it gets a reason and a next click rather
+                than a dashed box. The link is the one the panel already built from the
+                stored term — this page does not assemble its own search URLs, so there is
+                exactly one place a wrong term can produce a wrong link. */}
+            {geo.lists.length ? null : (
+              <Note>
+                Nothing is stored because the geography job has not completed for this product,
+                not because the source returned no places. Until it runs, the panel reads
+                &ldquo;geo not stored yet&rdquo; and no country is named anywhere on this page.
+                To check it by hand, open the <strong>Google Trends</strong> link under{" "}
+                <strong>Where to check</strong> at the top of this page: it shows the regional
+                breakdown for this term directly.
+              </Note>
+            )}
+          </Detail>
+
+          <Detail
+            title="Marketplace listings"
+            lead="Where this product's search term shows up on a public marketplace chart. Kept out of the demand score."
+          >
+            <div className="mb-3">
+              <AsOf date={market.periodEnd} />
+            </div>
+            <Note>
+              A bestseller rank is a different claim from a search trend. It says one listing is
+              ordered above others in its category, on one marketplace, on the day the chart
+              was read. It is not a count of units sold, nothing in this database counts a
+              sale, and none of it is counted in the score.
+            </Note>
+
+            {market.items.length ? (
+              <>
+                <p className="text-muted-foreground mt-3 mb-2 text-sm">
+                  {market.items.length} listing{market.items.length === 1 ? "" : "s"} in the
+                  stored charts of {isoDate(market.periodEnd)} have &ldquo;
+                  {p.trendsTerm || p.name}&rdquo; in the title.
                 </p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Empty>No news items matched this product in the stored window.</Empty>
-        )}
+                <Table
+                  minWidth="600px"
+                  head={
+                    <>
+                      <th className="px-3 py-2 font-medium">#</th>
+                      <th className="px-3 py-2 font-medium">Listing</th>
+                      <th className="px-3 py-2 font-medium">Category</th>
+                      <th className="px-3 py-2 font-medium">Since the last run</th>
+                    </>
+                  }
+                >
+                  {market.items.map((it) => (
+                    <tr key={it.id}>
+                      <td className="num text-muted-foreground px-3 py-2">{it.rank}</td>
+                      <td className="px-3 py-2">
+                        <a
+                          href={it.url}
+                          rel="noopener noreferrer nofollow"
+                          target="_blank"
+                          className="wrap-hard block max-w-[34ch] underline underline-offset-2"
+                        >
+                          {it.title}
+                        </a>
+                      </td>
+                      <td className="text-muted-foreground px-3 py-2 text-xs">
+                        <span className="wrap-hard block max-w-[20ch]">{it.categoryName}</span>
+                      </td>
+                      <td className="px-3 py-2">{rankMove(it.rank, it.previousRank)}</td>
+                    </tr>
+                  ))}
+                </Table>
+              </>
+            ) : (
+              // Same requirement as the geography block: an explicit reason, never a blank.
+              // Two different reasons produce this state and a reader is owed both, because
+              // "no chart is stored" and "the term is not on the chart" mean opposite things.
+              <Empty>
+                {market.periodEnd
+                  ? `No listing in the charts stored on ${isoDate(market.periodEnd)} has this product's search term in its title. That is a statement about thirty positions in a handful of categories, not about whether anyone is buying it.`
+                  : "No marketplace chart is stored at all yet — the weekly job has not run. That is a gap in the collection, not a reading about this product."}{" "}
+                <Link href="/marketplace" className="underline underline-offset-2">
+                  See what is stored
+                </Link>
+                . The Amazon, eBay, Daraz and Facebook Marketplace links in{" "}
+                <strong>Where to check</strong> above search these marketplaces live, which is
+                the only way to see this today.
+              </Empty>
+            )}
+          </Detail>
+
+          <Detail
+            title="Assets this product touches"
+            lead="Stated relationships, not recommendations. A product can matter to a company without that company selling it."
+          >
+            {p.assetLinks.length ? (
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {p.assetLinks.map((l) => (
+                  <li key={l.id} className="border-border bg-card rounded-lg border px-3 py-2 text-sm">
+                    <Link
+                      href={`/asset/${encodeURIComponent(l.asset.symbol)}`}
+                      className="font-medium underline underline-offset-2"
+                    >
+                      {l.asset.name}
+                    </Link>
+                    <span className="text-muted-foreground ml-2 text-xs">
+                      {l.asset.industry.name}
+                    </span>
+                    <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                      {l.relation}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <Empty>No assets are linked to this product.</Empty>
+            )}
+          </Detail>
+
+          <Detail title="Recent news collected for this product">
+            {p.news.length ? (
+              <ul className="space-y-2">
+                {p.news.map((n) => (
+                  <li key={n.id} className="border-border border-b pb-2 text-sm last:border-0">
+                    <a
+                      href={n.url}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="wrap-hard underline underline-offset-2"
+                    >
+                      {n.title}
+                    </a>
+                    <p className="text-muted-foreground mt-0.5 text-xs">
+                      {n.publisher} &middot; {relativeTime(n.publishedAt)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <Empty>No news items matched this product in the stored window.</Empty>
+            )}
+          </Detail>
+        </div>
+
+        {/* Left outside the disclosures on purpose: it is already collapsed, and it is the
+            one block that teaches a reader how to read everything inside them. */}
+        <HowToRead
+          title="How to read a demand score"
+          points={[
+            <>
+              <strong>Count the sources before reading the number.</strong> Five sources are
+              possible. A score built on one is that source&apos;s reading with an average
+              written over it, and the panel&apos;s risk line says so when it happens.
+            </>,
+            <>
+              <strong>Agreement matters more than size.</strong> Four sources agreeing on +8%
+              is stronger evidence than one source reporting +300%. The confidence grade is
+              built on exactly this.
+            </>,
+            <>
+              <strong>Small Reddit bases are published but never graded high.</strong> A change
+              from 2 posts to 6 really is +200%, and it is also six posts. The arithmetic and
+              the confidence claim are judged separately.
+            </>,
+            <>
+              <strong>Attention is not sales.</strong> Everything here measures people
+              looking, reading or posting. Nothing in this database counts a single sale, and
+              the marketplace rank above is an ordering rather than a quantity.
+            </>,
+            <>
+              <strong>What is not measured is listed, not left out.</strong> No free public
+              source publishes local marketplace demand, so none is estimated. The links in{" "}
+              <strong>Where to check</strong> are where that gap gets closed by hand.
+            </>,
+          ]}
+        />
       </Section>
 
       <p className="text-muted-foreground mt-8 text-xs">
-        Search term: {p.trendsTerm || "not set"} · Wikipedia article: {p.wikiTitle || "not set"}{" "}
-        · last written {p.computedAt ? longDate(p.computedAt) : "never"}.
+        Search term: {p.trendsTerm || "not set"} &middot; Wikipedia article:{" "}
+        {p.wikiTitle || "not set"} &middot; last written{" "}
+        {p.computedAt ? longDate(p.computedAt) : "never"}.
       </p>
     </div>
   );

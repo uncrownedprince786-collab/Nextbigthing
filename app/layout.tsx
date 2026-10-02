@@ -33,27 +33,50 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <header className="border-border bg-card/80 sticky top-0 z-20 border-b backdrop-blur">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-            <Link href="/" className="text-[15px] font-semibold tracking-tight">
+          {/*
+            The header is sticky, so every row it wraps to is a row the reader pays for on
+            every screen of every page. At 375px the seven links plus the tagline wrapped to
+            three or four rows. Below `sm` the nav is therefore one row that scrolls
+            sideways, the tagline is dropped (it repeats what the footer says at length), and
+            the vertical padding is tighter. From `sm` up the layout is the wrapping row it
+            has always been.
+          */}
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 sm:gap-y-2 sm:py-3">
+            <Link
+              href="/"
+              className="py-1 text-[15px] font-semibold tracking-tight sm:py-0"
+            >
               NextBigThing
             </Link>
-            <nav className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+            <nav
+              className="-mx-4 flex w-full gap-x-1 overflow-x-auto px-4 text-sm [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:w-auto sm:flex-wrap sm:gap-x-4 sm:gap-y-1 sm:overflow-x-visible sm:px-0 [&::-webkit-scrollbar]:hidden"
+              aria-label="Sections"
+            >
               {NAV.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground flex shrink-0 items-center rounded px-2 py-3 whitespace-nowrap sm:px-0 sm:py-0"
                 >
                   {item.label}
                 </Link>
               ))}
             </nav>
-            <p className="text-muted-foreground ml-auto text-xs">
+            <p className="text-muted-foreground ml-auto hidden text-xs sm:block">
               Read only. No advice, no forecasts.
             </p>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+        {/*
+          Safety net for H: `clip` rather than `hidden` on purpose. `overflow-x: hidden`
+          would force the other axis to `auto`, making this element a vertical scroll
+          container and breaking the sticky header above it. `clip` constrains the one axis
+          and creates no scroll container. Every wide thing on the site — the tables — owns
+          its own horizontal scroller inside this, so nothing scrollable is lost.
+        */}
+        <main className="mx-auto w-full max-w-6xl flex-1 overflow-x-clip px-4 py-8">
+          {children}
+        </main>
         <footer className="border-border text-muted-foreground mt-8 border-t px-4 py-6 text-xs">
           <div className="mx-auto max-w-6xl space-y-1">
             <p>

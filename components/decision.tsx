@@ -1,0 +1,471 @@
+import * as React from "react";
+import { price } from "@/lib/format";
+import type { Action, Confidence, Decision, Market, TimeSense } from "@/lib/decision";
+import type { ProductDecision, WhereToCheck } from "@/lib/productDecision";
+import { AsOf, Card, ConfidenceBadge, Empty, Note, Pill, Section } from "@/components/ui";
+
+// The decision panel, and nothing else.
+//
+// Everything here is one shape: a word that tells the reader what to do, the short reason, the two
+// numbers that bound being wrong, and then — always — what is missing. The deeper sections of the
+// site still carry the evidence; this is the part a reader can act on, so it is the part that must
+// never look blank. `decision.missing` is therefore rendered unconditionally whenever it has items,
+// at full size, above the honesty line rather than tucked under it.
+//
+// Server components only. There is no `'use client'` anywhere in this app by design, and nothing in
+// a panel like this needs it: every state the reader can reach is either already in the props or is
+// a native `<details>`. Adding a client boundary here would ship a bundle to make a word bigger.
+
+/// Direction is not sentiment, and the colour is never the message.
+///
+/// LONG reads as green and SHORT as red because that is what a price reader expects of a direction,
+/// but a SHORT is not bad news and a LONG is not an endorsement — they are two sides of the same
+/// measurement, and one of them being red is a convention, not a judgement. WAIT gets `warn` because
+/// WAIT genuinely is a caution: it means the rule table refused to answer.
+///
+/// Which is why the colour is only ever decoration here. The word LONG, SHORT or WAIT is printed in
+/// full at the largest size on the page, and every field beside it carries a text label. A reader
+/// with deuteranopia, a reader on a washed-out phone screen in sunlight, and a reader of a printout
+/// in greyscale all get the same answer from the text alone. If removing the colour from this panel
+/// would lose any information, the panel is wrong.
+const ACTION_TONE: Record<Action, "up" | "down" | "warn"> = {
+  LONG: "up",
+  SHORT: "down",
+  WAIT: "warn",
+};
+
+const ACTION_TEXT: Record<Action, string> = {
+  LONG: "text-up",
+  SHORT: "text-down",
+  WAIT: "text-warn",
+};
+
+/// What each time sense means, spelled out next to it.
+///
+/// The three words are not self-explanatory on their own — "NOW" especially, which a reader could
+/// take as urgency when it only means the last close sits inside the entry band. CARE says a dated
+/// event is near, because that is the one case where the instruction is about the calendar rather
+/// than the price.
+const TIME_SENSE_COPY: Record<TimeSense, string> = {
+  NOW: "The last stored close is inside the entry zone.",
+  "WAIT FOR LEVEL": "The price is not in the zone yet. Nothing to do until it is.",
+  CARE: "A dated event is near, so a position opened today meets it.",
+};
+
+const TIME_SENSE_TONE: Record<TimeSense, "default" | "up" | "warn"> = {
+  NOW: "up",
+  "WAIT FOR LEVEL": "default",
+  CARE: "warn",
+};
+
+export interface DecisionPanelProps {
+  decision: Decision;
+  symbol: string;
+  /// Quoted currency for the two levels. PSX names are in rupees and `price()` knows the marks.
+  currency: string;
+  /// Newest stored close date, shown so the reader can see how old the answer is.
+  asOf: Date | string | null;
+}
+
+/// One labelled figure or sentence. Used for every field in the panel so that the label and the
+/// value always travel together — a bare number under a big word is the thing this panel is
+/// replacing.
+function Field({
+  label,
+  children,
+  hint,
+}: {
+  label: string;
+  children: React.ReactNode;
+  hint?: string;
+}) {
+  return (
+    <div>
+      <p className="text-muted-foreground text-xs font-medium">{label}</p>
+      <div className="mt-0.5 text-sm leading-relaxed">{children}</div>
+      {hint ? (
+        <p className="text-muted-foreground mt-0.5 text-micro leading-relaxed">{hint}</p>
+      ) : null}
+    </div>
+  );
+}
+
+/// What could not be checked, said out loud.
+///
+/// The spec behind this panel is one sentence: if data is missing, the action is WAIT and the page
+/// says exactly what is missing, with no silent empty. The rule table already guarantees the first
+/// half; this is the second half, and it is a block rather than a footnote because a reader who
+/// scrolls past it has been told nothing. It renders for LONG and SHORT too — a direction with no
+/// stored entry band is still a direction with a hole in it.
+function Missing({ items }: { items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="border-warn/30 bg-warn-bg mt-4 rounded-lg border px-3 py-2">
+      <p className="text-warn text-xs font-medium">What is missing</p>
+      <ul className="mt-1.5 space-y-1">
+        {items.map((m, i) => (
+          <li key={i} className="text-muted-foreground text-xs leading-relaxed">
+            {m}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/// The asset decision, at the top of every asset page.
+///
+/// Field order is the order the questions get asked: what, why, where in, where out, when, how well
+/// evidenced. The two levels sit in one two-column block from `sm` up because they are read as a
+/// pair — an entry with no exit is the shape of a tip — and stack on a phone rather than being
+/// squeezed into two 150px columns.
+export function DecisionPanel({ decision, symbol, currency, asOf }: DecisionPanelProps) {
+  const grade = decision.confidence.toLowerCase();
+
+  return (
+    <Card className="border-primary/30">
+      {/* The word, and then everything that qualifies it. `wrap-hard` is not needed — the three
+          words are short — but the row wraps because the pills beside it will not fit at 375px. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <p className={`text-4xl leading-none font-bold tracking-tight sm:text-5xl ${ACTION_TEXT[decision.action]}`}>
+          {decision.action}
+        </p>
+        <span className="flex flex-wrap items-center gap-2">
+          <Pill tone="default">{symbol}</Pill>
+          <ConfidenceBadge grade={grade} />
+          <AsOf date={asOf} />
+        </span>
+      </div>
+
+      <div className="mt-4">
+        <Field label="Why">
+          {decision.why.length ? (
+            <ul className="space-y-1">
+              {decision.why.slice(0, 2).map((w, i) => (
+                <li key={i}>{w}</li>
+              ))}
+            </ul>
+          ) : (
+            "No reason was recorded, which is itself a fault — read what is missing below."
+          )}
+        </Field>
+      </div>
+
+      <div className="border-border mt-4 grid gap-3 border-t pt-3 sm:grid-cols-2">
+        <Field
+          label="Entry"
+          hint={
+            decision.entry
+              ? "Both ends inclusive. Outside the zone there is nothing to do."
+              : undefined
+          }
+        >
+          {decision.entry ? (
+            <span className="num">
+              {price(decision.entry.low, currency)} to {price(decision.entry.high, currency)}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">
+              No measured zone is stored, so no entry is named.
+            </span>
+          )}
+        </Field>
+
+        {/* "Exit if wrong", never "invalidation". The reader is owed the instruction, not the
+            vocabulary the field is stored under. */}
+        <Field
+          label="Exit if wrong"
+          hint={
+            decision.invalidation !== null
+              ? "Past this level the reason above no longer holds."
+              : undefined
+          }
+        >
+          {decision.invalidation !== null ? (
+            <span className="num">{price(decision.invalidation, currency)}</span>
+          ) : (
+            <span className="text-muted-foreground">
+              No stop level is stored, which is why the action is WAIT.
+            </span>
+          )}
+        </Field>
+      </div>
+
+      <div className="mt-4">
+        <Field label="When" hint={TIME_SENSE_COPY[decision.timeSense]}>
+          <Pill tone={TIME_SENSE_TONE[decision.timeSense]}>{decision.timeSense}</Pill>
+        </Field>
+      </div>
+
+      <Missing items={decision.missing} />
+
+      {/* Verbatim, and never rewritten per page. It is the sentence that stops a measured range
+          being read as a forecast, so it says the same thing everywhere it appears. */}
+      <Note>{decision.measured}</Note>
+    </Card>
+  );
+}
+
+const ATTENTION_TONE: Record<string, "up" | "warn" | "default"> = {
+  RISING: "up",
+  EARLY: "warn",
+  FLAT: "default",
+};
+
+/// Sell interest is an instruction about looking, not about buying, so none of the three gets a
+/// green. "YES LOOK" earns `up` because it is the one that asks for an action; the other two are
+/// plain, since "NOT YET" is not a failure and "NO CLEAR SIGNAL" is an admission about the data.
+const SELL_TONE: Record<string, "up" | "default" | "warn"> = {
+  "YES LOOK": "up",
+  "NOT YET": "default",
+  "NO CLEAR SIGNAL": "warn",
+};
+
+export interface ProductDecisionPanelProps {
+  decision: ProductDecision;
+  name: string;
+}
+
+/// One link, sized to be hit with a thumb.
+///
+/// `min-h-11` is 44px. The reason the whole block is the anchor rather than the label alone is that
+/// the `why` line is the part that makes the click worth making, and a reader who aims at it should
+/// not miss. The label carries the destination in words and the arrow is `aria-hidden`, because an
+/// external link marked only by an icon is unreadable to a screen reader and invisible in a
+/// greyscale print.
+function WhereLink({ item }: { item: WhereToCheck }) {
+  return (
+    <li>
+      <a
+        href={item.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="border-border hover:border-primary/50 flex min-h-11 flex-col justify-center gap-0.5 rounded-lg border px-3 py-2 transition-colors"
+      >
+        <span className="text-sm font-medium underline underline-offset-2">
+          {item.label}
+          <span aria-hidden="true"> &rarr;</span>
+          <span className="sr-only"> (opens in a new tab)</span>
+        </span>
+        <span className="text-muted-foreground text-xs leading-relaxed">{item.why}</span>
+      </a>
+    </li>
+  );
+}
+
+/// The product decision, at the top of every product page.
+///
+/// What this panel deliberately does not say is how much of anything sold. Nothing stored here
+/// counts a sale: the attention reading is built from searches, pageviews and article counts, and a
+/// marketplace row is a rank. So every word is about interest and about where to go and check, and
+/// the risk line names which of the two is weak. There is no figure on this panel that a reader
+/// could mistake for a unit count, and none should ever be added.
+export function ProductDecisionPanel({ decision, name }: ProductDecisionPanelProps) {
+  return (
+    <Card className="border-primary/30">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <p className="text-2xl leading-none font-bold tracking-tight sm:text-3xl">{name}</p>
+        <span className="flex flex-wrap items-center gap-2">
+          <ConfidenceBadge grade={decision.confidence} />
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <Field label="Attention">
+          {decision.attention ? (
+            <Pill tone={ATTENTION_TONE[decision.attention] ?? "default"}>
+              {decision.attention}
+            </Pill>
+          ) : (
+            <span className="text-muted-foreground">
+              {decision.attentionMissing ?? `No attention reading stored for ${name}.`}
+            </span>
+          )}
+        </Field>
+
+        <Field label="Sell interest">
+          <Pill tone={SELL_TONE[decision.sellInterest] ?? "default"}>{decision.sellInterest}</Pill>
+        </Field>
+      </div>
+
+      {decision.why.length ? (
+        <div className="mt-4">
+          <Field label="Why">
+            <ul className="space-y-1">
+              {decision.why.map((w, i) => (
+                <li key={i}>{w}</li>
+              ))}
+            </ul>
+          </Field>
+        </div>
+      ) : null}
+
+      <div className="mt-4">
+        <Field
+          label="Geo"
+          hint={
+            decision.geo
+              ? "Where stored interest concentrates, which is not where the buyers are."
+              : undefined
+          }
+        >
+          {decision.geo ? (
+            decision.geo
+          ) : (
+            <span className="text-muted-foreground">Geo not stored yet.</span>
+          )}
+        </Field>
+      </div>
+
+      {/* The links are the point of the page, so they are a list of tap targets rather than a
+          sentence with words underlined in it. One column on a phone, two from `sm`. */}
+      <div className="border-border mt-4 border-t pt-3">
+        <p className="text-muted-foreground text-xs font-medium">Where to check</p>
+        {decision.where.length ? (
+          <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+            {decision.where.map((w) => (
+              <WhereLink key={w.url} item={w} />
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground mt-1 text-sm">
+            No search term is stored, so no link could be built.
+          </p>
+        )}
+      </div>
+
+      <Missing items={decision.missing} />
+
+      {/* Exactly one risk line, as the rules produce it. A second one would make the reader choose
+          which risk to carry, which is how both get ignored. */}
+      <Note>
+        <span className="font-medium">Risk:</span> {decision.risk}
+      </Note>
+    </Card>
+  );
+}
+
+/// One row of a home-page list.
+///
+/// Exported as a named interface rather than left inline: three pages build these arrays and a
+/// shape nobody can import is a shape everybody retypes slightly differently.
+export interface DecisionRow {
+  /// Raw stored symbol. Contains `^`, `=`, `.` and `-`, so every link encodes it.
+  symbol: string;
+  name: string;
+  market: Market;
+  action: Action;
+  entry: { low: number; high: number } | null;
+  invalidation: number | null;
+  confidence: Confidence;
+  /// Quoted currency for this row's levels. Defaults to USD, which is wrong for PSX names, so
+  /// callers covering PSX must pass it.
+  currency?: string;
+}
+
+export interface DecisionListProps {
+  title: string;
+  lead?: string;
+  rows: DecisionRow[];
+  /// What to say when there are none. A list with no rows still owes the reader a reason.
+  empty: React.ReactNode;
+}
+
+const ROW_LABEL = "text-muted-foreground text-micro font-medium sm:hidden";
+
+/// A home-page list of decisions.
+///
+/// Not a `Table`. Seven columns is where the site's table scroller stops being enough: the useful
+/// columns here are two prices and three words, and at 375px the reader would have to scroll
+/// sideways past the name to reach the stop level — which is the column they came for. So the row
+/// is one grid that reflows instead of one table that scrolls. Below `sm` each field is a labelled
+/// line stacked in a card; from `sm` up the same cells sit in a six-column row under a header, and
+/// the per-field labels go away because the header is carrying them.
+///
+/// The whole row is the link, so the tap target is the card rather than the name inside it, and
+/// there is nothing else interactive in a row to conflict with it.
+export function DecisionList({ title, lead, rows, empty }: DecisionListProps) {
+  const cols =
+    "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,1.1fr)] sm:items-baseline sm:gap-y-0";
+
+  return (
+    <Section title={title} lead={lead}>
+      {rows.length ? (
+        <>
+          {/* The header exists only where the row layout does. On a phone each cell labels
+              itself, so a header row there would be six words of duplication. */}
+          <div
+            aria-hidden="true"
+            className={`text-muted-foreground border-border bg-muted/60 hidden rounded-t-lg border px-3 py-2 text-xs sm:grid ${cols}`}
+          >
+            <span>Name</span>
+            <span>Market</span>
+            <span>Action</span>
+            <span>Entry</span>
+            <span>Exit if wrong</span>
+            <span>Confidence</span>
+          </div>
+          <ul className="space-y-2 sm:space-y-0">
+            {rows.map((r) => {
+              const currency = r.currency ?? "USD";
+              return (
+                <li
+                  key={r.symbol}
+                  className="sm:border-border sm:border-x sm:border-b sm:last:rounded-b-lg"
+                >
+                  <Card
+                    href={`/asset/${encodeURIComponent(r.symbol)}`}
+                    className={`${cols} sm:rounded-none sm:border-0 sm:px-3 sm:py-3`}
+                  >
+                    <span className="col-span-2 min-w-0 sm:col-span-1">
+                      <span className={ROW_LABEL}>Name</span>
+                      <span className="block text-sm font-medium">{r.name}</span>
+                      <span className="text-muted-foreground num block text-micro">{r.symbol}</span>
+                    </span>
+
+                    <span className="min-w-0">
+                      <span className={ROW_LABEL}>Market</span>
+                      <span className="block text-sm">{r.market}</span>
+                    </span>
+
+                    <span className="min-w-0">
+                      <span className={ROW_LABEL}>Action</span>
+                      <span className="mt-0.5 block sm:mt-0">
+                        <Pill tone={ACTION_TONE[r.action]}>{r.action}</Pill>
+                      </span>
+                    </span>
+
+                    <span className="min-w-0">
+                      <span className={ROW_LABEL}>Entry</span>
+                      <span className="num block text-sm">
+                        {r.entry
+                          ? `${price(r.entry.low, currency)} to ${price(r.entry.high, currency)}`
+                          : "none stored"}
+                      </span>
+                    </span>
+
+                    <span className="min-w-0">
+                      <span className={ROW_LABEL}>Exit if wrong</span>
+                      <span className="num block text-sm">
+                        {r.invalidation !== null ? price(r.invalidation, currency) : "none stored"}
+                      </span>
+                    </span>
+
+                    <span className="min-w-0">
+                      <span className={ROW_LABEL}>Confidence</span>
+                      <span className="mt-0.5 block sm:mt-0">
+                        <ConfidenceBadge grade={r.confidence.toLowerCase()} />
+                      </span>
+                    </span>
+                  </Card>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      ) : (
+        <Empty>{empty}</Empty>
+      )}
+    </Section>
+  );
+}

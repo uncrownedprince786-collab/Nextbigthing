@@ -56,10 +56,109 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* The site renders untrusted external text: news headlines, marketplace listing titles,
+     source names. A single 40 character token must not be able to widen the page, so the
+     default for every text node is to break inside a word when there is no other option.
+     Inherited, so a component only needs its own rule when it wants a harder break. */
+  overflow-wrap: break-word;
+}
+
+/* Inline code appears in roughly ten empty states as a job command. It is one unbroken
+   token to a layout engine, which is exactly the thing that overflows a 375px screen, so
+   it breaks anywhere rather than break-word. */
+code {
+  overflow-wrap: anywhere;
 }
 
 @utility num {
   font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
+}
+
+/* The smallest type on the site, defined once instead of as a hardcoded 11px in two dozen
+   places. 11px is below the practical floor for body copy on a phone held at arm's length,
+   so on small screens it is 12px; from the `sm` breakpoint up it is the 11px the desktop
+   hierarchy was tuned against, so nothing above it has to be re-spaced.
+
+   Line height is deliberately left alone: most call sites pair this with `leading-relaxed`
+   or `leading-4` and setting it here would silently override them. */
+:root {
+  --text-micro: 0.75rem;
+}
+
+@media (width >= 40rem) {
+  :root {
+    --text-micro: 0.6875rem;
+  }
+}
+
+@utility text-micro {
+  font-size: var(--text-micro);
+}
+
+/* Breaks inside a word even when a normal break opportunity exists later in the line. For
+   headlines and listing titles pulled from external feeds, where a long model number is
+   the common case. */
+@utility wrap-hard {
+  overflow-wrap: anywhere;
+}
+
+/* Scroll affordance for a horizontally scrollable region, with no JavaScript.
+   The first two gradients are painted in the page background and attached `local`, so they
+   travel with the content and sit over the edge exactly when that edge is at the end of its
+   scroll range. The second two are the shadows and are attached `scroll`, so they stay
+   pinned to the element. The result is a shadow that appears on whichever side still has
+   content hidden and disappears when there is none, which is the information a reader needs
+   and the one thing a static fade cannot tell them. */
+@utility scroll-affordance-x {
+  background-image:
+    linear-gradient(to right, var(--background) 30%, transparent),
+    linear-gradient(to left, var(--background) 30%, transparent),
+    linear-gradient(to right, color-mix(in srgb, var(--foreground) 16%, transparent), transparent),
+    linear-gradient(to left, color-mix(in srgb, var(--foreground) 16%, transparent), transparent);
+  background-position:
+    left center,
+    right center,
+    left center,
+    right center;
+  background-repeat: no-repeat;
+  background-size:
+    2.5rem 100%,
+    2.5rem 100%,
+    0.875rem 100%,
+    0.875rem 100%;
+  background-attachment: local, local, scroll, scroll;
+}
+
+/* Table rules that have to reach cells this component does not own. Pages pass their own
+   `<th>`/`<td>` markup to `Table`, so the only way to cap a free-text column or to let a
+   long token break inside a cell is to style the cells from here, keyed off the attribute
+   `Table` sets. */
+[data-ui-table] th,
+[data-ui-table] td {
+  overflow-wrap: break-word;
+}
+
+/* A free-text column — the asset page's Note, built from stored confidence notes — would
+   otherwise take as much width as its longest row asks for and squeeze six other columns
+   into nothing. The cap is a hint in auto table layout rather than a guarantee, which is
+   why the break rule above carries the load. */
+[data-ui-table] td {
+  max-width: 24rem;
+}
+
+/* Opt-in via Table's `stickyFirstColumn`. The background is explicit because table cells
+   are transparent: a sticky cell with no background of its own would have the scrolling
+   content of the next column read through it. */
+[data-ui-table="sticky"] thead tr > *:first-child,
+[data-ui-table="sticky"] tbody tr > *:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--background);
+}
+
+[data-ui-table="sticky"] thead tr > *:first-child {
+  background: color-mix(in srgb, var(--muted) 60%, var(--background));
 }

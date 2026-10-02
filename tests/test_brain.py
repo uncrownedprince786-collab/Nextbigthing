@@ -2053,6 +2053,41 @@ class QueryBudget(unittest.TestCase):
 WORD = chr(92) + "b%s" + chr(92) + "b"
 
 
+def code_only(text: str) -> str:
+    """The same file with its comments blanked out.
+
+    Both guards below search TypeScript for a string, and both were wrong in opposite
+    directions because a comment is not code. `test_nothing_is_exposed_to_the_browser` failed
+    on a page whose comment *explains* that it has no `'use client'` — the guard fired on
+    correct code, which rule 37 says to fix in the guard. The consumer scan had the mirror
+    fault and was quietly counting a name mentioned in a comment as a consumer, so a component
+    could be deleted from every page and still look wired.
+
+    Newlines are preserved so a stripped file keeps its line count, and the replacement is
+    spaces rather than nothing so a word boundary cannot be manufactured by deletion. This is
+    a counting heuristic, not a parser: a `//` inside a string literal is blanked too, which
+    costs nothing here because neither guard cares about string contents.
+    """
+    out = []
+    i, n = 0, len(text)
+    while i < n:
+        two = text[i : i + 2]
+        if two == "//":
+            while i < n and text[i] != chr(10):
+                out.append(" ")
+                i += 1
+        elif two == "/*":
+            while i < n and text[i : i + 2] != "*/":
+                out.append(chr(10) if text[i] == chr(10) else " ")
+                i += 1
+            out.append("  ")
+            i += 2
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
 class NothingBuiltAndUnused(unittest.TestCase):
     """An export with no consumer is a measurement no reader sees, in the web layer.
 
@@ -2070,13 +2105,16 @@ class NothingBuiltAndUnused(unittest.TestCase):
         import re
         exports = {}
         for f in sorted(list((ROOT / "lib").glob("*.ts")) + list((ROOT / "components").glob("*.tsx"))):
-            text = f.read_text(encoding="utf-8")
+            text = code_only(f.read_text(encoding="utf-8"))
             for m in re.finditer(r"^export (?:async )?function (\w+)|^export const (\w+)", text, re.M):
                 exports[m.group(1) or m.group(2)] = str(f)
         files = {}
         for pattern in ("app/**/*.tsx", "app/*.tsx", "lib/*.ts", "components/*.tsx"):
             for f in ROOT.glob(pattern):
-                files[str(f)] = f.read_text(encoding="utf-8")
+                # Comments stripped: a name that survives only in a comment explaining where it
+                # used to be used is not a consumer, and counting it as one is how a deleted
+                # component keeps passing this test.
+                files[str(f)] = code_only(f.read_text(encoding="utf-8"))
         self.assertGreater(len(files), 8, "the file scan found almost nothing, so it is broken")
         orphans = []
         for name, origin in sorted(exports.items()):
@@ -2311,7 +2349,9 @@ class SqlSafety(unittest.TestCase):
         # No NEXT_PUBLIC_ variable and no client component means no server-only value can reach
         # the browser bundle at all, which is stronger than auditing each one.
         for p in self._web_files():
-            text = p.read_text(encoding="utf-8")
+            # Code only. A page that carries a comment saying why it has no `use client` is the
+            # correct code this guard existed to protect, and failing it taught nothing.
+            text = code_only(p.read_text(encoding="utf-8"))
             self.assertNotIn("NEXT_PUBLIC_", text, f"{p.relative_to(ROOT)}")
             self.assertNotIn("use client", text, f"{p.relative_to(ROOT)}")
 
