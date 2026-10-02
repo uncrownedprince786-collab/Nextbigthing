@@ -270,6 +270,22 @@ export async function getHumanSignal(where: { assetId: string } | { productId: s
   });
 }
 
+/// The newest computed factor row for one asset, or null when the factor job has not reached it.
+///
+/// Null rather than a row of zeroes, and the distinction is the whole reason this is a separate
+/// function instead of a `?? 0` at the call site. `volumeRatio` of null means the venue published
+/// no volume and `relStrength` of null means the peer group was too small to take a median over —
+/// both are "we do not know", and the rule table in `lib/decision.ts` is built to report an unknown
+/// as missing evidence rather than as evidence against. A zero would read as "volume was flat" and
+/// "the name matched its peers exactly", neither of which was measured.
+export async function getFactor(assetId: string) {
+  return prisma.assetFactor.findFirst({
+    where: { assetId },
+    orderBy: { periodEnd: "desc" },
+    select: { periodEnd: true, volumeRatio: true, relStrength: true, peers: true },
+  });
+}
+
 /// The newest measured-condition read for one asset.
 export async function getSetup(assetId: string) {
   return prisma.assetSetup.findFirst({
@@ -652,7 +668,7 @@ export async function getAssetFreshness(assetId: string): Promise<{
   return { newest: row.date, close: row.close, priceSource: row.source };
 }
 
-/// Everything the decision panel on one asset page reads: 8 queries, issued together.
+/// Everything the decision panel on one asset page reads: 9 queries, issued together.
 ///
 /// Flat and not nested. The panel's whole claim is that these readings are being looked at
 /// together — a `buy` on the swing horizon next to a four-day-old close next to an
@@ -666,8 +682,14 @@ export async function getAssetFreshness(assetId: string): Promise<{
 /// for one and stale for another. `market` comes from the industry and never from the symbol —
 /// the ticker PSX is Phillips 66, a US asset, and a panel that read the market off the letters
 /// would call it Pakistani and then judge its freshness against the wrong calendar.
+///
+/// `factor` joins the same `Promise.all` rather than being awaited after it. It is one of the three
+/// things the rule table can use to confirm a direction — volume against its own average, and the
+/// name against its peer group — and a panel that fetched its confirmations in a second round trip
+/// would be free to render the direction before they arrived, which is exactly the selective reading
+/// argued against above.
 export async function getDecisionBundle(assetId: string) {
-  const [asset, freshness, horizons, analogs, humanSignal, investigation, upcoming] =
+  const [asset, freshness, horizons, analogs, humanSignal, investigation, upcoming, factor] =
     await Promise.all([
       prisma.asset.findUnique({
         where: { id: assetId },
@@ -691,6 +713,10 @@ export async function getDecisionBundle(assetId: string) {
       // take 1: the panel shows the next dated thing, not a diary. A list here would compete
       // with the page's own events section and say the same thing twice.
       getUpcoming({ assetId, take: 1 }),
+      // Newest row, by the same `periodEnd desc` rule every other reading on this panel uses, so
+      // "the current factor" means the same day's measurement here, in `getDecisionRows` and in
+      // `tools/decide.mjs`.
+      getFactor(assetId),
     ]);
 
   return {
@@ -707,10 +733,24 @@ export async function getDecisionBundle(assetId: string) {
     priceSource: freshness.priceSource,
     horizons,
     analogPeriodEnd: analogs.periodEnd,
+    // Whole rows, so `medianPct` and `positive` travel with the band. `getAnalogs` takes no
+    // `select`, so those two columns were already arriving here — what was missing was never the
+    // read, it was that nothing downstream looked at them. `QueryBundle.analogs` declares both as
+    // optional and `bundleFromQuery` forwards them, so quoting a band and saying whether the
+    // matched days leaned is now one object rather than two reads that could disagree.
     analogs: analogs.rows,
     humanSignal,
     investigation,
     nextEvent: upcoming[0] ?? null,
+    // Shaped as `QueryBundle.factor` expects: the row itself when one exists, null when the factor
+    // job has not written for this asset. Not flattened into two top-level fields, because
+    // `{ volumeRatio: null, relStrength: null }` and "no factor row at all" are different states and
+    // flattening them would make the second indistinguishable from the first.
+    factor: factor ? { volumeRatio: factor.volumeRatio, relStrength: factor.relStrength } : null,
+    factorPeriodEnd: factor?.periodEnd ?? null,
+    /// How many peers the relative reading was taken over. Carried so a panel can say *why*
+    /// `relStrength` is null — a group of four names rather than a measurement that came out even.
+    factorPeers: factor?.peers ?? null,
   };
 }
 
@@ -754,6 +794,21 @@ export type DecisionQueryRow = {
   /// Which horizon the analog band above was measured over. Carried because a band without its
   /// horizon is not a measurement, and the lists must not print one as if it were.
   analogHorizonDays: number | null;
+  /// The middle outcome of the matched days, and how many of them rose.
+  ///
+  /// Both, never one. A range of -20% to +22% is the same range whether nine of ten matched days
+  /// rose or one did, so `analogConfirms` in `lib/decision.ts` requires a majority *and* a median
+  /// of the right sign before it will call an analog set confirmation. Selecting only the median
+  /// would let a set where the losses were larger read as agreement.
+  analogMedianPct: number | null;
+  analogPositive: number | null;
+  /// From the newest `AssetFactor`. `volumeRatio` is a multiple of this asset's own 20-session
+  /// average (1.0 = average), `relStrength` is percentage points of 20-session return above or below
+  /// the peer median. Both stay null where the measurement was not possible — no published volume,
+  /// or a peer group `jobs/factors.py` judged too small — and the rules read a null as missing
+  /// evidence rather than as evidence against.
+  volumeRatio: number | null;
+  relStrength: number | null;
   /// Stories, not items: twenty outlets carrying one wire report is one story. The reasoning is
   /// at `getStories` and on `HumanSignal.recentStories`.
   recentStories: number | null;
@@ -787,7 +842,7 @@ function distinctDays(maxes: (Date | null)[]): Date[] {
   return [...seen.values()];
 }
 
-/// One row per asset for the home page's three lists: 12 queries, in two waves.
+/// One row per asset for the home page's three lists: 14 queries, in two waves.
 ///
 /// That number does not change when the asset list grows. The obvious shape — call
 /// `getDecisionBundle` once per asset — would be eight queries per name across 120-odd US
@@ -815,13 +870,27 @@ function distinctDays(maxes: (Date | null)[]): Date[] {
 /// deduplicates in the client, so `distinct: ["assetId"]` on PriceSnapshot would pull every
 /// close since 2019 into Node to learn 120 dates — the exact waste `getAssetFreshness` exists
 /// to end, moved to the page that can least afford it.
+///
+/// `AssetFactor` was added as a fourteenth query — one more table, so one more pair of waves — and
+/// it was added as a pair rather than as a `findFirst` inside the `assets.map` below for the reason
+/// this whole function exists. A per-asset read there is 160 round trips today and one per name
+/// forever after, which on Neon's free tier is the failure mode described above and not merely a
+/// slower page. Two bulk queries cost the same whether the universe is 160 names or 1,000.
 export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
   // Wave one: the asset list, the newest day per asset in each table, and the forward diary.
-  const [assets, priceDays, setupDays, analogDays, signalDays, investigationDays, eventLinks] =
-    await Promise.all([
+  const [
+    assets,
+    priceDays,
+    setupDays,
+    analogDays,
+    signalDays,
+    investigationDays,
+    factorDays,
+    eventLinks,
+  ] = await Promise.all([
       prisma.asset.findMany({
         orderBy: [{ symbol: "asc" }],
         select: {
@@ -847,6 +916,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
         _max: { periodEnd: true },
       }),
       prisma.investigation.groupBy({ by: ["assetId"], _max: { periodEnd: true } }),
+      prisma.assetFactor.groupBy({ by: ["assetId"], _max: { periodEnd: true } }),
       // One query for the whole site's forward diary — small enough to read whole, so it skips
       // the two-step. Ordered by the event's own date, ascending, so the dedupe keeps the
       // *soonest* event per asset: a diary has only one order, and it is not "newest written".
@@ -865,11 +935,12 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   const analogDayList = distinctDays(analogDays.map((r) => r._max.periodEnd));
   const signalDayList = distinctDays(signalDays.map((r) => r._max.periodEnd));
   const investigationDayList = distinctDays(investigationDays.map((r) => r._max.periodEnd));
+  const factorDayList = distinctDays(factorDays.map((r) => r._max.periodEnd));
 
   // Wave two: the rows themselves, confined to the days wave one named. Each `findMany` is
   // skipped outright when its table turned out to be empty, because `in: []` is a query that can
   // only return nothing and still costs a round trip on a free-tier database.
-  const [prices, setups, analogs, signals, investigations] = await Promise.all([
+  const [prices, setups, analogs, signals, investigations, factors] = await Promise.all([
     priceDayList.length
       ? prisma.priceSnapshot.findMany({
           where: { date: { in: priceDayList } },
@@ -900,7 +971,19 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
           // The lists ask "what now", and a 5-day band answers that; letting a 60-day band win
           // on some assets would print two different measurements in one column.
           orderBy: [{ periodEnd: "desc" }, { horizonDays: "asc" }],
-          select: { assetId: true, horizonDays: true, minPct: true, maxPct: true, matches: true },
+          // `medianPct` and `positive` ride along with the band they describe. Two more columns on
+          // a read that was already happening, not a second query: the lean and the range are one
+          // measurement of one row, and fetching them apart would let the lists print a band from
+          // one day next to a lean from another.
+          select: {
+            assetId: true,
+            horizonDays: true,
+            minPct: true,
+            maxPct: true,
+            matches: true,
+            medianPct: true,
+            positive: true,
+          },
         })
       : [],
     signalDayList.length
@@ -917,6 +1000,17 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
           select: { assetId: true, robustZ: true, movePct: true, trigger: true },
         })
       : [],
+    // `periodEnd desc` and nothing else, matching the `DISTINCT ON ("assetId") ... ORDER BY
+    // "assetId", "periodEnd" DESC` that `tools/decide.mjs` uses for the same table. Both must agree
+    // about which stored row is the current reading, or the nightly log and the home page would
+    // grade the same asset differently on a day the factor job wrote twice.
+    factorDayList.length
+      ? prisma.assetFactor.findMany({
+          where: { periodEnd: { in: factorDayList } },
+          orderBy: { periodEnd: "desc" },
+          select: { assetId: true, volumeRatio: true, relStrength: true },
+        })
+      : [],
   ]);
 
   const priceByAsset = firstPerKey(prices, (r) => r.assetId);
@@ -926,6 +1020,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   // `?? ""` exists to satisfy the type and can never key a row that reaches this point.
   const signalByAsset = firstPerKey(signals, (r) => r.assetId ?? "");
   const investigationByAsset = firstPerKey(investigations, (r) => r.assetId);
+  const factorByAsset = firstPerKey(factors, (r) => r.assetId);
   const eventByAsset = firstPerKey(eventLinks, (r) => r.assetId ?? "");
 
   const DAY = 24 * 60 * 60 * 1000;
@@ -952,6 +1047,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
     const analog = analogByAsset.get(asset.id);
     const signal = signalByAsset.get(asset.id);
     const investigation = investigationByAsset.get(asset.id);
+    const factor = factorByAsset.get(asset.id);
     const event = eventByAsset.get(asset.id);
     return {
       assetId: asset.id,
@@ -970,6 +1066,15 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       analogMaxPct: analog?.maxPct ?? null,
       analogMatches: analog?.matches ?? null,
       analogHorizonDays: analog?.horizonDays ?? null,
+      analogMedianPct: analog?.medianPct ?? null,
+      analogPositive: analog?.positive ?? null,
+      // `?? null` collapses "no factor row for this asset" and "a factor row whose column was
+      // null" into the same value, and here that is correct rather than lazy: both mean the
+      // measurement is unavailable, and `lib/decision.ts` already treats an unavailable reading as
+      // missing evidence. The asset-page bundle keeps the two apart, because a panel can afford a
+      // sentence explaining which it is and a row in a list cannot.
+      volumeRatio: factor?.volumeRatio ?? null,
+      relStrength: factor?.relStrength ?? null,
       recentStories: signal?.recentStories ?? null,
       robustZ: investigation?.robustZ ?? null,
       movePct: investigation?.movePct ?? null,

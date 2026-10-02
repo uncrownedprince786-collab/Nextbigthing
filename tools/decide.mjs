@@ -9,7 +9,7 @@
 // is the actual rule table and not a copy of it.
 //
 // What it does, in order:
-//   1. ten bulk SELECTs — eight for the inputs, two to find and measure the matured rows — and
+//   1. eleven bulk SELECTs — nine for the inputs, two to find and measure the matured rows — and
 //      never one query per asset. 160 names today, maybe 1,000 later; a per-asset loop would be
 //      ~1,000 round trips against a free-tier Neon endpoint, which is not a slow job but a job
 //      that exhausts the pool and fails worse the more assets it covers. The query count here
@@ -115,15 +115,22 @@ async function tableExists(db, name) {
 
 /// Everything the rules need for every asset, in nine SELECTs.
 ///
+/// Nine, not eight: `AssetFactor` joined this list so the volume-confirmation rule and the
+/// peer-relative gate have something to read. Before it was here both were unreachable — not
+/// wrong, unreachable, because `volumeRatio` and `relStrength` arrived undefined on every row and
+/// `volumeConfirms` reads an undefined ratio as "not published". The measurable symptom was 159
+/// Low and 1 Medium out of 160 verdicts: confidence counts confirmations, and with volume never
+/// available only a second agreeing timeframe could ever count.
+///
 /// Each per-asset table is read with `DISTINCT ON`, so Postgres picks the newest row per asset and
 /// the network carries 160 rows instead of every row ever stored. The ORDER BY of each one is the
 /// rule for which row wins, and matches `getDecisionRows()` in `lib/queries.ts` on purpose: the job
 /// and the website must not disagree about which stored row is "the current reading".
 ///
-/// `db` is the pool rather than one connection: eight queries issued in parallel on a single
+/// `db` is the pool rather than one connection: nine queries issued in parallel on a single
 /// client are serialised by `pg` anyway (and warned about), while a small pool really overlaps them.
 async function readInputs(db, today) {
-  const [assets, prices, setups, analogs, signals, investigations, events, coverage] =
+  const [assets, prices, setups, analogs, signals, investigations, factors, events, coverage] =
     await Promise.all([
       db.query(
         `SELECT a.id, a.symbol, a."assetType"::text AS "assetType", i.market
@@ -145,9 +152,15 @@ async function readInputs(db, today) {
       ),
       // Newest day, and within that day the shortest horizon, so the band quoted answers "what
       // now" rather than letting a 60-day band win on some assets and a 5-day band on others.
+      // `medianPct` and positive are selected from the row the band already came from, never from
+      // a separate read. `analogConfirms` needs both halves — a majority of matched days moving the
+      // right way AND a middle outcome of the right sign — because six of ten rising with a negative
+      // median is a set where the four falls were larger, and calling that confirmation would be
+      // counting the days and ignoring their size.
       db.query(
         `SELECT DISTINCT ON ("assetId")
-                "assetId", id, "horizonDays", "minPct", "maxPct", matches
+                "assetId", id, "horizonDays", "minPct", "maxPct", matches,
+                "medianPct", positive
            FROM "AssetAnalog" ORDER BY "assetId", "periodEnd" DESC, "horizonDays" ASC`,
       ),
       // HumanSignal also describes products, which have no place in a list of assets.
@@ -159,6 +172,16 @@ async function readInputs(db, today) {
       db.query(
         `SELECT DISTINCT ON ("assetId") "assetId", "robustZ", trigger
            FROM "Investigation" ORDER BY "assetId", "periodEnd" DESC`,
+      ),
+      // The newest factor row per asset. `ORDER BY "assetId", "periodEnd" DESC` is the same rule
+      // `getDecisionRows()` applies to this table in `lib/queries.ts` — deliberately, so that on a
+      // day the factor job wrote twice the nightly log and the home page cannot disagree about which
+      // reading is current. Nulls are carried through as nulls: `volumeRatio` is null where the
+      // venue publishes no volume and `relStrength` is null where `jobs/factors.py` found too few
+      // peers to take a median over, and both are absences of a measurement rather than a flat one.
+      db.query(
+        `SELECT DISTINCT ON ("assetId") "assetId", "volumeRatio", "relStrength"
+           FROM "AssetFactor" ORDER BY "assetId", "periodEnd" DESC`,
       ),
       // The *soonest* future scheduled event per asset. A diary has one order and it is not
       // "newest written".
@@ -183,6 +206,7 @@ async function readInputs(db, today) {
     analogByAsset: firstPerKey(analogs.rows, (r) => r.assetId),
     signalByAsset: firstPerKey(signals.rows, (r) => r.assetId),
     investigationByAsset: firstPerKey(investigations.rows, (r) => r.assetId),
+    factorByAsset: firstPerKey(factors.rows, (r) => r.assetId),
     eventByAsset: firstPerKey(events.rows, (r) => r.assetId),
     sourceHealth: coverage.rows.map((r) => ({ source: r.source, status: r.status })),
   };
@@ -211,6 +235,7 @@ function rowsForDecisions(input) {
     const analog = input.analogByAsset.get(asset.id);
     const signal = input.signalByAsset.get(asset.id);
     const investigation = input.investigationByAsset.get(asset.id);
+    const factor = input.factorByAsset.get(asset.id);
     const event = input.eventByAsset.get(asset.id);
     return {
       assetId: asset.id,
@@ -227,6 +252,16 @@ function rowsForDecisions(input) {
         analogMaxPct: analog?.maxPct ?? null,
         analogMatches: analog?.matches ?? null,
         analogHorizonDays: analog?.horizonDays ?? null,
+        analogMedianPct: analog?.medianPct ?? null,
+        analogPositive: analog?.positive ?? null,
+        // Units, because they are the one thing a reader of this file cannot infer: `volumeRatio`
+        // is a multiple of the asset's own 20-session average, so 1.0 is an average day and
+        // `VOLUME_CONFIRMS_AT` compares against it as a multiple; `relStrength` is in percentage
+        // points of 20-session return above or below the peer median, so `REL_AGAINST_AT` is points
+        // and not a ratio. Passing one in the other's units would make both rules fire on the wrong
+        // names and neither would look broken.
+        volumeRatio: factor?.volumeRatio ?? null,
+        relStrength: factor?.relStrength ?? null,
         recentStories: signal?.recentStories ?? null,
         robustZ: investigation?.robustZ ?? null,
         trigger: investigation?.trigger ?? null,
