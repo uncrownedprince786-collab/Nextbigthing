@@ -178,6 +178,17 @@ def fetch_yahoo(cur) -> int:
     return written
 
 
+class SourceSilent(Exception):
+    """A source answered for nothing it was asked about.
+
+    Deliberately not `SystemExit`. `main` holds one transaction across all three lanes and
+    psycopg rolls a transaction back on *any* exception leaving the `with` block, so raising
+    out of the crypto or news lane discarded the rows the Yahoo lane had already written —
+    37,537 of them on a normal day. One blocked source must cost its own rows and no others.
+    `main` catches this per lane, commits what did answer, and exits non-zero afterwards.
+    """
+
+
 def require_answer(stored: int, asked: int, source: str = YAHOO) -> None:
     """Fail when a whole batch came back empty, instead of finishing quietly with nothing.
 
@@ -193,7 +204,7 @@ def require_answer(stored: int, asked: int, source: str = YAHOO) -> None:
             f"no row from {source} for any of {asked} assets: treat it as unavailable "
             "from this host and re-verify it before trusting a later run"
         )
-        raise SystemExit(1)
+        raise SourceSilent(f"{source} answered for none of {asked} assets")
 
 
 def _store_frame(cur, assets, frame, today: date, is_full: bool) -> int:
@@ -671,27 +682,91 @@ def fetch_news(cur) -> int:
     return written
 
 
+def coverage_line(source: str, n: int, newest, today: date) -> str:
+    """One source's state in a line: rows, newest date, and how far behind that is.
+
+    The age is what makes it readable at a glance. A source that answered but is four days
+    stale is a different problem from one that answered nothing, and the count alone hides
+    it — the table stood at 123 MB of rows while Binance had stopped days earlier.
+    """
+    if not n or newest is None:
+        return f"  {source:40} no rows at all"
+    behind = (today - newest).days
+    age = "today" if behind <= 0 else ("yesterday" if behind == 1 else f"{behind} days behind")
+    return f"  {source:40} {n:>8} rows, newest {newest} ({age})"
+
+
+def coverage_report(cur) -> None:
+    """Per source, not just the total, printed at the end of every run.
+
+    A single total is what let a dead source hide: `PriceSnapshot` keeps growing from the
+    lanes that still work. Yahoo, Binance and the PSX closing files each get their own line,
+    so the newest date and count asked for after a refresh are in the step's own output.
+    """
+    step("coverage by source")
+    today = date.today()
+    for r in rows(
+        cur,
+        """
+        SELECT source, count(*) AS n, max(date) AS newest
+        FROM "PriceSnapshot" GROUP BY source ORDER BY source
+        """,
+    ):
+        print(coverage_line(r["source"], int(r["n"]), r["newest"], today))
+
+
+def fail_on_silent(silent: list[str]) -> None:
+    """Exit non-zero once the writes are committed, naming every source that said nothing.
+
+    Called after the transaction closes, never inside it. A step that reports a blocked
+    source and keeps the rows the other sources returned is what the refresh lane needs: the
+    group goes on, the site serves what landed, and the log names what to re-verify.
+    """
+    if not silent:
+        return
+    print()
+    print(f"{len(silent)} source(s) answered for nothing: " + "; ".join(silent))
+    print("the rows the other sources returned are committed and kept")
+    raise SystemExit(1)
+
+
 def main() -> None:
     conn = db()
     todo = set(sys.argv[1:]) or {"yahoo", "crypto", "news"}
+    silent: list[str] = []
     with conn, conn.cursor() as cur:
+        # Each lane is caught on its own. A SourceSilent is our own exception and not a
+        # database error, so the transaction is still usable and the next lane can write.
         if "yahoo" in todo:
-            n1 = fetch_yahoo(cur)
-            step("yahoo total")
-            print(f"  {n1} price rows")
+            try:
+                n1 = fetch_yahoo(cur)
+                step("yahoo total")
+                print(f"  {n1} price rows")
+            except SourceSilent as e:
+                silent.append(str(e))
         if "crypto" in todo:
-            n2 = fetch_crypto(cur)
-            print(f"  {n2} crypto price rows")
+            try:
+                n2 = fetch_crypto(cur)
+                print(f"  {n2} crypto price rows")
+            except SourceSilent as e:
+                silent.append(str(e))
         if "news" in todo:
-            n3 = fetch_news(cur)
-            print(f"  {n3} news rows written")
+            try:
+                n3 = fetch_news(cur)
+                print(f"  {n3} news rows written")
+            except SourceSilent as e:
+                silent.append(str(e))
 
         cur.execute('SELECT count(*) AS n, max(date) AS latest FROM "PriceSnapshot"')
         got = cur.fetchone()
         print(f"\nPriceSnapshot rows: {got['n']}, latest {got['latest']}")
         cur.execute('SELECT count(*) AS n FROM "News"')
         print(f"News rows: {cur.fetchone()['n']}")
+        coverage_report(cur)
     conn.close()
+
+    # After the commit, never before it.
+    fail_on_silent(silent)
 
 
 if __name__ == "__main__":

@@ -101,6 +101,31 @@ def _host_delay(url: str) -> float:
     return HOST_DELAY.get(host, 1.0)
 
 
+# Transient codes worth asking again for. 403 is not here: a block is an answer, and asking
+# again just spends the lane's time confirming it.
+RETRY_ON = (429, 500, 502, 503, 504)
+RETRIES = 2                    # three attempts in all
+RETRY_BACKOFF = (3, 12)        # seconds before the second and third attempt
+
+# The ceiling that makes retrying safe. Without it a source that is down costs every URL its
+# full backoff — 15 seconds times a few hundred feeds is the daily lane's whole timeout spent
+# on a host that is not answering. After this many retried attempts the host gets one try per
+# URL for the rest of the run, which is how it behaved before retries existed.
+RETRY_HOST_BUDGET = 8
+_retry_spent: dict[str, int] = {}
+
+
+def may_retry(host: str, attempt: int, spent: dict[str, int] | None = None) -> bool:
+    """Whether to ask `host` again, charged against its budget for this run."""
+    if attempt >= RETRIES:
+        return False
+    book = _retry_spent if spent is None else spent
+    if book.get(host, 0) >= RETRY_HOST_BUDGET:
+        return False
+    book[host] = book.get(host, 0) + 1
+    return True
+
+
 def get(
     url: str,
     *,
@@ -109,7 +134,13 @@ def get(
     headers: dict[str, str] | None = None,
     timeout: int = 30,
 ) -> bytes | None:
-    """Fetch with an on-disk cache and a per-host delay. None on any failure."""
+    """Fetch with an on-disk cache and a per-host delay. None on any failure.
+
+    A transient failure is retried up to RETRIES times with a growing pause, because losing a
+    feed for the day to one 503 is worse than waiting fifteen seconds. A host that keeps
+    failing stops being retried once it has spent RETRY_HOST_BUDGET, so a dead source cannot
+    consume the lane.
+    """
     host = urllib.parse.urlparse(url).netloc.lower()
     key = cache_key or url
     path = CACHE / (hashlib.sha1(key.encode()).hexdigest() + ".json")
@@ -131,22 +162,36 @@ def get(
     if headers:
         hdrs.update(headers)
 
-    try:
-        req = urllib.request.Request(url, headers=hdrs)
-        with urllib.request.urlopen(req, timeout=timeout, context=_ctx) as resp:
-            raw = resp.read()
-        _last_hit[host] = time.time()
-    except urllib.error.HTTPError as e:
-        _last_hit[host] = time.time()
-        # 429 means back off hard for this host for the rest of the run.
-        if e.code in (429, 403, 503):
-            _last_hit[host] = time.time() + 30
-            print(f"  blocked {host} {e.code}, backing off 30s")
-        print(f"  FAIL {e.code} {url[:100]}")
-        return None
-    except Exception as e:  # noqa: BLE001 - a dead source must not kill a job
-        _last_hit[host] = time.time()
-        print(f"  FAIL {type(e).__name__} {url[:100]}")
+    raw = None
+    for attempt in range(RETRIES + 1):
+        try:
+            req = urllib.request.Request(url, headers=hdrs)
+            with urllib.request.urlopen(req, timeout=timeout, context=_ctx) as resp:
+                raw = resp.read()
+            _last_hit[host] = time.time()
+            break
+        except urllib.error.HTTPError as e:
+            _last_hit[host] = time.time()
+            # 429 means back off hard for this host for the rest of the run.
+            if e.code in (429, 403, 503):
+                _last_hit[host] = time.time() + 30
+                print(f"  blocked {host} {e.code}, backing off 30s")
+            if e.code in RETRY_ON and may_retry(host, attempt):
+                print(f"  retry {attempt + 1} of {RETRIES} after {e.code} {url[:80]}")
+                time.sleep(RETRY_BACKOFF[attempt])
+                continue
+            print(f"  FAIL {e.code} {url[:100]}")
+            return None
+        except Exception as e:  # noqa: BLE001 - a dead source must not kill a job
+            _last_hit[host] = time.time()
+            # A timeout or a reset is the case retrying was added for.
+            if may_retry(host, attempt):
+                print(f"  retry {attempt + 1} of {RETRIES} after {type(e).__name__} {url[:80]}")
+                time.sleep(RETRY_BACKOFF[attempt])
+                continue
+            print(f"  FAIL {type(e).__name__} {url[:100]}")
+            return None
+    if raw is None:
         return None
 
     path.write_text(

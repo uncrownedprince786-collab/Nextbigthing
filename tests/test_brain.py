@@ -1654,12 +1654,38 @@ class SourceFailure(unittest.TestCase):
         # yf.download returns an empty frame for a blocked or throttled request and raises
         # nothing, so the count is the only evidence there is. A batch that asked for assets
         # and stored no row is the provider, not the market.
-        with self.assertRaises(SystemExit) as caught:
+        with self.assertRaises(prices.SourceSilent):
             prices.require_answer(0, 120)
-        self.assertEqual(caught.exception.code, 1)
         # A batch that answered is left alone, and asking for nothing is not a failure.
         self.assertIsNone(prices.require_answer(37537, 120))
         self.assertIsNone(prices.require_answer(0, 0))
+
+    def test_a_silent_source_is_not_raised_as_an_exit_inside_the_transaction(self):
+        # psycopg rolls a transaction back on any exception leaving `with conn`, so a guard
+        # that raised there cost the rows every other lane had already written. The guard
+        # raises its own exception, `main` catches it per lane, and the exit comes after the
+        # commit. Asserting the type is the whole point: SystemExit would unwind the block.
+        self.assertFalse(issubclass(prices.SourceSilent, SystemExit))
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = text[text.index("def main("):]
+        self.assertLess(body.index("conn.close()"), body.index("fail_on_silent(silent)"))
+        self.assertEqual(body.count("except SourceSilent as e:"), 3)
+        # And the only SystemExit in the job is the one after the commit.
+        self.assertEqual(text.count("raise SystemExit"), 1)
+
+    def test_the_exit_names_every_silent_source_and_keeps_what_landed(self):
+        with self.assertRaises(SystemExit) as caught:
+            prices.fail_on_silent(["Yahoo Finance answered for none of 120 assets"])
+        self.assertEqual(caught.exception.code, 1)
+        self.assertIsNone(prices.fail_on_silent([]))
+
+    def test_coverage_is_reported_per_source_and_names_how_stale_it_is(self):
+        # A single total hides a dead source, because the table keeps growing from the lanes
+        # that still work. Each source gets its own line with an age.
+        today = date(2026, 10, 2)
+        self.assertIn("newest 2026-10-02 (today)", prices.coverage_line("Yahoo Finance", 37537, date(2026, 10, 2), today))
+        self.assertIn("3 days behind", prices.coverage_line("Binance", 5000, date(2026, 9, 29), today))
+        self.assertIn("no rows at all", prices.coverage_line("Binance", 0, None, today))
 
     def test_the_yahoo_download_is_never_stored_without_that_check(self):
         # The behavioural test above passes on a host Yahoo answers from even with the guard
@@ -1701,7 +1727,7 @@ class SourceFailure(unittest.TestCase):
         self.assertEqual(only[2:5], (None, None, None))
 
     def test_a_whole_binance_batch_coming_back_empty_fails_the_step(self):
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(prices.SourceSilent):
             prices.require_answer(0, 10, source="Binance")
         self.assertIsNone(prices.require_answer(3, 10, source="Binance"))
 
@@ -1728,6 +1754,30 @@ class SourceFailure(unittest.TestCase):
         self.assertIn("raise SystemExit(1)", body[:800])
         # And it fires before the writes, not after a silent pass through them.
         self.assertLess(text.index("if asked and traded == 0:"), text.index('step("write")'))
+
+
+    def test_a_transient_failure_is_retried_within_a_declared_ceiling(self):
+        # Losing a feed for the day to one 503 is worse than waiting; spending the lane's
+        # whole timeout on a dead host is worse than losing the feed. Both are bounded.
+        self.assertEqual(nbt.RETRIES, 2)
+        self.assertEqual(len(nbt.RETRY_BACKOFF), nbt.RETRIES)
+        self.assertNotIn(403, nbt.RETRY_ON, "a block is an answer, not a transient failure")
+        book = {}
+        # The per-URL ceiling: two retries, then no more for that URL.
+        self.assertTrue(nbt.may_retry("example.com", 0, book))
+        self.assertTrue(nbt.may_retry("example.com", 1, book))
+        self.assertFalse(nbt.may_retry("example.com", 2, book))
+        # The per-host, per-run ceiling: a dead host stops being retried at all.
+        book = {"dead.example": nbt.RETRY_HOST_BUDGET}
+        self.assertFalse(nbt.may_retry("dead.example", 0, book))
+        # And a different host is unaffected by it.
+        self.assertTrue(nbt.may_retry("live.example", 0, book))
+
+    def test_the_worst_case_retry_delay_per_host_stays_bounded(self):
+        # The number that matters for a 15-minute lane: a host that is down cannot cost more
+        # than its budget times the longest pause.
+        worst = nbt.RETRY_HOST_BUDGET * max(nbt.RETRY_BACKOFF)
+        self.assertLessEqual(worst, 120, f"a dead host could cost {worst}s of the lane")
 
 
 class BudgetGuards(unittest.TestCase):

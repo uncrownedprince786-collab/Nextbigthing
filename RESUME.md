@@ -28,7 +28,7 @@ Verified against the live production database on 2026-10-01, not merely built:
 
 | | |
 | --- | --- |
-| Tests | **228**, all passing, no database or network needed |
+| Tests | **233**, all passing, no database or network needed |
 | Types, lint, build | clean |
 | `schema.yml` (release lane) | **green** — run `36917629683`, 9m 3s, all 20 brain jobs |
 | Every job in the daily group | passes individually against production — see the table in `HANDOFF.md` |
@@ -137,10 +137,32 @@ The remedy is one setting — disable Vercel Authentication for production, or g
 | file | what it holds |
 | --- | --- |
 | `HANDOFF.md` | the live state in full: the acceptance matrix with measured figures, the nine defects the acceptance pass found, the free-tier numbers, and what still needs a human |
-| `brain.md` | **32 rules for changes.** Read these before editing a job; the last ten were earned by real bugs |
+| `brain.md` | **34 rules for changes.** Read these before editing a job; the last twelve were earned by real bugs |
 | `ARCHITECTURE.md` | the layer map, with every layer marked built / partial / absent honestly |
 | `tools/README.md` | the four read-only verification harnesses and the two results that are easy to misread |
 | `README.md` | how the system is put together and how to run it |
+
+## 6a. The refresh lane, and the gate on it (2026-10-02)
+
+The owner's standing instruction: **`refresh.yml` must come back green twice in a row before
+any new feature work.** Neither has happened yet, and nothing in this session could make them
+happen — `refresh.yml` triggers on schedule or dispatch, never on push, and a dispatch needs a
+GitHub sign-in. `schema.yml` green does **not** count: it runs the derivation jobs, not
+`prices.py` or `psx.py`.
+
+What was made ready for those runs, all of it test-covered and none of it verified against
+production:
+
+| | |
+| --- | --- |
+| A blocked source costs its own rows only | `SourceSilent` is caught per lane, the transaction commits what answered, the step exits non-zero after `conn.close()`. Raising inside `with conn` would have discarded the whole run — rule 33 |
+| Empty is told apart from success | `require_answer` in every batch lane, with the counter that is zero only when the source is silent — rows for Yahoo and Binance, feeds parsed for news, published trading days for PSX. Rule 31 |
+| Transient failures retry | `nbt.get` retries a 429/500/502/503/504 or a timeout twice, pausing 3s then 12s, and stops retrying a host after `RETRY_HOST_BUDGET` so a dead source cannot eat the lane. Verified live against a 503: three attempts, 18s, then None, host still usable |
+| Coverage is reported per source | every run prints rows, newest date and how stale each source is. Rule 34 |
+
+**After the next refresh, read these three lines from the step output** — Yahoo Finance,
+Binance, Pakistan Stock Exchange daily closing file — each with its count, newest date and age.
+That is the pass/fail report, and it is in the log rather than the job summary on purpose.
 
 ## 7. Freeze status
 

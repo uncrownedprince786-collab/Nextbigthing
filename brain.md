@@ -518,3 +518,19 @@ reads rows that already exist:
     measured on a path that stopped before this one. Every caller now goes through a named
     builder beside the writer — `crypto_rows` — and a test unpacks its output with the nine
     names COPY uses. When a writer gains a column, the builders are the list of places to fix.
+33. **A guard that raises inside a transaction discards the run.** `prices.py` holds one
+    transaction across the Yahoo, Binance and news lanes, and psycopg rolls back on *any*
+    exception leaving `with conn` — so the rule 31 guard, raising `SystemExit` from the crypto
+    or news lane, would have thrown away the 37,537 rows Yahoo had just written. A source
+    being blocked must cost its own rows and no others. The guard raises `SourceSilent`, which
+    is deliberately not a `SystemExit`; `main` catches it per lane, the transaction commits
+    what did answer, and `fail_on_silent` exits non-zero after `conn.close()`. A test asserts
+    the type, the three catches, and that the exit comes after the commit. The general shape:
+    **a failure signal and a transaction boundary have to be designed together**, and the job
+    that reports a problem is worth nothing if reporting it is what loses the data.
+34. **Report coverage per source, never one total.** `PriceSnapshot` keeps growing from the
+    lanes that still work, so a single row count is exactly the number that cannot see a dead
+    source — the table held 123 MB while Binance had been stopped for days. Every run now
+    prints a line per source with its newest date and how far behind that is, because a source
+    that answers but is four days stale is a different fault from one that answers nothing, and
+    those are the three numbers to read after a refresh.
