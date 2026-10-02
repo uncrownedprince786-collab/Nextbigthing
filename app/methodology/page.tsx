@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Card, Note, Section, SourceHealthBlock, Table } from "@/components/ui";
+import { Card, HowToRead, Note, Section, SourceHealthBlock, Table } from "@/components/ui";
 import { getIntradayCoverage, getSourceHealth } from "@/lib/queries";
 import { isoDate } from "@/lib/format";
 
@@ -10,6 +10,61 @@ export const metadata: Metadata = {
   description:
     "Every ranking and demand number on this site, the free source it comes from, the formula behind it, and what is deliberately left blank.",
 };
+
+// The gate table, copied from the header comment of lib/decision.ts rather than restated. It is
+// first-match-wins there and reads as a list here for the same reason: a reader is owed the one
+// gate that fired, not all nine. Any edit to that file's order has to move these rows too.
+const GATES = [
+  { n: 1, gate: "No price series", answer: "WAIT", told: "Nothing is stored for this name." },
+  { n: 2, gate: "Close too old", answer: "WAIT", told: "The number on the page is not today's number, and how old it is." },
+  { n: 3, gate: "A source is silent", answer: "WAIT", told: "Which source answered nothing." },
+  { n: 4, gate: "No stop level", answer: "WAIT", told: "There is no level at which being wrong is known." },
+  { n: 5, gate: "Setup and longer view disagree", answer: "WAIT", told: "Which way each one points." },
+  { n: 6, gate: "Unusual move, thin news", answer: "WAIT", told: "The move has no published reason yet." },
+  { n: 7, gate: "Setup up, longer view not down", answer: "LONG", told: "Setup is up, and what the longer view adds." },
+  { n: 8, gate: "Setup down, longer view not up", answer: "SHORT", told: "Setup is down, and what the longer view adds." },
+  { n: 9, gate: "Anything left", answer: "WAIT", told: "Which part is absent — setup, longer view, or both." },
+];
+
+// Every number the decision rules use, with the file it is read from. A rule table without its
+// numbers is decoration, and a number without its file cannot be checked against the code.
+const THRESHOLDS = [
+  {
+    value: "2 / 5 / 6 days",
+    rule: "How old a close may be before gate 2 fires: Crypto 2, US 5, PSX 6. Anything else 5.",
+    file: "lib/decision.ts STALE_AFTER_DAYS",
+  },
+  {
+    value: "8 stories",
+    rule: "Below this, news counts as thin. Only a gate when the price also moved unusually.",
+    file: "lib/decision.ts THIN_NEWS_BELOW",
+  },
+  {
+    value: "±2σ",
+    rule: "A move counts as unusual at this size, or whenever the investigate job wrote a move or volume trigger at all.",
+    file: "lib/decisionInput.ts isUnusualMove",
+  },
+  {
+    value: "3 days",
+    rule: "A dated event this close marks the timing CARE, whatever the decision is.",
+    file: "lib/decision.ts EVENT_SOON_DAYS",
+  },
+  {
+    value: "3 similar days",
+    rule: "Below this many stored similar past days, no range is quoted under the decision.",
+    file: "lib/decision.ts ANALOGS_MIN",
+  },
+  {
+    value: "2 sources",
+    rule: "Below this many demand sources answering, a product reads NO CLEAR SIGNAL instead of being graded.",
+    file: "lib/productDecision.ts MIN_SOURCES_TO_JUDGE",
+  },
+  {
+    value: "2 days",
+    rule: "How stale a crypto venue's newest bar may be before the chain keeps looking. Matches the Crypto figure above on purpose.",
+    file: "jobs/prices.py CRYPTO_FRESH_DAYS",
+  },
+];
 
 const RANKINGS = [
   {
@@ -106,6 +161,227 @@ export default async function MethodologyPage() {
           period. Where a source cannot answer, the cell says so.
         </p>
       </div>
+
+      {/* The written rule table. It sits first because the decision is what the site now leads
+          with on every other page, and a reader who disagrees with a rule should be able to find
+          it without reading an essay first. Every number here carries the file it was read from,
+          so the next person can check it rather than trust this page. */}
+      <Section
+        title="The decision rule"
+        lead="Nine checks in a fixed order. The first one that matches decides, and you are told that one reason rather than all nine."
+      >
+        <Table
+          minWidth="760px"
+          head={
+            <>
+              <th className="px-3 py-2 font-medium">#</th>
+              <th className="px-3 py-2 font-medium">Check</th>
+              <th className="px-3 py-2 font-medium">Answer</th>
+              <th className="px-3 py-2 font-medium">What you are told</th>
+            </>
+          }
+        >
+          {GATES.map((g) => (
+            <tr key={g.n}>
+              <td className="num text-muted-foreground px-3 py-2">{g.n}</td>
+              <td className="px-3 py-2">{g.gate}</td>
+              <td className="px-3 py-2 font-medium">{g.answer}</td>
+              <td className="text-muted-foreground px-3 py-2 text-xs">{g.told}</td>
+            </tr>
+          ))}
+        </Table>
+        <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
+          Checks 1 to 4 are faults in the data and name the missing thing. Checks 5 and 6 are real
+          disagreement in the data and are not faults. Check 9 is WAIT rather than a direction
+          because a rule table that falls through to LONG is how a page recommends a trade it has
+          no reason for.
+        </p>
+
+        <h3 className="mt-6 font-medium">Every number these checks use</h3>
+        <Table
+          minWidth="720px"
+          head={
+            <>
+              <th className="px-3 py-2 font-medium">Number</th>
+              <th className="px-3 py-2 font-medium">What it decides</th>
+              <th className="px-3 py-2 font-medium">Read from</th>
+            </>
+          }
+        >
+          {THRESHOLDS.map((t) => (
+            <tr key={t.file}>
+              <td className="num px-3 py-2 whitespace-nowrap">{t.value}</td>
+              <td className="px-3 py-2 text-xs leading-relaxed">{t.rule}</td>
+              <td className="text-muted-foreground px-3 py-2 text-micro whitespace-nowrap">
+                {t.file}
+              </td>
+            </tr>
+          ))}
+        </Table>
+        <Note>
+          Staleness is counted in calendar days, not trading days, because the question is whether
+          the number on this page is today&apos;s number and a reader asks that on a Sunday too.
+          Crypto trades every day, so 2 days is already a fault. US equities allow a Friday close
+          to be read on the Monday. PSX gets one more day because it keeps more holidays, and a
+          holiday must not read as a dead feed.
+        </Note>
+
+        <HowToRead
+          title="Entry, Stop level, Timing and Confidence"
+          points={[
+            <>
+              <strong>Which reading is the setup.</strong> A reading with a direction wins, in the
+              order swing, longer, intraday — the shorter the view the sooner you would have to
+              act, and intraday is last because a front page that re-reads itself through the
+              session is a different page on every visit. With nothing directional, the swing
+              reading is used as the honest &ldquo;measured, and flat&rdquo;.
+            </>,
+            <>
+              <strong>Why the longer view can be absent.</strong> It only counts as a second
+              opinion when it is a second row. When the directional reading <em>is</em> the longer
+              one, there is nothing left to confirm it, so the longer view is recorded as absent
+              and the row loses a confidence step — correctly, because one view is less evidence
+              than two.
+            </>,
+            <>
+              <strong>Entry.</strong> The zone is the range the two stored levels already span:
+              the level the job wrote and the stop level it wrote. That range means something —
+              it is where the trade is live but not yet wrong. No page widens it, because pages
+              here do not compute their own figures.
+            </>,
+            <>
+              <strong>Timing.</strong> <span className="num">NOW</span> only when the last close
+              is inside that zone. Outside it, the honest answer is that you are waiting for a
+              level, which is a different instruction. A dated event within 3 days overrides both
+              and reads CARE.
+            </>,
+            <>
+              <strong>Confidence.</strong> Counts weaknesses rather than scoring strengths: the
+              two views not agreeing, fewer than 3 similar past days, news under 8 stories or
+              never checked, and no entry zone. None weak is High, one is Medium, two or more is
+              Low. Every WAIT is Low.
+            </>,
+          ]}
+        />
+        {/* The honest gaps. Naming them here is cheaper than a reader discovering that a number
+            they expected to exist was invented to fill the hole. */}
+        <h3 className="mt-6 font-medium">Numbers this site does not have</h3>
+        <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed">
+          <li>
+            No measured entry band is stored anywhere. The zone is the two stored levels, and
+            widening it by a volatility figure would be new arithmetic in the page layer.
+          </li>
+          <li>
+            Crypto closes have no source health row, so check 3 can never name a blocked exchange.
+            A blocked exchange shows up as check 2 instead, through a close that stops advancing.
+            That is weaker than naming the source and it is the limit of what is stored.
+          </li>
+          <li>
+            No hit rate for any of this. Readings are logged with the close beside them and
+            measured later, and no rate is published until enough rows have matured.
+          </li>
+        </ul>
+      </Section>
+
+      <Section
+        title="The product rule"
+        lead="A product answers a different question: is anyone paying attention yet, and where do you go to check."
+      >
+        <Table
+          minWidth="680px"
+          head={
+            <>
+              <th className="px-3 py-2 font-medium">Reading</th>
+              <th className="px-3 py-2 font-medium">Rule</th>
+            </>
+          }
+        >
+          <tr>
+            <td className="px-3 py-2 whitespace-nowrap">Attention</td>
+            <td className="px-3 py-2 text-xs leading-relaxed">
+              RISING, EARLY or FLAT, taken straight from the status the demand job wrote. Any
+              other value is reported as not measured rather than shown as FLAT.
+            </td>
+          </tr>
+          <tr>
+            <td className="px-3 py-2 whitespace-nowrap">Sell interest</td>
+            <td className="px-3 py-2 text-xs leading-relaxed">
+              YES LOOK needs all three: attention RISING, at least{" "}
+              <span className="num">2</span> of the answering sources pointing the same way, and a
+              confidence grade above low. Fewer than <span className="num">2</span> sources
+              answering is NO CLEAR SIGNAL. Everything else is NOT YET.
+            </td>
+          </tr>
+          <tr>
+            <td className="px-3 py-2 whitespace-nowrap">Risk</td>
+            <td className="px-3 py-2 text-xs leading-relaxed">
+              One line, worst first: no source answered, then one source carrying the whole score,
+              then the sources disagreeing, then that rising attention is not rising sales.
+            </td>
+          </tr>
+        </Table>
+        <Note>
+          Nothing in this database counts a sale. The demand score is built from search interest,
+          pageviews and article counts, and a marketplace position is a rank and never a volume,
+          so the output is an attention reading plus somewhere to look.
+        </Note>
+      </Section>
+
+      <Section
+        title="Where a crypto close comes from"
+        lead="Four venues instead of one, tried in order, and the row records which one answered."
+      >
+        <Table
+          minWidth="640px"
+          head={
+            <>
+              <th className="px-3 py-2 font-medium">Order</th>
+              <th className="px-3 py-2 font-medium">Venue</th>
+              <th className="px-3 py-2 font-medium">History it holds</th>
+            </>
+          }
+        >
+          {/* Order and depths from CLOSE_VENUES in jobs/prices.py. */}
+          <tr>
+            <td className="num text-muted-foreground px-3 py-2">1</td>
+            <td className="px-3 py-2">Binance</td>
+            <td className="text-muted-foreground px-3 py-2 text-xs">Pages back to 2019.</td>
+          </tr>
+          <tr>
+            <td className="num text-muted-foreground px-3 py-2">2</td>
+            <td className="px-3 py-2">Coinbase</td>
+            <td className="text-muted-foreground px-3 py-2 text-xs">Pages back to 2019.</td>
+          </tr>
+          <tr>
+            <td className="num text-muted-foreground px-3 py-2">3</td>
+            <td className="px-3 py-2">Kraken</td>
+            <td className="text-muted-foreground px-3 py-2 text-xs">
+              Roughly the last <span className="num">720</span> days.
+            </td>
+          </tr>
+          <tr>
+            <td className="num text-muted-foreground px-3 py-2">4</td>
+            <td className="px-3 py-2">Bitstamp</td>
+            <td className="text-muted-foreground px-3 py-2 text-xs">
+              Last, because it lists the fewest of these coins.
+            </td>
+          </tr>
+        </Table>
+        <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
+          The winner is the first venue whose newest bar is within{" "}
+          <span className="num">2</span> days, not the first that answers at all. A venue can
+          answer with a series that stopped days ago, and taking it because it was first would
+          store a stale close and leave every coin reading &ldquo;data stale&rdquo; with nothing
+          explaining why. When no venue is current the deepest answer is stored anyway and check 2
+          above catches it.
+        </p>
+        <Note>
+          A shallow venue never replaces a deeper stored series. The stored rows are rewritten only
+          when the new fetch is at least as deep; otherwise the new days are added on top.
+          Rewriting six years of history from a 720 day venue would lose the rows every similar-day
+          and horizon reading is measured over, and it would look like a successful run.
+        </Note>
+      </Section>
 
       <Section title="Snapshot dates" lead="The pre-AI window ends at the last trading day of 2021. The current window ends at the newest stored close.">
         <Table

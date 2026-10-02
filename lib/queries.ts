@@ -120,14 +120,63 @@ export async function getFreshness() {
   return { snap, rank, signal, news };
 }
 
+/// How close two dated items for the same target have to be before the later one is read as a
+/// restatement of the earlier one rather than a second event.
+///
+/// 7, and the number comes from the stored calendar rather than from taste. Measured across the
+/// scheduled rows, consecutive earnings dates for one company sit 1 day apart 36 times and
+/// never more than 6 days apart — that is the provider revising one quarter's report, not two
+/// reports. Consecutive dividend dates for one company are never closer than 8 days, because
+/// the two that exist are the ex-dividend day and the payment day and both are real. So a
+/// window of 7 collapses every earnings restatement in the data and touches no dividend pair.
+/// Widen it to 14 and EOG's ex-dividend and payment dates become one row, which would be
+/// deleting a date rather than deduplicating one.
+export const EVENT_DUPLICATE_WITHIN_DAYS = 7;
+
+/// Every dated event, soonest first, with provider restatements folded away.
+///
+/// Soonest first and not newest first. This list is a diary, and the only question a diary
+/// answers is what is next; ordered by `date desc` the first screen was January 2027, which is
+/// the one date on it nobody is waiting for.
+///
+/// The fold keeps the soonest of a run rather than the last. A reader planning around a date
+/// needs the earliest day the thing could happen, and a calendar that silently moved a report
+/// later would be the more expensive way to be wrong. Rows with no target attached are never
+/// folded: the historical events have no link, and two of them sharing a category is not a
+/// duplicate of anything.
 export async function getEvents() {
-  return prisma.event.findMany({
-    orderBy: { date: "desc" },
+  const rows = await prisma.event.findMany({
+    orderBy: [{ date: "asc" }, { name: "asc" }],
     include: {
       analysis: { orderBy: { createdAt: "desc" }, take: 1 },
       _count: { select: { impacts: true } },
+      links: {
+        include: {
+          asset: { select: { symbol: true, name: true } },
+          product: { select: { slug: true, name: true } },
+        },
+      },
     },
   });
+
+  const kept: typeof rows = [];
+  const soonestSeen = new Map<string, Date>();
+  for (const row of rows) {
+    const target = row.links[0]?.targetRef;
+    if (!target) {
+      kept.push(row);
+      continue;
+    }
+    const key = `${target}|${row.category}`;
+    const earlier = soonestSeen.get(key);
+    if (earlier) {
+      const apart = (row.date.getTime() - earlier.getTime()) / 86_400_000;
+      if (apart <= EVENT_DUPLICATE_WITHIN_DAYS) continue;
+    }
+    soonestSeen.set(key, row.date);
+    kept.push(row);
+  }
+  return kept;
 }
 
 export async function getEvent(slug: string) {

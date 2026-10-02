@@ -24,7 +24,9 @@ function base(over: Partial<DecisionInput> = {}): DecisionInput {
     horizon: { direction: "up" },
     entry: { low: 98, high: 102 },
     invalidation: 94,
-    analogs: { count: 12, lowPct: -3.2, highPct: 6.4 },
+    analogs: { count: 12, lowPct: -3.2, highPct: 6.4, medianPct: 1.4, positive: 8 },
+    volumeRatio: 1.8,
+    relStrength: 1.0,
     unusualMove: false,
     newsCount: 12,
     eventInDays: null,
@@ -192,7 +194,7 @@ test("no gate can return an empty reason", () => {
   for (const over of cases) {
     const d = decide(base(over));
     assert.ok(d.why.length > 0 || d.missing.length > 0, `silent verdict for ${JSON.stringify(over)}`);
-    assert.ok(d.why.length <= 2, `more than two why lines for ${JSON.stringify(over)}`);
+      assert.ok(d.why.length <= 3, `more than three why lines for ${JSON.stringify(over)}`);
     assert.ok(d.measured.startsWith("Measured, not guaranteed."));
   }
 });
@@ -217,22 +219,70 @@ test("no entry band means the reader cannot be told NOW", () => {
   const d = decide(base({ entry: null }));
   assert.equal(d.action, "LONG");
   assert.equal(d.timeSense, "WAIT FOR LEVEL");
-  assert.equal(d.missing.length, 1);
+  assert.ok(d.missing.some((m) => /entry band/.test(m)), d.missing.join(" | "));
 });
 
 // --- Confidence ------------------------------------------------------------------------------
 
-test("confidence drops one step per weakness and WAIT is always Low", () => {
+test("confidence counts what confirms the direction, and WAIT is always Low", () => {
+  // Three confirmations: a second horizon agreeing, volume above its average, and an analog set
+  // leaning the same way.
   assert.equal(decide(base()).confidence, "High");
-  // Longer view merely not disagreeing is one weakness.
-  assert.equal(decide(base({ horizon: { direction: "flat" } })).confidence, "Medium");
-  // Thin analogs is another.
+
+  // Two of the three is still High.
+  assert.equal(decide(base({ horizon: { direction: "flat" } })).confidence, "High");
+
+  // One alone is Medium: the horizon agrees, but volume is unpublished and the analog set is
+  // below the floor that its own job will grade.
   assert.equal(
-    decide(base({ horizon: { direction: "flat" }, analogs: { count: 1, lowPct: -1, highPct: 1 } }))
-      .confidence,
+    decide(base({ volumeRatio: null, analogs: { count: 4, lowPct: -1, highPct: 1 } })).confidence,
+    "Medium",
+  );
+
+  // Nothing confirms: one directional horizon, no volume, no usable analogs.
+  assert.equal(
+    decide(base({ horizon: null, volumeRatio: null, analogs: null })).confidence,
     "Low",
   );
+
   assert.equal(decide(base({ setup: { direction: "flat", horizon: null } })).confidence, "Low");
+});
+
+test("an absent factor is missing evidence, not evidence against", () => {
+  // The distinction that keeps a lane from emptying itself: no published volume must not read
+  // the same as volume that failed to confirm.
+  const unpublished = decide(base({ volumeRatio: null }));
+  const failed = decide(base({ volumeRatio: 0.4 }));
+  assert.equal(unpublished.action, "LONG");
+  assert.equal(failed.action, "LONG");
+  assert.ok(unpublished.missing.some((m) => /No volume published/.test(m)));
+  assert.ok(!failed.missing.some((m) => /No volume published/.test(m)));
+});
+
+test("a direction still prints when nothing confirms it, and says so", () => {
+  // Refusing every name for want of a factor nobody has computed is how the lists emptied once
+  // already. The direction prints at Low with the gap named.
+  const d = decide(base({ horizon: null, volumeRatio: null, analogs: null }));
+  assert.equal(d.action, "LONG");
+  assert.equal(d.confidence, "Low");
+  assert.match(d.why[2], /Nothing further confirms it/);
+  assert.ok(d.missing.some((m) => /No volume published/.test(m)));
+  assert.ok(d.missing.some((m) => /No similar past days/.test(m)));
+});
+
+test("a name far behind its peers does not read LONG", () => {
+  const d = decide(base({ relStrength: -4 }));
+  assert.equal(d.action, "WAIT");
+  assert.equal(d.gate, "peers-against");
+  assert.match(d.why[0], /behind its peers/);
+  // Mirrored for a short: a name holding up better than its group is not a short.
+  const short = decide(
+    base({ setup: { direction: "down", horizon: "swing" }, horizon: { direction: "down" }, relStrength: 4 }),
+  );
+  assert.equal(short.gate, "peers-against");
+  // Inside the band, or unknown, is not a gate.
+  assert.equal(decide(base({ relStrength: -1 })).action, "LONG");
+  assert.equal(decide(base({ relStrength: null })).action, "LONG");
 });
 
 // --- The honesty line -------------------------------------------------------------------------
@@ -274,8 +324,10 @@ test("no longer view says that, rather than implying one agreed", () => {
   const d = decide(base({ horizon: null }));
   assert.equal(d.action, "LONG");
   assert.match(d.why[1], /Only one horizon is directional/);
-  // And it costs a confidence step, because one horizon is less evidence than two.
-  assert.equal(d.confidence, "Medium");
+  // Volume and the analog set still confirm, so it is High on two counts rather than three.
+  assert.equal(d.confidence, "High");
+  // With nothing else behind it, the same missing horizon lands at Low.
+  assert.equal(decide(base({ horizon: null, volumeRatio: null, analogs: null })).confidence, "Low");
 });
 
 test("a flat longer view is named as flat", () => {

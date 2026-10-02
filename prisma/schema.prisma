@@ -46,18 +46,18 @@ enum SignalSource {
 }
 
 model Industry {
-  id      String   @id @default(dbgenerated("gen_random_uuid()::text"))
-  slug    String   @unique
-  name    String
-  summary String
-  sort    Int      @default(0)
+  id       String @id @default(dbgenerated("gen_random_uuid()::text"))
+  slug     String @unique
+  name     String
+  summary  String
+  sort     Int    @default(0)
   /// Which exchange group this industry belongs to: US, PK, or Global. Ranking only ever
   /// happens inside one industry, so this never mixes currencies in a comparison. It is
   /// what lets the site show the Pakistani sectors as their own list with their own
   /// currency label.
-  market  String   @default("US")
+  market   String @default("US")
   /// ISO code of the currency every size figure in this industry is quoted in.
-  currency String  @default("USD")
+  currency String @default("USD")
 
   assets   Asset[]
   rankings Ranking[]
@@ -84,24 +84,26 @@ model Asset {
   /// so they compare across currencies; a size figure does not, and is labelled.
   currency    String    @default("USD")
 
-  snapshots PriceSnapshot[]
-  rankings  Ranking[]
-  analysis  Analysis[]
-  news      News[]
-  productLinks ProductAssetLink[]
-  eventImpacts EventImpact[]
-  humanSignals HumanSignal[]
-  signalLogs   SignalLog[]
-  analogs      AssetAnalog[]
-  eventLinks   EventLink[]
-  setups       AssetSetup[]
-  eventStates  EventState[]
-  theses       AssetThesis[]
-  attributions MoveAttribution[]
-  relevance    GraphRelevance[]
-  intraday     IntradayBar[]
+  snapshots        PriceSnapshot[]
+  rankings         Ranking[]
+  analysis         Analysis[]
+  news             News[]
+  productLinks     ProductAssetLink[]
+  eventImpacts     EventImpact[]
+  humanSignals     HumanSignal[]
+  signalLogs       SignalLog[]
+  analogs          AssetAnalog[]
+  eventLinks       EventLink[]
+  setups           AssetSetup[]
+  eventStates      EventState[]
+  theses           AssetThesis[]
+  attributions     MoveAttribution[]
+  relevance        GraphRelevance[]
+  intraday         IntradayBar[]
   intradaySessions IntradaySession[]
-  investigations Investigation[]
+  investigations   Investigation[]
+  factors          AssetFactor[]
+  decisions        DecisionLog[]
 
   createdAt DateTime @default(now())
 
@@ -140,33 +142,41 @@ model PriceSnapshot {
 /// the sample with both outcomes, which is why the spread and the count are stored next to
 /// the average rather than under it.
 model AssetAnalog {
-  id         String   @id @default(dbgenerated("gen_random_uuid()::text"))
-  assetId    String
-  asset      Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  id          String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId     String
+  asset       Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
   /// The day the setup was read from.
-  periodEnd  DateTime @db.Date
+  periodEnd   DateTime @db.Date
   /// How many trading days forward the outcome is measured. 1 and 5 today.
   horizonDays Int
 
   /// The setup being matched, kept so a reader can see what "similar" meant here.
-  dayReturnPct   Float
-  volumeRatio    Float?
-  fiveDayPct     Float?
+  dayReturnPct  Float
+  volumeRatio   Float?
+  fiveDayPct    Float?
   /// The tolerances the match used, in the same units, so the window is auditable.
-  toleranceNote  String
+  toleranceNote String
 
   /// How many past days matched, and what followed them.
-  matches    Int
-  positive   Int
-  meanPct    Float?
-  medianPct  Float?
-  minPct     Float?
-  maxPct     Float?
+  matches   Int
+  positive  Int
+  meanPct   Float?
+  medianPct Float?
+  /// The quartiles. A median on its own hides whether the matched days agreed: +1.2% median
+  /// from a set running -1% to +3% is a different fact from the same median on a set running
+  /// -18% to +22%, and only the second is a reason to stay out. Nullable because a set below
+  /// the grading floor is not worth quartiles.
+  p25Pct    Float?
+  p75Pct    Float?
+  minPct    Float?
+  maxPct    Float?
 
   confidence     Confidence @default(none)
   confidenceNote String?
-  source     String
-  computedAt DateTime   @default(now())
+  source         String
+  computedAt     DateTime   @default(now())
+
+  matches_ AnalogMatch[]
 
   @@unique([assetId, periodEnd, horizonDays])
   @@index([assetId, periodEnd])
@@ -184,23 +194,23 @@ enum RankingBasis {
 }
 
 model Ranking {
-  id          String       @id @default(dbgenerated("gen_random_uuid()::text"))
-  industryId  String
-  industry    Industry     @relation(fields: [industryId], references: [id], onDelete: Cascade)
-  assetId     String
-  asset       Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  basis       RankingBasis
-  periodStart DateTime?    @db.Date
-  periodEnd   DateTime     @db.Date
-  rank        Int
-  sizeRank    Int?
-  value       Float
+  id             String       @id @default(dbgenerated("gen_random_uuid()::text"))
+  industryId     String
+  industry       Industry     @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  assetId        String
+  asset          Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  basis          RankingBasis
+  periodStart    DateTime?    @db.Date
+  periodEnd      DateTime     @db.Date
+  rank           Int
+  sizeRank       Int?
+  value          Float
   /// Rule-based evidence grade for this row. See jobs/confidence.py.
-  confidence  Confidence  @default(none)
+  confidence     Confidence   @default(none)
   /// Why the confidence is what it is, in one clause. Shown to the reader.
   confidenceNote String?
-  source      String
-  note        String?
+  source         String
+  note           String?
 
   @@unique([industryId, basis, periodEnd, assetId])
   @@index([periodEnd])
@@ -225,24 +235,24 @@ enum AnalysisKind {
 }
 
 model Analysis {
-  id          String       @id @default(dbgenerated("gen_random_uuid()::text"))
-  kind        AnalysisKind
-  industryId  String?
-  industry    Industry?    @relation(fields: [industryId], references: [id], onDelete: Cascade)
-  assetId     String?
-  asset       Asset?       @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  productId   String?
-  product     Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  eventId     String?
-  event       Event?       @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  headline    String
-  body        String
+  id         String       @id @default(dbgenerated("gen_random_uuid()::text"))
+  kind       AnalysisKind
+  industryId String?
+  industry   Industry?    @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  assetId    String?
+  asset      Asset?       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  productId  String?
+  product    Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  eventId    String?
+  event      Event?       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  headline   String
+  body       String
   /// What is missing, and what would fill it.
-  dataNote    String?
+  dataNote   String?
   /// Evidence grade carried from the numbers this line was built from.
-  confidence  Confidence  @default(none)
-  source      String
-  createdAt   DateTime     @default(now())
+  confidence Confidence   @default(none)
+  source     String
+  createdAt  DateTime     @default(now())
 
   @@index([kind])
   @@index([industryId])
@@ -273,7 +283,7 @@ model News {
   /// see this: twenty outlets means twenty urls, all genuinely distinct. So items are
   /// clustered by what they say, and every count that is meant to measure *information*
   /// counts lineages rather than rows.
-  lineageId String?
+  lineageId  String?
   /// True for the earliest item in its lineage, which is the closest thing the stored data
   /// has to an original report. It is a claim about order of publication, not authorship.
   isOriginal Boolean @default(false)
@@ -315,57 +325,57 @@ model NewsLineage {
 }
 
 model Product {
-  id             String   @id @default(dbgenerated("gen_random_uuid()::text"))
-  slug           String   @unique
-  name           String
-  category       String
-  summary        String
+  id              String     @id @default(dbgenerated("gen_random_uuid()::text"))
+  slug            String     @unique
+  name            String
+  category        String
+  summary         String
   /// Wikipedia article title used for the pageview signal.
-  wikiTitle      String
+  wikiTitle       String
   /// Google Trends term. Empty means no Trends data for this product.
-  trendsTerm     String
+  trendsTerm      String
   /// Subreddits searched through the public RSS endpoint. Comma separated.
-  subreddits     String
-  relatedTickers String
+  subreddits      String
+  relatedTickers  String
   /// rising, early, flat, or unknown when there is not enough data.
-  status         String   @default("unknown")
-  demandScore    Float?
-  demandNote     String?
+  status          String     @default("unknown")
+  demandScore     Float?
+  demandNote      String?
   /// Rule-based grade of the demand read. See jobs/confidence.py.
-  confidence     Confidence @default(none)
+  confidence      Confidence @default(none)
   /// Number of the 5 possible demand sources that returned a usable value.
-  sourcesAnswered Int      @default(0)
+  sourcesAnswered Int        @default(0)
   /// How many of those sources pointed the same way as the average.
-  sourcesAgree    Int      @default(0)
+  sourcesAgree    Int        @default(0)
   /// One clause on what the grade is based on.
   confidenceNote  String?
-  computedAt     DateTime?
+  computedAt      DateTime?
 
-  signals        ProductSignal[]
-  assetLinks     ProductAssetLink[]
-  analysis       Analysis[]
-  news           News[]
-  humanSignals   HumanSignal[]
-  signalLogs     SignalLog[]
-  regions        ProductRegion[]
-  eventLinks     EventLink[]
+  signals      ProductSignal[]
+  assetLinks   ProductAssetLink[]
+  analysis     Analysis[]
+  news         News[]
+  humanSignals HumanSignal[]
+  signalLogs   SignalLog[]
+  regions      ProductRegion[]
+  eventLinks   EventLink[]
 
   createdAt DateTime @default(now())
 }
 
 model ProductSignal {
-  id        String        @id @default(dbgenerated("gen_random_uuid()::text"))
+  id        String       @id @default(dbgenerated("gen_random_uuid()::text"))
   productId String
-  product   Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
   source    SignalSource
   /// Name of the number, for example "reddit_posts_30d" or "wiki_views_wow".
   metric    String
   value     Float?
   /// Evidence link or quoted text. Null when the source has no single item.
   evidence  String?
-  periodEnd DateTime      @db.Date
+  periodEnd DateTime     @db.Date
   note      String?
-  createdAt DateTime      @default(now())
+  createdAt DateTime     @default(now())
 
   @@unique([productId, source, metric, periodEnd])
   @@index([productId, periodEnd])
@@ -411,7 +421,7 @@ model Event {
   /// that has happened. Kept as a column rather than inferred from date > today, because a
   /// scheduled item does not become a historical fact the moment its day passes — it becomes
   /// a scheduled item whose day has passed, and the two read differently.
-  scheduled Boolean  @default(false)
+  scheduled Boolean @default(false)
 
   /// Where this event is in its life, advanced by jobs/lifecycle.py:
   ///
@@ -424,11 +434,11 @@ model Event {
   ///
   /// A state and not a derived expression, because the transition to `resolved` is the moment
   /// the pre-event state is frozen, and that has to happen exactly once.
-  lifecycle String   @default("discovered")
+  lifecycle    String    @default("discovered")
   /// When the system first saw this date. Distinct from the event date and from createdAt,
   /// because how long a date was known is itself evidence: a report scheduled three months
   /// out is different from one announced yesterday.
-  discoveredAt DateTime @default(now())
+  discoveredAt DateTime  @default(now())
   /// Set when lifecycle became resolved, so the freeze cannot silently re-run.
   resolvedAt   DateTime?
 
@@ -458,32 +468,32 @@ model Event {
 /// row with a later computedAt, so the record of what the system believed at the time
 /// survives its own revisions.
 model EventState {
-  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
-  eventId   String
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  assetId   String
-  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  id      String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  eventId String
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  assetId String
+  asset   Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
   /// before or after.
-  phase     String
+  phase   String
   /// The observation date the values come from, which is never the event date itself for a
   /// before row: it is the last trading day strictly before it.
-  asOf      DateTime @db.Date
+  asOf    DateTime @db.Date
 
-  close     Float?
-  volume    Float?
+  close       Float?
+  volume      Float?
   /// Volume as a multiple of its own trailing average on that date.
   volumeRatio Float?
   /// Return over the 20 sessions ending at asOf.
   trailingPct Float?
   /// The news reading that existed then: tone, story count, whether a catalyst was flagged.
-  tone      String?
-  stories   Int?
-  catalyst  Boolean?
+  tone        String?
+  stories     Int?
+  catalyst    Boolean?
   /// What the system's own condition read said at the time, if it had one.
-  setupState String?
+  setupState  String?
 
   /// Only on an after row: the measured change from the before row's close.
-  changePct Float?
+  changePct  Float?
   windowDays Int?
 
   source     String
@@ -524,27 +534,27 @@ model EventLink {
 /// Written by jobs/events.py from rows already in PriceSnapshot, so an event window that
 /// falls outside the stored history produces no rows rather than an estimate.
 model EventImpact {
-  id         String   @id @default(dbgenerated("gen_random_uuid()::text"))
-  eventId    String
-  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  assetId    String
-  asset      Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  id              String     @id @default(dbgenerated("gen_random_uuid()::text"))
+  eventId         String
+  event           Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  assetId         String
+  asset           Asset      @relation(fields: [assetId], references: [id], onDelete: Cascade)
   /// Length of the measured window in calendar days. 30 unless stated otherwise.
-  windowDays Int
+  windowDays      Int
   /// The two stored closes the change is computed from, kept so the figure can be checked.
-  startDate  DateTime @db.Date
-  startClose Float
-  endDate    DateTime @db.Date
-  endClose   Float
-  changePct  Float
+  startDate       DateTime   @db.Date
+  startClose      Float
+  endDate         DateTime   @db.Date
+  endClose        Float
+  changePct       Float
   /// Change in 20 day average volume across the same window. Null when the source
   /// published no volume for this asset.
   volumeChangePct Float?
   /// Position within the event, 1 being the largest move by absolute size.
-  rank       Int
-  confidence Confidence @default(none)
-  confidenceNote String?
-  source     String
+  rank            Int
+  confidence      Confidence @default(none)
+  confidenceNote  String?
+  source          String
 
   @@unique([eventId, assetId, windowDays])
   @@index([eventId, rank])
@@ -650,16 +660,16 @@ model AssetSetup {
   horizon   String
 
   /// buy, short, wait or none, decided by the rules in jobs/setup.py.
-  state     String
+  state      String
   /// One plain sentence naming the conditions that produced the state.
-  headline  String
+  headline   String
   /// Every condition tested, as "name=value (pass|fail)", so the state is rederivable.
   conditions String
   /// Inputs that could not be evaluated, named. Empty when all were available.
-  missing   String
+  missing    String
   /// Conditions pointing the other way, kept because hiding them is what makes a clean
   /// signal out of mixed data.
-  against   String
+  against    String
 
   /// Levels computed from stored closes, with the window they came from stated.
   entryLevel      Float?
@@ -671,8 +681,8 @@ model AssetSetup {
 
   confidence     Confidence @default(none)
   confidenceNote String?
-  source     String
-  computedAt DateTime   @default(now())
+  source         String
+  computedAt     DateTime   @default(now())
 
   targets SetupTarget[]
 
@@ -691,21 +701,21 @@ model AssetSetup {
 /// No source is hard-coded as trustworthy. What "success" means is stored on the row,
 /// because reliability is only meaningful against a stated question.
 model SourceReliability {
-  id         String   @id @default(dbgenerated("gen_random_uuid()::text"))
-  source     String
+  id           String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  source       String
   /// The question the rate is about, e.g. the horizon a signal from this source was
   /// measured over. Reliability is segmented, never global.
-  eventClass String
-  alpha      Float    @default(2)
-  beta       Float    @default(2)
-  observations Int    @default(0)
-  successes  Int      @default(0)
+  eventClass   String
+  alpha        Float    @default(2)
+  beta         Float    @default(2)
+  observations Int      @default(0)
+  successes    Int      @default(0)
   /// (alpha + successes) / (alpha + beta + observations), stored so the page need not
   /// recompute it and so the value at a point in time is recoverable.
-  expected   Float?
+  expected     Float?
   /// What counted as a success here, in words.
-  criterion  String
-  updatedAt  DateTime @default(now())
+  criterion    String
+  updatedAt    DateTime @default(now())
 
   @@unique([source, eventClass])
 }
@@ -723,24 +733,24 @@ model SourceReliability {
 /// The states are deliberately not a single percentage. "Unobserved" and "unknown" are
 /// different claims, and a completeness score folds them together.
 model Coverage {
-  id         String   @id @default(dbgenerated("gen_random_uuid()::text"))
-  source     String
+  id                    String    @id @default(dbgenerated("gen_random_uuid()::text"))
+  source                String
   /// How often this source is expected to yield something, in hours.
   expectedIntervalHours Float
   /// How long it has actually been, in hours, at computedAt.
-  actualGapHours Float
-  gapRatio   Float
+  actualGapHours        Float
+  gapRatio              Float
   /// How much a miss here would matter, 0 to 1. A judgement, stored next to the arithmetic
   /// rather than folded into it.
-  criticality Float
-  missRisk   Float
+  criticality           Float
+  missRisk              Float
   /// healthy, stale, or silent.
-  status     String
+  status                String
   /// Rows the source has contributed, and the newest one's timestamp.
-  rows       Int
-  newest     DateTime?
-  note       String?
-  computedAt DateTime @default(now())
+  rows                  Int
+  newest                DateTime?
+  note                  String?
+  computedAt            DateTime  @default(now())
 
   @@unique([source, computedAt])
   @@index([status, computedAt])
@@ -756,21 +766,21 @@ model Coverage {
 ///
 /// Published only above a floor, in the job and again in the query layer.
 model Calibration {
-  id         String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  id          String   @id @default(dbgenerated("gen_random_uuid()::text"))
   /// The population the bucket was computed over, e.g. humanSignal readings at 5 days.
-  population String
+  population  String
   horizonDays Int
   /// The grade or probability band this bucket represents.
-  bucket     String
+  bucket      String
   /// What the system implied would happen at this grade, as a rate between 0 and 1.
-  predicted  Float
+  predicted   Float
   /// What actually happened, as a rate over `n` matured rows.
-  actual     Float?
-  n          Int
-  brier      Float?
-  logLoss    Float?
-  note       String?
-  computedAt DateTime @default(now())
+  actual      Float?
+  n           Int
+  brier       Float?
+  logLoss     Float?
+  note        String?
+  computedAt  DateTime @default(now())
 
   @@unique([population, horizonDays, bucket, computedAt])
   @@index([population, computedAt])
@@ -817,14 +827,14 @@ model HumanSignal {
   windowDays Int
 
   /// Headlines the word list was run over. The denominator for everything below it.
-  items      Int
-  positive   Int
-  negative   Int
-  neutral    Int
+  items     Int
+  positive  Int
+  negative  Int
+  neutral   Int
   /// none when items is below the floor in jobs/human.py.
-  tone       Tone?
+  tone      Tone?
   /// (positive - negative) / items. Kept next to the counts, never shown without them.
-  toneScore  Float?
+  toneScore Float?
 
   /// Items in the window of equal length immediately before this one.
   priorItems Int
@@ -834,7 +844,7 @@ model HumanSignal {
   /// over 30 days is a trend; four articles landing in three days against a baseline of one
   /// a week is an event, and the two need separating because only the second is the thing
   /// that moves a price before a reader has noticed it.
-  recentItems   Int    @default(0)
+  recentItems   Int     @default(0)
   /// Items per day over the comparison window, which is the baseline the spike is measured
   /// against. Null when that window is too thin to average.
   baselineDaily Float?
@@ -847,38 +857,38 @@ model HumanSignal {
   /// Distinct stories rather than items, over the same recent window. This is the count the
   /// catalyst decision is actually made on: a ratio built on copies measures syndication,
   /// and syndication is a fact about the news industry rather than about the asset.
-  recentStories Int    @default(0)
+  recentStories      Int    @default(0)
   /// The same for the baseline window, as stories per day.
   baselineStoryDaily Float?
   /// Robust standardised deviation of the recent story rate against the baseline window's
   /// own daily history: (x - median) / (1.4826 * MAD). Used instead of a plain ratio because
   /// a ratio against a mean is dragged around by the one busy day inside the baseline, which
   /// is exactly the kind of day a news feed produces.
-  robustZ       Float?
+  robustZ            Float?
   /// spike when the recent window alone is elevated, persistent when the elevation has held
   /// across the window, none when neither. A single loud day and a fortnight of steadily
   /// heavier coverage are different events and only the second changes a baseline.
-  changeKind    String @default("none")
+  changeKind         String @default("none")
   /// Change in item count against that window. Null when the prior window was too thin to
   /// divide by, which is a missing measurement and never a zero.
-  velocityPct Float?
+  velocityPct        Float?
   /// rising, flat, falling, or unknown when velocityPct could not be computed.
-  attention   String
+  attention          String
 
   /// Headlines containing promotional wording, and their share of the window.
-  hypeTerms  Int
-  hypeShare  Float?
+  hypeTerms Int
+  hypeShare Float?
   /// Attention rising and promotional wording above its threshold at the same time. The
   /// flag describes the coverage, not the asset: heavily promoted is not the same as
   /// overvalued, and the note says so.
-  hypeFlag   Boolean  @default(false)
-  hypeNote   String?
+  hypeFlag  Boolean @default(false)
+  hypeNote  String?
 
   confidence     Confidence @default(none)
   confidenceNote String?
   /// The feeds the items came from, so the reading can be traced back.
-  source     String
-  computedAt DateTime   @default(now())
+  source         String
+  computedAt     DateTime   @default(now())
 
   // The catalyst lookup is a partial index on periodEnd where catalyst is true, which
   // Prisma cannot express, so it lives in the migration alongside the columns. Declaring a
@@ -915,10 +925,10 @@ model SignalLog {
   issuedOn  DateTime @db.Date
 
   /// The reading in the words it was published in, so the log cannot drift from the page.
-  claim     String
+  claim      String
   /// The factors it rested on, written as a short readable list rather than a blob, so the
   /// log can be read by a person without a decoder.
-  factors   String
+  factors    String
   confidence Confidence @default(none)
 
   /// The close the later moves are measured from, and the day it is dated to. Null for a
@@ -941,7 +951,7 @@ model SignalLog {
   measured60On DateTime? @db.Date
   /// open, measured1, measured5, measured30, measured60, or unmeasurable when there is no
   /// price series. Always the furthest horizon reached.
-  status    String   @default("open")
+  status       String    @default("open")
 
   createdAt DateTime @default(now())
 
@@ -976,9 +986,9 @@ model AssetThesis {
   openedOn  DateTime @db.Date
 
   /// The sentence and the full condition string from that day, copied verbatim.
-  openHeadline   String
-  openConditions String
-  openClose      Float?
+  openHeadline    String
+  openConditions  String
+  openClose       Float?
   /// The level that day named as the point at which the trend being read is no longer there,
   /// and the entry level beside it. Both from the opening row, never recomputed.
   invalidateLevel Float?
@@ -986,28 +996,28 @@ model AssetThesis {
 
   /// active, weakening or broken. Broken is terminal and is never reassessed, so a later
   /// recovery cannot quietly erase the fact that the level named in advance was passed.
-  status    String
+  status  String
   /// Why it has that status, in plain words.
-  reason    String
+  reason  String
   /// Condition names whose verdict differs from the opening day's, and those that match. A
   /// condition that has become unavailable counts as changed, never as held.
-  changed   String
-  held      String
+  changed String
+  held    String
 
   /// The read this assessment was made against.
-  asOf      DateTime @db.Date
-  lastClose Float?
+  asOf               DateTime @db.Date
+  lastClose          Float?
   changePctSinceOpen Float?
   /// Stored sessions since the opening day. Sessions, not calendar days, because a weekend is
   /// not a day on which nothing happened to the conditions.
-  sessionsSince Int   @default(0)
+  sessionsSince      Int      @default(0)
 
   confidence     Confidence @default(none)
   /// How much of the opening reason is still measurable. Never how the price has gone:
   /// grading a thesis on its return would turn a statement about evidence into a scorecard.
   confidenceNote String?
-  source     String
-  computedAt DateTime @default(now())
+  source         String
+  computedAt     DateTime   @default(now())
 
   checks ThesisCheck[]
 
@@ -1022,16 +1032,16 @@ model AssetThesis {
 /// disagreeing with it, and the sequence of rows is the history of a reason decaying rather
 /// than a single status that only ever shows its last value.
 model ThesisCheck {
-  id        String      @id @default(dbgenerated("gen_random_uuid()::text"))
-  thesisId  String
-  thesis    AssetThesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
-  asOf      DateTime    @db.Date
+  id       String      @id @default(dbgenerated("gen_random_uuid()::text"))
+  thesisId String
+  thesis   AssetThesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+  asOf     DateTime    @db.Date
 
-  status    String
-  reason    String
-  changed   String
-  held      String
-  close     Float?
+  status             String
+  reason             String
+  changed            String
+  held               String
+  close              Float?
   changePctSinceOpen Float?
 
   source     String
@@ -1062,10 +1072,10 @@ model ThesisCheck {
 ///
 /// Written by jobs/attribution.py.
 model MoveAttribution {
-  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
-  assetId   String
-  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  periodEnd DateTime @db.Date
+  id         String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId    String
+  asset      Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  periodEnd  DateTime @db.Date
   /// Sessions the move is measured over, so a row is never read against the wrong window.
   windowDays Int
 
@@ -1091,13 +1101,13 @@ model MoveAttribution {
   peers     Int
   groupSize Int
 
-  headline  String
+  headline       String
   confidence     Confidence @default(none)
   confidenceNote String?
   /// How the three parts were obtained, in words.
-  method    String
-  source    String
-  computedAt DateTime @default(now())
+  method         String
+  source         String
+  computedAt     DateTime   @default(now())
 
   @@unique([assetId, periodEnd, windowDays])
   @@index([periodEnd, leader])
@@ -1128,13 +1138,13 @@ model GraphRelevance {
   originKind String
   originId   String
 
-  score     Float
+  score    Float
   /// 1 or 2. Never more, by construction.
-  hops      Int
+  hops     Int
   /// The kind of edge the last step used: industry, product or event.
-  edgeKind  String
-  path      String
-  note      String
+  edgeKind String
+  path     String
+  note     String
 
   source     String
   computedAt DateTime @default(now())
@@ -1166,15 +1176,15 @@ model GraphRelevance {
 ///
 /// Written by jobs/intraday.py.
 model IntradayBar {
-  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
-  assetId   String
-  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  id          String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId     String
+  asset       Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
   /// Bar interval in minutes: 5 is canonical, 1 is fetched only for the active set, and
   /// 15/30/60 are derived from 5 where every component bar is present.
-  interval  Int
+  interval    Int
   /// Bar open time in UTC. The exchange's own timezone is on the session row, so a reader
   /// never has to guess which clock a timestamp is in.
-  ts        DateTime
+  ts          DateTime
   /// The exchange session date this bar belongs to, in exchange-local terms. Stored rather
   /// than computed from `ts`, because a session that crosses midnight UTC would otherwise
   /// split in two.
@@ -1190,10 +1200,10 @@ model IntradayBar {
 
   /// regular, pre or post. Kept because a pre-market breakout on 400 shares is not the same
   /// observation as the same move in the regular session, and averaging the two would hide it.
-  phase  String  @default("regular")
+  phase String @default("regular")
 
   /// True when this bar was aggregated from finer stored bars rather than fetched.
-  derived Boolean @default(false)
+  derived     Boolean @default(false)
   /// The interval it was derived from, when it was.
   derivedFrom Int?
 
@@ -1224,19 +1234,19 @@ model IntradayBar {
 /// `unsupported` is the row that keeps the capability honest for assets the provider cannot
 /// serve. The architecture holds; the coverage does not, and the page says which.
 model IntradaySession {
-  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
-  assetId   String
-  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  id          String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId     String
+  asset       Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
   sessionDate DateTime @db.Date
-  interval  Int
+  interval    Int
 
-  status    String
+  status       String
   /// How many bars a full session at this interval would hold, from the provider's own
   /// stated trading period rather than from a constant.
   barsExpected Int?
-  barsStored   Int      @default(0)
+  barsStored   Int    @default(0)
   /// Bars the provider served with a null close, which are holes rather than observations.
-  barsNull     Int      @default(0)
+  barsNull     Int    @default(0)
 
   /// The exchange timezone the session is defined in, as the provider stated it.
   exchangeTz String?
@@ -1244,7 +1254,7 @@ model IntradaySession {
   lastTs     DateTime?
 
   /// Plain words: what arrived, what did not, and what that means for reading the bars.
-  note      String
+  note        String
   source      String
   retrievedAt DateTime @default(now())
 
@@ -1273,16 +1283,16 @@ model IntradaySession {
 /// A target is only written when `rewardRisk` can also be computed, because a level with no
 /// invalidation behind it is a number with no decision attached to it.
 model SetupTarget {
-  id       String     @id @default(dbgenerated("gen_random_uuid()::text"))
-  setupId  String
-  setup    AssetSetup @relation(fields: [setupId], references: [id], onDelete: Cascade)
+  id      String     @id @default(dbgenerated("gen_random_uuid()::text"))
+  setupId String
+  setup   AssetSetup @relation(fields: [setupId], references: [id], onDelete: Cascade)
 
   /// structure, volatility or analog.
-  method   String
+  method      String
   /// The range. Low and high are the same number only when the method produces a single
   /// level, which is stated in the note rather than implied.
-  low      Float
-  high     Float
+  low         Float
+  high        Float
   /// Distance from the entry to the near edge of the range, as a percentage.
   distancePct Float?
   /// Reward against risk, using the setup's own invalidation level as the risk. Null when no
@@ -1291,10 +1301,10 @@ model SetupTarget {
 
   /// How far the methods were from each other, as a share of the widest range. Stored on each
   /// row so a reader looking at one method can see it was not the only one.
-  agreement Float?
+  agreement  Float?
   /// Plain words: what this range was measured from and what it is not.
-  note     String
-  source   String
+  note       String
+  source     String
   computedAt DateTime @default(now())
 
   @@unique([setupId, method])
@@ -1375,10 +1385,10 @@ model InvestigationFinding {
 
   /// What was checked: news, attribution, peers, volume, calendar, graph, analog, intraday
   /// or product.
-  kind    String
-  status  String
+  kind       String
+  status     String
   /// Plain words, with the figure in them where there is one.
-  detail  String
+  detail     String
   /// Where the evidence came from, so a reader can check it.
   sourceName String?
   /// When the evidence itself is dated, which is not when it was looked at. A story published
@@ -1424,7 +1434,7 @@ model InvestigationHypothesis {
   priorNote String?
 
   /// The measured magnitude supporting it, where one exists: percentage points of the move.
-  magnitude Float?
+  magnitude     Float?
   /// Evidence for and against, in words. Contradicting is never left empty when something
   /// contradicts it.
   supporting    String
@@ -1436,3 +1446,222 @@ model InvestigationHypothesis {
 
   @@unique([investigationId, label])
 }
+
+/// The measured facts about one asset on one day, before any rule reads them.
+///
+/// This exists so the decision rules stop deriving their own numbers. Every field here is
+/// arithmetic over stored closes with a published window, computed once by `jobs/factors.py`
+/// and read by everything else, which is the only way the panel, the lists and the audit can
+/// be made to agree about what a day looked like. Anything a rule needs that is not here is a
+/// number some page invented.
+///
+/// Every field is nullable on purpose. A factor that could not be computed — too few bars, no
+/// peers, no volume published — is null and is reported as missing, never zero. Zero is a
+/// measurement and the difference matters: a volume ratio of 0 means nothing traded, and a
+/// volume ratio of null means nobody looked.
+model AssetFactor {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId   String
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  /// The session these factors describe, which is the newest close they were computed from.
+  periodEnd DateTime @db.Date
+
+  /// Simple returns over 1, 5 and 20 sessions, in percent.
+  r1  Float?
+  r5  Float?
+  r20 Float?
+
+  /// How unusual r1 is against this asset's own history, as a robust z-score: the median and
+  /// the median absolute deviation rather than mean and standard deviation, because one
+  /// earnings gap in the window otherwise widens the band enough to call every later move
+  /// ordinary. The same statistic `jobs/human.py` uses on news rates.
+  returnZ     Float?
+  /// Volume as a multiple of its own 20-session average. Null when the venue publishes no
+  /// volume, which is different from a quiet day.
+  volumeRatio Float?
+
+  /// The median 20-session return across this asset's peer group, and this asset minus it.
+  /// A name up 4% in an industry up 6% is a laggard, and absolute return alone cannot say so.
+  peerMedianR20 Float?
+  relStrength   Float?
+  /// How many peers that median was taken over. Below the floor in jobs/factors.py the two
+  /// fields above are null rather than computed from three names.
+  peers         Int    @default(0)
+
+  /// Where the close sits against its own averages and its own range.
+  sma20       Float?
+  sma50       Float?
+  /// Position in the trailing range, 0 at the low and 100 at the high.
+  rangePct    Float?
+  /// How far below the trailing high, in percent. Always <= 0.
+  drawdownPct Float?
+
+  /// Sessions until the next dated item, when one is stored. Context for the rules, never a
+  /// direction on its own.
+  eventInDays Int?
+  /// Distinct stories in the recent window, after the junk filter. Null means news was never
+  /// checked for this asset, which the rules report differently from checked-and-none.
+  newsStories Int?
+
+  /// How many closes everything above was computed from. A reader cannot judge a 20-session
+  /// return taken over 22 bars, and the rules use this to refuse a factor rather than trust it.
+  bars   Int
+  source String
+
+  computedAt DateTime @default(now())
+
+  @@unique([assetId, periodEnd])
+  @@index([periodEnd])
+}
+
+/// One past day that resembled today, kept by name.
+///
+/// `AssetAnalog` stores the aggregate — how many matched, the median, the range. That is the
+/// number a reader needs and it is also the number that hides a disagreement: two clusters of
+/// past days pointing opposite ways average to "flat", and nothing in the aggregate says so.
+/// This table keeps the closest few matches individually, with the date, so the aggregate can
+/// be argued with.
+///
+/// `differences` is the field that earns the table. A day matched on return, volume and
+/// five-day trend can still be nothing like today — a different rate regime, a different
+/// index level, a gap the model does not carry — and a pattern system that never records what
+/// was different is one that will keep insisting history repeats.
+model AnalogMatch {
+  id       String      @id @default(dbgenerated("gen_random_uuid()::text"))
+  analogId String
+  analog   AssetAnalog @relation(fields: [analogId], references: [id], onDelete: Cascade)
+
+  /// The past session this row points at.
+  matchedOn DateTime @db.Date
+  /// How close it was, in the matcher's own units. Smaller is closer; the unit is published
+  /// in jobs/analogs.py rather than implied here.
+  distance  Float
+  /// Rank by distance, 1 being the closest. Only the top few are kept.
+  rank      Int
+
+  /// What followed that day over the analog's own horizon, in percent.
+  nextPct Float?
+
+  /// What was NOT alike, in plain words, or "nothing recorded" when the matcher found nothing
+  /// to flag. Never empty: a match with no stated difference is a claim that two days were the
+  /// same, and that claim has to be made explicitly or not at all.
+  differences String
+
+  computedAt DateTime @default(now())
+
+  @@unique([analogId, matchedOn])
+  @@index([analogId, rank])
+}
+
+/// Every decision the rules produced, and what actually happened next.
+///
+/// The site cannot claim a hit rate it has not measured, and it cannot measure one without
+/// writing down what it said at the time. This is that record: the action, the gate that
+/// produced it, the levels, and a snapshot of the factors it was read from — so a later
+/// argument about why a call was made is settled by the row rather than by rerunning today's
+/// code against today's data, which would answer a different question.
+///
+/// The measured columns fill in on a schedule: +1, +5 and +20 sessions. Nothing is published
+/// from them until a minimum sample has matured, and `jobs/accuracy.py` owns that floor.
+model DecisionLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId   String
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  /// The session the decision was made on.
+  periodEnd DateTime @db.Date
+
+  /// LONG, SHORT or WAIT.
+  action     String
+  /// Which gate decided, e.g. "stale", "mixed-horizons", "long". Stored because a hit rate
+  /// over all WAITs is meaningless and a hit rate per gate is the thing worth reading.
+  gate       String
+  /// High, Medium or Low, as published at the time.
+  confidence String
+
+  entryLow     Float?
+  entryHigh    Float?
+  invalidation Float?
+
+  /// The factor row this was read from, so the snapshot is a reference rather than a copy
+  /// that can drift from the table it came from.
+  factorId    String?
+  /// The analog rows cited, comma separated. Kept as text rather than a relation because the
+  /// citation is a historical fact about one decision and must not change when an analog is
+  /// recomputed.
+  analogRefs  String  @default("")
+  /// Sessions to the next dated item at the time of the decision, when one was stored.
+  eventInDays Int?
+
+  /// The close the move is measured from.
+  baseClose Float?
+
+  move1Pct     Float?
+  measured1On  DateTime? @db.Date
+  move5Pct     Float?
+  measured5On  DateTime? @db.Date
+  move20Pct    Float?
+  measured20On DateTime? @db.Date
+
+  /// open, measured1, measured5, measured20, or unmeasurable.
+  status String @default("open")
+
+  computedAt DateTime @default(now())
+
+  @@unique([assetId, periodEnd])
+  @@index([status, periodEnd])
+  @@index([gate, status])
+}
+
+
+/// One slice of one job, and how it went.
+///
+/// The pipeline is many small jobs rather than one long one, and the price of that is that
+/// "did the data arrive" stops being answerable by looking at whether a single run was green.
+/// This table is the answer instead: every chunk of every source writes one row saying what it
+/// touched, how much it wrote, how fresh the result is and whether it failed. The freshness
+/// panel reads it, and a failed chunk is a row rather than something to go hunting for in a
+/// log that needs a sign-in to read.
+///
+/// It is deliberately not `Coverage`. Coverage answers "is this source healthy right now",
+/// computed by jobs/audit.py from the data itself; this answers "what did the 14:00 crypto
+/// slice actually do". A source can be healthy while a chunk failed, and a chunk can succeed
+/// while the source is stale — both facts are worth having, and collapsing them into one table
+/// is how a green run ends up meaning nothing.
+model ChunkRun {
+  id String @id @default(dbgenerated("gen_random_uuid()::text"))
+
+  /// The workflow or job that ran, e.g. "cron-crypto", "cron-us-prices".
+  job String
+  /// The source this slice fetched from, e.g. "Binance", "Yahoo Finance", "Google News RSS".
+  /// A chain writes the venue that actually answered, not the chain.
+  source String
+  /// Which slice, as "3/8". A job that is not chunked writes "1/1" rather than null, so the
+  /// column never has to be read as "unknown or not applicable".
+  chunk String @default("1/1")
+
+  /// How many rows this slice wrote. Zero is a legitimate answer on a rerun inside a cache
+  /// window and is not by itself a failure; `status` carries that judgement.
+  rowsWritten Int @default(0)
+  /// How many items it asked for, so a slice that wrote 0 of 30 reads differently from one
+  /// that wrote 0 of 0.
+  asked Int @default(0)
+  /// The newest date now stored for this source after the slice, when the slice touched
+  /// anything dated. This is the number the staleness rules care about.
+  newest DateTime?
+
+  /// ok, partial, empty, or failed. `empty` is "asked for things and got none", which is the
+  /// state that must be loud; `partial` is "some answered", which is ordinary and worth
+  /// recording so a pattern of partials is visible before it becomes an outage.
+  status String
+  /// One line a human can read without opening a log. Required: a failed chunk with no note
+  /// is the thing this table exists to stop.
+  note String
+
+  durationMs Int      @default(0)
+  startedAt  DateTime @default(now())
+
+  @@index([job, startedAt])
+  @@index([status, startedAt])
+  @@index([source, startedAt])
+}
+

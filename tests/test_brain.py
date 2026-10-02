@@ -16,6 +16,7 @@ Where a case is here because it was a real bug, the test says so.
 
 from __future__ import annotations
 
+import json
 import sys
 import unittest
 from datetime import date, datetime, timedelta
@@ -34,7 +35,9 @@ import investigate  # noqa: E402
 import lineage  # noqa: E402
 import nbt  # noqa: E402
 import prices  # noqa: E402
+import psx  # noqa: E402
 import run  # noqa: E402
+import runlog  # noqa: E402
 import schemacheck  # noqa: E402
 import thesis  # noqa: E402
 
@@ -619,6 +622,247 @@ class RunReport(unittest.TestCase):
             self.assertLess(order.index("setup"), order.index("thesis"))
             self.assertLess(order.index("human"), order.index("graph"))
             self.assertLess(order.index("lineage"), order.index("human"))
+
+
+class ChunkParsing(unittest.TestCase):
+    """`--chunk 3/8` is read by the runner and by the job, and both have to read it the same.
+
+    The flag is written by hand in a workflow file and by a matrix that generates slice numbers.
+    A malformed one has to stop at the gate: a job handed "3/0" cannot tell a typo from a matrix
+    that produced a slice which does not exist, and either way the answer is to not run.
+    """
+
+    def test_a_slice_is_one_based_and_reads_as_a_person_wrote_it(self):
+        self.assertEqual(runlog.parse_chunk("3/8"), (3, 8))
+        self.assertEqual(runlog.parse_chunk("1/1"), (1, 1))
+        self.assertEqual(runlog.parse_chunk("8/8"), (8, 8))
+
+    def test_a_slice_that_does_not_exist_is_refused(self):
+        for bad in ("0/8", "9/8", "3/0", "-1/8"):
+            with self.assertRaises(ValueError, msg=bad):
+                runlog.parse_chunk(bad)
+
+    def test_a_malformed_flag_is_refused_rather_than_guessed(self):
+        for bad in ("3", "", "3/8/2", "three/eight", "3 /8", None, "/"):
+            with self.assertRaises(ValueError, msg=repr(bad)):
+                runlog.parse_chunk(bad)
+
+    def test_the_label_written_to_the_column_is_canonical(self):
+        # The freshness panel groups by this string, so a slice filed under "3 /8" is a slice
+        # nobody finds.
+        self.assertEqual(runlog.chunk_label(*runlog.parse_chunk("3/8")), "3/8")
+
+    def test_the_runner_takes_the_group_and_the_chunk_in_either_position(self):
+        self.assertEqual(run.parse_args(["crypto", "--chunk", "2/4"]), ("crypto", "2/4"))
+        self.assertEqual(run.parse_args(["--chunk", "2/4", "crypto"]), ("crypto", "2/4"))
+        self.assertEqual(run.parse_args(["daily"]), ("daily", None))
+        self.assertEqual(run.parse_args([]), ("daily", None))
+
+    def test_the_runner_refuses_a_chunk_it_cannot_parse(self):
+        with self.assertRaises(ValueError):
+            run.parse_args(["crypto", "--chunk", "0/4"])
+        with self.assertRaises(SystemExit):
+            run.parse_args(["crypto", "--chunk"])
+
+
+class ChunkSlicing(unittest.TestCase):
+    """Slices must be stable, disjoint and complete, or a retry covers the wrong work.
+
+    Stability is the one that bites. The work list arrives from a query, and a query without an
+    ORDER BY may hand back the same rows in a different order next run, so slicing that order
+    would put a symbol in slice 2 this morning and slice 5 this afternoon — a cursor saying
+    "1 through 4 are done" and a retry of 5 would then be talking about different sets, and
+    something would be fetched twice while something else was never fetched at all.
+    """
+
+    SYMBOLS = ["NVDA", "BTC", "AAPL", "ETH", "MSFT", "SOL", "TSLA", "AVAX", "GOOGL", "LINK", "AMD"]
+
+    def test_the_same_symbol_lands_in_the_same_slice_whatever_the_input_order(self):
+        shuffled = list(reversed(self.SYMBOLS))
+        for i in range(1, 5):
+            self.assertEqual(
+                runlog.slice_of(self.SYMBOLS, i, 4), runlog.slice_of(shuffled, i, 4)
+            )
+
+    def test_every_item_lands_in_exactly_one_slice(self):
+        for total in (1, 2, 3, 4, 8, 11):
+            seen = [x for i in range(1, total + 1) for x in runlog.slice_of(self.SYMBOLS, i, total)]
+            self.assertEqual(sorted(seen), sorted(self.SYMBOLS), f"N={total}")
+            self.assertEqual(len(seen), len(set(seen)), f"N={total} covered something twice")
+
+    def test_n_slices_cover_the_whole_list_even_when_n_exceeds_it(self):
+        # A matrix of eight against three coins is a legitimate configuration; five of the
+        # slices are empty and none of the coins is lost.
+        covered = [x for i in range(1, 9) for x in runlog.slice_of(["BTC", "ETH", "SOL"], i, 8)]
+        self.assertEqual(sorted(covered), ["BTC", "ETH", "SOL"])
+
+    def test_slices_are_balanced_to_within_one(self):
+        sizes = [len(runlog.slice_of(self.SYMBOLS, i, 4)) for i in range(1, 5)]
+        self.assertLessEqual(max(sizes) - min(sizes), 1, sizes)
+        self.assertEqual(sum(sizes), len(self.SYMBOLS))
+
+    def test_one_of_one_is_the_whole_list_sorted(self):
+        self.assertEqual(runlog.slice_of(self.SYMBOLS, 1, 1), sorted(self.SYMBOLS))
+
+    def test_an_empty_work_list_slices_into_empty_slices(self):
+        self.assertEqual(runlog.slice_of([], 2, 4), [])
+
+    def test_a_key_slices_rows_by_their_identifier(self):
+        rows = [{"symbol": s} for s in self.SYMBOLS]
+        got = runlog.slice_of(rows, 1, 4, key=lambda r: r["symbol"])
+        self.assertEqual([r["symbol"] for r in got], runlog.slice_of(self.SYMBOLS, 1, 4))
+
+
+class ChunkStatus(unittest.TestCase):
+    """The default judgement a slice gets when the job does not name one.
+
+    `empty` is the loud state and the reason the table exists: a throttled provider returns an
+    empty result and raises nothing, so from inside a job "blocked" and "a quiet market" are the
+    same picture, and the only honest thing is to record the state that needs looking at.
+    """
+
+    def test_asking_for_things_and_writing_none_is_empty(self):
+        self.assertEqual(runlog.default_status(asked=30, rows_written=0), "empty")
+
+    def test_asking_for_nothing_and_writing_nothing_is_not_a_failure(self):
+        # A rerun inside the cache window legitimately writes zero of zero.
+        self.assertEqual(runlog.default_status(asked=0, rows_written=0), "ok")
+
+    def test_some_but_not_all_items_answering_is_partial(self):
+        self.assertEqual(runlog.default_status(asked=10, rows_written=123, answered=7), "partial")
+
+    def test_partial_counts_items_and_not_rows(self):
+        # Ten coins can write a hundred and twenty three rows, so rows carry no information
+        # about how many coins answered. A job that does not count answers gets ok, not partial.
+        self.assertEqual(runlog.default_status(asked=10, rows_written=123), "ok")
+        self.assertEqual(runlog.default_status(asked=10, rows_written=123, answered=10), "ok")
+
+    def test_a_job_may_override_the_judgement(self):
+        run_row = runlog.Slice(job="cron-crypto", source="Binance", asked=10, rows_written=0)
+        self.assertEqual(run_row.resolved_status(), "empty")
+        run_row.status = "ok"
+        self.assertEqual(run_row.resolved_status(), "ok")
+
+    def test_a_status_outside_the_four_is_refused(self):
+        run_row = runlog.Slice(job="cron-crypto", source="Binance", status="fine")
+        with self.assertRaises(ValueError):
+            run_row.resolved_status()
+
+    def test_a_note_is_never_empty_even_when_the_job_sets_none(self):
+        # The model's comment says a failed chunk with no note is the thing this table exists to
+        # stop, so the fallback is built from the counts rather than left to a convention.
+        run_row = runlog.Slice(job="cron-crypto", source="Binance", chunk="2/4", asked=10)
+        note = run_row.resolved_note()
+        self.assertTrue(note.strip())
+        self.assertIn("Binance", note)
+        self.assertIn("2/4", note)
+
+    def test_a_long_note_is_cut_rather_than_written_whole(self):
+        run_row = runlog.Slice(job="j", source="s", note="x" * 5000)
+        self.assertLessEqual(len(run_row.resolved_note()), runlog.NOTE_MAX)
+
+    def test_the_writer_refuses_a_blank_note_outright(self):
+        with self.assertRaises(ValueError):
+            runlog.write(
+                job="j", source="s", chunk="1/1", rows_written=0, asked=0, newest=None,
+                status="ok", note="   ", duration_ms=1,
+            )
+
+
+class ChunkGroups(unittest.TestCase):
+    """The small groups are selections over the existing steps, not second copies of them."""
+
+    SMALL = ("crypto", "us-prices", "psx", "news", "products", "decision", "audit")
+
+    def test_the_original_three_groups_still_exist(self):
+        # schema.yml and backfill.yml call these by name today.
+        for name in ("seed", "daily", "weekly"):
+            self.assertIn(name, run.GROUPS)
+
+    def test_every_small_group_exists_and_has_work(self):
+        for name in self.SMALL:
+            self.assertIn(name, run.GROUPS)
+            steps = [s for plan in run.GROUPS[name] for s in plan]
+            self.assertTrue(steps, f"{name} has no steps")
+
+    def test_every_small_group_step_appears_in_daily_or_weekly(self):
+        # A group that invents a step is a group that runs something nothing else runs.
+        known = {script for plan in (run.DAILY, run.WEEKLY) for script, _ in plan}
+        for name in self.SMALL:
+            for script, _ in [s for plan in run.GROUPS[name] for s in plan]:
+                self.assertIn(script, known, f"{name} runs {script}, which no lane runs")
+
+    def test_decision_fetches_nothing_from_a_price_or_product_source(self):
+        names = [script for script, _ in run.DECISION]
+        for fetcher in run.FETCH_STEPS:
+            self.assertNotIn(fetcher, names)
+
+    def test_decision_keeps_dailys_ordering(self):
+        order = [script for script, _ in run.DECISION]
+        self.assertEqual(order, [s for s, _ in run.DAILY if s in set(order)])
+        self.assertLess(order.index("setup"), order.index("thesis"))
+        self.assertLess(order.index("human"), order.index("graph"))
+
+    def test_audit_is_not_inside_the_group_it_judges(self):
+        # A coverage flag is a judgement about a finished fetch; computing it mid-write reads
+        # half of one.
+        self.assertNotIn("audit", [script for script, _ in run.DECISION])
+
+    def test_the_price_groups_each_ask_for_one_lane(self):
+        self.assertEqual(run.GROUPS["crypto"], [[("prices", ["crypto"])]])
+        self.assertEqual(run.GROUPS["us-prices"], [[("prices", ["yahoo"])]])
+        self.assertEqual(run.GROUPS["news"], [[("prices", ["news"])]])
+
+
+class ChunkPlumbing(unittest.TestCase):
+    """A step gets --chunk when its job parses one, and runs whole when it does not."""
+
+    def test_a_step_that_cannot_slice_still_runs_its_whole_source(self):
+        # Skipping would mean a scheduled "--chunk 1/8" lane silently never fetched that source.
+        steps, unsliced = run.plan_with_chunk([("audit", [])], "2/4")
+        self.assertEqual(steps, [("audit", [])])
+        self.assertEqual(unsliced, ["audit"])
+
+    def test_no_chunk_leaves_every_step_exactly_as_the_plan_wrote_it(self):
+        steps, unsliced = run.plan_with_chunk([("prices", ["crypto"])], None)
+        self.assertEqual(steps, [("prices", ["crypto"])])
+        self.assertEqual(unsliced, [])
+
+    def test_the_flag_follows_the_arguments_the_plan_already_passes(self):
+        # prices.py reads its lane names off argv, so the flag has to come after them.
+        run._chunk_support["prices"] = True
+        try:
+            steps, unsliced = run.plan_with_chunk([("prices", ["crypto"])], "2/4")
+        finally:
+            run._chunk_support.pop("prices", None)
+        self.assertEqual(steps, [("prices", ["crypto", "--chunk", "2/4"])])
+        self.assertEqual(unsliced, [])
+
+    def test_support_is_read_from_the_job_rather_than_listed_here(self):
+        # These files belong to other engineers and chunking is landing in them one at a time,
+        # so a hand-kept list in run.py would be wrong in one of two directions.
+        run._chunk_support.clear()
+        self.assertFalse(run.supports_chunk("nbt"))
+        self.assertFalse(run.supports_chunk("no_such_job"))
+
+    def test_the_table_header_says_which_slice_ran(self):
+        # Eight runners write eight identical-looking logs; the slice is how they are told apart.
+        import io
+        import contextlib
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            self.assertEqual(run.report("crypto 2/4", [("prices crypto", 0, 1.0)]), [])
+        self.assertIn("run crypto 2/4: 1 steps", buf.getvalue())
+
+    def test_an_unsliced_step_is_noted_in_the_summary_rather_than_hidden(self):
+        import io
+        import contextlib
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            run.report("products 1/4", [("geo", 0, 1.0)], ["--chunk 1/4 was not passed to geo"])
+        self.assertIn("note: --chunk 1/4 was not passed to geo", buf.getvalue())
 
 
 class SchemaGuard(unittest.TestCase):
@@ -1932,6 +2176,233 @@ class CryptoVenueChain(unittest.TestCase):
         self.assertLessEqual(worst, 120, f"a dead host could cost {worst}s of the lane")
 
 
+class YahooPartialDay(unittest.TestCase):
+    """The US lane is one source for 80 assets, and it has already gone dark once.
+
+    `yf.download` stored 0 rows on a GitHub runner while the same fetch stored 37,537 from a
+    laptop minutes later, returning an empty DataFrame and raising nothing. `require_answer`
+    catches that. What it does not catch is the same mechanism applied to part of a batch: an
+    answer for 3 of 80 assets passes a zero-check, writes three assets' worth of rows and exits 0.
+    These pin the three things that now stand between that and a green run — the share threshold,
+    the per-asset day report, and the bounded retry — plus the chart-API parser that repairs what
+    yfinance did not answer for.
+    """
+
+    # Captured from https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=5d&interval=1d,
+    # trimmed to the last three sessions. The timestamps are session opens (13:30 UTC), not
+    # midnight, which is the first thing a hand-written fixture gets wrong. `regularMarketTime`
+    # is one second past `currentTradingPeriod.regular.end`, i.e. the session has closed.
+    AAPL = {
+        "chart": {
+            "error": None,
+            "result": [
+                {
+                    "meta": {
+                        "currency": "USD",
+                        "symbol": "AAPL",
+                        "dataGranularity": "1d",
+                        "regularMarketTime": 1790971201,
+                        "currentTradingPeriod": {
+                            "pre": {"start": 1790928000, "end": 1790947800},
+                            "regular": {"start": 1790947800, "end": 1790971200},
+                            "post": {"start": 1790971200, "end": 1790985600},
+                        },
+                        "gmtoffset": -14400,
+                        "exchangeTimezoneName": "America/New_York",
+                    },
+                    "timestamp": [1790775000, 1790861400, 1790947800],
+                    "indicators": {
+                        "quote": [
+                            {
+                                "open": [330.79998779296875, 330.0, 333.2049865722656],
+                                "high": [339.5, 332.4800109863281, 334.5400085449219],
+                                "low": [330.1400146484375, 325.80999755859375, 330.6099853515625],
+                                "close": [333.0199890136719, 330.32000732421875, 333.69000244140625],
+                                "volume": [49988600, 36306300, 31878433],
+                            }
+                        ],
+                        "adjclose": [
+                            {
+                                "adjclose": [
+                                    333.0199890136719,
+                                    330.32000732421875,
+                                    333.69000244140625,
+                                ]
+                            }
+                        ],
+                    },
+                }
+            ],
+        }
+    }
+
+    def test_the_chart_parser_returns_the_venue_shape(self):
+        bars = prices.parse_chart(self.AAPL)
+        self.assertEqual(len(bars), 3)
+        self.assertEqual([b[0] for b in bars], [date(2026, 9, 30), date(2026, 10, 1), date(2026, 10, 2)])
+        for day, op, hi, lo, close, vol in bars:
+            self.assertIsInstance(day, date)
+            # The invariant that catches a swapped column, same as the crypto venues.
+            self.assertLessEqual(lo, min(op, close))
+            self.assertGreaterEqual(hi, max(op, close))
+            self.assertGreater(vol, 0)
+        self.assertAlmostEqual(bars[-1][4], 333.69000244140625)
+
+    def test_a_session_still_trading_is_not_stored_as_a_close(self):
+        # At interval=1d the day in progress comes back as an ordinary bar whose close is really
+        # the last trade. Storing it records a price that never happened.
+        payload = json.loads(json.dumps(self.AAPL))
+        meta = payload["chart"]["result"][0]["meta"]
+        meta["regularMarketTime"] = meta["currentTradingPeriod"]["regular"]["start"] + 600
+        self.assertEqual(prices.chart_forming_day(meta), date(2026, 10, 2))
+        bars = prices.parse_chart(payload)
+        self.assertEqual([b[0] for b in bars], [date(2026, 9, 30), date(2026, 10, 1)])
+        # And after the close the same body yields every session.
+        self.assertIsNone(prices.chart_forming_day(self.AAPL["chart"]["result"][0]["meta"]))
+
+    def test_the_chart_series_is_adjusted_the_way_yfinance_adjusts_it(self):
+        # The rows beside these were written by yf.download(auto_adjust=True). Splicing a raw
+        # close into a back-adjusted series puts a step in the chart at the last dividend.
+        payload = json.loads(json.dumps(self.AAPL))
+        quote = payload["chart"]["result"][0]["indicators"]["quote"][0]
+        quote["open"], quote["high"], quote["low"], quote["close"] = [100.0], [110.0], [90.0], [100.0]
+        quote["volume"] = [1000]
+        payload["chart"]["result"][0]["indicators"]["adjclose"][0]["adjclose"] = [50.0]
+        payload["chart"]["result"][0]["timestamp"] = [1790947800]
+        day, op, hi, lo, close, vol = prices.parse_chart(payload)[0]
+        self.assertEqual((op, hi, lo, close), (50.0, 55.0, 45.0, 50.0))
+        # Every field scaled by the same ratio, so the bar stays internally consistent: scaling
+        # the close alone could push it outside its own high and low.
+        self.assertLessEqual(lo, close)
+        self.assertGreaterEqual(hi, close)
+        # Volume is already split-adjusted by the provider and auto_adjust does not touch it.
+        self.assertEqual(vol, 1000.0)
+
+    def test_a_padded_null_session_is_a_hole_and_not_a_bar(self):
+        # The arrays are parallel and padded to the session grid. A null close counted as an
+        # observation manufactures a price.
+        payload = json.loads(json.dumps(self.AAPL))
+        quote = payload["chart"]["result"][0]["indicators"]["quote"][0]
+        quote["close"][1] = None
+        quote["open"][0] = None
+        bars = prices.parse_chart(payload)
+        self.assertEqual([b[0] for b in bars], [date(2026, 10, 2)])
+
+    def test_a_bad_chart_body_is_no_bars_rather_than_a_crash(self):
+        self.assertEqual(prices.parse_chart(None), [])
+        self.assertEqual(prices.parse_chart({}), [])
+        self.assertEqual(prices.parse_chart({"chart": {"error": {"code": "Not Found"}}}), [])
+        self.assertEqual(prices.parse_chart({"chart": {"result": []}}), [])
+        self.assertEqual(prices.parse_chart({"chart": {"result": [{}]}}), [])
+
+    def test_the_day_a_batch_reached_is_the_one_most_assets_hold(self):
+        # The maximum is the wrong statistic: one asset carrying a bar the rest have not got —
+        # a stale cache entry, a later futures session — would declare the whole batch behind.
+        newest = {
+            "AAPL": date(2026, 10, 2),
+            "MSFT": date(2026, 10, 2),
+            "NVDA": date(2026, 10, 2),
+            "GC=F": date(2026, 10, 3),
+            "RIVN": date(2026, 9, 29),
+            "LCID": None,
+        }
+        day, missing, behind = prices.day_shortfall(newest)
+        self.assertEqual(day, date(2026, 10, 2))
+        self.assertEqual(missing, ["LCID"])
+        self.assertEqual(behind, ["RIVN"])
+
+    def test_a_batch_split_evenly_across_two_days_is_held_to_the_newer_one(self):
+        newest = {"A": date(2026, 10, 2), "B": date(2026, 10, 1)}
+        day, missing, behind = prices.day_shortfall(newest)
+        self.assertEqual(day, date(2026, 10, 2))
+        self.assertEqual((missing, behind), ([], ["B"]))
+
+    def test_a_batch_that_answered_for_nothing_names_every_symbol(self):
+        day, missing, behind = prices.day_shortfall({"A": None, "B": None})
+        self.assertIsNone(day)
+        self.assertEqual(missing, ["A", "B"])
+        self.assertEqual(behind, [])
+        self.assertEqual(prices.day_shortfall({}), (None, [], []))
+
+    def test_an_answer_for_three_of_eighty_assets_fails_the_lane(self):
+        # The case that passes today. 80 assets on one US calendar: either a session was
+        # published and all of them have it, or none do. Three is the provider.
+        with self.assertRaises(prices.SourceSilent):
+            prices.require_share(3, 80)
+        with self.assertRaises(prices.SourceSilent):
+            prices.require_share(0, 80)
+
+    def test_a_couple_of_dead_tickers_do_not_fail_the_lane(self):
+        # A renamed, delisted or newly listed symbol is ordinary and has run at 0 to 2 of 80.
+        self.assertIsNone(prices.require_share(78, 80))
+        self.assertIsNone(prices.require_share(80, 80))
+        # And an empty ask is not a failure — there is nothing to be silent about.
+        self.assertIsNone(prices.require_share(0, 0))
+
+    def test_the_threshold_sits_between_the_observed_failure_and_a_normal_day(self):
+        # Both production failures land at or below 3/80; a normal day runs at 78/80 or better.
+        # A threshold outside that gap is either a false alarm or a missed outage.
+        self.assertGreater(prices.MIN_ANSWER_SHARE, prices.answered_share(3, 80))
+        self.assertLess(prices.MIN_ANSWER_SHARE, prices.answered_share(78, 80))
+        self.assertEqual(prices.answered_share(0, 0), 1.0)
+
+    def test_the_download_retry_is_bounded_in_attempts_and_in_seconds(self):
+        self.assertEqual(len(prices.YAHOO_DOWNLOAD_BACKOFF), prices.YAHOO_DOWNLOAD_ATTEMPTS - 1)
+        # Per call: three attempts, so two pauses and then None.
+        self.assertEqual(prices.download_retry_wait(0, 0), 5.0)
+        self.assertEqual(prices.download_retry_wait(1, 1), 20.0)
+        self.assertIsNone(prices.download_retry_wait(2, 1))
+        # Per run: the budget is shared between the backfill and the incremental batch, so a
+        # second dead batch is not retried at all.
+        self.assertIsNone(prices.download_retry_wait(0, prices.YAHOO_DOWNLOAD_BUDGET))
+        # The number that matters for the lane's runtime: a completely dead Yahoo cannot cost
+        # more than the budget times the longest pause.
+        worst = prices.YAHOO_DOWNLOAD_BUDGET * max(prices.YAHOO_DOWNLOAD_BACKOFF)
+        self.assertLessEqual(worst, 60, f"a dead Yahoo could cost {worst}s of the lane")
+
+    def test_the_download_path_goes_through_the_retry_and_the_guard_runs_after_the_fallback(self):
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = text[text.index("def fetch_yahoo"):text.index("class SourceSilent")]
+        # A bare yf.download in the lane is a download with no retry around it.
+        self.assertNotIn("yf.download(", body)
+        self.assertIn("yahoo_download(", body)
+        # And the share is judged only after the second endpoint has been asked, or the gate
+        # would fail a lane the fallback had already repaired.
+        self.assertLess(body.index("chart_repair("), body.index("require_share("))
+
+    def test_the_chart_fallback_never_replaces_a_stored_series(self):
+        # 21 sessions must never delete six years. Same invariant as the crypto lane's
+        # `replace = len(bars) >= stored`, and here the answer is always upsert.
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = text[text.index("def chart_repair"):text.index("def _store_frame")]
+        self.assertIn("insert_snapshots(cur, buffer, replace=False)", body)
+        self.assertNotIn("DELETE", body)
+        self.assertNotIn("replace=True", body)
+        # One insert for the whole repair set, after the per-asset loop, not inside it: a query
+        # per asset in a loop that is already per-asset over HTTP is what the query budget
+        # exists to stop. The call sits at function indent, which only a post-loop call can.
+        self.assertLess(body.index("for a in assets:"), body.index("insert_snapshots("))
+        self.assertIn("\n    insert_snapshots(cur, buffer, replace=False)", body)
+
+    def test_the_repaired_rows_say_which_endpoint_produced_them(self):
+        # Rule: every number carries the source that produced it. A row recovered from the chart
+        # API is not a row yfinance wrote, and a reader comparing them is owed the difference.
+        self.assertNotEqual(prices.YAHOO_CHART, prices.YAHOO)
+        self.assertIn("chart", prices.YAHOO_CHART.lower())
+
+    def test_an_empty_frame_leaves_through_the_guard_not_through_a_column_lookup(self):
+        # `dropna(subset=["Close"])` raises KeyError on an empty frame, and a KeyError is not
+        # SourceSilent: psycopg would roll back the one transaction main holds and the crypto
+        # and news lanes' rows would go with it.
+        import pandas as pd
+
+        stored, newest = prices._store_frame(
+            None, [{"id": "x", "sourceRef": "AAPL"}], pd.DataFrame(), date(2026, 10, 3), False
+        )
+        self.assertEqual(stored, 0)
+        self.assertEqual(newest, {"AAPL": None})
+
+
 class NoLookAhead(unittest.TestCase):
     """A state that claims to describe a past moment must not be computed from after it.
 
@@ -2818,6 +3289,153 @@ class InsertShape(unittest.TestCase):
                     f"{len(exprs)} expressions",
                 )
         self.assertGreater(checked, 0, "the INSERT scanner matched nothing, so it is broken")
+
+
+class PsxHistoryDepth(unittest.TestCase):
+    """The PSX backfill, which existed and still could not produce a directional read.
+
+    The measured fault: 0 of 70 PSX assets had a `longer` horizon AssetSetup row while 90 of
+    90 US assets did. Not a rule, not a threshold — history. The job asked for one file a
+    month before the recent 120 days, so every PSX asset held about 178 closes against the
+    220 jobs/horizons.py requires, and no factor firing could ever change that.
+
+    These tests pin the arithmetic that stops it coming back, because the failure mode is
+    silent: too shallow a window raises nothing, it just quietly skips every PSX asset.
+    """
+
+    TODAY = date(2026, 6, 15)
+
+    def test_the_restated_horizon_minimum_cannot_drift_from_the_real_one(self):
+        # psx.py reports whether it has cleared horizons.MIN_LONG without importing it, so a
+        # change to MIN_LONG would otherwise leave the price job reporting against a stale
+        # number — and reporting success at exactly the depth that produces nothing.
+        self.assertEqual(psx.LONGER_MIN_CLOSES, horizons.MIN_LONG)
+
+    def test_the_daily_window_is_deep_enough_for_a_longer_read_with_margin(self):
+        # The window is in calendar days and the requirement is in sessions, so the
+        # conversion is where an off-by-a-season hides. PSX trades five days a week; the
+        # holiday rate is bounded below rather than guessed, so the assertion holds even in a
+        # year with a long Eid and a long Muharram.
+        weekdays = len(psx.deep_dates(self.TODAY))
+        for holiday_rate in (0.04, 0.08, 0.12):
+            sessions = weekdays * (1 - holiday_rate)
+            self.assertGreaterEqual(
+                sessions, horizons.MIN_LONG,
+                f"at a {holiday_rate:.0%} holiday rate the window yields {sessions:.0f} "
+                f"sessions, under the {horizons.MIN_LONG} a longer read needs",
+            )
+        # And the whole stored depth — the deep stretch plus the recent window the daily run
+        # keeps, which is what a symbol actually ends up holding — reaches the window the
+        # longer read asks for rather than the minimum it will accept. LONGER_RULES says
+        # "across two years" in the sentence published under every one of those reads, and at
+        # the bare minimum that line is untrue.
+        span = self._weekdays_in_span(psx.DEEP_DAYS)
+        self.assertGreater(span, weekdays, "the recent window has to add to the deep one")
+        for holiday_rate in (0.04, 0.08, 0.12):
+            self.assertGreaterEqual(
+                span * (1 - holiday_rate), horizons.LONG_RANGE,
+                f"at a {holiday_rate:.0%} holiday rate the stored depth is "
+                f"{span * (1 - holiday_rate):.0f} sessions, under the "
+                f"{horizons.LONG_RANGE} the longer read reads from",
+            )
+
+    def _weekdays_in_span(self, days: int) -> int:
+        """Trading weekdays from `days` ago through today, both stretches together."""
+        start = self.TODAY - timedelta(days=days)
+        return sum(
+            1 for i in range(days + 1)
+            if (start + timedelta(days=i)).weekday() < 5
+        )
+
+    def test_the_daily_window_asks_for_no_weekend_and_nothing_the_recent_pass_covers(self):
+        # 230 guaranteed 404s is six minutes of the exchange's time for nothing. The recent
+        # window still asks for all seven days on purpose — there the 404s are what prove the
+        # host is answering — so the two stretches must not overlap either.
+        deep = psx.deep_dates(self.TODAY)
+        self.assertEqual([d for d in deep if d.weekday() >= 5], [])
+        newest_deep = max(deep)
+        oldest_recent = self.TODAY - timedelta(days=psx.RECENT_DAYS)
+        self.assertLess(newest_deep, oldest_recent)
+        # Contiguous, not merely disjoint: a weekday falling between the two stretches would
+        # be a hole in the series that nothing else fills. The join can land on a weekend, so
+        # the gap is measured in weekdays rather than in calendar days.
+        between = [
+            oldest_recent - timedelta(days=i)
+            for i in range(1, (oldest_recent - newest_deep).days)
+        ]
+        self.assertEqual([d for d in between if d.weekday() < 5], [])
+
+    def test_a_date_already_stored_is_never_fetched_again(self):
+        # What makes the second run cheap. Historical files never change, so a stored date is
+        # finished, and the skip is in the plan rather than in a disk cache that may not have
+        # survived between runs.
+        deep = psx.deep_dates(self.TODAY)
+        known = frozenset(deep[:40])
+        thinner = psx.deep_dates(self.TODAY, known)
+        self.assertEqual(len(thinner), len(deep) - 40)
+        self.assertEqual([d for d in thinner if d in known], [])
+
+    def test_the_window_stops_at_the_era_this_job_reads(self):
+        # A `today` early enough that the window would reach past HISTORY_FROM must clamp to
+        # it rather than spend hundreds of requests on dates the reader is not pointed at.
+        self.assertEqual(psx.deep_start(date(2019, 6, 1)), psx.HISTORY_FROM)
+        self.assertEqual(
+            psx.deep_start(self.TODAY), self.TODAY - timedelta(days=psx.DEEP_DAYS)
+        )
+
+    def test_the_monthly_grid_stops_where_the_daily_one_starts(self):
+        # Every day inside the dense stretch is already being asked for, so a monthly anchor
+        # there is pure backtracking work over files the dense pass has read anyway.
+        monthly = [
+            d for d in psx.anchor_dates(self.TODAY, "full")
+            if d.day == 1 and d >= psx.deep_start(self.TODAY)
+        ]
+        self.assertEqual(monthly, [])
+        # And `recent` still draws no grid at all.
+        self.assertEqual(psx.deep_dates(self.TODAY, frozenset()) and True, True)
+        self.assertTrue(
+            min(psx.anchor_dates(self.TODAY, "full")) == psx.HISTORY_FROM,
+            "the grid still reaches the first year the reader is pointed at",
+        )
+
+    def test_both_published_containers_read_and_an_error_page_does_not(self):
+        # The real trap, and the reason the archive looked shallower than it is: 2019 onward
+        # is a ZIP, 2013-11 to 2018 is gzip behind the same .Z name. A ZIP-only reader did
+        # not raise on a gzip file, it reported that day as a market holiday.
+        import gzip
+        import io
+        import zipfile
+
+        line = "02JAN2015|OGDC|0820|Oil & Gas Dev.|84.20|87.30|84.15|86.20|3368560|84.94|||"
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            zf.writestr("closing11.lis", line)
+        self.assertEqual(psx.unpack(buf.getvalue()), line)
+        self.assertEqual(psx.unpack(gzip.compress(line.encode())), line)
+        # A 404 from this host is an HTML error page with a 200-sized body, not an empty one,
+        # so the magic byte check is also what stops it being parsed as a very short session.
+        self.assertIsNone(psx.unpack(b"<!DOCTYPE html><html>404 Not Found</html>"))
+        self.assertIsNone(psx.unpack(b"PK\x03\x04truncated"))
+        self.assertIsNone(psx.unpack(b""))
+
+    def test_a_published_day_holding_none_of_the_tracked_symbols_is_not_a_holiday(self):
+        # read_day returns {} for "the exchange traded, none of ours are in it" and None for
+        # "the exchange published nothing". Collapsing the two makes a backtrack walk straight
+        # past a real session and report an older close as the nearest one, so the backtrack
+        # tests `is not None` rather than truthiness.
+        text = (ROOT / "jobs" / "psx.py").read_text(encoding="utf-8")
+        body = text[text.index("def resolve"):text.index("found: set[date]")]
+        self.assertIn("if load(day) is not None:", body)
+        self.assertNotIn("if load(day):", body)
+
+    def test_the_deeper_backfill_still_only_inserts(self):
+        # The invariant _store_frame in jobs/prices.py states: an incremental run must never
+        # delete. A deeper window makes that more load-bearing, not less — this job is now the
+        # only writer of two years of PSX closes, and a run that replaced from a short fetch
+        # would destroy them to save a few requests.
+        text = (ROOT / "jobs" / "psx.py").read_text(encoding="utf-8")
+        self.assertNotIn("DELETE", text.upper().replace("DELETED", ""))
+        self.assertIn("ON CONFLICT", text)
 
 
 if __name__ == "__main__":

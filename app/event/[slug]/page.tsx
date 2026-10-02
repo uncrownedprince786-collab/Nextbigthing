@@ -106,13 +106,18 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const byWindow = await Promise.all(
     windows.map(async (w) => ({ window: w, ...(await getEventImpacts(e.id, w)) })),
   );
-  const line = e.analysis[0];
+  // The stored line only for a date that has happened. The analysis job writes one row per
+  // event, and for a scheduled date the sentence it produces reads "no asset has stored closes
+  // on both sides of this window, that is a gap in the stored price history" — which is a
+  // description of the future, graded "No data", above a window that nobody has failed to
+  // measure yet. The note below says the same thing correctly, so this one is not printed.
+  const line = e.scheduled ? null : e.analysis[0];
 
   return (
     <div>
       <p className="text-muted-foreground text-xs">
         <Link href="/events" className="underline underline-offset-2">
-          Event windows
+          Event calendar
         </Link>
       </p>
       <div className="mt-1 flex flex-wrap items-center gap-3">
@@ -162,13 +167,28 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         </div>
       ) : null}
 
-      <Note>
-        Everything below is a price change over a fixed window that begins on the date
-        above. It is not a measurement of what the event did. Markets move every day for
-        reasons that have nothing to do with any one headline, and in a window this long
-        most of them did.
-      </Note>
+      {/* The two kinds of event page, kept apart in the same words the index uses. A scheduled
+          row is a date somebody published; nothing after it has been measured, because the
+          window it would be measured over has not happened. Printing the "everything below is a
+          price change" note over an empty table told a reader the measurement had failed, when
+          what it had done was not started. */}
+      {e.scheduled ? (
+        <Note>
+          This is a date the provider has published, not a measured window. Nothing after it has
+          been measured yet, and nothing here sets a direction: a date this close marks the
+          timing on an asset page and leaves the direction to the price and the news. Companies
+          move these dates and a time is not always published, so the day is the claim.
+        </Note>
+      ) : (
+        <Note>
+          Everything below is a price change over a fixed window that begins on the date
+          above. It is not a measurement of what the event did. Markets move every day for
+          reasons that have nothing to do with any one headline, and in a window this long
+          most of them did.
+        </Note>
+      )}
 
+      {e.scheduled ? null : (
       <HowToRead
         points={[
           <>
@@ -193,6 +213,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           </>,
         ]}
       />
+      )}
 
       {byWindow.length ? (
         byWindow.map(({ window, total, risers, fallers }) => (
@@ -213,11 +234,24 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           </Section>
         ))
       ) : (
-        <Section title="Nothing measurable">
+        <Section title="Nothing measured">
           <Empty>
-            No asset on this site has stored closes on both sides of this window, so
-            nothing is measured. That is a gap in the stored price history rather than a
-            finding about the event.
+            {e.scheduled ? (
+              <>
+                This date has not arrived, so there is no window to measure over. Nothing will be
+                measured here until it has passed and closes exist on both sides of it. The{" "}
+                <Link href="/events" className="underline underline-offset-2">
+                  event calendar
+                </Link>{" "}
+                lists it with the other dates still ahead.
+              </>
+            ) : (
+              <>
+                No asset on this site has stored closes on both sides of this window, so nothing
+                is measured. That is a gap in the stored price history rather than a finding about
+                the event.
+              </>
+            )}
           </Empty>
         </Section>
       )}

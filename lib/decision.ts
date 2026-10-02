@@ -18,9 +18,21 @@
 //   4      no break level              WAIT     there is no level at which being wrong is known
 //   5      setup and horizon disagree  WAIT     the two timeframes want opposite things
 //   6      unusual move, thin news     WAIT     the move has no published reason yet
-//   7      setup up, horizon not down  LONG
-//   8      setup down, horizon not up  SHORT
-//   9      anything left               WAIT     conditions are incomplete
+//   7      peers argue the other way   WAIT     the name is being carried, not leading
+//   8      setup up, horizon not down  LONG
+//   9      setup down, horizon not up  SHORT
+//  10      anything left               WAIT     conditions are incomplete
+//
+// A dated event is NOT a gate. It is an overlay: it sets the time sense to CARE and is printed,
+// and it can turn a weak direction into a WAIT, but it never produces one. A calendar row is a
+// risk to size, not a reason to buy, and a rule table that lets earnings generate a LONG is the
+// junk-brain failure this file exists to avoid.
+//
+// Confirmation sits inside gates 8 and 9 rather than above them. A direction with a level is the
+// minimum; volume at or above its own average, or an analog set that leans the same way, is what
+// separates High from Medium. When neither is stored the direction still prints — with the
+// confirmation named as missing — because refusing every name for want of a factor nobody has
+// computed yet is how a rule table ends up answering WAIT 160 times out of 160.
 //
 // Gates 1-4 are data faults and name the missing thing. Gates 5-6 are genuine disagreement in the
 // data and are not faults. Gate 9 exists because a rule table that falls through to LONG is how a
@@ -60,6 +72,29 @@ export const EVENT_SOON_DAYS = 3;
 /// Fewer stored analogs than this and the outcome range is not worth quoting as a range.
 export const ANALOGS_MIN = 3;
 
+/// Volume at or above this multiple of its own 20-session average counts as confirming a move.
+///
+/// 1.2 is not a new number: it is where `tradingWords` in lib/plain.ts starts calling a session
+/// busier than usual. A move on ordinary volume is drift; the same move on heavier volume is
+/// people acting, and the difference is the cheapest confirmation available from stored data.
+export const VOLUME_CONFIRMS_AT = 1.2;
+
+/// Fewer matched past days than this and the analog set cannot confirm anything.
+///
+/// 8 is `MIN_MATCHES_LOW` in jobs/analogs.py, the floor below which that job refuses to grade a
+/// set at all. Confirming a trade on seven past days would be using a number its own producer
+/// declines to stand behind.
+export const ANALOGS_CONFIRM_MIN = 8;
+
+/// How far behind its peers a name may be, in percentage points over 20 sessions, before the
+/// peer reading counts as arguing against a LONG.
+///
+/// Relative strength is the one factor that can contradict a rising price: a name up 4% while
+/// its industry is up 10% is a laggard being carried, and the absolute return cannot say so.
+/// The band is symmetric and deliberately wide, because peer medians over small groups are
+/// noisy and this gate only exists to catch the clear cases.
+export const REL_AGAINST_AT = 3;
+
 export interface DecisionInput {
   symbol: string;
   market: Market;
@@ -77,7 +112,20 @@ export interface DecisionInput {
   /// The level at which the setup is wrong. Without one there is no trade, only a hope.
   invalidation: number | null;
   /// What followed similar past days, as percentages.
-  analogs: { count: number; lowPct: number | null; highPct: number | null } | null;
+  analogs: {
+    count: number;
+    lowPct: number | null;
+    highPct: number | null;
+    /// The middle outcome, and how many of the matched days rose. Together they say whether the
+    /// set leaned, which a range alone cannot: -20% to +22% is the same range whether nine days
+    /// in ten rose or one did.
+    medianPct?: number | null;
+    positive?: number | null;
+  } | null;
+  /// Volume as a multiple of its own 20-session average, or null when none is published.
+  volumeRatio?: number | null;
+  /// 20-session return minus the peer median, in percentage points. Null when too few peers.
+  relStrength?: number | null;
   unusualMove: boolean;
   /// null means news was never checked, which is different from checked and found none.
   newsCount: number | null;
@@ -136,21 +184,86 @@ function timeSenseFor(input: DecisionInput, action: Action): TimeSense {
   return lastClose >= entry.low && lastClose <= entry.high ? "NOW" : "WAIT FOR LEVEL";
 }
 
-/// Confidence counts what is weak rather than scoring what is strong, because every weakness here
-/// is a reason a reader could lose money and none of them cancel out.
+/// Confidence is how much independently confirms the direction, not how it feels.
+///
+/// Three things can confirm, and they are independent of each other: a second timeframe
+/// pointing the same way, volume at or above its own average, and a set of similar past days
+/// that leaned the same way. Two or more is High, exactly one is Medium, none is Low. WAIT is
+/// always Low, because a refusal is not a confident anything.
+///
+/// Counting confirmations rather than deducting for weaknesses matters when a factor is simply
+/// absent: a name with no published volume is not thereby a worse trade, it is one with less
+/// evidence, and it lands at Medium rather than being punished down to Low twice over.
 function confidenceFor(input: DecisionInput, action: Action): Confidence {
   if (action === "WAIT") return "Low";
-  let weak = 0;
+  const direction = action === "LONG" ? "up" : "down";
   const agrees = Boolean(
     input.setup && input.horizon && input.setup.direction === input.horizon.direction,
   );
-  if (!agrees) weak += 1;
-  if (!input.analogs || input.analogs.count < ANALOGS_MIN) weak += 1;
-  if (input.newsCount === null || input.newsCount < THIN_NEWS_BELOW) weak += 1;
-  if (!input.entry) weak += 1;
-  if (weak === 0) return "High";
-  if (weak === 1) return "Medium";
+  const confirmations = [agrees, volumeConfirms(input) === true, analogConfirms(input, direction) === true]
+    .filter(Boolean).length;
+  if (confirmations >= 2) return "High";
+  if (confirmations === 1) return "Medium";
   return "Low";
+}
+
+/// The third why line: what confirmed the direction, or that nothing did.
+///
+/// Printed even when nothing confirms, which is the point. A LONG with no volume and no analog
+/// behind it is still the best reading of what is stored, and a reader is entitled to know it is
+/// resting on the setup alone rather than discovering that later.
+function confirmLine(input: DecisionInput, direction: "up" | "down"): string {
+  const vol = volumeConfirms(input);
+  const analog = analogConfirms(input, direction);
+  const parts: string[] = [];
+  if (vol === true && input.volumeRatio) {
+    parts.push(`volume ${input.volumeRatio.toFixed(1)}x its average`);
+  }
+  if (analog === true && input.analogs) {
+    const a = input.analogs;
+    const moved = direction === "up" ? a.positive : (a.count - (a.positive ?? 0));
+    parts.push(`${moved} of ${a.count} similar days went the same way`);
+  }
+  if (parts.length) return `Confirmed by ${parts.join(" and ")}.`;
+  if (vol === false && analog === false) return "Neither volume nor similar days confirm it.";
+  return "Nothing further confirms it yet.";
+}
+
+/// What could have confirmed the direction and was not stored. Reported as missing rather than
+/// silently treated as a negative.
+function confirmMissing(input: DecisionInput, direction: "up" | "down"): string[] {
+  const out: string[] = [];
+  if (volumeConfirms(input) === null) out.push("No volume published, so the move is unconfirmed by activity.");
+  if (analogConfirms(input, direction) === null) {
+    const n = input.analogs?.count ?? 0;
+    out.push(
+      n === 0
+        ? "No similar past days stored, so nothing measures what usually followed."
+        : `Only ${n} similar past days stored; ${ANALOGS_CONFIRM_MIN} are needed to confirm.`,
+    );
+  }
+  return out;
+}
+
+/// Does volume back the move? A null ratio is "not published", which is not the same as "no".
+function volumeConfirms(input: DecisionInput): boolean | null {
+  const v = input.volumeRatio;
+  return v === null || v === undefined ? null : v >= VOLUME_CONFIRMS_AT;
+}
+
+/// Does the analog set lean the way the setup points?
+///
+/// Both halves are required: a majority of matched days moving the right way, and a middle
+/// outcome with the right sign. A set where six of ten rose but the median is negative is a set
+/// where the four losses were larger, and calling that confirmation would be reading the count
+/// and ignoring the size.
+function analogConfirms(input: DecisionInput, direction: "up" | "down"): boolean | null {
+  const a = input.analogs;
+  if (!a || a.count < ANALOGS_CONFIRM_MIN) return null;
+  if (a.positive === null || a.positive === undefined) return null;
+  if (a.medianPct === null || a.medianPct === undefined) return null;
+  const share = a.positive / a.count;
+  return direction === "up" ? share > 0.5 && a.medianPct > 0 : share < 0.5 && a.medianPct < 0;
 }
 
 /// The second why line: what the longer view adds, said accurately.
@@ -169,7 +282,7 @@ function secondLine(setup: Direction, horizon: Direction): string {
 function wait(input: DecisionInput, gate: string, why: string[], missing: string[]): Decision {
   return {
     action: "WAIT",
-    why: why.slice(0, 2),
+    why: why.slice(0, 3),
     entry: input.entry,
     invalidation: input.invalidation,
     timeSense: timeSenseFor(input, "WAIT"),
@@ -245,19 +358,53 @@ export function decide(input: DecisionInput): Decision {
     return wait(input, "unexplained-move", [line, "No published reason for the move yet."], []);
   }
 
-  // 7 and 8. A direction, with a level to be wrong at.
+  // 7. The peers argue the other way. A name up while its industry is up far more is being
+  //    carried by the group, and buying it is buying the group at a worse price. Only the clear
+  //    cases are caught: the band is wide because a peer median over a small group is noisy, and
+  //    a null relative reading is no evidence rather than evidence of agreement.
+  const rel = input.relStrength;
+  if (rel !== null && rel !== undefined) {
+    if (setup === "up" && rel <= -REL_AGAINST_AT) {
+      return wait(
+        input,
+        "peers-against",
+        [
+          `Setup is up but the name is ${Math.abs(rel).toFixed(1)} points behind its peers.`,
+          "It is being carried rather than leading.",
+        ],
+        [],
+      );
+    }
+    if (setup === "down" && rel >= REL_AGAINST_AT) {
+      return wait(
+        input,
+        "peers-against",
+        [
+          `Setup is down but the name is ${rel.toFixed(1)} points ahead of its peers.`,
+          "It is holding up better than the group it trades with.",
+        ],
+        [],
+      );
+    }
+  }
+
+  // 8 and 9. A direction, with a level to be wrong at, and whatever confirms it.
   if (setup === "up" && horizon !== "down") {
     return {
       action: "LONG",
       why: [
         `Setup is up${input.setup?.horizon ? ` on the ${input.setup.horizon} view` : ""}.`,
         secondLine("up", horizon),
+        confirmLine(input, "up"),
       ],
       entry: input.entry,
       invalidation: input.invalidation,
       timeSense: timeSenseFor(input, "LONG"),
       confidence: confidenceFor(input, "LONG"),
-      missing: input.entry ? [] : ["No measured entry band stored; only the break level is set."],
+      missing: [
+        ...(input.entry ? [] : ["No measured entry band stored; only the break level is set."]),
+        ...confirmMissing(input, "up"),
+      ],
       measured: measuredLine(input),
       gate: "long",
     };
@@ -268,12 +415,16 @@ export function decide(input: DecisionInput): Decision {
       why: [
         `Setup is down${input.setup?.horizon ? ` on the ${input.setup.horizon} view` : ""}.`,
         secondLine("down", horizon),
+        confirmLine(input, "down"),
       ],
       entry: input.entry,
       invalidation: input.invalidation,
       timeSense: timeSenseFor(input, "SHORT"),
       confidence: confidenceFor(input, "SHORT"),
-      missing: input.entry ? [] : ["No measured entry band stored; only the break level is set."],
+      missing: [
+        ...(input.entry ? [] : ["No measured entry band stored; only the break level is set."]),
+        ...confirmMissing(input, "down"),
+      ],
       measured: measuredLine(input),
       gate: "short",
     };

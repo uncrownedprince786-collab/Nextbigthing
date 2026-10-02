@@ -2,6 +2,8 @@
 
 Sources, all free and public:
   Yahoo Finance (via yfinance)  daily OHLCV and share counts
+  Yahoo chart API /v8/chart      the recent window when yfinance answers nothing — a second
+                                 endpoint, not a second provider; see the comment above CHART
   Binance public klines          daily crypto closes
   CoinGecko market_chart         crypto market cap history and current cap
   CoinPaprika /v1/tickers        current coin list, supply, market cap
@@ -109,6 +111,153 @@ def stored_coverage(cur) -> dict[str, tuple[int, date | None]]:
     return out
 
 
+# --- How thin an answer is still an answer ------------------------------------------------------
+#
+# `require_answer` only fires when a batch answered for *nothing*, and that is one of two ways the
+# Yahoo lane has to fail. The other is a batch that answers for a handful: 3 of 80 passes the
+# zero-check, stores three assets' worth of rows, prints "0 price rows" nowhere, and exits 0. On a
+# provider whose download helper returns an empty frame for a throttled request and raises nothing,
+# a partly-throttled request returns a partly-empty frame by exactly the same mechanism.
+#
+# The threshold is 0.75, and the reason is the market calendar. All 80 of these assets trade on one
+# US calendar: either the exchange published a session and every one of them has a bar for it, or it
+# did not and none of them do. Nothing in between is a property of the market. What *is* ordinary is
+# a symbol-level absence — a ticker renamed, delisted, or newly listed and younger than the window —
+# and that has run at 0 to 2 assets of 80, which is why the gate is not set at 1.0. 0.75 leaves room
+# for 20 such absences, far more than has ever been seen, while the two failures actually observed
+# in production land at 0.00 and 0.04. The gap between 0.04 and 0.75 is the whole margin, and it is
+# wide enough that this number never has to be tuned against a normal day.
+MIN_ANSWER_SHARE = 0.75
+
+
+def answered_share(answered: int, asked: int) -> float:
+    """Fraction of the batch that produced rows. An empty ask is a full answer, not a failure."""
+    if not asked:
+        return 1.0
+    return answered / asked
+
+
+def require_share(answered: int, asked: int, source: str = YAHOO) -> None:
+    """Fail a thin batch the way `require_answer` fails an empty one.
+
+    Same reasoning, one notch earlier: a batch that answered for a few assets is a fact about the
+    provider and not about the market, because these assets share one trading calendar. Raises
+    `SourceSilent` so `main` keeps the rows the other lanes wrote — see that docstring.
+    """
+    require_answer(answered, asked, source=source)
+    share = answered_share(answered, asked)
+    if asked and share < MIN_ANSWER_SHARE:
+        print(
+            f"{source} answered for only {answered} of {asked} assets "
+            f"({share:.0%}, floor {MIN_ANSWER_SHARE:.0%}): these assets share one market "
+            "calendar, so a partial answer is the provider and not the session"
+        )
+        raise SourceSilent(f"{source} answered for only {answered} of {asked} assets")
+
+
+def day_shortfall(newest: dict[str, date | None]) -> tuple[date | None, list[str], list[str]]:
+    """`(the day the batch reached, symbols with nothing, symbols that stop before that day)`.
+
+    The day the batch reached is the *modal* newest day across the assets that answered, not the
+    maximum. The maximum is the wrong statistic twice over: one asset carrying a bar for a session
+    the rest have not got — a stale cache entry, a futures contract whose session ends later, a
+    forming day for one exchange — would declare every other asset behind, and that is a report
+    nobody can read. The mode is the session the market actually published, because these assets
+    share one calendar; ties break to the later day, so a batch split evenly across two days is
+    held to the newer one and the older half is named.
+
+    Named separately from the storing loop because this is the whole partial-day judgement and it
+    is worth testing without a frame, a database or a network.
+    """
+    answered = {sym: day for sym, day in newest.items() if day is not None}
+    missing = sorted(sym for sym, day in newest.items() if day is None)
+    if not answered:
+        return None, missing, []
+    tally: dict[date, int] = {}
+    for day in answered.values():
+        tally[day] = tally.get(day, 0) + 1
+    # Most common, then latest: `max` over (count, day) does both in one pass.
+    day = max(tally, key=lambda d: (tally[d], d))
+    behind = sorted(sym for sym, had in answered.items() if had < day)
+    return day, missing, behind
+
+
+# --- Retrying the download ----------------------------------------------------------------------
+#
+# `nbt.get` retries, but `yf.download` does not go through it: yfinance opens its own session, with
+# its own crumb-and-cookie handshake, and the lane's one shared retry budget never sees it. So the
+# empty frame that stored 0 rows on a GitHub runner was never asked a second time.
+#
+# The bound is deliberately small, and the number that matters is the *lane total*, not the per-call
+# one. This lane issues at most two downloads — one backfill batch, one incremental batch — and a
+# retry of either re-requests every symbol in it. Two retried attempts per run, shared between both
+# batches, with 5 and 20 second pauses: a completely dead Yahoo costs this lane 25 seconds of extra
+# waiting and no more, against a normal runtime of several minutes. That ceiling is why the retry
+# cannot multiply the runtime, and it is the same shape as `nbt.RETRY_HOST_BUDGET` — per-run, not
+# per-call — for the same reason.
+#
+# A *thin* frame is deliberately not retried. Re-downloading 80 symbols to recover 3 is precisely
+# the runtime multiplication this bound exists to prevent, and the chart-API fallback below repairs
+# those three directly. Only an empty frame — nothing usable at all — is worth asking again for.
+YAHOO_DOWNLOAD_ATTEMPTS = 3
+YAHOO_DOWNLOAD_BACKOFF = (5, 20)
+YAHOO_DOWNLOAD_BUDGET = 2
+
+_download_spent = {"n": 0}
+
+
+def download_retry_wait(attempt: int, spent: int) -> float | None:
+    """Seconds to pause before attempt `attempt + 1`, or None when the budget says stop.
+
+    Both ceilings in one place so the worst case is a number a test can assert rather than a
+    property of a loop: at most `YAHOO_DOWNLOAD_BUDGET` retried attempts in a run, at most
+    `YAHOO_DOWNLOAD_ATTEMPTS` attempts for any one call.
+    """
+    if attempt + 1 >= YAHOO_DOWNLOAD_ATTEMPTS:
+        return None
+    if spent >= YAHOO_DOWNLOAD_BUDGET:
+        return None
+    return float(YAHOO_DOWNLOAD_BACKOFF[attempt])
+
+
+def yahoo_download(symbols: list[str], start: str):
+    """`yf.download` with a bounded retry, because an empty frame is not an answer.
+
+    yfinance signals a throttled or blocked request by returning an empty DataFrame, and raises
+    for a transport error. Both are the same outcome here — no bars — and both are worth one or
+    two more attempts inside the budget above. An exhausted budget returns the empty frame rather
+    than raising: the caller's chart-API fallback and `require_share` decide what that means, and
+    raising from here would be the single point of failure this whole change exists to remove.
+    """
+    frame = None
+    for attempt in range(YAHOO_DOWNLOAD_ATTEMPTS):
+        try:
+            frame = yf.download(
+                symbols,
+                start=start,
+                progress=False,
+                auto_adjust=True,
+                group_by="ticker",
+                threads=4,
+            )
+        except Exception as e:  # noqa: BLE001 - a dead provider must not kill the lane
+            print(f"  yf.download raised {type(e).__name__} for {len(symbols)} symbols")
+            frame = None
+        if frame is not None and len(frame):
+            return frame
+        wait = download_retry_wait(attempt, _download_spent["n"])
+        if wait is None:
+            print(
+                f"  yf.download answered nothing for {len(symbols)} symbols and the retry "
+                "budget for this run is spent"
+            )
+            break
+        _download_spent["n"] += 1
+        print(f"  yf.download answered nothing, retrying in {wait:.0f}s")
+        time.sleep(wait)
+    return frame if frame is not None else pd.DataFrame()
+
+
 def fetch_yahoo(cur) -> int:
     assets = yahoo_assets(cur)
     if not assets:
@@ -140,30 +289,15 @@ def fetch_yahoo(cur) -> int:
     frames: list[tuple[list[dict], object, bool]] = []
     if full:
         frames.append(
-            (
-                full,
-                yf.download(
-                    [a["sourceRef"] for a in full],
-                    start=START.isoformat(),
-                    progress=False,
-                    auto_adjust=True,
-                    group_by="ticker",
-                    threads=4,
-                ),
-                True,
-            )
+            (full, yahoo_download([a["sourceRef"] for a in full], START.isoformat()), True)
         )
     if recent and oldest_newest:
         frames.append(
             (
                 recent,
-                yf.download(
+                yahoo_download(
                     [a["sourceRef"] for a in recent],
-                    start=(oldest_newest - timedelta(days=CORRECTION_DAYS)).isoformat(),
-                    progress=False,
-                    auto_adjust=True,
-                    group_by="ticker",
-                    threads=4,
+                    (oldest_newest - timedelta(days=CORRECTION_DAYS)).isoformat(),
                 ),
                 False,
             )
@@ -171,10 +305,48 @@ def fetch_yahoo(cur) -> int:
 
     written = 0
     today = date.today()
+    asked_total = 0
+    answered_total = 0
     for assets_part, frame, is_full in frames:
-        stored = _store_frame(cur, assets_part, frame, today, is_full)
-        require_answer(stored, len(assets_part))
+        stored, newest = _store_frame(cur, assets_part, frame, today, is_full)
         written += stored
+
+        # Partial-day detection, per asset and by name. Up to here a batch that answered for three
+        # assets wrote three assets' worth of rows and said nothing about the other seventy-seven;
+        # these two lists are what makes the difference between "the market was shut" and "the
+        # provider throttled us" visible in the step's own output.
+        day, missing, behind = day_shortfall(newest)
+        if day:
+            print(f"  batch reached {day}")
+        if missing:
+            print(f"  {len(missing)} with no bars at all: {', '.join(missing)}")
+        if behind:
+            # A partial final day. These assets answered, but their series stops before the day
+            # the rest of the batch reached, so the newest close on their page would be stale
+            # while every neighbour's is current — the exact asymmetry a reader notices first.
+            print(f"  {len(behind)} stop before {day}: {', '.join(behind)}")
+
+        # Never leave a known single point of failure. Whatever yfinance did not answer for is
+        # asked again through a different endpoint before the batch is judged, so a crumb, cookie
+        # or rate-limit failure on yfinance's side costs those assets their recent days rather
+        # than blanking them.
+        by_symbol = {a["sourceRef"]: a for a in assets_part}
+        repair = [by_symbol[s] for s in missing + behind if s in by_symbol]
+        if repair:
+            rescued_rows, rescued = chart_repair(cur, repair, day)
+            written += rescued_rows
+        else:
+            rescued = set()
+
+        asked_total += len(assets_part)
+        answered_total += sum(
+            1 for sym, had in newest.items() if had is not None or sym in rescued
+        )
+
+    # One gate for the lane rather than one per frame. The backfill batch is usually a handful of
+    # assets and the incremental one is the rest, so judging them separately would hold a two-asset
+    # batch to the same share as an eighty-asset one and fail the lane on a coincidence.
+    require_share(answered_total, asked_total)
     return written
 
 
@@ -207,14 +379,201 @@ def require_answer(stored: int, asked: int, source: str = YAHOO) -> None:
         raise SourceSilent(f"{source} answered for none of {asked} assets")
 
 
-def _store_frame(cur, assets, frame, today: date, is_full: bool) -> int:
+# --- The second endpoint for US closes ----------------------------------------------------------
+#
+# Be clear about what this is and is not. Yahoo is the only free source of US equity, ETF and
+# commodity closes this project has found, and this is **not a second provider** — it is Yahoo's own
+# chart API, the same company and the same data. Stooq was the candidate for a genuinely independent
+# venue and it is out: it sits behind a JavaScript proof-of-work bot check, and we do not defeat bot
+# protection. So the crypto lane's four-venue chain has no equivalent here, and pretending otherwise
+# in a comment would be worse than having no fallback.
+#
+# What it *does* protect against is the failure that actually happened. `yf.download` is a scraper:
+# it negotiates a crumb and a cookie against Yahoo's web endpoints, keeps its own session, and
+# answers an empty DataFrame when any part of that handshake or its own rate limiting goes wrong —
+# which is a yfinance-side failure, not a Yahoo-side one. The chart API is a different URL, a
+# different authentication story (none), a different response shape and a different code path, and
+# it answered full OHLCV current to the same day from the same host on which this was verified. A
+# library that stops working is the likeliest way this lane goes dark, and this covers it.
+#
+# What it does **not** cover: Yahoo blocking this host, or Yahoo going down. Both endpoints die
+# together in that case and the lane correctly reports silence. That is a known remaining single
+# point of failure, and the honest mitigation is a second provider, not a second URL.
+#
+# Scope is the recent window only. `range=1mo` is about 21 sessions, which covers the correction
+# window `CORRECTION_DAYS` asks for with room to spare; a seven-year backfill still has to come from
+# yfinance, because paging this endpoint back to 2019 asset by asset is a different job.
+CHART = "https://query1.finance.yahoo.com/v8/finance/chart/"
+CHART_RANGE = "1mo"
+YAHOO_CHART = "Yahoo Finance chart API"
+
+
+def chart_forming_day(meta: dict) -> date | None:
+    """The session that has not closed yet, whose daily bar is therefore partial.
+
+    At `interval=1d` the endpoint returns the day in progress as an ordinary bar stamped at the
+    session open, with the open, high and low so far and a close that is really the last trade.
+    Stored as a close it is a price that never happened, and tomorrow's run would overwrite it
+    with the real one — which is exactly the silent wrong number this file exists to avoid.
+
+    The signal is in `meta`: `currentTradingPeriod.regular` gives today's session bounds and
+    `regularMarketTime` gives how far through it the provider has got. Still inside the session
+    means the bar for that session's day is forming. Returns None once it has closed, which is
+    the normal case for a nightly run.
+    """
+    regular = ((meta or {}).get("currentTradingPeriod") or {}).get("regular") or {}
+    start, end = regular.get("start"), regular.get("end")
+    seen = (meta or {}).get("regularMarketTime")
+    if not start or not end or not seen:
+        return None
+    if seen >= end:
+        return None
+    return datetime.fromtimestamp(int(start), tz=timezone.utc).date()
+
+
+def parse_chart(payload) -> list[tuple]:
+    """Yahoo's chart body to the same `(day, open, high, low, close, volume)` shape as a venue.
+
+    Three things this has to get right, each one a real way to store a wrong number:
+
+    * The arrays are parallel and padded. A session the provider has no data for is a null in
+      every array rather than a missing element, so a bar is kept only when open, high, low and
+      close are all present. Counting a null close as an observation would manufacture a price.
+    * The series is adjusted, because the rows beside it are. `yf.download(auto_adjust=True)`
+      back-adjusts OHLC for splits and dividends; this endpoint returns the raw quote plus a
+      parallel `adjclose`. Splicing a raw close into an adjusted series puts a step in the chart
+      at the last corporate action. So each bar is scaled by its own `adjclose / close` ratio,
+      which is the same adjustment applied to the same bar, and leaves the bar internally
+      consistent — scaling the close alone could push it outside its own high and low.
+    * The forming day is dropped, per `chart_forming_day`.
+
+    Volume is left alone: Yahoo already reports split-adjusted volume and `auto_adjust` does not
+    touch it, so scaling it here would disagree with every row yfinance wrote.
+    """
+    chart = (payload or {}).get("chart") or {}
+    if chart.get("error"):
+        return []
+    results = chart.get("result") or []
+    if not results:
+        return []
+    r = results[0]
+    stamps = r.get("timestamp") or []
+    ind = r.get("indicators") or {}
+    quote = (ind.get("quote") or [{}])[0]
+    adj = ((ind.get("adjclose") or [{}])[0] or {}).get("adjclose") or []
+    forming = chart_forming_day(r.get("meta") or {})
+
+    out = []
+    for i, ts in enumerate(stamps):
+        def at(seq):
+            return seq[i] if i < len(seq) else None
+
+        op, hi, lo = at(quote.get("open") or []), at(quote.get("high") or []), at(quote.get("low") or [])
+        close = at(quote.get("close") or [])
+        if op is None or hi is None or lo is None or close is None:
+            continue
+        day = datetime.fromtimestamp(int(ts), tz=timezone.utc).date()
+        if forming is not None and day >= forming:
+            continue
+        ratio = 1.0
+        a = at(adj)
+        if a is not None and close:
+            ratio = float(a) / float(close)
+        vol = at(quote.get("volume") or [])
+        out.append(
+            (
+                day,
+                float(op) * ratio,
+                float(hi) * ratio,
+                float(lo) * ratio,
+                float(close) * ratio,
+                None if vol is None else float(vol),
+            )
+        )
+    return sorted(out)
+
+
+def chart_bars(sym: str) -> list[tuple]:
+    """The recent window for one symbol. A futures ticker like `GC=F` has to be quoted."""
+    return parse_chart(
+        get_json(
+            f"{CHART}{urllib.parse.quote(sym)}?range={CHART_RANGE}&interval=1d",
+            cache_key=f"yahoo-chart-{sym}",
+            # Six hours. A closed session's daily bar never changes, and a rerun within the day
+            # must not re-ask the provider for a number it already gave.
+            ttl=6 * 3600,
+            headers={"Accept": "application/json"},
+        )
+    )
+
+
+def chart_repair(cur, assets: list[dict], reached: date | None) -> tuple[int, set[str]]:
+    """Ask the chart API for the assets yfinance did not answer for. Upsert only, never replace.
+
+    `(rows written, symbols recovered)`. Replace is not an option and the reason is the same
+    invariant `_store_frame` and `fetch_crypto` both state: this window is about 21 sessions, and
+    deleting an asset's rows to rewrite it from here would destroy six years of history to recover
+    three days. Every row is upserted, so a day yfinance later answers for is overwritten by it.
+
+    One insert for the whole repair set, after the loop. A query per asset inside this loop is the
+    shape the in-loop query budget exists to stop, and this loop is already per-asset over HTTP.
+
+    The rows carry `YAHOO_CHART`, not `YAHOO`, because a row says who produced the number in it.
+    The consequence is deliberate: `stored_coverage` counts `YAHOO` rows only, so an asset repaired
+    from here still looks un-backfilled to the next run and is still asked for its correction
+    window — which is what should happen, since a 21-session window is not a backfill.
+    """
+    buffer: list[tuple] = []
+    rescued: set[str] = set()
+    for a in assets:
+        sym = a["sourceRef"]
+        try:
+            bars = chart_bars(sym)
+        except Exception as e:  # noqa: BLE001 - one symbol must not cost the repair
+            print(f"    {YAHOO_CHART} raised {type(e).__name__} for {sym}")
+            continue
+        if not bars:
+            print(f"    {YAHOO_CHART} had nothing for {sym} either")
+            continue
+        if reached and bars[-1][0] < reached:
+            # It answered, but no further than yfinance did. Worth storing and worth saying: this
+            # is the case where the asset really has not traded, not the case where we were
+            # throttled, and the two must not read the same in the log.
+            print(f"    {YAHOO_CHART} for {sym} also stops at {bars[-1][0]}")
+        buffer.extend(
+            (a["id"], day, op, hi, lo, close, vol, None, YAHOO_CHART)
+            for day, op, hi, lo, close, vol in bars
+        )
+        rescued.add(sym)
+        print(f"    {sym:7} {len(bars)} days recovered from {YAHOO_CHART}")
+
+    insert_snapshots(cur, buffer, replace=False)
+    return len(buffer), rescued
+
+
+def _store_frame(cur, assets, frame, today: date, is_full: bool) -> tuple[int, dict]:
     """Write one downloaded frame. `is_full` decides replace-versus-upsert.
 
     A full backfill replaces the asset's rows, because it is authoritative for the whole
     series. An incremental run must never delete: it only holds the correction window, and
     replacing from it would destroy six years of history to save one fetch.
+
+    Returns `(rows written, newest stored day per symbol)`. The second value is what the caller
+    needs for partial-day detection, and it is collected here because this is the only place that
+    sees the frame per asset. A symbol the frame had no usable column for maps to None rather than
+    being left out, so the caller can tell "answered nothing" from "was never asked".
     """
     written = 0
+    newest: dict[str, date | None] = {a["sourceRef"]: None for a in assets}
+
+    # An empty frame has no `Close` column, and `dropna(subset=["Close"])` raises `KeyError` on
+    # it rather than returning nothing. That exception is not `SourceSilent`, so psycopg would
+    # roll back the single transaction `main` holds and the crypto and news lanes' rows would go
+    # with it — the precise failure `SourceSilent` was introduced to stop. The blocked-provider
+    # case has to leave through the guard, not through a column lookup.
+    if frame is None or not len(frame):
+        print(f"  the frame came back empty for all {len(assets)} symbols")
+        return 0, newest
 
     for a in assets:
         sym = a["sourceRef"]
@@ -280,13 +639,16 @@ def _store_frame(cur, assets, frame, today: date, is_full: bool) -> int:
         ]
         insert_snapshots(cur, buffer, replace=is_full)
         written += len(buffer)
+        # `max`, not the last row: the frame has always come back in date order, but the newest
+        # day is the claim being made here and it should not depend on that holding.
+        newest[sym] = max(day for day, _ in closes) if closes else None
         print(
-            f"  {sym:7} {len(closes)} days, {len(cap_by_day)} size points"
+            f"  {sym:7} {len(closes)} days to {newest[sym]}, {len(cap_by_day)} size points"
             + ("" if is_full else " (incremental)")
         )
         time.sleep(0.4)
 
-    return written
+    return written, newest
 
 
 _share_cache: dict[str, list[tuple[date, float]]] = {}
