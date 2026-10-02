@@ -247,6 +247,47 @@ pre-fix file.
 **Next move:** re-run `refresh.yml`. The sign-in is still the only way to read a step summary,
 but it is no longer the blocking step — if the lane fails again, the guards name the source.
 
+### Session of 2026-10-02, in full
+
+Ten commits, `b826d2e` through `6ea172e`. 259 tests passing, typecheck and lint clean, every
+CI run green. `AUDIT.md` is the authoritative requirement matrix and says how each row was
+established; it reads **NOT FROZEN**, on the refresh gate alone.
+
+What was wrong and is now fixed:
+
+1. **The crypto row shape.** Six fields to a nine-name COPY unpack, broken since `aa64785` on
+   2026-10-01 — the day the refresh lane went red. Every crypto insert raised `ValueError`.
+   Now built by `crypto_rows`, beside the writer that defines the shape.
+2. **A cap dated off an empty series.** `closes[-1]` read before the empty-series guard.
+   CoinPaprika answers where Binance is blocked, so the host with no closes is the host with a
+   live cap: `IndexError` on a runner, clean on a laptop.
+3. **A guard that would have discarded whole runs.** Added and then caught in the same session:
+   `require_answer` raised `SystemExit` inside `with conn`, and psycopg rolls back on any
+   exception leaving that block, so one blocked source would have thrown away every other
+   source's rows. Now `SourceSilent`, caught per lane, exit after the commit.
+
+What reaches the reader that did not before — the repeating fault in this repository is
+**built and unused**, not unbuilt:
+
+- `Coverage`, written per source per run since coverage existed, read by no page. Now on the
+  home page briefly and on `/methodology` in full.
+- `NewsLineage`'s story-versus-copy distinction, the thing that stops one syndicated release
+  looking like twenty stories breaking. Now on the asset page.
+- `getEventCategoryHistory` — what past events of a category were followed by, floor-gated at
+  five. Now on the event page.
+- `getIntradayCoverage`, written by its own comment for the methodology page, never called.
+- `SetupTarget.rewardRisk`, stored on every target row and never shown.
+
+Audits completed with regression tests, each mutation-tested: no look-ahead (six tests), web
+safety, the reader-can-ask-why vocabulary, the dead-export ratchet, the no-fake-confidence
+language scan. Performance was **measured and deliberately not changed** — `audit.py` 9
+in-loop queries, `horizons.py` 10, `thesis.py` 8, unmeasurable against production from here,
+so the counts are frozen as a ratchet rather than rewritten on a guess.
+
+brain.md gained rules 31 to 37. The ones to read first are 33 (a failure signal and a
+transaction boundary must be designed together), 36 (built and unused) and 37 (when a guard
+fires on correct code, fix the guard).
+
 ### Two transient failures, already recovered
 
 `schema.yml` failed twice at "Apply pending schema migrations" (runs `36882681832`,

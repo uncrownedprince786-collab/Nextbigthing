@@ -1,5 +1,25 @@
 # Resume here
 
+## 0. The first thing to do, before anything else
+
+**Read the conclusion of `refresh data` run #11.**
+
+<https://github.com/uncrownedprince786-collab/Nextbigthing/actions/runs/37028111026>
+
+The owner dispatched it by hand on 2026-10-02 and it was still `in_progress` when the session
+ended, so nobody has seen the result. It is the first run of the daily lane since the two
+crypto defects were fixed, and the whole open question hangs on it. A run's conclusion is
+public and readable without signing in; the log inside is not.
+
+- **Green** → that is **1 of 2** on the owner's gate. Dispatch a second run, wait for it to
+  finish before starting it (see the queue-churn note in section 4), and if that is green too,
+  record 2 of 2 in `HANDOFF.md` and freeze.
+- **Red** → the guards added on 2026-10-02 mean the failing step now names the source rather
+  than exiting 0 with nothing stored. Reading which one needs a GitHub sign-in.
+
+Then tell the owner in plain language. They asked for simple, concrete steps rather than
+options and caveats, and they were right to.
+
 Last worked: **2026-10-02**, on `main`. See section 3 — the silent-failure half of the open item is fixed; the confirmation still needs one GitHub sign-in.
 
 This file is the sixty-second orientation. `HANDOFF.md` is the detail; read this first, then
@@ -193,6 +213,27 @@ production:
 **After the next refresh, read these three lines from the step output** — Yahoo Finance,
 Binance, Pakistan Stock Exchange daily closing file — each with its count, newest date and age.
 That is the pass/fail report, and it is in the log rather than the job summary on purpose.
+
+## 6b. What the owner can and cannot do for you
+
+Nothing is needed from them to make the system run. It is already automated: `refresh.yml` is
+scheduled daily at **07:17 UTC** (12:17 in Pakistan) and weekly on Mondays, and `DATABASE_URL`
+is already a repository secret, which is why the runs work at all.
+
+**The default branch is `master`, not `main`,** and `master` is 33 commits behind. GitHub takes
+a scheduled workflow's *file* from the default branch only — but this was already solved on
+2026-10-01 in master's tip commit `4446a95`: the checkout names `ref: main`, so the file comes
+from master while the code that runs is main's, and a verification step fails the run if the
+checked-out SHA is not `origin/main`. Verified by reading master's actual file. Do not
+"fix" this by assuming the schedule runs stale code; it does not.
+
+What this session could not do, and what would change that:
+
+| blocked | what unblocks it |
+| --- | --- |
+| Dispatching a workflow, reading any run log or step summary | `gh` is not installed. `winget install --id GitHub.cli` then `gh auth login`, run by the owner — they type the credentials and no agent sees them |
+| Running any job, measuring newest dates, row counts or free-tier use, `next build`, route smoke tests | `DATABASE_URL` in `.env`. Gitignored and absent; the owner has it |
+| Seeing the deployed site | Vercel Authentication fronts it. One setting, theirs to change |
 
 ## 7. Freeze status
 
