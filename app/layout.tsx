@@ -42,11 +42,32 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             has always been.
           */}
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 sm:gap-y-2 sm:py-3">
-            <Link
-              href="/"
-              className="py-1 text-[15px] font-semibold tracking-tight sm:py-0"
-            >
-              NextBigThing
+            {/*
+              The wordmark, with the text name kept as the accessible name rather than deleted.
+              A logo that replaces the name leaves a screen reader announcing "link, image", and
+              leaves every reader with a broken image and nothing at all if the file 404s.
+
+              `next/image` is deliberately not used. This is one small PNG in the header of every
+              page; the optimizer's win is for large content images, and routing a 1.3 KB mark
+              through it costs a request on first paint for nothing. `width`/`height` are set so
+              the row does not reflow when it loads, which is the actual problem worth solving
+              here. Dimensions are the file's own aspect ratio, 1354x266, scaled to the 15px cap
+              height the text had.
+            */}
+            <Link href="/" className="flex items-center py-1 sm:py-0" aria-label="NextBigThing, home">
+              {/* eslint-disable-next-line @next/next/no-img-element -- the rule is about large
+                  content images. This is a 1.3 KB header mark on every page, and Vercel's image
+                  optimization is metered on the free tier, so routing it through the optimizer
+                  spends quota to make a small file smaller. */}
+              <img
+                src="/logo.png"
+                alt="NextBigThing"
+                width={1354}
+                height={266}
+                decoding="async"
+                fetchPriority="high"
+                className="h-6 w-auto sm:h-7"
+              />
             </Link>
             <nav
               className="-mx-4 flex w-full gap-x-1 overflow-x-auto px-4 text-sm [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:w-auto sm:flex-wrap sm:gap-x-4 sm:gap-y-1 sm:overflow-x-visible sm:px-0 [&::-webkit-scrollbar]:hidden"
