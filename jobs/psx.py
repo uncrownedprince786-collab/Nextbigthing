@@ -305,6 +305,17 @@ def main() -> None:
     if buffer:
         batches.append(buffer)
     print(f"  {traded} trading days read, {asked} dates requested")
+    if asked and traded == 0:
+        # RECENT_DAYS is 120, so the window asked about is four months. An exchange with no
+        # published day in four months is not a holiday, it is the source refusing this host,
+        # and a run that reports it is worth more than one that writes nothing and exits 0.
+        # The same line jobs/prices.py draws for Yahoo and Binance, and jobs/marketplace.py
+        # for Amazon.
+        print(
+            f"no closing file from PSX for any of {asked} dates: treat it as unavailable from "
+            "this host and re-verify it before trusting a later run"
+        )
+        raise SystemExit(1)
 
     step("share counts")
     shares_by_symbol: dict[str, float] = {}

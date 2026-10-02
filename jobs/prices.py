@@ -544,8 +544,16 @@ def fetch_news(cur) -> int:
         cur, 'SELECT id, symbol, name, "assetType", source FROM "Asset" ORDER BY symbol'
     )
 
+    # Two counters, because they answer different questions. `written` is new rows, which is
+    # legitimately 0 on a rerun inside the cache hour — every article is already stored and
+    # ON CONFLICT DO NOTHING reports nothing. `parsed` is feeds that answered with readable
+    # RSS, and that being 0 across every feed is Google News refusing this host.
+    asked = 0
+    parsed = 0
+
     def ingest(url, cache_key, insert_sql, params_fn, cap=NEWS_PER_FEED):
-        nonlocal written
+        nonlocal written, asked, parsed
+        asked += 1
         raw = get(url, cache_key=cache_key, ttl=3600)
         if not raw:
             return
@@ -554,6 +562,7 @@ def fetch_news(cur) -> int:
         except ET.ParseError:
             print("  bad rss")
             return
+        parsed += 1
         kept_here = 0
         for item in root.iter():
             if not item.tag.endswith("item") or kept_here >= cap:
@@ -653,6 +662,10 @@ def fetch_news(cur) -> int:
             empty.append(a["symbol"])
     if empty:
         print(f"  {len(empty)} assets matched no new article: {', '.join(empty)}")
+
+    # Before the sweep, not after: a host that got no feed at all must not go on to
+    # delete four months of stored articles on the strength of nothing.
+    require_answer(parsed, asked, source=GNEWS)
 
     cur.execute('DELETE FROM "News" WHERE "publishedAt" < now() - interval \'120 days\'')
     return written

@@ -28,7 +28,7 @@ Verified against the live production database on 2026-10-01, not merely built:
 
 | | |
 | --- | --- |
-| Tests | **226**, all passing, no database or network needed |
+| Tests | **228**, all passing, no database or network needed |
 | Types, lint, build | clean |
 | `schema.yml` (release lane) | **green** — run `36917629683`, 9m 3s, all 20 brain jobs |
 | Every job in the daily group | passes individually against production — see the table in `HANDOFF.md` |
@@ -85,10 +85,18 @@ Both are invisible to the 221-test suite and to running each job locally, which 
 job passes individually" held while the group failed. **This is the better explanation of run
 `36918247571` than the Yahoo block**, and it is fixed.
 
+**Every batch lane now reports a silent source**, since the same hole was in all of them:
+Yahoo and Binance count rows stored, the news lane counts *feeds that parsed* (new rows are
+legitimately 0 on a rerun inside the cache hour, and the guard sits before the 120-day
+retention sweep so a fetchless run cannot delete four months of articles), and `jobs/psx.py`
+counts published trading days over a 120-day window where zero cannot be a holiday. brain.md
+rule 31 explains why the counter differs per lane.
+
 What is still open: the Yahoo-block hypothesis is now only a hypothesis, unconfirmed and no
 longer needed to explain the failure. Confirming anything still wants one GitHub sign-in to
 read the step summary — but the useful next move is simply to **re-run `refresh.yml`** and see
 whether it passes. If it fails again, the new guards name the source in the step's own output.
+Run conclusions, unlike step summaries, *are* public: `tests #22` passed on `b826d2e`.
 
 ## 4. Known data gaps, each with its reason
 

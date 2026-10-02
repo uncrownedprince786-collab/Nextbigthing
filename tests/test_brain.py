@@ -1706,6 +1706,30 @@ class SourceFailure(unittest.TestCase):
         self.assertIsNone(prices.require_answer(3, 10, source="Binance"))
 
 
+    def test_the_news_lane_counts_feeds_that_answered_not_rows_it_wrote(self):
+        # `written` is new rows, and ON CONFLICT DO NOTHING makes that legitimately 0 on a
+        # rerun inside the cache hour. Guarding on it would fail a healthy run; guarding on
+        # feeds parsed catches a blocked host and nothing else.
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = text[text.index("def fetch_news"):text.index("def main")]
+        self.assertIn("require_answer(parsed, asked, source=GNEWS)", body)
+        self.assertNotIn("require_answer(written", body)
+        # And the guard runs before the 120-day retention sweep, so a run that fetched
+        # nothing cannot delete four months of articles.
+        self.assertLess(body.index("require_answer(parsed"), body.index("120 days"))
+
+
+    def test_a_psx_run_with_no_published_day_in_four_months_reports_it(self):
+        # RECENT_DAYS is 120, so an empty window is the source and not a holiday run.
+        text = (ROOT / "jobs" / "psx.py").read_text(encoding="utf-8")
+        self.assertIn("RECENT_DAYS = 120", text)
+        self.assertIn("if asked and traded == 0:", text)
+        body = text[text.index("if asked and traded == 0:"):]
+        self.assertIn("raise SystemExit(1)", body[:800])
+        # And it fires before the writes, not after a silent pass through them.
+        self.assertLess(text.index("if asked and traded == 0:"), text.index('step("write")'))
+
+
 class BudgetGuards(unittest.TestCase):
     """Every unbounded thing that could run away has a declared ceiling."""
 

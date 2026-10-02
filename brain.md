@@ -500,6 +500,15 @@ reads rows that already exist:
     Amazon category is blocked, and two tests guard it — one states the answer and one forbids
     storing a download without the check, because the behavioural test passes on any host
     Yahoo does answer.
+
+    The line is now drawn in every batch lane, and **what gets counted differs per lane** —
+    this is the part to get right. Yahoo and Binance count rows stored, because a run always
+    refetches its window. The news lane counts **feeds that parsed**, not rows written: `ON
+    CONFLICT DO NOTHING` makes new rows legitimately 0 on a rerun inside the cache hour, so a
+    row-count guard would fail a healthy run. It also runs *before* the 120-day retention
+    sweep, or a host that fetched nothing would delete four months of articles on the strength
+    of nothing. `jobs/psx.py` counts published trading days over a 120-day window, where zero
+    cannot be a holiday. Pick the counter that is zero only when the source is silent.
 32. **A row is built where the columns are known, or it drifts.** `insert_snapshots` grew
     `open`, `high` and `low` on 2026-10-01; the Yahoo caller was updated and the Binance one,
     thirty lines further down, was not. Six fields went to a nine-name unpack and every crypto
