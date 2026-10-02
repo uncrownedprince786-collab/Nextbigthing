@@ -235,12 +235,21 @@ function confirmMissing(input: DecisionInput, direction: "up" | "down"): string[
   const out: string[] = [];
   if (volumeConfirms(input) === null) out.push("No volume published, so the move is unconfirmed by activity.");
   if (analogConfirms(input, direction) === null) {
-    const n = input.analogs?.count ?? 0;
-    out.push(
-      n === 0
-        ? "No similar past days stored, so nothing measures what usually followed."
-        : `Only ${n} similar past days stored; ${ANALOGS_CONFIRM_MIN} are needed to confirm.`,
-    );
+    // Three different absences, and they were all being reported as the first one. A name with
+    // 375 matched days whose lean was not stored printed "Only 375 similar past days stored; 8
+    // are needed to confirm", which is not true of 375 and tells the reader to wait for
+    // something that already happened. Seen live on ABBV.
+    const a = input.analogs;
+    const n = a?.count ?? 0;
+    if (!a || n === 0) {
+      out.push("No similar past days stored, so nothing measures what usually followed.");
+    } else if (n < ANALOGS_CONFIRM_MIN) {
+      out.push(`Only ${n} similar past days stored; ${ANALOGS_CONFIRM_MIN} are needed to confirm.`);
+    } else {
+      out.push(
+        `${n} similar past days are stored, but which way they went was not recorded, so they cannot confirm the direction.`,
+      );
+    }
   }
   return out;
 }

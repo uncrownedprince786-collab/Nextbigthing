@@ -333,3 +333,21 @@ test("no longer view says that, rather than implying one agreed", () => {
 test("a flat longer view is named as flat", () => {
   assert.equal(decide(base({ horizon: { direction: "flat" } })).why[1], "Longer view is flat.");
 });
+
+test("a large analog set with no recorded lean says so, instead of asking for more days", () => {
+  // Seen live: ABBV printed "Only 375 similar past days stored; 8 are needed to confirm". The set
+  // was large; what was absent was the lean. Telling a reader to wait for 8 of something they
+  // already have 375 of is worse than saying nothing.
+  const d = decide(base({ analogs: { count: 375, lowPct: -11, highPct: 16.1, medianPct: null, positive: null } }));
+  assert.equal(d.action, "LONG");
+  const line = d.missing.find((m) => /similar past days/.test(m));
+  assert.ok(line, d.missing.join(" | "));
+  assert.doesNotMatch(String(line), /Only 375/);
+  assert.match(String(line), /which way they went was not recorded/);
+  // The genuinely-too-few case still reads the old way.
+  const few = decide(base({ analogs: { count: 3, lowPct: -1, highPct: 1, medianPct: 0.2, positive: 2 } }));
+  assert.ok(few.missing.some((m) => /Only 3 similar past days/.test(m)), few.missing.join(" | "));
+  // And none at all is its own sentence.
+  const none = decide(base({ analogs: null }));
+  assert.ok(none.missing.some((m) => /No similar past days stored/.test(m)));
+});
