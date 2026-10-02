@@ -2081,6 +2081,93 @@ class NothingBuiltAndUnused(unittest.TestCase):
         self.assertGreater(len(names), 3, "the export pattern no longer matches lib/plain.ts")
 
 
+class NoFakeConfidence(unittest.TestCase):
+    """The words the reader sees, audited for certainty the data cannot support.
+
+    The existing scan covers generated prose in `jobs/analysis.py` for causal words. This one
+    covers the written UI: the labels, leads and sentences in `app/`, `components/` and
+    `lib/plain.ts`, where a promise would be hand-written rather than generated. Phrases are
+    matched instead of single words on purpose — "a stale page will be obvious" is fine and
+    "the price will rise" is not, and a bare "will" cannot tell them apart.
+    """
+
+    FORBIDDEN = [
+        "will rise", "will fall", "will go up", "will go down", "will drop", "will climb",
+        "is going to rise", "is going to fall", "guaranteed", "risk-free", "risk free",
+        "sure thing", "can't lose", "cannot lose", "buy now", "sell now", "short now",
+        "you should buy", "you should sell", "we recommend buying", "we recommend selling",
+        "definitely will", "certain to rise", "certain to fall", "safe bet",
+    ]
+
+    # Causality, which rules 10 and 16 ban in generated prose and which is no more acceptable
+    # hand-written on a page.
+    CAUSAL = ["caused the move", "because of the news", "driven by the", "in response to the"]
+
+    def visible_files(self):
+        out = []
+        for pattern in ("app/**/*.tsx", "app/*.tsx", "components/*.tsx"):
+            out.extend(ROOT.glob(pattern))
+        out.append(ROOT / "lib" / "plain.ts")
+        return out
+
+    def test_no_page_promises_a_price_move(self):
+        hits = []
+        files = self.visible_files()
+        self.assertGreater(len(files), 8, "the page scan found almost nothing, so it is broken")
+        for f in files:
+            low = f.read_text(encoding="utf-8").lower()
+            for phrase in self.FORBIDDEN:
+                if phrase in low:
+                    hits.append(f"{f.name}: {phrase}")
+        self.assertEqual(hits, [], "; ".join(hits))
+
+    NEGATIONS = ("not ", "never ", "no claim", "does not", "cannot", "rather than",
+                 "without claiming", "is not")
+
+    def negated(self, text: str, at: int) -> bool:
+        """Whether a causal phrase sits inside a sentence that denies it.
+
+        The project's own pages say "not as a claim that the readings caused the moves", which
+        is the opposite of the fault being looked for. A scanner that cannot tell a denial from
+        an assertion would force those disclaimers to be deleted to go green, which would make
+        the pages worse and the test complicit in it.
+        """
+        window = text[max(0, at - 120):at]
+        return any(n in window for n in self.NEGATIONS)
+
+    def test_no_page_asserts_causality(self):
+        hits = []
+        for f in self.visible_files():
+            low = f.read_text(encoding="utf-8").lower()
+            for phrase in self.CAUSAL:
+                start = 0
+                while (at := low.find(phrase, start)) != -1:
+                    if not self.negated(low, at):
+                        hits.append(f"{f.name}: {phrase}")
+                    start = at + len(phrase)
+        self.assertEqual(hits, [], "; ".join(hits))
+
+    def test_the_causality_scanner_tells_a_denial_from_a_claim(self):
+        # Both halves asserted, because a scanner that passed everything would also be green.
+        claim = "the earnings report caused the move in the share price"
+        denial = "this is not a claim that the report caused the move"
+        self.assertFalse(self.negated(claim, claim.index("caused the move")))
+        self.assertTrue(self.negated(denial, denial.index("caused the move")))
+
+    def test_the_phrase_scanner_would_catch_one(self):
+        # Proof the matcher works, since a clean repository and a broken scan look alike.
+        sample = "The price will rise next week, a safe bet."
+        found = [ph for ph in self.FORBIDDEN if ph in sample.lower()]
+        self.assertEqual(sorted(found), ["safe bet", "will rise"])
+
+    def test_the_evidence_words_the_project_prefers_are_actually_used(self):
+        # The other half of rule 4: hedged wording is only honest if the evidence words are
+        # present. "measured", "observed", "stored" and "no evidence" should be everywhere.
+        text = " ".join(f.read_text(encoding="utf-8").lower() for f in self.visible_files())
+        for word in ("measured", "observed", "stored", "not a recommendation"):
+            self.assertIn(word, text, f"the UI never says {word!r}")
+
+
 class BudgetGuards(unittest.TestCase):
     """Every unbounded thing that could run away has a declared ceiling."""
 

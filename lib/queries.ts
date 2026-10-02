@@ -653,3 +653,22 @@ export async function getSourceHealth(): Promise<
     )
     .map(({ source, status, rows: n, newest, note }) => ({ source, status, rows: n, newest, note }));
 }
+
+/// The stories behind an asset's recent coverage, newest first.
+///
+/// `jobs/lineage.py` clusters headlines so that counting information stops counting copies: a
+/// wire report picked up by twenty outlets is one story, and before clustering it looked
+/// exactly like twenty. That distinction has been computed since the job was written and has
+/// never reached a page, so a reader could not tell a developing situation from a press
+/// release — the one confusion the clustering exists to end.
+export async function getStories(assetId: string, take = 6) {
+  return prisma.newsLineage.findMany({
+    where: { targetRef: assetId },
+    orderBy: { lastSeen: "desc" },
+    take,
+    select: {
+      id: true, headline: true, items: true, publishers: true,
+      firstSeen: true, lastSeen: true, rule: true,
+    },
+  });
+}

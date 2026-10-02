@@ -362,3 +362,20 @@ export const COVERAGE_WORDS: Record<
     tone: "down",
   },
 };
+
+/// How much information a cluster of headlines actually carries.
+///
+/// Items and publishers answer different questions: items is how many copies exist, and
+/// publishers is whether the story travelled. One item from one publisher is a single report;
+/// twenty items from two publishers is a syndicated release; four items from four publishers
+/// is four newsrooms deciding the same thing was worth covering. Said in words rather than
+/// left as two integers a reader has to interpret.
+export function storyWords(items: number, publishers: number): string {
+  if (items <= 1) return "a single report from one publisher";
+  if (publishers <= 1) return `${items} items, all from one publisher, so one report repeated`;
+  if (items >= publishers * 3) {
+    return `${items} items but only ${publishers} publishers, which is the shape of a syndicated release rather than a developing story`;
+  }
+  if (items === publishers) return `${publishers} publishers, one item each, so ${publishers} separate pickups`;
+  return `${items} items across ${publishers} publishers`;
+}

@@ -7,19 +7,20 @@ import {
   AnalogBlock,
   AttributionBlock,
   Card,
-  HorizonStrip,
   ConfidenceBadge,
   DiscussionBlock,
   Empty,
+  HorizonStrip,
   IntradayHealth,
   InvestigationBlock,
   NeighbourhoodBlock,
   Note,
-  PlainSummary,
   Pill,
+  PlainSummary,
   Section,
   SetupBlock,
   SimpleRead,
+  StoriesBlock,
   Table,
   ThesisBlock,
   UpcomingBlock,
@@ -36,6 +37,7 @@ import {
   getIntradayHealth,
   getInvestigation,
   getRelevance,
+  getStories,
   getSetup,
   getThesis,
   getUpcoming,
@@ -81,10 +83,11 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
       getAttribution(asset.id),
       getRelevance(asset.id),
     ]);
-  const [horizons, investigation, intradayHealth] = await Promise.all([
+  const [horizons, investigation, intradayHealth, stories] = await Promise.all([
     getHorizons(asset.id),
     getInvestigation(asset.id),
     getIntradayHealth(asset.id),
+    getStories(asset.id),
   ]);
 
   // The latest stored day's change, which is what the plain summary leads with. Computed here
@@ -349,6 +352,13 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
         lead="Whether the five minute series this asset's same-day conditions were read from is complete. A short session is a gap that is stored, never smoothed."
       >
         <IntradayHealth health={intradayHealth} />
+      </Section>
+
+      <Section
+        title="Stories behind the coverage"
+        lead="Headlines grouped into stories, so the count measures information rather than copies. One report carried by twenty outlets is one story."
+      >
+        <StoriesBlock stories={stories} />
       </Section>
 
       <Section title="Recent news mentioning this asset">

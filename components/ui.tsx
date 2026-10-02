@@ -4,6 +4,7 @@ import {
   CHECK_WORDS,
   COVERAGE_WORDS,
   rewardWords,
+  storyWords,
   FINDING_WORDS,
   HORIZON_WORDS,
   METHOD_WORDS,
@@ -2097,6 +2098,60 @@ export function SourceHealthBlock({
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+/// The stories behind the coverage, rather than the coverage itself.
+///
+/// The list above this one counts items. This one counts information: clustering is what tells
+/// a story carried by twenty outlets apart from twenty newsrooms each deciding something was
+/// worth covering, and until it is on the page a reader has only the item count, which is the
+/// number that makes a press release look like news breaking.
+export function StoriesBlock({
+  stories,
+}: {
+  stories: {
+    id: string;
+    headline: string;
+    items: number;
+    publishers: number;
+    firstSeen: Date | string;
+    lastSeen: Date | string;
+    rule: string;
+  }[];
+}) {
+  if (!stories.length) {
+    return (
+      <Empty>
+        No headline clusters are stored for this asset. They are computed from stored news by{" "}
+        <code>python jobs/lineage.py</code>.
+      </Empty>
+    );
+  }
+  const copies = stories.reduce((n, s) => n + s.items, 0);
+  return (
+    <div>
+      <p className="text-muted-foreground text-sm">
+        {stories.length} {stories.length === 1 ? "story" : "stories"} across {copies}{" "}
+        stored {copies === 1 ? "item" : "items"}. The gap between those two numbers is the
+        point: one report syndicated widely is one piece of information.
+      </p>
+      <ul className="mt-3 space-y-3">
+        {stories.map((s) => (
+          <li key={s.id} className="border-border border-b pb-3 last:border-0">
+            <p className="text-sm">{s.headline}</p>
+            <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+              {storyWords(s.items, s.publishers)} · first seen {isoDate(s.firstSeen)}, last{" "}
+              {isoDate(s.lastSeen)}
+            </p>
+          </li>
+        ))}
+      </ul>
+      <p className="text-muted-foreground mt-3 text-[11px] leading-relaxed">
+        Clustered with {stories[0].rule}. The earliest item in each cluster is kept as its
+        label, which is a headline and not a summary of the story.
+      </p>
     </div>
   );
 }

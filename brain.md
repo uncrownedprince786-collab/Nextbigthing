@@ -551,3 +551,10 @@ reads rows that already exist:
     two vocabularies for one idea is the contradiction this file exists to prevent. A test now
     fails when any export in `lib/` or `components/` has no consumer, with an allowlist that is
     empty and a reason required to add to it. Before building, check what is already built.
+37. **A scanner that cannot tell a denial from a claim will make the pages worse.** The
+    language audit's first run flagged two lines, and both were disclaimers: "not as a claim
+    that the readings caused the moves" is the opposite of the fault being looked for. Deleting
+    them to turn the test green would have removed the honesty the test exists to protect, so
+    the scanner looks back 120 characters for a negation and a test asserts both halves — a
+    bare claim is caught and a denial is not. The general rule: when a guard fires on correct
+    code, fix the guard, and never the code that was already right.
