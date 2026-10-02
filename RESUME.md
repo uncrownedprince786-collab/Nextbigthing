@@ -114,6 +114,20 @@ its schedule, or sooner by dispatching it, which needs the sign-in.
 
 - **`ProductRegion` is empty.** `geo.py` works (verified: 175 countries, 51 US states, 5 PK
   provinces) but keeps being cancelled by queue churn in `backfill.yml`.
+
+  **The mechanism, found on 2026-10-02.** This is not a flaky lane. With
+  `cancel-in-progress: false`, GitHub keeps only **one pending run per concurrency group**:
+  queue a newer run and the one already waiting is cancelled. So several commits in quick
+  succession cancel the intermediate runs in `nbt-schema` and `nbt-database` while they are
+  still queued — never failed, never run. Nine pushes in one session reproduced it exactly
+  once (`schema #47`, cancelled while `#48` queued behind it).
+
+  Two consequences. A data lane that only ever runs on a push in a busy session may never
+  execute, which is why `geo.py` has not completed. And **the refresh gate is vulnerable to
+  it**: dispatching `refresh.yml` twice in quick succession can cancel the first while it
+  waits, leaving one run rather than two. Let each refresh finish before starting the next.
+  `backfill #7` on 2026-10-02 is what a run looks like when nothing supersedes it: `psx.py
+  full` and `geo.py` both completed.
 - **`MarketplaceItem` is empty** and `Coverage` reports Amazon Best Sellers as `silent`. It is a
   weekly job and has not run.
 - **Binance crypto closes stop at 2026-09-29.**
