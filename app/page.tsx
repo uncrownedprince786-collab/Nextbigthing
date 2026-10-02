@@ -206,6 +206,12 @@ function toListRow(s: Scored): DecisionRow {
     // PSX names are in rupees. Without this every level on the page would be printed with a dollar
     // mark in front of a rupee number, which is worse than printing no level at all.
     currency: s.row.currency,
+    // The calendar, on the lists that are not WAIT. A dated event never gates the rule table, so a
+    // LONG row with earnings tomorrow carries no hint of it in `why` — it reaches the reader only
+    // through the time sense, and until this was passed the front page dropped it silently. The
+    // WAIT cards already print the same sentence; `eventLabel` is shared so the two cannot drift.
+    timeSense: s.decision.timeSense,
+    eventNote: eventLabel(s.row),
   };
 }
 

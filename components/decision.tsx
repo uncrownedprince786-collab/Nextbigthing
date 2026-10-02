@@ -361,6 +361,15 @@ export interface DecisionRow {
   /// Quoted currency for this row's levels. Defaults to USD, which is wrong for PSX names, so
   /// callers covering PSX must pass it.
   currency?: string;
+  /// When the decision applies, from the rule table.
+  ///
+  /// Only "CARE" changes anything here, and it is the reason this field exists: a LONG with a
+  /// dated event two days out is a different proposition from a LONG with an empty calendar, and
+  /// the six columns had nowhere to say so. Omitted rows render exactly as before.
+  timeSense?: TimeSense;
+  /// What the dated event is, when "CARE" is set. "Event today: Q3 earnings." reads as a reason;
+  /// a bare CARE badge reads as decoration.
+  eventNote?: string | null;
 }
 
 export interface DecisionListProps {
@@ -430,9 +439,16 @@ export function DecisionList({ title, lead, rows, empty }: DecisionListProps) {
 
                     <span className="min-w-0">
                       <span className={ROW_LABEL}>Action</span>
-                      <span className="mt-0.5 block sm:mt-0">
+                      <span className="mt-0.5 flex flex-wrap items-center gap-1 sm:mt-0">
                         <Pill tone={ACTION_TONE[r.action]}>{r.action}</Pill>
+                        {/* A dated event is a hazard on a row that says LONG, and the rule table
+                            already decided that by setting the time sense. Printed as its own word
+                            rather than a colour, because colour is not a reason. */}
+                        {r.timeSense === "CARE" ? <Pill tone="warn">CARE</Pill> : null}
                       </span>
+                      {r.timeSense === "CARE" && r.eventNote ? (
+                        <span className="text-warn text-micro mt-0.5 block">{r.eventNote}</span>
+                      ) : null}
                     </span>
 
                     <span className="min-w-0">
