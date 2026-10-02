@@ -96,7 +96,19 @@ What is still open: the Yahoo-block hypothesis is now only a hypothesis, unconfi
 longer needed to explain the failure. Confirming anything still wants one GitHub sign-in to
 read the step summary — but the useful next move is simply to **re-run `refresh.yml`** and see
 whether it passes. If it fails again, the new guards name the source in the step's own output.
-Run conclusions, unlike step summaries, *are* public: `tests #22` passed on `b826d2e`.
+**What a GitHub sign-in is and is not needed for**, measured on 2026-10-02 rather than
+assumed: a run's **status, conclusion and duration are public** and readable anonymously from
+the Actions list, so `tests #22`, `tests #23` and `schema #40` are confirmed green from
+outside. **Step summaries and raw logs both need a sign-in** — the run page answers
+`Sign in to view logs` — so the per-step table `run.py` writes is still unreadable without
+one. Do not spend time looking for an anonymous route to a log; there is not one.
+
+**And `schema.yml` green says nothing about this item.** It runs the derivation jobs — seed,
+lifecycle, lineage, human, analogs, accuracy, setup, thesis, attribution, graph, horizons,
+investigate, audit, analysis, stats. `prices.py` and `psx.py` run **only** in `refresh.yml`,
+which triggers on schedule or dispatch and not on push. So the two crypto fixes are correct by
+test and by reading, and **unverified against production** until that lane runs — tonight on
+its schedule, or sooner by dispatching it, which needs the sign-in.
 
 ## 4. Known data gaps, each with its reason
 
