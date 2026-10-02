@@ -1725,8 +1725,8 @@ class SourceFailure(unittest.TestCase):
         text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
         body = text[text.index("def fetch_crypto"):text.index("def today_utc")]
         self.assertLess(
-            body.index("if not closes:"),
-            body.index("cap_by_day[closes[-1][0]]"),
+            body.index("if not bars:"),
+            body.index("cap_by_day[bars[-1][0]]"),
             "the empty-series guard must come before anything that indexes the series",
         )
 
@@ -1735,24 +1735,153 @@ class SourceFailure(unittest.TestCase):
         # when the COPY loop runs and so needs a database to surface.
         rows = prices.crypto_rows(
             "a1",
-            [(date(2026, 9, 29), 65000.0)],
-            {date(2026, 9, 29): 1234.5},
-            {date(2026, 9, 29): (64000.0, 66000.0, 63500.0)},
+            [(date(2026, 9, 29), 64000.0, 66000.0, 63500.0, 65000.0, 1234.5)],
             {date(2026, 9, 29): 1.29e12},
+            "Binance",
         )
         self.assertEqual(len(rows), 1)
         asset_id, day, op, hi, lo, close, vol, cap, source = rows[0]
         self.assertEqual((asset_id, day, op, hi, lo), ("a1", date(2026, 9, 29), 64000.0, 66000.0, 63500.0))
         self.assertEqual((close, vol, cap, source), (65000.0, 1234.5, 1.29e12, "Binance"))
-        # A day the source sent no bar for keeps three Nones rather than a shifted row.
-        (only,) = prices.crypto_rows("a1", [(date(2026, 9, 30), 1.0)], {}, {}, {})
+        # The venue is carried on the row rather than assumed: four of them can supply these.
+        (only,) = prices.crypto_rows(
+            "a1", [(date(2026, 9, 30), 1.0, 2.0, 0.5, 1.5, 9.0)], {}, "Kraken"
+        )
         self.assertEqual(len(only), 9)
-        self.assertEqual(only[2:5], (None, None, None))
+        self.assertEqual(only[8], "Kraken")
+        self.assertIsNone(only[7])
 
     def test_a_whole_binance_batch_coming_back_empty_fails_the_step(self):
         with self.assertRaises(prices.SourceSilent):
             prices.require_answer(0, 10, source="Binance")
         self.assertIsNone(prices.require_answer(3, 10, source="Binance"))
+
+
+class CryptoVenueChain(unittest.TestCase):
+    """Daily crypto closes come from whichever venue answers, and the row says which.
+
+    Binance was the only source and it stopped answering from GitHub runners on 2026-09-29,
+    which is why the nightly refresh went red and stayed red: the guard reported a blocked
+    venue every night with no second venue to try. These pin the parsers against the real
+    response shapes, and the chain against the two ways it can be wrong — taking a stale venue
+    because it answered first, and shrinking stored history to a shallow one.
+    """
+
+    # One real row from each venue, captured from the live endpoints. Column order is the whole
+    # point: Coinbase puts low and high BEFORE open, which no other venue here does.
+    BINANCE = [[1759363200000, "114000.1", "116000.0", "113500.0", "115250.5", "1234.5", 0]]
+    COINBASE = [[1790899200, 83850.02, 87249.05, 84848.73, 84513.37, 8571.26668915]]
+    KRAKEN = {
+        "error": [],
+        "result": {
+            "XXBTZUSD": [
+                [1728691200, "62502.5", "63445.0", "62495.0", "63184.0", "63013.0", "687.24", 27088]
+            ],
+            "last": 1790899200,
+        },
+    }
+    BITSTAMP = {
+        "data": {
+            "ohlc": [
+                {"timestamp": "1790899200", "open": "84848.73", "high": "87249.05",
+                 "low": "83850.02", "close": "84513.37", "volume": "8571.26"}
+            ]
+        }
+    }
+
+    def test_every_parser_returns_the_same_shape(self):
+        for name, parsed in (
+            ("binance", prices.parse_binance(self.BINANCE)),
+            ("coinbase", prices.parse_coinbase(self.COINBASE)),
+            ("kraken", prices.parse_kraken(self.KRAKEN)),
+            ("bitstamp", prices.parse_bitstamp(self.BITSTAMP)),
+        ):
+            self.assertEqual(len(parsed), 1, name)
+            day, op, hi, lo, close, vol = parsed[0]
+            self.assertIsInstance(day, date, name)
+            # The invariant that catches a swapped column at any venue: the low is the lowest
+            # number on the bar and the high is the highest.
+            self.assertLessEqual(lo, min(op, close), name)
+            self.assertGreaterEqual(hi, max(op, close), name)
+            self.assertGreater(vol, 0, name)
+
+    def test_coinbase_column_order_is_not_assumed_to_match_the_others(self):
+        day, op, hi, lo, close, vol = prices.parse_coinbase(self.COINBASE)[0]
+        self.assertEqual(day, date(2026, 10, 2))
+        self.assertEqual((op, hi, lo, close), (84848.73, 87249.05, 83850.02, 84513.37))
+
+    def test_kraken_skips_its_cursor_and_its_vwap(self):
+        day, op, hi, lo, close, vol = prices.parse_kraken(self.KRAKEN)[0]
+        self.assertEqual((op, hi, lo, close), (62502.5, 63445.0, 62495.0, 63184.0))
+        # 63013.0 is the vwap and sits between close and volume; reading it as volume is the
+        # obvious off-by-one at this venue.
+        self.assertEqual(vol, 687.24)
+
+    def test_a_bad_body_is_no_bars_rather_than_a_crash(self):
+        self.assertEqual(prices.parse_kraken({"error": ["EQuery:Unknown asset pair"]}), [])
+        self.assertEqual(prices.parse_kraken(None), [])
+        self.assertEqual(prices.parse_binance(None), [])
+        self.assertEqual(prices.parse_coinbase(None), [])
+        self.assertEqual(prices.parse_bitstamp(None), [])
+
+    def test_bitcoin_and_dogecoin_are_renamed_for_kraken(self):
+        # Kraken calls them XBT and XDG; asking for BTCUSD returns an unknown-pair error.
+        self.assertEqual(prices.KRAKEN_ALIAS["BTC"], "XBT")
+        self.assertEqual(prices.KRAKEN_ALIAS["DOGE"], "XDG")
+
+    def _chain(self, answers):
+        """Run the chain with each venue's fetch replaced by a canned answer."""
+        venues = tuple(
+            (name, (lambda b: (lambda sym: b))(answers.get(name, [])))
+            for name, _ in prices.CLOSE_VENUES
+        )
+        original = prices.CLOSE_VENUES
+        prices.CLOSE_VENUES = venues
+        try:
+            return prices.crypto_closes("BTC", today=date(2026, 10, 3))
+        finally:
+            prices.CLOSE_VENUES = original
+
+    def test_a_blocked_first_venue_falls_through_to_the_next(self):
+        fresh = [(date(2026, 10, 2), 1.0, 2.0, 0.5, 1.5, 9.0)]
+        name, bars = self._chain({"Coinbase": fresh})
+        self.assertEqual(name, "Coinbase")
+        self.assertEqual(bars, fresh)
+
+    def test_a_venue_answering_with_a_stale_series_does_not_win(self):
+        # Exactly the production case. Taking the first venue that replies would store a stale
+        # close, pass the silence guard, and leave every coin reading "data stale" on the panel.
+        stale = [(date(2026, 9, 29), 1.0, 2.0, 0.5, 1.5, 9.0)]
+        fresh = [(date(2026, 10, 3), 1.0, 2.0, 0.5, 1.5, 9.0)]
+        name, bars = self._chain({"Binance": stale, "Kraken": fresh})
+        self.assertEqual(name, "Kraken")
+        self.assertEqual(bars, fresh)
+
+    def test_when_nothing_is_current_the_deepest_stale_answer_is_still_stored(self):
+        shallow = [(date(2026, 9, 20), 1.0, 2.0, 0.5, 1.5, 9.0)]
+        deep = [(date(2026, 9, i), 1.0, 2.0, 0.5, 1.5, 9.0) for i in range(1, 29)]
+        name, bars = self._chain({"Binance": shallow, "Coinbase": deep})
+        self.assertEqual(name, "Coinbase")
+        self.assertEqual(len(bars), 28)
+
+    def test_every_venue_refusing_returns_nothing_and_the_guard_fires(self):
+        self.assertEqual(self._chain({}), (None, []))
+        with self.assertRaises(prices.SourceSilent):
+            prices.require_answer(0, 10, source=prices.CRYPTO_CHAIN)
+        # The message names the chain rather than one exchange, so a reader is not sent to
+        # check Binance when all four refused.
+        self.assertIn("Coinbase", prices.CRYPTO_CHAIN)
+        self.assertIn("Kraken", prices.CRYPTO_CHAIN)
+
+    def test_a_shallow_venue_never_replaces_a_deep_stored_series(self):
+        # Kraken holds about 720 days; the stored series is about 2,829. Deleting and rewriting
+        # from Kraken would destroy six years of history and look like a successful run.
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = text[text.index("def fetch_crypto"):text.index("def today_utc")]
+        self.assertIn("replace = len(bars) >= stored", body)
+        self.assertIn("insert_snapshots(cur, buffer, replace=replace)", body)
+        # And the delete only happens on the replace path.
+        self.assertLess(body.index("if replace:"), body.index('DELETE FROM "PriceSnapshot"'))
 
 
     def test_the_news_lane_counts_feeds_that_answered_not_rows_it_wrote(self):

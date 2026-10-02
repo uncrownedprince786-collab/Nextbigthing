@@ -309,22 +309,24 @@ def share_series(sym: str) -> list[tuple[date, float]]:
     return out
 
 
-def crypto_rows(asset_id, closes, volumes, bars, cap_by_day) -> list[tuple]:
-    """Binance closes in `PriceSnapshot` column order.
+def crypto_rows(asset_id, bars, cap_by_day, source) -> list[tuple]:
+    """Daily crypto bars in `PriceSnapshot` column order.
 
     This exists because the row was built inline as six fields — asset, date, close, volume,
     cap, source — while `insert_snapshots` had grown to the table's nine, and COPY unpacks
     nine names. Every crypto insert raised `ValueError: not enough values to unpack` from
     2026-10-01 until it was fixed, and nothing caught it: the arity is only checked when the
     loop runs, which needs a database. A named builder with a test is the cheap guard.
+
+    `bars` is the normalised shape every venue parser returns — `(day, open, high, low,
+    close, volume)` — and `source` is the venue that actually answered, not a constant. The
+    row has to carry its own provenance now that three venues can supply it: a reader asking
+    why Monday's close differs from the exchange they watch is owed the name of the exchange
+    it came from.
     """
     return [
-        (
-            asset_id, day,
-            *bars.get(day, (None, None, None)),
-            close, volumes.get(day), cap_by_day.get(day), BINANCE,
-        )
-        for day, close in closes
+        (asset_id, day, op, hi, lo, close, vol, cap_by_day.get(day), source)
+        for day, op, hi, lo, close, vol in bars
     ]
 
 
@@ -360,6 +362,208 @@ def insert_snapshots(cur, buffer: list[tuple], replace: bool = True) -> None:
     )
 
 
+# --- Daily crypto closes, from whichever venue answers ------------------------------------------
+#
+# Binance was the only source of crypto closes, and on 2026-09-29 it stopped answering from GitHub
+# runners while answering normally from a laptop. The guard did its job and failed the step loudly,
+# which is why the nightly refresh has been red ever since — correctly, and uselessly: a guard that
+# reports a blocked venue every night without a second venue to try is a smoke alarm wired to no
+# exit. One venue for a number the whole crypto half of the site depends on was the defect.
+#
+# So the chain. Each venue is tried in order and the first that returns bars wins; the row records
+# which one answered, because a reader comparing Monday's close against the exchange they watch is
+# owed the name of the exchange it came from. The venues are ordered by history depth: Binance and
+# Coinbase can page back to 2019, Kraken holds roughly the last 720 days, and Bitstamp is last
+# because it lists the fewest of these coins. All four are public, keyless and already inside the
+# fetch helper's cache and per-host delay.
+#
+# Silence still fails. `require_answer` now fires only when *no* venue answered for *any* coin,
+# which is the fact worth failing on: one coin missing from one exchange is ordinary, and every
+# venue refusing every coin is a host-level block that a human has to look at.
+
+COINBASE = "Coinbase"
+KRAKEN = "Kraken"
+BITSTAMP = "Bitstamp"
+
+# Kraken renames two of these: bitcoin is XBT and dogecoin is XDG. It also answers under a key
+# that is not the pair you asked for — `XBTUSD` comes back as `XXBTZUSD` — so the parser takes
+# whatever single series the response holds rather than looking the name up.
+KRAKEN_ALIAS = {"BTC": "XBT", "DOGE": "XDG"}
+
+
+def parse_binance(payload) -> list[tuple]:
+    """Binance klines to `(day, open, high, low, close, volume)`.
+
+    A kline is `[openTime, open, high, low, close, volume, ...]` with millisecond times.
+    """
+    out = []
+    for b in payload or []:
+        day = datetime.fromtimestamp(b[0] / 1000, tz=timezone.utc).date()
+        out.append((day, float(b[1]), float(b[2]), float(b[3]), float(b[4]), float(b[5])))
+    return out
+
+
+def parse_coinbase(payload) -> list[tuple]:
+    """Coinbase candles to the same shape.
+
+    A candle is `[time, low, high, open, close, volume]` in seconds — note that low and high
+    come *before* open, which is not the order any other venue here uses and is exactly the
+    kind of thing that silently swaps two columns. Returned newest first, so this sorts.
+    """
+    out = []
+    for c in payload or []:
+        day = datetime.fromtimestamp(c[0], tz=timezone.utc).date()
+        out.append((day, float(c[3]), float(c[2]), float(c[1]), float(c[4]), float(c[5])))
+    return sorted(out)
+
+
+def parse_kraken(payload) -> list[tuple]:
+    """Kraken OHLC to the same shape.
+
+    The body is `{"error": [...], "result": {"<PAIR>": [[time, open, high, low, close, vwap,
+    volume, count], ...], "last": <int>}}`. `last` is a cursor and not a series, so it is
+    skipped; the pair key is whatever is left, because Kraken does not echo the name asked for.
+    """
+    if not payload or payload.get("error"):
+        return []
+    result = payload.get("result") or {}
+    series = next((v for k, v in result.items() if k != "last" and isinstance(v, list)), None)
+    out = []
+    for c in series or []:
+        day = datetime.fromtimestamp(int(c[0]), tz=timezone.utc).date()
+        out.append((day, float(c[1]), float(c[2]), float(c[3]), float(c[4]), float(c[6])))
+    return sorted(out)
+
+
+def parse_bitstamp(payload) -> list[tuple]:
+    """Bitstamp OHLC to the same shape. Body is `{"data": {"ohlc": [{...}, ...]}}`."""
+    rows = ((payload or {}).get("data") or {}).get("ohlc") or []
+    out = []
+    for c in rows:
+        day = datetime.fromtimestamp(int(c["timestamp"]), tz=timezone.utc).date()
+        out.append(
+            (day, float(c["open"]), float(c["high"]), float(c["low"]),
+             float(c["close"]), float(c["volume"]))
+        )
+    return sorted(out)
+
+
+def binance_bars(sym: str) -> list[tuple]:
+    """Paged forward from 2019; a klines page holds at most 1000 rows."""
+    bars: list[tuple] = []
+    cursor = 1546300800000
+    for page in range(8):
+        payload = get_json(
+            f"https://api.binance.com/api/v3/klines?symbol={sym}USDT&interval=1d"
+            f"&startTime={cursor}&limit=1000",
+            cache_key=f"binance-{sym}-{cursor}",
+            ttl=6 * 3600 if page == 0 else 30 * 24 * 3600,
+        )
+        if not payload:
+            break
+        bars.extend(parse_binance(payload))
+        cursor = payload[-1][0] + 86400000
+        if len(payload) < 1000:
+            break
+    return bars
+
+
+def coinbase_bars(sym: str) -> list[tuple]:
+    """Paged backwards: Coinbase caps a candles response at 300 rows, so history needs windows."""
+    bars: dict = {}
+    end = datetime.now(timezone.utc)
+    for page in range(12):
+        start = end - timedelta(days=300)
+        payload = get_json(
+            f"https://api.exchange.coinbase.com/products/{sym}-USD/candles"
+            f"?granularity=86400&start={start.date().isoformat()}&end={end.date().isoformat()}",
+            cache_key=f"coinbase-{sym}-{end.date().isoformat()}",
+            ttl=6 * 3600 if page == 0 else 30 * 24 * 3600,
+        )
+        rows = parse_coinbase(payload)
+        if not rows:
+            break
+        for r in rows:
+            bars[r[0]] = r
+        end = start
+        if start.year < 2019:
+            break
+    return [bars[d] for d in sorted(bars)]
+
+
+def kraken_bars(sym: str) -> list[tuple]:
+    """Roughly the last 720 days. `since` only moves forward, so there is no paging back."""
+    pair = KRAKEN_ALIAS.get(sym, sym)
+    return parse_kraken(
+        get_json(
+            f"https://api.kraken.com/0/public/OHLC?pair={pair}USD&interval=1440",
+            cache_key=f"kraken-{pair}",
+            ttl=6 * 3600,
+        )
+    )
+
+
+def bitstamp_bars(sym: str) -> list[tuple]:
+    return parse_bitstamp(
+        get_json(
+            f"https://www.bitstamp.net/api/v2/ohlc/{sym.lower()}usd/?step=86400&limit=1000",
+            cache_key=f"bitstamp-{sym}",
+            ttl=6 * 3600,
+        )
+    )
+
+
+# Ordered by history depth, deepest first. The label is what lands in `PriceSnapshot.source`.
+CLOSE_VENUES = (
+    (BINANCE, binance_bars),
+    (COINBASE, coinbase_bars),
+    (KRAKEN, kraken_bars),
+    (BITSTAMP, bitstamp_bars),
+)
+CRYPTO_CHAIN = "Binance, Coinbase, Kraken or Bitstamp"
+
+
+# How stale a venue's newest bar may be before the chain keeps looking. Two days matches the
+# freshness rule the decision panel applies to crypto, so a venue whose answer would make every
+# coin read "data stale" is not treated as having answered.
+CRYPTO_FRESH_DAYS = 2
+
+
+def crypto_closes(sym: str, today: date | None = None) -> tuple[str | None, list[tuple]]:
+    """The first venue with a *current* series, and its bars.
+
+    First-non-empty is the obvious rule and the wrong one. A venue can answer with a series
+    that stops days ago — which is exactly what Binance did on 2026-09-29, and what a cached
+    page does — and taking it because it was first would store a stale close, pass the silence
+    guard, and leave every coin reading "data stale" on the panel with nothing explaining why.
+    So a venue has to be both answering and current to win.
+
+    When no venue is current, the deepest non-empty answer is still returned rather than
+    nothing: stale rows are worth storing, the freshness gate in the decision rules will catch
+    them, and the alternative is throwing away history to make a point. The caller is told
+    which venue it came from either way.
+    """
+    today = today or datetime.now(timezone.utc).date()
+    fallback: tuple[str, list[tuple]] | None = None
+    for name, fetch in CLOSE_VENUES:
+        try:
+            bars = fetch(sym)
+        except Exception as e:  # noqa: BLE001
+            # A venue raising is the same outcome as a venue answering nothing: try the next
+            # one. It is printed rather than swallowed, because a venue that starts raising
+            # every night is a thing to fix even while the chain hides it.
+            print(f"    {name} raised {type(e).__name__} for {sym}")
+            continue
+        if not bars:
+            continue
+        if (today - bars[-1][0]).days <= CRYPTO_FRESH_DAYS:
+            return name, bars
+        print(f"    {name} answered {sym} but stops at {bars[-1][0]}, trying the next venue")
+        if fallback is None or len(bars) > len(fallback[1]):
+            fallback = (name, bars)
+    return fallback if fallback else (None, [])
+
+
 def fetch_crypto(cur) -> int:
     step("crypto history")
     assets = crypto_assets(cur)
@@ -370,76 +574,74 @@ def fetch_crypto(cur) -> int:
     ) or []
     by_id = {t["id"]: t for t in tickers}
 
+    # How many rows each coin already has, in one query rather than one per coin. The depth is
+    # needed to decide replace-versus-upsert below, and asking inside the loop is the shape the
+    # in-loop query budget exists to stop.
+    depth = {
+        r["assetId"]: r["n"]
+        for r in rows(
+            cur,
+            'SELECT "assetId", count(*) AS n FROM "PriceSnapshot" '
+            'WHERE "assetId" = ANY(%s) GROUP BY "assetId"',
+            ([a["id"] for a in assets],),
+        )
+    }
+
     written = 0
     answered = 0
+    used: dict[str, int] = {}
     for a in assets:
         cid = a["sourceRef"]
         meta = by_id.get(cid)
         sym = (meta or {}).get("symbol") or cid.split("-")[0].upper()
 
-        # Daily closes from Binance. Public endpoint, no key. Paged forward because
-        # a klines page holds at most 1000 rows.
-        all_bars: list = []
-        cursor = 1546300800000
-        for page in range(8):
-            page_rows = get_json(
-                f"https://api.binance.com/api/v3/klines?symbol={sym}USDT&interval=1d"
-                f"&startTime={cursor}&limit=1000",
-                cache_key=f"binance-{sym}-{cursor}",
-                ttl=6 * 3600 if page == 0 else 30 * 24 * 3600,
-            )
-            if not page_rows:
-                break
-            all_bars.extend(page_rows)
-            cursor = page_rows[-1][0] + 86400000
-            if len(page_rows) < 1000:
-                break
+        source, bars = crypto_closes(sym)
 
-        closes = [
-            (datetime.fromtimestamp(b[0] / 1000, tz=timezone.utc).date(), float(b[4]))
-            for b in all_bars
-        ]
-        volumes = {
-            datetime.fromtimestamp(b[0] / 1000, tz=timezone.utc).date(): float(b[5])
-            for b in all_bars
-        }
-        # A kline carries open, high and low in positions 1 to 3. They are not fetched for
-        # this, they are already in the response, and `PriceSnapshot` has the columns.
-        bars = {
-            datetime.fromtimestamp(b[0] / 1000, tz=timezone.utc).date(): (
-                float(b[1]), float(b[2]), float(b[3])
-            )
-            for b in all_bars
-        }
-
-        # No closes is the end of this coin, and the check belongs here rather than after
-        # the cap: CoinPaprika is not geo-blocked and Binance is, so the one host where
-        # `closes` is empty is exactly the host where `today_cap` is present, and dating a
-        # cap off `closes[-1]` there raised IndexError instead of reporting a blocked
-        # source. That is a production failure the local run cannot reproduce.
-        if not closes:
-            print(f"  {cid}: no closes from Binance, skipped")
+        # No venue answered for this coin. That is data about the coin, not about the host, so
+        # it costs this coin its rows and nothing else; `require_answer` below decides whether
+        # the whole lane was blocked. The check sits before the market cap because CoinPaprika
+        # is not geo-blocked and the exchanges are, so the one host where `bars` is empty is
+        # exactly the host where a cap is present, and dating a cap off an empty series raised
+        # IndexError instead of reporting a blocked source.
+        if not bars:
+            print(f"  {cid}: no closes from {CRYPTO_CHAIN}, skipped")
             continue
 
-        # Market cap. CoinPaprika publishes today's market cap for every coin. No free
-        # source publishes circulating supply by year, so no historical cap is stored
-        # rather than one backfilled from today's supply. That is why the crypto
-        # industry is ranked by return and not by size.
+        # Market cap. CoinPaprika publishes today's market cap for every coin. No free source
+        # publishes circulating supply by year, so no historical cap is stored rather than one
+        # backfilled from today's supply. That is why the crypto industry is ranked by return
+        # and not by size. Cap stays on CoinPaprika whichever venue supplied the closes.
         today_cap = ((meta or {}).get("quotes", {}).get("USD", {}) or {}).get("market_cap")
         cap_by_day = {}
         if today_cap:
-            cap_by_day[closes[-1][0]] = float(today_cap)
+            cap_by_day[bars[-1][0]] = float(today_cap)
 
-        cur.execute('DELETE FROM "PriceSnapshot" WHERE "assetId" = %s', (a["id"],))
-        buffer = crypto_rows(a["id"], closes, volumes, bars, cap_by_day)
-        insert_snapshots(cur, buffer)
+        # Never shrink the stored series. Binance and Coinbase page back to 2019; Kraken holds
+        # about 720 days and Bitstamp less. Deleting six years of history and rewriting it from
+        # a shallow venue would lose the rows every analog and horizon in the brain is measured
+        # over — and it would look like a successful run. So a replace only happens when the
+        # fetch is at least as deep as what is stored; otherwise the new days are upserted on
+        # top. This is the same invariant `_store_frame` states for the Yahoo lane.
+        stored = depth.get(a["id"], 0)
+        replace = len(bars) >= stored
+        if replace:
+            cur.execute('DELETE FROM "PriceSnapshot" WHERE "assetId" = %s', (a["id"],))
+
+        buffer = crypto_rows(a["id"], bars, cap_by_day, source)
+        insert_snapshots(cur, buffer, replace=replace)
         written += len(buffer)
         answered += 1
-        print(f"  {sym:6} {len(closes)} days, {len(cap_by_day)} size point")
+        used[source] = used.get(source, 0) + 1
+        how = "replaced" if replace else f"kept {stored} stored, upserted"
+        print(f"  {sym:6} {len(bars):5} days from {source:9} ({how}), {len(cap_by_day)} size point")
 
-    # Same line as the Yahoo batch: one coin answering nothing is data, no coin answering is
-    # a fact about Binance, which refuses some hosts outright rather than answering thinly.
-    require_answer(answered, len(assets), source=BINANCE)
+    if used:
+        print("  venues that answered: " + ", ".join(f"{k} x{v}" for k, v in sorted(used.items())))
+
+    # One coin answering nothing is data and is printed above. No coin answering from any venue
+    # is a fact about this host, and it is the only condition worth failing the step for: with
+    # four public venues tried in turn, that can no longer mean one exchange is geo-blocked.
+    require_answer(answered, len(assets), source=CRYPTO_CHAIN)
     return written
 
 

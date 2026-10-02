@@ -124,6 +124,15 @@ jobs:
       # thousand round trips, which the Neon pooler closed underneath it. Fixed in 3cc83ee by
       # resolving the anchors set-based, committing per event and batching the inserts: the
       # same 1,394 rows in 0.6 minutes instead of failing after several.
+      #
+      # The third cause, and the one that kept this lane red from 2026-09-29: Binance was the
+      # only source of daily crypto closes, and it answers a GitHub runner with nothing while
+      # answering a laptop normally. The silence guard reported it correctly every night and
+      # there was no second venue to try, so the step failed by design and the data went stale.
+      # `fetch_crypto` now walks Binance, Coinbase, Kraken and Bitstamp, takes the first venue
+      # whose series is current rather than the first that replies, records which one answered
+      # on every row, and only fails when all four refuse every coin. A shallow venue never
+      # replaces a deeper stored series.
       - name: Run data jobs
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

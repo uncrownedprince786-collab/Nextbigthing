@@ -92,6 +92,15 @@ HOST_DELAY = {
     # for small volumes and starts answering 429 above that. 1.5s with a per-run request
     # ceiling in the job is what keeps an intraday run inside the free allowance.
     "query1.finance.yahoo.com": 1.5,
+    # The crypto close venues. Each is asked once per coin, ten coins a run, and all four
+    # publish a rate limit well above that; the delays below are the conservative end of what
+    # each documents, so a run cannot trip a limit even when every coin falls through to the
+    # last venue. Declared rather than defaulted because a venue added without a delay is a
+    # venue nobody chose a rate for.
+    "api.binance.com": 0.5,
+    "api.exchange.coinbase.com": 0.5,
+    "api.kraken.com": 1.0,
+    "www.bitstamp.net": 1.0,
 }
 _last_hit: dict[str, float] = {}
 
