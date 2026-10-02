@@ -2534,6 +2534,11 @@ class NoLookAhead(unittest.TestCase):
             "thesis.py": "opening record write-once, checked above",
             "accuracy.py": "measures from the recorded close, checked above",
             "signals.py": "windows anchored to a completed week, checked above",
+            "factors.py": (
+                "every read bounded by the session being written and the cutoff repeated "
+                "inside compute; checked by PriceFactors below, which computes a session with "
+                "and without later sessions present and requires the same answer"
+            ),
             "setup.py": "writes today's read only, keyed by periodEnd",
             "horizons.py": "writes today's read only, keyed by horizon and periodEnd",
             "analogs.py": "describes past days and what followed them, which is the measurement",
@@ -3413,32 +3418,53 @@ class PsxHistoryDepth(unittest.TestCase):
         self.assertEqual(psx.LONGER_MIN_CLOSES, horizons.MIN_LONG)
 
     def test_the_daily_window_is_deep_enough_for_a_longer_read_with_margin(self):
-        # The window is in calendar days and the requirement is in sessions, so the
-        # conversion is where an off-by-a-season hides. PSX trades five days a week; the
-        # holiday rate is bounded below rather than guessed, so the assertion holds even in a
-        # year with a long Eid and a long Muharram.
-        weekdays = len(psx.deep_dates(self.TODAY))
+        # The window is in calendar days and the requirement is in sessions, so the conversion
+        # is where an off-by-a-season hides. What a symbol ends up holding is the whole span —
+        # the dense stretch plus the recent window the daily run keeps — so that is what the
+        # requirement is measured against, not one run's bite out of it. The holiday rate is
+        # bounded rather than guessed, so this holds in a year with a long Eid and a long
+        # Muharram.
+        span = self._weekdays_in_span(psx.DEEP_DAYS)
         for holiday_rate in (0.04, 0.08, 0.12):
-            sessions = weekdays * (1 - holiday_rate)
+            sessions = span * (1 - holiday_rate)
             self.assertGreaterEqual(
                 sessions, horizons.MIN_LONG,
                 f"at a {holiday_rate:.0%} holiday rate the window yields {sessions:.0f} "
                 f"sessions, under the {horizons.MIN_LONG} a longer read needs",
             )
-        # And the whole stored depth — the deep stretch plus the recent window the daily run
-        # keeps, which is what a symbol actually ends up holding — reaches the window the
-        # longer read asks for rather than the minimum it will accept. LONGER_RULES says
-        # "across two years" in the sentence published under every one of those reads, and at
-        # the bare minimum that line is untrue.
-        span = self._weekdays_in_span(psx.DEEP_DAYS)
-        self.assertGreater(span, weekdays, "the recent window has to add to the deep one")
-        for holiday_rate in (0.04, 0.08, 0.12):
+            # And past the minimum it will accept, to the window it actually reads from.
+            # LONGER_RULES says "across two years" in the sentence published under every one
+            # of those reads, and at the bare minimum that line is untrue.
             self.assertGreaterEqual(
-                span * (1 - holiday_rate), horizons.LONG_RANGE,
+                sessions, horizons.LONG_RANGE,
                 f"at a {holiday_rate:.0%} holiday rate the stored depth is "
-                f"{span * (1 - holiday_rate):.0f} sessions, under the "
-                f"{horizons.LONG_RANGE} the longer read reads from",
+                f"{sessions:.0f} sessions, under the {horizons.LONG_RANGE} the longer "
+                "read reads from",
             )
+
+    def test_the_per_run_fetch_cap_still_reaches_the_whole_window(self):
+        # The cap exists because the exchange began refusing at the connection level after
+        # about six hundred requests in one session, taking the monthly grid and the share
+        # counts down behind it. A cap that could never finish would be worse than no cap, so
+        # what matters is that the stretch closes in a small number of weekly runs.
+        remaining = frozenset(psx.deep_dates(self.TODAY, frozenset()))
+        all_weekdays = set()
+        day = self.TODAY - timedelta(days=psx.RECENT_DAYS + 1)
+        while day >= psx.deep_start(self.TODAY):
+            if day.weekday() < 5:
+                all_weekdays.add(day)
+            day -= timedelta(days=1)
+
+        runs, stored = 0, set()
+        while len(stored) < len(all_weekdays) and runs < 10:
+            batch = psx.deep_dates(self.TODAY, frozenset(stored))
+            self.assertLessEqual(len(batch), psx.DEEP_FETCH_BUDGET)
+            self.assertTrue(batch, "a run that fetches nothing would never finish")
+            stored |= set(batch)
+            runs += 1
+        self.assertEqual(stored, all_weekdays, "the cap left part of the window unreachable")
+        self.assertLessEqual(runs, 3, f"the window took {runs} weekly runs to close")
+        self.assertEqual(len(remaining), psx.DEEP_FETCH_BUDGET)
 
     def _weekdays_in_span(self, days: int) -> int:
         """Trading weekdays from `days` ago through today, both stretches together."""
@@ -3473,8 +3499,12 @@ class PsxHistoryDepth(unittest.TestCase):
         deep = psx.deep_dates(self.TODAY)
         known = frozenset(deep[:40])
         thinner = psx.deep_dates(self.TODAY, known)
-        self.assertEqual(len(thinner), len(deep) - 40)
         self.assertEqual([d for d in thinner if d in known], [])
+        # Skipping does not shrink the run, it moves it deeper: the bite stays the size the
+        # host tolerates and reaches 40 weekdays further back. A plan that shrank instead
+        # would take longer to close the window the more of it was already done.
+        self.assertEqual(len(thinner), len(deep))
+        self.assertLess(min(thinner), min(deep))
 
     def test_the_window_stops_at_the_era_this_job_reads(self):
         # A `today` early enough that the window would reach past HISTORY_FROM must clamp to
@@ -3535,8 +3565,321 @@ class PsxHistoryDepth(unittest.TestCase):
         # only writer of two years of PSX closes, and a run that replaced from a short fetch
         # would destroy them to save a few requests.
         text = (ROOT / "jobs" / "psx.py").read_text(encoding="utf-8")
-        self.assertNotIn("DELETE", text.upper().replace("DELETED", ""))
-        self.assertIn("ON CONFLICT", text)
+        # The SQL statement, not the English word: the comments here discuss deleting in order
+        # to say it never happens, and a substring match on "DELETE" fails on its own rationale.
+        sql = "\n".join(
+            line for line in text.splitlines() if not line.strip().startswith("#")
+        )
+        self.assertNotRegex(sql.upper(), r"\bDELETE\s+FROM\b")
+        self.assertNotRegex(sql.upper(), r"\bTRUNCATE\b")
+        self.assertIn("ON CONFLICT", sql)
+
+
+class PriceFactors(unittest.TestCase):
+    """The arithmetic in jobs/factors.py, and the three properties it would be worst to lose.
+
+    Every case here is hand-computable: the series are short, round, and chosen so the expected
+    answer can be checked on paper. That matters more than usual for this file, because a wrong
+    factor does not raise — it writes a plausible number that the decision rules then trust.
+
+    The three properties, in the order of how much a reader loses when one breaks:
+
+      * a factor that cannot be computed is null, never zero, and `bars` says why
+      * the band around a return is robust, so one gap does not swallow every later move
+      * a row dated D is computed only from closes at or before D
+    """
+
+    @staticmethod
+    def factors():
+        import factors
+        return factors
+
+    @staticmethod
+    def bars(closes, start=date(2026, 1, 5), volume=1000.0):
+        """Consecutive dated bars from a list of closes, oldest first."""
+        return [
+            {"date": start + timedelta(days=i), "close": float(c), "volume": volume}
+            for i, c in enumerate(closes)
+        ]
+
+    # --- the formulas, against arithmetic -------------------------------------------------
+
+    def test_simple_returns_are_the_spans_they_claim(self):
+        f = self.factors()
+        # Twenty one closes, all 100 except the last. Every span therefore measures from 100,
+        # so all three returns are 20% and can be read off without a calculator.
+        closes = [100.0] * 20 + [120.0]
+        self.assertAlmostEqual(f.simple_return(closes, 1), 20.0)
+        self.assertAlmostEqual(f.simple_return(closes, 5), 20.0)
+        self.assertAlmostEqual(f.simple_return(closes, 20), 20.0)
+        # And a span whose base close is one bar out of reach is not the shorter span.
+        self.assertIsNone(f.simple_return(closes[1:], 20))
+        self.assertAlmostEqual(f.simple_return([100.0, 90.0], 1), -10.0)
+
+    def test_a_return_refuses_an_unusable_base(self):
+        f = self.factors()
+        # A zero base is not a 100% gain. It is a denominator that does not exist.
+        self.assertIsNone(f.simple_return([0.0, 50.0], 1))
+
+    def test_the_volume_ratio_is_against_the_sessions_before_it(self):
+        f = self.factors()
+        # Twenty sessions at 100 then one at 250: 2.5 times its own average, and the heavy day
+        # is not allowed to inflate the average it is measured against.
+        self.assertAlmostEqual(f.volume_ratio([100.0] * 20 + [250.0]), 2.5)
+
+    def test_a_volume_ratio_of_zero_is_a_measurement_and_a_missing_one_is_not(self):
+        f = self.factors()
+        # Nothing traded: a real 0.0, kept.
+        self.assertEqual(f.volume_ratio([100.0] * 20 + [0.0]), 0.0)
+        # The venue published no volume for the latest session: null, not a quiet day.
+        self.assertIsNone(f.volume_ratio([100.0] * 20 + [None]))
+        # Too few baseline sessions carry a volume at all.
+        self.assertIsNone(f.volume_ratio([None] * 15 + [100.0] * 5 + [200.0]))
+
+    def test_the_moving_averages_are_means_of_the_window_they_name(self):
+        f = self.factors()
+        closes = [float(x) for x in range(1, 11)]
+        self.assertAlmostEqual(f.sma(closes, 5), 8.0)       # (6+7+8+9+10)/5
+        self.assertAlmostEqual(f.sma(closes, 10), 5.5)      # (1+...+10)/10
+        # A 20 day average over ten closes would be a ten day average with the wrong label.
+        self.assertIsNone(f.sma(closes, 20))
+
+    def test_range_position_is_zero_at_the_low_and_a_hundred_at_the_high(self):
+        f = self.factors()
+        rising = [float(x) for x in range(1, 25)]
+        self.assertAlmostEqual(f.range_pct(rising), 100.0)
+        self.assertAlmostEqual(f.range_pct(list(reversed(rising))), 0.0)
+        # A close halfway between the extremes of the window, by construction.
+        middle = [10.0, 30.0] + [20.0] * 22
+        self.assertAlmostEqual(f.range_pct(middle), 50.0)
+
+    def test_a_series_that_never_moved_has_no_position_in_its_range(self):
+        f = self.factors()
+        # 0, 50 and 100 would all be defensible, which is the sign that the answer is null.
+        self.assertIsNone(f.range_pct([25.0] * 30))
+
+    def test_drawdown_is_never_positive_and_is_zero_at_the_high(self):
+        f = self.factors()
+        rising = [float(x) for x in range(1, 25)]
+        self.assertEqual(f.drawdown_pct(rising), 0.0)
+        # Down from a high of 24 to a close of 1.
+        self.assertAlmostEqual(f.drawdown_pct(list(reversed(rising))), (1 / 24 - 1) * 100.0)
+        # Every window shape, including the ones with the close at the top, stays <= 0.
+        for closes in (rising, list(reversed(rising)), [5.0] * 30, [5.0] * 29 + [9.0]):
+            self.assertLessEqual(f.drawdown_pct(closes), 0.0)
+
+    def test_the_range_measures_the_stated_window_and_not_the_whole_history(self):
+        f = self.factors()
+        # A spike older than RANGE_WINDOW must not be the high the drawdown is taken from,
+        # otherwise "percent below the trailing high" silently means "below the all time high".
+        old_spike = [1000.0] + [50.0] * f.RANGE_WINDOW
+        self.assertEqual(f.drawdown_pct(old_spike), 0.0)
+
+    def test_the_peer_median_is_refused_below_the_floor(self):
+        f = self.factors()
+        self.assertIsNone(f.peer_median_r20([1.0, 2.0, 3.0, 4.0]))
+        self.assertAlmostEqual(f.peer_median_r20([1.0, 2.0, 3.0, 4.0, 100.0]), 3.0)
+        self.assertEqual(f.MIN_PEERS, 5, "the floor moved, so the justification needs rereading")
+
+    def test_relative_strength_is_null_below_the_peer_floor_not_the_raw_return(self):
+        f = self.factors()
+        # Four peers: both peer fields null. The asset's own return must not be republished
+        # under a name that claims it was compared against an industry.
+        got = f.compute(self.bars([100.0] * 20 + [110.0]), date(2026, 3, 1), [1.0, 2.0, 3.0, 4.0])
+        self.assertIsNone(got["peerMedianR20"])
+        self.assertIsNone(got["relStrength"])
+        self.assertEqual(got["peers"], 4, "the count of peers looked at is still worth storing")
+        # Five peers: the median is published and the difference is arithmetic.
+        got = f.compute(
+            self.bars([100.0] * 20 + [110.0]), date(2026, 3, 1), [1.0, 2.0, 3.0, 4.0, 100.0]
+        )
+        self.assertAlmostEqual(got["peerMedianR20"], 3.0)
+        self.assertAlmostEqual(got["relStrength"], 10.0 - 3.0)
+
+    # --- the robust band ------------------------------------------------------------------
+
+    def test_the_robust_band_is_not_swallowed_by_one_gap(self):
+        """The whole reason the z-score here is not a mean and a standard deviation.
+
+        Forty quiet half-percent sessions and one 25% earnings gap. A standard deviation reads
+        that gap as the normal size of a day and calls a later 3% move ordinary; the median and
+        the MAD do not move at all, so the later move stays what it is — unusual.
+        """
+        import statistics
+        f = self.factors()
+        history = [0.5, -0.5] * 20 + [25.0]
+        move = 3.0
+
+        robust = f.robust_z(move, history)
+        # Forty one sessions: twenty at -0.5, twenty at 0.5, one at 25. The median is the
+        # twenty-first value, 0.5; the deviations are twenty 0s, twenty 1s and one 24.5, so the
+        # MAD is 1.0 and the scale is 1.4826. The score is therefore (3 - 0.5) / 1.4826.
+        self.assertAlmostEqual(robust, (move - 0.5) / 1.4826, places=6)
+        self.assertGreater(robust, 1.6, "a 3% day after forty quiet ones is not ordinary")
+
+        mean = statistics.fmean(history)
+        plain = (move - mean) / statistics.pstdev(history)
+        # The same move against mean and standard deviation: inside one deviation, which on a
+        # page reads as a day worth nobody's attention. That is the swallowing being avoided.
+        self.assertLess(plain, 0.7, "the comparison case is not actually swamped")
+        self.assertGreater(
+            robust, 2.5 * plain,
+            "the robust band no longer behaves differently from a standard deviation one",
+        )
+
+    def test_the_band_refuses_a_baseline_too_thin_to_describe_a_distribution(self):
+        f = self.factors()
+        self.assertIsNone(f.robust_z(3.0, [0.5, -0.5] * 5))
+        self.assertEqual(f.MIN_Z_HISTORY, 30)
+
+    def test_a_flat_baseline_gives_a_finite_band_rather_than_an_infinity(self):
+        f = self.factors()
+        # Every session identical: MAD 0. Without the floor this divides by zero.
+        got = f.robust_z(1.0, [0.0] * 40)
+        self.assertIsNotNone(got)
+        self.assertAlmostEqual(got, 1.0 / f.MAD_FLOOR_PCT)
+
+    def test_the_band_is_measured_against_the_sessions_before_the_move(self):
+        f = self.factors()
+        # Fifty quiet sessions then a jump. If the jump were inside its own baseline it would
+        # pull the median towards itself and shrink exactly the score being asked for.
+        closes = [100.0 + 0.1 * i for i in range(50)] + [150.0]
+        got = f.compute(self.bars(closes), date(2027, 1, 1))
+        self.assertIsNotNone(got["returnZ"])
+        self.assertGreater(got["returnZ"], 10.0)
+
+    # --- null, never zero ------------------------------------------------------------------
+
+    def test_too_few_bars_gives_null_for_that_field_and_a_correct_bar_count(self):
+        """The rule the schema comment is explicit about, in the form that would break first.
+
+        Fifteen closes support a one and a five session return and nothing longer. The 20
+        session return, both moving averages and the band are null — not 0.0, which the rules
+        would read as a flat month, a price at its own average, and an utterly ordinary day.
+        """
+        f = self.factors()
+        got = f.compute(self.bars([100.0 + i for i in range(15)]), date(2026, 6, 1))
+        self.assertEqual(got["bars"], 15)
+        self.assertIsNotNone(got["r1"])
+        self.assertIsNotNone(got["r5"])
+        for field in ("r20", "sma20", "sma50", "returnZ"):
+            self.assertIsNone(got[field], f"{field} was computed from 15 closes")
+
+    def test_nothing_stored_reports_no_bars_and_no_factors(self):
+        f = self.factors()
+        got = f.compute([], date(2026, 6, 1))
+        self.assertEqual(got["bars"], 0)
+        for field in ("r1", "r5", "r20", "returnZ", "volumeRatio", "sma20", "sma50",
+                      "rangePct", "drawdownPct", "peerMedianR20", "relStrength"):
+            self.assertIsNone(got[field], f"{field} was produced from no closes at all")
+
+    def test_a_short_history_is_counted_up_to_the_session_and_not_past_it(self):
+        f = self.factors()
+        bars = self.bars([100.0 + i for i in range(40)])
+        # Ten of those bars are dated after the session being written.
+        got = f.compute(bars, bars[29]["date"])
+        self.assertEqual(got["bars"], 30)
+
+    def test_a_dated_item_outside_the_horizon_is_null_rather_than_a_large_number(self):
+        f = self.factors()
+        day = date(2026, 6, 1)
+        self.assertEqual(f.event_in_days(day, day), 0)
+        self.assertEqual(f.event_in_days(day, day + timedelta(days=9)), 9)
+        self.assertIsNone(f.event_in_days(day, None))
+        self.assertIsNone(f.event_in_days(day, day - timedelta(days=1)))
+        self.assertIsNone(
+            f.event_in_days(day, day + timedelta(days=f.EVENT_HORIZON_DAYS + 1))
+        )
+
+    def test_a_stale_news_reading_is_not_borrowed_as_a_recent_one(self):
+        f = self.factors()
+        day = date(2026, 6, 1)
+        self.assertEqual(f.news_stories(day, day, 4), 4)
+        self.assertEqual(f.news_stories(day, day, 0), 0, "checked and none is not unchecked")
+        self.assertIsNone(f.news_stories(day, None, None))
+        self.assertIsNone(
+            f.news_stories(day, day - timedelta(days=f.NEWS_MAX_AGE_DAYS + 1), 9)
+        )
+
+    # --- look-ahead -----------------------------------------------------------------------
+
+    def test_a_factor_for_a_session_is_identical_with_and_without_later_sessions(self):
+        """The dangerous bug, in the only form a database-free suite can ask about it.
+
+        A factor that peeks one session forward makes every hit rate the project publishes a
+        lie, and nothing about the row would look wrong. So: compute for session D from a
+        series that runs well past D, and from the same series truncated at D, and require the
+        two to be the same answer field by field.
+        """
+        f = self.factors()
+        closes = [100.0 + ((i * 7) % 11) for i in range(80)]
+        bars = self.bars(closes)
+        at = 59
+        day = bars[at]["date"]
+
+        with_future = f.compute(bars, day, [1.0, 2.0, 3.0, 4.0, 5.0])
+        without_future = f.compute(bars[: at + 1], day, [1.0, 2.0, 3.0, 4.0, 5.0])
+        self.assertEqual(with_future, without_future)
+        self.assertEqual(with_future["bars"], at + 1)
+
+        # And the test is not vacuous: the last session genuinely measures something else.
+        self.assertNotEqual(f.compute(bars, bars[-1]["date"]), without_future)
+
+    def test_the_cutoff_lives_in_the_formula_and_not_only_in_the_sql(self):
+        f = self.factors()
+        src = (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8")
+        body = src[src.index("def compute("):src.index("def event_in_days(")]
+        self.assertIn('b["date"] <= period_end', body, "compute trusts its caller's cutoff")
+        # Order is part of the cutoff: a caller handing over rows in storage order must get
+        # the same answer as one handing them over sorted.
+        self.assertIn("sorted(", body)
+
+    def test_every_read_is_bounded_by_the_session_being_written(self):
+        f = self.factors()
+        src = (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8")
+        history = src[src.index("def read_history("):src.index("def read_events(")]
+        self.assertIn("date <= %s", history)
+        self.assertNotIn("date > %s", history)
+        news = src[src.index("def read_news("):src.index("def flush(")]
+        self.assertIn('"periodEnd" <= %s', news)
+        # The only forward-looking read is the calendar, which is the point of a calendar.
+        events = src[src.index("def read_events("):src.index("def read_news(")]
+        self.assertIn("e.date >= %s", events)
+        self.assertIsNotNone(f.read_events)
+
+    def test_the_row_is_dated_to_a_session_that_exists(self):
+        f = self.factors()
+        series = {
+            "a": [{"date": date(2026, 6, 1)}, {"date": date(2026, 6, 4)}],
+            "b": [{"date": date(2026, 6, 3)}],
+            "c": [],
+        }
+        self.assertEqual(f.session_end(series, date(2026, 6, 9)), date(2026, 6, 4))
+        # Nothing stored at all: the fallback, rather than an exception inside a nightly lane.
+        self.assertEqual(f.session_end({}, date(2026, 6, 9)), date(2026, 6, 9))
+
+    # --- the shape of the write -------------------------------------------------------------
+
+    def test_a_rerun_on_the_same_day_updates_rather_than_duplicating(self):
+        src = (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8")
+        self.assertIn('ON CONFLICT ("assetId", "periodEnd") DO UPDATE', src)
+        self.assertNotRegex(src.upper(), r"\bDELETE\s+FROM\b")
+
+    def test_the_run_is_committed_in_bounded_batches(self):
+        # events.py held one transaction across a whole run and Neon's pooler closed it
+        # underneath. A ceiling on the batch is what keeps a dropped connection cheap.
+        f = self.factors()
+        self.assertLessEqual(f.BATCH_ROWS, 500)
+        self.assertGreaterEqual(f.BATCH_ROWS, 50)
+        src = (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8")
+        self.assertIn("conn.commit()", src)
+
+    def test_the_whole_run_reads_a_bounded_number_of_statements(self):
+        # Four reads for every asset in the database, none of them inside a loop. A query per
+        # asset is four thousand round trips at the thousand assets this table is sized for.
+        src = (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8")
+        self.assertEqual(src.count(" rows("), 4, "the number of reads changed")
+        self.assertEqual(QueryBudget.in_loop_calls(ROOT / "jobs" / "factors.py"), 0)
 
 
 if __name__ == "__main__":

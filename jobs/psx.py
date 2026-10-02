@@ -4,14 +4,23 @@ Source, verified on 2026-09-30:
 
     https://dps.psx.com.pk/download/mkt_summary/YYYY-MM-DD.Z
 
-is a ZIP holding one pipe delimited file, `closing11.lis`, with a line per listed symbol:
+is an archive holding one pipe delimited file, `closing11.lis`, a line per listed symbol:
 
     31DEC2021|OGDC|0820|Oil & Gas Dev.|84.20|87.30|84.15|86.20|3368560|84.94|||
     date      sym   sec  name           open  high  low   close volume   prev
 
-No key, no cookie, no CAPTCHA, and files exist back to at least 2019-12-31, which covers
-every snapshot date the site ranks on. It is the exchange's own end of day record rather
-than a scrape of a rendered page, so a layout change cannot silently alter a number.
+No key, no cookie, no CAPTCHA. Probed one date at a time on 2026-10-03, the archive runs
+back to 2013-11-04: that date and every trading day after it answer 200, while 2013-11-01
+and every date before it answer 404 with an HTML error page. Weekends and public holidays
+404 throughout. So depth was never the exchange's limit — it was this job's, which asked
+for one file a month before the recent window and left every PSX asset with about 178
+stored closes against the 220 jobs/horizons.py needs. See DEEP_DAYS.
+
+The container changes partway through that range, which is the trap. 2019 onward is a ZIP;
+2013-11 to 2018 is gzip, same `.Z` URL, same `closing11.lis` inside, same pipe layout. A
+reader that only knew ZIP did not raise on a gzip file so much as report that day as a
+market holiday, so the archive looked shallower than it is. unpack() sniffs the magic bytes
+instead of branching on the date.
 
 Two things this job will not do:
 
@@ -27,13 +36,16 @@ Two things this job will not do:
 Run: python jobs/psx.py [recent|full]
     recent  the snapshot dates and the last 120 days. Enough for current price, the
             60 day volume check and the 24 month relative return.
-    full    the above plus a monthly grid back to 2019, which fills the price history
-            chart. Historical files never change, so this is cached hard and a rerun is
-            nearly free.
+    full    the above, plus every weekday back DEEP_DAYS so a longer horizon read can
+            exist at all, plus a monthly grid over the years before that, which fills the
+            price history chart. Historical files never change, so a date already stored
+            is never asked for again and a rerun costs only the days that have newly aged
+            out of the recent window.
 """
 
 from __future__ import annotations
 
+import gzip
 import io
 import re
 import sys
@@ -66,10 +78,76 @@ RECENT_DAYS = 120
 # longest gap in the published files.
 BACKTRACK = 9
 HISTORY_FROM = date(2019, 1, 1)
+# The first date the archive answers 200 for, pinned by probing single days rather than
+# assumed. Nothing here reaches back this far yet; it is written down so the next person to
+# want more history knows the floor is the exchange's and not a guess.
+ARCHIVE_FROM = date(2013, 11, 4)
+
+# How deep the dense daily stretch runs, in calendar days.
+#
+# The number this has to clear is jobs/horizons.py: MIN_LONG = LONG_SLOW + 20 = 220 stored
+# closes before it will write a longer horizon read at all, and it asks for LONG_RANGE + 40
+# = 540 so the 500 session range and the 200 day average are both read from a full window.
+# The sentence it publishes against every one of those reads says "across two years", so
+# stopping at the 220 minimum would make that line untrue for PSX while it is true for every
+# US asset.
+#
+# PSX trades Monday to Friday and closes for roughly thirteen public holidays a year, so a
+# calendar year yields about 248 sessions and 540 sessions needs about 795 calendar days.
+# 820 is that with a fortnight of slack, so a year with a long Eid and a long Muharram still
+# clears 540 rather than landing just under it.
+DEEP_DAYS = 820
+# jobs/horizons.py's MIN_LONG, restated so this job can report whether it has cleared it.
+# Not imported: that would make a price fetcher load the reasoning job and everything under
+# it to print one line. A test pins the two together instead, so the copy cannot drift.
+LONGER_MIN_CLOSES = 220
+# What counts as a date already filled, as a fraction of the symbols being tracked. A run
+# that died mid-batch left a date holding a handful of rows and must be asked for again; a
+# quiet session on which a few small caps genuinely did not trade must not be, or every run
+# would refetch the same dates forever. Two thirds separates the two cases cleanly: no real
+# PSX session leaves a third of this list untraded, and a half finished batch is far below it.
+FILLED_FRACTION = 2 / 3
+# How many new dense files one run may fetch.
+#
+# Measured on the first deep run rather than chosen: this host answered the 121 recent days
+# and all 471 deep weekdays, then began refusing at the connection level. Every request after
+# roughly six hundred in one session came back URLError, which spent the retry budget in
+# jobs/nbt.py and left the monthly grid behind it failing too. Nothing was lost — a stored
+# date is never refetched and nothing here deletes — but a run that provokes a refusal is a
+# run whose later steps are decided by the exchange rather than by this job.
+#
+# So the dense pass takes a bounded bite. 250 keeps a run's total under four hundred, well
+# inside what did answer, and costs nothing in reach: deep_dates walks newest first and skips
+# what is stored, so two runs cover the whole of DEEP_DAYS and every run after that pays only
+# for the days that have newly aged out of the recent window.
+DEEP_FETCH_BUDGET = 250
+
+# The two containers the archive uses behind the same `.Z` name. Sniffed, not inferred from
+# the date, because the crossover is the exchange's business and a date it ever re-publishes
+# in the other format still has to read.
+ZIP_MAGIC = b"PK\x03\x04"
+GZIP_MAGIC = b"\x1f\x8b"
 
 
 def file_url(day: date) -> str:
     return f"{BASE}/{day.isoformat()}.Z"
+
+
+def unpack(raw: bytes) -> str | None:
+    """The `closing11.lis` text inside one archive, or None if this is not an archive.
+
+    A 404 from this host is an HTML error page rather than an empty body, so the magic byte
+    check is also what stops an error page being parsed as a very short trading day.
+    """
+    try:
+        if raw.startswith(ZIP_MAGIC):
+            zf = zipfile.ZipFile(io.BytesIO(raw))
+            return zf.read(zf.namelist()[0]).decode("utf-8", "replace")
+        if raw.startswith(GZIP_MAGIC):
+            return gzip.decompress(raw).decode("utf-8", "replace")
+    except Exception:  # noqa: BLE001 - a corrupt archive is a missing day, not a crash
+        return None
+    return None
 
 
 def ttl_for(day: date, today: date) -> int:
@@ -80,22 +158,36 @@ def ttl_for(day: date, today: date) -> int:
     return 3600 * 6 if (today - day).days <= 14 else 3600 * 24 * 365
 
 
-def read_day(day: date, today: date) -> dict[str, dict] | None:
-    """One day's closing file as {symbol: row}, or None when the market did not trade."""
+def read_day(
+    day: date, today: date, keep: frozenset[str] | None = None
+) -> dict[str, dict] | None:
+    """One day's closing file as {symbol: row}, or None when the exchange published nothing.
+
+    `keep` is the symbol set being tracked, and rows outside it are dropped as they are read.
+    The whole exchange is about 600 symbols against the 70 this project follows, and a dense
+    DEEP_DAYS stretch holds every one of those days in memory at once while the network phase
+    runs. Keeping all 600 is the difference between tens of megabytes and hundreds.
+
+    Published-but-nothing-of-ours is therefore a real outcome, and it returns an empty dict
+    rather than None. The two must stay distinct: None means the market was closed and the
+    caller should keep walking backwards, while {} means the market traded and it should stop.
+    Collapsing them is how a backtrack walks straight past a real session.
+    """
     raw = get(file_url(day), cache_key=f"psx-{day.isoformat()}", ttl=ttl_for(day, today))
     if not raw:
         return None
-    try:
-        zf = zipfile.ZipFile(io.BytesIO(raw))
-        text = zf.read(zf.namelist()[0]).decode("utf-8", "replace")
-    except Exception as e:  # noqa: BLE001 - a corrupt archive is a missing day, not a crash
-        print(f"  {day}: unreadable archive, {type(e).__name__}")
+    text = unpack(raw)
+    if text is None:
+        print(f"  {day}: unreadable archive, {len(raw)} bytes")
         return None
 
     out: dict[str, dict] = {}
     for line in text.splitlines():
         f = line.split("|")
         if len(f) < 10 or not f[1]:
+            continue
+        symbol = f[1].strip().upper()
+        if keep is not None and symbol not in keep:
             continue
         try:
             close = float(f[7])
@@ -116,7 +208,7 @@ def read_day(day: date, today: date) -> dict[str, dict] | None:
                 return None
             return v if v > 0 else None
 
-        out[f[1].strip().upper()] = {
+        out[symbol] = {
             "open": bar(4),
             "high": bar(5),
             "low": bar(6),
@@ -124,13 +216,55 @@ def read_day(day: date, today: date) -> dict[str, dict] | None:
             "volume": volume,
             "name": f[3].strip(),
         }
-    return out or None
+    return out
 
 
 def dense_dates(today: date) -> list[date]:
     """Every day of the recent stretch. Most are trading days, so all of them are asked
     for and the weekends simply come back as a 404."""
     return [today - timedelta(days=i) for i in range(RECENT_DAYS + 1)]
+
+
+def deep_start(today: date) -> date:
+    """The oldest day the dense stretch reaches, floored at the era this job reads."""
+    return max(HISTORY_FROM, today - timedelta(days=DEEP_DAYS))
+
+
+def deep_dates(today: date, known: frozenset[date] = frozenset()) -> list[date]:
+    """Every weekday between the dense stretch and the recent window, minus what is stored.
+
+    Two subtractions, and both are the difference between a run that costs a quarter of an
+    hour once and one that costs it every week.
+
+    Weekends are dropped rather than asked for and 404ed. The recent window still asks for
+    all seven days, because there the 404s are what prove the host is answering at all and
+    the silence guard counts on them; out here, 230 guaranteed misses are just six minutes of
+    the exchange's time and ours.
+
+    `known` is the dates already stored deeply enough to be finished. Historical files never
+    change, so a date that is in the database is a date that never needs fetching again, and
+    skipping it is what makes the second run cheap without relying on the disk cache having
+    survived between them. The recent window is deliberately outside this: the last days are
+    still being revised, and they are refetched on their own TTL.
+
+    What this cannot skip is a public holiday. The exchange published no file, so there is no
+    row, so nothing marks the day as settled and every later run asks again. Measured against
+    the filled window that is 23 requests a run, which is cheaper than the alternative: a
+    table of days known to be empty is a second record of what the archive says, and it would
+    go stale the first time the exchange backfilled a date it had missed.
+
+    Newest first, and capped at DEEP_FETCH_BUDGET: a run cut short, by its own budget or by
+    the host, has left the most useful depth behind rather than a hole next to the present.
+    """
+    out: list[date] = []
+    first, last = deep_start(today), today - timedelta(days=RECENT_DAYS + 1)
+    day = last
+    while day >= first and len(out) < DEEP_FETCH_BUDGET:
+        # weekday() 5 and 6 are Saturday and Sunday. The exchange has never published either.
+        if day.weekday() < 5 and day not in known:
+            out.append(day)
+        day -= timedelta(days=1)
+    return out
 
 
 def anchor_dates(today: date, mode: str) -> list[date]:
@@ -146,9 +280,12 @@ def anchor_dates(today: date, mode: str) -> list[date]:
 
     if mode == "full":
         # One reading a month draws a seven year line in about 90 files, where a daily
-        # backfill would be nearly 2,000.
+        # backfill would be nearly 2,000. It stops where deep_dates starts: inside that
+        # stretch every day is already being asked for, and a monthly anchor there would
+        # only add backtracking work over days the dense pass has read anyway.
+        stop = deep_start(today)
         cursor = HISTORY_FROM
-        while cursor < today:
+        while cursor < stop:
             out.append(cursor)
             year, month = cursor.year + (cursor.month // 12), cursor.month % 12 + 1
             cursor = date(year, month, 1)
@@ -227,7 +364,7 @@ def main() -> None:
     #
     # So: ask what to fetch, hang up. Fetch. Reconnect and write.
 
-    # --- phase 1: what to fill. A question, and then the connection goes away.
+    # --- phase 1: what to fill. Two questions, and then the connection goes away.
     conn = db()
     with conn, conn.cursor() as cur:
         assets = rows(
@@ -235,12 +372,29 @@ def main() -> None:
             'SELECT id, symbol, name FROM "Asset" WHERE source = %s ORDER BY symbol',
             (PSX,),
         )
+        # Which dates in the dense stretch are already filled. Asked once, as a set, rather
+        # than per date in the fetch loop: the whole point of the phase split is that no
+        # connection is open while the network is being used, and a query per day would be
+        # six hundred round trips before a single file is fetched.
+        filled = []
+        if assets:
+            filled = rows(
+                cur,
+                """
+                SELECT date FROM "PriceSnapshot"
+                WHERE source = %s AND date >= %s
+                GROUP BY date HAVING count(*) >= %s
+                """,
+                (CLOSING, deep_start(today), max(1, int(len(assets) * FILLED_FRACTION))),
+            )
     conn.close()
 
     if not assets:
         print("no PSX assets seeded, nothing to do")
         return
     by_symbol = {a["symbol"].upper(): a for a in assets}
+    wanted = frozenset(by_symbol)
+    known = frozenset(r["date"] for r in filled)
     print(f"  {len(by_symbol)} PSX symbols to fill")
 
     # --- phase 2: every request this job makes, with nothing to time out behind it.
@@ -253,7 +407,7 @@ def main() -> None:
         nonlocal asked
         if day not in cache:
             asked += 1
-            cache[day] = read_day(day, today)
+            cache[day] = read_day(day, today, wanted)
         return cache[day]
 
     def resolve(anchor: date) -> date | None:
@@ -263,16 +417,33 @@ def main() -> None:
             day = anchor - timedelta(days=back)
             if day < HISTORY_FROM or day > today:
                 continue
-            if load(day):
+            # `is not None` and not truthiness: a published day on which none of the tracked
+            # symbols traded is still a published day, and walking past it would land this
+            # anchor on an older close while reporting it as the nearest one.
+            if load(day) is not None:
                 return day
         return None
 
-    # Newest first, so a run cut short still leaves current prices behind.
-    targets: list[date] = sorted(
-        {d for d in dense_dates(today) if load(d)}
-        | {r for a in anchor_dates(today, mode) if (r := resolve(a))},
-        reverse=True,
-    )
+    # The order these three run in is the order a run that dies halfway leaves something
+    # useful behind: current prices first, then depth newest first, then the old monthly line.
+    found: set[date] = {d for d in dense_dates(today) if load(d) is not None}
+
+    deep = deep_dates(today, known) if mode == "full" else []
+    if deep:
+        print(
+            f"  {len(deep)} weekdays to fetch between {deep[-1]} and {deep[0]}"
+            + (
+                f", the per-run cap, so the rest back to {deep_start(today)} follows next run"
+                if len(deep) >= DEEP_FETCH_BUDGET
+                else f", which reaches {deep_start(today)}"
+            )
+        )
+        found |= {d for d in deep if load(d) is not None}
+
+    found |= {r for a in anchor_dates(today, mode) if (r := resolve(a))}
+
+    # Newest first, so a write cut short still leaves current prices behind.
+    targets: list[date] = sorted(found, reverse=True)
 
     traded = 0
     latest_day: date | None = None
@@ -282,10 +453,10 @@ def main() -> None:
 
     for day in targets:
         got = cache[day]
-        if not got:
+        if got is None:
             continue
         traded += 1
-        if latest_day is None or day > latest_day:
+        if got and (latest_day is None or day > latest_day):
             latest_day, latest_rows = day, got
         for sym, a in by_symbol.items():
             row = got.get(sym)
@@ -375,6 +546,27 @@ def main() -> None:
         )
         got = cur.fetchone()
         print(f"\nPSX snapshots stored: {got['n']} from {got['lo']} to {got['hi']}")
+
+        # Depth per symbol, because the count above cannot tell a deep history from a wide
+        # one. This is the number that decides whether a longer horizon read exists at all,
+        # so the run says it out loud rather than leaving it to be discovered in horizons.
+        cur.execute(
+            """
+            SELECT min(n) AS lo, round(avg(n)) AS avg, max(n) AS hi,
+                   count(*) FILTER (WHERE n >= %s) AS deep, count(*) AS assets
+            FROM (SELECT count(*) AS n FROM "PriceSnapshot" p
+                  JOIN "Asset" a ON a.id = p."assetId"
+                  WHERE a.source = %s AND p.close IS NOT NULL
+                  GROUP BY p."assetId") t
+            """,
+            (LONGER_MIN_CLOSES, PSX),
+        )
+        d = cur.fetchone()
+        print(
+            f"closes per symbol: {d['lo']} lowest, {d['avg']} average, {d['hi']} highest. "
+            f"{d['deep']} of {d['assets']} now carry the {LONGER_MIN_CLOSES} "
+            "jobs/horizons.py needs for a longer horizon read"
+        )
     finally:
         cur.close()
         conn.close()
