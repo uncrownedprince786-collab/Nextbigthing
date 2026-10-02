@@ -1,5 +1,7 @@
 # Production audit — 2026-10-02
 
+*Second pass: the unblocked sections are now done. Section 6 lists what each one found.*
+
 One authoritative matrix. Every row says how it was established. Where something was not
 verified, the row says so rather than reading as a pass.
 
@@ -27,10 +29,10 @@ The data and brain layers are substantially ahead of the output layer. Of 33 Pri
 
 | model | written by | reaches a reader | note |
 | --- | --- | --- | --- |
-| `Coverage` | `audit.py`, every run | **now yes** | surfaced in this session — home page brief, methodology full |
+| `Coverage` | `audit.py`, every run | **now yes** | surfaced — home page brief, methodology full |
 | `SourceReliability` | `audit.py` | no | source learning; time-gated, and no reader even once it matures |
 | `Calibration` | `audit.py` | no | grade calibration; time-gated, floor-gated in the job and the query layer |
-| `NewsLineage` | `lineage.py` | no | story clustering. The "four stories across four publishers" versus "one story across twenty" distinction is computed and never shown |
+| `NewsLineage` | `lineage.py` | **now yes** | surfaced on the asset page as "Stories behind the coverage", with `storyWords` saying whether a cluster is one report repeated, a syndicated release, or separate pickups |
 | `EventState` | `events.py` | no | 0 rows; every scheduled date is still in the future |
 | `ProductAssetLink`, `EventLink`, `ThesisCheck`, `SetupTarget`, `InvestigationFinding`, `InvestigationHypothesis` | various | **yes** | read through Prisma relation includes, not by model name — an earlier pass of this audit wrongly listed them as unsurfaced |
 
@@ -101,20 +103,35 @@ accessor and a relation include. The second pass is why six rows moved from "mis
 | Signal logged, outcome measured later | read, present | `signals.py` writes `SignalLog`; `accuracy.py` returns at 30 and 60 days and stores only the measurement | |
 | Weights not moved on small samples | read, present | floors in the job and again in the query layer | |
 | Sample size shown | partial | shown where calibration surfaces; `Calibration` itself is unsurfaced | time-gated — earliest maturity about 2026-10-30 |
-| No look-ahead | read, test-covered in parts | rule 14, `openConditions` copied not recomputed; accuracy measures from the close the log recorded at the time | a full fresh look-ahead sweep across all nine state types was **not** performed this session |
+| No look-ahead | **verified, test-covered** | the sweep was done: `context_before` carries a strict `< cutoff` on every query, `EventState` is DO NOTHING, the thesis opening record is excluded from its own DO UPDATE list, `accuracy.py` measures from `baseClose`, `signals.py` anchors to a completed week. Six tests, mutation-tested | a seventh test fails when a new state-writing job appears, so the sweep is redone rather than assumed |
 
 ### Non-functional
 
 | requirement | status | evidence | limitation |
 | --- | --- | --- | --- |
-| Tests | **verified** | 233 passing, no database, no network | |
+| Tests | **verified** | 259 passing, no database, no network | |
 | Typecheck | **verified** | `tsc --noEmit` exit 0 | |
-| Lint | **verified** | `eslint .` exit 0 (slow — it exceeds a two-minute foreground budget on this machine and has to be backgrounded) | |
+| Lint | **verified** | `eslint .` exit 0 on the final tree (slow: needs a raised timeout or backgrounding) | |
 | Production build | **blocked** | — | `next build` prerenders pages that query Postgres; no `DATABASE_URL` here |
 | Free-tier measurement | **blocked** | last documented figure was 123 MB of 500 MB | needs the database |
 | Deployed-app verification | **blocked** | the deployment answers HTTP 200 with a sign-in challenge, not the site | Vercel Authentication; reading the status code alone was previously misleading |
 | SQL parameterisation | test-covered | every `INSERT` in `jobs/` scanned for bare reserved words and for column/expression count mismatch | |
 | Secrets | read | `.env` gitignored and absent; workflows read repository secrets | |
+
+## 6. What the second pass found
+
+| section | done | finding |
+| --- | --- | --- |
+| §26 no look-ahead | yes | no defect. Four properties held and are now six tests, because each is the kind an edit undoes silently. The thesis opening record is protected in SQL, not in a comment |
+| §29 security | yes | no defect. The web layer runs no raw SQL at all, so a route param cannot become SQL. The one place remote content shapes a URL is safe for one reason — the regex capture must start with a single slash — and that anchor is now asserted |
+| §31 performance | measured, not changed | `audit.py` 9 in-loop queries, `horizons.py` 10, `thesis.py` 8. Unmeasurable against production from here, so nothing was rewritten on a guess; the counts are frozen as a ratchet instead |
+| §34 redundancy | yes | six exports had no consumer. Two were finished capabilities answering nobody (`getEventCategoryHistory`, `getIntradayCoverage`) and are now wired; one stored figure was never shown (`rewardRisk`) and now is; three were dead and were deleted. A test keeps the count at zero |
+| §35 user questions | yes | every stored state must have a label and a plain sentence, or the page prints a raw database value. One apparent gap was a different vocabulary (`run.py`'s step status) and the probe now says so |
+| §22 language | yes | no promise and no causal claim on any page. The scanner's first run flagged two disclaimers, which is a fault in the scanner; it now understands negation, and rule 37 records why that mattered |
+| §10 catalyst surfacing | yes | the story-versus-copy distinction reaches the reader for the first time |
+
+Sections that remain untouched are the ones needing a rendered page or a database: §30 free tier,
+§32 UX audit across viewports and states, §37's build and smoke tests, §38 deployment.
 
 ## 4. Blockers
 
