@@ -16,7 +16,10 @@ import {
   pickSetup,
   toDecisionInput,
   todayISO,
+  bundleFromQuery,
+  bundleFromRow,
   type DecisionBundle,
+  type QueryRow,
 } from "../lib/decisionInput.ts";
 import { decideProduct, whereToCheck, type ProductDecisionInput } from "../lib/productDecision.ts";
 import { decide } from "../lib/decision.ts";
@@ -287,4 +290,130 @@ test("search links are built from the term and are properly encoded", () => {
 test("the term falls back to the name when no trends term is stored", () => {
   const d = decideProduct(product({ term: "" }));
   assert.ok(d.where[0].url.includes(encodeURIComponent("Standing desk converter")));
+});
+
+// --- The seam with the query layer ------------------------------------------------------------
+//
+// These matter because the query layer returns flat rows and the rules want a nested shape, and a
+// mismapped field here is silent: it turns a WAIT into a LONG without anything throwing.
+
+test("a flat query bundle becomes an actionable input", () => {
+  const input = toDecisionInput(
+    bundleFromQuery(
+      {
+        symbol: "AAPL",
+        assetType: "stock",
+        market: "US",
+        newestClose: 97,
+        newestCloseDate: new Date("2026-10-02T00:00:00Z"),
+        horizons: [
+          { horizon: "swing", state: "buy", entryLevel: 100, invalidateLevel: 94 },
+          { horizon: "longer", state: "buy", entryLevel: 101, invalidateLevel: 90 },
+        ],
+        analogs: [{ horizonDays: 5, matches: 22, minPct: -4.1, maxPct: 7.7 }],
+        humanSignal: { recentStories: 14 },
+        investigation: null,
+        nextEvent: null,
+      },
+      [{ source: "Yahoo Finance daily closes", status: "healthy" }],
+    ),
+    "2026-10-03",
+  );
+  assert.equal(input.market, "US");
+  assert.deepEqual(input.entry, { low: 94, high: 100 });
+  assert.equal(decide(input).action, "LONG");
+});
+
+test("a bundle with nothing stored still names the asset rather than null", () => {
+  const input = toDecisionInput(
+    bundleFromQuery(
+      {
+        symbol: null,
+        assetType: null,
+        market: null,
+        newestClose: null,
+        newestCloseDate: null,
+        horizons: [],
+        analogs: [],
+        humanSignal: null,
+        investigation: null,
+        nextEvent: null,
+      },
+      [],
+    ),
+    "2026-10-03",
+  );
+  assert.equal(input.market, "Other");
+  const d = decide(input);
+  assert.equal(d.gate, "no-prices");
+  // "No stored prices for null." would be the alternative.
+  assert.ok(!d.why[0].includes("null"), d.why[0]);
+});
+
+function row(over: Partial<QueryRow> = {}): QueryRow {
+  return {
+    symbol: "LUCK",
+    assetType: "stock",
+    market: "PK",
+    close: 97,
+    closeDate: "2026-10-02",
+    swing: { state: "short", entryLevel: 94, invalidateLevel: 100 },
+    longer: { state: "short", entryLevel: 92, invalidateLevel: 103 },
+    analogMinPct: -6.2,
+    analogMaxPct: 3.3,
+    analogMatches: 18,
+    analogHorizonDays: 5,
+    recentStories: 11,
+    robustZ: null,
+    trigger: null,
+    nextEventDate: null,
+    ...over,
+  };
+}
+
+test("a home page row decides the same way a full bundle would", () => {
+  const input = toDecisionInput(bundleFromRow(row(), []), "2026-10-03");
+  assert.equal(input.market, "PSX");
+  assert.deepEqual(input.setup, { direction: "down", horizon: "swing" });
+  assert.deepEqual(input.entry, { low: 94, high: 100 });
+  assert.equal(decide(input).action, "SHORT");
+});
+
+test("a row with no setup rows is WAIT and says which reading is absent", () => {
+  const input = toDecisionInput(bundleFromRow(row({ swing: null, longer: null }), []), "2026-10-03");
+  assert.deepEqual(input.setup, null);
+  const d = decide(input);
+  assert.equal(d.action, "WAIT");
+  // Gate 4 fires before gate 9: with no setup there is also no break level.
+  assert.equal(d.gate, "no-invalidation");
+  assert.ok(d.missing.length > 0);
+});
+
+test("an analog band with no horizon is dropped rather than printed", () => {
+  const got = toDecisionInput(bundleFromRow(row({ analogHorizonDays: null }), []), "2026-10-03");
+  assert.equal(got.analogs, null);
+  assert.match(decide(got).measured, /Not enough similar past days/);
+});
+
+test("a row with no news row keeps the difference between unchecked and zero", () => {
+  assert.equal(toDecisionInput(bundleFromRow(row({ recentStories: null }), []), "2026-10-03").newsCount, null);
+  assert.equal(toDecisionInput(bundleFromRow(row({ recentStories: 0 }), []), "2026-10-03").newsCount, 0);
+});
+
+test("a row's investigation only counts when a trigger is stored", () => {
+  assert.equal(toDecisionInput(bundleFromRow(row(), []), "2026-10-03").unusualMove, false);
+  assert.equal(
+    toDecisionInput(bundleFromRow(row({ trigger: "move", robustZ: null }), []), "2026-10-03").unusualMove,
+    true,
+  );
+});
+
+test("a PSX row is not disturbed by Yahoo being silent", () => {
+  const health = [{ source: "Yahoo Finance daily closes", status: "silent" }];
+  assert.equal(toDecisionInput(bundleFromRow(row(), health), "2026-10-03").sourceSilent, null);
+  const us = row({ market: "US" });
+  assert.equal(
+    toDecisionInput(bundleFromRow(us, health), "2026-10-03").sourceSilent,
+    "Yahoo Finance daily closes",
+  );
 });

@@ -214,3 +214,132 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
     sourceSilent: silent,
   };
 }
+
+// --- From what the query layer actually returns -------------------------------------------------
+//
+// `getDecisionBundle` and `getDecisionRows` return flat rows, which is the right shape for a query
+// and the wrong shape for a rule table. The two functions below are that seam. They are declared
+// structurally — plain field lists rather than imported Prisma or query types — so this file keeps
+// no dependency on either, and a query that grows a column does not reach the rules.
+
+/// The parts of `getDecisionBundle(assetId)` a decision needs. Nullable where that function is:
+/// its asset fields come from a left-ish read and are typed optional.
+export interface QueryBundle {
+  symbol: string | null;
+  assetType: string | null;
+  /// "US" or "PK", from the industry. Never a symbol.
+  market: string | null;
+  newestClose: number | null;
+  newestCloseDate: Date | string | null;
+  horizons: {
+    horizon: string;
+    state: string;
+    entryLevel: number | null;
+    invalidateLevel: number | null;
+  }[];
+  analogs: {
+    horizonDays: number;
+    matches: number;
+    minPct: number | null;
+    maxPct: number | null;
+  }[];
+  humanSignal: { recentStories: number } | null;
+  investigation: { robustZ: number | null; trigger: string } | null;
+  nextEvent: { date: Date | string } | null;
+}
+
+/// `sourceHealth` is passed in rather than fetched, because it is one site-wide read that every
+/// panel on a page shares. Fetching it per asset would turn one query into one per name.
+export function bundleFromQuery(
+  row: QueryBundle,
+  sourceHealth: { source: string; status: string }[],
+): DecisionBundle {
+  return {
+    // A nameless asset would otherwise produce "No stored prices for null." The fallback is only
+    // ever reached if an asset row vanished between two queries.
+    asset: {
+      symbol: row.symbol ?? "this asset",
+      assetType: row.assetType ?? "",
+      industry: row.market ? { market: row.market } : null,
+    },
+    freshness: { newest: row.newestCloseDate, close: row.newestClose },
+    setups: row.horizons.map((h) => ({
+      horizon: h.horizon,
+      state: h.state,
+      entryLevel: h.entryLevel,
+      invalidateLevel: h.invalidateLevel,
+    })),
+    analogs: row.analogs.map((a) => ({
+      horizonDays: a.horizonDays,
+      matches: a.matches,
+      minPct: a.minPct,
+      maxPct: a.maxPct,
+    })),
+    human: row.humanSignal ? { recentStories: row.humanSignal.recentStories } : null,
+    investigation: row.investigation
+      ? { robustZ: row.investigation.robustZ, trigger: row.investigation.trigger }
+      : null,
+    nextEvent: row.nextEvent ? { date: row.nextEvent.date } : null,
+    sourceHealth,
+  };
+}
+
+/// The parts of one `getDecisionRows()` row a decision needs.
+///
+/// It carries the swing and longer setups as two named fields rather than a list, because the home
+/// page deliberately leaves intraday out — a front page that re-ordered itself through the trading
+/// day would be a different page on every visit.
+export interface QueryRow {
+  symbol: string;
+  assetType: string;
+  market: string;
+  close: number | null;
+  closeDate: Date | string | null;
+  swing: { state: string; entryLevel: number | null; invalidateLevel: number | null } | null;
+  longer: { state: string; entryLevel: number | null; invalidateLevel: number | null } | null;
+  analogMinPct: number | null;
+  analogMaxPct: number | null;
+  analogMatches: number | null;
+  analogHorizonDays: number | null;
+  recentStories: number | null;
+  robustZ: number | null;
+  trigger: string | null;
+  nextEventDate: Date | string | null;
+}
+
+export function bundleFromRow(
+  row: QueryRow,
+  sourceHealth: { source: string; status: string }[],
+): DecisionBundle {
+  const setups: DecisionBundle["setups"] = [];
+  if (row.swing) setups.push({ horizon: "swing", ...row.swing });
+  if (row.longer) setups.push({ horizon: "longer", ...row.longer });
+
+  return bundleFromQuery(
+    {
+      symbol: row.symbol,
+      assetType: row.assetType,
+      market: row.market,
+      newestClose: row.close,
+      newestCloseDate: row.closeDate,
+      horizons: setups,
+      // A band with no horizon is not a measurement, so a row missing either is no analog at all
+      // rather than a range printed as though something backed it.
+      analogs:
+        row.analogMatches !== null && row.analogHorizonDays !== null
+          ? [
+              {
+                horizonDays: row.analogHorizonDays,
+                matches: row.analogMatches,
+                minPct: row.analogMinPct,
+                maxPct: row.analogMaxPct,
+              },
+            ]
+          : [],
+      humanSignal: row.recentStories !== null ? { recentStories: row.recentStories } : null,
+      investigation: row.trigger !== null ? { robustZ: row.robustZ, trigger: row.trigger } : null,
+      nextEvent: row.nextEventDate ? { date: row.nextEventDate } : null,
+    },
+    sourceHealth,
+  );
+}
