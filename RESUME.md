@@ -1,28 +1,85 @@
 # Resume here
 
-## 0. The first thing to do, before anything else
+## 0. State of play, 2026-10-03
 
-**Nothing is on fire. Read this section, then section 0b, then start.**
+**The live site is <https://nextbigthing-nu.vercel.app/>.** That is the production alias and it
+serves whatever is on `main`. The long `nextbigthing-<hash>-...vercel.app` addresses are
+per-deployment aliases of the same project; they are not a different site. Vercel Deployment
+Protection was turned off by the owner on 2026-10-03, so the site is publicly readable.
 
-`refresh data` #12 went **green on 2026-10-02** — the first green refresh since 2026-09-29 — and the
-three markets are level at **2026-10-02**: Yahoo 152,539 rows, PSX 12,487, crypto 27,409.
+### Credentials — do this first
 
-The thing that had been red was never a code defect in the lane. Binance was the only source of
-daily crypto closes and it answers a GitHub runner with nothing while answering a laptop normally,
-so the silence guard failed the step correctly every night with no second venue to try. `fetch_crypto`
-now walks **Binance → Coinbase → Kraken → Bitstamp**, takes the first venue whose series is *current*
-rather than the first that replies, records the venue on every row, and fails only when all four
-refuse every coin. On run #12 Coinbase supplied all ten coins.
+`.env` holds a live `DATABASE_URL` for the Neon branch. **That password was pasted into a chat
+transcript and should be rotated**: Neon console -> Roles -> `neondb_owner` -> Reset password, then
+update the Vercel environment variable and `.env`. Nothing else depends on it.
 
-It also deepened the history rather than costing any: BTC, ETH and LTC went from 2,829 rows starting
-2019-01-01 to **3,001 starting 2018-07-16**, because Coinbase pages further back than Binance did. No
-coin lost a row — a shallow venue never replaces a deeper stored series.
+The connection string is the **direct** endpoint (no `-pooler`). That is correct for local work and
+required for migrations; the deployed app uses the pooled one from Vercel's env.
 
-**The pipeline is now seven per-source workflows**, not one 30-minute monolith. See the table in
-`HANDOFF.md`; the part to understand before changing anything is why each lane has its own
-concurrency group.
+### What is true now
 
-Last worked: **2026-10-03**, on `main`. `master` is level with `main` and must be kept so.
+| | |
+| --- | --- |
+| Refresh lane | **green**, run #12, first since 2026-09-29 |
+| Yahoo / PSX / crypto newest close | all **2026-10-02** |
+| Decisions | 18 LONG, 21 SHORT, 121 WAIT across 160 assets |
+| Markets producing a direction | US **and** PSX. Crypto does not — see below |
+| Tests | 366 Python, 80 TypeScript, all green, no database or network needed |
+| Database | 158 MB of a 500 MB free tier |
+
+### The four things that changed the most
+
+1. **Crypto closes have four venues**, not one. `fetch_crypto` walks Binance -> Coinbase -> Kraken
+   -> Bitstamp and takes the first venue whose series is *current*, not the first that answers —
+   Binance replies from a laptop and refuses a GitHub runner, and a stale-but-non-empty answer was
+   the trap. The row records which venue supplied it. A shallow venue never replaces a deeper
+   stored series, so nothing can shrink history to save a fetch.
+2. **PSX history is deep now.** It was 178 closes per symbol against the 220 `jobs/horizons.py`
+   needs, because the job asked for one file a *month* before the recent window. The archive
+   publishes daily back to 2013-11-04. Now 595-629 closes per symbol and PSX produces directions
+   for the first time. The container switches ZIP -> gzip before 2019 and the old reader silently
+   called those days market holidays.
+3. **The pipeline is seven per-source cron lanes**, not one 30-minute job. Each has its own
+   concurrency group, which is load-bearing: GitHub keeps one *pending* run per group, so a shared
+   group means the newer run cancels the queued one. That is what kept killing `geo.py`.
+4. **`jobs/factors.py` measures the session once** and everything reads its row. Before it existed
+   the volume and peer gates were live but unreachable and every decision came out Low.
+
+### Where the work stopped
+
+Four agents were mid-flight when this was written, each owning its own files:
+asset page one-screen layout (`app/asset/[symbol]/page.tsx`, `components/decision.tsx`);
+crypto direction investigation (`jobs/horizons.py`, `jobs/setup.py`);
+plain-words sweep (`components/ui.tsx`, `lib/plain.ts`);
+events news and junk filter (`app/events/page.tsx`, events queries in `lib/queries.ts`).
+If their work is uncommitted, read it before changing those files.
+
+### Known blockers, honestly
+
+- **Crypto never reads LONG or SHORT.** Not a data problem: 2,202-3,001 closes each, all current.
+  The `longer` setups exist and read `none` or `wait`, never `buy`/`short`, so the rule table
+  correctly answers "incomplete". Either a rule written for equities does not fit a 7-day market,
+  or crypto is genuinely flat. That was being investigated when this was written.
+- **`ProductRegion` is empty.** `geo.py` no longer loses its work — it used to fetch for 55 minutes
+  and write once at the end, so a cancelled run stored zero — but Google now rate-limits this host.
+  It needs a run from an unblocked IP.
+- **`DecisionLog.eventInDays`** is documented as sessions and stores calendar days. Future sessions
+  cannot be counted without reading past the decision date. Fix the comment or the producer.
+- **Chunking is real only for the Yahoo lane.** Products still runs whole per slice.
+- **Universe is 160 assets.** Expansion is measured but unbuilt: 350 MB headroom fits the S&P 500 at
+  3 years plus the top 100 coins plus all of PSX, but not everything at full depth.
+
+### Things that will bite you
+
+- `npx prisma generate` after a checkout, or `tsc` fails on models the generated client predates.
+- Never commit `tests/test_brain.py` while any `jobs/*.py` is untracked. That turned CI red twice:
+  the tests arrive without the implementation they assert against.
+- `master` is the default branch and GitHub takes a scheduled workflow's *file* from it. Keep it
+  level with `main` — `git push origin main:master` — or switch the default branch to `main`, which
+  is the real fix.
+- Migrations must use the direct endpoint. `prisma migrate deploy` takes a session-level advisory
+  lock and a transaction pooler hands the connection back still holding it, which failed a run with
+  `P1002`.
 
 ## 0b. What 2026-10-03 found and fixed
 
