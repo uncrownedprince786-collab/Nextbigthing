@@ -28,6 +28,24 @@ The guard was proven in production on 2026-10-01: run `36863045181` refused to s
 the concurrent schema run had not yet applied `20261002050000_intraday`, and the data jobs were
 **skipped instead of crashing on a missing table**.
 
+**Corrected on 2026-10-03, and this is the most important paragraph in this file.** Both guards
+above were true of `main` and **neither had ever run in production**. GitHub takes a workflow's
+*file* from the **default branch** — `master` — and `master` was **34 commits behind** `main`.
+So the file that actually executed still carried the second `prisma migrate deploy`, and
+`jobs/schemacheck.py` was never reached. The proof is run `37028111026`: its step 8 is
+"Apply pending schema migrations", a step that exists only on `master`. Worse, the
+`workflow_dispatch` button is offered only on the default branch, so dispatching that lane by
+hand *could only* run the stale file.
+
+The cost was real: `schema` run 50 failed `P1002 — Timed out trying to acquire a postgres
+advisory lock` on a commit that touched two Markdown files, because two lanes migrated over a
+**transaction pooler**, which returns a session-level advisory lock to the pool still held. Both
+halves are now fixed — migrations run over the direct endpoint (see brain.md rule 38), and
+`master` was fast-forwarded to `main`. **Keep `master` in step, or switch the default branch to
+`main`, which is the fix that makes this impossible rather than merely absent.** And note what
+this means about the tests: `WorkflowLanes` was green throughout. A test over a file in the
+working tree says nothing about the file a runner used.
+
 ## Workflow lanes
 
 | Workflow | Trigger | Concurrency | Purpose |

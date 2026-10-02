@@ -2,28 +2,78 @@
 
 ## 0. The first thing to do, before anything else
 
-**Read the conclusion of `refresh data` run #11.**
+**Get the `=== prices yahoo crypto news` section out of a `refresh data` run log.** That is the
+one unknown left, and reading it needs a GitHub sign-in. Everything else below is settled.
 
-<https://github.com/uncrownedprince786-collab/Nextbigthing/actions/runs/37028111026>
+`refresh data` #11 came back **red**, so the owner's gate is **0 of 2**, not 1 of 2. But the
+step table now does its job: **19 of 20 steps passed**, and the single failure is
+`prices yahoo crypto news`, exit 1 after 9.3 minutes. The crypto defects fixed in `b826d2e` are
+not in play any more — those 20 steps ran with that code.
 
-The owner dispatched it by hand on 2026-10-02 and it was still `in_progress` when the session
-ended, so nobody has seen the result. It is the first run of the daily lane since the two
-crypto defects were fixed, and the whole open question hangs on it. A run's conclusion is
-public and readable without signing in; the log inside is not.
-
-- **Green** → that is **1 of 2** on the owner's gate. Dispatch a second run, wait for it to
-  finish before starting it (see the queue-churn note in section 4), and if that is green too,
-  record 2 of 2 in `HANDOFF.md` and freeze.
-- **Red** → the guards added on 2026-10-02 mean the failing step now names the source rather
-  than exiting 0 with nothing stored. Reading which one needs a GitHub sign-in.
+**The likeliest reading, and it matters.** The failure is probably the rule 31 guard
+(`require_answer`) working exactly as designed: turning a silent 0-row success into a loud
+failure. If that is what the log says, then the Yahoo-block hypothesis was right all along, and
+the consequence is strategic rather than technical: **if Yahoo and Binance are blocked from
+GitHub runner IPs, no code change can ever make that lane green there.** The choices then are a
+self-hosted runner, a proxy, or ingesting from a machine that is not blocked and leaving the
+runner only the derivation jobs. Do not spend another session trying to fix it in code before
+reading that log section.
 
 Then tell the owner in plain language. They asked for simple, concrete steps rather than
 options and caveats, and they were right to.
 
-Last worked: **2026-10-02**, on `main`. See section 3 — the silent-failure half of the open item is fixed; the confirmation still needs one GitHub sign-in.
+Last worked: **2026-10-03**, on `main`.
 
-This file is the sixty-second orientation. `HANDOFF.md` is the detail; read this first, then
-that.
+---
+
+## 0b. What 2026-10-03 found and fixed
+
+Two reds existed, and only one was a real defect in the daily lane.
+
+**`schema` #50 was red, and it was never a broken commit.** It failed on `d8c9be4`, which
+changes two Markdown files and no code, twelve seconds into "Apply pending schema migrations":
+
+```
+Error: P1002 ... Timed out trying to acquire a postgres advisory lock
+(SELECT pg_advisory_lock(72707369)). Timeout: 10000ms.
+```
+
+`prisma migrate deploy` holds a **session-level** lock and releases it by ending its session.
+`DATABASE_URL` is Neon's `-pooler` host — PgBouncer in transaction mode — which hands that
+server connection back to the pool **still holding the lock**. The lock outlives the process.
+Twelve seconds is the signature: two of startup, ten of timeout. Fixed — the migration now runs
+over the direct endpoint (`DIRECT_DATABASE_URL`, else the pooled host minus `-pooler`), a test
+forbids it inheriting the pooled URL, and brain.md rule **38** records it. If a `schema` run
+still answers P1002, **restart the Neon compute** to drop pooled connections: the fix stops new
+leaks and cannot clear one already held.
+
+**And the reason two lanes were migrating at all — read this one carefully.** GitHub takes a
+workflow's *file* from the **default branch**, which is `master`. `master` was **34 commits
+behind** `main`, and `master`'s `refresh.yml` still ran `prisma migrate deploy`. So:
+
+- Run #11's step 8 is "Apply pending schema migrations" — **a step that does not exist on
+  `main`**, where it is "Refuse to run against a schema that is behind". That is the proof.
+- The dispatch button only appears on the default branch, which `refresh.yml` says itself, so
+  dispatching run #11 *necessarily* ran `master`'s stale file.
+- `WorkflowLanes::test_exactly_one_workflow_applies_migrations` was **green the whole time**,
+  asserting an invariant over a file production was not executing. So was the `schemacheck`
+  guard: it has never once run in production.
+
+`master` was fast-forwarded to `main` on 2026-10-03 (34 commits, 0 divergence, no merge). It
+triggers nothing — every workflow is `branches: [main]`. **The proper fix is still to switch the
+default branch to `main` in GitHub settings**, which removes the whole class of problem; until
+then `master` must be kept in step, and `schema.yml`'s comment claiming the two branches "point
+at the same commit" is the assumption that went stale.
+
+## 0c. Two things with dates on them
+
+- **`geo` is failing, not being cancelled.** Section 4 below says queue churn cancels it. A
+  `backfill` log shows `geo` **FAILED exit 1** and `upcoming` **FAILED exit 2**. That is a
+  different fault from the one documented, and `=== geo` from that log is needed to say more.
+  The queue-churn mechanism in section 4 is still real; it is just not the whole story.
+- **`ubuntu-latest` migrates to Ubuntu 26 on 2026-10-19**, and `actions/checkout@v4`,
+  `setup-python@v5` and `setup-node@v4` are already being forced onto Node 24. Pin or bump
+  before that date, not after it.
 
 ---
 
@@ -48,7 +98,7 @@ Verified against the live production database on 2026-10-01, not merely built:
 
 | | |
 | --- | --- |
-| Tests | **259**, all passing, no database or network needed |
+| Tests | **260**, all passing, no database or network needed |
 | Types, lint, build | clean |
 | `schema.yml` (release lane) | **green** — run `36917629683`, 9m 3s, all 20 brain jobs |
 | Every job in the daily group | passes individually against production — see the table in `HANDOFF.md` |
@@ -62,6 +112,11 @@ scheduled date passing. The machinery is live and measuring; it has nothing to m
 `HANDOFF.md` explains each one.
 
 ## 3. What is red — the one open item
+
+> **Superseded in part by section 0b.** Run #11 has since answered the question this
+> section was written around: the lane is still red, and the failing step is named. The
+> reasoning below is kept because it is how the step came to be named at all, but read
+> section 0 first and do not re-run the investigation it describes.
 
 **`refresh.yml` fails at "Run data jobs".** Latest: run `36918247571`, failure, 17m 11s. The
 schema guard passed; the failure is inside `python jobs/run.py daily`.

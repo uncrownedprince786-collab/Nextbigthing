@@ -79,18 +79,42 @@ jobs:
       #
       # `set +e` and the explicit exit keep the step's pass/fail exactly as it was: the summary
       # is written either way, and a failure still fails the run.
+      # And it runs over the **direct** endpoint, never the pooler. `migrate deploy` takes a
+      # session-level advisory lock, `pg_advisory_lock(72707369)`, and releases it by ending the
+      # session. Neon's `-pooler` host is PgBouncer in transaction mode: when the client
+      # disconnects it returns that server connection to the pool *still holding the lock*, so
+      # the next migration waits the full timeout and dies with `P1002 ... Timed out trying to
+      # acquire a postgres advisory lock. Timeout: 10000ms`. That is schema run 50 on
+      # 2026-10-02 — twelve seconds, on a commit that touched two Markdown files and no code.
+      # The twelve seconds are the tell: two of startup and ten of lock timeout.
+      #
+      # `DIRECT_DATABASE_URL` when that secret exists, otherwise the pooled host with `-pooler`
+      # removed, which is how Neon names the direct endpoint of the same branch. A URL without
+      # `-pooler` is left alone, so this is a no-op on an already-direct string. Neither value
+      # is ever echoed: both carry the password. The summary names which one was used instead.
+      #
+      # Only the migration needs this. The data jobs keep the pooled endpoint, because nothing
+      # they do holds a session-level lock across a disconnect.
       - name: Apply pending schema migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
         run: |
           set +e
-          out="$(npx prisma migrate deploy 2>&1)"
+          if [ -n "$DIRECT_DATABASE_URL" ]; then
+            direct="$DIRECT_DATABASE_URL"
+            via="DIRECT_DATABASE_URL"
+          else
+            direct="${DATABASE_URL/-pooler./.}"
+            via="DATABASE_URL with -pooler removed"
+          fi
+          out="$(DATABASE_URL="$direct" npx prisma migrate deploy 2>&1)"
           code=$?
           echo "$out"
           {
             echo "## Migration"
             echo
-            echo "exit code \`$code\`"
+            echo "exit code \`$code\`, over the direct endpoint ($via)"
             echo
             echo '```'
             echo "$out"

@@ -691,6 +691,29 @@ class WorkflowLanes(unittest.TestCase):
                 migrating.append(path.name)
         self.assertEqual(migrating, ["schema.yml"], f"migration is applied by {migrating}")
 
+    def test_migrations_never_run_through_the_connection_pooler(self):
+        """`migrate deploy` must override DATABASE_URL with a direct endpoint.
+
+        It takes a session-level advisory lock and releases it by ending the session. Neon's
+        `-pooler` host is PgBouncer in transaction mode, which returns that server connection to
+        the pool still holding the lock, so the next migration dies `P1002` after the 10s
+        timeout. Schema run 50 on 2026-10-02 failed in twelve seconds this way, on a commit
+        touching only Markdown, and the only reason it was readable at all is the summary this
+        step writes. Asserted against the file because reproducing it needs a pooler and two
+        runs, which no unit test has.
+        """
+        text = self._text("schema.yml")
+        step = text.split("Apply pending schema migrations", 1)[1].split("- uses:", 1)[0]
+        self.assertIn("DIRECT_DATABASE_URL", step, "no direct endpoint is offered")
+        self.assertIn("${DATABASE_URL/-pooler./.}", step, "no fallback strips -pooler")
+        # The point of the step: the command must not inherit the pooled URL from the
+        # environment. If this assertion is ever relaxed, read P1002 before relaxing it.
+        self.assertIn(
+            'out="$(DATABASE_URL="$direct" npx prisma migrate deploy 2>&1)"',
+            step,
+            "migrate deploy still runs on the inherited DATABASE_URL",
+        )
+
     def test_the_data_lanes_check_the_schema_before_writing(self):
         for name in ("refresh.yml", "backfill.yml"):
             self.assertIn("jobs/schemacheck.py", self._text(name), f"{name} does not check")

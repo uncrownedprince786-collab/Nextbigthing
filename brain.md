@@ -558,3 +558,22 @@ reads rows that already exist:
     the scanner looks back 120 characters for a negation and a test asserts both halves — a
     bare claim is caught and a denial is not. The general rule: when a guard fires on correct
     code, fix the guard, and never the code that was already right.
+38. **A session-level lock and a transaction pooler cannot both be in the path.**
+    `prisma migrate deploy` takes `pg_advisory_lock(72707369)` and releases it by ending its
+    session. Neon's `-pooler` host is PgBouncer in transaction mode, so ending the client
+    session does not end the server session: the connection goes back to the pool still holding
+    the lock, and the lock outlives the process that took it. The next migration waits its ten
+    seconds and dies `P1002 — Timed out trying to acquire a postgres advisory lock`. Schema run
+    50 on 2026-10-02 failed that way **on a commit that changed two Markdown files**, which is
+    the detail worth remembering: a red lane does not imply a broken commit, and twelve seconds
+    is the signature — two of startup and ten of timeout, not work. The migration now runs over
+    the direct endpoint and a test asserts the command does not inherit the pooled URL.
+
+    Two things made it possible at once, and both were fixed, because either alone would have
+    prevented it. The pooler was in the path, and **two lanes were migrating** — the invariant
+    `WorkflowLanes` has guarded since the first race. The guard was true and the test was green:
+    GitHub runs a workflow's *file* from the **default branch**, which is still `master`, and
+    `master` was 34 commits behind `main`, where `refresh.yml` still migrated. So the repository
+    asserted an invariant about files that production was not executing. **A test over a file in
+    the working tree proves nothing about the file a runner used**; when a lane's behaviour and
+    its test disagree, check which ref actually ran before doubting either.
