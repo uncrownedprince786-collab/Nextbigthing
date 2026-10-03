@@ -98,6 +98,20 @@ export function Pill({ children, tone = "default" }: { children: React.ReactNode
 
 export type Confidence = "high" | "medium" | "low" | "none";
 
+/// What made `jobs/investigate.py` look at an asset, in the words a reader already has.
+///
+/// The stored values are the job's own vocabulary and belong in the database: `catalyst`,
+/// `move` and `volume` are the three questions it knows how to ask, and renaming them in the
+/// schema would rename them in every row ever written. So the translation happens here, at the
+/// one place a reader sees it, and an unrecognised trigger falls through to the stored word
+/// rather than being hidden — a new question the job learns to ask should appear on the page
+/// the first time it fires, not after someone remembers to add it to this table.
+const TRIGGER_WORDS: Record<string, string> = {
+  catalyst: "a sudden jump in news",
+  move: "an unusually large price move",
+  volume: "unusually heavy trading",
+};
+
 const CONFIDENCE_COPY: Record<Confidence, { label: string; tone: string; title: string }> = {
   high: {
     label: "High confidence",
@@ -1624,7 +1638,7 @@ export function InvestigationBlock({
   return (
     <Card>
       <div className="flex flex-wrap items-center gap-2">
-        <Pill tone="warn">looked into: {investigation.trigger}</Pill>
+        <Pill tone="warn">looked into: {TRIGGER_WORDS[investigation.trigger] ?? investigation.trigger}</Pill>
         <ConfidenceBadge grade={investigation.confidence} />
         <AsOf date={investigation.periodEnd} />
       </div>

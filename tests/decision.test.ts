@@ -323,7 +323,7 @@ test("an agreeing longer view says so", () => {
 test("no longer view says that, rather than implying one agreed", () => {
   const d = decide(base({ horizon: null }));
   assert.equal(d.action, "LONG");
-  assert.match(d.why[1], /Only one horizon is directional/);
+  assert.match(d.why[1], /Only one time frame points anywhere/);
   // Volume and the analog set still confirm, so it is High on two counts rather than three.
   assert.equal(d.confidence, "High");
   // With nothing else behind it, the same missing horizon lands at Low.

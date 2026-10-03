@@ -231,7 +231,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
                 not exist. This is the same explanation, reachable by tapping. */}
             <ConfidenceKey />
             <Detail
-              title="The same asset on three horizons"
+              title="The same asset over three time frames"
               lead="Today, the next few weeks, and the longer term; they will sometimes disagree."
             >
               <HorizonStrip horizons={horizons} currency={asset.currency} />
@@ -386,7 +386,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
 
             <Detail
               title="Why this asset is near today's news"
-              lead="Paths from a flagged catalyst to this asset over stored relationships, bounded at two hops."
+              lead="How a sudden jump in news somewhere else reaches this asset, through recorded links, at most two steps away."
             >
               <NeighbourhoodBlock relevance={relevance} showAsset={false} />
             </Detail>

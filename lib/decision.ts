@@ -283,7 +283,7 @@ function analogConfirms(input: DecisionInput, direction: "up" | "down"): boolean
 /// panel overstating its own evidence in the one line meant to qualify it.
 function secondLine(setup: Direction, horizon: Direction): string {
   if (horizon === setup) return "Longer view agrees.";
-  if (horizon === "unknown") return "Only one horizon is directional, so nothing confirms it.";
+  if (horizon === "unknown") return "Only one time frame points anywhere, so nothing confirms it.";
   if (horizon === "flat") return "Longer view is flat.";
   return "Longer view does not disagree.";
 }

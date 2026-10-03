@@ -3,6 +3,7 @@ import { price, relativeTime } from "@/lib/format";
 import type { Action, Confidence, Decision, Market, TimeSense } from "@/lib/decision";
 import type { ProductDecision, WhereToCheck } from "@/lib/productDecision";
 import { AsOf, Card, ConfidenceBadge, Empty, Note, Pill, Section } from "@/components/ui";
+import { gapLine } from "@/lib/reconcile";
 
 // The decision panel, and nothing else.
 //
@@ -142,77 +143,6 @@ function Missing({ items }: { items: string[] }) {
   );
 }
 
-/// Phrases that `lib/decision.ts` prints, recognised here so the gap line can be built from them.
-///
-/// This is the ugly part of this file and it should not survive. `confidenceFor` in lib/decision.ts
-/// counts exactly three confirmations — a longer view pointing the same way, volume at or above its
-/// own average, and a set of similar past days that leaned the same way — and then throws the count
-/// away, returning only "High" / "Medium" / "Low". The three states are already decided there; the
-/// `Decision` shape just has nowhere to carry them. So the panel reads them back out of the two
-/// strings that module already wrote: `secondLine` for the longer view, `confirmLine` for the other
-/// two, and `confirmMissing` for the difference between "weak" and "never published".
-///
-/// No new rule is applied. Nothing here decides anything — it recognises what was decided. If a
-/// sentence in lib/decision.ts is reworded, `gapLine` returns fewer parts and the line simply does
-/// not print, which is the right way for this to fail: a panel that goes quiet, never one that
-/// invents a weakness. The proper fix belongs in the file that owns the rules and is named in the
-/// report alongside this change.
-const AGREES = "Longer view agrees.";
-const VOLUME_CONFIRMED = /volume [\d.]+x its average/;
-const VOLUME_UNPUBLISHED = "No volume published";
-const DAYS_CONFIRMED = /similar days went the same way/;
-const DAYS_UNAVAILABLE = "similar past days";
-
-/// The one line that explains a strong direction carrying a weak grade.
-///
-/// A reader shown LONG in 48px type next to the words "Low confidence" has been handed a
-/// contradiction and left to resolve it. Both halves are true — the direction really did clear
-/// every gate, and the evidence behind it really is thin — and the thing that reconciles them is
-/// naming *which* leg is short. "Volume is weak" is a sentence a reader can act on; a grade on its
-/// own is one they can only distrust.
-///
-/// Returns null when there is nothing to reconcile: a WAIT is not a strong direction, a High grade
-/// is not a weak one, and if no weakness can be named then nothing is printed rather than hedged.
-function gapLine(decision: Decision): string | null {
-  if (decision.action !== "LONG" && decision.action !== "SHORT") return null;
-  if (decision.confidence === "High") return null;
-
-  const why = decision.why.join(" ");
-  const missing = decision.missing.join(" ");
-  const weak: string[] = [];
-
-  // The longer view. It cannot be *against* the direction here — gate 5 turns that into a WAIT
-  // before this panel ever sees it — so the only two states left are "agrees" and "does not add
-  // anything", and the second one covers flat, absent and unknown alike.
-  if (!decision.why.includes(AGREES)) weak.push("the longer view does not agree");
-
-  // Volume. Three states, and the third is the one worth separating: a ratio below its average is
-  // a measurement that came out weak, while no ratio at all is a measurement nobody took. Telling
-  // a reader volume is weak when the truth is that none is published is a quiet lie about evidence.
-  if (!VOLUME_CONFIRMED.test(why)) {
-    weak.push(missing.includes(VOLUME_UNPUBLISHED) ? "no volume is published" : "volume is weak");
-  }
-
-  // Similar past days. The exact reason — none stored, too few, or a lean that was never recorded
-  // — is already printed in full under "What is missing" a few lines below, so this names the leg
-  // and does not restate it. One line means one line.
-  if (!DAYS_CONFIRMED.test(why) && !missing.includes(DAYS_UNAVAILABLE)) {
-    weak.push("similar past days do not back it");
-  } else if (!DAYS_CONFIRMED.test(why)) {
-    weak.push("there is not enough history to compare");
-  }
-
-  if (!weak.length) return null;
-
-  const trend = decision.action === "LONG" ? "up" : "down";
-  // Oxford-less "a, b and c", because this is a sentence and not a list, and it has to still read
-  // as one sentence after wrapping to three lines at 375px.
-  const list =
-    weak.length === 1
-      ? weak[0]
-      : `${weak.slice(0, -1).join(", ")} and ${weak[weak.length - 1]}`;
-  return `The trend is clearly ${trend}, but ${list}, so confidence is only ${decision.confidence.toLowerCase()}.`;
-}
 
 /// The headline, with the outlet's name taken off the end of it.
 ///

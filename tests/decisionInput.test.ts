@@ -496,7 +496,7 @@ test("the longer row cannot be both the setup and its own confirmation", () => {
   assert.equal(input.horizon, null);
   const d = decide(input);
   assert.equal(d.action, "LONG");
-  assert.match(d.why[1], /Only one horizon is directional/);
+  assert.match(d.why[1], /Only one time frame points anywhere/);
 });
 
 /// The fixture is a PSX short; these tests need a clean long, on both horizons. Setting only the
