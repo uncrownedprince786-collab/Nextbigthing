@@ -158,7 +158,13 @@ test("a full bundle maps to an actionable input", () => {
   assert.deepEqual(input.horizon, { direction: "up" });
   assert.deepEqual(input.entry, { low: 94, high: 100 });
   assert.equal(input.invalidation, 94);
-  assert.deepEqual(input.analogs, { count: 22, lowPct: -4.1, highPct: 7.7 });
+  assert.deepEqual(input.analogs, {
+    count: 22,
+    lowPct: -4.1,
+    highPct: 7.7,
+    medianPct: null,
+    positive: null,
+  });
   assert.equal(input.newsCount, 14);
   assert.equal(input.sourceSilent, null);
 
@@ -549,4 +555,45 @@ test("a database with no factor rows still decides, and says what is missing", (
   const d = decide(toDecisionInput(bundleFromRow(row({ swing: UP, longer: UP }), []), "2026-10-03"));
   assert.equal(d.action, "LONG");
   assert.ok(d.missing.some((m) => /No volume published/.test(m)), d.missing.join(" | "));
+});
+
+
+test("the analog lean survives the trip into the rules", () => {
+  // The regression this file exists to prevent, and the most expensive single omission found in
+  // this codebase so far. `toDecisionInput` used to build `{ count, lowPct, highPct }` and drop
+  // `medianPct` and `positive` on the floor. `analogConfirms` returns null the instant either is
+  // missing, so one of the three legs `confidenceFor` counts was dead for every asset in the
+  // database — 160 of 160, every direction, always.
+  //
+  // Two things went wrong and the second is worse. Grades were capped below what the stored rows
+  // supported: restoring these two fields moved 21 assets from Low to Medium with no change to
+  // any rule or threshold. And `confirmMissing` printed "stored, but which way they went was not
+  // recorded" over assets whose lean was sitting in the table — ATRL said it about 102 matched
+  // days while holding both columns.
+  //
+  // Nothing upstream was broken: jobs/analogs.py writes both, lib/queries.ts selects both,
+  // and both bundle builders carry them. Only the object literal in the middle dropped them.
+  const withLean = toDecisionInput(
+    bundle({
+      analogs: [
+        { horizonDays: 5, matches: 40, minPct: -9, maxPct: 14, medianPct: 2.4, positive: 26 },
+      ],
+    }),
+    "2026-10-03",
+  );
+  assert.equal(withLean.analogs?.medianPct, 2.4);
+  assert.equal(withLean.analogs?.positive, 26);
+});
+
+test("an analog row with no lean recorded still reads as absent", () => {
+  // The other half. A row genuinely missing the lean — jobs/analogs.py leaves both null when it
+  // matched nothing — must still reach the rules as null, so `analogConfirms` keeps returning
+  // null rather than reading an absence as a flat outcome. Carrying the fields through is not
+  // the same as inventing them.
+  const noLean = toDecisionInput(
+    bundle({ analogs: [{ horizonDays: 5, matches: 0, minPct: null, maxPct: null }] }),
+    "2026-10-03",
+  );
+  assert.equal(noLean.analogs?.medianPct, null);
+  assert.equal(noLean.analogs?.positive, null);
 });

@@ -3938,3 +3938,74 @@ class PriceFactors(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ShortLevelsAreMirrored(unittest.TestCase):
+    """A short's stop belongs above the price, not below it.
+
+    The entry is the level a move has to clear for the setup to be happening; the invalidation is
+    the level at which the reason for it has stopped being true. For an up read that is the
+    window's high and its low. For a down read it is the other way round — and both
+    level-writing jobs used to hand a `short` row the same pair as a `buy` row.
+
+    What that produced on the live site: WTL read SHORT at Rs.1.00 and the panel printed "Exit if
+    wrong Rs.0.99 — past this level the reason above no longer holds". The stop sat one percent
+    *below* a short, on the side the trade needs price to reach, while the target block further
+    down the same page measured the same trade downward to a median of -0.8%. STLA was the same
+    shape at $4.40 with a $4.36 stop.
+
+    These are source-level tests rather than calls, because the levels are chosen inside a long
+    database loop in `setup.py` and inside `longer_read` in `horizons.py`, and the property worth
+    protecting is that the choice consults `state` at all. `run_targets` in horizons.py has always
+    branched on `state`, so the repository already held the correct form of the statement while
+    two of its three level-writers disagreed with it.
+    """
+
+    def source(self, name: str) -> str:
+        from pathlib import Path
+        return (Path(__file__).resolve().parent.parent / "jobs" / name).read_text(encoding="utf-8")
+
+    def test_setup_picks_its_levels_by_state(self):
+        src = self.source("setup.py")
+        self.assertIn('entry, invalid = (low, high) if state == "short" else (high, low)', src)
+        # And the old unconditional form is gone, in either order.
+        self.assertNotIn("entry = max(float(b[\"close\"]) for b in recent)", src)
+        self.assertNotIn("invalid = min(float(b[\"close\"]) for b in recent)", src)
+
+    def test_horizons_picks_its_levels_by_state(self):
+        src = self.source("horizons.py")
+        self.assertIn('entry, invalid = (below, above) if state == "short" else (above, below)', src)
+        self.assertNotIn("entry = next_level(highs, last, above=True)", src)
+        self.assertNotIn("invalid = next_level(lows, last, above=False)", src)
+
+    def test_both_jobs_describe_the_level_they_actually_wrote(self):
+        """A mirrored level with an unmirrored note is the same lie in prose.
+
+        The note is what the asset page prints under the number, so a short carrying "the highest
+        close ... a close above it would be a move past where it recently stalled" over its entry
+        would describe a long while the number described a short.
+        """
+        # Fragments rather than whole sentences: these are implicit-concatenation literals split
+        # over two source lines, so the sentence a reader sees never appears contiguously here.
+        setup_src = self.source("setup.py")
+        self.assertIn("move past where it recently held", setup_src)      # short entry
+        self.assertIn("A close above it means the", setup_src)            # short invalidation
+        self.assertIn("move past where it recently stalled", setup_src)   # long entry
+        self.assertIn("A close below it means the", setup_src)            # long invalidation
+
+        horizons_src = self.source("horizons.py")
+        self.assertIn("the nearest level above where the series last turned", horizons_src)
+        self.assertIn("the nearest price below where the series last turned", horizons_src)
+
+    def test_the_entry_zone_does_not_care_which_way_round_the_pair_is(self):
+        """`entryZone` spans the two levels with min/max, so mirroring cannot invert the band.
+
+        Asserted here because the fix depends on it: the band stays [low, high] either way and
+        only `invalidation` — what the panel prints as "Exit if wrong" — moves to the other edge.
+        """
+        from pathlib import Path
+        src = (Path(__file__).resolve().parent.parent / "lib" / "decisionInput.ts").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("low: Math.min(entryLevel, invalidateLevel)", src)
+        self.assertIn("high: Math.max(entryLevel, invalidateLevel)", src)

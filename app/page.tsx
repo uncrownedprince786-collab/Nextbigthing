@@ -370,9 +370,20 @@ export default async function Home({
     <div className="space-y-2">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">LONG, SHORT or WAIT</h1>
+        {/* What the site is, before what it says. Someone arriving here for the first time has
+            three words in 48px type in front of them and no way to tell whether this is a tip
+            sheet; the old subtitle began "One verdict per asset, from the same rule table the
+            asset pages use", which answers a question a new reader has not got to yet and uses
+            two words they have no reason to know. This sentence is the one thing above the fold
+            that has to be understood by somebody who has never seen the page. */}
+        <p className="mt-2 max-w-2xl text-sm">
+          Every name below is read from stored market data by a fixed set of rules. These are
+          readings, not tips: nothing here is advice, a forecast, or a promise that anything will
+          happen.
+        </p>
         <p className="text-muted-foreground mt-2 text-sm">
-          One verdict per asset, from the same rule table the asset pages use. Showing {showing},
-          priced to {asOf ?? "no stored close"}.
+          One reading per name, the same one its own page shows. Showing {showing}, priced to{" "}
+          {asOf ?? "no stored close"}.
         </p>
       </div>
 
@@ -400,7 +411,7 @@ export default async function Home({
 
       <DecisionList
         title="LONG candidates"
-        lead="Setup up, longer view not against it, with a level to be wrong at."
+        lead="Price is trending up, the longer view is not against it, and there is a level that would prove the reading wrong."
         rows={longs.map(toListRow)}
         empty={
           Object.keys(current).length > 0
@@ -411,7 +422,7 @@ export default async function Home({
 
       <DecisionList
         title="SHORT candidates"
-        lead="Setup down, longer view not against it, with a level to be wrong at."
+        lead="Price is trending down, the longer view is not against it, and there is a level that would prove the reading wrong."
         rows={shorts.map(toListRow)}
         empty={
           Object.keys(current).length > 0
@@ -451,6 +462,17 @@ export default async function Home({
           </Empty>
         )}
       </Section>
+
+      {/* The legend, under the three lists rather than above them. A reader who has just scrolled
+          past forty rows of LONG and SHORT is the one who needs it; printing it first would be
+          explaining an answer nobody has been given yet. Three sentences, no stored vocabulary. */}
+      <p className="text-muted-foreground border-border mt-6 border-t pt-4 text-sm">
+        <strong className="text-foreground">LONG</strong> or{" "}
+        <strong className="text-foreground">SHORT</strong> means the rules found a setup and a
+        level that would prove it wrong. <strong className="text-foreground">WAIT</strong> means
+        no clear action today. None of it is a promise, and confidence says how much evidence sat
+        behind the reading — not how likely it is to work.
+      </p>
 
       {/* Everything that survived the rewrite, collapsed.
           It is one `<details>` rather than three because a reader who wants any of it wants to be

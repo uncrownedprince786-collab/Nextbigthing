@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { pickAnalog } from "@/lib/decisionInput";
 
 
 export async function getIndustries() {
@@ -928,6 +929,36 @@ function firstPerKey<T>(rows: T[], key: (row: T) => string): Map<string, T> {
   return out;
 }
 
+/// The analog row each asset's reading should quote, by the one rule that decides it.
+///
+/// `firstPerKey` cannot answer this. It keeps whatever the SQL ordering put first, which was
+/// `horizonDays asc` — the 1-day row — while `pickAnalog` on the asset page prefers the 5-day
+/// one, and the comment above that ordering claimed it was getting the 5-day band. So the home
+/// list and the asset page quoted different measurements of the same asset: ABBV printed
+/// "-11.0% to +16.1%" on its own page (5-day, 285 matches) and -7.0% to +8.7% in the list
+/// (1-day, 286 matches).
+///
+/// Not cosmetic once the lean reaches the rules. WTL's 1-day row has a `medianPct` of exactly 0,
+/// so the same asset would confirm on its own page and fail to confirm in the list and in the
+/// nightly `DecisionLog`. Three readers of one table must not each pick their own row — rule 36 —
+/// so all three now call `pickAnalog`, and this groups the rows so it can.
+function analogPerAsset<T extends { assetId: string; horizonDays: number; matches: number }>(
+  rows: T[],
+): Map<string, T> {
+  const grouped = new Map<string, T[]>();
+  for (const row of rows) {
+    const list = grouped.get(row.assetId);
+    if (list) list.push(row);
+    else grouped.set(row.assetId, [row]);
+  }
+  const out = new Map<string, T>();
+  for (const [assetId, list] of grouped) {
+    const picked = pickAnalog(list);
+    if (picked) out.set(assetId, picked);
+  }
+  return out;
+}
+
 /// The distinct days a per-asset `_max` aggregate came back with. Deduped by millisecond
 /// because the jobs write every asset on the same two or three dates, so 120 aggregate rows
 /// collapse to a handful of values — which is what makes the second query below cheap.
@@ -1110,7 +1141,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
 
   const priceByAsset = firstPerKey(prices, (r) => r.assetId);
   const setupByKey = firstPerKey(setups, (r) => `${r.assetId}|${r.horizon}`);
-  const analogByAsset = firstPerKey(analogs, (r) => r.assetId);
+  const analogByAsset = analogPerAsset(analogs);
   // HumanSignal and EventLink both carry a nullable assetId, already excluded in SQL above. The
   // `?? ""` exists to satisfy the type and can never key a row that reaches this point.
   const signalByAsset = firstPerKey(signals, (r) => r.assetId ?? "");

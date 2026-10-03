@@ -441,9 +441,31 @@ export function decide(input: DecisionInput): Decision {
 
   // 9. Nothing fired. Falling through to a direction here is how a panel recommends a trade it has
   //    no reason for, so the fall-through is WAIT and it says which part is absent.
+  // "Stored" and "stored, and says it found no direction" are two different states, and this
+  // list used to print the first sentence for both. `horizon` is `"unknown"` either when no row
+  // exists or when a row exists whose state is `none`, because `?? "unknown"` collapses the null
+  // into the same word `directionOfState` returns. Only the input itself still knows which.
+  //
+  // Live on btc-bitcoin: the page read "No longer-term reading stored for btc-bitcoin" while a
+  // `longer` row sat in the table carrying a headline, an entry and a stop — its state was
+  // `none`, meaning price is between its long averages. Telling a reader a measurement is
+  // missing, when it was taken and came back without a direction, is the same class of error as
+  // calling a withheld direction flat: it understates how much is actually known.
   const absent: string[] = [];
-  if (setup === "unknown") absent.push(`No setup direction stored for ${input.symbol}.`);
-  if (horizon === "unknown") absent.push(`No longer-term reading stored for ${input.symbol}.`);
+  if (setup === "unknown") {
+    absent.push(
+      input.setup
+        ? `The setup for ${input.symbol} records no direction.`
+        : `No setup direction stored for ${input.symbol}.`,
+    );
+  }
+  if (horizon === "unknown") {
+    absent.push(
+      input.horizon
+        ? `The longer-term reading for ${input.symbol} records no direction.`
+        : `No longer-term reading stored for ${input.symbol}.`,
+    );
+  }
 
   // "Setup is flat" was the wrong sentence, and it was wrong in the direction that matters.
   //

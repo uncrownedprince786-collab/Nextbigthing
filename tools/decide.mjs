@@ -161,7 +161,13 @@ async function readInputs(db, today) {
         `SELECT DISTINCT ON ("assetId")
                 "assetId", id, "horizonDays", "minPct", "maxPct", matches,
                 "medianPct", positive
-           FROM "AssetAnalog" ORDER BY "assetId", "periodEnd" DESC, "horizonDays" ASC`,
+           FROM "AssetAnalog"
+          -- The 5-day row first, then the shortest. `pickAnalog` in lib/decisionInput.ts prefers
+          -- horizon 5 because it is the one a swing read is answerable on, and this used to take
+          -- the shortest unconditionally — so the nightly log and the asset page could quote
+          -- different rows for one asset, and WTL's 1-day median of exactly 0 would confirm in
+          -- one place and not the other. Three readers of this table, one rule.
+          ORDER BY "assetId", "periodEnd" DESC, ("horizonDays" = 5) DESC, "horizonDays" ASC`,
       ),
       // HumanSignal also describes products, which have no place in a list of assets.
       db.query(

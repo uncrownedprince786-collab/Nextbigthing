@@ -512,9 +512,16 @@ def longer_read(bars: list[dict], rel: float | None):
             "measure conditions against."
         )
 
+    # Mirrored for a short, which they were not. The entry is the level the move has to clear
+    # for this read to be happening and the invalidation is where its reason stops being true,
+    # so for a down read the pair is the other way round. Picking both without consulting
+    # `state` gave every `short` row an entry above the price and a stop below it, which is the
+    # stop on the side the trade needs price to reach. `run_targets` below has always branched
+    # on `state` for exactly this reason, so this file disagreed with itself.
     highs, lows = pivots(bars, STRUCTURE_LOOKBACK)
-    entry = next_level(highs, last, above=True) or max(closes[-LONG_FAST:])
-    invalid = next_level(lows, last, above=False) or min(closes[-LONG_FAST:])
+    above = next_level(highs, last, above=True) or max(closes[-LONG_FAST:])
+    below = next_level(lows, last, above=False) or min(closes[-LONG_FAST:])
+    entry, invalid = (below, above) if state == "short" else (above, below)
     return state, head, conds, missing, against, entry, invalid
 
 
@@ -591,11 +598,23 @@ def run_longer(cur, today: date) -> int:
         write_setup(
             cur, a["id"], today, "longer", state, head, conds, missing, against,
             entry,
-            f"the nearest price above where the series last turned within {STRUCTURE_LOOKBACK} "
-            "sessions, or the highest close of the last 100 when it has cleared them all",
+            (
+                f"the nearest price below where the series last turned within "
+                f"{STRUCTURE_LOOKBACK} sessions, or the lowest close of the last 100 when it has "
+                "cleared them all"
+                if state == "short"
+                else f"the nearest price above where the series last turned within "
+                f"{STRUCTURE_LOOKBACK} sessions, or the highest close of the last 100 when it "
+                "has cleared them all"
+            ),
             invalid,
-            "the nearest level below where the series last turned. Below it, the multi-year "
-            "structure these conditions were read from has changed",
+            (
+                "the nearest level above where the series last turned. Above it, the multi-year "
+                "structure these conditions were read from has changed"
+                if state == "short"
+                else "the nearest level below where the series last turned. Below it, the "
+                "multi-year structure these conditions were read from has changed"
+            ),
             None, LONGER_RULES,
         )
         tally[state] = tally.get(state, 0) + 1

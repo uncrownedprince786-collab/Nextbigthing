@@ -331,10 +331,45 @@ def main() -> None:
                     "measure conditions against."
                 )
 
-            # Levels, from stored closes, with the window said out loud.
+            # Levels, from stored closes, with the window said out loud — and mirrored for a
+            # short, which they were not.
+            #
+            # The entry is the level the move has to clear for the setup to be happening, and the
+            # invalidation is the level at which the reason for it has stopped being true. For an
+            # up read that is the window's high and its low. For a down read it is the other way
+            # round, and this block used to hand a `short` row the same pair as a `buy` row: the
+            # entry above the price and the stop below it.
+            #
+            # That is not a cosmetic swap, it inverts what the page tells a reader to do. WTL read
+            # SHORT at Rs.1.00 and the panel printed "Exit if wrong Rs.0.99 — past this level the
+            # reason above no longer holds", so the stop sat 1% *below* a short: the side the
+            # trade needs price to reach. A short is wrong when price rises.
+            #
+            # `run_targets` in jobs/horizons.py has always branched on `state` when it picks a
+            # structural level, so the repository already contained the correct form of this
+            # statement and two of its three level-writers disagreed with it.
             recent = series[-FAST:]
-            entry = max(float(b["close"]) for b in recent)
-            invalid = min(float(b["close"]) for b in recent)
+            high = max(float(b["close"]) for b in recent)
+            low = min(float(b["close"]) for b in recent)
+            entry, invalid = (low, high) if state == "short" else (high, low)
+            if state == "short":
+                entry_note = (
+                    f"the lowest close of the last {FAST} sessions. A close below it would be a "
+                    "move past where it recently held"
+                )
+                invalid_note = (
+                    f"the highest close of the last {FAST} sessions. A close above it means the "
+                    "trend these conditions were read from is no longer there"
+                )
+            else:
+                entry_note = (
+                    f"the highest close of the last {FAST} sessions. A close above it would be "
+                    "a move past where it recently stalled"
+                )
+                invalid_note = (
+                    f"the lowest close of the last {FAST} sessions. A close below it means the "
+                    "trend these conditions were read from is no longer there"
+                )
             range_note = None
             if analog and analog["matches"] and int(analog["matches"]) >= ANALOG_MIN:
                 range_note = (
@@ -377,12 +412,7 @@ def main() -> None:
                 (
                     a["id"], today, HORIZON, state, head,
                     " | ".join(conds), " | ".join(missing) or "none", " | ".join(against) or "none",
-                    entry,
-                    f"the highest close of the last {FAST} sessions. A close above it would be "
-                    "a move past where it recently stalled",
-                    invalid,
-                    f"the lowest close of the last {FAST} sessions. A close below it means the "
-                    "trend these conditions were read from is no longer there",
+                    entry, entry_note, invalid, invalid_note,
                     range_note, grade, "; ".join(note_bits).capitalize() or None, RULES,
                 ),
             )

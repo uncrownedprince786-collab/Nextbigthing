@@ -197,7 +197,21 @@ export interface DecisionBundle {
     entryLevel: number | null;
     invalidateLevel: number | null;
   }[];
-  analogs: { horizonDays: number; matches: number; minPct: number | null; maxPct: number | null }[];
+  /// Newest `AssetAnalog` per horizon.
+  ///
+  /// `medianPct` and `positive` are not decoration. A range alone cannot say whether the matched
+  /// days leaned: -20% to +22% is the same range whether nine days in ten rose or one did, and
+  /// `analogConfirms` needs the lean rather than the span. They were missing from this interface
+  /// and from the object `toDecisionInput` built, so the third confirmation leg returned null for
+  /// every asset in the database — see the note there.
+  analogs: {
+    horizonDays: number;
+    matches: number;
+    minPct: number | null;
+    maxPct: number | null;
+    medianPct?: number | null;
+    positive?: number | null;
+  }[];
   human: { recentStories: number } | null;
   investigation: { robustZ: number | null; trigger: string } | null;
   /// The newest `AssetFactor` row, when one has been computed.
@@ -250,8 +264,31 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
     horizon: longer ? { direction: directionOfState(longer.state) } : null,
     entry: setup ? entryZone(setup.entryLevel, setup.invalidateLevel) : null,
     invalidation: setup?.invalidateLevel ?? null,
+    // `medianPct` and `positive` travel with the count and the band. They used not to, and that
+    // one omission disabled a third of the confidence grading for every asset on the site.
+    //
+    // `analogConfirms` in lib/decision.ts returns null the moment either is missing, so with them
+    // dropped here it returned null 160 times out of 160, for every direction, always. Two
+    // consequences, and the second is worse than the first. `confidenceFor` counts three
+    // confirmations and could only ever reach two, so the grade was capped below what the stored
+    // evidence supported. And `confirmMissing` printed its "stored, but which way they went was
+    // not recorded" branch on every directional asset — a sentence about an absent measurement,
+    // printed over 150 assets whose `positive` and `medianPct` were both sitting in the table.
+    // ATRL showed "102 similar past days are stored, but which way they went was not recorded"
+    // while holding both columns.
+    //
+    // Nothing upstream was at fault: `jobs/analogs.py` writes both columns, `lib/queries.ts`
+    // selects them, and `bundleFromQuery` carries them. They were lost in this object literal.
+    // Read against the live table the leg discriminates — 23 true, 16 false over the 40
+    // directional names — so this restores a leg that argues, not one that flatters.
     analogs: analog
-      ? { count: analog.matches, lowPct: analog.minPct, highPct: analog.maxPct }
+      ? {
+          count: analog.matches,
+          lowPct: analog.minPct,
+          highPct: analog.maxPct,
+          medianPct: analog.medianPct ?? null,
+          positive: analog.positive ?? null,
+        }
       : null,
     volumeRatio: bundle.factors?.volumeRatio ?? null,
     relStrength: bundle.factors?.relStrength ?? null,

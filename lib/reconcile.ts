@@ -45,7 +45,14 @@ const SECOND_VIEW: ReadonlyArray<readonly [string, string]> = [
 const VOLUME_CONFIRMED = /volume [\d.]+x its average/;
 const VOLUME_UNPUBLISHED = "No volume published";
 const DAYS_CONFIRMED = /similar days went the same way/;
+// Three different absences share the words "similar past days", so matching on that phrase alone
+// folded them into one sentence. Each gets its own test, most specific first, because "the lean
+// was never recorded" is not "there is not enough history" — it was printed over 102 stored days
+// on ATRL, which is plenty of history and none of it was the problem.
 const DAYS_UNAVAILABLE = "similar past days";
+const DAYS_UNRECORDED = "which way they went was not recorded";
+const DAYS_TOO_FEW = "are needed to confirm";
+const DAYS_NONE = "No similar past days stored";
 
 /// The one line that explains a strong direction carrying a weak grade.
 ///
@@ -80,13 +87,19 @@ export function gapLine(decision: Decision): string | null {
     weak.push(missing.includes(VOLUME_UNPUBLISHED) ? "no volume is published" : "volume is weak");
   }
 
-  // Similar past days. The exact reason — none stored, too few, or a lean that was never recorded
-  // — is already printed in full under "What is missing" a few lines below, so this names the leg
-  // and does not restate it. One line means one line.
-  if (!DAYS_CONFIRMED.test(why) && !missing.includes(DAYS_UNAVAILABLE)) {
-    weak.push("similar past days do not back it");
-  } else if (!DAYS_CONFIRMED.test(why)) {
-    weak.push("there is not enough history to compare");
+  // Similar past days. Four states, and they are not interchangeable: the set can lean against
+  // the direction, be absent entirely, be too small to use, or be stored without its lean. The
+  // full reason is printed under "What is missing" a few lines below, so this names the leg in a
+  // clause and does not restate it — but the clause has to be true on its own terms.
+  if (!DAYS_CONFIRMED.test(why)) {
+    if (!missing.includes(DAYS_UNAVAILABLE)) {
+      // Nothing was reported missing, so the leg was measured and came out against.
+      weak.push("similar past days do not back it");
+    } else if (missing.includes(DAYS_UNRECORDED)) {
+      weak.push("the past days stored for it have no direction recorded");
+    } else if (missing.includes(DAYS_NONE) || missing.includes(DAYS_TOO_FEW)) {
+      weak.push("there is not enough history to compare");
+    }
   }
 
   if (!weak.length) return null;
