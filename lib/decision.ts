@@ -444,10 +444,35 @@ export function decide(input: DecisionInput): Decision {
   const absent: string[] = [];
   if (setup === "unknown") absent.push(`No setup direction stored for ${input.symbol}.`);
   if (horizon === "unknown") absent.push(`No longer-term reading stored for ${input.symbol}.`);
+
+  // "Setup is flat" was the wrong sentence, and it was wrong in the direction that matters.
+  //
+  // `directionOfState` maps `AssetSetup.state` to a direction, and only `wait` becomes `flat`.
+  // But `wait` is not the neutral state in `jobs/setup.py` — it is the state where **the trend is
+  // clear and the conditions behind it are not all present**, and its stored headline says so in
+  // those words. The neutral state is `none`, "price is between its averages", which maps to
+  // `unknown`. So `flat` here means a direction was measured and withheld, and printing "Setup is
+  // flat" threw away the one thing the reader was owed.
+  //
+  // This is what made crypto look like an unexplained permanent WAIT. All ten stored coins carry
+  // a `wait` swing row with an upward trend; every asset page said "Setup is flat. No direction to
+  // act on." The verdict was right — the volume leg genuinely fails, see rule 39 — and the reason
+  // given for it described a different market.
+  //
+  // The direction is still not acted on, and that is deliberate: `setup.py` withheld it because
+  // its conditions failed, and turning it into a LONG here would be inventing the confirmation it
+  // could not find. What changes is only that the reader is told which of the two situations they
+  // are in. Which condition failed is already stored in the setup's own headline and printed
+  // under Details.
   return wait(
     input,
     "incomplete",
-    [setup === "flat" ? "Setup is flat." : "Conditions incomplete.", "No direction to act on."],
+    setup === "flat"
+      ? [
+          "A direction is showing, but not all the conditions behind it are present.",
+          "So nothing is acted on yet.",
+        ]
+      : ["There is no clear direction to measure.", "Price is between its own averages."],
     absent,
   );
 }

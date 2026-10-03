@@ -11,9 +11,22 @@ import type { DecisionInput, Direction, Market } from "./decision.ts";
 
 /// `AssetSetup.state` is the job's vocabulary; the rule table speaks in directions.
 ///
-/// "wait" maps to flat rather than unknown because a wait state is a real, measured reading — the
-/// conditions were evaluated and came out neutral. "none" is the absence of a reading, which is a
-/// different thing and must not be allowed to look like neutrality.
+/// "wait" maps to flat rather than unknown because a wait state is a real, measured reading,
+/// where "none" is the absence of one and must not be allowed to look like a measurement.
+///
+/// **`flat` here does not mean neutral, and the rule table must not print it as though it did.**
+/// Read `jobs/setup.py`: `wait` is the branch guarded by `up_trend or down_trend`, and its stored
+/// headline is "The direction is clear but the conditions are not all present". The neutral state
+/// is `none` — "price is between its averages, so there is no clear direction to measure
+/// conditions against" — and that is the one that arrives here as `unknown`. So a `flat` setup is
+/// a direction that was measured and deliberately withheld, not an absence of one.
+///
+/// The distinction is load-bearing twice over. `flat` is correctly not actionable, because
+/// setup.py withheld the direction when its conditions failed and manufacturing one here would
+/// invent the confirmation it could not find. But `flat` and `unknown` need different sentences:
+/// all ten stored coins carry a `wait` swing row over an upward trend, and for as long as both
+/// states printed "Setup is flat" every crypto page explained a real verdict with a description
+/// of a different market. See the fall-through gate in `lib/decision.ts`.
 export function directionOfState(state: string | null | undefined): Direction {
   switch (state) {
     case "buy":

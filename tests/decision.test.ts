@@ -164,7 +164,22 @@ test("a flat setup falls through to WAIT rather than to a direction", () => {
   const d = decide(base({ setup: { direction: "flat", horizon: null } }));
   assert.equal(d.action, "WAIT");
   assert.equal(d.gate, "incomplete");
-  assert.match(d.why[0], /flat/i);
+  // `flat` is setup.py's `wait`: the trend was clear and the conditions behind it were not all
+  // present, so the direction was measured and withheld. It is deliberately not acted on, and
+  // the sentence must not call it neutral — "flat" is what `unknown` is, and the two arrive here
+  // from different branches of the job. See directionOfState in lib/decisionInput.ts.
+  assert.match(d.why[0], /a direction is showing/i);
+  assert.doesNotMatch(d.why.join(" "), /between its own averages/i);
+});
+
+test("an absent setup says the direction is missing, not that it is neutral", () => {
+  // The other half of the pair. `unknown` is setup.py's `none` — price between its averages —
+  // and this is the one that is genuinely directionless. Printing one sentence for both states
+  // is what made every crypto page explain a real verdict with the wrong market.
+  const d = decide(base({ setup: { direction: "unknown", horizon: null } }));
+  assert.equal(d.gate, "incomplete");
+  assert.match(d.why.join(" "), /no clear direction to measure/i);
+  assert.doesNotMatch(d.why[0], /a direction is showing/i);
 });
 
 test("an absent setup is WAIT and says which reading is absent", () => {
