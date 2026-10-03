@@ -640,6 +640,56 @@ export async function getStories(assetId: string, take = 6) {
 /// Ordered by `publishedAt` here and re-ordered in `lib/newsRank.ts`. The database decides
 /// which rows are recent; it does not decide which are material, because that rule has to be
 /// readable and arguable in one file rather than spread into a SQL clause.
+/// Market news and statements from the last `days` days, across every asset: 2 queries.
+///
+/// The event calendar is a list of *dated* items, and in a normal week almost all of them are
+/// ex-dividend dates — eight of the first eight, on 2026-10-03. That is an honest calendar and a
+/// poor answer to "what is happening this week", because the things that actually moved a price
+/// in the last seven days were not on anybody's calendar: a refinery programme, a patent ruling,
+/// a chip export story. None of those has a future date, so none of them can appear in a diary.
+///
+/// So this is deliberately a different kind of row from the ones above it on that page, and the
+/// page says so. These have already been published; the calendar entries have not happened yet.
+/// Mixing the two orderings would produce a list where "in 3 days" and "2 days ago" sit in one
+/// column, which is the one thing a date-ordered page must not do.
+///
+/// Ranking is `lib/newsRank.ts`, the same reading the asset pages use, so a story that leads an
+/// asset page is the story that leads here. The window is generous for the same reason it is
+/// there: ranking drops the rows that are not about a business and then keeps one per story, so
+/// a few hundred recent rows reduce to a few dozen.
+export async function getRecentMarketNews(days = 7, take = 240) {
+  const since = new Date(Date.now() - days * 86_400_000);
+  const items = await prisma.news.findMany({
+    where: { publishedAt: { gte: since }, assetId: { not: null } },
+    orderBy: { publishedAt: "desc" },
+    take,
+    select: {
+      id: true, title: true, url: true, publisher: true, publishedAt: true,
+      lineageId: true, isOriginal: true,
+      // No `market` column exists on Asset — it is derived from `assetType` by `marketOf`. Asking
+      // for one here is the same trap `decisionInput.test.ts` guards on the decision side.
+      asset: { select: { symbol: true, name: true, assetType: true } },
+    },
+  });
+
+  const ids = [...new Set(items.map((n) => n.lineageId).filter((v): v is string => !!v))];
+  const counts = ids.length
+    ? new Map(
+        (
+          await prisma.newsLineage.findMany({
+            where: { id: { in: ids } },
+            select: { id: true, items: true },
+          })
+        ).map((l) => [l.id, l.items]),
+      )
+    : new Map<string, number>();
+
+  return items.map((n) => ({
+    ...n,
+    outlets: (n.lineageId ? counts.get(n.lineageId) : null) ?? 1,
+  }));
+}
+
 /// Two queries, not a join. `News.lineageId` is an indexed `String?` and not a Prisma relation
 /// — `jobs/lineage.py` assigns it, and making it a foreign key would mean a migration to read a
 /// count. So the stories the window actually references are fetched by id and attached here.

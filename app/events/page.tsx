@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Card, ConfidenceBadge, Empty, HowToRead, Note, Pill, Section } from "@/components/ui";
-import { EVENT_DUPLICATE_WITHIN_DAYS, getEvents } from "@/lib/queries";
+import { EVENT_DUPLICATE_WITHIN_DAYS, getEvents, getRecentMarketNews } from "@/lib/queries";
+import { headlineOf, rankHeadlines } from "@/lib/newsRank";
 import { EVENT_SOON_DAYS } from "@/lib/decision";
 import { isoDate, longDate } from "@/lib/format";
 
 export const revalidate = 3600;
+
+/// One stored news row as this page reads it. Taken from the query rather than redeclared so
+/// that a column added there reaches the strip without a second edit here.
+type MarketNewsRow = Awaited<ReturnType<typeof getRecentMarketNews>>[number];
 
 export const metadata: Metadata = {
   title: "Event calendar",
@@ -101,12 +106,85 @@ function CalendarRows({
   );
 }
 
+/// The market news strip: published items, newest first, one row per story.
+///
+/// Built to the same shape as `CalendarRows` on purpose — same fixed date column, same pill
+/// width, same wrapping behaviour below `sm` — so the two blocks read as one page rather than
+/// as a calendar with a feed bolted under it. The pill says how long ago rather than how long
+/// until, which is the one visible difference and is the distinction the section lead draws.
+function NewsStrip({
+  rows,
+  today,
+}: {
+  rows: ReturnType<typeof rankHeadlines<MarketNewsRow>>;
+  today: Date;
+}) {
+  return (
+    <ul className="divide-border border-border divide-y rounded-lg border">
+      {rows.map((n) => {
+        // Counted in calendar days from local midnight, exactly as `daysUntil` does above, and
+        // never from `Date.now()`. `publishedAt` is a timestamp rather than a date, so a diff
+        // from the current clock rounds differently depending on the hour an item was filed:
+        // the first draft of this block printed "2026-10-02 / yesterday" two rows above
+        // "2026-10-03 / yesterday". Two rows on one page disagreeing about what yesterday was
+        // is worse than either label.
+        const published = new Date(n.publishedAt);
+        published.setHours(0, 0, 0, 0);
+        const days = Math.max(0, -daysUntil(published, today));
+        return (
+          <li key={n.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-3 py-2">
+            <span className="num text-muted-foreground w-24 shrink-0 text-xs">
+              {isoDate(published)}
+            </span>
+            <span className="w-20 shrink-0">
+              <Pill>{days === 0 ? "today" : days === 1 ? "yesterday" : `${days}d ago`}</Pill>
+            </span>
+            <span className="w-full min-w-0 text-sm sm:w-auto sm:flex-1">
+              {n.asset ? (
+                <Link
+                  href={`/asset/${encodeURIComponent(n.asset.symbol)}`}
+                  className="num font-medium underline underline-offset-2"
+                >
+                  {n.asset.symbol}
+                </Link>
+              ) : null}
+              {" — "}
+              {/* `nofollow` with the rest: these are outbound links to whoever a feed named,
+                  carried in bulk, and this site does not vouch for any of them. */}
+              <a
+                href={n.url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="underline underline-offset-2"
+              >
+                {headlineOf(n.title, n.publisher)}
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>{" "}
+              <span className="text-muted-foreground">
+                {n.publisher}
+                {n.outlets > 1 ? ` and ${n.outlets - 1} more` : ""}
+              </span>
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export default async function EventsPage() {
   const today = startOfToday();
   // Soonest first, with provider restatements of one earnings date already folded away in
   // `getEvents`. Everything below is a slice of this one ordering, so no section can disagree
   // with another about which date comes next.
-  const events = await getEvents();
+  // Two independent reads, in parallel: the calendar and the week's published news are
+  // different claims from different tables and neither waits on the other.
+  const [events, recentNews] = await Promise.all([getEvents(), getRecentMarketNews(7)]);
+
+  // Ranked by the same reading the asset pages use, then capped. Eight is the most this block
+  // can hold without becoming the page: the calendar is still what this page is for, and a
+  // ninth row would push "Next 30 days" off a phone screen entirely.
+  const marketNews = rankHeadlines(recentNews).slice(0, 8);
 
   const upcoming = events.filter((e) => daysUntil(e.date, today) >= 0);
   const next7 = upcoming.filter((e) => daysUntil(e.date, today) <= 7);
@@ -159,6 +237,25 @@ export default async function EventsPage() {
           <Empty>
             Nothing is published for the next seven days. That is a quiet week in the stored
             calendar, not a missing feed — the next thirty days are below.
+          </Empty>
+        )}
+      </Section>
+
+      {/* The strip. It sits directly under the seven day calendar because it answers the question
+          that calendar raises and cannot answer: in a normal week every dated row is an
+          ex-dividend date, and none of the things that actually moved a price was on a calendar
+          at all. Newest first, which is this block's own "soonest first" — these have happened,
+          so the most recent is the most current. */}
+      <Section
+        title="Market news and statements"
+        lead="What has actually been published in the last seven days, most recent first. These have already happened, so they are not calendar entries and are not mixed with the dates above."
+      >
+        {marketNews.length ? (
+          <NewsStrip rows={marketNews} today={today} />
+        ) : (
+          <Empty>
+            No market news was stored in the last seven days. That is a quiet week in the feeds
+            rather than an empty calendar.
           </Empty>
         )}
       </Section>

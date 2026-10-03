@@ -71,6 +71,13 @@ const NOISE: ReadonlyArray<readonly [string, RegExp]> = [
   ["gadget", /\b(hands[- ]on|unboxing|wallpapers?|accessor\w+|magsafe|screen protector|battery life)\b|\breview\b|\bcolou?r\b[^.]{0,20}\bfading\b|\bdeals? on\b/i],
   ["pundit", /\b(jim cramer|cramer (?:says|urges)|mad money|analyst says you should|why i |i love |i can'?t wait)\b/i],
   ["listicle", /\b(\d+ (?:stocks?|things|reasons|ways)|stocks? to (?:buy|watch) (?:now|today)|motley fool|zacks rank)\b/i],
+  // Pages a machine wrote from a ticker, which carry no report at all. These only surfaced once
+  // the events page started ranking every asset's news together instead of one asset's at a
+  // time: TradingView is the second largest publisher in the table at 104 rows, and its
+  // auto-generated "NCPL Forecast — Price Target — Prediction for 2027" appeared twice in the
+  // first six rows under two different symbols. Matched on the title's shape rather than by
+  // banning the publisher, because the same desk does also carry real items.
+  ["generated", /\bforecast\s*[—–-]\s*price target\b|\bprice target\s*[—–-]\s*prediction\b|\bprediction for \d{4}\b|\b(?:price|quote) (?:on|for) \w+ \d{1,2}, \d{4}\b|\bprediction market\b|\bETF Profile\b|\b(?:employee count|headcount) data\b/i],
 ];
 
 /// Publishers whose whole output is off-topic for every asset. Not a judgement of quality — a
@@ -114,6 +121,16 @@ export function rankHeadline(
   // Relevance is not the same question as the score. A headline with nothing material in it and
   // something off-topic in it is not a weak business story, it is not a business story, and the
   // top block should leave it out rather than print it third.
+  //
+  // `generated` is the exception that rejects outright, like an off-topic publisher does. A page
+  // a machine assembled from a ticker is stuffed with business vocabulary by construction —
+  // "NCPL Forecast — Price Target — Prediction for 2027" matches the analyst-rating group on
+  // `price target` — so the ordinary "did anything material match?" rescue hands it the slot it
+  // least deserves. There is no report behind these at any score.
+  if (noise.includes("generated")) {
+    return { score: Math.min(score, -1), material, noise, relevant: false };
+  }
+
   return { score, material, noise, relevant: material.length > 0 || noise.length === 0 };
 }
 
@@ -153,16 +170,48 @@ export function rankHeadlines<T extends RankableHeadline>(
   // a reader one thing and spends three lines doing it. The original report represents the
   // story where one is marked, and otherwise the highest-scoring row does.
   const seen = new Set<string>();
+  const titles = new Set<string>();
   const byStory: Array<T & { rank: RankedHeadline }> = [];
   for (const item of scored) {
+    // The second guard is for duplicates `jobs/lineage.py` cannot see. Stories are clustered
+    // **per asset**, because the same wording about two different companies is two different
+    // stories — so one wire item filed against two symbols gets two lineages and passes the
+    // check above. That is right on an asset page, where only one symbol's rows are ever in
+    // play, and wrong on the events page, which ranks every asset's news in one list: the same
+    // TradingView page appeared there under NCPL and NCL. Matching on the title is the weaker
+    // test and it is the only one available across assets.
+    const key = headlineOf(item.title, item.publisher).toLowerCase().replace(/\s+/g, " ").trim();
+    if (titles.has(key)) continue;
     if (item.lineageId) {
       if (seen.has(item.lineageId)) continue;
       const original = scored.find((o) => o.lineageId === item.lineageId && o.isOriginal);
       seen.add(item.lineageId);
+      titles.add(key);
       byStory.push(original ?? item);
       continue;
     }
+    titles.add(key);
     byStory.push(item);
   }
   return byStory;
+}
+
+/// The headline, with the outlet's name taken off the end of it.
+///
+/// Shared by the asset panel's top block and the events page strip, which both print the
+/// publisher on its own beside the title.
+///
+/// Stored titles arrive as "Jim Cramer urges buying Apple stock - Yahoo Finance", because that is
+/// how the feeds write them. The publisher is printed on its own line directly underneath, so the
+/// suffix is the same word twice in a block that has three lines of space for three stories. Only
+/// stripped when it actually matches the publisher: a title that genuinely ends in a dash and a
+/// name is left exactly as stored, because this is a quotation.
+export function headlineOf(title: string, publisher: string): string {
+  for (const dash of [" - ", " – ", " — ", " | "]) {
+    const tail = `${dash}${publisher}`;
+    if (title.endsWith(tail) && title.length > tail.length) {
+      return title.slice(0, -tail.length);
+    }
+  }
+  return title;
 }

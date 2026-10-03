@@ -160,3 +160,51 @@ test("ranking never invents or rewrites a headline", () => {
     assert.ok(ATRL.some((a) => a.title === r.title && a.publisher === r.publisher));
   }
 });
+
+// --- what the events page surfaced ------------------------------------------------------------
+//
+// The strip ranks every asset's news in one list rather than one asset's at a time, and that
+// turned up two faults the per-asset top blocks could not have shown.
+
+test("a page a machine wrote from a ticker is not a report", () => {
+  // TradingView is the second largest publisher in the News table at 104 rows, and these are
+  // what most of them are. Matched on the title's shape, not by banning the desk: the same
+  // publisher does also carry real items, and a publisher ban would take those too.
+  for (const title of [
+    "NCPL Forecast — Price Target — Prediction for 2027",
+    "MZNPETF ETF Profile: Dividends, Returns (PSX:MZNPETF)",
+    "Dogecoin price on Oct 2, 2026 at 12pm EDT Prediction Market",
+    "Meezan Bank Number of Employees 2026 | Employee Count & Headcount Data",
+  ]) {
+    assert.equal(rankHeadline(title, "TradingView", 1).relevant, false, title);
+  }
+});
+
+test("a real item from the same publisher still gets through", () => {
+  // The guard on the guard. If the patterns above were a publisher ban this would fail.
+  const r = rankHeadline("Attock Refinery plans new 50,000 bpd deep-conversion refinery", "TradingView", 3);
+  assert.equal(r.relevant, true);
+  assert.ok(r.score > 0);
+});
+
+test("one wire item filed against two symbols takes one row", () => {
+  // `jobs/lineage.py` clusters per asset, because the same wording about two different
+  // companies is two different stories. That is right on an asset page and wrong in a list that
+  // spans assets: this exact pair appeared under NCPL and NCL in the first six rows.
+  const ranked = rankHeadlines([
+    { title: "Shared wire story about a $1bn contract", publisher: "Reuters", publishedAt: "2026-10-02", outlets: 1, lineageId: "ncpl-1" },
+    { title: "Shared wire story about a $1bn contract", publisher: "Reuters", publishedAt: "2026-10-02", outlets: 1, lineageId: "ncl-1" },
+  ]);
+  assert.equal(ranked.length, 1);
+});
+
+test("the publisher suffix does not make two copies look different", () => {
+  // Titles arrive with the outlet appended, so the same story from two desks differs by its
+  // tail. Deduping on the raw title would keep both; it is compared after the suffix is cut.
+  const ranked = rankHeadlines([
+    { title: "Refinery signs $5bn upgrade deal - Dawn", publisher: "Dawn", publishedAt: "2026-10-02", outlets: 1, lineageId: "a" },
+    { title: "Refinery signs $5bn upgrade deal - Business Recorder", publisher: "Business Recorder", publishedAt: "2026-10-01", outlets: 1, lineageId: "b" },
+  ]);
+  assert.equal(ranked.length, 1);
+  assert.equal(ranked[0].publisher, "Dawn");
+});

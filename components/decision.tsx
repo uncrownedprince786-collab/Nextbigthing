@@ -4,6 +4,7 @@ import type { Action, Confidence, Decision, Market, TimeSense } from "@/lib/deci
 import type { ProductDecision, WhereToCheck } from "@/lib/productDecision";
 import { AsOf, Card, ConfidenceBadge, Empty, Note, Pill, Section } from "@/components/ui";
 import { gapLine } from "@/lib/reconcile";
+import { headlineOf } from "@/lib/newsRank";
 
 // The decision panel, and nothing else.
 //
@@ -144,22 +145,6 @@ function Missing({ items }: { items: string[] }) {
 }
 
 
-/// The headline, with the outlet's name taken off the end of it.
-///
-/// Stored titles arrive as "Jim Cramer urges buying Apple stock - Yahoo Finance", because that is
-/// how the feeds write them. The publisher is printed on its own line directly underneath, so the
-/// suffix is the same word twice in a block that has three lines of space for three stories. Only
-/// stripped when it actually matches the publisher: a title that genuinely ends in a dash and a
-/// name is left exactly as stored, because this is a quotation.
-function headlineOf(title: string, publisher: string): string {
-  for (const dash of [" - ", " – ", " — ", " | "]) {
-    const tail = `${dash}${publisher}`;
-    if (title.endsWith(tail) && title.length > tail.length) {
-      return title.slice(0, -tail.length);
-    }
-  }
-  return title;
-}
 
 /// Up to three stored headlines, as links out.
 ///
