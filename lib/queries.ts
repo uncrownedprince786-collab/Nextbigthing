@@ -630,6 +630,51 @@ export async function getStories(assetId: string, take = 6) {
   });
 }
 
+/// The handful of headlines the asset page's top block may link to: 1 query.
+///
+/// `take` is generous relative to the three the panel shows, because the ranking happens after
+/// the read: `rankHeadlines` drops the rows that are not about the business and then keeps one
+/// row per story, so a window of twelve routinely reduces to four or five. Reading three would
+/// mean the top block showed whichever three were newest, which is the thing being fixed.
+///
+/// Ordered by `publishedAt` here and re-ordered in `lib/newsRank.ts`. The database decides
+/// which rows are recent; it does not decide which are material, because that rule has to be
+/// readable and arguable in one file rather than spread into a SQL clause.
+/// Two queries, not a join. `News.lineageId` is an indexed `String?` and not a Prisma relation
+/// — `jobs/lineage.py` assigns it, and making it a foreign key would mean a migration to read a
+/// count. So the stories the window actually references are fetched by id and attached here.
+/// Two round trips against a free-tier endpoint is the cheaper of the two prices.
+export async function getTopNews(assetId: string, take = 12) {
+  const items = await prisma.news.findMany({
+    where: { assetId },
+    orderBy: { publishedAt: "desc" },
+    take,
+    select: {
+      id: true, title: true, url: true, publisher: true, publishedAt: true,
+      lineageId: true, isOriginal: true,
+    },
+  });
+
+  const ids = [...new Set(items.map((n) => n.lineageId).filter((v): v is string => !!v))];
+  const counts = ids.length
+    ? new Map(
+        (
+          await prisma.newsLineage.findMany({
+            where: { id: { in: ids } },
+            select: { id: true, items: true },
+          })
+        ).map((l) => [l.id, l.items]),
+      )
+    : new Map<string, number>();
+
+  // A row whose story is missing counts as one outlet rather than none: the row exists, so at
+  // least one desk carried it, and 0 here would read as "nobody published this".
+  return items.map((n) => ({
+    ...n,
+    outlets: (n.lineageId ? counts.get(n.lineageId) : null) ?? 1,
+  }));
+}
+
 /// ---------------------------------------------------------------------------
 /// The decision panel: one asset's read, and the same read across every asset.
 /// ---------------------------------------------------------------------------

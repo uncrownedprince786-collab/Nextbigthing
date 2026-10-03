@@ -43,6 +43,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from nbt import db, one, rows, step  # noqa: E402
+from factors import volume_ratio  # noqa: E402
 
 try:
     from dotenv import load_dotenv
@@ -156,12 +157,16 @@ def main() -> None:
             lo = min(float(b["close"]) for b in window)
             position = ((last - lo) / (hi - lo)) if hi > lo else None
 
-            vols = [float(b["volume"]) for b in series[-FAST - 1 : -1] if b["volume"]]
-            vol_ratio = None
-            if vols and series[-1]["volume"]:
-                avg = sum(vols) / len(vols)
-                if avg > 0:
-                    vol_ratio = float(series[-1]["volume"]) / avg
+            # One implementation of one idea — rule 36. This used to average the twenty
+            # sessions before the latest one inline, which is the same statement `factors.py`
+            # makes and was the same statement with one difference: it had no dates, so it
+            # could not tell a quiet market from a Saturday. Every stored coin failed this gate
+            # on a weekend bar while its trend read up. `volume_ratio` takes the dates and
+            # compares weekend with weekend; for US and PSX the split is a no-op.
+            vol_ratio = volume_ratio(
+                [None if b["volume"] is None else float(b["volume"]) for b in series],
+                [b["date"] for b in series],
+            )
 
             rel = industry_relative(cur, a["id"], a["industryId"])
 

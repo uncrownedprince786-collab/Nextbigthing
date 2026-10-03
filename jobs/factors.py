@@ -91,6 +91,10 @@ MAD_FLOOR_PCT = 0.05
 # MIN_VOLUME_BARS of them and there is no average worth dividing by.
 VOLUME_WINDOW = 20
 MIN_VOLUME_BARS = 10
+# Comparable sessions needed before the volume baseline is split weekend-from-weekday. A
+# twenty-session window holds about six weekend bars, so this cannot be MIN_VOLUME_BARS and
+# still ever apply; four is the floor at which an average of weekend days is one.
+MIN_COMPARABLE_BARS = 4
 
 # The two moving averages the rest of the project already uses, kept identical on purpose:
 # setup.py reads trend from the same pair, and two jobs disagreeing about what "the 20 day
@@ -199,18 +203,55 @@ def robust_z(value: float | None, history: list[float]) -> float | None:
     return (value - med) / scale
 
 
-def volume_ratio(volumes: list[float | None]) -> float | None:
-    """Latest volume over the average of the VOLUME_WINDOW sessions before it.
+def volume_ratio(
+    volumes: list[float | None], dates: list[date] | None = None
+) -> float | None:
+    """Latest volume over the average of the VOLUME_WINDOW comparable sessions before it.
 
     None when the venue published no volume for the latest session, or when too few of the
     baseline sessions have one. A venue that publishes no volume at all is not a quiet venue,
     and 0.0 here would say the opposite.
+
+    **Comparable, not merely preceding.** With `dates` given, the baseline is drawn only from
+    sessions on the same side of the weekend as the latest one. This is a correction, not a
+    refinement: a market that trades seven days a week is far quieter at the weekend than in
+    the week — measured over the last 120 sessions, Saturday and Sunday run at 0.86 and 0.73
+    of a trailing average that is five sevenths weekdays, and for BTC and ETH at 0.42 to 0.51
+    — so a Saturday bar divided by a weekday-dominated average does not report a quiet market,
+    it reports the calendar. Every one of the ten stored coins failed the `setup.py` volume
+    gate on a Saturday bar at 0.11x to 0.52x while its trend read up, which is how this was
+    found. Splitting the baseline compares a weekend day against weekend days and a weekday
+    against weekdays, and the ratio means the same thing in both.
+
+    For a five-day market this is a no-op by construction: every session is a weekday, so the
+    split leaves the baseline whole and no equity ratio moves. That is the point — the fix is
+    stated once for every market and only bites where a market actually trades at the weekend.
+
+    Falls back to the unsplit baseline when the comparable one is too thin, because two
+    weekend bars are a worse denominator than twenty mixed ones. Without `dates` the baseline
+    is unsplit, which is the behaviour every caller had before this parameter existed.
     """
     if len(volumes) < 2 or volumes[-1] is None:
         return None
     latest = float(volumes[-1])
-    baseline = [float(v) for v in volumes[-1 - VOLUME_WINDOW : -1] if v is not None]
-    if len(baseline) < MIN_VOLUME_BARS:
+    aligned = dates if dates is not None and len(dates) == len(volumes) else [None] * len(volumes)
+    window = list(zip(volumes[-1 - VOLUME_WINDOW : -1], aligned[-1 - VOLUME_WINDOW : -1]))
+
+    # The unsplit baseline, and the threshold it has always had. A split baseline that turns out
+    # too thin falls back to this, so the two guards are deliberately different numbers: ten
+    # mixed sessions is the floor for a mean to mean anything, while four comparable ones is the
+    # most a twenty-session window can offer for a weekend and is still a weekend average.
+    baseline = [float(v) for v, _ in window if v is not None]
+    enough = MIN_VOLUME_BARS
+    if aligned[-1] is not None:
+        weekend = aligned[-1].weekday() >= 5
+        alike = [
+            float(v) for v, d in window
+            if v is not None and d is not None and (d.weekday() >= 5) == weekend
+        ]
+        if len(alike) >= MIN_COMPARABLE_BARS:
+            baseline, enough = alike, MIN_COMPARABLE_BARS
+    if len(baseline) < enough:
         return None
     avg = sum(baseline) / len(baseline)
     if avg <= 0:
@@ -329,7 +370,7 @@ def compute(bars: list[dict], period_end: date, peer_returns: list[float] | None
     prior = daily_returns(closes[:-1])
     out["returnZ"] = robust_z(out.get("r1"), prior[-Z_HISTORY:])
 
-    out["volumeRatio"] = volume_ratio(volumes)
+    out["volumeRatio"] = volume_ratio(volumes, [b["date"] for b in usable])
     out["sma20"] = sma(closes, SMA_SHORT)
     out["sma50"] = sma(closes, SMA_LONG)
     out["rangePct"] = range_pct(closes)

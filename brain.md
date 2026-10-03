@@ -577,3 +577,35 @@ reads rows that already exist:
     asserted an invariant about files that production was not executing. **A test over a file in
     the working tree proves nothing about the file a runner used**; when a lane's behaviour and
     its test disagree, check which ref actually ran before doubting either.
+39. **A measurement must compare like with like, or it reports the calendar.**
+    `setup.py`'s volume gate asks whether the latest session traded at 1.2x the average of the
+    twenty sessions before it. For a five day market that is one question. For a market that
+    trades seven days it is two questions wearing one name, because a Saturday divided by an
+    average that is five sevenths weekdays is a statement about which day of the week it is.
+    Measured over the last 120 sessions of the ten stored coins: Monday to Friday run at 1.11
+    to 1.23 of that average and pass the gate on 25-34% of days, while Saturday and Sunday run
+    at 0.86 and 0.73 and pass on 17% and 11%. For BTC and ETH the weekend figure is 0.42 to
+    0.51. So **all ten coins failed the volume leg on a weekend bar at 0.11x to 0.52x while
+    every one of their trends read up**, and `core_up` needs all four legs, so crypto could not
+    reach `buy` or `short` on a weekend at all. The symptom reported was "crypto is a permanent
+    WAIT"; the cause was a denominator.
+
+    The baseline is now drawn from sessions on the same side of the weekend as the one being
+    judged, and falls back to the mixed baseline below four comparable bars, because an average
+    of two is a pair of observations. Three properties are worth keeping in mind:
+
+    - **It is stated once, for every market, and only bites where a market trades at the
+      weekend.** A five day market has no weekend bars, so the split leaves the baseline whole.
+      Measured across all 160 stored assets: ten crypto ratios moved, zero US or PSX ratios did.
+      A correction that needs an `if market == "Crypto"` is a second vocabulary for one idea —
+      rule 36 — and this one does not need it.
+    - **`setup.py` no longer computes the ratio itself.** It had its own inline copy of the same
+      average, and the copy is what made the bug possible: it had no dates, so it could not have
+      told a quiet market from a Saturday even in principle. It calls `factors.volume_ratio` now.
+    - **The fix was necessary and was not sufficient, and that distinction was kept.** The ten
+      ratios roughly doubled — BTC 0.17 to 0.40, LTC 0.38 to 0.54 — and not one crossed 1.2, so
+      no verdict changed on the day it went in. Crypto read WAIT before and reads WAIT now, and
+      on that day it was the honest answer: trend up, volume genuinely thin, relative strength
+      negative for six of ten. **Do not loosen a gate because a market is quiet through it.**
+      The thing that was actually wrong for the reader was the wording — "incomplete" and "no
+      longer-term reading stored" where the truth was "the trend is up but volume is weak".

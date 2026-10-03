@@ -1,5 +1,5 @@
 import * as React from "react";
-import { price } from "@/lib/format";
+import { price, relativeTime } from "@/lib/format";
 import type { Action, Confidence, Decision, Market, TimeSense } from "@/lib/decision";
 import type { ProductDecision, WhereToCheck } from "@/lib/productDecision";
 import { AsOf, Card, ConfidenceBadge, Empty, Note, Pill, Section } from "@/components/ui";
@@ -58,6 +58,24 @@ const TIME_SENSE_TONE: Record<TimeSense, "default" | "up" | "warn"> = {
   CARE: "warn",
 };
 
+/// One stored news row, reduced to what a link in the top block needs.
+///
+/// Deliberately not the Prisma row. The panel takes three or four fields and a count, and taking
+/// the whole model would mean this component could only ever be fed by one query — the home page
+/// lists are the reason `DecisionRow` exists and this is the same argument.
+export interface TopNews {
+  /// Stored row id, used as the list key. Urls are not unique: the same article can be stored
+  /// once per asset and once per industry.
+  id: string;
+  title: string;
+  url: string;
+  publisher: string;
+  publishedAt: Date | string;
+  /// How many separate outlets carried the same story, taken from the stored clusters. Printed
+  /// only above one, because "carried by 1 outlet" is a fact about nothing.
+  outlets?: number | null;
+}
+
 export interface DecisionPanelProps {
   decision: Decision;
   symbol: string;
@@ -65,6 +83,17 @@ export interface DecisionPanelProps {
   currency: string;
   /// Newest stored close date, shown so the reader can see how old the answer is.
   asOf: Date | string | null;
+  /// The newest stored close itself.
+  ///
+  /// Separate from `decision.entry` and `decision.invalidation` on purpose: those two are levels
+  /// the rules computed, this is the number the market last printed, and a panel that shows the
+  /// band and the stop but not where the price actually is asks the reader to go and find the one
+  /// figure every other figure here is measured against. Null when nothing is stored, which is the
+  /// same state that makes the action WAIT at gate 1.
+  priceNow?: number | null;
+  /// Up to three stored news rows. More than three are ignored rather than scrolled: this block is
+  /// above the fold and a fourth link is the start of a feed.
+  news?: TopNews[];
 }
 
 /// One labelled figure or sentence. Used for every field in the panel so that the label and the
@@ -113,14 +142,156 @@ function Missing({ items }: { items: string[] }) {
   );
 }
 
+/// Phrases that `lib/decision.ts` prints, recognised here so the gap line can be built from them.
+///
+/// This is the ugly part of this file and it should not survive. `confidenceFor` in lib/decision.ts
+/// counts exactly three confirmations — a longer view pointing the same way, volume at or above its
+/// own average, and a set of similar past days that leaned the same way — and then throws the count
+/// away, returning only "High" / "Medium" / "Low". The three states are already decided there; the
+/// `Decision` shape just has nowhere to carry them. So the panel reads them back out of the two
+/// strings that module already wrote: `secondLine` for the longer view, `confirmLine` for the other
+/// two, and `confirmMissing` for the difference between "weak" and "never published".
+///
+/// No new rule is applied. Nothing here decides anything — it recognises what was decided. If a
+/// sentence in lib/decision.ts is reworded, `gapLine` returns fewer parts and the line simply does
+/// not print, which is the right way for this to fail: a panel that goes quiet, never one that
+/// invents a weakness. The proper fix belongs in the file that owns the rules and is named in the
+/// report alongside this change.
+const AGREES = "Longer view agrees.";
+const VOLUME_CONFIRMED = /volume [\d.]+x its average/;
+const VOLUME_UNPUBLISHED = "No volume published";
+const DAYS_CONFIRMED = /similar days went the same way/;
+const DAYS_UNAVAILABLE = "similar past days";
+
+/// The one line that explains a strong direction carrying a weak grade.
+///
+/// A reader shown LONG in 48px type next to the words "Low confidence" has been handed a
+/// contradiction and left to resolve it. Both halves are true — the direction really did clear
+/// every gate, and the evidence behind it really is thin — and the thing that reconciles them is
+/// naming *which* leg is short. "Volume is weak" is a sentence a reader can act on; a grade on its
+/// own is one they can only distrust.
+///
+/// Returns null when there is nothing to reconcile: a WAIT is not a strong direction, a High grade
+/// is not a weak one, and if no weakness can be named then nothing is printed rather than hedged.
+function gapLine(decision: Decision): string | null {
+  if (decision.action !== "LONG" && decision.action !== "SHORT") return null;
+  if (decision.confidence === "High") return null;
+
+  const why = decision.why.join(" ");
+  const missing = decision.missing.join(" ");
+  const weak: string[] = [];
+
+  // The longer view. It cannot be *against* the direction here — gate 5 turns that into a WAIT
+  // before this panel ever sees it — so the only two states left are "agrees" and "does not add
+  // anything", and the second one covers flat, absent and unknown alike.
+  if (!decision.why.includes(AGREES)) weak.push("the longer view does not agree");
+
+  // Volume. Three states, and the third is the one worth separating: a ratio below its average is
+  // a measurement that came out weak, while no ratio at all is a measurement nobody took. Telling
+  // a reader volume is weak when the truth is that none is published is a quiet lie about evidence.
+  if (!VOLUME_CONFIRMED.test(why)) {
+    weak.push(missing.includes(VOLUME_UNPUBLISHED) ? "no volume is published" : "volume is weak");
+  }
+
+  // Similar past days. The exact reason — none stored, too few, or a lean that was never recorded
+  // — is already printed in full under "What is missing" a few lines below, so this names the leg
+  // and does not restate it. One line means one line.
+  if (!DAYS_CONFIRMED.test(why) && !missing.includes(DAYS_UNAVAILABLE)) {
+    weak.push("similar past days do not back it");
+  } else if (!DAYS_CONFIRMED.test(why)) {
+    weak.push("there is not enough history to compare");
+  }
+
+  if (!weak.length) return null;
+
+  const trend = decision.action === "LONG" ? "up" : "down";
+  // Oxford-less "a, b and c", because this is a sentence and not a list, and it has to still read
+  // as one sentence after wrapping to three lines at 375px.
+  const list =
+    weak.length === 1
+      ? weak[0]
+      : `${weak.slice(0, -1).join(", ")} and ${weak[weak.length - 1]}`;
+  return `The trend is clearly ${trend}, but ${list}, so confidence is only ${decision.confidence.toLowerCase()}.`;
+}
+
+/// The headline, with the outlet's name taken off the end of it.
+///
+/// Stored titles arrive as "Jim Cramer urges buying Apple stock - Yahoo Finance", because that is
+/// how the feeds write them. The publisher is printed on its own line directly underneath, so the
+/// suffix is the same word twice in a block that has three lines of space for three stories. Only
+/// stripped when it actually matches the publisher: a title that genuinely ends in a dash and a
+/// name is left exactly as stored, because this is a quotation.
+function headlineOf(title: string, publisher: string): string {
+  for (const dash of [" - ", " – ", " — ", " | "]) {
+    const tail = `${dash}${publisher}`;
+    if (title.endsWith(tail) && title.length > tail.length) {
+      return title.slice(0, -tail.length);
+    }
+  }
+  return title;
+}
+
+/// Up to three stored headlines, as links out.
+///
+/// Why links and not summaries: nothing on this site writes prose about a news item, and a panel
+/// that paraphrased one would be inventing the only unsourced claim on the page. The reader gets
+/// the stored title, who published it, how long ago, and a way out to read it themselves.
+///
+/// `nofollow` joins `noopener noreferrer` because these are outbound links to whoever a feed
+/// happened to name, carried in bulk, and this site does not vouch for any of them.
+function MarketNews({ items }: { items: TopNews[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="border-border mt-4 border-t pt-3">
+      <p className="text-muted-foreground text-xs font-medium">Important news</p>
+      <ul className="mt-1.5 space-y-1.5">
+        {items.map((n) => (
+          <li key={n.id}>
+            {/* The anchor is the headline only, not the whole row: the publisher line underneath
+                is attribution rather than part of the destination, and a link that swallows it
+                reads out as one long run-on to a screen reader. */}
+            <a
+              href={n.url}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="text-sm leading-snug underline underline-offset-2"
+            >
+              {headlineOf(n.title, n.publisher)}
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+            <p className="text-muted-foreground text-micro leading-relaxed">
+              {n.publisher}
+              {n.outlets && n.outlets > 1 ? ` and ${n.outlets - 1} more` : ""} &middot;{" "}
+              {relativeTime(n.publishedAt)}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /// The asset decision, at the top of every asset page.
 ///
-/// Field order is the order the questions get asked: what, why, where in, where out, when, how well
-/// evidenced. The two levels sit in one two-column block from `sm` up because they are read as a
-/// pair — an entry with no exit is the shape of a tip — and stack on a phone rather than being
-/// squeezed into two 150px columns.
-export function DecisionPanel({ decision, symbol, currency, asOf }: DecisionPanelProps) {
+/// Field order is the order the questions get asked, and it is the order the spec asks them in:
+/// what to do, what the price is now, the two levels, when, why, and then what is being published.
+/// Price now comes second because it is the first number a reader looks for and every other figure
+/// in the panel is measured against it — a band and a stop with no spot price between them is a
+/// quiz. The two levels sit in one block after it because they are read as a pair; an entry with no
+/// exit is the shape of a tip.
+///
+/// At 375px every one of these is a full-width stacked line, which is the whole point: the block
+/// has to answer on one screen, so nothing in it is allowed to need a second column to be legible.
+export function DecisionPanel({
+  decision,
+  symbol,
+  currency,
+  asOf,
+  priceNow = null,
+  news = [],
+}: DecisionPanelProps) {
   const grade = decision.confidence.toLowerCase();
+  const gap = gapLine(decision);
 
   return (
     <Card className="border-primary/30">
@@ -137,21 +308,30 @@ export function DecisionPanel({ decision, symbol, currency, asOf }: DecisionPane
         </span>
       </div>
 
-      <div className="mt-4">
-        <Field label="Why">
-          {decision.why.length ? (
-            <ul className="space-y-1">
-              {decision.why.slice(0, 2).map((w, i) => (
-                <li key={i}>{w}</li>
-              ))}
-            </ul>
+      {/* The one line that reconciles a strong direction with a weak grade. It sits directly
+          under the word and above every number, because it is the sentence that stops the two
+          of them reading as a contradiction, and a reader who has already scrolled past the
+          grade has already formed the impression it exists to correct. */}
+      {gap ? (
+        <p className="text-muted-foreground mt-3 text-sm leading-snug">{gap}</p>
+      ) : null}
+
+      {/* Price first, then the two levels, then the timing. This is the block that has to
+          answer on one screen: a reader looking at a band and a stop with no spot price
+          between them has been handed a quiz, since every figure here is measured against the
+          one the market last printed. Three columns from `sm` up; at 375px all of them stack,
+          which is the point — nothing in this block may need a second column to be legible. */}
+      <div className="border-border mt-4 grid gap-3 border-t pt-3 sm:grid-cols-3">
+        <Field label="Price now" hint="The newest stored close, not a live quote.">
+          {priceNow !== null ? (
+            <span className="num text-lg font-semibold">{price(priceNow, currency)}</span>
           ) : (
-            "No reason was recorded, which is itself a fault — read what is missing below."
+            <span className="text-muted-foreground">
+              Nothing is stored, which is why the action is WAIT.
+            </span>
           )}
         </Field>
-      </div>
 
-      <div className="border-border mt-4 grid gap-3 border-t pt-3 sm:grid-cols-2">
         <Field
           label="Entry"
           hint={
@@ -189,13 +369,30 @@ export function DecisionPanel({ decision, symbol, currency, asOf }: DecisionPane
             </span>
           )}
         </Field>
-      </div>
 
-      <div className="mt-4">
         <Field label="When" hint={TIME_SENSE_COPY[decision.timeSense]}>
           <Pill tone={TIME_SENSE_TONE[decision.timeSense]}>{decision.timeSense}</Pill>
         </Field>
       </div>
+
+      {/* Why, after the numbers rather than before them. Three at most: the rules routinely
+          record five or six true sentences, and a reader who has to read six to find the
+          decision has not been given a decision. The rest are under Details, unabridged. */}
+      <div className="border-border mt-4 border-t pt-3">
+        <Field label="Why">
+          {decision.why.length ? (
+            <ul className="space-y-1">
+              {decision.why.slice(0, 3).map((w, i) => (
+                <li key={i}>{w}</li>
+              ))}
+            </ul>
+          ) : (
+            "No reason was recorded, which is itself a fault — read what is missing below."
+          )}
+        </Field>
+      </div>
+
+      <MarketNews items={news.slice(0, 3)} />
 
       <Missing items={decision.missing} />
 

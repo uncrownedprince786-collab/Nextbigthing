@@ -27,6 +27,7 @@ import {
   weakest,
 } from "@/components/ui";
 import { DecisionPanel } from "@/components/decision";
+import { rankHeadlines } from "@/lib/newsRank";
 import {
   getAccuracy,
   getAsset,
@@ -37,6 +38,7 @@ import {
   getRelevance,
   getSourceHealth,
   getStories,
+  getTopNews,
   getSetup,
   getThesis,
   getUpcoming,
@@ -123,6 +125,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
     relevance,
     intradayHealth,
     stories,
+    topNews,
   ] = await Promise.all([
     getDecisionBundle(asset.id),
     getSourceHealth(),
@@ -135,6 +138,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
     getRelevance(asset.id),
     getIntradayHealth(asset.id),
     getStories(asset.id),
+    getTopNews(asset.id),
   ]);
 
   // The horizons, analogs, news reading and investigation are taken off the bundle instead of
@@ -196,6 +200,15 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
           symbol={asset.symbol}
           currency={asset.currency}
           asOf={bundle.newestCloseDate}
+          /* The close the panel prints is the one the bundle decided on, not `latestPrice`.
+             They are the same row today, and taking it from the bundle is what keeps them the
+             same row on the day a price arrives between the two reads. */
+          priceNow={bundle.newestClose ?? latestPrice?.close ?? null}
+          /* Ranked here rather than in the panel: the panel renders what it is given, and a
+             component that re-sorted its own input would be a second ordering rule for one
+             idea. Three is the panel's own cap; passing a few more lets it stay the only place
+             that number is written down. */
+          news={rankHeadlines(topNews).slice(0, 3)}
         />
       </div>
 

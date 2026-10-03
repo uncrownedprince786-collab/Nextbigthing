@@ -365,7 +365,7 @@ export function DiscussionBlock({
   if (!signal) {
     return (
       <Empty>
-        No discussion reading has been written for {targetLabel} yet. It is computed from
+        No discussion reading has been written for {targetLabel} yet. It is worked out from
         stored news coverage by <code>python jobs/human.py</code>.
       </Empty>
     );
@@ -388,7 +388,7 @@ export function DiscussionBlock({
       {signal.catalyst ? (
         <div className="border-warn/40 bg-warn-bg mb-4 rounded-lg border px-3 py-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Pill tone="warn">catalyst</Pill>
+            <Pill tone="warn">sudden jump in news</Pill>
             {signal.changeKind && signal.changeKind !== "none" ? (
               <Pill>{signal.changeKind}</Pill>
             ) : null}
@@ -401,12 +401,16 @@ export function DiscussionBlock({
                 </>
               ) : null}
               {signal.robustZ != null ? (
-                <> and {signal.robustZ.toFixed(1)}σ above this feed&apos;s own median</>
+                <>
+                  {" "}
+                  and {signal.robustZ.toFixed(1)} times further above this feed&apos;s usual
+                  middle day than it normally varies
+                </>
               ) : null}
             </span>
           </div>
           <p className="text-muted-foreground mt-1 text-micro leading-relaxed">
-            Counted as distinct <strong>stories</strong>, not items
+            Counted as separate <strong>stories</strong>, not items
             {signal.recentItems > signal.recentStories ? (
               <>
                 {" "}
@@ -466,7 +470,11 @@ export function DiscussionBlock({
         <div>
           <p className="text-muted-foreground text-xs">Promotional wording</p>
           <div className="mt-1">
-            {signal.hypeFlag ? <Pill tone="warn">hype flagged</Pill> : <Pill>not flagged</Pill>}
+            {signal.hypeFlag ? (
+              <Pill tone="warn">sales talk flagged</Pill>
+            ) : (
+              <Pill>not flagged</Pill>
+            )}
           </div>
           <p className="text-muted-foreground mt-1 text-micro leading-relaxed">
             {signal.hypeTerms} of {signal.items} headlines use promotional wording.
@@ -497,14 +505,14 @@ export function DiscussionBlock({
         title="How this reading is produced, and what it cannot see"
         points={[
           <>
-            <strong>It is a word list, not sentiment analysis.</strong> Headlines are matched
+            <strong>It is a word list, not a model reading mood.</strong> Headlines are matched
             against a fixed list of directional words. There is no model involved, and the
             match counts are shown above so the arithmetic can be checked.
           </>,
           <>
-            <strong>It reads headlines only.</strong> Never article bodies. It cannot see
-            negation, so &ldquo;not a record year&rdquo; counts the positive word, and it
-            cannot see sarcasm or context at all.
+            <strong>It reads headlines only.</strong> Never article bodies. It cannot see the
+            word &ldquo;not&rdquo;, so &ldquo;not a record year&rdquo; counts the good word,
+            and it cannot see a joke or any context at all.
           </>,
           <>
             <strong>A headline worded both ways counts as neither.</strong> &ldquo;Revenue
@@ -517,20 +525,21 @@ export function DiscussionBlock({
             the raw counts are printed next to the percentage.
           </>,
           <>
-            <strong>Hype describes the writing, not the asset.</strong> The flag is raised
-            only when promotional wording arrives together with rising coverage. Heavily
-            promoted and overvalued are different claims and only the first is measured here.
+            <strong>Sales talk describes the writing, not the asset.</strong> The flag is
+            raised only when promotional wording arrives together with rising coverage.
+            Heavily promoted and priced too high are different claims, and only the first is
+            measured here.
           </>,
           <>
-            <strong>A catalyst flag is a count, not a verdict.</strong> It says distinct
+            <strong>A sudden jump in news is a count, not a verdict.</strong> It says separate
             stories arrived in the last three days at several times the earlier rate{" "}
             <em>and</em> well above what this feed normally varies by. Both tests have to
-            agree, because a ratio alone fires on a busy Tuesday. It has not read the stories,
+            agree, because the rate alone fires on a busy Tuesday. It has not read the stories,
             so it cannot tell you whether what arrived was good or bad.
           </>,
           <>
             <strong>Stories, not articles.</strong> One report syndicated to twenty outlets is
-            one piece of information. Headlines are grouped into stories by word overlap
+            one piece of information. Headlines are grouped into stories by the words they share
             inside a time window, and the counts above are of stories — the item count is
             shown beside them so the amount of duplication is visible rather than hidden.
           </>,
@@ -585,8 +594,8 @@ export function SetupBlock({
   if (!setup) {
     return (
       <Empty>
-        No condition read is stored for this asset yet. It is computed from stored prices,
-        news readings and analogs by <code>python jobs/setup.py</code>.
+        No condition read is stored for this asset yet. It is worked out from stored prices,
+        news readings and similar past days by <code>python jobs/setup.py</code>.
       </Empty>
     );
   }
@@ -606,7 +615,7 @@ export function SetupBlock({
     <Card>
       <div className="flex flex-wrap items-center gap-2">
         <Pill tone={label.tone}>{label.text}</Pill>
-        <Pill>{setup.horizon}</Pill>
+        <Pill>{HORIZON_WORDS[setup.horizon]?.label ?? setup.horizon}</Pill>
         <ConfidenceBadge grade={setup.confidence} />
         <AsOf date={setup.periodEnd} />
       </div>
@@ -671,7 +680,7 @@ export function SetupBlock({
         {setup.invalidateLevel != null ? (
           <div>
             <p className="text-muted-foreground text-xs font-medium">
-              What would break the reason
+              Stop price &mdash; where this read is wrong
             </p>
             <p className="num mt-0.5 text-sm">{price(setup.invalidateLevel, currency)}</p>
             <p className="text-muted-foreground mt-0.5 text-micro leading-relaxed">
@@ -696,8 +705,8 @@ export function SetupBlock({
       <Note>
         This describes measured conditions and nothing else. It is not advice, it does not say
         what will happen, and every condition behind it is listed above so the state can be
-        checked rather than trusted. Conditions change; the invalidation level is the one to
-        read first.
+        checked rather than trusted. Conditions change; the stop price is the one to read
+        first.
       </Note>
     </Card>
   );
@@ -736,7 +745,7 @@ export function AnalogBlock({
   if (!analogs.periodEnd || !analogs.rows.length) {
     return (
       <Empty>
-        No near-term analogs are stored for this asset yet. They are computed from stored
+        No similar past days are stored for this asset yet. They are worked out from stored
         closes and volumes by <code>python jobs/analogs.py</code>.
       </Empty>
     );
@@ -1038,9 +1047,9 @@ export function AccuracyNote({
       <p className="text-muted-foreground text-xs leading-relaxed">
         Every reading on this page is logged on the day it is generated, and the price move
         over the {accuracy.horizon} days after it is measured once that window has passed.
-        So far {accuracy.measured} readings have matured and {accuracy.open} are still
-        waiting, which is too few to quote a rate from. No accuracy figure is published until
-        there are enough matured rows to divide by.
+        So far {accuracy.measured} readings have reached the end of that window and{" "}
+        {accuracy.open} are still waiting, which is too few to quote a rate from. No accuracy
+        figure is published until enough readings have finished to divide by.
       </p>
     );
   }
@@ -1048,7 +1057,7 @@ export function AccuracyNote({
     <p className="text-muted-foreground text-xs leading-relaxed">
       Of {accuracy.measured} logged readings whose {accuracy.horizon} day window has passed,
       {" "}
-      {accuracy.positive} were followed by a positive price move, a mean of{" "}
+      {accuracy.positive} were followed by a price rise, an average of{" "}
       <span className="num">{pct(accuracy.mean)}</span>
       {accuracy.earliest ? <> since {isoDate(accuracy.earliest)}</> : null}. This is what
       followed the readings, measured from the close stored beside each one. It is not a
@@ -1116,8 +1125,8 @@ export function ThesisBlock({
   if (!thesis) {
     return (
       <Empty>
-        No directional read has been held long enough to have a recorded reason. A thesis only
-        exists for a buy or short state, and it is written by{" "}
+        No directional read has been held long enough to have a recorded reason. A recorded
+        reason only exists for a buy or short state, and it is written by{" "}
         <code>python jobs/thesis.py</code>.
       </Empty>
     );
@@ -1135,7 +1144,7 @@ export function ThesisBlock({
       <div className="flex flex-wrap items-center gap-2">
         <Pill tone={label.tone}>{label.label}</Pill>
         <Pill>{thesis.direction}</Pill>
-        <Pill>{thesis.horizon}</Pill>
+        <Pill>{HORIZON_WORDS[thesis.horizon]?.label ?? thesis.horizon}</Pill>
         <ConfidenceBadge grade={thesis.confidence} />
         <AsOf date={thesis.asOf} />
       </div>
@@ -1171,7 +1180,7 @@ export function ThesisBlock({
           </p>
         </div>
         <div>
-          <p className="text-muted-foreground text-xs">Level named on the day</p>
+          <p className="text-muted-foreground text-xs">Stop price named that day</p>
           <p className="num mt-0.5 text-sm">{price(thesis.invalidateLevel, currency)}</p>
         </div>
       </div>
@@ -1213,7 +1222,7 @@ export function ThesisBlock({
       <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
         A status describes whether the conditions the state was recorded on are still
         measurable. It is not a score, it does not say the read was right, and a broken
-        reason is left broken rather than revised once the level it named was passed.
+        reason is left broken rather than rewritten once the stop price it named was passed.
       </p>
     </Card>
   );
@@ -1249,7 +1258,7 @@ export function AttributionBlock({
   if (!attribution) {
     return (
       <Empty>
-        No move split is stored for this asset. It is computed from stored closes by{" "}
+        No move split is stored for this asset. It is worked out from stored closes by{" "}
         <code>python jobs/attribution.py</code>, and needs four weeks of them.
       </Empty>
     );
@@ -1272,7 +1281,7 @@ export function AttributionBlock({
     },
     {
       key: "specific",
-      label: "Left over, particular to this asset",
+      label: "Left over, down to this asset alone",
       value: attribution.specificPct,
       share: attribution.specificShare,
       bar: "bg-primary/70",
@@ -1289,7 +1298,7 @@ export function AttributionBlock({
         {attribution.leader ? (
           <Pill>mostly shared with: {attribution.leader}</Pill>
         ) : (
-          <Pill tone="warn">no component is far enough ahead to name</Pill>
+          <Pill tone="warn">no one part is far enough ahead to name</Pill>
         )}
         <ConfidenceBadge grade={attribution.confidence} />
         <AsOf date={attribution.periodEnd} />
@@ -1317,7 +1326,9 @@ export function AttributionBlock({
                 </span>
                 <span className="num">
                   <span className={toneClass(p.value)}>
-                    {p.value != null ? `${p.value >= 0 ? "+" : ""}${p.value.toFixed(1)} pts` : "-"}
+                    {p.value != null
+                      ? `${p.value >= 0 ? "+" : ""}${p.value.toFixed(1)} points`
+                      : "-"}
                   </span>
                   <span className="text-muted-foreground ml-2">
                     {p.share != null ? `${(p.share * 100).toFixed(0)}% of the distance` : ""}
@@ -1330,18 +1341,19 @@ export function AttributionBlock({
       ) : null}
 
       <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
-        Medians over {attribution.peers} industry peers and {attribution.groupSize} assets in
-        its exchange group. The three parts sum to the move by construction, and the shares are
-        taken from absolute values, so a sector that fell while the asset rose still accounts
-        for part of the distance between them.
+        Middle values over {attribution.peers} others in its industry and{" "}
+        {attribution.groupSize} assets in its exchange group. The three parts add up to the
+        whole move, and the shares ignore which way each part went, so an industry that fell
+        while the asset rose still accounts for part of the distance between them.
       </p>
 
       {attribution.confidenceNote ? <Note>{attribution.confidenceNote}.</Note> : null}
 
       <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
-        This is co-movement. It says what the asset moved <em>with</em>, which is a different
-        sentence from one about cause, and no probability is attached to any of the three: a
-        likelihood would need measured outcomes, and none have matured.
+        This is about moving at the same time. It says what the asset moved <em>with</em>,
+        which is a different sentence from one about what caused it, and no chance figure is
+        attached to any of the three: that would need finished outcomes, and none have
+        finished yet.
       </p>
     </Card>
   );
@@ -1372,8 +1384,8 @@ export function NeighbourhoodBlock({
   if (!relevance.rows.length) {
     return (
       <Empty>
-        Nothing was reached. Either no catalyst is flagged today, or the names carrying one sit
-        only in edge groups too large to mean anything about a single member.
+        Nothing was reached. Either no sudden jump in news is flagged today, or the names
+        carrying one sit only in link groups too large to mean anything about a single member.
       </Empty>
     );
   }
@@ -1396,7 +1408,7 @@ export function NeighbourhoodBlock({
               )}
               <span className="flex items-center gap-2">
                 <Pill>
-                  {r.hops} {r.hops === 1 ? "hop" : "hops"}
+                  {r.hops} {r.hops === 1 ? "step" : "steps"}
                 </Pill>
                 <Pill>{r.edgeKind}</Pill>
               </span>
@@ -1406,9 +1418,9 @@ export function NeighbourhoodBlock({
         ))}
       </ul>
       <Note>
-        An edge is a relationship somebody recorded. Relevance travelling along one is a reason
-        to look, never evidence that a move on one end reached the other. The walk stops at two
-        hops and skips any group too large to say anything about one of its members.
+        A link is a relationship somebody recorded. Interest travelling along one is a reason
+        to look, never proof that a move on one end reached the other. The walk stops after two
+        steps and skips any group too large to say anything about one of its members.
       </Note>
     </>
   );
@@ -1449,8 +1461,9 @@ export function HorizonStrip({
   if (!horizons.length) {
     return (
       <Empty>
-        No condition read is stored for this asset on any horizon yet. The swing read comes from{" "}
-        <code>python jobs/setup.py</code>, the other two from <code>python jobs/horizons.py</code>.
+        No condition read is stored for this asset on any timeframe yet. The next-few-weeks
+        read comes from <code>python jobs/setup.py</code>, the other two from{" "}
+        <code>python jobs/horizons.py</code>.
       </Empty>
     );
   }
@@ -1486,7 +1499,7 @@ export function HorizonStrip({
                 ) : null}
                 {h.invalidateLevel != null ? (
                   <div className="flex justify-between gap-2">
-                    <dt className="text-muted-foreground">View changes below</dt>
+                    <dt className="text-muted-foreground">Stop price</dt>
                     <dd className="num">{price(h.invalidateLevel, currency)}</dd>
                   </div>
                 ) : null}
@@ -1539,7 +1552,7 @@ export function HorizonStrip({
                 ) : null}
                 <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
                   Measured ranges, not forecasts. What each one was measured from is printed
-                  under it.
+                  under it, and the stop price above is the level this read is wrong past.
                 </p>
               </div>
             ) : null}
@@ -1602,8 +1615,8 @@ export function InvestigationBlock({
     return (
       <Empty>
         Nothing unusual has been measured for this asset, so no investigation was run. That is
-        the ordinary state: the engine only looks when a move is large against the asset&apos;s
-        own history.
+        the ordinary state: it only looks when a move is large against the asset&apos;s own
+        history.
       </Empty>
     );
   }
@@ -1681,10 +1694,10 @@ export function InvestigationBlock({
       </div>
 
       <Note>
-        No probability is attached to any of these. For the three measured shares the figure
-        <em> is</em> the measurement, so updating a belief with it would be circular; for the
-        news explanation it would need a measured rate of how often a story precedes a move,
-        and no outcome has matured yet.
+        No chance figure is attached to any of these. For the three measured shares the figure
+        <em> is</em> the measurement, so turning it into a chance would be circular; for the
+        news explanation it would need a measured rate of how often a story comes before a
+        move, and no outcome has finished yet.
       </Note>
 
       <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
@@ -1717,9 +1730,10 @@ export function IntradayHealth({
   if (!health.sessions.length) {
     return (
       <Empty>
-        No intraday session has been fetched for this asset. Either nothing about it currently
-        warrants the request budget, or this provider does not serve it intraday — the sessions
-        table records which, and an unserved asset is a stored fact rather than a gap.
+        No minute-by-minute day has been fetched for this asset. Either nothing about it right
+        now earns one of the limited daily fetches, or this provider does not offer it minute by
+        minute — the sessions table records which, and an asset the provider does not offer is a
+        stored fact rather than a gap.
       </Empty>
     );
   }
@@ -1731,6 +1745,17 @@ export function IntradayHealth({
     failed: "down",
     unsupported: "default",
   };
+  // The stored status words in the words a reader uses. `stale` as a pill said nothing to
+  // anyone who has not read the audit job; "old data" says the same thing and is what the
+  // rest of the site calls it.
+  const STATUS_WORDS: Record<string, string> = {
+    complete: "All bars there",
+    partial: "Some bars missing",
+    stale: "Old data",
+    empty: "Nothing stored",
+    failed: "Fetch failed",
+    unsupported: "Not offered",
+  };
   return (
     <Card>
       <ul className="space-y-1.5">
@@ -1741,7 +1766,7 @@ export function IntradayHealth({
                 They apply from `sm`; the note drops to its own line below that. */}
             <span className="num sm:min-w-[5.5rem]">{isoDate(s.sessionDate)}</span>
             <span className="text-muted-foreground sm:min-w-[3rem]">{s.interval}m</span>
-            <Pill tone={TONE[s.status] ?? "default"}>{s.status}</Pill>
+            <Pill tone={TONE[s.status] ?? "default"}>{STATUS_WORDS[s.status] ?? s.status}</Pill>
             <span className="text-muted-foreground num">
               {s.barsStored}
               {s.barsExpected != null ? ` of about ${s.barsExpected}` : ""} bars
@@ -1759,7 +1784,7 @@ export function IntradayHealth({
             .map((i) => `${i.bars.toLocaleString("en-US")} bars at ${i.interval}m`)
             .join(", ")}
           . The 15, 30 and 60 minute bars are built from the five minute ones and are only
-          written when every component bar is present, so a gap stays a gap.
+          written when every five minute bar inside them is there, so a gap stays a gap.
         </p>
       ) : null}
     </Card>
@@ -1929,7 +1954,7 @@ export function StoriesBlock({
   if (!stories.length) {
     return (
       <Empty>
-        No headline clusters are stored for this asset. They are computed from stored news by{" "}
+        No story groups are stored for this asset. They are worked out from stored news by{" "}
         <code>python jobs/lineage.py</code>.
       </Empty>
     );
@@ -1956,8 +1981,8 @@ export function StoriesBlock({
         ))}
       </ul>
       <p className="text-muted-foreground mt-3 text-micro leading-relaxed">
-        Clustered with {stories[0].rule}. The earliest item in each cluster is kept as its
-        label, which is a headline and not a summary of the story.
+        Grouped with {stories[0].rule}. The earliest item in each group is kept as its name,
+        which is a headline and not a summary of the story.
       </p>
     </div>
   );

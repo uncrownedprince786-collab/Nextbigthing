@@ -3636,6 +3636,60 @@ class PriceFactors(unittest.TestCase):
         # Too few baseline sessions carry a volume at all.
         self.assertIsNone(f.volume_ratio([None] * 15 + [100.0] * 5 + [200.0]))
 
+    def test_a_weekend_volume_is_measured_against_weekends(self):
+        """Rule 39. A seven day market is quiet at the weekend; that is the calendar, not a signal.
+
+        Twenty one consecutive days ending on a Saturday, weekdays at 1000 and weekend days at
+        200, and the latest Saturday also at 200. Against the mixed average that is about 0.3x
+        and reads as a dead market. Against other weekend days it is 1.0x, which is what a
+        perfectly ordinary Saturday is. Every stored coin failed `setup.py`'s 1.2x gate on a
+        weekend bar while its trend read up, and this is why.
+        """
+        import datetime as dt
+        f = self.factors()
+        # 2026-10-03 is a Saturday; twenty one days ending there.
+        dates = [dt.date(2026, 10, 3) - dt.timedelta(days=n) for n in range(20, -1, -1)]
+        volumes = [200.0 if d.weekday() >= 5 else 1000.0 for d in dates]
+        self.assertTrue(dates[-1].weekday() >= 5)
+
+        mixed = f.volume_ratio(volumes)
+        self.assertLess(mixed, 0.4)                       # the calendar, reported as weakness
+        self.assertAlmostEqual(f.volume_ratio(volumes, dates), 1.0)
+
+    def test_the_weekend_split_cannot_move_a_five_day_market(self):
+        """The same correction, stated for every market, must not touch an equity.
+
+        A five day market has no weekend bars, so the comparable baseline is the whole baseline
+        and the ratio is identical with dates and without. Measured over all 160 stored assets
+        when this went in: ten crypto ratios moved and zero US or PSX ratios did.
+        """
+        import datetime as dt
+        f = self.factors()
+        # Thirty weekdays, skipping the weekends, ending on a Friday.
+        dates, day = [], dt.date(2026, 10, 2)
+        while len(dates) < 30:
+            if day.weekday() < 5:
+                dates.append(day)
+            day -= dt.timedelta(days=1)
+        dates.reverse()
+        self.assertTrue(all(d.weekday() < 5 for d in dates))
+        volumes = [100.0] * 29 + [250.0]
+        self.assertEqual(f.volume_ratio(volumes, dates), f.volume_ratio(volumes))
+
+    def test_a_thin_weekend_baseline_falls_back_to_the_mixed_one(self):
+        """Two weekend bars are a worse denominator than twenty mixed ones.
+
+        Below MIN_COMPARABLE_BARS the split is abandoned rather than used on a handful of days,
+        because an average of two is a pair of observations and not a baseline.
+        """
+        import datetime as dt
+        f = self.factors()
+        # Eight consecutive days ending on a Sunday holds exactly two prior weekend bars.
+        dates = [dt.date(2026, 10, 4) - dt.timedelta(days=n) for n in range(7, -1, -1)]
+        volumes = [100.0] * 8
+        self.assertLess(len([d for d in dates[:-1] if d.weekday() >= 5]), 4)
+        self.assertEqual(f.volume_ratio(volumes, dates), f.volume_ratio(volumes))
+
     def test_the_moving_averages_are_means_of_the_window_they_name(self):
         f = self.factors()
         closes = [float(x) for x in range(1, 11)]

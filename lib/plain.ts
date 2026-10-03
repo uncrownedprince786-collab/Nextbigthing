@@ -85,7 +85,7 @@ export const THESIS_WORDS: Record<
   broken: {
     label: "Broken",
     plain:
-      "The price passed the level that was named in advance as the point this stops being valid.",
+      "The price passed the stop price, which was named in advance as the point this read stops being right.",
     tone: "down",
   },
 };
@@ -124,9 +124,9 @@ export function targetsDisagree(agreement: number | null | undefined): boolean {
 /// A reward-to-risk ratio as a sentence, with the figure kept.
 export function rewardWords(ratio: number | null | undefined): string | null {
   if (ratio == null || Number.isNaN(ratio) || ratio <= 0) return null;
-  if (ratio >= 3) return `about ${ratio.toFixed(1)} times as far to the target as to the invalidation`;
+  if (ratio >= 3) return `about ${ratio.toFixed(1)} times as far to the target as to the stop price`;
   if (ratio >= 1) return `about ${ratio.toFixed(1)} times as far up as down`;
-  return `closer to the invalidation than to the target (${ratio.toFixed(1)} times)`;
+  return `closer to the stop price than to the target (${ratio.toFixed(1)} times)`;
 }
 
 /// ---------------------------------------------------------------------------------------
