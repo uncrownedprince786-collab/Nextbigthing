@@ -1,5 +1,183 @@
 # Resume here
 
+## 0. State of play, 2026-10-04 — read this first
+
+The previous session ended mid-operation. **The universe was expanded from 160 to 240 assets and
+the backfill for the 80 new ones had started but had not finished.** Everything else below is
+committed, deployed and verified live.
+
+### The one thing that must be finished
+
+`jobs/seed.py` now carries 240 assets and **seed has already been run against production**, so
+the 80 new rows exist in `Asset`. Their price history was being filled when the session ended.
+Finish it by running these, in this order, and nothing else is outstanding:
+
+```bash
+python jobs/run.py us-prices     # 48 new US names, full backfill from 2019
+python jobs/run.py crypto        # 17 new coins, full history from the venue bridge
+python jobs/psx.py full          # 15 new PSX names; archive files are mostly cached
+python jobs/run.py decision      # factors, analogs, setup, horizons and the rest, no network
+node tools/decide.mjs            # write one DecisionLog row per asset
+```
+
+Until those finish, the new names are stored without closes and will read WAIT / incomplete on
+the site. That is the honest state for an asset with no prices, but it is not a finished one —
+**an unfinished backfill makes the site look worse than 160 assets did**, so this is the first
+thing to do, not an optional extra.
+
+The scheduled cron lanes (`cron-us-prices.yml`, `cron-crypto.yml`, `cron-psx.yml`,
+`cron-decision.yml`) will also do this on their own schedule without anyone running anything.
+Running them by hand is only faster.
+
+### What the universe is now
+
+| | before | after |
+| --- | --- | --- |
+| US and metals | 80 | **128** |
+| PSX | 70 | **85** |
+| Crypto | 10 | **27** |
+| total | 160 | **240** |
+
+**Every symbol was verified against its own source before it was written into `seed.py`**, and
+the verification is why the list is this length rather than longer:
+
+- **Yahoo**: at least 200 daily bars in the last year and at least $50M of median daily
+  turnover. Dropped HES and BK (no frame at all) and GT and HOG (~$45-50M, too thin to rank
+  honestly inside an industry).
+- **Crypto**: present on CoinPaprika, Binance actually serving daily klines for `<SYM>USDT`, and
+  over $20M of 24h volume. Dropped Polkadot (not carried under that id), MATIC (a $17K day) and
+  VET.
+- **PSX**: fifteen days of the exchange's own `mkt_summary` closing files were parsed and all
+  1,305 published symbols ranked by turnover. **That file is not a list of shares** — government
+  paper (`P01GIS...`, `P03GHS...`, `P05FRR...`) dominates it by orders of magnitude, and every
+  underlying also carries a futures contract per month (`PRL-SEP`, `OGDC-OCTB`). Both classes are
+  filtered out in the probe and neither is in the seed. Steel and engineering names are liquid
+  and deliberately excluded: there is no industry for them and a two-name industry ranks two
+  names against each other.
+
+Names went into industries that already exist. No new category was invented, because every
+ranking on this site is computed inside one industry.
+
+### Storage, measured rather than assumed
+
+170 MB of the 500 MB free tier before the expansion. `PriceSnapshot` is 86 MB for 223,930 rows,
+so about **403 bytes a row including indexes**; `IntradayBar` is 52 MB for 95,615. The 80 new
+assets are worth roughly 55 MB at full depth, which lands around 225 MB. There is room. Keep
+measuring it with `python tools/row_counts.py` rather than trusting this paragraph.
+
+## 0a. The refresh lane — proven green, from this host
+
+`python jobs/run.py daily` was run against production on 2026-10-04 and **17 consecutive steps
+came back green with zero failures** before the session's own two-hour background limit stopped
+it during step 18 (`investigate`). It was not a failure and nothing in the lane errored.
+
+```
+prices yahoo crypto news  ok 15.2 min    <- the step that fails on GitHub runners
+psx recent                ok  2.7 min
+factors                   ok  0.2 min
+analogs                   ok  3.8 min
+upcoming                  ok  2.2 min
+lifecycle                 ok  0.2 min
+rank                      ok  9.0 min
+confidence rankings       ok  3.1 min
+events                    ok  0.6 min
+lineage                   ok 20.5 min    <- see below
+human                     ok  5.4 min
+setup                     ok  5.6 min
+thesis                    ok  3.7 min
+attribution               ok  2.1 min
+graph                     ok  0.7 min
+intraday                  ok  6.8 min
+horizons                  ok  4.6 min
+investigate               killed by the session, not by an error
+```
+
+Two things worth carrying forward. **`lineage` takes 20.5 minutes and prints nothing while it
+runs**, which is the single slowest step and looks indistinguishable from a hang; it clusters
+~2,900 stored headlines. And **`prices` is green from a laptop** — 880 Yahoo rows, 26,902 crypto
+rows from Binance — which is consistent with the standing hypothesis that the GitHub failures are
+the runner's IP and not the code. That still needs one signed-in look at a real run to confirm.
+
+## 0b. What was fixed on 2026-10-04, and why each one mattered
+
+An audit of five live assets against the rule table found eight faults. **Five are fixed and
+deployed; three are written down in section 0c and are not done.**
+
+1. **The tree did not compile.** A doubled quote in `components/ui.tsx` left by an interrupted
+   agent. Nothing could have been built or deployed from `main` until it was removed. One
+   character, and it blocked everything else.
+
+2. **A short's stop was on the winning side.** `jobs/setup.py` and `jobs/horizons.py` both chose
+   `entry = the window's high` and `invalidation = its low` without consulting `state`. Right for
+   an up read, inverted for a down one — WTL read SHORT at Rs.1.00 and the panel printed "Exit if
+   wrong Rs.0.99", a stop one percent below a short, on the side the trade needs price to reach.
+   STLA was the same at $4.40 with a $4.36 stop. Both levels and both stored notes are mirrored
+   by state now. `run_targets` in horizons.py had always branched on `state`, so the repository
+   already held the correct form of the statement while two of its three level-writers disagreed.
+
+3. **The analog lean never reached the rules.** `toDecisionInput` built `{count, lowPct, highPct}`
+   and dropped `medianPct` and `positive`. `analogConfirms` returns null the instant either is
+   missing, so one of the three legs `confidenceFor` counts was dead for all 160 assets, both
+   directions, always. Nothing upstream was broken — analogs.py writes both columns, queries.ts
+   selects them, both bundle builders carry them. Restoring two fields in one object literal moved
+   **Low 154 / Medium 4 to Low 133 / Medium 25** with no rule, threshold or grade touched. ATRL
+   went Low to Medium on 102 stored days.
+
+4. **The crypto volume denominator.** A seven-day market measured against a weekday-dominated
+   average reports the calendar, not the market. All ten coins failed the 1.2x volume gate on a
+   Saturday bar at 0.11x-0.52x while every trend read up. Baseline now drawn from comparable
+   sessions; zero US or PSX ratios moved. **It changed no verdict** — the ratios roughly doubled
+   and none crossed 1.2 — and that was kept rather than papered over. brain.md **rule 39**.
+
+5. **Four sentences that lied.** "Setup is flat" over a direction the job had measured and
+   withheld; "No longer-term reading stored" over a stored row whose state was `none`; "not
+   enough history to compare" over 102 stored days; and the home list and asset page quoting
+   different analog rows (ABBV printed one range on its page and another in the list) because
+   three readers of one table each picked their own.
+
+Also: the news on an asset page is ranked rather than newest-first — ATRL led with a sustainability
+award over a $5bn government programme — an events page strip of market news beside the dividend
+dates, and plain words plus a legend on the home page.
+
+**373 Python tests and 106 TypeScript tests pass.**
+
+## 0c. The three faults that are NOT fixed
+
+These are real, they are evidenced, and nobody should rediscover them from scratch.
+
+- **"When NOW" over a level that has not been reached.** `entryLevel` is a trigger to be exceeded
+  — setup.py's own `entryNote` says "a close above it would be a move past where it recently
+  stalled" — but `entryZone` turns `[stop, trigger]` into an inclusive band and `timeSenseFor`
+  reports NOW for any close inside it. Live: ABBV says NOW at 262.82 against a trigger of 266.28;
+  ATRL says NOW at 1,189.43 against 1,199. This is also why every entry band's low equals its
+  stop. Fixing it means deciding what the band is actually for, which is a design question and
+  not a typo.
+- **`jobs/setup.py`'s `failed` list is incomplete.** For the `wait` state it covers only three
+  cases, and the news one is guarded by `and up_trend`. A down trend blocked by a non-negative
+  tone produces an empty list and the headline "...the conditions are not all present: some
+  inputs are unavailable" while the row's own `missing` column says "none". Live on STLA and WTL.
+- **`iso()` in `lib/decisionInput.ts` is timezone-dependent.** `value.toISOString().slice(0,10)`
+  on a `@db.Date` that `pg` materialises at local midnight shifts the date back a day east of
+  UTC. `tools/decide.mjs` has a `dayOf()` helper written against exactly this hazard and then
+  passes the raw `Date` in, so the guard never reaches `asOf`. It feeds gate 2, and
+  `STALE_AFTER_DAYS.Crypto` is 2 — so a nightly run on a non-UTC box can write `stale` verdicts
+  the website does not show.
+
+## 0d. Still true, still outstanding
+
+- **Rotate the Neon password.** It was pasted into a chat transcript. Neon console -> Roles ->
+  `neondb_owner` -> Reset password, then update the Vercel environment variable and `.env`.
+  Nothing else depends on it. This has been outstanding for two sessions.
+- **`gh` is not installed**, so no workflow can be dispatched and no run log or step summary can
+  be read from here. The owner's gate of two consecutive green `refresh.yml` runs is still 0 of 2
+  as far as GitHub is concerned, whatever a laptop proves.
+- **The default branch is `master`.** Every push in this session went to both `main` and
+  `master` to keep them level, because GitHub takes a scheduled workflow's file from the default
+  branch. Switching the default to `main` in GitHub settings removes the whole class of problem.
+- **`ubuntu-latest` moves to Ubuntu 26 on 2026-10-19.** Pin or bump the actions before then.
+
+---
+
 ## 0. State of play, 2026-10-03
 
 **The live site is <https://nextbigthing-nu.vercel.app/>.** That is the production alias and it

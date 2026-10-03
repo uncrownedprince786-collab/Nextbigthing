@@ -361,7 +361,143 @@ PSX_ASSETS: list[tuple] = [
     ("psx-automobile", "HINO", "Hinopak Motors", "stock", "marketCap", PSX, "HINO", "Truck and bus assembly."),
     ("psx-automobile", "DFML", "Dewan Farooque Motors", "stock", "marketCap", PSX, "DFML", "Vehicle assembly, intermittently operating."),
 ]
-ASSETS = ASSETS + PSX_ASSETS
+
+# --- expansion, 2026-10-04 ------------------------------------------------------------------
+#
+# Every symbol here was verified against its own source before being written down, and the
+# verification is why this list is this length rather than longer. For Yahoo: at least 200 daily
+# bars in the last year and at least $50M of median daily turnover, which dropped HES and BK (no
+# frame returned at all) and GT and HOG (around $45-50M, too thin to rank honestly inside an
+# industry). For crypto: present on CoinPaprika, Binance actually serving daily klines for
+# <SYM>USDT, and over $20M of 24h volume -- which dropped Polkadot (not carried under that id),
+# MATIC (a $17K day, effectively dead) and VET.
+#
+# Names were chosen inside the industries that already exist rather than by inventing new ones.
+# Every ranking on this site is computed inside one industry, so a thinly populated new category
+# would produce rankings of three names against each other. The eighteen industries were all
+# sitting at or below ten.
+#
+# PSX is deliberately absent. Its symbols cannot be checked the same way: the daily closing
+# archive is the only list of what actually trades, and a PSX name guessed from memory that is
+# not in those files becomes an asset that can never price. It needs the archive parsed first.
+MORE_US: list[tuple] = [
+    ("mega-cap-tech", "IBM", "IBM", "stock", "marketCap", YAHOO, "IBM", "Enterprise software, consulting and mainframes."),
+    ("mega-cap-tech", "CSCO", "Cisco Systems", "stock", "marketCap", YAHOO, "CSCO", "Networking hardware and security."),
+    ("mega-cap-tech", "ACN", "Accenture", "stock", "marketCap", YAHOO, "ACN", "Technology consulting and outsourcing."),
+    ("mega-cap-tech", "SAP", "SAP", "stock", "marketCap", YAHOO, "SAP", "Enterprise resource planning software."),
+    ("mega-cap-tech", "UBER", "Uber Technologies", "stock", "marketCap", YAHOO, "UBER", "Ride hailing and delivery platforms."),
+    ("mega-cap-tech", "BKNG", "Booking Holdings", "stock", "marketCap", YAHOO, "BKNG", "Online travel agencies and accommodation."),
+
+    ("semiconductors", "ADI", "Analog Devices", "stock", "marketCap", YAHOO, "ADI", "Analog and mixed signal chips."),
+    ("semiconductors", "NXPI", "NXP Semiconductors", "stock", "marketCap", YAHOO, "NXPI", "Automotive and industrial chips."),
+    ("semiconductors", "MRVL", "Marvell Technology", "stock", "marketCap", YAHOO, "MRVL", "Data centre and networking silicon."),
+    ("semiconductors", "ON", "ON Semiconductor", "stock", "marketCap", YAHOO, "ON", "Power and sensing chips, automotive weighted."),
+    ("semiconductors", "SWKS", "Skyworks Solutions", "stock", "marketCap", YAHOO, "SWKS", "Radio frequency chips for handsets."),
+    ("semiconductors", "MCHP", "Microchip Technology", "stock", "marketCap", YAHOO, "MCHP", "Microcontrollers and embedded control."),
+    ("semiconductors", "AMAT", "Applied Materials", "stock", "marketCap", YAHOO, "AMAT", "Wafer fabrication equipment."),
+    ("semiconductors", "TER", "Teradyne", "stock", "marketCap", YAHOO, "TER", "Semiconductor test equipment and robotics."),
+
+    ("software-cloud", "SHOP", "Shopify", "stock", "marketCap", YAHOO, "SHOP", "Commerce software for online merchants."),
+    ("software-cloud", "NET", "Cloudflare", "stock", "marketCap", YAHOO, "NET", "Edge network, security and delivery."),
+    ("software-cloud", "TEAM", "Atlassian", "stock", "marketCap", YAHOO, "TEAM", "Developer and team collaboration tools."),
+    ("software-cloud", "ZS", "Zscaler", "stock", "marketCap", YAHOO, "ZS", "Cloud delivered network security."),
+    ("software-cloud", "CRWD", "CrowdStrike", "stock", "marketCap", YAHOO, "CRWD", "Endpoint security delivered from the cloud."),
+    ("software-cloud", "SNPS", "Synopsys", "stock", "marketCap", YAHOO, "SNPS", "Chip design software and verification."),
+    ("software-cloud", "CDNS", "Cadence Design Systems", "stock", "marketCap", YAHOO, "CDNS", "Electronic design automation software."),
+
+    ("energy", "HAL", "Halliburton", "stock", "marketCap", YAHOO, "HAL", "Oilfield services and completions."),
+    ("energy", "DVN", "Devon Energy", "stock", "marketCap", YAHOO, "DVN", "Onshore exploration and production."),
+    ("energy", "BKR", "Baker Hughes", "stock", "marketCap", YAHOO, "BKR", "Oilfield equipment and industrial turbines."),
+    ("energy", "FANG", "Diamondback Energy", "stock", "marketCap", YAHOO, "FANG", "Permian basin exploration and production."),
+    ("energy", "KMI", "Kinder Morgan", "stock", "marketCap", YAHOO, "KMI", "Natural gas pipelines and terminals."),
+    ("energy", "WMB", "Williams Companies", "stock", "marketCap", YAHOO, "WMB", "Natural gas gathering and transmission."),
+    ("energy", "OKE", "ONEOK", "stock", "marketCap", YAHOO, "OKE", "Natural gas liquids gathering and processing."),
+
+    ("financials", "V", "Visa", "stock", "marketCap", YAHOO, "V", "Card payment network."),
+    ("financials", "MA", "Mastercard", "stock", "marketCap", YAHOO, "MA", "Card payment network."),
+    ("financials", "USB", "U.S. Bancorp", "stock", "marketCap", YAHOO, "USB", "Regional commercial and consumer banking."),
+    ("financials", "PNC", "PNC Financial Services", "stock", "marketCap", YAHOO, "PNC", "Regional commercial banking."),
+    ("financials", "TFC", "Truist Financial", "stock", "marketCap", YAHOO, "TFC", "Regional commercial and consumer banking."),
+    ("financials", "COF", "Capital One", "stock", "marketCap", YAHOO, "COF", "Card issuing and consumer lending."),
+    ("financials", "SPGI", "S&P Global", "stock", "marketCap", YAHOO, "SPGI", "Credit ratings, indices and market data."),
+
+    ("healthcare", "PFE", "Pfizer", "stock", "marketCap", YAHOO, "PFE", "Large cap pharmaceuticals and vaccines."),
+    ("healthcare", "UNH", "UnitedHealth Group", "stock", "marketCap", YAHOO, "UNH", "Health insurance and care delivery."),
+    ("healthcare", "TMO", "Thermo Fisher Scientific", "stock", "marketCap", YAHOO, "TMO", "Laboratory instruments and reagents."),
+    ("healthcare", "BMY", "Bristol-Myers Squibb", "stock", "marketCap", YAHOO, "BMY", "Oncology and immunology pharmaceuticals."),
+    ("healthcare", "REGN", "Regeneron Pharmaceuticals", "stock", "marketCap", YAHOO, "REGN", "Antibody therapeutics."),
+    ("healthcare", "CVS", "CVS Health", "stock", "marketCap", YAHOO, "CVS", "Pharmacy retail, benefits management and insurance."),
+    ("healthcare", "MDT", "Medtronic", "stock", "marketCap", YAHOO, "MDT", "Medical devices across cardiac and surgical."),
+    ("healthcare", "SYK", "Stryker", "stock", "marketCap", YAHOO, "SYK", "Orthopaedic implants and surgical equipment."),
+    ("healthcare", "BSX", "Boston Scientific", "stock", "marketCap", YAHOO, "BSX", "Interventional medical devices."),
+
+    ("automobile", "PCAR", "PACCAR", "stock", "marketCap", YAHOO, "PCAR", "Heavy truck manufacturing and finance."),
+    ("automobile", "CMI", "Cummins", "stock", "marketCap", YAHOO, "CMI", "Engines, generators and powertrain."),
+    ("automobile", "MGA", "Magna International", "stock", "marketCap", YAHOO, "MGA", "Contract vehicle assembly and parts."),
+    ("automobile", "LEA", "Lear", "stock", "marketCap", YAHOO, "LEA", "Vehicle seating and electrical systems."),
+]
+
+MORE_CRYPTO: list[tuple] = [
+    ("crypto", "trx-tron", "TRON", "crypto", "marketCap", PAPRIKA, "trx-tron", "Smart contract chain, stablecoin transfer heavy."),
+    ("crypto", "xlm-stellar", "Stellar", "crypto", "marketCap", PAPRIKA, "xlm-stellar", "Payments and asset issuance network."),
+    ("crypto", "bch-bitcoin-cash", "Bitcoin Cash", "crypto", "marketCap", PAPRIKA, "bch-bitcoin-cash", "Proof of work payments chain, a Bitcoin fork."),
+    ("crypto", "near-near-protocol", "NEAR Protocol", "crypto", "marketCap", PAPRIKA, "near-near-protocol", "Sharded proof of stake smart contract chain."),
+    ("crypto", "uni-uniswap", "Uniswap", "crypto", "marketCap", PAPRIKA, "uni-uniswap", "Decentralised exchange governance token."),
+    ("crypto", "sui-sui", "Sui", "crypto", "marketCap", PAPRIKA, "sui-sui", "Parallel execution smart contract chain."),
+    ("crypto", "hbar-hedera-hashgraph", "Hedera", "crypto", "marketCap", PAPRIKA, "hbar-hedera-hashgraph", "Enterprise governed public ledger."),
+    ("crypto", "aave-new", "Aave", "crypto", "marketCap", PAPRIKA, "aave-new", "Lending and borrowing protocol token."),
+    ("crypto", "icp-internet-computer", "Internet Computer", "crypto", "marketCap", PAPRIKA, "icp-internet-computer", "Chain hosting web applications directly."),
+    ("crypto", "etc-ethereum-classic", "Ethereum Classic", "crypto", "marketCap", PAPRIKA, "etc-ethereum-classic", "Proof of work chain, the original Ethereum fork."),
+    ("crypto", "arb-arbitrum", "Arbitrum", "crypto", "marketCap", PAPRIKA, "arb-arbitrum", "Ethereum rollup scaling network."),
+    ("crypto", "algo-algorand", "Algorand", "crypto", "marketCap", PAPRIKA, "algo-algorand", "Pure proof of stake chain."),
+    ("crypto", "fil-filecoin", "Filecoin", "crypto", "marketCap", PAPRIKA, "fil-filecoin", "Decentralised storage market."),
+    ("crypto", "inj-injective-protocol", "Injective", "crypto", "marketCap", PAPRIKA, "inj-injective-protocol", "Chain built for on chain finance."),
+    ("crypto", "apt-aptos", "Aptos", "crypto", "marketCap", PAPRIKA, "apt-aptos", "Parallel execution smart contract chain."),
+    ("crypto", "atom-cosmos", "Cosmos", "crypto", "marketCap", PAPRIKA, "atom-cosmos", "Interchain hub and staking token."),
+    ("crypto", "op-optimism", "Optimism", "crypto", "marketCap", PAPRIKA, "op-optimism", "Ethereum rollup scaling network."),
+]
+
+ASSETS = ASSETS + PSX_ASSETS + MORE_US + MORE_CRYPTO
+
+# PSX, chosen from the exchange's own published closing files rather than from memory.
+#
+# Fifteen trading days of `mkt_summary` were parsed and every symbol ranked by average daily
+# turnover. That list is not a list of shares: government paper (P01GIS..., P03GHS..., P05FRR...)
+# dominates it by orders of magnitude, and every underlying also carries a futures contract per
+# month (PRL-SEP, OGDC-OCTB, TRG-OCT) which would double-count a name whose cash symbol is
+# already here. Both classes were filtered out. What remains are equities that printed a close on
+# all fifteen sessions with real turnover behind them, and each one is placed in an industry that
+# already exists — none of these needed a new category invented for it.
+#
+# Steel and engineering (ASL, ASTL, MUGHAL) are liquid and are deliberately left out: there is no
+# industry here for them, and a two-name industry produces rankings of two names against each
+# other. The same goes for Pak Elektron, the terminals and the property names.
+MORE_PSX: list[tuple] = [
+    ("psx-oil-gas", "PRL", "Pakistan Refinery", "stock", "marketCap", PSX, "PRL", "Coastal refinery, upgrading to deeper conversion."),
+    ("psx-oil-gas", "NRL", "National Refinery", "stock", "marketCap", PSX, "NRL", "Refining and lube base oils, Attock group."),
+    ("psx-oil-gas", "CNERGY", "Cnergyico PK", "stock", "marketCap", PSX, "CNERGY", "The largest refining capacity by nameplate."),
+    ("psx-oil-gas", "HASCOL", "Hascol Petroleum", "stock", "marketCap", PSX, "HASCOL", "Fuel retail and storage."),
+    ("psx-oil-gas", "SPSL", "Sitara Petroleum", "stock", "marketCap", PSX, "SPSL", "Petroleum refining and marketing."),
+
+    ("psx-banks", "BOP", "Bank of Punjab", "stock", "marketCap", PSX, "BOP", "Provincial government majority owned commercial bank."),
+
+    ("psx-automobile", "GAL", "Ghandhara Automobile", "stock", "marketCap", PSX, "GAL", "Vehicle assembly and distribution."),
+
+    ("psx-fertilizer", "ENGROH", "Engro Holdings", "stock", "marketCap", PSX, "ENGROH", "Holding company of the Engro fertilizer and energy group."),
+
+    ("psx-cement", "THCCL", "Thatta Cement", "stock", "marketCap", PSX, "THCCL", "Cement manufacturer in southern Sindh."),
+
+    ("psx-power", "SGPL", "S.G. Power", "stock", "marketCap", PSX, "SGPL", "Independent power generation."),
+
+    ("psx-technology", "TISL", "Tasdeeq Information Services", "stock", "marketCap", PSX, "TISL", "Credit information and data services."),
+    ("psx-technology", "SELECT", "Select Technologies", "stock", "marketCap", PSX, "SELECT", "Information technology services."),
+    ("psx-technology", "STL", "Supernet Technologies", "stock", "marketCap", PSX, "STL", "Network and satellite connectivity services."),
+    ("psx-technology", "ITANZ", "Itanz Technologies", "stock", "marketCap", PSX, "ITANZ", "Information technology products and services."),
+
+    ("psx-textile", "KOSM", "Kohinoor Spinning", "stock", "marketCap", PSX, "KOSM", "Yarn spinning and textile manufacture."),
+]
+
+ASSETS = ASSETS + MORE_PSX
 
 # slug, name, category, summary, wiki title, trends term, subreddits
 PRODUCTS = [
