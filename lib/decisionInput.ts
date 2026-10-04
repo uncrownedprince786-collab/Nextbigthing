@@ -86,10 +86,21 @@ export function coverageLabelFor(market: Market): string | null {
   }
 }
 
+/// A `@db.Date` column comes back from `pg` as a `Date` at **local** midnight, and both the rule
+/// table and the unique key speak ISO days. Formatting from the local parts is therefore
+/// deliberate, and `toISOString()` is wrong here: east of UTC a local-midnight date is the previous
+/// day in UTC, so `toISOString().slice(0, 10)` reported `asOf` one day early and fed a too-old date
+/// into the staleness gate. `STALE_AFTER_DAYS.Crypto` is 2, so a nightly run on a non-UTC box could
+/// write `stale` verdicts the website -- rendered in UTC on Vercel -- never shows.
+/// `tools/decide.mjs` has always formatted this way in its own `dayOf()`; this is the same rule, so
+/// the job and the site cannot disagree about which day a stored row belongs to.
 function iso(value: Date | string | null | undefined): string | null {
   if (!value) return null;
   if (typeof value === "string") return value.slice(0, 10);
-  return value.toISOString().slice(0, 10);
+  const y = value.getFullYear();
+  const m = String(value.getMonth() + 1).padStart(2, "0");
+  const d = String(value.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 /// The horizon rows this asset has, newest per horizon.

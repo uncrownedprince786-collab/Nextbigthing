@@ -207,6 +207,20 @@ test("a missing price series maps to nulls and the rule table catches it", () =>
   assert.equal(decide(input).gate, "no-prices");
 });
 
+test("a @db.Date at local midnight keeps its own day, east or west of UTC", () => {
+  // What `pg` hands back for a `@db.Date`: midnight in the box's zone, not in UTC. East of UTC
+  // that instant is the previous day in UTC, so `toISOString().slice(0, 10)` used to report the
+  // day before the stored one. `asOf` feeds the staleness gate, and `STALE_AFTER_DAYS.Crypto` is
+  // 2, so the shift was enough to turn a current crypto reading into a `stale` verdict on a
+  // non-UTC box while the UTC-rendered site showed it fine. Built from local parts on purpose:
+  // this asserts the stored day survives, whatever zone the test runs in.
+  const localMidnight = new Date(2026, 9, 4);
+  const input = toDecisionInput(bundle({ freshness: { newest: localMidnight, close: 97 } }), "2026-10-04");
+  assert.equal(input.asOf, "2026-10-04");
+  // The consequence that mattered: a current reading must not be gated as stale.
+  assert.notEqual(decide(input).gate, "stale");
+});
+
 test("a crypto name gets the strict staleness rule", () => {
   const coin = bundle({
     asset: { symbol: "BTC-USD", assetType: "crypto", industry: { market: "US" } },
