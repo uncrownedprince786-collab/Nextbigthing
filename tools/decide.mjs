@@ -80,7 +80,7 @@ function calendarBudget(sessions) {
 
 /// `@db.Date` columns come back from `pg` as a local-midnight `Date`; the rules and the unique key
 /// both speak ISO days. Formatting from the local parts rather than `toISOString()` is deliberate:
-/// a local-midnight date west of UTC shifts a day under `toISOString()`.
+/// a local-midnight date east of UTC shifts back a day under `toISOString()`.
 function dayOf(value) {
   if (value === null || value === undefined) return null;
   if (typeof value === "string") return value.slice(0, 10);
@@ -162,7 +162,7 @@ async function readInputs(db, today) {
                 "assetId", id, "horizonDays", "minPct", "maxPct", matches,
                 "medianPct", positive
            FROM "AssetAnalog"
-          -- The 5-day row first, then the shortest. `pickAnalog` in lib/decisionInput.ts prefers
+          -- The 5-day row first, then the shortest. pickAnalog in lib/decisionInput.ts prefers
           -- horizon 5 because it is the one a swing read is answerable on, and this used to take
           -- the shortest unconditionally — so the nightly log and the asset page could quote
           -- different rows for one asset, and WTL's 1-day median of exactly 0 would confirm in
