@@ -1,69 +1,90 @@
 # Resume here
 
-## 0. State of play, 2026-10-04 — read this first
+## 0. State of play, 2026-10-04 (second session) — read this first
 
-The previous session ended mid-operation. **The universe was expanded from 160 to 240 assets and
-the backfill for the 80 new ones had started but had not finished.** Everything else below is
-committed, deployed and verified live.
+**The 240-asset expansion is finished and every one of the 240 has a verdict.** The whole
+decision lane ran green from this host and `DecisionLog` now holds one row per asset for
+`periodEnd` 2026-10-04. Nothing is mid-operation. Two code fixes are committed on `main` and
+**not pushed**.
 
-### The one thing that must be finished
+### What the previous session's backfill actually needed
 
-`jobs/seed.py` now carries 240 assets and **seed has already been run against production**, so
-the 80 new rows exist in `Asset`. Their price history was being filled when the session ended.
-Finish it by running these, in this order, and nothing else is outstanding:
+The three price steps it listed were already done by the time this session looked — the cron
+lanes had filled them. All 240 assets had closes: crypto 27 (newest that day), US and metals 128
+and PSX 85 (newest 2026-10-02). The real gap was two steps further down, and it was not visible
+from the price tables at all:
 
-```bash
-python jobs/run.py us-prices     # 48 new US names, full backfill from 2019
-python jobs/run.py crypto        # 17 new coins, full history from the venue bridge
-python jobs/psx.py full          # 15 new PSX names; archive files are mostly cached
-python jobs/run.py decision      # factors, analogs, setup, horizons and the rest, no network
-node tools/decide.mjs            # write one DecisionLog row per asset
-```
+- **all 80 new assets had no `AssetFactor` row**, and
+- **all 80 had no `DecisionLog` row** — the table sat at exactly 160 assets, the old universe.
 
-Until those finish, the new names are stored without closes and will read WAIT / incomplete on
-the site. That is the honest state for an asset with no prices, but it is not a finished one —
-**an unfinished backfill makes the site look worse than 160 assets did**, so this is the first
-thing to do, not an optional extra.
+### Why `DecisionLog` had stopped at 160: the writer did not parse
 
-The scheduled cron lanes (`cron-us-prices.yml`, `cron-crypto.yml`, `cron-psx.yml`,
-`cron-decision.yml`) will also do this on their own schedule without anyone running anything.
-Running them by hand is only faster.
+**`tools/decide.mjs` was not a runnable file, and had not been since the commit that taught the
+three readers of `AssetAnalog` to agree on one row.** That commit added a SQL comment inside a
+template literal which quoted a helper name in backticks — ```pickAnalog``` — and a backtick
+inside a template literal ends the template literal. Node refused the module outright with
+`SyntaxError: missing ) after argument list`, pointing 20 lines up at the query whose string it
+was still reading.
 
-### What the universe is now
+So the last step of the previous session could never have run, whatever else was true. This is
+the second time an interrupted session has left a non-parsing file on `main` — the first was the
+doubled quote in `components/ui.tsx`. **`node --check` on a tool, before concluding a lane is
+flaky, is cheaper than anything else here.** The comment is now unquoted, matching the SQL
+comments around it.
 
-| | before | after |
+### The run, all of it green
+
+Run in three stages rather than one `run.py decision`, because that call died at the session's
+two-hour background limit last time and the result was never seen. Every step rc=0:
+
+| stage | steps | time |
 | --- | --- | --- |
-| US and metals | 80 | **128** |
-| PSX | 70 | **85** |
-| Crypto | 10 | **27** |
-| total | 160 | **240** |
+| — | `factors` | 10s |
+| 1 | `analogs` 5m33s, `upcoming` 3m30s, `lifecycle` 31s, `rank` 13m44s, `confidence rankings` 4m49s, `events` 45s | ~29 min |
+| 2 | `lineage` 32m27s, `human` 7m40s, `setup` 8m01s, `thesis` 5m44s, `attribution` 3m15s, `graph` 12s, `intraday` 6m19s, `horizons` 6m09s | ~70 min |
+| — | `node tools/decide.mjs` | wrote **240 of 240** |
+| 3 | `investigate` 4m07s, `accuracy` 1m18s, `analysis` 7m25s, `audit` 14s | ~13 min |
 
-**Every symbol was verified against its own source before it was written into `seed.py`**, and
-the verification is why the list is this length rather than longer:
+`lineage` is still the one that looks like a hang: 32 minutes for 3,900 stored headlines, and it
+prints nothing from start to finish. It is not stuck.
 
-- **Yahoo**: at least 200 daily bars in the last year and at least $50M of median daily
-  turnover. Dropped HES and BK (no frame at all) and GT and HOG (~$45-50M, too thin to rank
-  honestly inside an industry).
-- **Crypto**: present on CoinPaprika, Binance actually serving daily klines for `<SYM>USDT`, and
-  over $20M of 24h volume. Dropped Polkadot (not carried under that id), MATIC (a $17K day) and
-  VET.
-- **PSX**: fifteen days of the exchange's own `mkt_summary` closing files were parsed and all
-  1,305 published symbols ranked by turnover. **That file is not a list of shares** — government
-  paper (`P01GIS...`, `P03GHS...`, `P05FRR...`) dominates it by orders of magnitude, and every
-  underlying also carries a futures contract per month (`PRL-SEP`, `OGDC-OCTB`). Both classes are
-  filtered out in the probe and neither is in the seed. Steel and engineering names are liquid
-  and deliberately excluded: there is no industry for them and a two-name industry ranks two
-  names against each other.
+### What the site says now, confirmed against the database
 
-Names went into industries that already exist. No new category was invented, because every
-ranking on this site is computed inside one industry.
+The live home page serves "priced to 2026-10-04" and its counts match `DecisionLog` exactly —
+checked both sides rather than trusting one.
 
-### Storage, measured rather than assumed
+| | |
+| --- | --- |
+| LONG | 32 (4 High, 25 Medium, 3 Low) |
+| SHORT | 25 (2 High, 13 Medium, 10 Low) |
+| WAIT | 183 |
+| directional confidence | **6 High, 38 Medium, 13 Low** |
+| assets with no verdict | **0** |
 
-170 MB of the 500 MB free tier before the expansion. `PriceSnapshot` is 86 MB for 223,930 rows,
-so about **403 bytes a row including indexes**; `IntradayBar` is 52 MB for 95,615. The 80 new
-assets are worth roughly 55 MB at full depth, which lands around 225 MB. There is room. Keep
-measuring it with `python tools/row_counts.py` rather than trusting this paragraph.
+Gates behind the 183 WAITs: `incomplete` 159, `unexplained-move` 14, `peers-against` 9,
+`no-invalidation` 1.
+
+**17 of the 80 new names came out directional** and now appear on the home list — TER (the only
+new High), ACN, AMAT, CRWD, MA, MRVL, NET, SNPS, SWKS, TMO, V, SPGI, UBER, BSX, SYK,
+`near-near-protocol` and `uni-uniswap`. The other 63 read WAIT, almost all on `incomplete`.
+
+**No asset was skipped.** The two thinnest PSX names are genuinely short histories rather than
+failed fetches — TISL has 29 stored closes and SELECT 58, both recent listings — and `factors`
+reported the one below its 51-close floor in the row's own `bars` field rather than hiding it.
+
+### The timezone fault is fixed, and it mattered to this run
+
+`iso()` in `lib/decisionInput.ts` formatted a `@db.Date` with `toISOString()`. `pg` materialises
+a date column at **local** midnight, and east of UTC that instant is the previous day in UTC, so
+`asOf` came out a day early on any non-UTC box. **This host is UTC+5**, which is the direction
+that breaks, and `asOf` feeds the staleness gate with `STALE_AFTER_DAYS.Crypto` of 2 — so it
+would have written `stale` verdicts for current coins during the very run above. It was fixed
+before `decide` ran, not after. `iso()` now formats from local parts, the rule `dayOf()` in
+`decide.mjs` already used.
+
+**369 Python tests and 107 TypeScript tests pass.** Note the Python count: `tests/test_brain.py`
+is the only Python test file and it reports 369, not the 373 this file claimed earlier.
+
 
 ## 0a. The refresh lane — proven green, from this host
 
@@ -141,7 +162,7 @@ dates, and plain words plus a legend on the home page.
 
 **373 Python tests and 106 TypeScript tests pass.**
 
-## 0c. The three faults that are NOT fixed
+## 0c. The two faults that are NOT fixed
 
 These are real, they are evidenced, and nobody should rediscover them from scratch.
 
@@ -156,24 +177,28 @@ These are real, they are evidenced, and nobody should rediscover them from scrat
   cases, and the news one is guarded by `and up_trend`. A down trend blocked by a non-negative
   tone produces an empty list and the headline "...the conditions are not all present: some
   inputs are unavailable" while the row's own `missing` column says "none". Live on STLA and WTL.
-- **`iso()` in `lib/decisionInput.ts` is timezone-dependent.** `value.toISOString().slice(0,10)`
-  on a `@db.Date` that `pg` materialises at local midnight shifts the date back a day east of
-  UTC. `tools/decide.mjs` has a `dayOf()` helper written against exactly this hazard and then
-  passes the raw `Date` in, so the guard never reaches `asOf`. It feeds gate 2, and
-  `STALE_AFTER_DAYS.Crypto` is 2 — so a nightly run on a non-UTC box can write `stale` verdicts
-  the website does not show.
+
+The third one on this list, the timezone-dependent `iso()`, **is fixed** — see section 0. It was
+fixed first because it would have corrupted the 240 rows `decide` was about to write from this
+UTC+5 host.
+
+Note what both remaining faults have in common with it: each is a disagreement between two
+readers of the same stored row, not a bad measurement.
 
 ## 0d. Still true, still outstanding
 
 - **Rotate the Neon password.** It was pasted into a chat transcript. Neon console -> Roles ->
   `neondb_owner` -> Reset password, then update the Vercel environment variable and `.env`.
-  Nothing else depends on it. This has been outstanding for two sessions.
+  Nothing else depends on it. **Outstanding for three sessions now**, and it is the only item
+  here that is a standing exposure rather than a tidiness problem.
 - **`gh` is not installed**, so no workflow can be dispatched and no run log or step summary can
   be read from here. The owner's gate of two consecutive green `refresh.yml` runs is still 0 of 2
   as far as GitHub is concerned, whatever a laptop proves.
-- **The default branch is `master`.** Every push in this session went to both `main` and
-  `master` to keep them level, because GitHub takes a scheduled workflow's file from the default
-  branch. Switching the default to `main` in GitHub settings removes the whole class of problem.
+- **The default branch is `master`.** Pushes have to go to both `main` and `master` to keep them
+  level, because GitHub takes a scheduled workflow's file from the default branch. Switching the
+  default to `main` in GitHub settings removes the whole class of problem.
+- **Two commits sit on local `main`, unpushed**: the `decide.mjs` parse fix and the `iso()`
+  timezone fix with its regression test. Pushing them deploys, so it was left to the owner.
 - **`ubuntu-latest` moves to Ubuntu 26 on 2026-10-19.** Pin or bump the actions before then.
 
 ---
