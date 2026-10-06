@@ -67,6 +67,15 @@ ANALOG_SHARE = 0.55     # share of similar past days that rose, before history c
 ANALOG_MIN = 8          # matches needed before that share is used at all
 EVENT_SOON_DAYS = 14    # a scheduled date inside this is context for a swing read
 
+# How many of the three confirmations a directional setup needs beside its trend.
+#
+# 2, measured rather than chosen. On 2026-10-06, across all 267 assets: requiring all three
+# produced 2 buy setups and 0 short; requiring two produced 39 and 11; requiring one produced 70
+# and 76. The last is half the universe declared directional on the same day, which is not a
+# signal. The first had never produced a single short in the life of the table, because the news
+# tone reads negative for 3% of assets and volume sits above its average for 9%.
+CONFIRMS_NEEDED = 2
+
 HORIZON = "swing"       # the only horizon these windows support; see the note above
 
 
@@ -292,24 +301,54 @@ def main() -> None:
                     )
 
             # --- the rules. Written out rather than scored, so they are arguable.
-            core_up = [up_trend, vol_ratio is not None and vol_ratio >= VOL_ACTIVE,
-                       rel is not None and rel >= REL_EDGE, news_support]
-            core_down = [down_trend, vol_ratio is not None and vol_ratio >= VOL_ACTIVE,
-                         rel is not None and rel <= -REL_EDGE,
-                         bool(signal and signal["tone"] == "negative")]
+            #
+            # The trend is mandatory and the other three are counted. It used to be an AND of
+            # all four, and that rule could not fire: measured across the whole universe on
+            # 2026-10-06, volume sat at or above its own average for only 9% of assets and the
+            # news tone read negative for 3%, so the conjunction produced 2 buy setups and -- in
+            # the entire history of the table -- not one short. A rule that answers "no" 264
+            # times out of 266 is not being careful, it is being silent, and a reader cannot
+            # tell those apart.
+            #
+            # Two of three, and not one of three, because one is where it stops being evidence:
+            # the same measurement puts trend-plus-one at 146 of 267 names, which is over half
+            # the universe called directional at once. Two of three gives 50. That is the shape
+            # brain.md principle 1 asks for -- several independent readings agreeing beats one
+            # strong one -- and it is the same standard `lib/decision.ts` already applies when it
+            # separates High from Medium on whether volume *or* the analogs confirm.
+            #
+            # A missing input cannot count toward the two. That is what keeps this honest rather
+            # than merely looser: an asset with no stored volume does not get a free pass, it
+            # gets one fewer way to qualify, and `missing` already says so on the row. It also
+            # unblocks a whole asset class by accident of being correct -- a currency pair has no
+            # published volume at all, so under the old conjunction no FX pair could ever have
+            # produced a swing setup.
+            up_confirms = [
+                ("trading is unusually active", vol_ratio is not None and vol_ratio >= VOL_ACTIVE),
+                ("it is ahead of its own industry", rel is not None and rel >= REL_EDGE),
+                ("the news reading supports it", news_support),
+            ]
+            down_confirms = [
+                ("trading is unusually active", vol_ratio is not None and vol_ratio >= VOL_ACTIVE),
+                ("it is behind its own industry", rel is not None and rel <= -REL_EDGE),
+                ("the headline wording is negative", bool(signal and signal["tone"] == "negative")),
+            ]
+            up_met = [label for label, ok in up_confirms if ok]
+            down_met = [label for label, ok in down_confirms if ok]
 
-            if all(core_up) and hist_support is not False:
+            def _head(direction: str, met: list[str], confirms: list) -> str:
+                absent = [label for label, ok in confirms if not ok]
+                line = f"Price is {direction} both its averages, and " + ", ".join(met) + "."
+                if absent:
+                    line += " Not confirmed by: " + ", ".join(absent) + "."
+                return line
+
+            if up_trend and len(up_met) >= CONFIRMS_NEEDED and hist_support is not False:
                 state = "buy"
-                head = (
-                    "Price is above both its averages, trading is unusually active, it is "
-                    "ahead of its own industry, and the news reading supports it."
-                )
-            elif all(core_down) and hist_support is not True:
+                head = _head("above", up_met, up_confirms)
+            elif down_trend and len(down_met) >= CONFIRMS_NEEDED and hist_support is not True:
                 state = "short"
-                head = (
-                    "Price is below both its averages, trading is unusually active, it is "
-                    "behind its own industry, and the headline wording is negative."
-                )
+                head = _head("below", down_met, down_confirms)
             elif up_trend or down_trend:
                 state = "wait"
                 failed = []
@@ -380,7 +419,12 @@ def main() -> None:
 
             grade = "none"
             if state in ("buy", "short"):
-                grade = "medium" if missing or against else "high"
+                # Three of three and nothing arguing the other way is the only `high`. Two of
+                # three is a real setup with a named gap in it, which is what `medium` has always
+                # meant on this site, so the count is carried into the grade rather than left for
+                # a reader to infer from the headline.
+                met = len(up_met) if state == "buy" else len(down_met)
+                grade = "high" if met == len(up_confirms) and not (missing or against) else "medium"
             elif state == "wait":
                 grade = "low"
             note_bits = []
