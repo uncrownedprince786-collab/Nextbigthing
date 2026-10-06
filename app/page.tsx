@@ -19,6 +19,7 @@ import {
   getIndustriesByMarket,
   getPricedAssetsByIndustry,
   getSourceHealth,
+  rankingAsOf,
   type DecisionQueryRow,
 } from "@/lib/queries";
 import { bundleFromRow, toDecisionInput, todayISO } from "@/lib/decisionInput";
@@ -527,7 +528,7 @@ export default async function Home({
                   // that has a size ranking and no 24-month one — a card showing a real, dated
                   // figure while claiming to have no date, which reads as a broken page and does not
                   // match the industry page the card links to.
-                  const asOfRanking = top[0]?.periodEnd ?? largest?.periodEnd ?? null;
+                  const asOfRanking = rankingAsOf(top) ?? largest?.periodEnd ?? null;
                   return (
                     <Card key={ind.id} href={`/industry/${ind.slug}`}>
                       <div className="flex items-start justify-between gap-3">

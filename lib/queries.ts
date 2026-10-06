@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/db";
 import { pickAnalog } from "@/lib/decisionInput";
+import { latestWindow } from "@/lib/rankingWindow";
+
+// Re-exported so the pages keep a single import site for everything they read about rankings;
+// the rule itself lives in a database-free module so the test lane can import it.
+export { RANKING_WINDOW_LAG_DAYS, rankingAsOf } from "@/lib/rankingWindow";
 
 
 export async function getIndustries() {
@@ -51,9 +56,7 @@ export async function getRankings(industryId: string, basis: Basis) {
     orderBy: [{ periodEnd: "desc" }, { rank: "asc" }],
     include: { asset: true },
   });
-  if (!rows.length) return [];
-  const latest = rows[0].periodEnd;
-  return rows.filter((r) => r.periodEnd.getTime() === latest.getTime());
+  return latestWindow(rows);
 }
 
 export async function getAllIndustriesByBasis(basis: Basis) {
@@ -62,13 +65,15 @@ export async function getAllIndustriesByBasis(basis: Basis) {
     orderBy: [{ periodEnd: "desc" }, { rank: "asc" }],
     include: { asset: { include: { industry: true } } },
   });
-  const latest = new Map<string, Date>();
+  // Per industry, because the window is per industry: two exchanges close on different days, so
+  // one industry's newest stored close is routinely a day away from another's.
+  const byIndustry = new Map<string, typeof rows>();
   for (const r of rows) {
-    const key = r.industryId;
-    const seen = latest.get(key);
-    if (!seen || r.periodEnd > seen) latest.set(key, r.periodEnd);
+    const got = byIndustry.get(r.industryId);
+    if (got) got.push(r);
+    else byIndustry.set(r.industryId, [r]);
   }
-  return rows.filter((r) => r.periodEnd.getTime() === latest.get(r.industryId)!.getTime());
+  return [...byIndustry.values()].flatMap((group) => latestWindow(group));
 }
 
 export async function getProducts(status?: string) {

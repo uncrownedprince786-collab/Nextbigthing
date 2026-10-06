@@ -13,7 +13,7 @@ import {
   Table,
   weakest,
 } from "@/components/ui";
-import { getAllIndustriesByBasis, getIndustry, getRankings } from "@/lib/queries";
+import { getAllIndustriesByBasis, getIndustry, getRankings, rankingAsOf } from "@/lib/queries";
 import { isoDate, longDate, money, pct, relativeTime, sizeLabel, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
@@ -151,7 +151,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
         }
         aside={
           <span className="text-muted-foreground text-xs">
-            {isoDate(sizePre[0]?.periodEnd)} against {isoDate(sizeNow[0]?.periodEnd)}
+            {isoDate(rankingAsOf(sizePre))} against {isoDate(rankingAsOf(sizeNow))}
           </span>
         }
       >
@@ -257,7 +257,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
       <Section
         title="Return since 2021"
         lead="Total return from the last stored close of 2021 to the newest stored close, per asset."
-        aside={<AsOf date={total[0]?.periodEnd} />}
+        aside={<AsOf date={rankingAsOf(total)} />}
       >
         {total.length ? (
           <Table
@@ -295,7 +295,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
       <Section
         title="Relative strength over 24 months"
         lead="24 month return minus the average 24 month return of this industry. Positive means the asset beat its own peers. Volume trend is used as a second check where a volume series exists, and where the industry average sits far from the median the rank is reported but graded down."
-        aside={<AsOf date={rising[0]?.periodEnd} />}
+        aside={<AsOf date={rankingAsOf(rising)} />}
       >
         {rising.length ? (
           <Table
