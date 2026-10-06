@@ -263,6 +263,19 @@ def main() -> None:
             print(f"  size at {PRE_AI_END}: {n} assets with a stored size")
             n = write_size(cur, ind, today, "sizeNow")
             print(f"  size now: {n} assets with a stored size")
+            # Two windows under one basis, and both are read -- which is worth stating here
+            # because it does not look that way from the website. /industry/[slug] shows only
+            # the second one ("Return since 2021"), so the pre-AI rows appear to be written and
+            # never used, and an audit of the web layer alone concludes exactly that.
+            #
+            # They are used by jobs/analysis.py, which separates the two with
+            # `periodEnd <= PRE_AI_END` in industry_shift() and again in the per-asset writer,
+            # and turns the pair into the stored prose the site then displays. Deleting this
+            # call would not drop a dead row; it would quietly empty half of every industry's
+            # analysis.
+            #
+            # The two windows are also why the read path cannot simply take the newest
+            # periodEnd per asset -- see RANKING_WINDOW_LAG_DAYS in lib/rankingWindow.ts.
             n = write_returns(cur, ind, PRE_AI_START, PRE_AI_END, "totalReturn")
             print(f"  pre-AI return: {n} assets")
             n = write_returns(cur, ind, PRE_AI_END, today, "totalReturn")

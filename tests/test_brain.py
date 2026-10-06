@@ -3051,15 +3051,51 @@ class SqlSafety(unittest.TestCase):
                     offenders.append(f"{p.relative_to(ROOT)}")
         self.assertEqual(offenders, [], "; ".join(offenders))
 
+    # The only files allowed to carry `use client`, named one by one so a third cannot appear
+    # without this list being edited deliberately.
+    #
+    # Next requires an error boundary to be a Client Component -- there is no server-rendered
+    # form of one -- so the site cannot have error pages and also have no client components at
+    # all. Rule 37: the guard fired on correct code, so the guard is what changes.
+    CLIENT_ALLOWED = ("app/error.tsx", "app/global-error.tsx")
+
     def test_nothing_is_exposed_to_the_browser(self):
         # No NEXT_PUBLIC_ variable and no client component means no server-only value can reach
-        # the browser bundle at all, which is stronger than auditing each one.
+        # the browser bundle at all, which is stronger than auditing each one. The two error
+        # boundaries are the framework-mandated exception and are checked separately, below, so
+        # that the property this guard protects is still asserted for them.
         for p in self._web_files():
             # Code only. A page that carries a comment saying why it has no `use client` is the
             # correct code this guard existed to protect, and failing it taught nothing.
             text = code_only(p.read_text(encoding="utf-8"))
-            self.assertNotIn("NEXT_PUBLIC_", text, f"{p.relative_to(ROOT)}")
-            self.assertNotIn("use client", text, f"{p.relative_to(ROOT)}")
+            rel = p.relative_to(ROOT).as_posix()
+            self.assertNotIn("NEXT_PUBLIC_", text, rel)
+            if rel not in self.CLIENT_ALLOWED:
+                self.assertNotIn("use client", text, rel)
+
+    def test_the_error_boundaries_exist_and_reach_no_server_value(self):
+        # Two halves of one statement.
+        #
+        # They must exist, because without them a failed read reaches the reader as Next's
+        # unstyled built-in fallback -- the screen this site is most likely to show at its worst
+        # moment, since every route is a direct read against a database that sleeps when idle.
+        #
+        # And they must stay inert. "No client components" was worth having because it made it
+        # impossible for a server-only value to be bundled for the browser; now that two files
+        # are exempt, that guarantee has to be asserted for them directly rather than inferred.
+        banned = ("@/lib/db", "@/lib/queries", "@/prisma", "process.env", "prisma.")
+        for rel in self.CLIENT_ALLOWED:
+            p = ROOT / rel
+            self.assertTrue(p.is_file(), f"{rel} is allowed to be a client component but is missing")
+            text = code_only(p.read_text(encoding="utf-8"))
+            self.assertIn("use client", text, f"{rel} is in the allow list but is not one")
+            for needle in banned:
+                self.assertNotIn(needle, text, f"{rel} reaches a server value: {needle}")
+
+    def test_a_wrong_address_has_a_page_of_its_own(self):
+        # Four routes call notFound(); without this file all four land on the built-in 404, with
+        # no header, no nav and no way back to the thing the reader was looking for.
+        self.assertTrue((ROOT / "app/not-found.tsx").is_file(), "app/not-found.tsx is missing")
 
     def test_the_database_url_is_read_in_exactly_one_web_file(self):
         readers = [

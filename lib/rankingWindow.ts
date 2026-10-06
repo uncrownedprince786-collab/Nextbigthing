@@ -2,7 +2,7 @@
 ///
 /// This lives apart from `lib/queries.ts` for the same reason `lib/decision.ts` does: it is
 /// arithmetic over rows with no database in it, and `queries.ts` constructs a Prisma client at
-/// import time, so anything that imports it needs a `DATABASE_URL`. Keeping the rule here is what
+/// import time, so anything that imports it needs a live connection string. Keeping the rule here is what
 /// lets `tests/rankingWindow.test.ts` run in the no-network, no-database test lane, which is the
 /// only place a silent row-dropping bug would ever be caught.
 
