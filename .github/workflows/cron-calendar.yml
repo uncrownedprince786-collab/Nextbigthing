@@ -1,0 +1,96 @@
+name: cron calendar
+
+# Company calendars: the dated items a decision reads as `eventInDays`.
+#
+# This is a fetch, and it is here because it used to be somewhere it did not belong. `upcoming`
+# calls yfinance once per Yahoo-sourced stock and ETF with a forced half-second sleep between
+# calls -- 126 requests today, and one more for every name added to the universe. It rode in the
+# `decision` group, whose design claim is that it cannot be blocked by a venue because it asks
+# nothing of one.
+#
+# That claim stopped being true quietly and the lane paid for it in full. On 2026-10-04 the
+# universe went from 160 names to 240; on the next run the group crossed its 20 minute budget and
+# was killed at 1197s, and it was killed again the day after. Two sessions have no DecisionLog
+# rows at all -- the site's primary output, missing, while every table feeding it was fresh to the
+# day. A per-asset network loop in the critical path is what bought that.
+#
+# So it runs here instead, and the decision group is arithmetic again.
+on:
+  schedule:
+    # 03:40 UTC. The hour is chosen for emptiness rather than for freshness: a company calendar
+    # changes a few times a year, so this lane has no reason to compete with anything. 03 is odd
+    # and sits far from crypto's and news's even hours; minute 40 is outside the four recurring
+    # minutes (05, 20, 35, 50) every other lane in this repository uses.
+    - cron: "40 03 * * *"
+  workflow_dispatch:
+
+# Its own group. Nothing else fetches from Yahoo at this hour, and a calendar run that overlaps
+# the next one is one rate limited source being asked twice for the same answer.
+concurrency:
+  group: nbt-calendar
+  cancel-in-progress: false
+
+jobs:
+  calendar:
+    name: company calendars
+    runs-on: ubuntu-latest
+    # Measured rather than guessed: 126 assets at one yfinance call plus a half-second sleep each
+    # runs 3 to 9 minutes depending on how Yahoo is answering. 30 leaves room for the slow end
+    # and for the universe to grow, and this lane blocks nothing if it is reached.
+    timeout-minutes: 30
+    steps:
+      # main, explicitly, for the same reason every other lane names it: a scheduled workflow
+      # takes its file from the default branch and its code from the same branch.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prove this run is executing main
+        run: |
+          head="$(git rev-parse HEAD)"
+          git fetch origin main --quiet
+          want="$(git rev-parse origin/main)"
+          if [ "$head" != "$want" ]; then
+            echo "this run is NOT executing main, refusing to continue"
+            exit 1
+          fi
+          echo "confirmed: this run is executing main"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      # Checks the schema, never migrates it. schema.yml is the one controlled migration path.
+      - name: Refuse to run against a schema that is behind
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/schemacheck.py
+
+      # CONTACT_EMAIL because this lane does make requests, and a real User-Agent is hard rule 6.
+      - name: Fetch the company calendars
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          set +e
+          out="$(python jobs/run.py calendar 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## Company calendars"
+            echo
+            echo "exit code \`$code\`"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code

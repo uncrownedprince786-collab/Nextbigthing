@@ -935,6 +935,75 @@ class WorkflowLanes(unittest.TestCase):
                 migrating.append(path.name)
         self.assertEqual(migrating, ["schema.yml"], f"migration is applied by {migrating}")
 
+    # How a job in this lane declares that its network use is bounded. `intraday.py` sets
+    # MAX_REQUESTS = 60 and is the one fetch the decision lane is allowed to keep, because a
+    # ceiling means a selection bug costs one capped run rather than the whole budget.
+    NETWORK_CALLS = ("yf.Ticker", "get_json(", "requests.", "urlopen(")
+
+    def test_no_uncapped_fetcher_sits_in_the_decision_lane(self):
+        """A per-asset network loop in the decision lane will eventually kill it.
+
+        This is the outage of 2026-10-04 written as a test. `upcoming` -- one yfinance call per
+        Yahoo-sourced name with a forced half-second sleep, 126 of them and growing -- sat in
+        the `decision` group. When the universe went from 160 names to 240 the group crossed its
+        20 minute budget, was killed at 1197s, and was killed again the next day. Two sessions
+        have no DecisionLog rows at all, which is the one output the site is built around, while
+        every table feeding it was fresh to the day.
+
+        Nothing caught it. The group's own workflow says in a comment that it "fetches nothing",
+        and that comment was simply false for weeks. A sentence in a header is not a constraint,
+        so the constraint lives here: a job in this lane may touch the network only if it caps
+        how often, and `upcoming` belongs to FETCH_STEPS where the filter keeps it out.
+        """
+        import re
+
+        offenders = []
+        for script, _args in run.DECISION:
+            path = ROOT / "jobs" / f"{script}.py"
+            code = chr(10).join(
+                line.split("#", 1)[0] for line in path.read_text(encoding="utf-8").splitlines()
+            )
+            if not any(tok in code for tok in self.NETWORK_CALLS):
+                continue
+            if not re.search(r"^MAX_REQUESTS\s*=\s*\d+", code, re.M):
+                offenders.append(script)
+        self.assertEqual(
+            offenders,
+            [],
+            f"uncapped network loop in the decision lane: {offenders}",
+        )
+
+    def test_the_calendar_fetch_is_not_in_the_decision_lane(self):
+        """The specific move that fixed it, pinned so it cannot drift back."""
+        self.assertIn("upcoming", run.FETCH_STEPS, "upcoming is a fetcher and must be declared one")
+        self.assertNotIn("upcoming", [s for s, _ in run.DECISION])
+        self.assertIn("calendar", run.GROUPS, "upcoming needs a lane of its own to run in")
+        self.assertEqual([s for s, _ in run.GROUPS["calendar"][0]], ["upcoming"])
+        # Still in the full daily run: it moved lanes, it was not dropped.
+        self.assertIn("upcoming", [s for s, _ in run.DAILY])
+
+    def test_the_decision_writer_survives_a_dead_derivation(self):
+        """`decide` must be its own job, or a timeout skips it exactly when it is needed.
+
+        These were two steps of one job, the second marked `if: always()` so a failed derivation
+        still produced rows -- "a day with no row at all is a hole in the record". That net never
+        fired, because `timeout-minutes` kills the job: on 2026-10-04 the derivation hit 1197s,
+        the runner was cancelled, and the writer was reported `skipped`. `if: always()` survives
+        a failed step and not a dead runner, so the writer needs a runner of its own.
+        """
+        text = self._text("cron-decision.yml")
+        self.assertIn(chr(10) + "  derive:" + chr(10), text, "no derive job")
+        self.assertIn(chr(10) + "  decide:" + chr(10), text, "no decide job")
+
+        decide = text.split(chr(10) + "  decide:" + chr(10), 1)[1]
+        self.assertIn("needs: derive", decide, "decide does not wait for derive")
+        self.assertIn("if: always()", decide, "decide would be skipped when derive fails")
+        self.assertIn("node tools/decide.mjs", decide, "decide job does not write the rows")
+
+        # And the derivation must not be able to take the writer's budget with it.
+        derive = text.split(chr(10) + "  derive:" + chr(10), 1)[1].split(chr(10) + "  decide:", 1)[0]
+        self.assertNotIn("node tools/decide.mjs", derive, "the writer is back inside derive")
+
     def test_migrations_never_run_through_the_connection_pooler(self):
         """`migrate deploy` must override DATABASE_URL with a direct endpoint.
 

@@ -4,7 +4,15 @@ name: cron decision
 # decision never depends on a 40+ minute monolith job finishing perfectly.
 #
 # It is read-only on prices. It reads the closes the price lanes have already committed and
-# writes the decision rows; it fetches nothing and it issues no DDL. That is what makes it
+# writes the decision rows; it fetches nothing and it issues no DDL.
+#
+# "Fetches nothing" was false between 2026-09 and 2026-10-06 and the lane paid for it. The
+# group carried `upcoming`, which calls yfinance once per Yahoo-sourced name with a forced
+# half-second sleep. When the universe went from 160 names to 240 on 2026-10-04 the group
+# crossed the 20 minute budget, was killed at 1197s, and was killed again the next day --
+# so the site's primary output had no rows for two sessions while every input was fresh.
+# `upcoming` now rides `cron-calendar.yml`. A claim like the one above is only worth making
+# if something enforces it, which is what moving it to FETCH_STEPS in jobs/run.py does. That is what makes it
 # independent: it cannot be blocked by a dead venue, a PSX outage or a Trends 429, because it
 # never asks any of them anything. If crypto failed two hours ago the decision still
 # materializes — from the closes that are stored, which is the only input it ever had.
@@ -34,19 +42,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  decision:
-    name: materialize the decision
+  # Two jobs and not one, which is the whole point of this file's shape.
+  #
+  # These used to be two steps of a single job, with the second marked `if: always()` so that a
+  # failed derivation still produced decision rows -- "a day with no row at all is a hole in the
+  # record that a later hit rate cannot tell apart from a day nothing was decided". That net
+  # never caught anything, because `timeout-minutes` kills the *job*: on 2026-10-04 and again on
+  # 2026-10-05 the derivation hit 1197s, the runner was cancelled, and the decide step was
+  # skipped rather than run. `if: always()` only survives a failed step, never a dead runner.
+  #
+  # As two jobs with `needs:` and `if: always()`, the writer runs on its own runner with its own
+  # budget. A derivation that times out now costs today's *inputs*, not today's decision.
+  derive:
+    name: derive the inputs a decision is read from
     runs-on: ubuntu-latest
-    # Arithmetic over stored rows with no network in it. If this has not finished in 20 minutes
-    # something is wrong with the query plan, not with a provider.
-    timeout-minutes: 20
+    # Arithmetic over stored rows with no network in it, now that `upcoming` has moved out. The
+    # last healthy run of the old group -- which still carried that fetch -- took 16 minutes, so
+    # 30 is roughly double what the arithmetic alone should ever need. If this is reached, the
+    # query plan is the suspect, not a provider: there is no provider left in this job.
+    timeout-minutes: 30
     steps:
       # main, explicitly. A scheduled workflow's file is taken from the default branch, `master`,
       # and its code defaults to the same branch. `master` sat 34 commits behind `main` until
       # 2026-10-03, so the repository's two branch guards had never run despite reading
-      # correctly in the working tree. For this lane that would mean materializing the decision
-      # with stale rules while reporting success — the worst available outcome — so the step
-      # below compares the checked-out SHA against origin/main and fails the run if they differ.
+      # correctly in the working tree.
       - uses: actions/checkout@v4
         with:
           ref: main
@@ -74,34 +93,13 @@ jobs:
       - name: Install job dependencies
         run: pip install -r requirements.txt
 
-      # Checks the schema, never migrates it. `schema.yml` is the one controlled migration path;
-      # run 36798989654 is what two migrators against one database cost. This lane especially
-      # must not migrate — it is read-only on prices and holds no reason to carry DDL at all.
+      # Checks the schema, never migrates it. `schema.yml` is the one controlled migration path.
       - name: Refuse to run against a schema that is behind
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/schemacheck.py
 
-      # No CONTACT_EMAIL, because nothing in this lane makes a request. The absence is the
-      # design: the decision's inputs are rows, so no provider can make it fail.
-      #
-      # Summary to `$GITHUB_STEP_SUMMARY` as in `schema.yml`. This is the lane whose outcome a
-      # maintainer most often needs to read, and an Actions log cannot be read without a GitHub
-      # sign-in while the run summary page can.
-      # Two steps, and they are halves of one job rather than alternatives.
-      #
-      # `jobs/run.py decision` runs the derivations — analogs, setup, horizons, thesis and the
-      # rest — which produce the rows a decision is read FROM. `tools/decide.mjs` then applies
-      # the rule table to those rows and writes one DecisionLog row per asset, which is what a
-      # measured hit rate is later computed over. Running only the first leaves the log empty;
-      # running only the second decides from yesterday's derivations.
-      #
-      # The second step is Node rather than Python on purpose. The rule table is TypeScript in
-      # `lib/decision.ts` because the website computes it at read time, and a Python
-      # reimplementation would be a second source of truth for the one thing on this site that
-      # must not have two — rule 36. Node 24 runs the TypeScript directly, so the job and the
-      # page cannot drift.
       - name: Derive the inputs a decision is read from
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -122,20 +120,42 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit $code
 
+  decide:
+    name: write one decision row per asset
+    runs-on: ubuntu-latest
+    needs: derive
+    # Runs however `derive` ended, including cancelled. A failed or timed-out derivation means
+    # some inputs are yesterday's, not that today has no decision -- and a session with no row
+    # is a hole a later hit rate cannot tell apart from a session nothing was decided on.
+    if: always()
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prove this run is executing main
+        run: |
+          head="$(git rev-parse HEAD)"
+          git fetch origin main --quiet
+          want="$(git rev-parse origin/main)"
+          if [ "$head" != "$want" ]; then
+            echo "this run is NOT executing main, refusing to continue"
+            exit 1
+          fi
+          echo "confirmed: this run is executing main"
+
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
 
-      # --ignore-scripts skips the postinstall `prisma generate`, which this step does not need:
+      # --ignore-scripts skips the postinstall `prisma generate`, which this job does not need:
       # decide.mjs talks to Postgres through `pg` directly rather than through the client.
       - name: Install the Node dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
 
-      # Runs even when the derivations failed. A failed derivation means some inputs are
-      # yesterday's, not that today has no decision, and a day with no row at all is a hole in
-      # the record that a later hit rate cannot tell apart from a day nothing was decided.
       - name: Write one decision row per asset
-        if: always()
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
@@ -145,6 +165,8 @@ jobs:
           echo "$out"
           {
             echo "## Decision rows"
+            echo
+            echo "derive job: ${{ needs.derive.result }}"
             echo
             echo "exit code \`$code\`"
             echo

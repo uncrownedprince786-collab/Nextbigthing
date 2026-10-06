@@ -166,7 +166,20 @@ WEEKLY = [
 # filtered out of DAILY instead of being retyped, so the ordering comments above — intraday
 # after the jobs its active set comes from, thesis after setup, graph after human — keep
 # holding for `decision` without anyone having to remember them twice.
-FETCH_STEPS = {"prices", "psx", "signals", "marketplace", "geo"}
+# `upcoming` is in this set because it is a fetcher, even though its name reads like a
+# derivation. It calls yfinance once per Yahoo-sourced stock and ETF with a forced 0.5s sleep
+# between calls, which is 126 requests today and grows with every name added to the universe.
+#
+# That is what broke the decision lane. On 2026-10-04 the universe went from 160 names to 240;
+# the `decision` group crossed its 20 minute budget on the next run and was killed at 1197s, and
+# again the run after that. Two sessions have no DecisionLog rows at all as a result -- the one
+# output the whole site is built around, absent, while every input table was fresh.
+#
+# A per-asset network loop does not belong in the group whose entire design claim is that it
+# cannot be blocked by a venue. Moving it here restores that claim and takes the unbounded part
+# of the runtime out of the critical path. A company calendar changes a few times a year, so it
+# rides its own schedule and the decision reads whatever was stored last.
+FETCH_STEPS = {"prices", "psx", "signals", "marketplace", "geo", "upcoming"}
 
 # decision is DAILY minus the fetchers and minus audit: the arithmetic over rows already
 # stored, in DAILY's order. audit is its own group because a coverage flag is a judgement about
@@ -190,6 +203,7 @@ GROUPS ={
     "news": [[("prices", ["news"])]],
     "products": [PRODUCTS],
     "decision": [DECISION],
+    "calendar": [[("upcoming", [])]],
     "audit": [[("audit", [])]],
 }
 
