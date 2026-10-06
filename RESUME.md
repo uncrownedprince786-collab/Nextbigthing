@@ -1,5 +1,156 @@
 # Resume here
 
+## 0. State of play, 2026-10-06 (third session) — read this first
+
+**Everything is committed and pushed. `main` and `master` are both at `558e137`, the working
+tree is clean, and nothing is mid-operation.** Eight commits landed. The site is live and
+usable at <https://nextbigthing-nu.vercel.app/> — all seven routes answered 200 after the last
+deploy, and `/forex` renders 27 pairs including USDPKR.
+
+### Read this before anything else: `master` is the default branch
+
+**GitHub loads scheduled workflow *definitions* from the default branch, and the default branch
+is `master`, not `main`.** The jobs then check out `ref: main` for their *code*. So a push to
+`main` alone changes what the crons run but not *which* crons exist or how their jobs are
+shaped. Two sessions have now been bitten by this; `cron-decision.yml` documents the first.
+
+`master` had drifted five commits behind during this session, which would have made
+`cron-calendar.yml` invisible to the scheduler and silently stopped the company calendars. It is
+now fast-forwarded. **After every push to `main`, run `git push origin main:master`.**
+
+### The outage this session found, which nothing had reported
+
+`DecisionLog` had no rows for 2026-10-05 or 2026-10-06. Not stale — absent — while
+`PriceSnapshot`, `AssetSetup`, `AssetAnalog` and `News` were all fresh to the day.
+
+`cron decision` had been killed at exactly 20 minutes on three consecutive days. **GitHub
+reports a timed-out job as "cancelled"**, which is why it read as a scheduling quirk rather than
+as the outage it was. The cause: the `decision` group carried `upcoming`, which calls yfinance
+once per Yahoo-sourced name with a forced 0.5s sleep — 126 requests, growing with the universe.
+The 160 → 240 expansion on 2026-10-04 pushed the group past its budget.
+
+The second half is worse: `tools/decide.mjs` was marked `if: always()` precisely so a failed
+derivation still wrote rows, and **that net never fired, because `timeout-minutes` kills the job,
+not the step.** The writer was reported `skipped` on all three days.
+
+Fixed in `5c2a2eb`: `upcoming` joined `FETCH_STEPS` (so the `DECISION` filter excludes it) and
+rides a new `cron-calendar.yml` at 03:40; `cron-decision.yml` became two jobs with `decide`
+carrying `needs: derive` and `if: always()`, so it runs on its own runner with its own budget
+however `derive` ended. Three guards now pin it, including that a job in the decision lane may
+touch the network only if it declares a request ceiling.
+
+### How to recover decisions by hand — this works and is 5 seconds
+
+```
+node tools/decide.mjs --dry-run    # compute and print, write nothing
+node tools/decide.mjs              # write one DecisionLog row per asset
+```
+
+It reads whatever derivations are stored and needs nothing else. It was run four times this
+session; the last wrote 267 of 267 rows for `periodEnd` 2026-10-06.
+
+### What the eight commits did
+
+| | |
+|---|---|
+| `ae28470` | `app/error.tsx`, `global-error.tsx`, `not-found.tsx`. Next 16 uses **`retry`**, not `reset`. No `loading.tsx` on purpose — a Suspense boundary starts the response streaming before `notFound()` is reached, and a streamed response returns 200, which would turn all four 404s into soft 404s. |
+| `469e763` | Ranking rows were being silently dropped. `rank.py` stores `periodEnd` as the per-asset close date, and the read path kept only rows matching the newest — so a lagging asset was ranked and then deleted on the way to the screen, leaving ranks reading 1, 2, 4, 5. `lib/rankingWindow.ts` keeps every row in the window instead. `RANKING_WINDOW_LAG_DAYS = 90` is derived: largest observed lag 1 day, the two real windows sit 1739 days apart. |
+| `5ffd0d2` | Three `daysUntil` implementations became one. The dead one in `lib/plain.ts` measured against `new Date()` rather than midnight and was a full day out for half of every day. `calendarDaysUntil` + `startOfToday` now live in `lib/format.ts`. `decisionInput.daysUntil` stays — different layer, UTC-anchored on both ends, and must not move with the renderer's time zone. |
+| `a12abf7` | **An audit finding of mine was wrong and is withdrawn.** The pre-AI `totalReturn` pass is *not* dead: `jobs/analysis.py` reads both windows in `industry_shift()` and in the per-asset writer, separating them with `periodEnd <= PRE_AI_END`. Deleting it would have emptied half of every industry's analysis. The reasoning is now at the call site in `rank.py`. Also narrowed the `use client` guard, per rule 37. |
+| `5c2a2eb` | The decision-lane outage above. |
+| `7966895` | Forex: 27 pairs. |
+| `fca7ebc` | The swing rule. |
+| `558e137` | Four market pages and the front-page block. |
+
+### Forex, as built
+
+27 pairs in four industries (`fx-majors` 10, `fx-asia` 10, `fx-emerging` 4, `fx-europe` 3),
+~2,020 daily bars each back to 2019-01-01.
+
+- **Source is Yahoo, not Frankfurter.** Frankfurter is free and ECB-backed but **has no PKR**,
+  which makes it useless here. Yahoo serves `USDPKR=X` and needed no new integration at all:
+  `yahoo_assets` selects on `source = 'yahoo'` and never on assetType.
+- **Three candidates were checked and dropped:** USDAED and USDSAR are hard pegs, USDHKD trades
+  in a ~1% band. Ranking them by return is ranking noise. A test pins their absence.
+- **Yahoo answers `volume = 0` for every FX bar** because FX is OTC with no consolidated tape.
+  It is stored as NULL. Writing the 0 would be read as real by `avg_volume` in `rank.py`, by
+  `write_rising`'s volume check, and by `VOLUME_CONFIRMS_AT` which divides a session by its own
+  average — 0/0. Verified: volume rows 0 on all 27.
+- `capBasis` is `none` for all of them, so the size tables on an FX industry page hold no rows
+  by construction and the page says so in words.
+- `STALE_AFTER_DAYS.FX = 4`. `marketOf` reads forex off the **asset**, not the industry.
+- The FX industry pages are not in `generateStaticParams` (it keys off `sizeNow` rankings, which
+  FX has none of by design) so they render on demand. That is fine, not a bug.
+
+### The swing rule, and why it had never produced a short
+
+`jobs/setup.py` required an AND of four conditions. Measured across all 267 assets on
+2026-10-06: **volume sits at or above its own average for 9% of them, and news tone reads
+negative for 3%.** The conjunction produced 2 buy setups out of 266 and, in the whole life of the
+table, not one short. It also made FX structurally impossible — no pair has volume to satisfy.
+
+Now the trend is mandatory and the other three are counted, `CONFIRMS_NEEDED = 2`. Two and not
+one, because trend-plus-one calls 146 of 267 names directional on the same day, which is not a
+signal. **A missing input cannot count toward the two**, which is what keeps it honest rather
+than merely looser.
+
+```
+swing setups   buy  2 -> 20     short 0 -> 9
+decisions      LONG 29 -> 36    SHORT 19 -> 25
+confidence     High 5 -> 17
+```
+
+### Where the signal stands, 2026-10-06
+
+267 assets: 203 stock, 27 forex, 27 crypto, 8 etf, 2 commodity.
+
+```
+LONG 36   SHORT 25   WAIT 206
+High 17   Medium 24  Low 226
+gates: incomplete 163, long 36, unexplained-move 32, short 25, peers-against 10, no-invalidation 1
+```
+
+Input coverage is complete: prices, factors, rankings and decisions all 267/267, setups 266/267.
+**Entry bands are 75/267 and that is correct, not a gap** — a band only exists for a directional
+setup, and there are 75 of those. An earlier note in this session calling it a gap was wrong.
+
+## 0a. What is pending, in the order I would do it
+
+1. **The products card is missing from the front-page block.** The ask was five cards — stocks,
+   crypto, PSX **and products**. Four were built. Products carry a different decision shape
+   (`lib/productDecision.ts`, `decideProduct`), so the card needs its own wiring rather than
+   `ASSET_CLASSES`. This is the first thing to finish.
+2. **`incomplete` is 163 of 267.** Down from 176, and the rule is no longer the binding
+   constraint — the inputs are. News is missing for 40 assets and relative strength for 7.
+   Raising those raises the signal honestly; loosening the gate further would not.
+3. **The scheduled `cron decision` has not yet gone green on its own.** Next run is 15:10 UTC.
+   The writer was exercised by hand four times, and the architecture guarantees rows even if
+   `derive` overruns, but the schedule itself is unproven. **Check this first next session:**
+   `curl -s "https://api.github.com/repos/uncrownedprince786-collab/Nextbigthing/actions/workflows/cron-decision.yml/runs?per_page=5"`
+4. **`npm audit`: 5 high advisories, all in build/CLI tooling** (`mysql2` and `deepmerge-ts` via
+   the prisma CLI, `source-map-js` via postcss). None on the request path. **Do not run
+   `npm audit fix --force`** — it downgrades prisma 7.10 to 6.19, which is far worse than the
+   exposure. Wait for a prisma patch.
+5. **Cross-language constants are a comment, not a constraint.** `THIN_NEWS_BELOW` (TS) and
+   `MIN_ITEMS` (`jobs/human.py`) are both 8, and `ANALOGS_CONFIRM_MIN` and `MIN_MATCHES_LOW`
+   are both 8, with nothing pinning either pair. A test reading both files would close it.
+
+## 0b. Things that cost time this session — do not repeat them
+
+- **Do not run `jobs/run.py decision` from a non-US host.** Round trip to Neon from Pakistan is
+  **238 ms**, and `rank.py` is a per-asset query loop (~2,670 queries at 267 assets), so `rank`
+  alone took **14.0 min** locally against roughly **0.2–1.3 min** on a same-region runner. Local
+  timings of these jobs are ~15x inflated and are **not** a production signal. Let CI run the
+  lane; use `decide.mjs` locally, which is 5 seconds.
+- **A local derivation run sat 41 minutes on `lineage` with no output** and had to be killed,
+  almost certainly lock contention with a CI `backfill` triggered by the same push. Kill a job
+  that has produced no output for five minutes rather than waiting on it.
+- **Several jobs buffer stdout to the end.** `setup.py` printed nothing until it finished.
+  Check progress by querying the table it writes, not by tailing the log.
+- **`setup.py` stamps `periodEnd` from `date.today()` (local) while `decide.mjs` uses UTC.** On a
+  UTC runner they agree; from a UTC+5 host they differ by a day. Harmless in CI, confusing
+  locally — it is why `AssetSetup` read 2026-10-07 while decisions read 2026-10-06.
+
 ## 0. State of play, 2026-10-04 (second session) — read this first
 
 **The 240-asset expansion is finished and every one of the 240 has a verdict.** The whole
