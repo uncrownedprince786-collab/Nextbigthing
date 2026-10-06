@@ -4,7 +4,7 @@ import { Card, ConfidenceBadge, Empty, HowToRead, Note, Pill, Section } from "@/
 import { EVENT_DUPLICATE_WITHIN_DAYS, getEvents, getRecentMarketNews } from "@/lib/queries";
 import { headlineOf, rankHeadlines } from "@/lib/newsRank";
 import { EVENT_SOON_DAYS } from "@/lib/decision";
-import { isoDate, longDate } from "@/lib/format";
+import { calendarDaysUntil, isoDate, longDate, startOfToday } from "@/lib/format";
 
 export const revalidate = 3600;
 
@@ -24,23 +24,6 @@ const CATEGORY_TONE: Record<string, "default" | "warn" | "up" | "down"> = {
   technology: "up",
   market: "down",
 };
-
-/// Midnight today, local, and rounded rather than floored.
-///
-/// `Event.date` is a `@db.Date`, so Prisma hands it back at UTC midnight while this anchor sits
-/// at local midnight, and the difference between the two is a fraction of a day. Rounding
-/// absorbs it: the same row that reads "in 4d" here would otherwise read "in 3d" in
-/// `UpcomingBlock` on the asset page it links to, which uses this same anchor, and two pages
-/// counting down to one date differently is worse than either answer.
-function startOfToday(): Date {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
-}
-
-function daysUntil(date: Date, today: Date): number {
-  return Math.round((date.getTime() - today.getTime()) / 86_400_000);
-}
 
 /// One line per dated item: the day, how far off it is, what kind of item it is, and the asset
 /// it is attached to.
@@ -70,7 +53,7 @@ function CalendarRows({
   return (
     <ul className="divide-border border-border divide-y rounded-lg border">
       {rows.map((e) => {
-        const days = daysUntil(e.date, today);
+        const days = calendarDaysUntil(e.date, today);
         const asset = e.links[0]?.asset ?? null;
         const product = e.links[0]?.product ?? null;
         return (
@@ -122,7 +105,7 @@ function NewsStrip({
   return (
     <ul className="divide-border border-border divide-y rounded-lg border">
       {rows.map((n) => {
-        // Counted in calendar days from local midnight, exactly as `daysUntil` does above, and
+        // Counted in calendar days from local midnight, exactly as `calendarDaysUntil` does, and
         // never from `Date.now()`. `publishedAt` is a timestamp rather than a date, so a diff
         // from the current clock rounds differently depending on the hour an item was filed:
         // the first draft of this block printed "2026-10-02 / yesterday" two rows above
@@ -130,7 +113,7 @@ function NewsStrip({
         // is worse than either label.
         const published = new Date(n.publishedAt);
         published.setHours(0, 0, 0, 0);
-        const days = Math.max(0, -daysUntil(published, today));
+        const days = Math.max(0, -calendarDaysUntil(published, today));
         return (
           <li key={n.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-3 py-2">
             <span className="num text-muted-foreground w-24 shrink-0 text-xs">
@@ -186,19 +169,19 @@ export default async function EventsPage() {
   // ninth row would push "Next 30 days" off a phone screen entirely.
   const marketNews = rankHeadlines(recentNews).slice(0, 8);
 
-  const upcoming = events.filter((e) => daysUntil(e.date, today) >= 0);
-  const next7 = upcoming.filter((e) => daysUntil(e.date, today) <= 7);
+  const upcoming = events.filter((e) => calendarDaysUntil(e.date, today) >= 0);
+  const next7 = upcoming.filter((e) => calendarDaysUntil(e.date, today) <= 7);
   const next30 = upcoming.filter((e) => {
-    const d = daysUntil(e.date, today);
+    const d = calendarDaysUntil(e.date, today);
     return d > 7 && d <= 30;
   });
-  const later = upcoming.filter((e) => daysUntil(e.date, today) > 30);
+  const later = upcoming.filter((e) => calendarDaysUntil(e.date, today) > 30);
 
   // The second concept on this page, and the only rows on it that were measured rather than
   // merely published. An event with no stored impact rows is not shown here at all: a heading
   // reading "past measured windows" above a row with nothing measured under it would be the
   // same empty block this page was built to delete.
-  const past = events.filter((e) => daysUntil(e.date, today) < 0);
+  const past = events.filter((e) => calendarDaysUntil(e.date, today) < 0);
   const measured = past.filter((e) => e._count.impacts > 0);
   const passedUnmeasured = past.length - measured.length;
 

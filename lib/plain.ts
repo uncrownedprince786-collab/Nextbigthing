@@ -150,15 +150,6 @@ export type SimpleReadLines = {
 };
 
 
-/// Whole days from today to `when`. Exported so a page never calls `Date.now()` inside
-/// render, which the react-hooks purity rule rejects.
-export function daysUntil(when: Date | string): number {
-  const target = typeof when === "string" ? new Date(when) : when;
-  const today = new Date();
-  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
-}
-
-
 /// Product status in words, matching the group blurbs on /products.
 export const PRODUCT_STATUS_WORDS: Record<
   string,

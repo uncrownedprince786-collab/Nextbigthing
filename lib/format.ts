@@ -99,6 +99,38 @@ export function relativeTime(value: Date | string | null | undefined): string {
   return `${Math.floor(days / 365)} years ago`;
 }
 
+/// Midnight today, local, as the anchor every countdown on the site is measured from.
+///
+/// Local and not UTC, and that is the older of the two decisions here. A stored `date` is a
+/// `@db.Date`, so Prisma hands it back at UTC midnight while this anchor sits at local midnight,
+/// and the difference between the two is a fraction of a day that `calendarDaysUntil` rounds
+/// away. Production renders in UTC, where the two coincide exactly.
+export function startOfToday(): Date {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+/// Whole calendar days from `today` to `date`, negative for a date already past.
+///
+/// Rounded rather than floored, because the two ends are anchored differently -- see
+/// `startOfToday` -- and a floor would turn that fraction of a day into a whole one.
+///
+/// It takes `today` rather than reading the clock so that one render cannot disagree with
+/// itself. That was a real defect twice: the events page printed "2026-10-02 / yesterday" two
+/// rows above "2026-10-03 / yesterday" when each row diffed against `Date.now()`, and the same
+/// event counted down differently on the calendar and on the asset page it links to. Both are
+/// fixed by measuring every row of one render against one anchor.
+///
+/// This is the display countdown. `daysUntil` in `lib/decisionInput.ts` is the rule table's,
+/// takes ISO strings, returns null for a date it cannot read, and is anchored to UTC on both
+/// ends because the decision it feeds is computed from stored UTC dates and must not move with
+/// the renderer's time zone. They are kept apart deliberately: this one is allowed to round a
+/// time zone away, and that one is not.
+export function calendarDaysUntil(date: Date, today: Date): number {
+  return Math.round((date.getTime() - today.getTime()) / 86_400_000);
+}
+
 export function toneClass(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "text-muted-foreground";
   if (value > 0) return "text-up";

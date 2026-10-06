@@ -1,6 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
-import { isoDate, pct, price, toneClass } from "@/lib/format";
+import { calendarDaysUntil, isoDate, pct, price, startOfToday, toneClass } from "@/lib/format";
 import {
   CHECK_WORDS,
   COVERAGE_WORDS,
@@ -893,15 +893,14 @@ export function UpcomingBlock({
     );
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = startOfToday();
 
   return (
     <div>
       <ul className="divide-border border-border divide-y rounded-lg border">
         {events.map((e) => {
           const when = new Date(e.date);
-          const days = Math.round((when.getTime() - today.getTime()) / 86_400_000);
+          const days = calendarDaysUntil(when, today);
           return (
             <li key={e.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-3 py-2">
               <span className="num text-muted-foreground w-24 shrink-0 text-xs">
