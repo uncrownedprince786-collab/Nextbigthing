@@ -154,7 +154,39 @@ PSX_INDUSTRIES = [
         27,
     ),
 ]
-INDUSTRIES = INDUSTRIES + PSX_INDUSTRIES
+FOREX_INDUSTRIES = [
+    (
+        "fx-majors",
+        "Major currency pairs",
+        "The seven most traded pairs plus the three euro and sterling crosses. These are the "
+        "deepest markets in the world and the ones a rate decision moves first.",
+        30,
+    ),
+    (
+        "fx-asia",
+        "Asian currencies",
+        "The dollar against ten Asian currencies, including the rupee. Several are managed "
+        "rather than floating, so a long flat stretch here is a policy choice and not a quiet "
+        "market.",
+        31,
+    ),
+    (
+        "fx-emerging",
+        "Higher volatility currencies",
+        "The dollar against four currencies that move on domestic inflation and politics far "
+        "more than on anything happening in the US.",
+        32,
+    ),
+    (
+        "fx-europe",
+        "European currencies outside the euro",
+        "The dollar against the Scandinavian currencies and the zloty. They track the euro "
+        "closely enough that a divergence is the thing worth reading.",
+        33,
+    ),
+]
+
+INDUSTRIES = INDUSTRIES + PSX_INDUSTRIES + FOREX_INDUSTRIES
 
 # industry slug, symbol, name, type, cap basis, source, source ref, note
 YAHOO = "yahoo"
@@ -499,6 +531,81 @@ MORE_PSX: list[tuple] = [
 
 ASSETS = ASSETS + MORE_PSX
 
+
+# industry slug, symbol, name, type, cap basis, source, source ref, note
+#
+# Every pair below was requested from Yahoo before it was written here: 1300 daily bars
+# each, five years, full OHLC, newest close present. Three further candidates were checked
+# and dropped rather than carried -- USDAED and USDSAR are hard pegs to the dollar and
+# USDHKD is a tight band peg, so ranking them by return would be ranking noise against
+# noise.
+#
+# capBasis is `none` for all of them. A currency pair has no issuer and no share count, so
+# there is no size to compute: the size tables on these industry pages hold no rows by
+# construction, which the page already states in words rather than printing a zero.
+#
+# source is `yahoo`, which is not a new integration. `yahoo_assets` in jobs/prices.py selects
+# on source = 'yahoo' and never on assetType, so these ride the existing fetch, the existing
+# rate limit and the existing disk cache.
+FOREX_ASSETS: list[tuple] = [
+    ("fx-majors", "EURUSD", "Euro / US Dollar", "forex", "none", "yahoo", "EURUSD=X",
+     "The most traded pair in the world. A rise means the euro is stronger against the dollar."),
+    ("fx-majors", "GBPUSD", "British Pound / US Dollar", "forex", "none", "yahoo", "GBPUSD=X",
+     "A rise means sterling is stronger against the dollar."),
+    ("fx-majors", "USDJPY", "US Dollar / Japanese Yen", "forex", "none", "yahoo", "USDJPY=X",
+     "Yen per dollar. A rise means the yen is weaker."),
+    ("fx-majors", "USDCHF", "US Dollar / Swiss Franc", "forex", "none", "yahoo", "USDCHF=X",
+     "Francs per dollar. The franc is a haven, so this often falls when equities do."),
+    ("fx-majors", "USDCAD", "US Dollar / Canadian Dollar", "forex", "none", "yahoo", "USDCAD=X",
+     "Canadian dollars per US dollar. Moves with crude."),
+    ("fx-majors", "AUDUSD", "Australian Dollar / US Dollar", "forex", "none", "yahoo", "AUDUSD=X",
+     "A rise means the Australian dollar is stronger. Tracks industrial metals and Chinese demand."),
+    ("fx-majors", "NZDUSD", "New Zealand Dollar / US Dollar", "forex", "none", "yahoo", "NZDUSD=X",
+     "A rise means the New Zealand dollar is stronger."),
+    ("fx-majors", "EURGBP", "Euro / British Pound", "forex", "none", "yahoo", "EURGBP=X",
+     "Sterling per euro. A cross with no dollar in it, so it reads European divergence directly."),
+    ("fx-majors", "EURJPY", "Euro / Japanese Yen", "forex", "none", "yahoo", "EURJPY=X",
+     "Yen per euro. Commonly read as a risk appetite gauge."),
+    ("fx-majors", "GBPJPY", "British Pound / Japanese Yen", "forex", "none", "yahoo", "GBPJPY=X",
+     "Yen per pound. The widest daily range of the crosses here."),
+    ("fx-asia", "USDPKR", "US Dollar / Pakistani Rupee", "forex", "none", "yahoo", "USDPKR=X",
+     "Rupees per dollar. A rise means the rupee is weaker, which feeds straight into PSX import costs."),
+    ("fx-asia", "USDINR", "US Dollar / Indian Rupee", "forex", "none", "yahoo", "USDINR=X",
+     "Rupees per dollar. Managed within a band by the Reserve Bank of India."),
+    ("fx-asia", "USDCNY", "US Dollar / Chinese Yuan", "forex", "none", "yahoo", "USDCNY=X",
+     "Yuan per dollar, onshore. A daily fix sets the band, so moves are policy as much as flow."),
+    ("fx-asia", "USDKRW", "US Dollar / South Korean Won", "forex", "none", "yahoo", "USDKRW=X",
+     "Won per dollar. Moves with the semiconductor cycle."),
+    ("fx-asia", "USDIDR", "US Dollar / Indonesian Rupiah", "forex", "none", "yahoo", "USDIDR=X",
+     "Rupiah per dollar."),
+    ("fx-asia", "USDTHB", "US Dollar / Thai Baht", "forex", "none", "yahoo", "USDTHB=X",
+     "Baht per dollar."),
+    ("fx-asia", "USDPHP", "US Dollar / Philippine Peso", "forex", "none", "yahoo", "USDPHP=X",
+     "Pesos per dollar."),
+    ("fx-asia", "USDMYR", "US Dollar / Malaysian Ringgit", "forex", "none", "yahoo", "USDMYR=X",
+     "Ringgit per dollar."),
+    ("fx-asia", "USDSGD", "US Dollar / Singapore Dollar", "forex", "none", "yahoo", "USDSGD=X",
+     "Singapore dollars per US dollar. Managed against a trade weighted basket."),
+    ("fx-asia", "USDBDT", "US Dollar / Bangladeshi Taka", "forex", "none", "yahoo", "USDBDT=X",
+     "Taka per dollar."),
+    ("fx-emerging", "USDTRY", "US Dollar / Turkish Lira", "forex", "none", "yahoo", "USDTRY=X",
+     "Lira per dollar. A near one way move for years, so a return figure here reads as inflation."),
+    ("fx-emerging", "USDBRL", "US Dollar / Brazilian Real", "forex", "none", "yahoo", "USDBRL=X",
+     "Reais per dollar."),
+    ("fx-emerging", "USDZAR", "US Dollar / South African Rand", "forex", "none", "yahoo", "USDZAR=X",
+     "Rand per dollar. One of the most volatile liquid currencies."),
+    ("fx-emerging", "USDMXN", "US Dollar / Mexican Peso", "forex", "none", "yahoo", "USDMXN=X",
+     "Pesos per dollar."),
+    ("fx-europe", "USDSEK", "US Dollar / Swedish Krona", "forex", "none", "yahoo", "USDSEK=X",
+     "Kronor per dollar."),
+    ("fx-europe", "USDNOK", "US Dollar / Norwegian Krone", "forex", "none", "yahoo", "USDNOK=X",
+     "Kroner per dollar. Moves with crude."),
+    ("fx-europe", "USDPLN", "US Dollar / Polish Zloty", "forex", "none", "yahoo", "USDPLN=X",
+     "Zloty per dollar."),
+]
+
+ASSETS = ASSETS + FOREX_ASSETS
+
 # slug, name, category, summary, wiki title, trends term, subreddits
 PRODUCTS = [
     ("standing-desk", "Standing desk", "Furniture", "Sit stand desks sold for home and office use.", "Standing desk", "standing desk", "buyitforlife,Fitness"),
@@ -594,6 +701,13 @@ def main() -> None:
             # The slug carries the exchange, so the market and the currency are derived
             # rather than repeated on every row where they could drift out of step.
             pk = slug.startswith("psx-")
+            # A currency pair is not listed on an exchange, so "which market" is a different
+            # question for it than for a share. FX keeps these out of the US and PK groups the
+            # home page sets side by side: those two are separated because a rupee size figure
+            # next to a dollar one compares to nothing, and a pair has no size at all. The
+            # currency column stays USD because every pair here is quoted against the dollar
+            # and nothing on an FX page prints a size anyway.
+            fx = slug.startswith("fx-")
             cur.execute(
                 """
                 INSERT INTO "Industry" (slug, name, summary, sort, market, currency,
@@ -604,7 +718,14 @@ def main() -> None:
                     sort = EXCLUDED.sort, market = EXCLUDED.market,
                     currency = EXCLUDED.currency
                 """,
-                (slug, name, summary, sort, "PK" if pk else "US", "PKR" if pk else "USD"),
+                (
+                    slug,
+                    name,
+                    summary,
+                    sort,
+                    "FX" if fx else "PK" if pk else "US",
+                    "PKR" if pk else "USD",
+                ),
             )
         cur.execute("SELECT count(*) AS n FROM \"Industry\"")
         print(f"  industries: {cur.fetchone()['n']}")

@@ -42,7 +42,7 @@ export type Action = "LONG" | "SHORT" | "WAIT";
 export type TimeSense = "NOW" | "WAIT FOR LEVEL" | "CARE";
 export type Confidence = "High" | "Medium" | "Low";
 export type Direction = "up" | "down" | "flat" | "unknown";
-export type Market = "US" | "PSX" | "Crypto" | "Other";
+export type Market = "US" | "PSX" | "Crypto" | "FX" | "Other";
 
 /// How old a close may be before the panel refuses to act on it, per market, in calendar days.
 ///
@@ -54,6 +54,13 @@ export const STALE_AFTER_DAYS: Record<Market, number> = {
   Crypto: 2,
   US: 5,
   PSX: 6,
+  // FX trades continuously from Sunday evening to Friday evening, so it keeps no exchange
+  // holidays of its own -- but the daily bars come from Yahoo, which stamps one bar per
+  // weekday and none at the weekend. 4 is therefore the tightest honest figure: a Friday bar
+  // read on the following Tuesday is 4 days old and the market was open for one of them.
+  // Tighter than US because an FX pair has no earnings halt, no suspension and no delisting to
+  // explain a missing day -- a gap here is the feed, not the instrument.
+  FX: 4,
   Other: 5,
 };
 

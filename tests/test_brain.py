@@ -38,6 +38,7 @@ import prices  # noqa: E402
 import psx  # noqa: E402
 import run  # noqa: E402
 import runlog  # noqa: E402
+import seed  # noqa: E402
 import schemacheck  # noqa: E402
 import thesis  # noqa: E402
 
@@ -863,6 +864,84 @@ class ChunkPlumbing(unittest.TestCase):
         with contextlib.redirect_stdout(buf):
             run.report("products 1/4", [("geo", 0, 1.0)], ["--chunk 1/4 was not passed to geo"])
         self.assertIn("note: --chunk 1/4 was not passed to geo", buf.getvalue())
+
+
+class Forex(unittest.TestCase):
+    """A currency pair has no issuer, and every consequence of that has to hold.
+
+    Forex is the first class on this site with nothing behind the price: no share count, so no
+    size; no exchange, so no session and no holiday; no consolidated tape, so no volume. Each of
+    those is a hole, and hard rule 2 says a hole stays a hole rather than being filled with a
+    plausible number. These pin the places where filling one would be easy and silent.
+    """
+
+    @property
+    def fx(self):
+        return [a for a in seed.ASSETS if a[3] == "forex"]
+
+    def test_every_pair_is_seeded_with_no_size_basis(self):
+        """capBasis `none` is what keeps a size out of the tables rather than a zero.
+
+        `marketCap` would make jobs/rank.py compute price x shares with no shares, and
+        `fundAssets` would do the same. `none` is the only honest answer for an instrument that
+        is a ratio between two currencies, and the industry page already renders the absence in
+        words.
+        """
+        self.assertTrue(self.fx, "no forex assets are seeded")
+        for slug, symbol, _name, _t, cap, source, ref, _note in self.fx:
+            self.assertEqual(cap, "none", f"{symbol} claims a size basis")
+            self.assertEqual(source, "yahoo", f"{symbol} is not on the existing Yahoo lane")
+            self.assertTrue(ref.endswith("=X"), f"{symbol} sourceRef {ref} is not a Yahoo FX ref")
+            self.assertTrue(slug.startswith("fx-"), f"{symbol} is filed under {slug}")
+            self.assertEqual(len(symbol), 6, f"{symbol} is not a six letter pair")
+
+    def test_the_pairs_are_unique_and_not_pegged(self):
+        """A peg has no return to rank, so ranking it would be ranking noise.
+
+        USDAED and USDSAR are hard pegged to the dollar and USDHKD trades in a band of about one
+        percent. All three were checked against the source and dropped rather than carried: a
+        table ordered by return would put them wherever rounding left them.
+        """
+        symbols = [a[1] for a in self.fx]
+        self.assertEqual(len(symbols), len(set(symbols)), "a pair is seeded twice")
+        for pegged in ("USDAED", "USDSAR", "USDHKD"):
+            self.assertNotIn(pegged, symbols, f"{pegged} is a peg and has no return to rank")
+
+    def test_every_forex_industry_is_declared_a_forex_industry(self):
+        """The slug prefix is what seed.py derives the market from, so it is load bearing."""
+        fx_slugs = {i[0] for i in seed.INDUSTRIES if i[0].startswith("fx-")}
+        self.assertTrue(fx_slugs, "no fx- industries")
+        for slug, *_rest in self.fx:
+            self.assertIn(slug, fx_slugs, f"{slug} has no industry row")
+        # And nothing non-forex may sit in one, or it would be filed under the FX market.
+        for a in seed.ASSETS:
+            if a[0].startswith("fx-"):
+                self.assertEqual(a[3], "forex", f"{a[1]} is {a[3]} inside an FX industry")
+
+    def test_a_pair_is_never_asked_for_a_company_calendar(self):
+        """jobs/upcoming.py selects stock and etf only, and that is what keeps FX out.
+
+        A currency pair has no earnings date and no dividend. Asking Yahoo for one per pair
+        would be 27 more requests for a guaranteed empty answer, on the lane whose per-asset
+        request loop already cost two days of decisions.
+        """
+        src = (ROOT / "jobs" / "upcoming.py").read_text(encoding="utf-8")
+        self.assertIn("IN ('stock','etf')", src)
+        self.assertNotIn("forex", src)
+
+    def test_a_pair_never_stores_a_zero_volume(self):
+        """Yahoo answers 0 volume for every FX bar, and 0 is not a measurement.
+
+        FX is over the counter, so no venue publishes a consolidated volume. Writing the 0 down
+        would be read as real by `avg_volume` in jobs/rank.py, by `write_rising`'s volume check,
+        and by VOLUME_CONFIRMS_AT in lib/decision.ts -- the last one divides a session by its own
+        average, which is 0/0. Every one of those already handles a null correctly.
+        """
+        src = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        self.assertIn("is_forex = a.get(\"assetType\") == \"forex\"", src)
+        self.assertIn("if vol == vol and not (is_forex and not vol):", src)
+        # The writer can only know it is forex if the selector carries the column.
+        self.assertIn('a."assetType"::text AS "assetType"', src)
 
 
 class SchemaGuard(unittest.TestCase):

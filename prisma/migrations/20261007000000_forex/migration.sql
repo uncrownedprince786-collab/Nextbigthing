@@ -1,0 +1,12 @@
+-- Currency pairs.
+--
+-- Additive only: one new enum value, no table touched. A forex asset is an ordinary Asset row
+-- with capBasis = 'none', so nothing that reads sizes needs to learn about it -- those rows
+-- simply never exist, which the industry page already renders as "no size figure is stored"
+-- rather than as a zero.
+--
+-- Precedent for the statement: 20260930182000_markets_events_marketplace adds 'eventImpact' to
+-- "AnalysisKind" the same way. PostgreSQL 18 allows ADD VALUE inside the transaction Prisma
+-- wraps a migration in; the value just cannot be *used* in that same transaction, and the seed
+-- that uses it runs as a separate step after `migrate deploy`.
+ALTER TYPE "AssetType" ADD VALUE 'forex';

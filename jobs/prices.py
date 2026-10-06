@@ -60,7 +60,8 @@ def yahoo_assets(cur) -> list[dict]:
     return rows(
         cur,
         """
-        SELECT a.id, a.symbol, a."sourceRef" FROM "Asset" a
+        SELECT a.id, a.symbol, a."sourceRef", a."assetType"::text AS "assetType"
+        FROM "Asset" a
         WHERE a.source = 'yahoo' ORDER BY a.symbol
         """,
     )
@@ -602,6 +603,8 @@ def _store_frame(cur, assets, frame, today: date, is_full: bool) -> tuple[int, d
             print(f"  empty history for {sym}")
             continue
 
+        is_forex = a.get("assetType") == "forex"
+
         closes: list[tuple[date, float]] = []
         volumes: dict[date, float] = {}
         bars: dict[date, tuple[float | None, float | None, float | None]] = {}
@@ -614,7 +617,15 @@ def _store_frame(cur, assets, frame, today: date, is_full: bool) -> tuple[int, d
             day = stamp.date()
             closes.append((day, float(row["Close"])))
             vol = row.get("Volume")
-            if vol == vol:  # not NaN
+            # A currency pair has no published volume and Yahoo answers 0 for every bar of
+            # every pair -- FX is over the counter, so there is no consolidated tape to report.
+            # Storing that 0 would be writing down a measurement that was never taken, which
+            # hard rule 2 forbids, and it would be read as real by three separate places:
+            # `avg_volume` in jobs/rank.py averages only non-null volumes and would return 0,
+            # `write_rising` uses the volume trend as its second check, and VOLUME_CONFIRMS_AT
+            # in lib/decision.ts compares a session against its own average -- 0/0. A null says
+            # "not published" and every one of those already handles a null correctly.
+            if vol == vol and not (is_forex and not vol):  # not NaN, not an FX placeholder
                 volumes[day] = float(vol)
             # The source has always sent these; the job used to drop them on the floor.
             bars[day] = (num(row.get("Open")), num(row.get("High")), num(row.get("Low")))
@@ -1130,6 +1141,14 @@ def asset_news_term(a: dict) -> str:
     elif kind == "commodity":
         # A futures contract is named by its underlying in every headline, never by symbol.
         return hint or a["name"]
+    elif kind == "forex":
+        # The stored name is "US Dollar / Pakistani Rupee", which no headline has ever been
+        # written in. The press names a pair either by its two currencies or by the ticker, so
+        # the search is built from the symbol -- "USD PKR exchange rate" -- which matches both
+        # the wire style ("USD/PKR") and the plain style ("dollar rupee"). Quoting it would be
+        # worse: the quoted form appears in rate tables and almost never in a story.
+        sym = a["symbol"]
+        return f"{sym[:3]} {sym[3:]} exchange rate"
     else:
         base = f'"{a["name"]}"'
     return f"{base} {hint}" if hint else base

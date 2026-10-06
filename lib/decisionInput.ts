@@ -51,6 +51,12 @@ export function marketOf(asset: {
   industry?: { market: string } | null;
 }): Market {
   if (asset.assetType === "crypto") return "Crypto";
+  // Read off the asset and not the industry, for the same reason crypto is. The market here is
+  // a property of the instrument -- what trades when, and how old a close may be before it
+  // stops describing the present -- and that does not change with which group a pair is filed
+  // under. It also means a pair cannot silently fall through to `Other` if an FX industry is
+  // ever added without its market column being set.
+  if (asset.assetType === "forex") return "FX";
   switch (asset.industry?.market) {
     case "PK":
       return "PSX";

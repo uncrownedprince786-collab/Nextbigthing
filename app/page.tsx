@@ -107,6 +107,10 @@ const FILTERS: FilterGroup[] = [
       { label: "US", value: "US" },
       { label: "PSX", value: "PSX" },
       { label: "Crypto", value: "Crypto" },
+      // The value is the mapped `Market`, not the industry's column, which is why this reads
+      // FX and not the four `fx-` industry slugs behind it. `marketOf` keys a currency pair off
+      // its assetType rather than its industry for exactly that reason.
+      { label: "Forex", value: "FX" },
     ],
   },
   {
