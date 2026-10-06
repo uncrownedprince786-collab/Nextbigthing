@@ -15,12 +15,20 @@ export const metadata: Metadata = {
     "Which stocks, crypto, funds and consumer products are gaining ground on the US and Pakistani markets, measured from free public data. Every figure names its source and as of date. No forecasts, no paid data.",
 };
 
+// The nav is one row that scrolls sideways below `sm`, so its cost is length rather than width.
+//
+// The four asset classes replace the two industry links that used to sit here. Those pointed at
+// one industry each -- `/industry/mega-cap-tech` under the word "Industries" and
+// `/industry/psx-banks` under "Pakistan" -- so a reader who wanted "all the US names" landed on
+// nine of them and had no route to the rest. The class pages are the complete list, which is what
+// those two words were promising.
 const NAV = [
   { href: "/", label: "Overview" },
-  { href: "/industry/mega-cap-tech", label: "Industries" },
-  { href: "/industry/psx-banks", label: "Pakistan" },
+  { href: "/stocks", label: "Stocks" },
+  { href: "/psx", label: "PSX" },
+  { href: "/crypto", label: "Crypto" },
+  { href: "/forex", label: "Forex" },
   { href: "/products", label: "Products" },
-  { href: "/marketplace", label: "Marketplace" },
   { href: "/events", label: "Events" },
   { href: "/methodology", label: "Methodology" },
 ];

@@ -14,17 +14,27 @@ import {
 } from "@/components/ui";
 import {
   getAllIndustriesByBasis,
-  getDecisionRows,
   getFreshness,
   getIndustriesByMarket,
   getPricedAssetsByIndustry,
-  getSourceHealth,
   rankingAsOf,
-  type DecisionQueryRow,
 } from "@/lib/queries";
-import { bundleFromRow, toDecisionInput, todayISO } from "@/lib/decisionInput";
-import { decide, EVENT_SOON_DAYS, type Confidence, type Decision, type Market } from "@/lib/decision";
-import { DecisionList, type DecisionRow } from "@/components/decision";
+import { todayISO } from "@/lib/decisionInput";
+// The overview and the four class indexes read the same rows through the same verdict, so the
+// scoring, the ordering and the list-row shape live in one module rather than once per route.
+// A second copy of any of them is how two pages come to disagree about what a name is.
+import {
+  ASSET_CLASSES,
+  byConfidence,
+  eventLabel,
+  scoreRows,
+  toListRow,
+  type Scored,
+} from "@/lib/assetClass";
+import { cachedDecisionRows, cachedSourceHealth } from "@/lib/cached";
+import { TopByClass } from "@/components/topByClass";
+import { EVENT_SOON_DAYS } from "@/lib/decision";
+import { DecisionList } from "@/components/decision";
 import { FilterChips } from "@/components/filters";
 import { describeFilters, readFilters, type FilterGroup } from "@/lib/filters";
 import { isoDate, money, price, pct, sizeLabel, toneClass } from "@/lib/format";
@@ -62,8 +72,6 @@ export const revalidate = 3600;
 /// `unstable_cache` is the correct API in this configuration.
 const HOUR = { revalidate: 3600 } as const;
 
-const cachedDecisionRows = unstable_cache(getDecisionRows, ["decision-rows"], HOUR);
-const cachedSourceHealth = unstable_cache(getSourceHealth, ["source-health"], HOUR);
 const cachedFreshness = unstable_cache(getFreshness, ["freshness"], HOUR);
 const cachedIndustriesByMarket = unstable_cache(
   getIndustriesByMarket,
@@ -138,8 +146,6 @@ const MARKET_NAME: Record<string, string> = {
   PK: "Pakistan Stock Exchange",
 };
 
-const CONFIDENCE_ORDER: Record<Confidence, number> = { High: 0, Medium: 1, Low: 2 };
-
 /// How urgent each WAIT reason is, lowest first.
 ///
 /// Keyed on `Decision.gate`, which the rule table exposes for exactly this kind of use and which is
@@ -157,17 +163,6 @@ const GATE_URGENCY: Record<string, number> = {
   "mixed-horizons": 5,
   incomplete: 6,
 };
-
-/// One asset, read once: the stored row, the rule table's input, and the verdict.
-///
-/// The input is kept beside the decision because the mapped `market` lives on it. Taking the market
-/// off the raw query row instead would print "PK" where the rest of the site says "PSX" and would
-/// file every crypto name under whichever industry market it happens to sit in.
-interface Scored {
-  row: DecisionQueryRow;
-  market: Market;
-  decision: Decision;
-}
 
 function urgency(s: Scored): number {
   const days = s.row.nextEventInDays;
@@ -194,45 +189,6 @@ function byUrgency(a: Scored, b: Scored): number {
 
 /// LONG and SHORT, best-evidenced first. A High-confidence row is the one worth reading, and within
 /// a grade the symbol keeps the order stable.
-function byConfidence(a: Scored, b: Scored): number {
-  const c = CONFIDENCE_ORDER[a.decision.confidence] - CONFIDENCE_ORDER[b.decision.confidence];
-  return c !== 0 ? c : a.row.symbol.localeCompare(b.row.symbol);
-}
-
-function toListRow(s: Scored): DecisionRow {
-  return {
-    symbol: s.row.symbol,
-    name: s.row.name,
-    market: s.market,
-    action: s.decision.action,
-    entry: s.decision.entry,
-    invalidation: s.decision.invalidation,
-    confidence: s.decision.confidence,
-    // PSX names are in rupees. Without this every level on the page would be printed with a dollar
-    // mark in front of a rupee number, which is worse than printing no level at all.
-    currency: s.row.currency,
-    // The calendar, on the lists that are not WAIT. A dated event never gates the rule table, so a
-    // LONG row with earnings tomorrow carries no hint of it in `why` — it reaches the reader only
-    // through the time sense, and until this was passed the front page dropped it silently. The
-    // WAIT cards already print the same sentence; `eventLabel` is shared so the two cannot drift.
-    timeSense: s.decision.timeSense,
-    eventNote: eventLabel(s.row),
-  };
-}
-
-/// The calendar line, when the calendar is the reason this row is urgent.
-///
-/// Separate from `decision.why` on purpose: a dated event does not gate the rule table — it only
-/// sets the time sense — so a row that is in WAIT for a stale close and happens to report earnings
-/// today would otherwise say nothing about today. The event is what makes it the first card.
-function eventLabel(row: DecisionQueryRow): string | null {
-  const days = row.nextEventInDays;
-  if (days === null || days > EVENT_SOON_DAYS) return null;
-  const name = row.nextEventName ?? "a dated event";
-  if (days <= 0) return `Event today: ${name}.`;
-  return `Event in ${days} ${days === 1 ? "day" : "days"}: ${name}.`;
-}
-
 /// One WAIT card.
 ///
 /// Not a `DecisionList` row, and this is the one place the three lists differ in shape. A WAIT row's
@@ -312,10 +268,7 @@ export default async function Home({
   // cannot straddle midnight and decide two assets against two different days.
   const today = todayISO();
 
-  const scored: Scored[] = rows.map((row) => {
-    const input = toDecisionInput(bundleFromRow(row, health), today);
-    return { row, market: input.market, decision: decide(input) };
-  });
+  const scored: Scored[] = scoreRows(rows, health, today);
 
   // Newest stored close across the page, as an ISO string the rule table already produced. Compared
   // as text rather than as a date because `yyyy-mm-dd` sorts correctly as text and because anything
@@ -392,7 +345,13 @@ export default async function Home({
         </p>
       </div>
 
-      <div className="mt-4">
+      {/* The browse block sits above the chips, and above the three lists, because it answers a
+          different question: not "what should I look at today" but "what is in here". It reads the
+          unfiltered `scored` on purpose -- see TopByClass -- so filtering the lists below never
+          empties it. */}
+      <TopByClass classes={ASSET_CLASSES} rows={scored} />
+
+      <div className="mt-8">
         <FilterChips groups={FILTERS} current={current} basePath="/" />
       </div>
 
