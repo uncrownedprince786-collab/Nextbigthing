@@ -119,6 +119,10 @@ const FILTERS: FilterGroup[] = [
       // FX and not the four `fx-` industry slugs behind it. `marketOf` keys a currency pair off
       // its assetType rather than its industry for exactly that reason.
       { label: "Forex", value: "FX" },
+      // Same rule as Forex: the value is the mapped `Market`, keyed off `assetType` rather than
+      // the industry column, so the one chip covers the precious, industrial and energy groups
+      // the contracts are filed under without naming any of them.
+      { label: "Commodities", value: "Commodity" },
     ],
   },
   {

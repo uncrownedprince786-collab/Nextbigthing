@@ -15,9 +15,9 @@ import { classBySlug } from "@/lib/assetClass";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "US stocks, funds and commodities",
+  title: "US stocks and funds",
   description:
-    "Every US listed stock, fund and commodity the site covers, with one reading each from the same rule table the asset pages use.",
+    "Every US listed stock and fund the site covers, with one reading each from the same rule table the asset pages use. The contracts on a metal or a barrel are under Commodities; the funds that hold them are here, because a fund has an issuer and a size and a contract has neither.",
 };
 
 export default function Page() {

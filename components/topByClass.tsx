@@ -22,7 +22,15 @@ function ClassCard({ cls, rows }: { cls: AssetClass; rows: Scored[] }) {
   const directional = rows.filter((s) => s.decision.action !== "WAIT").length;
 
   return (
-    <div className="border-border bg-card rounded-lg border p-4">
+    // `min-w-0` is load-bearing on a phone and does nothing anywhere else. A grid item defaults
+    // to `min-width: auto`, which refuses to shrink below its content's min-content width, and
+    // the rows inside this card have a floor: a truncating name plus a `shrink-0` verdict pill
+    // and a `w-12` confidence. Measured at 375px, every card laid out 411px wide inside a 343px
+    // track -- and `main` is `overflow-x-clip`, so the extra 68px was not scrolled to, it was
+    // cut off. What sat in the cut was the right-hand end of each row: part of the pill and the
+    // whole confidence column, which is to say the verdict itself on the one layout where the
+    // reader has the least room to begin with.
+    <div className="border-border bg-card min-w-0 rounded-lg border p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <Link
           href={`/${cls.slug}`}
@@ -88,7 +96,12 @@ export function TopByClass({ classes, rows }: { classes: AssetClass[]; rows: Sco
         Five names per market, ordered by whether there is a reading to act on and how well
         evidenced it is. Follow a market for all of its names.
       </p>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Five columns because there are five classes. At four, the fifth card dropped onto a
+          row of its own and read as an afterthought rather than as one of the site's five
+          top-level browse targets -- which is close to what commodities had been before they
+          were separated out. The cards carry `min-w-0`, so a narrower track truncates a long
+          name rather than overflowing the one before it. */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {classes.map((cls) => (
           <ClassCard key={cls.slug} cls={cls} rows={rows.filter(cls.holds)} />
         ))}
