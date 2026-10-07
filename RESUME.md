@@ -1,5 +1,127 @@
 # Resume here
 
+## 0. State of play, 2026-10-07 (fifth session) — read this first
+
+**Everything is committed and pushed; `main` and `master` are both current and the tree is
+clean.** Eight commits. The standing rule held every time: after each push to `main`, run
+`git push origin main:master`.
+
+### What was asked, and the one-line answer
+
+The ask was to stop the site answering WAIT and Low everywhere, to gather more data before
+deciding, to add commodities, to cover products by country and state, and to regression-test
+responsiveness. **Four real production bugs were found and fixed, every one of them a
+denominator, an ordering or a clock — and the honest headline is that the WAIT count barely
+moved.** It went 207 of 267 to 209 of 273, which is 77.5% to 76.6%. What changed is that those
+WAITs are now produced by correct arithmetic instead of by broken arithmetic.
+
+### The four faults, in the order they cost the most
+
+| | |
+|---|---|
+| **A part-day stored as the day's close** | `cron-us-prices` fetched at 13:50 UTC into a session running 13:30-20:00. AAPL's bar for 2026-10-07 held **8.0M shares against 30-50M** on its neighbours; across 155 US names the newest bar's volume ran at a **median 0.21x its own average** against a 1.2x gate. Every US setup's volume leg failed on the clock. PSX read 0.84x the same day — the control that identified it. Fixed by `forming_sessions` (a guard, because a schedule cannot be trusted to stay correct) plus moving the fetch to 21:50 and the decision to 22:10. **Verified after: AAPL 31,250,163 shares, US median 0.757.** |
+| **The volume threshold meant a different thing in every market** | The ratio divided by the *mean* of a right-skewed window. Over 15,411 asset-sessions a typical PSX day read 0.614 and a typical crypto day 0.931, so `VOL_ACTIVE` at 1.2 demanded ~2.0x normal in Karachi and ~1.3x in crypto. Median instead of mean centres every market 0.83-1.06. |
+| **A net news tone divided by headlines that had no tone** | `(positive - negative) / items` where **only 11.1% of headlines carry any tone word** and the median asset has **2**. The bar therefore rose with coverage: 64 headlines at 7 positive and 0 negative read "neutral". Now divided by the opinionated subset with a floor of 5. Directional tone 55 -> 69 of 265. |
+| **PSX was a day late, invisibly** | One fetch at 12:40 UTC on a margin that was not there. On 10-07 the file was absent at 18:40 and present at 19:10, so the close was only ever picked up by the *next* day's run — hidden because `psx.py` backfills recent sessions and `STALE_AFTER_DAYS.PSX` is 6. Three attempts now; 20:40 is the one that matters. |
+
+### The measurement, before and after — read this before claiming anything
+
+Baseline is 2026-10-07 18:40 UTC, before any fix reached the data. After is the same day's close,
+same rule table, corrected inputs.
+
+| | before | after |
+| --- | --- | --- |
+| LONG / SHORT / WAIT | 36 / 24 / 207 | 35 / 29 / 209 |
+| of 267 / 273 assets | 77.5% WAIT | 76.6% WAIT |
+| **High confidence** | 9 | **15** |
+| Medium | 26 | 29 |
+| Low | 232 | 229 |
+| gate `incomplete` | 166 | 161 |
+| gate `unexplained-move` | 29 | 35 |
+| swing setups buy / short | 13 / 8 | 12 / **21** |
+| assets with a directional news tone | 55 | 69 |
+
+**What that says, stated plainly so the next session does not oversell it.** High confidence rose
+67% and swing shorts went from 8 to 21, which is the gate that had never produced a short in the
+life of the table. The *count* of WAITs did not fall. On this day, with correct data, most names
+genuinely do not have two of three confirmations — and that is now a finding rather than an
+artefact. `unexplained-move` went **up** (29 -> 35), which is the honest direction: with real
+closes, more names show a move whose size the news does not account for.
+
+**Do not "fix" the WAIT count by loosening a threshold.** Every number above came from correcting
+a denominator, and the owner's standing instruction is that a WAIT is acceptable when the data
+justifies it. If more action is wanted, the lever is more evidence per asset, not a lower bar.
+
+### What is new on the site
+
+- **Commodities are their own market and page.** Copper (HG=F), WTI (CL=F), Brent (BZ=F), natural
+  gas (NG=F), platinum and palladium added; gold and silver futures moved out of the US stock
+  list where they had been filed since seeding. ~1,950 bars each back to 2019. CPER and COPX
+  re-filed to a new `industrial-metals` group — copper was being measured against gold by the
+  relative-strength leg.
+- **A commodity reads from the previous day's settle, and that is correct.** GC=F's session runs
+  04:00 UTC to 03:59 the next day, so its bar for day D is not finished until D+1. See the note
+  on `STALE_AFTER_DAYS.Commodity`.
+- **Product regions: 9 of 30 products had data, now 24.** `geo.py` ordered products `ORDER BY
+  name` under a 45-minute budget, so the back of the alphabet was never asked about and never
+  would be. Now ordered by how stale each product's own coverage is. The remaining 6 sort first
+  on the next run; Google Trends 429s are what caps a single run, not the ordering.
+- **The phone layout was cutting the verdict off.** Cards laid out 411px inside a 343px track
+  under `overflow-x-clip`, so the right-hand end of every row — part of the pill and the whole
+  confidence column — was clipped, not scrollable. `min-w-0` on the card. Swept every route at
+  320/375/768/1280.
+
+### Verified, and how
+
+- 422 Python tests, 150 web tests, `tsc` clean, `eslint` clean, **`npm run build` passes**.
+- Every new guard was run against the old behaviour and fails on it — the two schedule guards,
+  the three volume-baseline tests, the tone tests.
+- **An independent verifier** (`scratchpad/verify_decision.py`, not kept) re-derived published
+  verdicts from raw bars without importing the rule table: trend, volume, relative strength, news
+  counts, invalidation on the correct side, close age inside the market's own limit. It reported
+  **no contradiction** across the sampled directional calls.
+- Demo-traded one as a reader: LCID SHORT, High, close $3.89, entry $3.89-$4.32, stop $4.32,
+  reason "setup down, longer view agrees, volume 1.3x, 23 of 37 similar days went the same way",
+  with a Reuters headline about a deliveries miss sitting under it. Coherent and actionable.
+
+### Two things I got wrong this session, recorded so they are not repeated
+
+- I assumed the part-day bug also invalidated `CONFIRMS_NEEDED = 2`. **It does not.** Re-measured
+  on complete sessions only, the volume pass rate was still ~9% on a single day's cross-section,
+  so that threshold stands on its own evidence. Measure before rewriting a justification.
+- My own verifier reported a false contradiction on HMC, because it checked the 20/50 averages
+  unconditionally. `pickSetup` takes the first **directional** row in horizon order swing ->
+  longer, so when the swing read is `wait` and the longer read is `buy`, the decision rests on the
+  100/200 trend. The tool was wrong, not the system.
+
+### Still pending, unchanged from the fourth session
+
+1. **The products card is missing from the front-page block.** Products carry a different decision
+   shape (`lib/productDecision.ts`), so it needs its own wiring rather than `ASSET_CLASSES`.
+2. **`npm audit`: 5 high advisories**, all in build/CLI tooling, none on the request path. **Do
+   not run `npm audit fix --force`** — it downgrades prisma 7.10 to 6.19.
+3. **Cross-language constants are still a comment, not a constraint.** `THIN_NEWS_BELOW` (TS) and
+   `MIN_ITEMS` (`human.py`) are both 8; `ANALOGS_CONFIRM_MIN` and `MIN_MATCHES_LOW` both 8.
+4. **`lineage` has 1,013 un-lineaged News rows.** A local run stalled on a dead connection and was
+   killed; its committed work (6,920 clusters) is intact and the job is resumable. An un-lineaged
+   item counts as its own story, which inflates catalyst counts slightly until it runs.
+5. **The refresh gate is still 0 of 2** and still blocked on `gh` not being installed.
+
+### Do not repeat these
+
+- **This machine's network dropped twice** during the session, each time taking out DNS entirely
+  and killing whatever job was mid-flight. The jobs failed loudly rather than writing partial
+  data, which is the designed behaviour. If a job exits in a fraction of its usual time, suspect
+  the network before the data.
+- **`$?` after a `$(...)` substitution is the substitution's exit code**, not the job's. A runner
+  script reported "exit 0" for three steps that had all failed on DNS; only a 12-second runtime on
+  a 9-minute job gave it away. Capture the status into a variable on the line that follows the
+  command.
+- **Do not run `jobs/run.py decision` from a non-US host.** It carries `rank` (14 min local) and
+  `lineage` (32 min). Run `factors -> human -> setup -> thesis` individually, then
+  `node tools/decide.mjs`, which is seconds. `decide.mjs` reads no `AssetThesis`, so it can be run
+  before `thesis` to land the verdict sooner.
+
 ## 0. State of play, 2026-10-07 (fourth session) — read this first
 
 **Everything is committed and pushed. `main` and `master` are both at `f68357d`, the working
