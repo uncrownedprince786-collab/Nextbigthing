@@ -92,6 +92,23 @@ NEWS_FLOOR = 3
 BING = "Bing News RSS"
 YAHOO_RSS = "Yahoo Finance headline RSS"
 
+# Hard ceiling on **fallback** requests per run, whatever the thin-name count says.
+#
+# Same idiom as `MAX_REQUESTS` in `jobs/intraday.py`, and here for a sharper reason: this lane
+# has a `timeout-minutes` and the fallback chain is the first thing in it whose cost grows with
+# the universe. `nbt.get` sleeps a second per host, so the primary pass alone has a floor of one
+# second times 318 feeds, and every fallback adds to that. The 160 -> 240 asset expansion is what
+# pushed `cron decision` past its own budget on three consecutive days, and because **GitHub
+# reports a timed-out job as "cancelled"** it read as a scheduling quirk rather than as the
+# outage it was. A lane that fetches per asset has to declare what it will spend.
+#
+# 150 against the ~100 names currently under `NEWS_FLOOR`: enough that the chain does its job
+# today, and a cap so a future expansion or a primary blackout -- when *every* name falls through
+# -- costs one capped run and not a killed lane. The primary pass is never capped, because that
+# is the source every asset depends on and skipping it silently is the failure rule 31 exists to
+# catch rather than one worth trading time for.
+NEWS_FALLBACK_BUDGET = 150
+
 SNAPSHOT_SET = set(SNAPSHOTS)
 
 
@@ -1571,6 +1588,8 @@ def fetch_news(cur) -> int:
     # that produced it, so a reader and `coverage_report` can both see which of them answered.
     empty = []
     fell_through = []
+    fallback_budget = NEWS_FALLBACK_BUDGET
+    budget_spent_on = 0
     for a in assets:
         matcher = news_matcher(a)
         kept = ingest(
@@ -1583,8 +1602,11 @@ def fetch_news(cur) -> int:
             cap=NEWS_PER_ASSET,
             matcher=matcher,
         )
-        if kept < NEWS_FLOOR:
+        if kept < NEWS_FLOOR and fallback_budget > 0:
             for source, url in fallback_feeds(a):
+                if fallback_budget <= 0:
+                    break
+                fallback_budget -= 1
                 kept += ingest(
                     url,
                     f"{source.split()[0].lower()}-as-v1-{a['symbol']}",
@@ -1598,8 +1620,19 @@ def fetch_news(cur) -> int:
                     break
             if kept:
                 fell_through.append(a["symbol"])
+            budget_spent_on += 1
         if not kept:
             empty.append(a["symbol"])
+    spent = NEWS_FALLBACK_BUDGET - fallback_budget
+    if spent:
+        print(f"  fallback requests: {spent} of {NEWS_FALLBACK_BUDGET} budget, over {budget_spent_on} assets")
+    if fallback_budget <= 0:
+        # Not a failure, and said out loud rather than inferred from a short list. Every name
+        # past this point kept whatever the primary gave it.
+        print(
+            f"  fallback ceiling of {NEWS_FALLBACK_BUDGET} reached, so later thin assets were "
+            "left with the primary feed alone"
+        )
     if fell_through:
         print(
             f"  {len(fell_through)} assets needed a fallback source: "

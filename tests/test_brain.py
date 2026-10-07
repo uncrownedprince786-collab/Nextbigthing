@@ -2577,6 +2577,45 @@ class NewsRecency(unittest.TestCase):
         for source in (prices.BING, prices.YAHOO_RSS):
             self.assertIn(source, brain, f"{source} is used and not recorded in brain.md")
 
+    def test_the_fallback_chain_declares_a_request_ceiling(self):
+        # The lane that fetches per asset is the lane whose cost grows with the universe, and
+        # this one has a `timeout-minutes`. The 160 -> 240 expansion is what pushed `cron
+        # decision` past its budget on three consecutive days, and because GitHub reports a
+        # timed-out job as "cancelled" it read as a scheduling quirk rather than an outage.
+        self.assertIsInstance(prices.NEWS_FALLBACK_BUDGET, int)
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = text[text.index("def fetch_news"):text.index("def coverage_line")]
+        # Enforced, not merely declared: decremented per request and checked before spending.
+        self.assertIn("fallback_budget -= 1", body)
+        self.assertIn("if fallback_budget <= 0:", body)
+        self.assertIn("kept < NEWS_FLOOR and fallback_budget > 0", body)
+        # And the primary pass is never capped. It is the source every asset depends on, so
+        # skipping it to save time is the failure rule 31 exists to catch.
+        primary = body[body.index("matcher = news_matcher(a)"):body.index("if kept < NEWS_FLOOR")]
+        self.assertNotIn("fallback_budget", primary)
+
+    def test_the_news_lane_timeout_has_room_above_what_the_lane_can_spend(self):
+        # A ceiling with no headroom above it is not a ceiling. The floor is one second per feed
+        # from `nbt.get`'s per-host delay, over every asset, product and industry, plus whatever
+        # the fallback budget allows -- and the timeout has to sit above that with room for
+        # latency and retries, or the lane is killed mid-run and reported as cancelled.
+        import re
+        wf = (ROOT / ".github" / "workflows" / "cron-news.yml").read_text(encoding="utf-8")
+        m = re.search(r"timeout-minutes:\s*(\d+)", wf)
+        self.assertIsNotNone(m, "the news lane declares no timeout at all")
+        timeout_s = int(m.group(1)) * 60
+        # 318 primary feeds on the day this was written. Counted from the seed rather than
+        # hard-coded, so growing the universe moves the floor this is checked against.
+        feeds = len(seed.ASSETS) + len(seed.PRODUCTS)
+        floor_s = feeds + prices.NEWS_FALLBACK_BUDGET
+        self.assertGreater(
+            timeout_s, floor_s * 1.5,
+            f"{feeds} feeds plus {prices.NEWS_FALLBACK_BUDGET} fallbacks is a floor of "
+            f"{floor_s}s of sleeping alone, and the lane is killed at {timeout_s}s",
+        )
+        # Still well inside its own 2-hourly interval, or the lane starts stacking on itself.
+        self.assertLess(timeout_s, 3600, "a 2-hourly lane must finish inside half its cycle")
+
     def test_the_floor_that_triggers_a_fallback_stays_under_the_tone_floor(self):
         # A floor at MIN_ITEMS would fire for most of the PSX list on every run and spend four
         # hundred requests chasing coverage that does not exist. The fallback exists to find a

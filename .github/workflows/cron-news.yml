@@ -33,8 +33,23 @@ jobs:
     name: rss ingest, dedupe, junk filter
     runs-on: ubuntu-latest
     # A 2-hourly lane must finish well inside its own interval or it starts stacking against
-    # itself. 15 minutes is generous for the feeds and still half the cycle.
-    timeout-minutes: 15
+    # itself. 25 minutes is still well under half the cycle.
+    #
+    # Raised from 15 on 2026-10-07, together with the change that made it necessary, because 15
+    # had stopped being generous and nothing would have said so. `nbt.get` sleeps a second per
+    # host, so the primary pass alone has a floor of 318 seconds -- one per asset, product and
+    # industry feed -- and the fallback chain added to a lane that was already the longest-running
+    # of the recurring ones. Measured from a laptop the same day: 241 feeds in 11 minutes, which
+    # is slower than a runner but not by the margin 15 minutes left.
+    #
+    # The ceiling is the honest reason to raise this rather than to trim the work: 318 feeds is
+    # what covering 267 assets costs, and `NEWS_FALLBACK_BUDGET` in jobs/prices.py is what stops
+    # the *variable* half growing without a limit. This is the failure that killed `cron decision`
+    # for three days -- an expansion quietly outgrew a budget, and GitHub reports a timed-out job
+    # as "cancelled", so it read as a scheduling quirk rather than as an outage. The pairing to
+    # keep: a lane that fetches per asset needs both a declared request ceiling and a timeout with
+    # room above what that ceiling can cost.
+    timeout-minutes: 25
     steps:
       # main, explicitly. A scheduled workflow's file comes from the default branch — `master`
       # here — and by default its code does too. `master` was found 34 commits behind `main` on
