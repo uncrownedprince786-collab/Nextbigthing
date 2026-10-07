@@ -868,6 +868,27 @@ export type DecisionSetup = {
   /// without it is a row that knows a direction and cannot say it. Parsed by
   /// `lib/setupConditions.ts`, never read as prose.
   conditions: string;
+  /// The measured target ranges `jobs/horizons.py` computed for this setup, one row per method.
+  ///
+  /// Carried as the list and never reduced here. Rule 24: targets are never averaged, because
+  /// three methods that disagree are three answers and their mean is a fourth that nothing
+  /// measured. A reader that needs one picks a method and names it.
+  targets: DecisionTarget[];
+};
+
+/// One measured target range, as `jobs/horizons.py` wrote it.
+export type DecisionTarget = {
+  /// "structure", "volatility" or "analog".
+  method: string;
+  low: number;
+  high: number;
+  /// Distance from the entry to the near edge, in percent. Signed: negative for a short.
+  distancePct: number | null;
+  /// Against the setup's own invalidation. Null when there is no invalidation, in which case
+  /// `jobs/horizons.py` writes no target row at all.
+  rewardRisk: number | null;
+  /// What this range was measured from, and what it is not. Written by the job, shown verbatim.
+  note: string;
 };
 
 /// What is *stored* about one asset, which is not the same thing as what the home page shows.
@@ -1098,6 +1119,16 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
             confidence: true,
             periodEnd: true,
             headline: true,
+            // One extra relation on a read that was already happening. The weekly block needs a
+            // measured exit as well as a measured stop, and inventing one in the web layer is
+            // exactly what `jobs/` exists to prevent.
+            targets: {
+              orderBy: { method: "asc" },
+              select: {
+                method: true, low: true, high: true,
+                distancePct: true, rewardRisk: true, note: true,
+              },
+            },
           },
         })
       : [],
@@ -1173,6 +1204,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       periodEnd: row.periodEnd,
       headline: row.headline,
       conditions: row.conditions,
+      targets: row.targets ?? [],
     };
   };
 

@@ -11,6 +11,8 @@ import {
   qualifiesForWeek,
   weeklyFocus,
   weeklyWhy,
+  weeklyTarget,
+  targetMethodLabel,
   byWeeklyFocus,
   WEEKLY_MAX_PER_SIDE,
 } from "../lib/weeklyFocus.ts";
@@ -32,7 +34,13 @@ function scored(over: Record<string, unknown> = {}, row: Record<string, unknown>
     ...over,
   };
   return {
-    row: { symbol: "AAA", name: "Aaa", currency: "USD", closeDate: new Date("2026-10-07"), ...row },
+    row: {
+      symbol: "AAA", name: "Aaa", currency: "USD",
+      closeDate: new Date("2026-10-07"),
+      swing: { targets: [] },
+      longer: null,
+      ...row,
+    },
     market: "US",
     decision: d,
   } as unknown as Any;
@@ -155,4 +163,66 @@ test("the why keeps the confirmation line, not the middle one", () => {
     "Confirmed by volume.",
   ]);
   assert.deepEqual(weeklyWhy(scored({ why: [] })), []);
+});
+
+const target = (method: string, low = 100, high = 110) => ({
+  method, low, high, distancePct: 5, rewardRisk: 1.5, note: `measured from ${method}`,
+});
+
+test("the exit-if-working target is one measured method, never an average", () => {
+  // Rule 24: three methods that disagree are three answers, and their mean is a fourth that
+  // nothing measured. So one is chosen and its method is named beside the number.
+  const s = scored({}, { swing: { targets: [target("analog", 200, 300), target("structure", 120, 120)] } });
+  const got = weeklyTarget(s);
+  assert.equal(got?.method, "structure", "structure is the level the market actually turned at");
+  assert.equal(got?.low, 120);
+  // Nothing anywhere produces a blended number.
+  assert.notEqual(got?.low, 160);
+});
+
+test("the preference order is structure, then volatility, then analog", () => {
+  const all = (...m: string[]) => scored({}, { swing: { targets: m.map((x) => target(x)) } });
+  assert.equal(weeklyTarget(all("analog", "volatility", "structure"))?.method, "structure");
+  assert.equal(weeklyTarget(all("analog", "volatility"))?.method, "volatility");
+  assert.equal(weeklyTarget(all("analog"))?.method, "analog");
+});
+
+test("no stored target is null, never a number reached for", () => {
+  // The job writes no target row at all when there is no invalidation. The block says so; it does
+  // not compute one in the web layer, which is the whole reason jobs/ exists.
+  assert.equal(weeklyTarget(scored({}, { swing: { targets: [] } })), null);
+  assert.equal(weeklyTarget(scored({}, { swing: null, longer: null })), null);
+});
+
+test("a target is read off the longer setup when there is no swing one", () => {
+  const s = scored({}, { swing: null, longer: { targets: [target("volatility", 50, 50)] } });
+  assert.equal(weeklyTarget(s)?.method, "volatility");
+});
+
+test("every method has reader-facing words, and an unknown one falls back to itself", () => {
+  for (const m of ["structure", "volatility", "analog"]) {
+    assert.notEqual(targetMethodLabel(m), m, `${m} is shown to a reader as the raw method name`);
+    assert.ok(targetMethodLabel(m).length > 8);
+  }
+  assert.equal(targetMethodLabel("something-new"), "something-new");
+});
+
+test("the target comes from the setup the decision actually rested on", () => {
+  // `pickSetup` takes the first DIRECTIONAL row in horizon order, so a name whose swing read is
+  // `wait` and whose longer read is `buy` was decided on the longer one. Reading swing-first
+  // printed "No clear target stored" for exactly those names while the targets sat on the setup
+  // the verdict came from -- live on HMC and MU.
+  const s = scored({}, {
+    swing: { state: "wait", targets: [] },
+    longer: { state: "buy", targets: [target("structure", 42, 42)] },
+  });
+  assert.equal(weeklyTarget(s)?.method, "structure");
+  assert.equal(weeklyTarget(s)?.low, 42);
+
+  // And when the swing row IS the directional one, it still wins.
+  const swingFirst = scored({}, {
+    swing: { state: "buy", targets: [target("structure", 10, 10)] },
+    longer: { state: "buy", targets: [target("structure", 99, 99)] },
+  });
+  assert.equal(weeklyTarget(swingFirst)?.low, 10);
 });

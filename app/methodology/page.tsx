@@ -284,8 +284,8 @@ export default async function MethodologyPage() {
       </Section>
 
       <Section
-        title="This week — how a name reaches that block"
-        lead="The weekly block on the overview is a filter over the lists below it, never a second opinion. Every name in it is already published as LONG or SHORT by the rule above; this page says what is removed and in what order the rest is shown."
+        title="For the coming week — how a name reaches that block"
+        lead="The block at the top of the overview exists to put the week's confirmed names and their three levels in one place before the week starts. It is a filter over the lists below it, never a second opinion: every name in it is already published as LONG or SHORT by the rule above. This says what is removed, how the rest is ordered, and where the exit level comes from."
       >
         <ul className="text-muted-foreground list-disc space-y-2 pl-5 text-sm leading-relaxed">
           <li>
@@ -318,12 +318,36 @@ export default async function MethodologyPage() {
             did not produce. A side with nothing in it says so.
           </li>
         </ul>
+        <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
+          <strong className="text-foreground">The exit if it works.</strong> Each row carries a
+          third level beside the entry and the stop, and it is a stored measurement rather than a
+          forecast. <code>jobs/horizons.py</code> writes up to three target ranges per setup, one
+          per method, and the block quotes <em>one</em> of them with the method named:
+        </p>
+        <ul className="text-muted-foreground mt-2 list-disc space-y-2 pl-5 text-sm leading-relaxed">
+          <li>
+            <strong className="text-foreground">structure</strong> &mdash; the nearest price where
+            this series has already turned. Preferred, because it is the only one of the three that
+            is a fact about where the market stopped before.
+          </li>
+          <li>
+            <strong className="text-foreground">volatility</strong> &mdash; a multiple of the
+            asset&rsquo;s own recent daily range. Not a place anything happened, but a distance this
+            asset actually covers.
+          </li>
+          <li>
+            <strong className="text-foreground">what followed similar past days</strong> &mdash; the
+            distribution over matched history. Last, because it answers how far this usually got
+            rather than where it would stop.
+          </li>
+        </ul>
         <Note>
-          No price target is printed in that block. The measured range from similar past days is on
-          each asset&rsquo;s own page, beside the sample size and the window that qualify it; the
-          same numbers lifted into a weekly block would read as a forecast, which is the one thing
-          this site does not publish. A setup favours a direction while its stop holds. It is not a
-          statement that a price will move, and no outcome is promised.
+          The three are never averaged. Three methods that disagree are three answers, and their
+          mean is a fourth number nothing measured &mdash; so one is chosen, by the order above, and
+          shown with the method beside it. A setup whose stop could not be computed has no target
+          row written at all, and the block prints &ldquo;No clear target stored&rdquo; rather than
+          reaching for a number. A setup favours a direction while its stop holds. That is not a
+          statement that a price will move, no target is a promise, and no outcome is promised.
         </Note>
       </Section>
 

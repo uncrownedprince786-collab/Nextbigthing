@@ -2,23 +2,47 @@ import Link from "next/link";
 import { ConfidenceBadge, Pill } from "@/components/ui";
 import { price } from "@/lib/format";
 import type { Scored } from "@/lib/assetClass";
-import { weeklyFocus, weeklyWhy, WEEKLY_MAX_PER_SIDE } from "@/lib/weeklyFocus";
+import type { Market } from "@/lib/decision";
+import {
+  weeklyFocus,
+  weeklyWhy,
+  weeklyTarget,
+  targetMethodLabel,
+  WEEKLY_MAX_PER_SIDE,
+} from "@/lib/weeklyFocus";
 
-/// The weekly focus block: the confirmed names, narrowed to what a reader could act on.
+/// The block that prepares a reader for the week ahead.
 ///
-/// Every row here is already in the LONG or SHORT list further down the page. This block does not
-/// decide anything — `lib/weeklyFocus.ts` only filters and orders — and the heading says so, so a
-/// reader cannot take it for a stronger claim than the list it was drawn from.
+/// Its job is not to rank anything. It is to put, in one place, the names that already carry a
+/// confirmed direction together with the three levels a reader needs before the week starts: where
+/// the setup is live, where it is wrong, and where the measurement says it would have run its
+/// course. Everything in it is already published further down the page; this block only filters,
+/// orders and adds the measured exit.
 ///
-/// The wording is the careful part. A setup **favours** a direction **while its stop holds**; it
-/// does not go up. No target is printed: the measured analog range lives on the asset page, beside
-/// the sample size and window that qualify it, and the same numbers lifted into a block headed
-/// "this week" would read as a forecast.
+/// Two things it must never become. It must not become a second rule table — `lib/weeklyFocus.ts`
+/// subtracts and orders, it never promotes. And it must not become a forecast: a setup **favours**
+/// a direction **while its stop holds**, every target is a measured level with its method named
+/// beside it, and a name with no stored target says so rather than being given one.
+
+/// Every market a reader can browse, so the block can account for all of them rather than let a
+/// quiet one vanish. A market with nothing confirmed is a finding; a market silently missing is a
+/// reader wondering whether it was looked at.
+const MARKETS: Market[] = ["US", "PSX", "Crypto", "FX", "Commodity"];
+const MARKET_LABEL: Record<string, string> = {
+  US: "US",
+  PSX: "PSX",
+  Crypto: "Crypto",
+  FX: "Forex",
+  Commodity: "Commodities",
+};
 
 function Row({ item }: { item: Scored }) {
   const { row, decision, market } = item;
   const currency = row.currency;
   const why = weeklyWhy(item);
+  const target = weeklyTarget(item);
+  const long = decision.action === "LONG";
+  const single = target ? target.low === target.high : false;
 
   return (
     <li className="border-border min-w-0 border-t py-3 first:border-t-0 first:pt-0">
@@ -33,16 +57,15 @@ function Row({ item }: { item: Scored }) {
         </Link>
         <span className="flex shrink-0 items-baseline gap-x-2">
           {decision.timeSense === "CARE" ? <Pill tone="warn">CARE</Pill> : null}
-          <Pill tone={decision.action === "LONG" ? "up" : "down"}>{decision.action}</Pill>
+          <Pill tone={long ? "up" : "down"}>{decision.action}</Pill>
           <ConfidenceBadge grade={decision.confidence.toLowerCase()} />
         </span>
       </div>
 
       <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-        {market}
+        {MARKET_LABEL[market] ?? market}
         {" · "}
-        {/* The one claim this block makes, and it is conditional on the stop by construction. */}
-        Setup favours {decision.action === "LONG" ? "up" : "down"} while the exit level holds.
+        Setup favours {long ? "up" : "down"} while the exit level holds.
       </p>
 
       {why.length ? (
@@ -55,19 +78,50 @@ function Row({ item }: { item: Scored }) {
         </ul>
       ) : null}
 
-      <p className="text-muted-foreground mt-1 text-xs">
-        Entry{" "}
-        <span className="num">
-          {decision.entry
-            ? `${price(decision.entry.low, currency)} to ${price(decision.entry.high, currency)}`
-            : "none stored"}
-        </span>
-        {" · "}Exit if wrong{" "}
-        <span className="num">
-          {decision.invalidation !== null ? price(decision.invalidation, currency) : "none stored"}
-        </span>
-        {decision.timeSense === "NOW" ? " · the last close is inside the band" : null}
-      </p>
+      {/* The three levels, in the order a reader uses them: where it is live, where it is wrong,
+          where the measurement says it would have run its course. */}
+      <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+        <div className="min-w-0">
+          <dt className="text-muted-foreground">Entry zone</dt>
+          <dd className="num">
+            {decision.entry
+              ? `${price(decision.entry.low, currency)} to ${price(decision.entry.high, currency)}`
+              : "none stored"}
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-muted-foreground">Exit if wrong</dt>
+          <dd className="num text-down">
+            {decision.invalidation !== null ? price(decision.invalidation, currency) : "none stored"}
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-muted-foreground">Exit if working</dt>
+          <dd className={target ? "num" : "text-muted-foreground"}>
+            {target
+              ? single
+                ? price(target.low, currency)
+                : `${price(target.low, currency)} to ${price(target.high, currency)}`
+              : "No clear target stored"}
+          </dd>
+        </div>
+      </dl>
+
+      {target ? (
+        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+          Prefer exit near{" "}
+          <span className="num">{price(target.low, currency)}</span>; cut if{" "}
+          <span className="num">
+            {decision.invalidation !== null ? price(decision.invalidation, currency) : "the stop"}
+          </span>{" "}
+          breaks. Measured from {targetMethodLabel(target.method)} &mdash; a measured level, not a
+          promise.
+        </p>
+      ) : (
+        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+          No target was measured for this setup, so none is shown. The stop above still applies.
+        </p>
+      )}
     </li>
   );
 }
@@ -91,7 +145,7 @@ function Side({
         <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
         <span className="text-muted-foreground text-xs">
           {total === 0
-            ? "none today"
+            ? "none this week"
             : total > items.length
               ? `${items.length} of ${total}`
               : `${items.length}`}
@@ -111,56 +165,89 @@ function Side({
   );
 }
 
+/// One line per market, so a quiet market is accounted for rather than absent.
+function Coverage({ rows }: { rows: Scored[] }) {
+  const counts = MARKETS.map((m) => {
+    const inMarket = rows.filter((s) => s.market === m);
+    const confirmed = weeklyFocus(inMarket, Number.MAX_SAFE_INTEGER);
+    return {
+      market: m,
+      names: inMarket.length,
+      ready: confirmed.longTotal + confirmed.shortTotal,
+    };
+  });
+
+  return (
+    <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
+      Every market is looked at:{" "}
+      {counts.map((c, i) => (
+        <span key={c.market}>
+          {i > 0 ? " · " : ""}
+          <span className="text-foreground">{MARKET_LABEL[c.market]}</span>{" "}
+          {c.ready > 0 ? `${c.ready} ready` : "nothing confirmed"}
+          <span className="opacity-60"> of {c.names}</span>
+        </span>
+      ))}
+      . A market with nothing confirmed is a reading, not an omission: the rules looked and found no
+      name there carrying both a direction and a confirmation beyond it.
+    </p>
+  );
+}
+
 export function WeeklyFocusBlock({ rows }: { rows: Scored[] }) {
   const focus = weeklyFocus(rows);
   const nothing = focus.long.length === 0 && focus.short.length === 0;
 
   return (
     <section className="mt-6">
-      <h2 className="text-lg font-semibold tracking-tight">This week — tighter setups</h2>
+      <h2 className="text-lg font-semibold tracking-tight">For the coming week</h2>
       <p className="text-muted-foreground mt-1 mb-3 max-w-2xl text-sm">
-        The same readings as the lists below, narrowed to the ones that carry a direction, a
-        confirmation beyond the direction, an entry band and a level to be wrong at. Nothing here is
-        a new verdict &mdash; it is the confirmed names, best evidenced first, capped at{" "}
-        {WEEKLY_MAX_PER_SIDE} a side so the block stays readable. These are readings, not advice,
-        and no outcome is promised.
+        What to have in front of you before the week starts. These are the names that already carry
+        a direction and a confirmation beyond it, each with the three levels you would need: where
+        the setup is live, where it is wrong, and where the measurement says it would have run its
+        course. Nothing here is a new verdict &mdash; it is the same readings as the lists below,
+        best evidenced first, capped at {WEEKLY_MAX_PER_SIDE} a side. Readings, not advice, and no
+        outcome is promised.
       </p>
 
       {nothing ? (
         <div className="border-border bg-card rounded-lg border p-4">
           <p className="text-muted-foreground text-sm leading-relaxed">
-            No name clears the filters today. That is an answer rather than a missing one: the rule
-            table acted on {rows.filter((s) => s.decision.action !== "WAIT").length} names, and none
-            of them carries both a confirmation beyond its own direction and a stored level to exit
-            at. The full lists below are unchanged.
+            No name clears the filters going into this week. That is an answer rather than a missing
+            one: the rule table acted on{" "}
+            {rows.filter((s) => s.decision.action !== "WAIT").length} names, and none carries both a
+            confirmation beyond its own direction and a stored level to exit at. The full lists
+            below are unchanged.
           </p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           <Side
-            title="Long focus"
+            title="Long side"
             lead="Setup up, longer view not against it, and at least one confirmation beyond the trend."
             items={focus.long}
             total={focus.longTotal}
-            empty="Nothing on this side clears the filters today. The long list below is unchanged."
+            empty="Nothing on this side clears the filters going into this week. The long list below is unchanged."
           />
           <Side
-            title="Short focus"
+            title="Short side"
             lead="Setup down, longer view not against it, and at least one confirmation beyond the trend."
             items={focus.short}
             total={focus.shortTotal}
-            empty="Nothing on this side clears the filters today. The short list below is unchanged."
+            empty="Nothing on this side clears the filters going into this week. The short list below is unchanged."
           />
         </div>
       )}
 
-      <p className="text-muted-foreground mt-3 max-w-2xl text-xs leading-relaxed">
-        How a name reaches this block is written out on the{" "}
+      <Coverage rows={rows} />
+
+      <p className="text-muted-foreground mt-2 max-w-2xl text-xs leading-relaxed">
+        How a name reaches this block, and how the exit level is measured, is written out on the{" "}
         <Link href="/methodology" className="underline underline-offset-2">
           methodology page
         </Link>
-        . No price target is shown here: the measured range from similar past days sits on each
-        asset&rsquo;s own page, next to the sample size and window that qualify it.
+        . Every target is one measured method, named beside it and never an average of several, and
+        a setup with no stored target is shown without one.
       </p>
     </section>
   );
