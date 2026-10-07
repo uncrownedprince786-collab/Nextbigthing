@@ -44,7 +44,10 @@ const SECOND_VIEW: ReadonlyArray<readonly [string, string]> = [
 ];
 const VOLUME_CONFIRMED = /volume [\d.]+x its average/;
 const VOLUME_UNPUBLISHED = "No volume published";
-const DAYS_CONFIRMED = /similar days went the same way/;
+// "going", matching the wording `confirmLine` builds in lib/decision.ts. The two must move
+// together: this regex is how the reconcile line knows the analog set confirmed, and a
+// mismatch here fails open and silently stops explaining a grade it should explain.
+const DAYS_CONFIRMED = /similar days going the same way/;
 // Three different absences share the words "similar past days", so matching on that phrase alone
 // folded them into one sentence. Each gets its own test, most specific first, because "the lean
 // was never recorded" is not "there is not enough history" — it was printed over 102 stored days

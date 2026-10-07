@@ -299,7 +299,10 @@ function confirmLine(input: DecisionInput, direction: "up" | "down"): string {
   if (analog === true && input.analogs) {
     const a = input.analogs;
     const moved = direction === "up" ? a.positive : (a.count - (a.positive ?? 0));
-    parts.push(`${moved} of ${a.count} similar days went the same way`);
+    // "going", not "went": this clause has to read correctly both on its own and joined
+    // after the volume one. Live on the page as "Confirmed by 21 of 31 similar days went
+    // the same way." whenever volume did not also confirm -- which is most of them.
+    parts.push(`${moved} of ${a.count} similar days going the same way`);
   }
   if (parts.length) return `Confirmed by ${parts.join(" and ")}.`;
   if (vol === false && analog === false) return "Neither volume nor similar days confirm it.";

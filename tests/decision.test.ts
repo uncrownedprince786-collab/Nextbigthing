@@ -9,6 +9,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { decide, type DecisionInput, STALE_AFTER_DAYS } from "../lib/decision.ts";
 
 /// A healthy LONG. Every test below starts from this and breaks exactly one thing, so the thing
@@ -365,4 +366,36 @@ test("a large analog set with no recorded lean says so, instead of asking for mo
   // And none at all is its own sentence.
   const none = decide(base({ analogs: null }));
   assert.ok(none.missing.some((m) => /No similar past days stored/.test(m)));
+});
+
+test("the confirm wording reads correctly alone, and reconcile still recognises it", () => {
+  // Two faults in one line, both found on the live page rather than in review.
+  //
+  // `confirmLine` joins its parts after "Confirmed by ", so the analog clause has to be a phrase
+  // that works on its own as well as after the volume one. It was "N of M similar days went the
+  // same way", which printed as "Confirmed by 21 of 31 similar days went the same way." on every
+  // name where volume did not also confirm -- most of them.
+  //
+  // And `lib/reconcile.ts` matches that exact wording to decide whether the analog set confirmed.
+  // A regex in one file against a template literal in another is a coupling nothing enforces: it
+  // fails open, so the reconcile line would simply stop explaining a grade it should explain, with
+  // nothing failing. This test is that enforcement.
+  const decision = readFileSync(new URL("../lib/decision.ts", import.meta.url), "utf8");
+  const reconcile = readFileSync(new URL("../lib/reconcile.ts", import.meta.url), "utf8");
+
+  const clause = decision.match(/\$\{moved\} of \$\{a\.count\} ([^`]+)`/);
+  assert.ok(clause, "the analog confirm clause in confirmLine no longer matches; check both files");
+  const phrase = clause[1].trim();
+  assert.ok(
+    /\bgoing\b/.test(phrase),
+    `"Confirmed by 12 of 20 ${phrase}." has to read as English on its own`,
+  );
+
+  const pattern = reconcile.match(/const DAYS_CONFIRMED = \/([^/]+)\//);
+  assert.ok(pattern, "DAYS_CONFIRMED is gone from reconcile.ts");
+  assert.match(
+    phrase,
+    new RegExp(pattern[1]),
+    "reconcile.ts no longer recognises the sentence decision.ts builds",
+  );
 });

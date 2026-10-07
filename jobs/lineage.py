@@ -67,6 +67,20 @@ WINDOW_HOURS = 72
 
 # Only recent items are reclustered on each run. Older clusters do not change, and rewriting
 # them every night would be work with no result.
+#
+# The consequence, measured 2026-10-07 and written down because it reads as a backlog and is not
+# one: `News` keeps 120 days and this window is 45, so a permanent remainder of rows carries no
+# `lineageId` and never will. Of 1,045 such rows that day, **every one** fell into one of two
+# groups and none was reachable:
+#
+#     606  no `assetId` and no `productId` -- the `targets` query below selects per target, so
+#          industry-level items are never clustered at all
+#     439  published more than LOOKBACK_DAYS ago, which this window deliberately skips
+#
+# So "un-lineaged rows exist" is not a signal that this job needs running again. The number to
+# check is rows that are un-lineaged AND targeted AND inside the window; when that is zero, this
+# job has done everything it can. It costs nothing downstream: `jobs/human.py` counts stories over
+# a 30-day window, which sits inside this 45-day one, so every row it reads is clustered.
 LOOKBACK_DAYS = 45
 
 STOPWORDS = {
