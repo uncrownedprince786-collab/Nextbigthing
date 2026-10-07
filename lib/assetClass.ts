@@ -102,7 +102,7 @@ export function toListRow(s: Scored): DecisionRow {
   };
 }
 
-export type AssetClassSlug = "stocks" | "crypto" | "psx" | "forex";
+export type AssetClassSlug = "stocks" | "crypto" | "psx" | "forex" | "commodities";
 
 export interface AssetClass {
   slug: AssetClassSlug;
@@ -125,10 +125,11 @@ export const ASSET_CLASSES: AssetClass[] = [
   {
     slug: "stocks",
     nav: "Stocks",
-    title: "US stocks, funds and commodities",
+    title: "US stocks and funds",
     lead:
       "Every US listed name the site covers, with one reading each. Prices and levels are in US " +
-      "dollars.",
+      "dollars. The funds that hold a metal are here, because that is what they are; the " +
+      "contracts on the metal itself are under Commodities.",
     holds: (s) => s.market === "US",
   },
   {
@@ -158,6 +159,17 @@ export const ASSET_CLASSES: AssetClass[] = [
       "size figure and no published volume anywhere on this page -- those columns are absent " +
       "rather than zero.",
     holds: (s) => s.market === "FX",
+  },
+  {
+    slug: "commodities",
+    nav: "Commodities",
+    title: "Commodities",
+    lead:
+      "Gold, silver, platinum, palladium, copper, crude oil and natural gas, as the front " +
+      "month contract on each. A contract has no issuer, so there is no size figure -- but " +
+      "unlike a currency pair it does have a published volume, so the volume confirmation " +
+      "applies here the same way it does to a share.",
+    holds: (s) => s.market === "Commodity",
   },
 ];
 

@@ -11,14 +11,37 @@ name: cron psx
 # ever fetched them. Both are failures of coupling, not of PSX.
 on:
   schedule:
-    # Daily, 12:40 UTC. Daily is not a budget compromise: these are end-of-day closing files
-    # and the exchange publishes one per session, so a second fetch in the same day asks for a
-    # file that has not changed. 12:40 UTC is 17:40 PKT, comfortably after the 15:30 PKT close
-    # and the file's publication, with enough margin that a late publication still lands inside
-    # the same run rather than needing tomorrow's. Minute 40 keeps it clear of crypto at 12:05
-    # and news at 12:20 in the same hour, so the Neon branch sees three staggered arrivals
-    # rather than one burst.
-    - cron: "40 12 * * *"
+    # Three attempts a day, 12:40, 16:40 and 20:40 UTC, and the repetition is the correction.
+    #
+    # This was one attempt at 12:40, on the reasoning that the file is "comfortably after the
+    # 15:30 PKT close and the file's publication, with enough margin that a late publication
+    # still lands inside the same run rather than needing tomorrow's". The margin was not there.
+    #
+    # Measured 2026-10-07: at 18:40 UTC the table held a close for every PSX trading day up to
+    # and including 10-06 and nothing for 10-07, a Wednesday. Fetching the lane by hand at 19:10
+    # UTC returned 10-07's file for all 85 names at once. So the file existed hours after the
+    # 12:40 run and was not there when that run asked -- which means the day's close was only
+    # ever picked up by the *next* day's run, and every PSX reading on the site was a day behind
+    # the market it describes.
+    #
+    # Nothing could see it. `psx.py` walks back over recent sessions and fills whatever is
+    # missing, so yesterday's gap closes silently today and the table looks complete when read;
+    # every weekday was present. And `STALE_AFTER_DAYS.PSX` is 6, deliberately loose because the
+    # exchange keeps more holidays, so a close exactly one day late never trips the staleness
+    # gate either. A fault that repairs itself a day late and is inside every tolerance is one
+    # only a dated row count will show.
+    #
+    # Repetition rather than a later single slot, because the publication time is the thing that
+    # is not known: 10-07's file landed somewhere between 12:40 and 19:10 UTC and the exchange
+    # does not promise a minute. Three attempts cover that window without guessing at it, and
+    # they are close to free -- the fetch is a handful of files, the writes are upserts, and a
+    # file that has not changed costs one conditional request. 20:40 is the one that matters for
+    # correctness: it is the last attempt before `cron-decision` reads the table at 22:10, so a
+    # file published any time during the Pakistani evening is still in today's decision.
+    #
+    # Minute 40 keeps every attempt clear of crypto at :05 and news at :20 in the same hour, so
+    # the Neon branch sees staggered arrivals rather than one burst.
+    - cron: "40 12,16,20 * * *"
   workflow_dispatch:
 
 # Its own group, and here the group name is the user's requirement stated as configuration.

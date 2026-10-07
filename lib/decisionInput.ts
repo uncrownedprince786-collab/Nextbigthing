@@ -58,6 +58,12 @@ export function marketOf(asset: {
   // under. It also means a pair cannot silently fall through to `Other` if an FX industry is
   // ever added without its market column being set.
   if (asset.assetType === "forex") return "FX";
+  // Read off the instrument for the third time, and for the reason the other two are. A front
+  // month future is not a US listing that happens to be filed under a metals group: it has its
+  // own venue, its own session and no issuer, so it carries no size figure and the questions a
+  // reader asks of it are the commodity's and not a company's. The funds that hold the same
+  // metal -- GLD, SLV, CPER, COPX -- are `etf` and stay US listings, which is what they are.
+  if (asset.assetType === "commodity") return "Commodity";
   switch (asset.industry?.market) {
     case "PK":
       return "PSX";
@@ -88,6 +94,12 @@ export function coverageLabelFor(market: Market): string | null {
       return "PSX daily closing files";
     case "Crypto":
       return "crypto daily closes";
+    // Same label as US, because it is the same fetch: `jobs/prices.py` asks Yahoo for every
+    // `source = 'yahoo'` asset in one lane, futures included. A separate label here would
+    // claim a separate watch that `jobs/audit.py` does not keep, and a reader sent to look for
+    // it would find nothing -- which is worse than the honest answer that the lane is shared.
+    case "Commodity":
+      return "Yahoo Finance daily closes";
     default:
       return null;
   }

@@ -28,6 +28,7 @@ const NAV = [
   { href: "/psx", label: "PSX" },
   { href: "/crypto", label: "Crypto" },
   { href: "/forex", label: "Forex" },
+  { href: "/commodities", label: "Commodities" },
   { href: "/products", label: "Products" },
   { href: "/events", label: "Events" },
   { href: "/methodology", label: "Methodology" },

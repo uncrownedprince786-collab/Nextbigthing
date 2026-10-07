@@ -288,10 +288,39 @@ def main() -> None:
     # which serverless Postgres closes underneath the run.
     conn = db()
     with conn, conn.cursor() as cur:
+        # Least recently covered first, and the ordering is the whole point of this query.
+        #
+        # This was `ORDER BY name` under a fetch budget, which is a combination that cannot
+        # work: the budget is reached partway down a fixed list, and the next run starts at the
+        # same end of the same list. Measured 2026-10-07, after this job had been running for
+        # weeks: all 30 products carry a Trends term, and exactly 9 had any region rows at all
+        # -- Air fryer, Coffee grinder, Dash cam, Drone delivery, Electric bike, Espresso
+        # machine, EV charging, GPU compute, Heat pump. They are the first nine alphabetically.
+        # The 21 products from "Home battery" onward had **never** been asked about and never
+        # would be, and nothing in the run said so: each run reported its own budget cut
+        # honestly and then threw the position away.
+        #
+        # So the list is ordered by how stale each product's own coverage is, nulls first. A
+        # product never covered sorts above every covered one, and among covered ones the
+        # oldest goes first. The budget then rotates: the names the last run could not reach are
+        # at the top of this one. Over a few runs every product is covered, and from then on the
+        # job always refreshes the oldest reading rather than re-asking about the freshest.
+        #
+        # `name` stays as the tiebreak so the order is still deterministic — two products with
+        # the same coverage date must not swap places between runs and re-split the budget
+        # differently each time.
         products = rows(
             cur,
-            'SELECT id, name, "trendsTerm" FROM "Product" '
-            "WHERE \"trendsTerm\" <> '' ORDER BY name",
+            """
+            SELECT p.id, p.name, p."trendsTerm"
+              FROM "Product" p
+              LEFT JOIN (
+                SELECT "productId", max("periodEnd") AS covered
+                  FROM "ProductRegion" GROUP BY "productId"
+              ) r ON r."productId" = p.id
+             WHERE p."trendsTerm" <> ''
+             ORDER BY r.covered ASC NULLS FIRST, p.name
+            """,
         )
     conn.close()
 
@@ -302,6 +331,13 @@ def main() -> None:
         return
 
     step(f"regional breakdown for {len(products)} products")
+    # Printed because the order is now load-bearing and invisible otherwise. A run that always
+    # names the same first product is the fault this ordering fixes, reappearing.
+    print(
+        "  least recently covered first: "
+        + ", ".join(p["name"] for p in products[:4])
+        + (" ..." if len(products) > 4 else "")
+    )
     deadline = time.monotonic() + FETCH_BUDGET_MINUTES * 60
     written = refused = holds_nothing = answered = 0
     unfetched: list[str] = []

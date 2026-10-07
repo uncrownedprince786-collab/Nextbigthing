@@ -1020,6 +1020,13 @@ class WorkflowLanes(unittest.TestCase):
     # a schedule that must be post-close every day of the year has to clear 21:00.
     US_CLOSE_LATEST_UTC = 21 * 60
 
+    # The PSX regular session ends 15:30 PKT, which is 10:30 UTC all year -- Pakistan keeps no
+    # daylight saving. The closing *file* is published some unpromised time afterwards, and on
+    # 2026-10-07 it was not there at 12:40 UTC and was there by 19:10, so "after the close" is
+    # not the constraint that matters for this lane. The constraint is that some attempt happens
+    # late enough in the Pakistani evening to catch a late publication on the same day.
+    PSX_LATE_ATTEMPT_UTC = 19 * 60
+
     def _crons(self, name):
         """Every schedule in a workflow, as minutes past midnight UTC, comments stripped."""
         import re
@@ -1074,6 +1081,16 @@ class WorkflowLanes(unittest.TestCase):
         """
         decisions = self._crons("cron-decision.yml")
         self.assertTrue(decisions, "cron-decision.yml has no parsable schedule")
+        # PSX, whose fault was the mirror image of the US one: not a part-day stored as a close,
+        # but a complete close that arrived after the only run that asked for it, so every PSX
+        # reading sat a day behind a market whose data was available. `psx.py` backfills recent
+        # sessions, so the gap closed itself a day late and the table always read complete.
+        psx_late = [m for m in self._crons("cron-psx.yml") if m >= self.PSX_LATE_ATTEMPT_UTC]
+        self.assertTrue(
+            psx_late,
+            "no PSX attempt is late enough in the day to catch a late closing file, so the "
+            "day's close is only ever picked up by tomorrow's run",
+        )
         prices_after_close = [
             m for m in self._crons("cron-us-prices.yml") if m >= self.US_CLOSE_LATEST_UTC
         ]
@@ -1085,6 +1102,11 @@ class WorkflowLanes(unittest.TestCase):
             self.assertTrue(
                 any(p < when for p in prices_after_close),
                 "the decision runs before any post-close price fetch, so it reads yesterday",
+            )
+            self.assertTrue(
+                any(p < when for p in psx_late),
+                "the decision runs before the late PSX attempt, so a closing file published "
+                "during the Pakistani evening misses today's decision",
             )
 
     # How a job in this lane declares that its network use is bounded. `intraday.py` sets

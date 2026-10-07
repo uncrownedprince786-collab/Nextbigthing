@@ -30,7 +30,10 @@ test("every market has a staleness rule, so none can fall through to undefined",
   // The gate reads STALE_AFTER_DAYS[market] and compares. A missing entry would be `undefined`,
   // `age > undefined` is false, and the staleness gate would silently stop firing for that whole
   // market -- the one failure a price panel must never commit, passing quietly.
-  const markets: Market[] = ["US", "PSX", "Crypto", "FX", "Other"];
+  // Every member of the union, and the list is the point: a market added to `Market` and not
+  // to `STALE_AFTER_DAYS` is the hole described above, and TypeScript cannot catch it here
+  // because the index signature is satisfied by the type rather than by this array.
+  const markets: Market[] = ["US", "PSX", "Crypto", "FX", "Commodity", "Other"];
   for (const m of markets) {
     assert.equal(typeof STALE_AFTER_DAYS[m], "number", `${m} has no staleness rule`);
     assert.ok(STALE_AFTER_DAYS[m] >= 1, `${m} allows a close from the future`);

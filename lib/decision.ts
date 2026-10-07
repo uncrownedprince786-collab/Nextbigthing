@@ -44,7 +44,7 @@ export type Action = "LONG" | "SHORT" | "WAIT";
 export type TimeSense = "NOW" | "WAIT FOR LEVEL" | "CARE";
 export type Confidence = "High" | "Medium" | "Low";
 export type Direction = "up" | "down" | "flat" | "unknown";
-export type Market = "US" | "PSX" | "Crypto" | "FX" | "Other";
+export type Market = "US" | "PSX" | "Crypto" | "FX" | "Commodity" | "Other";
 
 /// How old a close may be before the panel refuses to act on it, per market, in calendar days.
 ///
@@ -63,6 +63,14 @@ export const STALE_AFTER_DAYS: Record<Market, number> = {
   // Tighter than US because an FX pair has no earnings halt, no suspension and no delisting to
   // explain a missing day -- a gap here is the feed, not the instrument.
   FX: 4,
+  // Futures. The CME and ICE contracts here trade almost around the clock from Sunday evening
+  // to Friday evening and settle once a day, so the daily bar is a weekday bar with the same
+  // weekend hole an equity has -- a Friday settle read on the following Monday is 3 days old and
+  // nothing was open for two of them. 5 for the same reason US equities get 5, and not tighter:
+  // these venues keep the US holiday calendar, so a Thanksgiving or a Good Friday must not read
+  // as a dead feed. Not looser either: unlike an equity a front-month future has no suspension
+  // and no delisting to explain a missing day, and the contract itself rolls rather than stops.
+  Commodity: 5,
   Other: 5,
 };
 

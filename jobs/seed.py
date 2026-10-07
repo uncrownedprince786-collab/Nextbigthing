@@ -50,9 +50,26 @@ INDUSTRIES = [
     (
         "precious-metals",
         "Precious Metals",
-        "Precious metal funds and futures. Used here as the non risk asset comparison "
-        "against the AI trade.",
+        "Gold, silver, platinum and palladium, as futures and as the funds that hold the "
+        "metal. Used here as the non risk asset comparison against the AI trade.",
         4,
+    ),
+    (
+        "industrial-metals",
+        "Industrial Metals",
+        "Copper, as futures and as the funds and miners that track it. Separated from the "
+        "precious metals because the two answer different questions: copper is read as a "
+        "demand gauge for building things, and the peer median of a group holding both would "
+        "describe neither.",
+        12,
+    ),
+    (
+        "energy-commodities",
+        "Energy Commodities",
+        "Crude oil and natural gas futures. The commodity itself, where the Energy group is "
+        "the listed companies that produce it -- a refiner's share price and the barrel it "
+        "refines move together often enough to be compared and not often enough to be pooled.",
+        13,
     ),
     (
         "energy",
@@ -237,10 +254,23 @@ ASSETS: list[tuple] = [
     ("precious-metals", "SIVR", "abrdn Silver Shares", "etf", "fundAssets", YAHOO, "SIVR", "Silver backed fund."),
     ("precious-metals", "PPLT", "abrdn Physical Platinum", "etf", "fundAssets", YAHOO, "PPLT", "Physical platinum fund."),
     ("precious-metals", "PALL", "abrdn Physical Palladium", "etf", "fundAssets", YAHOO, "PALL", "Physical palladium fund."),
-    ("precious-metals", "CPER", "United States Copper Index Fund", "etf", "fundAssets", YAHOO, "CPER", "Copper futures based fund."),
-    ("precious-metals", "COPX", "Global X Copper Miners", "etf", "fundAssets", YAHOO, "COPX", "Global copper miner equities."),
     ("precious-metals", "GC=F", "Gold futures", "commodity", "none", YAHOO, "GC=F", "Front month gold futures on COMEX."),
     ("precious-metals", "SI=F", "Silver futures", "commodity", "none", YAHOO, "SI=F", "Front month silver futures on COMEX."),
+    ("precious-metals", "PL=F", "Platinum futures", "commodity", "none", YAHOO, "PL=F", "Front month platinum futures on NYMEX."),
+    ("precious-metals", "PA=F", "Palladium futures", "commodity", "none", YAHOO, "PA=F", "Front month palladium futures on NYMEX."),
+    # Industrial Metals. CPER and COPX moved here from `precious-metals`, where they had been
+    # filed since the group was seeded. Copper is not a precious metal and the misfiling was not
+    # cosmetic: `relStrength` compares a name against the median of its own industry, so copper
+    # was being measured against gold and gold against copper. Both readings were noise, and
+    # `REL_AGAINST_AT` can turn a noisy peer median into a `peers-against` WAIT.
+    ("industrial-metals", "HG=F", "Copper futures", "commodity", "none", YAHOO, "HG=F", "Front month copper futures on COMEX."),
+    ("industrial-metals", "CPER", "United States Copper Index Fund", "etf", "fundAssets", YAHOO, "CPER", "Copper futures based fund."),
+    ("industrial-metals", "COPX", "Global X Copper Miners", "etf", "fundAssets", YAHOO, "COPX", "Global copper miner equities."),
+    # Energy Commodities. The site had eight listed energy companies and no barrel of oil, so
+    # the one input every one of them is priced off was the only thing not on it.
+    ("energy-commodities", "CL=F", "WTI crude oil futures", "commodity", "none", YAHOO, "CL=F", "Front month West Texas Intermediate on NYMEX, the US benchmark."),
+    ("energy-commodities", "BZ=F", "Brent crude oil futures", "commodity", "none", YAHOO, "BZ=F", "Front month Brent on ICE, the benchmark most of the world prices against."),
+    ("energy-commodities", "NG=F", "Natural gas futures", "commodity", "none", YAHOO, "NG=F", "Front month Henry Hub natural gas on NYMEX."),
     # Energy
     ("energy", "XOM", "Exxon Mobil", "stock", "marketCap", YAHOO, "XOM", "Integrated oil and gas."),
     ("energy", "CVX", "Chevron", "stock", "marketCap", YAHOO, "CVX", "Integrated oil and gas."),
@@ -729,6 +759,75 @@ def main() -> None:
             )
         cur.execute("SELECT count(*) AS n FROM \"Industry\"")
         print(f"  industries: {cur.fetchone()['n']}")
+
+        # Re-file before inserting, because `Asset` is unique on ("industryId", symbol) and not
+        # on the symbol alone. Moving a name between groups in ASSETS therefore reads to the
+        # upsert below as a *different* asset: it would insert a second row and leave the first
+        # one in place, so the site would carry the name twice and the old copy would keep being
+        # priced and ranked. Deleting the old copy is not the alternative -- every history table
+        # is `onDelete: Cascade`, so it would trade six years of closes for a tidy key.
+        #
+        # An UPDATE moves the row itself, which keeps its id and therefore keeps every snapshot,
+        # setup, decision and news item already attached to it. The conflict clause below then
+        # matches the row that has just been moved, and the move is a no-op on every later run.
+        #
+        # Restricted to moves **within one market**, which is the guard that matters. The market
+        # decides the staleness rule, the currency and which page a name appears on, so a typo in
+        # a slug must not be able to silently reclassify a Karachi name as a US one and start
+        # printing its rupee close as dollars. A cross-market move is reported and refused: it is
+        # a schema decision, not a seed edit.
+        #
+        # One statement over a VALUES list rather than a query per asset. 273 round trips is the
+        # shape `QueryBudget` exists to refuse, and from a non-US host at 238ms each it would be
+        # a minute of waiting to move, on almost every run, nothing at all.
+        step("re-filing")
+        pairs = [(symbol, slug) for slug, symbol, *_rest in ASSETS]
+        cur.execute(
+            """
+            UPDATE "Asset" a
+               SET "industryId" = want.id, currency = want.currency
+              FROM (VALUES """
+            + ",".join(["(%s,%s)"] * len(pairs))
+            + """) AS seeded(symbol, slug),
+                   "Industry" want, "Industry" have
+             WHERE a.symbol = seeded.symbol
+               AND want.slug = seeded.slug
+               AND have.id = a."industryId"
+               AND want.id <> have.id
+               AND want.market = have.market
+            RETURNING a.symbol, have.slug AS "from", want.slug AS "to"
+            """,
+            [v for pair in pairs for v in pair],
+        )
+        moved = cur.fetchall()
+        for row in moved:
+            print(f"  {row['symbol']}: {row['from']} -> {row['to']}")
+
+        # Whatever the move refused to touch, named. A name seeded into another market's group
+        # stays where it is, and saying so is the point: silence here would read as a successful
+        # re-file and the asset would keep the staleness rule and currency of the wrong market.
+        cur.execute(
+            """
+            SELECT a.symbol, have.slug AS "from", have.market AS "haveMarket",
+                   seeded.slug AS "to", want.market AS "wantMarket"
+              FROM (VALUES """
+            + ",".join(["(%s,%s)"] * len(pairs))
+            + """) AS seeded(symbol, slug)
+              JOIN "Asset" a ON a.symbol = seeded.symbol
+              JOIN "Industry" have ON have.id = a."industryId"
+              JOIN "Industry" want ON want.slug = seeded.slug
+             WHERE have.slug <> seeded.slug
+            """,
+            [v for pair in pairs for v in pair],
+        )
+        stuck = cur.fetchall()
+        for row in stuck:
+            print(
+                f"  REFUSED {row['symbol']}: filed under {row['from']} ({row['haveMarket']}), "
+                f"seeded under {row['to']} ({row['wantMarket']}) -- a cross-market move changes "
+                "the staleness rule and the currency, so it is not applied here"
+            )
+        print(f"  re-filed: {len(moved)}" + (f", refused: {len(stuck)}" if stuck else ""))
 
         step("assets")
         for slug, symbol, name, atype, cap, source, ref, note in ASSETS:
