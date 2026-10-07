@@ -2348,11 +2348,17 @@ class CryptoVenueChain(unittest.TestCase):
         # feeds parsed catches a blocked host and nothing else.
         text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
         body = text[text.index("def fetch_news"):text.index("def main")]
-        self.assertIn("require_answer(parsed, asked, source=GNEWS)", body)
+        self.assertIn("require_answer(g_parsed, g_asked, source=GNEWS)", body)
         self.assertNotIn("require_answer(written", body)
         # And the guard runs before the 120-day retention sweep, so a run that fetched
         # nothing cannot delete four months of articles.
-        self.assertLess(body.index("require_answer(parsed"), body.index("120 days"))
+        self.assertLess(body.index("require_answer(g_parsed"), body.index("120 days"))
+        # The counters are per source, and the guard reads Google's own pair. A single pair
+        # shared with the fallbacks is the counter that cannot see the fault it exists to
+        # catch: Bing answering for the thin names would carry a mixed `parsed` back over the
+        # floor while the source every asset depends on had gone silent.
+        self.assertIn("g_asked, g_parsed = tally.get(GNEWS, [0, 0])", body)
+        self.assertNotIn("asked += 1", body, "a shared counter lets a fallback vouch for the primary")
 
 
     def test_a_psx_run_with_no_published_day_in_four_months_reports_it(self):
@@ -2388,6 +2394,194 @@ class CryptoVenueChain(unittest.TestCase):
         # than its budget times the longest pause.
         worst = nbt.RETRY_HOST_BUDGET * max(nbt.RETRY_BACKOFF)
         self.assertLessEqual(worst, 120, f"a dead host could cost {worst}s of the lane")
+
+
+class NewsRecency(unittest.TestCase):
+    """A news feed ranked by relevance is a feed that stops advancing, and it looks healthy.
+
+    Measured on 2026-10-07: HUBC, MEBL and SYS each held exactly `NEWS_PER_ASSET` rows, newest
+    7 Sep, while `"Hub Power" Pakistan` offered 97 items. The first six of them were published
+    24 Jul, 22 Jul, 28 Jul, 10 Aug, 4 Jun and 5 Mar **2024** — because Google News answers a
+    search by relevance over its whole index. The cap kept those six, ON CONFLICT dropped them
+    as already stored, and the asset was frozen at six rows for ever. 21 PSX names and 3 FX
+    pairs held nothing at all from the last 30 days.
+
+    Nothing in the lane could see it: the feed answers 200, parses, and returns a hundred items,
+    so every guard in rule 31 reads healthy. The only visible symptom was downstream, where 74
+    of 85 PSX names were too thin for `jobs/human.py` to publish a tone direction.
+    """
+
+    def test_every_feed_in_the_lane_asks_for_a_window(self):
+        # Not "the asset feeds". A query that reaches Google without `when:` is answered by
+        # relevance over the index, and one such query is enough to put a 2024 article into a
+        # reading of this month -- so the url is built in one place and the window is not
+        # optional there.
+        # Percent-encoded, because the whole term goes through `quote`: the colon in `when:30d`
+        # arrives as `%3A` and asserting the bare form would pass only by accident.
+        self.assertIn(f"when%3A{prices.NEWS_WINDOW_DAYS}d", prices.gnews_url("anything"))
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = text[text.index("def fetch_news"):text.index("def coverage_line")]
+        self.assertNotIn(
+            "news.google.com/rss/search", body,
+            "a feed built inline is a feed that can be built without the window",
+        )
+
+    def test_the_window_is_checked_against_the_item_and_not_only_requested(self):
+        # The operator is a request; the item's own pubDate is the evidence. A provider that
+        # loosens or ignores `when:` must not be able to age a stored reading.
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = text[text.index("def fetch_news"):text.index("def coverage_line")]
+        self.assertIn("if when < oldest_allowed:", body)
+        self.assertIn("NEWS_WINDOW_SLACK_DAYS", body)
+        # Naive UTC built from an aware now, per rule 27. A local clock read here would move
+        # the window by the timezone of whichever machine ran the lane.
+        self.assertIn("datetime.now(timezone.utc).replace(tzinfo=None)", body)
+        self.assertNotIn("datetime.utcnow()", body)
+
+    def test_a_cap_counts_items_it_kept_and_not_items_it_saw(self):
+        # The cap means "six recent items about this name". If it counted everything the feed
+        # offered, six stale or off-target items would fill the quota and the asset would store
+        # nothing -- which is the original fault with an extra step.
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = text[text.index("def ingest("):text.index("news_sql = ")]
+        self.assertLess(body.index("if when < oldest_allowed:"), body.index("kept_here += 1"))
+        self.assertLess(body.index("not matcher.search(title)"), body.index("kept_here += 1"))
+
+    HUBC = {"symbol": "HUBC", "name": "Hub Power", "assetType": "stock", "source": prices.PSX}
+    SYS = {"symbol": "SYS", "name": "Systems Limited", "assetType": "stock", "source": prices.PSX}
+    INDU = {"symbol": "INDU", "name": "Indus Motor Company", "assetType": "stock",
+            "source": prices.PSX}
+
+    def test_a_headline_has_to_name_the_asset_it_is_stored_against(self):
+        # Narrowing the window promotes weaker matches: `"Systems Limited" Pakistan when:14d`
+        # returns an Indian biogas story in its first six. Stored against SYS that is not noise
+        # on a page, it is a tone reading of a company built from articles about someone else.
+        m = prices.news_matcher(self.HUBC)
+        self.assertTrue(m.search("Hub Power Company Reports PKR 33M Loss from BYD Pakistan"))
+        self.assertFalse(m.search("PSX rebounds 2,593 points on IMF optimism"))
+
+    def test_a_name_and_a_ticker_are_each_enough_on_their_own(self):
+        # Either token, not both. "Hub Power Company Reports PKR 33M Loss" carries the name and
+        # not the ticker; "SYS Insider Buy" carries the ticker and not the name. Both are real
+        # headlines and requiring both would have dropped each of them.
+        m = prices.news_matcher(self.SYS)
+        self.assertTrue(m.search("SYS Insider Buy: senior management director reports"))
+        self.assertTrue(m.search("Systems Limited to acquire Confiz Pakistan through merger"))
+
+    def test_a_short_ticker_is_matched_as_a_capitalised_word_and_not_a_substring(self):
+        # The measured fault, and the reason the ticker is not an ordinary token. As a
+        # lowercase substring `SYS` matched three real headlines about other companies, and
+        # five of the six items it would have stored for Systems Limited were off-target.
+        m = prices.news_matcher(self.SYS)
+        for off in (
+            "Micro Irrigation System Market Size & Share Report, 2034",
+            "Organic Recycling Systems Books Rs240 Crore",
+            "GOBARdhan Just Changed the Rules for Indias Biogas Sector",
+        ):
+            self.assertFalse(m.search(off), f"stored {off!r} against SYS")
+
+    def test_a_company_is_matched_on_the_form_the_press_prints(self):
+        # "Indus Motor Company" appeared in no headline inside the window. "Indus Motor" is how
+        # it is written, and both forms are tokens so neither spelling is lost.
+        m = prices.news_matcher(self.INDU)
+        self.assertTrue(m.search("Indus Motor marks 35 years, plans $300m investment"))
+        self.assertTrue(m.search("Indus Motor Company announces temporary shutdown"))
+
+    def test_an_industry_word_is_never_trimmed_off_a_company_name(self):
+        # Only the corporate form is trimmed. "Kohinoor Industries" and "Kohinoor Textile Mills"
+        # are two listed companies, and trimming either to "Kohinoor" would file one's coverage
+        # against the other.
+        koil = {"symbol": "KOIL", "name": "Kohinoor Industries", "assetType": "stock",
+                "source": prices.PSX}
+        ktml = {"symbol": "KTML", "name": "Kohinoor Textile Mills", "assetType": "stock",
+                "source": prices.PSX}
+        for asset in (koil, ktml):
+            self.assertNotIn("kohinoor", prices.news_match_tokens(asset))
+        self.assertFalse(prices.news_matcher(koil).search("Kohinoor Textile Mills posts profit"))
+
+    def test_a_currency_pair_is_matched_on_the_currency_the_press_names(self):
+        # Headlines write "rupee" and "krona", not "USDPKR". The word that distinguishes one
+        # pair from another is the quote currency, because every pair here is quoted against the
+        # dollar -- and it is taken from the stored name, so there is no second table of
+        # currency words to keep in step with the seed.
+        pkr = {"symbol": "USDPKR", "name": "US Dollar / Pakistani Rupee", "assetType": "forex"}
+        tokens = prices.news_match_tokens(pkr)
+        self.assertIn("rupee", tokens)
+        self.assertTrue(
+            prices.news_matcher(pkr).search("Rupee Falls 22 Paise To 96.57 Against US Dollar")
+        )
+        # "dollar" alone must not be a token, or every FX story ever written matches every pair.
+        self.assertNotIn("dollar", tokens)
+        sek = {"symbol": "USDSEK", "name": "US Dollar / Swedish Krona", "assetType": "forex"}
+        self.assertIn("krona", prices.news_match_tokens(sek))
+
+    def test_a_rate_table_is_not_a_story(self):
+        # Measured: USDSEK came back with six items inside the window, every one of them
+        # "Convert 1 USDC (USD Coin) to SEK (Swedish Krona) - Bybit". Each names the currency,
+        # each is recent, none is news. Stored, they are six neutral headlines feeding a tone
+        # read -- which is how a currency comes to look covered and reads flat for ever.
+        self.assertTrue(prices.is_junk_headline(
+            "Convert 1 USDC (USD Coin) to SEK (Swedish Krona) - Bybit"))
+        # Matched at the start only, so a story about a conversion is not caught by a word in
+        # the middle of its own headline.
+        self.assertFalse(prices.is_junk_headline(
+            "Sweden moves to convert pension savings into index funds"))
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = text[text.index("def ingest("):text.index("news_sql = ")]
+        self.assertIn("if is_junk_headline(title):", body)
+
+    def test_a_generic_company_name_still_collides_and_this_records_it(self):
+        # Not a wish: a statement of what the matcher cannot do, so a later change can measure
+        # it. "Systems Limited" is a legal name made of two generic words, and it matches two
+        # other listed companies. The country word does not separate them either, because the
+        # colliding names are regional too. Filtering it would cost more than it saves -- see
+        # the residual row in brain.md -- so the limit is pinned here instead of hidden.
+        m = prices.news_matcher(self.SYS)
+        self.assertTrue(m.search("Where Organic Recycling Systems Limited Stands"))
+        self.assertTrue(m.search("Agreement with Inter State Gas Systems Limited"))
+        brain = (ROOT / "brain.md").read_text(encoding="utf-8")
+        self.assertIn("Organic Recycling Systems Limited", brain)
+
+    def test_a_fund_is_matched_on_its_underlying_and_not_its_formal_name(self):
+        # A quoted "abrdn Silver Shares" matches no headline. The hint holds the word the press
+        # uses, which is why it is a token here and not only a search term.
+        slv = {"symbol": "SLV", "name": "iShares Silver Trust", "assetType": "etf"}
+        self.assertIn("silver", prices.news_match_tokens(slv))
+        # And a company whose headlines use a different word than its name: Alphabet is Google.
+        googl = {"symbol": "GOOGL", "name": "Alphabet Inc.", "assetType": "stock"}
+        self.assertIn("google", prices.news_match_tokens(googl))
+
+    def test_the_fallback_chain_is_offered_per_kind_and_never_empty(self):
+        # Every asset has somewhere to go when the primary is thin, and Yahoo's per-ticker feed
+        # is offered to US listings only: it answered nothing at all for USDPKR=X, and for
+        # SYS.KA it answered with three stories about core banking at other banks.
+        us = {"symbol": "AAPL", "name": "Apple Inc.", "assetType": "stock"}
+        psx = {"symbol": "HUBC", "name": "Hub Power", "assetType": "stock", "source": prices.PSX}
+        fx = {"symbol": "USDPKR", "name": "US Dollar / Pakistani Rupee", "assetType": "forex"}
+        for asset in (us, psx, fx, {"symbol": "BTC", "name": "Bitcoin", "assetType": "crypto"}):
+            self.assertTrue(prices.fallback_feeds(asset), f"{asset['symbol']} has no fallback")
+        self.assertIn(prices.YAHOO_RSS, [s for s, _ in prices.fallback_feeds(us)])
+        for asset in (psx, fx):
+            self.assertNotIn(prices.YAHOO_RSS, [s for s, _ in prices.fallback_feeds(asset)])
+
+    def test_a_fallback_item_is_stored_under_the_name_of_the_source_that_found_it(self):
+        # Rule 2: never substitute a source without saying so. The row carries the source, the
+        # run prints which assets needed a fallback, and brain.md records the verification.
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = text[text.index("def fetch_news"):text.index("def coverage_line")]
+        self.assertIn("needed a fallback source", body)
+        # The source reaches the insert as a parameter rather than being baked in as GNEWS.
+        self.assertIn("params_fn(when, title, link, publisher, source)", body)
+        self.assertNotIn("p, w, GNEWS)", body, "a hard-coded source mislabels a fallback row")
+        brain = (ROOT / "brain.md").read_text(encoding="utf-8")
+        for source in (prices.BING, prices.YAHOO_RSS):
+            self.assertIn(source, brain, f"{source} is used and not recorded in brain.md")
+
+    def test_the_floor_that_triggers_a_fallback_stays_under_the_tone_floor(self):
+        # A floor at MIN_ITEMS would fire for most of the PSX list on every run and spend four
+        # hundred requests chasing coverage that does not exist. The fallback exists to find a
+        # name's first few articles, not to manufacture a grade.
+        self.assertLess(prices.NEWS_FLOOR, human.MIN_ITEMS)
 
 
 class YahooPartialDay(unittest.TestCase):

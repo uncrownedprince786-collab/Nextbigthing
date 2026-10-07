@@ -17,6 +17,7 @@ Run: python jobs/prices.py
 
 from __future__ import annotations
 
+import re
 import sys
 import time
 import urllib.parse
@@ -52,6 +53,44 @@ NEWS_PER_FEED = 12
 # Asset feeds are narrower than the industry ones, so a smaller cap keeps the run short
 # and stops one busy company filling its own page with the same week of coverage.
 NEWS_PER_ASSET = 6
+
+# How far back a stored headline may have been published, and the window the search asks for.
+#
+# **Google News RSS ranks a search by relevance and not by date.** That one fact is what had
+# emptied this lane for every name whose coverage is thin, and it is invisible from the inside:
+# the feed answers 200, parses, and hands back a hundred items, so every guard in rule 31 reads
+# healthy. But the first six items of `"Hub Power" Pakistan` were published 24 Jul, 22 Jul,
+# 28 Jul, 10 Aug, 4 Jun and — the one that gives it away — **5 Mar 2024**. A cap that keeps the
+# first six keeps those six, `ON CONFLICT DO NOTHING` drops them as already stored, and the asset
+# is left holding exactly `NEWS_PER_ASSET` rows for ever. Measured on 2026-10-07: HUBC, MEBL and
+# SYS each held exactly 6 rows, newest 7 Sep, while the same query offered 97 items and the same
+# query with a window offered eight published inside the fortnight. 21 PSX names and 3 FX pairs
+# held nothing at all from the last 30 days.
+#
+# So the window is asked for in the query, with Google's own `when:` operator, **and checked
+# again against each item's own `pubDate`**. Both halves, because the operator is a request and
+# the date is the evidence: a provider that ignores or loosens it must not be able to put a 2024
+# article into a reading of this month. Rule 2 — nothing is filled in — has a mirror image, which
+# is that nothing stale is allowed to pass as current.
+#
+# 30 days and not 14: `jobs/human.py` measures tone over a 30 day window and attention over this
+# 30 against the 30 before, so a shorter ingest window would starve the comparison it feeds. The
+# slack exists because `when:30d` is Google's arithmetic on its own index and a few items land a
+# day or two outside it; a stored item is allowed to be slightly older than the window, never
+# months older.
+NEWS_WINDOW_DAYS = 30
+NEWS_WINDOW_SLACK_DAYS = 3
+
+# Below this many recent on-target items from the primary feed, the next source in the chain is
+# asked. 3 is `MIN_ITEMS` territory deliberately left well under it: `jobs/human.py` needs 8
+# headlines before it will publish a tone direction, so a floor of 3 is not an attempt to reach
+# a grade -- it is the point below which a name has so little that a second source is worth a
+# request. Set at 8 the chain would fire for most of the PSX list on every run and spend four
+# hundred requests chasing coverage that does not exist.
+NEWS_FLOOR = 3
+
+BING = "Bing News RSS"
+YAHOO_RSS = "Yahoo Finance headline RSS"
 
 SNAPSHOT_SET = set(SNAPSHOTS)
 
@@ -1154,6 +1193,231 @@ def asset_news_term(a: dict) -> str:
     return f"{base} {hint}" if hint else base
 
 
+def gnews_url(term: str, *, window_days: int = NEWS_WINDOW_DAYS) -> str:
+    """The Google News RSS url for a search, date-windowed.
+
+    Every feed in this lane is built here so the window cannot be on some queries and off
+    others. A term that reaches Google without `when:` is answered by relevance over the whole
+    index, which is the failure `NEWS_WINDOW_DAYS` describes.
+    """
+    return (
+        "https://news.google.com/rss/search?q="
+        + urllib.parse.quote(f"{term} when:{window_days}d")
+        + "&hl=en-US&gl=US&ceid=US:en"
+    )
+
+
+def bing_url(term: str) -> str:
+    """Bing News RSS for a search.
+
+    No date operator, and none is needed: the feed answers newest-first and `ingest` checks
+    every item's own `pubDate` against the window anyway. Verified 2026-10-07 — 11 items for
+    `"Lucky Cement" Pakistan`, the first being that week's GEPCO privatisation story, which is
+    the kind of local company news the primary feed was ranking below a 2024 article.
+    """
+    return "https://www.bing.com/news/search?q=" + urllib.parse.quote(term) + "&format=RSS"
+
+
+def yahoo_rss_url(symbol: str) -> str:
+    """Yahoo Finance's own headline feed for one ticker.
+
+    Verified 2026-10-07: 18 items for AAPL. It is last in the chain and offered to listed US
+    names only, because it answered **nothing at all** for `USDPKR=X`, and for a Karachi ticker
+    (`SYS.KA`) it answered with three stories about core banking at other banks entirely -- real
+    articles, not about the company asked for, which is what the token guard is there to catch.
+    """
+    return (
+        "https://feeds.finance.yahoo.com/rss/2.0/headline?s="
+        + urllib.parse.quote(symbol)
+        + "&region=US&lang=en-US"
+    )
+
+
+def fallback_feeds(a: dict) -> list[tuple[str, str]]:
+    """The sources to try for this asset, in order, after the primary came back thin.
+
+    Rule 2 says a source that stops answering is marked unavailable and not silently
+    substituted. This is the other case: the primary answers, and for some names it answers
+    thinly. So the substitution is not silent — each item is stored under the name of the source
+    that produced it, the run prints which assets needed a fallback and how many feeds each
+    source answered, and `brain.md` records what every one of them was verified to do.
+
+    Ordered per kind rather than one list for everything, because what a source is good for
+    differs by instrument and a chain that ignores that spends requests to learn it again every
+    run. The PSX names go to Bing with the country word, which is where the local press is
+    indexed. A dollar pair asks about the quote currency, since "exchange rate" headlines name
+    the currency and not the code. Yahoo's per-ticker feed is offered only to US listings, for
+    the reason in `yahoo_rss_url`.
+    """
+    kind = a["assetType"]
+    symbol = a["symbol"]
+    name = a["name"]
+
+    if a.get("source") == PSX:
+        return [(BING, bing_url(f'"{name}" Pakistan'))]
+    if kind == "forex":
+        # The pair's own name, which reads "US Dollar / Pakistani Rupee", is the only place the
+        # currency words are stored. Asking Bing for "Pakistani Rupee exchange rate" finds the
+        # rupee coverage that "USD PKR exchange rate" ranks a conversion table above.
+        quote_side = [p.strip() for p in name.split("/")][-1]
+        return [(BING, bing_url(f"{quote_side} exchange rate"))]
+    if kind == "crypto":
+        return [(BING, bing_url(f"{name} {symbol} price"))]
+    if kind in ("etf", "commodity"):
+        hint = ASSET_NEWS_HINTS.get(symbol)
+        return [(BING, bing_url(f"{hint} price" if hint else f'"{symbol}"'))]
+    # A listed company: both sources, Bing first for the same reason it leads everywhere else --
+    # it answers a name, where Yahoo answers a ticker and will hand back the sector's news.
+    return [(BING, bing_url(f'"{name}"')), (YAHOO_RSS, yahoo_rss_url(symbol))]
+
+
+# Trailing words that say what legal form a company takes rather than which company it is.
+#
+# The press writes "Indus Motor", not "Indus Motor Company"; "Systems Limited" keeps its second
+# word because that is how it is always printed, and the trim is applied as an *extra* token
+# rather than a replacement, so both forms match. Only the corporate form is trimmed and never
+# an industry word: "Kohinoor Industries" and "Kohinoor Textile Mills" are two listed companies,
+# and trimming either to "Kohinoor" would file one's coverage against the other.
+CORPORATE_SUFFIXES = ("company", "limited", "ltd", "ltd.", "corporation", "corp", "corp.",
+                      "inc", "inc.", "plc", "holdings", "co.")
+
+# Titles that are a rate table rather than an article.
+#
+# The workflow has been called "rss ingest, dedupe, junk filter" since it was written and no
+# junk filter existed. Narrowing the news window is what made one necessary: `USDSEK` came back
+# with six items inside the window, every one of them "Convert 1 USDC (USD Coin) to SEK (Swedish
+# Krona) - Bybit". Each genuinely names the currency, each is recent, and none is news — they are
+# a conversion widget with a date on it. Stored, they would be six headlines of neutral wording
+# feeding a tone read and six items feeding an attention count, which is how a currency comes to
+# look well covered and reads flat for ever.
+#
+# Kept to the one shape that was actually measured, matched at the start of a title so a story
+# *about* a conversion is not caught by a word in the middle of its headline.
+JUNK_TITLE_PREFIXES = ("convert ",)
+
+
+def is_junk_headline(title: str) -> bool:
+    """A title that carries a date and a currency and is not a story. See JUNK_TITLE_PREFIXES."""
+    low = title.strip().lower()
+    return any(low.startswith(p) for p in JUNK_TITLE_PREFIXES)
+
+
+def news_matcher(a: dict) -> re.Pattern[str]:
+    """Does a headline name this asset? One matcher, so the rule is stated once.
+
+    Two kinds of token, matched by two different rules, because a company name and a ticker
+    fail in opposite directions:
+
+    * **A name or an underlying word** is matched case-insensitively anywhere in the title.
+      "Hub Power Company Reports PKR 33M Loss" names the company in plain words.
+    * **A ticker** is matched as a whole word and **case-sensitively**, which a substring test
+      got badly wrong. `SYS` as a lowercase substring matched "Micro Irrigation **Sys**tem
+      Market", "Organic Recycling **Sys**tems" and "Indias Biogas **Sys**tem" — five of the six
+      items it would have stored for Systems Limited were about other companies entirely.
+      Tickers are printed in capitals ("SYS Insider Buy"), and nothing else in a headline is, so
+      the case is the signal that separates a ticker from an English word that contains it.
+    """
+    phrases = [re.escape(t) for t in news_match_tokens(a) if t]
+    symbol = (a["symbol"] or "").strip()
+    parts = []
+    if phrases:
+        parts.append("(?i:" + "|".join(phrases) + ")")
+    if symbol:
+        parts.append(r"\b" + re.escape(symbol) + r"\b")
+    # An asset with neither is impossible from the seed, and a pattern matching everything would
+    # be the worst of the three outcomes, so it matches nothing instead.
+    return re.compile("|".join(parts) if parts else r"(?!)")
+
+
+def news_match_tokens(a: dict) -> tuple[str, ...]:
+    """Lowercase phrases, any one of which means a headline is about this asset.
+
+    The ticker is deliberately **not** here: it is matched by a different rule, stated in
+    `news_matcher`, which is the only thing that should be reading these.
+
+    This is the other half of narrowing the window, and it is needed *because* of the
+    narrowing. Relevance ranking over a month rather than over the index promotes weaker
+    matches to the top: `"Systems Limited" Pakistan when:14d` returns an Indian biogas story
+    and a Lockheed Martin procurement piece in its first six. Stored against SYS those become
+    input to a tone word-list and an attention count, so they are not noise on a page — they
+    are a reading of a company built out of articles about someone else.
+
+    **Any token, not all.** A headline names a company one way, not every way: "Hub Power
+    Company Reports PKR 33M Loss" carries the name and not the ticker, "SYS Insider Buy"
+    carries the ticker and not the name. Requiring both would drop each of them.
+
+    Derived from the same facts `asset_news_term` builds the query from, and for the same
+    reason the terms live in one function: a guard that disagrees with the query it is guarding
+    would silently drop a whole kind of asset, and the kind most likely to be dropped is the one
+    with the least coverage to begin with.
+    """
+    kind = a["assetType"]
+    symbol = (a["symbol"] or "").lower()
+    name = (a["name"] or "").lower()
+    hint = (ASSET_NEWS_HINTS.get(a["symbol"]) or "").lower()
+
+    def without_corporate_form(n: str) -> str:
+        """"Indus Motor Company" -> "indus motor". Empty when there is nothing safe to trim.
+
+        **Two words have to survive.** Trimming to a single word turns a company name into an
+        English one: "Systems Limited" becomes "systems", which matched "Organic Recycling
+        Systems" and "Micro Irrigation System Market" -- the same class of false match the
+        ticker rule exists to stop, arriving by the other door. A one-word remainder is not a
+        name, so the trim is refused and the full name stays the only phrase token.
+        """
+        words = n.split()
+        while len(words) > 2 and words[-1] in CORPORATE_SUFFIXES:
+            words.pop()
+        trimmed = " ".join(words)
+        return trimmed if trimmed != n else ""
+
+    if kind == "forex":
+        # The stored name is "US Dollar / Pakistani Rupee". The press writes the pair either as
+        # the codes ("USD/PKR") or as the currencies ("rupee", "krona", "ringgit"), and the word
+        # that distinguishes one pair from another is the *quote* currency, because every pair
+        # here is quoted against the dollar. So the last word of the right-hand side is the token
+        # that matters, taken from the stored name rather than from a second table of currency
+        # words that would have to be kept in step with the seed.
+        parts = [p.strip() for p in name.split("/")]
+        quote_word = parts[-1].split()[-1] if parts and parts[-1] else ""
+        base_word = parts[0].split()[-1] if len(parts) > 1 and parts[0] else ""
+        tokens = [f"{symbol[:3]}/{symbol[3:]}", quote_word]
+        # "dollar" alone would match every FX story ever written, so the base currency is only
+        # accepted next to the quote currency's own word, which the pair form above already is.
+        if base_word and quote_word:
+            tokens.append(f"{base_word} {quote_word}")
+        return tuple(t for t in tokens if t)
+
+    if kind in ("etf", "commodity"):
+        # A fund or a futures contract is named in headlines by its underlying, which is exactly
+        # what the hint holds. The formal fund name is not a useful token -- a quoted "abrdn
+        # Silver Shares" matches no headline ever written.
+        return tuple(t for t in (hint,) if t)
+
+    if a.get("source") == PSX:
+        # The full company name, plus the form the press actually prints. "Indus Motor Company"
+        # appeared in no headline inside the window; "Indus Motor" is how it is written, and the
+        # trim is what finds it. The ticker is matched separately and by case, because a Karachi
+        # ticker is three to six letters that mean other things in English -- "PSO", "MARI",
+        # "ILP", and "SYS" inside "System".
+        return tuple(t for t in (name, without_corporate_form(name)) if t)
+
+    if kind == "crypto":
+        # The stored name is the coin ("Bitcoin"), and the ticker is how a price story names it.
+        return tuple(t for t in (name,) if t)
+
+    # A listed company. The first significant word of the name is what a headline carries --
+    # "Apple" for "Apple Inc.", "Lockheed" for "Lockheed Martin Corp" -- and the quoted search
+    # has already decided which company is being asked about, so this only has to establish that
+    # the company is named at all.
+    #
+    # The hint is a token here and not only a search word, because for several names it *is* how
+    # the press writes the company: Alphabet is "Google" in every headline, and a guard holding
+    # only "alphabet" would drop the coverage the hint was added to find.
+    head = name.split()[0] if name else ""
+    return tuple(t for t in (head, hint) if t)
+
+
 def fetch_news(cur) -> int:
     step("news")
     written = 0
@@ -1167,22 +1431,50 @@ def fetch_news(cur) -> int:
     # legitimately 0 on a rerun inside the cache hour — every article is already stored and
     # ON CONFLICT DO NOTHING reports nothing. `parsed` is feeds that answered with readable
     # RSS, and that being 0 across every feed is Google News refusing this host.
-    asked = 0
-    parsed = 0
+    #
+    # Kept **per source**, which rule 31 is the reason for. One pair of counters across a
+    # primary and its fallbacks is the counter that cannot see the fault it exists to catch: a
+    # Google News blackout would be answered by Bing on the thin names, the mixed `parsed`
+    # would come back healthy, and the lane would report a good run while the source every
+    # asset depends on had gone silent. A fallback must never be able to vouch for a primary.
+    tally: dict[str, list[int]] = {}
 
-    def ingest(url, cache_key, insert_sql, params_fn, cap=NEWS_PER_FEED):
-        nonlocal written, asked, parsed
-        asked += 1
+    def note(source: str, *, answered: bool) -> None:
+        row = tally.setdefault(source, [0, 0])
+        row[0] += 1
+        if answered:
+            row[1] += 1
+
+    def ingest(url, cache_key, insert_sql, params_fn, cap=NEWS_PER_FEED, matcher=None,
+               source=GNEWS):
+        """Read one feed and store the items that are both recent and about this target.
+
+        Returns the number of items stored or already held -- that is, the items that passed
+        both guards -- so a caller can tell a feed that answered thinly from one that answered
+        with a month of someone else's news. `written` cannot answer that: it counts *new* rows
+        and is legitimately 0 for a target whose six items are all already stored.
+        """
+        nonlocal written
         raw = get(url, cache_key=cache_key, ttl=3600)
         if not raw:
-            return
+            note(source, answered=False)
+            return 0
         try:
             root = ET.fromstring(raw)
         except ET.ParseError:
+            note(source, answered=False)
             print("  bad rss")
-            return
-        parsed += 1
+            return 0
+        note(source, answered=True)
+        # Naive UTC, like every other timestamp here, and built the way rule 27 requires: an
+        # aware `now` converted to UTC and then stripped, never a local clock read.
+        oldest_allowed = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+            days=NEWS_WINDOW_DAYS + NEWS_WINDOW_SLACK_DAYS
+        )
         kept_here = 0
+        stale = 0
+        off_target = 0
+        junk = 0
         for item in root.iter():
             if not item.tag.endswith("item") or kept_here >= cap:
                 continue
@@ -1201,13 +1493,33 @@ def fetch_news(cur) -> int:
                 ).astimezone(timezone.utc).replace(tzinfo=None)
             except ValueError:
                 continue
+            # The window, checked rather than trusted. See NEWS_WINDOW_DAYS: the query asks for
+            # it and this is what makes it true of the stored row.
+            if when < oldest_allowed:
+                stale += 1
+                continue
+            # A rate table with a date on it is not a story, whatever it names. Applied to every
+            # feed, because a conversion widget is junk on an industry page too.
+            if is_junk_headline(title):
+                junk += 1
+                continue
+            # Is the headline about this target at all? Only asset feeds pass a matcher: an
+            # industry feed is a search for a subject rather than for a name, and a product feed
+            # is already a quoted product name, so there is nothing to check them against.
+            if matcher is not None and not matcher.search(title):
+                off_target += 1
+                continue
             cur.execute(
                 insert_sql,
-                params_fn(when, title, link, publisher),
+                params_fn(when, title, link, publisher, source),
             )
             written += cur.rowcount if cur.rowcount > 0 else 0
             kept_here += 1
-        print(f"  {kept_here} from {cache_key}")
+        dropped = ""
+        if stale or off_target or junk:
+            dropped = f" (dropped {stale} stale, {off_target} off-target, {junk} junk)"
+        print(f"  {kept_here} from {cache_key}{dropped}")
+        return kept_here
 
     news_sql = """
         INSERT INTO "News" ("industryId", title, url, publisher, "publishedAt", source, "createdAt")
@@ -1230,61 +1542,86 @@ def fetch_news(cur) -> int:
 
     for ind in industries:
         term = NEWS_TERMS.get(ind["slug"], ind["slug"])
-        url = (
-            "https://news.google.com/rss/search?q="
-            + urllib.parse.quote(term)
-            + "&hl=en-US&gl=US&ceid=US:en"
-        )
         ingest(
-            url,
-            f"gnews-ind-{ind['slug']}",
+            gnews_url(term),
+            # Versioned with the window: the response is cached by key, so a query that has
+            # gained `when:` has to ask under a new key or the hour's stale answer is reused.
+            f"gnews-ind-v2-{ind['slug']}",
             news_sql,
-            lambda w, t, l, p, i=ind: (i["id"], t, l, p, w, GNEWS),
+            lambda w, t, l, p, s, i=ind: (i["id"], t, l, p, w, s),
         )
 
     for prod in products:
-        url = (
-            "https://news.google.com/rss/search?q="
-            + urllib.parse.quote(f'"{prod["name"]}"')
-            + "&hl=en-US&gl=US&ceid=US:en"
-        )
         ingest(
-            url,
-            f"gnews-pr-{prod['id']}",
+            gnews_url(f'"{prod["name"]}"'),
+            f"gnews-pr-v2-{prod['id']}",
             prod_sql,
-            lambda w, t, l, p, pr=prod: (pr["id"], t, l, p, w, GNEWS),
+            lambda w, t, l, p, s, pr=prod: (pr["id"], t, l, p, w, s),
         )
 
     # Asset pages. An article is stored once per target, so the same story can appear on an
     # asset, a product and an industry at once, which is what a reader of each page wants.
     # The query stays narrow anyway: naming the company is what finds the coverage stories
     # for that company rather than generic news about its industry.
+    #
+    # Each asset walks the chain until it has `NEWS_FLOOR` recent on-target items. The chain is
+    # ordered by how much each source is trusted to be *about* the name asked for, which is not
+    # the same as how much coverage it holds: Google first because it indexes the local press,
+    # then Bing, then Yahoo's own per-ticker feed. Every item carries the name of the source
+    # that produced it, so a reader and `coverage_report` can both see which of them answered.
     empty = []
+    fell_through = []
     for a in assets:
-        term = asset_news_term(a)
-        url = (
-            "https://news.google.com/rss/search?q="
-            + urllib.parse.quote(term)
-            + "&hl=en-US&gl=US&ceid=US:en"
-        )
-        before = written
-        ingest(
-            url,
+        matcher = news_matcher(a)
+        kept = ingest(
+            gnews_url(asset_news_term(a)),
             # Versioned: the feed is cached by key, so a term that changes has to change
             # the key too or a stale response is reused for the rest of the hour.
-            f"gnews-as-v2-{a['symbol']}",
+            f"gnews-as-v3-{a['symbol']}",
             asset_sql,
-            lambda w, t, l, p, x=a: (x["id"], t, l, p, w, GNEWS),
+            lambda w, t, l, p, s, x=a: (x["id"], t, l, p, w, s),
             cap=NEWS_PER_ASSET,
+            matcher=matcher,
         )
-        if written == before:
+        if kept < NEWS_FLOOR:
+            for source, url in fallback_feeds(a):
+                kept += ingest(
+                    url,
+                    f"{source.split()[0].lower()}-as-v1-{a['symbol']}",
+                    asset_sql,
+                    lambda w, t, l, p, s, x=a: (x["id"], t, l, p, w, s),
+                    cap=NEWS_PER_ASSET - kept,
+                    matcher=matcher,
+                    source=source,
+                )
+                if kept >= NEWS_FLOOR:
+                    break
+            if kept:
+                fell_through.append(a["symbol"])
+        if not kept:
             empty.append(a["symbol"])
+    if fell_through:
+        print(
+            f"  {len(fell_through)} assets needed a fallback source: "
+            f"{', '.join(fell_through)}"
+        )
     if empty:
-        print(f"  {len(empty)} assets matched no new article: {', '.join(empty)}")
+        # Reworded, because the old sentence measured the wrong thing. It said "matched no new
+        # article" on a `written` of 0, which is also what a target whose six items are all
+        # already stored looks like — so the busiest names appeared in a list of the emptiest.
+        print(f"  {len(empty)} assets have no recent article from any source: {', '.join(empty)}")
 
     # Before the sweep, not after: a host that got no feed at all must not go on to
     # delete four months of stored articles on the strength of nothing.
-    require_answer(parsed, asked, source=GNEWS)
+    #
+    # Google only. A fallback is asked about thin names alone, so its own `asked` is a handful
+    # of feeds on a good day and a hundred on a bad one -- a denominator that moves with the
+    # health of the primary, which makes it useless as a measure of anything. See `tally`.
+    g_asked, g_parsed = tally.get(GNEWS, [0, 0])
+    require_answer(g_parsed, g_asked, source=GNEWS)
+    for source, (s_asked, s_parsed) in sorted(tally.items()):
+        if source != GNEWS:
+            print(f"  {source}: {s_parsed} of {s_asked} feeds answered")
 
     cur.execute('DELETE FROM "News" WHERE "publishedAt" < now() - interval \'120 days\'')
     return written
