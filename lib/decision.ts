@@ -139,6 +139,24 @@ export const VOLUME_CONFIRMS_AT = 1.2;
 /// declines to stand behind.
 export const ANALOGS_CONFIRM_MIN = 8;
 
+/// The share of matched days that must have gone the same way before history counts as support.
+///
+/// 0.55, and it is not a new number: `ANALOG_SHARE` in `jobs/setup.py` has required exactly this
+/// of the same measurement since that file was written. This module asked for `> 0.5` instead, so
+/// two parts of one system held different opinions about when a set of past days agrees, and the
+/// looser one was the part that grades confidence on the page.
+///
+/// What the gap admitted, measured 2026-10-07: **13 of 44** directional non-Low names rested on an
+/// analog share within five points of a coin flip. HMC was 377 of 748 -- 50.4%, which on that
+/// sample is a fifth of one standard deviation from random -- and the page printed "Confirmed by
+/// 377 of 748 similar days going the same way". A bare majority over hundreds of days is not
+/// agreement, it is the absence of a finding, and calling it confirmation is the overclaim this
+/// site exists not to make.
+///
+/// Raising it to meet `setup.py` is a tightening, so it can only ever remove confirmations and
+/// lower grades. It cannot invent a direction.
+export const ANALOG_SHARE_CONFIRMS = 0.55;
+
 /// How far behind its peers a name may be, in percentage points over 20 sessions, before the
 /// peer reading counts as arguing against a LONG.
 ///
@@ -368,6 +386,24 @@ function confirmMissing(input: DecisionInput, direction: "up" | "down"): string[
         `${n} similar past days are stored, but which way they went was not recorded, so they cannot confirm the direction.`,
       );
     }
+  } else if (analogConfirms(input, direction) === false) {
+    // The branch that did not exist, and the reason the distinction this pass is about has to
+    // reach one level further down. `null` means the set could not be judged and every sentence
+    // above names which absence that was. `false` means it WAS judged and came back disagreeing
+    // -- and nothing was printed, so a reader saw no line about history at all and could not tell
+    // "not checked" from "checked, and it does not agree". The second is a finding and belongs on
+    // the page.
+    //
+    // It is also the branch that tightening `ANALOG_SHARE_CONFIRMS` to 0.55 moved names into: a
+    // share between half and 0.55 used to confirm, and now correctly does not.
+    const a = input.analogs;
+    const n = a?.count ?? 0;
+    const same = direction === "up" ? (a?.positive ?? 0) : n - (a?.positive ?? 0);
+    out.push(
+      `${same} of ${n} similar past days went this way, short of the ${Math.round(
+        ANALOG_SHARE_CONFIRMS * 100,
+      )}% needed before history counts as agreement.`,
+    );
   }
   return out;
 }
@@ -390,7 +426,12 @@ function analogConfirms(input: DecisionInput, direction: "up" | "down"): boolean
   if (a.positive === null || a.positive === undefined) return null;
   if (a.medianPct === null || a.medianPct === undefined) return null;
   const share = a.positive / a.count;
-  return direction === "up" ? share > 0.5 && a.medianPct > 0 : share < 0.5 && a.medianPct < 0;
+  // Both halves, and the share has to clear the band rather than merely cross the midpoint. A
+  // majority *and* a median of the right sign, because six of ten rising with a negative median is
+  // a set where the four falls were larger -- counting the days and ignoring their size.
+  return direction === "up"
+    ? share >= ANALOG_SHARE_CONFIRMS && a.medianPct > 0
+    : share <= 1 - ANALOG_SHARE_CONFIRMS && a.medianPct < 0;
 }
 
 /// The second why line: what the longer view adds, said accurately.

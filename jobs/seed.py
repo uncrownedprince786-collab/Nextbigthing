@@ -188,18 +188,29 @@ FOREX_INDUSTRIES = [
         31,
     ),
     (
+        # Seven pairs, and the count is the reason this is one group rather than two.
+        #
+        # It was "fx-emerging" (4: BRL, MXN, TRY, ZAR) and "fx-europe" (3: NOK, PLN, SEK), and
+        # both sat under `MIN_PEERS` in jobs/factors.py -- 5, because "at three it *is* one
+        # listing, which is a quote rather than an industry". So `relStrength` was null for all
+        # seven, measured 2026-10-07. That is not a small loss for a currency pair: FX publishes
+        # no volume anywhere, and `jobs/analogs.py` cannot match a day without a volume ratio, so
+        # the peer reading is one of only **two** legs a pair can ever have. Those seven were left
+        # with news tone alone, which reads directional for 2 of 27 pairs.
+        #
+        # Merging is the only repair that does not move a threshold: seven pairs cannot be split
+        # into two groups of five, and lowering `MIN_PEERS` to fit them would make the median of a
+        # three-name group a quote wearing an industry's name. What they genuinely share is the
+        # thing the peer reading asks about -- the dollar against a currency outside the majors --
+        # so the comparison is "is this pair moving more than the other non-major crosses", which
+        # is a real question with a real answer.
         "fx-emerging",
-        "Higher volatility currencies",
-        "The dollar against four currencies that move on domestic inflation and politics far "
-        "more than on anything happening in the US.",
+        "USD against non-major currencies",
+        "The dollar against seven currencies outside the majors, from the Scandinavian and "
+        "central European pairs to the higher volatility ones. They are read together because "
+        "the question a peer median answers here is whether a pair is moving more than the rest "
+        "of the non-major crosses, not whether it is European.",
         32,
-    ),
-    (
-        "fx-europe",
-        "European currencies outside the euro",
-        "The dollar against the Scandinavian currencies and the zloty. They track the euro "
-        "closely enough that a divergence is the thing worth reading.",
-        33,
     ),
 ]
 
@@ -626,11 +637,11 @@ FOREX_ASSETS: list[tuple] = [
      "Rand per dollar. One of the most volatile liquid currencies."),
     ("fx-emerging", "USDMXN", "US Dollar / Mexican Peso", "forex", "none", "yahoo", "USDMXN=X",
      "Pesos per dollar."),
-    ("fx-europe", "USDSEK", "US Dollar / Swedish Krona", "forex", "none", "yahoo", "USDSEK=X",
+    ("fx-emerging", "USDSEK", "US Dollar / Swedish Krona", "forex", "none", "yahoo", "USDSEK=X",
      "Kronor per dollar."),
-    ("fx-europe", "USDNOK", "US Dollar / Norwegian Krone", "forex", "none", "yahoo", "USDNOK=X",
+    ("fx-emerging", "USDNOK", "US Dollar / Norwegian Krone", "forex", "none", "yahoo", "USDNOK=X",
      "Kroner per dollar. Moves with crude."),
-    ("fx-europe", "USDPLN", "US Dollar / Polish Zloty", "forex", "none", "yahoo", "USDPLN=X",
+    ("fx-emerging", "USDPLN", "US Dollar / Polish Zloty", "forex", "none", "yahoo", "USDPLN=X",
      "Zloty per dollar."),
 ]
 

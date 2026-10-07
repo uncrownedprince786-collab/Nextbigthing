@@ -1204,6 +1204,31 @@ def fetch_crypto(cur) -> int:
             print(f"  {cid}: no closes from {CRYPTO_CHAIN}, skipped")
             continue
 
+        # The UTC day in progress is not a close, which is rule 41 applied to a market with no
+        # bell. A crypto session is the calendar day in UTC and it ends at 00:00 the next day, so
+        # until then the venue's newest daily candle is a partial day being reported as a whole
+        # one -- the same shape as the US fault, and worse in one respect: `cron-crypto` runs
+        # every two hours, so at 02:05 UTC the stored "close" would be two hours of trading.
+        #
+        # Measured 2026-10-07 at 23:02 UTC, with the day 96% elapsed, the newest bar still ran at
+        # 0.68 to 1.08 of its own recent median -- small at that hour and not small at 02:05. The
+        # decision lane reads this at 22:10, where the day is 92% done, which is enough to push a
+        # borderline 1.3x volume reading under the 1.2x gate.
+        #
+        # Filtered here rather than in `crypto_closes`, deliberately: that function judges whether
+        # a venue is fresh enough to use, and it must go on seeing the venue's real newest bar.
+        # Dropping it there would make every venue look a day staler and send the chain hunting
+        # for a fallback that is no better. `CRYPTO_FRESH_DAYS` is 2, so a newest stored bar one
+        # day old stays inside the rule the panel applies.
+        forming_day = datetime.now(timezone.utc).date()
+        closed = [b for b in bars if b[0] < forming_day]
+        if len(closed) != len(bars):
+            print(f"    {forming_day} is still running for {cid}, so its bar is not a close")
+        if not closed:
+            print(f"  {cid}: nothing has closed yet, skipped")
+            continue
+        bars = closed
+
         # Market cap. CoinPaprika publishes today's market cap for every coin. No free source
         # publishes circulating supply by year, so no historical cap is stored rather than one
         # backfilled from today's supply. That is why the crypto industry is ranked by return

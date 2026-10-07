@@ -27,6 +27,7 @@ import {
   weakest,
 } from "@/components/ui";
 import { DecisionPanel } from "@/components/decision";
+import { pickTarget } from "@/lib/target";
 import { rankHeadlines } from "@/lib/newsRank";
 import {
   getAccuracy,
@@ -204,6 +205,9 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
              They are the same row today, and taking it from the bundle is what keeps them the
              same row on the day a price arrives between the two reads. */
           priceNow={bundle.newestClose ?? latestPrice?.close ?? null}
+          /* The measured exit, from the same rule the overview and the coming-week block use, so
+             one name cannot be quoted two different levels on two pages. */
+          target={pickTarget(horizons)}
           /* Ranked here rather than in the panel: the panel renders what it is given, and a
              component that re-sorted its own input would be a second ordering rule for one
              idea. Three is the panel's own cap; passing a few more lets it stay the only place

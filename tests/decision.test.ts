@@ -10,7 +10,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { decide, type DecisionInput, STALE_AFTER_DAYS } from "../lib/decision.ts";
+import {
+  decide,
+  type DecisionInput,
+  STALE_AFTER_DAYS,
+  ANALOG_SHARE_CONFIRMS,
+} from "../lib/decision.ts";
 
 /// A healthy LONG. Every test below starts from this and breaks exactly one thing, so the thing
 /// being tested is the only difference from a known-good answer.
@@ -400,4 +405,40 @@ test("the confirm wording reads correctly alone, and reconcile still recognises 
     new RegExp(pattern[1]),
     "reconcile.ts no longer recognises the sentence decision.ts builds",
   );
+});
+
+test("the analog share agrees with the job that computes the same judgement", () => {
+  // The cross-language pair this repository has listed as "a comment, not a constraint" for
+  // several sessions, closed for the one that was actually disagreeing. `jobs/setup.py` has
+  // required ANALOG_SHARE = 0.55 of the same measurement since it was written; `analogConfirms`
+  // asked for `> 0.5`, so the page graded confidence on a looser rule than the job that decides
+  // whether history supports a setup at all.
+  //
+  // Measured 2026-10-07 before the change: 13 of 44 directional non-Low names rested on a share
+  // within five points of a coin flip, HMC at 377/748 = 50.4%, printed as "Confirmed by".
+  const py = readFileSync(new URL("../jobs/setup.py", import.meta.url), "utf8");
+  const m = py.match(/ANALOG_SHARE\s*=\s*([\d.]+)/);
+  assert.ok(m, "ANALOG_SHARE is gone from jobs/setup.py");
+  assert.equal(
+    Number(m[1]),
+    ANALOG_SHARE_CONFIRMS,
+    "jobs/setup.py and lib/decision.ts disagree about when matched days count as agreement",
+  );
+});
+
+test("a bare majority of matched days is not confirmation", () => {
+  // The case the old rule admitted. 51% of 200 days with a positive median used to confirm.
+  const bare = decide(
+    base({ analogs: { count: 200, positive: 102, lowPct: -5, highPct: 5, medianPct: 0.4 } }),
+  );
+  // The analog clause is simply absent: the volume leg still confirms in this fixture, so the
+  // test is that history is no longer counted among the confirmations, not that nothing is.
+  assert.doesNotMatch(bare.why[2], /similar days going the same way/);
+  assert.ok(bare.missing.some((m) => /similar past days/.test(m)), "the gap should be named");
+
+  // And a real lean still does.
+  const lean = decide(
+    base({ analogs: { count: 200, positive: 120, lowPct: -5, highPct: 5, medianPct: 0.4 } }),
+  );
+  assert.match(lean.why[2], /similar days going the same way/);
 });

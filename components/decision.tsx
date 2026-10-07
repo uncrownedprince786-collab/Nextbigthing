@@ -1,4 +1,5 @@
 import * as React from "react";
+import { targetMethodLabel, type TargetLike } from "@/lib/target";
 import { price, relativeTime } from "@/lib/format";
 import type { Action, Confidence, Decision, Market, TimeSense } from "@/lib/decision";
 import type { ProductDecision, WhereToCheck } from "@/lib/productDecision";
@@ -98,6 +99,8 @@ export interface DecisionPanelProps {
   /// Up to three stored news rows. More than three are ignored rather than scrolled: this block is
   /// above the fold and a fourth link is the start of a feed.
   news?: TopNews[];
+  /// The measured exit, chosen by `pickTarget`. Null when the job stored none.
+  target?: TargetLike | null;
 }
 
 /// One labelled figure or sentence. Used for every field in the panel so that the label and the
@@ -206,6 +209,7 @@ export function DecisionPanel({
   asOf,
   priceNow = null,
   news = [],
+  target = null,
 }: DecisionPanelProps) {
   const grade = decision.confidence.toLowerCase();
   const gap = gapLine(decision);
@@ -241,7 +245,7 @@ export function DecisionPanel({
           between them has been handed a quiz, since every figure here is measured against the
           one the market last printed. Three columns from `sm` up; at 375px all of them stack,
           which is the point — nothing in this block may need a second column to be legible. */}
-      <div className="border-border mt-4 grid gap-3 border-t pt-3 sm:grid-cols-3">
+      <div className="border-border mt-4 grid gap-3 border-t pt-3 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Price now" hint="The newest stored close, not a live quote.">
           {priceNow !== null ? (
             <span className="num text-lg font-semibold">{price(priceNow, currency)}</span>
@@ -287,6 +291,30 @@ export function DecisionPanel({
             <span className="text-muted-foreground">
               No stop level is stored, which is why the action is WAIT.
             </span>
+          )}
+        </Field>
+
+        {/* The other exit, and a panel that shows only the first one answers half the question a
+            reader arrives with. One measured method, named: never an average of the three, and
+            never a number computed here. `jobs/horizons.py` writes no target row at all when
+            there is no stop to measure reward against, and that absence is printed rather than
+            filled. */}
+        <Field
+          label="Exit if working"
+          hint={
+            target
+              ? `Measured from ${targetMethodLabel(target.method)} — a measured level, not a promise.`
+              : undefined
+          }
+        >
+          {target ? (
+            <span className="num">
+              {target.low === target.high
+                ? price(target.low, currency)
+                : `${price(target.low, currency)} to ${price(target.high, currency)}`}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">No clear target stored.</span>
           )}
         </Field>
 
@@ -474,6 +502,10 @@ export interface DecisionRow {
   action: Action;
   entry: { low: number; high: number } | null;
   invalidation: number | null;
+  /// The measured exit if the setup works, chosen by `pickTarget` and never averaged. Null when
+  /// `jobs/horizons.py` stored no target row, which it does not when there is no stop to measure
+  /// reward against. Optional so a caller that has not fetched targets renders exactly as before.
+  target?: TargetLike | null;
   confidence: Confidence;
   /// Quoted currency for this row's levels. Defaults to USD, which is wrong for PSX names, so
   /// callers covering PSX must pass it.
@@ -512,7 +544,10 @@ const ROW_LABEL = "text-muted-foreground text-micro font-medium sm:hidden";
 /// there is nothing else interactive in a row to conflict with it.
 export function DecisionList({ title, lead, rows, empty }: DecisionListProps) {
   const cols =
-    "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,1.1fr)] sm:items-baseline sm:gap-y-0";
+    // Seven columns since the measured exit joined the row. The two exit columns are given the
+// same width as each other on purpose: they are a pair a reader compares, and sizing one
+// smaller would read as one of them mattering less.
+  "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-[minmax(0,1.8fr)_minmax(0,0.7fr)_minmax(0,0.8fr)_minmax(0,1.3fr)_minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,1fr)] sm:items-baseline sm:gap-y-0";
 
   return (
     <Section title={title} lead={lead}>
@@ -529,6 +564,7 @@ export function DecisionList({ title, lead, rows, empty }: DecisionListProps) {
             <span>Action</span>
             <span>Entry</span>
             <span>Exit if wrong</span>
+            <span>Exit if working</span>
             <span>Confidence</span>
           </div>
           <ul className="space-y-2 sm:space-y-0">
@@ -581,6 +617,28 @@ export function DecisionList({ title, lead, rows, empty }: DecisionListProps) {
                       <span className={ROW_LABEL}>Exit if wrong</span>
                       <span className="num block text-sm">
                         {r.invalidation !== null ? price(r.invalidation, currency) : "none stored"}
+                      </span>
+                    </span>
+
+                    {/* The other exit. A list that names only the level a reading is wrong at
+                        answers half the question, and the half it leaves out is the one a reader
+                        asks second. One measured method, never an average; a name whose job
+                        stored no target says so rather than being given one. */}
+                    <span className="min-w-0">
+                      <span className={ROW_LABEL}>Exit if working</span>
+                      <span
+                        className={r.target ? "num block text-sm" : "text-muted-foreground block text-sm"}
+                        title={
+                          r.target
+                            ? `Measured from ${targetMethodLabel(r.target.method)} — a measured level, not a promise.`
+                            : undefined
+                        }
+                      >
+                        {r.target
+                          ? r.target.low === r.target.high
+                            ? price(r.target.low, currency)
+                            : `${price(r.target.low, currency)} to ${price(r.target.high, currency)}`
+                          : "none stored"}
                       </span>
                     </span>
 

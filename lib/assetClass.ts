@@ -1,4 +1,5 @@
 import type { DecisionQueryRow } from "@/lib/queries";
+import { pickTarget } from "@/lib/target";
 import { bundleFromRow, toDecisionInput } from "@/lib/decisionInput";
 import {
   CONFIDENCE_ORDER,
@@ -93,6 +94,14 @@ export function toListRow(s: Scored): DecisionRow {
     action: s.decision.action,
     entry: s.decision.entry,
     invalidation: s.decision.invalidation,
+    // The measured exit if it works, from the one rule every surface shares. A row that names
+    // only the level it is wrong at answers half the question a reader has.
+    target: pickTarget(
+      [
+        s.row.swing ? { ...s.row.swing, horizon: "swing" } : null,
+        s.row.longer ? { ...s.row.longer, horizon: "longer" } : null,
+      ].filter((x): x is NonNullable<typeof x> => x !== null),
+    ),
     confidence: s.decision.confidence,
     // PSX names are in rupees. Without this every level on the page would be printed with a dollar
     // mark in front of a rupee number, which is worse than printing no level at all.

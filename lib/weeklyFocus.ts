@@ -19,6 +19,7 @@
 import type { Scored } from "./assetClass.ts";
 import { CONFIDENCE_ORDER, type TimeSense } from "./decision.ts";
 import type { DecisionTarget } from "./queries.ts";
+import { pickTarget } from "./target.ts";
 
 /// How many names a side may carry.
 ///
@@ -130,55 +131,18 @@ export function weeklyWhy(s: Scored): string[] {
 }
 
 
-/// Which measured target to quote as the exit if the setup works, and never a fourth one.
+/// The measured exit, for a scored row.
 ///
-/// `jobs/horizons.py` writes up to three rows per setup, one per method, and rule 24 forbids
-/// averaging them: three methods that disagree are three answers, and their mean is a number
-/// nothing measured. So one is chosen, by a stated preference, and the method is printed beside
-/// it so a reader knows which question was answered.
-///
-/// The order is the reader's, not the arithmetic's:
-///
-///  1. **structure** — the nearest price where this series has already turned. It is the only one
-///     of the three that is a fact about where the market stopped before, which is what someone
-///     asking "where would I take this off" means.
-///  2. **volatility** — a multiple of the asset's own recent daily range. Not a place anything
-///     happened, but a distance this asset actually covers.
-///  3. **analog** — what followed similar past days. Last because it is a distribution over a
-///     sample rather than a level, so it answers "how far did this usually get" and not "where".
-///
-/// Returns null when the job stored nothing, which is a real and common state: no invalidation
-/// means no target row is written at all. The block then says so rather than reaching for a
-/// number, because a target invented in the web layer is exactly what `jobs/` exists to prevent.
-const TARGET_PREFERENCE = ["structure", "volatility", "analog"] as const;
-
+/// The rule itself lives in `lib/target.ts` because three surfaces now ask it — this block, the
+/// asset panel and the home rows — and three copies of a preference order is how two of them come
+/// to quote different levels for one name.
 export function weeklyTarget(s: Scored): DecisionTarget | null {
-  // The setup the DECISION rested on, which is not always the swing one. `pickSetup` in
-  // lib/decisionInput.ts takes the first *directional* row in horizon order swing -> longer, so a
-  // name whose swing read is `wait` and whose longer read is `buy` was decided on the longer one.
-  // Reading `swing ?? longer` blindly printed "No clear target stored" for exactly those names --
-  // HMC and MU on the live page -- while the targets sat on the setup the verdict came from. The
-  // same mirroring trap the decision verifier fell into.
-  const directional = (r: { state: string } | null | undefined) =>
-    r != null && (r.state === "buy" || r.state === "short");
-  const setup =
-    (directional(s.row.swing) && s.row.swing) ||
-    (directional(s.row.longer) && s.row.longer) ||
-    s.row.swing ||
-    s.row.longer;
-  const targets = setup?.targets ?? [];
-  if (!targets.length) return null;
-  for (const method of TARGET_PREFERENCE) {
-    const found = targets.find((t) => t.method === method);
-    if (found) return found;
-  }
-  return targets[0] ?? null;
+  return pickTarget(
+    [
+      s.row.swing ? { ...s.row.swing, horizon: "swing" } : null,
+      s.row.longer ? { ...s.row.longer, horizon: "longer" } : null,
+    ].filter((x): x is NonNullable<typeof x> => x !== null),
+  ) as DecisionTarget | null;
 }
 
-/// What the method measured, in the reader's words rather than the job's.
-export function targetMethodLabel(method: string): string {
-  if (method === "structure") return "nearest level it has already turned at";
-  if (method === "volatility") return "its own recent daily range";
-  if (method === "analog") return "what followed similar past days";
-  return method;
-}
+export { targetMethodLabel } from "./target.ts";
