@@ -284,6 +284,50 @@ export default async function MethodologyPage() {
       </Section>
 
       <Section
+        title="This week — how a name reaches that block"
+        lead="The weekly block on the overview is a filter over the lists below it, never a second opinion. Every name in it is already published as LONG or SHORT by the rule above; this page says what is removed and in what order the rest is shown."
+      >
+        <ul className="text-muted-foreground list-disc space-y-2 pl-5 text-sm leading-relaxed">
+          <li>
+            <strong className="text-foreground">It already carries a direction.</strong> WAIT never
+            appears, and that includes a WAIT whose conditions are forming. A direction forming is
+            not a direction, and a block headed &ldquo;this week&rdquo; is the easiest place on the
+            site for that difference to be missed.
+          </li>
+          <li>
+            <strong className="text-foreground">It is not Low confidence.</strong> Low means nothing
+            confirmed the direction beyond the direction itself. Those readings stay in the full
+            lists, where the confidence sits in a column beside a hundred others rather than in a
+            block that implies selection.
+          </li>
+          <li>
+            <strong className="text-foreground">It has an entry band and a level to be wrong at.</strong>{" "}
+            A reading with no stored invalidation cannot be sized or exited, so it cannot be acted
+            on, so it is not shown here.
+          </li>
+          <li>
+            <strong className="text-foreground">Order:</strong> confidence first (High before
+            Medium), then how close the price already is to its band &mdash; inside it, then a dated
+            event near, then still waiting for the level &mdash; then the fresher close, then the
+            symbol so two reads of the same data never disagree.
+          </li>
+          <li>
+            <strong className="text-foreground">Capped at six a side,</strong> and the count says
+            when more qualified. Fewer than six is the normal case and is never padded: reaching
+            into the Low-confidence names to fill the block would be inventing confidence the data
+            did not produce. A side with nothing in it says so.
+          </li>
+        </ul>
+        <Note>
+          No price target is printed in that block. The measured range from similar past days is on
+          each asset&rsquo;s own page, beside the sample size and the window that qualify it; the
+          same numbers lifted into a weekly block would read as a forecast, which is the one thing
+          this site does not publish. A setup favours a direction while its stop holds. It is not a
+          statement that a price will move, and no outcome is promised.
+        </Note>
+      </Section>
+
+      <Section
         title="The product rule"
         lead="A product answers a different question: is anyone paying attention yet, and where do you go to check."
       >

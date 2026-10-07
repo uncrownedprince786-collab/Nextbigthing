@@ -1,9 +1,9 @@
 import type { DecisionQueryRow } from "@/lib/queries";
 import { bundleFromRow, toDecisionInput } from "@/lib/decisionInput";
 import {
+  CONFIDENCE_ORDER,
   decide,
   EVENT_SOON_DAYS,
-  type Confidence,
   type Decision,
   type Market,
 } from "@/lib/decision";
@@ -45,7 +45,9 @@ export function scoreRows(
   });
 }
 
-export const CONFIDENCE_ORDER: Record<Confidence, number> = { High: 0, Medium: 1, Low: 2 };
+// Re-exported from the rule table, where it now lives beside the `Confidence` type. One
+// declaration, so a grade cannot sort one way here and another way in the weekly block.
+export { CONFIDENCE_ORDER } from "@/lib/decision";
 
 /// Strongest evidence first, then alphabetical so the order is stable between two reads.
 export function byConfidence(a: Scored, b: Scored): number {

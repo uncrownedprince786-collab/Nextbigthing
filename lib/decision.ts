@@ -43,6 +43,11 @@ import type { TrendDirection } from "./setupConditions";
 export type Action = "LONG" | "SHORT" | "WAIT";
 export type TimeSense = "NOW" | "WAIT FOR LEVEL" | "CARE";
 export type Confidence = "High" | "Medium" | "Low";
+
+/// Strongest evidence first. Lives here beside the type it orders rather than in the page
+/// layer, so any module that can read a `Confidence` can also sort by one without pulling in
+/// the web layer's imports.
+export const CONFIDENCE_ORDER: Record<Confidence, number> = { High: 0, Medium: 1, Low: 2 };
 export type Direction = "up" | "down" | "flat" | "unknown";
 export type Market = "US" | "PSX" | "Crypto" | "FX" | "Commodity" | "Other";
 
