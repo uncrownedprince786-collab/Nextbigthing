@@ -1,5 +1,66 @@
 # Resume here
 
+## 0. State of play, 2026-10-07 (sixth session) — read this first
+
+**Committed and pushed; `main` and `master` current; production deployed and verified.**
+
+### The one change that matters
+
+**A WAIT now says which kind it is.** `Decision.basis` is `file` (a measurement is absent, nothing
+was judged) or `evidence` (the measurement exists and does not support acting), rendered as one
+chip — NOT MEASURED or NO CONFIRMATION — from a single component, so home, the weekly block and
+the asset panel cannot drift. Live proof, two PSX names on the same gate:
+
+    KEL   WAIT  NO CONFIRMATION  "Unusual move and news thin."
+    DFML  WAIT  NOT MEASURED     "Unusual move and news not checked.
+                                  No news has been collected for DFML, so none was weighed."
+
+Before, both were an identical grey WAIT with Low beside it.
+
+Measured over all 273: **202 evidence WAITs, 4 file WAITs, 67 directional.** So the WAITs are
+overwhelmingly real readings, not empty files — which is the answer to "is the system being
+timid", and it is now checkable rather than asserted.
+
+### Loopholes closed
+
+1. **`jobs/setup.py` stamped `periodEnd` with `date.today()`.** `jobs/factors.py` states the rule
+   in `session_end` and obeys it; setup.py did not. All 272 swing setups read 2026-10-08 while
+   every close, factor and decision read 10-07, because the job ran from a UTC+5 host after 19:00
+   UTC. `thesis.py` copied the date onto 11 theses. Now anchored to the newest stored close; the
+   calendar is kept for event lookups, which really are questions about now. The 283 rows dated to
+   a session that never traded were deleted — they outranked the correct rows in every
+   `ORDER BY periodEnd DESC`.
+2. **The fall-through claimed a position against averages nobody computed.** With no setup row it
+   printed "Price is between its own averages." Now it says the setup has not been measured.
+3. **"No similar past days stored" read as a collection gap.** With no volume ratio it is not
+   collectable: `analogs.py` matches on one among three factors. All 27 FX pairs hold zero analogs
+   for that reason and always will. The line names the mechanism and stops — `volumeRatio` is also
+   null on a thin baseline, so it must not claim the venue publishes none.
+
+### `tools/rederive.py` — run this before believing anything
+
+Re-derives every published verdict from raw bars **without importing the rule table**, because a
+rule table cannot audit itself. Trend against the windows of the horizon the verdict actually
+rested on (not always swing), stop on the breachable side, close inside the market's own
+allowance, and each WAIT's claimed kind against the data. **273 verdicts, no contradiction.**
+
+### Numbers, this pass
+
+| | before | after |
+| --- | --- | --- |
+| LONG / SHORT / WAIT | 35 / 29 / 209 | 37 / 30 / 206 |
+| High / Medium / Low | 15 / 29 / 229 | 14 / 35 / 224 |
+| swing buy / short | 12 / 21 | 17 / 22 |
+
+### Known and deliberately not changed
+
+- **`analogConfirms` accepts a bare majority.** 13 of 44 directional non-Low names sit within 5
+  points of a coin flip; HMC was 377/748 = 50.4%, printed as "Confirmed by". `jobs/setup.py`
+  already uses `ANALOG_SHARE = 0.55` for the same judgement. Aligning them reclassifies 16 of 61
+  names — a brain change, so it needs its own measured decision, not a bolt-on.
+- **FX can never hold an analog** (above). Fixable only by letting `similar()` match on two
+  factors when volume is unavailable by construction — rule 21 — which re-cuts every stored set.
+
 ## 0. State of play, 2026-10-07 (fifth session) — read this first
 
 **Everything is committed and pushed; `main` and `master` are both current and the tree is
