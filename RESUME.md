@@ -1,6 +1,115 @@
 # Resume here
 
-## 0. State of play, 2026-10-06 (third session) — read this first
+## 0. State of play, 2026-10-07 (fourth session) — read this first
+
+**Everything is committed and pushed. `main` and `master` are both at `f68357d`, the working
+tree is clean, and nothing is mid-operation.** Two commits landed. Both were pushed together,
+so the `master` fast-forward is already done — it had drifted 9 behind again before this
+session, which is twice in two sessions. **The standing rule still holds: after every push to
+`main`, run `git push origin main:master`.**
+
+### What this session was asked for, and what it found
+
+The ask was data coverage, fallback sources, and a sharper directional read. The first half of
+it turned out not to be a coverage problem at all.
+
+**Prices are healthy in every market.** Measured 2026-10-07: all 267 assets have a close inside
+their own staleness rule — Crypto 27, FX 27, PSX 85, US 128, worst case one day old. The
+four-venue crypto chain is doing exactly what it was built for: **Binance has been silent since
+2025-10-21** and Coinbase is carrying 26 of 27 coins with Kraken on the last one. Nothing needs
+a price fallback. Do not go looking for one.
+
+**The binding constraint was news, and the cause was a sort order.** Google News RSS answers a
+search by **relevance over its whole index, not by date**. The first six items of `"Hub Power"
+Pakistan` were dated 24 Jul, 22 Jul, 28 Jul, 10 Aug, 4 Jun and **5 Mar 2024**, out of 97 offered.
+`NEWS_PER_ASSET` keeps the first six, `ON CONFLICT DO NOTHING` drops them as already stored, and
+the asset is frozen at six rows for ever. HUBC, MEBL and SYS each held exactly 6 rows, newest
+7 Sep. 21 PSX names and 3 FX pairs held nothing from the last 30 days; 74 of 85 PSX names were
+below the 8 headlines `jobs/human.py` needs to publish a tone direction.
+
+Nothing in the lane could see it. The feed returns 200, parses, and hands back a hundred items,
+so every guard rule 31 put in place reads healthy. **This is the third time a fault here has
+turned out to be a denominator or an ordering rather than a missing source** — see rule 9, rule
+39, and now rule 31's note on counters. Check what the data is being *compared* or *sorted*
+against before concluding a source is absent.
+
+### The two commits
+
+| | |
+|---|---|
+| `027a09c` | News: every feed asks `when:30d` through one url builder **and** checks each item's own `pubDate`, because the operator is a request and the date is the evidence. A per-asset relevance guard, since narrowing the window promotes weaker matches — an Indian biogas story filed against SYS is a tone reading built from articles about someone else. Tickers match as capitalised whole words (`SYS` had matched "Micro Irrigation **Sys**tem"). A bounded junk filter for rate tables (`Convert 1 USDC to SEK — Bybit`, 36 of them on USDSEK alone). A fallback chain: Bing News RSS first everywhere, Yahoo's per-ticker feed for US listings only. Counters are **per source**, so a fallback can never vouch for a silent primary. |
+| `f68357d` | `Decision.developing`: the withheld trend direction, which was sitting in the stored `conditions` string unread. 112 of 267 now carry a direction forming — 45 towards LONG, 67 towards SHORT — ordered on the front page by `closeness`, the stored factor over the threshold it has to clear. Led by ASML at 1.19x of the 1.2x volume gate. |
+
+### What is verified and what is not
+
+- **Verified:** 398 Python tests, 138 web tests (21 new), eslint clean, `tsc` clean,
+  `npm run build` clean, `node tools/decide.mjs --dry-run` reports the 112 against the live
+  database, and the rendered front page leads with ASML at 99% of its threshold.
+- **Verified against live feeds, dry run, no writes:** USDPKR 0 → 6 real rupee stories, USDBDT
+  0 → 6, USDSEK 0 → 6, HUBC 0 → 2, MEBL 0 → 4.
+- **NOT yet verified in production.** No news row has been written with the new code. The
+  improvement lands on the **next `cron-news` run** (`20 */2 * * *`). **First thing next
+  session:** check that the stored counts actually moved, not just that the lane went green.
+
+```sql
+SELECT count(DISTINCT n."assetId") FILTER (WHERE n."publishedAt" > now() - interval '30 days')
+  FROM "News" n JOIN "Asset" a ON a.id = n."assetId"
+  JOIN "Industry" i ON i.id = a."industryId" WHERE i.market = 'PK';
+-- was 64 of 85 with any item, and 21 with none at all
+```
+
+  Also check `source` on the new rows: `Bing News RSS` appearing at all proves the chain fires,
+  and it appearing *everywhere* would mean the primary has stopped answering from the runner.
+
+### Residuals, deliberately left
+
+- **`SYS` collides and cannot be fixed by name matching.** "Systems Limited" is a legal name of
+  two generic words and also matches **Organic Recycling Systems Limited** and **Inter State Gas
+  Systems Limited**. The country word does not separate them either. A rule strict enough to
+  catch it would reject "Pakistan's Systems Limited eyes acquisitions", and dropping real
+  coverage of twenty names to clean two items is the wrong trade. A hint in `ASSET_NEWS_HINTS`
+  is the lever if it ever matters more than it does.
+- **`INDU` reads 0 and that is honest.** Indus Motor's coverage is real and all of it predates
+  the window. Do not widen the window for one name.
+- **The workflow has been called "rss ingest, dedupe, junk filter" since it was written and no
+  junk filter existed.** One exists now, and it is deliberately narrow: the single measured
+  shape, matched at the start of a title. Widening it is how real stories start disappearing.
+- **FX has no volume by construction** — OTC, no consolidated tape — so the volume leg can never
+  confirm an FX pair, and `closeness` is null for it rather than 0. That is rule 21, not a gap.
+
+### Still pending from the third session, unchanged
+
+1. **The products card is missing from the front-page block.** Four of the five asked-for cards
+   were built. Products carry a different decision shape (`lib/productDecision.ts`,
+   `decideProduct`), so the card needs its own wiring rather than `ASSET_CLASSES`.
+2. **`incomplete` is still the largest gate at 163**, but it now reads differently: 112 of those
+   have a named direction and a named missing confirmation. The remainder are state `none` —
+   price between its own averages — which is genuinely nothing to report.
+3. **`npm audit`: 5 high advisories, all in build/CLI tooling.** None on the request path. **Do
+   not run `npm audit fix --force`** — it downgrades prisma 7.10 to 6.19.
+4. **Cross-language constants are still a comment, not a constraint.** `THIN_NEWS_BELOW` (TS) and
+   `MIN_ITEMS` (`jobs/human.py`) are both 8; `ANALOGS_CONFIRM_MIN` and `MIN_MATCHES_LOW` both 8.
+   A test reading both files would close it. **There is now a third pair worth pinning the same
+   way:** `prices.NEWS_FLOOR` is asserted against `human.MIN_ITEMS`, which is the shape the other
+   two want.
+
+### Do not repeat these
+
+- **Do not run `jobs/run.py decision` from a non-US host.** Round trip to Neon from Pakistan is
+  238 ms and `rank.py` is a per-asset query loop, so `rank` alone takes 14 minutes locally
+  against 0.2–1.3 on a runner. Local timings are ~15x inflated and are not a production signal.
+  Use `decide.mjs` locally: 5 seconds.
+- **`bundleFromQuery` re-declares every field by hand.** `conditions` was selected by both
+  queries, read by the rules, and dropped in between with nothing failing — exactly as
+  `medianPct` and `positive` were before it. **That is three fields lost at the same seam.** An
+  optional field cannot fail to exist, so the guard has to be a test that the value survives the
+  seam, never the type. Check this seam first when a stored column reads as absent.
+- **Two parsers of the `conditions` format now exist** (`jobs/thesis.py` and
+  `lib/setupConditions.ts`), which rule 23 is the reason to declare rather than hide. Both are
+  tested against the same literal strings from `setup.py`'s output. A new horizon written in a
+  new format breaks both tests rather than silently producing theses with nothing to compare.
+
+## 0a. State of play, 2026-10-06 (third session)
 
 **Everything is committed and pushed. `main` and `master` are both at `558e137`, the working
 tree is clean, and nothing is mid-operation.** Eight commits landed. The site is live and
