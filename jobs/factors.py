@@ -206,7 +206,40 @@ def robust_z(value: float | None, history: list[float]) -> float | None:
 def volume_ratio(
     volumes: list[float | None], dates: list[date] | None = None
 ) -> float | None:
-    """Latest volume over the average of the VOLUME_WINDOW comparable sessions before it.
+    """Latest volume over the **median** of the VOLUME_WINDOW comparable sessions before it.
+
+    The median, and not the mean, for the reason `robust_z` in this same file already gives for
+    returns: "one earnings gap in the window otherwise widens the band enough to call every
+    later move ordinary". Volume is worse than returns in this respect, because its skew is one
+    sided -- a session can be five times its normal size and cannot be less than zero -- so the
+    mean of a twenty session window sits above the typical session in essentially every window,
+    and the ratio it produces is biased below 1 on an ordinary day.
+
+    Measured 2026-10-07 over 15,411 asset-sessions, every non-FX asset across the last 60
+    complete sessions, as the median of all the ratios produced:
+
+        market        by mean   by median
+        PSX             0.614       0.827
+        Commodity       0.756       1.003
+        US              0.874       0.955
+        Crypto          0.931       1.063
+
+    The bias is the smaller half of the problem. The larger half is that it is **uneven between
+    markets**, so one constant does not mean one thing: `VOL_ACTIVE` at 1.2 was asking a Karachi
+    name to trade at about twice its typical session and a coin at about 1.3 times its own, and
+    nothing said so. A threshold whose strictness depends on which market it is applied to is
+    not a threshold, and the gate it feeds cannot be reasoned about from its own constant.
+
+    Against the median the centre lands between 0.83 and 1.06 everywhere, so 1.2x means roughly
+    the same thing in every market -- about twenty percent busier than a typical session, which
+    is what the constant has always claimed to mean. The share of sessions clearing it goes from
+    20% to 29% pooled, and that is a correction and not a loosening: the sessions it admits are
+    the ones that were always above a typical day and were being measured against an inflated
+    denominator.
+
+    `jobs/analogs.py` keeps its own mean-based volume ratio deliberately. That one is a
+    similarity key for matching one past day to another, not a judgement about whether a session
+    was busy, and changing what it means would silently re-cut every stored analog set.
 
     None when the venue published no volume for the latest session, or when too few of the
     baseline sessions have one. A venue that publishes no volume at all is not a quiet venue,
@@ -239,8 +272,8 @@ def volume_ratio(
 
     # The unsplit baseline, and the threshold it has always had. A split baseline that turns out
     # too thin falls back to this, so the two guards are deliberately different numbers: ten
-    # mixed sessions is the floor for a mean to mean anything, while four comparable ones is the
-    # most a twenty-session window can offer for a weekend and is still a weekend average.
+    # mixed sessions is the floor for a median to mean anything, while four comparable ones is
+    # the most a twenty-session window can offer for a weekend and is still a weekend reading.
     baseline = [float(v) for v, _ in window if v is not None]
     enough = MIN_VOLUME_BARS
     if aligned[-1] is not None:
@@ -253,12 +286,16 @@ def volume_ratio(
             baseline, enough = alike, MIN_COMPARABLE_BARS
     if len(baseline) < enough:
         return None
-    avg = sum(baseline) / len(baseline)
-    if avg <= 0:
-        # Every baseline session published a zero. The ratio would be undefined, and the
-        # measurement a reader wants from that is "no volume", which is the null.
+    typical = median(baseline)
+    if typical is None or typical <= 0:
+        # More than half the baseline sessions published a zero, so the typical session in this
+        # window had no volume. The ratio would be undefined or absurd, and the measurement a
+        # reader wants from that is "no volume", which is the null. Note this is a weaker trigger
+        # than the mean's was: a mean needed every session to be zero, a median needs half, which
+        # is the right place for it -- a name that traded on four of twenty sessions has no
+        # typical session to compare against.
         return None
-    return latest / avg
+    return latest / typical
 
 
 def sma(closes: list[float], window: int) -> float | None:

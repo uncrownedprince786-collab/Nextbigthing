@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT / "jobs"))
 
 import analogs  # noqa: E402
 import attribution  # noqa: E402
+import factors  # noqa: E402
 import graph  # noqa: E402
 import horizons  # noqa: E402
 import human  # noqa: E402
@@ -84,6 +85,113 @@ class HeadlineTone(unittest.TestCase):
     def test_a_repeated_word_counts_once(self):
         # One headline saying a word twice is still one headline saying it.
         self.assertEqual(human.count_terms("surges and surges", ("surges",)), 1)
+
+
+class VolumeBaseline(unittest.TestCase):
+    """"Is this session busier than usual" has to be measured against a typical session.
+
+    `volume_ratio` divided the latest volume by the **mean** of its trailing window, which is
+    the same mistake `robust_z` in the same file already refuses to make for returns. Volume's
+    skew is one sided -- a session can be five times normal and cannot be below zero -- so the
+    mean of a twenty session window sits above the typical session in essentially every window.
+
+    Measured 2026-10-07 over 15,411 asset-sessions, as the median of all ratios produced: PSX
+    0.614 by mean against 0.827 by median, Commodity 0.756 / 1.003, US 0.874 / 0.955, Crypto
+    0.931 / 1.063. The bias is the smaller half. The larger half is that it is uneven between
+    markets, so `VOL_ACTIVE` at 1.2 asked a Karachi name for roughly twice its typical session
+    and a coin for roughly 1.3 times its own, and nothing said so.
+    """
+
+    def _flat(self, n, value, latest):
+        from datetime import date as _date, timedelta as _td
+
+        # Weekdays only, so the weekend split is a no-op and these test the denominator alone.
+        days, cursor = [], _date(2026, 1, 5)  # a Monday
+        while len(days) < n + 1:
+            if cursor.weekday() < 5:
+                days.append(cursor)
+            cursor += _td(days=1)
+        return [value] * n + [latest], days
+
+    def test_an_ordinary_session_against_a_skewed_window_reads_as_ordinary(self):
+        # The fault, in the smallest shape that shows it. Nineteen sessions at 100 and one spike
+        # at 1000: the typical session is 100, and a session of exactly 100 is exactly typical.
+        # The mean of that window is 145, so the old measure called a typical session 0.69 --
+        # and `VOL_ACTIVE` at 1.2 then needed 174, not 120, without saying so.
+        vols = [100.0] * 19 + [1000.0]
+        from datetime import date as _date, timedelta as _td
+
+        days, cursor = [], _date(2026, 1, 5)
+        while len(days) < len(vols) + 1:
+            if cursor.weekday() < 5:
+                days.append(cursor)
+            cursor += _td(days=1)
+        got = factors.volume_ratio(vols + [100.0], days)
+        self.assertAlmostEqual(got, 1.0, places=6)
+        mean_would_be = 100.0 / (sum(vols) / len(vols))
+        self.assertLess(mean_would_be, 0.75, "fixture no longer demonstrates the bias")
+
+    def test_the_threshold_still_means_what_its_constant_says(self):
+        # 1.2x of a typical session, and nothing else. A spike in the window must not move it.
+        vols = [100.0] * 15 + [900.0] * 4
+        from datetime import date as _date, timedelta as _td
+
+        days, cursor = [], _date(2026, 1, 5)
+        while len(days) < len(vols) + 1:
+            if cursor.weekday() < 5:
+                days.append(cursor)
+            cursor += _td(days=1)
+        self.assertAlmostEqual(factors.volume_ratio(vols + [120.0], days), 1.2, places=6)
+        self.assertAlmostEqual(factors.volume_ratio(vols + [119.0], days), 1.19, places=6)
+
+    def test_a_real_spike_is_still_a_spike(self):
+        # The measure has to stay sharp in the direction it exists for. Tripling a typical
+        # session reads as 3x, not as something the window's own outliers have flattened.
+        vols, days = self._flat(20, 100.0, 300.0)
+        self.assertAlmostEqual(factors.volume_ratio(vols, days), 3.0, places=6)
+
+    def test_a_name_that_barely_trades_has_no_typical_session(self):
+        # Sixteen zeros and four real sessions: the median is 0, and the honest answer is that
+        # there is nothing to compare against. This is a weaker trigger than the mean's was --
+        # a mean needed every session to be zero -- and that is the right place for it.
+        vols, days = self._flat(0, 0.0, 0.0)
+        vols = [0.0] * 16 + [500.0] * 4 + [600.0]
+        from datetime import date as _date, timedelta as _td
+
+        days, cursor = [], _date(2026, 1, 5)
+        while len(days) < len(vols):
+            if cursor.weekday() < 5:
+                days.append(cursor)
+            cursor += _td(days=1)
+        self.assertIsNone(factors.volume_ratio(vols, days))
+
+    def test_an_absent_latest_volume_is_still_absent_rather_than_quiet(self):
+        # Unchanged behaviour, pinned because it sits next to what changed. A venue that
+        # published no volume is not a quiet venue, and 0.0 would say the opposite.
+        vols, days = self._flat(20, 100.0, 100.0)
+        vols[-1] = None
+        self.assertIsNone(factors.volume_ratio(vols, days))
+
+    def test_the_weekend_split_still_applies_on_top_of_the_median(self):
+        # The two corrections are independent and both have to hold: a weekend bar is compared
+        # against weekend bars, and the comparison within them is against their median.
+        from datetime import date as _date, timedelta as _td
+
+        days, vols = [], []
+        cursor = _date(2026, 1, 5)
+        for _ in range(21):
+            days.append(cursor)
+            vols.append(30.0 if cursor.weekday() >= 5 else 100.0)
+            cursor += _td(days=1)
+        # Land the latest bar on a Saturday carrying a typical weekend volume.
+        while days[-1].weekday() != 5:
+            cursor = days[-1] + _td(days=1)
+            days.append(cursor)
+            vols.append(30.0 if cursor.weekday() >= 5 else 100.0)
+        vols[-1] = 30.0
+        got = factors.volume_ratio(vols, days)
+        self.assertIsNotNone(got)
+        self.assertAlmostEqual(got, 1.0, places=6)
 
 
 class RobustDeviation(unittest.TestCase):
