@@ -141,6 +141,13 @@ const FILTERS: FilterGroup[] = [
 /// that is more urgent than something shown, because the order below puts urgency first.
 const WAIT_SHOWN = 12;
 
+/// How many developing rows are printed before the rest are counted rather than listed.
+///
+/// Larger than `WAIT_SHOWN` because this list is ordered by a measured distance from a threshold
+/// rather than by a reason, so the twelfth row is genuinely nearer to confirming than the
+/// thirteenth, and the cut is the only thing keeping a 162-row list off the front page.
+const DEVELOPING_SHOWN = 18;
+
 const MARKET_NAME: Record<string, string> = {
   US: "United States listings",
   PK: "Pakistan Stock Exchange",
@@ -163,6 +170,24 @@ const GATE_URGENCY: Record<string, number> = {
   "mixed-horizons": 5,
   incomplete: 6,
 };
+
+/// Developing rows, nearest to confirming first.
+///
+/// `closeness` is the stored factor over the threshold it has to clear, so 0.96 is a name 4%
+/// short of its volume gate and 0.25 is one nowhere near it. A null sorts last, because a
+/// confirmation that cannot be measured is not one that is nearly there -- rule 21 again, in the
+/// one place where collapsing the two would read as a recommendation.
+///
+/// Within equal closeness the symbol decides, so two identical rows do not swap places between
+/// two reads of the same page.
+function byCloseness(a: Scored, b: Scored): number {
+  const ca = a.decision.developing?.closeness;
+  const cb = b.decision.developing?.closeness;
+  const ka = ca === null || ca === undefined ? -1 : ca;
+  const kb = cb === null || cb === undefined ? -1 : cb;
+  if (ka !== kb) return kb - ka;
+  return a.row.symbol.localeCompare(b.row.symbol);
+}
 
 function urgency(s: Scored): number {
   const days = s.row.nextEventInDays;
@@ -251,6 +276,56 @@ function WaitCard({ item }: { item: Scored }) {
   );
 }
 
+/// One developing card: the direction forming, and what would confirm it.
+///
+/// Deliberately shaped unlike a `DecisionList` row. A list row's columns say entry, exit and
+/// confidence -- the furniture of a decision -- and printing them here would make a forming read
+/// look like an actionable one. What this row owes the reader is the direction, the distance, and
+/// the named condition that is missing.
+function DevelopingCard({ item }: { item: Scored }) {
+  const { row, decision, market } = item;
+  const forming = decision.developing;
+  if (!forming) return null;
+  const short = forming.would === "SHORT";
+
+  return (
+    <Card href={`/asset/${encodeURIComponent(row.symbol)}`} className="space-y-1.5">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">{row.name}</span>
+          <span className="num text-muted-foreground block text-xs">{row.symbol}</span>
+        </span>
+        <span className="flex flex-wrap items-center gap-2">
+          <Pill tone="default">{market}</Pill>
+          {/* "potential", in the chip itself. The word is what keeps a glance from reading this
+              as the LONG list, and a reader who only ever sees chips must still see it. */}
+          <Pill tone="default">potential {forming.would}</Pill>
+        </span>
+      </div>
+
+      <p className="text-sm leading-relaxed">
+        {short ? "Falling" : "Rising"} trend in place, not yet confirmed.
+        {forming.closeness !== null ? (
+          <>
+            {" "}
+            Nearest confirmation is{" "}
+            <span className="num">{Math.round(forming.closeness * 100)}%</span> of the way to its
+            threshold.
+          </>
+        ) : null}
+      </p>
+
+      <ul className="space-y-0.5">
+        {forming.waitingOn.slice(0, 2).map((w, i) => (
+          <li key={i} className="text-muted-foreground text-xs leading-relaxed">
+            {w}
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 export default async function Home({
   searchParams,
 }: {
@@ -287,8 +362,14 @@ export default async function Home({
 
   const longs = matching.filter((s) => s.decision.action === "LONG").sort(byConfidence);
   const shorts = matching.filter((s) => s.decision.action === "SHORT").sort(byConfidence);
-  const waits = matching.filter((s) => s.decision.action === "WAIT").sort(byUrgency);
+  // A developing row is still a WAIT and is counted in neither of the two directional lists. It
+  // is lifted out of the WAIT list rather than added beside it, because leaving it in both would
+  // print the same asset twice with two different framings on one page.
+  const allWaits = matching.filter((s) => s.decision.action === "WAIT");
+  const developing = allWaits.filter((s) => s.decision.developing !== null).sort(byCloseness);
+  const waits = allWaits.filter((s) => s.decision.developing === null).sort(byUrgency);
   const waitHidden = Math.max(0, waits.length - WAIT_SHOWN);
+  const developingHidden = Math.max(0, developing.length - DEVELOPING_SHOWN);
 
   // Rows exist, and the filters removed all of them. Without this the reader gets three empty lists
   // and no way to tell a filtered page from a broken one.
@@ -394,6 +475,46 @@ export default async function Home({
             : "No asset reads SHORT today. Same rule as LONG, mirrored: a direction is only printed when a break level is stored."
         }
       />
+
+      <Section
+        title="Developing"
+        lead={
+          developingHidden > 0
+            ? `A direction is in place and the conditions behind it are not all present yet. Nearest to confirming first; ${DEVELOPING_SHOWN} of ${developing.length} shown.`
+            : "A direction is in place and the conditions behind it are not all present yet. Nearest to confirming first."
+        }
+        aside={<AsOf date={asOf} />}
+      >
+        {developing.length ? (
+          <>
+            {/* Said once, above the cards, and not left to the chips. A reader who takes this
+                list as a buy list has been misled by the page, not by the rules. */}
+            <Note>
+              These are not actions. Each one is a trend the stored conditions do not yet confirm,
+              shown with the measurement that is missing, because the alternative is reading about
+              it after it has happened.
+            </Note>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {developing.slice(0, DEVELOPING_SHOWN).map((s) => (
+                <DevelopingCard key={s.row.symbol} item={s} />
+              ))}
+            </div>
+            {developingHidden > 0 ? (
+              <p className="text-muted-foreground mt-3 text-sm">
+                <span className="num">{developingHidden}</span> further assets have a direction
+                forming further from confirming than every card above. Each one carries its own
+                reading on its asset page.
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <Empty>
+            No asset has a direction forming{Object.keys(current).length > 0 ? ` under ${showing}` : ""}.
+            That means every stored trend is either confirmed and in the two lists above, or there
+            is no trend to confirm.
+          </Empty>
+        )}
+      </Section>
 
       <Section
         title="WAIT / caution"

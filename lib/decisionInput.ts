@@ -8,6 +8,7 @@
 // Pure, like the rules: it takes rows and a date and returns a value. Nothing here queries.
 
 import type { DecisionInput, Direction, Market } from "./decision.ts";
+import { trendDirectionOf } from "./setupConditions.ts";
 
 /// `AssetSetup.state` is the job's vocabulary; the rule table speaks in directions.
 ///
@@ -115,6 +116,9 @@ type SetupRow = {
   state: string;
   entryLevel: number | null;
   invalidateLevel: number | null;
+  /// Optional only because `pickSetup` is generic over rows read for other purposes. The
+  /// decision path always carries it.
+  conditions?: string | null;
 };
 
 /// Which row answers "what is the setup".
@@ -213,6 +217,9 @@ export interface DecisionBundle {
     state: string;
     entryLevel: number | null;
     invalidateLevel: number | null;
+    /// The stored condition read. Nullable because a row written before the format existed
+    /// carries none, and `trendDirectionOf` answers null for it rather than guessing.
+    conditions?: string | null;
   }[];
   /// Newest `AssetAnalog` per horizon.
   ///
@@ -277,7 +284,16 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
     asOf: iso(bundle.freshness.newest),
     today,
     lastClose: bundle.freshness.close,
-    setup: setup ? { direction: directionOfState(setup.state), horizon: setup.horizon } : null,
+    setup: setup
+      ? {
+          direction: directionOfState(setup.state),
+          horizon: setup.horizon,
+          // The withheld direction. `directionOfState` returns "flat" for state `wait`, which
+          // is the state meaning "the trend is clear and the conditions behind it are not all
+          // present" -- so the direction exists and only this field carries it.
+          trend: trendDirectionOf(setup.conditions),
+        }
+      : null,
     horizon: longer ? { direction: directionOfState(longer.state) } : null,
     entry: setup ? entryZone(setup.entryLevel, setup.invalidateLevel) : null,
     invalidation: setup?.invalidateLevel ?? null,
@@ -339,6 +355,14 @@ export interface QueryBundle {
     state: string;
     entryLevel: number | null;
     invalidateLevel: number | null;
+    /// The stored condition read, carried for the trend verdict inside it.
+    ///
+    /// Optional for the same reason `medianPct` below is, and lost the same way on its first
+    /// attempt: this seam re-declares every field by hand, so a column the query selects and the
+    /// rules read still has to be named *here* or it is dropped between them with nothing failing.
+    /// That is now the third field it has happened to. The guard is the test that asserts a
+    /// developing read survives the seam, not the type -- an optional field cannot fail to exist.
+    conditions?: string | null;
   }[];
   analogs: {
     horizonDays: number;
@@ -378,6 +402,7 @@ export function bundleFromQuery(
       state: h.state,
       entryLevel: h.entryLevel,
       invalidateLevel: h.invalidateLevel,
+      conditions: h.conditions ?? null,
     })),
     analogs: row.analogs.map((a) => ({
       horizonDays: a.horizonDays,
@@ -410,8 +435,21 @@ export interface QueryRow {
   market: string;
   close: number | null;
   closeDate: Date | string | null;
-  swing: { state: string; entryLevel: number | null; invalidateLevel: number | null } | null;
-  longer: { state: string; entryLevel: number | null; invalidateLevel: number | null } | null;
+  /// `conditions` is the stored condition read, carried for the trend verdict inside it. Both
+  /// readers of this shape -- the home page and `tools/decide.mjs` -- must select it, or the
+  /// nightly log and the page would disagree about which names have a direction forming.
+  swing: {
+    state: string;
+    entryLevel: number | null;
+    invalidateLevel: number | null;
+    conditions?: string | null;
+  } | null;
+  longer: {
+    state: string;
+    entryLevel: number | null;
+    invalidateLevel: number | null;
+    conditions?: string | null;
+  } | null;
   analogMinPct: number | null;
   analogMaxPct: number | null;
   analogMatches: number | null;

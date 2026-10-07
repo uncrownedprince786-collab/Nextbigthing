@@ -145,8 +145,11 @@ async function readInputs(db, today) {
       // read the same two horizons the home page does, because a verdict that re-decided itself
       // through the session would be a different verdict on every run.
       db.query(
+        // `conditions` rides along because the trend verdict inside it is the only record of
+        // which way a withheld direction pointed, and lib/queries.ts selects it for the same
+        // reason. Two readers of one table must not each decide what a `wait` row knows.
         `SELECT DISTINCT ON ("assetId", horizon)
-                "assetId", horizon, state, "entryLevel", "invalidateLevel"
+                "assetId", horizon, state, "entryLevel", "invalidateLevel", conditions
            FROM "AssetSetup" WHERE horizon IN ('swing', 'longer')
           ORDER BY "assetId", horizon, "periodEnd" DESC`,
       ),
@@ -231,6 +234,7 @@ function rowsForDecisions(input) {
       state: row.state,
       entryLevel: row.entryLevel,
       invalidateLevel: row.invalidateLevel,
+      conditions: row.conditions,
     };
   };
 
@@ -292,6 +296,13 @@ function decideAll(input, today) {
       action: decision.action,
       gate: decision.gate,
       confidence: decision.confidence,
+      // Carried for the summary only, and deliberately not a column. `DecisionLog` records what
+      // the rules *decided*, and a forming read is by definition not a decision -- storing it
+      // would put a row in the outcome log that no gate produced and that accuracy.py would then
+      // measure as though it had. The page computes it live from the same stored rows.
+      developing: decision.developing
+        ? `${decision.developing.would} (${decision.developing.closeness === null ? "not measurable" : Math.round(decision.developing.closeness * 100) + "%"})`
+        : null,
       entryLow: decision.entry?.low ?? null,
       entryHigh: decision.entry?.high ?? null,
       invalidation: decision.invalidation,
@@ -536,6 +547,23 @@ function renderSummary({ today, decisions, written, failures, maturation, dryRun
   };
 
   block("by action", actions);
+  // Counted next to the gates, because "incomplete 163" is the number that reads as a dead end
+  // and this is the half of it that is not. A direction is in place for each of these and the
+  // conditions behind it are not all present yet.
+  const forming = decisions.filter((d) => d.developing);
+  if (forming.length) {
+    const ups = forming.filter((d) => d.developing.startsWith("LONG")).length;
+    lines.push(
+      "",
+      `developing: ${forming.length} of ${decisions.length} have a direction forming ` +
+        `(${ups} towards LONG, ${forming.length - ups} towards SHORT)`,
+    );
+    md.push(
+      `**Developing:** ${forming.length} of ${decisions.length} have a direction forming ` +
+        `(${ups} towards LONG, ${forming.length - ups} towards SHORT). Not actions.`,
+      "",
+    );
+  }
   block("by gate", gates);
   block("by market", markets);
   block("by confidence", confidences);

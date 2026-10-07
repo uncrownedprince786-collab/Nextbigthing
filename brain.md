@@ -615,3 +615,43 @@ reads rows that already exist:
       negative for six of ten. **Do not loosen a gate because a market is quiet through it.**
       The thing that was actually wrong for the reader was the wording — "incomplete" and "no
       longer-term reading stored" where the truth was "the trend is up but volume is weak".
+
+40. **A withheld direction is still a direction, and the reader is owed it.**
+    `jobs/setup.py` writes state `wait` when **the trend is clear and not all the conditions
+    behind it are present** — 162 of 266 swing rows on 2026-10-07, of which 101 fail on one leg,
+    volume. `directionOfState` maps `wait` to `flat`, so the rule table's fall-through printed "a
+    direction is showing, but not all the conditions behind it are present" and threw away which
+    way it pointed. Those names reached the reader as entries 13 to 160 of a WAIT list ordered by
+    data faults, which is the same as not reaching them at all.
+
+    The direction was never missing. It is the trend verdict inside the stored `conditions`
+    string, and nothing in the web layer read that column. `Decision.developing` now carries it,
+    with each absent confirmation named beside its own stored value, and the front page orders the
+    list by `closeness` — the stored factor over the threshold it has to clear. 112 of 267 on the
+    day it went in: 45 towards LONG, 67 towards SHORT, led by ASML at 1.19x of the 1.2x volume
+    gate. That is a name one hundredth of a turn from confirming, and it was previously the
+    hundred-and-something-th row of a list nobody scrolls.
+
+    Four properties worth keeping:
+
+    - **It is not an action and must never render as one.** The confirmations genuinely are not
+      there; promoting it to LONG would be inventing them. The chip says "potential", the list
+      says so above the cards, and `confidence` stays Low because a refusal is not a confident
+      anything. A developing row is lifted *out* of the WAIT list rather than added beside it, so
+      one asset cannot appear twice on one page under two framings.
+    - **Only at the fall-through gate.** A stale close, a silent source or a missing invalidation
+      level is not an opportunity forming, it is an unmeasured name; peers arguing the other way
+      has already been given its reason. Every gate above the fall-through returns null.
+    - **`closeness` is null when nothing missing is measurable, and null sorts last.** An FX pair
+      publishes no volume at all — a fact about the instrument, not a quiet session — and rule 21
+      says that is a third value, not a zero. Sorted as 0 it would read as "nearly there".
+    - **It is stored nowhere.** `DecisionLog` records what the rules *decided*, and a forming read
+      is by definition not a decision. A row there would be an outcome `jobs/accuracy.py` would
+      then measure as though a gate had produced it. The page computes it live from the same rows,
+      and `tools/decide.mjs` prints the count so the number is visible without being logged.
+
+    One thing this cost, recorded because it is the third time: `bundleFromQuery` re-declares
+    every field by hand, so `conditions` was selected by both queries, read by the rules, and
+    dropped in between with nothing failing — exactly as `medianPct` and `positive` were. An
+    optional field cannot fail to exist, so the guard is a test that a developing read survives
+    the seam, not the type.

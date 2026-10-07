@@ -38,6 +38,8 @@
 // data and are not faults. Gate 9 exists because a rule table that falls through to LONG is how a
 // panel ends up recommending a trade it has no reason for.
 
+import type { TrendDirection } from "./setupConditions";
+
 export type Action = "LONG" | "SHORT" | "WAIT";
 export type TimeSense = "NOW" | "WAIT FOR LEVEL" | "CARE";
 export type Confidence = "High" | "Medium" | "Low";
@@ -111,7 +113,16 @@ export interface DecisionInput {
   today: string;
   lastClose: number | null;
   /// Direction of the swing or longer setup, and the horizon it was measured over.
-  setup: { direction: Direction; horizon: string | null } | null;
+  ///
+  /// `trend` is the verdict `jobs/setup.py` recorded on the trend condition, read out of the
+  /// stored `conditions` string by `lib/setupConditions.ts`. It is what `direction` is not: when
+  /// the state is `wait`, `direction` is "flat" — the direction was measured and withheld — and
+  /// `trend` is the direction that was withheld. Null when the row carries no trend verdict.
+  setup: {
+    direction: Direction;
+    horizon: string | null;
+    trend?: TrendDirection | null;
+  } | null;
   /// The longer-term reading, which may agree, disagree, or be flat.
   horizon: { direction: Direction } | null;
   /// Measured entry band. Both numbers inclusive, low <= high.
@@ -142,6 +153,35 @@ export interface DecisionInput {
   sourceSilent: string | null;
 }
 
+/// A direction the data shows and the rules will not act on yet, with what is standing in the way.
+///
+/// This is the "before it is obvious" half of the panel, and it is deliberately not an action.
+/// `jobs/setup.py` writes state `wait` when **the trend is clear and not all the conditions behind
+/// it are present** — 162 of 266 rows on 2026-10-07, of which 101 fail on one leg, volume. Those
+/// names reach the reader today as the twelfth to the hundred-and-sixtieth entry of a WAIT list
+/// ordered by data faults, which is the same as not reaching them at all.
+///
+/// Nothing here is new arithmetic. The direction is the trend verdict `setup.py` already stored,
+/// and `shortfall` is the stored factor next to the threshold it has to clear. It cannot be a
+/// LONG: the confirmations genuinely are not there, and promoting it would be inventing them —
+/// which is the one thing this file exists not to do. What changes is that the reader is told a
+/// direction is forming, which way, and exactly what would confirm it.
+export interface Developing {
+  /// Which way the stored trend points. Never "mixed": a mixed trend is not a developing anything.
+  direction: "up" | "down";
+  /// What this would be if the missing confirmations arrived.
+  would: "LONG" | "SHORT";
+  /// Each confirmation that is absent or failing, in plain words, with its stored value.
+  waitingOn: string[];
+  /// How far the nearest measurable confirmation is from its threshold, as a ratio of the
+  /// threshold, or null when nothing missing is measurable. 0.92 means 8% short of it.
+  ///
+  /// This is the ordering key, and ordering is the entire point of the list: a name at 1.15x of
+  /// the 1.2x volume gate is a different proposition from one at 0.3x, and sorted together they
+  /// are indistinguishable. Null sorts last, because "not measurable" is not "nearly there".
+  closeness: number | null;
+}
+
 export interface Decision {
   action: Action;
   /// At most two short lines, plain words.
@@ -157,6 +197,13 @@ export interface Decision {
   measured: string;
   /// Which gate decided, for the audit page and for tests. Not shown to the reader.
   gate: string;
+  /// A direction forming behind an incomplete set of conditions. Null unless that is the state.
+  ///
+  /// Only ever set alongside `action: "WAIT"`, and a reader must never see it as a verdict. It is
+  /// set at the fall-through gate and nowhere else: a name held back by a stale close or a silent
+  /// source is not developing, it is unmeasured, and a name held back by peers arguing the other
+  /// way has already been given its reason.
+  developing: Developing | null;
 }
 
 function daysBetween(fromISO: string, toISO: string): number {
@@ -295,7 +342,13 @@ function secondLine(setup: Direction, horizon: Direction): string {
   return "Longer view does not disagree.";
 }
 
-function wait(input: DecisionInput, gate: string, why: string[], missing: string[]): Decision {
+function wait(
+  input: DecisionInput,
+  gate: string,
+  why: string[],
+  missing: string[],
+  developing: Developing | null = null,
+): Decision {
   return {
     action: "WAIT",
     why: why.slice(0, 3),
@@ -306,6 +359,67 @@ function wait(input: DecisionInput, gate: string, why: string[], missing: string
     missing,
     measured: measuredLine(input),
     gate,
+    developing,
+  };
+}
+
+/// The developing read, or null when nothing is forming.
+///
+/// Built from three facts already in the input and no new arithmetic: the withheld trend
+/// direction, the stored volume ratio against `VOLUME_CONFIRMS_AT`, and the stored analog lean.
+/// Each absent confirmation is named with its own value, so "waiting on volume" never stands in
+/// for "there is no volume published" — rule 21, three values and not one.
+function developingRead(input: DecisionInput): Developing | null {
+  const trend = input.setup?.trend ?? null;
+  if (trend !== "up" && trend !== "down") return null;
+
+  const waitingOn: string[] = [];
+  const distances: number[] = [];
+
+  const vol = input.volumeRatio;
+  if (vol === null || vol === undefined) {
+    // Not a shortfall and not progress towards one. An FX pair has no consolidated tape at all,
+    // so this is a fact about the instrument rather than a quiet session.
+    waitingOn.push("No volume is published for this name, so activity cannot confirm it.");
+  } else if (vol < VOLUME_CONFIRMS_AT) {
+    waitingOn.push(
+      `Volume is ${vol.toFixed(2)}x its own 20-session average; ${VOLUME_CONFIRMS_AT}x would confirm.`,
+    );
+    distances.push(vol / VOLUME_CONFIRMS_AT);
+  }
+
+  const analog = analogConfirms(input, trend);
+  if (analog === null) {
+    const n = input.analogs?.count ?? 0;
+    waitingOn.push(
+      n >= ANALOGS_CONFIRM_MIN
+        ? `${n} similar past days are stored but their lean was not recorded.`
+        : `Only ${n} similar past days are stored; ${ANALOGS_CONFIRM_MIN} are needed.`,
+    );
+    if (n > 0 && n < ANALOGS_CONFIRM_MIN) distances.push(n / ANALOGS_CONFIRM_MIN);
+  } else if (analog === false) {
+    waitingOn.push("Similar past days lean the other way.");
+  }
+
+  const rel = input.relStrength;
+  if (rel === null || rel === undefined) {
+    waitingOn.push("No peer comparison stored, so relative strength cannot confirm it.");
+  } else if ((trend === "up" && rel < 0) || (trend === "down" && rel > 0)) {
+    waitingOn.push(
+      `It is ${Math.abs(rel).toFixed(1)} points ${trend === "up" ? "behind" : "ahead of"} its peers over 20 sessions.`,
+    );
+  }
+
+  // Everything present and agreeing is not a developing read -- it is a row `jobs/setup.py` held
+  // back for a condition this rule table does not score, and saying "waiting on nothing" would
+  // be the panel claiming to know why when it does not.
+  if (!waitingOn.length) return null;
+
+  return {
+    direction: trend,
+    would: trend === "up" ? "LONG" : "SHORT",
+    waitingOn,
+    closeness: distances.length ? Math.max(...distances) : null,
   };
 }
 
@@ -423,6 +537,8 @@ export function decide(input: DecisionInput): Decision {
       ],
       measured: measuredLine(input),
       gate: "long",
+      // A printed direction is not developing; it has arrived.
+      developing: null,
     };
   }
   if (setup === "down" && horizon !== "up") {
@@ -443,6 +559,8 @@ export function decide(input: DecisionInput): Decision {
       ],
       measured: measuredLine(input),
       gate: "short",
+      // A printed direction is not developing; it has arrived.
+      developing: null,
     };
   }
 
@@ -493,15 +611,26 @@ export function decide(input: DecisionInput): Decision {
   // could not find. What changes is only that the reader is told which of the two situations they
   // are in. Which condition failed is already stored in the setup's own headline and printed
   // under Details.
+  // The withheld direction, named. This is the one gate where a developing read belongs: the
+  // conditions are incomplete, which is exactly what "forming" means, and every gate above
+  // either found a data fault or found a reason that argues against the direction.
+  const developing = developingRead(input);
+
   return wait(
     input,
     "incomplete",
-    setup === "flat"
+    developing
       ? [
-          "A direction is showing, but not all the conditions behind it are present.",
-          "So nothing is acted on yet.",
+          `A ${developing.direction === "up" ? "rising" : "falling"} trend is in place, so this is a potential ${developing.would}.`,
+          `Not acted on yet: ${developing.waitingOn[0]}`,
         ]
-      : ["There is no clear direction to measure.", "Price is between its own averages."],
+      : setup === "flat"
+        ? [
+            "A direction is showing, but not all the conditions behind it are present.",
+            "So nothing is acted on yet.",
+          ]
+        : ["There is no clear direction to measure.", "Price is between its own averages."],
     absent,
+    developing,
   );
 }

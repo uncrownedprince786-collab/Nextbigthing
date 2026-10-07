@@ -154,7 +154,7 @@ test("a full bundle maps to an actionable input", () => {
   assert.equal(input.market, "US");
   assert.equal(input.asOf, "2026-10-02");
   assert.equal(input.lastClose, 97);
-  assert.deepEqual(input.setup, { direction: "up", horizon: "swing" });
+  assert.deepEqual(input.setup, { direction: "up", horizon: "swing", trend: null });
   assert.deepEqual(input.horizon, { direction: "up" });
   assert.deepEqual(input.entry, { low: 94, high: 100 });
   assert.equal(input.invalidation, 94);
@@ -413,7 +413,7 @@ function row(over: Partial<QueryRow> = {}): QueryRow {
 test("a home page row decides the same way a full bundle would", () => {
   const input = toDecisionInput(bundleFromRow(row(), []), "2026-10-03");
   assert.equal(input.market, "PSX");
-  assert.deepEqual(input.setup, { direction: "down", horizon: "swing" });
+  assert.deepEqual(input.setup, { direction: "down", horizon: "swing", trend: null });
   assert.deepEqual(input.entry, { low: 94, high: 100 });
   assert.equal(decide(input).action, "SHORT");
 });
@@ -510,7 +510,7 @@ test("the longer row cannot be both the setup and its own confirmation", () => {
     ),
     "2026-10-03",
   );
-  assert.deepEqual(input.setup, { direction: "up", horizon: "longer" });
+  assert.deepEqual(input.setup, { direction: "up", horizon: "longer", trend: null });
   // Null, not { direction: "up" }: it would otherwise agree with itself and be graded as two
   // timeframes lining up.
   assert.equal(input.horizon, null);

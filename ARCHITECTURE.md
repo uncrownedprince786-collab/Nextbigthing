@@ -20,7 +20,7 @@ This file is the honest version. `brain.md` is the working brain; this is the ma
 | L7 Causal / systems | DAGs, mechanisms | — | **absent** |
 | L8 Historical analog | distance, similarity, top-K | `jobs/analogs.py` | **built** — tolerance-based, not kernel-weighted |
 | L9 Hypothesis engine | competing H, posterior odds | `jobs/attribution.py` + `jobs/investigate.py`: market / sector / specific / news, with measured base-rate priors and evidence for and against each | **partial** — hypotheses, priors and evidence stored; posteriors blocked on matured outcomes |
-| L10 Attention / signal | multi-dimensional priority | "What matters now" ordered by robust surprise, the catalyst radar, and the one-step neighbourhood | **partial** — three dimensions, no Pareto front |
+| L10 Attention / signal | multi-dimensional priority | "What matters now" ordered by robust surprise, the catalyst radar, the one-step neighbourhood, and the developing list ordered by distance from the condition that would confirm it | **partial** — four dimensions, no Pareto front |
 | L11 Outcome engine | measure what followed | `SignalLog` at 1/5/30/60d, `jobs/accuracy.py` | **built** |
 | L12 Learning + calibration | Brier, log loss, reliability | `jobs/audit.py`, `Calibration`, `SourceReliability` | **built** — mechanism live, data immature |
 | L13 Self-audit | coverage, blindness, health | `jobs/audit.py`, `Coverage`, `jobs/stats.py` | **built** |

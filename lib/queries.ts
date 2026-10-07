@@ -863,6 +863,11 @@ export type DecisionSetup = {
   confidence: string;
   periodEnd: Date;
   headline: string;
+  /// The condition read `jobs/setup.py` wrote, verbatim. Carried because the trend verdict
+  /// inside it is the only record of which way a withheld direction pointed, and a `wait` row
+  /// without it is a row that knows a direction and cannot say it. Parsed by
+  /// `lib/setupConditions.ts`, never read as prose.
+  conditions: string;
 };
 
 /// What is *stored* about one asset, which is not the same thing as what the home page shows.
@@ -1089,6 +1094,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
             state: true,
             entryLevel: true,
             invalidateLevel: true,
+            conditions: true,
             confidence: true,
             periodEnd: true,
             headline: true,
@@ -1166,6 +1172,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       confidence: row.confidence,
       periodEnd: row.periodEnd,
       headline: row.headline,
+      conditions: row.conditions,
     };
   };
 
