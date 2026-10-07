@@ -655,3 +655,87 @@ reads rows that already exist:
     dropped in between with nothing failing — exactly as `medianPct` and `positive` were. An
     optional field cannot fail to exist, so the guard is a test that a developing read survives
     the seam, not the type.
+
+41. **Rule 28 applies to the daily lane too, and a schedule is not a substitute for it.**
+    "An unfinished period is not an observation of that period" was written for the intraday
+    quote API and enforced only there. The daily lane broke it for months in plain sight.
+    `cron-us-prices` fetched at 13:50 and 19:50 UTC into a session running 13:30-20:00, and at
+    `interval=1d` the provider returns the day in progress as an ordinary bar whose close is
+    really the last trade. So the bar stored as the day's close was a part-day, every day.
+
+    It surfaced three steps away and looked nothing like a clock problem. Measured 2026-10-07:
+    AAPL's bar for the day held 8.0M shares against 30-50M on each neighbouring day, and across
+    155 US names the newest bar's volume ran at a **median of 0.21x its own 20-session average**
+    against the 1.2x `VOLUME_CONFIRMS_AT` asks for. The volume leg of every US setup failed,
+    `setup.py` withheld the direction, and the rule table answered WAIT under `incomplete` for 90
+    of 155. PSX read 0.84x the same day, because its closing file is only ever written after its
+    own bell — **the control that identified the cause**, and the reason to always look for a
+    population that should behave the same and does not.
+
+    Three things this fixes, in the order they matter:
+
+    - **The guard, not the schedule.** `forming_sessions` asks the chart endpoint — which carries
+      session metadata, where `yf.download` does not — for one symbol per asset type, and
+      `_store_frame` drops a bar for a session that has not closed. One probe per type because
+      the session is a property of the exchange's calendar, not of the instrument. A failed probe
+      stores everything rather than nothing: a guard against writing a bad bar must not also be
+      able to stop the lane writing good ones.
+    - **Both inputs to "has it closed" are untrustworthy alone, and the live data showed each
+      failing.** The session's day must come from the exchange's own `gmtoffset`, not the UTC
+      date of its start — `AUDUSD=X` runs 2026-10-06T23:00Z to 2026-10-07T22:59Z, which is the
+      London day 10-07 and the day the bar is stamped, so a UTC reading drops a finished bar and
+      keeps the forming one. And `regularMarketTime` cannot be trusted by itself: `HUBC.KA`
+      returned a session ending 2026-10-07T11:00Z with a marker of **2024-07-23**, which read as
+      progress would say "still trading" for ever and silently stop storing that venue's closes.
+      A marker is progress only while it sits inside the session it describes.
+    - **Being after the price lane is not being after the close.** `cron-decision` ran at 15:10
+      and said so in a comment: "after the 13:50 US price chunks, so the run reads a day whose
+      closes have landed". Both clauses were true of the ordering and false of the data. Prices
+      now fetch post-close at 21:50, which clears 20:00 on daylight time and 21:00 on standard
+      time with one slot and no DST table, and the decision moved to 22:10.
+
+    The mirror image, found the same day and worth stating beside it: PSX had **one** attempt at
+    12:40 UTC on a stated margin that was not there. The file for 10-07 was absent at 18:40 and
+    present when fetched by hand at 19:10, so the day's close was only ever picked up by the next
+    day's run. Invisible twice over — `psx.py` backfills recent sessions, so the gap closed itself
+    a day late and the table always read complete, and `STALE_AFTER_DAYS.PSX` is 6, so a close one
+    day late trips nothing. Three attempts now, the 20:40 one being the one that matters.
+
+    Both ordering constraints are tests that fail on the old schedules. A sentence in a workflow
+    header is not a constraint; this lane has now taught that twice.
+
+42. **A threshold compared against a skewed mean is a different threshold in every market.**
+    Rule 39 fixed *which* sessions the baseline is drawn from. This is the same class of fault in
+    *what the baseline is*. `volume_ratio` divided by the mean of its window, and volume's skew is
+    one sided — a session can be five times normal and cannot be below zero — so the mean sits
+    above the typical session in essentially every window.
+
+    Measured over 15,411 asset-sessions, every non-FX asset across its last 60 complete sessions,
+    as the median of all the ratios produced:
+
+        market        by mean   by median
+        PSX             0.614       0.827
+        Commodity       0.756       1.003
+        US              0.874       0.955
+        Crypto          0.931       1.063
+
+    The bias is the smaller half. The larger half is that it is **uneven**, so one constant did
+    not mean one thing: `VOL_ACTIVE` at 1.2 asked a Karachi name for roughly twice its typical
+    session and a coin for roughly 1.3 times its own, and nothing anywhere said so. A threshold
+    whose strictness depends on which market it lands in cannot be reasoned about from reading its
+    own constant — and this one is a third of `setup.py`'s confirmations and half of what
+    separates High from Medium.
+
+    Against the median the centre lands between 0.83 and 1.06 everywhere, so 1.2x means about
+    twenty percent busier than a typical session in every market, which is what the constant
+    always claimed. Pooled, the share of sessions clearing it goes from 20% to 29%: a correction,
+    not a loosening, because those sessions were always above a typical day and were being divided
+    by a denominator no typical day could reach.
+
+    `jobs/analogs.py` keeps its own mean-based ratio deliberately — that one is a similarity key
+    for matching one past day to another, not a judgement about whether a session was busy.
+
+    The general form, and the fourth instance in this repository: **check what a number is divided
+    by, sorted by and timed against before concluding a source is silent.** Rule 9, rule 39, the
+    news lane's relevance ordering, and now the volume denominator. Every one of them reported
+    success honestly while being wrong.
