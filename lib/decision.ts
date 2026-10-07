@@ -49,6 +49,27 @@ export type Confidence = "High" | "Medium" | "Low";
 /// the web layer's imports.
 export const CONFIDENCE_ORDER: Record<Confidence, number> = { High: 0, Medium: 1, Low: 2 };
 export type Direction = "up" | "down" | "flat" | "unknown";
+
+/// Why a WAIT is a WAIT, which is the one distinction a reader cannot afford to have blurred.
+///
+/// Two completely different sentences have been reaching the page under the same word:
+///
+///   **"file"**     we do not have the measurement. No close is stored, the venue answered
+///                  nothing, the close is too old to describe the present, no setup row exists,
+///                  the news was never checked. Nothing has been judged, and the honest reading
+///                  is "unknown", not "weak".
+///   **"evidence"** we have the measurement and it does not support acting. The trend is there
+///                  and volume is ordinary; the two timeframes disagree; the peers argue the
+///                  other way; price sits between its own averages. Something was judged, and
+///                  the answer was no.
+///
+/// A professional reading an incomplete file says "I cannot tell yet". A professional reading a
+/// complete file that does not confirm says "the case is not there". Printing both as a grey
+/// WAIT with Low beside it tells the reader neither, and tells them the second one when the
+/// truth is the first — which overstates how much the system actually knows.
+///
+/// Null on a LONG or a SHORT: a direction was produced, so nothing was withheld.
+export type WaitBasis = "file" | "evidence";
 export type Market = "US" | "PSX" | "Crypto" | "FX" | "Commodity" | "Other";
 
 /// How old a close may be before the panel refuses to act on it, per market, in calendar days.
@@ -220,6 +241,9 @@ export interface Decision {
   measured: string;
   /// Which gate decided, for the audit page and for tests. Not shown to the reader.
   gate: string;
+  /// Whether this WAIT is missing a measurement or holding a measurement that does not confirm.
+  /// Null on a direction. See `WaitBasis` -- this is the distinction the UI copy must preserve.
+  basis: WaitBasis | null;
   /// A direction forming behind an incomplete set of conditions. Null unless that is the state.
   ///
   /// Only ever set alongside `action: "WAIT"`, and a reader must never see it as a verdict. It is
@@ -322,7 +346,21 @@ function confirmMissing(input: DecisionInput, direction: "up" | "down"): string[
     const a = input.analogs;
     const n = a?.count ?? 0;
     if (!a || n === 0) {
-      out.push("No similar past days stored, so nothing measures what usually followed.");
+      // A fourth absence, and the one that reads most wrongly. "No similar past days stored"
+      // sounds like history still being collected. When there is no volume ratio it is neither
+      // collected nor collectable: `jobs/analogs.py` matches on a volume ratio among its three
+      // factors and treats a missing one as "not a match", so no day can match another however
+      // long the series grows. Measured 2026-10-07: all 27 currency pairs hold zero analogs,
+      // because FX publishes no volume at any venue, while every other class is near-complete.
+      //
+      // The sentence names the mechanism and stops there. `volumeRatio` is also null when the
+      // baseline was too thin to divide by, which is a different and temporary reason, so this
+      // must not say the venue publishes none -- that is true of a pair and false of a share.
+      out.push(
+        input.volumeRatio === null
+          ? "No similar past days can be matched without a volume ratio, and none is stored for this name."
+          : "No similar past days stored, so nothing measures what usually followed.",
+      );
     } else if (n < ANALOGS_CONFIRM_MIN) {
       out.push(`Only ${n} similar past days stored; ${ANALOGS_CONFIRM_MIN} are needed to confirm.`);
     } else {
@@ -371,6 +409,7 @@ function secondLine(setup: Direction, horizon: Direction): string {
 function wait(
   input: DecisionInput,
   gate: string,
+  basis: WaitBasis,
   why: string[],
   missing: string[],
   developing: Developing | null = null,
@@ -385,6 +424,7 @@ function wait(
     missing,
     measured: measuredLine(input),
     gate,
+    basis,
     developing,
   };
 }
@@ -452,7 +492,7 @@ function developingRead(input: DecisionInput): Developing | null {
 export function decide(input: DecisionInput): Decision {
   // 1. Nothing stored. The reader gets the name of what is absent, not an empty panel.
   if (input.asOf === null || input.lastClose === null) {
-    return wait(input, "no-prices", [`No stored prices for ${input.symbol}.`], [
+    return wait(input, "no-prices", "file", [`No stored prices for ${input.symbol}.`], [
       `No price series stored for ${input.symbol}.`,
     ]);
   }
@@ -462,7 +502,7 @@ export function decide(input: DecisionInput): Decision {
   const age = daysBetween(input.asOf, input.today);
   const limit = STALE_AFTER_DAYS[input.market];
   if (Number.isNaN(age)) {
-    return wait(input, "bad-date", ["Stored date cannot be read."], [
+    return wait(input, "bad-date", "file", ["Stored date cannot be read."], [
       `Newest close date for ${input.symbol} is not a readable date.`,
     ]);
   }
@@ -470,6 +510,7 @@ export function decide(input: DecisionInput): Decision {
     return wait(
       input,
       "stale",
+      "file",
       [`Data stale: newest close ${input.asOf}, ${age} days old.`],
       [`Close for ${input.symbol} is ${age} days old; this market allows ${limit}.`],
     );
@@ -478,7 +519,7 @@ export function decide(input: DecisionInput): Decision {
   // 3. A silent source. Named, because "no data" and "Binance answered nothing" send the reader to
   //    two different places.
   if (input.sourceSilent) {
-    return wait(input, "source-silent", [`${input.sourceSilent} answered nothing.`], [
+    return wait(input, "source-silent", "file", [`${input.sourceSilent} answered nothing.`], [
       `${input.sourceSilent} returned no rows on the last run.`,
     ]);
   }
@@ -486,7 +527,7 @@ export function decide(input: DecisionInput): Decision {
   // 4. No break level. Without one there is nothing to be wrong against, and an action with no
   //    invalidation is the kind this panel refuses to print.
   if (input.invalidation === null) {
-    return wait(input, "no-invalidation", ["No break level computed yet."], [
+    return wait(input, "no-invalidation", "file", ["No break level computed yet."], [
       `No invalidation level stored for ${input.symbol}.`,
     ]);
   }
@@ -500,6 +541,7 @@ export function decide(input: DecisionInput): Decision {
     return wait(
       input,
       "mixed-horizons",
+      "evidence",
       [`Mixed horizons: setup is ${setup}, longer view is ${horizon}.`],
       [],
     );
@@ -509,9 +551,19 @@ export function decide(input: DecisionInput): Decision {
   //    means the cause is not in yet.
   const newsThin = input.newsCount === null || input.newsCount < THIN_NEWS_BELOW;
   if (input.unusualMove && newsThin) {
-    const line =
-      input.newsCount === null ? "Unusual move and news not checked." : "Unusual move and news thin.";
-    return wait(input, "unexplained-move", [line, "No published reason for the move yet."], []);
+    // The gate that is genuinely both, and the only honest way to tell them apart is the one
+    // thing the input already knows: whether the news was ever looked at. A null count means no
+    // feed answered for this name, so nothing was weighed -- the file is open. A count below the
+    // threshold means the feeds answered and there was little there, which is a measurement.
+    const checked = input.newsCount !== null;
+    const line = checked ? "Unusual move and news thin." : "Unusual move and news not checked.";
+    return wait(
+      input,
+      "unexplained-move",
+      checked ? "evidence" : "file",
+      [line, "No published reason for the move yet."],
+      checked ? [] : [`No news has been collected for ${input.symbol}, so none was weighed.`],
+    );
   }
 
   // 7. The peers argue the other way. A name up while its industry is up far more is being
@@ -524,6 +576,7 @@ export function decide(input: DecisionInput): Decision {
       return wait(
         input,
         "peers-against",
+        "evidence",
         [
           `Setup is up but the name is ${Math.abs(rel).toFixed(1)} points behind its peers.`,
           "It is being carried rather than leading.",
@@ -535,6 +588,7 @@ export function decide(input: DecisionInput): Decision {
       return wait(
         input,
         "peers-against",
+        "evidence",
         [
           `Setup is down but the name is ${rel.toFixed(1)} points ahead of its peers.`,
           "It is holding up better than the group it trades with.",
@@ -563,6 +617,8 @@ export function decide(input: DecisionInput): Decision {
       ],
       measured: measuredLine(input),
       gate: "long",
+      // A direction was produced, so nothing was withheld and there is no basis to report.
+      basis: null,
       // A printed direction is not developing; it has arrived.
       developing: null,
     };
@@ -585,6 +641,7 @@ export function decide(input: DecisionInput): Decision {
       ],
       measured: measuredLine(input),
       gate: "short",
+      basis: null,
       // A printed direction is not developing; it has arrived.
       developing: null,
     };
@@ -642,20 +699,40 @@ export function decide(input: DecisionInput): Decision {
   // either found a data fault or found a reason that argues against the direction.
   const developing = developingRead(input);
 
+  // Whether this fall-through is an open file or a closed one, and the two need different words.
+  //
+  // `input.setup` is null when no setup row exists for this asset at all -- the job has not
+  // reached it, or could not measure it. Nothing was judged. The sentence this gate used to print
+  // in that case was **"There is no clear direction to measure. Price is between its own
+  // averages."**, which is a statement about where the price sits relative to measurements that
+  // were never taken. It reads as a finished reading and it is an empty file, which is the exact
+  // confusion this basis field exists to end.
+  //
+  // With a setup row, the gate is evidence: the job looked, and either withheld a direction whose
+  // conditions were incomplete (`wait` -> flat) or found the price between its own averages
+  // (`none` -> unknown). Both of those are measurements that came back negative.
+  const measured = input.setup !== null;
+
   return wait(
     input,
     "incomplete",
+    measured ? "evidence" : "file",
     developing
       ? [
           `A ${developing.direction === "up" ? "rising" : "falling"} trend is in place, so this is a potential ${developing.would}.`,
           `Not acted on yet: ${developing.waitingOn[0]}`,
         ]
-      : setup === "flat"
+      : !measured
         ? [
-            "A direction is showing, but not all the conditions behind it are present.",
-            "So nothing is acted on yet.",
+            `No setup has been measured for ${input.symbol} yet.`,
+            "Nothing is being judged here: this is missing data, not a weak reading.",
           ]
-        : ["There is no clear direction to measure.", "Price is between its own averages."],
+        : setup === "flat"
+          ? [
+              "A direction is showing, but not all the conditions behind it are present.",
+              "So nothing is acted on yet.",
+            ]
+          : ["There is no clear direction to measure.", "Price is between its own averages."],
     absent,
     developing,
   );

@@ -283,7 +283,9 @@ test("a direction still prints when nothing confirms it, and says so", () => {
   assert.equal(d.confidence, "Low");
   assert.match(d.why[2], /Nothing further confirms it/);
   assert.ok(d.missing.some((m) => /No volume published/.test(m)));
-  assert.ok(d.missing.some((m) => /No similar past days/.test(m)));
+  // With no volume ratio the analog absence is not "still collecting": the matcher needs one,
+  // so nothing can ever match. The line says the mechanism without claiming why it is missing.
+  assert.ok(d.missing.some((m) => /No similar past days can be matched without a volume ratio/.test(m)));
 });
 
 test("a name far behind its peers does not read LONG", () => {

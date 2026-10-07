@@ -139,10 +139,25 @@ FOR_DAYS = 28
 
 
 def main() -> None:
+    # Two different dates, and conflating them is how a row comes to describe a day that never
+    # traded. `today` is the calendar, and only the event lookups below may use it: "what is
+    # scheduled from here on" is a question about now, not about the last session.
+    #
+    # `period_end` is the session these conditions were measured over, and it is the newest close
+    # actually stored. `jobs/factors.py` already states the rule in `session_end`: "Today's date is
+    # the wrong anchor: the job runs before a close on a holiday and on a weekend, and dating a row
+    # to a day with no session in it would make `periodEnd` a claim about a day nothing was
+    # measured on." That file obeys it and this one did not.
+    #
+    # Measured 2026-10-07: every close, factor and decision was dated 10-07 while every swing setup
+    # read 10-08, because this job ran from a UTC+5 host after 19:00 UTC and `date.today()` had
+    # already rolled. The rows described 10-07 closes under tomorrow's date. On a UTC runner it
+    # goes wrong less often and in the same way -- every weekend and every holiday.
     today = date.today()
     conn = db()
     cur = conn.cursor()
     try:
+        period_end = one(cur, 'SELECT max(date) AS d FROM "PriceSnapshot"')["d"] or today
         assets = rows(
             cur, 'SELECT id, symbol, name, "industryId" FROM "Asset" ORDER BY symbol'
         )
@@ -454,7 +469,7 @@ def main() -> None:
                     "confidenceNote" = EXCLUDED."confidenceNote", "computedAt" = now()
                 """,
                 (
-                    a["id"], today, HORIZON, state, head,
+                    a["id"], period_end, HORIZON, state, head,
                     " | ".join(conds), " | ".join(missing) or "none", " | ".join(against) or "none",
                     entry, entry_note, invalid, invalid_note,
                     range_note, grade, "; ".join(note_bits).capitalize() or None, RULES,

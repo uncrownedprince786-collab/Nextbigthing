@@ -165,6 +165,47 @@ class ToneDenominator(unittest.TestCase):
         self.assertEqual(human.NEUTRAL_BAND, 0.15)
 
 
+class PeriodAnchors(unittest.TestCase):
+    """A row describing a session carries that session's date, not the machine's.
+
+    `jobs/factors.py` states the rule in `session_end` and obeys it: "Today's date is the wrong
+    anchor: the job runs before a close on a holiday and on a weekend, and dating a row to a day
+    with no session in it would make `periodEnd` a claim about a day nothing was measured on."
+
+    `jobs/setup.py` did not. Measured 2026-10-07: every close, factor and decision was dated 10-07
+    while all 272 swing setups read **10-08**, because the job ran from a UTC+5 host after 19:00
+    UTC and `date.today()` had already rolled. The rows described 10-07 closes under tomorrow's
+    date, and `jobs/thesis.py` copied that date onto 11 theses. On a UTC runner the same bug fires
+    every weekend and every holiday instead -- less often, and in exactly the same way.
+    """
+
+    def test_setup_dates_its_rows_from_the_newest_close(self):
+        src = (ROOT / "jobs" / "setup.py").read_text(encoding="utf-8")
+        # The row's own date comes from the stored series.
+        self.assertIn(
+            'SELECT max(date) AS d FROM "PriceSnapshot"', src,
+            "setup.py no longer anchors periodEnd to a session that exists",
+        )
+        self.assertIn("period_end", src)
+        # And the INSERT uses it rather than the calendar.
+        insert = src[src.index('INSERT INTO "AssetSetup"'):]
+        head = insert[: insert.index("RULES")]
+        self.assertIn("period_end", head, "the AssetSetup insert is not using the session date")
+        self.assertNotIn(
+            'a["id"], today, HORIZON', src,
+            "the AssetSetup insert is stamping rows with the machine's calendar date",
+        )
+
+    def test_setup_still_reads_the_calendar_for_things_ahead(self):
+        # The other half, and the reason this is two variables rather than one rename: "what is
+        # scheduled from here on" is a question about now. Dating an event lookup to the last
+        # close would hide an event that falls between that close and today.
+        src = (ROOT / "jobs" / "setup.py").read_text(encoding="utf-8")
+        self.assertIn("today = date.today()", src)
+        self.assertIn("e.date >= %s", src)
+        self.assertIn('(a["id"], today)', src, "the event lookup should still use the calendar")
+
+
 class VolumeBaseline(unittest.TestCase):
     """"Is this session busier than usual" has to be measured against a typical session.
 

@@ -4,6 +4,7 @@ import {
   AsOf,
   Card,
   ConfidenceBadge,
+  WaitBasisChip,
   Empty,
   HowToRead,
   Note,
@@ -248,6 +249,9 @@ function WaitCard({ item }: { item: Scored }) {
         <span className="flex flex-wrap items-center gap-2">
           <Pill tone="default">{market}</Pill>
           <Pill tone="warn">WAIT</Pill>
+          {/* Why it is a WAIT, which the grade alone cannot say: "Low" reads as a weak judgement
+              even when nothing was judged at all. */}
+          <WaitBasisChip basis={decision.basis} />
           <ConfidenceBadge grade={decision.confidence.toLowerCase()} />
         </span>
       </div>

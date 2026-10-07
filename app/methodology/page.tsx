@@ -284,6 +284,55 @@ export default async function MethodologyPage() {
       </Section>
 
       <Section
+        title="Two kinds of WAIT, and why they are labelled apart"
+        lead="A WAIT because a measurement is missing is not a WAIT because the measurement came back unconvincing. Every WAIT on this site now says which, because reading one as the other overstates what is known."
+      >
+        <Table
+          minWidth="680px"
+          head={
+            <>
+              <th className="px-3 py-2 font-medium">Label</th>
+              <th className="px-3 py-2 font-medium">What it means</th>
+              <th className="px-3 py-2 font-medium">Which gates</th>
+            </>
+          }
+        >
+          <tr>
+            <td className="px-3 py-2 align-top whitespace-nowrap">NOT MEASURED</td>
+            <td className="px-3 py-2 align-top">
+              A measurement this reading needs is absent, so nothing has been judged. The honest
+              reading is &ldquo;unknown&rdquo;, not &ldquo;weak&rdquo;.
+            </td>
+            <td className="text-muted-foreground px-3 py-2 align-top">
+              no stored prices &middot; unreadable date &middot; the venue answered nothing &middot;
+              no break level computed &middot; close too old to describe the present &middot; an
+              unusual move with no news collected &middot; no setup row stored at all
+            </td>
+          </tr>
+          <tr>
+            <td className="px-3 py-2 align-top whitespace-nowrap">NO CONFIRMATION</td>
+            <td className="px-3 py-2 align-top">
+              The measurements exist and do not support acting. Something was judged, and the
+              answer was no.
+            </td>
+            <td className="text-muted-foreground px-3 py-2 align-top">
+              the two timeframes disagree &middot; the peers argue the other way &middot; an unusual
+              move with news collected and thin &middot; a direction withheld because its conditions
+              are incomplete &middot; price between its own averages
+            </td>
+          </tr>
+        </Table>
+        <Note>
+          The worst case this fixes was in the fall-through gate. With no setup row stored at all,
+          the page printed &ldquo;There is no clear direction to measure. Price is between its own
+          averages.&rdquo; &mdash; a statement about where the price sits relative to averages that
+          had never been computed. It read as a finished reading and it was an empty file. A
+          directional call carries no label here, because a direction was produced and nothing was
+          withheld.
+        </Note>
+      </Section>
+
+      <Section
         title="For the coming week — how a name reaches that block"
         lead="The block at the top of the overview exists to put the week's confirmed names and their three levels in one place before the week starts. It is a filter over the lists below it, never a second opinion: every name in it is already published as LONG or SHORT by the rule above. This says what is removed, how the rest is ordered, and where the exit level comes from."
       >

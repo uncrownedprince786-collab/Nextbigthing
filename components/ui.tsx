@@ -146,6 +146,44 @@ const CONFIDENCE_COPY: Record<Confidence, { label: string; tone: string; title: 
 /// The badge is deliberately not a `<details>`: several call sites render it inside a
 /// `<Link>`, and a disclosure control nested in an anchor is invalid markup whose toggle
 /// would navigate instead of opening.
+/// Why a WAIT is a WAIT, in two words beside it.
+///
+/// The distinction the rest of the site exists to preserve, rendered once so home, the weekly
+/// block and the asset panel cannot drift into three wordings. A reader seeing a grey WAIT with
+/// "Low" beside it is told the system weighed something and was unconvinced. Half the time that
+/// is false: nothing was weighed, because the measurement is absent. Saying which costs two words
+/// and is the difference between "we do not know" and "we looked and the case is not there".
+///
+/// Deliberately not toned as a warning. A missing measurement is not a bad outcome, it is an
+/// unknown one, and colouring it red would make an empty file read as a negative verdict -- the
+/// same conflation from the other side.
+export function WaitBasisChip({ basis }: { basis: "file" | "evidence" | null }) {
+  if (!basis) return null;
+  const copy =
+    basis === "file"
+      ? {
+          label: "NOT MEASURED",
+          title:
+            "A measurement this reading needs is absent, so nothing has been judged. This is a gap in the data, not a weak reading.",
+          tone: "text-muted-foreground border-border",
+        }
+      : {
+          label: "NO CONFIRMATION",
+          title:
+            "The measurements exist and do not support acting. Something was judged, and the answer was no.",
+          tone: "text-warn border-warn/30 bg-warn-bg",
+        };
+  return (
+    <span
+      title={copy.title}
+      aria-label={`${copy.label}: ${copy.title}`}
+      className={`inline-block rounded-full border px-2 py-1 text-micro leading-4 sm:py-0.5 ${copy.tone}`}
+    >
+      {copy.label}
+    </span>
+  );
+}
+
 export function ConfidenceBadge({
   grade,
   className = "",

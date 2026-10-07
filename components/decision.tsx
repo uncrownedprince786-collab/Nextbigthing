@@ -2,7 +2,9 @@ import * as React from "react";
 import { price, relativeTime } from "@/lib/format";
 import type { Action, Confidence, Decision, Market, TimeSense } from "@/lib/decision";
 import type { ProductDecision, WhereToCheck } from "@/lib/productDecision";
-import { AsOf, Card, ConfidenceBadge, Empty, Note, Pill, Section } from "@/components/ui";
+import {
+  AsOf, Card, ConfidenceBadge, Empty, Note, Pill, Section, WaitBasisChip,
+} from "@/components/ui";
 import { gapLine } from "@/lib/reconcile";
 import { headlineOf } from "@/lib/newsRank";
 
@@ -218,6 +220,9 @@ export function DecisionPanel({
         </p>
         <span className="flex flex-wrap items-center gap-2">
           <Pill tone="default">{symbol}</Pill>
+          {/* Beside the grade, because the grade alone cannot carry it: "Low" reads as a weak
+              judgement whether or not anything was judged. This says which. */}
+          <WaitBasisChip basis={decision.basis} />
           <ConfidenceBadge grade={grade} />
           <AsOf date={asOf} />
         </span>
