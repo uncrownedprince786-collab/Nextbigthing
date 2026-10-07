@@ -70,6 +70,16 @@ export const STALE_AFTER_DAYS: Record<Market, number> = {
   // these venues keep the US holiday calendar, so a Thanksgiving or a Good Friday must not read
   // as a dead feed. Not looser either: unlike an equity a front-month future has no suspension
   // and no delisting to explain a missing day, and the contract itself rolls rather than stops.
+  //
+  // One consequence of "around the clock" that is worth stating, because it looks like a lag and
+  // is not. Measured 2026-10-07 on GC=F, Yahoo reports the session as **04:00 UTC to 03:59 UTC
+  // the following day** -- so a contract's bar for day D is not a finished session until the
+  // morning of D+1, and `forming_sessions` correctly refuses to store it before then. The
+  // decision lane runs at 22:10, so a commodity is normally read from the previous day's settle
+  // where an equity is read from today's. That is the same rule 41 trade every other market
+  // makes, arriving a day wider because the session is a day wide: the choice is between
+  // yesterday's real settle and today's unfinished one. 5 days of allowance absorbs it with room,
+  // which is part of why it is not tighter.
   Commodity: 5,
   Other: 5,
 };
