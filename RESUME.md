@@ -1,5 +1,79 @@
 # Resume here
 
+## 0. State of play, 2026-10-07 (seventh session) — read this first
+
+**Pushed, deployed, verified.** 424 Python tests, 177 web tests, build green, 273 verdicts
+re-derived with no contradiction.
+
+### Legs recovered, and what was structural
+
+| | crypto | forex |
+| --- | --- | --- |
+| volume | 2 of 27 pass | **0 — no venue publishes FX volume** |
+| relative | 24 of 27 pass | 16 of 27 pass, **0 unavailable (was 7)** |
+| news tone directional | 12 of 27 | 2 of 27 |
+| analogs stored | 27 of 27 | **0 — and never possible** |
+| directional verdicts | 1 | 2 |
+
+**Crypto's blocker is not a missing leg.** 22 of 27 coins have no aligned trend at all, which is a
+market condition. The recoverable fault was the forming UTC day: `fetch_crypto` stored the day in
+progress as a close, and `cron-crypto` runs every two hours, so at 02:05 UTC the "close" was two
+hours of trading. Guarded now.
+
+**Forex's two absences are structural and say so.** No venue publishes FX volume, and
+`jobs/analogs.py` cannot match a day without a volume ratio, so no pair can ever hold an analog
+set. The recoverable one was the peer reading: `fx-emerging` held 4 and `fx-europe` 3 against
+`MIN_PEERS = 5`, so 7 pairs had none. Merged into one group of 7 — the only repair that does not
+move a threshold, since 7 cannot split into two fives.
+
+**What that merge did is worth reading carefully: directional FX went 3 to 2.** USDTRY lost its
+LONG because the peer reading it gained argued against it at -1.6. More evidence withdraws a
+direction as readily as it confirms one, and a leg recovered is not a leg that agrees.
+
+**FX can reach Medium but not High, by construction.** Confidence counts timeframe agreement,
+volume and analogs; two of the three are permanently unavailable, so one confirmation is the
+ceiling. No pair has timeframe agreement today, which is why FX shows 0 Medium.
+
+### The analog floor, aligned
+
+`analogConfirms` asked `> 0.5` while `jobs/setup.py` has required `ANALOG_SHARE = 0.55` since it
+was written. 13 of 44 directional non-Low names rested on a share within five points of a coin
+flip. Aligned, with a test reading both files — the cross-language pair this file has listed as "a
+comment, not a constraint" for several sessions. It is a tightening and can only remove
+confirmations: High went 14 to 12.
+
+It also exposed a missing branch. `confirmMissing` spoke only when the analog set could not be
+*judged*; when it was judged and disagreed it said nothing, so a reader could not tell "not
+checked" from "checked, and it does not agree". Now printed with its numbers.
+
+### Exit if working, everywhere
+
+One rule in `lib/target.ts` — never averaged, method named, "no clear target stored" when the job
+wrote none — used by the asset panel, the home LONG/SHORT rows and the coming-week block, so three
+surfaces cannot quote one name three levels. Verified live on AAPL: $342.99 on all three.
+
+### The accuracy loop
+
+`matureRows` in `tools/decide.mjs` already measured moves; nothing scored them against the stated
+direction and stop. `tools/scorecard.py` is that half. **It writes nothing** — scores are derived
+on demand, so there is no second copy of the truth to drift.
+
+**At 5 sessions: 0 of 264 matured.** The log starts 2026-10-02. No rate is published and the tool
+says so. At 1 session: 197 matured, 98 right / 63 wrong / 34 stopped / 2 flat — and the tool prints
+that those are **78 distinct names over 4 sessions**, not 197 independent trials, and refuses any
+rate under 30 rows.
+
+### A trap worth knowing
+
+A local seed change was reverted once between two reads, and I could not establish what did it.
+`backfill.yml` triggers on `jobs/seed.py` changes but does not run seed. **Commit before relying on
+a local data change, and verify from a fresh process rather than the connection that wrote it.**
+
+### Not started
+
+**Phased pool expansion.** Left deliberately for a verified-green base rather than begun while a
+recompute was in flight.
+
 ## 0. State of play, 2026-10-07 (sixth session) — read this first
 
 **Committed and pushed; `main` and `master` current; production deployed and verified.**
