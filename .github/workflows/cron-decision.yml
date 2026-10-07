@@ -34,10 +34,23 @@ on:
     # second one is what a daily decision needs.
     #
     # 22:10 is after every input the lane reads:
-    #   PSX      closes 11:00 UTC, its file is fetched at 12:40
+    #   PSX      closes 11:00 UTC; its file is fetched at 12:40, 16:40 and 20:40, and the last
+    #            of those is what makes the day's close available to this run
     #   US       closes 20:00 UTC (21:00 on standard time), fetched post-close at 21:50
     #   crypto   continuous, written every two hours at minute 05
-    #   FX       continuous; the currency day rolls at 22:00 UTC, so 22:10 reads a closed one
+    #
+    # FX is the one exception, and it is stated rather than glossed. Measured on AUDUSD=X, Yahoo
+    # reports the currency session as 23:00 UTC to **22:59 UTC the next day**, so at 22:10 the
+    # current FX day has 49 minutes left to run and `forming_sessions` correctly refuses to store
+    # a bar for it. The decision therefore reads FX from its last *complete* day, and picks up the
+    # current one at 01:50 the following morning.
+    #
+    # That is the right trade and not a gap. A daily bar for a session still being traded is not a
+    # close -- which is the whole of rule 41 -- so the choice is between yesterday's real number
+    # and today's wrong one, and `STALE_AFTER_DAYS.FX` is 4, which this sits comfortably inside.
+    # Moving the lane past 22:59 to catch it is what does not work: derive takes up to 30 minutes
+    # and decide up to 15, so a 23:10 start finishes after midnight UTC, and `decide.mjs` stamps
+    # `periodEnd` from its own clock -- the rows would be dated a day after the closes they read.
     # Hour 22 is even, which this lane can afford where an ingest lane could not: it has its own
     # concurrency group and fetches nothing, so it competes with crypto and news for neither a
     # queue slot nor a provider. Minute 10 stays outside the four recurring minutes (05, 20, 35,
