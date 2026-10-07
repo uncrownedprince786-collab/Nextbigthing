@@ -18,12 +18,31 @@ name: cron us prices
 # would be 48.
 on:
   schedule:
-    # Minute 50, on odd hours 1/7/13/19. Odd hours keep this lane out of crypto's and news's
+    # Minute 50, on odd hours 1/7/13/21. Odd hours keep this lane out of crypto's and news's
     # even hours entirely, and minute 50 is the last of the four assigned minutes (crypto 05,
-    # news 20, audit 35, us-prices 50) so nothing starts at the same instant. 01:50 UTC is
-    # after the US close has settled, 13:50 is before the next open, and the other two are
-    # retries that cost one short job each.
-    - cron: "50 1,7,13,19 * * *"
+    # news 20, audit 35, us-prices 50) so nothing starts at the same instant.
+    #
+    # The hours are chosen against the exchange's actual clock, which this line had wrong. The
+    # NYSE and Nasdaq regular session is 09:30-16:00 New York, i.e. **13:30-20:00 UTC** on
+    # eastern daylight time and 14:30-21:00 UTC on standard time. The slot this replaces was
+    # 19, and the comment beside it read "13:50 is before the next open" -- 13:50 UTC is twenty
+    # minutes *after* the open, and 19:50 is ten minutes before the close. Both of the day's
+    # live slots sat inside the session.
+    #
+    # What that cost is in `_store_frame`: at `interval=1d` the provider returns the session in
+    # progress as an ordinary bar, so the fetch stored a part-day as the day's close. Measured
+    # 2026-10-07, AAPL's bar for the day held 8.0M shares against 30-50M on its neighbours, and
+    # across 155 US names the newest bar's volume ran at a median of 0.21x its own 20-session
+    # average -- against the 1.2x `VOLUME_CONFIRMS_AT` asks for. The volume leg of every US
+    # setup failed on the clock rather than on the market.
+    #
+    # `forming_sessions` now refuses to store a bar for a session that has not closed, so a run
+    # landing inside the session is harmless: it refreshes the correction window and leaves
+    # today alone. The schedule still has to give the day a post-close fetch, which is 21:50 --
+    # after the 20:00 close on daylight time and after the 21:00 close on standard time, so one
+    # slot covers the year without a DST table. 01:50 and 07:50 remain the overnight retries,
+    # 13:50 the intraday repair.
+    - cron: "50 1,7,13,21 * * *"
   workflow_dispatch:
 
 # Its own group. GitHub keeps only one pending run per group, so a shared group means a newer

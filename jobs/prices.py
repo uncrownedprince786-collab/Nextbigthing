@@ -379,8 +379,14 @@ def fetch_yahoo(cur, chunk: tuple[int, int] | None = None) -> int:
     today = date.today()
     asked_total = 0
     answered_total = 0
+
+    # Asked once for the whole lane and before anything is stored, so every frame in this run
+    # judges the same session. Two probes taken either side of a bell would let one frame store a
+    # day the other dropped, and the asymmetry would sit in the table looking like a feed fault.
+    forming = forming_sessions(assets)
+
     for assets_part, frame, is_full in frames:
-        stored, newest = _store_frame(cur, assets_part, frame, today, is_full)
+        stored, newest = _store_frame(cur, assets_part, frame, today, is_full, forming)
         written += stored
 
         # Partial-day detection, per asset and by name. Up to here a batch that answered for three
@@ -480,27 +486,130 @@ CHART_RANGE = "1mo"
 YAHOO_CHART = "Yahoo Finance chart API"
 
 
+def session_bounds(meta: dict) -> tuple[date, int, int] | None:
+    """The session the provider is currently reporting: `(its day, start epoch, end epoch)`.
+
+    The day is the session's date **in the exchange's own timezone**, taken from the `gmtoffset`
+    the payload carries rather than from a timezone database — the same choice `jobs/intraday.py`
+    makes, and for the same reason.
+
+    It has to be the exchange's date and not the UTC one, because for some venues they are
+    different days and the bar is stamped with the exchange's. Measured 2026-10-07 on `AUDUSD=X`:
+    Yahoo reports the currency session as `2026-10-06T23:00Z -> 2026-10-07T22:59Z`, which is the
+    London day 2026-10-07, and the bar it is writing is stamped 2026-10-07. Reading the UTC date
+    of the start gives 10-06 — a day that is already closed — so a guard built on it would drop
+    the wrong bar and keep the forming one, which is the opposite of its purpose.
+    """
+    regular = ((meta or {}).get("currentTradingPeriod") or {}).get("regular") or {}
+    start, end = regular.get("start"), regular.get("end")
+    if not start or not end:
+        return None
+    offset = (meta or {}).get("gmtoffset") or 0
+    local = datetime.fromtimestamp(int(start) + int(offset), tz=timezone.utc).date()
+    return local, int(start), int(end)
+
+
+# How far behind a session's end the provider's own progress marker may be and still be read as
+# progress through that session.
+#
+# `regularMarketTime` is the provider saying how far into the session its data reaches, and inside
+# a live session it is the sharpest signal available: it is why a payload fetched mid-session can
+# be judged without consulting a clock at all. But it is only a signal while it is current, and it
+# is not always current. Measured 2026-10-07 on `HUBC.KA`: Yahoo returned a session ending
+# 2026-10-07T11:00Z with a `regularMarketTime` of **2024-07-23** — twenty-six months behind. Read
+# as progress that says the session is still open, and it would say so for ever, so a guard
+# trusting it alone would stop storing that venue's closes permanently and silently.
+#
+# One session's length is the natural bound: a marker inside the session it describes is progress,
+# and a marker from before that session began is not a measurement of it at all. A day of slack is
+# added on top for a provider that is merely catching up after the bell.
+STALE_MARKER_GRACE = 24 * 3600
+
+
 def chart_forming_day(meta: dict) -> date | None:
-    """The session that has not closed yet, whose daily bar is therefore partial.
+    """The session date whose daily bar is still being written, or None once it has closed.
 
     At `interval=1d` the endpoint returns the day in progress as an ordinary bar stamped at the
     session open, with the open, high and low so far and a close that is really the last trade.
     Stored as a close it is a price that never happened, and tomorrow's run would overwrite it
     with the real one — which is exactly the silent wrong number this file exists to avoid.
 
-    The signal is in `meta`: `currentTradingPeriod.regular` gives today's session bounds and
-    `regularMarketTime` gives how far through it the provider has got. Still inside the session
-    means the bar for that session's day is forming. Returns None once it has closed, which is
-    the normal case for a nightly run.
+    Two independent reasons to call a session unfinished, because neither input is trustworthy
+    alone:
+
+    * **Our clock has not reached the session's end.** The end is a published fact about the
+      exchange and the clock is ours, so this holds whatever the provider says about itself.
+    * **The provider's own marker sits inside the session.** This is what catches the minutes
+      after the bell, when the session has ended by the clock but the final bar has not landed
+      yet. Trusted only while the marker is plausibly current — see `STALE_MARKER_GRACE`.
     """
-    regular = ((meta or {}).get("currentTradingPeriod") or {}).get("regular") or {}
-    start, end = regular.get("start"), regular.get("end")
+    bounds = session_bounds(meta)
+    if bounds is None:
+        return None
+    day, _start, end = bounds
+
+    if datetime.now(timezone.utc).timestamp() < end:
+        return day
+
     seen = (meta or {}).get("regularMarketTime")
-    if not start or not end or not seen:
-        return None
-    if seen >= end:
-        return None
-    return datetime.fromtimestamp(int(start), tz=timezone.utc).date()
+    if seen and 0 < end - int(seen) <= STALE_MARKER_GRACE:
+        return day
+
+    return None
+
+
+def chart_meta(sym: str) -> dict:
+    """The `meta` block for one symbol, which is where the session bounds live.
+
+    One request, and `nbt.get`'s cache makes it one per symbol per run however often it is asked
+    for. The TTL is short on purpose: this is the one thing in the payload that changes *within*
+    a session, and a six-hour cache of it — the TTL `chart_bars` correctly uses for bars that
+    never change once closed — would answer "still trading" hours after the close.
+    """
+    payload = get_json(
+        f"{CHART}{urllib.parse.quote(sym)}?range=1d&interval=1d",
+        cache_key=f"yahoo-session-{sym}",
+        ttl=300,
+        headers={"Accept": "application/json"},
+    )
+    result = ((payload or {}).get("chart") or {}).get("result") or [{}]
+    return (result[0] or {}).get("meta") or {}
+
+
+def forming_sessions(assets: list[dict]) -> dict[str, date]:
+    """Which day, if any, is still being traded — one entry per asset type being stored.
+
+    The daily download comes through `yf.download`, which hands back bars and no session
+    metadata, so the bar for a session still in progress is indistinguishable from a closed one
+    by looking at the frame. This asks the chart endpoint, which does carry that metadata, for
+    **one** symbol per asset type and applies the answer to every asset of that type.
+
+    One probe per type rather than per symbol because the answer is a property of the exchange's
+    calendar and not of the instrument: every US listing here trades the same NYSE/Nasdaq session,
+    and every pair the same continuous currency day. A hundred and fifty-five probes would be a
+    hundred and fifty-four requests spent re-learning the same fact.
+
+    A probe that fails returns no entry for its type, which means nothing is dropped. That is the
+    deliberate direction to fail in: this guard exists to stop a partial bar being written, and a
+    guard that cannot reach the provider must not also be able to stop the lane storing anything.
+    """
+    out: dict[str, date] = {}
+    probes: dict[str, str] = {}
+    for a in assets:
+        kind = a.get("assetType") or "equity"
+        probes.setdefault(kind, a["sourceRef"])
+    for kind, sym in sorted(probes.items()):
+        try:
+            day = chart_forming_day(chart_meta(sym))
+        except Exception as exc:  # noqa: BLE001 — a failed probe must not stop the lane
+            print(f"  session probe for {kind} ({sym}) failed: {type(exc).__name__}: {exc}")
+            continue
+        if day:
+            out[kind] = day
+            print(f"  {kind}: {sym} says {day} is still trading, so its bar is not a close")
+        else:
+            print(f"  {kind}: {sym} says the last session has closed")
+    return out
 
 
 def parse_chart(payload) -> list[tuple]:
@@ -623,7 +732,9 @@ def chart_repair(cur, assets: list[dict], reached: date | None) -> tuple[int, se
     return len(buffer), rescued
 
 
-def _store_frame(cur, assets, frame, today: date, is_full: bool) -> tuple[int, dict]:
+def _store_frame(
+    cur, assets, frame, today: date, is_full: bool, forming: dict[str, date] | None = None,
+) -> tuple[int, dict]:
     """Write one downloaded frame. `is_full` decides replace-versus-upsert.
 
     A full backfill replaces the asset's rows, because it is authoritative for the whole
@@ -634,6 +745,23 @@ def _store_frame(cur, assets, frame, today: date, is_full: bool) -> tuple[int, d
     needs for partial-day detection, and it is collected here because this is the only place that
     sees the frame per asset. A symbol the frame had no usable column for maps to None rather than
     being left out, so the caller can tell "answered nothing" from "was never asked".
+
+    `forming` maps an asset type to the session that is still being traded, per
+    `forming_sessions`. A bar for that day is dropped rather than stored: at `interval=1d` the
+    provider reports the live session as an ordinary bar, and its "close" is the last trade so
+    far. The cost of storing it is not one soft number — it is read as a **closed session** by
+    everything downstream. Measured 2026-10-07, with the US lane fetching at 13:50 UTC and the
+    session running 13:30-20:00: AAPL's stored bar for the day held 8.0M shares against 30-50M on
+    every neighbouring day, and across 155 US names the newest bar's volume ran at a median of
+    **0.21x its own 20-session average**. `VOLUME_CONFIRMS_AT` asks for 1.2x, so the volume leg of
+    every US setup failed on arithmetic that had nothing to do with the market: `jobs/setup.py`
+    withheld the direction, and `lib/decision.ts` answered WAIT under gate `incomplete` for 90 of
+    155 US names. PSX, which comes from its own closing file and is only ever written after the
+    bell, read 0.84x the same day — a normal number, and the control that identifies the cause.
+
+    `newest` deliberately reports the newest day **stored**, not the newest the frame offered, so
+    dropping the forming bar shows up in the caller's shortfall report as what it is rather than
+    being hidden.
     """
     written = 0
     newest: dict[str, date | None] = {a["sourceRef"]: None for a in assets}
@@ -660,6 +788,7 @@ def _store_frame(cur, assets, frame, today: date, is_full: bool) -> tuple[int, d
             continue
 
         is_forex = a.get("assetType") == "forex"
+        open_session = (forming or {}).get(a.get("assetType") or "equity")
 
         closes: list[tuple[date, float]] = []
         volumes: dict[date, float] = {}
@@ -669,8 +798,14 @@ def _store_frame(cur, assets, frame, today: date, is_full: bool) -> tuple[int, d
             """A float, or None for the NaN the source uses for a field it did not publish."""
             return float(value) if value == value and value is not None else None
 
+        dropped_forming = False
         for stamp, row in part.iterrows():
             day = stamp.date()
+            # The session still trading. Not an error and not silence: the bar simply does not
+            # exist yet, and the asset keeps the close it already had until the bell.
+            if open_session is not None and day >= open_session:
+                dropped_forming = True
+                continue
             closes.append((day, float(row["Close"])))
             vol = row.get("Volume")
             # A currency pair has no published volume and Yahoo answers 0 for every bar of
@@ -685,6 +820,13 @@ def _store_frame(cur, assets, frame, today: date, is_full: bool) -> tuple[int, d
                 volumes[day] = float(vol)
             # The source has always sent these; the job used to drop them on the floor.
             bars[day] = (num(row.get("Open")), num(row.get("High")), num(row.get("Low")))
+
+        if not closes:
+            # Everything the frame offered was the forming session. `continue` rather than a
+            # write of nothing, because `is_full` would otherwise DELETE the asset's whole
+            # stored series and replace it with no rows at all.
+            print(f"  {sym:7} nothing closed yet ({open_session} still trading)")
+            continue
 
         if is_full:
             cur.execute('DELETE FROM "PriceSnapshot" WHERE "assetId" = %s', (a["id"],))
@@ -727,6 +869,7 @@ def _store_frame(cur, assets, frame, today: date, is_full: bool) -> tuple[int, d
         print(
             f"  {sym:7} {len(closes)} days to {newest[sym]}, {len(cap_by_day)} size points"
             + ("" if is_full else " (incremental)")
+            + (f", {open_session} still trading" if dropped_forming else "")
         )
         time.sleep(0.4)
 

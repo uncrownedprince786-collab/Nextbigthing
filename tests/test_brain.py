@@ -19,7 +19,8 @@ from __future__ import annotations
 import json
 import sys
 import unittest
-from datetime import date, datetime, timedelta
+from unittest import mock
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -1013,6 +1014,78 @@ class WorkflowLanes(unittest.TestCase):
             if "prisma migrate deploy" in code:
                 migrating.append(path.name)
         self.assertEqual(migrating, ["schema.yml"], f"migration is applied by {migrating}")
+
+    # The US regular session in UTC, both halves of the year. 09:30-16:00 New York is
+    # 13:30-20:00 UTC on eastern daylight time and 14:30-21:00 UTC on eastern standard time, so
+    # a schedule that must be post-close every day of the year has to clear 21:00.
+    US_CLOSE_LATEST_UTC = 21 * 60
+
+    def _crons(self, name):
+        """Every schedule in a workflow, as minutes past midnight UTC, comments stripped."""
+        import re
+
+        out = []
+        for line in self._text(name).splitlines():
+            code = line.split("#", 1)[0]
+            m = re.search(r'cron:\s*"(\S+)\s+(\S+)\s', code)
+            if not m:
+                continue
+            minute, hours = m.group(1), m.group(2)
+            for hour in hours.split(","):
+                if hour.isdigit() and minute.isdigit():
+                    out.append(int(hour) * 60 + int(minute))
+        return sorted(out)
+
+    def test_the_us_price_lane_fetches_after_the_close_at_least_once_a_day(self):
+        """A daily close has to be fetched after the bell, or it is not a close.
+
+        This is the fault of 2026-10-07 written as a test, and it is the same shape as the one
+        above it: a comment that was simply false. `cron-us-prices.yml` ran at 01:50, 07:50,
+        13:50 and 19:50 UTC, and the line beside those hours read "01:50 UTC is after the US
+        close has settled, 13:50 is before the next open". 13:50 UTC is twenty minutes after the
+        open and 19:50 is ten minutes before the close, so both of the day's live slots sat
+        inside the session and the lane stored a part-day as the day's close.
+
+        What it cost was three steps downstream and looked nothing like a clock problem: across
+        155 US names the newest bar's volume ran at a median of 0.21x its own 20-session average
+        against the 1.2x `VOLUME_CONFIRMS_AT` asks for, so `jobs/setup.py` withheld the
+        direction on all of them and the site answered WAIT under gate `incomplete` for 90.
+        PSX, written only ever after its own bell, read 0.84x the same day.
+
+        `forming_sessions` makes storing a part-day impossible, which is the real repair. This
+        pins the other half: the schedule still has to offer the day a fetch that happens after
+        the close, and an overnight retry alone would leave the decision a day behind for ever.
+        """
+        after_close = [m for m in self._crons("cron-us-prices.yml") if m >= self.US_CLOSE_LATEST_UTC]
+        self.assertTrue(
+            after_close,
+            "no us-prices slot is after 21:00 UTC, so no fetch of the day sees a closed session",
+        )
+
+    def test_the_decision_lane_runs_after_the_prices_it_reads(self):
+        """Being after the price lane is not the same as being after the close.
+
+        `cron-decision.yml` ran at 15:10 UTC and said it sat "after the 13:50 US price chunks,
+        so the run reads a day whose closes have landed from both exchanges". Both clauses were
+        true of the ordering and false of the data: what had landed at 13:50 was twenty minutes
+        of a session running to 20:00. The decision cannot be read off a day until that day has
+        finished, so the constraint is against the exchange's clock and not against the other
+        lane's.
+        """
+        decisions = self._crons("cron-decision.yml")
+        self.assertTrue(decisions, "cron-decision.yml has no parsable schedule")
+        prices_after_close = [
+            m for m in self._crons("cron-us-prices.yml") if m >= self.US_CLOSE_LATEST_UTC
+        ]
+        for when in decisions:
+            self.assertGreaterEqual(
+                when, self.US_CLOSE_LATEST_UTC,
+                "the decision is materialized before the US session it reads has closed",
+            )
+            self.assertTrue(
+                any(p < when for p in prices_after_close),
+                "the decision runs before any post-close price fetch, so it reads yesterday",
+            )
 
     # How a job in this lane declares that its network use is bounded. `intraday.py` sets
     # MAX_REQUESTS = 60 and is the one fetch the decision lane is allowed to keep, because a
@@ -2706,6 +2779,149 @@ class YahooPartialDay(unittest.TestCase):
         self.assertEqual([b[0] for b in bars], [date(2026, 9, 30), date(2026, 10, 1)])
         # And after the close the same body yields every session.
         self.assertIsNone(prices.chart_forming_day(self.AAPL["chart"]["result"][0]["meta"]))
+
+    # --- the daily download path, which carries no session metadata of its own ----------------
+    #
+    # Every test below was written against a fault measured in production on 2026-10-07, where
+    # `cron-us-prices` fetched at 13:50 UTC into a session running 13:30-20:00 and the live bar
+    # was stored as that day's close. The visible symptom was three steps downstream: the volume
+    # leg of every US setup failed, so `jobs/setup.py` withheld the direction and the site
+    # answered WAIT under gate `incomplete` for 90 of 155 US names.
+
+    def test_the_session_day_is_the_exchanges_own_day_and_not_the_utc_one(self):
+        # Measured on AUDUSD=X: the currency session runs 2026-10-06T23:00Z -> 2026-10-07T22:59Z,
+        # which is the London day 10-07, and the bar being written is stamped 10-07. Reading the
+        # UTC date of the start gives 10-06 -- a day that has already closed -- so a guard built
+        # on it drops a finished bar and keeps the forming one.
+        fx = {
+            "currentTradingPeriod": {"regular": {"start": 1791327600, "end": 1791413940}},
+            "gmtoffset": 3600,
+            "exchangeTimezoneName": "Europe/London",
+        }
+        day, start, end = prices.session_bounds(fx)
+        self.assertEqual(
+            datetime.fromtimestamp(start, tz=timezone.utc).date(), date(2026, 10, 6),
+            "fixture no longer has a session whose UTC start date differs from its own day",
+        )
+        self.assertEqual(day, date(2026, 10, 7))
+        self.assertEqual(end, 1791413940)
+
+    def test_a_provider_whose_clock_is_stale_does_not_freeze_the_lane(self):
+        # Measured on HUBC.KA: Yahoo returned a session ending 2026-10-07T11:00Z with a
+        # regularMarketTime of 2024-07-23, twenty-six months behind. Read as progress through the
+        # session it says "still trading", and it says so for ever -- so a guard trusting the
+        # marker alone stops storing that venue's closes permanently and silently.
+        meta = {
+            "currentTradingPeriod": {"regular": {"start": 1791347400, "end": 1791370800}},
+            "gmtoffset": 18000,
+            "regularMarketTime": 1721764800,  # 2024-07-23
+        }
+        self.assertLess(meta["regularMarketTime"], meta["currentTradingPeriod"]["regular"]["end"])
+        self.assertIsNone(
+            prices.chart_forming_day(meta),
+            "a marker from before the session began is not progress through it",
+        )
+
+    def test_a_session_the_clock_has_not_reached_is_forming_whatever_the_marker_says(self):
+        # The other half of the same rule, and the one that catches the live case: our clock has
+        # not reached the end, so the bar is not a close no matter what the provider reports.
+        now = datetime.now(timezone.utc).timestamp()
+        meta = {
+            "currentTradingPeriod": {"regular": {"start": int(now - 600), "end": int(now + 3600)}},
+            "gmtoffset": 0,
+            "regularMarketTime": int(now + 7200),  # ahead of the end, i.e. "closed"
+        }
+        self.assertEqual(
+            prices.chart_forming_day(meta),
+            datetime.fromtimestamp(now - 600, tz=timezone.utc).date(),
+        )
+
+    def test_one_session_probe_per_asset_type_and_not_one_per_symbol(self):
+        asked = []
+
+        def meta_for(sym):
+            asked.append(sym)
+            return {}
+
+        assets = [
+            {"sourceRef": "EQ%d" % i, "assetType": "equity"} for i in range(40)
+        ] + [{"sourceRef": "FX%d" % i, "assetType": "forex"} for i in range(20)]
+        with mock.patch.object(prices, "chart_meta", meta_for):
+            prices.forming_sessions(assets)
+        # The session is a property of the exchange calendar, not of the instrument. 60 probes
+        # would be 58 requests spent re-learning the same two facts.
+        self.assertEqual(len(asked), 2)
+        self.assertEqual(sorted(asked), ["EQ0", "FX0"])
+
+    def test_a_session_probe_that_fails_drops_nothing(self):
+        def boom(sym):
+            raise RuntimeError("provider unreachable")
+
+        with mock.patch.object(prices, "chart_meta", boom):
+            self.assertEqual(
+                prices.forming_sessions([{"sourceRef": "AAPL", "assetType": "equity"}]), {}
+            )
+        # The direction to fail in: this guard exists to stop a partial bar being written, and a
+        # guard that cannot reach the provider must not also stop the lane storing anything.
+
+    def test_the_forming_bar_is_dropped_from_the_downloaded_frame(self):
+        import pandas as pd
+
+        frame = pd.DataFrame(
+            {
+                "Open": [330.0, 331.0, 333.2],
+                "High": [339.5, 332.4, 334.5],
+                "Low": [330.1, 325.8, 330.6],
+                "Close": [333.02, 330.32, 333.69],
+                "Volume": [49988600.0, 36306300.0, 8037036.0],
+            },
+            index=pd.to_datetime(["2026-10-05", "2026-10-06", "2026-10-07"]),
+        )
+        asset = {"id": "a1", "symbol": "AAPL", "sourceRef": "AAPL", "assetType": "equity"}
+        written = []
+        with mock.patch.object(prices, "share_series", lambda sym: []), mock.patch.object(
+            prices, "insert_snapshots", lambda cur, buf, replace=True: written.extend(buf)
+        ):
+            rows, newest = prices._store_frame(
+                None, [asset], frame, date(2026, 10, 7), False, {"equity": date(2026, 10, 7)}
+            )
+        self.assertEqual([r[1] for r in written], [date(2026, 10, 5), date(2026, 10, 6)])
+        self.assertEqual(rows, 2)
+        # The newest day *stored*, so the caller's shortfall report shows the drop rather than
+        # hiding it behind a day that was never written.
+        self.assertEqual(newest["AAPL"], date(2026, 10, 6))
+        # And the 8.0M partial -- a fifth of its neighbours -- never reaches the table, which is
+        # what the volume leg of every US setup was failing on.
+        self.assertNotIn(8037036.0, [r[6] for r in written])
+
+    def test_a_frame_holding_only_the_forming_bar_writes_and_deletes_nothing(self):
+        import pandas as pd
+
+        # The dangerous shape. `is_full` DELETEs the asset's series before inserting, so falling
+        # through with an empty buffer would trade six years of history for no rows at all.
+        frame = pd.DataFrame(
+            {
+                "Open": [333.2], "High": [334.5], "Low": [330.6],
+                "Close": [333.69], "Volume": [8037036.0],
+            },
+            index=pd.to_datetime(["2026-10-07"]),
+        )
+        asset = {"id": "a1", "symbol": "AAPL", "sourceRef": "AAPL", "assetType": "equity"}
+        deletes = []
+
+        class Cur:
+            def execute(self, sql, params=None):
+                deletes.append(sql)
+
+        with mock.patch.object(prices, "share_series", lambda sym: []), mock.patch.object(
+            prices, "insert_snapshots", lambda cur, buf, replace=True: None
+        ):
+            rows, newest = prices._store_frame(
+                Cur(), [asset], frame, date(2026, 10, 7), True, {"equity": date(2026, 10, 7)}
+            )
+        self.assertEqual(rows, 0)
+        self.assertIsNone(newest["AAPL"])
+        self.assertEqual(deletes, [], "nothing closed yet is not a reason to drop the series")
 
     def test_the_chart_series_is_adjusted_the_way_yfinance_adjusts_it(self):
         # The rows beside these were written by yf.download(auto_adjust=True). Splicing a raw

@@ -22,14 +22,31 @@ name: cron decision
 # "skipped", and the site's primary output went stale for reasons that had nothing to do with it.
 on:
   schedule:
-    # Daily at 15:10 UTC. Daily because the decision is a daily reading over daily closes, so a
+    # Daily at 22:10 UTC. Daily because the decision is a daily reading over daily closes, so a
     # second materialization in the same day recomputes the same answer from the same rows.
-    # 15:10 is chosen for ordering rather than for load: it sits after PSX end of day at 12:40
-    # and after the 13:50 US price chunks, so the run reads a day whose closes have landed from
-    # both exchanges. Hour 15 is odd, which keeps it out of crypto's and news's even hours, and
-    # minute 10 is outside the four recurring minutes (05, 20, 35, 50) — the nearest neighbour
-    # is audit at 15:35.
-    - cron: "10 15 * * *"
+    #
+    # The hour is chosen for ordering, and the ordering it used to claim was not the one it had.
+    # This was 15:10, described as sitting "after the 13:50 US price chunks, so the run reads a
+    # day whose closes have landed from both exchanges". The 13:50 fetch does land before 15:10
+    # — but 13:50 UTC is twenty minutes after the **open** of a session that runs to 20:00 UTC,
+    # so what had landed was a twenty-minute part-day, and the decision read it as that day's
+    # close. Being after the price lane is not the same as being after the close, and only the
+    # second one is what a daily decision needs.
+    #
+    # 22:10 is after every input the lane reads:
+    #   PSX      closes 11:00 UTC, its file is fetched at 12:40
+    #   US       closes 20:00 UTC (21:00 on standard time), fetched post-close at 21:50
+    #   crypto   continuous, written every two hours at minute 05
+    #   FX       continuous; the currency day rolls at 22:00 UTC, so 22:10 reads a closed one
+    # Hour 22 is even, which this lane can afford where an ingest lane could not: it has its own
+    # concurrency group and fetches nothing, so it competes with crypto and news for neither a
+    # queue slot nor a provider. Minute 10 stays outside the four recurring minutes (05, 20, 35,
+    # 50); the nearest neighbour is news at 22:20, which is a different group.
+    #
+    # The consequence worth stating: the decision is now published against closes that actually
+    # happened. `forming_sessions` in jobs/prices.py is the guard that makes a part-day
+    # unstorable, and this schedule is what makes a complete day available in time to be read.
+    - cron: "10 22 * * *"
   workflow_dispatch:
 
 # Its own group, and for this lane that is a correctness property rather than a convenience.
