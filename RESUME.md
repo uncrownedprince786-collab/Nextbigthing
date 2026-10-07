@@ -40,6 +40,76 @@ against before concluding a source is absent.
 | `027a09c` | News: every feed asks `when:30d` through one url builder **and** checks each item's own `pubDate`, because the operator is a request and the date is the evidence. A per-asset relevance guard, since narrowing the window promotes weaker matches — an Indian biogas story filed against SYS is a tone reading built from articles about someone else. Tickers match as capitalised whole words (`SYS` had matched "Micro Irrigation **Sys**tem"). A bounded junk filter for rate tables (`Convert 1 USDC to SEK — Bybit`, 36 of them on USDSEK alone). A fallback chain: Bing News RSS first everywhere, Yahoo's per-ticker feed for US listings only. Counters are **per source**, so a fallback can never vouch for a silent primary. |
 | `f68357d` | `Decision.developing`: the withheld trend direction, which was sitting in the stored `conditions` string unread. 112 of 267 now carry a direction forming — 45 towards LONG, 67 towards SHORT — ordered on the front page by `closeness`, the stored factor over the threshold it has to clear. Led by ASML at 1.19x of the 1.2x volume gate. |
 
+### Verified in production, 2026-10-07 — the news lane was run by hand and it worked
+
+`python jobs/run.py news` ran from a laptop against the live database: **1,143 rows written,
+17.8 minutes, exit 0.** This is the check the section below asks for, already done.
+
+| | before | after |
+| --- | --- | --- |
+| PSX assets with an item in 30d | 64 of 85 | **76 of 85** |
+| PSX with zero news | 21 | **9** |
+| PSX items | 265 | **431** |
+| FX with zero news | 3 | **0** |
+| FX items | 89 | **197** |
+| US with zero news | 1 | **0** |
+| US thin (under 8 stories) | 10 | **4** |
+| News rows total | 6,696 | **7,839** |
+
+The chain fired for **49 assets** and **Bing answered 61 of 61 feeds**, so the fallback works in
+production and not only in a dry run. 12 assets still have nothing from any source — ALTN, APL,
+AVN, DFML, GAL, GATM, INDU, KTML, PIOC, PKGP, PTC, WTL — which is a real absence reported as
+"no recent coverage", not borrowed coverage.
+
+**17.8 minutes is also what proved the lane had outgrown its timeout.** `cron-news.yml` killed
+the job at 15, so the next scheduled run would have died and been reported as "cancelled" —
+the `cron decision` trap, one lane over, reached by adding work instead of adding assets. Fixed
+in `1a3f158`: `NEWS_FALLBACK_BUDGET = 150` bounds the variable half and the timeout went to 25.
+
+### What was still mid-flight when this session ended — READ THIS FIRST
+
+The derivations that turn news into verdicts were **running when the session was cut**, so they
+are very likely **incomplete**:
+
+```
+factors  DONE  -- 267 rows written for 2026-10-07
+human    was running when the session ended
+setup    not reached
+thesis   not reached
+decide   not reached
+```
+
+**So `DecisionLog` is still on `periodEnd 2026-10-06` and its verdicts do not yet reflect the
+1,143 new articles.** `AssetFactor` is fresh for 2026-10-07; `HumanSignal` may be partly written
+for today, because these jobs upsert per asset and a killed run leaves the assets it reached
+updated and the rest not.
+
+**Nothing needs repairing.** Every one of these jobs is idempotent per asset and the scheduled
+lanes re-run them on their own clock — `cron-decision` at 15:10 UTC owns the whole chain. The
+honest options next session, in order of preference:
+
+1. **Do nothing and let the lanes converge.** Check `cron decision` went green, then read the
+   stored spread. This is the cheapest and it is what production is designed to do.
+2. If you want today's numbers now, the chain that turns news into verdicts is
+   `factors -> human -> setup -> thesis`, then `node tools/decide.mjs`. Roughly 17 minutes
+   locally. **Do not** run `jobs/run.py decision`: it includes `rank` (14 min local) and
+   `lineage` (32 min, prints nothing the whole time), both of which are about a minute on a
+   same-region runner.
+
+`lineage` was deliberately skipped, so the new rows carry no `lineageId` yet and story counts
+still measure the older clusters. It is not in the news lane — `GROUPS["news"]` is
+`prices news` alone — so the decision lane is what will assign them.
+
+### What to expect once that chain completes
+
+`decide.mjs --dry-run` before the news run reported **112 of 267 with a direction forming**, 45
+towards LONG and 67 towards SHORT, led by ASML at 1.19x of the 1.2x volume gate. That figure was
+computed on the *old* news, so expect it to move: tone and the news leg of `setup.py` now have
+real coverage on 67 names that previously had none or nearly none. **Whether it moves up or down
+is not predictable and must not be presented as an improvement either way** — more evidence can
+just as well withdraw a direction as confirm one, and a gate loosening because a reading got
+better-evidenced is the honest outcome in both directions.
+
 ### What is verified and what is not
 
 - **Verified:** 398 Python tests, 138 web tests (21 new), eslint clean, `tsc` clean,
