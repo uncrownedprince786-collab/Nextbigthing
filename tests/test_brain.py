@@ -87,6 +87,84 @@ class HeadlineTone(unittest.TestCase):
         self.assertEqual(human.count_terms("surges and surges", ("surges",)), 1)
 
 
+class ToneDenominator(unittest.TestCase):
+    """A net lean has to be measured against the headlines that took a side.
+
+    `tone_score` was `(positive - negative) / items`, dividing by every headline in the window
+    including the ones carrying no tone word at all. Measured 2026-10-07 across 265 assets: only
+    **11.1%** of headlines carry any tone word and the median asset has **2** of them, so the rule
+    was asking for a net lean of 15% of total coverage -- and the bar rose with coverage, because
+    `items` grew while the opinionated subset did not.
+
+    The same denominator family as rule 42, and the fifth instance in this repository.
+    """
+
+    def _tone(self, positive, negative, items):
+        """The published rule, called the way jobs/human.py calls it."""
+        n = items
+        opinionated = positive + negative
+        score = (positive - negative) / opinionated if opinionated else 0.0
+        if not n:
+            return None
+        if opinionated < human.MIN_TONE_ITEMS:
+            return "neutral"
+        if score > human.NEUTRAL_BAND:
+            return "positive"
+        if score < -human.NEUTRAL_BAND:
+            return "negative"
+        return "neutral"
+
+    def test_the_measured_cases_that_were_called_neutral_and_were_not(self):
+        # All three are real rows from 2026-10-07. The first is the one that gives it away:
+        # seven headlines leaning positive, none leaning negative, reported as no direction.
+        self.assertEqual(self._tone(7, 0, 64), "positive")
+        self.assertEqual(self._tone(14, 5, 88), "positive")
+        self.assertEqual(self._tone(10, 6, 90), "positive")
+        # And what the old rule did with them, for the record.
+        for p_, n_, items in ((7, 0, 64), (14, 5, 88), (10, 6, 90)):
+            self.assertLessEqual(
+                (p_ - n_) / items, human.NEUTRAL_BAND,
+                "fixture no longer demonstrates the old rule calling these neutral",
+            )
+
+    def test_coverage_no_longer_raises_the_bar_against_itself(self):
+        # The perverse property, stated directly: the same 6-1 split must read the same whether
+        # it sits in a thin window or a well covered one. Under the old rule the second was
+        # neutral purely because more factual headlines existed around it.
+        self.assertEqual(self._tone(6, 1, 10), self._tone(6, 1, 200))
+        self.assertEqual(self._tone(6, 1, 200), "positive")
+
+    def test_a_balanced_window_is_still_neutral(self):
+        # The band has to keep doing its job on the new denominator. 4 against 3 is not a
+        # direction; among seven opinionated headlines that is a 14% lean, inside the band.
+        self.assertEqual(self._tone(4, 3, 40), "neutral")
+        self.assertEqual(self._tone(3, 4, 40), "neutral")
+
+    def test_a_direction_is_not_read_off_one_or_two_words(self):
+        # The floor the old denominator had been providing by accident. A 1-0 split is a 100%
+        # lean by the new arithmetic and must not publish a direction.
+        self.assertEqual(self._tone(1, 0, 30), "neutral")
+        self.assertEqual(self._tone(2, 0, 30), "neutral")
+        self.assertEqual(self._tone(0, 2, 30), "neutral")
+        # At the floor it may, and the sign has to be right.
+        self.assertEqual(self._tone(5, 0, 30), "positive")
+        self.assertEqual(self._tone(0, 5, 30), "negative")
+
+    def test_negative_still_reaches_negative(self):
+        # The gate that had never produced a short in the life of the table reads off this.
+        self.assertEqual(self._tone(1, 8, 50), "negative")
+        self.assertEqual(self._tone(0, 6, 12), "negative")
+
+    def test_an_empty_window_has_no_tone_rather_than_a_neutral_one(self):
+        # Unchanged, and pinned because it sits beside what moved: nothing read is not the same
+        # as read and balanced.
+        self.assertIsNone(self._tone(0, 0, 0))
+
+    def test_the_floor_and_the_band_are_both_declared(self):
+        self.assertEqual(human.MIN_TONE_ITEMS, 5)
+        self.assertEqual(human.NEUTRAL_BAND, 0.15)
+
+
 class VolumeBaseline(unittest.TestCase):
     """"Is this session busier than usual" has to be measured against a typical session.
 

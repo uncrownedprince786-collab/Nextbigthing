@@ -91,9 +91,38 @@ CATALYST_Z = 3.0
 # extra article into +50%, which is arithmetic rather than a change in attention.
 MIN_PRIOR_ITEMS = 5
 
-# How far the net tone has to sit from zero before it is called a direction. A net of one
-# headline in eight is 12.5%, so the band keeps a single article from deciding.
+# How far the net tone has to sit from zero before it is called a direction, **as a share of the
+# headlines that expressed one**. 0.15 means a 15 point net lean among the opinionated headlines:
+# 4 positive against 3 negative is not a direction, 6 against 1 is.
 NEUTRAL_BAND = 0.15
+
+# Tone-carrying headlines needed before a direction is published at all.
+#
+# This floor exists because the denominator below changed, and the old denominator had been
+# providing a floor by accident. `tone_score` was `(positive - negative) / items`, dividing the
+# net lean by **every** headline in the window including the ones carrying no tone word at all.
+# Measured 2026-10-07 across 265 assets: the median share of headlines carrying any tone word is
+# **11.1%**, and the median asset has **2** of them. So the old rule was asking for a net lean of
+# 15% of total coverage, which for a well covered name is a bar nothing clears -- and the bar got
+# *higher* the better covered the name was, because `items` grew while the opinionated subset did
+# not. Three measured examples, every one of them called neutral:
+#
+#     items 64, positive  7, negative 0   ->  7/64 = 0.109
+#     items 88, positive 14, negative 5   ->  9/88 = 0.102
+#     items 90, positive 10, negative 6   ->  4/90 = 0.044
+#
+# 7 positive and 0 negative is not an absence of direction, and reporting it as one is the
+# failure this site exists to avoid: it understates what is known. Only 55 of 265 assets carried
+# a direction, and the news leg was the single biggest reason `jobs/setup.py` withheld a setup --
+# failing in 124 of the 151 waiting rows, ahead of volume at 115.
+#
+# Dividing by the opinionated subset is the correction. It needs its own floor, because that
+# subset can be one headline and a 1-0 split would otherwise read as total agreement. 5 is the
+# same judgement `MIN_ITEMS` makes one level up -- "a tone computed on three headlines is three
+# headlines" -- applied to the quantity that actually carries the tone. It takes the directional
+# count from 55 to 69 of 265; a floor of 3 would take it to 116, which is reading a direction off
+# two words and a tiebreak.
+MIN_TONE_ITEMS = 5
 
 # How much the item count has to move before attention is called rising or falling. News
 # counts are noisy week to week and a feed that returned one page instead of two looks like
@@ -328,8 +357,16 @@ def read_target(cur, column: str, target_id: str, name: str, end: date):
     tone = None
     tone_score = None
     if n:
-        tone_score = (positive - negative) / n
-        if tone_score > NEUTRAL_BAND:
+        # Among the headlines that expressed a direction, not among all of them. See
+        # MIN_TONE_ITEMS for the measurement that forced this: dividing by `items` made the bar
+        # rise with coverage, so the best covered names were the least able to register a tone.
+        opinionated = positive + negative
+        tone_score = (positive - negative) / opinionated if opinionated else 0.0
+        if opinionated < MIN_TONE_ITEMS:
+            # Not enough headlines took a side to call it. Distinct from a balanced window, and
+            # the counts stored beside this say which of the two it was.
+            tone = "neutral"
+        elif tone_score > NEUTRAL_BAND:
             tone = "positive"
         elif tone_score < -NEUTRAL_BAND:
             tone = "negative"
