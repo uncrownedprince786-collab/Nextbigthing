@@ -141,12 +141,37 @@ check("HISTORICAL ANALOGS", PASS if an["n"] else FAIL,
       f"{an['n']} analog rows, best match count {an['m']}")
 
 # --- HORIZONS
-hz = {r["horizon"]: int(r["n"]) for r in rows(
-    cur, '''SELECT horizon, count(*) AS n FROM "AssetSetup"
-            WHERE "periodEnd" = (SELECT max("periodEnd") FROM "AssetSetup" x WHERE x.horizon = "AssetSetup".horizon)
-            GROUP BY horizon''')}
+#
+# Counted as "assets whose newest read is their own newest close", not as "rows on the newest
+# date anywhere". The two were the same number while every market closed together and stopped
+# being the same on 2026-10-08, when the setup jobs began dating each row to the session of the
+# asset it describes: Karachi had closed and New York had not, so the site-wide newest date was
+# a PSX-only day and this check read 96 swing setups where 331 assets each had a current one.
+# It would have reported a 64% collapse in coverage on the day coverage became more accurate.
+# Every reader of this table takes the newest row per asset, so that is what is measured.
+hz = {r["horizon"]: (int(r["current"]), int(r["n"])) for r in rows(
+    cur, '''
+    WITH newest_close AS (
+        SELECT "assetId", max(date) AS d FROM "PriceSnapshot"
+         WHERE close IS NOT NULL GROUP BY "assetId"
+    ),
+    newest_read AS (
+        SELECT DISTINCT ON ("assetId", horizon) "assetId", horizon, "periodEnd"
+          FROM "AssetSetup" ORDER BY "assetId", horizon, "periodEnd" DESC
+    )
+    SELECT r.horizon, count(*) AS n,
+           count(*) FILTER (WHERE r."periodEnd" >= c.d) AS current
+      FROM newest_read r JOIN newest_close c ON c."assetId" = r."assetId"
+     GROUP BY r.horizon
+    ''')}
 for h, label in (("intraday", "INTRADAY"), ("swing", "SWING"), ("longer", "LONGER TERM")):
-    check(label, PASS if hz.get(h) else FAIL, f"{hz.get(h, 0)} reads on the newest day")
+    current, total = hz.get(h, (0, 0))
+    # The intraday horizon is exempt from the currency test: it is read from five minute bars
+    # and only for the assets a venue serves intraday, so its newest read is routinely older
+    # than the daily close and is never expected to cover the whole universe.
+    ok = PASS if (total if h == "intraday" else current) else FAIL
+    check(label, ok,
+          f"{total} assets carry a read; {current} of them are at the asset's own newest close")
 
 bars = one(cur, '''
     SELECT count(*) AS n, count(DISTINCT "assetId") AS assets, min("sessionDate") AS lo,
