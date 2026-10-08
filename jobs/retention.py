@@ -33,7 +33,7 @@ rather than by taste:
   * `jobs/lineage.py` clusters `News` over LOOKBACK_DAYS and `jobs/human.py` reads two
     consecutive WINDOW_DAYS windows. The floor here is well clear of both.
 
-Run: python jobs/retention.py [--dry-run]
+Run: python jobs/retention.py [--dry-run] [--reclaim]
 Writes: deletes from the working-set tables only.
 """
 
@@ -147,13 +147,28 @@ def main() -> int:
             print(f"\n  {total} rows would be removed. Nothing was written.")
             return 0
 
-        # Deleting rows does not return the pages to the operating system; it marks them
-        # reusable. On a tier measured in megabytes that distinction is the whole point, so
-        # the space is reclaimed rather than left for the next insert to grow into.
-        print("\n  reclaiming the pages")
+        # A plain VACUUM, not VACUUM FULL.
+        #
+        # FULL rewrites the table and hands its pages back to the operating system, which is
+        # the larger saving and the wrong trade on a schedule: it takes an ACCESS EXCLUSIVE
+        # lock, and this job runs beside lanes that do not share its concurrency group. The
+        # first run of it took the news fetch down mid-request -- "server closed the connection
+        # unexpectedly" -- and the same lock would stall the website's own reads.
+        #
+        # A plain VACUUM takes no such lock and still does what this file exists for: the pages
+        # the delete freed become reusable, so the table stops growing rather than shrinking.
+        # Growth was the unbounded thing; the shrink is a one-off.
+        #
+        # --reclaim runs the FULL version on purpose, for a human who has stopped the lanes.
+        reclaim = "--reclaim" in sys.argv
+        print("\n  " + ("rewriting the tables to hand their pages back"
+                        if reclaim else "marking the freed pages reusable"))
+        # A commit first, because VACUUM cannot run inside a transaction and the deletes above
+        # leave one open.
+        conn.commit()
         conn.autocommit = True
         for table in KEEP:
-            cur.execute(f'VACUUM (FULL, ANALYZE) "{table}"')
+            cur.execute(f'VACUUM ({"FULL, " if reclaim else ""}ANALYZE) "{table}"')
         conn.autocommit = False
 
         after = one(cur, "SELECT pg_database_size(current_database()) AS b")["b"]

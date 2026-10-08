@@ -239,22 +239,42 @@ size = one(cur, '''
     SELECT pg_size_pretty(pg_database_size(current_database())) AS db,
            pg_database_size(current_database()) AS bytes
 ''')
-# Rows added per session by the tables that write one per asset per day, measured over the
-# days actually stored rather than assumed from the asset count: a job that skipped an asset
-# for want of history does not write a row for it, and the measured rate includes that.
+# Rows added per session that are still there in a year, measured over the days actually
+# stored rather than assumed from the asset count: a job that skipped an asset for want of
+# history does not write a row for it, and the measured rate includes that.
+#
+# Only the tables `jobs/retention.py` never prunes are counted. The ones it caps -- AssetSetup,
+# AssetAnalog, AssetFactor, MoveAttribution, Investigation, HumanSignal, News -- reach a steady
+# size and stop, so counting their arrivals as growth would date the tier's exhaustion to a
+# wall the system no longer walks into. What is left is the permanent record: the closes, the
+# decision log and the signal log, which grow because they are meant to.
 daily = one(cur, '''
     WITH per_day AS (
-        SELECT "periodEnd" AS d, count(*) AS n FROM "AssetSetup" GROUP BY 1
-        UNION ALL SELECT "periodEnd", count(*) FROM "AssetAnalog" GROUP BY 1
-        UNION ALL SELECT "periodEnd", count(*) FROM "MoveAttribution" GROUP BY 1
-        UNION ALL SELECT "periodEnd", count(*) FROM "AssetFactor" GROUP BY 1
-        UNION ALL SELECT "periodEnd", count(*) FROM "DecisionLog" GROUP BY 1
-        UNION ALL SELECT "periodEnd", count(*) FROM "Investigation" GROUP BY 1
+        SELECT "periodEnd" AS d, count(*) AS n FROM "DecisionLog" GROUP BY 1
+        UNION ALL SELECT "issuedOn", count(*) FROM "SignalLog" GROUP BY 1
         UNION ALL SELECT date, count(*) FROM "PriceSnapshot" GROUP BY 1
     ),
     by_day AS (SELECT d, sum(n) AS n FROM per_day GROUP BY d ORDER BY d DESC LIMIT 6)
     SELECT round(avg(n)) AS rows_per_day FROM by_day
           WHERE d < (SELECT max(d) FROM by_day)
+''')
+# What the capped tables will settle at, from their own windows and today's measured rate.
+# Printed beside the date because the two numbers answer different questions: one is how long
+# the permanent record has, the other is how much of the tier the working set will take once
+# it stops growing.
+steady = one(cur, '''
+    WITH caps(t, days) AS (VALUES
+        ('AssetSetup', 14), ('AssetAnalog', 7), ('AssetFactor', 7), ('MoveAttribution', 7),
+        ('Investigation', 14), ('HumanSignal', 7), ('News', 70)
+    ),
+    sized AS (
+        SELECT c.t, c.days, pg_total_relation_size(('public."' || c.t || '"')::regclass) AS b,
+               (SELECT count(DISTINCT d) FROM (
+                   SELECT "periodEnd" AS d FROM "AssetSetup"
+               ) x) AS stored_days
+        FROM caps c
+    )
+    SELECT sum(b::numeric / greatest(stored_days, 1) * days) AS bytes FROM sized
 ''')
 tables = rows(cur, '''
     SELECT relname, pg_size_pretty(pg_total_relation_size(c.oid)) AS size,
@@ -289,9 +309,14 @@ if per_day > 0 and stored_rows:
     per_row = int(size["bytes"]) / stored_rows
     days = int((LIMIT - int(size["bytes"])) / (per_day * per_row))
     full = date.today() + timedelta(days=days)
-    print(f"    growth {per_day:,.0f} rows a session at {per_row:,.0f} bytes a row, so the "
-          f"free tier is reached around {full} ({days} days)")
-    print("    IntradayBar does not grow: jobs/intraday.py sweeps past its retention window")
+    print(f"    the permanent record grows {per_day:,.0f} rows a session at "
+          f"{per_row:,.0f} bytes a row, so the free tier is reached around {full} "
+          f"({days} days)")
+    if steady["bytes"]:
+        print(f"    the capped tables settle at about "
+              f"{float(steady['bytes']) / 1024 / 1024:.0f} MB and stop growing; "
+              "jobs/retention.py holds them there")
+    print("    IntradayBar does not grow either: jobs/intraday.py sweeps past its window")
 print()
 counts = {}
 for _, verdict, _ in results:
