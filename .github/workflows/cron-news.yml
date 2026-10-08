@@ -104,7 +104,24 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: |
           set +e
-          out="$(python jobs/run.py news 2>&1)"
+          # Half the asset list per run, alternating on the hour.
+          #
+          # The lane's cost is one request per asset at a rate the host sets, so it grows with
+          # the pool and nothing else: at 477 names a full pass is about 18 minutes against
+          # this job's 25 minute ceiling, and the next batch of names eats that margin. Two
+          # slices put every run near nine minutes and keep it there.
+          #
+          # The schedule is every two hours, so each half is asked for six times a day and no
+          # name waits more than four hours. That costs nothing real: the fetch cache holds a
+          # feed for six hours, so most of what the old hourly-ish full pass asked for was
+          # already a cache hit.
+          #
+          # Derived from the clock rather than kept in a file because this workflow has no
+          # state between runs, and `slice_of` sorts on the symbol before cutting, so a name
+          # belongs to the same half on every run whatever order the query returns.
+          half=$(( ($(date -u +%H | sed 's/^0//') / 2) % 2 + 1 ))
+          echo "news slice $half of 2"
+          out="$(python jobs/run.py news --chunk $half/2 2>&1)"
           code=$?
           echo "$out"
           {
