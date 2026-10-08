@@ -114,6 +114,11 @@ DAILY = [
     ("accuracy", []),
     ("audit", []),
     ("analysis", []),
+    # retention is last of everything, and deliberately after analysis rather than before it:
+    # it caps the per-session working set, and a sweep that ran first would prune rows the
+    # same run was about to read. It touches nothing the accuracy loop measures -- the list of
+    # what it will and will not delete is written out in the job itself.
+    ("retention", []),
 ]
 
 WEEKLY = [

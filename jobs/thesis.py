@@ -344,6 +344,10 @@ def main() -> None:
             for horizon, series in by_horizon.items():
                 latest = series[-1]
                 now = verdicts(latest["conditions"])
+                # The oldest stored read for this asset and horizon. A run that starts on it
+                # may have started earlier and been pruned, which matters because the date a
+                # run starts is the identity of a thesis.
+                oldest_stored = series[0]["periodEnd"]
 
                 for run in runs(series):
                     first = run[0]
@@ -351,6 +355,27 @@ def main() -> None:
                     opened_on = first["periodEnd"]
 
                     existing = existing_by_key.get((a["id"], horizon, opened_on))
+
+                    # `jobs/retention.py` caps AssetSetup, so a thesis older than that window
+                    # has lost the rows its run was derived from. Its run then appears to begin
+                    # on the oldest row still stored, and opening a *second* thesis on that date
+                    # would restart the clock on a reason that never changed -- the exact fault
+                    # `runs()` refuses to make for a skipped nightly job.
+                    #
+                    # So when a run begins at the edge of what is stored and a thesis for this
+                    # asset and horizon already opened on or before that edge, the older record
+                    # is the one being described. It keeps its own opening day, which is a copy
+                    # of the session the state really appeared on, taken while the rows were
+                    # still there.
+                    if existing is None and opened_on == oldest_stored:
+                        earlier = [
+                            t for (aid, hz, on), t in existing_by_key.items()
+                            if aid == a["id"] and hz == horizon and on <= opened_on
+                        ]
+                        if earlier:
+                            kept = max(earlier, key=lambda t: t["openedOn"])
+                            opened_on = kept["openedOn"]
+                            existing = kept
                     # A broken thesis is finished. Reassessing it would let a later recovery
                     # quietly erase the fact that the level it named was passed.
                     if existing and existing["status"] == "broken":

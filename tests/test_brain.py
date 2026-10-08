@@ -3664,7 +3664,10 @@ class QueryBudget(unittest.TestCase):
         "audit.py": 9, "confidence.py": 3, "events.py": 7, "factors.py": 1, "geo.py": 2,
         "graph.py": 1, "horizons.py": 13, "human.py": 2, "intraday.py": 7,
         "investigate.py": 5, "lifecycle.py": 7, "lineage.py": 4, "marketplace.py": 3,
-        "prices.py": 8, "psx.py": 2, "rank.py": 14, "seed.py": 5, "setup.py": 6,
+        # retention.py reads a count per table, not per asset, so its five are bounded by the
+        # number of tables in the sweep and not by the size of the pool.
+        "prices.py": 8, "psx.py": 2, "rank.py": 14, "retention.py": 5, "seed.py": 5,
+        "setup.py": 6,
         "signals.py": 12, "stats.py": 2, "thesis.py": 8, "upcoming.py": 3,
     }
 
