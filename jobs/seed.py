@@ -215,6 +215,25 @@ FOREX_INDUSTRIES = [
 ]
 
 INDUSTRIES = INDUSTRIES + PSX_INDUSTRIES + FOREX_INDUSTRIES
+INDUSTRIES = INDUSTRIES + [
+    (
+        "precious-metal-miners",
+        "Precious Metal Miners",
+        "Listed gold and silver producers and the royalty companies that finance them. Kept "
+        "apart from Precious Metals, which holds the metal itself: a miner is a levered claim "
+        "on the same price with a cost base of its own, and pooling the two would give a peer "
+        "median that describes neither.",
+        14,
+    ),
+    (
+        "base-metals-and-steel",
+        "Base Metals and Steel",
+        "Copper, iron ore, aluminium and steel producers. The listed companies that dig and "
+        "make the material, where Industrial Metals is the copper price itself.",
+        15,
+    ),
+]
+
 
 # industry slug, symbol, name, type, cap basis, source, source ref, note
 YAHOO = "yahoo"
@@ -646,6 +665,123 @@ FOREX_ASSETS: list[tuple] = [
 ]
 
 ASSETS = ASSETS + FOREX_ASSETS
+
+# --- expansion, 2026-10-08 ----------------------------------------------------------------
+#
+# Measured by `tools/candidates.py` against each market's own free source, which is the check
+# the 2026-10-04 batch was done by hand and the reason this one is reproducible. Every figure
+# below is that tool's output on 2026-10-08 and can be reprinted by running it.
+#
+# US: one year of Yahoo daily bars, at least 200 sessions and $50M of median daily turnover
+# (close x volume). Turnover rather than share count, because an industry ranking puts a $3
+# stock and a $600 one side by side. Three candidates were measured and dropped rather than
+# carried: GOLD at $20M and TX at $11M, both under the floor, and X returned no series at all.
+#
+# Two industries are new here, and they exist because the alternative was a wrong label. The
+# miners could not go into Precious Metals -- that group is written as futures "and the funds
+# that hold the metal", and a peer median mixing bullion with a levered producer describes
+# neither -- and the steel and iron names had nowhere at all. Each new group opens with eleven
+# and thirteen names, so neither is the three-name ranking the 2026-10-04 note refused.
+MORE_US_2: list[tuple] = [
+    ("mega-cap-tech", "ABNB", "Airbnb", "stock", "marketCap", YAHOO, "ABNB", "Short stay accommodation marketplace."),
+    ("mega-cap-tech", "SPOT", "Spotify", "stock", "marketCap", YAHOO, "SPOT", "Subscription music and podcast streaming."),
+
+    ("software-cloud", "FTNT", "Fortinet", "stock", "marketCap", YAHOO, "FTNT", "Network firewalls and security appliances."),
+    ("software-cloud", "VEEV", "Veeva Systems", "stock", "marketCap", YAHOO, "VEEV", "Cloud software for the life sciences industry."),
+    ("software-cloud", "HUBS", "HubSpot", "stock", "marketCap", YAHOO, "HUBS", "Marketing, sales and service software."),
+
+    ("semiconductors", "MPWR", "Monolithic Power Systems", "stock", "marketCap", YAHOO, "MPWR", "Power management chips, data centre weighted."),
+    ("semiconductors", "GFS", "GlobalFoundries", "stock", "marketCap", YAHOO, "GFS", "Contract chip manufacturing outside the leading edge."),
+
+    ("financials", "PYPL", "PayPal", "stock", "marketCap", YAHOO, "PYPL", "Online payments and consumer wallets."),
+
+    ("energy", "TRGP", "Targa Resources", "stock", "marketCap", YAHOO, "TRGP", "Natural gas gathering, processing and logistics."),
+
+    ("healthcare", "ABT", "Abbott Laboratories", "stock", "marketCap", YAHOO, "ABT", "Diagnostics, devices and nutrition."),
+    ("healthcare", "ELV", "Elevance Health", "stock", "marketCap", YAHOO, "ELV", "Health insurance and managed care."),
+    ("healthcare", "ZTS", "Zoetis", "stock", "marketCap", YAHOO, "ZTS", "Animal health medicines and vaccines."),
+    ("healthcare", "HCA", "HCA Healthcare", "stock", "marketCap", YAHOO, "HCA", "Hospital and outpatient care operator."),
+
+    ("precious-metal-miners", "NEM", "Newmont", "stock", "marketCap", YAHOO, "NEM", "The largest listed gold producer by output."),
+    ("precious-metal-miners", "AEM", "Agnico Eagle Mines", "stock", "marketCap", YAHOO, "AEM", "Gold production, Canada and Finland weighted."),
+    ("precious-metal-miners", "FNV", "Franco-Nevada", "stock", "marketCap", YAHOO, "FNV", "Gold royalties and streams rather than mines."),
+    ("precious-metal-miners", "WPM", "Wheaton Precious Metals", "stock", "marketCap", YAHOO, "WPM", "Precious metal streaming contracts."),
+    ("precious-metal-miners", "KGC", "Kinross Gold", "stock", "marketCap", YAHOO, "KGC", "Gold production across the Americas and West Africa."),
+    ("precious-metal-miners", "AU", "AngloGold Ashanti", "stock", "marketCap", YAHOO, "AU", "Gold production, Africa and the Americas."),
+    ("precious-metal-miners", "GFI", "Gold Fields", "stock", "marketCap", YAHOO, "GFI", "Gold production, South Africa and Australia."),
+    ("precious-metal-miners", "PAAS", "Pan American Silver", "stock", "marketCap", YAHOO, "PAAS", "Silver and gold production in Latin America."),
+    ("precious-metal-miners", "RGLD", "Royal Gold", "stock", "marketCap", YAHOO, "RGLD", "Gold royalties and stream interests."),
+    ("precious-metal-miners", "BTG", "B2Gold", "stock", "marketCap", YAHOO, "BTG", "Gold production, Mali and the Philippines weighted."),
+    ("precious-metal-miners", "HMY", "Harmony Gold", "stock", "marketCap", YAHOO, "HMY", "South African gold production."),
+
+    ("base-metals-and-steel", "FCX", "Freeport-McMoRan", "stock", "marketCap", YAHOO, "FCX", "Copper and gold mining, Indonesia and the Americas."),
+    ("base-metals-and-steel", "SCCO", "Southern Copper", "stock", "marketCap", YAHOO, "SCCO", "Copper mining in Peru and Mexico."),
+    ("base-metals-and-steel", "VALE", "Vale", "stock", "marketCap", YAHOO, "VALE", "Iron ore and nickel, the largest Brazilian miner."),
+    ("base-metals-and-steel", "RIO", "Rio Tinto", "stock", "marketCap", YAHOO, "RIO", "Iron ore, aluminium and copper."),
+    ("base-metals-and-steel", "BHP", "BHP Group", "stock", "marketCap", YAHOO, "BHP", "Iron ore, copper and coal."),
+    ("base-metals-and-steel", "NUE", "Nucor", "stock", "marketCap", YAHOO, "NUE", "Electric arc furnace steel, the largest US producer."),
+    ("base-metals-and-steel", "STLD", "Steel Dynamics", "stock", "marketCap", YAHOO, "STLD", "Electric arc furnace steel and recycling."),
+    ("base-metals-and-steel", "CLF", "Cleveland-Cliffs", "stock", "marketCap", YAHOO, "CLF", "Integrated steel and iron ore pellets."),
+    ("base-metals-and-steel", "CMC", "Commercial Metals", "stock", "marketCap", YAHOO, "CMC", "Rebar and merchant steel, construction weighted."),
+    ("base-metals-and-steel", "RS", "Reliance", "stock", "marketCap", YAHOO, "RS", "Metals service centres and processing."),
+    ("base-metals-and-steel", "MT", "ArcelorMittal", "stock", "marketCap", YAHOO, "MT", "Integrated steel across Europe and the Americas."),
+    ("base-metals-and-steel", "GGB", "Gerdau", "stock", "marketCap", YAHOO, "GGB", "Long steel production in Brazil and North America."),
+    ("base-metals-and-steel", "AA", "Alcoa", "stock", "marketCap", YAHOO, "AA", "Bauxite, alumina and primary aluminium."),
+]
+
+# Crypto, measured through `prices.crypto_closes` -- the same four venue chain the fetch job
+# uses, not one exchange. The floor is $4M of median daily turnover on whichever venue answers,
+# which is the median of the 27 coins already followed rather than a number chosen to sound
+# strict: those run from $573M down to $0.5M, so the $20M Binance figure the earlier batch used
+# would reject two thirds of the universe this site already prices. Seven candidates were
+# measured and dropped under the floor, and two more because CoinPaprika does not carry the id.
+MORE_CRYPTO_2: list[tuple] = [
+    ("crypto", "dot-polkadot", "Polkadot", "crypto", "marketCap", PAPRIKA, "dot-polkadot", "Relay chain securing parallel chains."),
+    ("crypto", "pol-polygon-ecosystem-token", "Polygon", "crypto", "marketCap", PAPRIKA, "pol-polygon-ecosystem-token", "Ethereum scaling network and its staking token."),
+    ("crypto", "shib-shiba-inu", "Shiba Inu", "crypto", "marketCap", PAPRIKA, "shib-shiba-inu", "Ethereum meme token with a layer two of its own."),
+    ("crypto", "pepe-pepe", "Pepe", "crypto", "marketCap", PAPRIKA, "pepe-pepe", "Ethereum meme token."),
+    ("crypto", "ondo-ondo", "Ondo", "crypto", "marketCap", PAPRIKA, "ondo-ondo", "Tokenised treasury and credit products."),
+    ("crypto", "tao-bittensor", "Bittensor", "crypto", "marketCap", PAPRIKA, "tao-bittensor", "Network paying for machine learning model output."),
+    ("crypto", "ena-ethena", "Ethena", "crypto", "marketCap", PAPRIKA, "ena-ethena", "Synthetic dollar protocol governance token."),
+    ("crypto", "tia-celestia", "Celestia", "crypto", "marketCap", PAPRIKA, "tia-celestia", "Modular data availability layer."),
+    ("crypto", "sei-sei", "Sei", "crypto", "marketCap", PAPRIKA, "sei-sei", "Trading focused parallel execution chain."),
+]
+
+# PSX, taken from the exchange's own published closing files and placed by the exchange's own
+# sector code -- field three of every row in `mkt_summary`, which `tools/candidates.py psx`
+# reads and maps to an industry by looking at which code the names already followed carry.
+#
+# A code is only trusted when at least three followed names sit behind it. That rule is not
+# decoration: ENGROH is a holding company the exchange files under its investment-company code
+# and this project placed in PSX Fertilizer, and on its own it taught the map that every
+# brokerage on the exchange -- Arif Habib, Trust Brokerage, five others -- was a fertilizer
+# producer. Every peer median and relative strength reading here is computed inside an
+# industry, so an import under a wrong label is not cosmetic.
+#
+# Seventy-two liquid symbols were ranked and left out because this project has no industry for
+# them: steel, sugar, pharmaceuticals, chemicals, paints, food, property, insurance and the
+# terminals. Turnover figures behind each pick are medians over the 16 sessions the exchange
+# published in the three weeks to 2026-10-08.
+MORE_PSX_2: list[tuple] = [
+    ("psx-technology", "ZUMA", "Zuma Resources", "stock", "marketCap", PSX, "ZUMA", "Technology and communication sector listing, Rs.129M a day."),
+    ("psx-technology", "MDTL", "Media Times", "stock", "marketCap", PSX, "MDTL", "Media and publishing, filed under technology and communication."),
+    ("psx-technology", "QTECH", "Quantum Data", "stock", "marketCap", PSX, "QTECH", "Data and technology services."),
+    ("psx-technology", "ZAL", "Zarea", "stock", "marketCap", PSX, "ZAL", "Technology and communication sector listing."),
+
+    ("psx-oil-gas", "OBOY", "Oilboy Energy", "stock", "marketCap", PSX, "OBOY", "Fuel marketing, in the exchange's oil and gas marketing sector."),
+    ("psx-oil-gas", "WAFI", "Wafi Energy Pakistan", "stock", "marketCap", PSX, "WAFI", "Fuel retail and lubricants, the former Shell Pakistan network."),
+
+    ("psx-banks", "BML", "Bank Makramah", "stock", "marketCap", PSX, "BML", "Commercial bank, the former Summit Bank."),
+    ("psx-banks", "HMB", "Habib Metropolitan Bank", "stock", "marketCap", PSX, "HMB", "Commercial bank, trade finance weighted."),
+
+    ("psx-cement", "DCL", "Dewan Cement", "stock", "marketCap", PSX, "DCL", "Cement manufacture."),
+    ("psx-cement", "POWER", "Power Cement", "stock", "marketCap", PSX, "POWER", "Cement manufacture in southern Sindh."),
+    ("psx-cement", "DNCC", "Dandot Cement", "stock", "marketCap", PSX, "DNCC", "Cement manufacture in northern Punjab."),
+    ("psx-cement", "DBCI", "Dadabhoy Cement", "stock", "marketCap", PSX, "DBCI", "Cement manufacture."),
+]
+
+ASSETS = ASSETS + MORE_US_2 + MORE_CRYPTO_2 + MORE_PSX_2
+
 
 # slug, name, category, summary, wiki title, trends term, subreddits
 PRODUCTS = [
