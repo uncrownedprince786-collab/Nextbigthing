@@ -1,5 +1,130 @@
 # Resume here
 
+## 0. State of play, 2026-10-08 (eighth session) — read this first
+
+**Pushed, deployed, verified.** 432 Python tests, 177 web tests, 17 of 17 derivation steps ok,
+331 verdicts re-derived with no contradiction, acceptance 24 PASS / 3 PARTIAL / **0 FAIL**.
+
+### The one thing that was actually broken
+
+`run_intraday` had been raising `ZeroDivisionError` since **2026-10-04**. The volume ratio was
+computed in three places — once behind a guard that checks the average for zero, twice inline
+without it — and an asset whose last twenty five-minute bars all printed a genuine zero volume
+took the unguarded path. This repository stores a real zero volume as a zero rather than a null
+on purpose, 29,863 of them, so the input was correct and the arithmetic was not.
+
+It is the first thing `horizons.main()` calls, so the crash took `run_longer` and `run_targets`
+down with it in the same process. **Four days with no intraday read and no target range from
+the nightly lane**, visible only as an exit code. The symptom in the data was one line:
+`AssetSetup` held intraday rows to 2026-10-04 while `IntradayBar` ran to 10-08.
+
+Rule 36 again, and the sharpest version of it so far: the three copies did not disagree about
+the threshold, they disagreed about whether the denominator could be zero.
+
+### Four jobs were dating measurements with the calendar
+
+The loophole `setup.py` was fixed for on 2026-10-07, still open in four more files. Measured
+that morning from a host five hours ahead of UTC: every close ended 10-07, and 1,788
+attribution rows, 3,524 analogs and 283 investigations read `periodEnd` 2026-10-08. The numbers
+were right; the date was a day nothing traded. Every reader takes the newest `periodEnd` per
+asset, so a row dated forward does not read oddly — **it wins**.
+
+Each now dates from its own data: attribution from the asset's newest close, analogs from the
+bar the comparison was made from, investigate from the day the move happened, horizons from the
+newest bar in its own window. `tools/future_rows.py` found and removed the 542 left behind,
+because an upsert keyed on the date that was wrong has no reason to replace them.
+
+**`setup.py` then went a step further, and this one is new.** It took `max(PriceSnapshot.date)`
+across every asset. Two exchanges do not close together: Karachi publishes its file hours
+before New York stops trading, so between those two moments the site-wide maximum is a session
+a US name has not had yet. Each row is now dated to the newest close of the asset it describes
+— the stricter reading of the sentence the file already carried.
+
+`jobs/factors.py` keeps the global anchor **on purpose**: its period is also the "now" its event
+distances and news ages are measured from, and that is one question for the whole run. Do not
+"fix" it to match the others without dealing with that.
+
+### The test file was hiding four of its own tests
+
+`unittest.main()` sat 72 lines from the end of `tests/test_brain.py` with `ShortLevelsAreMirrored`
+defined underneath — four tests that hold a short's stop above the price, a bug this repository
+has already shipped once. Discovery imports the module and collects everything, so CI ran 430;
+running the file directly executed the entry point at that line and printed **OK over 426**. A
+green run that is quietly four tests short is worse than a red one. Moved, with a test that
+nothing may follow it and a second that the two run modes agree.
+
+### The query ratchet could not see a round trip through a helper
+
+It matched the query call only where it was written inline, so `jobs/rank.py` measured **zero**
+while issuing about seven statements per asset through `close_on`, `avg_volume` and
+`size_ranks`. It now finds module-level functions that query and counts a call to one inside a
+loop. Every baseline was re-measured; each held or rose because a round trip that was always
+there became visible, and none rose because a query was added.
+
+This matters more than it reads. `rank.py` is `14` — the highest in the repository — and it took
+**17.2 minutes** of the 2h50m local run. The decision lane's budget is 30 minutes.
+
+### Pool: 273 → 331
+
+| | before | after | directional |
+| --- | --- | --- | --- |
+| US | 126 | **163** | 66 (8 High, 32 Medium) |
+| PSX | 85 | **97** | 16 (3 High, 9 Medium) |
+| crypto | 27 | **36** | 1 |
+| FX | 27 | 27 | 3 |
+| commodities | 8 | 8 | 0 |
+
+`tools/candidates.py` measures a candidate against its own free source before it is written
+down, which the 2026-10-04 batch did by hand and left no record of. Three things in it are
+worth keeping:
+
+1. **Crypto is asked through `prices.crypto_closes`**, the same four-venue chain the fetch job
+   walks. TRON is followed here and Coinbase serves no `TRX-USD` at all, so a check written
+   against one exchange would reject a coin this site prices daily. The floor is $4M of median
+   daily turnover — the *median of the 27 already stored*, not a number chosen to sound strict:
+   the $20M Binance figure the last batch used rejects two thirds of the existing universe.
+2. **PSX names are placed by the exchange's own sector code**, field three of every row in
+   `mkt_summary`, mapped to an industry by reading which code the followed names carry. A code
+   counts only with **at least three** followed names behind it. That floor is load bearing:
+   `ENGROH` is a holding company the exchange files under its investment-company code and this
+   project placed in PSX Fertilizer, and on its own it taught the map that Arif Habib, Trust
+   Brokerage and five other brokerages were fertilizer producers.
+3. **Two new US industries**, because the alternative was a wrong label. Precious Metals is
+   written as futures and the funds that *hold the metal*; a peer median mixing bullion with a
+   levered producer describes neither. Eleven miners and thirteen base-metal and steel names
+   have their own groups. Seventy-two liquid PSX symbols were ranked and left out for the same
+   reason — there is no industry here for steel, sugar, pharmaceuticals, chemicals, food,
+   property, insurance or the terminals.
+
+### Crypto and FX, measured rather than asserted
+
+- **crypto: 36 of 36 carry both a volume ratio and a peer-relative reading.** Every leg the
+  rules can use is present. One directional verdict. That is a market condition, not a gap.
+- **FX: 27 of 27 carry a peer-relative reading, 0 of 27 carry volume.** The volume absence is
+  structural and stays proven: no venue publishes spot FX volume. CME currency futures do
+  publish volume and were considered and rejected — futures volume is not spot volume, and
+  quoting it as "EURUSD traded 1.4x its average" would be a different instrument's number under
+  this one's name.
+
+### The limit that is now visible: 2027-02-12
+
+`tools/acceptance.py` prints the date the 500 MB free tier is reached, from the measured rows a
+session adds and the measured bytes a row costs. Today: **339 MB, 1,934 rows a session at 684
+bytes a row, full around 2027-02-12 — 127 days.** `IntradayBar` does not grow (7-day sweep);
+`PriceSnapshot` and the per-session derived tables do.
+
+**Nothing was deleted to buy room, deliberately.** The accuracy loop matures `DecisionLog` over
+60 days and `thesis.py` reads a run of `AssetSetup` rows, so a retention sweep written in a
+hurry is a next-week problem where 127 days is not. It is the first thing to design properly.
+
+### Timing, for whoever runs these locally
+
+The full `run.py decision` took **2h50m from a host ~240ms from the database**; a CI runner is
+~5ms, so the same work is roughly fifty times faster there. `lineage` 59.3 min, `rank` 17.2,
+`setup` 11.8, `human` 10.8, `analysis` 8.9, `thesis` 8.2, `analogs` 7.0. Do not read a local
+runtime as a production one, and do not read the nightly budget as safe because a local run
+finished — check the lane.
+
 ## 0. State of play, 2026-10-07 (seventh session) — read this first
 
 **Pushed, deployed, verified.** 424 Python tests, 177 web tests, build green, 273 verdicts
