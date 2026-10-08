@@ -29,7 +29,7 @@ from pathlib import Path
 warnings.filterwarnings("ignore")
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from nbt import SNAPSHOTS, db, get_json, get, rows, step  # noqa: E402
+from nbt import SNAPSHOTS, Link, db, get_json, get, rows, step  # noqa: E402
 from runlog import parse_chunk, slice_of  # noqa: E402
 
 try:
@@ -1603,14 +1603,37 @@ def news_match_tokens(a: dict) -> tuple[str, ...]:
     return tuple(t for t in (head, hint) if t)
 
 
-def fetch_news(cur) -> int:
+def fetch_news(cur, chunk: tuple[int, int] | None = None) -> int:
+    """Collect headlines for every industry, product and asset.
+
+    Writes through a `Link` rather than the lane's shared cursor, and commits after each
+    target. This lane spends hours waiting on feeds and milliseconds writing rows, so its
+    connection is idle almost all of the time -- and at 477 assets a pooled Postgres closed it
+    twice at around the 323rd name, losing everything collected because the whole run was one
+    transaction. A drop now costs one target.
+    """
     step("news")
     written = 0
+    wire = Link()
     industries = rows(cur, 'SELECT id, slug FROM "Industry"')
     products = rows(cur, 'SELECT id, name FROM "Product"')
     assets = rows(
         cur, 'SELECT id, symbol, name, "assetType", source FROM "Asset" ORDER BY symbol'
     )
+    # One slice of the asset list, by the same rule `fetch_yahoo` slices by: sorted on the
+    # symbol first, so a name lands in the same slice on every run and a retry covers what the
+    # run it is retrying covered. The industry and product feeds are not sliced -- there are
+    # seventy of them against 477 assets, and they are what the overview's own lines are built
+    # from.
+    #
+    # This exists because the lane's cost is one request per asset at a rate the host sets, so
+    # it grows with the pool and nothing else. Four slices of 120 names is four runs that each
+    # finish well inside a workflow timeout, where one run of 477 is a lane that gets slower
+    # every time the universe does.
+    if chunk:
+        i, n = chunk
+        assets = slice_of(assets, i, n, key=lambda a: a["symbol"])
+        step(f"news slice {i}/{n}: {len(assets)} of this lane's assets")
 
     # Two counters, because they answer different questions. `written` is new rows, which is
     # legitimately 0 on a rerun inside the cache hour — every article is already stored and
@@ -1694,11 +1717,11 @@ def fetch_news(cur) -> int:
             if matcher is not None and not matcher.search(title):
                 off_target += 1
                 continue
-            cur.execute(
+            affected = wire.execute(
                 insert_sql,
                 params_fn(when, title, link, publisher, source),
             )
-            written += cur.rowcount if cur.rowcount > 0 else 0
+            written += affected if affected and affected > 0 else 0
             kept_here += 1
         dropped = ""
         if stale or off_target or junk:
@@ -1791,6 +1814,9 @@ def fetch_news(cur) -> int:
             budget_spent_on += 1
         if not kept:
             empty.append(a["symbol"])
+        # Committed per asset, which is the half of the fix that matters: `Link` can replace a
+        # dropped connection, but it cannot make a three hour transaction survive one.
+        wire.commit()
     spent = NEWS_FALLBACK_BUDGET - fallback_budget
     if spent:
         print(f"  fallback requests: {spent} of {NEWS_FALLBACK_BUDGET} budget, over {budget_spent_on} assets")
@@ -1899,9 +1925,17 @@ def main() -> None:
 
     todo = set(argv) or {"yahoo", "crypto", "news"}
     silent: list[str] = []
-    with conn, conn.cursor() as cur:
+    cur = conn.cursor()
+    try:
         # Each lane is caught on its own. A SourceSilent is our own exception and not a
         # database error, so the transaction is still usable and the next lane can write.
+        #
+        # **Committed after each lane, not once at the end.** This process spends hours waiting
+        # on feeds, and a pooled Postgres closes a connection that sits idle inside an open
+        # transaction -- measured twice on 2026-10-08 at 477 assets, both times around the
+        # 323rd name. Under the old `with conn:` that drop did not just stop the news lane: it
+        # rolled back every price row the same process had already fetched, because all three
+        # lanes shared one transaction. Each lane now lands on its own.
         if "yahoo" in todo:
             try:
                 n1 = fetch_yahoo(cur, chunk=chunk)
@@ -1909,26 +1943,47 @@ def main() -> None:
                 print(f"  {n1} price rows")
             except SourceSilent as e:
                 silent.append(str(e))
+            conn.commit()
         if "crypto" in todo:
             try:
                 n2 = fetch_crypto(cur)
                 print(f"  {n2} crypto price rows")
             except SourceSilent as e:
                 silent.append(str(e))
+            conn.commit()
         if "news" in todo:
+            # The long one. It writes through its own `Link`, committing per asset, so this
+            # connection is idle throughout and may well be dead by the time it returns.
+            conn.commit()
             try:
-                n3 = fetch_news(cur)
+                n3 = fetch_news(cur, chunk=chunk)
                 print(f"  {n3} news rows written")
             except SourceSilent as e:
                 silent.append(str(e))
 
+        # The summary is read on a connection that is known to be alive. Asking the old one
+        # first and reconnecting on failure would be the same thing with an extra traceback in
+        # the log, and this lane's log is read by a human looking for a source that went quiet.
+        try:
+            cur.close()
+            conn.close()
+        except Exception:  # noqa: BLE001 — already gone, and nothing depends on it
+            pass
+        conn = db()
+        cur = conn.cursor()
         cur.execute('SELECT count(*) AS n, max(date) AS latest FROM "PriceSnapshot"')
         got = cur.fetchone()
         print(f"\nPriceSnapshot rows: {got['n']}, latest {got['latest']}")
         cur.execute('SELECT count(*) AS n FROM "News"')
         print(f"News rows: {cur.fetchone()['n']}")
         coverage_report(cur)
-    conn.close()
+        conn.commit()
+    finally:
+        try:
+            cur.close()
+        except Exception:  # noqa: BLE001
+            pass
+        conn.close()
 
     # After the commit, never before it.
     fail_on_silent(silent)

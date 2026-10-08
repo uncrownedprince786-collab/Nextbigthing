@@ -2587,11 +2587,22 @@ class SourceFailure(unittest.TestCase):
         # for the real rule and it fired on correct code the moment `main` learned to reject a
         # malformed `--chunk`: argument validation raises before the connection is opened, so it
         # cannot unwind a transaction that does not exist yet. The invariant is positional, so
-        # the test is now positional — it reads the block between `with conn` and `conn.close()`
-        # and allows nothing to exit from inside it.
-        opens = body.index("with conn, conn.cursor() as cur:")
+        # the test is now positional — it reads the block the lanes run inside and allows
+        # nothing to exit from it.
+        #
+        # The block opens with `cur = conn.cursor()` rather than `with conn, ...` since the
+        # lanes stopped sharing one transaction. That was the same invariant being broken from
+        # the other side: three lanes under one `with conn` meant a connection dropped during
+        # the news pass rolled back the prices the same process had already fetched, which it
+        # did twice on 2026-10-08. Each lane commits for itself now, and nothing may exit from
+        # between the first one and the close.
+        opens = body.index("cur = conn.cursor()")
         closes = body.index("conn.close()")
         self.assertNotIn("raise SystemExit", body[opens:closes])
+        self.assertNotIn("with conn, conn.cursor() as cur:", body,
+                         "the three lanes share one transaction again")
+        self.assertGreaterEqual(body.count("conn.commit()"), 3,
+                                "each lane must land on its own")
         # The exit that does exist is still the one after the commit, and still the only one
         # that reports a silent source.
         self.assertEqual(body[closes:].count("fail_on_silent(silent)"), 1)

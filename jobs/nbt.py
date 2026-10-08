@@ -173,14 +173,25 @@ def get(
 
     raw = None
     for attempt in range(RETRIES + 1):
+        # Stamped when the request *leaves*, not when the answer arrives.
+        #
+        # HOST_DELAY is a minimum gap between requests, and measuring it from the end of the
+        # previous one made the real gap `delay + however long that host took to answer`. For
+        # Google News at a 2 second delay and roughly a second of latency, every feed cost
+        # three seconds instead of two -- and the news lane asks for 548 of them, so a third of
+        # its runtime was the job waiting on a clock it had already satisfied.
+        #
+        # The host sees exactly the same rate either way: one request every HOST_DELAY seconds
+        # at most. What changes is that this process stops idling between them. A request that
+        # takes *longer* than the delay still spaces the next one naturally, because the gap is
+        # measured from a point already in the past.
+        _last_hit[host] = time.time()
         try:
             req = urllib.request.Request(url, headers=hdrs)
             with urllib.request.urlopen(req, timeout=timeout, context=_ctx) as resp:
                 raw = resp.read()
-            _last_hit[host] = time.time()
             break
         except urllib.error.HTTPError as e:
-            _last_hit[host] = time.time()
             # 429 means back off hard for this host for the rest of the run.
             if e.code in (429, 403, 503):
                 _last_hit[host] = time.time() + 30
@@ -192,7 +203,6 @@ def get(
             print(f"  FAIL {e.code} {url[:100]}")
             return None
         except Exception as e:  # noqa: BLE001 - a dead source must not kill a job
-            _last_hit[host] = time.time()
             # A timeout or a reset is the case retrying was added for.
             if may_retry(host, attempt):
                 print(f"  retry {attempt + 1} of {RETRIES} after {type(e).__name__} {url[:80]}")
@@ -252,6 +262,67 @@ def db():
     conn = psycopg.connect(url, row_factory=dict_row, connect_timeout=20)
     conn.execute("SET TIME ZONE 'UTC'")
     return conn
+
+
+class Link:
+    """A database connection that survives the server closing it.
+
+    Written for the news lane and useful to any job shaped like it. That job spends hours
+    asking feeds for headlines and only milliseconds writing them, so its connection sits idle
+    almost all of the time -- and a pooled Postgres closes an idle connection inside a long
+    transaction. Measured twice on 2026-10-08 at 477 assets: "server closed the connection
+    unexpectedly" at around 323 names, both times, losing every row the lane had collected
+    because the whole run was one transaction.
+
+    Two properties, and both matter:
+
+      * **A write is retried once on a dropped connection, against a fresh one.** A drop is an
+        ordinary event here, not a fault to fail the lane for.
+      * **The caller commits as it goes.** This class cannot make a three-hour transaction
+        safe; it makes a dropped connection cost one asset instead of the whole afternoon. A
+        caller that still holds everything open until the end gets a reconnect and an empty
+        transaction, which is the same loss with extra steps.
+
+    It deliberately does not retry reads. Every read in these jobs happens at the start of a
+    run, while the connection is new, and a read that fails there is a fault worth stopping on.
+    """
+
+    def __init__(self):
+        self.conn = db()
+        self.cur = self.conn.cursor()
+
+    def _revive(self) -> None:
+        try:
+            self.conn.close()
+        except Exception:  # noqa: BLE001 — it is already gone; this is tidiness
+            pass
+        self.conn = db()
+        self.cur = self.conn.cursor()
+
+    def execute(self, sql, params=None):
+        try:
+            self.cur.execute(sql, params or ())
+        except psycopg.OperationalError as e:
+            print(f"  database connection lost ({type(e).__name__}), reconnecting")
+            self._revive()
+            self.cur.execute(sql, params or ())
+        return self.cur.rowcount
+
+    def commit(self) -> None:
+        try:
+            self.conn.commit()
+        except psycopg.OperationalError:
+            # Nothing to salvage: the server has the rows or it does not, and a commit that
+            # cannot reach it means it does not. The next write reconnects and carries on.
+            print("  database connection lost at commit, reconnecting")
+            self._revive()
+
+    def close(self) -> None:
+        try:
+            self.cur.close()
+            self.conn.close()
+        except Exception:  # noqa: BLE001
+            pass
 
 
 def rows(cur, sql, params=None):
