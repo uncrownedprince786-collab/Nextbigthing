@@ -3628,18 +3628,61 @@ class QueryBudget(unittest.TestCase):
     count, and that is the change worth seeing in a diff.
     """
 
+    # Re-measured on 2026-10-08, when the counter learned to follow one level of indirection.
+    # Every number here either stayed where it was or went up because something that was always
+    # a round trip is now visible as one; none of them went up because a query was added. The
+    # one worth looking at is rank.py, which read zero and reads fourteen: it is the job that
+    # went from minutes to half an hour on a high latency host when the pool grew to 331, and
+    # the ratchet had nothing to say about it.
     BASELINE = {
-        "accuracy.py": 2, "analogs.py": 1, "analysis.py": 5, "attribution.py": 1,
-        "audit.py": 9, "confidence.py": 3, "events.py": 2, "geo.py": 1, "graph.py": 1,
-        "horizons.py": 10, "investigate.py": 5, "lifecycle.py": 2, "lineage.py": 4,
-        "marketplace.py": 2, "prices.py": 5, "psx.py": 1, "seed.py": 5, "setup.py": 4,
-        "signals.py": 2, "stats.py": 2, "thesis.py": 8, "upcoming.py": 3,
+        "accuracy.py": 3, "analogs.py": 2, "analysis.py": 9, "attribution.py": 1,
+        "audit.py": 9, "confidence.py": 3, "events.py": 7, "factors.py": 1, "geo.py": 2,
+        "graph.py": 1, "horizons.py": 13, "human.py": 2, "intraday.py": 7,
+        "investigate.py": 5, "lifecycle.py": 7, "lineage.py": 4, "marketplace.py": 3,
+        "prices.py": 8, "psx.py": 2, "rank.py": 14, "seed.py": 5, "setup.py": 6,
+        "signals.py": 12, "stats.py": 2, "thesis.py": 8, "upcoming.py": 3,
     }
+
+    # A query reached through a helper costs the same round trip as one written inline. The
+    # counter only looked for the query call itself, so `jobs/rank.py` measured zero: every one
+    # of its per-asset reads goes through `close_on`, `avg_volume` or `size_ranks`, which are
+    # defined at module level and do the querying there. It issues around seven statements per
+    # asset and the ratchet could not see one of them -- which is how a 273 name pool grew to
+    # 331 and the job went from minutes to half an hour on a high latency host without any
+    # guard noticing.
+    #
+    # So the helpers are found first: a module level function whose own body queries is itself
+    # a query, and a call to it inside a loop counts.
+    @staticmethod
+    def querying_helpers(text: str) -> set[str]:
+        import re
+        out, current, body = set(), None, []
+        for line in text.splitlines():
+            m = re.match(r"def (\w+)\(", line)
+            if m:
+                if current and any(
+                    re.search(r"(cur\.execute|cur\.executemany|rows\(|one\()", b) for b in body
+                ):
+                    out.add(current)
+                current, body = m.group(1), []
+            elif current is not None:
+                body.append(line)
+        if current and any(
+            re.search(r"(cur\.execute|cur\.executemany|rows\(|one\()", b) for b in body
+        ):
+            out.add(current)
+        return out
 
     @staticmethod
     def in_loop_calls(path) -> int:
         import re
-        lines = path.read_text(encoding="utf-8").splitlines()
+        text = path.read_text(encoding="utf-8")
+        helpers = QueryBudget.querying_helpers(text)
+        direct = r"(cur\.execute|cur\.executemany|rows\(|one\()"
+        indirect = (
+            "|".join(rf"\b{h}\s*\(" for h in sorted(helpers)) if helpers else r"(?!)"
+        )
+        lines = text.splitlines()
         stack, n = [], 0
         for i, line in enumerate(lines, 1):
             s = line.strip()
@@ -3649,7 +3692,7 @@ class QueryBudget(unittest.TestCase):
             stack = [(ind, ln) for ind, ln in stack if ind < indent]
             if s.startswith("for ") and s.endswith(":"):
                 stack.append((indent, i))
-            elif stack and re.search(r"(cur\.execute|cur\.executemany|rows\(|one\()", s):
+            elif stack and (re.search(direct, s) or re.search(indirect, s)):
                 n += 1
         return n
 
@@ -4913,11 +4956,10 @@ class PriceFactors(unittest.TestCase):
         # asset is four thousand round trips at the thousand assets this table is sized for.
         src = (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8")
         self.assertEqual(src.count(" rows("), 4, "the number of reads changed")
-        self.assertEqual(QueryBudget.in_loop_calls(ROOT / "jobs" / "factors.py"), 0)
-
-
-if __name__ == "__main__":
-    unittest.main()
+        # One in-loop round trip, and it is the batch flush rather than a per-asset read: the
+        # loop that calls it is over slices of the payload, so the count rises with the batch
+        # size and not with the asset count. Anything above one is a read per asset.
+        self.assertEqual(QueryBudget.in_loop_calls(ROOT / "jobs" / "factors.py"), 1)
 
 
 class ShortLevelsAreMirrored(unittest.TestCase):
@@ -4989,3 +5031,40 @@ class ShortLevelsAreMirrored(unittest.TestCase):
         )
         self.assertIn("low: Math.min(entryLevel, invalidateLevel)", src)
         self.assertIn("high: Math.max(entryLevel, invalidateLevel)", src)
+
+
+class NothingIsDefinedAfterTheEntryPoint(unittest.TestCase):
+    """`unittest.main()` belongs at the end of the file, and nothing may follow it.
+
+    It sat 72 lines from the end instead, with `ShortLevelsAreMirrored` defined underneath --
+    four tests that hold a short's stop on the correct side of the price, which is a bug this
+    repository has already shipped once. Discovery imports the module and collects them, so CI
+    ran 430; running the file directly executed `unittest.main()` at that line and reported
+    `OK` over 426. A green run that is quietly four tests short is worse than a red one.
+    """
+
+    def test_the_entry_point_is_the_last_statement_in_the_file(self):
+        text = Path(__file__).read_text(encoding="utf-8")
+        marker = 'if __name__ == "__main__":'
+        self.assertIn(marker, text)
+        after = text[text.index(marker) + len(marker):]
+        self.assertNotIn("\nclass ", after,
+                         "a test class is defined after unittest.main(), so running this file "
+                         "directly will not reach it")
+
+    def test_running_this_file_directly_collects_every_class(self):
+        # The count both ways has to match. Discovery walks the module after import; the direct
+        # run stops wherever the entry point is.
+        defined = sum(
+            1 for name, obj in list(globals().items())
+            if isinstance(obj, type) and issubclass(obj, unittest.TestCase)
+        )
+        loaded = unittest.defaultTestLoader.loadTestsFromModule(
+            sys.modules[__name__]
+        ).countTestCases()
+        self.assertGreater(defined, 50)
+        self.assertGreater(loaded, 400)
+
+
+if __name__ == "__main__":
+    unittest.main()
