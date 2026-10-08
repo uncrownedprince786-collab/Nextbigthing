@@ -91,6 +91,50 @@ export interface WeeklyFocus {
   shortTotal: number;
 }
 
+/// Six slots, filled best-evidenced first, and inside one grade spread across the markets.
+///
+/// Sorting by evidence alone and cutting at six is correct arithmetic and, on a real day, a
+/// misleading block. Measured on the live site at 477 names: the short side came back six of six
+/// Pakistani, because that is where the best evidenced shorts happened to sit, and a reader who
+/// follows US names was shown a short side with nothing in it for them -- while thirty-five
+/// qualifying shorts existed, some of them American.
+///
+/// So within a grade the markets take turns: the best High in each market before the second High
+/// in any market, then the same for Medium. A grade boundary is never crossed to balance -- a
+/// Medium name cannot displace a High one, because the block's first promise is that what is
+/// shown is the best evidenced. Balance is a tie-break between equals, not a quota over them.
+///
+/// Everything else about the block is unchanged: it is still subtractive, every name in it is
+/// already in the list below, and fewer than six is the ordinary case rather than a failure.
+function spreadAcrossMarkets(sorted: Scored[], cap: number): Scored[] {
+  const byGrade = new Map<string, Map<string, Scored[]>>();
+  for (const s of sorted) {
+    const grade = byGrade.get(s.decision.confidence) ?? new Map<string, Scored[]>();
+    const market = grade.get(s.market) ?? [];
+    market.push(s);
+    grade.set(s.market, market);
+    byGrade.set(s.decision.confidence, grade);
+  }
+
+  const out: Scored[] = [];
+  // Grades in the order the sorted list already put them, so this never re-ranks evidence.
+  for (const grade of byGrade.values()) {
+    const queues = [...grade.values()];
+    let round = 0;
+    while (out.length < cap) {
+      const taken = out.length;
+      for (const queue of queues) {
+        if (out.length >= cap) break;
+        if (round < queue.length) out.push(queue[round]);
+      }
+      if (out.length === taken) break;
+      round += 1;
+    }
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
 /// The two lists, each capped, each possibly empty.
 ///
 /// Returning fewer than the cap is the normal case and not a failure: on a quiet day the rule
@@ -103,8 +147,8 @@ export function weeklyFocus(rows: Scored[], cap = WEEKLY_MAX_PER_SIDE): WeeklyFo
   const long = eligible.filter((s) => s.decision.action === "LONG").sort(byWeeklyFocus);
   const short = eligible.filter((s) => s.decision.action === "SHORT").sort(byWeeklyFocus);
   return {
-    long: long.slice(0, cap),
-    short: short.slice(0, cap),
+    long: spreadAcrossMarkets(long, cap),
+    short: spreadAcrossMarkets(short, cap),
     longTotal: long.length,
     shortTotal: short.length,
   };

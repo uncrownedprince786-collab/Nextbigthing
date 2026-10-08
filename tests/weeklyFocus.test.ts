@@ -226,3 +226,40 @@ test("the target comes from the setup the decision actually rested on", () => {
   });
   assert.equal(weeklyTarget(swingFirst)?.low, 10);
 });
+
+test("one grade's slots are spread across the markets before any market gets a second", () => {
+  // Measured on the live site at 477 names: the short side came back six of six Pakistani,
+  // because that is where the best evidenced shorts happened to sit. Thirty-five qualifying
+  // shorts existed. A reader who follows US names was shown a side with nothing in it for them,
+  // and nothing on the page said why.
+  const rows = [
+    ...["P1", "P2", "P3", "P4", "P5", "P6", "P7"].map((s) =>
+      scored({ confidence: "High" }, { symbol: s }),
+    ).map((x) => ({ ...x, market: "PSX" }) as typeof x),
+    ...["U1", "U2"].map((s) => scored({ confidence: "High" }, { symbol: s })),
+  ];
+  const got = weeklyFocus(rows as never[]);
+  const markets = got.long.map((s) => s.market);
+  assert.equal(got.long.length, WEEKLY_MAX_PER_SIDE);
+  assert.ok(markets.includes("US"), "a market with a qualifying name must reach the block");
+  assert.equal(markets.filter((m) => m === "US").length, 2, "both US names fit before a seventh PSX one");
+  assert.equal(got.longTotal, 9, "the total still counts everything that qualified");
+});
+
+test("balance never lifts a weaker grade over a stronger one", () => {
+  // The block's first promise is that what is shown is the best evidenced. Spreading across
+  // markets is a tie-break between equals; a Medium name from an absent market must not displace
+  // a High one, because that would make the block a quota rather than a reading.
+  const rows = [
+    ...["P1", "P2", "P3", "P4", "P5", "P6"].map((s) =>
+      ({ ...scored({ confidence: "High" }, { symbol: s }), market: "PSX" }),
+    ),
+    { ...scored({ confidence: "Medium" }, { symbol: "U1" }), market: "US" },
+  ];
+  const got = weeklyFocus(rows as never[]);
+  assert.equal(got.long.length, WEEKLY_MAX_PER_SIDE);
+  assert.ok(
+    got.long.every((s) => s.decision.confidence === "High"),
+    "a Medium name displaced a High one to balance the markets",
+  );
+});
