@@ -114,6 +114,31 @@ def stored_symbols() -> dict[str, str]:
     return out
 
 
+def stored_in(market: str) -> set[str]:
+    """The symbols already followed **in one market**.
+
+    A symbol is not unique across exchanges and this is not a hypothetical: PSX is both the
+    Pakistan Stock Exchange's own listing in Karachi and Phillips 66 in New York, and this
+    project follows the American one. Checking a Karachi candidate against every symbol stored
+    anywhere therefore dropped the exchange itself -- Rs.29.9M a day, in the archive on every
+    session -- as "already followed". A market has to be part of the question.
+    """
+    conn = db()
+    try:
+        with conn.cursor() as cur:
+            return {
+                r["symbol"].upper()
+                for r in rows(
+                    cur,
+                    'SELECT a.symbol FROM "Asset" a JOIN "Industry" i ON i.id = a."industryId" '
+                    "WHERE i.market = %s",
+                    (market,),
+                )
+            }
+    finally:
+        conn.close()
+
+
 def yahoo_year(symbol: str) -> tuple[int, float | None, str]:
     """(bars, median turnover, note) for one Yahoo symbol over the last year."""
     payload = get_json(
@@ -334,7 +359,7 @@ def psx_code_map(archive: dict[str, dict]) -> dict[str, str]:
 
 
 def run_psx(turnover_floor: float = MIN_PSX_TURNOVER) -> None:
-    known = stored_symbols()
+    known = stored_in("PK")
     sessions, archive = psx_archive(PSX_DAYS)
     codes = psx_code_map(archive)
     print(f"PSX, ranked from the exchange's own closing files over the last {PSX_DAYS} days\n")

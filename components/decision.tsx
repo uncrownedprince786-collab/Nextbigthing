@@ -527,6 +527,18 @@ export interface DecisionListProps {
   rows: DecisionRow[];
   /// What to say when there are none. A list with no rows still owes the reader a reason.
   empty: React.ReactNode;
+  /// How many rows to print before the rest are counted rather than listed.
+  ///
+  /// Undefined prints all of them, which is right on a market page where the list *is* the page.
+  /// On the overview it is not: the pool has grown from 160 names to 477, and an eighty-row table
+  /// above the fold is a table nobody reads to the end of. Every other block on that page already
+  /// cuts and says so -- WAIT at twelve, developing at eighteen, the coming week at six a side --
+  /// and these two were the only ones that did not.
+  ///
+  /// The cut is safe because the order is not arbitrary: `byOpportunity` puts the best evidenced
+  /// first, so nothing hidden is better evidenced than something shown. What is hidden is counted
+  /// under the heading and reachable on its own market page.
+  cap?: number;
 }
 
 const ROW_LABEL = "text-muted-foreground text-micro font-medium sm:hidden";
@@ -542,7 +554,9 @@ const ROW_LABEL = "text-muted-foreground text-micro font-medium sm:hidden";
 ///
 /// The whole row is the link, so the tap target is the card rather than the name inside it, and
 /// there is nothing else interactive in a row to conflict with it.
-export function DecisionList({ title, lead, rows, empty }: DecisionListProps) {
+export function DecisionList({ title, lead, rows, empty, cap }: DecisionListProps) {
+  const shown = cap === undefined ? rows : rows.slice(0, cap);
+  const hidden = rows.length - shown.length;
   const cols =
     // Seven columns since the measured exit joined the row. The two exit columns are given the
 // same width as each other on purpose: they are a pair a reader compares, and sizing one
@@ -568,7 +582,7 @@ export function DecisionList({ title, lead, rows, empty }: DecisionListProps) {
             <span>Confidence</span>
           </div>
           <ul className="space-y-2 sm:space-y-0">
-            {rows.map((r) => {
+            {shown.map((r) => {
               const currency = r.currency ?? "USD";
               return (
                 <li
@@ -653,6 +667,13 @@ export function DecisionList({ title, lead, rows, empty }: DecisionListProps) {
               );
             })}
           </ul>
+          {hidden > 0 ? (
+            <p className="text-muted-foreground mt-3 text-sm">
+              {hidden} further {hidden === 1 ? "name reads" : "names read"} the same way with less
+              evidence behind {hidden === 1 ? "it" : "them"}. Every one of them carries this reading
+              on its own page, and its market page lists them in this order.
+            </p>
+          ) : null}
         </>
       ) : (
         <Empty>{empty}</Empty>

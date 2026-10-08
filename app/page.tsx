@@ -159,6 +159,15 @@ const WAIT_SHOWN = 12;
 /// thirteenth, and the cut is the only thing keeping a 162-row list off the front page.
 const DEVELOPING_SHOWN = 18;
 
+/// How many LONG and SHORT rows are printed before the rest are counted rather than listed.
+///
+/// These two were the only blocks on this page that printed everything they had, which was fine
+/// at 160 names and is not at 477: the two tables alone ran to eighty rows. Twelve matches
+/// `WAIT_SHOWN` deliberately -- four blocks that each cut at a different number read as four
+/// different rules rather than one -- and the order is `byOpportunity`, so what is hidden is
+/// always less well evidenced than what is shown, never more urgent.
+const LIST_SHOWN = 12;
+
 const MARKET_NAME: Record<string, string> = {
   US: "United States listings",
   PK: "Pakistan Stock Exchange",
@@ -481,7 +490,12 @@ export default async function Home({
 
       <DecisionList
         title="LONG candidates"
-        lead="Price is trending up, the longer view is not against it, and there is a level that would prove the reading wrong."
+        lead={
+          longs.length > LIST_SHOWN
+            ? `Price is trending up, the longer view is not against it, and there is a level that would prove the reading wrong. Best evidenced first; ${LIST_SHOWN} of ${longs.length} shown.`
+            : "Price is trending up, the longer view is not against it, and there is a level that would prove the reading wrong."
+        }
+        cap={LIST_SHOWN}
         rows={longs.map(toListRow)}
         empty={
           Object.keys(current).length > 0
@@ -492,7 +506,12 @@ export default async function Home({
 
       <DecisionList
         title="SHORT candidates"
-        lead="Price is trending down, the longer view is not against it, and there is a level that would prove the reading wrong."
+        lead={
+          shorts.length > LIST_SHOWN
+            ? `Price is trending down, the longer view is not against it, and there is a level that would prove the reading wrong. Best evidenced first; ${LIST_SHOWN} of ${shorts.length} shown.`
+            : "Price is trending down, the longer view is not against it, and there is a level that would prove the reading wrong."
+        }
+        cap={LIST_SHOWN}
         rows={shorts.map(toListRow)}
         empty={
           Object.keys(current).length > 0

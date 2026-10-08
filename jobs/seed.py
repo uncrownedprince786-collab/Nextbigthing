@@ -216,6 +216,142 @@ FOREX_INDUSTRIES = [
 
 INDUSTRIES = INDUSTRIES + PSX_INDUSTRIES + FOREX_INDUSTRIES
 INDUSTRIES = INDUSTRIES + [
+    # --- 2026-10-08, second pass -----------------------------------------------------------
+    #
+    # Eleven US groups and six Karachi ones, and none of them is a category invented to hold a
+    # name. Each exists because a measured, liquid field of names had nowhere to sit, and a
+    # name filed into the wrong industry is worse than a name not covered: every peer median,
+    # every relative-strength reading and every ranking on this site is computed inside one.
+    #
+    # The Karachi six are the exchange's own sector codes, taken from field three of its daily
+    # closing file and only where at least five liquid symbols carry the code.
+    (
+        "chemicals-materials",
+        "Chemicals and Materials",
+        "Industrial gases, coatings and commodity chemicals. The input side of everything "
+        "built or manufactured, which is why it reads differently from the companies that "
+        "buy from it.",
+        50,
+    ),
+    (
+        "industrials",
+        "Industrials",
+        "Heavy equipment, electrical systems, automation and waste handling. Capital "
+        "spending shows up here before it shows up in the companies doing the spending.",
+        51,
+    ),
+    (
+        "aerospace-defence",
+        "Aerospace and Defence",
+        "Airframes, engines and defence primes. Revenue here is set by government budgets "
+        "and multi-year programmes rather than by a quarter's demand.",
+        52,
+    ),
+    (
+        "transport-logistics",
+        "Transport and Logistics",
+        "Railroads and parcel carriers. The physical movement of goods, read as a volume "
+        "gauge rather than a consumer one.",
+        53,
+    ),
+    (
+        "real-estate",
+        "Real Estate",
+        "Listed property trusts: towers, warehouses, data centres, malls and net lease. "
+        "Priced against the interest rate more directly than most equities.",
+        54,
+    ),
+    (
+        "retail",
+        "Retail",
+        "General merchandise, home improvement, grocery and off-price. What households "
+        "actually spent, as reported by the companies they spent it with.",
+        55,
+    ),
+    (
+        "consumer-brands",
+        "Consumer Brands",
+        "Restaurants and branded apparel. Discretionary spending, and the first line to "
+        "move when households stop stretching.",
+        56,
+    ),
+    (
+        "consumer-staples",
+        "Consumer Staples",
+        "Food, drink, household and tobacco. Bought in every condition, which is what makes "
+        "the group a comparison rather than a bet.",
+        57,
+    ),
+    (
+        "media-telecom",
+        "Media and Telecom",
+        "Networks, carriers, studios and games. Subscription and advertising revenue in one "
+        "group because the same budgets fund both.",
+        58,
+    ),
+    (
+        "insurance",
+        "Insurance",
+        "Property, casualty and life underwriters. Separated from Banks and Financials "
+        "because an underwriter's result turns on claims and float, and pooling the two gave "
+        "a peer median that described neither.",
+        59,
+    ),
+    (
+        "utilities",
+        "Utilities",
+        "Regulated electric and gas utilities. Rate-set revenue, which is why the group "
+        "moves with the bond market more than with demand.",
+        60,
+    ),
+    (
+        "psx-chemicals",
+        "PSX Chemicals and Paints",
+        "Industrial chemicals, resins and coatings listed in Karachi. The exchange's own "
+        "chemicals sector.",
+        70,
+    ),
+    (
+        "psx-steel",
+        "PSX Steel and Engineering",
+        "Long and flat steel producers and re-rollers. Left out of earlier batches for want "
+        "of an industry; there are eight liquid names, which is a field rather than a pair.",
+        71,
+    ),
+    (
+        "psx-food",
+        "PSX Food and Personal Care",
+        "Dairy, poultry, edible oils, packaged food and household brands. The largest "
+        "unrepresented sector on the exchange by listed count.",
+        72,
+    ),
+    (
+        "psx-investment",
+        "PSX Investment and Securities",
+        "Holding companies, brokerages and the exchange's own listing. This group is why "
+        "the sector map needs three names behind a code before it trusts it: one holding "
+        "company filed under Fertilizer had been teaching it that every brokerage here grew "
+        "urea.",
+        73,
+    ),
+    (
+        "psx-pharma",
+        "PSX Pharmaceuticals",
+        "Listed drug makers and distributors. Input costs are dollar denominated and prices "
+        "are regulated in rupees, so the currency shows up in the margin.",
+        74,
+    ),
+    (
+        "psx-spinning",
+        "PSX Textile Spinning",
+        "Yarn spinners, which the exchange files separately from the composite mills in PSX "
+        "Textile. Kept apart here for the same reason it keeps them apart: a spinner sells "
+        "yarn and a composite sells finished cloth.",
+        75,
+    ),
+]
+
+INDUSTRIES = INDUSTRIES + [
     (
         "precious-metal-miners",
         "Precious Metal Miners",
@@ -333,7 +469,8 @@ ASSETS: list[tuple] = [
     ("financials", "BLK", "BlackRock", "stock", "marketCap", YAHOO, "BLK", "Asset management."),
     ("financials", "SCHW", "Charles Schwab", "stock", "marketCap", YAHOO, "SCHW", "Retail brokerage and custody."),
     ("financials", "AXP", "American Express", "stock", "marketCap", YAHOO, "AXP", "Card issuing and merchant acquiring."),
-    ("financials", "PGR", "The Progressive", "stock", "marketCap", YAHOO, "PGR", "Auto and property insurance."),
+    # An underwriter among banks. Moved to Insurance now that there is a field of them.
+    ("insurance", "PGR", "The Progressive", "stock", "marketCap", YAHOO, "PGR", "Auto and property insurance."),
     # Automobile. Tesla is not repeated here even though it is a car maker: it already sits
     # in Mega Cap Tech, and listing one asset in two industries would put it in two
     # rankings, two industry averages and two news feeds, so its peers would be compared
@@ -575,7 +712,12 @@ MORE_PSX: list[tuple] = [
 
     ("psx-automobile", "GAL", "Ghandhara Automobile", "stock", "marketCap", PSX, "GAL", "Vehicle assembly and distribution."),
 
-    ("psx-fertilizer", "ENGROH", "Engro Holdings", "stock", "marketCap", PSX, "ENGROH", "Holding company of the Engro fertilizer and energy group."),
+    # Re-filed into PSX Investment and Securities, which is the exchange's own sector for
+    # it. It sat in Fertilizer, and because the sector map is learned from where names
+    # already sit, this one row was teaching it that every brokerage in Karachi was a
+    # fertilizer producer. seed.py moves a name within one market by UPDATE, so the row
+    # keeps its id and every close, setup and decision attached to it.
+    ("psx-investment", "ENGROH", "Engro Holdings", "stock", "marketCap", PSX, "ENGROH", "Holding company of the Engro fertilizer and energy group."),
 
     ("psx-cement", "THCCL", "Thatta Cement", "stock", "marketCap", PSX, "THCCL", "Cement manufacturer in southern Sindh."),
 
@@ -586,7 +728,9 @@ MORE_PSX: list[tuple] = [
     ("psx-technology", "STL", "Supernet Technologies", "stock", "marketCap", PSX, "STL", "Network and satellite connectivity services."),
     ("psx-technology", "ITANZ", "Itanz Technologies", "stock", "marketCap", PSX, "ITANZ", "Information technology products and services."),
 
-    ("psx-textile", "KOSM", "Kohinoor Spinning", "stock", "marketCap", PSX, "KOSM", "Yarn spinning and textile manufacture."),
+    # A spinner, which the exchange files apart from the composite mills that make up the
+    # rest of PSX Textile.
+    ("psx-spinning", "KOSM", "Kohinoor Spinning", "stock", "marketCap", PSX, "KOSM", "Yarn spinning and textile manufacture."),
 ]
 
 ASSETS = ASSETS + MORE_PSX
@@ -782,6 +926,194 @@ MORE_PSX_2: list[tuple] = [
 
 ASSETS = ASSETS + MORE_US_2 + MORE_CRYPTO_2 + MORE_PSX_2
 
+# --- expansion, 2026-10-08, second pass ------------------------------------------------------
+#
+# 331 names to 480. Every US symbol was measured by `tools/candidates.py us` against a year of
+# Yahoo daily bars -- at least 200 sessions and $50M of median daily turnover -- and every
+# Karachi symbol came out of `tools/candidates.py psx`, which ranks the exchange's own closing
+# files and places a name by the exchange's own sector code.
+#
+# Six US candidates were measured and dropped rather than carried: K, WBD and EA under the
+# turnover floor, and ABT.W, NEM.W and BRK-B returned no series under those tickers.
+MORE_US_3: list[tuple] = [
+    ("chemicals-materials", "LIN", "Linde", "stock", "marketCap", YAHOO, "LIN", "Industrial gases, the largest listed producer."),
+    ("chemicals-materials", "APD", "Air Products", "stock", "marketCap", YAHOO, "APD", "Industrial gases and hydrogen projects."),
+    ("chemicals-materials", "SHW", "Sherwin-Williams", "stock", "marketCap", YAHOO, "SHW", "Architectural and industrial coatings."),
+    ("chemicals-materials", "ECL", "Ecolab", "stock", "marketCap", YAHOO, "ECL", "Water treatment and cleaning chemistry."),
+    ("chemicals-materials", "DOW", "Dow", "stock", "marketCap", YAHOO, "DOW", "Commodity plastics and chemicals."),
+    ("chemicals-materials", "DD", "DuPont", "stock", "marketCap", YAHOO, "DD", "Electronics and water materials."),
+    ("chemicals-materials", "PPG", "PPG Industries", "stock", "marketCap", YAHOO, "PPG", "Coatings for vehicles and buildings."),
+
+    ("industrials", "CAT", "Caterpillar", "stock", "marketCap", YAHOO, "CAT", "Construction and mining equipment."),
+    ("industrials", "DE", "Deere", "stock", "marketCap", YAHOO, "DE", "Agricultural and construction machinery."),
+    ("industrials", "HON", "Honeywell", "stock", "marketCap", YAHOO, "HON", "Aerospace systems, automation and materials."),
+    ("industrials", "GE", "GE Aerospace", "stock", "marketCap", YAHOO, "GE", "Jet engines and aftermarket services."),
+    ("industrials", "MMM", "3M", "stock", "marketCap", YAHOO, "MMM", "Industrial and consumer materials."),
+    ("industrials", "EMR", "Emerson Electric", "stock", "marketCap", YAHOO, "EMR", "Process automation and control."),
+    ("industrials", "ETN", "Eaton", "stock", "marketCap", YAHOO, "ETN", "Electrical power management, data centre weighted."),
+    ("industrials", "PH", "Parker Hannifin", "stock", "marketCap", YAHOO, "PH", "Motion and flow control systems."),
+    ("industrials", "ROK", "Rockwell Automation", "stock", "marketCap", YAHOO, "ROK", "Factory automation and control."),
+    ("industrials", "ITW", "Illinois Tool Works", "stock", "marketCap", YAHOO, "ITW", "Diversified industrial components."),
+    ("industrials", "WM", "Waste Management", "stock", "marketCap", YAHOO, "WM", "Collection, landfill and recycling."),
+    ("industrials", "RSG", "Republic Services", "stock", "marketCap", YAHOO, "RSG", "Waste collection and disposal."),
+
+    ("aerospace-defence", "LMT", "Lockheed Martin", "stock", "marketCap", YAHOO, "LMT", "Combat aircraft and missile systems."),
+    ("aerospace-defence", "RTX", "RTX", "stock", "marketCap", YAHOO, "RTX", "Engines, avionics and missiles."),
+    ("aerospace-defence", "NOC", "Northrop Grumman", "stock", "marketCap", YAHOO, "NOC", "Strategic systems and space."),
+    ("aerospace-defence", "GD", "General Dynamics", "stock", "marketCap", YAHOO, "GD", "Submarines, combat vehicles and business jets."),
+    ("aerospace-defence", "BA", "Boeing", "stock", "marketCap", YAHOO, "BA", "Commercial airframes and defence."),
+
+    ("transport-logistics", "UNP", "Union Pacific", "stock", "marketCap", YAHOO, "UNP", "Western US freight rail."),
+    ("transport-logistics", "CSX", "CSX", "stock", "marketCap", YAHOO, "CSX", "Eastern US freight rail."),
+    ("transport-logistics", "NSC", "Norfolk Southern", "stock", "marketCap", YAHOO, "NSC", "Eastern US freight rail."),
+    ("transport-logistics", "FDX", "FedEx", "stock", "marketCap", YAHOO, "FDX", "Air and ground parcel delivery."),
+    ("transport-logistics", "UPS", "United Parcel Service", "stock", "marketCap", YAHOO, "UPS", "Ground and air parcel delivery."),
+
+    ("real-estate", "AMT", "American Tower", "stock", "marketCap", YAHOO, "AMT", "Communications towers leased to carriers."),
+    ("real-estate", "PLD", "Prologis", "stock", "marketCap", YAHOO, "PLD", "Logistics warehouses."),
+    ("real-estate", "EQIX", "Equinix", "stock", "marketCap", YAHOO, "EQIX", "Interconnection data centres."),
+    ("real-estate", "DLR", "Digital Realty", "stock", "marketCap", YAHOO, "DLR", "Data centre property."),
+    ("real-estate", "CCI", "Crown Castle", "stock", "marketCap", YAHOO, "CCI", "Towers and small cells."),
+    ("real-estate", "SPG", "Simon Property", "stock", "marketCap", YAHOO, "SPG", "Shopping centres and outlets."),
+    ("real-estate", "O", "Realty Income", "stock", "marketCap", YAHOO, "O", "Single tenant net lease property."),
+
+    ("retail", "WMT", "Walmart", "stock", "marketCap", YAHOO, "WMT", "General merchandise and grocery."),
+    ("retail", "COST", "Costco", "stock", "marketCap", YAHOO, "COST", "Membership warehouse retail."),
+    ("retail", "HD", "Home Depot", "stock", "marketCap", YAHOO, "HD", "Home improvement retail."),
+    ("retail", "LOW", "Lowe's", "stock", "marketCap", YAHOO, "LOW", "Home improvement retail."),
+    ("retail", "TGT", "Target", "stock", "marketCap", YAHOO, "TGT", "General merchandise retail."),
+    ("retail", "TJX", "TJX Companies", "stock", "marketCap", YAHOO, "TJX", "Off-price apparel and home."),
+    ("retail", "ROST", "Ross Stores", "stock", "marketCap", YAHOO, "ROST", "Off-price apparel."),
+    ("retail", "DG", "Dollar General", "stock", "marketCap", YAHOO, "DG", "Small format discount retail."),
+    ("retail", "DLTR", "Dollar Tree", "stock", "marketCap", YAHOO, "DLTR", "Discount variety retail."),
+    ("retail", "KR", "Kroger", "stock", "marketCap", YAHOO, "KR", "Grocery retail."),
+    ("retail", "SYY", "Sysco", "stock", "marketCap", YAHOO, "SYY", "Food distribution to restaurants."),
+
+    ("consumer-brands", "MCD", "McDonald's", "stock", "marketCap", YAHOO, "MCD", "Quick service restaurants, franchised."),
+    ("consumer-brands", "SBUX", "Starbucks", "stock", "marketCap", YAHOO, "SBUX", "Coffee retail."),
+    ("consumer-brands", "CMG", "Chipotle", "stock", "marketCap", YAHOO, "CMG", "Fast casual restaurants, company operated."),
+    ("consumer-brands", "YUM", "Yum! Brands", "stock", "marketCap", YAHOO, "YUM", "Franchised restaurant brands."),
+    ("consumer-brands", "DRI", "Darden Restaurants", "stock", "marketCap", YAHOO, "DRI", "Full service restaurant brands."),
+    ("consumer-brands", "NKE", "Nike", "stock", "marketCap", YAHOO, "NKE", "Athletic footwear and apparel."),
+    ("consumer-brands", "LULU", "Lululemon", "stock", "marketCap", YAHOO, "LULU", "Athletic apparel, direct to consumer weighted."),
+
+    ("consumer-staples", "PG", "Procter & Gamble", "stock", "marketCap", YAHOO, "PG", "Household and personal care brands."),
+    ("consumer-staples", "KO", "Coca-Cola", "stock", "marketCap", YAHOO, "KO", "Non-alcoholic beverages."),
+    ("consumer-staples", "PEP", "PepsiCo", "stock", "marketCap", YAHOO, "PEP", "Beverages and snacks."),
+    ("consumer-staples", "PM", "Philip Morris International", "stock", "marketCap", YAHOO, "PM", "Tobacco and heated products."),
+    ("consumer-staples", "MO", "Altria", "stock", "marketCap", YAHOO, "MO", "US tobacco."),
+    ("consumer-staples", "CL", "Colgate-Palmolive", "stock", "marketCap", YAHOO, "CL", "Oral, personal and home care."),
+    ("consumer-staples", "KMB", "Kimberly-Clark", "stock", "marketCap", YAHOO, "KMB", "Tissue and personal care."),
+    ("consumer-staples", "GIS", "General Mills", "stock", "marketCap", YAHOO, "GIS", "Packaged food."),
+    ("consumer-staples", "HSY", "Hershey", "stock", "marketCap", YAHOO, "HSY", "Confectionery."),
+    ("consumer-staples", "STZ", "Constellation Brands", "stock", "marketCap", YAHOO, "STZ", "Beer, wine and spirits."),
+    ("consumer-staples", "KHC", "Kraft Heinz", "stock", "marketCap", YAHOO, "KHC", "Packaged food."),
+
+    ("media-telecom", "DIS", "Walt Disney", "stock", "marketCap", YAHOO, "DIS", "Studios, parks and streaming."),
+    ("media-telecom", "CMCSA", "Comcast", "stock", "marketCap", YAHOO, "CMCSA", "Cable broadband and NBCUniversal."),
+    ("media-telecom", "T", "AT&T", "stock", "marketCap", YAHOO, "T", "Wireless and fibre."),
+    ("media-telecom", "VZ", "Verizon", "stock", "marketCap", YAHOO, "VZ", "Wireless and broadband."),
+    ("media-telecom", "TMUS", "T-Mobile US", "stock", "marketCap", YAHOO, "TMUS", "Wireless carrier."),
+    ("media-telecom", "TTWO", "Take-Two Interactive", "stock", "marketCap", YAHOO, "TTWO", "Video game publishing."),
+    ("media-telecom", "RBLX", "Roblox", "stock", "marketCap", YAHOO, "RBLX", "User generated game platform."),
+
+    ("insurance", "ALL", "Allstate", "stock", "marketCap", YAHOO, "ALL", "Personal property and casualty."),
+    ("insurance", "TRV", "Travelers", "stock", "marketCap", YAHOO, "TRV", "Commercial property and casualty."),
+    ("insurance", "CB", "Chubb", "stock", "marketCap", YAHOO, "CB", "Commercial and specialty insurance."),
+    ("insurance", "AIG", "American International Group", "stock", "marketCap", YAHOO, "AIG", "Commercial property and casualty."),
+    ("insurance", "MET", "MetLife", "stock", "marketCap", YAHOO, "MET", "Life insurance and benefits."),
+    ("insurance", "PRU", "Prudential Financial", "stock", "marketCap", YAHOO, "PRU", "Life insurance and retirement."),
+
+    ("utilities", "NEE", "NextEra Energy", "stock", "marketCap", YAHOO, "NEE", "Regulated Florida utility and renewables."),
+    ("utilities", "DUK", "Duke Energy", "stock", "marketCap", YAHOO, "DUK", "Regulated electric utility, southeast US."),
+    ("utilities", "SO", "Southern Company", "stock", "marketCap", YAHOO, "SO", "Regulated electric utility and nuclear."),
+    ("utilities", "D", "Dominion Energy", "stock", "marketCap", YAHOO, "D", "Regulated electric utility, mid-Atlantic."),
+    ("utilities", "AEP", "American Electric Power", "stock", "marketCap", YAHOO, "AEP", "Regulated electric utility and transmission."),
+    ("utilities", "EXC", "Exelon", "stock", "marketCap", YAHOO, "EXC", "Regulated transmission and distribution."),
+    ("utilities", "SRE", "Sempra", "stock", "marketCap", YAHOO, "SRE", "California utility and LNG infrastructure."),
+    ("utilities", "XEL", "Xcel Energy", "stock", "marketCap", YAHOO, "XEL", "Regulated electric utility, midwest US."),
+]
+
+# PSX, six sectors the exchange publishes that this project had no industry for. Turnover
+# figures are medians over the 16 sessions published in the three weeks to 2026-10-08, and a
+# name is only here if it printed a close on at least 80% of them.
+MORE_PSX_3: list[tuple] = [
+    ("psx-chemicals", "GCIL", "Ghani Chemical Industries", "stock", "marketCap", PSX, "GCIL", "Industrial and medical gases."),
+    ("psx-chemicals", "BUXL", "Buxly Paints", "stock", "marketCap", PSX, "BUXL", "Decorative and industrial paints."),
+    ("psx-chemicals", "LOTCHEM", "Lotte Chemical Pakistan", "stock", "marketCap", PSX, "LOTCHEM", "Purified terephthalic acid for polyester."),
+    ("psx-chemicals", "NICL", "Nimir Industrial Chemicals", "stock", "marketCap", PSX, "NICL", "Chlor-alkali and oleochemicals."),
+    ("psx-chemicals", "BERG", "Berger Paints Pakistan", "stock", "marketCap", PSX, "BERG", "Decorative and protective coatings."),
+    ("psx-chemicals", "GGL", "Ghani Global Holdings", "stock", "marketCap", PSX, "GGL", "Glass and chemical manufacturing holding."),
+    ("psx-chemicals", "NRSL", "Nimir Resins", "stock", "marketCap", PSX, "NRSL", "Resins and polymers for coatings."),
+    ("psx-chemicals", "LCI", "Lucky Core Industries", "stock", "marketCap", PSX, "LCI", "Soda ash, polyester and chemicals."),
+    ("psx-chemicals", "BAPL", "Bawany Air Products", "stock", "marketCap", PSX, "BAPL", "Industrial gases."),
+    ("psx-chemicals", "EPCL", "Engro Polymer and Chemicals", "stock", "marketCap", PSX, "EPCL", "PVC and caustic soda."),
+    ("psx-chemicals", "BIFO", "Biafo Industries", "stock", "marketCap", PSX, "BIFO", "Commercial explosives and chemicals."),
+    ("psx-chemicals", "ARPL", "Archroma Pakistan", "stock", "marketCap", PSX, "ARPL", "Specialty chemicals and dyes."),
+
+    ("psx-steel", "ASL", "Aisha Steel Mills", "stock", "marketCap", PSX, "ASL", "Cold rolled and galvanised flat steel."),
+    ("psx-steel", "ASTL", "Amreli Steels", "stock", "marketCap", PSX, "ASTL", "Rebar for construction."),
+    ("psx-steel", "MUGHAL", "Mughal Iron and Steel", "stock", "marketCap", PSX, "MUGHAL", "Rebar, girders and copper products."),
+    ("psx-steel", "BECO", "Beco Steel", "stock", "marketCap", PSX, "BECO", "Steel re-rolling."),
+    ("psx-steel", "ISL", "International Steels", "stock", "marketCap", PSX, "ISL", "Cold rolled and galvanised coil."),
+    ("psx-steel", "INIL", "International Industries", "stock", "marketCap", PSX, "INIL", "Steel pipe and polymer pipe."),
+    ("psx-steel", "CSAP", "Crescent Steel and Allied Products", "stock", "marketCap", PSX, "CSAP", "Line pipe and steel fabrication."),
+    ("psx-steel", "AGHA", "Agha Steel Industries", "stock", "marketCap", PSX, "AGHA", "Rebar from an electric arc furnace."),
+
+    ("psx-food", "FCEPL", "FrieslandCampina Engro Pakistan", "stock", "marketCap", PSX, "FCEPL", "Packaged dairy."),
+    ("psx-food", "MFL", "Matco Foods", "stock", "marketCap", PSX, "MFL", "Rice processing and export."),
+    ("psx-food", "TREET", "Treet Corporation", "stock", "marketCap", PSX, "TREET", "Razors, batteries and consumer goods."),
+    ("psx-food", "PREMA", "At-Tahur", "stock", "marketCap", PSX, "PREMA", "Fresh dairy under the Prema brand."),
+    ("psx-food", "NATF", "National Foods", "stock", "marketCap", PSX, "NATF", "Spices, sauces and recipe mixes."),
+    ("psx-food", "TOMCL", "The Organic Meat Company", "stock", "marketCap", PSX, "TOMCL", "Halal meat processing and export."),
+    ("psx-food", "FFL", "Fauji Foods", "stock", "marketCap", PSX, "FFL", "Dairy and juice under the Nurpur brand."),
+    ("psx-food", "UNITY", "Unity Foods", "stock", "marketCap", PSX, "UNITY", "Edible oil refining and feed."),
+    ("psx-food", "BBFL", "Big Bird Foods", "stock", "marketCap", PSX, "BBFL", "Poultry processing and feed."),
+    ("psx-food", "QUICE", "Quice Food Industries", "stock", "marketCap", PSX, "QUICE", "Confectionery and snacks."),
+    ("psx-food", "SOYASUP", "Agro Processors and Atmospheric Gases", "stock", "marketCap", PSX, "SOYASUP", "Soya crushing and industrial gases."),
+    ("psx-food", "COLG", "Colgate-Palmolive Pakistan", "stock", "marketCap", PSX, "COLG", "Oral care, detergents and personal care."),
+    ("psx-food", "GDL", "Ghani Dairies", "stock", "marketCap", PSX, "GDL", "Dairy processing."),
+    ("psx-food", "CLOV", "Clover Pakistan", "stock", "marketCap", PSX, "CLOV", "Food trading and distribution."),
+    ("psx-food", "BNL", "Bunnys", "stock", "marketCap", PSX, "BNL", "Bakery products."),
+    ("psx-food", "WAHDAT", "Wahdat Poultry Farms", "stock", "marketCap", PSX, "WAHDAT", "Poultry farming."),
+    ("psx-food", "NESTLE", "Nestle Pakistan", "stock", "marketCap", PSX, "NESTLE", "Dairy, water and nutrition."),
+
+    ("psx-investment", "SPAC1", "LSE SPAC-I", "stock", "marketCap", PSX, "SPAC1", "Special purpose acquisition company."),
+    ("psx-investment", "PIAHCLA", "PIA Holding Company", "stock", "marketCap", PSX, "PIAHCLA", "Holding company of the national airline's estate."),
+    # The exchange's own listing is deliberately absent. Its Karachi ticker is PSX, which
+    # is also Phillips 66 in New York, and this project has followed Phillips 66 since the
+    # first seed. Two assets cannot share a symbol here -- /asset/[symbol] resolves by
+    # symbol alone and one of them would be unreachable, and the re-filing UPDATE below
+    # matches on symbol and would read it as a cross-market move, which it refuses. Rs.29.9M
+    # a day, measured and left out on purpose.
+    ("psx-investment", "FCSC", "First Capital Securities", "stock", "marketCap", PSX, "FCSC", "Brokerage and corporate finance."),
+    ("psx-investment", "TSBL", "Trust Securities and Brokerage", "stock", "marketCap", PSX, "TSBL", "Equity brokerage."),
+    ("psx-investment", "FNEL", "First National Equities", "stock", "marketCap", PSX, "FNEL", "Equity brokerage."),
+    ("psx-investment", "AHL", "Arif Habib Limited", "stock", "marketCap", PSX, "AHL", "Brokerage, research and investment banking."),
+    ("psx-investment", "LSEVL", "LSE Ventures", "stock", "marketCap", PSX, "LSEVL", "Investment holding."),
+    ("psx-investment", "LSECL", "LSE Capital", "stock", "marketCap", PSX, "LSECL", "Investment holding."),
+
+    ("psx-pharma", "SEARL", "The Searle Company", "stock", "marketCap", PSX, "SEARL", "Branded generics and consumer health."),
+    ("psx-pharma", "CPHL", "Citi Pharma", "stock", "marketCap", PSX, "CPHL", "Active ingredients and finished dosage."),
+    ("psx-pharma", "GLAXO", "GlaxoSmithKline Pakistan", "stock", "marketCap", PSX, "GLAXO", "Prescription medicines and vaccines."),
+    ("psx-pharma", "AGP", "AGP Limited", "stock", "marketCap", PSX, "AGP", "Branded generics."),
+    ("psx-pharma", "HALEON", "Haleon Pakistan", "stock", "marketCap", PSX, "HALEON", "Consumer health brands."),
+    ("psx-pharma", "BFBIO", "BF Biosciences", "stock", "marketCap", PSX, "BFBIO", "Biological and oncology products."),
+    ("psx-pharma", "HINOON", "Highnoon Laboratories", "stock", "marketCap", PSX, "HINOON", "Branded generics."),
+    ("psx-pharma", "FEROZ", "Ferozsons Laboratories", "stock", "marketCap", PSX, "FEROZ", "Branded generics and hepatology."),
+
+    ("psx-spinning", "DSIL", "D.S. Industries", "stock", "marketCap", PSX, "DSIL", "Yarn spinning."),
+    ("psx-spinning", "ASTM", "Asim Textile Mills", "stock", "marketCap", PSX, "ASTM", "Yarn spinning."),
+    ("psx-spinning", "DFSM", "Dewan Farooque Spinning", "stock", "marketCap", PSX, "DFSM", "Yarn spinning."),
+    ("psx-spinning", "ARCTM", "Arctic Textile Mills", "stock", "marketCap", PSX, "ARCTM", "Yarn spinning."),
+    ("psx-spinning", "TATM", "Tata Textile Mills", "stock", "marketCap", PSX, "TATM", "Yarn spinning."),
+    ("psx-spinning", "JDMT", "Janana De Malucho Textile", "stock", "marketCap", PSX, "JDMT", "Yarn spinning."),
+    ("psx-spinning", "KOHTM", "Kohat Textile Mills", "stock", "marketCap", PSX, "KOHTM", "Yarn spinning."),
+]
+
+ASSETS = ASSETS + MORE_US_3 + MORE_PSX_3
+
+
 
 # slug, name, category, summary, wiki title, trends term, subreddits
 PRODUCTS = [
@@ -826,7 +1158,7 @@ LINKS = {
     "weighted-blanket": [("healthcare", "DHR", "Sleep and wellness retail overlaps with life science products", None)],
     "robot-vacuum": [("financials", "AXP", "High ticket consumer electronics are often bought on card", None)],
     "portable-power-station": [("financials", "BAC", "Battery backed generators are often financed", None)],
-    "dashcam": [("financials", "PGR", "Drivers buy recorders partly for insurance evidence", None)],
+    "dashcam": [("insurance", "PGR", "Drivers buy recorders partly for insurance evidence", None)],
     "heat-pump": [("energy", "XOM", "Heat pumps displace gas boilers in the same homes that use gas heating", None)],
     "water-flosser": [("healthcare", "MRK", "Sold through pharmacies alongside over the counter health products", None)],
     "espresso-machine": [("financials", "SCHW", "Discretionary durable purchases are financed", None)],
