@@ -2,6 +2,7 @@
 
 import os
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -202,8 +203,33 @@ check("UNAVAILABLE RECORDED", PASS if unsupported else PARTIAL,
       f"{unsupported} assets recorded as having no intraday source")
 
 # --- FREE TIER
+#
+# The size line on its own answers "is it full yet" and not "when will it be", which is the
+# question that matters: the permanent record only grows, and every reasoning job adds a row
+# per asset per session on top of it. IntradayBar does not grow -- `jobs/intraday.py` sweeps
+# past RETAIN_DAYS -- and PriceSnapshot grows by one row per asset per session, so the runway
+# can be measured rather than guessed. It is printed as a date, because a limit a long way off
+# is worth knowing about exactly once and a limit three weeks off is worth knowing about now.
 size = one(cur, '''
-    SELECT pg_size_pretty(pg_database_size(current_database())) AS db
+    SELECT pg_size_pretty(pg_database_size(current_database())) AS db,
+           pg_database_size(current_database()) AS bytes
+''')
+# Rows added per session by the tables that write one per asset per day, measured over the
+# days actually stored rather than assumed from the asset count: a job that skipped an asset
+# for want of history does not write a row for it, and the measured rate includes that.
+daily = one(cur, '''
+    WITH per_day AS (
+        SELECT "periodEnd" AS d, count(*) AS n FROM "AssetSetup" GROUP BY 1
+        UNION ALL SELECT "periodEnd", count(*) FROM "AssetAnalog" GROUP BY 1
+        UNION ALL SELECT "periodEnd", count(*) FROM "MoveAttribution" GROUP BY 1
+        UNION ALL SELECT "periodEnd", count(*) FROM "AssetFactor" GROUP BY 1
+        UNION ALL SELECT "periodEnd", count(*) FROM "DecisionLog" GROUP BY 1
+        UNION ALL SELECT "periodEnd", count(*) FROM "Investigation" GROUP BY 1
+        UNION ALL SELECT date, count(*) FROM "PriceSnapshot" GROUP BY 1
+    ),
+    by_day AS (SELECT d, sum(n) AS n FROM per_day GROUP BY d ORDER BY d DESC LIMIT 6)
+    SELECT round(avg(n)) AS rows_per_day FROM by_day
+          WHERE d < (SELECT max(d) FROM by_day)
 ''')
 tables = rows(cur, '''
     SELECT relname, pg_size_pretty(pg_total_relation_size(c.oid)) AS size,
@@ -222,6 +248,25 @@ print()
 print(f"  database size: {size['db']} of a 500 MB free tier")
 for t in tables:
     print(f"    {t['relname']:<22} {t['size']}")
+
+# Bytes per row from what is actually stored, including index overhead, rather than from the
+# column widths: the figure that matters is what a row costs this database, not what it costs
+# in theory.
+LIMIT = 500 * 1024 * 1024
+stored_rows = one(cur, '''
+    SELECT (SELECT count(*) FROM "PriceSnapshot") + (SELECT count(*) FROM "AssetSetup")
+         + (SELECT count(*) FROM "AssetAnalog") + (SELECT count(*) FROM "MoveAttribution")
+         + (SELECT count(*) FROM "AssetFactor") + (SELECT count(*) FROM "DecisionLog")
+         + (SELECT count(*) FROM "Investigation") AS n
+''')["n"]
+per_day = float(daily["rows_per_day"] or 0)
+if per_day > 0 and stored_rows:
+    per_row = int(size["bytes"]) / stored_rows
+    days = int((LIMIT - int(size["bytes"])) / (per_day * per_row))
+    full = date.today() + timedelta(days=days)
+    print(f"    growth {per_day:,.0f} rows a session at {per_row:,.0f} bytes a row, so the "
+          f"free tier is reached around {full} ({days} days)")
+    print("    IntradayBar does not grow: jobs/intraday.py sweeps past its retention window")
 print()
 counts = {}
 for _, verdict, _ in results:

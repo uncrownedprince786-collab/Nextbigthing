@@ -157,7 +157,14 @@ def main() -> None:
     conn = db()
     cur = conn.cursor()
     try:
-        period_end = one(cur, 'SELECT max(date) AS d FROM "PriceSnapshot"')["d"] or today
+        # The newest close anywhere, kept only as the fallback for an asset whose own series
+        # somehow has no date. Each row below is dated to *that asset's* newest close, which is
+        # a stricter reading of the same sentence: the two exchanges here do not close together,
+        # and Karachi publishes its file hours before New York finishes trading. On any run
+        # between those two moments the site-wide maximum is a session a US name has not had
+        # yet, so a global anchor over-dates every US row by a day -- the same fault as reading
+        # the calendar, arriving by a different route.
+        newest_anywhere = one(cur, 'SELECT max(date) AS d FROM "PriceSnapshot"')["d"] or today
         assets = rows(
             cur, 'SELECT id, symbol, name, "industryId" FROM "Asset" ORDER BY symbol'
         )
@@ -172,6 +179,8 @@ def main() -> None:
                 continue
 
             series = list(reversed(bars))
+            # This asset's own newest close: the session these conditions describe.
+            period_end = series[-1]["date"] or newest_anywhere
             last = float(series[-1]["close"])
             fast_mean = sum(float(b["close"]) for b in series[-FAST:]) / FAST
             slow_mean = sum(float(b["close"]) for b in series[-SLOW:]) / SLOW
