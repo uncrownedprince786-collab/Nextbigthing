@@ -1,5 +1,132 @@
 # Resume here
 
+## 0. State of play, 2026-10-08 (ninth session) — read this first
+
+**Pushed, deployed, verified.** 432 Python tests, 179 web tests, 18 of 18 derivation steps ok,
+477 verdicts re-derived with no contradiction, acceptance 24 PASS / 3 PARTIAL / 0 FAIL.
+
+The eighth session's entry is below and still true. This one did four things: made the
+derivation lane ten times faster, gave the derived tables a ceiling, grew the pool from 331 to
+477, and cut the two pages that had quietly become unreadable.
+
+### Speed, because the pool could not grow without it
+
+Every reasoning job read and wrote one asset at a time. Invisible on a host inside the
+database's region; the entire runtime from anywhere else. The full group took **2h50m** from a
+host ~240ms away, and the nightly lane's budget is 30 minutes.
+
+| job | before | after | what changed |
+| --- | --- | --- | --- |
+| lineage | 59.3 min | **0.3** | two statements per story became two for the run |
+| rank | 17.2 | **2.4** | `close_on`/`avg_volume` per asset became one query each |
+| setup | 11.8 | **0.15** | five reads per asset became five for the universe |
+| human | 10.8 | **0.2** | four news windows per target became two for the run |
+| analysis | 8.9 | **3.3** | rankings and event impacts read once, lines written once |
+| thesis | 8.2 | **0.13** | eight reads per asset became four for the universe |
+| analogs | 7.0 | **0.6** | whole-history reads chunked, write batched |
+| horizons | 6.0 | **0.3** | bars, peers and sessions read once per horizon |
+| confidence | 5.7 | **0.14** | 1,356 single-row updates became four statements |
+| investigate | 4.6 | **1.8** | findings and hypotheses batched |
+| attribution | 4.3 | **0.1** | write batched |
+
+The whole chain now runs **21.6 minutes at 477 names**, where 331 took 170. Nothing about any
+rule changed: every bulk read returns the same rows in the same order as the per-asset read it
+replaces, and every batched write keeps its conflict clause.
+
+**Where a window was already a slice of one in hand, it is taken in memory.** `human.py` asked
+for four news windows per target; the catalyst and baseline windows are slices of the other
+two. That is the pattern to look for first in anything still slow.
+
+**One real bug fell out of it.** `run_targets` selected setups on the newest `periodEnd` for a
+horizon — the same set as "the current read per asset" only while one date covers the whole
+universe. After the eighth session's per-asset dating, that would have written targets for 157
+Pakistani names and none for 249 American ones. It now takes the newest row per (asset,
+horizon), and applies the state filter *after* that choice, so a name whose current read is
+`wait` cannot have an older `buy` row revived underneath it.
+
+### The tests were hiding four of their own, and the ratchet was blind
+
+`unittest.main()` sat 72 lines from the end of `tests/test_brain.py` with `ShortLevelsAreMirrored`
+underneath it. Discovery collected 430; running the file directly printed **OK over 426**.
+
+The query ratchet matched a query only where the call was written inline, so a read reached
+through a helper was free — `jobs/rank.py` measured **zero** while issuing seven statements per
+asset. It now finds module-level functions that query and counts a call to one inside a loop.
+Every baseline was re-measured; each held or rose because a round trip that was always there
+became visible.
+
+### The tier, and what now stops it filling
+
+`jobs/retention.py` caps the working set. The window on each table is set by the reader that
+looks back furthest, not by taste, and the file names what it will **never** prune so that an
+omission reads as a decision: `DecisionLog`, `SignalLog`, `AssetThesis`, `ThesisCheck`,
+`EventState`, `Calibration` and the whole of `PriceSnapshot`.
+
+`AssetSetup` needed a guard before it could be capped at 14 days. `thesis.py` walks the run of
+those rows to find the session a state first appeared on, and a run whose start has been pruned
+appears to begin at the edge of what is stored — which would open a *second* thesis and restart
+the clock on a reason that never changed. A run reaching that edge is now matched to the thesis
+that already holds its real opening day.
+
+**The sweep does not take an exclusive lock.** `VACUUM FULL` hands pages back to the operating
+system and takes ACCESS EXCLUSIVE to do it; its first run killed the news fetch mid-request
+("server closed the connection unexpectedly") and the same lock would stall the website's reads.
+A plain `VACUUM` does what the job is for. `--reclaim` keeps the rewrite for a human who has
+stopped the lanes.
+
+The runway line now separates what grows from what is capped. Counting the capped tables'
+arrivals as growth dated the tier's exhaustion to a wall the system no longer walks into:
+**383 MB of 500, the permanent record growing 743 rows a session, full around 2027-07-29; the
+capped tables settle near 97 MB and stop.**
+
+### Pool: 331 → 477, and seventeen industries that did not exist
+
+| | before | after |
+| --- | --- | --- |
+| US | 163 | **249** |
+| PSX | 97 | **157** |
+| crypto | 36 | 36 |
+| FX | 27 | 27 |
+| commodities | 8 | 8 |
+
+Directional went 86 → **133** (61 LONG, 72 SHORT), High 11 → 19, Medium 41 → 55.
+
+Eleven US industries and six Karachi ones are new, and **none is a category invented to hold a
+name**. Each exists because a measured, liquid field had nowhere to sit — which is also why the
+2026-10-08 first pass left seventy-two liquid PSX symbols on the floor.
+
+Three names were re-filed where the exchange and the split put them: **ENGROH** out of
+Fertilizer into Investment (it was the single row teaching the sector map that Karachi
+brokerages grow urea), **KOSM** Textile → Spinning, **PGR** Banks → Insurance.
+
+**The Karachi exchange's own listing is measured, liquid and deliberately absent.** Its ticker
+is PSX, which is Phillips 66 in New York, and `/asset/[symbol]` resolves by symbol alone. The
+reason is written into `seed.py` rather than left as a gap. `tools/candidates.py` learned the
+same lesson: it now checks a candidate against the symbols stored *in that market*, because
+checking against every symbol anywhere is what dropped the exchange as "already followed".
+
+### Three pages that had stopped being readable
+
+- **Overview.** The LONG and SHORT tables were the only blocks that printed everything they
+  had. Both cut at twelve and say so — the number WAIT already cuts at, because four blocks
+  cutting at four different figures read as four different rules.
+- **The coming week was six of six Pakistani on the short side.** Thirty-five qualifying shorts
+  existed. Inside one grade the markets now take turns; a grade boundary is never crossed to
+  balance, so a Medium name cannot displace a High one. Both halves are pinned by a test.
+- **`/stocks` was 1.3 MB** whose first screen was the waiting table: 175 of 249 names. It keeps
+  every row — capping it would remove the only place a waiting name can be looked up — and
+  opens collapsed, with the count in the summary.
+
+### What to look at next
+
+1. `rank.py` is 14 in-loop queries, the highest in the repository, and the only job whose cost
+   still rises steeply with the pool. 4.2 minutes of the 21.6.
+2. `intraday` (5.9) and `analysis` (5.5) are now the two largest, and `intraday` is network
+   bound — `MAX_REQUESTS = 60` caps it, so it does not grow with the pool.
+3. News coverage for a newly added name arrives over the following cron cycles. A name with
+   none reads NOT MEASURED, which is correct and is also why a big batch looks thin on its
+   first day.
+
 ## 0. State of play, 2026-10-08 (eighth session) — read this first
 
 **Pushed, deployed, verified.** 432 Python tests, 177 web tests, 17 of 17 derivation steps ok,
