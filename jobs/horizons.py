@@ -251,6 +251,21 @@ def intraday_read(bars: list[dict], prior_high: float | None, prior_low: float |
     # absent, never as quiet.
     vols = [float(b["volume"]) for b in bars[-SLOW_BARS - 1 : -1] if b["volume"] is not None]
     last_vol = bars[-1]["volume"]
+    # Measured once, here, and read by the rule block below. It was computed in two places --
+    # guarded here, unguarded in `core_up`/`core_down` -- and on 2026-10-04 an asset whose last
+    # twenty five minute bars all printed a genuine zero volume divided by that zero and took
+    # the whole job down with it. `run_intraday` is the first thing `main()` calls, so the
+    # crash also cost `run_longer` and `run_targets` in the same process: the nightly decision
+    # lane wrote no intraday read for four days and no target ranges either. Rule 36, and the
+    # reason it exists.
+    #
+    # `vol_ratio` is None when the ratio cannot be taken at all, and `vol_active` is False in
+    # that case: an unmeasurable volume cannot confirm a direction, and `missing` above is
+    # where the reader is told why. The two are kept apart because "measured, and below the
+    # bar" and "not measured" are different sentences, and only the first may be printed as a
+    # reason the conditions are short.
+    vol_ratio: float | None = None
+    vol_active = False
     if not vols or last_vol is None:
         missing.append("volume against its own recent bars (the provider sent no volume)")
     else:
@@ -259,6 +274,8 @@ def intraday_read(bars: list[dict], prior_high: float | None, prior_low: float |
             missing.append("volume against its own recent bars (no traded volume stored)")
         else:
             ratio = float(last_vol) / avg
+            vol_ratio = ratio
+            vol_active = ratio >= VOL_ACTIVE
             conds.append(
                 f"volume: {ratio:.2f}x its own last {len(vols)} bars "
                 f"({'pass' if ratio >= VOL_ACTIVE else 'fail'})"
@@ -294,10 +311,8 @@ def intraday_read(bars: list[dict], prior_high: float | None, prior_low: float |
         conds.append(f"volatility: average {ATR_WINDOW}-bar range {atr:.2f}")
 
     # --- the rules, written out rather than scored
-    core_up = [up, broke_up, last_vol is not None and vols and
-               float(last_vol) / (sum(vols) / len(vols)) >= VOL_ACTIVE]
-    core_down = [down, broke_down, last_vol is not None and vols and
-                 float(last_vol) / (sum(vols) / len(vols)) >= VOL_ACTIVE]
+    core_up = [up, broke_up, vol_active]
+    core_down = [down, broke_down, vol_active]
 
     if all(core_up):
         state = "buy"
@@ -316,7 +331,7 @@ def intraday_read(bars: list[dict], prior_high: float | None, prior_low: float |
         short_of = []
         if not (broke_up or broke_down):
             short_of.append("it has not broken out of the previous session's range")
-        if last_vol is not None and vols and float(last_vol) / (sum(vols) / len(vols)) < VOL_ACTIVE:
+        if vol_ratio is not None and not vol_active:
             short_of.append("the latest bars are not trading more than usual")
         head = (
             "The intraday direction is clear but the conditions are not all present: "
@@ -377,13 +392,21 @@ def run_intraday(cur, today: date) -> int:
         # The completeness record decides whether this read may be trusted at all. A partial
         # session is named in `missing` rather than quietly producing a confident read, which
         # is the whole point of storing the session status.
+        # The completeness record **for the session the bars came from**, not the newest one
+        # stored. `jobs/intraday.py` writes a session row dated to the calendar day it ran,
+        # including `unsupported` and `failed` rows for days a venue never opened, so the
+        # newest row is routinely a different day from `newest_session`. Taking it would hang
+        # a Wednesday fetch failure on a read of Tuesday's bars, and say the Tuesday read was
+        # incomplete when it was not. No row for that day leaves `missing` as it was: an
+        # absent completeness record is not a claim that the session was short.
         sess = one(
             cur,
             """
             SELECT status, note FROM "IntradaySession"
-            WHERE "assetId" = %s AND interval = %s ORDER BY "sessionDate" DESC LIMIT 1
+            WHERE "assetId" = %s AND interval = %s AND "sessionDate" = %s
+            ORDER BY "retrievedAt" DESC LIMIT 1
             """,
-            (a["id"], BAR),
+            (a["id"], BAR, newest_session),
         )
         if sess and sess["status"] in ("partial", "stale", "failed"):
             # The whole note, not a slice of it. Truncating cut it mid-word on the page
@@ -391,8 +414,13 @@ def run_intraday(cur, today: date) -> int:
             # that tells a reader what the gap means.
             missing.append(f"a complete session ({sess['status']}: {sess['note']})")
 
+        # The session the bars came from. `newest_session` is already the day this read was
+        # computed over -- it is what `prior` is split on a few lines above -- so dating the row
+        # to the calendar instead could put an intraday read of Tuesday's bars under Wednesday,
+        # and does whenever this job runs from a host whose date has rolled ahead of the venue.
         write_setup(
-            cur, a["id"], today, "intraday", state, head, conds, missing, against,
+            cur, a["id"], newest_session or today, "intraday", state, head, conds, missing,
+            against,
             entry,
             f"the highest price of the last {FAST_BARS * BAR} minutes of regular trading",
             invalid,
@@ -595,8 +623,15 @@ def run_longer(cur, today: date) -> int:
 
         rel = industry_relative_long(cur, a["id"], a["industryId"])
         state, head, conds, missing, against, entry, invalid = longer_read(bars, rel)
+        # The session these conditions were read from: the newest bar in the window above, not
+        # the day the job ran. `jobs/setup.py` writes the swing read of the same table under the
+        # same rule, and the two horizons of one asset must not be dated to different days when
+        # they were computed from the same closes -- `tools/decide.mjs` reads both with
+        # `DISTINCT ON (assetId, horizon) ORDER BY periodEnd DESC` and `lib/reconcile.ts`
+        # compares them against each other.
+        period_end = bars[-1]["date"] or today
         write_setup(
-            cur, a["id"], today, "longer", state, head, conds, missing, against,
+            cur, a["id"], period_end, "longer", state, head, conds, missing, against,
             entry,
             (
                 f"the nearest price below where the series last turned within "

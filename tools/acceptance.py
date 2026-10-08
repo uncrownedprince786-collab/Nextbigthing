@@ -93,14 +93,30 @@ check("THESIS MEMORY", PASS if th else (PARTIAL if setups_dir else PARTIAL),
        else f"0 theses; {setups_dir} directional setups exist, needs a second day to compare"))
 
 # --- ATTRIBUTION
+#
+# The identity total = market + sector + specific is only claimed on rows where the split was
+# made. `jobs/attribution.py` leaves `sectorPct` and `specificPct` null when the asset's
+# industry has fewer than MIN_PEERS names with history, deliberately: crediting the whole
+# non-market remainder to the asset would read as a finding about the asset when it measures
+# only that its industry is thinly covered here.
+#
+# This check used to coalesce those nulls to zero, which asks the unsplit rows to satisfy an
+# identity they do not claim. 15 of 1,788 rows are unsplit, so the harness reported a 13-point
+# "identity error" and a FAIL against a decomposition that is exact to 7e-15 everywhere it
+# exists. A measurement that is absent is not a measurement of zero -- the same rule the site
+# applies to volume, news and analogs, now applied to the harness that audits it.
 att = one(cur, '''
     SELECT count(*) AS n, count(leader) AS led,
-           max(abs("totalPct" - ("marketPct" + coalesce("sectorPct",0) + coalesce("specificPct",0)))) AS err
+           count(*) FILTER (WHERE "sectorPct" IS NULL) AS unsplit,
+           max(abs("totalPct" - ("marketPct" + "sectorPct" + "specificPct")))
+             FILTER (WHERE "sectorPct" IS NOT NULL) AS err
     FROM "MoveAttribution"
 ''')
 ok = att["n"] and (att["err"] is None or float(att["err"]) < 1e-6)
 check("ATTRIBUTION", PASS if ok else FAIL,
-      f"{att['n']} rows, {att['led']} with a named leader, identity error {float(att['err'] or 0):.2e}")
+      f"{att['n']} rows, {att['led']} with a named leader, identity error "
+      f"{float(att['err'] or 0):.2e} over {att['n'] - att['unsplit']} split rows; "
+      f"{att['unsplit']} too few industry peers to split, left null rather than zero")
 
 # --- GRAPH
 g = one(cur, 'SELECT count(*) AS n, max(hops) AS hops, count(path) AS paths FROM "GraphRelevance"')

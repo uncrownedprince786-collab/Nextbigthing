@@ -706,7 +706,14 @@ def main() -> None:
                 RETURNING id
                 """,
                 (
-                    a["id"], today, a["trigger"], a["detail"], a["pct"], a["z"],
+                    # The day the move happened, which `investigate_one` has used as `when`
+                    # for every check since it was written. The row said `today` instead, so a
+                    # run from a UTC+5 host before the US close dated 283 investigations to
+                    # 2026-10-08 -- a day with no stored close in it -- while every finding
+                    # inside them was measured against 10-07. The file's own claim, recorded in
+                    # tests/test_brain.py, is that it "investigates a move on the day it is
+                    # seen"; now it does.
+                    a["id"], a["date"] or today, a["trigger"], a["detail"], a["pct"], a["z"],
                     a["vol_ratio"], result["headline"], result["found"], result["notFound"],
                     result["pointsToward"], result["unconfirmed"], result["leading"],
                     result["confidence"], result["confidenceNote"], INVESTIGATION,

@@ -199,6 +199,13 @@ def returns(cur) -> list[dict]:
 
 
 def main() -> None:
+    # The calendar, and the only thing it is used for below is a fallback for an asset whose
+    # newest close somehow came back null. Each row's `periodEnd` is `asof` from the query: the
+    # newest stored close for that asset, which is the session its return was measured to.
+    #
+    # Measured 2026-10-08: all 1,788 rows read `periodEnd` 2026-10-08 while every close in the
+    # database ended 10-07, because this job was run from a UTC+5 host while New York was still
+    # on the previous session. The numbers were right and the date was a day that never traded.
     today = date.today()
     conn = db()
     cur = conn.cursor()
@@ -300,7 +307,7 @@ def main() -> None:
                     "computedAt" = now()
                 """,
                 (
-                    asset_id, today, WINDOW_SESSIONS, mine,
+                    asset_id, m["asof"] or today, WINDOW_SESSIONS, mine,
                     market,
                     parts["sector"] if parts else None,
                     parts["specific"] if parts else None,

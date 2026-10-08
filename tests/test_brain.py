@@ -1841,6 +1841,42 @@ class IntradayRead(unittest.TestCase):
         self.assertEqual(state, "none")
         self.assertIn("between its intraday averages", head)
 
+    def test_a_window_of_genuine_zero_volume_does_not_divide_by_it(self):
+        # An asset can print a real zero volume bar, and this repository stores that as a zero
+        # rather than a null on purpose -- 25,281 of them. When every bar in the trailing
+        # window is one, the average is zero, and the ratio against it was computed in three
+        # places: once behind a guard and twice without. The unguarded pair raised
+        # ZeroDivisionError, which took down `run_intraday`, and because that is the first
+        # thing `horizons.main()` calls it also took `run_longer` and `run_targets` with it.
+        # Four days of the nightly decision lane wrote no intraday read and no target range.
+        bars = self._rising()
+        for b in bars:
+            b["volume"] = 0.0
+        state, _, _, missing, _, _, _ = horizons.intraday_read(bars, 110.0, 95.0)
+        self.assertTrue(any("no traded volume stored" in m for m in missing))
+        self.assertNotEqual(state, "buy", "a buy must not rest on a volume that is all zero")
+
+    def test_an_unmeasurable_volume_is_not_reported_as_a_quiet_one(self):
+        # "measured, and below the bar" and "not measured at all" are different sentences, and
+        # only the first may be printed as a reason the conditions are short. The fix for the
+        # division above collapsed both into one flag; this keeps them apart.
+        bars = self._rising()
+        for b in bars:
+            b["volume"] = None
+        _, head, _, missing, _, _, _ = horizons.intraday_read(bars, 10_000.0, 95.0)
+        self.assertTrue(any("provider sent no volume" in m for m in missing))
+        self.assertNotIn("not trading more than usual", head)
+
+    def test_the_volume_ratio_is_computed_in_one_place(self):
+        # Rule 36. The three copies above did not disagree about the threshold; they disagreed
+        # about whether the denominator could be zero, which is the same bug one step earlier.
+        text = (ROOT / "jobs" / "horizons.py").read_text(encoding="utf-8")
+        self.assertEqual(
+            text.count("sum(vols)"), 1,
+            "the intraday volume ratio is measured more than once, so one copy can be guarded "
+            "and another not",
+        )
+
     def test_the_conditions_parse_with_the_thesis_verdict_reader(self):
         # thesis.py reads this exact format to decide whether a reason still holds. A new
         # horizon written in a new format would silently produce theses with nothing to
@@ -1850,6 +1886,68 @@ class IntradayRead(unittest.TestCase):
         self.assertIn("trend", got)
         self.assertIn("volume", got)
         self.assertIn(got["trend"], ("up", "down", "mixed"))
+
+
+class PeriodEndIsASessionNotACalendarDay(unittest.TestCase):
+    """A row that records a measurement must be dated to the session it measured.
+
+    `jobs/factors.py` has stated the rule since it was written: "Today's date is the wrong
+    anchor: the job runs before a close on a holiday and on a weekend, and dating a row to a
+    day with no session in it would make `periodEnd` a claim about a day nothing was measured
+    on." `setup.py` was caught breaking it on 2026-10-07 and fixed; four more jobs were still
+    breaking it on 2026-10-08, and the only reason it was not visible is that each one was
+    wrong by exactly one day in the same direction.
+
+    Measured that morning, from a host five hours ahead of UTC: every close in the database
+    ended 2026-10-07, and 1,788 attribution rows, 3,524 analog rows and 283 investigations all
+    read `periodEnd` 2026-10-08. The content was right. The date was a day on which nothing
+    traded -- and every reader of those tables takes the newest `periodEnd` per asset, so a row
+    dated forward does not merely read oddly, it wins.
+    """
+
+    # file -> the expression its measurement rows are dated with, and what that expression is.
+    ANCHORS = {
+        "factors.py": ("period_end", "the newest stored close across every asset"),
+        "setup.py": ("period_end", "the newest stored close"),
+        "analogs.py": ("period_end", "the date of the bar the comparison was made from"),
+        "attribution.py": ('m["asof"]', "the asset's own newest stored close"),
+        "investigate.py": ('a["date"]', "the day the unusual move happened"),
+    }
+
+    def test_each_measurement_job_dates_its_rows_from_the_data(self):
+        for name, (anchor, why) in sorted(self.ANCHORS.items()):
+            text = (ROOT / "jobs" / name).read_text(encoding="utf-8")
+            self.assertIn(
+                anchor, text, f"{name} should date its rows with {anchor}: {why}"
+            )
+
+    def test_no_measurement_job_passes_the_bare_calendar_as_a_period(self):
+        # The shape of the original mistake, in every file that makes one of these rows: the
+        # asset id followed by the bare name `today` in an INSERT's parameter tuple. A fallback
+        # is allowed and spelled `or today`, because an asset with no stored bar has no session
+        # to be dated to -- and in every one of these jobs a row is only written after bars came
+        # back, so the fallback is unreachable rather than lenient.
+        import re
+
+        bare = re.compile(r'(?<!or )\btoday\b\s*,')
+        for name in sorted(self.ANCHORS):
+            text = (ROOT / "jobs" / name).read_text(encoding="utf-8")
+            for i, line in enumerate(text.splitlines(), start=1):
+                code = line.split("#", 1)[0]
+                if 'a["id"]' in code or "asset_id," in code or 'a["id"],' in code:
+                    self.assertFalse(
+                        bare.search(code),
+                        f"{name}:{i} dates a measurement row with the calendar: {line.strip()}",
+                    )
+
+    def test_the_intraday_horizon_reads_the_session_its_bars_came_from(self):
+        # Two ways to pick the completeness record, and only one of them is about the same day
+        # as the bars. `intraday.py` writes a session row dated to the calendar day it ran,
+        # including for days a venue never opened, so "newest session row" and "the session
+        # this read was computed over" are routinely different days.
+        text = (ROOT / "jobs" / "horizons.py").read_text(encoding="utf-8")
+        self.assertIn('AND "sessionDate" = %s', text)
+        self.assertNotIn('ORDER BY "sessionDate" DESC LIMIT 1', text)
 
 
 class LongerRead(unittest.TestCase):

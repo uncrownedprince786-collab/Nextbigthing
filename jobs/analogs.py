@@ -180,6 +180,10 @@ def grade(matches: int, moves: list[float]) -> tuple[str, list[str]]:
 
 
 def main() -> None:
+    # The calendar, kept only as the fallback for an asset with no stored close -- which cannot
+    # happen below, because a row is only written after `series` returned bars. Every row's
+    # `periodEnd` is the date of the bar the comparison was actually made from; see the note in
+    # the loop. `jobs/setup.py` states the same rule at length and `jobs/factors.py` owns it.
     today = date.today()
     tol_note = (
         f"one day return within {DAY_TOL} points, volume ratio within {VOL_TOL} of its "
@@ -204,6 +208,14 @@ def main() -> None:
             if now is None or now["vol"] is None or now["five"] is None:
                 skipped += 1
                 continue
+
+            # The session this comparison was made from, not the day the job ran. `now` is the
+            # setup on `bars[latest]`, so that bar's date is what the row describes. Dating it to
+            # the calendar put 3,524 rows on 2026-10-08, a day on which nothing traded and no
+            # close is stored, because this job was run from a UTC+5 host before the US close.
+            # Every reader of this table takes the newest `periodEnd` per asset, so a row dated
+            # forward does not merely read oddly -- it wins.
+            period_end = bars[latest]["date"] or today
 
             for horizon in HORIZONS:
                 moves: list[float] = []
@@ -240,7 +252,7 @@ def main() -> None:
                         "computedAt" = now()
                     """,
                     (
-                        a["id"], today, horizon, now["day"], now["vol"], now["five"],
+                        a["id"], period_end, horizon, now["day"], now["vol"], now["five"],
                         tol_note, len(moves), len([m for m in moves if m > 0]),
                         mean(moves), median(moves),
                         min(moves) if moves else None, max(moves) if moves else None,
