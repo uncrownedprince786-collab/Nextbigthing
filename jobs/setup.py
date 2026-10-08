@@ -79,37 +79,99 @@ CONFIRMS_NEEDED = 2
 HORIZON = "swing"       # the only horizon these windows support; see the note above
 
 
-def closes(cur, asset_id: str):
-    return rows(
+def all_closes(cur) -> dict[str, list[dict]]:
+    """{assetId: the newest RANGE_WINDOW + SLOW closes, newest first} for every asset.
+
+    One statement for the universe instead of one per asset. The window and the ordering are
+    the same as the per-asset read it replaces -- `row_number()` numbers each asset's own rows
+    newest first and the cut is the same figure -- so the series handed to the rules below is
+    identical, row for row, to the one it got before.
+
+    Reading the whole universe at once costs memory in exchange for round trips: about 331
+    assets times 120 rows of three columns, which is small, against 331 network waits that on
+    a host outside the database's region were most of this job's eleven minutes.
+    """
+    got = rows(
         cur,
         """
-        SELECT date, close, volume FROM "PriceSnapshot"
-        WHERE "assetId" = %s AND close IS NOT NULL
-        ORDER BY date DESC LIMIT %s
+        SELECT "assetId", date, close, volume FROM (
+            SELECT "assetId", date, close, volume,
+                   row_number() OVER (PARTITION BY "assetId" ORDER BY date DESC) AS rn
+            FROM "PriceSnapshot" WHERE close IS NOT NULL
+        ) ranked
+        WHERE rn <= %s
+        ORDER BY "assetId", date DESC
         """,
-        (asset_id, RANGE_WINDOW + SLOW),
+        (RANGE_WINDOW + SLOW,),
     )
+    out: dict[str, list[dict]] = {}
+    for r in got:
+        out.setdefault(r["assetId"], []).append(r)
+    return out
 
 
-def industry_relative(cur, asset_id: str, industry_id: str) -> float | None:
-    """The asset's 20 day return minus the mean 20 day return of its own industry.
+def all_signals(cur) -> dict[str, dict]:
+    """The newest HumanSignal per asset."""
+    return {r["assetId"]: r for r in rows(
+        cur,
+        """
+        SELECT DISTINCT ON ("assetId") "assetId", tone::text AS tone, catalyst,
+               "changeKind", "recentStories"
+        FROM "HumanSignal" WHERE "assetId" IS NOT NULL
+        ORDER BY "assetId", "periodEnd" DESC
+        """,
+    )}
 
-    Peers only, and the asset's own industry only, so a rupee listing is never measured
-    against a dollar one. None when too few peers have the history to average.
+
+def all_analogs(cur) -> dict[str, dict]:
+    """The newest five day analog set per asset. Horizon 5 is the one a swing read is
+    answerable on, which is the rule `tools/decide.mjs` and `lib/decisionInput.ts` both use."""
+    return {r["assetId"]: r for r in rows(
+        cur,
+        """
+        SELECT DISTINCT ON ("assetId") "assetId", matches, positive, "medianPct",
+               "minPct", "maxPct"
+        FROM "AssetAnalog" WHERE "horizonDays" = 5
+        ORDER BY "assetId", "periodEnd" DESC
+        """,
+    )}
+
+
+def all_next_events(cur, today) -> dict[str, dict]:
+    """The soonest scheduled event per asset at or after `today`. A diary has one order and
+    it is not "newest written"."""
+    return {r["assetId"]: r for r in rows(
+        cur,
+        """
+        SELECT DISTINCT ON (l."assetId") l."assetId", e.name, e.date
+        FROM "EventLink" l JOIN "Event" e ON e.id = l."eventId"
+        WHERE l."assetId" IS NOT NULL AND e.scheduled = true AND e.date >= %s
+        ORDER BY l."assetId", e.date ASC
+        """,
+        (today,),
+    )}
+
+
+def all_industry_relative(cur) -> dict[str, float]:
+    """{assetId: its FOR_DAYS return minus the mean of its own industry's}, in one statement.
+
+    The per-asset version re-read an entire industry's returns for every member of it, so a
+    nineteen name industry asked for the same nineteen returns nineteen times. The arithmetic
+    is unchanged: peers only, the asset's own industry only, and nothing returned where fewer
+    than three names in the industry have the history -- the floor the per-asset version
+    applied with `len(got) < 3`.
     """
     got = rows(
         cur,
         """
         WITH bounds AS (
-            SELECT a.id,
-                   max(p.date) AS newest
+            SELECT a.id, a."industryId", max(p.date) AS newest
             FROM "Asset" a
             JOIN "PriceSnapshot" p ON p."assetId" = a.id AND p.close IS NOT NULL
-            WHERE a."industryId" = %s
-            GROUP BY a.id
+            GROUP BY a.id, a."industryId"
         ),
         rets AS (
-            SELECT b.id,
+            SELECT b.id, b."industryId",
                    (SELECT close FROM "PriceSnapshot"
                      WHERE "assetId" = b.id AND date = b.newest) AS last,
                    (SELECT close FROM "PriceSnapshot"
@@ -118,20 +180,23 @@ def industry_relative(cur, asset_id: str, industry_id: str) -> float | None:
                      ORDER BY date DESC LIMIT 1) AS base
             FROM bounds b
         )
-        SELECT id, last, base FROM rets WHERE last IS NOT NULL AND base IS NOT NULL AND base > 0
+        SELECT id, "industryId", (last / base - 1) * 100 AS pct
+        FROM rets WHERE last IS NOT NULL AND base IS NOT NULL AND base > 0
         """,
-        (industry_id, FOR_DAYS),
+        (FOR_DAYS,),
     )
-    if len(got) < 3:
-        return None
-    pcts = {r["id"]: (float(r["last"]) / float(r["base"]) - 1.0) * 100.0 for r in got}
-    mine = pcts.get(asset_id)
-    if mine is None:
-        return None
-    peers = [v for k, v in pcts.items() if k != asset_id]
-    if not peers:
-        return None
-    return mine - (sum(peers) / len(peers))
+    by_industry: dict[str, list[tuple[str, float]]] = {}
+    for r in got:
+        by_industry.setdefault(r["industryId"], []).append((r["id"], float(r["pct"])))
+    out: dict[str, float] = {}
+    for members in by_industry.values():
+        if len(members) < 3:
+            continue
+        for asset_id, mine in members:
+            peers = [v for k, v in members if k != asset_id]
+            if peers:
+                out[asset_id] = mine - (sum(peers) / len(peers))
+    return out
 
 
 # Calendar days used to reach back roughly FAST trading days.
@@ -168,12 +233,22 @@ def main() -> None:
         assets = rows(
             cur, 'SELECT id, symbol, name, "industryId" FROM "Asset" ORDER BY symbol'
         )
+        # Five reads for the whole universe, taken before the loop rather than five per asset
+        # inside it. Nothing about the rules changed; what changed is that the job stopped
+        # waiting on the network 1,655 times to answer questions whose answers are the same
+        # for every member of an industry.
+        series_by_asset = all_closes(cur)
+        signal_by_asset = all_signals(cur)
+        analog_by_asset = all_analogs(cur)
+        event_by_asset = all_next_events(cur, today)
+        relative_by_asset = all_industry_relative(cur)
         step(f"measured conditions for {len(assets)} assets")
+        payload: list[tuple] = []
         tally = {"buy": 0, "short": 0, "wait": 0, "none": 0}
         skipped = 0
 
         for a in assets:
-            bars = closes(cur, a["id"])
+            bars = series_by_asset.get(a["id"], [])
             if len(bars) < SLOW + 2:
                 skipped += 1
                 continue
@@ -201,36 +276,10 @@ def main() -> None:
                 [b["date"] for b in series],
             )
 
-            rel = industry_relative(cur, a["id"], a["industryId"])
-
-            signal = one(
-                cur,
-                """
-                SELECT tone::text AS tone, catalyst, "changeKind", "recentStories"
-                FROM "HumanSignal" WHERE "assetId" = %s
-                ORDER BY "periodEnd" DESC LIMIT 1
-                """,
-                (a["id"],),
-            )
-            analog = one(
-                cur,
-                """
-                SELECT matches, positive, "medianPct", "minPct", "maxPct"
-                FROM "AssetAnalog" WHERE "assetId" = %s AND "horizonDays" = 5
-                ORDER BY "periodEnd" DESC LIMIT 1
-                """,
-                (a["id"],),
-            )
-            soon = one(
-                cur,
-                """
-                SELECT e.name, e.date FROM "Event" e
-                JOIN "EventLink" l ON l."eventId" = e.id
-                WHERE l."assetId" = %s AND e.scheduled = true AND e.date >= %s
-                ORDER BY e.date ASC LIMIT 1
-                """,
-                (a["id"], today),
-            )
+            rel = relative_by_asset.get(a["id"])
+            signal = signal_by_asset.get(a["id"])
+            analog = analog_by_asset.get(a["id"])
+            soon = event_by_asset.get(a["id"])
 
             # --- conditions, each recorded with its value and its verdict
             conds: list[str] = []
@@ -460,7 +509,22 @@ def main() -> None:
             if against:
                 note_bits.append(f"{len(against)} conditions point the other way")
 
-            cur.execute(
+            payload.append(
+                (
+                    a["id"], period_end, HORIZON, state, head,
+                    " | ".join(conds), " | ".join(missing) or "none",
+                    " | ".join(against) or "none",
+                    entry, entry_note, invalid, invalid_note,
+                    range_note, grade, "; ".join(note_bits).capitalize() or None, RULES,
+                )
+            )
+            tally[state] += 1
+
+        # One statement for every row, after the loop. It was an execute and a commit per
+        # asset, which is two network waits each; psycopg pipelines an executemany into one.
+        # The conflict clause is unchanged, so a rerun on the same session is still an update
+        # rather than a second row.
+        cur.executemany(
                 """
                 INSERT INTO "AssetSetup" ("assetId", "periodEnd", horizon, state, headline,
                     conditions, missing, against, "entryLevel", "entryNote",
@@ -477,15 +541,9 @@ def main() -> None:
                     "rangeNote" = EXCLUDED."rangeNote", confidence = EXCLUDED.confidence,
                     "confidenceNote" = EXCLUDED."confidenceNote", "computedAt" = now()
                 """,
-                (
-                    a["id"], period_end, HORIZON, state, head,
-                    " | ".join(conds), " | ".join(missing) or "none", " | ".join(against) or "none",
-                    entry, entry_note, invalid, invalid_note,
-                    range_note, grade, "; ".join(note_bits).capitalize() or None, RULES,
-                ),
-            )
-            tally[state] += 1
-            conn.commit()
+                payload,
+        )
+        conn.commit()
 
         print(
             f"  buy {tally['buy']}, short {tally['short']}, wait {tally['wait']}, "

@@ -208,15 +208,43 @@ def classify(title: str) -> str:
     return "neutral"
 
 
-def news_window(cur, column: str, target_id: str, start: datetime, end: datetime):
-    return rows(
+def news_windows(cur, column: str, start: datetime, end: datetime) -> dict[str, list[dict]]:
+    """{targetId: the stored items in [start, end)} for every target at once.
+
+    This was one statement per target per window, and `read_target` asks for two windows, so
+    361 targets cost 722 network waits to read a table that fits in one. The rows returned
+    per target are the same rows, with the same columns, as the per-target version returned.
+    """
+    out: dict[str, list[dict]] = {}
+    for r in rows(
         cur,
         f"""
-        SELECT title, publisher, "lineageId", "publishedAt" FROM "News"
-        WHERE "{column}" = %s AND "publishedAt" >= %s AND "publishedAt" < %s
+        SELECT "{column}" AS target, title, publisher, "lineageId", "publishedAt"
+        FROM "News"
+        WHERE "{column}" IS NOT NULL AND "publishedAt" >= %s AND "publishedAt" < %s
         """,
-        (target_id, start, end),
-    )
+        (start, end),
+    ):
+        out.setdefault(r["target"], []).append(r)
+    return out
+
+
+def base_closes(cur, on) -> dict[str, dict]:
+    """{assetId: the newest stored close at or before `on`}, in one statement.
+
+    Returned as stored rather than carried forward to the asking date, exactly as the
+    per-asset version did, so the accuracy log still records which observation a later move
+    was measured from.
+    """
+    return {r["assetId"]: r for r in rows(
+        cur,
+        """
+        SELECT DISTINCT ON ("assetId") "assetId", date, close FROM "PriceSnapshot"
+        WHERE date <= %s AND close IS NOT NULL
+        ORDER BY "assetId", date DESC
+        """,
+        (on,),
+    )}
 
 
 def stories(items: list[dict]) -> int:
@@ -267,23 +295,6 @@ def robust_z(recent_rate: float, daily_counts: list[float]) -> float | None:
     return (recent_rate - med) / scale
 
 
-def base_close(cur, asset_id: str, on: date):
-    """The latest stored close at or before a date, with the date it is actually from.
-
-    Returned as stored rather than carried forward to the asking date, so the accuracy log
-    records which observation a later move was measured from.
-    """
-    return one(
-        cur,
-        """
-        SELECT date, close FROM "PriceSnapshot"
-        WHERE "assetId" = %s AND date <= %s AND close IS NOT NULL
-        ORDER BY date DESC LIMIT 1
-        """,
-        (asset_id, on),
-    )
-
-
 def grade(items: int, publishers: int, top_share: float | None) -> tuple[str, list[str]]:
     """How well evidenced the reading is. About the evidence, never about the direction."""
     notes: list[str] = []
@@ -319,14 +330,22 @@ def grade(items: int, publishers: int, top_share: float | None) -> tuple[str, li
     return g, notes
 
 
-def read_target(cur, column: str, target_id: str, name: str, end: date):
-    """Compute one target's reading. Returns None when the target has no coverage at all."""
-    end_dt = datetime.combine(end, datetime.min.time())
-    start_dt = end_dt - timedelta(days=WINDOW_DAYS)
-    prior_dt = start_dt - timedelta(days=WINDOW_DAYS)
+def read_target(cur, column: str, target_id: str, name: str, end: date,
+                recent: dict, earlier: dict):
+    """Compute one target's reading. Returns None when the target has no coverage at all.
 
-    items = news_window(cur, column, target_id, start_dt, end_dt)
-    prior = news_window(cur, column, target_id, prior_dt, start_dt)
+    `recent` and `earlier` are the two windows, read once for every target by `news_windows`
+    and handed in. Everything below is the arithmetic it always was.
+    """
+    end_dt = datetime.combine(end, datetime.min.time())
+    items = recent.get(target_id, [])
+    prior = earlier.get(target_id, [])
+    # Every window this function needs is a slice of those two, so the catalyst and baseline
+    # windows are taken from the rows already in hand rather than asked for again. They always
+    # were slices: the catalyst window is the last CATALYST_DAYS of `items`, and the baseline
+    # window spans the end of `prior` and the start of `items`. Four statements per target
+    # became two for the whole universe.
+    window = items + prior
 
     if not items and not prior:
         return None
@@ -389,10 +408,11 @@ def read_target(cur, column: str, target_id: str, name: str, end: date):
 
     # Catalyst: the short window against the long window's daily rate. Measured on the same
     # stored rows, but answering a different question from velocity, so both are kept.
-    recent = news_window(cur, column, target_id, end_dt - timedelta(days=CATALYST_DAYS), end_dt)
+    catalyst_from = end_dt - timedelta(days=CATALYST_DAYS)
     base_from = end_dt - timedelta(days=WINDOW_DAYS + CATALYST_DAYS)
-    base_to = end_dt - timedelta(days=CATALYST_DAYS)
-    baseline_items = news_window(cur, column, target_id, base_from, base_to)
+    base_to = catalyst_from
+    recent = [it for it in window if catalyst_from <= it["publishedAt"] < end_dt]
+    baseline_items = [it for it in window if base_from <= it["publishedAt"] < base_to]
 
     recent_n = len(recent)
     # Stories, not items. This is the number the decision is made on: a ratio built on copies
@@ -590,9 +610,9 @@ def factors_text(r: dict) -> str:
     )
 
 
-def save_signal(cur, column: str, target_id: str, r: dict, end: date) -> None:
+def signal_row(column: str, target_id: str, r: dict, end: date) -> tuple[str, tuple]:
     other = "productId" if column == "assetId" else "assetId"
-    cur.execute(
+    return (
         f"""
         INSERT INTO "HumanSignal" ("{column}", "{other}", "targetRef", "periodEnd",
             "windowDays", items, positive, negative, neutral, tone, "toneScore",
@@ -638,7 +658,7 @@ def save_signal(cur, column: str, target_id: str, r: dict, end: date) -> None:
     )
 
 
-def save_log(cur, column: str, target_id: str, r: dict, end: date) -> None:
+def log_row(column: str, target_id: str, r: dict, end: date, base) -> tuple[str, tuple]:
     """Record the reading so accuracy.py can measure what followed it.
 
     A reading with no published direction is still logged. Whether quiet, split coverage is
@@ -646,9 +666,8 @@ def save_log(cur, column: str, target_id: str, r: dict, end: date) -> None:
     logging only the confident readings would make the eventual hit rate flattering.
     """
     other = "productId" if column == "assetId" else "assetId"
-    base = base_close(cur, target_id, end) if column == "assetId" else None
     status = "open" if base else "unmeasurable"
-    cur.execute(
+    return (
         f"""
         INSERT INTO "SignalLog" (kind, "{column}", "{other}", "targetRef", "issuedOn",
             claim, factors, confidence, "baseDate", "baseClose", status)
@@ -676,14 +695,28 @@ def main() -> None:
         ):
             step(f"human signal for {label}")
             targets = rows(cur, f'SELECT id, name FROM "{table}" ORDER BY name')
+            # Three statements for the whole group, taken before the loop: the two news
+            # windows every target is read over, and the base closes the log is anchored to.
+            end_dt = datetime.combine(end, datetime.min.time())
+            start_dt = end_dt - timedelta(days=WINDOW_DAYS)
+            prior_dt = start_dt - timedelta(days=WINDOW_DAYS)
+            recent = news_windows(cur, column, start_dt, end_dt)
+            earlier = news_windows(cur, column, prior_dt, start_dt)
+            bases = base_closes(cur, end) if column == "assetId" else {}
+
             written = skipped = flagged = sparked = thin = 0
+            signal_sql = log_sql = None
+            signal_payload: list[tuple] = []
+            log_payload: list[tuple] = []
             for t in targets:
-                r = read_target(cur, column, t["id"], t["name"], end)
+                r = read_target(cur, column, t["id"], t["name"], end, recent, earlier)
                 if r is None:
                     skipped += 1
                     continue
-                save_signal(cur, column, t["id"], r, end)
-                save_log(cur, column, t["id"], r, end)
+                signal_sql, params = signal_row(column, t["id"], r, end)
+                signal_payload.append(params)
+                log_sql, params = log_row(column, t["id"], r, end, bases.get(t["id"]))
+                log_payload.append(params)
                 written += 1
                 if r["hypeFlag"]:
                     flagged += 1
@@ -691,6 +724,13 @@ def main() -> None:
                     sparked += 1
                 if r["items"] and r["items"] < MIN_ITEMS:
                     thin += 1
+
+            # One statement per table rather than two per target. The conflict clauses are
+            # unchanged, so a rerun on the same day is still an update.
+            if signal_payload:
+                cur.executemany(signal_sql, signal_payload)
+            if log_payload:
+                cur.executemany(log_sql, log_payload)
             print(
                 f"  {label}: {written} read, {skipped} with no stored coverage, "
                 f"{sparked} catalyst flagged, {flagged} hype flagged, "

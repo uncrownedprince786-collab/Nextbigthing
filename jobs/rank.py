@@ -36,32 +36,44 @@ CAP_LABEL = {
 }
 
 
-def close_on(cur, asset_id: str, target: date):
+def closes_on(cur, asset_ids: list[str], target: date) -> dict[str, dict]:
+    """{assetId: the newest stored row at or before `target`} for a whole industry at once.
+
+    This was a query per asset, and the three callers below ran it twice each, so one industry
+    cost six round trips per name and the job cost about 2,500 for the universe. On a host in
+    the database's own region that is seconds; from anywhere else it was 17 minutes of a
+    2h50m run, and it grows with every name added to the pool.
+
+    The row is picked exactly as the per-asset version picked it: newest date at or before the
+    target, whether or not it carries a close. The callers already test `close` themselves,
+    and filtering here would silently substitute an older row where the old code skipped the
+    asset.
+    """
+    if not asset_ids:
+        return {}
     got = rows(
         cur,
         """
-        SELECT date, close, volume, "marketCap" FROM "PriceSnapshot"
-        WHERE "assetId" = %s AND date <= %s ORDER BY date DESC LIMIT 1
+        SELECT DISTINCT ON ("assetId") "assetId" AS aid, date, close, volume, "marketCap"
+        FROM "PriceSnapshot"
+        WHERE "assetId" = ANY(%s) AND date <= %s
+        ORDER BY "assetId", date DESC
         """,
-        (asset_id, target),
+        (asset_ids, target),
     )
-    return got[0] if got else None
+    return {g["aid"]: g for g in got}
 
 
-def latest(cur, asset_id: str):
-    got = rows(
-        cur,
-        """
-        SELECT date, close, volume, "marketCap" FROM "PriceSnapshot"
-        WHERE "assetId" = %s ORDER BY date DESC LIMIT 1
-        """,
-        (asset_id,),
-    )
-    return got[0] if got else None
+def upsert_many(cur, recs: list[dict]) -> int:
+    """Every ranking row for one basis in one statement.
 
-
-def upsert(cur, rec: dict) -> None:
-    cur.execute(
+    `executemany` rather than a hand-built VALUES list: psycopg pipelines it into a single
+    round trip and the conflict clause stays exactly as it was, which matters because this
+    table is rewritten in full on every run and the clause is what makes a rerun idempotent.
+    """
+    if not recs:
+        return 0
+    cur.executemany(
         """
         INSERT INTO "Ranking"
           ("industryId", "assetId", basis, "periodStart", "periodEnd", rank,
@@ -74,8 +86,9 @@ def upsert(cur, rec: dict) -> None:
             value = EXCLUDED.value, source = EXCLUDED.source, note = EXCLUDED.note,
             "periodStart" = EXCLUDED."periodStart"
         """,
-        rec,
+        recs,
     )
+    return len(recs)
 
 
 def size_ranks(cur, industry_id: str, target: date) -> dict[str, int]:
@@ -123,27 +136,23 @@ def write_size(cur, industry, target: date, basis: str) -> int:
             latest_cap[row["aid"]] = row
 
     by_id = {a["id"]: a for a in assets}
-    n = 0
+    recs = []
     for aid, rank in sorted(sranks.items(), key=lambda kv: kv[1]):
         a = by_id[aid]
         label = CAP_LABEL.get(a["capBasis"])
-        upsert(
-            cur,
-            {
-                "industryId": industry["id"],
-                "assetId": aid,
-                "basis": basis,
-                "periodStart": None,
-                "periodEnd": latest_cap[aid]["date"],
-                "rank": rank,
-                "sizeRank": rank,
-                "value": float(latest_cap[aid]["cap"]),
-                "source": a["source"],
-                "note": f"{label} on {latest_cap[aid]['date']}, price times shares outstanding",
-            },
-        )
-        n += 1
-    return n
+        recs.append({
+            "industryId": industry["id"],
+            "assetId": aid,
+            "basis": basis,
+            "periodStart": None,
+            "periodEnd": latest_cap[aid]["date"],
+            "rank": rank,
+            "sizeRank": rank,
+            "value": float(latest_cap[aid]["cap"]),
+            "source": a["source"],
+            "note": f"{label} on {latest_cap[aid]['date']}, price times shares outstanding",
+        })
+    return upsert_many(cur, recs)
 
 
 def write_returns(cur, industry, start: date, end: date, basis: str) -> int:
@@ -152,10 +161,12 @@ def write_returns(cur, industry, start: date, end: date, basis: str) -> int:
         'SELECT id, name, source FROM "Asset" WHERE "industryId" = %s',
         (industry["id"],),
     )
+    ids = [a["id"] for a in assets]
+    starts = closes_on(cur, ids, start)
+    ends = closes_on(cur, ids, end)
     scored = []
     for a in assets:
-        a_start = close_on(cur, a["id"], start)
-        a_end = close_on(cur, a["id"], end)
+        a_start, a_end = starts.get(a["id"]), ends.get(a["id"])
         if not a_start or not a_end or not a_start["close"]:
             continue
         ret = (a_end["close"] / a_start["close"] - 1.0) * 100.0
@@ -163,25 +174,21 @@ def write_returns(cur, industry, start: date, end: date, basis: str) -> int:
 
     sranks = size_ranks(cur, industry["id"], end)
     scored.sort(key=lambda t: t[3], reverse=True)
-    n = 0
+    recs = []
     for i, (a, a_start, a_end, ret) in enumerate(scored, start=1):
-        upsert(
-            cur,
-            {
-                "industryId": industry["id"],
-                "assetId": a["id"],
-                "basis": basis,
-                "periodStart": a_start["date"],
-                "periodEnd": a_end["date"],
-                "rank": i,
-                "sizeRank": sranks.get(a["id"]),
-                "value": ret,
-                "source": a["source"],
-                "note": f"close {a_start['close']:.4g} on {a_start['date']} to {a_end['close']:.4g} on {a_end['date']}",
-            },
-        )
-        n += 1
-    return n
+        recs.append({
+            "industryId": industry["id"],
+            "assetId": a["id"],
+            "basis": basis,
+            "periodStart": a_start["date"],
+            "periodEnd": a_end["date"],
+            "rank": i,
+            "sizeRank": sranks.get(a["id"]),
+            "value": ret,
+            "source": a["source"],
+            "note": f"close {a_start['close']:.4g} on {a_start['date']} to {a_end['close']:.4g} on {a_end['date']}",
+        })
+    return upsert_many(cur, recs)
 
 
 def write_rising(cur, industry, today: date) -> int:
@@ -191,15 +198,32 @@ def write_rising(cur, industry, today: date) -> int:
         'SELECT id, name, source FROM "Asset" WHERE "industryId" = %s',
         (industry["id"],),
     )
+    ids = [a["id"] for a in assets]
+    starts = closes_on(cur, ids, start)
+    ends = closes_on(cur, ids, today)
+    now_vols = avg_volumes(cur, ids, today, 60)
+
+    # The "then" window ends sixty days after each asset's own starting session, and those
+    # sessions are nearly all the same day -- the newest close at or before one fixed date.
+    # Grouping by that date turns a query per asset into a query per distinct starting day,
+    # which in practice is one or two.
+    by_start_day: dict[date, list[str]] = {}
+    for a in assets:
+        a_start = starts.get(a["id"])
+        if a_start:
+            by_start_day.setdefault(a_start["date"], []).append(a["id"])
+    then_vols: dict[str, float] = {}
+    for day, group in by_start_day.items():
+        then_vols.update(avg_volumes(cur, group, day + timedelta(days=60), 60))
+
     scored = []
     for a in assets:
-        a_start = close_on(cur, a["id"], start)
-        a_end = close_on(cur, a["id"], today)
+        a_start, a_end = starts.get(a["id"]), ends.get(a["id"])
         if not a_start or not a_end or not a_start["close"]:
             continue
         ret = (a_end["close"] / a_start["close"] - 1.0) * 100.0
-        vol_now = avg_volume(cur, a["id"], today, 60)
-        vol_then = avg_volume(cur, a["id"], a_start["date"] + timedelta(days=60), 60)
+        vol_now = now_vols.get(a["id"])
+        vol_then = then_vols.get(a["id"])
         if vol_now is None or vol_then is None or vol_then == 0:
             vol_note = "volume trend unavailable, source did not publish volume for this asset"
             vol_up = None
@@ -217,10 +241,9 @@ def write_rising(cur, industry, today: date) -> int:
     ]
     excess.sort(key=lambda t: t[3], reverse=True)
     sranks = size_ranks(cur, industry["id"], today)
-    n = 0
+    recs = []
     for i, (a, a_start, a_end, ex, vol_up, vol_note) in enumerate(excess, start=1):
-        upsert(
-            cur,
+        recs.append(
             {
                 "industryId": industry["id"],
                 "assetId": a["id"],
@@ -234,20 +257,27 @@ def write_rising(cur, industry, today: date) -> int:
                 "note": f"{RISING_MONTHS} month return against industry average. {vol_note}",
             },
         )
-        n += 1
-    return n
+    return upsert_many(cur, recs)
 
 
-def avg_volume(cur, asset_id: str, end: date, days: int):
+def avg_volumes(cur, asset_ids: list[str], end: date, days: int) -> dict[str, float]:
+    """{assetId: mean stored volume over the `days` days ending at `end`}, one query.
+
+    Absent where the asset published no volume in the window, which is what the caller tests:
+    an asset with no volume gets the words "volume trend unavailable" rather than a zero.
+    """
+    if not asset_ids:
+        return {}
     got = rows(
         cur,
         """
-        SELECT avg(volume) AS v FROM "PriceSnapshot"
-        WHERE "assetId" = %s AND date <= %s AND date > %s AND volume IS NOT NULL
+        SELECT "assetId" AS aid, avg(volume) AS v FROM "PriceSnapshot"
+        WHERE "assetId" = ANY(%s) AND date <= %s AND date > %s AND volume IS NOT NULL
+        GROUP BY "assetId"
         """,
-        (asset_id, end, end - timedelta(days=days)),
+        (asset_ids, end, end - timedelta(days=days)),
     )
-    return got[0]["v"] if got else None
+    return {g["aid"]: g["v"] for g in got if g["v"] is not None}
 
 
 def main() -> None:

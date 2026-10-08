@@ -679,6 +679,8 @@ def main() -> None:
             print("  no attribution leader is stored yet, so the hypotheses carry no base rate")
 
         triggers: dict[str, int] = {}
+        finding_payload: list[tuple] = []
+        hypothesis_payload: list[tuple] = []
         leading: dict[str, int] = {}
         unexplained = 0
 
@@ -721,45 +723,57 @@ def main() -> None:
             )
             inv_id = cur.fetchone()["id"]
 
+            # Collected and written once after the loop. A candidate carries about five
+            # findings and four hypotheses, so this was nine statements per investigation on
+            # top of the one above -- roughly 600 network waits for 60 candidates.
             for f in result["findings"]:
-                cur.execute(
-                    """
-                    INSERT INTO "InvestigationFinding" ("investigationId", kind, status,
-                        detail, "sourceName", "observedAt")
-                    VALUES (%s,%s,%s,%s,%s,%s)
-                    ON CONFLICT ("investigationId", kind) DO UPDATE SET
-                        status = EXCLUDED.status, detail = EXCLUDED.detail,
-                        "sourceName" = EXCLUDED."sourceName",
-                        "observedAt" = EXCLUDED."observedAt"
-                    """,
+                finding_payload.append(
                     (inv_id, f["kind"], f["status"], f["detail"], f["sourceName"],
-                     f["observedAt"]),
+                     f["observedAt"])
                 )
             for h in result["hypotheses"]:
-                cur.execute(
-                    """
-                    INSERT INTO "InvestigationHypothesis" ("investigationId", label, statement,
-                        "priorBase", "priorNote", magnitude, supporting, contradicting,
-                        posterior, "posteriorNote")
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                    ON CONFLICT ("investigationId", label) DO UPDATE SET
-                        statement = EXCLUDED.statement, "priorBase" = EXCLUDED."priorBase",
-                        "priorNote" = EXCLUDED."priorNote", magnitude = EXCLUDED.magnitude,
-                        supporting = EXCLUDED.supporting,
-                        contradicting = EXCLUDED.contradicting,
-                        posterior = EXCLUDED.posterior,
-                        "posteriorNote" = EXCLUDED."posteriorNote"
-                    """,
+                hypothesis_payload.append(
                     (inv_id, h["label"], h["statement"], h["priorBase"], h["priorNote"],
                      h["magnitude"], h["supporting"], h["contradicting"], h["posterior"],
-                     h["posteriorNote"]),
+                     h["posteriorNote"])
                 )
             triggers[a["trigger"]] = triggers.get(a["trigger"], 0) + 1
             if result["leading"]:
                 leading[result["leading"]] = leading.get(result["leading"], 0) + 1
             if "unexplained" in result["pointsToward"]:
                 unexplained += 1
-            conn.commit()
+
+        if finding_payload:
+            cur.executemany(
+                """
+                INSERT INTO "InvestigationFinding" ("investigationId", kind, status,
+                    detail, "sourceName", "observedAt")
+                VALUES (%s,%s,%s,%s,%s,%s)
+                ON CONFLICT ("investigationId", kind) DO UPDATE SET
+                    status = EXCLUDED.status, detail = EXCLUDED.detail,
+                    "sourceName" = EXCLUDED."sourceName",
+                    "observedAt" = EXCLUDED."observedAt"
+                """,
+                finding_payload,
+            )
+        if hypothesis_payload:
+            cur.executemany(
+                """
+                INSERT INTO "InvestigationHypothesis" ("investigationId", label, statement,
+                    "priorBase", "priorNote", magnitude, supporting, contradicting,
+                    posterior, "posteriorNote")
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT ("investigationId", label) DO UPDATE SET
+                    statement = EXCLUDED.statement, "priorBase" = EXCLUDED."priorBase",
+                    "priorNote" = EXCLUDED."priorNote", magnitude = EXCLUDED.magnitude,
+                    supporting = EXCLUDED.supporting,
+                    contradicting = EXCLUDED.contradicting,
+                    posterior = EXCLUDED.posterior,
+                    "posteriorNote" = EXCLUDED."posteriorNote"
+                """,
+                hypothesis_payload,
+            )
+        conn.commit()
 
         for k, n in sorted(triggers.items()):
             print(f"  triggered by {k:<9} {n}")

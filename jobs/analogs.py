@@ -76,16 +76,28 @@ MIN_MATCHES_HIGH = 40
 # has not happened yet. Handled by construction below rather than by a date filter.
 
 
-def series(cur, asset_id: str):
-    return rows(
+# Assets whose whole history is read in one statement. This job needs every stored close --
+# an analog is a past day, and cutting the window would cut the matches -- so the whole
+# universe at once is the wrong trade: at a deeper history that is millions of rows held in
+# memory to compute one row per asset. A chunk is the middle: one round trip per CHUNK assets
+# instead of one per asset, with the memory bounded by the chunk rather than by the pool.
+CHUNK = 25
+
+
+def series_for(cur, asset_ids: list[str]) -> dict[str, list[dict]]:
+    """{assetId: every stored close, oldest first} for a chunk of assets."""
+    out: dict[str, list[dict]] = {a: [] for a in asset_ids}
+    for r in rows(
         cur,
         """
-        SELECT date, close, volume FROM "PriceSnapshot"
-        WHERE "assetId" = %s AND close IS NOT NULL
-        ORDER BY date ASC
+        SELECT "assetId", date, close, volume FROM "PriceSnapshot"
+        WHERE "assetId" = ANY(%s) AND close IS NOT NULL
+        ORDER BY "assetId", date ASC
         """,
-        (asset_id,),
-    )
+        (asset_ids,),
+    ):
+        out[r["assetId"]].append(r)
+    return out
 
 
 def factors(bars: list[dict], i: int):
@@ -196,9 +208,14 @@ def main() -> None:
         assets = rows(cur, 'SELECT id, symbol FROM "Asset" ORDER BY symbol')
         step(f"near term analogs for {len(assets)} assets")
         written = thin = skipped = 0
+        payload: list[tuple] = []
+        bars_by_asset: dict[str, list[dict]] = {}
 
-        for a in assets:
-            bars = series(cur, a["id"])
+        for index, a in enumerate(assets):
+            if a["id"] not in bars_by_asset:
+                chunk = [x["id"] for x in assets[index : index + CHUNK]]
+                bars_by_asset = series_for(cur, chunk)
+            bars = bars_by_asset.get(a["id"], [])
             if len(bars) < VOL_WINDOW + 30:
                 skipped += 1
                 continue
@@ -232,7 +249,23 @@ def main() -> None:
                 g, notes = ("none", ["no past day matched this setup"]) if not moves else grade(
                     len(moves), moves
                 )
-                cur.execute(
+                payload.append(
+                    (
+                        a["id"], period_end, horizon, now["day"], now["vol"], now["five"],
+                        tol_note, len(moves), len([m for m in moves if m > 0]),
+                        mean(moves), median(moves),
+                        min(moves) if moves else None, max(moves) if moves else None,
+                        g, "; ".join(notes).capitalize() if notes else None, ANALOG,
+                    )
+                )
+                written += 1
+                if g == "none":
+                    thin += 1
+
+        # One statement for every row the loop produced. It was an execute per asset per
+        # horizon and a commit per asset, which on a host outside the database's region was
+        # seven minutes of waiting to write 662 rows.
+        cur.executemany(
                     """
                     INSERT INTO "AssetAnalog" ("assetId", "periodEnd", "horizonDays",
                         "dayReturnPct", "volumeRatio", "fiveDayPct", "toleranceNote",
@@ -251,18 +284,9 @@ def main() -> None:
                         "confidenceNote" = EXCLUDED."confidenceNote",
                         "computedAt" = now()
                     """,
-                    (
-                        a["id"], period_end, horizon, now["day"], now["vol"], now["five"],
-                        tol_note, len(moves), len([m for m in moves if m > 0]),
-                        mean(moves), median(moves),
-                        min(moves) if moves else None, max(moves) if moves else None,
-                        g, "; ".join(notes).capitalize() if notes else None, ANALOG,
-                    ),
-                )
-                written += 1
-                if g == "none":
-                    thin += 1
-            conn.commit()
+                    payload,
+        )
+        conn.commit()
 
         print(
             f"  {written} rows written, {thin} with too few matches to grade, "

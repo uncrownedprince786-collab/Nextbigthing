@@ -187,10 +187,12 @@ class PeriodAnchors(unittest.TestCase):
             "setup.py no longer anchors periodEnd to a session that exists",
         )
         self.assertIn("period_end", src)
-        # And the INSERT uses it rather than the calendar.
-        insert = src[src.index('INSERT INTO "AssetSetup"'):]
-        head = insert[: insert.index("RULES")]
-        self.assertIn("period_end", head, "the AssetSetup insert is not using the session date")
+        # And the row that is written uses it rather than the calendar. The parameters now sit
+        # in a payload list that one `executemany` consumes, so the check is on the tuple
+        # rather than on the text of the statement.
+        row = src[src.index("payload.append("):]
+        head = row[: row.index("RULES")]
+        self.assertIn("period_end", head, "the AssetSetup row is not using the session date")
         self.assertNotIn(
             'a["id"], today, HORIZON', src,
             "the AssetSetup insert is stamping rows with the machine's calendar date",
@@ -203,7 +205,13 @@ class PeriodAnchors(unittest.TestCase):
         src = (ROOT / "jobs" / "setup.py").read_text(encoding="utf-8")
         self.assertIn("today = date.today()", src)
         self.assertIn("e.date >= %s", src)
-        self.assertIn('(a["id"], today)', src, "the event lookup should still use the calendar")
+        # The lookup is taken for every asset in one statement now; the date it is bounded by
+        # is still the calendar and that is the half this test exists to hold.
+        self.assertIn(
+            "all_next_events(cur, today)", src,
+            "the event lookup should still be bounded by the calendar",
+        )
+        self.assertIn("(today,)", src)
 
 
 class VolumeBaseline(unittest.TestCase):
@@ -1946,7 +1954,10 @@ class PeriodEndIsASessionNotACalendarDay(unittest.TestCase):
         # including for days a venue never opened, so "newest session row" and "the session
         # this read was computed over" are routinely different days.
         text = (ROOT / "jobs" / "horizons.py").read_text(encoding="utf-8")
-        self.assertIn('AND "sessionDate" = %s', text)
+        # Read for the whole active set in one statement and matched in memory, so the check
+        # is that the match is on the pair and not on "newest row for this asset".
+        self.assertIn('sessions_by_key.get((a["id"], newest_session))', text)
+        self.assertIn('DISTINCT ON ("assetId", "sessionDate")', text)
         self.assertNotIn('ORDER BY "sessionDate" DESC LIMIT 1', text)
 
 
@@ -2431,10 +2442,21 @@ class Idempotency(unittest.TestCase):
     def _inserts(self, text):
         import re
 
+        # Two shapes, because an INSERT that takes its rows from a SELECT is still an insert
+        # and still needs a duplicate rule. `thesis.py` writes ThesisCheck that way so the row
+        # can find its thesis by the thesis's own key instead of waiting for an id to come
+        # back, and the first pattern alone stopped seeing it -- which made the freeze guard
+        # below pass by finding nothing at all.
         return re.findall(
             r'INSERT INTO "(\w+)"\s*\((.*?)\)\s*VALUES\s*\((.*?)\)\s*(ON CONFLICT[^\n]*|RETURNING|""")',
             text,
             re.S,
+        ) + re.findall(
+            # The column list cannot contain a bracket and the body cannot contain another
+            # INSERT, which is what keeps this one from swallowing the statement above it.
+            r'INSERT INTO "(\w+)"\s*\(([^)]*)\)\s*(SELECT)'
+            r'(?:(?!INSERT INTO)[\s\S])*?\n\s*(ON CONFLICT[^\n]*)',
+            text,
         )
 
     def test_every_insert_declares_what_happens_on_a_duplicate(self):
@@ -3450,8 +3472,11 @@ class NoLookAhead(unittest.TestCase):
         # Rule 14. The opening row is a copy of the day the state appeared; recomputing any of
         # it from today's data reintroduces look-ahead into the one place built to exclude it.
         text = (ROOT / "jobs" / "thesis.py").read_text(encoding="utf-8")
+        # The statement is a module constant now, and it no longer returns an id: the check
+        # row finds its thesis by that thesis's own natural key instead, so the two batches
+        # need no round trip between them. The property under test is unchanged.
         insert = text[text.index('INSERT INTO "AssetThesis"'):]
-        update = insert[insert.index("DO UPDATE SET"):insert.index("RETURNING id")]
+        update = insert[insert.index("DO UPDATE SET"):insert.index('"""')]
         for field in ("openHeadline", "openConditions", "openClose", "invalidateLevel", "entryLevel"):
             self.assertNotIn(
                 field, update, f"{field} is in the DO UPDATE list, so the opening record is no longer a copy"
@@ -3706,8 +3731,11 @@ class QueryBudget(unittest.TestCase):
         self.assertEqual(grew, [], "; ".join(grew))
 
     def test_the_counter_still_counts(self):
-        # A ratchet that measures zero everywhere would pass forever.
-        self.assertGreaterEqual(self.in_loop_calls(ROOT / "jobs" / "thesis.py"), 5)
+        # A ratchet that measures zero everywhere would pass forever. It used to point at
+        # thesis.py, which now prefetches and measures zero -- the right outcome for that file
+        # and the wrong canary. rank.py is the one that still reads per asset, through helpers,
+        # which is also the case the counter had to learn to see.
+        self.assertGreaterEqual(self.in_loop_calls(ROOT / "jobs" / "rank.py"), 5)
 
 
 # A word-bounded search for an identifier. Built here because a literal backslash-b in a

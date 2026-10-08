@@ -198,6 +198,29 @@ def returns(cur) -> list[dict]:
     )
 
 
+ATTRIBUTION_SQL = """
+    INSERT INTO "MoveAttribution" ("assetId", "periodEnd", "windowDays",
+        "totalPct", "marketPct", "sectorPct", "specificPct", "marketShare",
+        "sectorShare", "specificShare", leader, "leaderMargin", peers,
+        "groupSize", headline, confidence, "confidenceNote", method, source,
+        "computedAt")
+    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::"Confidence",%s,%s,%s,
+            now())
+    ON CONFLICT ("assetId", "periodEnd", "windowDays") DO UPDATE SET
+        "totalPct" = EXCLUDED."totalPct", "marketPct" = EXCLUDED."marketPct",
+        "sectorPct" = EXCLUDED."sectorPct",
+        "specificPct" = EXCLUDED."specificPct",
+        "marketShare" = EXCLUDED."marketShare",
+        "sectorShare" = EXCLUDED."sectorShare",
+        "specificShare" = EXCLUDED."specificShare",
+        leader = EXCLUDED.leader, "leaderMargin" = EXCLUDED."leaderMargin",
+        peers = EXCLUDED.peers, "groupSize" = EXCLUDED."groupSize",
+        headline = EXCLUDED.headline, confidence = EXCLUDED.confidence,
+        "confidenceNote" = EXCLUDED."confidenceNote",
+        "computedAt" = now()
+"""
+
+
 def main() -> None:
     # The calendar, and the only thing it is used for below is a fallback for an asset whose
     # newest close somehow came back null. Each row's `periodEnd` is `asof` from the query: the
@@ -242,6 +265,7 @@ def main() -> None:
 
         written = named_count = 0
         undecided: dict[str, int] = {}
+        payload: list[tuple] = []
 
         for asset_id, mine in sorted(pcts.items(), key=lambda kv: meta[kv[0]]["symbol"]):
             m = meta[asset_id]
@@ -284,28 +308,7 @@ def main() -> None:
                 "likelihood and no outcome row in this database has matured yet"
             )
 
-            cur.execute(
-                """
-                INSERT INTO "MoveAttribution" ("assetId", "periodEnd", "windowDays",
-                    "totalPct", "marketPct", "sectorPct", "specificPct", "marketShare",
-                    "sectorShare", "specificShare", leader, "leaderMargin", peers,
-                    "groupSize", headline, confidence, "confidenceNote", method, source,
-                    "computedAt")
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::"Confidence",%s,%s,%s,
-                        now())
-                ON CONFLICT ("assetId", "periodEnd", "windowDays") DO UPDATE SET
-                    "totalPct" = EXCLUDED."totalPct", "marketPct" = EXCLUDED."marketPct",
-                    "sectorPct" = EXCLUDED."sectorPct",
-                    "specificPct" = EXCLUDED."specificPct",
-                    "marketShare" = EXCLUDED."marketShare",
-                    "sectorShare" = EXCLUDED."sectorShare",
-                    "specificShare" = EXCLUDED."specificShare",
-                    leader = EXCLUDED.leader, "leaderMargin" = EXCLUDED."leaderMargin",
-                    peers = EXCLUDED.peers, "groupSize" = EXCLUDED."groupSize",
-                    headline = EXCLUDED.headline, confidence = EXCLUDED.confidence,
-                    "confidenceNote" = EXCLUDED."confidenceNote",
-                    "computedAt" = now()
-                """,
+            payload.append(
                 (
                     asset_id, m["asof"] or today, WINDOW_SESSIONS, mine,
                     market,
@@ -317,10 +320,15 @@ def main() -> None:
                     name, margin, len(peer_ids), len(group_ids),
                     sentence(mine, parts, market, name),
                     grade, note, METHOD, METHOD,
-                ),
+                )
             )
             written += 1
-            conn.commit()
+
+        # One statement for every row. It was an execute and a commit per asset, which is two
+        # network waits each and was four minutes of a run.
+        if payload:
+            cur.executemany(ATTRIBUTION_SQL, payload)
+        conn.commit()
 
         print(f"  wrote {written} rows, {named_count} with one component far enough ahead to name")
         for why, n in sorted(undecided.items(), key=lambda kv: -kv[1]):

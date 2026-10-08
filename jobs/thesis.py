@@ -43,7 +43,7 @@ Writes: AssetThesis, ThesisCheck
 from __future__ import annotations
 
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -243,6 +243,39 @@ def grade_for(status: str, changed: list[str], held: list[str]) -> tuple[str, st
     )
 
 
+THESIS_SQL = """
+    INSERT INTO "AssetThesis" ("assetId", horizon, direction, "openedOn",
+        "openHeadline", "openConditions", "openClose", "invalidateLevel",
+        "entryLevel", status, reason, changed, held, "asOf", "lastClose",
+        "changePctSinceOpen", "sessionsSince", confidence, "confidenceNote",
+        source, "computedAt")
+    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+            %s::"Confidence",%s,%s,now())
+    ON CONFLICT ("assetId", horizon, "openedOn") DO UPDATE SET
+        status = EXCLUDED.status, reason = EXCLUDED.reason,
+        changed = EXCLUDED.changed, held = EXCLUDED.held,
+        "asOf" = EXCLUDED."asOf", "lastClose" = EXCLUDED."lastClose",
+        "changePctSinceOpen" = EXCLUDED."changePctSinceOpen",
+        "sessionsSince" = EXCLUDED."sessionsSince",
+        confidence = EXCLUDED.confidence,
+        "confidenceNote" = EXCLUDED."confidenceNote",
+        "computedAt" = now()
+"""
+
+# The check row names its thesis by the thesis's own natural key and looks the id up in the
+# statement, so the two batches do not need a round trip between them to exchange ids.
+# DO NOTHING rather than an update, so running the job twice in a day cannot overwrite the
+# morning's reading with the evening's.
+CHECK_SQL = """
+    INSERT INTO "ThesisCheck" ("thesisId", "asOf", status, reason, changed,
+        held, close, "changePctSinceOpen", source, "computedAt")
+    SELECT t.id, %s, %s, %s, %s, %s, %s, %s, %s, now()
+      FROM "AssetThesis" t
+     WHERE t."assetId" = %s AND t.horizon = %s AND t."openedOn" = %s
+    ON CONFLICT ("thesisId", "asOf") DO NOTHING
+"""
+
+
 def main() -> None:
     today = date.today()
     conn = db()
@@ -253,19 +286,56 @@ def main() -> None:
         opened_count = checked = frozen = 0
         tally = {"active": 0, "weakening": 0, "broken": 0}
 
-        for a in assets:
-            reads = rows(
-                cur,
-                """
-                SELECT "periodEnd", horizon, state, conditions, "invalidateLevel",
-                       "entryLevel", headline
-                FROM "AssetSetup" WHERE "assetId" = %s
-                ORDER BY horizon, "periodEnd"
-                """,
-                (a["id"],),
+        # Four statements for the whole universe, taken before the loop. This job asked for an
+        # asset's setup history, then for three price facts and an existing-thesis lookup for
+        # every run inside it: eight round trips per asset, and on a host outside the database's
+        # region eight minutes of a run.
+        reads_by_asset: dict[str, list[dict]] = {}
+        for r in rows(
+            cur,
+            """
+            SELECT "assetId", "periodEnd", horizon, state, conditions, "invalidateLevel",
+                   "entryLevel", headline
+            FROM "AssetSetup" ORDER BY "assetId", horizon, "periodEnd"
+            """,
+        ):
+            reads_by_asset.setdefault(r["assetId"], []).append(r)
+
+        existing_by_key = {
+            (r["assetId"], r["horizon"], r["openedOn"]): r
+            for r in rows(
+                cur, 'SELECT id, status, "assetId", horizon, "openedOn" FROM "AssetThesis"'
             )
+        }
+
+        # Closes are needed from the earliest day a thesis could have opened, which is the
+        # oldest stored setup. A margin is kept behind it because `open_close` is the newest
+        # close at or *before* that day, and a market can have been shut on it.
+        oldest = min(
+            (r["periodEnd"] for runs_ in reads_by_asset.values() for r in runs_),
+            default=today,
+        )
+        closes_by_asset: dict[str, list[dict]] = {}
+        for r in rows(
+            cur,
+            """
+            SELECT "assetId", date, close FROM "PriceSnapshot"
+            WHERE close IS NOT NULL AND date >= %s
+            ORDER BY "assetId", date
+            """,
+            (oldest - timedelta(days=30),),
+        ):
+            closes_by_asset.setdefault(r["assetId"], []).append(r)
+
+        thesis_payload: list[tuple] = []
+        check_payload: list[tuple] = []
+
+        for a in assets:
+            reads = reads_by_asset.get(a["id"], [])
             if not reads:
                 continue
+            series_closes = closes_by_asset.get(a["id"], [])
+            last_close = series_closes[-1] if series_closes else None
 
             by_horizon: dict[str, list[dict]] = {}
             for read in reads:
@@ -280,50 +350,21 @@ def main() -> None:
                     direction = first["state"]
                     opened_on = first["periodEnd"]
 
-                    existing = one(
-                        cur,
-                        """
-                        SELECT id, status FROM "AssetThesis"
-                        WHERE "assetId" = %s AND horizon = %s AND "openedOn" = %s
-                        """,
-                        (a["id"], horizon, opened_on),
-                    )
+                    existing = existing_by_key.get((a["id"], horizon, opened_on))
                     # A broken thesis is finished. Reassessing it would let a later recovery
                     # quietly erase the fact that the level it named was passed.
                     if existing and existing["status"] == "broken":
                         frozen += 1
                         continue
 
-                    extremes = one(
-                        cur,
-                        """
-                        SELECT min(close) AS low, max(close) AS high, count(*) AS sessions
-                        FROM "PriceSnapshot"
-                        WHERE "assetId" = %s AND date > %s AND close IS NOT NULL
-                        """,
-                        (a["id"], opened_on),
-                    )
-                    low = float(extremes["low"]) if extremes and extremes["low"] is not None else None
-                    high = float(extremes["high"]) if extremes and extremes["high"] is not None else None
-                    sessions = int(extremes["sessions"]) if extremes else 0
-
-                    open_close = one(
-                        cur,
-                        """
-                        SELECT close FROM "PriceSnapshot"
-                        WHERE "assetId" = %s AND date <= %s AND close IS NOT NULL
-                        ORDER BY date DESC LIMIT 1
-                        """,
-                        (a["id"], opened_on),
-                    )
-                    last_close = one(
-                        cur,
-                        """
-                        SELECT date, close FROM "PriceSnapshot"
-                        WHERE "assetId" = %s AND close IS NOT NULL
-                        ORDER BY date DESC LIMIT 1
-                        """,
-                        (a["id"],),
+                    # The same three facts, taken from the series already in hand: the range
+                    # since the thesis opened, the close it opened at, and the newest close.
+                    after = [c for c in series_closes if c["date"] > opened_on]
+                    low = min((float(c["close"]) for c in after), default=None)
+                    high = max((float(c["close"]) for c in after), default=None)
+                    sessions = len(after)
+                    open_close = next(
+                        (c for c in reversed(series_closes) if c["date"] <= opened_on), None
                     )
 
                     level = (
@@ -341,26 +382,7 @@ def main() -> None:
                     if open_close and last_close and open_close["close"]:
                         since = pct(float(last_close["close"]), float(open_close["close"]))
 
-                    cur.execute(
-                        """
-                        INSERT INTO "AssetThesis" ("assetId", horizon, direction, "openedOn",
-                            "openHeadline", "openConditions", "openClose", "invalidateLevel",
-                            "entryLevel", status, reason, changed, held, "asOf", "lastClose",
-                            "changePctSinceOpen", "sessionsSince", confidence, "confidenceNote",
-                            source, "computedAt")
-                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
-                                %s::"Confidence",%s,%s,now())
-                        ON CONFLICT ("assetId", horizon, "openedOn") DO UPDATE SET
-                            status = EXCLUDED.status, reason = EXCLUDED.reason,
-                            changed = EXCLUDED.changed, held = EXCLUDED.held,
-                            "asOf" = EXCLUDED."asOf", "lastClose" = EXCLUDED."lastClose",
-                            "changePctSinceOpen" = EXCLUDED."changePctSinceOpen",
-                            "sessionsSince" = EXCLUDED."sessionsSince",
-                            confidence = EXCLUDED.confidence,
-                            "confidenceNote" = EXCLUDED."confidenceNote",
-                            "computedAt" = now()
-                        RETURNING id
-                        """,
+                    thesis_payload.append(
                         (
                             a["id"], horizon, direction, opened_on,
                             first["headline"], first["conditions"],
@@ -372,9 +394,8 @@ def main() -> None:
                             latest["periodEnd"],
                             float(last_close["close"]) if last_close and last_close["close"] is not None else None,
                             since, sessions, grade, note, THESIS,
-                        ),
+                        )
                     )
-                    thesis_id = cur.fetchone()["id"]
                     if not existing:
                         opened_count += 1
                     tally[status] += 1
@@ -382,22 +403,25 @@ def main() -> None:
                     # One frozen row per assessment date. DO NOTHING rather than an update,
                     # so running the job twice in a day cannot overwrite the morning's
                     # reading with the evening's.
-                    cur.execute(
-                        """
-                        INSERT INTO "ThesisCheck" ("thesisId", "asOf", status, reason, changed,
-                            held, close, "changePctSinceOpen", source, "computedAt")
-                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,now())
-                        ON CONFLICT ("thesisId", "asOf") DO NOTHING
-                        """,
+                    # The check row is keyed on the thesis, which does not have an id until
+                    # the batch above lands. It is collected against the thesis's natural key
+                    # and resolved to the id in one statement after the loop.
+                    check_payload.append(
                         (
-                            thesis_id, latest["periodEnd"], status, reason,
+                            latest["periodEnd"], status, reason,
                             ", ".join(changed) or "none", ", ".join(held) or "none",
                             float(last_close["close"]) if last_close and last_close["close"] is not None else None,
                             since, THESIS,
-                        ),
+                            a["id"], horizon, opened_on,
+                        )
                     )
                     checked += 1
-            conn.commit()
+
+        if thesis_payload:
+            cur.executemany(THESIS_SQL, thesis_payload)
+        if check_payload:
+            cur.executemany(CHECK_SQL, check_payload)
+        conn.commit()
 
         print(
             f"  {checked} theses assessed, {opened_count} opened for the first time, "

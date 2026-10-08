@@ -92,14 +92,33 @@ def count_of(n: int, singular: str, plural: str | None = None) -> str:
 
 
 
+# Written lines are collected and inserted in one statement. They were inserted one at a
+# time, and there are about 740 of them -- one per asset, per industry, per product and per
+# measured event window -- which is 740 network waits to write rows that are all produced
+# before any of them is read. `flush_saves` is called before the only statement that reads
+# this table back, so nothing can see a half-written set.
+_PENDING: list[tuple] = []
+
+SAVE_SQL = """
+    INSERT INTO "Analysis"
+      (kind, "industryId", "assetId", "productId", "eventId", headline, body,
+       "dataNote", confidence, source, "createdAt")
+    VALUES (%s::"AnalysisKind",%s,%s,%s,%s,%s,%s,%s,%s::"Confidence",%s, now())
+"""
+
+
+def flush_saves(cur) -> int:
+    """Write everything collected so far, and forget it."""
+    if not _PENDING:
+        return 0
+    cur.executemany(SAVE_SQL, _PENDING)
+    n = len(_PENDING)
+    _PENDING.clear()
+    return n
+
+
 def save(cur, kind, headline, body, source, confidence="none", **keys) -> None:
-    cur.execute(
-        """
-        INSERT INTO "Analysis"
-          (kind, "industryId", "assetId", "productId", "eventId", headline, body,
-           "dataNote", confidence, source, "createdAt")
-        VALUES (%s::"AnalysisKind",%s,%s,%s,%s,%s,%s,%s,%s::"Confidence",%s, now())
-        """,
+    _PENDING.append(
         (
             kind,
             keys.get("industryId"),
@@ -111,7 +130,7 @@ def save(cur, kind, headline, body, source, confidence="none", **keys) -> None:
             keys.get("dataNote"),
             confidence,
             source,
-        ),
+        )
     )
 
 
@@ -471,6 +490,19 @@ def forward_look(cur, ind) -> None:
 
 def asset_notes(cur) -> None:
     step("asset lines")
+    # Every ranking row for every asset, read once. It was a query per asset against a table
+    # of 1,356 rows, which is 331 network waits to fetch something that fits in one.
+    rankings_by_asset: dict[str, dict[str, list]] = {}
+    for r in rows(
+        cur,
+        """
+        SELECT "assetId", basis, rank, value, "periodStart", "periodEnd", note, "sizeRank",
+               confidence::text AS grade, "confidenceNote"
+        FROM "Ranking"
+        """,
+    ):
+        rankings_by_asset.setdefault(r["assetId"], {}).setdefault(r["basis"], []).append(r)
+
     for a in rows(
         cur,
         """
@@ -479,17 +511,7 @@ def asset_notes(cur) -> None:
         ORDER BY x.name
         """,
     ):
-        by_basis: dict[str, list] = {}
-        for r in rows(
-            cur,
-            """
-            SELECT basis, rank, value, "periodStart", "periodEnd", note, "sizeRank",
-                   confidence::text AS grade, "confidenceNote"
-            FROM "Ranking" WHERE "assetId" = %s
-            """,
-            (a["id"],),
-        ):
-            by_basis.setdefault(r["basis"], []).append(r)
+        by_basis = rankings_by_asset.get(a["id"], {})
 
         totals = sorted(by_basis.get("totalReturn", []), key=lambda r: r["periodEnd"])
         pre = next((r for r in totals if r["periodEnd"] <= PRE_AI_END), None)
@@ -850,15 +872,51 @@ def event_notes(cur) -> None:
         cur,
         'SELECT id, slug, name, date, category, source FROM "Event" ORDER BY sort',
     )
+    # Three statements for every event, read once each for all of them. This loop ran three
+    # queries per event over 300 events: 900 network waits to read one table.
+    widest: dict[str, int] = {}
+    for r in rows(
+        cur,
+        'SELECT "eventId", max("windowDays") AS w FROM "EventImpact" GROUP BY "eventId"',
+    ):
+        widest[r["eventId"]] = int(r["w"])
+
+    totals: dict[str, int] = {}
+    for r in rows(
+        cur,
+        """
+        SELECT "eventId", "windowDays", count(*) AS n FROM "EventImpact"
+        GROUP BY "eventId", "windowDays"
+        """,
+    ):
+        if widest.get(r["eventId"]) == int(r["windowDays"]):
+            totals[r["eventId"]] = int(r["n"])
+
+    # The five largest measured moves per event at its widest window, in one pass.
+    movers_by_event: dict[str, list[dict]] = {}
+    for r in rows(
+        cur,
+        """
+        SELECT * FROM (
+            SELECT i."eventId", i."changePct" AS chg, i.confidence, a.name, a.currency,
+                   ind.name AS industry, ind.market,
+                   row_number() OVER (PARTITION BY i."eventId" ORDER BY i.rank ASC) AS rn,
+                   i."windowDays",
+                   max(i."windowDays") OVER (PARTITION BY i."eventId") AS widest
+            FROM "EventImpact" i
+            JOIN "Asset" a ON a.id = i."assetId"
+            JOIN "Industry" ind ON ind.id = a."industryId"
+        ) ranked
+        WHERE "windowDays" = widest
+        ORDER BY "eventId", rn
+        """,
+    ):
+        bucket = movers_by_event.setdefault(r["eventId"], [])
+        if len(bucket) < 5:
+            bucket.append(r)
+
     for e in events:
-        windows = rows(
-            cur,
-            """
-            SELECT DISTINCT "windowDays" AS w FROM "EventImpact"
-            WHERE "eventId" = %s ORDER BY w
-            """,
-            (e["id"],),
-        )
+        windows = [{"w": widest[e["id"]]}] if e["id"] in widest else []
         if not windows:
             save(
                 cur,
@@ -875,24 +933,8 @@ def event_notes(cur) -> None:
             continue
 
         window = max(w["w"] for w in windows)
-        movers = rows(
-            cur,
-            """
-            SELECT i."changePct" AS chg, i.confidence, a.name, a.currency,
-                   ind.name AS industry, ind.market
-            FROM "EventImpact" i
-            JOIN "Asset" a ON a.id = i."assetId"
-            JOIN "Industry" ind ON ind.id = a."industryId"
-            WHERE i."eventId" = %s AND i."windowDays" = %s
-            ORDER BY i.rank ASC LIMIT 5
-            """,
-            (e["id"], window),
-        )
-        total = rows(
-            cur,
-            'SELECT count(*) AS n FROM "EventImpact" WHERE "eventId" = %s AND "windowDays" = %s',
-            (e["id"], window),
-        )[0]["n"]
+        movers = movers_by_event.get(e["id"], [])
+        total = totals.get(e["id"], 0)
         if not movers:
             continue
 
@@ -1019,6 +1061,7 @@ def main() -> None:
             forward_look(cur, ind)
         asset_notes(cur)
         product_notes(cur)
+        print(f"  {flush_saves(cur)} written lines stored")
 
         # Product demand scores and statuses now exist, so the grades can be worked out
         # from them. Doing it here rather than in a separate pass means the prose above and
@@ -1033,6 +1076,7 @@ def main() -> None:
 
         event_notes(cur)
         site_lead(cur)
+        flush_saves(cur)
         print(f"{graded} products graded")
         for got in rows(
             cur,

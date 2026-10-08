@@ -171,6 +171,222 @@ def note_for(missing: list[str], against: list[str]) -> str | None:
     return "; ".join(bits).capitalize() or None
 
 
+def daily_bars(cur, limit: int) -> dict[str, list[dict]]:
+    """{assetId: the newest `limit` daily bars, oldest first} for every asset in one statement.
+
+    `row_number()` numbers each asset's own rows newest first and the cut is the same figure
+    the per-asset read used, so each series handed to the rules is identical to the one it got
+    before -- including the reversal, which is done here instead of at the call site.
+    """
+    out: dict[str, list[dict]] = {}
+    for r in rows(
+        cur,
+        """
+        SELECT "assetId", date, open, high, low, close, volume FROM (
+            SELECT "assetId", date, open, high, low, close, volume,
+                   row_number() OVER (PARTITION BY "assetId" ORDER BY date DESC) AS rn
+            FROM "PriceSnapshot" WHERE close IS NOT NULL
+        ) ranked
+        WHERE rn <= %s
+        ORDER BY "assetId", date ASC
+        """,
+        (limit,),
+    ):
+        out.setdefault(r["assetId"], []).append(r)
+    return out
+
+
+def all_relative_long(cur, reach_days: int) -> dict[str, float]:
+    """{assetId: its long-window return minus its own industry's mean, peers only}.
+
+    The same statement `industry_relative_long` ran once per asset, with the industry filter
+    lifted into a GROUP BY so it runs once for every industry at the same time. Calendar reach
+    rather than a session count, exactly as before: an industry that trades on a different
+    calendar must still be compared over the same span of days.
+
+    Unchanged: one industry only, so a comparison never crosses a currency, and nothing is
+    returned where fewer than three names in the industry have the history.
+    """
+    got = rows(
+        cur,
+        """
+        WITH bounds AS (
+            SELECT a.id, a."industryId", max(p.date) AS newest
+            FROM "Asset" a
+            JOIN "PriceSnapshot" p ON p."assetId" = a.id AND p.close IS NOT NULL
+            GROUP BY a.id, a."industryId"
+        ),
+        rets AS (
+            SELECT b.id, b."industryId",
+                   (SELECT close FROM "PriceSnapshot"
+                     WHERE "assetId" = b.id AND date = b.newest) AS last,
+                   (SELECT close FROM "PriceSnapshot"
+                     WHERE "assetId" = b.id AND date <= b.newest - (%s * interval '1 day')
+                     ORDER BY date DESC LIMIT 1) AS base
+            FROM bounds b
+        )
+        SELECT id, "industryId", last, base FROM rets
+        WHERE last IS NOT NULL AND base IS NOT NULL AND base > 0
+        """,
+        (reach_days,),
+    )
+    by_industry: dict[str, list[tuple[str, float]]] = {}
+    for r in got:
+        pct = (float(r["last"]) / float(r["base"]) - 1.0) * 100.0
+        by_industry.setdefault(r["industryId"], []).append((r["id"], pct))
+    out: dict[str, float] = {}
+    for members in by_industry.values():
+        if len(members) < 3:
+            continue
+        for asset_id, mine in members:
+            peers = [v for k, v in members if k != asset_id]
+            if peers:
+                out[asset_id] = mine - (sum(peers) / len(peers))
+    return out
+
+
+# The INSERT every horizon's rows go through, hoisted so the two callers can hand a whole
+# run's worth to one `executemany` instead of waiting on the network once per asset. The
+# statement, the conflict clause and the columns are exactly what `write_setup` ran.
+SETUP_SQL = """
+        INSERT INTO "AssetSetup" ("assetId", "periodEnd", horizon, state, headline,
+            conditions, missing, against, "entryLevel", "entryNote", "invalidateLevel",
+            "invalidateNote", "rangeNote", confidence, "confidenceNote", source, "computedAt")
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::"Confidence",%s,%s,now())
+        ON CONFLICT ("assetId", "periodEnd", horizon) DO UPDATE SET
+            state = EXCLUDED.state, headline = EXCLUDED.headline,
+            conditions = EXCLUDED.conditions, missing = EXCLUDED.missing,
+            against = EXCLUDED.against, "entryLevel" = EXCLUDED."entryLevel",
+            "entryNote" = EXCLUDED."entryNote",
+            "invalidateLevel" = EXCLUDED."invalidateLevel",
+            "invalidateNote" = EXCLUDED."invalidateNote",
+            "rangeNote" = EXCLUDED."rangeNote", confidence = EXCLUDED.confidence,
+            "confidenceNote" = EXCLUDED."confidenceNote", "computedAt" = now()
+"""
+
+
+def setup_row(asset_id: str, when: date, horizon: str, state: str, head: str,
+              conds: list[str], missing: list[str], against: list[str],
+              entry: float | None, entry_note: str | None,
+              invalid: float | None, invalid_note: str | None,
+              range_note: str | None, rules: str) -> tuple:
+    """One row's parameters, graded the same way `write_setup` graded it."""
+    return (
+        asset_id, when, horizon, state, head,
+        " | ".join(conds), " | ".join(missing) or "none", " | ".join(against) or "none",
+        entry, entry_note, invalid, invalid_note, range_note,
+        grade_for(state, missing, against), note_for(missing, against), rules,
+    )
+
+
+def daily_bars(cur, limit: int) -> dict[str, list[dict]]:
+    """{assetId: the newest `limit` daily bars, oldest first} for every asset in one statement.
+
+    `row_number()` numbers each asset's own rows newest first and the cut is the same figure
+    the per-asset read used, so each series handed to the rules is identical to the one it got
+    before -- including the reversal, which is done here instead of at the call site.
+    """
+    out: dict[str, list[dict]] = {}
+    for r in rows(
+        cur,
+        """
+        SELECT "assetId", date, open, high, low, close, volume FROM (
+            SELECT "assetId", date, open, high, low, close, volume,
+                   row_number() OVER (PARTITION BY "assetId" ORDER BY date DESC) AS rn
+            FROM "PriceSnapshot" WHERE close IS NOT NULL
+        ) ranked
+        WHERE rn <= %s
+        ORDER BY "assetId", date ASC
+        """,
+        (limit,),
+    ):
+        out.setdefault(r["assetId"], []).append(r)
+    return out
+
+
+def all_relative_long(cur, reach_days: int) -> dict[str, float]:
+    """{assetId: its long-window return minus its own industry's mean, peers only}.
+
+    The same statement `industry_relative_long` ran once per asset, with the industry filter
+    lifted into a GROUP BY so it runs once for every industry at the same time. Calendar reach
+    rather than a session count, exactly as before: an industry that trades on a different
+    calendar must still be compared over the same span of days.
+
+    Unchanged: one industry only, so a comparison never crosses a currency, and nothing is
+    returned where fewer than three names in the industry have the history.
+    """
+    got = rows(
+        cur,
+        """
+        WITH bounds AS (
+            SELECT a.id, a."industryId", max(p.date) AS newest
+            FROM "Asset" a
+            JOIN "PriceSnapshot" p ON p."assetId" = a.id AND p.close IS NOT NULL
+            GROUP BY a.id, a."industryId"
+        ),
+        rets AS (
+            SELECT b.id, b."industryId",
+                   (SELECT close FROM "PriceSnapshot"
+                     WHERE "assetId" = b.id AND date = b.newest) AS last,
+                   (SELECT close FROM "PriceSnapshot"
+                     WHERE "assetId" = b.id AND date <= b.newest - (%s * interval '1 day')
+                     ORDER BY date DESC LIMIT 1) AS base
+            FROM bounds b
+        )
+        SELECT id, "industryId", last, base FROM rets
+        WHERE last IS NOT NULL AND base IS NOT NULL AND base > 0
+        """,
+        (reach_days,),
+    )
+    by_industry: dict[str, list[tuple[str, float]]] = {}
+    for r in got:
+        pct = (float(r["last"]) / float(r["base"]) - 1.0) * 100.0
+        by_industry.setdefault(r["industryId"], []).append((r["id"], pct))
+    out: dict[str, float] = {}
+    for members in by_industry.values():
+        if len(members) < 3:
+            continue
+        for asset_id, mine in members:
+            peers = [v for k, v in members if k != asset_id]
+            if peers:
+                out[asset_id] = mine - (sum(peers) / len(peers))
+    return out
+
+
+# The INSERT every horizon's rows go through, hoisted so the two callers can hand a whole
+# run's worth to one `executemany` instead of waiting on the network once per asset. The
+# statement, the conflict clause and the columns are exactly what `write_setup` ran.
+SETUP_SQL = """
+        INSERT INTO "AssetSetup" ("assetId", "periodEnd", horizon, state, headline,
+            conditions, missing, against, "entryLevel", "entryNote", "invalidateLevel",
+            "invalidateNote", "rangeNote", confidence, "confidenceNote", source, "computedAt")
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::"Confidence",%s,%s,now())
+        ON CONFLICT ("assetId", "periodEnd", horizon) DO UPDATE SET
+            state = EXCLUDED.state, headline = EXCLUDED.headline,
+            conditions = EXCLUDED.conditions, missing = EXCLUDED.missing,
+            against = EXCLUDED.against, "entryLevel" = EXCLUDED."entryLevel",
+            "entryNote" = EXCLUDED."entryNote",
+            "invalidateLevel" = EXCLUDED."invalidateLevel",
+            "invalidateNote" = EXCLUDED."invalidateNote",
+            "rangeNote" = EXCLUDED."rangeNote", confidence = EXCLUDED.confidence,
+            "confidenceNote" = EXCLUDED."confidenceNote", "computedAt" = now()
+"""
+
+
+def setup_row(asset_id: str, when: date, horizon: str, state: str, head: str,
+              conds: list[str], missing: list[str], against: list[str],
+              entry: float | None, entry_note: str | None,
+              invalid: float | None, invalid_note: str | None,
+              range_note: str | None, rules: str) -> tuple:
+    """One row's parameters, graded the same way `write_setup` graded it."""
+    return (
+        asset_id, when, horizon, state, head,
+        " | ".join(conds), " | ".join(missing) or "none", " | ".join(against) or "none",
+        entry, entry_note, invalid, invalid_note, range_note,
+        grade_for(state, missing, against), note_for(missing, against), rules,
+    )
+
+
 def write_setup(cur, asset_id: str, when: date, horizon: str, state: str, head: str,
                 conds: list[str], missing: list[str], against: list[str],
                 entry: float | None, entry_note: str | None,
@@ -364,18 +580,44 @@ def run_intraday(cur, today: date) -> int:
     )
     written = skipped = 0
     tally: dict[str, int] = {}
-    for a in assets:
-        bars = rows(
+    ids = [a["id"] for a in assets]
+    # Two statements for the whole active set rather than two per asset: the bars, and every
+    # completeness record they could be matched against.
+    bars_by_asset: dict[str, list[dict]] = {}
+    for r in rows(
+        cur,
+        """
+        SELECT "assetId", ts, "sessionDate", open, high, low, close, volume, phase FROM (
+            SELECT "assetId", ts, "sessionDate", open, high, low, close, volume, phase,
+                   row_number() OVER (PARTITION BY "assetId" ORDER BY ts DESC) AS rn
+            FROM "IntradayBar"
+            WHERE interval = %s AND phase = 'regular' AND "assetId" = ANY(%s)
+        ) ranked
+        WHERE rn <= %s
+        ORDER BY "assetId", ts ASC
+        """,
+        (BAR, ids, SESSION_BARS * 2),
+    ):
+        bars_by_asset.setdefault(r["assetId"], []).append(r)
+
+    sessions_by_key = {
+        (r["assetId"], r["sessionDate"]): r
+        for r in rows(
             cur,
             """
-            SELECT ts, "sessionDate", open, high, low, close, volume, phase
-            FROM "IntradayBar"
-            WHERE "assetId" = %s AND interval = %s AND phase = 'regular'
-            ORDER BY ts DESC LIMIT %s
+            SELECT DISTINCT ON ("assetId", "sessionDate")
+                   "assetId", "sessionDate", status, note
+            FROM "IntradaySession"
+            WHERE interval = %s AND "assetId" = ANY(%s)
+            ORDER BY "assetId", "sessionDate", "retrievedAt" DESC
             """,
-            (a["id"], BAR, SESSION_BARS * 2),
+            (BAR, ids),
         )
-        bars = list(reversed(bars))
+    }
+
+    payload: list[tuple] = []
+    for a in assets:
+        bars = [dict(b) for b in bars_by_asset.get(a["id"], [])]
         if len(bars) < MIN_BARS:
             skipped += 1
             continue
@@ -399,15 +641,7 @@ def run_intraday(cur, today: date) -> int:
         # a Wednesday fetch failure on a read of Tuesday's bars, and say the Tuesday read was
         # incomplete when it was not. No row for that day leaves `missing` as it was: an
         # absent completeness record is not a claim that the session was short.
-        sess = one(
-            cur,
-            """
-            SELECT status, note FROM "IntradaySession"
-            WHERE "assetId" = %s AND interval = %s AND "sessionDate" = %s
-            ORDER BY "retrievedAt" DESC LIMIT 1
-            """,
-            (a["id"], BAR, newest_session),
-        )
+        sess = sessions_by_key.get((a["id"], newest_session))
         if sess and sess["status"] in ("partial", "stale", "failed"):
             # The whole note, not a slice of it. Truncating cut it mid-word on the page
             # ("must not be r"), and the second half of this particular sentence is the part
@@ -418,8 +652,8 @@ def run_intraday(cur, today: date) -> int:
         # computed over -- it is what `prior` is split on a few lines above -- so dating the row
         # to the calendar instead could put an intraday read of Tuesday's bars under Wednesday,
         # and does whenever this job runs from a host whose date has rolled ahead of the venue.
-        write_setup(
-            cur, a["id"], newest_session or today, "intraday", state, head, conds, missing,
+        payload.append(setup_row(
+            a["id"], newest_session or today, "intraday", state, head, conds, missing,
             against,
             entry,
             f"the highest price of the last {FAST_BARS * BAR} minutes of regular trading",
@@ -427,9 +661,11 @@ def run_intraday(cur, today: date) -> int:
             f"the lowest price of the last {FAST_BARS * BAR} minutes. Below it, the intraday "
             "trend these conditions were read from is no longer there",
             None, INTRADAY_RULES,
-        )
+        ))
         tally[state] = tally.get(state, 0) + 1
         written += 1
+    if payload:
+        cur.executemany(SETUP_SQL, payload)
     for state, n in sorted(tally.items()):
         print(f"  intraday {state:<6} {n}")
     print(f"  {written} intraday reads, {skipped} without enough stored bars")
@@ -553,62 +789,17 @@ def longer_read(bars: list[dict], rel: float | None):
     return state, head, conds, missing, against, entry, invalid
 
 
-def industry_relative_long(cur, asset_id: str, industry_id: str) -> float | None:
-    """The asset's 100 session return minus its own industry's mean, peers only.
-
-    The same shape as jobs/setup.py's 20 day version and for the same reason: an industry
-    comparison must never cross a currency, so it is taken inside one industry or not at all.
-    """
-    got = rows(
-        cur,
-        """
-        WITH bounds AS (
-            SELECT a.id, max(p.date) AS newest
-            FROM "Asset" a
-            JOIN "PriceSnapshot" p ON p."assetId" = a.id AND p.close IS NOT NULL
-            WHERE a."industryId" = %s
-            GROUP BY a.id
-        ),
-        rets AS (
-            SELECT b.id,
-                   (SELECT close FROM "PriceSnapshot"
-                     WHERE "assetId" = b.id AND date = b.newest) AS last,
-                   (SELECT close FROM "PriceSnapshot"
-                     WHERE "assetId" = b.id AND date <= b.newest - (%s * interval '1 day')
-                     ORDER BY date DESC LIMIT 1) AS base
-            FROM bounds b
-        )
-        SELECT id, last, base FROM rets
-        WHERE last IS NOT NULL AND base IS NOT NULL AND base > 0
-        """,
-        (industry_id, int(LONG_FAST * 1.45)),
-    )
-    if len(got) < 3:
-        return None
-    pcts = {r["id"]: (float(r["last"]) / float(r["base"]) - 1.0) * 100.0 for r in got}
-    mine = pcts.get(asset_id)
-    if mine is None:
-        return None
-    peers = [v for k, v in pcts.items() if k != asset_id]
-    return mine - (sum(peers) / len(peers)) if peers else None
-
-
 def run_longer(cur, today: date) -> int:
     step("read the longer term conditions from stored daily closes")
     assets = rows(cur, 'SELECT id, symbol, "industryId" FROM "Asset" ORDER BY symbol')
     written = skipped = 0
     tally: dict[str, int] = {}
+    # Two statements for the universe instead of two per asset.
+    bars_by_asset = daily_bars(cur, LONG_RANGE + 40)
+    rel_by_asset = all_relative_long(cur, int(LONG_FAST * 1.45))
+    payload: list[tuple] = []
     for a in assets:
-        bars = rows(
-            cur,
-            """
-            SELECT date, open, high, low, close, volume FROM "PriceSnapshot"
-            WHERE "assetId" = %s AND close IS NOT NULL
-            ORDER BY date DESC LIMIT %s
-            """,
-            (a["id"], LONG_RANGE + 40),
-        )
-        bars = list(reversed(bars))
+        bars = [dict(b) for b in bars_by_asset.get(a["id"], [])]
         # High and low are needed for the structural levels. Rows stored before OHLC existed
         # have only a close, so they are filled with the close for the pivot test rather than
         # dropped — a close is a real traded price and the level it marks is real.
@@ -621,7 +812,7 @@ def run_longer(cur, today: date) -> int:
             skipped += 1
             continue
 
-        rel = industry_relative_long(cur, a["id"], a["industryId"])
+        rel = rel_by_asset.get(a["id"])
         state, head, conds, missing, against, entry, invalid = longer_read(bars, rel)
         # The session these conditions were read from: the newest bar in the window above, not
         # the day the job ran. `jobs/setup.py` writes the swing read of the same table under the
@@ -630,8 +821,8 @@ def run_longer(cur, today: date) -> int:
         # `DISTINCT ON (assetId, horizon) ORDER BY periodEnd DESC` and `lib/reconcile.ts`
         # compares them against each other.
         period_end = bars[-1]["date"] or today
-        write_setup(
-            cur, a["id"], period_end, "longer", state, head, conds, missing, against,
+        payload.append(setup_row(
+            a["id"], period_end, "longer", state, head, conds, missing, against,
             entry,
             (
                 f"the nearest price below where the series last turned within "
@@ -651,9 +842,11 @@ def run_longer(cur, today: date) -> int:
                 "multi-year structure these conditions were read from has changed"
             ),
             None, LONGER_RULES,
-        )
+        ))
         tally[state] = tally.get(state, 0) + 1
         written += 1
+    if payload:
+        cur.executemany(SETUP_SQL, payload)
     for state, n in sorted(tally.items()):
         print(f"  longer {state:<6} {n}")
     print(f"  {written} longer term reads, {skipped} without {MIN_LONG} stored closes")
@@ -750,20 +943,76 @@ def target_rows(entry: float, invalid: float, direction: str, atr: float | None,
     return out
 
 
+def daily_bars_for(cur, asset_ids: list[str], limit: int) -> dict[str, list[dict]]:
+    """{assetId: the newest `limit` daily bars, oldest first} for the given assets."""
+    if not asset_ids:
+        return {}
+    out: dict[str, list[dict]] = {}
+    for r in rows(
+        cur,
+        """
+        SELECT "assetId", high, low, close FROM (
+            SELECT "assetId", date, high, low, close,
+                   row_number() OVER (PARTITION BY "assetId" ORDER BY date DESC) AS rn
+            FROM "PriceSnapshot" WHERE close IS NOT NULL AND "assetId" = ANY(%s)
+        ) ranked
+        WHERE rn <= %s
+        ORDER BY "assetId", date ASC
+        """,
+        (asset_ids, limit),
+    ):
+        out.setdefault(r["assetId"], []).append(r)
+    return out
+
+
+def intraday_bars_for(cur, asset_ids: list[str], limit: int) -> dict[str, list[dict]]:
+    """{assetId: the newest `limit` regular-session five minute bars, oldest first}."""
+    if not asset_ids:
+        return {}
+    out: dict[str, list[dict]] = {}
+    for r in rows(
+        cur,
+        """
+        SELECT "assetId", high, low, close FROM (
+            SELECT "assetId", ts, high, low, close,
+                   row_number() OVER (PARTITION BY "assetId" ORDER BY ts DESC) AS rn
+            FROM "IntradayBar"
+            WHERE interval = %s AND phase = 'regular' AND "assetId" = ANY(%s)
+        ) ranked
+        WHERE rn <= %s
+        ORDER BY "assetId", ts ASC
+        """,
+        (BAR, asset_ids, limit),
+    ):
+        out.setdefault(r["assetId"], []).append(r)
+    return out
+
+
 def run_targets(cur) -> int:
     step("attach measured target ranges to every stored setup")
+    # The newest row per (asset, horizon), which is how every reader of this table picks the
+    # current reading. It used to be "every row on the newest periodEnd for this horizon",
+    # which was the same set only while one date covered the whole universe. Since the setup
+    # jobs began dating a row to the session of the asset it describes, Karachi closing before
+    # New York makes the site-wide newest date a PSX-only day -- and this selection would
+    # silently write targets for 97 Pakistani names and none for 163 American ones.
+    #
+    # The state and level filters are applied *after* the newest row is chosen, deliberately:
+    # a name whose current read is `wait` must not have an older `buy` row revived underneath
+    # it, which is what filtering first would do.
     setups = rows(
         cur,
         """
-        SELECT s.id, s."assetId", s.horizon, s.state, s."entryLevel", s."invalidateLevel",
-               a.symbol
-        FROM "AssetSetup" s JOIN "Asset" a ON a.id = s."assetId"
-        WHERE s."periodEnd" = (
-            SELECT max("periodEnd") FROM "AssetSetup" x WHERE x.horizon = s.horizon
-        )
-        AND s.state IN ('buy','short')
-        AND s."entryLevel" IS NOT NULL AND s."invalidateLevel" IS NOT NULL
-        ORDER BY a.symbol, s.horizon
+        SELECT * FROM (
+            SELECT DISTINCT ON (s."assetId", s.horizon)
+                   s.id, s."assetId", s.horizon, s.state, s."entryLevel",
+                   s."invalidateLevel", a.symbol
+            FROM "AssetSetup" s JOIN "Asset" a ON a.id = s."assetId"
+            ORDER BY s."assetId", s.horizon, s."periodEnd" DESC
+        ) current
+        WHERE state IN ('buy','short')
+          AND "entryLevel" IS NOT NULL AND "invalidateLevel" IS NOT NULL
+        ORDER BY symbol, horizon
         """,
     )
     print(f"  {len(setups)} directional setups have both an entry and an invalidation")
@@ -777,27 +1026,31 @@ def run_targets(cur) -> int:
     written = 0
     disagreeing = 0
     dropped = 0
+
+    # Three statements for every setup in the list, instead of three per setup.
+    wanted = sorted({s["assetId"] for s in setups})
+    daily = daily_bars_for(cur, wanted, STRUCTURE_LOOKBACK + 40)
+    intra = intraday_bars_for(cur, wanted, SESSION_BARS * 2)
+    analogs = {r["assetId"]: r for r in rows(
+        cur,
+        """
+        SELECT DISTINCT ON ("assetId") "assetId", matches, positive, "medianPct",
+               "minPct", "maxPct"
+        FROM "AssetAnalog" WHERE "horizonDays" = 5 AND "assetId" = ANY(%s)
+        ORDER BY "assetId", "periodEnd" DESC
+        """,
+        (wanted,),
+    )} if wanted else {}
+
+    keep_sql: list[tuple] = []
+    drop_sql: list[tuple] = []
+    target_payload: list[tuple] = []
+
     for s in setups:
         if s["horizon"] == "intraday":
-            bars = list(reversed(rows(
-                cur,
-                """
-                SELECT high, low, close FROM "IntradayBar"
-                WHERE "assetId" = %s AND interval = %s AND phase = 'regular'
-                ORDER BY ts DESC LIMIT %s
-                """,
-                (s["assetId"], BAR, SESSION_BARS * 2),
-            )))
+            bars = [dict(b) for b in intra.get(s["assetId"], [])]
         else:
-            bars = list(reversed(rows(
-                cur,
-                """
-                SELECT high, low, close FROM "PriceSnapshot"
-                WHERE "assetId" = %s AND close IS NOT NULL
-                ORDER BY date DESC LIMIT %s
-                """,
-                (s["assetId"], STRUCTURE_LOOKBACK + 40),
-            )))
+            bars = [dict(b) for b in daily.get(s["assetId"], [])]
             for b in bars:
                 if b["high"] is None:
                     b["high"] = b["close"]
@@ -811,15 +1064,7 @@ def run_targets(cur) -> int:
         entry = float(s["entryLevel"])
         level = next_level(highs if s["state"] == "buy" else lows, entry,
                            above=s["state"] == "buy")
-        analog = one(
-            cur,
-            """
-            SELECT matches, positive, "medianPct", "minPct", "maxPct"
-            FROM "AssetAnalog" WHERE "assetId" = %s AND "horizonDays" = 5
-            ORDER BY "periodEnd" DESC LIMIT 1
-            """,
-            (s["assetId"],),
-        ) if s["horizon"] != "intraday" else None
+        analog = analogs.get(s["assetId"]) if s["horizon"] != "intraday" else None
 
         got = target_rows(entry, float(s["invalidateLevel"]), s["state"], atr, level, analog)
 
@@ -832,36 +1077,49 @@ def run_targets(cur) -> int:
         # including an AAPL "upside" range whose near edge sat below the entry.
         kept = [row["method"] for row in got]
         if kept:
-            cur.execute(
-                'DELETE FROM "SetupTarget" WHERE "setupId" = %s AND method <> ALL(%s)',
-                (s["id"], kept),
-            )
+            keep_sql.append((s["id"], kept))
         else:
-            cur.execute('DELETE FROM "SetupTarget" WHERE "setupId" = %s', (s["id"],))
-        dropped += cur.rowcount
+            drop_sql.append((s["id"],))
 
         if not got:
             continue
         if got[0].get("agreement", 0) >= DISAGREE_AT:
             disagreeing += 1
         for row in got:
-            cur.execute(
-                """
-                INSERT INTO "SetupTarget" ("setupId", method, low, high, "distancePct",
-                    "rewardRisk", agreement, note, source, "computedAt")
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,now())
-                ON CONFLICT ("setupId", method) DO UPDATE SET
-                    low = EXCLUDED.low, high = EXCLUDED.high,
-                    "distancePct" = EXCLUDED."distancePct",
-                    "rewardRisk" = EXCLUDED."rewardRisk", agreement = EXCLUDED.agreement,
-                    note = EXCLUDED.note, "computedAt" = now()
-                """,
+            target_payload.append(
                 (
                     s["id"], row["method"], row["low"], row["high"], row.get("distancePct"),
                     row.get("rewardRisk"), row.get("agreement"), row["note"], TARGET_SOURCE,
-                ),
+                )
             )
             written += 1
+
+    # The three writes, each once. The sweep still runs before the upsert, because the point of
+    # it is to remove a method the rules no longer produce -- an analog whose median has turned
+    # against the direction, a structural level price has since cleared -- which an upsert
+    # alone would leave standing.
+    if keep_sql:
+        cur.executemany(
+            'DELETE FROM "SetupTarget" WHERE "setupId" = %s AND method <> ALL(%s)', keep_sql
+        )
+        dropped += cur.rowcount or 0
+    if drop_sql:
+        cur.executemany('DELETE FROM "SetupTarget" WHERE "setupId" = %s', drop_sql)
+        dropped += cur.rowcount or 0
+    if target_payload:
+        cur.executemany(
+            """
+            INSERT INTO "SetupTarget" ("setupId", method, low, high, "distancePct",
+                "rewardRisk", agreement, note, source, "computedAt")
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,now())
+            ON CONFLICT ("setupId", method) DO UPDATE SET
+                low = EXCLUDED.low, high = EXCLUDED.high,
+                "distancePct" = EXCLUDED."distancePct",
+                "rewardRisk" = EXCLUDED."rewardRisk", agreement = EXCLUDED.agreement,
+                note = EXCLUDED.note, "computedAt" = now()
+            """,
+            target_payload,
+        )
     print(f"  {written} target ranges stored, {dropped} stale rows removed")
     print(
         f"  {disagreeing} setups have methods that disagree by {DISAGREE_AT:.0%} or more of "

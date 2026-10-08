@@ -123,6 +123,7 @@ def ranking_confidence(cur) -> tuple[int, int]:
         )
         if not got:
             continue
+        updates: list[tuple] = []
 
         # peer count per industry for this basis, taken from the rows themselves
         peers: dict[str, int] = {}
@@ -217,14 +218,19 @@ def ranking_confidence(cur) -> tuple[int, int]:
                         )
 
 
-            cur.execute(
+            updates.append((grade, "; ".join(reasons), r["id"]))
+
+        # One statement per basis rather than one per row. 1,356 ranking rows was 1,356
+        # network waits to write a grade that is computed from rows already in hand.
+        if updates:
+            cur.executemany(
                 """
                 UPDATE "Ranking" SET confidence = %s::"Confidence", "confidenceNote" = %s
                 WHERE id = %s
                 """,
-                (grade, "; ".join(reasons), r["id"]),
+                updates,
             )
-            written += cur.rowcount
+            written += len(updates)
         print(f"  {basis}: {len(got)} rows")
     return written, 0
 
@@ -366,6 +372,7 @@ def product_confidence(cur) -> tuple[int, int]:
     counts = latest_counts(cur)
 
     written = 0
+    product_updates: list[tuple] = []
     for p in products:
         sigs = grouped.get(p["id"], [])
         s = summarise(sigs, p["demandScore"])
@@ -478,16 +485,19 @@ def product_confidence(cur) -> tuple[int, int]:
                 )
             note = "; ".join(reasons)
 
-        cur.execute(
+        product_updates.append((grade, answered, agree, note, p["id"]))
+
+    if product_updates:
+        cur.executemany(
             """
             UPDATE "Product"
             SET confidence = %s::"Confidence", "sourcesAnswered" = %s,
                 "sourcesAgree" = %s, "confidenceNote" = %s
             WHERE id = %s
             """,
-            (grade, answered, agree, note, p["id"]),
+            product_updates,
         )
-        written += cur.rowcount
+        written += len(product_updates)
     print(f"  {len(products)} products graded")
     return written, 0
 

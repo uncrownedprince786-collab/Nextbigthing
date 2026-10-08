@@ -203,48 +203,98 @@ def main() -> None:
         for t in rows(cur, 'SELECT id, name FROM "Product"'):
             names[t["id"]] = t["name"]
 
-        total_items = total_stories = 0
-        for t in targets:
-            column = "assetId" if t["kind"] == "asset" else "productId"
-            items = rows(
+        # Every item in the window, for every target, in two statements. It was one per
+        # target: 356 network waits to read 7,750 rows that fit in a single result.
+        items_by_target: dict[str, list[dict]] = {}
+        for column in ("assetId", "productId"):
+            for r in rows(
                 cur,
                 f"""
-                SELECT id, title, publisher, "publishedAt" FROM "News"
-                WHERE "{column}" = %s AND "publishedAt" > now() - interval '{LOOKBACK_DAYS} days'
-                ORDER BY "publishedAt" ASC
+                SELECT "{column}" AS target, id, title, publisher, "publishedAt"
+                FROM "News"
+                WHERE "{column}" IS NOT NULL
+                  AND "publishedAt" > now() - interval '{LOOKBACK_DAYS} days'
+                ORDER BY "{column}", "publishedAt" ASC
                 """,
-                (t["id"],),
-            )
+            ):
+                items_by_target.setdefault(r["target"], []).append(r)
+
+        total_items = total_stories = 0
+        all_groups: list[tuple[str, list[dict]]] = []
+        for t in targets:
+            items = items_by_target.get(t["id"], [])
             if not items:
                 continue
-
             drop = tokens(names.get(t["id"], ""), set())
             groups = cluster(items, drop)
             total_items += len(items)
             total_stories += len(groups)
-
             for group in groups:
                 group.sort(key=lambda it: it["publishedAt"])
-                publishers = {(it["publisher"] or "unknown").strip() for it in group}
-                cur.execute(
-                    """
-                    INSERT INTO "NewsLineage" ("targetRef", "firstSeen", "lastSeen", items,
-                                               publishers, headline, rule, "computedAt")
-                    VALUES (%s,%s,%s,%s,%s,%s,%s, now())
-                    RETURNING id
-                    """,
-                    (
-                        t["id"], group[0]["publishedAt"], group[-1]["publishedAt"],
-                        len(group), len(publishers), group[0]["title"][:300], rule,
-                    ),
+                all_groups.append((t["id"], group))
+
+        # Two statements for the whole run, not two per story and not two per target. This
+        # loop issued an INSERT ... RETURNING and an UPDATE for every cluster it found: 6,855
+        # stories was 13,710 round trips, which on a host outside the database's region was
+        # 59 minutes of a 2h50m run -- the single slowest thing in the repository, and it grows
+        # with the pool.
+        #
+        # The multi-row INSERT returns its ids in the order the VALUES list gave them, which
+        # is what lets the groups be zipped back to their new ids. That ordering is relied on
+        # here deliberately and only here, for a plain INSERT ... VALUES with no ON CONFLICT:
+        # the rows are new, nothing can reorder them, and the alternative is a round trip per
+        # story. The rows are sent in slices because a statement with ten thousand parameter
+        # placeholders is a planner cost of its own, and because the protocol caps parameters
+        # at 65,535.
+        BATCH = 500
+        new_ids: list[str] = []
+        for i in range(0, len(all_groups), BATCH):
+            slice_ = all_groups[i : i + BATCH]
+            payload = [
+                (
+                    target_id, g[0]["publishedAt"], g[-1]["publishedAt"], len(g),
+                    len({(it["publisher"] or "unknown").strip() for it in g}),
+                    g[0]["title"][:300], rule,
                 )
-                lineage_id = cur.fetchone()["id"]
-                cur.execute(
-                    'UPDATE "News" SET "lineageId" = %s, "isOriginal" = (id = %s) '
-                    "WHERE id = ANY(%s)",
-                    (lineage_id, group[0]["id"], [it["id"] for it in group]),
-                )
-            conn.commit()
+                for target_id, g in slice_
+            ]
+            values = ",".join(["(%s,%s,%s,%s,%s,%s,%s, now())"] * len(payload))
+            cur.execute(
+                f"""
+                INSERT INTO "NewsLineage" ("targetRef", "firstSeen", "lastSeen", items,
+                                           publishers, headline, rule, "computedAt")
+                VALUES {values}
+                RETURNING id
+                """,
+                [field for row in payload for field in row],
+            )
+            new_ids.extend(r["id"] for r in cur.fetchall())
+
+        # One UPDATE per slice of items, joined to its own cluster through a VALUES list.
+        # `isOriginal` is still the earliest item in its own cluster and nothing about the
+        # claim has changed -- only the number of statements it takes.
+        marks = [
+            (it["id"], lineage_id, it["id"] == g[0]["id"])
+            for (_, g), lineage_id in zip(all_groups, new_ids)
+            for it in g
+        ]
+        for i in range(0, len(marks), BATCH):
+            chunk = marks[i : i + BATCH]
+            # Cast on the first row of the VALUES list, because Postgres infers the column
+            # types from it and an untyped literal compared against a text id is a planner
+            # error rather than a silent coercion. News.id and NewsLineage.id are both text.
+            rowspec = ",".join(
+                ["(%s::text,%s::text,%s::boolean)"] + ["(%s,%s,%s)"] * (len(chunk) - 1)
+            )
+            cur.execute(
+                f"""
+                UPDATE "News" n SET "lineageId" = v.lineage, "isOriginal" = v.original
+                  FROM (VALUES {rowspec}) AS v(id, lineage, original)
+                 WHERE n.id = v.id
+                """,
+                [field for row in chunk for field in row],
+            )
+        conn.commit()
 
         # Clusters from earlier runs over the same window are now superseded. Removed rather
         # than left to accumulate, because a stale cluster would be counted twice.
