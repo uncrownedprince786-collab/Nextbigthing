@@ -1147,3 +1147,38 @@ reads rows that already exist:
     it is a statement about the direction, not about the risk. `DecisionLog` records gate and
     reward on every row and matures at +1, +5 and +20 sessions, which is the only thing that will
     settle whether the short side should be issued at all.
+
+49. **A gate that acts on a new direction has to tell the level writers about it.**
+    The report was that short targets print above the entry. They do not: measured over today's
+    calls, **389 of 389 short targets sit below their entry and 282 of 282 long targets above**.
+    `target_rows` has always taken a direction and signed the distance from it, and `aimed_at`
+    now hands it the right one.
+
+    What the check found instead was worse. **70 live SHORT cards had the stop on the wrong side
+    of the entry** — 53 from `wait` rows and 17 from `none` ones. AHCL read SHORT with entry 16.17
+    and stop 15.81, so the level the panel labelled "the price at which this is wrong" sat on the
+    side the trade needs price to reach. That is exactly the WTL and STLA failure the
+    `ShortLevelsAreMirrored` tests were written for, in a table of 477 names, reintroduced here.
+
+    The cause is the one worth writing down. `setup.py` chose its entry and its invalidation by
+    **state**, and until gate 8 existed that was right: the only rows anything acted on were `buy`
+    and `short`, so the state was the direction. Rule 45 and rule 47 then taught two other places
+    to read a direction out of a `wait` row's trend and a `none` row's bias — `lib/decision.ts` to
+    decide on it and `jobs/horizons.py` to aim a target at it — and nobody told the block that
+    places the levels those two are describing. Three readers of one idea, and the third was still
+    answering the question it was asked before the idea existed.
+
+    Both now derive the aim the same way, in the same order: the state, then the trend verdict,
+    then the bias. `setup.py` reads it off the three locals it just wrote the conditions from;
+    `horizons.aimed_at` parses it back out of the string, because it runs in a later job. All 315
+    downward-aimed swing rows now put the stop above the entry, and all 290 directional calls
+    carry both a stop and a target on the correct side of theirs.
+
+    **The general form, and it is not "test the levels".** A rule that starts acting on a new
+    input has to be followed to every place that input is *described*, not just every place it is
+    read. The direction was computed correctly, parsed correctly and acted on correctly; what
+    broke was a fourth file that renders the consequences of it and was never part of the change.
+    The counter-measure is already in the repository and did not fire: `ShortLevelsAreMirrored`
+    asserted on a literal source line, so when that line was rewritten the test was rewritten with
+    it rather than failing. A guard that is edited by the change it guards against is not a guard,
+    which is why those assertions are now calls into `stop_level` and `aimed_at`.

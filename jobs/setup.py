@@ -434,9 +434,11 @@ def main() -> None:
             # Deliberately only when the trend is mixed. Under an up or down trend this would say
             # the same thing a second time, and a condition that merely repeats its neighbour is
             # noise in a string two parsers read.
+            bias_dir: str | None = None
             if not up_trend and not down_trend and slow_mean:
                 gap = (fast_mean / slow_mean - 1.0) * 100.0
                 if abs(gap) >= BIAS_MIN_GAP:
+                    bias_dir = "up" if gap > 0 else "down"
                     conds.append(
                         f"bias: {FAST}d average {abs(gap):.2f}% "
                         f"{'above' if gap > 0 else 'below'} the {SLOW}d "
@@ -615,12 +617,50 @@ def main() -> None:
             # `run_targets` in jobs/horizons.py has always branched on `state` when it picks a
             # structural level, so the repository already contained the correct form of this
             # statement and two of its three level-writers disagreed with it.
+            # Which way these levels are measured, which is **not** the same question as what
+            # the state says.
+            #
+            # The entry is the level a move has to clear and the invalidation is where the reason
+            # for it stops being true, so both are chosen by a direction. Until gate 8 existed,
+            # the only rows anything acted on were `buy` and `short`, and the state *was* the
+            # direction. It is not any more: `lib/decision.ts` now acts on the trend a `wait` row
+            # withheld and on the bias a `none` row recorded, and `aimed_at` in jobs/horizons.py
+            # aims their targets the same way.
+            #
+            # Leaving these two branching on `state` put the stop on the wrong side of **70 live
+            # short cards** on 2026-10-09 -- 53 from `wait` rows and 17 from `none` ones. Each
+            # read SHORT with its entry above its stop, so the level the panel labelled "the
+            # price at which this is wrong" sat on the side the trade needs price to reach. AHCL:
+            # SHORT, entry 16.17, stop 15.81. That is the WTL and STLA failure the
+            # `ShortLevelsAreMirrored` tests were written for, reintroduced by a gate that
+            # started acting on directions this block could not see.
+            #
+            # Derived here from the same locals the conditions were written from rather than
+            # parsed back out of the string. `aimed_at` has to parse because it runs in another
+            # job and another run; here the verdicts are three variables in scope, and reading
+            # them directly means the two cannot disagree about a row even in principle.
+            aim = (
+                state
+                if state in ("buy", "short")
+                else "buy"
+                if up_trend
+                else "short"
+                if down_trend
+                else "buy"
+                if bias_dir == "up"
+                else "short"
+                if bias_dir == "down"
+                # Nothing names a side. The levels keep their long shape, which is what they have
+                # always had for such a row, and no rule acts on it -- gate 8 needs a direction
+                # and this row has none to give.
+                else "buy"
+            )
             recent = series[-FAST:]
             high = max(float(b["close"]) for b in recent)
             low = min(float(b["close"]) for b in recent)
-            entry = low if state == "short" else high
-            invalid, invalid_note = stop_level(entry, high, low, sigma_pct(series), state)
-            if state == "short":
+            entry = low if aim == "short" else high
+            invalid, invalid_note = stop_level(entry, high, low, sigma_pct(series), aim)
+            if aim == "short":
                 entry_note = (
                     f"the lowest close of the last {FAST} sessions. A close below it would be a "
                     "move past where it recently held"

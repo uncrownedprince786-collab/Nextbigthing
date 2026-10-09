@@ -5182,6 +5182,35 @@ class ShortLevelsAreMirrored(unittest.TestCase):
         self.assertIn("below", note_up)
         self.assertIn("above", note_down)
 
+    def test_the_levels_follow_the_direction_the_row_records_not_its_state(self):
+        """A short's stop belongs above the price even when the state does not say "short".
+
+        This is the WTL and STLA failure reintroduced by a gate that started acting on
+        directions the level block could not see. Measured 2026-10-09 after gate 8 shipped:
+        **70 live SHORT cards had the stop on the wrong side of the entry** -- 53 from `wait`
+        rows and 17 from `none` ones, each reading SHORT with the stop on the side the trade
+        needs price to reach. AHCL: SHORT, entry 16.17, stop 15.81.
+
+        `setup.py` derives the aim from its own locals and `horizons.aimed_at` parses it back
+        out of the conditions string in a later job. The two must agree about every row, which
+        is what the last assertion here checks against the string the first one implies.
+        """
+        # A withheld downward trend: state is `wait`, the direction is down, so the stop is above.
+        aim = "short"
+        stop, note = setup.stop_level(90.0, 110.0, 90.0, 2.0, aim)
+        self.assertGreater(stop, 90.0, "a short is wrong above its entry, whatever the state is")
+        self.assertIn("above", note)
+
+        # And the same row read back through the parser the target pass uses.
+        conditions = "trend: close 9 vs 20d 9.4 vs 50d 9.9 (down) | volume: 0.7x (fail)"
+        self.assertEqual(horizons.aimed_at({"state": "wait", "conditions": conditions}), "short")
+
+        # A `none` row carrying a downward bias is the other half of the 70.
+        bias_conditions = ("trend: close 10 vs 20d 10.1 vs 50d 10.2 (mixed) | "
+                           "bias: 20d average 1.00% below the 50d (down)")
+        self.assertEqual(horizons.aimed_at({"state": "none", "conditions": bias_conditions}),
+                         "short")
+
     def test_the_stop_can_only_tighten(self):
         # Bounded by the window extreme, so an asset whose recent range is narrower than
         # STOP_SIGMAS of its own daily moves keeps the range and is never handed a wider stop

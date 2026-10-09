@@ -90,13 +90,13 @@ function Row({ item }: { item: Scored }) {
           </dd>
         </div>
         <div className="min-w-0">
-          <dt className="text-muted-foreground">Exit if wrong</dt>
+          <dt className="text-muted-foreground">Stop loss</dt>
           <dd className="num text-down">
             {decision.invalidation !== null ? price(decision.invalidation, currency) : "none stored"}
           </dd>
         </div>
         <div className="min-w-0">
-          <dt className="text-muted-foreground">Exit if working</dt>
+          <dt className="text-muted-foreground">Take profit</dt>
           <dd className={target ? "num" : "text-muted-foreground"}>
             {target
               ? single

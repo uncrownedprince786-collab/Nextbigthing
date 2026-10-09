@@ -115,6 +115,10 @@ export function toListRow(s: Scored): DecisionRow {
     name: s.row.name,
     market: s.market,
     action: s.decision.action,
+    // The newest stored close, so the three levels beside it have something to be read against.
+    // It comes off the same query row the decision was built from, not a second read, so a
+    // table cannot show one price while its own verdict was computed from another.
+    priceNow: s.row.close,
     entry: s.decision.entry,
     invalidation: s.decision.invalidation,
     // The measured exit if it works, from the one rule every surface shares. A row that names

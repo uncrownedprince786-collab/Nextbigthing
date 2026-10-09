@@ -372,7 +372,7 @@ export function DecisionPanel({
         </Field>
 
         <Field
-          label="Entry"
+          label="Entry zone"
           hint={
             decision.entry
               ? "Both ends inclusive. Outside the zone there is nothing to do."
@@ -390,10 +390,11 @@ export function DecisionPanel({
           )}
         </Field>
 
-        {/* "Exit if wrong", never "invalidation". The reader is owed the instruction, not the
-            vocabulary the field is stored under. */}
+        {/* "Stop loss", never "invalidation". The reader is owed the instruction in the words
+            they already trade in, not the vocabulary the column is stored under. The hint below
+            keeps the instruction: the label says what it is, the hint says what it means. */}
         <Field
-          label="Exit if wrong"
+          label="Stop loss"
           hint={
             decision.invalidation !== null
               ? "Past this level the reason above no longer holds."
@@ -415,7 +416,7 @@ export function DecisionPanel({
             there is no stop to measure reward against, and that absence is printed rather than
             filled. */}
         <Field
-          label="Exit if working"
+          label="Take profit"
           hint={
             target
               ? `Measured from ${targetMethodLabel(target.method)} — a measured level, not a promise.`
@@ -625,6 +626,14 @@ export interface DecisionRow {
   name: string;
   market: Market;
   action: Action;
+  /// The newest stored close. Printed before the levels, because every level in the row is read
+  /// against it: a stop and a target with no spot price between them is a quiz, which is the
+  /// argument the asset panel has carried since it was written and which these tables did not.
+  ///
+  /// Optional, and null is printed as a reason rather than a dash -- a row with no stored close
+  /// is the one the rules refuse at gate 1, and the table should say so in the same column a
+  /// reader is already looking at.
+  priceNow?: number | null;
   entry: { low: number; high: number } | null;
   invalidation: number | null;
   /// The measured exit if the setup works, chosen by `pickTarget` and never averaged. Null when
@@ -686,7 +695,7 @@ export function DecisionList({ title, lead, rows, empty, cap }: DecisionListProp
     // Seven columns since the measured exit joined the row. The two exit columns are given the
 // same width as each other on purpose: they are a pair a reader compares, and sizing one
 // smaller would read as one of them mattering less.
-  "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-[minmax(0,1.8fr)_minmax(0,0.7fr)_minmax(0,0.8fr)_minmax(0,1.3fr)_minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,1fr)] sm:items-baseline sm:gap-y-0";
+  "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,0.6fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)] sm:items-baseline sm:gap-y-0";
 
   return (
     <Section title={title} lead={lead}>
@@ -701,9 +710,10 @@ export function DecisionList({ title, lead, rows, empty, cap }: DecisionListProp
             <span>Name</span>
             <span>Market</span>
             <span>Action</span>
-            <span>Entry</span>
-            <span>Exit if wrong</span>
-            <span>Exit if working</span>
+            <span>Current price</span>
+            <span>Entry zone</span>
+            <span>Stop loss</span>
+            <span>Take profit</span>
             <span>Confidence</span>
           </div>
           <ul className="space-y-2 sm:space-y-0">
@@ -744,7 +754,23 @@ export function DecisionList({ title, lead, rows, empty, cap }: DecisionListProp
                     </span>
 
                     <span className="min-w-0">
-                      <span className={ROW_LABEL}>Entry</span>
+                      <span className={ROW_LABEL}>Current price</span>
+                      <span
+                        className={
+                          r.priceNow !== null && r.priceNow !== undefined
+                            ? "num block text-sm font-medium"
+                            : "text-muted-foreground block text-sm"
+                        }
+                        title="The newest stored close, not a live quote."
+                      >
+                        {r.priceNow !== null && r.priceNow !== undefined
+                          ? price(r.priceNow, currency)
+                          : "none stored"}
+                      </span>
+                    </span>
+
+                    <span className="min-w-0">
+                      <span className={ROW_LABEL}>Entry zone</span>
                       <span className="num block text-sm">
                         {r.entry
                           ? `${price(r.entry.low, currency)} to ${price(r.entry.high, currency)}`
@@ -753,7 +779,7 @@ export function DecisionList({ title, lead, rows, empty, cap }: DecisionListProp
                     </span>
 
                     <span className="min-w-0">
-                      <span className={ROW_LABEL}>Exit if wrong</span>
+                      <span className={ROW_LABEL}>Stop loss</span>
                       <span className="num block text-sm">
                         {r.invalidation !== null ? price(r.invalidation, currency) : "none stored"}
                       </span>
@@ -764,7 +790,7 @@ export function DecisionList({ title, lead, rows, empty, cap }: DecisionListProp
                         asks second. One measured method, never an average; a name whose job
                         stored no target says so rather than being given one. */}
                     <span className="min-w-0">
-                      <span className={ROW_LABEL}>Exit if working</span>
+                      <span className={ROW_LABEL}>Take profit</span>
                       <span
                         className={r.target ? "num block text-sm" : "text-muted-foreground block text-sm"}
                         title={
