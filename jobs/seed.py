@@ -1113,6 +1113,132 @@ MORE_PSX_3: list[tuple] = [
 
 ASSETS = ASSETS + MORE_US_3 + MORE_PSX_3
 
+# --- Universe expansion, 2026-10-10 ----------------------------------------------------------------
+#
+# Proposed by `tools/universe.py` and reviewed, not typed. Every row here passed stated criteria and
+# every refusal has a stated reason: run `python tools/universe.py all --why` to see them.
+#
+# **Crypto: 30 coins, from the top 150 by market capitalisation.** Refused: 29 wrapped, staked or
+# bridged copies, 16 stablecoins, 3 pegs, 38 with no Coinbase USD pair, 1 too thin. Coinbase is
+# required and Binance is not enough, because Binance stopped answering from GitHub's runners on
+# 2026-09-29 and a coin only it carries would be stored from a laptop and never updated in
+# production. Toncoin is the visible casualty: it is rank 36, listed as `GRAM` on CoinPaprika and
+# reachable only through Binance. Its bridged namesake `TONToken` was refused as too thin, at
+# $0.1m a day against Toncoin's $42.8m.
+#
+# **PSX: 69 ordinary shares, from 1,057 symbols listed.** Refused: 570 that are not shares at all
+# (monthly futures such as `PRL-OCT`, and government securities such as `P03GHS151026`), 157 whose
+# median value traded is under Rs 1m, 101 whose sector code maps to none of this project's
+# industries, 5 that traded on under 70% of the last 60 sessions, and 1 whose symbol (`PSX`, the exchange's own
+# ticker) is already Phillips 66. Each is filed under the
+# industry that this project's own seeded names already share that exchange sector code with.
+MORE_CRYPTO_3: list[tuple] = [
+    ("crypto", "zec-zcash", "Zcash", "crypto", "marketCap", PAPRIKA, "zec-zcash", "Listed by CoinPaprika at rank 10 by market capitalisation."),
+    ("crypto", "cro-cryptocom-chain", "Cronos", "crypto", "marketCap", PAPRIKA, "cro-cryptocom-chain", "Listed by CoinPaprika at rank 42 by market capitalisation."),
+    ("crypto", "qnt-quant", "Quant", "crypto", "marketCap", PAPRIKA, "qnt-quant", "Listed by CoinPaprika at rank 43 by market capitalisation."),
+    ("crypto", "pump-pumpfun", "Pump.fun", "crypto", "marketCap", PAPRIKA, "pump-pumpfun", "Listed by CoinPaprika at rank 49 by market capitalisation."),
+    ("crypto", "wld-worldcoin", "Worldcoin", "crypto", "marketCap", PAPRIKA, "wld-worldcoin", "Listed by CoinPaprika at rank 52 by market capitalisation."),
+    ("crypto", "wlfi-official-world-liberty-financial", "Official World Liberty Financial", "crypto", "marketCap", PAPRIKA, "wlfi-official-world-liberty-financial", "Listed by CoinPaprika at rank 55 by market capitalisation."),
+    ("crypto", "sky-sky", "Sky", "crypto", "marketCap", PAPRIKA, "sky-sky", "Listed by CoinPaprika at rank 57 by market capitalisation."),
+    ("crypto", "aster-aster", "Aster", "crypto", "marketCap", PAPRIKA, "aster-aster", "Listed by CoinPaprika at rank 77 by market capitalisation."),
+    ("crypto", "vvv-venice-token", "Venice Token", "crypto", "marketCap", PAPRIKA, "vvv-venice-token", "Listed by CoinPaprika at rank 81 by market capitalisation."),
+    ("crypto", "rndr-render-token", "Render", "crypto", "marketCap", PAPRIKA, "rndr-render-token", "Listed by CoinPaprika at rank 88 by market capitalisation."),
+    ("crypto", "aero-aerodrome-finance", "Aerodrome Finance", "crypto", "marketCap", PAPRIKA, "aero-aerodrome-finance", "Listed by CoinPaprika at rank 93 by market capitalisation."),
+    ("crypto", "cake-pancakeswap", "PancakeSwap", "crypto", "marketCap", PAPRIKA, "cake-pancakeswap", "Listed by CoinPaprika at rank 96 by market capitalisation."),
+    ("crypto", "stx-stacks", "Stacks", "crypto", "marketCap", PAPRIKA, "stx-stacks", "Listed by CoinPaprika at rank 100 by market capitalisation."),
+    ("crypto", "vet-vechain", "VeChain", "crypto", "marketCap", PAPRIKA, "vet-vechain", "Listed by CoinPaprika at rank 102 by market capitalisation."),
+    ("crypto", "dash-dash", "Dash", "crypto", "marketCap", PAPRIKA, "dash-dash", "Listed by CoinPaprika at rank 105 by market capitalisation."),
+    ("crypto", "pyth-pyth-network", "Pyth Network", "crypto", "marketCap", PAPRIKA, "pyth-pyth-network", "Listed by CoinPaprika at rank 108 by market capitalisation."),
+    ("crypto", "ray-raydium", "Raydium", "crypto", "marketCap", PAPRIKA, "ray-raydium", "Listed by CoinPaprika at rank 109 by market capitalisation."),
+    ("crypto", "flr-flare-network", "Flare Network", "crypto", "marketCap", PAPRIKA, "flr-flare-network", "Listed by CoinPaprika at rank 113 by market capitalisation."),
+    ("crypto", "crv-curve-dao-token", "Curve DAO Token", "crypto", "marketCap", PAPRIKA, "crv-curve-dao-token", "Listed by CoinPaprika at rank 114 by market capitalisation."),
+    ("crypto", "morpho-morpho", "Morpho", "crypto", "marketCap", PAPRIKA, "morpho-morpho", "Listed by CoinPaprika at rank 116 by market capitalisation."),
+    ("crypto", "fetch-ai", "Artificial Superintelligence Alliance", "crypto", "marketCap", PAPRIKA, "fetch-ai", "Listed by CoinPaprika at rank 116 by market capitalisation."),
+    ("crypto", "pengu-pudgy-penguins", "Pudgy Penguins", "crypto", "marketCap", PAPRIKA, "pengu-pudgy-penguins", "Listed by CoinPaprika at rank 121 by market capitalisation."),
+    ("crypto", "strk-starknet", "Starknet", "crypto", "marketCap", PAPRIKA, "strk-starknet", "Listed by CoinPaprika at rank 122 by market capitalisation."),
+    ("crypto", "virtual-virtual-protocol", "Virtuals Protocol", "crypto", "marketCap", PAPRIKA, "virtual-virtual-protocol", "Listed by CoinPaprika at rank 127 by market capitalisation."),
+    ("crypto", "trump-official-trump", "OFFICIAL TRUMP", "crypto", "marketCap", PAPRIKA, "trump-official-trump", "Listed by CoinPaprika at rank 129 by market capitalisation."),
+    ("crypto", "grass-grass", "GRASS", "crypto", "marketCap", PAPRIKA, "grass-grass", "Listed by CoinPaprika at rank 132 by market capitalisation."),
+    ("crypto", "drv7-derive", "Derive", "crypto", "marketCap", PAPRIKA, "drv7-derive", "Listed by CoinPaprika at rank 138 by market capitalisation."),
+    ("crypto", "spx-spx6900", "SPX6900", "crypto", "marketCap", PAPRIKA, "spx-spx6900", "Listed by CoinPaprika at rank 145 by market capitalisation."),
+    ("crypto", "pendle-pendle", "Pendle", "crypto", "marketCap", PAPRIKA, "pendle-pendle", "Listed by CoinPaprika at rank 146 by market capitalisation."),
+    ("crypto", "xtz-tezos", "Tezos", "crypto", "marketCap", PAPRIKA, "xtz-tezos", "Listed by CoinPaprika at rank 149 by market capitalisation."),
+]
+
+MORE_PSX_4: list[tuple] = [
+    ("psx-pharma", "ABOT", "Abbott Lab.", "stock", "marketCap", PSX, "ABOT", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-textile", "ADMM", "Artistic Denim", "stock", "marketCap", PSX, "ADMM", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-investment", "AKDSL", "AKD Securites", "stock", "marketCap", PSX, "AKDSL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-spinning", "AMTEX", "Amtex Limited", "stock", "marketCap", PSX, "AMTEX", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-food", "ASC", "Al-Shaheer Corp", "stock", "marketCap", PSX, "ASC", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-food", "BFAGRO", "Barkat Frisian Agro", "stock", "marketCap", PSX, "BFAGRO", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-banks", "BIPL", "Bankislami Pak", "stock", "marketCap", PSX, "BIPL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-oil-gas", "BPL", "Burshane LPG", "stock", "marketCap", PSX, "BPL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-textile", "CHBL", "Chenab Limited", "stock", "marketCap", PSX, "CHBL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-spinning", "CTM", "Colony Tex.Mills Ltd", "stock", "marketCap", PSX, "CTM", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-investment", "DEL", "Dawood Equities", "stock", "marketCap", PSX, "DEL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-investment", "DLL", "Dawood Law", "stock", "marketCap", PSX, "DLL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-chemicals", "DOL", "Descon Oxychem", "stock", "marketCap", PSX, "DOL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-steel", "DSL", "Dost Steels Ltd.", "stock", "marketCap", PSX, "DSL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-power", "EPQL", "Engro Powergen", "stock", "marketCap", PSX, "EPQL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-investment", "FDPL", "First Dawood Prop", "stock", "marketCap", PSX, "FDPL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-cement", "FECTC", "Fecto Cement", "stock", "marketCap", PSX, "FECTC", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-cement", "FLYNG", "Flying Cement", "stock", "marketCap", PSX, "FLYNG", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-textile", "FML", "Feroze 1888", "stock", "marketCap", PSX, "FML", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-spinning", "GADT", "Gadoon Textile", "stock", "marketCap", PSX, "GADT", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-chemicals", "GCWL", "Ghani Chemworld", "stock", "marketCap", PSX, "GCWL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-spinning", "HIRAT", "Hira Textile", "stock", "marketCap", PSX, "HIRAT", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-pharma", "IBLHL", "IBL HealthCare", "stock", "marketCap", PSX, "IBLHL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-investment", "ICIBL", "Invest Bank", "stock", "marketCap", PSX, "ICIBL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-chemicals", "ICL", "Ittehad Chemicals", "stock", "marketCap", PSX, "ICL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-spinning", "IDRT", "Idrees Textile", "stock", "marketCap", PSX, "IDRT", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-spinning", "IDYM", "Indus Dyeing", "stock", "marketCap", PSX, "IDYM", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-investment", "IMS", "Intermarket Sec.", "stock", "marketCap", PSX, "IMS", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-steel", "ITTEFAQ", "Ittefaq Iron Ind", "stock", "marketCap", PSX, "ITTEFAQ", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-spinning", "JATM", "J.A.Textile", "stock", "marketCap", PSX, "JATM", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-banks", "JSBL", "JS Bank Ltd", "stock", "marketCap", PSX, "JSBL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-investment", "JSCL", "Jah.Sidd. Co.", "stock", "marketCap", PSX, "JSCL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-textile", "KML", "Kohinoor Mills", "stock", "marketCap", PSX, "KML", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-power", "KOHE", "Kohinoor Energy", "stock", "marketCap", PSX, "KOHE", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-power", "KOHP", "Kohinoor Power", "stock", "marketCap", PSX, "KOHP", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-steel", "KSBP", "K.S.B.Pumps", "stock", "marketCap", PSX, "KSBP", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-pharma", "LIVEN", "Liven Pharma", "stock", "marketCap", PSX, "LIVEN", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-power", "LPL", "Lalpir Power", "stock", "marketCap", PSX, "LPL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-pharma", "MACTER", "Macter Int. Ltd", "stock", "marketCap", PSX, "MACTER", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-textile", "MEHT", "Mehmood Tex.", "stock", "marketCap", PSX, "MEHT", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-food", "MFFL", "MithchellsFruit", "stock", "marketCap", PSX, "MFFL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-spinning", "MQTM", "Maqbool Textile", "stock", "marketCap", PSX, "MQTM", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-steel", "MSCL", "Metro Steel", "stock", "marketCap", PSX, "MSCL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-textile", "MSOT", "Masood Textile", "stock", "marketCap", PSX, "MSOT", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-food", "MUREB", "Murree Brewery", "stock", "marketCap", PSX, "MUREB", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-technology", "OCTOPUS", "Octopus Digital", "stock", "marketCap", PSX, "OCTOPUS", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-investment", "OLPL", "OLP Financial", "stock", "marketCap", PSX, "OLPL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-pharma", "OTSU", "Otsuka Pak", "stock", "marketCap", PSX, "OTSU", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-technology", "PAKD", "Pak Datacom", "stock", "marketCap", PSX, "PAKD", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-chemicals", "PAKOXY", "Pak Oxygen Ltd.", "stock", "marketCap", PSX, "PAKOXY", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-investment", "PASL", "Pervez Ahmed Co", "stock", "marketCap", PSX, "PASL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-steel", "PECO", "Pak Engineering", "stock", "marketCap", PSX, "PECO", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-spinning", "PRET", "Premium Tex.", "stock", "marketCap", PSX, "PRET", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-spinning", "SAIF", "Saif Textile", "stock", "marketCap", PSX, "SAIF", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-chemicals", "SARC", "Sardar Chemical", "stock", "marketCap", PSX, "SARC", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-banks", "SBL", "Samba Bank", "stock", "marketCap", PSX, "SBL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-banks", "SCBPL", "St.Chart.Bank", "stock", "marketCap", PSX, "SCBPL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-spinning", "SERT", "Service Ind Tex", "stock", "marketCap", PSX, "SERT", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-spinning", "SHDT", "Shadab Textile", "stock", "marketCap", PSX, "SHDT", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-food", "SHEZ", "Shezan Inter.", "stock", "marketCap", PSX, "SHEZ", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-chemicals", "SITC", "Sitara Chemical", "stock", "marketCap", PSX, "SITC", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-banks", "SNBL", "Soneri Bank Ltd", "stock", "marketCap", PSX, "SNBL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-power", "SPWL", "Saif Power Ltd", "stock", "marketCap", PSX, "SPWL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-textile", "SURC", "Suraj Cotton Mills", "stock", "marketCap", PSX, "SURC", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-technology", "SYM", "Symmetry Group Ltd", "stock", "marketCap", PSX, "SYM", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-spinning", "SZTM", "Shahzad Tex.", "stock", "marketCap", PSX, "SZTM", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-technology", "TPLT", "TPL Trakker Ltd", "stock", "marketCap", PSX, "TPLT", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-food", "UPFL", "Unilever Foods", "stock", "marketCap", PSX, "UPFL", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+    ("psx-textile", "ZAHID", "ZahidJee Tex.", "stock", "marketCap", PSX, "ZAHID", "Listed on the Pakistan Stock Exchange in the sector the exchange files it under."),
+]
+
+ASSETS = ASSETS + MORE_CRYPTO_3 + MORE_PSX_4
+
 
 
 # slug, name, category, summary, wiki title, trends term, subreddits
