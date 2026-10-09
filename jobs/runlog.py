@@ -52,7 +52,15 @@ T = TypeVar("T")
 
 # The four states `ChunkRun.status` is allowed to hold. Listed here so a typo is a failed
 # lookup in this module rather than a string nobody ever queries for.
-STATUSES = ("ok", "partial", "empty", "failed")
+# `skipped` is the fifth, and it is the one that carries no judgement about the source.
+#
+# The other four are outcomes of asking. `skipped` says the lane did not ask, because
+# `jobs/breaker.py` had the source open after consecutive non-answers. It has to be its own word
+# rather than `empty`: `empty` means "asked and got none", which is what a block looks like and
+# is exactly what the breaker counts. Filing a skip as empty would let the breaker read its own
+# skips as further evidence and extend its own cooldown forever -- a gate that feeds itself, and
+# one that would quietly delete a venue that had recovered hours earlier.
+STATUSES = ("ok", "partial", "empty", "failed", "skipped")
 
 # A note is one line for a human to read without opening a log. An exception's message is not
 # bounded by anything — a psycopg error can carry a whole statement, and a requests error can

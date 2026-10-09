@@ -11,12 +11,19 @@ import type { Decision } from "@/lib/decision";
 /// Phrases that `lib/decision.ts` prints, recognised here so the gap line can be built from them.
 ///
 /// This is the ugly part of this file and it should not survive. `confidenceFor` in lib/decision.ts
-/// counts exactly three confirmations — a longer view pointing the same way, volume at or above its
-/// own average, and a set of similar past days that leaned the same way — and then throws the count
-/// away, returning only "High" / "Medium" / "Low". The three states are already decided there; the
-/// `Decision` shape just has nowhere to carry them. So the panel reads them back out of the two
-/// strings that module already wrote: `secondLine` for the longer view, `confirmLine` for the other
-/// two, and `confirmMissing` for the difference between "weak" and "never published".
+/// counts five confirmations — a longer view pointing the same way, volume at or above its own
+/// average, a set of similar past days that leaned the same way, a peer gap in the direction
+/// taken, and an entry rule firing this session — and then throws the count away, returning only
+/// "High" / "Medium" / "Low". The states are already decided there; the `Decision` shape just has
+/// nowhere to carry them. So the panel reads them back out of the two strings that module already
+/// wrote: `secondLine` for the longer view, `confirmLine` for the others, and `confirmMissing` for
+/// the difference between "weak" and "never published".
+///
+/// **Only three of the five are named as weaknesses here, and the omission is deliberate.** A leg
+/// belongs in this line when a reader would expect it to be there and it is not. The peer gap is
+/// absent on 22 of 477 names by construction, and an entry rule is silent on roughly nineteen
+/// sessions in twenty — calling either one a weakness would turn the ordinary state of the data
+/// into an accusation, which is the opposite of what this line is for.
 ///
 /// No new rule is applied. Nothing here decides anything — it recognises what was decided. If a
 /// sentence in lib/decision.ts is reworded, `gapLine` returns fewer parts and the line simply does

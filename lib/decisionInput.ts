@@ -285,10 +285,42 @@ export interface DecisionBundle {
   /// distinguishable from a factor that was computed and came out low: the rules treat an absent
   /// reading as missing evidence rather than evidence against, which is the only reason adding
   /// these gates did not empty the lists.
-  factors: { volumeRatio: number | null; relStrength: number | null; r20?: number | null } | null;
+  factors: {
+    volumeRatio: number | null;
+    relStrength: number | null;
+    r20?: number | null;
+    /// The entry rule that fired on this session and which way, as two stored columns.
+    ///
+    /// Kept as the raw pair across this seam rather than as the shape the rules take, because
+    /// every other field here is the stored value and converting in two places is how one of
+    /// them comes to validate the direction and the other does not. `entryTriggerOf` does it
+    /// once, where the bundle becomes a `DecisionInput`.
+    entryTrigger?: string | null;
+    triggerDirection?: string | null;
+  } | null;
   nextEvent: { date: Date | string } | null;
   /// From `getSourceHealth()`; only the newest row per source is expected.
   sourceHealth: { source: string; status: string }[];
+}
+
+/// The two stored columns read into the pair the rules take, or null when they are not one.
+///
+/// Both or neither. `jobs/factors.py` writes them together and a row carrying a rule name with
+/// no direction has lost half of itself somewhere between the job and here; confirming a
+/// direction from that half would be reading a measurement that was never completed.
+///
+/// The direction is **checked against the two words rather than cast to them**. `triggerDirection`
+/// is a `String?` in Postgres, so it can hold anything a future job or a hand-written UPDATE puts
+/// there, and `as "up" | "down"` would turn a typo into a silent confirmation of whichever
+/// direction the card happened to be printing. An unrecognised word yields null, which is the
+/// same as no trigger and costs nothing.
+function entryTriggerOf(
+  rule: string | null | undefined,
+  direction: string | null | undefined,
+): { rule: string; direction: "up" | "down" } | null {
+  if (!rule) return null;
+  if (direction !== "up" && direction !== "down") return null;
+  return { rule, direction };
 }
 
 /// Today in UTC, as the rule table wants it. Call this once per request and pass it down, so two
@@ -383,6 +415,12 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
     // the fifth to get a test for it: an optional field that is never named here is dropped
     // silently, which has now happened four times.
     r20: bundle.factors?.r20 ?? null,
+    // Sixth field across this seam, and the count in the comment above is the reason it has its
+    // own test rather than being assumed to arrive.
+    entryTrigger: entryTriggerOf(
+      bundle.factors?.entryTrigger,
+      bundle.factors?.triggerDirection,
+    ),
     unusualMove: isUnusualMove(bundle.investigation),
     // A missing HumanSignal row means news was never checked for this name, which the rule table
     // reports differently from a row saying zero. Keep the null.
@@ -459,7 +497,13 @@ export interface QueryBundle {
   investigation: { robustZ: number | null; trigger: string } | null;
   nextEvent: { date: Date | string } | null;
   /// Newest `AssetFactor`, when the factor job has written one for this asset.
-  factor?: { volumeRatio: number | null; relStrength: number | null; r20?: number | null } | null;
+  factor?: {
+    volumeRatio: number | null;
+    relStrength: number | null;
+    r20?: number | null;
+    entryTrigger?: string | null;
+    triggerDirection?: string | null;
+  } | null;
 }
 
 /// `sourceHealth` is passed in rather than fetched, because it is one site-wide read that every
@@ -513,6 +557,8 @@ export function bundleFromQuery(
           volumeRatio: row.factor.volumeRatio,
           relStrength: row.factor.relStrength,
           r20: row.factor.r20 ?? null,
+          entryTrigger: row.factor.entryTrigger ?? null,
+          triggerDirection: row.factor.triggerDirection ?? null,
         }
       : null,
     sourceHealth,
@@ -572,6 +618,12 @@ export interface QueryRow {
   relStrength?: number | null;
   /// This asset's own 20-session return, for the short gate.
   r20?: number | null;
+  /// The entry rule that fired this session, for the fifth confirmation. Named `entryTrigger`
+  /// and not `trigger`: `trigger` on this same row is the investigation's, a different thing
+  /// from a different table, and two fields one word apart is how a list comes to confirm a
+  /// direction with an unusual-move flag.
+  entryTrigger?: string | null;
+  triggerDirection?: string | null;
 }
 
 export function bundleFromRow(
@@ -622,6 +674,8 @@ export function bundleFromRow(
               volumeRatio: row.volumeRatio ?? null,
               relStrength: row.relStrength ?? null,
               r20: row.r20 ?? null,
+              entryTrigger: row.entryTrigger ?? null,
+              triggerDirection: row.triggerDirection ?? null,
             },
     },
     sourceHealth,

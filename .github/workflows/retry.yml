@@ -1,0 +1,120 @@
+name: retry
+
+# Re-run a failed data lane, once.
+#
+# Most of what kills a run here is transient and the evidence says so: a provider 429, a Neon
+# pooler dropping an idle connection, a runner losing DNS for ten seconds. Every one of those is
+# fixed by running the thing again, and until now nothing did — a lane that failed at 22:10 was
+# simply absent until its next scheduled slot, which for the daily lanes is twenty-four hours of
+# missing data for a fault that lasted a minute.
+#
+# ONCE, and the word is doing the whole job.
+# -----------------------------------------
+# `run_attempt == 1` is the guard and it is the most important line in this file. Without it a
+# genuinely broken lane re-triggers this workflow on every failure, which re-runs it, which
+# fails, which re-triggers — a loop bounded by nothing except the free tier's Actions minutes.
+# That is not a hypothetical cost: the database this repository runs on is, as of 2026-10-09,
+# refusing every connection with "your account or project has exceeded the quota", and a retry
+# loop against a quota-exhausted service is the fastest way to turn one dead dependency into
+# two.
+#
+# So: a lane fails, it is retried exactly once, and if the retry fails the run stays red and a
+# human looks at it. A second consecutive failure is information — it says the fault is not
+# transient — and a retry loop destroys that information by making every failure look the same.
+#
+# What this does NOT do, deliberately
+# -----------------------------------
+# It does not re-run `schema.yml`. A migration that failed half way is the one thing here that
+# must not be retried by a machine: `prisma migrate deploy` takes an advisory lock and a failed
+# apply can leave a migration recorded as started, which a blind re-run turns into a second
+# partial apply rather than a clean one. That lane is short, loud, and worth a human.
+#
+# It does not re-run `tests.yml`. A failing test is a fact about the code and running it again
+# is how a flaky suite gets to stay flaky.
+on:
+  workflow_run:
+    workflows:
+      # Matched on each workflow's own `name:`, not on its filename. They are listed rather than
+      # globbed because `workflow_run` takes no glob, and listing them is what keeps `schema` and
+      # `tests` out by construction instead of by a filter someone has to remember.
+      - "refresh data (weekly reconcile)"
+      - "cron decision"
+      - "cron crypto"
+      - "cron us prices"
+      - "cron psx"
+      - "cron news"
+      - "cron calendar"
+      - "cron products"
+      - "cron audit"
+    types: [completed]
+
+# Only the ability to re-run a workflow. Nothing here reads the repository, and nothing here
+# needs a database credential: the retry re-runs the original lane, which has its own secrets.
+permissions:
+  actions: write
+  contents: read
+
+# Its own group, so a burst of failures queues rather than racing, and `cancel-in-progress` is
+# false for the reason every other lane sets it false: a cancelled retry is a lane that silently
+# never came back.
+concurrency:
+  group: nbt-retry
+  cancel-in-progress: false
+
+jobs:
+  rerun:
+    name: re-run the failed lane once
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # `failure()` on the triggering run, and the first attempt only. `cancelled` is included
+    # because that is what a timeout looks like from here, and a lane killed at its budget is
+    # exactly the case worth one more try — the 2026-10-04 and 2026-10-05 derivations both died
+    # that way and both would have been fixed by it.
+    if: >-
+      (github.event.workflow_run.conclusion == 'failure' ||
+       github.event.workflow_run.conclusion == 'cancelled') &&
+      github.event.workflow_run.run_attempt == 1
+    steps:
+      - name: Re-run the failed jobs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          LANE: ${{ github.event.workflow_run.name }}
+          WHY: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          set +e
+          echo "lane     $LANE"
+          echo "run      $RUN_ID"
+          echo "ended    $WHY on attempt 1"
+
+          # --failed, not the whole run. A lane is many jobs and most of them succeeded; re-running
+          # the ones that already wrote their rows costs minutes and re-does committed work.
+          out="$(gh run rerun "$RUN_ID" --failed 2>&1)"
+          code=$?
+          echo "$out"
+
+          {
+            echo "## Retry"
+            echo
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| lane | \`$LANE\` |"
+            echo "| original run | [\`$RUN_ID\`]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$RUN_ID) |"
+            echo "| ended | \`$WHY\` on attempt 1 |"
+            echo "| rerun requested | \`$code\` |"
+            echo
+            echo "Retried **once**. If the second attempt also fails, the fault is not transient"
+            echo "and this workflow will not fire again for it."
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # A retry that could not be requested must not be silent, but it also must not fail
+          # the lane it was trying to help: this workflow's own red would be a second alert for
+          # one fault, pointing at the wrong file.
+          if [ $code -ne 0 ]; then
+            echo "::warning::could not re-run $LANE ($RUN_ID); the original failure stands"
+          fi
+          exit 0

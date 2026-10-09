@@ -985,3 +985,186 @@ test("a bare majority of matched days is not confirmation", () => {
   );
   assert.match(lean.why[2], /similar days going the same way/);
 });
+
+// --- the fifth confirmation: an entry rule firing this session --------------------------------
+//
+// brain.md rule 54. Four candidate entry rules were measured against the moving-average stack on
+// identical terms; three were earlier and slightly better and all three were far rarer, so the
+// two that beat it are stored as a fifth confirmation rather than swapped in as the entry. What
+// these tests guard is that it behaves like a confirmation and not like a shortcut: it lifts a
+// grade exactly as far as any other single leg does, it is never reported as missing, and it is
+// counted only when it points the way the decision is going.
+
+test("an entry rule firing this way counts as a confirmation", () => {
+  // One leg and nothing else, against the same row with no trigger on it. Medium against Low is
+  // the whole claim: one confirmation, same as volume alone.
+  const thin = {
+    setup: { direction: "up", horizon: "swing" } as const,
+    horizon: null,
+    volumeRatio: 0.5,
+    relStrength: 0,
+    analogs: null,
+    target: null,
+  };
+  assert.equal(decide(base(thin)).confidence, "Low");
+  const fired = decide(
+    base({ ...thin, entryTrigger: { rule: "squeeze_break", direction: "up" } }),
+  );
+  assert.equal(fired.action, "LONG");
+  assert.equal(fired.confidence, "Medium");
+});
+
+test("the High bar is still two independent things, not half of what is available", () => {
+  // The fifth leg must not make High cheaper. A trigger plus volume is two, and a trigger alone
+  // is one, exactly as it was when there were four legs and when there were three.
+  const thin = {
+    setup: { direction: "up", horizon: "swing" } as const,
+    horizon: null,
+    relStrength: 0,
+    analogs: null,
+    target: null,
+    entryTrigger: { rule: "vol_flip", direction: "up" } as const,
+  };
+  assert.equal(decide(base({ ...thin, volumeRatio: 0.5 })).confidence, "Medium");
+  assert.equal(decide(base({ ...thin, volumeRatio: 2.4 })).confidence, "High");
+});
+
+test("a trigger pointing the other way confirms nothing", () => {
+  // The direction is stored beside the rule precisely so this cannot happen: a squeeze that
+  // broke downwards is not evidence for a long, and counting the rule without its direction
+  // would make every fired trigger confirm whichever way the card happened to be printing.
+  const thin = {
+    setup: { direction: "up", horizon: "swing" } as const,
+    horizon: null,
+    volumeRatio: 0.5,
+    relStrength: 0,
+    analogs: null,
+    target: null,
+  };
+  const against = decide(
+    base({ ...thin, entryTrigger: { rule: "squeeze_break", direction: "down" } }),
+  );
+  assert.equal(against.confidence, "Low");
+  assert.doesNotMatch(against.why[2], /quietest stretch/);
+});
+
+test("the card says which rule caught it, in words", () => {
+  const d = decide(base({ entryTrigger: { rule: "squeeze_break", direction: "up" } }));
+  assert.match(d.why[2], /a break out of its quietest stretch in six months this session/);
+  const flip = decide(base({ entryTrigger: { rule: "vol_flip", direction: "up" } }));
+  assert.match(flip.why[2], /five-session momentum turning on heavy volume this session/);
+});
+
+test("a rule the table has not been taught prints its own name rather than vanishing", () => {
+  // Same contract lib/target.ts gives an unknown method. A sixth rule from the next research
+  // sweep reaches a reader as its own name, which is ugly and honest, instead of silently
+  // confirming a direction with no sentence to show for it.
+  const d = decide(base({ entryTrigger: { rule: "gap_fill", direction: "up" } }));
+  assert.match(d.why[2], /gap_fill this session/);
+});
+
+test("a silent entry rule is never reported as missing evidence", () => {
+  // The distinction the whole `missing` list exists for. No published volume is a measurement
+  // nobody could take and a reader is owed it. No trigger is a rule that did not fire, which is
+  // the state of nineteen sessions in twenty and is not news -- printing it would bury the two
+  // absences that matter under one that never means anything.
+  const d = decide(
+    base({ volumeRatio: null, analogs: null, target: null, entryTrigger: null }),
+  );
+  assert.ok(d.missing.some((m) => /No volume published/.test(m)));
+  assert.ok(!d.missing.some((m) => /trigger|squeeze|momentum/i.test(m)));
+});
+
+test("a trigger backs a short the gate would otherwise refuse", () => {
+  // The gate asks for one of the five, not one of the four. A US short with nothing behind it is
+  // refused; the same row with a squeeze that broke downwards this session has one independent
+  // thing behind it and prints, graded Medium on that one leg.
+  const bare = {
+    market: "US" as const,
+    setup: { direction: "flat", horizon: "swing", trend: "down" } as const,
+    horizon: null,
+    volumeRatio: 0.5,
+    relStrength: 0,
+    analogs: null,
+    target: null,
+  };
+  assert.equal(decide(base(bare)).gate, "short-unbacked");
+  const backed = decide(
+    base({ ...bare, entryTrigger: { rule: "squeeze_break", direction: "down" } }),
+  );
+  assert.equal(backed.action, "SHORT");
+  assert.equal(backed.confidence, "Medium");
+
+  // And a trigger pointing the wrong way does not back it, which is the same rule as everywhere
+  // else and matters most here: this is the one gate that refuses rather than downgrades.
+  assert.equal(
+    decide(base({ ...bare, entryTrigger: { rule: "squeeze_break", direction: "up" } })).gate,
+    "short-unbacked",
+  );
+});
+
+test("a late short is still gated, and a trigger is what releases it", () => {
+  // The second half of the short gate is independent of the market, so a crypto name already
+  // down 18% needs a confirmation like any other. The trigger is one.
+  const late = {
+    market: "Crypto" as const,
+    setup: { direction: "flat", horizon: "swing", trend: "down" } as const,
+    horizon: null,
+    volumeRatio: 0.5,
+    relStrength: 0,
+    analogs: null,
+    target: null,
+    r20: -18,
+  };
+  assert.equal(decide(base(late)).gate, "short-unbacked");
+  assert.equal(
+    decide(base({ ...late, entryTrigger: { rule: "vol_flip", direction: "down" } })).action,
+    "SHORT",
+  );
+});
+
+test("a withheld trend caught at the start is logged under its own gate and named first", () => {
+  // Gate 8 prints either way; what the carrier decides is which gate name reaches DecisionLog,
+  // and that is the point -- a withheld trend whose compression broke this session is a
+  // different row from one carried by nothing, and only the gate name can say so.
+  const withheld = {
+    setup: { direction: "flat", horizon: "swing", trend: "up" } as const,
+    horizon: null,
+    volumeRatio: 0.5,
+    relStrength: 0,
+    analogs: null,
+    target: null,
+  };
+  assert.equal(decide(base(withheld)).gate, "unconfirmed-long");
+  const caught = decide(
+    base({ ...withheld, entryTrigger: { rule: "squeeze_break", direction: "up" } }),
+  );
+  assert.equal(caught.gate, "trend-long");
+  // Named ahead of volume in the carrying sentence, because it is the rarer and more specific
+  // fact: 1.3x volume is true of hundreds of sessions a day and this is true of about one in
+  // twenty.
+  const both = decide(
+    base({
+      ...withheld,
+      volumeRatio: 2.4,
+      entryTrigger: { rule: "squeeze_break", direction: "up" },
+    }),
+  );
+  assert.match(both.why[0], /quietest stretch in six months carries it/);
+});
+
+test("the trigger clause sits last in the confirmation sentence", () => {
+  // Every other clause describes a standing state; this one describes this session. Reading it
+  // after the others is what makes the sentence say "all of that was true, and then this
+  // happened" rather than burying the event among the conditions.
+  const d = decide(
+    base({
+      volumeRatio: 2.4,
+      relStrength: 9,
+      entryTrigger: { rule: "vol_flip", direction: "up" },
+    }),
+  );
+  const vol = d.why[2].indexOf("volume 2.4x");
+  const trig = d.why[2].indexOf("five-session momentum");
+  assert.ok(vol >= 0 && trig > vol, d.why[2]);
+});

@@ -116,8 +116,25 @@ model Asset {
   @@index([symbol])
 }
 
+/// **The primary key is `(assetId, date)` and there is no surrogate `id`.**
+///
+/// It had one, a 37-byte text UUID, and nothing in the repository ever read it: not a query, not
+/// a join, not a foreign key, and not either of the two write paths -- the COPY and the upsert
+/// both name their nine columns and let the default fill it in. Measured on 550,968 rows of
+/// Yahoo history, it cost about 20 MB in the heap and **39 MB in its own index**, against a
+/// table whose data is 91 MB. A surrogate key on the largest table in a 500 MB budget, buying
+/// nothing.
+///
+/// `(assetId, date)` is the real identity of a row -- one close per asset per session is the
+/// premise of every job that reads this table -- and it was already enforced by a unique index,
+/// which the migration promotes to the primary key in place rather than rebuilding.
+///
+/// This stores exactly the same measurements it always did. Nothing here is a retention policy
+/// and nothing is pruned: `jobs/analogs.py` reads **every stored close** to match today against
+/// the past, so shortening this history would shrink `analogs.count`, move `medianPct`, and
+/// change which names clear ANALOGS_CONFIRM_MIN -- a decision-quality cost. Dropping an unread
+/// key is the version of the same saving that costs nothing.
 model PriceSnapshot {
-  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
   assetId   String
   asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
   date      DateTime @db.Date
@@ -134,7 +151,7 @@ model PriceSnapshot {
   marketCap Float?
   source    String
 
-  @@unique([assetId, date])
+  @@id([assetId, date])
   @@index([date])
 }
 
@@ -1500,6 +1517,25 @@ model AssetFactor {
   rangePct    Float?
   /// How far below the trailing high, in percent. Always <= 0.
   drawdownPct Float?
+
+  /// Which entry rule fired on this session, when one did: "squeeze_break" or "vol_flip".
+  ///
+  /// A fifth confirmation and never a replacement for the trend. brain.md rule 54 measured four
+  /// candidate entry rules against the moving-average stack and found these two earlier and
+  /// slightly better -- and both far rarer, `squeeze_break` firing 5% as often as the stack for
+  /// a margin of about two standard errors. So they confirm a direction the stack already
+  /// found, and mark the card as caught at the start.
+  ///
+  /// Null is the ordinary value and means no rule fired, which is the state of roughly
+  /// nineteen sessions in twenty. It is deliberately not distinguished from "could not be
+  /// measured": both are "nothing to print", and `bars` beside it already says which.
+  entryTrigger    String?
+  /// "up" or "down": which way the rule that fired pointed. Null exactly when `entryTrigger` is.
+  ///
+  /// Stored rather than inferred from the sign of `r1`, because the two can differ: a flip is
+  /// the sign of the five-session return turning, and the session that turns it is not always
+  /// the same colour as the span it turned.
+  triggerDirection String?
 
   /// Sessions until the next dated item, when one is stored. Context for the rules, never a
   /// direction on its own.

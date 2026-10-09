@@ -288,7 +288,15 @@ export async function getFactor(assetId: string) {
   return prisma.assetFactor.findFirst({
     where: { assetId },
     orderBy: { periodEnd: "desc" },
-    select: { periodEnd: true, volumeRatio: true, relStrength: true, peers: true, r20: true },
+    select: {
+      periodEnd: true,
+      volumeRatio: true,
+      relStrength: true,
+      peers: true,
+      r20: true,
+      entryTrigger: true,
+      triggerDirection: true,
+    },
   });
 }
 
@@ -848,7 +856,13 @@ export async function getDecisionBundle(assetId: string) {
     // `{ volumeRatio: null, relStrength: null }` and "no factor row at all" are different states and
     // flattening them would make the second indistinguishable from the first.
     factor: factor
-      ? { volumeRatio: factor.volumeRatio, relStrength: factor.relStrength, r20: factor.r20 }
+      ? {
+          volumeRatio: factor.volumeRatio,
+          relStrength: factor.relStrength,
+          r20: factor.r20,
+          entryTrigger: factor.entryTrigger,
+          triggerDirection: factor.triggerDirection,
+        }
       : null,
     factorPeriodEnd: factor?.periodEnd ?? null,
     /// How many peers the relative reading was taken over. Carried so a panel can say *why*
@@ -948,6 +962,11 @@ export type DecisionQueryRow = {
   relStrength: number | null;
   /// This asset's own 20-session return, read by the short gate in lib/decision.ts.
   r20: number | null;
+  /// The entry rule that fired on this session and which way, for the fifth confirmation.
+  /// Null on about nineteen sessions in twenty, which is the rule being silent and not a
+  /// measurement that failed — see `DecisionInput.entryTrigger`.
+  entryTrigger: string | null;
+  triggerDirection: string | null;
   /// Stories, not items: twenty outlets carrying one wire report is one story. The reasoning is
   /// at `getStories` and on `HumanSignal.recentStories`.
   recentStories: number | null;
@@ -1062,7 +1081,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   // Wave one: the asset list, the newest day per asset in each table, and the forward diary.
   const [
     assets,
-    priceDays,
+    newestPrices,
     setupDays,
     analogDays,
     signalDays,
@@ -1085,7 +1104,42 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
           industry: { select: { market: true, slug: true, name: true, sort: true } },
         },
       }),
-      prisma.priceSnapshot.groupBy({ by: ["assetId"], _max: { date: true } }),
+      // **The newest close per asset, by one index probe per asset rather than by reading the
+      // table.** This was `groupBy({ by: ["assetId"], _max: { date: true } })`, and the comment
+      // above claimed it "reads an index and returns one small row per asset instead of the
+      // table". Measured on 2026-10-10 against 628,675 stored closes, it does not: Postgres has
+      // no loose index scan for `GROUP BY assetId, max(date)` and plans a **parallel sequential
+      // scan of the whole table** -- 13,061 shared buffers, about 102 MB of buffer traffic, 209
+      // ms -- on every render of every list page.
+      //
+      // An index does not fix it. `(assetId, date DESC)` was built and measured and the planner
+      // still chose the seq scan: same buffers, same time, 41 MB spent for nothing. It was
+      // dropped again.
+      //
+      // The shape fixes it. A lateral probe per asset walks the primary key backwards once per
+      // name -- 477 index lookups against a 628,675-row scan -- and it fetches the close and the
+      // source at the same time, which is why the second price query below is gone:
+      //
+      //     groupBy + findMany        13,061 buffers     209 ms
+      //     one lateral               1,921 buffers      3.2 ms
+      //
+      // Raw because Prisma cannot express a lateral join. The cost of that is the hand-written
+      // row type below and the `$queryRaw` tag, and the thing bought is the hottest query on the
+      // site going from reading the whole price history to reading an index -- which on a
+      // metered endpoint is compute time on every request, not merely a slow page.
+      prisma.$queryRaw<
+        { assetId: string; date: Date | null; close: number | null; source: string | null }[]
+      >`
+        SELECT a.id AS "assetId", p.date, p.close, p.source
+          FROM "Asset" a
+          LEFT JOIN LATERAL (
+            SELECT s.date, s.close, s.source
+              FROM "PriceSnapshot" s
+             WHERE s."assetId" = a.id
+             ORDER BY s.date DESC
+             LIMIT 1
+          ) p ON true
+      `,
       prisma.assetSetup.groupBy({
         by: ["assetId", "horizon"],
         where: { horizon: { in: [...DECISION_HORIZONS] } },
@@ -1113,7 +1167,8 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
 
   // PriceSnapshot dates its rows `date` rather than `periodEnd`, so its aggregate is unwrapped
   // here instead of teaching the helper both column names.
-  const priceDayList = distinctDays(priceDays.map((r) => r._max.date));
+  // `priceDayList` is gone with the query that produced it: the lateral above already returned
+  // one row per asset, so there is no day list to filter a second read by and no second read.
   const setupDayList = distinctDays(setupDays.map((r) => r._max.periodEnd));
   const analogDayList = distinctDays(analogDays.map((r) => r._max.periodEnd));
   const signalDayList = distinctDays(signalDays.map((r) => r._max.periodEnd));
@@ -1123,14 +1178,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   // Wave two: the rows themselves, confined to the days wave one named. Each `findMany` is
   // skipped outright when its table turned out to be empty, because `in: []` is a query that can
   // only return nothing and still costs a round trip on a free-tier database.
-  const [prices, setups, analogs, signals, investigations, factors] = await Promise.all([
-    priceDayList.length
-      ? prisma.priceSnapshot.findMany({
-          where: { date: { in: priceDayList } },
-          orderBy: { date: "desc" },
-          select: { assetId: true, date: true, close: true, source: true },
-        })
-      : [],
+  const [setups, analogs, signals, investigations, factors] = await Promise.all([
     setupDayList.length
       ? prisma.assetSetup.findMany({
           where: { horizon: { in: [...DECISION_HORIZONS] }, periodEnd: { in: setupDayList } },
@@ -1202,12 +1250,22 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       ? prisma.assetFactor.findMany({
           where: { periodEnd: { in: factorDayList } },
           orderBy: { periodEnd: "desc" },
-          select: { assetId: true, volumeRatio: true, relStrength: true, r20: true },
+          select: {
+            assetId: true,
+            volumeRatio: true,
+            relStrength: true,
+            r20: true,
+            entryTrigger: true,
+            triggerDirection: true,
+          },
         })
       : [],
   ]);
 
-  const priceByAsset = firstPerKey(prices, (r) => r.assetId);
+  // One row per asset already, by construction: the lateral returns exactly one per `Asset`.
+  // `firstPerKey` is kept rather than a plain Map so an asset with no stored close -- the
+  // LEFT JOIN's null row -- is treated the same way it was when the day filter could miss it.
+  const priceByAsset = firstPerKey(newestPrices, (r) => r.assetId);
   const setupByKey = firstPerKey(setups, (r) => `${r.assetId}|${r.horizon}`);
   const analogByAsset = analogPerAsset(analogs);
   // HumanSignal and EventLink both carry a nullable assetId, already excluded in SQL above. The
@@ -1274,6 +1332,8 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       volumeRatio: factor?.volumeRatio ?? null,
       relStrength: factor?.relStrength ?? null,
       r20: factor?.r20 ?? null,
+      entryTrigger: factor?.entryTrigger ?? null,
+      triggerDirection: factor?.triggerDirection ?? null,
       recentStories: signal?.recentStories ?? null,
       newsTone: signal?.tone ?? null,
       newsCatalyst: signal?.catalyst ?? null,

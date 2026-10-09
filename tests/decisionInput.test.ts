@@ -836,3 +836,110 @@ test("an analog row with no lean recorded still reads as absent", () => {
   assert.equal(noLean.analogs?.medianPct, null);
   assert.equal(noLean.analogs?.positive, null);
 });
+
+// --- The entry trigger crossing the seam -------------------------------------------------------
+//
+// The sixth field to cross this seam, and the count is the argument for the test: `conditions`,
+// `medianPct`, `positive`, `targets` and the coverage verdict were each fetched by the query
+// layer, read by the rule table, and dropped in an object literal in between with nothing
+// failing. `r20` made it six -- it crossed into `lib/` and was never added to `tools/decide.mjs`,
+// so the nightly log decided late shorts on half the gate for a day. An optional field cannot
+// fail to exist, so the type is not the guard and this is.
+
+test("the entry trigger reaches the rules and confirms the direction", () => {
+  const silent = toDecisionInput(
+    bundleFromRow(row({ swing: UP, longer: null, volumeRatio: 0.4 }), []),
+    "2026-10-03",
+  );
+  assert.equal(silent.entryTrigger, null);
+  assert.equal(decide(silent).confidence, "Low");
+
+  const fired = toDecisionInput(
+    bundleFromRow(
+      row({
+        swing: UP,
+        longer: null,
+        volumeRatio: 0.4,
+        entryTrigger: "squeeze_break",
+        triggerDirection: "up",
+      }),
+      [],
+    ),
+    "2026-10-03",
+  );
+  assert.deepEqual(fired.entryTrigger, { rule: "squeeze_break", direction: "up" });
+  const d = decide(fired);
+  assert.equal(d.confidence, "Medium");
+  assert.match(d.why[2], /quietest stretch in six months this session/);
+});
+
+test("a rule with no direction beside it is not half a confirmation", () => {
+  // Both columns or neither. `jobs/factors.py` writes them together, so a row carrying a rule
+  // name and no direction has lost half of itself somewhere between the job and here -- and
+  // confirming a direction from the surviving half would be reading a measurement that was never
+  // completed.
+  const halved = toDecisionInput(
+    bundleFromRow(
+      row({ swing: UP, longer: null, volumeRatio: 0.4, entryTrigger: "squeeze_break" }),
+      [],
+    ),
+    "2026-10-03",
+  );
+  assert.equal(halved.entryTrigger, null);
+  assert.equal(decide(halved).confidence, "Low");
+});
+
+test("a direction the rules do not recognise is refused rather than cast", () => {
+  // `triggerDirection` is a String? in Postgres, so it can hold anything a later job or a
+  // hand-written UPDATE puts there. `as "up" | "down"` would turn a typo into a silent
+  // confirmation of whichever way the card happened to be printing.
+  for (const direction of ["UP", "long", "rising", ""]) {
+    const input = toDecisionInput(
+      bundleFromRow(
+        row({
+          swing: UP,
+          longer: null,
+          volumeRatio: 0.4,
+          entryTrigger: "squeeze_break",
+          triggerDirection: direction,
+        }),
+        [],
+      ),
+      "2026-10-03",
+    );
+    assert.equal(input.entryTrigger, null, direction);
+    assert.equal(decide(input).confidence, "Low", direction);
+  }
+});
+
+test("the asset-page bundle carries the trigger as well as the list row", () => {
+  // Two paths reach `toDecisionInput`: `bundleFromRow` for the lists and `bundleFromQuery` for
+  // the asset page. A field wired into one and not the other is the shape of fault where a name
+  // reads Medium in a list and Low on its own page, with nothing raising anywhere.
+  const input = toDecisionInput(
+    bundleFromQuery(
+      {
+        symbol: "AAPL",
+        assetType: "stock",
+        market: "US",
+        newestClose: 97,
+        newestCloseDate: new Date("2026-10-02T00:00:00Z"),
+        horizons: [{ horizon: "swing", state: "buy", entryLevel: 100, invalidateLevel: 94 }],
+        analogs: [],
+        humanSignal: null,
+        investigation: null,
+        nextEvent: null,
+        factor: {
+          volumeRatio: 0.4,
+          relStrength: null,
+          r20: null,
+          entryTrigger: "vol_flip",
+          triggerDirection: "down",
+        },
+      },
+      [],
+    ),
+    "2026-10-03",
+  );
+  assert.deepEqual(input.entryTrigger, { rule: "vol_flip", direction: "down" });
+});

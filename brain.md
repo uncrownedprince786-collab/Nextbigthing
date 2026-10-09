@@ -1396,3 +1396,309 @@ reads rows that already exist:
     marker on the card saying this one was caught at the start -- which keeps the coverage, tells
     the reader what rule 51 says they are owed, and lets `DecisionLog` settle the two standard
     errors with live rows instead of an argument.
+
+55. **The two entry rules that beat the stack are stored as a fifth confirmation, and the fifth
+    leg is the first one that says *when* rather than *how much*.**
+    Rule 54 ended with what to build and this is it. `squeeze_break` and `vol_flip` are computed
+    per session in `jobs/factors.py`, stored on `AssetFactor` as `entryTrigger` and
+    `triggerDirection`, and read by `confirmationCount` beside the four legs that were already
+    there. Nothing about the entry changed: the stack still decides the direction, and a name
+    with no trigger is graded exactly as it was.
+
+    **Why a fifth leg and not a better fourth.** The other four read a *state* -- a second
+    timeframe, volume, matched past days, the peer gap -- and every one of them reads the same on
+    the fortieth session of a trend as on the first. These two read an *event* on one bar. Rule
+    51 measured the engine entering a median of 40 sessions into a long and nothing stored could
+    tell a reader otherwise; this can, and the card now says so in the confirmation line:
+    "Confirmed by volume 2.4x its average and a break out of its quietest stretch in six months
+    this session."
+
+    **What is measured and what is not, stated plainly.** Rule 54's table is the long side.
+    `tools/research/entry_triggers.py` computes the short side on identical terms and those
+    numbers were never tabulated, so the fifth leg backs a short on a claim weaker than the one
+    it backs a long on. It counts anyway, for two reasons. Splitting the count by side would put
+    a second implementation of "how much backs this" in the file -- the exact fault the comment
+    above `confirmationCount` exists to prevent -- and `shortNeedsBacking` already refuses an
+    unbacked short in a negative market whatever the leg count says. `DecisionLog` stores the
+    gate on every row, so the live record settles it. **Tabulating the short side is the first
+    thing to run when the database is reachable again.**
+
+    **One deliberate divergence from the backtest.** The sweep used a mean-based 20-session
+    volume ratio because that was cheap inside it; `vol_flip` here reads this file's own
+    median-based ratio, which splits weekend sessions from weekday ones. So the live rule is a
+    near neighbour of the measured one rather than the measured one, and the 0.146R belongs to
+    the neighbour. Two definitions of "busy" inside one repository would be worse.
+
+    **And a real bug fell out of wiring it.** `tools/decide.mjs` selects the factor row for the
+    nightly `DecisionLog` and was never updated when `r20` was added on 2026-10-09, so the log
+    has been deciding late shorts on half of `shortNeedsBacking`. In US and Commodity the market
+    half fires anyway and only the printed reason differed; in Crypto, PSX and FX -- the three
+    markets that measured positive -- the fall half was the only thing standing between a late
+    short and a printed SHORT, so **the site refused those names and the log recorded them as
+    taken.** That is the one disagreement this file cannot have, because the log is what the
+    refusal is eventually judged by. Fixed in the same pass, with the trigger wired in beside it
+    so the two cannot drift apart the same way again. The seam now has six fields and six tests,
+    and the count is the argument: an optional field cannot fail to exist, so the type is not the
+    guard.
+
+56. **The pipeline could not see itself. `ChunkRun` had no writer, so the table the freshness
+    panel is built on was empty and every claim made about it was a claim about an empty table.**
+    `jobs/runlog.py` is a careful module -- it writes a row on the exception path before
+    re-raising, on its own short-lived connection so a caller's rollback cannot take the log with
+    it, and it refuses a blank note. It had **no callers**. `prices.py` imported `parse_chunk`
+    and `slice_of` from it and nothing else, so the schema's "a failed chunk is a row rather than
+    something to go hunting for in a log that needs a sign-in to read" described a table with
+    nothing in it, and so did RESUME.md.
+
+    The three price lanes now run inside it. That is the whole of the fix and it is worth
+    noticing how little code it was: the module was finished, and what was missing was the three
+    `with` statements that use it.
+
+    **On top of it, a circuit breaker, derived and not stored.** `nbt.get`'s `RETRY_HOST_BUDGET`
+    stops one *run* from spending its timeout on a dead host, and then the dictionary holding the
+    count dies with the process -- so a source blocked all of yesterday is asked again today at
+    full budget by every lane that touches it. `jobs/breaker.py` remembers, by reading the
+    `ChunkRun` rows the lanes now write. Three states: closed, open after `OPEN_AFTER`
+    consecutive non-answers, half-open once the cooldown has elapsed, which admits exactly one
+    probe. Nothing is stored, for the reason `tools/scorecard.py` gives for deriving its scores:
+    a second copy of the truth drifts from the first.
+
+    Three constants carry the whole design and each one is there because of how a breaker fails.
+
+      * `COOLDOWN_MAX_MIN` **is the most important line in the file.** An unbounded backoff is a
+        permanent deletion wearing the clothes of a retry policy -- at the eleventh doubling the
+        next probe is a month out. Twelve hours means every source is probed at least twice a
+        day however long it has been dark, so this can only ever delay a fetch.
+      * `partial` counts as an answer. "Some of the assets came back" is the ordinary state of a
+        chunked lane against a venue that rate limits, and a breaker is the wrong instrument for
+        degraded.
+      * `skipped` is a fifth `ChunkRun` status and the breaker reads straight through it.
+        **Filing a skip as `empty` would let the breaker read its own footprint as evidence**:
+        the cooldown would double on every run, reach the ceiling, and keep its own streak alive
+        forever on rows nothing had actually asked for. The table would then report a source
+        failing continuously for months without a single request having been made.
+
+    And it never raises. An unreadable history is treated exactly like an empty one -- closed,
+    fetch as usual -- because a resilience layer that can take the lane down has made things
+    worse than the problem it was added for. Demonstrated rather than argued: with the database
+    refusing every connection, the lane still decides, logs the failure to write the log, and
+    carries on.
+
+    **What it refuses to do, and this is the line.** Nothing is substituted for data that did not
+    arrive. No last close carried forward as though it were today's, no interpolation across a
+    gap, no approximation of a missing venue from a correlated one. A synthesised close is the
+    most dangerous invention available here: it is indistinguishable from a real one downstream,
+    it passes every staleness gate *precisely because* it is freshly dated, and the rule table
+    would then read it as evidence. A source that did not answer reaches the reader as a source
+    that did not answer -- `SourceSilent`, `Coverage` and gate 3. The breaker only stops the
+    pointless asking in between.
+
+57. **A hit rate now carries an interval, and the interval is taken over the names rather than
+    the rows.**
+    `tools/scorecard.py` has said in its own docstring since it was written that "197 scored rows
+    is closer to 60 names observed repeatedly than to 197 experiments", and then printed the rate
+    over 197. The caveat was in the prose and not in the arithmetic.
+
+    It is in the arithmetic now. `effective_n` takes the smaller of rows and distinct names,
+    `wilson` puts a 95% interval around the share, and `spans_chance` says in words when that
+    interval contains a coin flip. An interval over 197 is about a third narrower than one over
+    60, which is exactly how a run of luck on one name comes to read as evidence about the
+    engine.
+
+    Wilson rather than the textbook normal approximation, because that approximation fails where
+    this scorer lives: at small n and at shares near 0 or 1 it produces intervals running past
+    100%, and an accuracy report claiming a hit rate "between 82% and 104%" has discredited
+    itself in the one place it was trying to be careful. It is a frequentist interval and not a
+    posterior, and calling it Bayesian would buy a word and nothing else.
+
+    Taking the distinct-name count is conservative rather than exact -- the true effective sample
+    is somewhere between the two and depends on how correlated a name's own sessions are, which
+    nothing here measures. Erring small errs towards refusing to publish, which is the right
+    direction for a figure whose entire purpose is to say whether these readings can be believed.
+
+58. **A failed lane is retried once, and the word `once` is the whole of the design.**
+    `.github/workflows/retry.yml` re-runs a failed data lane's failed jobs on `workflow_run`.
+    Most of what kills a run here is transient -- a provider 429, a pooler dropping an idle
+    connection, a runner losing DNS -- and until now nothing re-ran it, so a lane that failed at
+    22:10 was simply absent for twenty-four hours over a fault that lasted a minute.
+
+    `run_attempt == 1` is the guard. Without it a genuinely broken lane re-triggers the retry on
+    every failure in a loop bounded by nothing but the free tier's Actions minutes, and **that is
+    not hypothetical: on 2026-10-09 the database began refusing every connection for exceeding
+    its quota**, and a retry loop against a quota-exhausted service is the fastest way to turn
+    one dead dependency into two. A second consecutive failure is information -- it says the
+    fault is not transient -- and a retry loop destroys that information by making every failure
+    look alike.
+
+    `schema.yml` and `tests.yml` are deliberately not watched. A half-applied migration is the
+    one thing here a machine must not retry: `prisma migrate deploy` takes an advisory lock and
+    can leave a migration recorded as started, which a blind re-run turns into a second partial
+    apply. And re-running a failing test is how a flaky suite gets to stay flaky.
+
+59. **Two guards were asserted against their own documentation, and both passed while the thing
+    they guarded was deleted.**
+    Worth its own rule because it is a category of mistake rather than one bug, and this file now
+    has a lot of tests that read source text. A test that greps a whole file for a token finds it
+    in the comment that explains the token. Deleting `run_attempt == 1` from `retry.yml` left its
+    test green on the prose above it; asserting that a wrapper contains no `except` failed on a
+    docstring that used the word "exception".
+
+    The rule that falls out: **a source-text assertion must be scoped to the construct, never to
+    the file.** Split out the `if:` expression, the function body past its docstring, the
+    `ON CONFLICT` clause -- then assert. Where the behaviour can be exercised instead, exercise
+    it: two of these became tests that build a stub cursor and check what actually happens, which
+    is both shorter and incapable of this failure. Found by mutation testing the new guards, which
+    is the only reason either was noticed.
+
+60. **The database is one table, and the saving that was available cost nothing because the key
+    nobody read was a third of it.**
+    The old Neon project began refusing every connection on 2026-10-09 -- "your account or
+    project has exceeded the quota" -- and no code change clears that. A fresh project was made
+    and the 23 migrations applied to it, which is also the first time
+    `20261009180000_entry_trigger` has run against a real Postgres.
+
+    The rebuild gave the measurement nobody had. After the Yahoo backfill alone, with crypto,
+    PSX, news, analogs, setups, factors and decisions **all still empty**:
+
+        PriceSnapshot                          200 MB   550,968 rows, 2019-01-01 to 2026-10-08
+          heap                                  91 MB
+          PriceSnapshot_assetId_date_key        64 MB   unique (assetId, date)
+          PriceSnapshot_pkey                    39 MB   btree (id)
+          PriceSnapshot_date_idx                 5 MB
+        everything else                        < 1 MB
+        -------------------------------------------------
+        database                               210 MB   of a 500 MB tier
+
+    **The indexes were larger than the data.** And `id` was a 37-byte text UUID that nothing in
+    the repository has ever read: no query selects it, no join uses it, no foreign key points at
+    it, and neither write path names it -- `insert_snapshots` lists nine columns in both its COPY
+    and its upsert and lets the default produce the tenth. About 20 MB of heap and the whole of a
+    39 MB index, on the largest table in the budget, for a surrogate key on a table whose real
+    identity is `(assetId, date)`.
+
+    It is now the primary key. `ADD CONSTRAINT ... PRIMARY KEY USING INDEX` promotes the existing
+    unique index in place, so nothing was rebuilt and there was no peak to pay for. Measured
+    after: **PriceSnapshot 200 MB to 161 MB, the database 210 MB to 171 MB**, 550,968 rows
+    unchanged and every close, volume, cap and OHLC value exactly as it was. The remaining ~20 MB
+    of heap comes back on the next rewrite, because Postgres marks a dropped column dead rather
+    than rewriting a table under a migration.
+
+    **What was NOT done, and this is the part worth keeping.** The obvious way to bound this
+    table is to prune old bars, and it is the one thing that cannot be done here without paying
+    in decision quality. `jobs/analogs.py` reads **every stored close** -- its comment says so --
+    because matching today against the past is what the whole analog leg is. A shorter history
+    shrinks `analogs.count`, moves `medianPct`, and changes which names clear
+    `ANALOGS_CONFIRM_MIN`. So the history stays, and `PriceSnapshot` stays in `NEVER_PRUNED`
+    beside `DecisionLog`.
+
+    Which leaves the honest position: **the two tables that drive the storage are exactly the two
+    nothing may prune.** Dropping an unread key is the version of that saving which costs
+    nothing. Beyond it, the levers are a shorter backfill window or a larger tier, and both are
+    the owner's call rather than a thing to decide inside a job.
+
+61. **An UPDATE that changes nothing is not free, and a lane that reruns rewrites a table to
+    store what it already holds.**
+    `AssetFactor` and `DecisionLog` are both keyed `(assetId, periodEnd)` and both upsert, so
+    neither has ever been able to hold a duplicate row. That made the question look answered. It
+    was not: Postgres implements an UPDATE as a new row version plus a dead old one plus the WAL
+    for both, so a second run of a 477-name lane in one session doubles that table's dead tuples
+    to store exactly what was there. On a weekend -- when `session_end` returns the same stored
+    close and every factor is identical by construction -- the whole table is rewritten for
+    nothing.
+
+    Both conflict clauses now carry
+    `WHERE (the written columns) IS DISTINCT FROM (EXCLUDED...)`, so an unchanged row is not
+    written at all. Verified against the live database by watching `xmin`, which is the row
+    version: identical write leaves it untouched, a changed value moves it, a number becoming
+    null moves it, and null staying null leaves it.
+
+    Three details decide whether this is safe, and each would be silent if wrong.
+
+      * **`IS DISTINCT FROM`, never `<>`.** Half these columns are legitimately null -- no entry
+        band, no target, no dated event, no volume on any currency pair -- and `<>` against null
+        is null rather than true. A row going from null to a number would compare as unchanged
+        and never be stored, which is the bug that loses data while looking like an optimisation.
+      * **Every column the SET writes is in the comparison.** One named in the first and
+        forgotten in the second makes a genuinely changed row vanish: no error, no row, and a log
+        quietly holding yesterday's verdict under today's date. `decide.mjs` derives its list
+        from the same `CORE_COLUMNS`/`SIZING_COLUMNS` the INSERT is built from rather than
+        retyping it, and a test asserts the factor job's two lists match.
+      * **`computedAt` is set and never compared.** It is `now()` and would differ every run,
+        defeating the clause outright. The consequence is a change of meaning and it is the right
+        one: that column now says when the reading last *changed*, and "the job ran" is a
+        question `ChunkRun` answers properly now that the lanes write it.
+
+    On `DecisionLog` the skip is safe for a reason that is structural rather than careful: the
+    measured columns and `status` are absent from the SET -- rule 58 -- and the comparison is
+    built from the same list, so they cannot appear in the WHERE either. The worst a wrong
+    comparison could do on that table is write when it need not, which costs space. It cannot
+    reach a maturation.
+
+62. **The query ratchet watched `jobs/` and not `tools/`, which is where the per-row query was.**
+    `tools/scorecard.py` carried the comment "One query for the whole set" above a loop issuing
+    one query per scored row, and survived the session that rewrote eleven jobs for exactly that
+    fault -- because the scan that would have caught it globbed one directory. The cost there is
+    the worst shape available: it grows with the length of the decision log rather than with the
+    size of the universe, so the report gets slower every day it is kept.
+
+    The scan now covers both directories, and `tools/` is recorded at what it actually does
+    rather than rewritten on sight: these are one-off reports run by hand, where a per-row read
+    costs a person waiting rather than a nightly budget. `scorecard.py` is the exception and is
+    at 0, because it is the one that runs over a table that grows.
+
+    The general form, and it is the reason this is a rule: **a directory excluded from a ratchet
+    is a directory where the thing the ratchet prevents is free to happen.** Nothing announces
+    that exclusion -- the guard is green, and it is green about a subset nobody wrote down.
+
+63. **The site's hottest query read the whole price history on every page render, and the fix was
+    not an index.**
+    `getDecisionRows` found the newest close per asset with
+    `groupBy({ by: ["assetId"], _max: { date: true } })`, under a comment stating it "reads an
+    index and returns one small row per asset instead of the table". Measured against 628,675
+    stored closes on 2026-10-10, that is false: Postgres has no loose index scan for
+    `GROUP BY assetId, max(date)` and plans a **parallel sequential scan of the entire table** --
+    13,061 shared buffers, about 102 MB of buffer traffic, 209 ms -- and it is one of fourteen
+    queries on every render of every list page.
+
+    That matters more than latency, and it is the likeliest explanation for a quota nobody could
+    account for from storage alone. Neon meters compute by active time: a page that reads the
+    whole price history keeps the endpoint busy on every request, and the old project's storage
+    was 339 MB of 500 MB when it began refusing connections -- near the ceiling but not at it.
+
+    **An index was built and measured before anything was rewritten, and it did nothing.**
+    `(assetId, date DESC)` cost 41 MB and the planner still chose the sequential scan: same
+    buffers, same time. It was dropped. That is the whole argument against the instinct to answer
+    "eliminate full-table scans" by adding indexes to the columns in the request -- `createdAt`
+    is filtered by no SQL anywhere in this repository, and an index on it would have been 100%
+    cost.
+
+    The shape was the problem. A lateral probe walks the primary key backwards once per asset --
+    477 index lookups instead of a 628,675-row scan -- and returns the close and the source at
+    the same time, so the second price read is gone rather than merely cheaper:
+
+        groupBy + findMany       13,061 buffers    209 ms
+        one lateral               1,921 buffers    3.2 ms
+
+    Verified to return the identical row for all 477 assets. The other five `groupBy` calls in
+    the same function are left exactly as they were: they read tables `jobs/retention.py` caps at
+    7 to 14 days, so each is a few thousand rows, and rewriting them would be churn bought with
+    the same reasoning that was just measured wrong.
+
+64. **A blanket rule was narrowed to the property it was actually protecting, and the narrowing
+    is mechanical rather than a judgement.**
+    Two tests forbade `$queryRaw` anywhere in the web layer, and their own comments say what for:
+    "dynamic route params reach the database through Prisma, which parameterises", and "a single
+    $queryRawUnsafe here is the only way a path segment could reach the database as code". The
+    property is that **no value may reach the database as SQL**. The rule was the much broader
+    "no raw SQL at all", which is a fine rule precisely because it needs no judgement.
+
+    Rule 63 needed a lateral join, which Prisma cannot express. So the rule now bans
+    `$queryRawUnsafe`, `$executeRawUnsafe` and `$executeRaw` outright and unconditionally -- they
+    concatenate, and nothing in the web layer may write at all -- and permits `$queryRaw` only
+    when its template literal contains no `${`. A constant string cannot carry a path segment.
+
+    **The narrowing is only acceptable because the check is mechanical.** An interpolated
+    `$queryRaw` now fails the guard exactly as `$queryRawUnsafe` does, so nothing rests on a
+    reviewer noticing an interpolation. Both mutations were tested against the new guard and both
+    are caught. A rule relaxed into "unless it looks safe" would have been a worse trade at any
+    speedup.

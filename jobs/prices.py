@@ -17,6 +17,8 @@ Run: python jobs/prices.py
 
 from __future__ import annotations
 
+import contextlib
+import os
 import re
 import sys
 import time
@@ -30,7 +32,8 @@ warnings.filterwarnings("ignore")
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from nbt import SNAPSHOTS, Link, db, get_json, get, rows, step  # noqa: E402
-from runlog import parse_chunk, slice_of  # noqa: E402
+from runlog import chunk_label, chunk_run, parse_chunk, slice_of  # noqa: E402
+import breaker  # noqa: E402
 
 try:
     from dotenv import load_dotenv
@@ -1902,6 +1905,52 @@ def fail_on_silent(silent: list[str]) -> None:
     raise SystemExit(1)
 
 
+@contextlib.contextmanager
+def lane(cur, job: str, source: str, chunk: str):
+    """One source's slice: ask the breaker, then log the slice whichever way it went.
+
+    Yields a `Slice` to fill in, or **None when the breaker is open**, which is why every caller
+    tests it. A context manager cannot decline to run its own body, so the alternative shapes
+    were an exception the caller has to catch -- adding a second control path to a lane that
+    already has one for `SourceSilent` -- or a boolean returned beside the record, which is the
+    same test written less visibly. `if run is not None` reads as what it is: this source is not
+    being asked right now.
+
+    A skipped lane still writes its row. The freshness panel's whole premise is that "did the
+    data arrive" is answered by a table rather than by reading a log, and a lane that silently
+    does nothing is indistinguishable from one that never ran -- which is the confusion
+    `ChunkRun` exists to end. It is written with status `skipped` so the breaker does not read
+    its own footprint as further evidence.
+
+    Exceptions pass straight through, unchanged and unswallowed. `chunk_run` writes the failed
+    row on the way out and re-raises, so `SourceSilent` still reaches the handler in `main` that
+    keeps the other lanes' rows, and a real error still turns the step red. Recording a failure
+    is not handling it.
+    """
+    gate = breaker.breaker_for(cur, source)
+    if not gate.may_fetch:
+        print(f"  [breaker] {source} is open: {gate.reason}")
+        runlog_write_skip(job, source, chunk, gate.reason)
+        yield None
+        return
+    if gate.state == breaker.HALF_OPEN:
+        print(f"  [breaker] {source} is half-open: {gate.reason}")
+    with chunk_run(job=job, source=source, chunk=chunk) as run:
+        yield run
+
+
+def runlog_write_skip(job: str, source: str, chunk: str, reason: str) -> None:
+    """The row for a slice that was not asked for. Its own call rather than a `chunk_run`
+    with an immediately-set status, because nothing was timed and a duration of 0ms on a slice
+    that ran for 0ms is the one honest number here."""
+    from runlog import write as _write  # noqa: PLC0415 - kept beside its only use
+
+    _write(
+        job=job, source=source, chunk=chunk, rows_written=0, asked=0, newest=None,
+        status="skipped", note=f"not asked: {reason}", duration_ms=0,
+    )
+
+
 def main() -> None:
     conn = db()
     # `--chunk 2/4` means "the second of four slices of this lane's work". The runner passes it
@@ -1924,6 +1973,11 @@ def main() -> None:
         del argv[at:at + 2]
 
     todo = set(argv) or {"yahoo", "crypto", "news"}
+    # The workflow's own name when there is one, so a `ChunkRun` row says which lane wrote it:
+    # the same source is fetched by `cron-us-prices`, `refresh` and a local run, and "which lane
+    # is failing" is the question the table is grouped by. Falls back to the script's name,
+    # which is what a local run is.
+    job = os.environ.get("GITHUB_WORKFLOW") or "prices"
     silent: list[str] = []
     cur = conn.cursor()
     try:
@@ -1936,18 +1990,32 @@ def main() -> None:
         # 323rd name. Under the old `with conn:` that drop did not just stop the news lane: it
         # rolled back every price row the same process had already fetched, because all three
         # lanes shared one transaction. Each lane now lands on its own.
+        label = chunk_label(*chunk) if chunk else "1/1"
+
         if "yahoo" in todo:
             try:
-                n1 = fetch_yahoo(cur, chunk=chunk)
-                step("yahoo total")
-                print(f"  {n1} price rows")
+                with lane(cur, job, YAHOO, label) as run:
+                    if run is not None:
+                        n1 = fetch_yahoo(cur, chunk=chunk)
+                        run.rows_written = n1
+                        # The sentence the lane already prints, stored so the freshness panel
+                        # reads the same line a human reading the log would. Without it the
+                        # fallback note says "from 0 asked", which is true of a field nothing
+                        # sets and tells a reader nothing about the fetch.
+                        run.note = f"{n1} price rows from Yahoo for slice {label}"
+                        step("yahoo total")
+                        print(f"  {n1} price rows")
             except SourceSilent as e:
                 silent.append(str(e))
             conn.commit()
         if "crypto" in todo:
             try:
-                n2 = fetch_crypto(cur)
-                print(f"  {n2} crypto price rows")
+                with lane(cur, job, BINANCE, label) as run:
+                    if run is not None:
+                        n2 = fetch_crypto(cur)
+                        run.rows_written = n2
+                        run.note = f"{n2} crypto price rows from the venue chain"
+                        print(f"  {n2} crypto price rows")
             except SourceSilent as e:
                 silent.append(str(e))
             conn.commit()
@@ -1956,8 +2024,16 @@ def main() -> None:
             # connection is idle throughout and may well be dead by the time it returns.
             conn.commit()
             try:
-                n3 = fetch_news(cur, chunk=chunk)
-                print(f"  {n3} news rows written")
+                with lane(cur, job, GNEWS, label) as run:
+                    if run is not None:
+                        n3 = fetch_news(cur, chunk=chunk)
+                        run.rows_written = n3
+                        # Zero is legitimate here and is not an empty answer: a rerun inside the
+                        # cache hour writes nothing because the stories are already stored. The
+                        # news lane's own guard counts feeds that parsed, which is the number
+                        # that distinguishes a quiet hour from a dead feed -- see rule 31.
+                        run.note = f"{n3} news rows written for slice {label}"
+                        print(f"  {n3} news rows written")
             except SourceSilent as e:
                 silent.append(str(e))
 

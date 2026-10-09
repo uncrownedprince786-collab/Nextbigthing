@@ -3683,17 +3683,61 @@ class ReaderCanAskWhy(unittest.TestCase):
         self.assertEqual(len(set(labels)), 4, f"two coverage states share a label: {labels}")
 
 
+# The web layer's raw-SQL rule, in one place because two tests assert it.
+#
+# **The rule was "no raw SQL at all" and is now "no raw SQL that can carry a value".** That is a
+# narrowing of the letter and not of the property. What both tests were protecting is stated in
+# their own comments: dynamic route params reach the database through Prisma, which parameterises,
+# and "a single $queryRawUnsafe here is the only way a path segment could reach the database as
+# code". A tagged `$queryRaw` with no `${...}` in it cannot carry a path segment, or anything
+# else -- it is a constant string.
+#
+# The three unsafe forms stay banned outright and unconditionally, because they concatenate:
+# `$queryRawUnsafe`, `$executeRawUnsafe`, and `$executeRaw` (which writes, and nothing in the web
+# layer may write at all).
+#
+# What bought the narrowing: `getDecisionRows` read the newest close per asset with
+# `groupBy({ by: ["assetId"], _max: { date: true } })`, which Postgres plans as a parallel
+# sequential scan of all 628,675 stored closes -- 13,061 buffers, 209 ms -- on every render of
+# every list page, against a metered endpoint. A lateral probe does it in 1,921 buffers and 3.2
+# ms, and Prisma cannot express a lateral join. An index was built and measured first and the
+# planner did not use it.
+#
+# The check is mechanical rather than a judgement at the call site, which is the only reason this
+# is an acceptable trade: an interpolated `$queryRaw` fails here exactly as a `$queryRawUnsafe`
+# does, so nothing is left to a reviewer noticing.
+RAW_SQL_BANNED = ("$queryRawUnsafe", "$executeRawUnsafe", "$executeRaw")
+
+
+def raw_sql_offenders() -> list[str]:
+    """Every web-layer file that could let a value reach the database as SQL."""
+    out: list[str] = []
+    for d in ("lib", "app", "components"):
+        for path in sorted((ROOT / d).rglob("*.ts*")):
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            for banned in RAW_SQL_BANNED:
+                if banned in text:
+                    out.append(f"{path.relative_to(ROOT)}: {banned}")
+            # `$queryRaw` is allowed only as a constant. Each occurrence is read to the end of
+            # its template literal and refused if anything is interpolated into it.
+            at = text.find("$queryRaw")
+            while at != -1:
+                tick = text.find("`", at)
+                if tick != -1:
+                    close = text.find("`", tick + 1)
+                    body = text[tick + 1 : close if close != -1 else len(text)]
+                    if "${" in body:
+                        out.append(f"{path.relative_to(ROOT)}: $queryRaw interpolates a value")
+                at = text.find("$queryRaw", at + 1)
+    return out
+
+
 class WebSafety(unittest.TestCase):
     """The web layer's attack surface, which is small on purpose and should stay that way."""
 
     def test_the_web_layer_runs_no_raw_sql(self):
-        # Dynamic route params reach the database through Prisma, which parameterises. A raw
-        # query would be the first place a path segment could become SQL.
-        for d in ("lib", "app", "components"):
-            for path in (ROOT / d).rglob("*.ts*"):
-                text = path.read_text(encoding="utf-8", errors="ignore")
-                for bad in ("$queryRaw", "$executeRaw", "queryRawUnsafe"):
-                    self.assertNotIn(bad, text, f"{path.name} runs raw SQL")
+        """No value may reach the database as code. See `raw_sql_offenders` for what changed."""
+        self.assertEqual(raw_sql_offenders(), [], "; ".join(raw_sql_offenders()))
 
     def test_a_scraped_link_cannot_change_the_host_it_points_at(self):
         # The one place remote content shapes a URL. The capture must start with a single
@@ -3756,6 +3800,13 @@ class QueryBudget(unittest.TestCase):
         "prices.py": 7, "psx.py": 2, "rank.py": 3, "retention.py": 5, "seed.py": 5,
         "setup.py": 0,
         "signals.py": 12, "stats.py": 2, "thesis.py": 0, "upcoming.py": 3,
+        # tools/, measured 2026-10-10 when the scan was widened to cover it. These are one-off
+        # reports run by hand rather than lanes on a schedule, so a per-row read costs a person
+        # waiting rather than a nightly budget -- which is why they are recorded at what they do
+        # instead of being rewritten on sight. `scorecard.py` is 0 because it was the one that
+        # mattered: it runs over a log that grows every day, and it was rewritten.
+        "future_rows.py": 2, "intraday_chain.py": 6, "rederive.py": 4, "row_counts.py": 1,
+        "scorecard.py": 0, "acceptance.py": 0, "candidates.py": 0, "price_freshness.py": 0,
     }
 
     # A query reached through a helper costs the same round trip as one written inline. The
@@ -3813,12 +3864,26 @@ class QueryBudget(unittest.TestCase):
 
     def test_no_job_issues_more_queries_inside_a_loop_than_it_did(self):
         grew = []
-        for path in sorted((ROOT / "jobs").glob("*.py")):
+        for path in self.scanned():
             n = self.in_loop_calls(path)
             allowed = self.BASELINE.get(path.name, 0)
             if n > allowed:
                 grew.append(f"{path.name}: {n} in-loop queries, baseline {allowed}")
         self.assertEqual(grew, [], "; ".join(grew))
+
+    @staticmethod
+    def scanned():
+        """Every file the ratchet watches: `jobs/` and `tools/`.
+
+        **`tools/` was outside it, and that is how `tools/scorecard.py` came to issue one query
+        per scored row under a comment reading "one query for the whole set".** The pass that
+        rewrote eleven jobs for exactly this fault could not see it, because the scan stopped at
+        `jobs/`. A directory excluded from a ratchet is a directory where the thing the ratchet
+        prevents is free to happen, and the cost there grew with the length of the decision log
+        rather than with the size of the universe -- a report that gets slower every day it is
+        kept.
+        """
+        return sorted((ROOT / "jobs").glob("*.py")) + sorted((ROOT / "tools").glob("*.py"))
 
     def test_the_counter_still_counts(self):
         # A ratchet that measures zero everywhere would pass forever.
@@ -3830,9 +3895,7 @@ class QueryBudget(unittest.TestCase):
         # somewhere still reads inside a loop, and several legitimately do. `signals.py` and
         # `audit.py` are the current largest, and neither is a fault -- a per-product fetch has
         # to ask per product.
-        most = max(
-            self.in_loop_calls(p) for p in sorted((ROOT / "jobs").glob("*.py"))
-        )
+        most = max(self.in_loop_calls(p) for p in self.scanned())
         self.assertGreaterEqual(most, 5, "the in-loop counter has stopped finding anything")
 
 
@@ -4148,13 +4211,7 @@ class SqlSafety(unittest.TestCase):
     def test_the_web_layer_never_runs_raw_sql(self):
         # The user-input surface must stay entirely on Prisma's parameterised client. A single
         # $queryRawUnsafe here is the only way a path segment could reach the database as code.
-        offenders = []
-        for p in self._web_files():
-            text = p.read_text(encoding="utf-8")
-            for needle in ("$queryRaw", "$executeRaw", "queryRawUnsafe", "executeRawUnsafe"):
-                if needle in text:
-                    offenders.append(f"{p.relative_to(ROOT)}: {needle}")
-        self.assertEqual(offenders, [], "; ".join(offenders))
+        self.assertEqual(raw_sql_offenders(), [], "; ".join(raw_sql_offenders()))
 
     def test_no_sql_statement_is_assembled_in_the_web_layer(self):
         import re
@@ -5136,6 +5193,1219 @@ class PriceFactors(unittest.TestCase):
         # loop that calls it is over slices of the payload, so the count rises with the batch
         # size and not with the asset count. Anything above one is a read per asset.
         self.assertEqual(QueryBudget.in_loop_calls(ROOT / "jobs" / "factors.py"), 1)
+
+
+class EntryTriggers(unittest.TestCase):
+    """The fifth confirmation: did an entry rule fire on this session, and which way?
+
+    brain.md rule 54 measured four candidate entry rules against the moving-average stack and
+    kept the two that beat it -- not as a replacement for the stack, which would have cut the
+    pool from 467 directions to a few dozen, but as a fifth confirmation and a marker saying the
+    direction was caught at its start.
+
+    What these tests guard, in the order of how much is lost when one breaks:
+
+      * **the rule-46 distinction.** Compression as a standing state is followed by *smaller*
+        moves. These rules fire on the expansion bar OUT of a compression, which is a different
+        event, and a quiet asset that stays quiet must never fire one.
+      * **the window means what it claims.** A dispersion over nine returns labelled as twenty is
+        the mislabelling every null in jobs/factors.py exists to prevent.
+      * **the baseline cannot contain the bar it judges**, or every expansion reads as ordinary.
+    """
+
+    @staticmethod
+    def factors():
+        import factors
+        return factors
+
+    @staticmethod
+    def series(returns, start=100.0):
+        """Closes built from a list of percent returns, oldest first.
+
+        Built from returns rather than written out, because every property under test here is
+        about the spread of the returns, and a hand-written list of closes hides it.
+        """
+        closes = [start]
+        for r in returns:
+            closes.append(closes[-1] * (1 + r / 100.0))
+        return closes
+
+    # 100 alternating 2% sessions, then 19 at a tenth of that. The quiet stretch is the
+    # compression; what follows it in each test is the bar being judged.
+    NOISY = [2.0, -2.0] * 50
+    QUIET = [0.1, -0.1] * 9 + [0.1]
+
+    # --- dispersion -------------------------------------------------------------------------
+
+    def test_dispersion_is_a_spread_and_refuses_a_sample_too_small_to_have_one(self):
+        f = self.factors()
+        self.assertEqual(f.dispersion([1.0, 1.0, 1.0]), 0.0)
+        self.assertAlmostEqual(f.dispersion([1.0, 2.0, 3.0]), (2.0 / 3.0) ** 0.5, places=9)
+        # Two numbers have a gap between them, not a spread.
+        self.assertIsNone(f.dispersion([1.0, 2.0]))
+        self.assertIsNone(f.dispersion([]))
+
+    def test_dispersion_keeps_the_outlier_the_robust_score_throws_away(self):
+        """The two statistics in this file answer different questions, deliberately.
+
+        `robust_z` asks whether one observation is unusual, and must not let an outlier widen the
+        history it is judged against. This asks how wide the window itself was, and a fortnight
+        containing one 9% session was not a quiet fortnight.
+        """
+        f = self.factors()
+        calm = [0.1] * 20
+        shocked = [0.1] * 19 + [9.0]
+        self.assertEqual(f.dispersion(calm), 0.0)
+        self.assertGreater(f.dispersion(shocked), 1.0)
+
+    # --- the squeeze break ------------------------------------------------------------------
+
+    def test_an_expansion_out_of_a_compression_fires_both_ways(self):
+        f = self.factors()
+        self.assertEqual(f.squeeze_break(self.series(self.NOISY + self.QUIET + [5.0])), "up")
+        self.assertEqual(f.squeeze_break(self.series(self.NOISY + self.QUIET + [-5.0])), "down")
+
+    def test_a_quiet_asset_that_stays_quiet_never_fires(self):
+        """Rule 46, kept. Compression on its own is followed by smaller moves, not larger ones,
+        and this rule must not quietly turn it into a signal."""
+        f = self.factors()
+        self.assertIsNone(f.squeeze_break(self.series(self.NOISY + self.QUIET + [0.1])))
+
+    def test_a_big_move_out_of_an_already_loud_stretch_is_not_a_squeeze_break(self):
+        """The other half of the same distinction: there has to be a narrow base to break out of."""
+        f = self.factors()
+        loud = self.NOISY + [2.0, -2.0] * 10 + [5.0]
+        self.assertIsNone(f.squeeze_break(self.series(loud)))
+
+    def test_the_move_has_to_clear_the_dispersion_it_broke_out_of(self):
+        f = self.factors()
+        # The window's own dispersion is about a tenth of a point, so SQUEEZE_BREAKS_AT puts the
+        # bar near 0.15. A move of 0.12 is above every session in the compression and is still
+        # not an expansion out of it.
+        self.assertIsNone(f.squeeze_break(self.series(self.NOISY + self.QUIET + [0.12])))
+        self.assertEqual(f.squeeze_break(self.series(self.NOISY + self.QUIET + [1.0])), "up")
+
+    def test_a_history_too_short_to_judge_compression_against_is_null(self):
+        """A name with 50 closes is not uncompressed. It is unmeasured, and says so."""
+        f = self.factors()
+        self.assertIsNone(f.squeeze_break(self.series(self.NOISY[:30] + [5.0])))
+        self.assertIsNone(f.squeeze_break([100.0] * 5))
+        self.assertIsNone(f.squeeze_break([]))
+
+    def test_a_flat_series_has_no_dispersion_to_break_out_of(self):
+        """Dispersion 0 is a divisor. A halted name must not fire on its first tick back."""
+        f = self.factors()
+        self.assertIsNone(f.squeeze_break([100.0] * 200))
+
+    def test_the_baseline_does_not_contain_the_window_it_judges(self):
+        """The one property whose loss would be invisible: every expansion would read ordinary.
+
+        If the history overlapped the current window, the breakout bar would sit inside its own
+        baseline and the share of history at or below it would rise past the quiet threshold.
+        The arithmetic is read out of the source because the failure has no other symptom -- the
+        rule would simply stop firing, which looks exactly like a market with no squeezes in it.
+        """
+        f = self.factors()
+        src = (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8")
+        body = src[src.index("def squeeze_break("):src.index("def volume_flip(")]
+        self.assertIn("last_end = len(rets) - SQUEEZE_WINDOW", body)
+        self.assertIn("rets[end - SQUEEZE_WINDOW : end]", body)
+        self.assertIn("last_end + 1", body)
+        self.assertIsNotNone(f.squeeze_break)
+
+    # --- the volume flip --------------------------------------------------------------------
+
+    def test_momentum_turning_on_a_busy_session_fires_both_ways(self):
+        f = self.factors()
+        self.assertEqual(f.volume_flip([100.0] * 6 + [105.0], 1.5), "up")
+        self.assertEqual(f.volume_flip([100.0] * 6 + [95.0], 1.5), "down")
+
+    def test_a_turn_on_an_ordinary_session_is_not_a_flip(self):
+        f = self.factors()
+        rising = [100.0] * 6 + [105.0]
+        self.assertEqual(f.volume_flip(rising, 1.2), "up")
+        self.assertIsNone(f.volume_flip(rising, 1.19))
+        # No volume published at all, which is the standing state of every currency pair. The
+        # rule cannot be judged there rather than failing there.
+        self.assertIsNone(f.volume_flip(rising, None))
+
+    def test_momentum_that_was_already_going_this_way_has_not_turned(self):
+        f = self.factors()
+        self.assertIsNone(f.volume_flip([100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0], 2.0))
+
+    def test_too_few_closes_to_measure_the_span_is_null(self):
+        f = self.factors()
+        self.assertIsNone(f.volume_flip([100.0] * 5 + [105.0], 2.0))
+
+    def test_the_flip_boundary_is_out_of_flat_and_not_out_of_rising(self):
+        """`> 0 >=` and not `> 0 >`: exactly zero is the honest edge of 'was not going this way'."""
+        src = (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8")
+        body = src[src.index("def volume_flip("):src.index("def entry_trigger(")]
+        self.assertIn("now > 0 >= prior", body)
+        self.assertIn("now < 0 <= prior", body)
+
+    # --- which one is reported --------------------------------------------------------------
+
+    def test_the_better_measured_rule_is_the_one_the_card_names(self):
+        """Both fire on this series, and `squeeze_break` is the one carried through.
+
+        Not an arbitrary tie-break: it measured better, 0.153R against 0.146R, and it is the one
+        a reader cannot reconstruct from the other stored factors -- a flip is `r5` and
+        `volumeRatio` side by side, and nothing on the page says how wide the last fortnight was
+        against its own history.
+        """
+        f = self.factors()
+        both = self.series(self.NOISY + [0.0] * 19 + [5.0])
+        self.assertEqual(f.squeeze_break(both), "up")
+        self.assertEqual(f.volume_flip(both, 1.5), "up")
+        self.assertEqual(f.entry_trigger(both, 1.5), ("squeeze_break", "up"))
+
+    def test_neither_firing_is_a_pair_of_nulls_and_never_an_exception(self):
+        f = self.factors()
+        quiet = self.series(self.NOISY + self.QUIET + [0.1])
+        self.assertEqual(f.entry_trigger(quiet, 1.5), (None, None))
+        self.assertEqual(f.entry_trigger([], None), (None, None))
+        self.assertEqual(f.entry_trigger([100.0], None), (None, None))
+
+    def test_the_trigger_reads_the_stored_volume_ratio_rather_than_taking_its_own(self):
+        """One definition of "busy" per repository.
+
+        The backtest used a mean-based ratio because that was cheap inside a sweep; the stored
+        one is median-based and splits weekend sessions from weekday ones. The live rule uses the
+        stored one, which makes it a near neighbour of the measured rule rather than the measured
+        rule itself -- a difference FLIP_VOLUME_AT states in full, and this pins to the call site.
+        """
+        src = (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8")
+        body = src[src.index("def compute("):src.index("def event_in_days(")]
+        self.assertIn('entry_trigger(closes, out["volumeRatio"])', body)
+
+    # --- the row it is written into -----------------------------------------------------------
+
+    def test_compute_reports_the_pair_on_every_row(self):
+        f = self.factors()
+        closes = self.series(self.NOISY + self.QUIET + [5.0])
+        bars = [
+            {"date": date(2026, 1, 5) + timedelta(days=i), "close": c, "volume": 1000.0}
+            for i, c in enumerate(closes)
+        ]
+        got = f.compute(bars, bars[-1]["date"])
+        self.assertEqual(got["entryTrigger"], "squeeze_break")
+        self.assertEqual(got["triggerDirection"], "up")
+        # Both keys exist whether or not a rule fired, so a payload built from this dict cannot
+        # lose a column on a quiet day.
+        quiet = f.compute(bars[:-1], bars[-2]["date"])
+        self.assertIn("entryTrigger", quiet)
+        self.assertIn("triggerDirection", quiet)
+
+    def test_the_trigger_obeys_the_cutoff_like_every_other_factor(self):
+        """A row dated D computed from a close after D is the one bug in this file that would
+        corrupt every published hit rate while leaving the rows looking perfect."""
+        f = self.factors()
+        closes = self.series(self.NOISY + self.QUIET + [5.0, 0.1, 0.1, 0.1])
+        bars = [
+            {"date": date(2026, 1, 5) + timedelta(days=i), "close": c, "volume": 1000.0}
+            for i, c in enumerate(closes)
+        ]
+        at = len(closes) - 4
+        with_future = f.compute(bars, bars[at]["date"])
+        without_future = f.compute(bars[: at + 1], bars[at]["date"])
+        self.assertEqual(with_future["entryTrigger"], without_future["entryTrigger"])
+        self.assertEqual(with_future["triggerDirection"], without_future["triggerDirection"])
+        self.assertEqual(with_future["entryTrigger"], "squeeze_break")
+
+    def test_the_insert_binds_exactly_the_columns_it_names(self):
+        """The fault that broke `fetch_crypto` for a week, guarded on the file it would break next.
+
+        `insert_snapshots` gained three columns and one of its two callers was not updated, so six
+        fields reached a nine-name unpack and every crypto insert raised for seven days. The same
+        shape is here: a column list, a row of placeholders, and a tuple built two hundred lines
+        away. Nothing checks that the three agree until a row is written, and this job writes rows
+        only against a live database -- which is exactly when it is least affordable to find out.
+        """
+        src = (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8")
+        body = src[src.index("def flush("):src.index("def session_end(")]
+        columns = body[body.index('INSERT INTO "AssetFactor" ('):body.index("VALUES (")]
+        named = columns.count(",") + 1
+        placeholders = body[body.index("VALUES ("):body.index("ON CONFLICT")].count("%s")
+        # One column more than there are placeholders, and it is "computedAt", bound to now().
+        self.assertEqual(named, placeholders + 1)
+        self.assertIn('"computedAt")', columns)
+
+    def test_every_column_the_insert_names_is_also_updated_on_conflict(self):
+        """A rerun has to update what it inserts, or the newest session keeps a stale reading.
+
+        The nightly lane rewrites the current session on every run. A column present in the
+        INSERT and absent from the DO UPDATE would be written once by the first run of the day
+        and then frozen, which on this table means a trigger that fired at lunchtime still
+        reading as fired after the close reversed it.
+        """
+        src = (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8")
+        body = src[src.index("def flush("):src.index("def session_end(")]
+        columns = body[body.index('INSERT INTO "AssetFactor" ('):body.index("VALUES (")]
+        update = body[body.index("DO UPDATE SET"):body.index("conn.commit()")]
+        for name in ("entryTrigger", "triggerDirection", "volumeRatio", "relStrength", "r20"):
+            self.assertIn(name, columns, name + " is not inserted")
+            self.assertIn("EXCLUDED." + ('"' + name + '"' if name != "r20" else "r20"), update,
+                          name + " is inserted and never updated on conflict")
+
+
+class ScorecardDegrades(unittest.TestCase):
+    """The scorer, against the states a half-written log actually holds.
+
+    `tools/scorecard.py` is the module that says whether the site's own readings were any good,
+    which makes a quiet mislabelling here worse than an exception: it publishes a number nobody
+    can see is wrong. Every function it scores with is pure, so every one of these cases is a
+    list and a word.
+
+    The three it would be worst to get wrong, in order:
+
+      * **"not yet known" is never "wrong".** The same conflation this site spent a session
+        removing from WAIT, and the one a scorer reaches for by default.
+      * **a stop beats the move.** A position taken out at its stop did not get to find out
+        where the price finished, and scoring it on the move credits a trade the stated plan had
+        already closed.
+      * **an unanswerable question is not a pass.** No stop stored, or no closes in the window,
+        must not score as a stop that held.
+    """
+
+    @staticmethod
+    def scorecard():
+        import importlib.util
+
+        path = ROOT / "tools" / "scorecard.py"
+        spec = importlib.util.spec_from_file_location("nbt_scorecard", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_the_window_excludes_the_session_the_decision_was_taken_on(self):
+        """The entry close cannot also be the close that stopped it out."""
+        sc = self.scorecard()
+        series = [
+            (date(2026, 6, 1), 100.0),
+            (date(2026, 6, 2), 90.0),
+            (date(2026, 6, 3), 110.0),
+            (date(2026, 6, 4), 500.0),
+        ]
+        lo, hi = sc.band_in(series, date(2026, 6, 1), date(2026, 6, 3))
+        self.assertEqual((lo, hi), (90.0, 110.0))
+        # Half open on the left, closed on the right: 6-1 is the entry and 6-4 is outside.
+        self.assertEqual(sc.band_in(series, date(2026, 6, 3), date(2026, 6, 3)), (None, None))
+
+    def test_the_window_is_read_from_an_unordered_series(self):
+        """The bulk read returns rows grouped by asset, not sorted per window."""
+        sc = self.scorecard()
+        series = [
+            (date(2026, 6, 3), 110.0),
+            (date(2026, 6, 2), 90.0),
+            (date(2026, 6, 4), 95.0),
+        ]
+        self.assertEqual(sc.band_in(series, date(2026, 6, 1), date(2026, 6, 4)), (90.0, 110.0))
+
+    def test_a_window_with_nothing_in_it_is_two_nulls(self):
+        sc = self.scorecard()
+        self.assertEqual(sc.band_in([], date(2026, 6, 1), date(2026, 6, 9)), (None, None))
+        self.assertEqual(sc.band_in([(date(2026, 6, 2), None)], date(2026, 6, 1), date(2026, 6, 9)),
+                         (None, None))
+        # A row whose maturation date was never written. Asking for a band from it is not a
+        # question that can be answered, and a date comparison against None would raise.
+        self.assertEqual(sc.band_in([(date(2026, 6, 2), 5.0)], date(2026, 6, 1), None), (None, None))
+        self.assertEqual(sc.band_in([(date(2026, 6, 2), 5.0)], None, date(2026, 6, 9)), (None, None))
+
+    def test_a_stop_is_hit_on_the_side_the_direction_is_exposed_to(self):
+        sc = self.scorecard()
+        self.assertTrue(sc.stop_was_hit("LONG", 94.0, 93.0, 120.0))
+        self.assertFalse(sc.stop_was_hit("LONG", 94.0, 95.0, 120.0))
+        self.assertTrue(sc.stop_was_hit("SHORT", 106.0, 80.0, 107.0))
+        self.assertFalse(sc.stop_was_hit("SHORT", 106.0, 80.0, 105.0))
+        # Exactly at the level counts as hit, on both sides. A stop is the level at which the
+        # reason has stopped being true, and "it only just touched it" is not a measurement.
+        self.assertTrue(sc.stop_was_hit("LONG", 94.0, 94.0, 120.0))
+        self.assertTrue(sc.stop_was_hit("SHORT", 106.0, 80.0, 106.0))
+
+    def test_an_unanswerable_stop_is_false_and_never_an_exception(self):
+        sc = self.scorecard()
+        for args in (
+            ("LONG", None, 90.0, 110.0),
+            ("LONG", 94.0, None, None),
+            ("SHORT", 106.0, None, 110.0),
+            ("WAIT", 94.0, 90.0, 110.0),
+            ("", 94.0, 90.0, 110.0),
+        ):
+            self.assertFalse(sc.stop_was_hit(*args), args)
+
+    def test_a_stop_beats_the_move_that_followed_it(self):
+        sc = self.scorecard()
+        # Up 8% at the end of the window and stopped out on the way: the plan was closed before
+        # the 8% happened, and scoring it right would credit a trade nobody was still in.
+        self.assertEqual(sc.verdict_of("LONG", 8.0, True), "stopped")
+        self.assertEqual(sc.verdict_of("SHORT", -8.0, True), "stopped")
+
+    def test_an_unmeasured_move_is_not_a_miss(self):
+        sc = self.scorecard()
+        self.assertIsNone(sc.verdict_of("LONG", None, False))
+        self.assertIsNone(sc.verdict_of("SHORT", None, False))
+        # And a stop that was hit is still a verdict, because that much IS known.
+        self.assertEqual(sc.verdict_of("LONG", None, True), "stopped")
+
+    def test_a_flat_move_is_its_own_word(self):
+        """Exactly zero went neither way. Folding it into "wrong" would overstate the miss rate
+        and folding it into "right" would overstate the hit rate."""
+        sc = self.scorecard()
+        self.assertEqual(sc.verdict_of("LONG", 0.0, False), "flat")
+        self.assertEqual(sc.verdict_of("SHORT", 0, False), "flat")
+
+    def test_the_direction_is_scored_against_the_sign_of_the_move(self):
+        sc = self.scorecard()
+        self.assertEqual(sc.verdict_of("LONG", 3.0, False), "right")
+        self.assertEqual(sc.verdict_of("LONG", -3.0, False), "wrong")
+        self.assertEqual(sc.verdict_of("SHORT", -3.0, False), "right")
+        self.assertEqual(sc.verdict_of("SHORT", 3.0, False), "wrong")
+
+    def test_the_stop_check_is_one_statement_and_not_one_per_row(self):
+        """The comment claimed this for weeks while the code under it did the opposite.
+
+        It was a round trip per scored row against a free tier endpoint, so the cost grew with
+        the length of the log rather than with the size of the universe -- a scorecard that gets
+        slower every day it is kept. `tools/` sits outside the QueryBudget baseline, which is how
+        it survived the pass that rewrote eleven jobs for exactly this.
+        """
+        self.assertEqual(QueryBudget.in_loop_calls(ROOT / "tools" / "scorecard.py"), 0)
+
+    def test_the_scorer_writes_nothing(self):
+        """Derived on demand, so there is no second copy of the truth to drift."""
+        src = (ROOT / "tools" / "scorecard.py").read_text(encoding="utf-8")
+        for write in ("INSERT ", "UPDATE ", "DELETE ", "conn.commit("):
+            self.assertNotIn(write, src.upper() if write.isupper() else src)
+
+
+class DecisionLaneConcurrency(unittest.TestCase):
+    """What stops two writers, or two runs, from disagreeing about one session.
+
+    The lanes are deliberately many small workflows rather than one monolith, and the price of
+    that shape is that "did anything race" stops being answerable by looking at a single run.
+    These are the four properties that make the shape safe, each asserted against the file that
+    provides it.
+    """
+
+    @staticmethod
+    def workflows():
+        """Every workflow file as raw text.
+
+        Read as text rather than parsed, for the reason every other workflow test in this file
+        is: PyYAML is not in `requirements.txt`, and `requirements.txt` is the Python the data
+        jobs need. Adding a parser to the production dependency list so a test can read a YAML
+        key would be paying for a convenience in the wrong place.
+        """
+        return {
+            path.name: path.read_text(encoding="utf-8")
+            for path in sorted((ROOT / ".github" / "workflows").glob("*.yml"))
+        }
+
+    def test_every_lane_holds_its_own_queue_and_cannot_be_cancelled_by_another(self):
+        """One group per lane, and no lane cancels in progress.
+
+        Sharing a group once deadlocked the thing that mattered most: a geo backfill hung on
+        rate-limit retries held `nbt-database` for ninety minutes while the migration the
+        deployed site needed sat queued behind it. And `cancel-in-progress: true` on a data lane
+        would let a later run kill a writer mid-transaction.
+        """
+        groups: dict[str, list[str]] = {}
+        for name, text in self.workflows().items():
+            found = None
+            lines = text.splitlines()
+            for i, line in enumerate(lines):
+                if line.strip() == "concurrency:" and not line.startswith(" "):
+                    block = dict(
+                        part.split(":", 1)
+                        for part in (ln.strip() for ln in lines[i + 1 : i + 3])
+                        if ":" in part
+                    )
+                    found = (block.get("group", "").strip(),
+                             block.get("cancel-in-progress", "").strip())
+                    break
+            if found is None:
+                # tests.yml deliberately has none: no database, no secrets, nothing to
+                # serialise, and it must never be able to block the data lane.
+                self.assertNotIn("concurrency:", text, f"{name} declares one this cannot read")
+                self.assertEqual(name, "tests.yml", f"{name} has no concurrency group")
+                continue
+            group, cancels = found
+            self.assertEqual(cancels, "false", f"{name} can be cancelled in progress")
+            groups.setdefault(group, []).append(name)
+
+        # The decision lane's group is its own, which is a correctness property and not a
+        # convenience: GitHub keeps one pending run per group, so sharing with an ingest lane
+        # would let a source fetch cancel the one output the site is built around.
+        self.assertEqual(groups["nbt-decision"], ["cron-decision.yml"])
+        # refresh and backfill share `nbt-database` on purpose -- both write through the same
+        # tables on a long schedule and must not interleave.
+        self.assertEqual(sorted(groups["nbt-database"]), ["backfill.yml", "refresh.yml"])
+        # Every other lane is alone in its group.
+        for group, lanes in groups.items():
+            if group != "nbt-database":
+                self.assertEqual(len(lanes), 1, f"{group} is shared by {lanes}")
+
+    def test_the_decision_is_written_even_when_its_inputs_fail(self):
+        """Two jobs and not one, because `timeout-minutes` kills the job and not the step.
+
+        These used to be two steps with `if: always()` on the second. That net never caught
+        anything: on 2026-10-04 and again on 2026-10-05 the derivation hit 1197s, the runner was
+        cancelled, and the decide step was skipped rather than run. A session with no row is a
+        hole a later hit rate cannot tell apart from a session nothing was decided on.
+        """
+        text = self.workflows()["cron-decision.yml"]
+        decide = text.split(chr(10) + "  decide:" + chr(10), 1)[1]
+        self.assertIn("needs: derive", decide)
+        self.assertIn("if: always()", decide)
+        # Each on its own runner with its own budget, which is the whole of why it survives.
+        self.assertEqual(text.count("runs-on: ubuntu-latest"), 2)
+        self.assertEqual(text.count("timeout-minutes:"), 2)
+
+    def test_one_job_writes_each_of_the_two_tables_the_decision_rests_on(self):
+        """A single writer is what makes the upserts enough.
+
+        Two lanes writing one table would still be safe row by row -- every statement here is an
+        ON CONFLICT upsert -- but they could disagree about which session is current, and a
+        reader cannot tell a stale row from a fresh one by looking at it.
+        """
+        writers = {"AssetFactor": set(), "DecisionLog": set()}
+        for path in [*(ROOT / "jobs").glob("*.py"), *(ROOT / "tools").glob("*.py"),
+                     *(ROOT / "tools").glob("*.mjs")]:
+            src = path.read_text(encoding="utf-8")
+            for table in writers:
+                if f'INSERT INTO "{table}"' in src or f'UPDATE "{table}"' in src:
+                    writers[table].add(path.name)
+        self.assertEqual(writers["AssetFactor"], {"factors.py"})
+        self.assertEqual(writers["DecisionLog"], {"decide.mjs"})
+
+    def test_a_rerun_re_decides_today_without_erasing_what_was_measured(self):
+        """The only column in this table that cannot be recomputed from current data.
+
+        `decide.mjs` upserts one row per asset per session, and the lane can legitimately run
+        twice in a day. If the conflict clause reset `status` or the move columns, a second run
+        would throw away the maturation the first run's row had already collected -- and the
+        accuracy loop would measure nothing while looking perfectly healthy.
+        """
+        src = (ROOT / "tools" / "decide.mjs").read_text(encoding="utf-8")
+        start = src.index('ON CONFLICT ("assetId", "periodEnd") DO UPDATE SET')
+        # Comments blanked first -- rule 59. This passed for a day and then failed the moment a
+        # comment above the clause explained the guarantee by naming `status`: the assertion was
+        # reading the prose that promised the column was absent. The guard was right and the way
+        # it was reading the file was not.
+        clause = code_only(src[start:src.index("// One batch, one transaction", start)])
+        for untouched in ("status", "move1Pct", "move5Pct", "move20Pct",
+                          "measured1On", "measured5On", "measured20On"):
+            self.assertNotIn(untouched, clause, f"a rerun overwrites {untouched}")
+        # And the verdict itself IS rewritten, or a rerun would publish yesterday's reading.
+        self.assertIn("action = EXCLUDED.action", clause)
+        self.assertIn("gate = EXCLUDED.gate", clause)
+
+    def test_the_whole_run_is_decided_on_one_date_read_once(self):
+        """A pass started at 23:59 must not date half its rows to the next day."""
+        src = (ROOT / "tools" / "decide.mjs").read_text(encoding="utf-8")
+        self.assertEqual(src.count("todayISO()"), 1, "the clock is read more than once")
+
+    def test_the_log_reads_the_same_factor_columns_the_website_does(self):
+        """The seam that already broke once, pinned on both sides.
+
+        `r20` was added to the rule table, to `lib/decisionInput.ts` and to `lib/queries.ts` on
+        2026-10-09 and never to `tools/decide.mjs`, so the nightly log decided late shorts on
+        half of `shortNeedsBacking` while the site applied all of it. In Crypto, PSX and FX --
+        the three markets whose short expectancy measured positive -- that fall was the only
+        thing standing between a late short and a printed SHORT, so the site refused those names
+        and the log recorded them as taken. A log that disagrees with the page is worse than no
+        log, because the refusal is eventually judged by it.
+        """
+        mjs = (ROOT / "tools" / "decide.mjs").read_text(encoding="utf-8")
+        for column in ("volumeRatio", "relStrength", "r20", "entryTrigger", "triggerDirection"):
+            self.assertIn(f'"{column}"', mjs, f"{column} is not selected for the nightly log")
+            self.assertIn(f"factor?.{column}", mjs, f"{column} is selected and never passed on")
+
+
+class SourceBreaker(unittest.TestCase):
+    """Stop asking a source that stopped answering, and never stop asking it for good.
+
+    The second half of that sentence is the hard half and it is what most of these tests are
+    about. A breaker is easy to open and easy to get wrong in one direction: every mistake makes
+    it open sooner, stay open longer, and eventually delete a venue that recovered hours ago. So
+    the properties guarded here are mostly about the breaker letting go.
+
+    In the order of how much is lost when one breaks:
+
+      * **the cooldown is capped.** An unbounded backoff is a permanent deletion wearing the
+        clothes of a retry policy.
+      * **the breaker does not read its own footprint.** Skips must not count as evidence, or
+        every run extends the cooldown and the first outage is the last fetch.
+      * **it never takes the lane down itself.** A resilience layer that can raise has made
+        things worse than the problem it was added for.
+      * **it substitutes nothing.** A source that did not answer reaches the reader as a source
+        that did not answer.
+    """
+
+    @staticmethod
+    def breaker():
+        import breaker
+        return breaker
+
+    @staticmethod
+    def at(**kw):
+        return datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc) - timedelta(**kw)
+
+    NOW = datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc)
+
+    def rows(self, *spec):
+        """`("failed", hours_ago)` pairs into ChunkRun-shaped rows, newest first."""
+        return [{"status": st, "startedAt": self.at(hours=h)} for st, h in spec]
+
+    # --- the cooldown ------------------------------------------------------------------------
+
+    def test_the_cooldown_is_capped_however_long_a_source_has_been_down(self):
+        """The property whose loss is a permanent deletion.
+
+        At the eleventh doubling an uncapped backoff puts the next probe a month out, and the
+        breaker has quietly stopped being a breaker. The ceiling means every source is probed at
+        least twice a day however long it has been dark, so this can only ever delay a fetch.
+        """
+        b = self.breaker()
+        for failures in (3, 10, 50, 500, 10_000):
+            self.assertLessEqual(b.cooldown_minutes(failures), b.COOLDOWN_MAX_MIN, failures)
+        # And the arithmetic does not go through 2**10000 on the way to being clamped.
+        self.assertEqual(b.cooldown_minutes(10_000), float(b.COOLDOWN_MAX_MIN))
+
+    def test_the_cooldown_starts_at_the_base_and_doubles(self):
+        b = self.breaker()
+        self.assertEqual(b.cooldown_minutes(b.OPEN_AFTER - 1), 0.0)
+        self.assertEqual(b.cooldown_minutes(b.OPEN_AFTER), float(b.COOLDOWN_BASE_MIN))
+        self.assertEqual(b.cooldown_minutes(b.OPEN_AFTER + 1), float(b.COOLDOWN_BASE_MIN * 2))
+        self.assertEqual(b.cooldown_minutes(b.OPEN_AFTER + 2), float(b.COOLDOWN_BASE_MIN * 4))
+
+    # --- when it opens -----------------------------------------------------------------------
+
+    def test_a_source_nobody_has_asked_is_not_a_broken_source(self):
+        """Every rule in this project reads an absent measurement as missing evidence and never
+        as evidence against. A breaker that opened on no history would stop a brand new venue
+        from ever being tried."""
+        b = self.breaker()
+        state = b.state_of("Binance", [], self.NOW)
+        self.assertEqual(state.state, b.CLOSED)
+        self.assertTrue(state.may_fetch)
+
+    def test_one_quiet_slice_is_not_an_outage(self):
+        """A rerun inside the cache hour legitimately writes nothing, a venue can drop one
+        request, and a market can be shut. Opening on one would make the breaker the outage."""
+        b = self.breaker()
+        self.assertEqual(b.state_of("X", self.rows(("empty", 1)), self.NOW).state, b.CLOSED)
+        self.assertEqual(
+            b.state_of("X", self.rows(("empty", 1), ("failed", 2)), self.NOW).state, b.CLOSED
+        )
+
+    def test_it_opens_on_consecutive_non_answers_and_then_skips(self):
+        b = self.breaker()
+        state = b.state_of("X", self.rows(("failed", 0.1), ("failed", 1), ("empty", 2)), self.NOW)
+        self.assertEqual(state.state, b.OPEN)
+        self.assertFalse(state.may_fetch)
+        self.assertGreater(state.wait_minutes, 0)
+        self.assertIn("next probe in", state.reason)
+
+    def test_a_degraded_source_is_not_a_blocked_one(self):
+        """`partial` is an answer. Some of the assets came back, which is the ordinary state of
+        a chunked lane against a venue that rate limits -- and a breaker is the wrong instrument
+        for degraded. Counting it as a failure would open on a working source."""
+        b = self.breaker()
+        degraded = self.rows(("failed", 0.1), ("partial", 1), ("failed", 2), ("failed", 3))
+        self.assertEqual(b.state_of("X", degraded, self.NOW).state, b.CLOSED)
+
+    def test_the_streak_stops_at_the_last_time_it_answered(self):
+        b = self.breaker()
+        failures, newest = b.consecutive_failures(
+            self.rows(("failed", 0.1), ("failed", 1), ("ok", 2), ("failed", 3), ("failed", 4))
+        )
+        self.assertEqual(failures, 2)
+        self.assertEqual(newest, self.at(hours=0.1))
+
+    # --- when it lets go ---------------------------------------------------------------------
+
+    def test_the_cooldown_elapsing_allows_exactly_one_probe(self):
+        b = self.breaker()
+        old = self.rows(("failed", 9), ("failed", 10), ("failed", 11))
+        state = b.state_of("X", old, self.NOW)
+        self.assertEqual(state.state, b.HALF_OPEN)
+        self.assertTrue(state.may_fetch, "a breaker that never probes is a switch")
+        self.assertEqual(state.wait_minutes, 0.0)
+
+    def test_a_probe_that_answers_closes_the_breaker(self):
+        b = self.breaker()
+        recovered = self.rows(("ok", 0.1), ("failed", 9), ("failed", 10), ("failed", 11))
+        self.assertEqual(b.state_of("X", recovered, self.NOW).state, b.CLOSED)
+
+    def test_a_probe_that_fails_waits_longer_than_the_one_before(self):
+        b = self.breaker()
+        three = b.state_of("X", self.rows(("failed", 0.1), ("failed", 1), ("failed", 2)), self.NOW)
+        four = b.state_of(
+            "X", self.rows(("failed", 0.1), ("failed", 1), ("failed", 2), ("failed", 3)), self.NOW
+        )
+        self.assertGreater(four.wait_minutes, three.wait_minutes)
+
+    def test_an_old_outage_stops_counting(self):
+        """Read as a window, because three weeks ago is not evidence about now. The window is
+        applied in the query; this pins the constant that defines it so a later edit cannot
+        quietly make the history unbounded."""
+        b = self.breaker()
+        src = (ROOT / "jobs" / "breaker.py").read_text(encoding="utf-8")
+        self.assertIn('"startedAt" >= %s', src)
+        self.assertIn("timedelta(days=LOOKBACK_DAYS)", src)
+        self.assertLessEqual(b.LOOKBACK_DAYS, 30)
+
+    # --- the fault that would make it feed itself ----------------------------------------------
+
+    def test_the_breaker_does_not_count_its_own_skips(self):
+        """The self-reinforcing bug, and the reason `skipped` is its own status.
+
+        Filing a skip as `empty` would make every run add a failure: the cooldown would double
+        each time, hit the ceiling, and keep its own streak alive forever on rows the breaker
+        itself wrote. The source would never be asked again, and the table would say it had been
+        failing continuously for months without a single request having been made.
+        """
+        b = self.breaker()
+        self.assertIn("skipped", b.IGNORED)
+        self.assertNotIn("skipped", b.ANSWERED)
+        # Three real failures, then twenty skips this module wrote. The streak must still be
+        # three, and the cooldown must still be measured from the last real attempt.
+        history = [{"status": "skipped", "startedAt": self.at(hours=i * 0.5)} for i in range(20)]
+        history += self.rows(("failed", 10.1), ("failed", 11), ("failed", 12))
+        failures, newest = b.consecutive_failures(history)
+        self.assertEqual(failures, 3)
+        self.assertEqual(newest, self.at(hours=10.1))
+        # And with the real failures that old, the cooldown has elapsed and it probes.
+        self.assertEqual(b.state_of("X", history, self.NOW).state, b.HALF_OPEN)
+
+    def test_the_skipped_status_is_one_the_writer_accepts(self):
+        """A status the breaker writes and the log refuses would turn every skip into an
+        exception inside the thing that was meant to prevent one."""
+        import runlog
+        self.assertIn("skipped", runlog.STATUSES)
+        # And it is not derivable by accident: nothing but an explicit skip produces it.
+        for asked, written, answered in ((0, 0, None), (5, 0, None), (5, 2, 2), (5, 5, 5)):
+            self.assertNotEqual(runlog.default_status(asked, written, answered), "skipped")
+
+    # --- it must never be the thing that fails -------------------------------------------------
+
+    def test_an_unreadable_history_fetches_as_usual_rather_than_raising(self):
+        """A resilience layer that can take the lane down has made things worse than the problem
+        it was added for. An unreadable history is treated exactly like an empty one, which is
+        the behaviour the pipeline had before this module existed."""
+        b = self.breaker()
+
+        class Broken:
+            def execute(self, *a, **k):
+                raise RuntimeError("relation \"ChunkRun\" does not exist")
+
+            def fetchall(self):
+                return []
+
+        state = b.breaker_for(Broken(), "Binance", self.NOW)
+        self.assertEqual(state.state, b.CLOSED)
+        self.assertTrue(state.may_fetch)
+
+    def test_a_malformed_history_row_does_not_raise(self):
+        b = self.breaker()
+        for history in ([{}], [{"status": None}], [{"status": "failed"}] * 5, [{"startedAt": None}]):
+            state = b.state_of("X", history, self.NOW)
+            self.assertIn(state.state, (b.CLOSED, b.OPEN, b.HALF_OPEN))
+
+    def test_failures_with_no_recorded_time_probe_rather_than_hold_shut(self):
+        """An unmeasurable cooldown must not hold the breaker shut: that would be a gate resting
+        on an absence, which is the one thing every rule in this project refuses."""
+        b = self.breaker()
+        state = b.state_of("X", [{"status": "failed"}] * 5, self.NOW)
+        self.assertEqual(state.state, b.HALF_OPEN)
+        self.assertTrue(state.may_fetch)
+
+    # --- what it refuses to do ------------------------------------------------------------------
+
+    def test_nothing_is_substituted_for_the_data_that_did_not_arrive(self):
+        """The line this layer does not cross, asserted on the only two files that could cross it.
+
+        A synthesised close is the most dangerous invention available here: it is
+        indistinguishable from a real one downstream, it passes every staleness gate precisely
+        *because* it is freshly dated, and the decision rules then read it as evidence. A source
+        that did not answer must reach the reader as a source that did not answer, which is what
+        `SourceSilent`, `Coverage` and gate 3 of the rule table already do.
+        """
+        src = (ROOT / "jobs" / "breaker.py").read_text(encoding="utf-8")
+        for writes in ('INSERT INTO "PriceSnapshot"', 'INSERT INTO "AssetFactor"', "UPDATE "):
+            self.assertNotIn(writes, src, "the breaker writes data of its own")
+        # The skip row is a diagnostic and carries no rows.
+        prices = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        skip = prices[prices.index("def runlog_write_skip("):prices.index("def main()")]
+        self.assertIn("rows_written=0", skip)
+        self.assertIn('status="skipped"', skip)
+
+    def test_a_skipped_lane_still_leaves_a_row_a_human_can_read(self):
+        """A lane that silently does nothing is indistinguishable from one that never ran, which
+        is the exact confusion `ChunkRun` exists to end."""
+        prices = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        lane = prices[prices.index("def lane("):prices.index("def runlog_write_skip(")]
+        self.assertIn("runlog_write_skip(", lane)
+        self.assertIn("yield None", lane)
+
+    def test_every_price_lane_goes_through_the_breaker_and_the_log(self):
+        """The wiring, pinned. `runlog.chunk_run` existed for days with no caller at all, so the
+        table the freshness panel reads was empty and the claim that a failed chunk is a row
+        rather than something to hunt for in a log was not true of production."""
+        prices = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        main = prices[prices.index("def main() -> None:"):]
+        for source in ("YAHOO", "BINANCE", "GNEWS"):
+            self.assertIn(f"lane(cur, job, {source}, label)", main, f"{source} is not logged")
+        # Three lanes, three records. A fourth call with no test here is a lane nobody checked.
+        self.assertEqual(main.count("with lane("), 3)
+
+    def test_an_exception_still_reaches_the_handler_that_keeps_the_other_lanes(self):
+        """Recording a failure is not handling it.
+
+        `chunk_run` writes the failed row on the way out and re-raises. If `lane` swallowed that,
+        a blocked venue would stop appearing in `main`'s `silent` list, the run would go green on
+        an outage, and the one summary a human reads would say every source answered.
+
+        Exercised rather than read, because "does this propagate" is a question source text
+        answers badly: the wrapper is two context managers deep and either of them could catch.
+        `DATABASE_URL` is cleared so the log writer takes its no-database path instead of
+        spending a connection timeout on each of these.
+        """
+        import os
+        import unittest.mock
+        import prices
+
+        class Cur:
+            def execute(self, *a, **k): pass
+            def fetchall(self): return []
+
+        class Blocked(Exception):
+            pass
+
+        with unittest.mock.patch.dict(os.environ, {"DATABASE_URL": ""}, clear=False):
+            with self.assertRaises(Blocked):
+                with prices.lane(Cur(), "test", "Binance", "1/1") as run:
+                    self.assertIsNotNone(run, "a closed breaker must still fetch")
+                    raise Blocked("no row from Binance for any of 10 assets")
+
+    def test_a_skipped_lane_yields_nothing_and_runs_no_body(self):
+        """The whole point of the open state: the fetch does not happen.
+
+        Exercised for the same reason as the test above -- a wrapper that yielded a record on
+        the open path would skip nothing at all, and nothing in the source text would look
+        different.
+        """
+        import os
+        import unittest.mock
+        import prices
+
+        # Relative to the real clock, because `lane` asks the breaker for the state *now*: it
+        # takes no injected time, since the thing it is deciding is whether to fetch this second.
+        # A fixture pinned to a fixed date would read as a cooldown that elapsed long ago.
+        now = datetime.now(timezone.utc)
+        dead = [
+            {"status": "failed", "startedAt": now - timedelta(minutes=1 + i * 60)}
+            for i in range(4)
+        ]
+
+        class Cur:
+            def execute(self, *a, **k): pass
+            def fetchall(self): return dead
+
+        ran = False
+        with unittest.mock.patch.dict(os.environ, {"DATABASE_URL": ""}, clear=False):
+            with prices.lane(Cur(), "test", "Binance", "1/1") as run:
+                if run is not None:
+                    ran = True
+        self.assertFalse(ran, "the body ran against a source the breaker had open")
+
+
+class BoundedRates(unittest.TestCase):
+    """A hit rate with no interval around it is a number nobody can weigh.
+
+    Principle 3: sample size decides how much weight a parallel earns, and it is never left
+    unstated. The scorecard printed `right/decided (60%)` and the sample beside it in a separate
+    sentence, which leaves the reader to do the one piece of arithmetic that decides whether the
+    percentage means anything.
+
+    Two properties, and the second is the one that actually stops noise-chasing:
+
+      * the interval is computed by a method that stays inside 0 and 1, because an accuracy
+        report claiming "82% to 104%" has discredited itself in the one place it was being
+        careful; and
+      * it is computed over the **effective** sample. One decision per asset per session means
+        a six-day log of 197 rows is 60 names observed repeatedly, and an interval over 197 is
+        about a third too narrow -- which is exactly how a run of luck on one name comes to read
+        as evidence about the engine.
+    """
+
+    @staticmethod
+    def scorecard():
+        import importlib.util
+
+        path = ROOT / "tools" / "scorecard.py"
+        spec = importlib.util.spec_from_file_location("nbt_scorecard_bounds", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_the_interval_matches_the_published_wilson_figures(self):
+        """Checked against the standard worked example rather than against itself."""
+        sc = self.scorecard()
+        lo, hi = sc.wilson(60, 100)
+        self.assertAlmostEqual(lo, 0.5020, places=3)
+        self.assertAlmostEqual(hi, 0.6906, places=3)
+
+    def test_the_interval_never_leaves_the_unit_interval(self):
+        """Where the normal approximation fails, and it fails exactly where this scorer lives:
+        at small n and at shares near 0 or 1."""
+        sc = self.scorecard()
+        for successes, n in ((0, 1), (1, 1), (0, 10), (10, 10), (1, 3), (29, 30), (0, 400)):
+            lo, hi = sc.wilson(successes, n)
+            self.assertGreaterEqual(lo, 0.0, (successes, n))
+            self.assertLessEqual(hi, 1.0, (successes, n))
+            self.assertLessEqual(lo, hi, (successes, n))
+
+    def test_an_empty_sample_has_no_interval_rather_than_a_wide_one(self):
+        sc = self.scorecard()
+        self.assertEqual(sc.wilson(0, 0), (None, None))
+        self.assertEqual(sc.wilson(5, -1), (None, None))
+
+    def test_a_smaller_sample_gives_a_wider_interval(self):
+        """The whole point. If this ever inverts, the figure is lying in the direction that
+        matters: it would read most confident where it knows least."""
+        sc = self.scorecard()
+        widths = []
+        for n in (10, 30, 100, 1000):
+            lo, hi = sc.wilson(round(0.6 * n), n)
+            widths.append(hi - lo)
+        self.assertEqual(widths, sorted(widths, reverse=True), widths)
+
+    def test_the_sample_is_the_distinct_names_and_not_the_row_count(self):
+        """The module's own caveat, finally obeyed by the arithmetic rather than only by prose.
+
+        It has said in its docstring since it was written that "197 scored rows is closer to 60
+        names observed repeatedly than to 197 experiments". Until now the rate was still printed
+        over 197.
+        """
+        sc = self.scorecard()
+        self.assertEqual(sc.effective_n(197, 60), 60)
+        # Never larger than either, and never negative.
+        self.assertEqual(sc.effective_n(10, 99), 10)
+        self.assertEqual(sc.effective_n(0, 5), 0)
+        self.assertEqual(sc.effective_n(-4, 5), 0)
+        # And the correction has to actually bite: the honest interval is materially wider.
+        wide = sc.wilson(36, 60)
+        narrow = sc.wilson(118, 197)
+        self.assertGreater(wide[1] - wide[0], (narrow[1] - narrow[0]) * 1.4)
+
+    def test_a_rate_that_has_not_beaten_a_coin_says_so(self):
+        """The no-noise-chasing rule, and it is one line. 58% over an interval from 44% to 71%
+        is a sample that has not yet distinguished the engine from chance, and printing 58%
+        beside it invites the exact reading the interval exists to forbid."""
+        sc = self.scorecard()
+        lo, hi = sc.wilson(35, 60)
+        self.assertTrue(sc.spans_chance(lo, hi))
+        lo, hi = sc.wilson(400, 600)
+        self.assertFalse(sc.spans_chance(lo, hi))
+        # No interval at all is treated as "not evidence", never as "evidence".
+        self.assertTrue(sc.spans_chance(None, None))
+
+    def test_the_printed_rate_carries_its_interval(self):
+        """Pinned at the call site: the two were separable and the point is that they are not."""
+        src = (ROOT / "tools" / "scorecard.py").read_text(encoding="utf-8")
+        tail = src[src.index("elif decided:"):]
+        self.assertIn("effective_n(decided, names)", tail)
+        self.assertIn("wilson(", tail)
+        self.assertIn("spans_chance(", tail)
+
+
+class RetryIsBounded(unittest.TestCase):
+    """The retry lane, and the single guard that keeps it from becoming the outage.
+
+    A lane that re-triggers its own retry on every failure is a loop bounded by nothing but the
+    free tier's Actions minutes. That is not hypothetical here: this repository's database spent
+    2026-10-09 refusing every connection for exceeding its quota, and a retry loop against a
+    quota-exhausted service turns one dead dependency into two.
+    """
+
+    @staticmethod
+    def retry():
+        return (ROOT / ".github" / "workflows" / "retry.yml").read_text(encoding="utf-8")
+
+    @staticmethod
+    def condition():
+        """The job's own `if:` expression, and nothing else.
+
+        Read out of the block rather than searched for in the file, because the first version of
+        this test looked for the guard anywhere in the text and the comment above the guard
+        explains it by name -- so deleting the condition entirely left the test passing on the
+        prose that described it. A guard asserted against its own documentation is not asserted.
+        """
+        text = (ROOT / ".github" / "workflows" / "retry.yml").read_text(encoding="utf-8")
+        block = text.split("    if: >-", 1)[1]
+        return block.split("    steps:", 1)[0]
+
+    def test_a_lane_is_retried_once_and_never_in_a_loop(self):
+        text = self.retry()
+        self.assertIn("run_attempt == 1", self.condition())
+        # A second consecutive failure is information -- it says the fault is not transient --
+        # and a retry loop destroys that information by making every failure look alike.
+        self.assertIn("--failed", text, "the retry re-runs jobs that already succeeded")
+
+    def test_it_fires_on_a_timeout_as_well_as_on_a_failure(self):
+        """A lane killed at its budget reads as `cancelled` from here, and that is precisely the
+        case worth one more try: the 2026-10-04 and 2026-10-05 derivations both died that way."""
+        cond = self.condition()
+        self.assertIn("conclusion == 'failure'", cond)
+        self.assertIn("conclusion == 'cancelled'", cond)
+
+    def test_the_migration_and_the_test_lanes_are_never_retried(self):
+        """`prisma migrate deploy` takes an advisory lock and a failed apply can leave a
+        migration recorded as started, which a blind re-run turns into a second partial apply.
+        And a failing test is a fact about the code: running it again is how a flaky suite gets
+        to stay flaky."""
+        trigger = self.retry().split("permissions:", 1)[0]
+        self.assertNotIn('"schema"', trigger)
+        self.assertNotIn('"tests"', trigger)
+
+    def test_every_lane_it_watches_exists_under_that_name(self):
+        """`workflow_run` matches on a workflow's `name:`, not on its filename, so a renamed
+        lane silently stops being retried and nothing anywhere goes red."""
+        trigger = self.retry().split("types: [completed]", 1)[0]
+        watched = {
+            line.strip().lstrip("- ").strip('"')
+            for line in trigger.splitlines()
+            if line.strip().startswith('- "')
+        }
+        names = set()
+        for path in (ROOT / ".github" / "workflows").glob("*.yml"):
+            first = path.read_text(encoding="utf-8").splitlines()[0]
+            if first.startswith("name:"):
+                names.add(first.split("name:", 1)[1].strip())
+        self.assertTrue(watched, "the retry lane watches nothing")
+        self.assertEqual(watched - names, set(), "it watches a workflow name that does not exist")
+
+    def test_it_cannot_write_anything_but_a_rerun(self):
+        """Nothing here reads the repository's data and nothing needs a database credential: the
+        retry re-runs the original lane, which carries its own secrets."""
+        text = self.retry()
+        block = text.split("permissions:", 1)[1].split("concurrency:", 1)[0]
+        self.assertIn("actions: write", block)
+        self.assertNotIn("DATABASE_URL", text)
+        self.assertNotIn("packages:", block)
+
+    def test_a_failed_retry_does_not_raise_a_second_alert(self):
+        """This workflow going red would be a second alert for one fault, pointing at the wrong
+        file. The original failure is the one worth looking at."""
+        text = self.retry()
+        self.assertIn("::warning::", text)
+        self.assertIn("exit 0", text)
+
+
+class UnchangedRowsAreNotRewritten(unittest.TestCase):
+    """A rerun that decides exactly what is already stored must not write anything.
+
+    Not about duplicate rows -- the unique keys on `(assetId, periodEnd)` made those impossible
+    from the start, and the job re-decides the same session whenever it runs twice in a day. It
+    is about what an UPDATE that changes nothing costs: Postgres writes a new row version
+    anyway, marks the old one dead and journals both. A 477-name lane run twice therefore
+    doubles its own dead tuples to store exactly what was already there, and on a weekend --
+    when `session_end` returns the same stored close and every factor is identical by
+    definition -- the entire table is rewritten for nothing.
+
+    Two properties, and the second is the one that could lose data rather than waste space:
+
+      * `IS DISTINCT FROM`, never `<>`. Half of these columns are legitimately null, and `<>`
+        against a null is null rather than true -- so a row going from null to a number would
+        compare as unchanged and never be stored.
+      * **every column the SET writes is in the comparison.** A column named in one and
+        forgotten in the other makes a genuinely changed row compare as unchanged and vanish,
+        with no error and no row: the log quietly keeps yesterday's verdict under today's date.
+    """
+
+    @staticmethod
+    def factor_upsert():
+        src = (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8")
+        body = src[src.index("def flush("):src.index("def session_end(")]
+        return body[body.index("ON CONFLICT"):body.index('        """,')]
+
+    # --- the factor row ----------------------------------------------------------------------
+
+    def test_the_factor_upsert_skips_a_row_whose_measurements_did_not_move(self):
+        clause = self.factor_upsert()
+        self.assertIn("WHERE", clause, "the conflict clause writes unconditionally")
+        self.assertIn("IS DISTINCT FROM", clause)
+
+    def test_a_null_becoming_a_number_still_counts_as_a_change(self):
+        """The classic skip-clause bug, and the reason for `IS DISTINCT FROM`.
+
+        `volumeRatio` is null for every currency pair and for any name whose venue published
+        nothing, and it becomes a number the day one does. Under `<>` that comparison is null,
+        which is not true, so the row would be skipped and the pair would never acquire the
+        measurement it had just earned.
+        """
+        clause = self.factor_upsert()
+        comparison = clause[clause.index("WHERE"):]
+        self.assertNotRegex(comparison, r"<>")
+        self.assertNotRegex(comparison, r"(?<![<>!])=(?!=)", "a bare = would be null-blind too")
+
+    def test_every_column_the_factor_upsert_sets_is_also_compared(self):
+        """The failure mode that loses data rather than space.
+
+        A column in the SET and not in the comparison is a measurement that can change while the
+        row reads as unchanged. Nothing raises, nothing is logged, and the stored factor is
+        simply yesterday's -- which the decision rules then read as today's.
+        """
+        import re as _re
+
+        clause = self.factor_upsert()
+        sets, comparison = clause.split("WHERE", 1)
+        named = set(_re.findall(r'"?([A-Za-z0-9_]+)"?\s*=\s*EXCLUDED', sets))
+        self.assertTrue(named, "the SET list could not be read")
+        for column in sorted(named):
+            self.assertIn(
+                f"EXCLUDED.{column}" if f"EXCLUDED.{column}" in comparison else f'EXCLUDED."{column}"',
+                comparison,
+                f"{column} is written but never compared, so a change to it would be skipped",
+            )
+
+    def test_computed_at_is_set_but_never_compared(self):
+        """It is `now()`. Including it would make every row differ and defeat the clause.
+
+        The consequence is a change in what the column means and it is deliberate: it now says
+        when this reading last *changed*, not when the job last ran. Nothing reads it -- the
+        freshness a reader cares about is `periodEnd`, which is part of the key -- and "the job
+        ran" is a question `ChunkRun` answers properly now that the lanes write it.
+        """
+        clause = self.factor_upsert()
+        sets, comparison = clause.split("WHERE", 1)
+        self.assertIn('"computedAt" = now()', sets)
+        self.assertNotIn("computedAt", comparison)
+
+    # --- the decision row ----------------------------------------------------------------------
+
+    @staticmethod
+    def decide_src():
+        return (ROOT / "tools" / "decide.mjs").read_text(encoding="utf-8")
+
+    def test_the_decision_upsert_skips_an_unchanged_verdict(self):
+        src = self.decide_src()
+        self.assertIn("IS DISTINCT FROM", src)
+        self.assertIn("changingColumns(withSizing)", src)
+
+    def test_the_compared_columns_are_derived_from_the_insert_and_not_retyped(self):
+        """A second hand-written list is how one of the two comes to be missing a column."""
+        src = self.decide_src()
+        body = src[src.index("function changingColumns("):src.index("async function writeDecisions(")]
+        self.assertIn("CORE_COLUMNS", body)
+        self.assertIn("SIZING_COLUMNS", body)
+        self.assertIn('c !== "assetId"', body)
+        self.assertIn('c !== "periodEnd"', body)
+
+    def test_a_skipped_decision_write_can_never_touch_a_maturation(self):
+        """The property that makes this safe to do at all on the one table nothing may prune.
+
+        `status` and the move columns are absent from the SET -- that is rule 58's guarantee, not
+        this one's -- and because the comparison is built from the same lists as the SET, they
+        cannot appear in the WHERE either. So the worst a wrong comparison could do here is write
+        when it did not need to, which costs space; it cannot overwrite a measured outcome.
+        """
+        src = self.decide_src()
+        start = src.index('ON CONFLICT ("assetId", "periodEnd") DO UPDATE SET')
+        # Comments blanked first. The comment above this very clause explains the guarantee by
+        # naming `status`, so a search over the raw text finds the word in the prose that
+        # promises it is absent -- which is rule 59 exactly, and it caught this test rather than
+        # the code. `code_only` is the same helper the component guards use.
+        clause = code_only(src[start:src.index("// One batch, one transaction", start)])
+        for untouched in ("status", "move1Pct", "move5Pct", "move20Pct",
+                          "measured1On", "measured5On", "measured20On"):
+            self.assertNotIn(untouched, clause, f"a rerun can still reach {untouched}")
+
+    def test_the_decision_columns_the_rules_act_on_are_all_compared(self):
+        """`action`, `gate` and `confidence` are the verdict. A change to any of them that
+        compared as unchanged would leave the log asserting yesterday's call under today's
+        date -- which is the one thing the log exists not to do."""
+        import re as _re
+
+        src = self.decide_src()
+        core = src[src.index("const CORE_COLUMNS = ["):src.index("const SIZING_COLUMNS")]
+        named = set(_re.findall(r'"([A-Za-z0-9_]+)"', core))
+        for column in ("action", "gate", "confidence", "invalidation", "baseClose"):
+            self.assertIn(column, named, f"{column} is no longer written at all")
+        # And the key is excluded from the comparison rather than merely absent from it.
+        self.assertIn("assetId", named)
+        self.assertIn("periodEnd", named)
+
+
+class TheHotQueryReadsAnIndex(unittest.TestCase):
+    """The newest close per asset, on every render of every list page.
+
+    It was `groupBy({ by: ["assetId"], _max: { date: true } })` under a comment promising it
+    "reads an index and returns one small row per asset instead of the table". Measured on
+    2026-10-10 against 628,675 stored closes, Postgres plans a **parallel sequential scan of the
+    whole table** for it -- there is no loose index scan for `GROUP BY assetId, max(date)` -- at
+    13,061 shared buffers and 209 ms, every request.
+
+    An index does not fix it: `(assetId, date DESC)` was built, measured, and chosen by nothing.
+    The query shape fixes it. A lateral probe walks the primary key backwards once per asset,
+    1,921 buffers and 3.2 ms, and returns the close and source at the same time so the second
+    price read is gone entirely.
+
+    This is a storage-tier and a compute-tier matter rather than a latency one: the endpoint is
+    metered by active time, so a page that reads the whole price history is paying for it on
+    every visit.
+    """
+
+    @staticmethod
+    def queries():
+        """Only `getDecisionRows`, with its comments blanked.
+
+        Scoped to the one function, because `lib/queries.ts` has other price reads that are
+        correct: `getAssetFreshness` and the asset page each fetch one asset's series and must
+        keep doing so. A guard that searched the whole file would fail on them and would be
+        asserting something it does not mean -- rule 59, in its other form: an assertion scoped
+        wider than the construct it describes.
+        """
+        src = (ROOT / "lib" / "queries.ts").read_text(encoding="utf-8")
+        start = src.index("export async function getDecisionRows(")
+        return code_only(src[start:])
+
+    def test_the_price_read_is_a_lateral_and_not_a_whole_table_group_by(self):
+        src = self.queries()
+        self.assertNotIn(
+            'prisma.priceSnapshot.groupBy', src,
+            "the newest close per asset is being read by scanning the whole price table again",
+        )
+        self.assertIn("LEFT JOIN LATERAL", src)
+        self.assertIn('ORDER BY s.date DESC', src)
+        self.assertIn("LIMIT 1", src)
+
+    def test_the_lateral_is_ordered_so_it_can_walk_the_primary_key(self):
+        """`(assetId, date)` is the key. Probing one asset and taking the newest date is an index
+        scan backwards; any other ordering is a sort over that asset's whole history."""
+        src = self.queries()
+        block = src[src.index("LEFT JOIN LATERAL"):src.index("ON true")]
+        self.assertIn('s."assetId" = a.id', block)
+        self.assertIn("ORDER BY s.date DESC", block)
+
+    def test_the_second_price_read_is_gone_rather_than_merely_smaller(self):
+        """The lateral already returns the close and the source, so filtering a second read by a
+        day list would be fetching what is already in hand."""
+        src = self.queries()
+        self.assertNotIn("priceDayList", src)
+        self.assertNotIn("prisma.priceSnapshot.findMany", src)
+
+    def test_the_other_group_bys_are_left_alone(self):
+        """They read tables `jobs/retention.py` caps at 7 to 14 days, so each is a few thousand
+        rows rather than six hundred thousand. Rewriting them would be churn for nothing, and
+        the point of measuring was to change the one query that was actually costing something.
+        """
+        src = self.queries()
+        for table in ("assetSetup", "assetAnalog", "humanSignal", "investigation", "assetFactor"):
+            self.assertIn(f"prisma.{table}.groupBy", src, f"{table} lost its day query")
 
 
 class ShortLevelsAreMirrored(unittest.TestCase):

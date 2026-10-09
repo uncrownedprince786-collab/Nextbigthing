@@ -229,7 +229,8 @@ async function readInputs(db, today) {
       // venue publishes no volume and `relStrength` is null where `jobs/factors.py` found too few
       // peers to take a median over, and both are absences of a measurement rather than a flat one.
       db.query(
-        `SELECT DISTINCT ON ("assetId") "assetId", "volumeRatio", "relStrength"
+        `SELECT DISTINCT ON ("assetId") "assetId", "volumeRatio", "relStrength", "r20",
+                "entryTrigger", "triggerDirection"
            FROM "AssetFactor" ORDER BY "assetId", "periodEnd" DESC`,
       ),
       // The *soonest* future scheduled event per asset. A diary has one order and it is not
@@ -322,6 +323,23 @@ function rowsForDecisions(input) {
         // fire on the wrong names and neither would look broken.
         volumeRatio: factor?.volumeRatio ?? null,
         relStrength: factor?.relStrength ?? null,
+        // **This was missing, and its absence made the log disagree with the site.** `r20` is
+        // the asset's own 20-session return and it is half of `shortNeedsBacking`: a short on a
+        // name already down past SHORT_LATE_AT needs one of the five confirmations, in any
+        // market. The column was added to `lib/decisionInput.ts`, `lib/queries.ts` and the rule
+        // table on 2026-10-09 and this file was not touched, so every row written since has
+        // decided late shorts on four of the gate's two conditions.
+        //
+        // Where it bit: Crypto, PSX and FX measured positive, so the market half of the gate
+        // never fires there and the fall half was the only thing standing between a late short
+        // and a printed SHORT. The site refused those names and the log recorded them as taken
+        // -- which is the one disagreement this file cannot have, because the log is what the
+        // refusal will eventually be judged by.
+        r20: factor?.r20 ?? null,
+        // The fifth confirmation, on the same terms and in the same place, so the two cannot
+        // drift apart again in the same way.
+        entryTrigger: factor?.entryTrigger ?? null,
+        triggerDirection: factor?.triggerDirection ?? null,
         recentStories: signal?.recentStories ?? null,
         newsTone: signal?.tone ?? null,
         newsCatalyst: signal?.catalyst ?? null,
@@ -406,6 +424,19 @@ async function presentColumns(db, table, names) {
   return new Set(rows.map((r) => r.column_name));
 }
 
+/// The columns a rerun may change: everything this job writes except `computedAt` and the key.
+///
+/// Derived from the same two lists the INSERT is built from rather than written out a second
+/// time. A column named in one place and forgotten in the other would make a genuinely changed
+/// row compare as unchanged and never be stored -- the one failure mode a skip clause has, and
+/// the kind that leaves no trace anywhere: no error, no row, and a log that silently keeps
+/// yesterday's verdict under today's date.
+function changingColumns(withSizing) {
+  return (withSizing ? [...CORE_COLUMNS, ...SIZING_COLUMNS] : CORE_COLUMNS).filter(
+    (c) => c !== "assetId" && c !== "periodEnd",
+  );
+}
+
 async function writeDecisions(client, decisions, today, withSizing) {
   const columns = withSizing ? [...CORE_COLUMNS, ...SIZING_COLUMNS] : CORE_COLUMNS;
   let written = 0;
@@ -440,7 +471,28 @@ async function writeDecisions(client, decisions, today, withSizing) {
         ? `,\n  "rewardRisk" = EXCLUDED."rewardRisk",\n` +
           `  "baseRateShare" = EXCLUDED."baseRateShare",\n` +
           `  "baseRateCount" = EXCLUDED."baseRateCount"`
-        : "");
+        : "") +
+      // Skip the write entirely when today's verdict is identical to the one already stored.
+      //
+      // Not about duplicate rows: the unique key already made those impossible, and this lane
+      // re-decides the same `periodEnd` whenever it runs twice in a day. It is about what an
+      // UPDATE that changes nothing costs. Postgres writes a new row version regardless, marks
+      // the old one dead and journals both -- so a second run of a 477-name lane doubles the
+      // table's dead tuples in order to store exactly what was already there.
+      //
+      // The comparison covers the decided columns only. `computedAt` is `now()` and would differ
+      // on every run, which would defeat the clause outright. The measured columns and `status`
+      // are deliberately absent from the SET above and so cannot appear here either -- which is
+      // the property that matters most, because it means a skipped write can never touch a
+      // maturation that has already been collected.
+      //
+      // `IS DISTINCT FROM` and not `<>`: half of these columns are legitimately null -- no entry
+      // band, no target, no dated event -- and `<>` against a null is null rather than true, so
+      // a row that went from null to a number would compare as unchanged and never be written.
+      `
+WHERE (${changingColumns(withSizing).map((c) => `"DecisionLog"."${c}"`).join(", ")})
+` +
+      `   IS DISTINCT FROM (${changingColumns(withSizing).map((c) => `EXCLUDED."${c}"`).join(", ")})`;
 
     // One batch, one transaction. A failed batch is rolled back and named; the batches that
     // already committed stay written, which is the whole point of batching.

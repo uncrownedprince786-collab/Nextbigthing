@@ -26,6 +26,8 @@ Windows, and the minimum bars each needs
   rangePct        position inside the trailing RANGE_WINDOW closes
   drawdownPct     percent below the high of that same trailing window
   peerMedianR20   the median r20 of the other assets in the same Industry
+  entryTrigger    the SQUEEZE_WINDOW dispersion against SQUEEZE_BASE of its own history, or
+                  FLIP_SPAN + 1 closes and a volume ratio
 
 Look-ahead
 ----------
@@ -110,6 +112,51 @@ SMA_LONG = 50
 RANGE_WINDOW = 120
 MIN_RANGE_BARS = 20
 
+# --- the entry trigger ---------------------------------------------------------------------
+#
+# The one thing to know before reading the arithmetic: this is a fifth confirmation and it is
+# **not** a replacement for the moving-average stack. brain.md rule 54 measured four candidate
+# entry rules against the stack on identical terms and found three of them earlier and slightly
+# better -- and all three far rarer. `squeeze_break` fires on 11,361 sessions against the
+# stack's 223,667, 5% as often, and its margin over the stack (0.153R against 0.128R) is about
+# two standard errors on that sample. Swapping the entry rule would have cut the pool from 467
+# directions to a few dozen to buy an improvement the sample can barely see.
+#
+# So the two that beat the stack are stored beside it instead. They confirm a direction the
+# stack already found, and they put a marker on the card saying this one was caught at the
+# start -- which is what rule 51 says a reader is owed, the engine entering a median of 40
+# sessions into a long.
+#
+# `inflection` and `breakout20` are deliberately not here. `inflection` fires before the stack
+# exists every single time and pays *less* than the stack does, which is the finding that being
+# early is only worth something if the thing being caught early is real; `breakout20` is a new
+# extreme, which is the stack restated rather than an independent reading of it.
+SQUEEZE_BASE = 120
+SQUEEZE_WINDOW = 20
+MIN_SQUEEZE_HISTORY = SQUEEZE_BASE // 2
+# The bottom fifth of an asset's own dispersion history. Its own, and never a constant in
+# percent: a quiet session for a coin is a loud one for a currency pair, and one number across
+# five markets would make "compressed" mean five different things.
+SQUEEZE_QUIET_AT = 0.20
+# The move out of that compression, in units of the same dispersion. 1.5 is the stop width the
+# backtest sized every candidate against, so the bar for "something just did" is the distance
+# that would have been risked on it.
+SQUEEZE_BREAKS_AT = 1.5
+
+# The momentum flip. Five sessions is the project's existing short span (RETURN_SPANS), and the
+# flip is the sign of that span changing between yesterday and today -- not a move, a turn.
+FLIP_SPAN = 5
+# **This differs from the backtest, and the difference is deliberate and in one direction.**
+# `tools/research/entry_triggers.py` used a mean-based 20-session volume ratio because that was
+# the cheapest thing to compute inside the sweep. The ratio stored here is this file's own
+# `volume_ratio`, which is median-based and splits weekend sessions from weekday ones -- a
+# strictly better measure, for the reasons its docstring gives at length. The consequence is
+# that the live rule is slightly stricter than the measured one on a weekend bar and slightly
+# looser on a skewed week, so the 0.146R measured for `vol_flip` describes a near neighbour of
+# this rule rather than this rule. Reusing the stored ratio is still right: two definitions of
+# "busy" inside one repository is the exact fault its docstring was written to end.
+FLIP_VOLUME_AT = 1.2
+
 # Peers needed before a peer median is published. Five is the smallest count where the median
 # is a single middle name with two either side of it: at four it is the average of the middle
 # two and one listing moves it, and at three it *is* one listing, which is a quote rather than
@@ -129,8 +176,10 @@ EVENT_HORIZON_DAYS = 180
 # rules report differently from checked-and-none.
 NEWS_MAX_AGE_DAYS = 7
 
-# Calendar days of history read per asset. RANGE_WINDOW + SMA_LONG sessions is the longest
-# window anything above needs; the 7/5 and the slack cover weekends and holidays so the deepest
+# Calendar days of history read per asset. RANGE_WINDOW + SMA_LONG + Z_HISTORY sessions is the
+# longest window anything above needs -- the squeeze reading wants SQUEEZE_BASE +
+# 2 * SQUEEZE_WINDOW, which is 160 and well inside it, so this constant must not be shrunk
+# towards the range window alone; the 7/5 and the slack cover weekends and holidays so the deepest
 # window is still full. Bounded rather than open-ended because the read is one statement across
 # every asset and an unbounded one would grow with the price table forever.
 HISTORY_DAYS = int((RANGE_WINDOW + SMA_LONG + Z_HISTORY) * 7 / 5) + 30
@@ -350,6 +399,126 @@ def drawdown_pct(closes: list[float]) -> float | None:
     return min(0.0, (closes[-1] / hi - 1.0) * 100.0)
 
 
+def dispersion(returns: list[float]) -> float | None:
+    """How widely a run of daily returns is spread, in percentage points. None under three.
+
+    The population standard deviation, which is what `tools/research/entry_triggers.py`
+    measured every candidate rule against and therefore what the stored thresholds mean. Three
+    returns is the floor at which a spread is a spread rather than a gap between two numbers.
+
+    Not the robust statistic `robust_z` uses, and the difference is the point of each. A MAD is
+    for asking whether *one* observation is unusual against a history one outlier must not be
+    allowed to widen. This asks how wide the recent window itself was, and the outliers in it
+    are part of the answer: a fortnight containing one 9% session was not a quiet fortnight.
+    """
+    if len(returns) < 3:
+        return None
+    mean = sum(returns) / len(returns)
+    return (sum((r - mean) ** 2 for r in returns) / len(returns)) ** 0.5
+
+
+def squeeze_break(closes: list[float]) -> str | None:
+    """"up", "down", or None: did the latest session expand out of a compression?
+
+    Two parts, and the second is what the first exists to qualify. **Quiet**: the dispersion of
+    the last SQUEEZE_WINDOW daily returns sits in the bottom SQUEEZE_QUIET_AT of the
+    SQUEEZE_BASE sessions of its own dispersion history. **Broke**: the latest return is more
+    than SQUEEZE_BREAKS_AT of that same dispersion, in either direction.
+
+    **This does not contradict brain.md rule 46, and the distinction is the whole of why the
+    rule is here.** Rule 46 measured compression as a standing state and found it followed by
+    *smaller* moves -- so "it is quiet, therefore something will happen" is measurably false.
+    This measures the expansion bar **out of** a compression, which is a different event: not
+    that something will happen, but that something just did, out of a base narrow enough for
+    the move to be worth reading. A quiet asset that stays quiet never fires this.
+
+    None when the history is too short to judge compression against. A name with 40 closes is
+    not uncompressed, it is unmeasured, and every rule in this file says so with a null.
+    """
+    rets = daily_returns(closes)
+    # A dispersion over fewer than SQUEEZE_WINDOW returns is a shorter window wearing this
+    # one's label, which is the mislabelling `sma` refuses two hundred lines above.
+    if len(rets) < SQUEEZE_WINDOW:
+        return None
+    latest = rets[-1]
+    # The window ends at the latest session and includes it, which is what the backtest
+    # measured: the bar that broke out is part of the fortnight it broke out of. Its history
+    # is the dispersions of the SQUEEZE_BASE windows **ending where this one begins**, so the
+    # two never overlap -- a window compared against a history containing itself would call
+    # every expansion ordinary, because the expansion would already be in the baseline.
+    window = dispersion(rets[-SQUEEZE_WINDOW:])
+    if window is None or window <= 0:
+        return None
+    last_end = len(rets) - SQUEEZE_WINDOW
+    history = [
+        d
+        for d in (
+            dispersion(rets[end - SQUEEZE_WINDOW : end])
+            for end in range(max(SQUEEZE_WINDOW, last_end - SQUEEZE_BASE + 1), last_end + 1)
+        )
+        if d is not None
+    ]
+    if len(history) < MIN_SQUEEZE_HISTORY:
+        return None
+    if sum(1 for d in history if d <= window) / len(history) > SQUEEZE_QUIET_AT:
+        return None
+    if latest > SQUEEZE_BREAKS_AT * window:
+        return "up"
+    if latest < -SQUEEZE_BREAKS_AT * window:
+        return "down"
+    return None
+
+
+def volume_flip(closes: list[float], ratio: float | None) -> str | None:
+    """"up", "down", or None: did five-session momentum change sign on a busy session?
+
+    The sign of the FLIP_SPAN return today against the sign it carried yesterday, and only when
+    the session that turned it traded at FLIP_VOLUME_AT of its own typical size. Both halves
+    are required and neither is interesting alone: momentum crosses zero constantly on a drifting
+    name, and a busy session that continues the direction it already had is not a turn.
+
+    The boundary is `> 0 >=` rather than `> 0 >`, so a flip out of a flat five sessions counts
+    and a flip out of a rising one does not. Exactly zero yesterday is the honest edge of "was
+    not going this way", and the mirror holds on the short side.
+
+    None when no volume is published for the name, which is the state of every currency pair:
+    the rule cannot be judged there rather than failing there.
+    """
+    if ratio is None or ratio < FLIP_VOLUME_AT:
+        return None
+    now = simple_return(closes, FLIP_SPAN)
+    prior = simple_return(closes[:-1], FLIP_SPAN)
+    if now is None or prior is None:
+        return None
+    if now > 0 >= prior:
+        return "up"
+    if now < 0 <= prior:
+        return "down"
+    return None
+
+
+def entry_trigger(closes: list[float], ratio: float | None) -> tuple[str | None, str | None]:
+    """Which entry rule fired on the latest session, and which way. `(None, None)` for neither.
+
+    `squeeze_break` is preferred when both fire, because it measured better (0.153R against
+    0.146R) and because it is the one that cannot be read off another stored factor: a reader
+    with `r5` and `volumeRatio` in front of them can reconstruct a flip, and nothing on the page
+    says how wide the last fortnight was against its own history.
+
+    When the two fire in opposite directions the preference still decides, and that is correct
+    rather than merely simple: they are not two votes to be netted, they are two different
+    events, and the better-measured one is the one the card should name. The engine reads a
+    rule and a direction, so a disagreement cannot reach it as a confirmation of both.
+    """
+    squeeze = squeeze_break(closes)
+    if squeeze is not None:
+        return "squeeze_break", squeeze
+    flip = volume_flip(closes, ratio)
+    if flip is not None:
+        return "vol_flip", flip
+    return None, None
+
+
 def peer_median_r20(peer_returns: list[float]) -> float | None:
     """Median 20 session return across the peers that have one, or None below the floor.
 
@@ -408,6 +577,9 @@ def compute(bars: list[dict], period_end: date, peer_returns: list[float] | None
     out["returnZ"] = robust_z(out.get("r1"), prior[-Z_HISTORY:])
 
     out["volumeRatio"] = volume_ratio(volumes, [b["date"] for b in usable])
+    # Reads the ratio just computed rather than taking its own, which is the whole of why
+    # `entry_trigger` is handed one instead of the volumes: see FLIP_VOLUME_AT.
+    out["entryTrigger"], out["triggerDirection"] = entry_trigger(closes, out["volumeRatio"])
     out["sma20"] = sma(closes, SMA_SHORT)
     out["sma50"] = sma(closes, SMA_LONG)
     out["rangePct"] = range_pct(closes)
@@ -513,6 +685,22 @@ def flush(conn, cur, payload: list[tuple]) -> int:
 
     The upsert is what makes a rerun on the same day an update rather than a second row, and
     the commit per batch is what keeps a dropped pooler connection from costing the whole run.
+
+    **A row whose every measurement is unchanged is not written at all**, which is what the
+    `WHERE ... IS DISTINCT FROM` on the conflict clause is for. This is not a micro-optimisation
+    and it is not about duplicate rows -- the unique key already made those impossible. It is
+    about what Postgres does with an UPDATE that changes nothing: it writes a new row version
+    anyway, marks the old one dead, and journals both. The nightly lane and a rerun inside the
+    same session together rewrite all 477 rows whether or not a single number moved, so on a
+    weekend or a holiday -- when `session_end` returns the same stored close and every factor is
+    by definition identical -- the whole table is duplicated into dead tuples for nothing. On a
+    tier whose ceiling is storage and compute, that is the cheapest write to stop making.
+
+    The row comparison deliberately excludes `computedAt`, which is `now()` and would therefore
+    differ on every run and defeat the whole clause. The consequence is worth stating because it
+    changes what that column means: it is now **when this reading last changed**, not when the
+    job last ran. Nothing reads it -- freshness comes from `periodEnd`, which is part of the key
+    -- and "the job ran" is a question `ChunkRun` answers properly now that the lanes write it.
     """
     if not payload:
         return 0
@@ -520,8 +708,9 @@ def flush(conn, cur, payload: list[tuple]) -> int:
         """
         INSERT INTO "AssetFactor" ("assetId", "periodEnd", r1, r5, r20, "returnZ",
             "volumeRatio", "peerMedianR20", "relStrength", peers, sma20, sma50, "rangePct",
-            "drawdownPct", "eventInDays", "newsStories", bars, source, "computedAt")
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now())
+            "drawdownPct", "eventInDays", "newsStories", "entryTrigger", "triggerDirection",
+            bars, source, "computedAt")
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now())
         ON CONFLICT ("assetId", "periodEnd") DO UPDATE SET
             r1 = EXCLUDED.r1, r5 = EXCLUDED.r5, r20 = EXCLUDED.r20,
             "returnZ" = EXCLUDED."returnZ", "volumeRatio" = EXCLUDED."volumeRatio",
@@ -530,8 +719,27 @@ def flush(conn, cur, payload: list[tuple]) -> int:
             sma20 = EXCLUDED.sma20, sma50 = EXCLUDED.sma50,
             "rangePct" = EXCLUDED."rangePct", "drawdownPct" = EXCLUDED."drawdownPct",
             "eventInDays" = EXCLUDED."eventInDays",
-            "newsStories" = EXCLUDED."newsStories", bars = EXCLUDED.bars,
+            "newsStories" = EXCLUDED."newsStories",
+            "entryTrigger" = EXCLUDED."entryTrigger",
+            "triggerDirection" = EXCLUDED."triggerDirection", bars = EXCLUDED.bars,
             source = EXCLUDED.source, "computedAt" = now()
+        WHERE (
+            "AssetFactor".r1, "AssetFactor".r5, "AssetFactor".r20, "AssetFactor"."returnZ",
+            "AssetFactor"."volumeRatio", "AssetFactor"."peerMedianR20",
+            "AssetFactor"."relStrength", "AssetFactor".peers, "AssetFactor".sma20,
+            "AssetFactor".sma50, "AssetFactor"."rangePct", "AssetFactor"."drawdownPct",
+            "AssetFactor"."eventInDays", "AssetFactor"."newsStories",
+            "AssetFactor"."entryTrigger", "AssetFactor"."triggerDirection",
+            "AssetFactor".bars, "AssetFactor".source
+        ) IS DISTINCT FROM (
+            EXCLUDED.r1, EXCLUDED.r5, EXCLUDED.r20, EXCLUDED."returnZ",
+            EXCLUDED."volumeRatio", EXCLUDED."peerMedianR20",
+            EXCLUDED."relStrength", EXCLUDED.peers, EXCLUDED.sma20,
+            EXCLUDED.sma50, EXCLUDED."rangePct", EXCLUDED."drawdownPct",
+            EXCLUDED."eventInDays", EXCLUDED."newsStories",
+            EXCLUDED."entryTrigger", EXCLUDED."triggerDirection",
+            EXCLUDED.bars, EXCLUDED.source
+        )
         """,
         payload,
     )
@@ -599,6 +807,7 @@ def main() -> None:
                     f["sma20"], f["sma50"], f["rangePct"], f["drawdownPct"],
                     event_in_days(period_end, events.get(a["id"])),
                     news_stories(period_end, n.get("periodEnd"), n.get("recentStories")),
+                    f["entryTrigger"], f["triggerDirection"],
                     f["bars"], COMPUTED,
                 )
             )

@@ -72,10 +72,15 @@
 // **Not every instrument can supply every leg, and that is a fact about the instrument.** A
 // currency pair has no consolidated tape, so `volumeRatio` is null for all 27 of them and always
 // will be — and `jobs/analogs.py` matches on a volume ratio, so until it learned to match without
-// one those same 27 had no stored analog either. Two of the four legs structurally absent is why
+// one those same 27 had no stored analog either. Two of the five legs structurally absent is why
 // 24 of 27 pairs sat in WAIT while every input table was fresh. The answer is never to invent the
 // missing leg or to borrow one from an index; it is to count the legs the instrument actually
 // has, and to say which ones it cannot have.
+//
+// The fifth leg splits the same way, and splits *within itself*, which is worth stating once.
+// `vol_flip` needs a volume ratio, so it is a third thing a currency pair structurally cannot
+// have; `squeeze_break` is arithmetic over closes alone, so it is the first confirmation in this
+// table that an FX pair can supply on exactly the same terms as a share.
 //
 // Gates 1-4 are data faults and name the missing thing. Gate 5 is genuine disagreement in the
 // data and is not a fault. Gate 9 exists because a rule table that falls through to LONG is how a
@@ -430,6 +435,22 @@ export interface DecisionInput {
   volumeRatio?: number | null;
   /// 20-session return minus the peer median, in percentage points. Null when too few peers.
   relStrength?: number | null;
+  /// Which entry rule fired on this session, and which way, when one did.
+  ///
+  /// The fifth confirmation, and the only one that says *when* rather than *how much*. The other
+  /// four read the state a name is in — a second timeframe, volume, matched past days, the peer
+  /// gap — and all four are as true on the fortieth session of a trend as on the first. This one
+  /// is an event: `squeeze_break` is the expansion bar out of a compression, `vol_flip` is
+  /// five-session momentum turning on a busy session, and neither can be read off the others.
+  ///
+  /// Null on roughly nineteen sessions in twenty, and that is not an absence of evidence. A rule
+  /// that fires 5% of the time is silent almost always, so it is never reported as missing and
+  /// never printed when it did not fire — see `confirmMissing`, which deliberately says nothing
+  /// about it.
+  ///
+  /// `rule` is `jobs/factors.py`'s own name for what fired, carried through rather than
+  /// re-derived, so the card names the measurement that was actually taken.
+  entryTrigger?: { rule: string; direction: "up" | "down" } | null;
   /// This asset's own 20-session return, in percent. How much of the move is already behind it.
   ///
   /// Read by the short gate and by nothing else: a short on a name already down more than
@@ -576,19 +597,30 @@ function timeSenseFor(input: DecisionInput, action: Action): TimeSense {
 
 /// Confidence is how much independently confirms the direction, not how it feels.
 ///
-/// Three things can confirm, and they are independent of each other: a second timeframe
-/// pointing the same way, volume at or above its own average, and a set of similar past days
-/// that leaned the same way. Two or more is High, exactly one is Medium, none is Low. WAIT is
-/// always Low, because a refusal is not a confident anything.
+/// Five things can confirm, and they are independent of each other: a second timeframe pointing
+/// the same way, volume at or above its own average, a set of similar past days that leaned the
+/// same way, a peer gap in the direction taken, and an entry rule firing this way on this
+/// session. Two or more is High, exactly one is Medium, none is Low. WAIT is always Low, because
+/// a refusal is not a confident anything.
 ///
 /// Counting confirmations rather than deducting for weaknesses matters when a factor is simply
 /// absent: a name with no published volume is not thereby a worse trade, it is one with less
 /// evidence, and it lands at Medium rather than being punished down to Low twice over.
-/// How many independent stored things agree with this direction. 0 to 4.
+/// How many independent stored things agree with this direction. 0 to 5.
 ///
 /// Split out of `confidenceFor` because the short gate needs the same count and a second
 /// implementation of "how much backs this" is how a name comes to be graded Low and gated as
 /// though it were confirmed. One count, two readers.
+///
+/// **The fifth leg counts on both sides, and the short side is the weaker claim of the two.**
+/// brain.md rule 54 tabulated the long side — 0.153R for `squeeze_break` against the stack's
+/// 0.128R — and `tools/research/entry_triggers.py` computes the short side on the same terms
+/// but its numbers were never recorded. Counting it only on the long side would be a second
+/// per-leg asymmetry on top of `shortNeedsBacking`, resting on nothing measured, and splitting
+/// the count to do it would reintroduce exactly the two-implementations fault the paragraph
+/// above exists to prevent. So it counts, the gate it feeds already refuses an unbacked short
+/// in a negative market, and `DecisionLog` records the gate on every row — which is how the
+/// short-side margin gets settled by live outcomes rather than by this comment.
 function confirmationCount(input: DecisionInput, direction: "up" | "down"): number {
   const agrees = Boolean(
     input.setup && input.horizon && input.setup.direction === input.horizon.direction,
@@ -600,6 +632,7 @@ function confirmationCount(input: DecisionInput, direction: "up" | "down"): numb
     volumeConfirms(input) === true,
     historyConfirms,
     peersConfirm(input, direction),
+    triggerConfirms(input, direction),
   ].filter(Boolean).length;
 }
 
@@ -648,12 +681,21 @@ function confirmLine(input: DecisionInput, direction: "up" | "down"): string {
     // the same way." whenever volume did not also confirm -- which is most of them.
     parts.push(`${moved} of ${a.count} similar days going the same way`);
   }
-  if (peersConfirm(input, direction) && input.relStrength !== null && input.relStrength !== undefined) {
+  const peerGap = figure(input.relStrength);
+  if (peersConfirm(input, direction) && peerGap !== null) {
     parts.push(
-      `${Math.abs(input.relStrength).toFixed(1)} points ${
+      `${Math.abs(peerGap).toFixed(1)} points ${
         direction === "up" ? "ahead of" : "behind"
       } its peers over 20 sessions`,
     );
+  }
+  // The marker rule 54 asked for, and it is last in the list on purpose: it is the only clause
+  // that describes *this session* rather than a standing state, so it reads as the thing that
+  // just happened after the three that were already true. A reader who sees it is being told the
+  // one thing rule 51 says they are otherwise owed and never get — that this direction was
+  // caught at its start rather than a median of 40 sessions into it.
+  if (triggerConfirms(input, direction) && input.entryTrigger) {
+    parts.push(`${triggerWords(input.entryTrigger.rule)} this session`);
   }
   if (parts.length) return `Confirmed by ${parts.join(" and ")}.`;
   // The withdrawn case gets its own sentence rather than falling into "neither confirms it",
@@ -733,10 +775,67 @@ function confirmMissing(input: DecisionInput, direction: "up" | "down"): string[
   return out;
 }
 
+/// Did an entry rule fire this way? The fifth confirmation, and the one that is usually silent.
+///
+/// A plain boolean rather than the three-valued reading the other legs use, and the reason is
+/// what the absence means. A null volume ratio says the venue published nothing and a reader is
+/// owed that; a missing trigger says no rule fired, which is the ordinary state of nineteen
+/// sessions in twenty and is not news. There is nothing for a `null` to distinguish here, so
+/// there is no `null`.
+///
+/// **It is a real fifth leg and not a restatement of the first four.** `squeeze_break` is the
+/// expansion out of a compression and `vol_flip` is momentum turning on a busy session — both
+/// are events on one bar, where the other four are standing states that read the same on the
+/// first session of a trend and the fortieth. brain.md rule 51 measured the engine entering a
+/// median of 40 sessions into a long; this is the only stored thing that can say otherwise.
+///
+/// What it deliberately does not do is lower any bar. `confidenceFor` still needs two
+/// independent confirmations for High, so a trigger alone grades Medium exactly as volume alone
+/// does, and the short gate still needs one of the five rather than one of the four.
+function triggerConfirms(input: DecisionInput, direction: "up" | "down"): boolean {
+  return input.entryTrigger?.direction === direction;
+}
+
+/// The reader-facing words for a rule name. Unknown names fall back to themselves, which is the
+/// same contract `lib/target.ts` gives a method it has not been taught — a research sweep that
+/// adds a sixth rule prints its own name on a card rather than vanishing from it.
+function triggerWords(rule: string): string {
+  if (rule === "squeeze_break") return "a break out of its quietest stretch in six months";
+  if (rule === "vol_flip") return "five-session momentum turning on heavy volume";
+  return rule;
+}
+
+/// A stored figure, or null when there is nothing readable there.
+///
+/// Named `figure` and not `measured`: `decide` already binds a local `measured` for whether a
+/// setup row existed at all, and a module function shadowed by a boolean inside the one
+/// function that matters is a trap rather than a name.
+///
+/// Null, undefined, NaN and the two infinities all come back null, and they mean one thing to
+/// every rule below: nobody could measure this. The first two are the ordinary absences the
+/// whole table is built around; the last three are the ones worth saying out loud.
+///
+/// `jobs/factors.py` cannot produce them -- it refuses a ratio whose denominator is zero and
+/// states "a factor that could not be computed is null, never zero" as the one rule that
+/// matters in that file. But the column is `DOUBLE PRECISION`, and Postgres stores `NaN`,
+/// `Infinity` and `-Infinity` in one quite happily. So the guarantee lives in the producer and
+/// nowhere else, which makes it a guarantee about the current version of one job rather than
+/// about the values this function can be handed.
+///
+/// What it costs to be wrong about that is specific, and it is not an exception. A ratio of
+/// `Infinity` clears every threshold in this file, so it confirms the direction, lifts the grade
+/// and reaches the reader as **"Confirmed by volume Infinityx its average"** -- a sentence that
+/// reads as a measured number, in the one place on the page that exists to say what was
+/// measured. A thrown error would at least be visible. Treating it as unmeasured is both
+/// truthful and the same answer the table already gives for every other unmeasurable factor.
+function figure(n: number | null | undefined): number | null {
+  return n === null || n === undefined || !Number.isFinite(n) ? null : n;
+}
+
 /// Does volume back the move? A null ratio is "not published", which is not the same as "no".
 function volumeConfirms(input: DecisionInput): boolean | null {
-  const v = input.volumeRatio;
-  return v === null || v === undefined ? null : v >= VOLUME_CONFIRMS_AT;
+  const v = figure(input.volumeRatio);
+  return v === null ? null : v >= VOLUME_CONFIRMS_AT;
 }
 
 /// Does the analog set lean the way the setup points?
@@ -761,8 +860,7 @@ function analogConfirms(input: DecisionInput, direction: "up" | "down"): boolean
 
 /// Reward against risk for the deciding setup, or null when no target was measured.
 function rewardRisk(input: DecisionInput): number | null {
-  const rr = input.target?.rewardRisk;
-  return rr === null || rr === undefined ? null : rr;
+  return figure(input.target?.rewardRisk);
 }
 
 /// Is the stored reward asymmetric enough to carry a direction past a disagreement?
@@ -868,7 +966,7 @@ function notesFor(input: DecisionInput, direction: "up" | "down"): string[] {
   // Formerly gate 7. Still the one factor that can contradict a rising price -- principle 2 --
   // and still costed, in `confidenceFor`. What changed is that it qualifies the direction
   // instead of deleting it.
-  const rel = input.relStrength;
+  const rel = figure(input.relStrength);
   if (rel !== null && rel !== undefined) {
     if (direction === "up" && rel <= -relBandFor(input)) {
       out.push(
@@ -929,7 +1027,7 @@ function notesFor(input: DecisionInput, direction: "up" | "down"): string[] {
 
 /// Does the peer reading argue against this direction? The one note that costs a grade.
 function peersAgainst(input: DecisionInput, direction: "up" | "down"): boolean {
-  const rel = input.relStrength;
+  const rel = figure(input.relStrength);
   if (rel === null || rel === undefined) return false;
   return direction === "up" ? rel <= -relBandFor(input) : rel >= relBandFor(input);
 }
@@ -955,7 +1053,7 @@ function peersAgainst(input: DecisionInput, direction: "up" | "down"): boolean {
 /// 44 stocks, 2 crypto, 2 commodities, 1 currency pair. It is not a formality and it is not a
 /// floodgate.
 function peersConfirm(input: DecisionInput, direction: "up" | "down"): boolean {
-  const rel = input.relStrength;
+  const rel = figure(input.relStrength);
   if (rel === null || rel === undefined) return false;
   return direction === "up" ? rel >= relBandFor(input) : rel <= -relBandFor(input);
 }
@@ -1061,7 +1159,7 @@ function developingRead(input: DecisionInput): Developing | null {
     waitingOn.push("Similar past days lean the other way.");
   }
 
-  const rel = input.relStrength;
+  const rel = figure(input.relStrength);
   if (rel === null || rel === undefined) {
     waitingOn.push("No peer comparison stored, so relative strength cannot confirm it.");
   } else if ((trend === "up" && rel < 0) || (trend === "down" && rel > 0)) {
@@ -1090,7 +1188,7 @@ function developingRead(input: DecisionInput): Developing | null {
 /// Two conditions, both measured and both independent of each other. A short in a market whose
 /// measured expectancy is negative -- US and Commodity, see `SHORT_EXPECTANCY` -- and a short on
 /// a name that has already fallen past `SHORT_LATE_AT`, in any market. Either one asks for at
-/// least one of the four confirmations; neither refuses a short that has one.
+/// least one of the five confirmations; neither refuses a short that has one.
 ///
 /// **This is the only place in the table where one direction is held to a different bar than the
 /// other, and it is there because the measurement is different.** 171,010 shorts across eight
@@ -1100,15 +1198,16 @@ function developingRead(input: DecisionInput): Developing | null {
 /// measured positive everywhere.
 function shortNeedsBacking(input: DecisionInput): string | null {
   const expectancy = SHORT_EXPECTANCY[input.market];
-  const late = input.r20 !== null && input.r20 !== undefined && input.r20 <= -SHORT_LATE_AT;
+  const r20 = figure(input.r20);
+  const late = r20 !== null && r20 <= -SHORT_LATE_AT;
   if (expectancy < 0 && late) {
-    return `Shorts in this market measured ${expectancy.toFixed(2)}R over eight years of stored history, and this one has already fallen ${Math.abs(input.r20!).toFixed(1)}% in 20 sessions.`;
+    return `Shorts in this market measured ${expectancy.toFixed(2)}R over eight years of stored history, and this one has already fallen ${Math.abs(r20!).toFixed(1)}% in 20 sessions.`;
   }
   if (expectancy < 0) {
     return `Shorts in this market measured ${expectancy.toFixed(2)}R per unit risked over eight years of stored history, against a positive figure in every other market.`;
   }
   if (late) {
-    return `It has already fallen ${Math.abs(input.r20!).toFixed(1)}% in 20 sessions, and shorts entered after a fall of ${SHORT_LATE_AT}% measured -0.10R where earlier ones measured +0.01R.`;
+    return `It has already fallen ${Math.abs(r20!).toFixed(1)}% in 20 sessions, and shorts entered after a fall of ${SHORT_LATE_AT}% measured -0.10R where earlier ones measured +0.01R.`;
   }
   return null;
 }
@@ -1219,11 +1318,20 @@ export function decide(input: DecisionInput): Decision {
   /// What is carrying a direction its own conditions do not support, named with its own value.
   const carriedBy = (dir: "up" | "down"): string => {
     const rr = rewardRisk(input);
-    if (volumeConfirms(input) === true && input.volumeRatio) {
-      return `volume at ${input.volumeRatio.toFixed(1)}x its 20-session average`;
+    // First, and ahead of volume, because it is the rarest and the most specific thing that can
+    // be true of a name: volume at 1.3x its average is true of hundreds of sessions a day, and
+    // a break out of the quietest fortnight in six months is true of about one in twenty. When
+    // both are there, the sentence should name the one the reader cannot already guess.
+    if (triggerConfirms(input, dir) && input.entryTrigger) {
+      return triggerWords(input.entryTrigger.rule);
     }
-    if (peersConfirm(input, dir) && input.relStrength !== null && input.relStrength !== undefined) {
-      return `${Math.abs(input.relStrength).toFixed(1)} points ${
+    const ratio = figure(input.volumeRatio);
+    if (volumeConfirms(input) === true && ratio) {
+      return `volume at ${ratio.toFixed(1)}x its 20-session average`;
+    }
+    const peerGap = figure(input.relStrength);
+    if (peersConfirm(input, dir) && peerGap !== null) {
+      return `${Math.abs(peerGap).toFixed(1)} points ${
         dir === "up" ? "ahead of" : "behind"
       } its peers`;
     }
@@ -1283,7 +1391,7 @@ export function decide(input: DecisionInput): Decision {
   // The horizon still has a veto here, on the same terms as gate 5: a withheld trend pointing
   // into a disagreeing longer view is carried only when the reward is asymmetric. The opening
   // sentence says the conditions are incomplete, every absent confirmation is still listed in
-  // `missing`, and the confidence grade counts the same three confirmations as everywhere else,
+  // `missing`, and the confidence grade counts the same five confirmations as everywhere else,
   // so a carried trend grades Medium or Low on its own evidence rather than by decree.
   // The withheld direction, or failing that the side the two averages sit on.
   //
@@ -1317,7 +1425,7 @@ export function decide(input: DecisionInput): Decision {
     // The argument for the carrier was that a direction whose own conditions failed should not
     // print as an action. The argument against it, which wins, is that `confidence` already says
     // exactly that and says it with more resolution than a gate can. A gate is one bit: acted on,
-    // or not. The grade counts four independent confirmations and reports none of them as Low,
+    // or not. The grade counts five independent confirmations and reports none of them as Low,
     // one as Medium, two or more as High -- so a carrier-less direction was already distinguished
     // from a confirmed one by the field built to distinguish them, and the gate was the same
     // judgement made twice, the second time by deletion.
@@ -1333,8 +1441,15 @@ export function decide(input: DecisionInput): Decision {
     // matures at +1, +5 and +20 sessions. Letting a thinner case through is defensible only
     // because the loop that measures whether it pays is already running -- principle 7, and the
     // reason this change is a change in what is printed rather than in what is claimed.
+    // The fifth carrier. It changes no action — the gate below prints a direction either way —
+    // only which of the two names the row is logged under, and that is the point: a withheld
+    // trend whose compression broke this session is a different row from one carried by nothing,
+    // and `DecisionLog` can only tell them apart if the gate name does.
     const carriers =
-      volumeConfirms(input) === true || peersConfirm(input, trend) || asymmetric(input);
+      volumeConfirms(input) === true ||
+      peersConfirm(input, trend) ||
+      asymmetric(input) ||
+      triggerConfirms(input, trend);
     const gate = carriers
       ? trend === "up"
         ? "trend-long"
