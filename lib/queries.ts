@@ -907,6 +907,14 @@ export type DecisionQueryRow = {
   /// "US" or "PK", from the industry the asset sits in. Never inferred from the symbol.
   market: string;
   industrySlug: string;
+  /// The industry's own name and sort order, for grouping a list into sectors.
+  ///
+  /// Stored, never derived from the slug: "psx-oil-gas" is not a heading and title-casing it
+  /// would invent one. `sector` is what `jobs/seed.py` wrote and `sectorSort` is the order every
+  /// other surface already shows industries in, so a sector cannot sit in one place on the
+  /// stocks page and another on the overview.
+  sector: string;
+  sectorSort: number;
   close: number | null;
   closeDate: Date | null;
   priceSource: string | null;
@@ -1066,7 +1074,11 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
           name: true,
           assetType: true,
           currency: true,
-          industry: { select: { market: true, slug: true } },
+          // `name` and `sort` ride along with the slug they already travelled with. The class
+          // pages group their rows by sector, and a group needs a heading a reader recognises
+          // and an order that is the same on every page -- both of which are columns on
+          // `Industry` and neither of which was being selected.
+          industry: { select: { market: true, slug: true, name: true, sort: true } },
         },
       }),
       prisma.priceSnapshot.groupBy({ by: ["assetId"], _max: { date: true } }),
@@ -1237,6 +1249,8 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       currency: asset.currency,
       market: asset.industry.market,
       industrySlug: asset.industry.slug,
+      sector: asset.industry.name,
+      sectorSort: asset.industry.sort,
       close: price?.close ?? null,
       closeDate: price?.date ?? null,
       priceSource: price?.source ?? null,

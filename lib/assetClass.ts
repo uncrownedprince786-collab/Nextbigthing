@@ -119,6 +119,11 @@ export function toListRow(s: Scored): DecisionRow {
     // It comes off the same query row the decision was built from, not a second read, so a
     // table cannot show one price while its own verdict was computed from another.
     priceNow: s.row.close,
+    // The sector heading this row belongs under, and the order sectors appear in. Carried on
+    // the row rather than looked up by the list, so a list never has to know what an industry
+    // is -- it groups by two fields it was handed.
+    sector: s.row.sector,
+    sectorSort: s.row.sectorSort,
     entry: s.decision.entry,
     invalidation: s.decision.invalidation,
     // The measured exit if it works, from the one rule every surface shares. A row that names

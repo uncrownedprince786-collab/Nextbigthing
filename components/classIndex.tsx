@@ -82,7 +82,11 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
         </Section>
       ) : (
         <>
+          {/* Grouped, because this page is the index and 158 names in one column is a wall.
+              The sector headings are the structure a reader navigates by; the order inside each
+              one is still best-evidenced first, which is the order the list was sorted in. */}
           <DecisionList
+            grouped
             title={`Long (${longs.length})`}
             lead="Setup is up and the longer view does not disagree. The stop is the level the reading is wrong at."
             rows={longs.map(toListRow)}
@@ -95,6 +99,7 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
           />
 
           <DecisionList
+            grouped
             title={`Short (${shorts.length})`}
             lead="Setup is down and the longer view does not disagree."
             rows={shorts.map(toListRow)}
@@ -147,6 +152,7 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
             </summary>
             <div className="mt-2 pb-2">
               <DecisionList
+                grouped
                 title={`Waiting (${waits.length})`}
                 lead="No direction could be read: the close is too old, the venue answered nothing, no stop level exists, or the price sits between its own averages with neither side measurable. Each row's own page says which."
                 rows={waits.map(toListRow)}

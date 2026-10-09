@@ -22,6 +22,7 @@ import { readFileSync } from "node:fs";
 
 const topByClass = readFileSync(new URL("../components/topByClass.tsx", import.meta.url), "utf8");
 const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
+const decision = readFileSync(new URL("../components/decision.tsx", import.meta.url), "utf8");
 
 test("the class cards can shrink below their own content", () => {
   // The card is the grid item. Without this it overflows its track and is clipped at 375px.
@@ -62,4 +63,40 @@ test("the nav can still be reached when it outgrows the screen", () => {
   // and the sideways scroll is what makes that true -- without it the items past the fold are
   // simply unreachable on a phone, which for a nav means whole sections of the site are.
   assert.match(layout, /overflow-x-auto/);
+});
+
+
+test("the eight-column table starts at lg, not at sm", () => {
+  // The row grew from six columns to eight when the current price joined it. At 640px that is
+  // about 70px of track per price column, which "Rs.1,201.22" does not fit in -- the row either
+  // wraps into an unreadable stack or clips. Measured in a browser at 768x1024 after the move:
+  // four labelled cells per line, no horizontal overflow, header correctly hidden.
+  //
+  // The fragile part is that one breakpoint has to be right in six places at once: the grid, the
+  // header, the row border, the padding, the name's column span and the per-cell labels. A
+  // single `sm:` left behind puts the labels and the table on screen together.
+  assert.match(decision, /lg:grid-cols-\[minmax/, "the eight-track grid must start at lg");
+  assert.doesNotMatch(
+    decision,
+    /sm:grid-cols-\[minmax/,
+    "eight tracks at sm is about 70px per price column",
+  );
+
+  // The per-cell labels and the header are the two halves that must not be on screen together.
+  assert.match(decision, /const ROW_LABEL = "[^"]*lg:hidden"/);
+  assert.match(decision, /text-xs lg:grid \$\{cols\}/);
+});
+
+test("a sector heading never reorders the rows inside it", () => {
+  // The lists arrive sorted by evidence and the grouping is presentational. Sorting inside
+  // `bySector` would quietly put a Low-confidence name above a High one under a heading, which
+  // is the one thing the class pages' ordering exists to prevent.
+  const at = decision.indexOf("function bySector(");
+  assert.ok(at > 0, "bySector no longer matches; check the grouping survived");
+  const body = decision.slice(at, decision.indexOf("\n}", at));
+
+  // One sort, and it is over the groups rather than over any group's rows.
+  assert.equal((body.match(/\.sort\(/g) ?? []).length, 1);
+  assert.match(body, /groups\.values\(\)\]\s*\n?\s*\.sort\(/);
+  assert.doesNotMatch(body, /rows\.sort\(/);
 });

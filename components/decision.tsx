@@ -634,6 +634,14 @@ export interface DecisionRow {
   /// is the one the rules refuse at gate 1, and the table should say so in the same column a
   /// reader is already looking at.
   priceNow?: number | null;
+  /// The sector this row belongs under, and where that sector sits in the site-wide order.
+  ///
+  /// Optional so a caller that does not group renders exactly as before. Both are stored
+  /// `Industry` columns -- `sectorSort` rather than alphabetical, because alphabetical would put
+  /// Aerospace above Mega Cap Tech on the stocks page and the seed's order is the one every
+  /// other surface uses.
+  sector?: string | null;
+  sectorSort?: number | null;
   entry: { low: number; high: number } | null;
   invalidation: number | null;
   /// The measured exit if the setup works, chosen by `pickTarget` and never averaged. Null when
@@ -659,6 +667,16 @@ export interface DecisionListProps {
   title: string;
   lead?: string;
   rows: DecisionRow[];
+  /// Break the list into sector headings instead of one run of rows.
+  ///
+  /// Off by default, so the overview's short lists stay one ranked run -- there the question is
+  /// "what are the best-evidenced names anywhere", and a sector heading over two rows would be
+  /// filing rather than ordering. On a market page the list *is* the page and 249 names in one
+  /// column is a wall; there the sector is the structure a reader navigates by.
+  ///
+  /// Grouping never reorders within a sector: rows arrive sorted by the caller and keep that
+  /// order inside their heading, so the best-evidenced name in a sector is still its first row.
+  grouped?: boolean;
   /// What to say when there are none. A list with no rows still owes the reader a reason.
   empty: React.ReactNode;
   /// How many rows to print before the rest are counted rather than listed.
@@ -675,7 +693,37 @@ export interface DecisionListProps {
   cap?: number;
 }
 
-const ROW_LABEL = "text-muted-foreground text-micro font-medium sm:hidden";
+// The per-cell label, shown wherever the row is a stacked card rather than a table line.
+//
+// It hides at `lg`, not `sm`. Eight columns -- four of them prices -- is a desktop table: at
+// 640px each price track is about 70px, which "Rs.1,201.22" does not fit in, and the row either
+// wraps into an unreadable stack or clips. A phone and a tablet both get the labelled card, and
+// only a screen with the width for eight columns gets the eight columns.
+const ROW_LABEL = "text-muted-foreground text-micro font-medium lg:hidden";
+
+/// Rows split into sector sections, in the site-wide sector order.
+///
+/// `sectorSort` decides the order of the sections and never the order inside one: the caller has
+/// already sorted its rows by evidence, and re-sorting here would quietly put a Low-confidence
+/// name above a High one inside a heading.
+///
+/// A row with no sector collects under "Other", at the end. That is a real state rather than a
+/// defensive branch -- `sector` is optional on `DecisionRow` so a caller that does not fetch it
+/// still renders -- and lumping those rows into whichever sector happened to come first would be
+/// worse than naming them.
+function bySector(rows: DecisionRow[]): { sector: string | null; rows: DecisionRow[] }[] {
+  const groups = new Map<string, { sector: string; sort: number; rows: DecisionRow[] }>();
+  for (const row of rows) {
+    const sector = row.sector ?? "Other";
+    const sort = row.sector ? (row.sectorSort ?? Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER;
+    const found = groups.get(sector);
+    if (found) found.rows.push(row);
+    else groups.set(sector, { sector, sort, rows: [row] });
+  }
+  return [...groups.values()]
+    .sort((a, b) => (a.sort !== b.sort ? a.sort - b.sort : a.sector.localeCompare(b.sector)))
+    .map((g) => ({ sector: g.sector, rows: g.rows }));
+}
 
 /// A home-page list of decisions.
 ///
@@ -688,14 +736,22 @@ const ROW_LABEL = "text-muted-foreground text-micro font-medium sm:hidden";
 ///
 /// The whole row is the link, so the tap target is the card rather than the name inside it, and
 /// there is nothing else interactive in a row to conflict with it.
-export function DecisionList({ title, lead, rows, empty, cap }: DecisionListProps) {
+export function DecisionList({ title, lead, rows, empty, cap, grouped = false }: DecisionListProps) {
   const shown = cap === undefined ? rows : rows.slice(0, cap);
   const hidden = rows.length - shown.length;
+  const sections = grouped ? bySector(shown) : [{ sector: null, rows: shown }];
+  // Eight columns since the current price joined the row: name, market, action, price, zone,
+  // stop, target, confidence. The three level columns are given the same width as each other on
+  // purpose -- they are what a reader compares, and sizing one smaller would read as one of them
+  // mattering less.
+  //
+  // Two breakpoints rather than one. Below `sm` each field is its own labelled line. From `sm` to
+  // `lg` the fields pair up two to a line, which is the shape a tablet has room for and a phone
+  // held sideways reads without zooming. The eight-column table starts at `lg`, where there is
+  // genuinely width for eight tracks -- at 640px a price track is about 70px and "Rs.1,201.22"
+  // does not fit in it.
   const cols =
-    // Seven columns since the measured exit joined the row. The two exit columns are given the
-// same width as each other on purpose: they are a pair a reader compares, and sizing one
-// smaller would read as one of them mattering less.
-  "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,0.6fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)] sm:items-baseline sm:gap-y-0";
+    "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,0.6fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)] lg:items-baseline lg:gap-y-0";
 
   return (
     <Section title={title} lead={lead}>
@@ -705,7 +761,7 @@ export function DecisionList({ title, lead, rows, empty, cap }: DecisionListProp
               itself, so a header row there would be six words of duplication. */}
           <div
             aria-hidden="true"
-            className={`text-muted-foreground border-border bg-muted/60 hidden rounded-t-lg border px-3 py-2 text-xs sm:grid ${cols}`}
+            className={`text-muted-foreground border-border bg-muted/60 hidden rounded-t-lg border px-3 py-2 text-xs lg:grid ${cols}`}
           >
             <span>Name</span>
             <span>Market</span>
@@ -716,19 +772,31 @@ export function DecisionList({ title, lead, rows, empty, cap }: DecisionListProp
             <span>Take profit</span>
             <span>Confidence</span>
           </div>
-          <ul className="space-y-2 sm:space-y-0">
-            {shown.map((r) => {
+          {sections.map((section) => (
+          <div key={section.sector ?? "all"}>
+            {/* The heading exists only when the list is grouped, and it carries its own count so
+                a reader scanning headings knows the size of each without expanding anything. It
+                is sticky on the table layout because a 40-row sector scrolls past its own title
+                otherwise, and the title is the thing that makes the rows mean something. */}
+            {section.sector ? (
+              <h3 className="bg-background/95 text-muted-foreground supports-[position:sticky]:lg:sticky supports-[position:sticky]:lg:top-0 z-10 mt-4 border-b px-1 pt-2 pb-1 text-xs font-medium first:mt-0">
+                {section.sector}{" "}
+                <span className="num">({section.rows.length})</span>
+              </h3>
+            ) : null}
+          <ul className="space-y-2 lg:space-y-0">
+            {section.rows.map((r) => {
               const currency = r.currency ?? "USD";
               return (
                 <li
                   key={r.symbol}
-                  className="sm:border-border sm:border-x sm:border-b sm:last:rounded-b-lg"
+                  className="lg:border-border lg:border-x lg:border-b lg:last:rounded-b-lg"
                 >
                   <Card
                     href={`/asset/${encodeURIComponent(r.symbol)}`}
-                    className={`${cols} sm:rounded-none sm:border-0 sm:px-3 sm:py-3`}
+                    className={`${cols} lg:rounded-none lg:border-0 lg:px-3 lg:py-3`}
                   >
-                    <span className="col-span-2 min-w-0 sm:col-span-1">
+                    <span className="col-span-2 min-w-0 lg:col-span-1">
                       <span className={ROW_LABEL}>Name</span>
                       <span className="block text-sm font-medium">{r.name}</span>
                       <span className="text-muted-foreground num block text-micro">{r.symbol}</span>
@@ -741,7 +809,7 @@ export function DecisionList({ title, lead, rows, empty, cap }: DecisionListProp
 
                     <span className="min-w-0">
                       <span className={ROW_LABEL}>Action</span>
-                      <span className="mt-0.5 flex flex-wrap items-center gap-1 sm:mt-0">
+                      <span className="mt-0.5 flex flex-wrap items-center gap-1 lg:mt-0">
                         <Pill tone={ACTION_TONE[r.action]}>{r.action}</Pill>
                         {/* A dated event is a hazard on a row that says LONG, and the rule table
                             already decided that by setting the time sense. Printed as its own word
@@ -809,7 +877,7 @@ export function DecisionList({ title, lead, rows, empty, cap }: DecisionListProp
 
                     <span className="min-w-0">
                       <span className={ROW_LABEL}>Confidence</span>
-                      <span className="mt-0.5 block sm:mt-0">
+                      <span className="mt-0.5 block lg:mt-0">
                         <ConfidenceBadge grade={r.confidence.toLowerCase()} />
                       </span>
                     </span>
@@ -818,6 +886,8 @@ export function DecisionList({ title, lead, rows, empty, cap }: DecisionListProp
               );
             })}
           </ul>
+          </div>
+          ))}
           {hidden > 0 ? (
             <p className="text-muted-foreground mt-3 text-sm">
               {hidden} further {hidden === 1 ? "name reads" : "names read"} the same way with less
