@@ -1,35 +1,36 @@
 import pg from "pg";
 
-/// Read failover between two Postgres endpoints, decided at the moment a connection is made.
+/// Read failover across an ordered list of Postgres endpoints, decided when a connection is made.
 ///
 /// **What it is, and the three things it is deliberately not.**
 ///
-/// It is a `pg.Pool` that tries the primary and, when the primary cannot be reached, hands out a
-/// connection to a standby instead. It sits under Prisma, through the adapter, so every query the
-/// site makes -- including the raw lateral read -- goes through it without a line of query code
-/// knowing.
+/// A `pg.Pool` that tries its endpoints in strict priority order -- the primary, then each standby in
+/// the order given -- and hands out a connection to the first one that can be used. It sits under
+/// Prisma, through the adapter, so every query the site makes, including the raw lateral read, goes
+/// through it without a line of query code knowing.
 ///
-///   * **Not a replica.** Two Neon projects do not replicate. The standby holds whatever
+///   * **Not a replica.** Separate Postgres projects do not replicate. A standby holds whatever
 ///     `jobs/mirror.py` last copied into it, so it can be hours behind. Every page prints the date
-///     its prices are as of, which is the only thing standing between "serving the standby" and
-///     "serving stale numbers as current" -- and is why this logs every switch.
-///   * **Not for writes.** The only writer is the nightly lanes, which connect to the primary
-///     directly and never through this. Letting a lane fail over would put two databases in the
-///     position of both being written to, and nothing here resolves that.
+///     its prices are as of, and the rule table refuses a stale close at gate 2, which is what stands
+///     between "serving a standby" and "serving stale numbers as current" -- and why every switch is
+///     logged.
+///   * **Not for writes.** The only writers are the nightly lanes, which connect to the primary
+///     directly and never through this. A lane that could fail over would leave two databases both
+///     being written to, and nothing here resolves that.
 ///   * **Not mid-transaction.** It acts only while a connection is being *established*. A query that
-///     fails after connecting is a query error and is raised unchanged: retrying half of a
-///     transaction on a different database is how rows end up in neither.
+///     fails after connecting is a query error and is raised unchanged: retrying half a transaction
+///     on a different database is how rows end up in neither.
 ///
-/// It is also off unless a fallback connection string is configured (`lib/db.ts` is the one place the
-/// environment is read), so merging this changes nothing for a
-/// deployment that has not opted in.
+/// It is also off unless a standby is configured (`lib/db.ts` is the one place the environment is
+/// read), so merging this changes nothing for a deployment that has not opted in.
 
 /// Failures that mean "this endpoint cannot be used right now", as opposed to "this request was
-/// wrong". Only the first kind may switch the standby on.
+/// wrong". Only the first kind may move on to the next tier.
 ///
-/// Deliberately not on the list: authentication failures (`28xxx`). A wrong password on the primary
-/// is a configuration fault that must be loud, and a standby that quietly absorbs it would let a
-/// broken credential run in production for as long as the standby held out.
+/// Deliberately not on the list: authentication failures (`28xxx`). A wrong password is a
+/// configuration fault, and absorbing it would let a broken credential run for as long as another
+/// tier held out. (A *standby's* bad credential is handled apart, in `Failover.connect`: loud, and the
+/// tier is skipped, but never at the cost of the request.)
 export function isConnectionFailure(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
   const e = error as { code?: unknown; message?: unknown; cause?: unknown };
@@ -52,12 +53,18 @@ export function isConnectionFailure(error: unknown): boolean {
     return true;
   }
   // Postgres level, raised during startup. Class 08 is a connection exception, 53 is insufficient
-  // resources -- which is where Neon's quota lands (`53000`) -- and 57P01..57P03 are the server
-  // shutting down or not yet accepting connections.
+  // resources -- Neon's quota lands there (`53000`), and so does a pooler with no free slot
+  // (`53300`, "too many clients") -- and 57P01..57P03 are the server shutting down or not yet
+  // accepting connections.
+  //
+  // A full pooler is the case that is easy to miss, because it does not always arrive as class 53:
+  // Supabase's session pooler answers `XX000` with "(EMAXCONNSESSION) max clients reached" once its
+  // 15 slots are taken. That is capacity exhaustion, the same condition as `53300`, and treating it as
+  // a configuration fault made a full standby fail the request instead of being skipped.
   if (/^08/.test(code) || /^53/.test(code) || ["57P01", "57P02", "57P03"].includes(code)) return true;
   // The same conditions when the driver wraps them and the code is gone.
   if (
-    /exceeded the quota|timeout exceeded when trying to connect|connection terminated|connection timeout|the database system is (starting up|shutting down)/i.test(
+    /exceeded the quota|timeout exceeded when trying to connect|connection terminated|connection timeout|the database system is (starting up|shutting down)|too many clients|remaining connection slots|max clients reached|EMAXCONN/i.test(
       message,
     )
   ) {
@@ -66,99 +73,232 @@ export function isConnectionFailure(error: unknown): boolean {
   return e.cause ? isConnectionFailure(e.cause) : false;
 }
 
-/// How long the primary is left alone after it fails, in milliseconds.
+/// How long an endpoint is left alone after it fails, in milliseconds.
 ///
-/// Without it every request pays the primary's connect timeout before reaching the standby, which
-/// turns "the primary is down" into "every page takes ten seconds". With it the first request pays
-/// once and the rest go straight to the standby, and after the window one request tries the primary
-/// again -- so a recovery is noticed within a minute and a single slow request is the whole cost.
-export const PRIMARY_COOLDOWN_MS = 60_000;
+/// Without it every request pays a dead endpoint's connect timeout before reaching one that works,
+/// which turns "the primary is down" into "every page takes five seconds". With it the first request
+/// pays once and the rest go straight to the next tier, and after the window one request tries the
+/// failed endpoint again -- so a recovery is noticed within a minute at the cost of one slow request.
+/// Kept per endpoint, so a dead standby does not stop a healthy primary being used.
+export const COOLDOWN_MS = 60_000;
 
-export interface Connectable<C> {
+/// How long a standby that has been checked for data is trusted before it is checked again.
+export const VETTING_TTL_MS = 300_000;
+
+/// The longest a connection attempt may take before it counts as a failure, in milliseconds.
+///
+/// `pg.Pool` defaults to no timeout at all, so a black-holed endpoint -- one that accepts the packet
+/// and never answers -- would hang the request forever instead of failing over. Five seconds is
+/// longer than a cold Neon wake-up and shorter than a page anyone waits for.
+export const CONNECT_TIMEOUT_MS = 5_000;
+
+/// Connections a standby pool may open, per process.
+///
+/// Small on purpose, and measured rather than guessed: Supabase's free session pooler admits 15
+/// clients in total, across everything that connects to it. An earlier ceiling of 5 per process was
+/// exhausted by three test servers and a running mirror, and in production every concurrent serverless
+/// instance has its own pool, so a handful of instances during an outage would drain it. A standby is
+/// idle until needed and serves a degraded site; three connections is enough to keep a page's reads
+/// moving and few enough to leave the pooler usable by the next instance.
+export const STANDBY_MAX_CLIENTS = 3;
+
+export interface Tier<C> {
+  /// A label for logs. Never a host and never a credential.
+  name: string;
   connect(): Promise<C>;
+  /// Is this endpoint fit to serve, given a connection to it? Asked of standbys only, and only when
+  /// one is first used or every few minutes after.
+  accept?(client: C): Promise<boolean>;
+  /// Give back a connection that was opened and then rejected.
+  discard?(client: C): void;
 }
 
-/// The routing decision, separated from `pg` so it can be tested with a fake endpoint and a clock.
+/// The routing decision, separated from `pg` so it can be tested with fake endpoints and a clock.
 export class Failover<C> {
-  private downSince = 0;
-  private announced = false;
-  private readonly primary: Connectable<C>;
-  private readonly standby: Connectable<C> | null;
+  private readonly tiers: Tier<C>[];
   private readonly now: () => number;
   private readonly log: (message: string) => void;
+  /// When each tier last failed, by index. Absent means it has not, or has since recovered.
+  private readonly downSince = new Map<number, number>();
+  /// When each standby last passed its data check.
+  private readonly vettedAt = new Map<number, number>();
+  /// Which tiers have already been announced as failing, so a continuing outage logs once.
+  private readonly announced = new Set<number>();
+  private serving = 0;
 
   // Explicit fields and not parameter properties: Node's TypeScript stripping, which runs this
   // file under `node --test`, does not support the parameter-property shorthand.
   constructor(
-    primary: Connectable<C>,
-    standby: Connectable<C> | null,
+    tiers: Tier<C>[],
     now: () => number = Date.now,
     log: (message: string) => void = (m) => console.warn(m),
   ) {
-    this.primary = primary;
-    this.standby = standby;
+    if (tiers.length === 0) throw new Error("a failover needs at least one endpoint");
+    this.tiers = tiers;
     this.now = now;
     this.log = log;
   }
 
+  private inCooldown(index: number): boolean {
+    const since = this.downSince.get(index);
+    return since !== undefined && this.now() - since < COOLDOWN_MS;
+  }
+
+  /// The label of the tier that last served a connection.
+  get servingFrom(): string {
+    return this.tiers[this.serving].name;
+  }
+
   /// True while the primary is being skipped.
   get usingStandby(): boolean {
-    return this.downSince !== 0 && this.now() - this.downSince < PRIMARY_COOLDOWN_MS;
+    return this.inCooldown(0);
+  }
+
+  private markDown(index: number, why: string): void {
+    this.downSince.set(index, this.now());
+    this.vettedAt.delete(index);
+    if (!this.announced.has(index)) {
+      this.announced.add(index);
+      this.log(`failover: ${this.tiers[index].name} cannot be used (${why}).`);
+    }
   }
 
   async connect(): Promise<C> {
-    if (this.standby === null) return this.primary.connect();
+    // Tiers not in cooldown, in priority order. If every one is, try them all anyway in the same
+    // order: refusing to try for a minute after the last endpoint failed would turn one recovery
+    // into a minute of certain errors.
+    const live = this.tiers.map((_, i) => i).filter((i) => !this.inCooldown(i));
+    const order = live.length ? live : this.tiers.map((_, i) => i);
 
-    if (!this.usingStandby) {
+    let first: unknown = null;
+    for (const i of order) {
+      const tier = this.tiers[i];
+      let client: C;
       try {
-        const client = await this.primary.connect();
-        if (this.downSince !== 0) {
-          this.log("failover: the primary database is answering again, so reads have returned to it");
-        }
-        this.downSince = 0;
-        this.announced = false;
-        return client;
+        client = await tier.connect();
       } catch (error) {
-        // Only a connection-class failure may switch the standby on. Anything else is raised
-        // unchanged, so a bad credential or a bad request is never absorbed.
-        if (!isConnectionFailure(error)) throw error;
-        this.downSince = this.now();
-        if (!this.announced) {
-          this.announced = true;
-          const why = error instanceof Error ? error.message.split("\n")[0].slice(0, 120) : "unknown";
-          this.log(
-            `failover: the primary database could not be reached (${why}). Reads are being served ` +
-              "from the standby, which may be behind. Pages print the date their figures are as of.",
-          );
+        if (isConnectionFailure(error)) {
+          first ??= error;
+          this.markDown(i, describe(error));
+          continue;
         }
+        // The primary's own bad request or bad credential is raised unchanged, so a broken
+        // configuration is loud. A standby's is not worth failing the request for: say so, loudly
+        // and once, skip it, and let the next tier serve.
+        if (i === 0) throw error;
+        first ??= error;
+        this.markDown(i, `${describe(error)} -- this is a configuration fault, not an outage`);
+        continue;
       }
+
+      // A standby that answers but holds nothing would serve "0 names" as though it were the site,
+      // which is worse than an honest error page. Checked on first use and then every few minutes.
+      if (i > 0 && tier.accept && this.now() - (this.vettedAt.get(i) ?? -Infinity) > VETTING_TTL_MS) {
+        let fit = false;
+        try {
+          fit = await tier.accept(client);
+        } catch (error) {
+          fit = false;
+          if (!isConnectionFailure(error)) first ??= error;
+        }
+        if (!fit) {
+          tier.discard?.(client);
+          this.markDown(i, "it answered but holds no data");
+          continue;
+        }
+        this.vettedAt.set(i, this.now());
+      }
+
+      this.downSince.delete(i);
+      this.announced.delete(i);
+      if (i !== this.serving) {
+        this.log(
+          i === 0
+            ? `failover: ${tier.name} is answering again, so reads have returned to it.`
+            : `failover: reads are being served from ${tier.name}, which may be behind. Pages print the date their figures are as of.`,
+        );
+        this.serving = i;
+      }
+      return client;
     }
-    return this.standby.connect();
+    // Nothing could be used. The first failure is the one an operator needs: it is the primary's
+    // whenever the primary was tried.
+    throw first ?? new Error("no database endpoint is available");
   }
 }
 
-/// A pool for Prisma's pg adapter that fails over at connection time.
+/// One line about a failure, safe to log.
+///
+/// A driver's error can carry the whole connection string -- psycopg's "invalid connection option"
+/// does, and a live password reached a terminal that way earlier in this project's history -- and
+/// this line goes to a server log. So any URL is replaced before the text is shortened, not after.
+function describe(error: unknown): string {
+  if (!(error instanceof Error)) return "unknown";
+  return error.message
+    .replace(/postgres(?:ql)?:\/\/\S+/gi, "<redacted-url>")
+    .split("\n")[0]
+    .slice(0, 120);
+}
+
+/// The connection string, with encryption asked for when it did not say.
+///
+/// Measured against the real Supabase pooler with the Node driver: with no mode at all the driver
+/// connects **unencrypted**; `sslmode=require` fails with "self-signed certificate in certificate
+/// chain", because node-pg reads `require` as full certificate verification and Supabase's CA is not
+/// in Node's store; and `uselibpqcompat=true&sslmode=require` connects encrypted. That last form is
+/// libpq's own `require` -- the connection is encrypted, the certificate chain is not verified --
+/// which is what the Postgres world means by the word.
+///
+/// A URL that already names a mode is left exactly as it was, so Neon's `sslmode=require` strings
+/// keep their stricter reading, and the tool that wrote them chose it. This is applied on the Node
+/// side only: Python's driver rejects `uselibpqcompat` as an unknown connection option.
+export function withEncryption(url: string): string {
+  if (/[?&]sslmode=/i.test(url)) return url;
+  return url + (url.includes("?") ? "&" : "?") + "uselibpqcompat=true&sslmode=require";
+}
+
+export interface StandbyConfig {
+  name: string;
+  config: pg.PoolConfig;
+}
+
+/// A pool for Prisma's pg adapter that cascades through the endpoints at connection time.
 ///
 /// `pg.Pool.query` is implemented on top of `connect`, and the adapter reaches the pool only through
 /// those two, so overriding `connect` is the whole of it. Both call shapes are kept: Prisma uses the
 /// promise form and `pg` itself uses the callback form internally.
-export function makeFailoverPool(
-  primary: pg.PoolConfig,
-  standby: pg.PoolConfig | null,
-): pg.Pool {
-  if (standby === null) return new pg.Pool(primary);
+export function makeFailoverPool(primary: pg.PoolConfig, standbys: StandbyConfig[]): pg.Pool {
+  if (standbys.length === 0) return new pg.Pool(primary);
 
-  const standbyPool = new pg.Pool(standby);
+  // Every pool gets a connect timeout unless one was set: see CONNECT_TIMEOUT_MS. Standbys also get a
+  // small ceiling, because they are idle until needed and a free-tier pooler admits few clients.
+  const withTimeout = (c: pg.PoolConfig, max?: number): pg.PoolConfig => ({
+    connectionTimeoutMillis: CONNECT_TIMEOUT_MS,
+    ...(max ? { max } : {}),
+    ...c,
+  });
+  const standbyPools = standbys.map((s) => ({ name: s.name, pool: new pg.Pool(withTimeout(s.config, STANDBY_MAX_CLIENTS)) }));
   const router: { current: Failover<pg.PoolClient> | null } = { current: null };
 
   class FailoverPool extends pg.Pool {
     // pg types `connect` as three overloads; the override has to serve all of them.
     // @ts-expect-error -- overload set widened on purpose, see above
     connect(callback?: (err: Error | undefined, client?: pg.PoolClient, done?: (release?: boolean | Error) => void) => void) {
-      const route = (router.current ??= new Failover<pg.PoolClient>(
-        { connect: () => super.connect() as Promise<pg.PoolClient> },
-        { connect: () => standbyPool.connect() },
-      ));
+      const route = (router.current ??= new Failover<pg.PoolClient>([
+        { name: "the primary", connect: () => super.connect() as Promise<pg.PoolClient> },
+        ...standbyPools.map(({ name, pool }) => ({
+          name,
+          connect: () => pool.connect(),
+          // Non-empty is enough. A standby that is merely behind is the rule table's business: its
+          // stale-close gate refuses an old price and the page prints the date, so an old copy is
+          // honest. An empty one would say "0 names" and be believed.
+          accept: async (client: pg.PoolClient) => {
+            const { rowCount } = await client.query('SELECT 1 FROM "PriceSnapshot" LIMIT 1');
+            return (rowCount ?? 0) > 0;
+          },
+          discard: (client: pg.PoolClient) => client.release(),
+        })),
+      ]));
       const promise = route.connect();
       if (typeof callback !== "function") return promise;
       promise.then(
@@ -170,5 +310,5 @@ export function makeFailoverPool(
   }
   // Cast: the override returns `undefined` on the callback path, exactly as `pg`'s own does, which
   // the declared overloads cannot express.
-  return new FailoverPool(primary) as unknown as pg.Pool;
+  return new FailoverPool(withTimeout(primary)) as unknown as pg.Pool;
 }

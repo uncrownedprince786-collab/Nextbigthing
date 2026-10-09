@@ -6923,6 +6923,172 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
         self.assertEqual(m.main([]), 2)
         self.assertEqual(m.main(["--from", "postgresql://a@x.invalid/d"]), 2)
 
+    # --- more than one target ----------------------------------------------------------------
+
+    def test_a_connection_string_is_removed_from_anything_the_job_prints(self):
+        """A driver's error can carry the whole string -- psycopg's 'invalid connection option' does,
+        and a live password reached a terminal that way earlier in this project's history -- and a CI
+        log is readable by anyone with repository access."""
+        m = self.mirror()
+        leaky = 'invalid connection option "postgresql://postgres.abc:hunter2@host.example:5432/postgres?x=1"'
+        got = m.redact(leaky)
+        self.assertNotIn("hunter2", got)
+        self.assertNotIn("postgres.abc", got)
+        self.assertIn("<redacted>", got)
+        self.assertEqual(m.redact("postgres://u:p@h/d and postgresql://u2:p2@h2/d2"), "postgresql://<redacted> and postgresql://<redacted>")
+        self.assertEqual(m.redact("connection refused"), "connection refused")
+
+    def test_repeated_options_are_all_read_in_order(self):
+        m = self.mirror()
+        self.assertEqual(m.option_values(["--to", "a", "--tables", "x", "--to", "b"], "--to"), ["a", "b"])
+        self.assertEqual(m.option_values(["--to"], "--to"), [])
+        self.assertEqual(m.option_values([], "--to"), [])
+
+    def run_main(self, argv, results, env=None):
+        """`main` with the copying itself replaced, so only the orchestration is under test."""
+        import os
+        import unittest.mock as mock
+
+        m = self.mirror()
+        called = []
+
+        def fake(src, label, url, chosen, dry, since):
+            called.append(label)
+            return results.get(label, True)
+
+        with mock.patch.object(m, "mirror_one", fake), mock.patch.dict(os.environ, env or {}, clear=False):
+            code = m.main(argv)
+        return code, called
+
+    A = "postgresql://u:p@ep-a.invalid/db"
+    B = "postgresql://u:p@ep-b.invalid/db"
+    C = "postgresql://u:p@ep-c.invalid/db"
+
+    def test_every_target_is_attempted_even_after_one_fails(self):
+        """With three databases the one most likely to be down is the one being copied to, and a run
+        that stopped at the first dead target would leave every later one stale -- the standby most
+        worth refreshing is the one the dead one was standing in for."""
+        code, called = self.run_main(
+            ["--from", self.A, "--to", self.B, "--to", self.C], {"--to #1": False}
+        )
+        self.assertEqual(called, ["--to #1", "--to #2"])
+        self.assertEqual(code, 1, "a failed target must make the run fail")
+
+    def test_the_run_succeeds_only_when_every_target_did(self):
+        code, _ = self.run_main(["--from", self.A, "--to", self.B, "--to", self.C], {})
+        self.assertEqual(code, 0)
+
+    def test_targets_can_be_named_by_environment_variable_so_no_url_is_on_a_command_line(self):
+        code, called = self.run_main(
+            ["--from-env", "SRC_X", "--to-env", "TGT_ONE,TGT_TWO"],
+            {},
+            env={"SRC_X": self.A, "TGT_ONE": self.B, "TGT_TWO": self.C},
+        )
+        self.assertEqual(called, ["TGT_ONE", "TGT_TWO"])
+        self.assertEqual(code, 0)
+
+    def test_an_unset_standby_is_skipped_and_not_an_error(self):
+        """A deployment with Supabase but no second Neon project names both and is not penalised."""
+        code, called = self.run_main(
+            ["--from-env", "SRC_X", "--to-env", "UNSET_ONE_XYZ,TGT_TWO"],
+            {},
+            env={"SRC_X": self.A, "TGT_TWO": self.C},
+        )
+        self.assertEqual(called, ["TGT_TWO"])
+        self.assertEqual(code, 0)
+
+    def test_no_usable_target_is_a_usage_error(self):
+        code, called = self.run_main(["--from-env", "SRC_X", "--to-env", "UNSET_ONE_XYZ"], {}, env={"SRC_X": self.A})
+        self.assertEqual((code, called), (2, []))
+
+    def test_two_targets_naming_one_database_are_refused_before_anything_is_copied(self):
+        """The pooler and the direct host of one project are one database. Copying into it twice is
+        harmless and wasteful, but it usually means one of the two variables is wrong."""
+        pooled = "postgresql://u:p@ep-b-pooler.invalid/db"
+        direct = "postgresql://u:p@ep-b.invalid/db"
+        code, called = self.run_main(["--from", self.A, "--to", pooled, "--to", direct], {})
+        self.assertEqual((code, called), (2, []))
+
+    def test_any_target_that_is_the_source_refuses_the_whole_run(self):
+        code, called = self.run_main(["--from", self.A, "--to", self.B, "--to", self.A], {})
+        self.assertEqual((code, called), (2, []))
+
+    def test_a_target_that_cannot_be_reached_is_reported_without_its_address_or_credentials(self):
+        """The real `mirror_one`, against an address that cannot resolve: it must return False, not
+        raise, and print nothing that looks like a connection string."""
+        import contextlib
+        import io as _io
+
+        m = self.mirror()
+        buf = _io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            ok = m.mirror_one(
+                "postgresql://u:secret1@nowhere-a.invalid:5432/db", "T", "postgresql://u:secret2@nowhere-b.invalid:5432/db",
+                ["DecisionLog"], True, None,
+            )
+        out = buf.getvalue()
+        self.assertFalse(ok)
+        self.assertNotIn("secret1", out)
+        self.assertNotIn("secret2", out)
+        self.assertNotIn("postgresql://u", out)
+
+    def test_a_driver_error_that_carries_the_connection_string_is_redacted_when_printed(self):
+        """The test above uses addresses that cannot resolve, whose errors never contain a URL, so it
+        could not have failed if the redaction were removed. This one makes the driver do what
+        psycopg's 'invalid connection option' really does."""
+        import contextlib
+        import io as _io
+        import unittest.mock as mock
+
+        import psycopg
+
+        m = self.mirror()
+        leaky = psycopg.OperationalError('invalid connection option "postgresql://u:topsecret@h.example/db"')
+        buf = _io.StringIO()
+        with mock.patch("psycopg.connect", side_effect=leaky), contextlib.redirect_stdout(buf):
+            ok = m.mirror_one("postgresql://u:a@s/db", "T", "postgresql://u:b@t/db", ["DecisionLog"], True, None)
+        self.assertFalse(ok)
+        self.assertNotIn("topsecret", buf.getvalue())
+        self.assertIn("<redacted>", buf.getvalue())
+
+        # And part way through a copy, where a different `except` prints.
+        buf = _io.StringIO()
+        with mock.patch.object(m, "asset_identity", side_effect=RuntimeError("boom postgresql://u:midcopy@h/db")),                 mock.patch("psycopg.connect", return_value=mock.MagicMock()), contextlib.redirect_stdout(buf):
+            self.assertFalse(m.mirror_one("postgresql://u:a@s/db", "T", "postgresql://u:b@t/db", ["DecisionLog"], True, None))
+        self.assertNotIn("midcopy", buf.getvalue())
+
+    def test_the_nightly_workflow_skips_cleanly_with_no_standby_and_never_names_a_value(self):
+        """A workflow that failed every night on a deployment that chose not to run a standby would
+        train people to ignore a red run, and the retry lane would then re-run it."""
+        text = (ROOT / ".github" / "workflows" / "cron-mirror.yml").read_text(encoding="utf-8")
+        self.assertIn("::notice::no standby is configured", text)
+        # Every step that runs the mirror carries the guard, not merely one of them: a second step
+        # left unguarded would run with no target and exit 2 on exactly the deployment this protects.
+        runs = text.count("python jobs/mirror.py")
+        guards = text.count("if: steps.targets.outputs.any == 'true'")
+        self.assertGreaterEqual(runs, 2)
+        self.assertEqual(runs, guards, "a mirror step runs without checking that a standby exists")
+        # Only secrets, only through env, and never echoed.
+        self.assertNotRegex(text, r"echo[^\n]*\$\{\{\s*secrets\.")
+        self.assertNotRegex(text, r"echo[^\n]*(\$NEON2|\$SUPA)\b")
+        # Its own concurrency group, never cancelled, and not in the retry lane's watch list.
+        self.assertIn("group: nbt-mirror", text)
+        self.assertIn("cancel-in-progress: false", text)
+        self.assertNotIn('"cron mirror"', (ROOT / ".github" / "workflows" / "retry.yml").read_text(encoding="utf-8"))
+
+    def test_the_nightly_decision_window_reaches_past_the_longest_maturation(self):
+        """DecisionLog rows are updated for a month as +1, +5 and +20 session outcomes land. A window
+        shorter than that freezes a decision's outcome at whatever it was the last time the window
+        covered it -- the one table where that is not recoverable."""
+        text = (ROOT / ".github" / "workflows" / "cron-mirror.yml").read_text(encoding="utf-8")
+        import re as _re
+
+        days = {
+            tables: int(n)
+            for n, tables in _re.findall(r"date -u -d '(\d+) days ago'[^\n]*\n(?:[^\n]*\n)*?[^\n]*--tables ([A-Za-z,]+)", text)
+        }
+        self.assertGreaterEqual(days["DecisionLog,SignalLog,AssetThesis"], 35)
+
     def test_the_site_failover_and_the_nightly_writers_are_kept_apart(self):
         """The mirror is the only thing that writes a standby. The pool that reads one (lib/failover)
         is never imported by a lane, so the two databases are never both being written to by a lane."""

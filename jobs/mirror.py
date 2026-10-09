@@ -32,7 +32,9 @@ the site renders from, so a standby without it has nothing to show. `SignalLog` 
 Everything else is derived by the nightly chain from those and from the sources, and is cheaper to
 recompute than to copy: a standby is brought current by running the lanes against it.
 
-Run: python jobs/mirror.py --from SOURCE_URL --to TARGET_URL [--tables a,b] [--since YYYY-MM-DD] [--dry-run]
+Run: python jobs/mirror.py --from-env DATABASE_URL --to-env DATABASE_URL_FALLBACK,SUPABASE_DATABASE_URL
+         [--tables a,b] [--since YYYY-MM-DD] [--dry-run]
+     (--from and --to take a URL directly, and --to may repeat)
      (or --from-env NAME --to-env NAME to read the two URLs from environment variables, which keeps
       a connection string off the command line and out of shell history)
 """
@@ -92,6 +94,15 @@ class Tally:
 
 
 # --- pure helpers -------------------------------------------------------------------------------
+
+
+def same_database_key(url: str) -> tuple:
+    """What selects a database in `url`, with the pooler suffix and the credentials ignored."""
+    from urllib.parse import parse_qs, urlparse
+
+    u = urlparse(url)
+    host = (u.hostname or "").replace("-pooler", "")
+    return (host, u.port or 5432, u.path.lstrip("/"), tuple(sorted(parse_qs(u.query).get("options", []))))
 
 
 def same_database(a: str, b: str) -> bool:
@@ -245,46 +256,108 @@ def copy_table(src, dst, table: str, asset_map: dict, dry_run: bool, since: str 
     return tally
 
 
-def main(argv: list[str]) -> int:
+def redact(text: str) -> str:
+    """The text with any connection string in it replaced. Applied to every error this job prints.
+
+    A driver's error can carry the whole connection string -- psycopg's "invalid connection option"
+    does, and one was printed with a live password in it earlier in this project's history -- and
+    this job's output goes to a CI log that anyone with repository access can read.
+    """
+    import re
+
+    return re.sub(r"postgres(?:ql)?://[^\s\"']+", "postgresql://<redacted>", text)
+
+
+def option_values(argv: list[str], name: str) -> list[str]:
+    """Every value given for a repeatable option, in order."""
+    return [argv[i + 1] for i, a in enumerate(argv) if a == name and i + 1 < len(argv)]
+
+
+def mirror_one(src_url: str, label: str, dst_url: str, chosen: list[str], dry: bool, since: str | None) -> bool:
+    """Copy into one target. True when it completed. Never raises, and never prints a credential.
+
+    Each target is its own unit of failure. With three databases the one most likely to be down is
+    the one being copied to, and a run that stopped at the first dead target would leave every
+    later one stale -- the standby most worth refreshing is the one the dead one was standing in for.
+    """
     import psycopg
     from psycopg.rows import dict_row
 
-    def opt(name: str) -> str | None:
-        return argv[argv.index(name) + 1] if name in argv and argv.index(name) + 1 < len(argv) else None
+    print(f"\n== target: {label}")
+    try:
+        src = psycopg.connect(src_url, row_factory=dict_row, connect_timeout=30)
+        dst = psycopg.connect(dst_url, row_factory=dict_row, connect_timeout=30)
+    except Exception as e:  # noqa: BLE001
+        print(f"  could not connect: {redact(str(e).splitlines()[0])}")
+        return False
+    try:
+        with src.cursor() as sc, dst.cursor() as dc:
+            amap = build_asset_map(asset_identity(sc), asset_identity(dc))
+        print(f"  assets matched by (industry, symbol): {len(amap)}")
+        print(("  DRY RUN, nothing written\n" if dry else "") + f"  {'table':14} {'read':>9} {'written':>9} {'unchanged':>10} {'unmatched':>10}")
+        for table in chosen:
+            t = copy_table(src, dst, table, amap, dry, since)
+            print(f"  {table:14} {t.read:>9} {t.copied:>9} {t.unchanged:>10} {t.unmatched:>10}")
+            if t.unmatched_assets:
+                print(f"      {len(t.unmatched_assets)} source asset(s) have no counterpart here, e.g. {sorted(t.unmatched_assets)[:3]}")
+        return True
+    except Exception as e:  # noqa: BLE001
+        print(f"  failed part way: {redact(str(e).splitlines()[0])}")
+        return False
+    finally:
+        for c in (src, dst):
+            try:
+                c.close()
+            except Exception:  # noqa: BLE001
+                pass
 
-    src_url = opt("--from") or (os.environ.get(opt("--from-env") or "") or None)
-    dst_url = opt("--to") or (os.environ.get(opt("--to-env") or "") or None)
+
+def main(argv: list[str]) -> int:
+    """One source, any number of targets. Exit 0 only if every target completed.
+
+    Targets come from repeated `--to URL` and from `--to-env NAME[,NAME...]`, which reads each URL
+    from an environment variable so no connection string is ever on a command line or in a shell
+    history. The source is `--from URL` or `--from-env NAME`.
+    """
+
+    def single(name: str) -> str | None:
+        vals = option_values(argv, name)
+        return vals[0] if vals else None
+
+    src_url = single("--from") or os.environ.get(single("--from-env") or "") or None
+    targets: list[tuple[str, str]] = [(f"--to #{n + 1}", u) for n, u in enumerate(option_values(argv, "--to"))]
+    for group in option_values(argv, "--to-env"):
+        for env_name in filter(None, (g.strip() for g in group.split(","))):
+            url = os.environ.get(env_name)
+            if not url:
+                print(f"{env_name} is not set, so that target is skipped")
+                continue
+            targets.append((env_name, url))
     dry = "--dry-run" in argv
-    since = opt("--since")
-    chosen = (opt("--tables") or ",".join(TABLES)).split(",")
+    since = single("--since")
+    chosen = (single("--tables") or ",".join(TABLES)).split(",")
     unknown = [t for t in chosen if t not in TABLES]
     if unknown:
         print(f"unknown table(s) {unknown}; choose from {', '.join(TABLES)}")
         return 2
-    if not src_url or not dst_url:
-        print("need a source and a target: --from/--to, or --from-env/--to-env")
+    if not src_url or not targets:
+        print("need a source and at least one target: --from/--to, or --from-env/--to-env")
         return 2
-    if same_database(src_url, dst_url):
-        print("refusing: the source and the target are the same database")
-        return 2
+    for label, url in targets:
+        if same_database(src_url, url):
+            print(f"refusing: the source and the target {label} are the same database")
+            return 2
+    seen: set[tuple] = set()
+    for label, url in targets:
+        key = same_database_key(url)
+        if key in seen:
+            print(f"refusing: {label} names the same database as an earlier target")
+            return 2
+        seen.add(key)
 
-    src = psycopg.connect(src_url, row_factory=dict_row, connect_timeout=30)
-    dst = psycopg.connect(dst_url, row_factory=dict_row, connect_timeout=30)
-    try:
-        with src.cursor() as sc, dst.cursor() as dc:
-            amap = build_asset_map(asset_identity(sc), asset_identity(dc))
-            print(f"assets matched by (industry, symbol): {len(amap)}")
-        print(("DRY RUN, nothing written\n" if dry else "") + f"{'table':14} {'read':>9} {'written':>9} {'unchanged':>10} {'unmatched':>10}")
-        failed = False
-        for table in chosen:
-            t = copy_table(src, dst, table, amap, dry, since)
-            print(f"  {table:12} {t.read:>9} {t.copied:>9} {t.unchanged:>10} {t.unmatched:>10}")
-            if t.unmatched_assets:
-                print(f"      {len(t.unmatched_assets)} source asset(s) have no counterpart in the target, e.g. {sorted(t.unmatched_assets)[:3]}")
-        return 1 if failed else 0
-    finally:
-        src.close()
-        dst.close()
+    results = {label: mirror_one(src_url, label, url, chosen, dry, since) for label, url in targets}
+    print("\nsummary: " + ", ".join(f"{label} {'ok' if ok else 'FAILED'}" for label, ok in results.items()))
+    return 0 if all(results.values()) else 1
 
 
 if __name__ == "__main__":
