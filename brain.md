@@ -1890,3 +1890,93 @@ reads rows that already exist:
     trigger-backed signals at a median age of 2. The only valid test of "predictive" is out-of-sample
     outcomes at +1, +5 and +20 sessions, and that is the loop in rule 66. It starts producing them on
     2026-10-12 for the +1 window and has nothing to say before then.
+
+71. **The standby became a cascade of three, and the test that proved it was wrong twice before it was
+    right.**
+    The failover now takes an ordered list: the primary, the second Neon project, then Supabase. The
+    rule 69 pool tried two endpoints; `Failover` in `lib/failover.ts` tries N, strictly in priority
+    order, and a later tier is never touched while an earlier one works.
+
+    **What was given and what was needed.** The URL and `sb_publishable_` key are for Supabase's REST
+    API and cannot run a Prisma migration or accept the mirror's inserts; a Postgres connection needs
+    the database password. The direct host (`db.<ref>.supabase.co`) does not resolve at all -- it is
+    IPv6-only on the free tier, which neither a Windows machine on IPv4 nor GitHub's runners reach --
+    so the **Session pooler** is the only usable address, and its region (ap-northeast-2) was found
+    by probing, because a wrong region answers "Tenant or user not found" rather than refusing the
+    login. The password was pasted into a chat and should be rotated.
+
+    **Schema parity was compared, not inferred.** "Both ran the same migrations" is a claim about a
+    table of names. `tools/schema_parity.py` compares every column's type, nullability and default and
+    every index and constraint by definition: 37 tables, 515 columns, 123 indexes, 78 constraints,
+    identical. It excludes `NOT NULL` as a named constraint, which PostgreSQL 18 (Neon) records and 17
+    (Supabase) does not -- that would have reported the server version and not the schema.
+
+    **TLS, measured against the real pooler with the Node driver.** With no mode the driver connects
+    **unencrypted**. `sslmode=require` fails ("self-signed certificate in certificate chain"), because
+    node-pg reads `require` as full verification and Supabase's CA is not in Node's store.
+    `uselibpqcompat=true&sslmode=require` connects encrypted. Python's driver rejects that parameter,
+    so one URL cannot serve both and `withEncryption` adds it Node-side, only when the URL names no
+    mode. It is libpq's `require`: encrypted, chain not verified.
+
+    **Design, and what each rule is for.** Per-tier cooldown, or one dead tier freezes the others.
+    Every tier down at once is still retried, or a recovery waits out the window. A standby that
+    answers but holds no data is refused (`SELECT 1 FROM "PriceSnapshot" LIMIT 1`), because "0 names"
+    served as the site is worse than an error; a merely old standby is left to the rule table, whose
+    stale-close gate and printed as-of dates make an old copy honest. The primary's bad credential is
+    raised; a *standby's* is logged loudly and skipped, never at the cost of the request. And every
+    pool now has a **connect timeout**: `pg.Pool` defaults to none, so a black-holed primary would
+    have hung the request forever instead of failing over, which is the opposite of "instantly".
+
+    **A capacity bug the cascade test found by accident.** Supabase's free session pooler admits 15
+    clients *in total*. Three test servers (5 pooled connections each) and the running mirror
+    exhausted it, and the code mishandled that twice: the error arrives as `XX000`
+    "(EMAXCONNSESSION) max clients reached", not class 53, so a full standby was classified as a
+    configuration fault and the request failed; and a ceiling of 5 per process is far too greedy,
+    because in production every concurrent serverless instance has its own pool. `STANDBY_MAX_CLIENTS`
+    is 3 and capacity exhaustion is a connection failure.
+
+    **The test setup misled me twice, and both are worth keeping.** The "control" servers returned 200
+    with the primary over quota, which is impossible, for two reasons: they shared one `.next`
+    directory, so one server's render went into the ISR cache and the rest served it from disk; and
+    **`.env` is loaded underneath the shell**, so a variable I had only set for one server (the new
+    `SUPABASE_DATABASE_URL`) was silently present in all of them -- the control was a cascade. Then the
+    status code lied in both directions: Next sends 200 before a mid-render error and puts the error in
+    the body, and my own "real page" check matched the coin's name inside the URL echoed in an error
+    payload. The valid version sets every variable explicitly (empty for "none"), uses a different
+    never-rendered page per scenario, and judges by body size and content: 12 KB of error shell against
+    112 KB of real page.
+
+    **Proven result.** Primary pointed at the genuinely quota-blocked old Neon project, the second
+    standby at a refusing address, Supabase as the only tier left: three different asset pages, all
+    HTTP 200 with real content, zero server errors, and a log naming each tier once. The Supabase
+    price for DOT is identical to Neon's.
+
+    **The mirror takes several targets.** Each is its own unit of failure, because with three databases
+    the one most likely to be down is the one being copied to, and a run that stopped at the first dead
+    target would leave every later one stale. Exit 0 only if all completed. Every printed error passes
+    through `redact`; psycopg's "invalid connection option" echoes the whole string, and a CI log is
+    readable by anyone with repository access. The first test of that used addresses that cannot
+    resolve, whose errors never contain a URL, so it could not have failed -- found only by removing
+    the redaction and watching nothing go red. `cron-mirror.yml` runs nightly after the decision lane,
+    skips cleanly with no standby configured, and uses a 7-day window for prices and 40 days for
+    decisions, because a `DecisionLog` row is updated for a month as its outcomes land.
+
+    **What was claimed and is not true.** The directive says this expands total capacity to 1.5 GB. It
+    does not: a mirror copies the *same* data, so the volume the site can serve from is still one
+    project's 500 MB. Three projects buy survivability and nothing else. And a free Supabase project
+    has been documented to pause after a week without activity, so the nightly mirror is also what
+    keeps the standby awake.
+
+    The directive asked for the tests in `lib/failover.test.ts`. They are in `tests/failover.test.ts`:
+    `npm run test:web` globs `tests/*.test.ts`, so a file in `lib/` would never be run.
+
+    **Verifying a copy is itself a trap.** The first comparison said the two databases differed, twice,
+    and neither was real. `sum(volume)` over 783,000 doubles differed by 1,300 in 4.5e16: floating-point
+    summation order. And an exact text hash of every row differed because the two servers *print* a
+    float differently -- `50.900001525878906` against `50.9000015258789` -- since Supabase runs with
+    `extra_float_digits = 0`, which truncates text output to 15 digits while storing the same double.
+    Comparing the renderings compared the servers' settings, not the data. With
+    `SET extra_float_digits = 3` on both sessions, an order-independent hash (`ORDER BY symbol COLLATE
+    "C"`, because the two servers also collate differently) is identical for every price, decision and
+    thesis row. A copy is verified by exact, order-independent content, never by an aggregate of floats.
+

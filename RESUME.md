@@ -35,8 +35,10 @@ hold different UUIDs for the same stock.
 * **Storage and query cost** (rules 60, 61, 63): 233 MB at 477 assets, the hot query 209 ms to 3.2 ms,
   unchanged rows not rewritten, `PriceSnapshot.id` dropped. Nothing is pruned: the analog leg reads
   every stored close.
-* **Standby, opt-in and off** (rule 69): `jobs/mirror.py` and `lib/failover.ts`. Set
-  `DATABASE_URL_FALLBACK` only once a second project holds a mirror.
+* **Three-tier read failover, opt-in** (rules 69 and 71): primary Neon, then `DATABASE_URL_FALLBACK`, then
+  Supabase (`SUPABASE_DATABASE_URL`, Session pooler, ap-northeast-2). `jobs/mirror.py` fills the standbys
+  and `cron-mirror.yml` refreshes them nightly. Supabase holds a verified-identical schema and is being
+  filled; see the next section for what is live and what is not.
 
 ### Two things that were wrong in earlier notes
 
