@@ -135,6 +135,9 @@ export function toListRow(s: Scored): DecisionRow {
       ].filter((x): x is NonNullable<typeof x> => x !== null),
     ),
     confidence: s.decision.confidence,
+    // Which confirmations backed it. The table prints how many and which, because a grade of
+    // "Medium" says one thing was behind a call and not what it was.
+    legs: s.decision.legs,
     // PSX names are in rupees. Without this every level on the page would be printed with a dollar
     // mark in front of a rupee number, which is worse than printing no level at all.
     currency: s.row.currency,

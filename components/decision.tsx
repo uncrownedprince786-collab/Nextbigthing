@@ -650,6 +650,9 @@ export interface DecisionRow {
   /// reward against. Optional so a caller that has not fetched targets renders exactly as before.
   target?: TargetLike | null;
   confidence: Confidence;
+  /// The confirmations that backed this direction, by the names the rule table uses. Optional so a
+  /// caller that has not carried them renders as before, with an empty cell rather than a guess.
+  legs?: string[];
   /// Quoted currency for this row's levels. Defaults to USD, which is wrong for PSX names, so
   /// callers covering PSX must pass it.
   currency?: string;
@@ -700,7 +703,21 @@ export interface DecisionListProps {
 // 640px each price track is about 70px, which "Rs.1,201.22" does not fit in, and the row either
 // wraps into an unreadable stack or clips. A phone and a tablet both get the labelled card, and
 // only a screen with the width for eight columns gets the eight columns.
-const ROW_LABEL = "text-muted-foreground text-micro font-medium lg:hidden";
+const ROW_LABEL = "text-muted-foreground text-micro font-medium lg:sr-only";
+
+/// How many confirmations exist, for the "n of 5" a row prints. Kept beside the labels so the two
+/// numbers a reader compares -- how many backed it and how many could have -- are written together.
+const LEG_TOTAL = 5;
+
+/// Reader-facing words for the rule table's leg names. An unknown name falls back to itself, so a
+/// sixth confirmation added to the rule table prints under its own name instead of vanishing.
+const LEG_WORDS: Record<string, string> = {
+  timeframe: "longer view",
+  volume: "volume",
+  history: "similar days",
+  peers: "peers",
+  trigger: "entry trigger",
+};
 
 /// Rows split into sector sections, in the site-wide sector order.
 ///
@@ -812,6 +829,9 @@ export function SectorBoard({
               role={scrolls ? "group" : undefined}
               aria-label={scrolls ? `${label}, scrollable list of ${section.rows.length} names` : undefined}
             >
+              {/* Inside the scroller and pinned, so it is the first thing in the box and stays
+                  there. `rounded={false}` because the block's own border already rounds it. */}
+              <DecisionHeader rounded={false} sticky />
               <DecisionRows rows={section.rows} />
             </div>
           </div>
@@ -852,19 +872,28 @@ export function SectorBoard({
 /// eight-column table starts at `lg`, where there is genuinely width for eight tracks -- at 640px
 /// a price track is about 70px and "Rs.1,201.22" does not fit in it.
 const DECISION_COLS =
-  "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,0.6fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)] lg:items-baseline lg:gap-y-0";
+  "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.55fr)_minmax(0,0.75fr)_minmax(0,0.85fr)_minmax(0,1.15fr)_minmax(0,0.9fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1.3fr)] lg:items-baseline lg:gap-y-0";
 
 /// The column header, shown only where the table layout is.
 ///
 /// On a phone and a tablet each cell labels itself, so a header there would be eight words of
 /// duplication over every row.
-function DecisionHeader({ rounded = true }: { rounded?: boolean }) {
+function DecisionHeader({
+  rounded = true,
+  sticky = false,
+}: {
+  rounded?: boolean;
+  /// Pin to the top of the nearest scrolling ancestor. For a header inside a sector's scroll box:
+  /// without it the column names scroll away with the first row and a reader eight rows down is
+  /// looking at ten unlabelled numbers.
+  sticky?: boolean;
+}) {
   return (
     <div
       aria-hidden="true"
-      className={`text-muted-foreground border-border bg-muted/60 hidden border px-3 py-2 text-xs lg:grid ${
-        rounded ? "rounded-t-lg" : "border-x-0 border-t-0"
-      } ${DECISION_COLS}`}
+      className={`text-muted-foreground border-border hidden border px-3 py-2 text-xs lg:grid ${
+        sticky ? "bg-muted sticky top-0 z-10" : "bg-muted/60"
+      } ${rounded ? "rounded-t-lg" : "border-x-0 border-t-0"} ${DECISION_COLS}`}
     >
       <span>Name</span>
       <span>Market</span>
@@ -873,7 +902,13 @@ function DecisionHeader({ rounded = true }: { rounded?: boolean }) {
       <span>Entry zone</span>
       <span>Stop loss</span>
       <span>Take profit</span>
+      <span title="Reward against risk, measured from the entry level. From today's price it is at least this.">
+        Reward:risk
+      </span>
       <span>Confidence</span>
+      <span title="How many of the five independent confirmations back this direction, and which.">
+        Confirmations
+      </span>
     </div>
   );
 }
@@ -977,11 +1012,47 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                 </span>
               </span>
 
+              {/* Reward against risk, from the same target the column to its left prints, so the
+                  two cannot disagree. Measured from the entry level: with the stop below the
+                  close and the close at or under the entry for a long -- which the rule table now
+                  guarantees -- the figure from today's price is at least this one, so it
+                  understates and never flatters. */}
+              <span className="min-w-0">
+                <span className={ROW_LABEL}>Reward:risk</span>
+                <span
+                  className={
+                    r.target?.rewardRisk != null ? "num block text-sm whitespace-nowrap" : "text-muted-foreground block text-sm"
+                  }
+                  title="Measured from the entry level. From today's price it is at least this."
+                >
+                  {r.target?.rewardRisk != null ? `${r.target.rewardRisk.toFixed(1)}:1` : "none stored"}
+                </span>
+              </span>
+
               <span className="min-w-0">
                 <span className={ROW_LABEL}>Confidence</span>
                 <span className="mt-0.5 block lg:mt-0">
                   <ConfidenceBadge grade={r.confidence.toLowerCase()} />
                 </span>
+              </span>
+
+              {/* The score and what it is made of. A grade says one thing backed a call; this says
+                  which. A WAIT has no direction to confirm, so it prints a dash and not "0 of 5",
+                  which would read as a call that nothing supports. */}
+              <span className="min-w-0">
+                <span className={ROW_LABEL}>Confirmations</span>
+                {r.action === "WAIT" || r.legs === undefined ? (
+                  <span className="text-muted-foreground block text-sm">not applicable</span>
+                ) : (
+                  <>
+                    <span className="num block text-sm">
+                      {r.legs.length} of {LEG_TOTAL}
+                    </span>
+                    <span className="text-muted-foreground text-micro block">
+                      {r.legs.length ? r.legs.map((l) => LEG_WORDS[l] ?? l).join(", ") : "none"}
+                    </span>
+                  </>
+                )}
               </span>
             </Card>
           </li>

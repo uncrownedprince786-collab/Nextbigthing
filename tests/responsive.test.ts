@@ -75,7 +75,7 @@ test("the eight-column table starts at lg, not at sm", () => {
   // The fragile part is that one breakpoint has to be right in six places at once: the grid, the
   // header, the row border, the padding, the name's column span and the per-cell labels. A
   // single `sm:` left behind puts the labels and the table on screen together.
-  assert.match(decision, /lg:grid-cols-\[minmax/, "the eight-track grid must start at lg");
+  assert.match(decision, /lg:grid-cols-\[minmax/, "the ten-track grid must start at lg");
   assert.doesNotMatch(
     decision,
     /sm:grid-cols-\[minmax/,
@@ -83,7 +83,12 @@ test("the eight-column table starts at lg, not at sm", () => {
   );
 
   // The per-cell labels and the header are the two halves that must not be on screen together.
-  assert.match(decision, /const ROW_LABEL = "[^"]*lg:hidden"/);
+  // `lg:sr-only` and not `lg:hidden`: visually gone where the header carries them, but still in the
+  // accessibility tree. The header is `aria-hidden`, so `lg:hidden` left a screen reader on a
+  // desktop width with ten values per row and no names for any of them.
+  assert.match(decision, /const ROW_LABEL = "[^"]*lg:sr-only"/);
+  assert.doesNotMatch(decision, /const ROW_LABEL = "[^"]*lg:hidden"/);
+  assert.match(decision, /aria-hidden="true"/, "the header must stay hidden from assistive tech");
   assert.match(decision, /text-xs lg:grid \$\{/, "the header must only grid at lg");
 
   // One track definition, used by the header and by every row. Two copies is how the overview
@@ -128,4 +133,61 @@ test("a scrolling sector is reachable without a mouse", () => {
   // focusable itself, and unannounced unless it is labelled.
   assert.match(decision, /tabIndex=\{scrolls \? 0 : undefined\}/);
   assert.match(decision, /aria-label=\{scrolls \?/);
+});
+
+test("every sector block carries its own pinned column header, above its rows", () => {
+  // The defect, from 2026-10-10: `SectorBoard` rendered `DecisionRows` with no `DecisionHeader`
+  // anywhere, so no market page had a single column heading -- and at desktop width the per-row
+  // labels are hidden because a header is assumed to be carrying them, so a reader saw eight
+  // unlabelled values per row. Only the older `DecisionList` rendered the header.
+  const start = decision.indexOf("export function SectorBoard(");
+  assert.ok(start > 0, "SectorBoard no longer matches; check the sector blocks survived");
+  const body = decision.slice(start, decision.indexOf("\n}\n", start));
+
+  const header = body.indexOf("<DecisionHeader");
+  const rows = body.indexOf("<DecisionRows");
+  assert.ok(header > 0, "a sector block renders no column header");
+  assert.ok(header < rows, "the header must come before the rows it names");
+
+  // Inside the element that scrolls, and pinned. Outside it, the names would stay put while the
+  // rows scrolled under them -- which works -- but only for a block tall enough to scroll, and the
+  // short blocks would then carry a header the long ones did not.
+  const scroller = body.indexOf("overflow-y-auto");
+  assert.ok(scroller > 0 && scroller < header, "the header must sit inside the scroll container");
+  assert.match(body, /<DecisionHeader rounded=\{false\} sticky \/>/);
+  assert.match(decision, /sticky \? "bg-muted sticky top-0 z-10"/, "a pinned header needs an opaque ground");
+});
+
+test("the header names every field a row prints", () => {
+  const at = decision.indexOf("function DecisionHeader(");
+  // Whitespace collapsed: the file has CRLF endings and a label can sit on its own line inside a
+  // span that carries a tooltip, so a search for "label then newline" depends on the platform.
+  const header = decision
+    .slice(at, decision.indexOf("/// The rows themselves", at))
+    .replace(/\s+/g, " ");
+  for (const label of [
+    "Name",
+    "Market",
+    "Action",
+    "Current price",
+    "Entry zone",
+    "Stop loss",
+    "Take profit",
+    "Reward:risk",
+    "Confidence",
+    "Confirmations",
+  ]) {
+    assert.ok(header.includes(`>${label}<`) || header.includes(`> ${label} <`), `no header for ${label}`);
+  }
+  // And each is also a row label, so a phone -- where the header is hidden -- names the same ten.
+  const rows = decision.slice(decision.indexOf("function DecisionRows("));
+  for (const label of ["Name", "Market", "Action", "Current price", "Entry zone", "Stop loss", "Take profit", "Reward:risk", "Confidence", "Confirmations"]) {
+    assert.ok(rows.includes(`>${label}</span>`), `no row label for ${label}`);
+  }
+});
+
+test("a WAIT prints no confirmation score rather than 0 of 5", () => {
+  const rows = decision.slice(decision.indexOf("function DecisionRows("));
+  assert.match(rows, /r\.action === "WAIT" \|\| r\.legs === undefined/);
+  assert.match(rows, /not applicable/);
 });
