@@ -448,20 +448,20 @@ test("opposite timeframes are carried when the measured reward is asymmetric", (
   const opposed = { horizon: { direction: "down" } as const };
   // Under the bar: still the refusal, and the reason names the figure it fell short of.
   const held = decide(
-    base({ ...opposed, target: { method: "structure", low: 108, high: 112, rewardRisk: 1.9 } }),
+    base({ ...opposed, target: { method: "volatility", low: 108, high: 112, rewardRisk: 2.6 } }),
   );
   assert.equal(held.action, "WAIT");
   assert.equal(held.gate, "mixed-horizons");
-  assert.match(held.why[1], /1\.9x the risk, short of the 2x/);
+  assert.match(held.why[1], /2\.6x the risk, short of the 2\.75x/);
 
   // At the bar: the direction prints and the disagreement is still stated in the why lines.
   const carried = decide(
-    base({ ...opposed, target: { method: "structure", low: 120, high: 126, rewardRisk: 2.4 } }),
+    base({ ...opposed, target: { method: "volatility", low: 120, high: 126, rewardRisk: 3.1 } }),
   );
   assert.equal(carried.action, "LONG");
   assert.equal(carried.gate, "long");
   assert.match(carried.why[1], /does not disagree|Longer view/);
-  assert.equal(carried.plan?.rewardRisk, 2.4);
+  assert.equal(carried.plan?.rewardRisk, 3.1);
 });
 
 test("no stored target is not an asymmetric reward", () => {
@@ -515,7 +515,7 @@ test("a withheld trend is still refused by a disagreeing longer view unless rewa
   };
   assert.equal(decide(base({ ...against, target: null })).action, "WAIT");
   assert.equal(
-    decide(base({ ...against, target: { method: "structure", low: 120, high: 126, rewardRisk: 2.6 } }))
+    decide(base({ ...against, target: { method: "volatility", low: 120, high: 126, rewardRisk: 3.1 } }))
       .action,
     "LONG",
   );

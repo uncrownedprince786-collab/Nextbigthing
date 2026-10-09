@@ -598,10 +598,10 @@ test("a setup's measured target reaches the rules and sizes the trade", () => {
     ),
     "2026-10-03",
   );
-  // The preference order from lib/target.ts, applied once: structure beats volatility.
-  assert.equal(input.target?.method, "structure");
-  assert.equal(input.target?.rewardRisk, 2.6);
-  assert.equal(decide(input).plan?.rewardRisk, 2.6);
+  // The preference order from lib/target.ts, applied once: volatility leads.
+  assert.equal(input.target?.method, "volatility");
+  assert.equal(input.target?.rewardRisk, 0.9);
+  assert.equal(decide(input).plan?.rewardRisk, 0.9);
 });
 
 test("a target sitting on the entry falls through to the one that measured a distance", () => {
@@ -630,6 +630,24 @@ test("a target sitting on the entry falls through to the one that measured a dis
   );
   assert.equal(withFlatStructure.target?.method, "volatility");
   assert.equal(withFlatStructure.target?.rewardRisk, 1.8);
+  // And with the leading method flat, the next one that measured a distance is taken.
+  const flatVolatility = toDecisionInput(
+    bundleFromRow(
+      row({
+        swing: {
+          ...UP,
+          targets: [
+            { method: "volatility", low: 94.1, high: 94.1, rewardRisk: 0.03 },
+            { method: "structure", low: 112, high: 112, rewardRisk: 1.4 },
+          ],
+        },
+        longer: UP,
+      }),
+      [],
+    ),
+    "2026-10-03",
+  );
+  assert.equal(flatVolatility.target?.method, "structure");
 
   // And when every method is flat, the real figure is still shown rather than nothing. A trade
   // with no room is a finding, and hiding it would be the one dishonest outcome here.
@@ -649,8 +667,8 @@ test("a target sitting on the entry falls through to the one that measured a dis
     ),
     "2026-10-03",
   );
-  assert.equal(allFlat.target?.method, "structure");
-  assert.equal(allFlat.target?.rewardRisk, 0.02);
+  assert.equal(allFlat.target?.method, "volatility");
+  assert.equal(allFlat.target?.rewardRisk, 0.04);
 });
 
 test("the target is taken off the setup that decided, not off whichever row has one", () => {

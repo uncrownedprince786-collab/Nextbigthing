@@ -24,16 +24,44 @@ export interface SetupLike {
   targets?: TargetLike[] | null;
 }
 
-/// The reader's order, not the arithmetic's.
+/// The order, and it is now the measured one rather than the readable one.
 ///
-///  1. **structure** — the nearest price where this series has already turned. The only one of the
-///     three that is a fact about where the market stopped before, which is what "where would I
-///     take this off" actually means.
-///  2. **volatility** — a multiple of the asset's own recent daily range. Not a place anything
+///  1. **volatility** — a multiple of the asset's own recent true range. Not a place anything
 ///     happened, but a distance this asset covers.
+///  2. **structure** — the nearest price where this series has already turned. A fact about where
+///     the market stopped before, which is what "where would I take this off" sounds like it
+///     should mean.
 ///  3. **analog** — what followed similar past days. Last, because it is a distribution over a
 ///     sample rather than a level: it answers how far this usually got, not where it would stop.
-const PREFERENCE = ["structure", "volatility", "analog"] as const;
+///
+/// **Structure was first and is now second, and the reason is evidence.** Measured 2026-10-09
+/// over the 465 current swing setups that carry targets, against the volatility stop
+/// `jobs/setup.py` now places:
+///
+///     method        n     median reward     reaching 1x
+///     volatility  465             2.04x       463 of 465
+///     structure   446             0.41x       107 of 446
+///     analog      195             0.17x         3 of 195
+///
+/// The nearest level a series has already turned at is usually very near. As an exit it is a real
+/// level and a poor payoff, and preferring it meant the typical card offered 0.41 times its own
+/// risk — a trade that has to be right two and a half times over to break even.
+///
+/// The deciding argument is not the ratio, it is which configuration was tested. The backtest
+/// behind `STOP_SIGMAS` simulated entry at the window extreme, a stop at 1.5 of the asset's daily
+/// dispersion and **a target at a volatility multiple** -- 174,277 long setups, first touch over
+/// 20 sessions, 46.8% reaching the target and a mean outcome of +0.139 times the risk. The
+/// structural target has never been through that, and it was the one every card was showing.
+///
+/// One caveat worth carrying: the backtest's target was two close-to-close standard deviations
+/// and `jobs/horizons.py` writes two average true ranges, which is wider. A wider target is
+/// reached less often than the simulation showed, so the measured hit rate is an upper bound on
+/// what production will do, not a prediction of it. `DecisionLog` records the reward on every
+/// decision and matures at +1, +5 and +20 sessions, which is what will settle it.
+///
+/// Structure is still stored, still shown when volatility is absent, and the panel names which
+/// method it is quoting, so nothing here hides the nearer level from a reader who wants it.
+const PREFERENCE = ["volatility", "structure", "analog"] as const;
 
 /// The horizon order `pickSetup` in lib/decisionInput.ts walks, declared here because that file
 /// imports this one and the dependency cannot run both ways.

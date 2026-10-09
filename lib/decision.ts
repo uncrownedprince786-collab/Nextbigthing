@@ -266,16 +266,31 @@ export function relBandFor(input: DecisionInput): number {
 /// range against the setup's own invalidation level — and refuses to write at all when there is
 /// no invalidation, so every figure this threshold sees has a real denominator.
 ///
-/// 2.0 is where it is because of what the table actually holds, not because it is a round number.
-/// Measured 2026-10-09 over the 717 setups carrying a target: **111 reach 2.0 or more**, a little
-/// under one in six. At 1.0 the bar would pass two thirds of the table and mean nothing; at 3.0
-/// only 51 setups clear it and the bypass would be theoretical. A sixth is a minority worth
-/// naming, which is the whole job of a threshold.
+/// 2.75 is where it is because of what the table actually holds, not because it is a round
+/// number. A sixth is a minority worth naming, which is the whole job of a threshold.
+///
+/// **It was 2.0, and the denominator moved underneath it.** When it was set, 111 of 717 setups
+/// reached 2.0 — a little under one in six. `jobs/setup.py` then stopped placing the invalidation
+/// at the far end of the 20-session range and started placing it 1.5 of the asset's own daily
+/// moves from the entry, which cut the median risk window from 10.4% of the price to 2.75%. Every
+/// reward figure in the table roughly tripled without a single target moving, and 2.0 went from
+/// catching 15% of setups to catching **44%** of them. By the argument written here when it was
+/// chosen — "at 1.0 the bar would pass two thirds of the table and mean nothing" — 2.0 had
+/// stopped meaning anything.
+///
+/// Re-measured 2026-10-09 over the 745 current setups, on the same preferred-method basis the
+/// rules read: 2.0 passes 325, 2.5 passes 138, **2.75 passes 109 (15%)**, 3.0 passes 69. 2.75
+/// restores the property the number was given, almost exactly — 109 against the original 111.
+///
+/// This is the fourth time in this file a constant has had to be re-derived because what it was
+/// divided against changed. Rule 42 is the general form, and the lesson it keeps teaching is that
+/// a threshold is a statement about a distribution and has to be re-read whenever the
+/// distribution does.
 ///
 /// It is used in exactly two places and both are bypasses, never promotions on their own: gate 5
 /// stops refusing a disagreement, and gate 8 carries a trend whose other conditions are
 /// incomplete. Neither invents a direction — the direction is already measured and stored.
-export const ASYMMETRY_CLEARS = 2;
+export const ASYMMETRY_CLEARS = 2.75;
 
 /// The trade in levels and measured frequencies, for a decision that produced a direction.
 ///

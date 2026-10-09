@@ -73,6 +73,41 @@ REL_EDGE = 1.0          # percentage points of 20 day outperformance against its
 # large enough that a cross that happened this morning does not read as a position. Measured over
 # the 123 directionless swing rows on 2026-10-09, 4 fell inside it.
 BIAS_MIN_GAP = 0.25
+
+# How far the invalidation sits from the entry, in standard deviations of the asset's own daily
+# return over the FAST window.
+#
+# **What it replaces.** The stop was the far end of the 20-session close range: for a long, the
+# entry was the window high and the stop the window low, so the risk taken was the whole recent
+# range. Measured 2026-10-09 over the 475 current swing rows, that distance has a median of
+# **10.4% of the price**, quartiles 6.6% to 15.8%. Against the targets `horizons.py` measures,
+# the median reward came to 0.41x the risk: the typical call risked two and a half times what it
+# stood to make.
+#
+# **Why 1.5 and not tighter.** Backtested over 174,277 long setups and 104,336 short ones across
+# the whole stored history -- entry at the window extreme with price already there, first touch
+# over the next 20 sessions, outcome in units of the risk taken:
+#
+#     stop            R:R    target hit   stopped    mean R
+#     window extreme  0.37        58.5%     18.3%     0.030
+#     0.75 sigma      2.67        37.5%     61.1%     0.401
+#     1.0 sigma       2.00        41.0%     56.8%     0.263
+#     1.5 sigma       1.33        46.8%     49.2%     0.139
+#     2.0 sigma       1.00        50.9%     42.8%     0.082
+#     3.0 sigma       0.67        55.9%     32.4%     0.033
+#
+# Mean expectancy rises all the way to the tightest stop tested, and that is exactly why the
+# tightest was not taken. The simulation walks **daily closes**, so a stop is only recorded as hit
+# when a close finishes beyond it -- every intraday touch is missed, and the tighter the stop the
+# more of them there are. The 0.75 sigma row is therefore the most optimistic line in the table
+# and the least trustworthy. 1.5 improves the ratio to 1.33x and the mean outcome to 0.139R
+# against 0.030R, which is four and a half times the current rule, while still finishing roughly
+# half its trades at the target rather than turning the engine into a lottery with a good average.
+#
+# It can only ever tighten. The level is bounded by the window extreme below, so an asset whose
+# recent range is narrower than 1.5 of its own daily moves keeps the range as its stop rather
+# than being handed a wider one than it had.
+STOP_SIGMAS = 1.5
 ANALOG_SHARE = 0.55     # share of similar past days that rose, before history counts as support
 ANALOG_MIN = 8          # matches needed before that share is used at all
 EVENT_SOON_DAYS = 14    # a scheduled date inside this is context for a swing read
@@ -211,6 +246,82 @@ def all_industry_relative(cur) -> dict[str, float]:
 
 # Calendar days used to reach back roughly FAST trading days.
 FOR_DAYS = 28
+
+
+def sigma_pct(series: list[dict]) -> float | None:
+    """Standard deviation of this asset's daily return over the FAST window, in percent.
+
+    Close to close rather than a true range, because this job reads closes and nothing else --
+    `jobs/horizons.py` has the highs and lows and computes a real ATR there. The two measure the
+    same thing at slightly different scales, and what matters here is only that the figure is the
+    asset's own: 1.5 of a currency pair's daily moves and 1.5 of a small cap's are different
+    distances in percent and the same distance in the terms the instrument trades in.
+
+    None under three usable returns, or when the result is zero -- a flat series gives a stop at
+    the entry, which is not a stop. The caller then keeps the window extreme.
+    """
+    closes = [float(b["close"]) for b in series[-(FAST + 1):]]
+    rets = [
+        (closes[i] / closes[i - 1] - 1.0) * 100.0
+        for i in range(1, len(closes))
+        if closes[i - 1] > 0
+    ]
+    if len(rets) < 3:
+        return None
+    mean = sum(rets) / len(rets)
+    sd = (sum((r - mean) ** 2 for r in rets) / len(rets)) ** 0.5
+    return sd if sd > 0 else None
+
+
+def stop_level(
+    entry: float, high: float, low: float, sigma: float | None, state: str
+) -> tuple[float, str]:
+    """The level at which this read is wrong, and the sentence that says what it is.
+
+    `STOP_SIGMAS` of the asset's own daily dispersion from the entry, and **never wider than the
+    window extreme**. The bound is what makes this a tightening and nothing else: an asset whose
+    recent range is narrower than 1.5 of its own daily moves keeps the range, so no setup ends up
+    risking more than it did before this existed.
+
+    Falls back to the window extreme with its original wording when the dispersion could not be
+    measured, which is the honest answer rather than a stop placed on an assumed volatility.
+    """
+    if state == "short":
+        if sigma is None:
+            return high, (
+                f"the highest close of the last {FAST} sessions. A close above it means the "
+                "trend these conditions were read from is no longer there"
+            )
+        level = min(high, entry * (1 + STOP_SIGMAS * sigma / 100.0))
+        if level >= high:
+            return high, (
+                f"the highest close of the last {FAST} sessions, which is nearer than "
+                f"{STOP_SIGMAS} of this asset's own daily moves. A close above it means the "
+                "trend these conditions were read from is no longer there"
+            )
+        return level, (
+            f"{STOP_SIGMAS} times this asset's own daily move of {sigma:.2f}% above the entry, "
+            f"reaching {level:.2f}. A close above it means the trend these conditions were read "
+            "from is no longer there"
+        )
+
+    if sigma is None:
+        return low, (
+            f"the lowest close of the last {FAST} sessions. A close below it means the trend "
+            "these conditions were read from is no longer there"
+        )
+    level = max(low, entry * (1 - STOP_SIGMAS * sigma / 100.0))
+    if level <= low:
+        return low, (
+            f"the lowest close of the last {FAST} sessions, which is nearer than {STOP_SIGMAS} "
+            "of this asset's own daily moves. A close below it means the trend these conditions "
+            "were read from is no longer there"
+        )
+    return level, (
+        f"{STOP_SIGMAS} times this asset's own daily move of {sigma:.2f}% below the entry, "
+        f"reaching {level:.2f}. A close below it means the trend these conditions were read from "
+        "is no longer there"
+    )
 
 
 def main() -> None:
@@ -507,24 +618,17 @@ def main() -> None:
             recent = series[-FAST:]
             high = max(float(b["close"]) for b in recent)
             low = min(float(b["close"]) for b in recent)
-            entry, invalid = (low, high) if state == "short" else (high, low)
+            entry = low if state == "short" else high
+            invalid, invalid_note = stop_level(entry, high, low, sigma_pct(series), state)
             if state == "short":
                 entry_note = (
                     f"the lowest close of the last {FAST} sessions. A close below it would be a "
                     "move past where it recently held"
                 )
-                invalid_note = (
-                    f"the highest close of the last {FAST} sessions. A close above it means the "
-                    "trend these conditions were read from is no longer there"
-                )
             else:
                 entry_note = (
                     f"the highest close of the last {FAST} sessions. A close above it would be "
                     "a move past where it recently stalled"
-                )
-                invalid_note = (
-                    f"the lowest close of the last {FAST} sessions. A close below it means the "
-                    "trend these conditions were read from is no longer there"
                 )
             range_note = None
             if analog and analog["matches"] and int(analog["matches"]) >= ANALOG_MIN:

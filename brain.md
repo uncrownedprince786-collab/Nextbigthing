@@ -1068,3 +1068,72 @@ reads rows that already exist:
     which is the lowest close of the trailing window and is wide by construction. Sniper entries
     are a stop problem before they are a conviction problem, and this is the first time the site
     has had the coverage to say so.
+
+48. **The stop was the whole recent range, and tightening it is the first change here that had to
+    be backtested before it was made.**
+    Rule 47 ended by naming the median reward of 0.41x as a stop problem rather than a rule-table
+    problem. It was. `jobs/setup.py` placed the entry at one end of the 20-session close range and
+    the invalidation at the other, so the risk taken on every call was the entire recent range —
+    a median of **10.4% of the price**, quartiles 6.6% to 15.8%.
+
+    **Why this one needed evidence and the others did not.** Reward against risk is a ratio.
+    Narrowing the denominator raises it arithmetically and also raises the chance the stop is
+    taken out by noise before the target is reached, so the ratio cannot say whether a change is
+    an improvement. Only expectancy can. Backtested over the whole stored history — entry at the
+    window extreme with price already there, first touch across the next 20 sessions, outcome in
+    units of the risk taken:
+
+        long, n=174,277      R:R   target hit   stopped   mean R
+        window extreme      0.37        58.5%     18.3%    0.030
+        0.75 sigma          2.67        37.5%     61.1%    0.401
+        1.0 sigma           2.00        41.0%     56.8%    0.263
+        1.5 sigma           1.33        46.8%     49.2%    0.139
+        2.0 sigma           1.00        50.9%     42.8%    0.082
+        3.0 sigma           0.67        55.9%     32.4%    0.033
+
+    Mean expectancy rises all the way to the tightest stop tested, which is exactly why the
+    tightest was not taken. The simulation walks **daily closes**, so a stop counts as hit only
+    when a close finishes beyond it and every intraday touch is missed — the tighter the stop, the
+    more of them, so the top row is the most optimistic line in the table and the least
+    trustworthy. 1.5 sigma takes a 4.6x improvement in mean outcome while still finishing roughly
+    half its trades at the target, rather than becoming a lottery with a good average. The level
+    is bounded by the window extreme, so it can only ever tighten.
+
+    Median risk window: **10.4% of price to 2.75%**. All 475 current swing rows use the volatility
+    stop; none fell back to the range.
+
+    **The target preference changed with it, and for the same reason.** `structure` led the
+    preference order on a readability argument — the nearest price the series actually turned at
+    is what "where would I take this off" sounds like it should mean. Measured against the new
+    stop over the current setups: structure a median of **0.41x** over 446 rows, volatility
+    **2.04x** over 465. The nearest level a series turned at is usually very near, and as an exit
+    it is a real level with a poor payoff. The deciding argument is not the ratio but which
+    configuration was tested: the backtest above used a **volatility** target, and the structural
+    one — the one every card was showing — has never been through it.
+
+    **Then the asymmetry bar had to be re-derived, and this is the part worth remembering.**
+    `ASYMMETRY_CLEARS` was 2.0, chosen because 111 of 717 setups reached it: a little under one in
+    six. Every reward figure then roughly tripled without a single target moving, and 2.0 went to
+    catching **44%**. By its own written justification it had stopped meaning anything. Re-measured
+    on the same basis, 2.75 passes 109 of 745 — 15%, against the original 111. Same property,
+    re-read after the distribution moved. **Fourth time in this file.** Rule 42 is the general
+    form and the lesson it keeps teaching is that a threshold is a statement about a distribution,
+    so it has to be re-read whenever the distribution does. Leaving it at 2.0 would have silently
+    promoted 216 extra names through gate 8 and reported it as a win.
+
+    Across the pool, same day and same stored closes:
+
+        measure                     before      after
+        median reward against risk   0.41x      1.87x
+        calls reaching 1x          28 / 265   240 / 286
+        calls reaching 2x           6 / 265   122 / 286
+        median risk window           10.4%      2.75%
+
+    **The finding that matters more than any of this.** The same backtest run on the short side,
+    104,336 setups: mean R is **negative at every stop width except the two tightest**, and
+    negative under the current rule at −0.068. The long side is positive everywhere. The site
+    issues more shorts than longs — 174 against 112 today — so the majority of its directional
+    calls sit on the side with no measured edge. Nothing here changes that, and no stop width can:
+    it is a statement about the direction, not about the risk. `DecisionLog` records gate and
+    reward on every row and matures at +1, +5 and +20 sessions, which is the only thing that will
+    settle whether the short side should be issued at all.

@@ -42,6 +42,7 @@ import run  # noqa: E402
 import runlog  # noqa: E402
 import seed  # noqa: E402
 import schemacheck  # noqa: E402
+import setup  # noqa: E402
 import thesis  # noqa: E402
 
 
@@ -5163,11 +5164,47 @@ class ShortLevelsAreMirrored(unittest.TestCase):
         return (Path(__file__).resolve().parent.parent / "jobs" / name).read_text(encoding="utf-8")
 
     def test_setup_picks_its_levels_by_state(self):
-        src = self.source("setup.py")
-        self.assertIn('entry, invalid = (low, high) if state == "short" else (high, low)', src)
-        # And the old unconditional form is gone, in either order.
-        self.assertNotIn("entry = max(float(b[\"close\"]) for b in recent)", src)
-        self.assertNotIn("invalid = min(float(b[\"close\"]) for b in recent)", src)
+        # A call rather than a source check now that the stop is chosen by `stop_level` instead
+        # of by one literal line -- which is the stronger test, and the reason the source form
+        # was only ever a stand-in for it.
+        high, low, entry_long, entry_short, sigma = 110.0, 90.0, 110.0, 90.0, 2.0
+
+        stop_up, note_up = setup.stop_level(entry_long, high, low, sigma, "buy")
+        self.assertLess(stop_up, entry_long, "a long is wrong below its entry")
+        self.assertGreaterEqual(stop_up, low, "and never further than the window it was read from")
+
+        stop_down, note_down = setup.stop_level(entry_short, high, low, sigma, "short")
+        self.assertGreater(stop_down, entry_short, "a short is wrong above its entry")
+        self.assertLessEqual(stop_down, high)
+
+        # The two must not be the same level, which is the fault this class exists for.
+        self.assertNotAlmostEqual(stop_up, stop_down)
+        self.assertIn("below", note_up)
+        self.assertIn("above", note_down)
+
+    def test_the_stop_can_only_tighten(self):
+        # Bounded by the window extreme, so an asset whose recent range is narrower than
+        # STOP_SIGMAS of its own daily moves keeps the range and is never handed a wider stop
+        # than it had before this existed.
+        tight_range_high, tight_range_low = 100.5, 99.5
+        stop, note = setup.stop_level(100.5, tight_range_high, tight_range_low, 9.0, "buy")
+        self.assertEqual(stop, tight_range_low)
+        self.assertIn(f"{setup.FAST} sessions", note)
+
+    def test_an_unmeasurable_dispersion_keeps_the_window_extreme(self):
+        # A stop placed on an assumed volatility would be the one number this job may not write.
+        self.assertEqual(setup.stop_level(110.0, 110.0, 90.0, None, "buy")[0], 90.0)
+        self.assertEqual(setup.stop_level(90.0, 110.0, 90.0, None, "short")[0], 110.0)
+        self.assertIsNone(setup.sigma_pct([{"close": 10.0} for _ in range(30)]))
+        self.assertIsNone(setup.sigma_pct([{"close": 10.0}, {"close": 11.0}]))
+
+    def test_the_stop_is_measured_in_the_asset_s_own_moves(self):
+        # 1.5 of a 2% daily move is 3% from the entry, in every market, which is the whole point
+        # of scaling it rather than fixing a percentage.
+        stop, _ = setup.stop_level(100.0, 200.0, 1.0, 2.0, "buy")
+        self.assertAlmostEqual(stop, 100.0 * (1 - setup.STOP_SIGMAS * 2.0 / 100.0), places=6)
+        quiet, _ = setup.stop_level(100.0, 200.0, 1.0, 0.4, "buy")
+        self.assertGreater(quiet, stop, "a quieter asset gets a nearer stop, not the same one")
 
     def test_horizons_picks_its_levels_by_state(self):
         src = self.source("horizons.py")

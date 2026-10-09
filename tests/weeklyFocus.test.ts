@@ -180,10 +180,14 @@ test("the exit-if-working target is one measured method, never an average", () =
   assert.notEqual(got?.low, 160);
 });
 
-test("the preference order is structure, then volatility, then analog", () => {
+test("the preference order is volatility, then structure, then analog", () => {
+  // Structure led until 2026-10-09 and now follows. The reason is in lib/target.ts: against the
+  // volatility stop, the nearest level a series already turned at offered a median reward of
+  // 0.41x the risk over 446 setups where the volatility target offered 2.04x -- and the
+  // volatility target is the one the stop width was backtested against.
   const all = (...m: string[]) => scored({}, { swing: { targets: m.map((x) => target(x)) } });
-  assert.equal(weeklyTarget(all("analog", "volatility", "structure"))?.method, "structure");
-  assert.equal(weeklyTarget(all("analog", "volatility"))?.method, "volatility");
+  assert.equal(weeklyTarget(all("analog", "volatility", "structure"))?.method, "volatility");
+  assert.equal(weeklyTarget(all("analog", "structure"))?.method, "structure");
   assert.equal(weeklyTarget(all("analog"))?.method, "analog");
 });
 
