@@ -1099,8 +1099,18 @@ reads rows that already exist:
     half its trades at the target, rather than becoming a lottery with a good average. The level
     is bounded by the window extreme, so it can only ever tighten.
 
-    Median risk window: **10.4% of price to 2.75%**. All 475 current swing rows use the volatility
+    Median risk window on the swing rows: **10.4% of price to 2.75%**. All 475 use the volatility
     stop; none fell back to the range.
+
+    **Say which rows, though.** That figure is the swing rows, which is where the fault was.
+    `horizons.py` writes the `longer` rows and has always placed their levels at structural
+    pivots rather than at range extremes, so they were never the wide ones: measured on the 286
+    directional calls today, **176 take their stop from the tightened swing row at a median of
+    2.31% of price and 110 from a longer row at 2.94%**. Across all of them the median risk is
+    2.57%. The longer rows are not touched here and should not be by this constant -- 1.5 of a
+    *daily* dispersion is the wrong unit for a quarterly read, and extending an untested multiple
+    to a different timeframe is the move this rule exists to argue against. If they want
+    tightening they need their own backtest.
 
     **The target preference changed with it, and for the same reason.** `structure` led the
     preference order on a readability argument — the nearest price the series actually turned at
