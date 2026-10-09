@@ -1,5 +1,58 @@
 # Resume here
 
+## 0. State of play, 2026-10-10 (tenth session) — read this first
+
+**The database is a different one now, and several things below this section describe the old one.**
+The Neon project that held everything through 2026-10-09 exceeded its quota and refused every
+connection. A fresh project (`ep-raspy-fire-b5i0eo8w`) was made, all 25 migrations applied, the seed
+run, and every source refetched. **Nothing from before 2026-10-09 survived the move**, and the old
+project is still over quota, so the matured decision history from 2026-10-01 to 10-09 is not yet
+recoverable. `python jobs/mirror.py --from OLD --to NEW --tables DecisionLog` is the way to bring it
+back when that quota resets; it translates asset ids by (industry, symbol) because the two projects
+hold different UUIDs for the same stock.
+
+### What must be checked by a person, and cannot be from the repository
+
+| item | why it matters |
+| --- | --- |
+| **GitHub Actions secret `DATABASE_URL`** | Separate from Vercel's. Eleven workflows read it, including `schema.yml` and every cron lane. If it still names the old project they are all failing on the quota. `gh` is not installed here. |
+| **The connection string was pasted into a chat** | Rotate that Neon password. |
+| **`master` and `main`** | Kept identical. Vercel's production branch follows the repository default, which is `master`; for a day nothing deployed because `master` was 13 commits behind. Push both. |
+| **`vercel` CLI is installed and authenticated** | `vercel ls`, `vercel inspect <url> --logs`, `vercel env ls`. This diagnosed the outage in one command after hours of inferring from HTTP headers. Use it first. |
+
+### What changed, in the order it matters (full reasoning is brain.md rules 55 to 70)
+
+* **47% of printed directions had a stop price had already passed** (rule 65). Now refused as
+  `stop-crossed`. Directions 404 to 215; `tools/rederive.py` contradictions 300 to 1.
+* **The log now records which confirmation legs backed each call, and which side a refusal refused**
+  (rule 66): `DecisionLog.legs` and `.intent`. `tools/scorecard.py` reports per-leg lift with an interval
+  over distinct names and never re-weights anything. **No outcome has matured yet.** The first +1
+  session measurements arrive after the 2026-10-12 close; +20 around 2026-11-06.
+* **Column headers**: no market page had any (rule 67). Pinned header per sector, ten columns including
+  Reward:risk and Confirmations. Verified at 1280, 1024, 768 and 375.
+* **Universe 477 to 576** (rule 68): 30 coins and 69 PSX shares, proposed by `tools/universe.py` with a
+  stated reason for every refusal. PSX deep history backfilled (it had ~85 closes per name).
+* **Storage and query cost** (rules 60, 61, 63): 233 MB at 477 assets, the hot query 209 ms to 3.2 ms,
+  unchanged rows not rewritten, `PriceSnapshot.id` dropped. Nothing is pruned: the analog leg reads
+  every stored close.
+* **Standby, opt-in and off** (rule 69): `jobs/mirror.py` and `lib/failover.ts`. Set
+  `DATABASE_URL_FALLBACK` only once a second project holds a mirror.
+
+### Two things that were wrong in earlier notes
+
+* "477 verdicts re-derived with no contradiction" described the old database and the old engine. Today
+  it is 576 verdicts and 1 contradiction (AGTL, close 0.1% above its 20-day).
+* An earlier message said the 300 contradictions were the engine breaking the moving-average contract.
+  They were the stop-side defect, almost entirely.
+
+### Open, in the order I would do it
+
+1. Confirm the GitHub secret, then re-run `refresh.yml`. Nothing else gates on it.
+2. When the old project's quota resets, import its `DecisionLog` with the mirror, then run the scorecard.
+3. Decide whether `short-unbacked` and `stop-crossed` refusals should print on the page as refusals; today
+   they appear as WAIT with their reason.
+4. `rederive.py` still asserts the stack contract for gate 8 and the bias reads; one name trips it.
+
 ## 0. State of play, 2026-10-08 (ninth session) — read this first
 
 **Pushed, deployed, verified.** 432 Python tests, 179 web tests, 18 of 18 derivation steps ok,

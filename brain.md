@@ -1702,3 +1702,191 @@ reads rows that already exist:
     reviewer noticing an interpolation. Both mutations were tested against the new guard and both
     are caught. A rule relaxed into "unless it looks safe" would have been a worse trade at any
     speedup.
+
+65. **47% of the printed directions carried a stop that price had already passed, and the cause was
+    the geometry and not any one rule.**
+    Measured 2026-10-10 over the 404 live LONG and SHORT decisions: **189 had their stop on the wrong
+    side of the current close** -- a LONG whose stop sat at or above price, a SHORT whose stop sat at
+    or below it. AMAT read SHORT at 509.57 with a stop at 433.65. A stop is the level at which the
+    reason for the trade stops being true, so these were plans whose own invalidation had already
+    fired, printed as actions.
+
+    The cause is in `jobs/setup.py`: the entry is the **20-session window extreme** and the stop is
+    1.5 of the asset's daily moves from *that*, which is the geometry every backtest behind it
+    assumed ("entry at the window extreme with price already there"). A name in a pullback is nowhere
+    near its window extreme, so a stop measured from the extreme lands on the wrong side of the price
+    it is actually at. `jobs/horizons.py` anchors the target and the reward-to-risk to the same entry,
+    so all four numbers are consistent with each other and wrong against the price.
+
+    **It refuses and does not repair.** `stopCrossed` in `lib/decision.ts` is checked first inside the
+    direction builder, so all three routes to a direction (a stated state, a withheld trend, a bias)
+    pass through it, and a crossed plan becomes `stop-crossed` with its reason. Re-anchoring the plan
+    to the close would have changed the entry, stop, target and reward-to-risk of 189 names at once on
+    a geometry the stored backtests only partly cover; refusing removes only what was never valid.
+    Equality counts as crossed: a stop at the close has no distance to be wrong across.
+
+    Directions went from 404 to 215. **`tools/rederive.py`, which recomputes every verdict from raw
+    closes without the rule table, went from 300 contradictions to 1.** I had told the owner those 300
+    were the engine breaking the "close above both averages" contract. That was wrong: they were
+    almost entirely this. The one left (AGTL, close 0.1% above its 20-day) is a borderline.
+
+    **What the refused signals were, measured.** Median stack age 0 and a median move already made of
+    +1.1%: not late trends in a pullback but signals whose trend condition **no longer holds today**.
+    The gate removes broken signals, not late ones. Of the 215 kept, median stack age is 7 sessions,
+    17% are older than 20, and the 20 backed by an entry trigger have a median age of 2 (n is small).
+    `tools/research/signal_timing.py` reproduces it.
+
+    Because every refusal is logged with the side it refused (rule 66), whether a crossed stop predicts
+    anything is now a question the loop can answer.
+
+    **The printed reward:risk is a lower bound.** With the stop below the close and the close at or
+    under the entry (a LONG; mirrored for a SHORT), the ratio from today's price is at least the
+    printed one, which is measured from the entry. It understates and never flatters.
+
+66. **The log could not learn, because it recorded the grade and not what earned it.**
+    `DecisionLog` held `confidence` and `gate` and not **which confirmation legs backed each call**, so
+    nothing could ever be learned about whether a leg earns its place -- the entry trigger was added
+    with no way to tell afterwards whether the names it backed did any better. And a refusal did not
+    record the side it refused, so it could not be scored, though "this was not worth doing" is a claim
+    and principle 7 says every claim is checked.
+
+    Two nullable columns, `legs` and `intent`, written at decision time because they cannot be
+    reconstructed: the rows they are computed from are rewritten every night. `confirmationCount` is
+    now the length of `confirmingLegs`, so the grade, the short gate and the log are one computation.
+    NULL and the empty string are different findings and are kept apart: "no legs backed it" is a
+    finding, "this row predates the column" is not.
+
+    **What was asked and deliberately not built: automatic re-weighting.** The directive wanted
+    successful predictions to reinforce and failures to penalise decision weights. There are no
+    weights: the grade counts independent confirmations. The thresholds the table does carry were each
+    argued from backtests of 100,000 to 220,000 observations; a live log is hundreds of rows that are
+    repeated observations of a few hundred names, a far smaller and far more correlated sample.
+    Letting it move those numbers automatically trades a large measurement for a small, correlated one
+    on a loop that rewards whatever happened last month. That is noise-chasing with a feedback path,
+    and it is the opposite of principle 8.
+
+    What `tools/scorecard.py` does instead: per leg, the outcomes of names it backed against names it
+    did not, with a Wilson interval over the **distinct names**, and the verdict "not separable" until
+    both arms hold 30 effective names and the intervals stop overlapping. It never says to apply a
+    change; a change to the rule table is a proposal with evidence, reviewed by a person. Refusals are
+    scored on the sign of the move alone, because for a plan whose stop was already crossed "stopped
+    out" is true by construction.
+
+    **State of the loop, honestly.** The log holds one session. Nothing has matured, so nothing has
+    been learned, and the earlier history (the matured rows from 2026-10-01 to 10-09) is in the old
+    Neon project, which is still over quota. `jobs/mirror.py` (rule 69) is the path for bringing it
+    across, translating asset ids by (industry, symbol), when that project's quota resets.
+
+67. **No market page had a single column header, and at desktop width the per-row labels were hidden
+    because a header was assumed to be carrying them.**
+    `SectorBoard`, which every market page uses, rendered `DecisionRows` with no `DecisionHeader`; only
+    the older `DecisionList` rendered it. Measured in the live DOM at 1280px: no header word anywhere
+    in the sector block, and the per-row labels `display: none`, so a reader saw eight unlabelled
+    values per row. Worse than a missing header, because it looked complete.
+
+    The header is now inside each sector's scroll container and pinned (`sticky top-0`, opaque ground),
+    verified to hold at the scroller's top after scrolling 400px. The row labels are `lg:sr-only` and
+    not `lg:hidden`: gone visually where the header carries them, still in the accessibility tree --
+    the header is `aria-hidden`, so `lg:hidden` left a screen reader with no names for any value.
+
+    Two columns were added: **Reward:risk**, from the same target the Take-profit column prints, and
+    **Confirmations**, "n of 5" with the legs by name ("volume, peers"). A WAIT prints "not
+    applicable" and not "0 of 5", which would read as a call nothing supports.
+
+    Found only by looking: "Reward : risk" wrapped onto two lines at 1280px (`1.4 :` over `1`). The DOM
+    probes said the header existed; the screenshot said it was unreadable. Verified after the fix at
+    1280 and 1024 (table, header pinned), 768 and 375 (labelled cards, header hidden), and on the PSX
+    page -- the stress case, 621 rupee cells, none clipped. No horizontal overflow at any width.
+
+68. **The exchange lists 1,057 symbols and the project follows 157; the unfollowed ones mostly are not
+    stocks.**
+    "Add everything listed" would have put government securities (`P03GHS151026`, Rs 2.2 trillion of
+    face value in a day) and monthly futures (`PRL-OCT`, `OGDC-OCTB`) into a rule table that reads a
+    20/50-day stack. The crypto ranking has the same shape: stablecoins, wrapped and staked copies,
+    gold-backed tokens. So the question is never "what is listed" but "what is an independent reading".
+
+    `tools/universe.py` is read-only and proposes by stated criteria, and prints why it refused each
+    of the others. The universe lives in `jobs/seed.py` as reviewed rows, not in the database.
+    **Crypto, 30 added** (36 to 66), from the top 150: refused 29 wrapped/staked/bridged, 16 stable,
+    3 pegs, 38 with no Coinbase pair, 1 too thin. **Coinbase is required and Binance is not enough**:
+    Binance stopped answering from GitHub's runners on 2026-09-29, so a coin only it carries is stored
+    from a laptop and never updated in production. The visible casualty is Toncoin, rank 36, listed as
+    `GRAM` on CoinPaprika and reachable only through Binance. Its bridged namesake `TONToken` trades
+    $0.1m a day against Toncoin's $42.8m and was refused as too thin.
+
+    **PSX, 69 added** (157 to 226): ordinary shares that traded on at least 70% of the last 60 sessions
+    with a median value over Rs 1m, in a sector the project already files. Refused: 570 contracts and
+    securities, 157 illiquid, 101 in a sector the project has no industry for. Placement uses the
+    exchange's own sector code, mapped through the names already filed by hand and **only where they
+    agree** -- a code two of our industries share places nothing. One collision was caught by a test
+    rather than noticed: the exchange's own ticker `PSX` is also Phillips 66, and the asset page is
+    looked up by symbol alone.
+
+    A ticker is not an identity (`GRAM` and `TON` were both live), so every crypto candidate's venue
+    price is checked against CoinPaprika's within 15%. And `jobs/psx.py full` was never run on the
+    rebuilt database, so every existing PSX name had ~85 closes against the 220 a longer-horizon read
+    needs; after the backfill 217 of 226 clear it.
+
+69. **A standby is a copy plus a connection that switches, and the dangerous parts are the ones that
+    look easy.**
+    Two Neon projects do not replicate, so the work is in two halves, each with a way to do harm.
+
+    **The copy (`jobs/mirror.py`).** Every asset id is a random UUID assigned when the seed ran, so two
+    projects seeded separately hold *different ids for the same stock*. A plain row copy of
+    `DecisionLog` would violate the foreign key or, if an id happened to exist, file one name's
+    decisions under another. It translates through `(industry slug, symbol)` and skips what has no
+    counterpart. It is one-way, additive, **never deletes from the target** (a mirror that propagates
+    deletions turns one bad run against an emptied source into an emptied backup), refuses to copy a
+    database onto itself (the pooler host and its direct twin compare equal), and copies by
+    `IS DISTINCT FROM` so a rerun writes nothing. It covers `DecisionLog`, `PriceSnapshot`,
+    `SignalLog`, `AssetThesis`; everything else is derived and cheaper to recompute than to copy.
+
+    Verified against a throwaway schema whose asset ids shared none with the source: all 477 decision
+    rows filed under the same stock (symbol, industry, action and gate agreeing), a rerun writing 0, a
+    maturation carried to the right stock, a deleted source row surviving in the copy, an unmatched
+    asset counted and skipped. **That test deleted a row from the live `DecisionLog`** to prove the
+    last-but-one property. It should have run against a copy; the nightly writer regenerated it.
+
+    **The switch (`lib/failover.ts`).** A `pg.Pool` that tries the primary and, only while *establishing
+    a connection* and only on a connection-class failure (unreachable, or Neon's quota arriving as
+    Postgres class 53), hands out a standby connection. It is not mid-transaction, not for writes (the
+    lanes never import it, and a test says so), and not triggered by a bad password: an absorbed
+    credential fault would run broken in production for as long as the standby held out. The primary
+    is left alone for 60 seconds after a failure, so a down primary costs one slow request and not
+    every request, and is retried afterwards, so it is never a permanent switch.
+
+    Proven on a real outage, because the old project is genuinely over quota: primary pointed at it,
+    standby at the new project. Control with no standby: HTTP 500. With the standby: HTTP 200 and real
+    data, first request 6.8s and the next two 1.75s, one log line, no credentials in it.
+
+    **Off in production.** `DATABASE_URL_FALLBACK` is unset, because there is no second project to hold
+    a mirror: the old one is quota-blocked and nothing here can create a Neon project. To turn it on:
+    create or revive a project, run `prisma migrate deploy` and `jobs/seed.py` against it, run
+    `jobs/mirror.py`, schedule it nightly with `--since` a month back for `DecisionLog` (maturations
+    land up to 20 sessions later), and set the variable in Vercel. Pages print the date their figures
+    are as of, which is the only thing between "serving the standby" and "serving stale numbers as
+    current" -- and why every switch is logged.
+
+    **"Without quota limitations" is not achievable, and the directive's phrase should not be
+    believed of any design.** Two free projects each have their own cap. The quota was beaten by
+    spending less -- rules 60, 61 and 63 -- and a standby is for surviving the next outage, not for
+    having no limit.
+
+70. **Whether a signal is predictive cannot be guaranteed, and the engine says so; what can be done is
+    to measure how late it is.**
+    The directive asked for a guarantee that Long and Short signals are forward-looking and not
+    lagging descriptions of price that has already moved. No rule built from stored prices can offer
+    one, and this project's first principle says the same: the site reports a trend, never a
+    forecast. Claiming otherwise on the page would be exactly the false confidence the rest of the
+    system is built to avoid.
+
+    By construction, four of the five legs read a state or a past window: the two trend states and
+    their agreement (moving-average stacks), peer-relative strength (a 20-session return gap), and
+    volume (same-session activity). Only two bear on the future at all: the analog set, which measures
+    what *followed* similar days, and the entry trigger, which is an event on the latest bar rather
+    than a standing state. Rule 51 measured the engine entering a median of 40 sessions into a long.
+
+    What was done is rule 65's measurement: median stack age 7 sessions, 17% older than 20, and
+    trigger-backed signals at a median age of 2. The only valid test of "predictive" is out-of-sample
+    outcomes at +1, +5 and +20 sessions, and that is the loop in rule 66. It starts producing them on
+    2026-10-12 for the +1 window and has nothing to say before then.

@@ -6294,14 +6294,18 @@ class UnchangedRowsAreNotRewritten(unittest.TestCase):
     def test_the_decision_upsert_skips_an_unchanged_verdict(self):
         src = self.decide_src()
         self.assertIn("IS DISTINCT FROM", src)
-        self.assertIn("changingColumns(withSizing)", src)
+        self.assertIn("changingColumns(extra)", src)
 
     def test_the_compared_columns_are_derived_from_the_insert_and_not_retyped(self):
         """A second hand-written list is how one of the two comes to be missing a column."""
         src = self.decide_src()
         body = src[src.index("function changingColumns("):src.index("async function writeDecisions(")]
+        # Built from the core list and from `extra`, the optional columns this database actually
+        # has -- the same two things the INSERT's column list is built from.
         self.assertIn("CORE_COLUMNS", body)
-        self.assertIn("SIZING_COLUMNS", body)
+        self.assertIn("extra", body)
+        insert = src[src.index("async function writeDecisions("):]
+        self.assertIn("const columns = [...CORE_COLUMNS, ...extra]", insert)
         self.assertIn('c !== "assetId"', body)
         self.assertIn('c !== "periodEnd"', body)
 
@@ -6406,6 +6410,527 @@ class TheHotQueryReadsAnIndex(unittest.TestCase):
         src = self.queries()
         for table in ("assetSetup", "assetAnalog", "humanSignal", "investigation", "assetFactor"):
             self.assertIn(f"prisma.{table}.groupBy", src, f"{table} lost its day query")
+
+
+class TheLogLearnsWithoutChasingNoise(unittest.TestCase):
+    """What the decision log may conclude from its own outcomes, and what it may not.
+
+    It reports per confirmation whether the names a leg backed did better than the names it did
+    not, with an interval over the **distinct names** and not the rows. It does not re-weight
+    anything: the grade counts legs and has no weights, and a live log of a few hundred rows that
+    are repeated observations of a few hundred names is a far smaller and far more correlated
+    sample than the 100,000 to 220,000 observations each threshold in the rule table was argued
+    from. Letting it move those numbers automatically would be noise-chasing with a feedback path.
+
+    The properties that make that true, in the order of how much is lost when one breaks:
+
+      * **no conclusion from too little.** Both arms need MIN_SAMPLE effective names, and the
+        intervals have to stop overlapping, before anything is called a difference.
+      * **it never says "apply".** A change to the rule table is a proposal for a person.
+      * **an unrecorded row is not an unconfirmed one.** `legs` NULL and `legs` "" are different
+        findings, and folding the first into the second would count every pre-column row as a
+        decision nothing backed.
+    """
+
+    @staticmethod
+    def scorecard():
+        import importlib.util
+
+        path = ROOT / "tools" / "scorecard.py"
+        spec = importlib.util.spec_from_file_location("nbt_scorecard_learn", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    @staticmethod
+    def row(symbol, legs):
+        return {"symbol": symbol, "legs": legs}
+
+    def pairs(self, rights, wrongs, legs, prefix="N"):
+        """`(row, verdict)` pairs over distinct names, so effective n equals the count."""
+        out = []
+        for i in range(rights):
+            out.append((self.row(f"{prefix}R{i}", legs), "right"))
+        for i in range(wrongs):
+            out.append((self.row(f"{prefix}W{i}", legs), "wrong"))
+        return out
+
+    # --- an unrecorded row is not an unconfirmed one -----------------------------------------
+
+    def test_a_row_that_never_recorded_its_legs_is_not_one_nothing_backed(self):
+        sc = self.scorecard()
+        self.assertIsNone(sc.legs_of({"legs": None}))
+        self.assertIsNone(sc.legs_of({}))
+        self.assertEqual(sc.legs_of({"legs": ""}), [])
+        self.assertEqual(sc.legs_of({"legs": "volume,trigger"}), ["volume", "trigger"])
+
+    def test_old_rows_are_in_neither_arm_of_a_leg_comparison(self):
+        sc = self.scorecard()
+        items = self.pairs(40, 0, None, "OLD") + self.pairs(5, 5, "volume", "V") + self.pairs(5, 5, "", "E")
+        (leg, with_, without, _), = sc.leg_report(items, ("volume",))
+        self.assertEqual(with_[1], 10, "the backed arm is wrong")
+        self.assertEqual(without[1], 10, "pre-column rows leaked into the unbacked arm")
+
+    # --- arms and intervals ------------------------------------------------------------------
+
+    def test_only_right_and_wrong_enter_the_denominator(self):
+        sc = self.scorecard()
+        items = self.pairs(6, 4, "volume") + [(self.row("F", "volume"), "flat"), (self.row("S", "volume"), "stopped")]
+        self.assertEqual(sc.arm(items)[:2], (6, 10))
+
+    def test_the_interval_is_over_names_and_not_rows(self):
+        """Forty rows on four names is four experiments observed ten times each."""
+        sc = self.scorecard()
+        items = []
+        for name in ("A", "B", "C", "D"):
+            for _ in range(10):
+                items.append((self.row(name, "volume"), "right"))
+        right, decided, names = sc.arm(items)
+        self.assertEqual((right, decided, names), (40, 40, 4))
+        self.assertEqual(sc.interval_of((right, decided, names))[2], 4)
+
+    def test_an_empty_arm_has_no_interval(self):
+        sc = self.scorecard()
+        self.assertIsNone(sc.interval_of((0, 0, 0)))
+
+    # --- no conclusion from too little -------------------------------------------------------
+
+    def test_nothing_is_said_before_both_sides_have_matured_rows(self):
+        sc = self.scorecard()
+        self.assertEqual(sc.lift_verdict((5, 9, 9), (0, 0, 0)), "no matured rows on one side yet")
+
+    def test_too_few_independent_names_says_so_rather_than_guessing(self):
+        sc = self.scorecard()
+        floor = sc.MIN_SAMPLE
+        few = (floor - 1, floor - 1, floor - 1)
+        enough = (floor, floor, floor)
+        self.assertIn("too few independent names", sc.lift_verdict(few, enough))
+        self.assertIn("too few independent names", sc.lift_verdict(enough, few))
+
+    def test_overlapping_intervals_propose_no_change(self):
+        """The default answer for a long time, and the correct one: it is what stops a lucky
+        fortnight on a handful of names reading as a finding."""
+        sc = self.scorecard()
+        got = sc.lift_verdict((22, 40, 40), (18, 40, 40))
+        self.assertIn("not separable", got)
+        self.assertIn("no change is proposed", got)
+
+    def test_a_real_gap_is_called_a_gap_in_either_direction_and_sent_to_a_person(self):
+        sc = self.scorecard()
+        better = sc.lift_verdict((190, 200, 200), (60, 200, 200))
+        worse = sc.lift_verdict((60, 200, 200), (190, 200, 200))
+        self.assertIn("did better", better)
+        self.assertIn("did WORSE", worse)
+        for verdict in (better, worse):
+            self.assertIn("a person's review", verdict)
+
+    def test_no_verdict_ever_says_to_apply_a_change(self):
+        """A change to the rule table is a proposal with evidence attached, reviewed by a person,
+        which is the bar every rule in brain.md was held to. Exhaustive over a grid of arms."""
+        sc = self.scorecard()
+        seen = set()
+        for a in ((0, 0, 0), (5, 9, 9), (30, 60, 60), (190, 200, 200), (60, 200, 200)):
+            for b in ((0, 0, 0), (5, 9, 9), (30, 60, 60), (190, 200, 200), (60, 200, 200)):
+                v = sc.lift_verdict(a, b)
+                seen.add(v)
+                for word in ("apply", "reweight", "re-weight", "increase the weight", "adjust"):
+                    self.assertNotIn(word, v.lower(), v)
+        self.assertGreater(len(seen), 3, "the grid stopped reaching distinct verdicts")
+
+    # --- what the module does NOT do ---------------------------------------------------------
+
+    def test_the_scorecard_never_writes_a_weight_or_a_threshold_anywhere(self):
+        src = code_only((ROOT / "tools" / "scorecard.py").read_text(encoding="utf-8"))
+        for write in ("INSERT ", "UPDATE ", "DELETE ", ".write(", "open("):
+            self.assertNotIn(write, src.replace("(sys.argv", ""), f"the scorecard contains {write!r}")
+
+    def test_a_refusal_is_scored_on_the_sign_of_the_move_and_never_on_its_stop(self):
+        """For a plan whose stop was already crossed, 'stopped out' is true by construction. A
+        scorer that counted it would call every `stop-crossed` refusal correct for a reason that
+        has nothing to do with whether the refusal was right."""
+        src = (ROOT / "tools" / "scorecard.py").read_text(encoding="utf-8")
+        tail = src[src.index("were the refusals right?"):]
+        self.assertIn("verdict_of(side, r[\"move\"], False)", tail)
+
+    def test_every_leg_the_scorecard_compares_is_a_leg_the_rule_table_can_name(self):
+        """Two lists of five names in two languages. If one grows and the other does not, the new
+        leg is recorded and never compared, or compared and never recorded."""
+        import re as _re
+
+        ts = (ROOT / "lib" / "decision.ts").read_text(encoding="utf-8")
+        found = _re.search(r"export const LEGS = \[([^\]]+)\]", ts)
+        self.assertIsNotNone(found, "LEGS is gone from lib/decision.ts")
+        in_rules = tuple(x.strip().strip('"') for x in found.group(1).split(","))
+        self.assertEqual(in_rules, self.scorecard().LEG_NAMES)
+
+    def test_the_nightly_writer_records_the_legs_and_the_refused_side(self):
+        src = (ROOT / "tools" / "decide.mjs").read_text(encoding="utf-8")
+        self.assertIn("confirmingLegs(decisionInput, dir)", src)
+        self.assertIn("intent: decision.intent", src)
+        self.assertIn('const LEARNING_COLUMNS = ["legs", "intent"]', src)
+
+    def test_the_migration_adds_both_columns_as_nullable_with_no_backfill(self):
+        text = (ROOT / "prisma" / "migrations" / "20261010150000_decision_legs" / "migration.sql").read_text(
+            encoding="utf-8"
+        )
+        body = code_only_sql(text)
+        self.assertIn('ADD COLUMN "legs"', body)
+        self.assertIn('ADD COLUMN "intent"', body)
+        self.assertNotIn("NOT NULL", body.upper())
+        self.assertNotIn("UPDATE", body.upper(), "a backfill would attach today's rows to a past call")
+
+
+def code_only_sql(text: str) -> str:
+    """SQL with its `--` comments removed, so a guard reads the statements and not the prose."""
+    return chr(10).join(line.split("--", 1)[0] for line in text.splitlines())
+
+
+class TheUniverseIsFilteredNotFlooded(unittest.TestCase):
+    """What may be added to the asset universe, and the faults a careless expansion would commit.
+
+    The exchange lists 1,057 symbols and the project follows 157 of them. The unfollowed ones look
+    like stocks and mostly are not: the most heavily "traded" are government securities and monthly
+    futures contracts, and the top of a crypto ranking is stablecoins and wrapped copies. So the
+    properties here are all refusals, and each one is a real thing the first draft of the filter
+    would have let through.
+    """
+
+    @staticmethod
+    def universe():
+        import importlib.util
+
+        path = ROOT / "tools" / "universe.py"
+        spec = importlib.util.spec_from_file_location("nbt_universe", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    TODAY = date(2026, 10, 10)
+
+    def coin(self, **over):
+        base = {
+            "id": "xyz-xyzcoin", "symbol": "XYZ", "name": "XYZ Coin", "rank": 50,
+            "first_data_at": "2021-01-01T00:00:00Z",
+            "quotes": {"USD": {"price": 12.0, "percent_change_30d": 8.0, "volume_24h": 5_000_000}},
+        }
+        base.update(over)
+        return base
+
+    def reason(self, coin, *, seeded=frozenset(), coinbase=frozenset({"XYZ"}), binance=frozenset()):
+        return self.universe().crypto_reject_reason(
+            coin, seeded_ids=set(seeded), coinbase_usd=set(coinbase), binance_usdt=set(binance), today=self.TODAY
+        )
+
+    # --- crypto ------------------------------------------------------------------------------
+
+    def test_an_ordinary_liquid_coin_with_history_and_a_coinbase_pair_is_proposed(self):
+        self.assertIsNone(self.reason(self.coin()))
+
+    def test_a_stablecoin_is_refused_by_name_and_by_peg(self):
+        """The named list is the first line and the peg test the backstop: a de-pegged stablecoin
+        passes any numeric test on exactly the days it matters, so the name has to come first."""
+        self.assertEqual(self.reason(self.coin(symbol="USDC"), coinbase={"USDC"}), "a stablecoin")
+        pegged = self.coin(symbol="ZZZ", quotes={"USD": {"price": 1.001, "percent_change_30d": 0.1, "volume_24h": 9e9}})
+        self.assertIn("peg", self.reason(pegged, coinbase={"ZZZ"}))
+        # And a real asset that happens to sit near a dollar for a day is not a peg.
+        moving = self.coin(quotes={"USD": {"price": 1.0, "percent_change_30d": 40.0, "volume_24h": 9e6}})
+        self.assertIsNone(self.reason(moving))
+
+    def test_wrapped_staked_and_bridged_copies_are_the_same_reading_twice(self):
+        for sym in ("WBTC", "STETH", "CBBTC", "JITOSOL"):
+            self.assertIn("wrapped", self.reason(self.coin(symbol=sym), coinbase={sym}), sym)
+        self.assertIn("wrapped", self.reason(self.coin(name="Lido Staked Ether")))
+        self.assertIn("wrapped", self.reason(self.coin(name="Binance-Peg Something")))
+
+    def test_gold_backed_tokens_duplicate_a_contract_already_followed(self):
+        for sym in ("PAXG", "XAUT"):
+            self.assertIn("wrapped", self.reason(self.coin(symbol=sym), coinbase={sym}), sym)
+
+    def test_binance_alone_is_not_enough(self):
+        """Binance stopped answering from GitHub's runners on 2026-09-29 while answering from a
+        laptop. A coin only it carries is stored locally and never updated in production, which is
+        the failure that left every crypto close stale for a week."""
+        why = self.reason(self.coin(), coinbase=frozenset(), binance={"XYZ"})
+        self.assertIn("no USD daily pair on Coinbase", why)
+        self.assertIn("geo-blocked", why)
+        self.assertIn("no USD daily pair on Coinbase", self.reason(self.coin(), coinbase=frozenset()))
+
+    def test_a_thin_copy_with_a_ranking_and_a_price_is_not_a_reading(self):
+        """`TONToken` ranks 135th and traded $0.1m against the real Toncoin's $42.8m."""
+        thin = self.coin(quotes={"USD": {"price": 3.0, "percent_change_30d": 5.0, "volume_24h": 100_000}})
+        self.assertIn("too thin", self.reason(thin))
+        missing = self.coin(quotes={"USD": {"price": 3.0, "percent_change_30d": 5.0}})
+        self.assertIn("too thin", self.reason(missing))
+
+    def test_a_coin_without_a_year_of_history_cannot_feed_the_legs_that_need_it(self):
+        young = self.coin(first_data_at="2026-03-01T00:00:00Z")
+        self.assertIn("days of history", self.reason(young))
+        self.assertIn("no recorded start", self.reason(self.coin(first_data_at=None)))
+        self.assertIn("unreadable", self.reason(self.coin(first_data_at="not-a-date")))
+
+    def test_rank_and_already_followed_are_checked(self):
+        self.assertIn("past the top", self.reason(self.coin(rank=151)))
+        self.assertIn("past the top", self.reason(self.coin(rank=None)))
+        self.assertEqual(self.reason(self.coin(), seeded={"xyz-xyzcoin"}), "already followed")
+
+    def test_two_quotes_for_one_ticker_must_describe_the_same_asset(self):
+        """A ticker is not an identity. A wrong mapping stores one coin's prices under another's
+        name, silently and permanently."""
+        u = self.universe()
+        self.assertTrue(u.prices_agree(100.0, 108.0))
+        self.assertTrue(u.prices_agree(100.0, 85.1))
+        self.assertFalse(u.prices_agree(100.0, 120.0))
+        self.assertFalse(u.prices_agree(100.0, 80.0))
+        for bad in ((None, 1.0), (1.0, None), (0.0, 1.0), (1.0, 0.0), (-1.0, 1.0)):
+            self.assertFalse(u.prices_agree(*bad), bad)
+
+    # --- PSX ---------------------------------------------------------------------------------
+
+    def test_only_ordinary_shares_look_like_ordinary_shares(self):
+        u = self.universe()
+        for ok in ("HBL", "OGDC", "WAVESAPP", "MWMP", "SYM"):
+            self.assertTrue(u.is_ordinary_share(ok), ok)
+        for bad in ("PRL-OCT", "OGDC-OCTB", "P03GHS151026", "P01GIS210127", "P05VRR100529", "", "1ABC", "A"):
+            self.assertFalse(u.is_ordinary_share(bad), bad)
+
+    def test_a_corporate_action_marker_is_not_part_of_a_company_name(self):
+        u = self.universe()
+        self.assertEqual(u.clean_name("Ghani ChemworldXR"), "Ghani Chemworld")
+        self.assertEqual(u.clean_name("Nishat ChunPowerXD"), "Nishat ChunPower")
+        self.assertEqual(u.clean_name("Pak Elektron"), "Pak Elektron")
+        # A name that genuinely ends in capitals is left alone, and nothing is ever stripped to empty.
+        self.assertEqual(u.clean_name("ABC XD"), "ABC XD")
+        self.assertEqual(u.clean_name("XD"), "XD")
+
+    def test_a_sector_code_places_a_name_only_where_our_own_names_agree(self):
+        u = self.universe()
+        seeded = {"A": "psx-banks", "B": "psx-banks", "C": "psx-banks", "D": "psx-banks", "E": "psx-banks",
+                  "F": "psx-oil", "G": "psx-oil", "H": "psx-fert", "I": "psx-chem"}
+        codes = {"A": "0801", "B": "0801", "C": "0801", "D": "0801", "E": "0801",
+                 "F": "0820", "G": "0820", "H": "0830", "I": "0830"}
+        got = u.sector_map(seeded, codes)
+        self.assertEqual(got["0801"], "psx-banks")
+        self.assertEqual(got["0820"], "psx-oil")
+        # Two of our own industries share this exchange code: ambiguous, so it places nothing.
+        self.assertNotIn("0830", got)
+
+    # --- the seed ----------------------------------------------------------------------------
+
+    @staticmethod
+    def seed():
+        import seed as _seed
+        return _seed
+
+    def test_no_symbol_appears_twice_in_the_seed(self):
+        """The asset page is looked up by symbol alone. The exchange's own ticker, `PSX`, is
+        also Phillips 66, and listing both would have left one of the two pages unreachable."""
+        from collections import Counter
+
+        counts = Counter(row[1].upper() for row in self.seed().ASSETS)
+        self.assertEqual([k for k, v in counts.items() if v > 1], [])
+
+    def test_every_seeded_asset_names_an_industry_that_exists(self):
+        s = self.seed()
+        slugs = {i[0] for i in s.INDUSTRIES} | {i[0] for i in s.PSX_INDUSTRIES} | {i[0] for i in s.FOREX_INDUSTRIES}
+        self.assertEqual([r[:2] for r in s.ASSETS if r[0] not in slugs], [])
+
+    def test_every_seeded_row_has_the_eight_fields_the_seeder_unpacks(self):
+        self.assertEqual([r[:2] for r in self.seed().ASSETS if len(r) != 8], [])
+
+    def test_a_coin_is_identified_by_its_ranking_id_and_a_share_by_its_ticker(self):
+        s = self.seed()
+        for row in s.MORE_CRYPTO_3:
+            self.assertEqual(row[1], row[6], f"{row[1]}: the symbol and the CoinPaprika id differ")
+            self.assertEqual(row[5], s.PAPRIKA)
+        for row in s.MORE_PSX_4:
+            self.assertEqual(row[1], row[6], f"{row[1]}: the symbol and the exchange ticker differ")
+            self.assertEqual(row[5], s.PSX)
+            self.assertRegex(row[1], r"^[A-Z][A-Z0-9]{1,9}$")
+            self.assertNotIn("-", row[1], "a futures contract entered the universe as a share")
+
+    def test_no_name_in_the_expansion_carries_a_corporate_action_marker(self):
+        import re as _re
+
+        for row in self.seed().MORE_PSX_4:
+            self.assertIsNone(_re.search(r"(?<=[a-z.])X[DRB]{1,2}$", row[2]), row[2])
+
+    def test_the_expansion_adds_no_stablecoin_wrapped_copy_or_gold_token(self):
+        banned = {"USDT", "USDC", "DAI", "WBTC", "STETH", "PAXG", "XAUT", "WETH", "CBBTC"}
+        for row in self.seed().MORE_CRYPTO_3:
+            ticker = row[1].split("-")[0].upper()
+            self.assertNotIn(ticker, banned, row[1])
+
+    def test_the_discovery_tool_writes_nothing_anywhere(self):
+        """It proposes; a person reads the refusals and pastes. A tool that wrote the seed or the
+        database would put names in the universe that no review ever saw."""
+        src = code_only((ROOT / "tools" / "universe.py").read_text(encoding="utf-8"))
+        for write in ("INSERT ", "UPDATE ", "DELETE ", "open(", ".write(", "commit("):
+            self.assertNotIn(write, src, f"the discovery tool contains {write!r}")
+
+
+class TheMirrorCopiesByNaturalKey(unittest.TestCase):
+    """A standby is only worth having if copying into it cannot damage it.
+
+    Every asset id is `gen_random_uuid()` assigned when the seed ran, so two projects seeded
+    separately hold different ids for the same stock. The mirror therefore translates through
+    `(industry slug, symbol)`, and the properties here are the ways a copy would otherwise corrupt
+    the thing it exists to protect. The behaviour end to end -- 477 of 477 decision rows filed under
+    the same stock in a target whose ids share nothing with the source, a rerun writing zero rows,
+    a maturation carried, nothing deleted -- was verified against a throwaway schema in the live
+    database; these pin the parts that can be pinned without one.
+    """
+
+    @staticmethod
+    def mirror():
+        import mirror
+
+        return mirror
+
+    # --- it will not copy a database onto itself ---------------------------------------------
+
+    def test_the_pooler_and_the_direct_host_are_the_same_database(self):
+        """The one mistake the guard exists for passes by changing a hostname."""
+        m = self.mirror()
+        pooled = "postgresql://u:p@ep-abc-pooler.c-7.aws.neon.tech/neondb?sslmode=require"
+        direct = "postgresql://u:p@ep-abc.c-7.aws.neon.tech/neondb?sslmode=require"
+        self.assertTrue(m.same_database(pooled, direct))
+        self.assertTrue(m.same_database(pooled, pooled))
+
+    def test_the_credentials_do_not_make_it_a_different_database(self):
+        m = self.mirror()
+        self.assertTrue(
+            m.same_database(
+                "postgresql://reader:x@ep-abc.c-7.aws.neon.tech/neondb",
+                "postgresql://owner:y@ep-abc.c-7.aws.neon.tech/neondb",
+            )
+        )
+
+    def test_a_different_project_or_database_or_schema_is_a_different_target(self):
+        m = self.mirror()
+        base = "postgresql://u:p@ep-abc.c-7.aws.neon.tech/neondb"
+        self.assertFalse(m.same_database(base, "postgresql://u:p@ep-xyz.c-6.aws.neon.tech/neondb"))
+        self.assertFalse(m.same_database(base, "postgresql://u:p@ep-abc.c-7.aws.neon.tech/other"))
+        self.assertFalse(m.same_database(base, base + "?options=-csearch_path%3Dmirror_test"))
+
+    # --- asset ids are translated, never copied ----------------------------------------------
+
+    def test_a_source_id_is_replaced_by_the_target_id_for_the_same_stock(self):
+        m = self.mirror()
+        src = {"s1": ("mega-cap-tech", "AAPL"), "s2": ("psx-banks", "HBL"), "s3": ("energy", "PSX")}
+        dst = {"t9": ("mega-cap-tech", "AAPL"), "t8": ("psx-banks", "HBL"), "t7": ("psx-investment", "PSX")}
+        got = m.build_asset_map(src, dst)
+        self.assertEqual(got, {"s1": "t9", "s2": "t8"})
+        # Same symbol, different industry: `PSX` is both Phillips 66 and the exchange's own ticker.
+        # Joined on the pair, so the two are never confused.
+        self.assertNotIn("s3", got)
+
+    def test_a_row_whose_asset_the_target_lacks_is_dropped_and_recorded_not_forced(self):
+        m = self.mirror()
+        unmatched: set = set()
+        self.assertIsNone(m.remap_row({"assetId": "gone", "x": 1}, ("assetId",), {"a": "b"}, unmatched))
+        self.assertEqual(unmatched, {"gone"})
+
+    def test_a_row_with_no_asset_pointer_is_kept(self):
+        """`SignalLog.assetId` is optional, and a signal about no particular asset is a real row."""
+        m = self.mirror()
+        unmatched: set = set()
+        got = m.remap_row({"assetId": None, "kind": "k"}, ("kind",), {}, unmatched)
+        self.assertEqual(got, {"assetId": None, "kind": "k"})
+        self.assertEqual(unmatched, set())
+        self.assertEqual(m.remap_row({"kind": "k"}, ("kind",), {}, unmatched), {"kind": "k"})
+
+    def test_remapping_does_not_mutate_the_source_row(self):
+        m = self.mirror()
+        row = {"assetId": "s1", "v": 1}
+        out = m.remap_row(row, ("assetId",), {"s1": "t1"}, set())
+        self.assertEqual(row["assetId"], "s1")
+        self.assertEqual(out["assetId"], "t1")
+
+    # --- columns -----------------------------------------------------------------------------
+
+    def test_only_columns_both_sides_have_are_copied_and_the_surrogate_id_never_is(self):
+        """A column added to one project and not yet migrated on the other must not fail the whole
+        copy. It is not copied, and the next run after the migration picks it up."""
+        m = self.mirror()
+        got = m.shared_columns(["id", "assetId", "date", "close", "legs"], ["id", "assetId", "date", "close"], ("assetId", "date"))
+        self.assertEqual(got, ["assetId", "date", "close"])
+
+    def test_a_missing_key_column_is_an_error_and_not_a_silent_partial_copy(self):
+        m = self.mirror()
+        with self.assertRaises(ValueError):
+            m.shared_columns(["id", "date"], ["id", "assetId", "date"], ("assetId", "date"))
+
+    # --- the upsert --------------------------------------------------------------------------
+
+    def test_an_unchanged_row_is_not_rewritten_and_a_null_change_is_still_seen(self):
+        m = self.mirror()
+        sql = m.upsert_sql("DecisionLog", ["assetId", "periodEnd", "action", "move5Pct"], ("assetId", "periodEnd"))
+        self.assertIn("IS DISTINCT FROM", sql)
+        self.assertNotIn("<>", sql)
+        self.assertIn('ON CONFLICT ("assetId", "periodEnd") DO UPDATE', sql)
+        # The key is never in the SET, and only the non-key columns are compared.
+        self.assertNotIn('"periodEnd" = EXCLUDED', sql)
+        self.assertIn('"move5Pct" = EXCLUDED."move5Pct"', sql)
+
+    def test_a_table_with_nothing_but_its_key_does_nothing_on_conflict(self):
+        m = self.mirror()
+        self.assertTrue(m.upsert_sql("T", ["a", "b"], ("a", "b")).endswith("DO NOTHING"))
+
+    def test_identifiers_are_quoted_so_a_column_name_cannot_be_sql(self):
+        m = self.mirror()
+        sql = m.upsert_sql("T", ['we"ird', "ok"], ("ok",))
+        self.assertIn('"we""ird"', sql)
+
+    # --- what it will never do ---------------------------------------------------------------
+
+    def test_the_mirror_never_deletes_from_the_target(self):
+        """A mirror that propagates deletions turns one bad run against an emptied source into an
+        emptied backup, and the whole point of a backup is that it survives the source's worst day."""
+        src = code_only((ROOT / "jobs" / "mirror.py").read_text(encoding="utf-8"))
+        # The module's docstring states the rule in prose, so the SQL is checked in code only.
+        body = src.split('"""', 2)[-1] if src.count('"""') >= 2 else src
+        for forbidden in ("DELETE FROM", "TRUNCATE", "DROP TABLE", "DROP SCHEMA"):
+            self.assertNotIn(forbidden, body.upper(), forbidden)
+
+    def test_it_copies_exactly_the_four_tables_nothing_else_may_lose(self):
+        m = self.mirror()
+        self.assertEqual(set(m.TABLES), {"DecisionLog", "PriceSnapshot", "SignalLog", "AssetThesis"})
+        # Each is keyed on something a person would call the row's identity, never on the UUID.
+        for table, key in m.TABLES.items():
+            self.assertNotIn("id", key, table)
+        self.assertEqual(set(m.DATE_COLUMN), set(m.TABLES))
+
+    def test_the_learning_corpus_is_one_of_them(self):
+        """`DecisionLog`'s +1, +5 and +20 session maturations cannot be recomputed, and are what the
+        scorecard learns from."""
+        self.assertIn("DecisionLog", self.mirror().TABLES)
+
+    def test_main_refuses_to_copy_a_database_onto_itself_before_connecting(self):
+        """`same_database` being correct is not the same as `main` calling it. This drives `main`
+        with a pooled and a direct address of one project and checks it exits 2 -- and because the
+        addresses do not resolve here, reaching a connection attempt would raise instead of
+        returning, so a missing guard fails this loudly rather than quietly succeeding."""
+        m = self.mirror()
+        same = [
+            "--from", "postgresql://u:p@ep-nowhere-pooler.invalid/neondb",
+            "--to", "postgresql://u:p@ep-nowhere.invalid/neondb",
+        ]
+        self.assertEqual(m.main(same), 2)
+
+    def test_main_refuses_an_unknown_table_and_missing_arguments(self):
+        m = self.mirror()
+        self.assertEqual(m.main(["--from", "postgresql://a@x.invalid/d", "--to", "postgresql://a@y.invalid/d", "--tables", "News"]), 2)
+        self.assertEqual(m.main([]), 2)
+        self.assertEqual(m.main(["--from", "postgresql://a@x.invalid/d"]), 2)
+
+    def test_the_site_failover_and_the_nightly_writers_are_kept_apart(self):
+        """The mirror is the only thing that writes a standby. The pool that reads one (lib/failover)
+        is never imported by a lane, so the two databases are never both being written to by a lane."""
+        for lane in sorted((ROOT / "jobs").glob("*.py")):
+            if lane.name == "mirror.py":
+                continue
+            text = lane.read_text(encoding="utf-8")
+            self.assertNotIn("DATABASE_URL_FALLBACK", text, lane.name)
 
 
 class ShortLevelsAreMirrored(unittest.TestCase):
