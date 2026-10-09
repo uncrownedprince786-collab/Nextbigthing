@@ -1073,7 +1073,6 @@ export function decide(input: DecisionInput): Decision {
   // once into a local so the three direction builders below take a number rather than each
   // re-testing a branch that gate 4 has already made unreachable.
   const invalidation = input.invalidation;
-  const asym = asymmetric(input);
 
   /// One direction, built once. The three ways in — a `buy`/`short` state, the same state over a
   /// disagreeing horizon, and a withheld trend carried by one confirmation — differ only in
@@ -1127,7 +1126,7 @@ export function decide(input: DecisionInput): Decision {
     return rr !== null ? `reward at ${rr.toFixed(1)}x the risk` : "a stored confirmation";
   };
 
-  // 5. The two timeframes want opposite things. A note now, not a refusal.
+  // 5. The two timeframes wanting opposite things is a note now, not a refusal.
   //
   // It was the last soft veto in the table. A disagreement between a swing read and a quarterly
   // one is a real finding and it is not evidence that the shorter one is wrong -- the two measure
@@ -1138,9 +1137,6 @@ export function decide(input: DecisionInput): Decision {
   // It costs a confidence step through `confidenceFor`, where the agreeing-timeframe leg simply
   // does not count, and it prints under "What argues against it". One name sat here on
   // 2026-10-09; the demotion is written for the shape rather than for the count.
-  const opposed =
-    (setup === "up" && horizon === "down") || (setup === "down" && horizon === "up");
-
   // 6 and 7. A direction, with a level to be wrong at, and whatever confirms it.
   if (setup === "up") {
     return direction(

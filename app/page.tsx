@@ -266,14 +266,24 @@ function WaitCard({ item }: { item: Scored }) {
         </ul>
       ) : null}
 
+      {/* The same three words the tables use. This card is the one place on the site that still
+          said "Entry" and "Exit if wrong" after the relabelling, because it is not a
+          `DecisionList` row and the sweep that renamed the columns did not reach it. A reader
+          moving between the overview and a market page must not meet two vocabularies for one
+          level. The current price leads, for the reason it leads everywhere else: every figure
+          after it is read against it. */}
       <p className="text-muted-foreground text-xs">
-        Entry{" "}
+        Price{" "}
+        <span className="num">
+          {row.close !== null ? price(row.close, currency) : "none stored"}
+        </span>
+        {" · "}Entry zone{" "}
         <span className="num">
           {decision.entry
             ? `${price(decision.entry.low, currency)} to ${price(decision.entry.high, currency)}`
             : "none stored"}
         </span>
-        {" · "}Exit if wrong{" "}
+        {" · "}Stop loss{" "}
         <span className="num">
           {decision.invalidation !== null ? price(decision.invalidation, currency) : "none stored"}
         </span>
