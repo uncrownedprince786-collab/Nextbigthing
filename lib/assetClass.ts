@@ -50,6 +50,29 @@ export function scoreRows(
 // declaration, so a grade cannot sort one way here and another way in the weekly block.
 export { CONFIDENCE_ORDER } from "@/lib/decision";
 
+/// Developing rows, nearest to confirming first.
+///
+/// `closeness` is the stored factor over the threshold it has to clear, so 0.96 is a name 4%
+/// short of its volume gate and 0.25 is one nowhere near it. A null sorts last, because a
+/// confirmation that cannot be measured is not one that is nearly there -- rule 21 again, in the
+/// one place where collapsing the two would read as a recommendation.
+///
+/// Within equal closeness the symbol decides, so two identical rows do not swap places between
+/// two reads of the same page.
+///
+/// It lives here beside the other two orderings rather than in `app/page.tsx`, where it was
+/// written, because the class indexes now split their waiting list the same way the overview
+/// does and two copies of one ordering is how `/crypto` comes to rank its forming names
+/// differently from the front page.
+export function byCloseness(a: Scored, b: Scored): number {
+  const ca = a.decision.developing?.closeness;
+  const cb = b.decision.developing?.closeness;
+  const ka = ca === null || ca === undefined ? -1 : ca;
+  const kb = cb === null || cb === undefined ? -1 : cb;
+  if (ka !== kb) return kb - ka;
+  return a.row.symbol.localeCompare(b.row.symbol);
+}
+
 /// Strongest evidence first, then alphabetical so the order is stable between two reads.
 export function byConfidence(a: Scored, b: Scored): number {
   const c = CONFIDENCE_ORDER[a.decision.confidence] - CONFIDENCE_ORDER[b.decision.confidence];

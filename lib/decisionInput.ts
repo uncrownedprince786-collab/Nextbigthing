@@ -8,7 +8,8 @@
 // Pure, like the rules: it takes rows and a date and returns a value. Nothing here queries.
 
 import type { DecisionInput, Direction, Market } from "./decision.ts";
-import { trendDirectionOf } from "./setupConditions.ts";
+import { biasDirectionOf, trendDirectionOf } from "./setupConditions.ts";
+import { preferredTarget } from "./target.ts";
 
 /// `AssetSetup.state` is the job's vocabulary; the rule table speaks in directions.
 ///
@@ -122,6 +123,18 @@ function iso(value: Date | string | null | undefined): string | null {
   return `${y}-${m}-${d}`;
 }
 
+/// One measured target range as `jobs/horizons.py` wrote it, in the fields the rules read.
+///
+/// Declared structurally here for the same reason every other shape in this file is: the query
+/// layer's `DecisionTarget` carries `distancePct` and `note` as well, which the rule table has no
+/// use for, and importing its type would tie the rules to a query's column list.
+type TargetRow = {
+  method: string;
+  low: number;
+  high: number;
+  rewardRisk: number | null;
+};
+
 /// The horizon rows this asset has, newest per horizon.
 type SetupRow = {
   horizon: string;
@@ -131,6 +144,10 @@ type SetupRow = {
   /// Optional only because `pickSetup` is generic over rows read for other purposes. The
   /// decision path always carries it.
   conditions?: string | null;
+  /// Every method's target for this setup, unreduced. Optional for the same reason, and for one
+  /// more: a database on which `jobs/horizons.py` has not run has none, and the rules then
+  /// report the missing reward rather than refusing the direction.
+  targets?: TargetRow[] | null;
 };
 
 /// Which row answers "what is the setup".
@@ -232,6 +249,8 @@ export interface DecisionBundle {
     /// The stored condition read. Nullable because a row written before the format existed
     /// carries none, and `trendDirectionOf` answers null for it rather than guessing.
     conditions?: string | null;
+    /// This horizon's measured target ranges, one per method, unreduced. See `SetupRow`.
+    targets?: TargetRow[] | null;
   }[];
   /// Newest `AssetAnalog` per horizon.
   ///
@@ -248,7 +267,17 @@ export interface DecisionBundle {
     medianPct?: number | null;
     positive?: number | null;
   }[];
-  human: { recentStories: number } | null;
+  human: {
+    recentStories: number;
+    /// The word-list verdict over the headlines that took a side, as `jobs/human.py` stored it:
+    /// "positive", "negative" or "neutral". Optional because a row written before the column
+    /// existed carries none, and null is read as "no direction" rather than guessed at.
+    tone?: string | null;
+    /// Whether the recent story rate spiked against its own baseline. Optional for the same
+    /// reason; absent is read as false, which is the honest default for a flag that is only
+    /// ever set when a threshold was cleared.
+    catalyst?: boolean | null;
+  } | null;
   investigation: { robustZ: number | null; trigger: string } | null;
   /// The newest `AssetFactor` row, when one has been computed.
   ///
@@ -304,11 +333,24 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
           // is the state meaning "the trend is clear and the conditions behind it are not all
           // present" -- so the direction exists and only this field carries it.
           trend: trendDirectionOf(setup.conditions),
+          // The weaker sibling, present only where the trend itself came back mixed. Carried
+          // separately so the rule table can tell three things agreeing from two, and say which
+          // one it acted on rather than calling both "the trend".
+          bias: biasDirectionOf(setup.conditions),
         }
       : null,
     horizon: longer ? { direction: directionOfState(longer.state) } : null,
     entry: setup ? entryZone(setup.entryLevel, setup.invalidateLevel) : null,
     invalidation: setup?.invalidateLevel ?? null,
+    // The deciding setup's own target, reduced to one by `preferredTarget` — the same preference
+    // order `lib/target.ts` applies on the pages, imported rather than restated, so the panel's
+    // printed exit and the reward the rules size the trade against are the same row.
+    //
+    // Taken off `setup` and never off the list: `pickSetup` has already chosen which horizon
+    // decided, and a target lifted from a different horizon would size a swing trade against a
+    // quarterly exit. That is the bug `decidingSetup` in `lib/target.ts` exists to prevent, and
+    // this is the same fix one step earlier.
+    target: preferredTarget(setup?.targets),
     // `medianPct` and `positive` travel with the count and the band. They used not to, and that
     // one omission disabled a third of the confidence grading for every asset on the site.
     //
@@ -341,6 +383,22 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
     // A missing HumanSignal row means news was never checked for this name, which the rule table
     // reports differently from a row saying zero. Keep the null.
     newsCount: bundle.human ? bundle.human.recentStories : null,
+    // The direction of the coverage, kept apart from its volume. `newsCount` above is how many
+    // stories there were and carries no opinion; this is the opinion. `jobs/human.py` writes
+    // "neutral" both for a balanced window and for one where too few headlines took a side, and
+    // both of those correctly arrive here as a null tone -- the rules must only ever act on an
+    // actual disagreement, never on the absence of one.
+    news: bundle.human
+      ? {
+          tone:
+            bundle.human.tone === "positive"
+              ? "up"
+              : bundle.human.tone === "negative"
+                ? "down"
+                : null,
+          catalyst: bundle.human.catalyst === true,
+        }
+      : null,
     eventInDays: daysUntil(iso(bundle.nextEvent?.date ?? null), today),
     sourceSilent: silent,
   };
@@ -375,6 +433,12 @@ export interface QueryBundle {
     /// That is now the third field it has happened to. The guard is the test that asserts a
     /// developing read survives the seam, not the type -- an optional field cannot fail to exist.
     conditions?: string | null;
+    /// The fourth field it has happened to, caught before it shipped rather than after. Both
+    /// query paths already fetch these rows -- `getHorizons` includes them and `getDecisionRows`
+    /// selects them -- so the only thing between a stored reward and the rule that reads it is
+    /// this line and the one in `bundleFromQuery` below. The test that asserts a reward survives
+    /// the seam is the guard, for the reason stated above.
+    targets?: TargetRow[] | null;
   }[];
   analogs: {
     horizonDays: number;
@@ -387,7 +451,7 @@ export interface QueryBundle {
     medianPct?: number | null;
     positive?: number | null;
   }[];
-  humanSignal: { recentStories: number } | null;
+  humanSignal: { recentStories: number; tone?: string | null; catalyst?: boolean | null } | null;
   investigation: { robustZ: number | null; trigger: string } | null;
   nextEvent: { date: Date | string } | null;
   /// Newest `AssetFactor`, when the factor job has written one for this asset.
@@ -415,6 +479,11 @@ export function bundleFromQuery(
       entryLevel: h.entryLevel,
       invalidateLevel: h.invalidateLevel,
       conditions: h.conditions ?? null,
+      // Reduced to one later and never here. `toDecisionInput` picks the deciding horizon first
+      // and applies the preference order to that row's methods; choosing a method at this seam
+      // would pick one before knowing which setup decided. Rule 24 — the three are not averaged
+      // and they are not thrown away either.
+      targets: h.targets ?? null,
     })),
     analogs: row.analogs.map((a) => ({
       horizonDays: a.horizonDays,
@@ -424,7 +493,13 @@ export function bundleFromQuery(
       medianPct: a.medianPct ?? null,
       positive: a.positive ?? null,
     })),
-    human: row.humanSignal ? { recentStories: row.humanSignal.recentStories } : null,
+    human: row.humanSignal
+      ? {
+          recentStories: row.humanSignal.recentStories,
+          tone: row.humanSignal.tone ?? null,
+          catalyst: row.humanSignal.catalyst ?? false,
+        }
+      : null,
     investigation: row.investigation
       ? { robustZ: row.investigation.robustZ, trigger: row.investigation.trigger }
       : null,
@@ -455,18 +530,29 @@ export interface QueryRow {
     entryLevel: number | null;
     invalidateLevel: number | null;
     conditions?: string | null;
+    /// This horizon's measured target ranges. `getDecisionRows` already selects them onto both
+    /// of these rows, and the spread in `bundleFromRow` carries them without naming them -- but
+    /// they are declared here anyway, because an undeclared field that happens to survive a
+    /// spread is a field nothing guarantees and three have already been lost that way.
+    targets?: TargetRow[] | null;
   } | null;
   longer: {
     state: string;
     entryLevel: number | null;
     invalidateLevel: number | null;
     conditions?: string | null;
+    targets?: TargetRow[] | null;
   } | null;
   analogMinPct: number | null;
   analogMaxPct: number | null;
   analogMatches: number | null;
   analogHorizonDays: number | null;
   recentStories: number | null;
+  /// The stored coverage verdict and the catalyst flag beside it. Optional so a caller that has
+  /// not learned to select them yet keeps deciding -- the rules then read no direction, which is
+  /// the same answer a neutral window gives and is the one that changes nothing.
+  newsTone?: string | null;
+  newsCatalyst?: boolean | null;
   robustZ: number | null;
   trigger: string | null;
   nextEventDate: Date | string | null;
@@ -509,7 +595,14 @@ export function bundleFromRow(
               },
             ]
           : [],
-      humanSignal: row.recentStories !== null ? { recentStories: row.recentStories } : null,
+      humanSignal:
+        row.recentStories !== null
+          ? {
+              recentStories: row.recentStories,
+              tone: row.newsTone ?? null,
+              catalyst: row.newsCatalyst ?? false,
+            }
+          : null,
       investigation: row.trigger !== null ? { robustZ: row.robustZ, trigger: row.trigger } : null,
       nextEvent: row.nextEventDate ? { date: row.nextEventDate } : null,
       factor:

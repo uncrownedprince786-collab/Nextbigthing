@@ -260,6 +260,38 @@ def plan_with_chunk(plan: list[tuple[str, list[str]]], chunk: str | None):
     return steps, skipped
 
 
+# How long any one step may take before it is killed, in seconds.
+#
+# A step that hangs is the one failure mode this runner could not survive. `subprocess.run` with
+# no timeout waits forever, so a job blocked on a socket that neither answers nor closes takes
+# the whole lane with it: every later step never runs, nothing is committed, and the run shows as
+# in-progress rather than as failed. That is a worse outcome than any individual step failing,
+# because a failed step still leaves the other thirteen's rows committed and still turns the
+# workflow red at the end -- which is the entire design of this file.
+#
+# 50 minutes is chosen against what the lanes actually take, not as a round number. The longest
+# measured step is the news fetch, whose own budget is hours when it is given its own group and
+# whose daily slice is far under this; the `decision` group's published budget is 20 minutes. A
+# step crossing 50 is not slow, it is stuck.
+#
+# Overridable per run with NBT_STEP_TIMEOUT_MIN, because a backfill is a different shape of job
+# from a daily lane and a one-off full PSX history legitimately runs longer than any schedule.
+# Set it to 0 to wait forever, which is the old behaviour and is never the default.
+STEP_TIMEOUT_MIN = 50
+
+
+def step_timeout() -> float | None:
+    """Seconds a step may take, or None for no limit. Reads NBT_STEP_TIMEOUT_MIN."""
+    raw = os.environ.get("NBT_STEP_TIMEOUT_MIN")
+    minutes = STEP_TIMEOUT_MIN
+    if raw:
+        try:
+            minutes = float(raw)
+        except ValueError:
+            print(f"  NBT_STEP_TIMEOUT_MIN={raw!r} is not a number; using {STEP_TIMEOUT_MIN}")
+    return None if minutes <= 0 else minutes * 60
+
+
 def run(script: str, args: list[str]) -> tuple[int, float]:
     """Run one step, streaming its output, and return (exit code, seconds).
 
@@ -267,18 +299,36 @@ def run(script: str, args: list[str]) -> tuple[int, float]:
     to be visible while it does it, and a captured run looks identical to a hung one until
     it ends. The cost is that the failing step's own error is buried wherever it happened,
     which `report` exists to undo.
+
+    A step that passes `step_timeout()` is killed and reported as a failure like any other, so
+    the lane carries on to the steps after it. The exit code for that case is 124, which is what
+    `timeout(1)` uses and is therefore the number a maintainer reading the summary table already
+    knows the meaning of.
     """
     label = script if not args else f"{script} {' '.join(args)}"
     print(f"\n=== {label} ===", flush=True)
     started = time.monotonic()
-    done = subprocess.run(
-        [sys.executable, "-X", "utf8", str(HERE / f"{script}.py"), *args],
-        cwd=HERE.parent,
-    )
+    limit = step_timeout()
+    try:
+        code = subprocess.run(
+            [sys.executable, "-X", "utf8", str(HERE / f"{script}.py"), *args],
+            cwd=HERE.parent,
+            timeout=limit,
+        ).returncode
+    except subprocess.TimeoutExpired:
+        # `subprocess.run` has already killed the child and reaped it by the time this is
+        # raised, so there is nothing left to clean up here -- only something to say. A job that
+        # held a transaction open loses it to the disconnect, which is the behaviour every job
+        # here is written for: commit as you go, and a kill costs the uncommitted tail.
+        code = 124
+        print(
+            f"  killed after {limit / 60:.0f} min without finishing. Raise NBT_STEP_TIMEOUT_MIN "
+            "if this step is legitimately longer, or find what it is blocked on.",
+            flush=True,
+        )
     took = time.monotonic() - started
-    ok = done.returncode == 0
-    print(f"=== {label}: {'ok' if ok else 'FAILED'} in {took / 60:.1f} min ===", flush=True)
-    return done.returncode, took
+    print(f"=== {label}: {'ok' if code == 0 else 'FAILED'} in {took / 60:.1f} min ===", flush=True)
+    return code, took
 
 
 def report(

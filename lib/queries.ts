@@ -939,6 +939,16 @@ export type DecisionQueryRow = {
   /// Stories, not items: twenty outlets carrying one wire report is one story. The reasoning is
   /// at `getStories` and on `HumanSignal.recentStories`.
   recentStories: number | null;
+  /// The word-list verdict over the headlines that took a side, and whether the recent story
+  /// rate spiked against its own baseline. Two different findings and both are carried: a mood
+  /// held over a month is not an event, and the rules word them apart.
+  ///
+  /// Here because the rule table reads them -- an analog set stops confirming a direction the
+  /// published coverage points away from -- and the asset-page bundle was already getting them
+  /// for free from `getHumanSignal`, which takes no `select`. Without this line the home page
+  /// and the asset page would apply that rule to different inputs for one name.
+  newsTone: string | null;
+  newsCatalyst: boolean | null;
   robustZ: number | null;
   movePct: number | null;
   trigger: string | null;
@@ -1158,7 +1168,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       ? prisma.humanSignal.findMany({
           where: { assetId: { not: null }, periodEnd: { in: signalDayList } },
           orderBy: { periodEnd: "desc" },
-          select: { assetId: true, recentStories: true },
+          select: { assetId: true, recentStories: true, tone: true, catalyst: true },
         })
       : [],
     investigationDayList.length
@@ -1246,6 +1256,8 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       volumeRatio: factor?.volumeRatio ?? null,
       relStrength: factor?.relStrength ?? null,
       recentStories: signal?.recentStories ?? null,
+      newsTone: signal?.tone ?? null,
+      newsCatalyst: signal?.catalyst ?? null,
       robustZ: investigation?.robustZ ?? null,
       movePct: investigation?.movePct ?? null,
       trigger: investigation?.trigger ?? null,

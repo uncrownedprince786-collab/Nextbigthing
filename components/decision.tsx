@@ -151,6 +151,115 @@ function Missing({ items }: { items: string[] }) {
 
 
 
+/// What qualifies the direction without replacing it.
+///
+/// This block is where the two demoted gates surface. Until 2026-10-09 a name that moved
+/// unusually with thin news, or one lagging its peers, was refused outright and the reader saw
+/// WAIT and one sentence; 75 of 477 names were in that state. They now print their direction and
+/// this block, which means the qualification has to be *more* visible than it was as a gate, not
+/// less — a panel that quietly drops a caveat it used to shout is worse than one that never had
+/// it. So: its own bordered block, above the honesty line, at the same size as the reasons.
+///
+/// Deliberately a different block from `Missing`. Missing is a measurement nobody took; a note is
+/// a measurement that was taken and argues the other way, and merging them would tell a reader
+/// that a peer reading is absent when it is present and unfavourable.
+function Notes({ items }: { items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="border-border mt-4 rounded-lg border px-3 py-2">
+      <p className="text-muted-foreground text-xs font-medium">What argues against it</p>
+      <ul className="mt-1.5 space-y-1">
+        {items.map((n, i) => (
+          <li key={i} className="text-sm leading-relaxed">
+            {n}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/// The three figures that say whether the trade is worth its own stop.
+///
+/// Rendered only on a direction, because `Decision.plan` is null on every WAIT. Each figure is a
+/// stored number or arithmetic over two of them, and each one prints its own denominator:
+///
+///   * **Reward against risk** is `jobs/horizons.py`'s own `rewardRisk`, measured from the target
+///     range against the setup's own stop. Not computed here, and not averaged across methods.
+///   * **Similar days** is a frequency over a stored sample, and the sample size is printed beside
+///     it every time. Principle 3 — a share without its denominator is the overclaim this site
+///     exists not to make, and "62%" over six days and over six hundred are different sentences.
+///   * **Per unit risked** is what those matched days would have returned at this reward, had each
+///     been taken. It is a statement about the stored sample and the hint says so in those words.
+///     It is not a forecast, and nothing here says what the next move does.
+///
+/// An absent figure prints the reason it is absent rather than a dash. A missing reward is a
+/// target `jobs/horizons.py` did not write; a missing frequency is a set under the 8 matches that
+/// job refuses to grade.
+function Sizing({ plan }: { plan: NonNullable<Decision["plan"]> }) {
+  const rate = plan.baseRate;
+  return (
+    <div className="border-border mt-4 grid gap-3 border-t pt-3 sm:grid-cols-3">
+      <Field
+        label="Reward against risk"
+        hint={
+          plan.rewardRisk !== null
+            ? "The measured target against the stop above. Measured, not chosen."
+            : undefined
+        }
+      >
+        {plan.rewardRisk !== null ? (
+          <span className="num text-lg font-semibold">{plan.rewardRisk.toFixed(1)}x</span>
+        ) : (
+          <span className="text-muted-foreground">
+            No measured target is stored, so the reward cannot be sized.
+          </span>
+        )}
+      </Field>
+
+      <Field
+        label="Similar days that went this way"
+        hint={
+          rate
+            ? `Out of ${rate.count} matched past days. A frequency over stored history, never a probability of the next move.`
+            : undefined
+        }
+      >
+        {rate ? (
+          <span className="num text-lg font-semibold">
+            {Math.round(rate.share * 100)}%{" "}
+            <span className="text-muted-foreground text-sm font-normal">of {rate.count}</span>
+          </span>
+        ) : (
+          <span className="text-muted-foreground">
+            Too few matched past days are stored to quote a frequency.
+          </span>
+        )}
+      </Field>
+
+      <Field
+        label="Per unit risked"
+        hint={
+          plan.expectancyR !== null
+            ? "What those matched days would have returned at this reward, had each been taken. A measurement of the sample above, not of what happens next."
+            : undefined
+        }
+      >
+        {plan.expectancyR !== null ? (
+          <span className="num text-lg font-semibold">
+            {plan.expectancyR >= 0 ? "+" : ""}
+            {plan.expectancyR.toFixed(2)}R
+          </span>
+        ) : (
+          <span className="text-muted-foreground">
+            Needs both a measured reward and a graded set of past days.
+          </span>
+        )}
+      </Field>
+    </div>
+  );
+}
+
 /// Up to three stored headlines, as links out.
 ///
 /// Why links and not summaries: nothing on this site writes prose about a news item, and a panel
@@ -323,6 +432,12 @@ export function DecisionPanel({
         </Field>
       </div>
 
+      {/* Directly under the levels, because it is the question the levels raise. A reader who has
+          just been shown an entry, a stop and a target asks whether the three are worth each
+          other, and the answer is three stored numbers rather than a judgement. Null on every
+          WAIT, so a refusal never carries a sizing block it could be read as a trade through. */}
+      {decision.plan ? <Sizing plan={decision.plan} /> : null}
+
       {/* Why, after the numbers rather than before them. Three at most: the rules routinely
           record five or six true sentences, and a reader who has to read six to find the
           decision has not been given a decision. The rest are under Details, unabridged. */}
@@ -339,6 +454,10 @@ export function DecisionPanel({
           )}
         </Field>
       </div>
+
+      {/* Above the news and above the missing block, because it is about the verdict rather than
+          about the file. A caveat printed under three headlines has been filed, not read. */}
+      <Notes items={decision.notes} />
 
       <MarketNews items={news.slice(0, 3)} />
 

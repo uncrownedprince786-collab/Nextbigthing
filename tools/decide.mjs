@@ -103,6 +103,20 @@ function firstPerKey(rows, key) {
   return out;
 }
 
+/// Every row per key, in the order they arrived. The sibling of `firstPerKey`, for the one table
+/// where keeping all of them is the point: a setup's three target methods are three answers and
+/// reducing them here would be this job choosing between them before the rules do.
+function groupPerKey(rows, key) {
+  const out = new Map();
+  for (const row of rows) {
+    const k = key(row);
+    const got = out.get(k);
+    if (got) got.push(row);
+    else out.set(k, [row]);
+  }
+  return out;
+}
+
 async function tableExists(db, name) {
   const { rows } = await db.query(
     "SELECT to_regclass($1) IS NOT NULL AS present",
@@ -130,7 +144,7 @@ async function tableExists(db, name) {
 /// `db` is the pool rather than one connection: nine queries issued in parallel on a single
 /// client are serialised by `pg` anyway (and warned about), while a small pool really overlaps them.
 async function readInputs(db, today) {
-  const [assets, prices, setups, analogs, signals, investigations, factors, events, coverage] =
+  const [assets, prices, setups, targets, analogs, signals, investigations, factors, events, coverage] =
     await Promise.all([
       db.query(
         `SELECT a.id, a.symbol, a."assetType"::text AS "assetType", i.market
@@ -149,9 +163,30 @@ async function readInputs(db, today) {
         // which way a withheld direction pointed, and lib/queries.ts selects it for the same
         // reason. Two readers of one table must not each decide what a `wait` row knows.
         `SELECT DISTINCT ON ("assetId", horizon)
-                "assetId", horizon, state, "entryLevel", "invalidateLevel", conditions
+                id, "assetId", horizon, state, "entryLevel", "invalidateLevel", conditions
            FROM "AssetSetup" WHERE horizon IN ('swing', 'longer')
           ORDER BY "assetId", horizon, "periodEnd" DESC`,
+      ),
+      // The measured target ranges, for the setups the query above just picked.
+      //
+      // `jobs/horizons.py` writes up to three rows per setup, one per method, and `rewardRisk`
+      // is the figure gate 5's bypass and gate 8's promotion both read. Without this the rules
+      // see no target at all, which is not the same as seeing a poor one: an unmeasured reward
+      // cannot carry a disagreement, so every bypass would be dead and every promotion would
+      // have to rest on volume alone -- the exact shape of unreachable rule the `AssetFactor`
+      // read above was added to fix.
+      //
+      // The subselect repeats the DISTINCT ON rather than filtering on ids collected in JS,
+      // because the two must agree about which setup is current and a list of ids marshalled
+      // through the client would be a second definition of that. One extra round trip, bounded
+      // by assets x 2 horizons x 3 methods.
+      db.query(
+        `SELECT t."setupId", t.method, t.low, t.high, t."rewardRisk"
+           FROM "SetupTarget" t
+           JOIN (SELECT DISTINCT ON ("assetId", horizon) id
+                   FROM "AssetSetup" WHERE horizon IN ('swing', 'longer')
+                  ORDER BY "assetId", horizon, "periodEnd" DESC) s ON s.id = t."setupId"
+          ORDER BY t.method ASC`,
       ),
       // Newest day, and within that day the shortest horizon, so the band quoted answers "what
       // now" rather than letting a 60-day band win on some assets and a 5-day band on others.
@@ -174,7 +209,12 @@ async function readInputs(db, today) {
       ),
       // HumanSignal also describes products, which have no place in a list of assets.
       db.query(
-        `SELECT DISTINCT ON ("assetId") "assetId", "recentStories"
+        // `tone` and `catalyst` ride along with the story count, because the rule table reads
+        // all three and `lib/queries.ts` selects all three for the same table. An analog set no
+        // longer confirms a direction the published coverage points away from, and a withheld
+        // trend is not carried into one -- so a job that fetched only the count would write a
+        // different verdict from the page for any name whose coverage disagrees with it.
+        `SELECT DISTINCT ON ("assetId") "assetId", "recentStories", tone::text AS tone, catalyst
            FROM "HumanSignal" WHERE "assetId" IS NOT NULL
           ORDER BY "assetId", "periodEnd" DESC`,
       ),
@@ -212,6 +252,10 @@ async function readInputs(db, today) {
     assets: assets.rows,
     priceByAsset: firstPerKey(prices.rows, (r) => r.assetId),
     setupByKey: firstPerKey(setups.rows, (r) => `${r.assetId}|${r.horizon}`),
+    // Every method's row, grouped by the setup it belongs to. Not reduced to one here: rule 24
+    // forbids averaging the three, and which one is preferred is `lib/target.ts`'s decision, made
+    // once `pickSetup` has chosen which horizon decided.
+    targetsBySetup: groupPerKey(targets.rows, (r) => r.setupId),
     analogByAsset: firstPerKey(analogs.rows, (r) => r.assetId),
     signalByAsset: firstPerKey(signals.rows, (r) => r.assetId),
     investigationByAsset: firstPerKey(investigations.rows, (r) => r.assetId),
@@ -235,6 +279,11 @@ function rowsForDecisions(input) {
       entryLevel: row.entryLevel,
       invalidateLevel: row.invalidateLevel,
       conditions: row.conditions,
+      // Declared on `QueryRow.swing`/`.longer` in lib/decisionInput.ts and carried through
+      // `bundleFromRow` with the rest of the row. Empty rather than absent when the job wrote
+      // none: `preferredTarget` answers null for both, and an empty list says "asked and there
+      // were none" where undefined would say "this reader does not fetch targets".
+      targets: input.targetsBySetup.get(row.id) ?? [],
     };
   };
 
@@ -267,12 +316,15 @@ function rowsForDecisions(input) {
         // Units, because they are the one thing a reader of this file cannot infer: `volumeRatio`
         // is a multiple of the asset's own 20-session average, so 1.0 is an average day and
         // `VOLUME_CONFIRMS_AT` compares against it as a multiple; `relStrength` is in percentage
-        // points of 20-session return above or below the peer median, so `REL_AGAINST_AT` is points
-        // and not a ratio. Passing one in the other's units would make both rules fire on the wrong
-        // names and neither would look broken.
+        // points of 20-session return above or below the peer median, so `REL_BAND` is points and
+        // not a ratio -- and it is read per market, because a point means a different thing to a
+        // currency pair than to a coin. Passing one in the other's units would make both rules
+        // fire on the wrong names and neither would look broken.
         volumeRatio: factor?.volumeRatio ?? null,
         relStrength: factor?.relStrength ?? null,
         recentStories: signal?.recentStories ?? null,
+        newsTone: signal?.tone ?? null,
+        newsCatalyst: signal?.catalyst ?? null,
         robustZ: investigation?.robustZ ?? null,
         trigger: investigation?.trigger ?? null,
         nextEventDate: event?.date ?? null,
@@ -311,6 +363,13 @@ function decideAll(input, today) {
       analogRefs: analogId ?? "",
       eventInDays: decisionInput.eventInDays,
       baseClose: decisionInput.lastClose,
+      // What the trade was worth when it was decided. Null on every WAIT, because `plan` is,
+      // and null on a direction whose setup carries no measured target. Recorded rather than
+      // recomputed later: `jobs/horizons.py` rewrites "SetupTarget" every run, so a reward read
+      // back in a month would be this month's reward attached to last month's call.
+      rewardRisk: decision.plan?.rewardRisk ?? null,
+      baseRateShare: decision.plan?.baseRate?.share ?? null,
+      baseRateCount: decision.plan?.baseRate?.count ?? null,
     });
   }
   return out;
@@ -323,12 +382,32 @@ function decideAll(input, today) {
 /// the index. The measured columns and `status` are deliberately NOT touched on conflict — a rerun
 /// re-decides today, and overwriting a measurement with `open` would throw away the only thing in
 /// this table that cannot be recomputed from current data.
-async function writeDecisions(client, decisions, today) {
-  const columns = [
-    "assetId", "periodEnd", "action", "gate", "confidence",
-    "entryLow", "entryHigh", "invalidation", "factorId", "analogRefs",
-    "eventInDays", "baseClose",
-  ];
+/// The columns every database has, and the three that arrive with 20261009000000_decision_sizing.
+///
+/// Split because the schema reaches the database from `schema.yml` and the data lanes run on
+/// their own cron: between a push and the next migration there is a window in which this job
+/// runs against a table without these columns, and an unconditional INSERT naming them would
+/// fail every batch — turning the one output the whole site is built around into zero rows for
+/// the sake of three optional figures. The job writes what the table can hold and says which.
+const CORE_COLUMNS = [
+  "assetId", "periodEnd", "action", "gate", "confidence",
+  "entryLow", "entryHigh", "invalidation", "factorId", "analogRefs",
+  "eventInDays", "baseClose",
+];
+const SIZING_COLUMNS = ["rewardRisk", "baseRateShare", "baseRateCount"];
+
+/// Which of `names` exist on `table` right now. Asked once per run, not once per batch.
+async function presentColumns(db, table, names) {
+  const { rows } = await db.query(
+    `SELECT column_name FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = $1 AND column_name = ANY($2)`,
+    [table, names],
+  );
+  return new Set(rows.map((r) => r.column_name));
+}
+
+async function writeDecisions(client, decisions, today, withSizing) {
+  const columns = withSizing ? [...CORE_COLUMNS, ...SIZING_COLUMNS] : CORE_COLUMNS;
   let written = 0;
   const failures = [];
 
@@ -342,6 +421,7 @@ async function writeDecisions(client, decisions, today) {
         d.entryLow, d.entryHigh, d.invalidation, null, d.analogRefs,
         d.eventInDays, d.baseClose,
       );
+      if (withSizing) values.push(d.rewardRisk, d.baseRateShare, d.baseRateCount);
       const marks = columns.map((_, c) => `$${base + c + 1}`);
       marks[1] = `${marks[1]}::date`;
       return `(${marks.join(", ")})`;
@@ -355,7 +435,12 @@ async function writeDecisions(client, decisions, today) {
       `  "entryLow" = EXCLUDED."entryLow", "entryHigh" = EXCLUDED."entryHigh",\n` +
       `  invalidation = EXCLUDED.invalidation, "factorId" = EXCLUDED."factorId",\n` +
       `  "analogRefs" = EXCLUDED."analogRefs", "eventInDays" = EXCLUDED."eventInDays",\n` +
-      `  "baseClose" = EXCLUDED."baseClose", "computedAt" = now()`;
+      `  "baseClose" = EXCLUDED."baseClose", "computedAt" = now()` +
+      (withSizing
+        ? `,\n  "rewardRisk" = EXCLUDED."rewardRisk",\n` +
+          `  "baseRateShare" = EXCLUDED."baseRateShare",\n` +
+          `  "baseRateCount" = EXCLUDED."baseRateCount"`
+        : "");
 
     // One batch, one transaction. A failed batch is rolled back and named; the batches that
     // already committed stay written, which is the whole point of batching.
@@ -639,7 +724,19 @@ async function main() {
       try {
         maturation = await matureRows(client, today, DRY_RUN);
         if (!DRY_RUN) {
-          const result = await writeDecisions(client, decisions, today);
+          // Asked of the live table rather than assumed from the migration folder: the schema
+          // lane and the data lanes are separate workflows on separate schedules, and this job
+          // must keep writing its 477 rows through the window where the code is ahead of the
+          // column. Reported in the summary so "no reward figures" never reads as "no rewards".
+          const sizing = await presentColumns(client, "DecisionLog", SIZING_COLUMNS);
+          const withSizing = SIZING_COLUMNS.every((c) => sizing.has(c));
+          if (!withSizing) {
+            console.log(
+              '  "DecisionLog" has no sizing columns yet, so the reward and base rate are not ' +
+                "logged this run. Everything else is written as usual.",
+            );
+          }
+          const result = await writeDecisions(client, decisions, today, withSizing);
           written = result.written;
           failures = [...maturation.failures, ...result.failures];
         } else {

@@ -30,6 +30,11 @@ function base(over: Partial<DecisionInput> = {}): DecisionInput {
     horizon: { direction: "up" },
     entry: { low: 98, high: 102 },
     invalidation: 94,
+    // A measured target, so the healthy case carries a complete plan and the tests that break
+    // one thing break it against a decision that had a reward figure to lose. 1.5x is
+    // deliberately under `ASYMMETRY_CLEARS`: the base case must not silently qualify for a
+    // bypass, or every gate below it would be tested with its escape hatch already open.
+    target: { method: "structure", low: 108, high: 112, rewardRisk: 1.5 },
     analogs: { count: 12, lowPct: -3.2, highPct: 6.4, medianPct: 1.4, positive: 8 },
     volumeRatio: 1.8,
     relStrength: 1.0,
@@ -142,26 +147,42 @@ test("the mirror case is also WAIT", () => {
 
 // --- Gate 6: a move nobody has explained ------------------------------------------------------
 
-test("an unusual move with thin news is WAIT", () => {
+test("an unusual move with thin news is a note on the direction, not a refusal", () => {
+  // This gate was a WAIT for 60 of 477 names on 2026-10-09, every one of them over a measured
+  // direction and a stored invalidation. Thin news under a move says the published explanation
+  // has not arrived; it is not evidence that the direction is wrong, and the table no longer
+  // treats it as though it were.
   const d = decide(base({ unusualMove: true, newsCount: 1 }));
-  assert.equal(d.action, "WAIT");
-  assert.equal(d.gate, "unexplained-move");
-  assert.match(d.why[0], /news thin/i);
+  assert.equal(d.action, "LONG");
+  assert.equal(d.gate, "long");
+  assert.equal(d.notes.length, 1);
+  assert.match(d.notes[0], /moved unusually on 1 recent story/i);
+  // Demoted, not deleted: the reader still sees it.
+  assert.match(d.notes[0], /nothing published accounts for the move/i);
 });
 
 test("news never checked reads differently from news checked and thin", () => {
+  // Rule 21 survives the demotion. A null count is "no feed answered for this name" and a low
+  // count is "the feeds answered and there was little there", and one sentence for both would
+  // tell the reader the second when the truth is the first.
   const d = decide(base({ unusualMove: true, newsCount: null }));
-  assert.equal(d.gate, "unexplained-move");
-  assert.match(d.why[0], /not checked/i);
+  assert.equal(d.action, "LONG");
+  assert.equal(d.notes.length, 1);
+  assert.match(d.notes[0], /no news has been collected/i);
+  assert.doesNotMatch(d.notes[0], /recent stor/i);
 });
 
-test("an unusual move with real news behind it still trades", () => {
-  assert.equal(decide(base({ unusualMove: true, newsCount: 9 })).action, "LONG");
+test("an unusual move with real news behind it carries no note", () => {
+  const d = decide(base({ unusualMove: true, newsCount: 9 }));
+  assert.equal(d.action, "LONG");
+  assert.deepEqual(d.notes, []);
 });
 
-test("thin news on a quiet name is not a gate", () => {
+test("thin news on a quiet name is neither a gate nor a note", () => {
   // The point of pairing the two conditions: a quiet stock with no headlines is normal.
-  assert.equal(decide(base({ unusualMove: false, newsCount: 0 })).action, "LONG");
+  const d = decide(base({ unusualMove: false, newsCount: 0 }));
+  assert.equal(d.action, "LONG");
+  assert.deepEqual(d.notes, []);
 });
 
 // --- Gate 9: the fall-through -----------------------------------------------------------------
@@ -293,19 +314,464 @@ test("a direction still prints when nothing confirms it, and says so", () => {
   assert.ok(d.missing.some((m) => /No similar past days can be matched without a volume ratio/.test(m)));
 });
 
-test("a name far behind its peers does not read LONG", () => {
-  const d = decide(base({ relStrength: -4 }));
-  assert.equal(d.action, "WAIT");
-  assert.equal(d.gate, "peers-against");
-  assert.match(d.why[0], /behind its peers/);
-  // Mirrored for a short: a name holding up better than its group is not a short.
+test("a name far behind its peers still reads LONG, with the lag noted and the grade capped", () => {
+  // -9 against the US band of 7.5. The fixture's market is US, and the band is per market now:
+  // see REL_BAND, and the test below for why one number could not serve both FX and crypto.
+  const d = decide(base({ relStrength: -9 }));
+  assert.equal(d.action, "LONG");
+  assert.equal(d.gate, "long");
+  // Principle 2 has not been dropped. The lag is printed with its own measured value -- rule 21,
+  // three values and not one -- and it costs a confidence step, so the grade can never read more
+  // confident than the note under it (rule 6). The base case is High; this is Medium.
+  assert.equal(d.confidence, "Medium");
+  assert.equal(d.notes.length, 1);
+  assert.match(d.notes[0], /9\.0 points behind its peers/);
+
+  // Mirrored for a short: a name holding up better than its group is still a short, noted.
   const short = decide(
-    base({ setup: { direction: "down", horizon: "swing" }, horizon: { direction: "down" }, relStrength: 4 }),
+    base({ setup: { direction: "down", horizon: "swing" }, horizon: { direction: "down" }, relStrength: 9 }),
   );
-  assert.equal(short.gate, "peers-against");
-  // Inside the band, or unknown, is not a gate.
-  assert.equal(decide(base({ relStrength: -1 })).action, "LONG");
-  assert.equal(decide(base({ relStrength: null })).action, "LONG");
+  assert.equal(short.action, "SHORT");
+  assert.equal(short.confidence, "Medium");
+  assert.match(short.notes[0], /9\.0 points ahead of its peers/);
+
+  // Inside the band, or unknown, is neither a note nor a cap.
+  for (const rel of [-5, null]) {
+    const inside = decide(base({ relStrength: rel }));
+    assert.equal(inside.action, "LONG");
+    assert.equal(inside.confidence, "High");
+    assert.deepEqual(inside.notes, []);
+  }
+});
+
+test("a name ahead of its peers is confirmed by it, which it never used to be", () => {
+  // The asymmetry this fixes: `peersAgainst` existed and `peersConfirm` did not, so one stored
+  // measurement could subtract a grade and could never add one. Principle 2 says relative
+  // strength matters more than a raw return; the rules were only ever reading its bad half.
+  const bare = base({ horizon: null, volumeRatio: 0.4, relStrength: 0, analogs: null });
+  assert.equal(decide(bare).confidence, "Low");
+  assert.match(decide(bare).why[2], /Nothing further confirms it|Neither volume/);
+
+  const leading = decide({ ...bare, relStrength: 9.2 });
+  assert.equal(leading.confidence, "Medium");
+  assert.match(leading.why[2], /9\.2 points ahead of its peers over 20 sessions/);
+
+  // Mirrored for a short: behind its peers confirms a fall.
+  const falling = decide(
+    base({
+      setup: { direction: "down", horizon: "swing" },
+      horizon: null,
+      volumeRatio: 0.4,
+      analogs: null,
+      relStrength: -9.2,
+    }),
+  );
+  assert.equal(falling.action, "SHORT");
+  assert.match(falling.why[2], /9\.2 points behind its peers/);
+
+  // Inside the band is still no evidence either way, and the band is the same one both halves
+  // use -- a name cannot be too close to call against and far enough ahead to confirm.
+  assert.equal(decide({ ...bare, relStrength: 7.4 }).confidence, "Low");
+  assert.equal(decide({ ...bare, relStrength: null }).confidence, "Low");
+});
+
+test("the peer reading carries a withheld trend where volume cannot exist", () => {
+  // The case this unlocks, and the one the live table is worst at: a currency pair publishes no
+  // volume at any venue, so `volumeConfirms` is null for all 27 of them permanently and
+  // `jobs/analogs.py` can match no past day without a volume ratio. Before this, the only route
+  // through gate 8 for a pair was an asymmetric reward.
+  const pair = {
+    market: "FX" as const,
+    setup: { direction: "flat", horizon: "swing", trend: "down" } as const,
+    horizon: null,
+    volumeRatio: null,
+    analogs: null,
+    target: null,
+  };
+  assert.equal(decide(base({ ...pair, relStrength: 0 })).action, "WAIT");
+
+  const carried = decide(base({ ...pair, relStrength: -4.5 }));
+  assert.equal(carried.action, "SHORT");
+  assert.equal(carried.gate, "trend-short");
+  assert.match(carried.why[0], /4\.5 points behind its peers carries it/);
+});
+
+test("the High bar stays at two things agreeing, not at half of what is available", () => {
+  // A fourth leg must not re-grade the site by arithmetic. Two independent confirmations is
+  // High because two is what "independently confirmed" means, and it meant that with three legs.
+  const one = base({ horizon: null, volumeRatio: 0.4, analogs: null, relStrength: 9 });
+  assert.equal(decide(one).confidence, "Medium");
+  const two = { ...one, volumeRatio: 1.8 };
+  assert.equal(decide(two).confidence, "High");
+});
+
+test("the peer band is read per market, because a point is not one thing", () => {
+  // Rule 42's shape, caught in this constant. Measured 2026-10-09 as the median |relStrength|
+  // per market: FX 1.13, PSX 3.53, US 3.71, crypto 5.56. One constant of 3 points therefore
+  // passed 58% of US names and 7% of currency pairs -- simultaneously too loose to be evidence
+  // and too strict to ever fire. The band is twice each market's own median.
+  const lean = { horizon: null, volumeRatio: 0.4, analogs: null } as const;
+
+  // 4 points: nothing for a US equity, a clear lead for a currency pair.
+  assert.equal(decide(base({ ...lean, relStrength: 4 })).confidence, "Low");
+  assert.equal(decide(base({ ...lean, market: "FX", relStrength: 4 })).confidence, "Medium");
+
+  // 9 points: a clear lead for a US equity, and still nothing for a coin.
+  assert.equal(decide(base({ ...lean, relStrength: 9 })).confidence, "Medium");
+  assert.equal(decide(base({ ...lean, market: "Crypto", relStrength: 9 })).confidence, "Low");
+
+  // Both halves move together. One measurement and one question, so the distance that confirms
+  // is the distance that contradicts -- a name cannot be too close to call one way and clearly
+  // placed the other.
+  assert.deepEqual(decide(base({ market: "FX", relStrength: -4 })).notes.length, 1);
+  assert.deepEqual(decide(base({ market: "Crypto", relStrength: -4 })).notes, []);
+});
+
+test("the peer cap takes one step and never two", () => {
+  // A Low direction with the peers against it stays Low rather than falling off the scale, and a
+  // Medium stays Medium. The cap is a qualification, not a second veto wearing a grade's clothes.
+  const low = base({
+    horizon: null,
+    volumeRatio: 0.4,
+    analogs: { count: 12, lowPct: -3, highPct: 6, medianPct: -1.1, positive: 4 },
+  });
+  assert.equal(decide(low).confidence, "Low");
+  assert.equal(decide({ ...low, relStrength: -9 }).confidence, "Low");
+});
+
+// --- Gate 5's bypass, and gate 8 -------------------------------------------------------------
+//
+// The two places a stored `rewardRisk` is allowed to change the answer. Both are bypasses of a
+// refusal and neither can produce a direction on its own, which is what these tests pin down.
+
+test("opposite timeframes are carried when the measured reward is asymmetric", () => {
+  const opposed = { horizon: { direction: "down" } as const };
+  // Under the bar: still the refusal, and the reason names the figure it fell short of.
+  const held = decide(
+    base({ ...opposed, target: { method: "structure", low: 108, high: 112, rewardRisk: 1.9 } }),
+  );
+  assert.equal(held.action, "WAIT");
+  assert.equal(held.gate, "mixed-horizons");
+  assert.match(held.why[1], /1\.9x the risk, short of the 2x/);
+
+  // At the bar: the direction prints and the disagreement is still stated in the why lines.
+  const carried = decide(
+    base({ ...opposed, target: { method: "structure", low: 120, high: 126, rewardRisk: 2.4 } }),
+  );
+  assert.equal(carried.action, "LONG");
+  assert.equal(carried.gate, "long");
+  assert.match(carried.why[1], /does not disagree|Longer view/);
+  assert.equal(carried.plan?.rewardRisk, 2.4);
+});
+
+test("no stored target is not an asymmetric reward", () => {
+  // An unmeasured reward is not a large one. The disagreement stands, and the sentence says the
+  // reward is absent rather than quoting a number nothing produced.
+  const d = decide(base({ horizon: { direction: "down" }, target: null }));
+  assert.equal(d.gate, "mixed-horizons");
+  assert.match(d.why[1], /No measured reward is stored/);
+});
+
+test("a withheld trend needs volume or asymmetry, and takes neither on credit", () => {
+  const withheld = { setup: { direction: "flat", horizon: "swing", trend: "up" } as const };
+
+  // Neither: the fall-through, unchanged, with the developing read intact.
+  const held = decide(base({ ...withheld, volumeRatio: 0.6, target: null }));
+  assert.equal(held.action, "WAIT");
+  assert.equal(held.gate, "incomplete");
+  assert.equal(held.developing?.would, "LONG");
+
+  // Volume alone carries it, and the opening sentence quotes the figure that did.
+  const onVolume = decide(base({ ...withheld, volumeRatio: 2.1, target: null }));
+  assert.equal(onVolume.action, "LONG");
+  assert.equal(onVolume.gate, "trend-long");
+  assert.match(onVolume.why[0], /2\.1x its 20-session average carries it/);
+
+  // Reward alone carries it, and says so instead of claiming volume did.
+  const onReward = decide(
+    base({
+      ...withheld,
+      volumeRatio: 0.6,
+      target: { method: "volatility", low: 120, high: 130, rewardRisk: 3.1 },
+    }),
+  );
+  assert.equal(onReward.action, "LONG");
+  assert.match(onReward.why[0], /reward at 3\.1x the risk carries it/);
+
+  // A withheld downward trend is the mirror, and it is the common one: 186 of the 247 withheld
+  // swing rows on 2026-10-09 pointed down.
+  const down = decide(
+    base({ setup: { direction: "flat", horizon: "swing", trend: "down" }, horizon: null, volumeRatio: 2.1 }),
+  );
+  assert.equal(down.action, "SHORT");
+  assert.equal(down.gate, "trend-short");
+});
+
+test("a withheld trend is still refused by a disagreeing longer view unless reward pays", () => {
+  const against = {
+    setup: { direction: "flat", horizon: "swing", trend: "up" } as const,
+    horizon: { direction: "down" } as const,
+    volumeRatio: 2.1,
+  };
+  assert.equal(decide(base({ ...against, target: null })).action, "WAIT");
+  assert.equal(
+    decide(base({ ...against, target: { method: "structure", low: 120, high: 126, rewardRisk: 2.6 } }))
+      .action,
+    "LONG",
+  );
+});
+
+test("a price between its averages still has a side, and the sentence says which reading it is", () => {
+  // The largest block the table had nothing to say about: 123 refused names on 2026-10-09 whose
+  // swing state was `none` — price between its own averages — of which 119 had the fast mean
+  // measurably above or below the slow one. `trend` correctly says `mixed` there, because three
+  // things do not agree; `bias` says which way the two that remain are pointing.
+  const between = {
+    setup: { direction: "unknown", horizon: "swing", trend: "mixed", bias: "up" } as const,
+    horizon: null,
+    volumeRatio: 2.4,
+  };
+  const d = decide(base(between));
+  assert.equal(d.action, "LONG");
+  assert.equal(d.gate, "trend-long");
+  // It must not claim a trend. Three things agreeing and two things agreeing are different
+  // findings, and promoting the weaker into the stronger one's word is the overclaim.
+  assert.doesNotMatch(d.why[0], /The trend is/);
+  assert.match(d.why[0], /Price is between its own averages, with the 20 day above the 50 day/);
+  assert.match(d.why[0], /2\.4x its 20-session average carries it/);
+
+  // Down is the mirror, and it was the commoner side: 64 of the 119 had the fast mean below.
+  const falling = decide(
+    base({ ...between, setup: { direction: "unknown", horizon: "swing", trend: "mixed", bias: "down" } }),
+  );
+  assert.equal(falling.action, "SHORT");
+  assert.match(falling.why[0], /20 day below the 50 day/);
+});
+
+test("the weaker reading buys a chance at the gate, not a pass through it", () => {
+  // Every requirement gate 8 makes of a trend it makes of a bias. Without a carrier the name
+  // falls through exactly as it did, and keeps a developing read so it is still on the page.
+  const between = {
+    setup: { direction: "unknown", horizon: "swing", trend: "mixed", bias: "up" } as const,
+    horizon: null,
+    target: null,
+  };
+  const held = decide(base({ ...between, volumeRatio: 0.5, relStrength: 0 }));
+  assert.equal(held.action, "WAIT");
+  assert.equal(held.gate, "incomplete");
+  assert.equal(held.developing?.would, "LONG");
+
+  // A disagreeing longer view still refuses it, and contradicting coverage still refuses it.
+  assert.equal(
+    decide(base({ ...between, volumeRatio: 2.4, horizon: { direction: "down" } })).action,
+    "WAIT",
+  );
+  assert.equal(
+    decide(base({ ...between, volumeRatio: 2.4, news: { tone: "down", catalyst: true } })).action,
+    "WAIT",
+  );
+});
+
+test("a trend beats a bias and the two never compete", () => {
+  // `jobs/setup.py` writes `bias` only under a mixed trend, so a row carrying both a directional
+  // trend and a bias cannot occur. If one ever did, the stronger reading wins and says so.
+  const d = decide(
+    base({
+      setup: { direction: "flat", horizon: "swing", trend: "down", bias: "up" },
+      horizon: null,
+      volumeRatio: 2.4,
+    }),
+  );
+  assert.equal(d.action, "SHORT");
+  assert.match(d.why[0], /The trend is down/);
+});
+
+test("a mixed bias under a mixed trend carries nothing", () => {
+  // Inside `BIAS_MIN_GAP` the two averages are not far enough apart to read, which `setup.py`
+  // records as `mixed`. A measurement that came back without a side is still not a side.
+  const d = decide(
+    base({
+      setup: { direction: "unknown", horizon: "swing", trend: "mixed", bias: "mixed" },
+      horizon: null,
+      volumeRatio: 5,
+    }),
+  );
+  assert.equal(d.action, "WAIT");
+  assert.equal(d.gate, "incomplete");
+});
+
+test("a mixed trend with no bias recorded carries nothing, however loud the volume", () => {
+  // `mixed` is a measurement that came back without a direction. With no `bias` beside it there
+  // is nothing left to read, and promoting it would be the rule table inventing the direction
+  // `setup.py` declined to state. This is a row written before `bias` existed, or one whose
+  // averages fell inside the floor -- the test above covers the second explicitly.
+  const d = decide(
+    base({ setup: { direction: "flat", horizon: "swing", trend: "mixed" }, volumeRatio: 5 }),
+  );
+  assert.equal(d.action, "WAIT");
+  assert.equal(d.gate, "incomplete");
+});
+
+// --- News against the pattern -----------------------------------------------------------------
+//
+// The confluence rule. An analog set answers "what followed past days that looked like this one",
+// matched on price, volume and the five-day return -- and none of those past days had today's
+// headline in them. So a set that agrees with the setup while the published coverage disagrees
+// with the present is a sample missing the thing most likely to drive the next move.
+
+test("a contradicting tone withdraws the history leg and says so", () => {
+  // The base case confirms on two legs -- the agreeing horizon and volume -- plus history, and
+  // grades High. With the coverage pointing the other way the history leg drops out.
+  const clean = decide(base());
+  assert.equal(clean.confidence, "High");
+  assert.match(clean.why[2], /similar days going the same way/);
+
+  const against = decide(base({ news: { tone: "down", catalyst: false } }));
+  assert.equal(against.action, "LONG", "coverage qualifies a confirmed setup, it does not veto it");
+  // The why line stops claiming history. Volume still confirms, so that is all it may say.
+  assert.doesNotMatch(against.why[2], /similar days going the same way/);
+  assert.match(against.why[2], /Confirmed by volume/);
+  assert.ok(
+    against.notes.some((n) => /worded negatively/.test(n)),
+    against.notes.join(" | "),
+  );
+  // And the withdrawn set is named with its own counts rather than disappearing. This is the
+  // branch `confirmLine` cannot reach: with volume confirming, its sentence is about volume.
+  assert.ok(
+    against.notes.some((n) => /8 of 12 similar past days went this way, and they are not counted/.test(n)),
+    against.notes.join(" | "),
+  );
+});
+
+test("with nothing else confirming, the why line itself carries the withdrawal", () => {
+  // The other half of the pair above. Volume off, horizon absent: `confirmLine` has no parts to
+  // print, so it must say why rather than falling into "neither volume nor similar days confirm
+  // it" -- which would be true of the arithmetic and wrong about the file.
+  const d = decide(
+    base({ horizon: null, volumeRatio: 0.4, news: { tone: "down", catalyst: false } }),
+  );
+  assert.match(d.why[2], /lean this way, but the published coverage points the other way/);
+});
+
+test("a catalyst makes the contradiction a different sentence", () => {
+  const spike = decide(base({ news: { tone: "down", catalyst: true } }));
+  assert.ok(
+    spike.notes.some((n) => /spike against its own baseline/.test(n)),
+    spike.notes.join(" | "),
+  );
+  // A mood held over a month is not an event, and the two must not print the same line.
+  const mood = decide(base({ news: { tone: "down", catalyst: false } }));
+  assert.ok(mood.notes.every((n) => !/spike/.test(n)), mood.notes.join(" | "));
+});
+
+test("coverage can take a confirmation away and can never add one", () => {
+  // Principle 5: current human attention is context, not proof. A word list with no bodies, no
+  // negation and no sarcasm is good enough to withdraw a claim and not good enough to make one,
+  // so an agreeing tone must leave every grade exactly where it was.
+  for (const over of [{}, { volumeRatio: 0.4 }, { horizon: null }]) {
+    const quiet = decide(base({ ...over, news: null }));
+    const neutral = decide(base({ ...over, news: { tone: null, catalyst: true } }));
+    const agreeing = decide(base({ ...over, news: { tone: "up", catalyst: true } }));
+    assert.equal(neutral.confidence, quiet.confidence);
+    assert.equal(agreeing.confidence, quiet.confidence);
+    assert.deepEqual(agreeing.notes, quiet.notes);
+  }
+});
+
+test("a neutral reading and no reading at all both change nothing", () => {
+  // Rule 21 once more. "No HumanSignal row" and "read, and the window took no side" are two
+  // values, and neither is "read, and it disagrees" -- only the third may act.
+  const none = decide(base({ news: null }));
+  const neutral = decide(base({ news: { tone: null, catalyst: false } }));
+  assert.equal(none.confidence, "High");
+  assert.equal(neutral.confidence, "High");
+  assert.deepEqual(neutral.notes, []);
+});
+
+test("a withheld trend is refused outright when the coverage contradicts it", () => {
+  // The one place this is a veto rather than a deduction, and the reason is what gate 8 is: the
+  // conditions behind the trend did not all hold, so the case is thin by construction. Thin and
+  // contradicted is the blind trap.
+  const carried = { setup: { direction: "flat", horizon: "swing", trend: "up" } as const, volumeRatio: 2.4 };
+  assert.equal(decide(base(carried)).gate, "trend-long");
+
+  const blocked = decide(base({ ...carried, news: { tone: "down", catalyst: true } }));
+  assert.equal(blocked.action, "WAIT");
+  assert.equal(blocked.gate, "incomplete");
+  // Not a silent refusal. The direction survives as a developing read and the coverage is the
+  // first thing it is waiting on, because it is the only item in that list about the present.
+  assert.equal(blocked.developing?.would, "LONG");
+  assert.match(blocked.developing!.waitingOn[0], /worded negatively, against the trend/);
+  assert.match(blocked.developing!.waitingOn[0], /spike against its own baseline/);
+});
+
+test("a confirmed setup is not vetoed by coverage, only graded down", () => {
+  // The asymmetry between gate 8 and gates 6/7, asserted as the pair it is. At gates 6 and 7
+  // `jobs/setup.py` found and confirmed the conditions; a word list over headlines does not
+  // overrule that.
+  const d = decide(base({ news: { tone: "down", catalyst: true } }));
+  assert.equal(d.action, "LONG");
+  assert.equal(d.gate, "long");
+  // The base case confirms on all three legs, so losing one leaves two and the grade is still
+  // High. Withdrawing a leg is a deduction of one, not a collapse -- which is why the grade has
+  // to be tested on a name that was resting on two.
+  assert.equal(d.confidence, "High");
+
+  // Resting on two legs -- volume and history, with no second timeframe. Withdrawing history
+  // leaves one, which is the single step this rule is allowed to cost.
+  const onTwo = base({ horizon: null });
+  assert.equal(decide(onTwo).confidence, "High");
+  assert.equal(decide({ ...onTwo, news: { tone: "down", catalyst: false } }).confidence, "Medium");
+
+  // And on history alone it falls to Low, never past it: a withdrawn confirmation is not
+  // evidence against, so there is no second deduction waiting underneath.
+  const onOne = base({ horizon: null, volumeRatio: 0.4 });
+  assert.equal(decide(onOne).confidence, "Medium");
+  assert.equal(decide({ ...onOne, news: { tone: "down", catalyst: true } }).confidence, "Low");
+});
+
+// --- The plan ---------------------------------------------------------------------------------
+
+test("a direction carries the levels and the measured history, and a WAIT carries none", () => {
+  const d = decide(base());
+  assert.equal(d.plan?.invalidation, 94);
+  assert.deepEqual(d.plan?.entry, { low: 98, high: 102 });
+  assert.deepEqual(d.plan?.target, { low: 108, high: 112, method: "structure" });
+  assert.equal(d.plan?.rewardRisk, 1.5);
+  // 8 of 12 matched days went this way. The share travels with its denominator, always.
+  assert.deepEqual(d.plan?.baseRate, { share: 8 / 12, count: 12 });
+  // 0.6667 * 1.5 - 0.3333, in units of the risk.
+  assert.ok(Math.abs(d.plan!.expectancyR! - (8 / 12 * 1.5 - 4 / 12)) < 1e-9);
+
+  assert.equal(decide(base({ invalidation: null })).plan, null);
+});
+
+test("expectancy needs both halves, and says nothing on one", () => {
+  // No target: there is no reward to multiply the share by.
+  assert.equal(decide(base({ target: null })).plan?.expectancyR, null);
+  // A target whose reward the job could not compute is the same answer by a different route.
+  const uncomputed = decide(
+    base({ target: { method: "analog", low: 105, high: 109, rewardRisk: null } }),
+  );
+  assert.equal(uncomputed.plan?.expectancyR, null);
+  assert.ok(
+    uncomputed.missing.some((m) => /reward against risk was not computed/.test(m)),
+    uncomputed.missing.join(" | "),
+  );
+  // Too few matched days: `jobs/analogs.py` will not grade a set under 8, so neither will this.
+  const thin = decide(base({ analogs: { count: 5, lowPct: -2, highPct: 3, medianPct: 1, positive: 4 } }));
+  assert.equal(thin.plan?.baseRate, null);
+  assert.equal(thin.plan?.expectancyR, null);
+});
+
+test("the base rate counts the direction being taken, not the days that rose", () => {
+  // 8 of 12 rose, so a SHORT's base rate is the other 4. Reading `positive` straight through
+  // would have every short quote the long's frequency.
+  const d = decide(
+    base({ setup: { direction: "down", horizon: "swing" }, horizon: { direction: "down" } }),
+  );
+  assert.equal(d.action, "SHORT");
+  assert.deepEqual(d.plan?.baseRate, { share: 4 / 12, count: 12 });
 });
 
 // --- The honesty line -------------------------------------------------------------------------

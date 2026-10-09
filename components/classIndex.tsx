@@ -5,6 +5,7 @@ import { cachedDecisionRows, cachedSourceHealth } from "@/lib/cached";
 import { todayISO } from "@/lib/decisionInput";
 import { isoDate } from "@/lib/format";
 import {
+  byCloseness,
   byConfidence,
   scoreRows,
   toListRow,
@@ -32,7 +33,23 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
 
   const longs = mine.filter((s) => s.decision.action === "LONG").sort(byConfidence);
   const shorts = mine.filter((s) => s.decision.action === "SHORT").sort(byConfidence);
-  const waits = mine.filter((s) => s.decision.action === "WAIT").sort(byConfidence);
+
+  // The waiting list, split the way the overview has always split it and this page did not.
+  //
+  // Rule 40: a developing row is **lifted out** of the WAIT list rather than added beside it. The
+  // front page does that; these five index pages did not, so a name with a measured direction and
+  // one named shortfall was filed under "no direction today" next to a name whose feed is dead.
+  // Measured 2026-10-09: 203 of the 214 refused names carry a forming read, so this was almost
+  // the whole list -- `/crypto` said "32 waiting" when 14 of those had a direction and a number
+  // saying how far off it was.
+  //
+  // Nothing here changes a verdict. Every one of these is still `action: "WAIT"`, still graded
+  // Low, and still carries the word "potential" on its own page. What changes is that the reader
+  // is told which of the two kinds of waiting a name is, which is the distinction `WaitBasis` and
+  // `Developing` were both built to make and which this page was collapsing.
+  const allWaits = mine.filter((s) => s.decision.action === "WAIT");
+  const forming = allWaits.filter((s) => s.decision.developing !== null).sort(byCloseness);
+  const waits = allWaits.filter((s) => s.decision.developing === null).sort(byConfidence);
 
   // Newest stored close across this class, compared as text: `yyyy-mm-dd` sorts correctly as text,
   // and anything that came back through the cache is a string now whatever its type says.
@@ -50,7 +67,7 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
         <p className="text-muted-foreground mt-2 text-sm">
           {mine.length} {mine.length === 1 ? "name" : "names"}, priced to{" "}
           {asOf ?? "no stored close"}. {longs.length} long, {shorts.length} short,{" "}
-          {waits.length} waiting. Readings, not advice.
+          {forming.length} forming, {waits.length} waiting. Readings, not advice.
         </p>
       </div>
 
@@ -83,6 +100,27 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
             empty={<>Nothing in this class reads short today.</>}
           />
 
+          {/* Between the directions and the waiting list, because that is where it belongs in the
+              reader's order: something to act on, something to watch, and then the index. Open
+              rather than collapsed -- this is the half of the old waiting list that was worth
+              reading, and burying it again under a summary would be the fault this split exists
+              to fix.
+
+              The lead names the one thing that separates these rows from the two lists above:
+              the direction is measured and the confirmations are not all there. The shortfall
+              itself, with its own stored value, is on each name's page under Details. */}
+          <DecisionList
+            title={`Forming (${forming.length})`}
+            lead="A direction is measured and not all of its confirmations are present. Not an action: each name's page says exactly what is missing and how far off it is."
+            rows={forming.map(toListRow)}
+            empty={
+              <>
+                Nothing in this class has a direction forming. Every name here either has one
+                already or has no measured direction at all.
+              </>
+            }
+          />
+
           {/* Collapsed, and complete inside.
 
               This list is the index: it is where a reader looks a specific name up, so capping
@@ -96,13 +134,13 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
               inside is never a surprise and never looks like a gap. */}
           <details className="border-border bg-muted/30 mt-6 rounded-lg border px-4 py-1 text-sm sm:py-3">
             <summary className="-my-1 cursor-pointer py-3 font-medium select-none sm:my-0 sm:py-0">
-              Waiting: {waits.length} {waits.length === 1 ? "name" : "names"} with no direction
-              today
+              Waiting: {waits.length} {waits.length === 1 ? "name" : "names"} with no measured
+              direction at all
             </summary>
             <div className="mt-2 pb-2">
               <DecisionList
                 title={`Waiting (${waits.length})`}
-                lead="Conditions are incomplete, the close is stale, or the move has no published reason yet. Each row's own page says which."
+                lead="No direction could be read: the close is too old, the venue answered nothing, no stop level exists, or the price sits between its own averages with neither side measurable. Each row's own page says which."
                 rows={waits.map(toListRow)}
                 empty={<>Nothing in this class is waiting, which means every name has a direction.</>}
               />

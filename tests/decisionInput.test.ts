@@ -23,6 +23,7 @@ import {
 } from "../lib/decisionInput.ts";
 import { decideProduct, whereToCheck, type ProductDecisionInput } from "../lib/productDecision.ts";
 import { decide } from "../lib/decision.ts";
+import { pickTarget } from "../lib/target.ts";
 
 test("setup states map to directions, and absence is not neutrality", () => {
   assert.equal(directionOfState("buy"), "up");
@@ -154,7 +155,7 @@ test("a full bundle maps to an actionable input", () => {
   assert.equal(input.market, "US");
   assert.equal(input.asOf, "2026-10-02");
   assert.equal(input.lastClose, 97);
-  assert.deepEqual(input.setup, { direction: "up", horizon: "swing", trend: null });
+  assert.deepEqual(input.setup, { direction: "up", horizon: "swing", trend: null, bias: null });
   assert.deepEqual(input.horizon, { direction: "up" });
   assert.deepEqual(input.entry, { low: 94, high: 100 });
   assert.equal(input.invalidation, 94);
@@ -413,7 +414,7 @@ function row(over: Partial<QueryRow> = {}): QueryRow {
 test("a home page row decides the same way a full bundle would", () => {
   const input = toDecisionInput(bundleFromRow(row(), []), "2026-10-03");
   assert.equal(input.market, "PSX");
-  assert.deepEqual(input.setup, { direction: "down", horizon: "swing", trend: null });
+  assert.deepEqual(input.setup, { direction: "down", horizon: "swing", trend: null, bias: null });
   assert.deepEqual(input.entry, { low: 94, high: 100 });
   assert.equal(decide(input).action, "SHORT");
 });
@@ -510,7 +511,7 @@ test("the longer row cannot be both the setup and its own confirmation", () => {
     ),
     "2026-10-03",
   );
-  assert.deepEqual(input.setup, { direction: "up", horizon: "longer", trend: null });
+  assert.deepEqual(input.setup, { direction: "up", horizon: "longer", trend: null, bias: null });
   // Null, not { direction: "up" }: it would otherwise agree with itself and be graded as two
   // timeframes lining up.
   assert.equal(input.horizon, null);
@@ -555,13 +556,170 @@ test("a factor row reaches the rules and lifts the confidence", () => {
   assert.match(d.why[2], /Confirmed by/);
 });
 
-test("peer-relative strength reaches the gate that uses it", () => {
+test("peer-relative strength reaches the rule that uses it", () => {
   const laggard = toDecisionInput(
     bundleFromRow(row({ swing: UP, longer: UP, relStrength: -7 }), []),
     "2026-10-03",
   );
   assert.equal(laggard.relStrength, -7);
-  assert.equal(decide(laggard).gate, "peers-against");
+  // It stopped being a gate and did not stop being read. The direction stands, the lag is
+  // printed with its own value, and the grade is capped one step for it.
+  const d = decide(laggard);
+  assert.equal(d.action, "LONG");
+  assert.ok(
+    d.notes.some((n) => /7\.0 points behind its peers/.test(n)),
+    d.notes.join(" | "),
+  );
+  assert.notEqual(d.confidence, "High");
+});
+
+// --- Targets reaching the rules ----------------------------------------------------------------
+//
+// The fourth field to be declared at this seam, and the first to be tested on the way in rather
+// than after a live page printed something wrong. Three before it -- `conditions`, `medianPct`,
+// `positive` -- were fetched by the query layer, read by the rule table and lost in an object
+// literal in between, with nothing failing. An optional field cannot fail to exist, so the type
+// is not the guard and this is.
+
+test("a setup's measured target reaches the rules and sizes the trade", () => {
+  const input = toDecisionInput(
+    bundleFromRow(
+      row({
+        swing: {
+          ...UP,
+          targets: [
+            { method: "volatility", low: 118, high: 124, rewardRisk: 0.9 },
+            { method: "structure", low: 108, high: 112, rewardRisk: 2.6 },
+          ],
+        },
+        longer: UP,
+      }),
+      [],
+    ),
+    "2026-10-03",
+  );
+  // The preference order from lib/target.ts, applied once: structure beats volatility.
+  assert.equal(input.target?.method, "structure");
+  assert.equal(input.target?.rewardRisk, 2.6);
+  assert.equal(decide(input).plan?.rewardRisk, 2.6);
+});
+
+test("the target is taken off the setup that decided, not off whichever row has one", () => {
+  // `pickSetup` prefers a directional row, and here that is `longer`. A target lifted from the
+  // swing row would size a quarterly trade against a swing exit -- the same fault `decidingSetup`
+  // in lib/target.ts exists to prevent, one step earlier in the pipe.
+  const input = toDecisionInput(
+    bundleFromRow(
+      row({
+        swing: {
+          state: "wait",
+          entryLevel: 94,
+          invalidateLevel: 100,
+          targets: [{ method: "structure", low: 80, high: 84, rewardRisk: 4.0 }],
+        },
+        longer: {
+          ...UP,
+          targets: [{ method: "structure", low: 108, high: 112, rewardRisk: 1.1 }],
+        },
+      }),
+      [],
+    ),
+    "2026-10-03",
+  );
+  assert.equal(input.target?.rewardRisk, 1.1);
+});
+
+test("the panel's exit and the rules' reward come off the same row, intraday included", () => {
+  // The contradiction this pins down was live on PLTR on 2026-10-09. `pickSetup` walks
+  // swing, longer, intraday and took the intraday row -- the only directional one -- while
+  // `decidingSetup` in lib/target.ts walked only swing and longer and found nothing. The panel
+  // printed "Exit if working: No clear target stored" directly above "Reward against risk: 0.2x",
+  // which is a figure computed from the target the line above said did not exist.
+  //
+  // Two functions answer "which setup decided". This is the test that keeps them answering the
+  // same thing, because a comment saying they mirror each other is what was there before.
+  const setups = [
+    { horizon: "swing", state: "wait", entryLevel: 196, invalidateLevel: 197, conditions: null, targets: [] },
+    { horizon: "longer", state: "none", entryLevel: null, invalidateLevel: null, conditions: null, targets: [] },
+    {
+      horizon: "intraday",
+      state: "buy",
+      entryLevel: 196.84,
+      invalidateLevel: 199.1,
+      conditions: null,
+      targets: [{ method: "structure", low: 201, high: 203, rewardRisk: 0.2, distancePct: 1.1, note: "" }],
+    },
+  ];
+
+  const input = toDecisionInput(
+    {
+      asset: { symbol: "PLTR", assetType: "stock", industry: { market: "US" } },
+      freshness: { newest: "2026-10-08", close: 198.78 },
+      setups,
+      analogs: [],
+      human: null,
+      investigation: null,
+      factors: null,
+      nextEvent: null,
+      sourceHealth: [],
+    },
+    "2026-10-09",
+  );
+  assert.equal(input.target?.rewardRisk, 0.2);
+  // And the page's own picker agrees, over the same list the asset page hands it.
+  assert.equal(pickTarget(setups)?.rewardRisk, 0.2);
+});
+
+test("the coverage verdict reaches the rule that reads it", () => {
+  // The fifth field to cross this seam, and the reason each one gets a test: `conditions`,
+  // `medianPct`, `positive` and `targets` were all fetched by the query layer, read by the rule
+  // table, and dropped in an object literal in between with nothing failing.
+  const withTone = toDecisionInput(
+    bundleFromRow(
+      row({
+        swing: UP,
+        longer: UP,
+        recentStories: 11,
+        newsTone: "negative",
+        newsCatalyst: true,
+        volumeRatio: 2.1,
+        analogMedianPct: 1.6,
+        analogPositive: 16,
+      }),
+      [],
+    ),
+    "2026-10-03",
+  );
+  assert.deepEqual(withTone.news, { tone: "down", catalyst: true });
+  const d = decide(withTone);
+  assert.equal(d.action, "LONG");
+  assert.ok(
+    d.notes.some((n) => /worded negatively/.test(n)),
+    d.notes.join(" | "),
+  );
+});
+
+test("a stored tone of neutral arrives as no direction, not as a disagreement", () => {
+  // `jobs/human.py` writes "neutral" both for a balanced window and for one where too few
+  // headlines took a side. Neither is a finding against the setup, and mapping either to a
+  // direction here would make the commonest reading in the table -- 378 of 454 on 2026-10-09 --
+  // into a deduction on almost every name.
+  const input = toDecisionInput(
+    bundleFromRow(row({ swing: UP, longer: UP, recentStories: 11, newsTone: "neutral" }), []),
+    "2026-10-03",
+  );
+  assert.equal(input.news?.tone, null);
+  assert.deepEqual(decide(input).notes, []);
+});
+
+test("a database with no targets decides without one, and names the gap", () => {
+  const d = decide(toDecisionInput(bundleFromRow(row({ swing: UP, longer: UP }), []), "2026-10-03"));
+  assert.equal(d.action, "LONG");
+  assert.equal(d.plan?.rewardRisk, null);
+  assert.ok(
+    d.missing.some((m) => /No measured target stored/.test(m)),
+    d.missing.join(" | "),
+  );
 });
 
 test("a database with no factor rows still decides, and says what is missing", () => {

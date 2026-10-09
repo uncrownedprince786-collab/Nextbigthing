@@ -66,6 +66,15 @@ DAY_TOL = 1.25          # percentage points either side of the one day return
 VOL_TOL = 0.45          # multiples either side of the volume ratio
 FIVE_TOL = 5.0          # percentage points either side of the five day return
 
+# The window used on the no-volume path, in standard deviations of the asset's own returns.
+#
+# Not a fourth hand-picked constant: 0.8 is where the dispersion-scaled window lands closest to
+# the three above on the instruments they were sized for. A US equity's daily return has a sigma
+# near 1.5 points, and 0.8 of that is 1.2 against the 1.25 `DAY_TOL` uses. So an asset matched
+# this way is matched about as tightly as an equity is, measured in its own units instead of in
+# somebody else's percentage points. See `tolerances`.
+SIGMA_TOL = 0.8
+
 # A sample below this is stored but graded none: the row exists so the page can say how many
 # matches there were, which is more useful than an empty panel.
 MIN_MATCHES_LOW = 8
@@ -135,22 +144,107 @@ def forward(bars: list[dict], i: int, horizon: int):
     return (float(bars[j]["close"]) / base - 1.0) * 100.0
 
 
-def similar(a: dict, b: dict) -> bool:
+def similar(a: dict, b: dict, tol: dict) -> bool:
     """Every factor inside tolerance. A factor missing on either side is not a match.
 
     Missing is not treated as compatible: a day whose volume ratio could not be computed is
     not "close enough on volume", it is a day measured on fewer factors, and letting it in
     would silently loosen the rule for exactly the days with the least data behind them.
+
+    `tol` carries the three tolerances and whether volume is one of the factors at all. That
+    second part is the exception and it is narrow: an instrument whose venue publishes no volume
+    *anywhere in its stored history* is matched on the two return factors. See `tolerances`.
     """
-    if abs(a["day"] - b["day"]) > DAY_TOL:
+    if abs(a["day"] - b["day"]) > tol["day"]:
         return False
-    if a["vol"] is None or b["vol"] is None:
-        return False
-    if abs(a["vol"] - b["vol"]) > VOL_TOL:
-        return False
+    if tol["use_volume"]:
+        if a["vol"] is None or b["vol"] is None:
+            return False
+        if abs(a["vol"] - b["vol"]) > tol["vol"]:
+            return False
     if a["five"] is None or b["five"] is None:
         return False
-    return abs(a["five"] - b["five"]) <= FIVE_TOL
+    return abs(a["five"] - b["five"]) <= tol["five"]
+
+
+def stdev(xs: list[float]) -> float | None:
+    """Population standard deviation, or None under three values."""
+    xs = [x for x in xs if x is not None]
+    if len(xs) < 3:
+        return None
+    m = sum(xs) / len(xs)
+    return (sum((x - m) ** 2 for x in xs) / len(xs)) ** 0.5
+
+
+def tolerances(bars: list[dict]) -> dict | None:
+    """The matching rule for one asset: three tolerances and whether volume is a factor.
+
+    **Why an asset needs its own rule at all.** Until now there was one: three constants, sized
+    against US equities. For an instrument that publishes no volume this did not merely fit
+    badly, it excluded the instrument entirely -- `similar` refused every pair of days because
+    neither carried a volume ratio, so all 27 currency pairs were skipped and held **zero** stored
+    analogs while every other class was near-complete. Two of the four things that can confirm a
+    direction were permanently absent for them, and 24 of 27 sat in WAIT as a result.
+
+    A currency pair has no consolidated tape. That is a fact about the instrument and no amount
+    of re-running fixes it, so the choice is between matching those days on the factors that do
+    exist and never matching them at all. This matches them, and `toleranceNote` on every row
+    records that volume was not among the factors -- a reader comparing an FX row to an equity row
+    is told they were built by different rules.
+
+    **The tolerances are then scaled to the asset's own dispersion, and this is the part that
+    makes it honest.** `DAY_TOL` is 1.25 percentage points. A US equity moves about 1.5 points on
+    a typical day, so that is a meaningful window. EURUSD moves about 0.35, so 1.25 points is
+    roughly three and a half typical days in either direction -- it would match nearly every day
+    in the series to nearly every other, and return the asset's unconditional average return
+    wearing the word "similar". That is rule 42 exactly: a constant compared against the wrong
+    scale is a different constant in every market.
+
+    So on this path the window is **0.8 standard deviations of the asset's own daily return**,
+    which is the same shape of window in every market, and the five-day window is the same
+    multiple of the five-day dispersion. 0.8 is chosen to land near the equity constant on an
+    equity: at a 1.5 point daily sigma it gives 1.2 points, against the 1.25 that path uses.
+
+    Returns None when the series is too short or too flat to measure a dispersion from, in which
+    case the asset keeps no analog row rather than getting one built on a tolerance of zero.
+    """
+    has_volume = any(b["volume"] for b in bars)
+    if has_volume:
+        return {"day": DAY_TOL, "vol": VOL_TOL, "five": FIVE_TOL, "use_volume": True}
+
+    days, fives = [], []
+    for i in range(1, len(bars)):
+        prev = float(bars[i - 1]["close"])
+        if prev > 0:
+            days.append((float(bars[i]["close"]) / prev - 1.0) * 100.0)
+        if i >= 5:
+            base = float(bars[i - 5]["close"])
+            if base > 0:
+                fives.append((float(bars[i]["close"]) / base - 1.0) * 100.0)
+
+    day_sd, five_sd = stdev(days), stdev(fives)
+    if not day_sd or not five_sd:
+        return None
+    return {
+        "day": SIGMA_TOL * day_sd,
+        "vol": None,
+        "five": SIGMA_TOL * five_sd,
+        "use_volume": False,
+    }
+
+
+def tolerance_note(tol: dict) -> str:
+    """What the row was built with, in the words the stored column keeps."""
+    if tol["use_volume"]:
+        return (
+            f"one day return within {DAY_TOL} points, volume ratio within {VOL_TOL} of its "
+            f"{VOL_WINDOW} day average, five day return within {FIVE_TOL} points"
+        )
+    return (
+        f"one day return within {tol['day']:.2f} points and five day return within "
+        f"{tol['five']:.2f} points, each {SIGMA_TOL} standard deviations of this asset's own "
+        "returns; volume was not a factor because no venue publishes volume for this instrument"
+    )
 
 
 def grade(matches: int, moves: list[float]) -> tuple[str, list[str]]:
@@ -197,10 +291,6 @@ def main() -> None:
     # `periodEnd` is the date of the bar the comparison was actually made from; see the note in
     # the loop. `jobs/setup.py` states the same rule at length and `jobs/factors.py` owns it.
     today = date.today()
-    tol_note = (
-        f"one day return within {DAY_TOL} points, volume ratio within {VOL_TOL} of its "
-        f"{VOL_WINDOW} day average, five day return within {FIVE_TOL} points"
-    )
 
     conn = db()
     cur = conn.cursor()
@@ -220,9 +310,25 @@ def main() -> None:
                 skipped += 1
                 continue
 
+            # The matching rule for this asset, decided from its own stored series. An
+            # instrument with no published volume anywhere in its history is matched on the two
+            # return factors, at a window scaled to its own dispersion; everything else keeps
+            # the three constants exactly as before. See `tolerances`.
+            tol = tolerances(bars)
+            if tol is None:
+                skipped += 1
+                continue
+            tol_note = tolerance_note(tol)
+
             latest = len(bars) - 1
             now = factors(bars, latest)
-            if now is None or now["vol"] is None or now["five"] is None:
+            # `vol` is only required where it is a factor. Requiring it unconditionally is what
+            # skipped every currency pair before this: the latest day of a pair has no volume
+            # ratio, so the asset was dropped before a single candidate was considered.
+            if now is None or now["five"] is None:
+                skipped += 1
+                continue
+            if tol["use_volume"] and now["vol"] is None:
                 skipped += 1
                 continue
 
@@ -240,7 +346,7 @@ def main() -> None:
                 # itself is never a candidate for its own comparison.
                 for i in range(VOL_WINDOW, latest - horizon + 1):
                     past = factors(bars, i)
-                    if past is None or not similar(now, past):
+                    if past is None or not similar(now, past, tol):
                         continue
                     got = forward(bars, i, horizon)
                     if got is not None:

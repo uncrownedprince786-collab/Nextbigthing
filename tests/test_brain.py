@@ -411,6 +411,17 @@ def _bars(closes: list[float], volumes: list[float] | None = None) -> list[dict]
     return [{"close": c, "volume": v} for c, v in zip(closes, vols)]
 
 
+# The matching rule an asset with a tape gets: the three constants, unchanged. Written out here
+# rather than taken from `tolerances` so a test of `similar` is a test of `similar` and does not
+# silently start passing because the rule it was handed changed.
+_TOL = {
+    "day": analogs.DAY_TOL,
+    "vol": analogs.VOL_TOL,
+    "five": analogs.FIVE_TOL,
+    "use_volume": True,
+}
+
+
 class Analogs(unittest.TestCase):
     def test_factors_need_history_behind_them(self):
         self.assertIsNone(analogs.factors(_bars([10.0] * 5), 4))
@@ -437,14 +448,68 @@ class Analogs(unittest.TestCase):
         # precisely the days with the least data behind them.
         a = {"day": 1.0, "vol": 1.0, "five": 1.0}
         b = {"day": 1.0, "vol": None, "five": 1.0}
-        self.assertFalse(analogs.similar(a, b))
+        self.assertFalse(analogs.similar(a, b, _TOL))
 
     def test_similarity_respects_every_tolerance(self):
         a = {"day": 1.0, "vol": 1.0, "five": 1.0}
-        self.assertTrue(analogs.similar(a, dict(a)))
-        self.assertFalse(analogs.similar(a, {**a, "day": 1.0 + analogs.DAY_TOL + 0.1}))
-        self.assertFalse(analogs.similar(a, {**a, "vol": 1.0 + analogs.VOL_TOL + 0.1}))
-        self.assertFalse(analogs.similar(a, {**a, "five": 1.0 + analogs.FIVE_TOL + 0.1}))
+        self.assertTrue(analogs.similar(a, dict(a), _TOL))
+        self.assertFalse(analogs.similar(a, {**a, "day": 1.0 + analogs.DAY_TOL + 0.1}, _TOL))
+        self.assertFalse(analogs.similar(a, {**a, "vol": 1.0 + analogs.VOL_TOL + 0.1}, _TOL))
+        self.assertFalse(analogs.similar(a, {**a, "five": 1.0 + analogs.FIVE_TOL + 0.1}, _TOL))
+
+    def test_an_instrument_with_no_tape_is_matched_on_what_it_has(self):
+        # The gap this closes: `similar` refused every pair of days for an instrument with no
+        # volume, so all 27 currency pairs held zero analogs while every other class was
+        # near-complete. Two of the four things that can confirm a direction were permanently
+        # absent for them, which is why 24 of 27 sat in WAIT with fresh inputs.
+        bars = _bars([10.0 + (i % 7) * 0.02 for i in range(400)], [None] * 400)
+        tol = analogs.tolerances(bars)
+        self.assertIsNotNone(tol)
+        self.assertFalse(tol["use_volume"])
+
+        a = {"day": 0.10, "vol": None, "five": 0.30}
+        self.assertTrue(analogs.similar(a, dict(a), tol))
+        # The two return factors still bind, and volume is simply not asked about.
+        self.assertTrue(analogs.similar(a, {**a, "vol": 99.0}, tol))
+        self.assertFalse(analogs.similar(a, {**a, "day": a["day"] + tol["day"] + 0.01}, tol))
+        self.assertFalse(analogs.similar(a, {**a, "five": a["five"] + tol["five"] + 0.01}, tol))
+
+    def test_the_no_tape_window_is_scaled_to_the_asset_and_not_to_equities(self):
+        # Rule 42, applied before it could bite. DAY_TOL is 1.25 points, sized against a US
+        # equity whose daily sigma is around 1.5. A currency pair's daily sigma is nearer 0.35,
+        # so 1.25 points would match almost every day to almost every other and return the
+        # pair's unconditional average return wearing the word "similar".
+        quiet = _bars([100.0 * (1.0 + 0.0008 * ((i % 7) - 3)) for i in range(500)], [None] * 500)
+        tol = analogs.tolerances(quiet)
+        self.assertLess(tol["day"], analogs.DAY_TOL / 4)
+
+        # And on something that moves like an equity it lands near the constant it replaces,
+        # which is the whole reason SIGMA_TOL is 0.8 rather than a number picked to be generous.
+        lively = _bars([100.0 * (1.0 + 0.02 * ((i % 7) - 3)) for i in range(500)], [None] * 500)
+        self.assertGreater(analogs.tolerances(lively)["day"], analogs.DAY_TOL)
+
+    def test_an_asset_that_publishes_volume_keeps_the_old_rule_exactly(self):
+        # The exception must stay an exception. One bar with volume anywhere in the history is
+        # enough to keep the three constants, because the instrument does have a tape.
+        bars = _bars([10.0] * 50, [None] * 49 + [1000.0])
+        tol = analogs.tolerances(bars)
+        self.assertTrue(tol["use_volume"])
+        self.assertEqual(tol["day"], analogs.DAY_TOL)
+        self.assertEqual(tol["five"], analogs.FIVE_TOL)
+
+    def test_a_flat_series_with_no_tape_gets_no_row_rather_than_a_zero_window(self):
+        # A tolerance of zero would match a day only to itself, which is not a finding. No row
+        # is the honest answer, and it is what the caller does with None.
+        self.assertIsNone(analogs.tolerances(_bars([10.0] * 60, [None] * 60)))
+
+    def test_the_tolerance_note_says_which_rule_built_the_row(self):
+        # `toleranceNote` is a stored column and this is what it is for: a reader comparing an
+        # FX row to an equity row has to be told they were built by different rules.
+        bars = _bars([10.0 + (i % 7) * 0.02 for i in range(400)], [None] * 400)
+        note = analogs.tolerance_note(analogs.tolerances(bars))
+        self.assertIn("volume was not a factor", note)
+        self.assertIn("standard deviations", note)
+        self.assertIn("volume ratio within", analogs.tolerance_note(_TOL))
 
     def test_a_thin_sample_is_not_graded(self):
         grade, notes = analogs.grade(3, [1.0, 2.0, 3.0])
@@ -3664,22 +3729,32 @@ class QueryBudget(unittest.TestCase):
     count, and that is the change worth seeing in a diff.
     """
 
-    # Re-measured on 2026-10-08, when the counter learned to follow one level of indirection.
-    # Every number here either stayed where it was or went up because something that was always
-    # a round trip is now visible as one; none of them went up because a query was added. The
-    # one worth looking at is rank.py, which read zero and reads fourteen: it is the job that
-    # went from minutes to half an hour on a high latency host when the pool grew to 331, and
-    # the ratchet had nothing to say about it.
+    # Re-measured on 2026-10-09, and **tightened to what each job actually does** rather than
+    # left at the ceiling it was allowed. That is the difference between a ratchet and a
+    # headroom allowance: eighteen of these numbers had fallen below their baseline as jobs were
+    # prefetched one at a time, and every point of slack was a per-asset query that could be
+    # reintroduced into an optimised loop with nothing failing. `horizons.py` sat at 13 while
+    # issuing 1; `setup.py` and `thesis.py` sat at 6 and 8 while issuing none.
+    #
+    # The one that moved this time is rank.py: 14 to 3. It is the job that went from minutes to
+    # half an hour on a high latency host when the pool grew to 331, and the three it still
+    # issues are per *industry* -- 41 of them -- rather than per asset, so they no longer grow
+    # with the universe. The same two (industry, date) pairs were being read seven times per
+    # industry and are now read twice: 287 round trips to 82. See `latest_caps` in jobs/rank.py,
+    # which also records why the win is in the count and not in the query plan.
+    #
+    # A number here going UP in a diff is the thing to look at. A number going down should be
+    # written down here in the same commit that earned it.
     BASELINE = {
-        "accuracy.py": 3, "analogs.py": 2, "analysis.py": 9, "attribution.py": 1,
-        "audit.py": 9, "confidence.py": 3, "events.py": 7, "factors.py": 1, "geo.py": 2,
-        "graph.py": 1, "horizons.py": 13, "human.py": 2, "intraday.py": 7,
-        "investigate.py": 5, "lifecycle.py": 7, "lineage.py": 4, "marketplace.py": 3,
+        "accuracy.py": 3, "analogs.py": 1, "analysis.py": 3, "attribution.py": 0,
+        "audit.py": 9, "confidence.py": 2, "events.py": 7, "factors.py": 1, "geo.py": 2,
+        "graph.py": 1, "horizons.py": 1, "human.py": 0, "intraday.py": 7,
+        "investigate.py": 3, "lifecycle.py": 7, "lineage.py": 3, "marketplace.py": 3,
         # retention.py reads a count per table, not per asset, so its five are bounded by the
         # number of tables in the sweep and not by the size of the pool.
-        "prices.py": 8, "psx.py": 2, "rank.py": 14, "retention.py": 5, "seed.py": 5,
-        "setup.py": 6,
-        "signals.py": 12, "stats.py": 2, "thesis.py": 8, "upcoming.py": 3,
+        "prices.py": 7, "psx.py": 2, "rank.py": 3, "retention.py": 5, "seed.py": 5,
+        "setup.py": 0,
+        "signals.py": 12, "stats.py": 2, "thesis.py": 0, "upcoming.py": 3,
     }
 
     # A query reached through a helper costs the same round trip as one written inline. The
@@ -3745,11 +3820,19 @@ class QueryBudget(unittest.TestCase):
         self.assertEqual(grew, [], "; ".join(grew))
 
     def test_the_counter_still_counts(self):
-        # A ratchet that measures zero everywhere would pass forever. It used to point at
-        # thesis.py, which now prefetches and measures zero -- the right outcome for that file
-        # and the wrong canary. rank.py is the one that still reads per asset, through helpers,
-        # which is also the case the counter had to learn to see.
-        self.assertGreaterEqual(self.in_loop_calls(ROOT / "jobs" / "rank.py"), 5)
+        # A ratchet that measures zero everywhere would pass forever.
+        #
+        # This has now had to be re-pointed twice -- first off thesis.py and then off rank.py --
+        # each time because the named file was optimised and the canary went quiet for the best
+        # possible reason. A canary that fails when the thing it watches gets *better* is the
+        # wrong canary, so it no longer names a file: the counter is working as long as some job
+        # somewhere still reads inside a loop, and several legitimately do. `signals.py` and
+        # `audit.py` are the current largest, and neither is a fault -- a per-product fetch has
+        # to ask per product.
+        most = max(
+            self.in_loop_calls(p) for p in sorted((ROOT / "jobs").glob("*.py"))
+        )
+        self.assertGreaterEqual(most, 5, "the in-loop counter has stopped finding anything")
 
 
 # A word-bounded search for an identifier. Built here because a literal backslash-b in a

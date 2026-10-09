@@ -16,27 +16,82 @@
 //          market's own freshness rule
 //   3      a source is silent          WAIT     the source that feeds this name answered nothing
 //   4      no break level              WAIT     there is no level at which being wrong is known
-//   5      setup and horizon disagree  WAIT     the two timeframes want opposite things
-//   6      unusual move, thin news     WAIT     the move has no published reason yet
-//   7      peers argue the other way   WAIT     the name is being carried, not leading
-//   8      setup up, horizon not down  LONG
-//   9      setup down, horizon not up  SHORT
-//  10      anything left               WAIT     conditions are incomplete
+//   5      setup and horizon disagree, WAIT     the two timeframes want opposite things and
+//          and reward is not                    nothing pays for taking the shorter one
+//          asymmetric
+//   6      setup up, horizon not down  LONG
+//   7      setup down, horizon not up  SHORT
+//   8      a withheld trend, carried   LONG     the direction is measured, its conditions are
+//          by volume, by the peer      SHORT    incomplete, and one thing carries it anyway
+//          reading or by asymmetry,
+//          and not contradicted by
+//          the published coverage
+//   9      anything left               WAIT     conditions are incomplete
+//
+// **News is a veto on gate 8 and a deduction everywhere else.** An analog set answers "what
+// followed past days that looked like this one" on price, volume and the five-day return — and
+// none of those past days had today's headline in it. So when `jobs/human.py` publishes a tone
+// that points the opposite way, the matched days stop counting as confirmation: they are a
+// sample missing the thing most likely to drive the next move. The direction still prints at
+// gates 6 and 7, because there `jobs/setup.py` found and confirmed its conditions and a word
+// list over headlines does not get to overrule that. At gate 8 the conditions did *not* all
+// hold, so a thin case pointing one way against coverage pointing the other is refused and the
+// name keeps its developing read with the coverage named as what stands in the way.
+//
+// The asymmetry is deliberate: coverage can take evidence away and can never add any. An
+// agreeing tone is not a fourth confirmation and cannot lift a grade, because principle 5 says
+// current human attention is context and not proof, and a word list with no bodies, no negation
+// and no sarcasm is good enough to withdraw a claim and not good enough to make one.
+//
+// **What stopped being a gate, and why.** Two refusals used to sit between gate 5 and a
+// direction: an unusual move with thin news, and peers moving the other way. Both are now
+// printed as notes on the direction instead of replacing it. Measured against the live table on
+// 2026-10-09, they were answering WAIT for 75 of 477 names — 60 and 15 — every one of which had
+// a measured direction and a level to be wrong at.
+//
+// The case against them as gates is that neither is evidence about direction. Thin news under a
+// move says the published explanation has not arrived; it does not say the move is wrong, and a
+// rule table that refuses every unexplained move refuses exactly the moves that happen before
+// the reason is public. A name lagging its peers is a real and often decisive fact — principle 2
+// — but it is a fact about *relative* return, and vetoing an absolute direction with it discards
+// the direction rather than qualifying it. Both are now in `notes`, both are printed, and
+// peers-against still costs a confidence step so no grade outruns the note beside it (rule 6).
+//
+// **What a measured reward buys.** Gate 5 and gate 8 both read `rewardRisk`, which
+// `jobs/horizons.py` computes from the setup's own target range against its own invalidation and
+// refuses to write without one. A disagreement between timeframes is bypassed, and a withheld
+// trend is carried, when that figure reaches `ASYMMETRY_CLEARS`. This is not new arithmetic in
+// the web layer; it is one stored column read at one threshold.
 //
 // A dated event is NOT a gate. It is an overlay: it sets the time sense to CARE and is printed,
 // and it can turn a weak direction into a WAIT, but it never produces one. A calendar row is a
 // risk to size, not a reason to buy, and a rule table that lets earnings generate a LONG is the
 // junk-brain failure this file exists to avoid.
 //
-// Confirmation sits inside gates 8 and 9 rather than above them. A direction with a level is the
-// minimum; volume at or above its own average, or an analog set that leans the same way, is what
-// separates High from Medium. When neither is stored the direction still prints — with the
-// confirmation named as missing — because refusing every name for want of a factor nobody has
-// computed yet is how a rule table ends up answering WAIT 160 times out of 160.
+// Confirmation sits inside gates 6 and 7 rather than above them. A direction with a level is the
+// minimum; volume at or above its own average, an analog set that leans the same way, or the name
+// beating the group it trades with is what separates High from Medium. When none is stored the
+// direction still prints — with the confirmation named as missing — because refusing every name
+// for want of a factor nobody has computed yet is how a rule table ends up answering WAIT 160
+// times out of 160.
 //
-// Gates 1-4 are data faults and name the missing thing. Gates 5-6 are genuine disagreement in the
-// data and are not faults. Gate 9 exists because a rule table that falls through to LONG is how a
+// **Not every instrument can supply every leg, and that is a fact about the instrument.** A
+// currency pair has no consolidated tape, so `volumeRatio` is null for all 27 of them and always
+// will be — and `jobs/analogs.py` matches on a volume ratio, so until it learned to match without
+// one those same 27 had no stored analog either. Two of the four legs structurally absent is why
+// 24 of 27 pairs sat in WAIT while every input table was fresh. The answer is never to invent the
+// missing leg or to borrow one from an index; it is to count the legs the instrument actually
+// has, and to say which ones it cannot have.
+//
+// Gates 1-4 are data faults and name the missing thing. Gate 5 is genuine disagreement in the
+// data and is not a fault. Gate 9 exists because a rule table that falls through to LONG is how a
 // panel ends up recommending a trade it has no reason for.
+//
+// Gates 1-4 are deliberately untouched by the conviction pass above, and gate 4 most of all. A
+// stale close, a silent venue and a missing invalidation are not timidity: they are the absence
+// of the three things a sniper entry is made of. A plan with no level to be wrong at is the one
+// output this file must never print, and demanding an exact invalidation is what makes every
+// reward figure below a measurement rather than a hope.
 
 import type { TrendDirection } from "./setupConditions";
 
@@ -157,14 +212,100 @@ export const ANALOGS_CONFIRM_MIN = 8;
 /// lower grades. It cannot invent a direction.
 export const ANALOG_SHARE_CONFIRMS = 0.55;
 
-/// How far behind its peers a name may be, in percentage points over 20 sessions, before the
-/// peer reading counts as arguing against a LONG.
+/// How far from its peers a name must be, in percentage points over 20 sessions, before the peer
+/// reading counts for or against the direction. Per market, and that is the whole point.
 ///
-/// Relative strength is the one factor that can contradict a rising price: a name up 4% while
-/// its industry is up 10% is a laggard being carried, and the absolute return cannot say so.
-/// The band is symmetric and deliberately wide, because peer medians over small groups are
-/// noisy and this gate only exists to catch the clear cases.
-export const REL_AGAINST_AT = 3;
+/// Relative strength is the one factor that can contradict a rising price: a name up 4% while its
+/// industry is up 10% is a laggard being carried, and the absolute return cannot say so. The band
+/// is symmetric — the same distance confirms as contradicts — because it is one measurement and
+/// one question, and it is deliberately wide because this is meant to catch the clear cases.
+///
+/// **It was a single constant of 3 points, and that was rule 42 all over again.** A threshold
+/// compared against a quantity with a different scale in every market is a different threshold in
+/// every market. Measured 2026-10-09 over the newest `AssetFactor` per asset, as the median of
+/// |relStrength| and the share of names clearing 3 points:
+///
+///     market      n    median |rel|   share over 3 points
+///     FX         27        1.13                 7%
+///     PSX       151        3.53                55%
+///     US        237        3.71                58%
+///     Commodity   4        4.35                50%
+///     Crypto     36        5.56                67%
+///
+/// So one number was doing two opposite jobs. For a currency pair it was a bar almost nothing
+/// cleared — 2 of 27 — which is most of why 24 of 27 pairs sat in WAIT with every input fresh.
+/// For a US equity or a coin it passed well over half the pool, and a confirmation that fires on
+/// three names in five is not evidence about any of them.
+///
+/// Each figure below is **twice that market's own median, to the nearest half point**, which puts
+/// the bar near the 75th percentile everywhere: roughly the clearest quarter of names, measured
+/// in the units that market actually trades in. Doubling the median rather than taking the
+/// measured p75 directly, because a quartile over 27 or 151 observations of one day moves around
+/// and twice-the-middle does not.
+///
+/// Commodity and Other take the US figure. Four observations is not a sample to set a threshold
+/// from, and a number derived from four would look measured while being arbitrary — the honest
+/// choice is the general bar until there are enough peers to measure a separate one.
+export const REL_BAND: Record<Market, number> = {
+  FX: 2.5,
+  PSX: 7.0,
+  US: 7.5,
+  Crypto: 11.0,
+  Commodity: 7.5,
+  Other: 7.5,
+};
+
+/// The band for one input's market. One lookup, so the two halves cannot drift apart.
+export function relBandFor(input: DecisionInput): number {
+  return REL_BAND[input.market];
+}
+
+/// Reward against risk at which a stored disagreement stops being a reason to stand aside.
+///
+/// Read off `SetupTarget.rewardRisk`, which `jobs/horizons.py` computes from the measured target
+/// range against the setup's own invalidation level — and refuses to write at all when there is
+/// no invalidation, so every figure this threshold sees has a real denominator.
+///
+/// 2.0 is where it is because of what the table actually holds, not because it is a round number.
+/// Measured 2026-10-09 over the 717 setups carrying a target: **111 reach 2.0 or more**, a little
+/// under one in six. At 1.0 the bar would pass two thirds of the table and mean nothing; at 3.0
+/// only 51 setups clear it and the bypass would be theoretical. A sixth is a minority worth
+/// naming, which is the whole job of a threshold.
+///
+/// It is used in exactly two places and both are bypasses, never promotions on their own: gate 5
+/// stops refusing a disagreement, and gate 8 carries a trend whose other conditions are
+/// incomplete. Neither invents a direction — the direction is already measured and stored.
+export const ASYMMETRY_CLEARS = 2;
+
+/// The trade in levels and measured frequencies, for a decision that produced a direction.
+///
+/// Every field is a stored number or arithmetic over two of them. Nothing here is a forecast and
+/// nothing here is new measurement: `entry` and `invalidation` are the levels `jobs/setup.py`
+/// wrote, `target` is the range `jobs/horizons.py` measured, `rewardRisk` is that job's own
+/// figure, and `baseRate` is the count of matched past days `jobs/analogs.py` stored.
+///
+/// `expectancyR` is the only derived value, and it is deliberately a statement about the stored
+/// sample rather than about the next move: it is what the matched days would have returned per
+/// unit risked, at this reward:risk, had each been taken. Principle 3 — it is never printed
+/// without `baseRate.count` beside it.
+export interface TradePlan {
+  /// Where the trade is live and not yet wrong. The same band `Decision.entry` carries.
+  entry: { low: number; high: number } | null;
+  /// The level at which it is wrong. Never null: a plan is only built past gate 4.
+  invalidation: number;
+  /// The measured exit if it works, and which of the three methods measured it.
+  target: { low: number; high: number; method: string } | null;
+  /// Reward against risk as `jobs/horizons.py` measured it. Null when no target is stored.
+  rewardRisk: number | null;
+  /// The share of matched past days that went this way, with the sample it was taken over.
+  ///
+  /// A frequency over stored history, never a probability of the next move. `count` travels
+  /// with `share` because a share without its denominator is the overclaim principle 3 exists
+  /// to forbid, and no reader can weigh 60% without knowing whether it is 6 days or 600.
+  baseRate: { share: number; count: number } | null;
+  /// `share * rewardRisk - (1 - share)`, in units of the risk. Null without both inputs.
+  expectancyR: number | null;
+}
 
 export interface DecisionInput {
   symbol: string;
@@ -184,6 +325,12 @@ export interface DecisionInput {
     direction: Direction;
     horizon: string | null;
     trend?: TrendDirection | null;
+    /// Which way the two moving averages sit, when the trend itself came back mixed.
+    ///
+    /// Two things agreeing rather than three — the fast mean above or below the slow one, with
+    /// the close somewhere between them. `jobs/setup.py` writes it only under a mixed trend, so
+    /// this and `trend` are never both directional on one row. See `biasDirectionOf`.
+    bias?: TrendDirection | null;
   } | null;
   /// The longer-term reading, which may agree, disagree, or be flat.
   horizon: { direction: Direction } | null;
@@ -191,6 +338,20 @@ export interface DecisionInput {
   entry: { low: number; high: number } | null;
   /// The level at which the setup is wrong. Without one there is no trade, only a hope.
   invalidation: number | null;
+  /// The measured exit if the setup works, from the deciding setup's own target rows.
+  ///
+  /// One row and not the list: rule 24 forbids averaging the three methods, so one is chosen by
+  /// the stated preference in `lib/target.ts` and its method travels with it. Null when
+  /// `jobs/horizons.py` wrote no target for this setup, which is the ordinary state for a name
+  /// it has not reached — and which costs the decision its reward figure rather than its
+  /// direction.
+  target?: {
+    method: string;
+    low: number;
+    high: number;
+    /// Reward against risk, as the job measured it. Null when the job could not.
+    rewardRisk: number | null;
+  } | null;
   /// What followed similar past days, as percentages.
   analogs: {
     count: number;
@@ -207,6 +368,28 @@ export interface DecisionInput {
   /// 20-session return minus the peer median, in percentage points. Null when too few peers.
   relStrength?: number | null;
   unusualMove: boolean;
+  /// What the stored coverage reading says, when it says anything.
+  ///
+  /// Separate from `newsCount`, which is a volume of stories and carries no direction. This is
+  /// the direction: `jobs/human.py`'s word-list verdict over the headlines that took a side,
+  /// published only past `MIN_TONE_ITEMS` of them and past a `NEUTRAL_BAND` net share — so
+  /// `tone` is "neutral" both when the window was balanced and when too few headlines took a
+  /// side, and the counts beside it in the table are what tell those apart.
+  ///
+  /// Null when no `HumanSignal` row exists for this asset at all, which is a third value again:
+  /// nothing was read, as against read and found balanced. Measured 2026-10-09 over 454 stored
+  /// readings: 378 neutral, 55 positive, 20 negative, 1 with no tone column at all.
+  ///
+  /// `catalyst` is the other half and answers a different question. Tone is what a month of
+  /// coverage was worded like; catalyst is whether something arrived in the last few days that
+  /// was not arriving before — four stories in three days against a baseline of one a week. It
+  /// is the flag that distinguishes a slow mood from an event.
+  news?: {
+    /// "up" for positive, "down" for negative. Null when the reading came back neutral, which
+    /// is a measurement and not an absence.
+    tone: "up" | "down" | null;
+    catalyst: boolean;
+  } | null;
   /// null means news was never checked, which is different from checked and found none.
   newsCount: number | null;
   /// Days until the next dated event, or null when none is stored.
@@ -255,6 +438,17 @@ export interface Decision {
   /// Exactly what is missing, when something is. Never empty while the action is WAIT for a data
   /// reason, because "WAIT" with no reason is the silent empty this panel exists to end.
   missing: string[];
+  /// What argues against the direction, or qualifies it, without replacing it.
+  ///
+  /// This list is where the two demoted gates went. It is deliberately separate from `missing`:
+  /// `missing` is a measurement nobody took, and a note is a measurement that was taken and
+  /// does not help. A note never changes the action. `peers-against` still costs a confidence
+  /// step, so rule 6 holds — the grade cannot read more confident than the note under it.
+  ///
+  /// Empty on most decisions, and empty on every WAIT whose own gate already said the same
+  /// thing: a name refused for a stale close is not also told its peers disagree, because the
+  /// peer reading was taken against a close the rules have just declared too old to use.
+  notes: string[];
   /// The honesty line the reader sees under the decision.
   measured: string;
   /// Which gate decided, for the audit page and for tests. Not shown to the reader.
@@ -262,6 +456,13 @@ export interface Decision {
   /// Whether this WAIT is missing a measurement or holding a measurement that does not confirm.
   /// Null on a direction. See `WaitBasis` -- this is the distinction the UI copy must preserve.
   basis: WaitBasis | null;
+  /// The levels and the measured history behind a direction. Null on every WAIT.
+  ///
+  /// Null on a WAIT on purpose, including a WAIT with a developing read. A plan is the answer to
+  /// "where do I get in, where am I wrong, where do I come out", and printing one beside a
+  /// refusal invites it to be read as the trade. The developing read already names what is
+  /// missing; the levels are in `entry` and `invalidation` for anyone who wants them.
+  plan: TradePlan | null;
   /// A direction forming behind an incomplete set of conditions. Null unless that is the state.
   ///
   /// Only ever set alongside `action: "WAIT"`, and a reader must never see it as a verdict. It is
@@ -319,11 +520,38 @@ function confidenceFor(input: DecisionInput, action: Action): Confidence {
   const agrees = Boolean(
     input.setup && input.horizon && input.setup.direction === input.horizon.direction,
   );
-  const confirmations = [agrees, volumeConfirms(input) === true, analogConfirms(input, direction) === true]
-    .filter(Boolean).length;
-  if (confirmations >= 2) return "High";
-  if (confirmations === 1) return "Medium";
-  return "Low";
+  // The analog leg is withdrawn when the published coverage points the other way. See
+  // `newsContradicts`: those matched past days did not have today's headline in them, so a set
+  // that agrees with the setup and disagrees with the present is not independent support.
+  //
+  // Withdrawn and not inverted. It drops from a confirmation to nothing, which costs one grade
+  // step, rather than counting as evidence against — a word list is not strong enough to argue
+  // the other side, only strong enough to stop this one being claimed.
+  const historyConfirms =
+    analogConfirms(input, direction) === true && !newsContradicts(input, direction);
+  // Four legs now, not three. The fourth is the peer reading, which this function could
+  // previously only ever subtract for -- see `peersConfirm`. A name beating its group is
+  // evidence, and reading one measurement in one direction only was the asymmetry, not the fix.
+  //
+  // The High bar stays at two. It is "two independent things agree", not "half of what is
+  // available", and moving it with the number of legs would silently re-grade every asset on the
+  // site without a single new measurement.
+  const confirmations = [
+    agrees,
+    volumeConfirms(input) === true,
+    historyConfirms,
+    peersConfirm(input, direction),
+  ].filter(Boolean).length;
+  const grade: Confidence = confirmations >= 2 ? "High" : confirmations === 1 ? "Medium" : "Low";
+
+  // Rule 6: a grade must never be more confident than the note beside it. When the peer reading
+  // was taken and argues the other way, the panel is printing a direction and a contradiction on
+  // the same card, and High over that pair claims an agreement that does not exist. One step,
+  // not two: this is a qualification, and the direction, the level and the reward are all still
+  // measured. Capping is also the whole price of demoting gate 7 -- 15 names stopped being
+  // refused on 2026-10-09 and none of them became a High.
+  if (peersAgainst(input, direction)) return grade === "High" ? "Medium" : grade;
+  return grade;
 }
 
 /// The third why line: what confirmed the direction, or that nothing did.
@@ -333,7 +561,13 @@ function confidenceFor(input: DecisionInput, action: Action): Confidence {
 /// resting on the setup alone rather than discovering that later.
 function confirmLine(input: DecisionInput, direction: "up" | "down"): string {
   const vol = volumeConfirms(input);
-  const analog = analogConfirms(input, direction);
+  // Withdrawn here on exactly the same test `confidenceFor` applies, so the sentence and the
+  // grade cannot disagree. The whole point of this pass is that a set of matched past days must
+  // not print as confirmation while the published coverage points the other way; printing it
+  // and quietly not counting it would be the worse of the two halves.
+  const withdrawn =
+    analogConfirms(input, direction) === true && newsContradicts(input, direction);
+  const analog = withdrawn ? false : analogConfirms(input, direction);
   const parts: string[] = [];
   if (vol === true && input.volumeRatio) {
     parts.push(`volume ${input.volumeRatio.toFixed(1)}x its average`);
@@ -346,7 +580,20 @@ function confirmLine(input: DecisionInput, direction: "up" | "down"): string {
     // the same way." whenever volume did not also confirm -- which is most of them.
     parts.push(`${moved} of ${a.count} similar days going the same way`);
   }
+  if (peersConfirm(input, direction) && input.relStrength !== null && input.relStrength !== undefined) {
+    parts.push(
+      `${Math.abs(input.relStrength).toFixed(1)} points ${
+        direction === "up" ? "ahead of" : "behind"
+      } its peers over 20 sessions`,
+    );
+  }
   if (parts.length) return `Confirmed by ${parts.join(" and ")}.`;
+  // The withdrawn case gets its own sentence rather than falling into "neither confirms it",
+  // which would be true of the arithmetic and wrong about the file: the matched days DO lean
+  // this way, and the reason they are not being counted is the present, not the history.
+  if (withdrawn) {
+    return "Similar past days lean this way, but the published coverage points the other way, so they are not counted.";
+  }
   if (vol === false && analog === false) return "Neither volume nor similar days confirm it.";
   return "Nothing further confirms it yet.";
 }
@@ -355,6 +602,16 @@ function confirmLine(input: DecisionInput, direction: "up" | "down"): string {
 /// silently treated as a negative.
 function confirmMissing(input: DecisionInput, direction: "up" | "down"): string[] {
   const out: string[] = [];
+  // The measured exit, reported absent rather than silently left out of the plan. Without it
+  // there is no reward figure, so there is no reward against risk and no expectancy -- three
+  // numbers the reader can see are not there, from one row that was not written.
+  if (!input.target) {
+    out.push("No measured target stored, so there is nothing to size the reward against.");
+  } else if (input.target.rewardRisk === null) {
+    out.push(
+      `A target is stored by the ${input.target.method} method but its reward against risk was not computed, so the trade cannot be sized.`,
+    );
+  }
   if (volumeConfirms(input) === null) out.push("No volume published, so the move is unconfirmed by activity.");
   if (analogConfirms(input, direction) === null) {
     // Three different absences, and they were all being reported as the first one. A name with
@@ -434,6 +691,207 @@ function analogConfirms(input: DecisionInput, direction: "up" | "down"): boolean
     : share <= 1 - ANALOG_SHARE_CONFIRMS && a.medianPct < 0;
 }
 
+/// Reward against risk for the deciding setup, or null when no target was measured.
+function rewardRisk(input: DecisionInput): number | null {
+  const rr = input.target?.rewardRisk;
+  return rr === null || rr === undefined ? null : rr;
+}
+
+/// Is the stored reward asymmetric enough to carry a direction past a disagreement?
+///
+/// False when no target exists, which is the honest answer rather than a cautious one: an
+/// unmeasured reward is not a small one, but it also cannot pay for bypassing anything. The name
+/// of the missing target reaches the reader through `confirmMissing`'s sibling below.
+function asymmetric(input: DecisionInput): boolean {
+  const rr = rewardRisk(input);
+  return rr !== null && rr >= ASYMMETRY_CLEARS;
+}
+
+/// Does the stored coverage reading point the other way from the direction being taken?
+///
+/// **Why this exists, and why it is not symmetric.** An analog set answers "what followed past
+/// days that looked like this one" — on price, volume and the five-day return, which is every
+/// factor `jobs/analogs.py` matches on. None of those past days had today's headline. So when
+/// the published coverage carries a direction and it is the opposite one, the matched days are
+/// not weak evidence for the trade, they are evidence drawn from a sample that is missing the
+/// thing most likely to drive the next move. A set that would otherwise confirm is then
+/// confirming a different situation, and a rule table that lets it is walking into the trap
+/// that the analog looked good.
+///
+/// It can only ever take evidence away. An agreeing tone is deliberately **not** a fourth
+/// confirmation and cannot lift a grade, because principle 5 is explicit: current human
+/// attention is context, not proof. A word list over headlines — no bodies, no negation, no
+/// sarcasm, as every surface that shows it says — is not the thing to promote a trade on. It is
+/// good enough to withdraw a claim and not good enough to make one, and those are different
+/// bars on purpose.
+///
+/// Null when no reading exists or the reading was neutral. Rule 21 again: "no row" and "read,
+/// and it took no side" are not the same as "read, and it disagrees", and only the third one
+/// is allowed to change anything.
+function newsContradicts(input: DecisionInput, direction: "up" | "down"): boolean {
+  const tone = input.news?.tone ?? null;
+  if (tone === null) return false;
+  return tone !== direction;
+}
+
+/// How often the matched past days went this way, with the sample it was taken over.
+///
+/// Null below `ANALOGS_CONFIRM_MIN`, the floor `jobs/analogs.py` refuses to grade under. A share
+/// over seven days is a number its own producer declines to stand behind, and quoting one here
+/// would be this file standing behind it instead.
+function baseRate(
+  input: DecisionInput,
+  direction: "up" | "down",
+): { share: number; count: number } | null {
+  const a = input.analogs;
+  if (!a || a.count < ANALOGS_CONFIRM_MIN) return null;
+  if (a.positive === null || a.positive === undefined) return null;
+  const same = direction === "up" ? a.positive : a.count - a.positive;
+  return { share: same / a.count, count: a.count };
+}
+
+/// The levels and the measured history behind a direction.
+///
+/// `invalidation` is non-null by construction: nothing calls this before gate 4 has refused every
+/// input without one, and the signature says so rather than re-testing it and inventing a
+/// branch that cannot be reached.
+function planFor(input: DecisionInput, direction: "up" | "down", invalidation: number): TradePlan {
+  const rr = rewardRisk(input);
+  const rate = baseRate(input, direction);
+  return {
+    entry: input.entry,
+    invalidation,
+    target: input.target
+      ? { low: input.target.low, high: input.target.high, method: input.target.method }
+      : null,
+    rewardRisk: rr,
+    baseRate: rate,
+    // Both or nothing. An expectancy computed against an assumed reward, or against a share
+    // taken from six days, is a figure that looks like arithmetic and is a guess with a decimal
+    // point on it -- which is the single failure this whole module is arranged to prevent.
+    expectancyR: rate && rr !== null ? rate.share * rr - (1 - rate.share) : null,
+  };
+}
+
+/// What argues against the direction or qualifies it, without replacing it.
+///
+/// The two demoted gates live here, in the order they used to sit in the table, plus the dated
+/// event that was always an overlay rather than a gate. Each one names its own stored value:
+/// "peers argue the other way" standing in for a measured 4.2 points would be the one-value
+/// shorthand rule 21 forbids.
+function notesFor(input: DecisionInput, direction: "up" | "down"): string[] {
+  const out: string[] = [];
+
+  // Formerly gate 6. Thin news under an unusual move is the state in which a published reason
+  // has not arrived, and the two absences still read differently: a null count means no feed
+  // answered for this name at all, where a low count means the feeds answered and there was
+  // little there. The sentence says which, and stops -- what the quiet means is not a thing
+  // this file can measure, and naming it would be the causal claim hard rule 4 forbids.
+  if (input.unusualMove && (input.newsCount === null || input.newsCount < THIN_NEWS_BELOW)) {
+    out.push(
+      input.newsCount === null
+        ? "It moved unusually and no news has been collected for this name, so nothing published accounts for the move."
+        : `It moved unusually on ${input.newsCount} recent ${
+            input.newsCount === 1 ? "story" : "stories"
+          }, so nothing published accounts for the move yet.`,
+    );
+  }
+
+  // Formerly gate 7. Still the one factor that can contradict a rising price -- principle 2 --
+  // and still costed, in `confidenceFor`. What changed is that it qualifies the direction
+  // instead of deleting it.
+  const rel = input.relStrength;
+  if (rel !== null && rel !== undefined) {
+    if (direction === "up" && rel <= -relBandFor(input)) {
+      out.push(
+        `It is ${Math.abs(rel).toFixed(1)} points behind its peers over 20 sessions, so the group is carrying it rather than the other way round.`,
+      );
+    }
+    if (direction === "down" && rel >= relBandFor(input)) {
+      out.push(
+        `It is ${rel.toFixed(1)} points ahead of its peers over 20 sessions, so it is holding up better than the group it trades with.`,
+      );
+    }
+  }
+
+  // The confluence note. Printed whenever the published coverage points the other way, whether
+  // or not an analog set was there to be withdrawn -- a reader taking a LONG into a month of
+  // negatively worded coverage is owed that fact even when no matched days existed.
+  //
+  // Two sentences, because `catalyst` is a different finding from `tone` and merging them would
+  // lose the one that matters most: a mood held over a month is not the same as something that
+  // arrived in the last few days against a baseline that had nothing in it.
+  if (newsContradicts(input, direction)) {
+    const coverage = direction === "up" ? "negatively" : "positively";
+    out.push(
+      input.news?.catalyst
+        ? `Recent coverage is worded ${coverage} and arrived as a spike against its own baseline, so the present contradicts the setup rather than merely lagging it.`
+        : `Recent coverage is worded ${coverage}, which is the opposite of the direction being taken.`,
+    );
+    // The consequence, spelled out with its own numbers, and only when there is a consequence.
+    //
+    // It is here rather than in the why line because `confirmLine` can only say this when
+    // nothing else confirms: with volume also confirming, the sentence becomes "Confirmed by
+    // volume 1.8x its average" and the withdrawn set vanishes from the page entirely. A
+    // confirmation that was found and then deliberately not counted is exactly the kind of
+    // thing a reader has to be told, so it is stated where the qualifications live.
+    const a = input.analogs;
+    if (analogConfirms(input, direction) === true && a) {
+      const same = direction === "up" ? (a.positive ?? 0) : a.count - (a.positive ?? 0);
+      out.push(
+        `${same} of ${a.count} similar past days went this way, and they are not counted as confirmation: none of them had this coverage in it.`,
+      );
+    }
+  }
+
+  // Never a gate, and it was never meant to be one: a calendar row is a risk to size, not a
+  // reason to act. It already sets the time sense to CARE; this is the same fact in words.
+  if (input.eventInDays !== null && input.eventInDays <= EVENT_SOON_DAYS) {
+    out.push(
+      input.eventInDays <= 0
+        ? "A dated event falls today, so a position opened now is open across it."
+        : `A dated event is ${input.eventInDays} ${
+            input.eventInDays === 1 ? "day" : "days"
+          } away, so a position opened now is open across it.`,
+    );
+  }
+
+  return out;
+}
+
+/// Does the peer reading argue against this direction? The one note that costs a grade.
+function peersAgainst(input: DecisionInput, direction: "up" | "down"): boolean {
+  const rel = input.relStrength;
+  if (rel === null || rel === undefined) return false;
+  return direction === "up" ? rel <= -relBandFor(input) : rel >= relBandFor(input);
+}
+
+/// Does the peer reading back this direction? The mirror of `peersAgainst`, and it did not exist.
+///
+/// **This asymmetry was a bug in the rule table, not a design.** Relative strength is principle 2
+/// — "relative strength against peers matters more than a raw return" — and until now the rules
+/// could only ever use it to argue *against* a direction. A name 11 points behind its group cost
+/// a grade; a name 11 points ahead of its group counted for nothing. One measurement, read in one
+/// direction only.
+///
+/// It is a real third leg and not a fourth copy of the first two. Volume says how much trading
+/// happened, the analog set says what followed days that looked like this one, and this says
+/// whether the asset is beating the names it trades with. The three can and do disagree.
+///
+/// Same band as `peersAgainst`, deliberately: one threshold for one idea, so a name cannot be
+/// simultaneously too close to call against and far enough ahead to confirm. Null is still no
+/// evidence rather than evidence either way — 22 of 477 assets have no peer reading, mostly
+/// commodities and funds in groups too small for `jobs/factors.py` to take a median over.
+///
+/// Measured 2026-10-09: of the 150 refused names carrying a clear trend, this carries **49** —
+/// 44 stocks, 2 crypto, 2 commodities, 1 currency pair. It is not a formality and it is not a
+/// floodgate.
+function peersConfirm(input: DecisionInput, direction: "up" | "down"): boolean {
+  const rel = input.relStrength;
+  if (rel === null || rel === undefined) return false;
+  return direction === "up" ? rel >= relBandFor(input) : rel <= -relBandFor(input);
+}
+
 /// The second why line: what the longer view adds, said accurately.
 ///
 /// "Longer view does not disagree" was doing duty for three different situations, one of which is
@@ -463,9 +921,15 @@ function wait(
     timeSense: timeSenseFor(input, "WAIT"),
     confidence: "Low",
     missing,
+    // A refusal carries no notes. Every gate that produces one has already printed the single
+    // reason the reader is owed, and a second list under it arguing the same way is the "five
+    // reasons where one was wanted" this file's ordering exists to avoid.
+    notes: [],
     measured: measuredLine(input),
     gate,
     basis,
+    // No plan on a refusal. See `Decision.plan`.
+    plan: null,
     developing,
   };
 }
@@ -477,7 +941,16 @@ function wait(
 /// Each absent confirmation is named with its own value, so "waiting on volume" never stands in
 /// for "there is no volume published" — rule 21, three values and not one.
 function developingRead(input: DecisionInput): Developing | null {
-  const trend = input.setup?.trend ?? null;
+  // Same fallback as the gate below, for the same reason and in the same order: a name whose
+  // averages have a side but whose trend does not is forming, and a developing list that could
+  // not say so left 119 names describable by nothing at all.
+  const withheld = input.setup?.trend ?? null;
+  const trend: "up" | "down" | null =
+    withheld === "up" || withheld === "down"
+      ? withheld
+      : input.setup?.bias === "up" || input.setup?.bias === "down"
+        ? input.setup.bias
+        : null;
   if (trend !== "up" && trend !== "down") return null;
 
   const waitingOn: string[] = [];
@@ -493,6 +966,18 @@ function developingRead(input: DecisionInput): Developing | null {
       `Volume is ${vol.toFixed(2)}x its own 20-session average; ${VOLUME_CONFIRMS_AT}x would confirm.`,
     );
     distances.push(vol / VOLUME_CONFIRMS_AT);
+  }
+
+  // First, because it is the one thing in this list that is about the present rather than about
+  // a measurement that has not filled yet, and a reader scanning one line gets that line. It is
+  // also why the name is here at all rather than carried by gate 8: a contradicted trend is
+  // refused there and lands exactly in this list.
+  if (newsContradicts(input, trend)) {
+    waitingOn.push(
+      `Recent coverage is worded ${trend === "up" ? "negatively" : "positively"}, against the trend${
+        input.news?.catalyst ? ", and arrived as a spike against its own baseline" : ""
+      }.`,
+    );
   }
 
   const analog = analogConfirms(input, trend);
@@ -575,117 +1060,176 @@ export function decide(input: DecisionInput): Decision {
 
   const setup = input.setup?.direction ?? "unknown";
   const horizon = input.horizon?.direction ?? "unknown";
+  // `invalidation` is non-null from here down: gate 4 refused every input without one. Narrowed
+  // once into a local so the three direction builders below take a number rather than each
+  // re-testing a branch that gate 4 has already made unreachable.
+  const invalidation = input.invalidation;
+  const asym = asymmetric(input);
 
-  // 5. The two timeframes want opposite things. Not a fault in the data — a real disagreement, and
-  //    the reader is told which way each one points.
-  if ((setup === "up" && horizon === "down") || (setup === "down" && horizon === "up")) {
+  /// One direction, built once. The three ways in — a `buy`/`short` state, the same state over a
+  /// disagreeing horizon, and a withheld trend carried by one confirmation — differ only in
+  /// their opening sentence and their gate name, and writing the object out three times is how
+  /// two of the three come to carry different fields.
+  const direction = (dir: "up" | "down", gate: string, opening: string): Decision => {
+    const action: Action = dir === "up" ? "LONG" : "SHORT";
+    return {
+      action,
+      why: [opening, secondLine(dir, horizon), confirmLine(input, dir)],
+      entry: input.entry,
+      invalidation,
+      timeSense: timeSenseFor(input, action),
+      confidence: confidenceFor(input, action),
+      missing: [
+        ...(input.entry ? [] : ["No measured entry band stored; only the break level is set."]),
+        ...confirmMissing(input, dir),
+      ],
+      notes: notesFor(input, dir),
+      measured: measuredLine(input),
+      gate,
+      // A direction was produced, so nothing was withheld and there is no basis to report.
+      basis: null,
+      plan: planFor(input, dir, invalidation),
+      // A printed direction is not developing; it has arrived.
+      developing: null,
+    };
+  };
+
+  /// What is carrying a direction its own conditions do not support, named with its own value.
+  const carriedBy = (dir: "up" | "down"): string => {
+    const rr = rewardRisk(input);
+    if (volumeConfirms(input) === true && input.volumeRatio) {
+      return `volume at ${input.volumeRatio.toFixed(1)}x its 20-session average`;
+    }
+    if (peersConfirm(input, dir) && input.relStrength !== null && input.relStrength !== undefined) {
+      return `${Math.abs(input.relStrength).toFixed(1)} points ${
+        dir === "up" ? "ahead of" : "behind"
+      } its peers`;
+    }
+    return rr !== null ? `reward at ${rr.toFixed(1)}x the risk` : "a stored confirmation";
+  };
+
+  // 5. The two timeframes want opposite things. Still a real disagreement, and still a refusal
+  //    when nothing pays for taking the shorter one — but a measured reward at `ASYMMETRY_CLEARS`
+  //    or better is exactly that payment, and the disagreement then travels as a note instead of
+  //    deleting the trade. One name on 2026-10-09 sat at this gate; the bypass is written for the
+  //    setup it describes rather than for the count.
+  const opposed =
+    (setup === "up" && horizon === "down") || (setup === "down" && horizon === "up");
+  if (opposed && !asym) {
     return wait(
       input,
       "mixed-horizons",
       "evidence",
-      [`Mixed horizons: setup is ${setup}, longer view is ${horizon}.`],
+      [
+        `Mixed horizons: setup is ${setup}, longer view is ${horizon}.`,
+        rewardRisk(input) === null
+          ? "No measured reward is stored, so nothing offsets the disagreement."
+          : `Reward is ${rewardRisk(input)!.toFixed(1)}x the risk, short of the ${ASYMMETRY_CLEARS}x that would carry it.`,
+      ],
       [],
     );
   }
 
-  // 6. A move with no published reason. Thin news alone is normal; thin news under an unusual move
-  //    means the cause is not in yet.
-  const newsThin = input.newsCount === null || input.newsCount < THIN_NEWS_BELOW;
-  if (input.unusualMove && newsThin) {
-    // The gate that is genuinely both, and the only honest way to tell them apart is the one
-    // thing the input already knows: whether the news was ever looked at. A null count means no
-    // feed answered for this name, so nothing was weighed -- the file is open. A count below the
-    // threshold means the feeds answered and there was little there, which is a measurement.
-    const checked = input.newsCount !== null;
-    const line = checked ? "Unusual move and news thin." : "Unusual move and news not checked.";
-    return wait(
-      input,
-      "unexplained-move",
-      checked ? "evidence" : "file",
-      [line, "No published reason for the move yet."],
-      checked ? [] : [`No news has been collected for ${input.symbol}, so none was weighed.`],
+  // 6 and 7. A direction, with a level to be wrong at, and whatever confirms it.
+  if (setup === "up" && (horizon !== "down" || asym)) {
+    return direction(
+      "up",
+      "long",
+      `Setup is up${input.setup?.horizon ? ` on the ${input.setup.horizon} view` : ""}.`,
+    );
+  }
+  if (setup === "down" && (horizon !== "up" || asym)) {
+    return direction(
+      "down",
+      "short",
+      `Setup is down${input.setup?.horizon ? ` on the ${input.setup.horizon} view` : ""}.`,
     );
   }
 
-  // 7. The peers argue the other way. A name up while its industry is up far more is being
-  //    carried by the group, and buying it is buying the group at a worse price. Only the clear
-  //    cases are caught: the band is wide because a peer median over a small group is noisy, and
-  //    a null relative reading is no evidence rather than evidence of agreement.
-  const rel = input.relStrength;
-  if (rel !== null && rel !== undefined) {
-    if (setup === "up" && rel <= -REL_AGAINST_AT) {
-      return wait(
-        input,
-        "peers-against",
-        "evidence",
-        [
-          `Setup is up but the name is ${Math.abs(rel).toFixed(1)} points behind its peers.`,
-          "It is being carried rather than leading.",
-        ],
-        [],
+  // 8. The withheld trend, carried.
+  //
+  // This is the largest change in the table and the one that needs stating plainly. `setup.py`
+  // writes state `wait` when **the trend is clear and not all the conditions behind it are
+  // present**, and `directionOfState` maps that to `flat` — so a measured direction arrived here
+  // with nowhere to go and fell through to "conditions are incomplete". Measured 2026-10-09:
+  // **247 of 477 swing rows are in that state, and every one of them carries a trend verdict**
+  // (61 up, 186 down, 0 mixed). That is the majority of the pool reaching the reader as the
+  // middle of a WAIT list.
+  //
+  // What this gate does NOT do is invent the missing confirmations. It requires one of exactly
+  // two stored things to carry the trend, and both are the ones the directive calls the math and
+  // the volume:
+  //
+  //   * volume at or above `VOLUME_CONFIRMS_AT` — people acting, not drift; or
+  //   * reward at or above `ASYMMETRY_CLEARS` — a tight invalidation against a wide measured
+  //     target, which is an asymmetry worth taking a thinner case on.
+  //
+  // Neither is a majority: 149 of 477 names confirm on volume, 111 of 717 setups on reward. A
+  // trend with neither still falls through to gate 9 and still reaches the reader as a developing
+  // read with its shortfall named — because in that case the math and the volume did not align,
+  // which is the condition the promotion was written for and not a formality to route around.
+  //
+  // The horizon still has a veto here, on the same terms as gate 5: a withheld trend pointing
+  // into a disagreeing longer view is carried only when the reward is asymmetric. The opening
+  // sentence says the conditions are incomplete, every absent confirmation is still listed in
+  // `missing`, and the confidence grade counts the same three confirmations as everywhere else,
+  // so a carried trend grades Medium or Low on its own evidence rather than by decree.
+  // The withheld direction, or failing that the side the two averages sit on.
+  //
+  // `trend` first and `bias` only when the trend has nothing to say, which is the order of how
+  // much each one is: a trend is the close, the fast mean and the slow mean lined up; a bias is
+  // the two means with the close between them. `jobs/setup.py` writes `bias` only under a mixed
+  // trend, so these never compete for one row -- the fallback is a fallback and not a preference.
+  //
+  // What it reaches is the largest block the table had no answer for at all: 123 refused names on
+  // 2026-10-09 whose swing state was `none`, meaning price sits between its own averages. **119
+  // of them have a measurable side** and nothing was reading it. They remain subject to every
+  // requirement below -- a carrier, a horizon that does not disagree, coverage that does not
+  // contradict -- so the weaker reading buys a chance at this gate rather than a pass through it,
+  // and the sentence it prints says which of the two it acted on.
+  const trendRead = input.setup?.trend ?? null;
+  const biasRead = input.setup?.bias ?? null;
+  const fromTrend = trendRead === "up" || trendRead === "down";
+  const trend: "up" | "down" | null = fromTrend
+    ? (trendRead as "up" | "down")
+    : biasRead === "up" || biasRead === "down"
+      ? biasRead
+      : null;
+  if (trend === "up" || trend === "down") {
+    // Three carriers, not two. The peer reading joins volume and the asymmetric reward for the
+    // reason given at `peersConfirm`: it is an independent stored measurement that was only ever
+    // allowed to subtract. It matters most where the other two cannot exist -- a currency pair
+    // has no consolidated tape, so `volumeConfirms` is null for all 27 of them forever, and this
+    // is the only leg of the three that is populated for every single one.
+    const carried = volumeConfirms(input) === true || peersConfirm(input, trend) || asym;
+    const trendOpposed =
+      (trend === "up" && horizon === "down") || (trend === "down" && horizon === "up");
+    // The one place a contradicting coverage reading stops a direction outright rather than
+    // qualifying it, and the reason is what this gate is.
+    //
+    // Gates 6 and 7 print a direction whose own conditions `jobs/setup.py` found and confirmed;
+    // a word list over headlines is not entitled to overrule that, so there it is a note and a
+    // withdrawn confirmation. This gate is the opposite case: the conditions behind the trend
+    // did NOT all hold -- that is what state `wait` means -- and the direction is being carried
+    // on a single stored figure. A thin case pointing one way while the published coverage
+    // points the other is precisely the blind trap, and the honest answer is that it is still
+    // forming rather than that it has arrived.
+    //
+    // It is not a WAIT-with-nothing-said. The name falls through to gate 9 and keeps its
+    // developing read, where `waitingOn` names the coverage as the thing standing in the way,
+    // so a reader sees the direction, sees what is carrying it, and sees what is against it.
+    const contradicted = newsContradicts(input, trend);
+    if (carried && !contradicted && (!trendOpposed || asym)) {
+      return direction(
+        trend,
+        trend === "up" ? "trend-long" : "trend-short",
+        fromTrend
+          ? `The trend is ${trend} and not all of its conditions are present; ${carriedBy(trend)} carries it.`
+          : `Price is between its own averages, with the 20 day ${
+              trend === "up" ? "above" : "below"
+            } the 50 day; ${carriedBy(trend)} carries it.`,
       );
     }
-    if (setup === "down" && rel >= REL_AGAINST_AT) {
-      return wait(
-        input,
-        "peers-against",
-        "evidence",
-        [
-          `Setup is down but the name is ${rel.toFixed(1)} points ahead of its peers.`,
-          "It is holding up better than the group it trades with.",
-        ],
-        [],
-      );
-    }
-  }
-
-  // 8 and 9. A direction, with a level to be wrong at, and whatever confirms it.
-  if (setup === "up" && horizon !== "down") {
-    return {
-      action: "LONG",
-      why: [
-        `Setup is up${input.setup?.horizon ? ` on the ${input.setup.horizon} view` : ""}.`,
-        secondLine("up", horizon),
-        confirmLine(input, "up"),
-      ],
-      entry: input.entry,
-      invalidation: input.invalidation,
-      timeSense: timeSenseFor(input, "LONG"),
-      confidence: confidenceFor(input, "LONG"),
-      missing: [
-        ...(input.entry ? [] : ["No measured entry band stored; only the break level is set."]),
-        ...confirmMissing(input, "up"),
-      ],
-      measured: measuredLine(input),
-      gate: "long",
-      // A direction was produced, so nothing was withheld and there is no basis to report.
-      basis: null,
-      // A printed direction is not developing; it has arrived.
-      developing: null,
-    };
-  }
-  if (setup === "down" && horizon !== "up") {
-    return {
-      action: "SHORT",
-      why: [
-        `Setup is down${input.setup?.horizon ? ` on the ${input.setup.horizon} view` : ""}.`,
-        secondLine("down", horizon),
-        confirmLine(input, "down"),
-      ],
-      entry: input.entry,
-      invalidation: input.invalidation,
-      timeSense: timeSenseFor(input, "SHORT"),
-      confidence: confidenceFor(input, "SHORT"),
-      missing: [
-        ...(input.entry ? [] : ["No measured entry band stored; only the break level is set."]),
-        ...confirmMissing(input, "down"),
-      ],
-      measured: measuredLine(input),
-      gate: "short",
-      basis: null,
-      // A printed direction is not developing; it has arrived.
-      developing: null,
-    };
   }
 
   // 9. Nothing fired. Falling through to a direction here is how a panel recommends a trade it has

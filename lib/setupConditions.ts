@@ -56,3 +56,25 @@ export function trendDirectionOf(conditions: string | null | undefined): TrendDi
   const token = conditionVerdicts(conditions).get("trend");
   return token === "up" || token === "down" || token === "mixed" ? token : null;
 }
+
+/// Which way the two moving averages sit, when the trend itself came back mixed.
+///
+/// The weaker sibling of `trendDirectionOf` and deliberately kept apart from it. A trend is three
+/// things agreeing — the close, the fast mean and the slow mean, in order. A bias is two: the
+/// fast mean above or below the slow one, with the close somewhere between them. `jobs/setup.py`
+/// writes it only where `trend` is `mixed`, because under a real trend it would restate the same
+/// finding in a second condition.
+///
+/// It exists because `mixed` was being read as "no information", and it is not. Measured
+/// 2026-10-09 over the 123 directionless swing rows the decision lane was refusing: **119 had a
+/// measurable side** — 55 with the fast average above, 64 below — and four were inside the
+/// quarter-percent floor `setup.py` applies. That is the largest single block of names the rule
+/// table had nothing at all to say about.
+///
+/// Returns `mixed` when the two averages are inside that floor, which is a measurement and not an
+/// absence, and null when the row carries no bias condition at all — a row written before this
+/// existed, or one under a real trend, which `trendDirectionOf` already answers for.
+export function biasDirectionOf(conditions: string | null | undefined): TrendDirection | null {
+  const token = conditionVerdicts(conditions).get("bias");
+  return token === "up" || token === "down" || token === "mixed" ? token : null;
+}

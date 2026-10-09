@@ -63,6 +63,16 @@ RANGE_WINDOW = 120
 # Thresholds, each with the reason it is where it is.
 VOL_ACTIVE = 1.2        # 20% above its own average is active rather than merely non-quiet
 REL_EDGE = 1.0          # percentage points of 20 day outperformance against its own industry
+
+# How far apart the two averages must be before `bias` reports a side, as a percentage of the
+# slower one.
+#
+# Two averages are never exactly equal, so without a floor this condition would report a side on
+# every single row including ones where the gap is a rounding difference. 0.25% is a quarter of
+# one percent of the slow average -- small enough that it does not suppress a real separation and
+# large enough that a cross that happened this morning does not read as a position. Measured over
+# the 123 directionless swing rows on 2026-10-09, 4 fell inside it.
+BIAS_MIN_GAP = 0.25
 ANALOG_SHARE = 0.55     # share of similar past days that rose, before history counts as support
 ANALOG_MIN = 8          # matches needed before that share is used at all
 EVENT_SOON_DAYS = 14    # a scheduled date inside this is context for a swing read
@@ -292,6 +302,40 @@ def main() -> None:
                 f"trend: close {last:.2f} vs {FAST}d {fast_mean:.2f} vs {SLOW}d "
                 f"{slow_mean:.2f} ({'up' if up_trend else 'down' if down_trend else 'mixed'})"
             )
+
+            # The side a `mixed` trend is on, which is a measurement and was being thrown away.
+            #
+            # `trend` needs all three of close, fast mean and slow mean to line up, and when they
+            # do not it records `mixed` -- correctly, because the three do not agree. But `mixed`
+            # was then the end of the sentence, and it is not: the two averages are still one
+            # above the other, and which one is a fact about the series rather than an opinion.
+            # Measured 2026-10-09 over the 123 `none`-state swing rows the decision lane was
+            # refusing: 55 had the 20 day average above the 50 day, 64 below, and only 4 were
+            # equal to two decimal places. 119 of 123 had a measurable side that nothing read.
+            #
+            # It is written as its own condition rather than by changing what `trend` reports,
+            # for two reasons. The `trend` token is parsed by `verdicts()` in jobs/thesis.py as
+            # well as by lib/setupConditions.ts -- rule 23 -- and widening its vocabulary would
+            # change what a held thesis means on every asset. And the two are genuinely different
+            # findings: a trend is three things agreeing, a bias is two, and a reader is owed the
+            # difference rather than having the weaker one promoted into the stronger one's word.
+            #
+            # Deliberately only when the trend is mixed. Under an up or down trend this would say
+            # the same thing a second time, and a condition that merely repeats its neighbour is
+            # noise in a string two parsers read.
+            if not up_trend and not down_trend and slow_mean:
+                gap = (fast_mean / slow_mean - 1.0) * 100.0
+                if abs(gap) >= BIAS_MIN_GAP:
+                    conds.append(
+                        f"bias: {FAST}d average {abs(gap):.2f}% "
+                        f"{'above' if gap > 0 else 'below'} the {SLOW}d "
+                        f"({'up' if gap > 0 else 'down'})"
+                    )
+                else:
+                    conds.append(
+                        f"bias: {FAST}d and {SLOW}d averages within {BIAS_MIN_GAP}% of each "
+                        "other, so neither is above the other by enough to read (mixed)"
+                    )
 
             if vol_ratio is None:
                 missing.append("volume against its average (no volume stored)")

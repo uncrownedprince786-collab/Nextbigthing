@@ -141,12 +141,37 @@ test("a gate above the fall-through never produces a developing read", () => {
   assert.equal(noLevel.gate, "no-invalidation");
   assert.equal(noLevel.developing, null);
 
-  // Peers arguing the other way is a verdict about the evidence, not an incomplete set of it.
+  // Peers arguing the other way stopped being a gate, and the rule this test guards still holds
+  // for it the other way round: a direction printed is never also a developing read. The lag is
+  // a note on the LONG, not a reason to call the LONG "forming".
   const peers = decide(
     input({ setup: { direction: "up", horizon: "swing", trend: "up" }, relStrength: -9 }),
   );
-  assert.equal(peers.gate, "peers-against");
+  assert.equal(peers.action, "LONG");
   assert.equal(peers.developing, null);
+});
+
+test("a trend carried past the fall-through is a direction and not a developing read", () => {
+  // Gate 8, which is where the 247 withheld swing trends measured on 2026-10-09 now go. The
+  // direction is `setup.trend`, the state is still `wait`, and one stored confirmation carries
+  // it -- here volume. What must not happen is both: an action and a forming read on one card.
+  const carried = decide(
+    input({ setup: { direction: "flat", horizon: "swing", trend: "up" }, volumeRatio: 2.4 }),
+  );
+  assert.equal(carried.action, "LONG");
+  assert.equal(carried.gate, "trend-long");
+  assert.equal(carried.developing, null);
+  assert.match(carried.why[0], /not all of its conditions are present/);
+  assert.match(carried.why[0], /2\.4x its 20-session average/);
+
+  // The mirror, and the proof the gate is not a formality: with neither volume nor an asymmetric
+  // reward, the same row falls through exactly as it did before and keeps its developing read.
+  const held = decide(
+    input({ setup: { direction: "flat", horizon: "swing", trend: "up" }, volumeRatio: 0.5 }),
+  );
+  assert.equal(held.action, "WAIT");
+  assert.equal(held.gate, "incomplete");
+  assert.equal(held.developing?.would, "LONG");
 });
 
 test("a direction that arrived is not developing", () => {

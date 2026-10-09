@@ -27,6 +27,7 @@ import { todayISO } from "@/lib/decisionInput";
 // A second copy of any of them is how two pages come to disagree about what a name is.
 import {
   ASSET_CLASSES,
+  byCloseness,
   byConfidence,
   eventLabel,
   scoreRows,
@@ -190,24 +191,6 @@ const GATE_URGENCY: Record<string, number> = {
   "mixed-horizons": 5,
   incomplete: 6,
 };
-
-/// Developing rows, nearest to confirming first.
-///
-/// `closeness` is the stored factor over the threshold it has to clear, so 0.96 is a name 4%
-/// short of its volume gate and 0.25 is one nowhere near it. A null sorts last, because a
-/// confirmation that cannot be measured is not one that is nearly there -- rule 21 again, in the
-/// one place where collapsing the two would read as a recommendation.
-///
-/// Within equal closeness the symbol decides, so two identical rows do not swap places between
-/// two reads of the same page.
-function byCloseness(a: Scored, b: Scored): number {
-  const ca = a.decision.developing?.closeness;
-  const cb = b.decision.developing?.closeness;
-  const ka = ca === null || ca === undefined ? -1 : ca;
-  const kb = cb === null || cb === undefined ? -1 : cb;
-  if (ka !== kb) return kb - ka;
-  return a.row.symbol.localeCompare(b.row.symbol);
-}
 
 function urgency(s: Scored): number {
   const days = s.row.nextEventInDays;

@@ -1587,6 +1587,30 @@ model DecisionLog {
   entryHigh    Float?
   invalidation Float?
 
+  /// Reward against risk as the deciding setup's own target measured it, at the moment the
+  /// decision was taken. Null when no target was stored, which is a common and real state.
+  ///
+  /// Stored rather than recomputed because this is the number two new rules act on — gate 5's
+  /// bypass of a disagreeing horizon and gate 8's promotion of a withheld trend, both at
+  /// `ASYMMETRY_CLEARS` — and `jobs/horizons.py` rewrites `SetupTarget` every run. Reading it
+  /// back from that table in a month would answer "what is the reward now", where the only
+  /// question worth asking of an outcome log is "what was the reward when the call was made".
+  ///
+  /// With it, the measured columns below answer whether the asymmetry bar is set in the right
+  /// place: group the matured rows by whether this cleared 2.0 and compare the moves. Without
+  /// it, the threshold could never be checked against anything, which is the state principle 7
+  /// exists to forbid.
+  rewardRisk Float?
+
+  /// The share of matched past days that went the decided way, and how many were matched.
+  ///
+  /// Two columns and never one. A share without its denominator cannot be weighed — principle 3
+  /// — and a log that stored 0.62 with no count would be unanalysable for exactly the reason the
+  /// pages never print one without the other. Both null together below the 8 matches
+  /// `jobs/analogs.py` refuses to grade a set under.
+  baseRateShare Float?
+  baseRateCount Int?
+
   /// The factor row this was read from, so the snapshot is a reference rather than a copy
   /// that can drift from the table it came from.
   factorId    String?

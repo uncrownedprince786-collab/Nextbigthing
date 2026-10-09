@@ -739,3 +739,288 @@ reads rows that already exist:
     by, sorted by and timed against before concluding a source is silent.** Rule 9, rule 39, the
     news lane's relevance ordering, and now the volume denominator. Every one of them reported
     success honestly while being wrong.
+
+43. **A measurement that argues against a direction is a caveat, not a veto — and the difference
+    is worth 74 names.**
+    Two gates sat between a measured direction and the reader and answered WAIT for 75 of 477
+    names on 2026-10-09: an unusual move with thin news (60) and peers moving the other way (15).
+    Every one of those names had a direction, an entry band and a stop level stored. Neither gate
+    was reading a fault in the data; both were reading a real measurement and treating it as
+    disqualifying.
+
+    Neither is evidence about direction, and that is the whole case. Thin news under a move says
+    the published explanation has not arrived yet — a statement about what reporters have
+    written, not about what price did — and a rule table that refuses every unexplained move
+    refuses exactly the moves that happen before the reason is public. A name lagging its peers is
+    principle 2 and is often decisive, but it is a fact about *relative* return, and using it to
+    veto an absolute direction discards the direction instead of qualifying it.
+
+    Both now print in `Decision.notes`, in their own bordered block on the panel, above the
+    missing block and above the news. The peer gap also caps confidence one step, so rule 6 holds:
+    none of the 15 released names became a High.
+
+    A third change in the same pass, and the larger one by count. `setup.py` writes state `wait`
+    when the trend is clear and its conditions are not all present; 247 of 477 swing rows were in
+    that state and **every one carried a trend verdict** (61 up, 186 down, 0 mixed). Rule 40 made
+    that direction visible as a developing read. Gate 8 now acts on it, but only when one of two
+    stored figures carries it: volume at or above `VOLUME_CONFIRMS_AT`, or a measured reward at or
+    above `ASYMMETRY_CLEARS`. 30 names qualified. The other 116 with a clear trend still fall
+    through and still arrive as developing reads with their shortfall named — which is the gate
+    working, not failing: the condition it asks for is that the math or the volume agrees, and for
+    those names neither did.
+
+    Measured across the pool, before and after, same inputs and same day:
+
+        action      before   after
+        LONG            58      78
+        SHORT           73     127
+        WAIT           346     272
+
+    `ASYMMETRY_CLEARS` is 2.0 and that number is chosen from the table rather than from habit: of
+    the 717 setups carrying a `SetupTarget`, 111 reach it. At 1.0 the bar passes two thirds of
+    them and means nothing; at 3.0 only 51 clear it and the bypass is theoretical.
+
+    **What was deliberately not touched, and why.** Gates 1 to 4 — no price series, a stale close,
+    a silent venue, no invalidation level — are not timidity. They are the absence of the three
+    things an entry is made of, and gate 4 most of all: a plan with no level to be wrong at is the
+    one output this file must never print, and demanding an exact invalidation is what makes every
+    reward figure a measurement rather than a hope. Nothing here invents a direction either. Every
+    direction printed was already measured by `jobs/setup.py` and stored; what changed is which of
+    them reach the reader.
+
+    **What this costs, stated plainly.** 205 directional calls instead of 131 is more exposure to
+    being wrong, and the honest guard is not a gate — it is `DecisionLog`. `rewardRisk`,
+    `baseRateShare` and `baseRateCount` are now stored on every decision for exactly this reason:
+    `jobs/horizons.py` rewrites `SetupTarget` every run, so the figure a call rested on survives
+    only if the call records it. Grouped by `gate`, the matured +1/+5/+20 columns answer whether
+    `trend-long` and `trend-short` pay, and grouped by whether `rewardRisk` cleared 2.0 they
+    answer whether the bar is in the right place. Principle 7 is the whole safeguard here: every
+    signal is checked against what actually happened afterwards, and a rule table that loosened
+    without a way to measure the loosening would be the one change this file could not defend.
+
+44. **A past day that looked like this one did not have today's headline in it.**
+    Rule 43 took "thin news" out of the way of a direction, which was right: an absent
+    explanation is not evidence against a move. This is the opposite case and it is a real
+    check. `jobs/analogs.py` matches past days on three factors — the one-day return, the volume
+    multiple and the five-day return — and nothing else. So when the published coverage carries a
+    direction and it is the *opposite* one, a matched set that agrees with the setup is not weak
+    support for the trade. It is a sample drawn from days that are missing the thing most likely
+    to drive the next move, and counting it is walking into the trap that the history looked good.
+
+    Three effects, and the asymmetry between them is the rule:
+
+    - **The history leg is withdrawn.** `analogConfirms` still answers what it always answered;
+      `confidenceFor` and `confirmLine` stop counting it. One grade step, and the page says which
+      set was withdrawn and how many days were in it — `confirmLine` cannot carry that sentence
+      when volume also confirms, so it lives in `notes` where the qualifications are.
+    - **Gate 8 refuses outright.** That gate carries a direction whose own conditions
+      `jobs/setup.py` did *not* all find, on a single stored figure. Thin by construction and
+      contradicted by the present is the blind trap, so the name falls through to gate 9 and keeps
+      its developing read with the coverage named first in `waitingOn` — it is the only item in
+      that list about today rather than about a measurement that has not filled.
+    - **Gates 6 and 7 do not refuse.** There `setup.py` found and confirmed its conditions, and a
+      word list over headlines does not get to overrule a measurement. A note and a grade step.
+
+    **Coverage can take evidence away and can never add any.** An agreeing tone is not a fourth
+    confirmation and cannot lift a grade. Principle 5 is explicit that current human attention is
+    context and not proof, and the reading is a word list with no bodies, no negation and no
+    sarcasm, as every surface showing it already says. That is good enough to withdraw a claim and
+    not good enough to make one, and the two bars are different on purpose.
+
+    Rule 21 governs the input. `jobs/human.py` writes `neutral` both for a balanced window and for
+    one where too few headlines took a side, and a missing `HumanSignal` row is a third thing
+    again. Only an actual published disagreement may act: 378 of 454 stored readings on 2026-10-09
+    are neutral, so mapping neutral to a direction would have made this a deduction on nearly
+    every name in the pool.
+
+    Measured over the pool on the day it went in, against rule 43's table:
+
+        action      before 43   after 43   after 44
+        LONG               58         78         78
+        SHORT              73        127        124
+        WAIT              346        272        275
+
+    Nine directional calls carry the note (AAPL long into negatively worded coverage; ADBE, APTV,
+    IBM, INTU, MDT, RIVN, SLB and USDKRW short into positively worded coverage), four of them
+    dropping a grade for the withdrawn set. Three promotions were refused: **AXP, BWA and MGA**,
+    all falling trends with the volume to clear gate 8 — 1.62x, 1.31x and 1.40x — and coverage
+    worded the other way, two of the three on a story-rate spike. Those three are the rule's
+    whole purpose, and they are held back rather than deleted: each keeps its developing read
+    with the coverage named first in what it is waiting on.
+
+    One thing to know before checking that against a page, because it looks like a contradiction
+    and is not. AXP reads **WAIT on /stocks and LONG on /asset/AXP**. That is the deliberate
+    two-horizon split, not this rule: `getDecisionRows` and `tools/decide.mjs` read swing and
+    longer only — a front page that re-decided itself through the session would be a different
+    page on every visit — while the asset panel reads all three, and AXP's intraday row is `buy`.
+    The refusal here applies to the falling swing trend, which is the read the lists and the log
+    are built on. Verified on both pages on 2026-10-09.
+
+45. **A measurement read in one direction only is a bug, and three of them were costing 275 WAITs.**
+    The live site showed 34 of 36 crypto, 24 of 27 currency pairs and most of PSX sitting in
+    WAIT with every input table fresh. The first instinct is that the thresholds are timid. They
+    were not. Three separate things were structurally unreadable, and each one is the same shape
+    of fault: a stored measurement the rules could use in one direction and not the other.
+
+    - **Relative strength could only ever subtract.** `peersAgainst` existed and `peersConfirm`
+      did not, so a name 11 points *behind* its group cost a confidence grade and a name 11 points
+      *ahead* of it counted for nothing. That is principle 2 — "relative strength against peers
+      matters more than a raw return" — wired up backwards. It is now the fourth confirmation leg
+      and the third carrier at gate 8, on the same band `REL_AGAINST_AT` already defined, so one
+      threshold still means one thing. **49 refused names cleared on it.**
+    - **A currency pair could never hold an analog.** `jobs/analogs.py` matches past days on three
+      factors, one of which is a volume ratio, and treats a missing factor as not-a-match. No
+      venue publishes volume for FX. So all 27 pairs were skipped before a single candidate was
+      considered, and held **zero** stored analogs while every other class was near-complete — two
+      of the four things that can confirm a direction permanently absent. The job now matches a
+      no-tape instrument on its two return factors and records in `toleranceNote` that volume was
+      not among them. All 27 pairs now carry graded rows, averaging **762 matched days** each.
+    - **`mixed` was being read as "no information".** `trend` requires the close, the 20 day mean
+      and the 50 day mean to line up, and writes `mixed` when they do not. But the two means are
+      still one above the other. Of the 123 refused names whose swing state was `none`, **119 had
+      a measurable side** — 55 with the fast mean above, 64 below, 4 inside the quarter-percent
+      floor. `setup.py` now writes a `bias` condition saying which, and gate 8 falls back to it.
+
+    Three properties that keep this from being a loosening dressed as a fix:
+
+    - **The weaker reading buys a chance at the gate, not a pass through it.** A bias is subject
+      to every requirement a trend is: a carrier, a horizon that does not disagree, coverage that
+      does not contradict. Its sentence says "price is between its own averages, with the 20 day
+      above the 50 day" and never "the trend is up", because three things agreeing and two things
+      agreeing are different findings and promoting one into the other's word is the overclaim.
+    - **`bias` is a new condition, not a widened `trend`.** Rule 23: `thesis.py` parses the same
+      string, and changing what `trend` may say would change what a held thesis means on every
+      asset. Added tokens are ignored by `compare()`; redefined ones are not.
+    - **The High bar stays at two.** A fourth leg must not re-grade the site by arithmetic. Two
+      independent confirmations is High because two is what "independently confirmed" means.
+
+    A fourth fault, found while fixing the first: **the peer band itself was one constant for
+    every market**, which is rule 42 again in the one place rule 42 had not been applied.
+    Measured as the median |relStrength| per market — FX 1.13, PSX 3.53, US 3.71, Commodity 4.35,
+    Crypto 5.56 — a flat 3 points passed **58% of US names and 7% of currency pairs**. One number
+    was simultaneously too loose to be evidence about an equity and too strict to ever fire on a
+    pair. `REL_BAND` is now twice each market's own median, to the nearest half point: FX 2.5,
+    PSX 7.0, US 7.5, Crypto 11.0, with Commodity and Other taking the US figure because four
+    observations is not a sample to set a threshold from.
+
+    That correction **costs** directions rather than adding them — 23 of them — and it is kept
+    because the measurement says the old bar was not evidence. A threshold is set by what makes it
+    mean something, never by the count it produces. Rule 39's line applies in both directions: do
+    not loosen a gate because a market is quiet through it, and do not keep a loose one because
+    tightening it reads worse.
+
+    Measured across the pool, each step on the same day and the same stored inputs:
+
+        action    rule 44   + peer leg   + FX analogs, bias   + per-market band
+        LONG           78          89                   113                105
+        SHORT         124         159                   173                158
+        WAIT          275         229                   191                214
+
+    By class, against the live site that prompted this: **crypto 34 WAIT to 20**, **PSX 81 to
+    59**, **US 126 to 107**, **FX 24 to 23**.
+
+    **FX barely moved, and that is the finding rather than a failure.** All 27 pairs now hold
+    graded analogs averaging 762 matched days, and every one of them lands within a point or two
+    of an even split — AUDUSD 363 of 728, EURGBP 513 of 1023, EURUSD 231 of 477. A pair has no
+    volume, its matched history is a coin flip, and its 20-session gap against its peers has a
+    median of 1.13 points. There is very little to be confident about in a currency pair from free
+    daily closes, and the right output for that is a stated absence of a finding, not a direction
+    manufactured to fill the column. What changed for FX is that the page can now say "checked,
+    and the history says nothing" where it used to say "not measurable".
+
+    **What is still WAIT, and why it is not timidity.** 2 names have no stored invalidation level,
+    so there is no price at which being wrong is known — the one thing a sniper entry cannot do
+    without. 1 sits at the horizon disagreement with a reward too small to carry it. The other 211
+    fall at gate 9: a direction exists and no stored figure carries it. That is the condition the
+    gate was written for, not a formality to route around, and **203 of them are on the page as
+    developing reads** with the exact shortfall named and ordered by how close it is to clearing.
+
+    **One thing that will make this look broken when it is not.** `lib/cached.ts` wraps
+    `getDecisionRows` in `unstable_cache` at an hour, shared by the overview and all five class
+    indexes, and those pages are statically prerendered. So after a decision pass the **list**
+    pages can read up to an hour behind while the asset pages, which are dynamic, are already
+    current. Seen during this very change: `/crypto` said "4 long, 32 waiting" while `DecisionLog`
+    and `/asset/algo-algorand` both said 16 long. Nothing was wrong with either. `rm -rf
+    .next/cache` before `npm run build` is what makes a local rebuild show the new verdicts at
+    once; in production the hour simply elapses.
+
+    **What was asked for and deliberately not built.** Deriving an asset's direction from its
+    sector, its index or a beta proxy when its own feeds are thin. That is not a fallback, it is
+    substitution: it prints another instrument's reading under this instrument's name, and hard
+    rule 2 forbids filling a missing number from anywhere. Acting on an analog share above 50%
+    rather than `ANALOG_SHARE_CONFIRMS`. HMC's own set is 377 of 748 — on that sample a fifth of
+    one standard deviation from a coin flip — and the 0.55 bar exists because the page was already
+    calling that "confirmed". And removing the Low grade. Confidence is a count of how many
+    independent things agree; deleting the word does not change the count, it only stops the
+    reader being told, which is the one thing that costs money rather than saving it.
+
+46. **"Compression precedes expansion" is false in this database, and the measurement is the
+    deliverable.**
+    The brief was to scan for pre-breakout compression, volume anomalies and early accumulation so
+    the engine catches a move before it happens. Every one of those is a standard, widely held
+    idea. None of them survived contact with the eight years of closes already stored here, and
+    the right response was to measure first rather than to build three columns that encode nothing.
+
+    Method: every asset-session with enough history behind and 20 sessions ahead of it — **582,252
+    of them** — bucketed by the condition on the day, scored by what the next 20 sessions actually
+    did. Realised volatility is the standard deviation of the 20 daily returns ending on the day;
+    "compressed" is the bottom fifth of that asset's own trailing history. Read-only; nothing was
+    written.
+
+        bucket                       n        up rate   median |move|   median signed
+        all days               582,252          54.2%           5.53%          +0.70%
+        compressed vs own 120  140,657          52.4%           5.14%          +0.36%
+        compressed vs own 250  133,463          52.9%           5.00%          +0.42%
+        volume >=1.5x, flat day  7,090          54.4%           5.53%          +0.80%
+
+    **A compressed day is followed by a *smaller* move than an ordinary one**, on either baseline,
+    over 133,000 observations. Quiet begets quiet. The coil does not spring; it stays coiled. An
+    engine that treated compression as a pre-breakout signal would be reading a volatility cluster
+    backwards and would fire hardest on exactly the names least likely to move.
+
+    **The "institutional footprint" — heavy volume with no price move — is indistinguishable from
+    the baseline.** 54.4% against 54.2%, and the median absolute move is 5.53% in both buckets to
+    two decimal places. The first pass of this measurement reported 54.4% as significant against a
+    coin flip, which it is: 7.4 standard errors. Against the *right* denominator it is 0.34, which
+    is nothing. That is the fault this repository keeps having — rule 9, rule 39, rule 42, the
+    news lane's ordering, the volume denominator — found once more, in the measurement built to
+    check a new idea rather than in the idea itself.
+
+    **What the same data does say, which is nearly the opposite.** A second pass, 680,800
+    sessions, on the rule the engine already applies:
+
+        bucket                       n        up rate   median |move|   median signed
+        all days               680,800          54.5%           5.52%          +0.75%
+        volume >=1.2x, any move 147,556         55.3%           6.50%          +1.23%
+        volume >=1.2x, day UP    66,725         54.7%           6.80%          +1.13%
+        volume >=1.2x, day DOWN  60,509         55.8%           6.68%          +1.40%
+        volume >=2.0x, day UP    17,898         53.9%           7.85%          +1.06%
+
+    Volume predicts **magnitude** and holds up well doing it: a session at or above 1.2x its own
+    average is followed by a move about a percentage point wider than average, and 2x by nearly
+    two and a half. That is a real, large-sample effect and it is the one thing in this whole
+    exercise that works.
+
+    It does **not** predict direction, and on a down day it mildly argues the other way: a heavy
+    down session is followed by a rise 55.8% of the time against a 54.5% baseline — 6.5 standard
+    errors on 60,509 observations — where a heavy *up* session is followed by a rise 54.7% of the
+    time, which is one standard error from the baseline and therefore nothing.
+
+    **This is a live problem for the rule table and it is deliberately not fixed here.**
+    `volumeConfirms` treats volume at or above `VOLUME_CONFIRMS_AT` as confirming the *direction*,
+    counts it as one of four confirmations, and carries a withheld trend on it at gate 8 — for
+    shorts as well as longs. The measurement says that is the wrong reading of a real signal:
+    volume says a move of some size is coming, not which way, and on the short side it leans
+    against. Changing it would re-grade every asset on the site, so it belongs behind the outcome
+    log rather than in the same session as the measurement: `DecisionLog` now records `gate`,
+    `rewardRisk` and `baseRate` on every row, and `trend-short` against `short` at +1, +5 and +20
+    sessions is the comparison that should decide it. Principle 7, and the first time this project
+    has had the columns to honour it on its own rules.
+
+    **What was built instead.** The class index pages now split their waiting list the way the
+    overview has always split it: 203 of the 214 refused names carry a forming read — a measured
+    direction with a named shortfall and a number saying how far off it is — and all 203 were
+    filed under "no direction today" next to names whose feed is dead. `/crypto` said "32 waiting"
+    when 14 of those had a direction. That list, ordered by closeness, is the honest version of
+    "catch it before it is obvious": not an invented early signal, but the names where the
+    direction is already readable and the confirmations have not all arrived.

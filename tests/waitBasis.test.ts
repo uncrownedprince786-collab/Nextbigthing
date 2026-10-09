@@ -56,6 +56,34 @@ test("every gate that holds a measurement which does not confirm reports evidenc
   assert.equal(mixed.gate, "mixed-horizons");
   assert.equal(mixed.basis, "evidence");
 
+  // The fall-through over a measured setup is the other one. `peers-against` used to be here and
+  // is no longer a gate at all -- it is a note on the direction, and a note has no basis because
+  // nothing was withheld. See `notes` in lib/decision.ts.
+  const fellThrough = decide(
+    input({ setup: { direction: "flat", horizon: "swing", trend: null }, horizon: null }),
+  );
+  assert.equal(fellThrough.gate, "incomplete");
+  assert.equal(fellThrough.basis, "evidence");
+});
+
+test("a demoted gate reports no basis, because nothing was withheld", () => {
+  // Both demotions, asserted as demotions. `basis` answers "why is this a WAIT", and a direction
+  // that printed is not a WAIT -- so the field is null and the reason travels in `notes`, where a
+  // null count and a low count still read differently (rule 21).
+  // The fixture's default setup is `unknown`, which falls through on its own merits. A demotion
+  // is only observable over a row that has a direction to print, so these two give it one.
+  const directional = { direction: "up", horizon: "swing", trend: null } as const;
+
+  const notChecked = decide(input({ setup: directional, unusualMove: true, newsCount: null }));
+  assert.equal(notChecked.action, "LONG");
+  assert.equal(notChecked.basis, null);
+  assert.match(notChecked.notes.join(" "), /no news has been collected/i);
+
+  const thin = decide(input({ setup: directional, unusualMove: true, newsCount: 2 }));
+  assert.equal(thin.action, "LONG");
+  assert.equal(thin.basis, null);
+  assert.match(thin.notes.join(" "), /2 recent stories/);
+
   const peers = decide(
     input({
       setup: { direction: "up", horizon: "swing", trend: null },
@@ -63,24 +91,9 @@ test("every gate that holds a measurement which does not confirm reports evidenc
       relStrength: -9,
     }),
   );
-  assert.equal(peers.gate, "peers-against");
-  assert.equal(peers.basis, "evidence");
-});
-
-test("an unusual move splits on whether the news was ever looked at", () => {
-  // The one gate that is genuinely both, and the input already knows which. A null count means no
-  // feed answered, so nothing was weighed. A low count means the feeds answered and there was
-  // little there, which is a measurement.
-  const notChecked = decide(input({ unusualMove: true, newsCount: null }));
-  assert.equal(notChecked.gate, "unexplained-move");
-  assert.equal(notChecked.basis, "file");
-  assert.match(notChecked.why.join(" "), /not checked/);
-  assert.ok(notChecked.missing.length, "a file gate has to name what is absent");
-
-  const thin = decide(input({ unusualMove: true, newsCount: 2 }));
-  assert.equal(thin.gate, "unexplained-move");
-  assert.equal(thin.basis, "evidence");
-  assert.match(thin.why.join(" "), /news thin/);
+  assert.equal(peers.action, "LONG");
+  assert.equal(peers.basis, null);
+  assert.match(peers.notes.join(" "), /9\.0 points behind its peers/);
 });
 
 test("the fall-through does not claim a price sits between averages nobody computed", () => {

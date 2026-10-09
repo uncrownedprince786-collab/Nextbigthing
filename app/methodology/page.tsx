@@ -19,11 +19,31 @@ const GATES = [
   { n: 2, gate: "Close too old", answer: "WAIT", told: "The number on the page is not today's number, and how old it is." },
   { n: 3, gate: "A source is silent", answer: "WAIT", told: "Which source answered nothing." },
   { n: 4, gate: "No stop level", answer: "WAIT", told: "There is no level at which being wrong is known." },
-  { n: 5, gate: "Setup and longer view disagree", answer: "WAIT", told: "Which way each one points." },
-  { n: 6, gate: "Unusual move, thin news", answer: "WAIT", told: "The move has no published reason yet." },
-  { n: 7, gate: "Setup up, longer view not down", answer: "LONG", told: "Setup is up, and what the longer view adds." },
-  { n: 8, gate: "Setup down, longer view not up", answer: "SHORT", told: "Setup is down, and what the longer view adds." },
+  { n: 5, gate: "Setup and longer view disagree, and the reward is not asymmetric", answer: "WAIT", told: "Which way each one points, and how far the reward fell short." },
+  { n: 6, gate: "Setup up, longer view not down", answer: "LONG", told: "Setup is up, and what the longer view adds." },
+  { n: 7, gate: "Setup down, longer view not up", answer: "SHORT", told: "Setup is down, and what the longer view adds." },
+  { n: 8, gate: "A measured direction whose conditions are incomplete — the withheld trend, or failing that the side the two moving averages sit on — carried by volume, by the peer gap or by an asymmetric reward, and not contradicted by the published coverage", answer: "LONG / SHORT", told: "Which reading it acted on, what is carrying it, and every condition still absent." },
   { n: 9, gate: "Anything left", answer: "WAIT", told: "Which part is absent — setup, longer view, or both." },
+];
+
+// What stopped being a gate on 2026-10-09, and what happened to it instead.
+//
+// On the page because a reader who knew the old table is owed the change, and a reader who did
+// not is owed the fact that these two things are still measured and still printed. A system that
+// quietly drops a caveat it used to refuse on has told its readers less, not more.
+const DEMOTED = [
+  {
+    gate: "Unusual move, thin news",
+    was: "WAIT — 60 of 477 names on 2026-10-09",
+    now: "Printed under “What argues against it”, with the story count or the fact that no feed answered. It does not change the action.",
+    why: "Thin news under a move says the published explanation has not arrived. It is not evidence that the direction is wrong, and refusing every unexplained move refuses exactly the moves that happen before the reason is public.",
+  },
+  {
+    gate: "Peers argue the other way",
+    was: "WAIT — 15 of 477 names on 2026-10-09",
+    now: "Printed under “What argues against it” with the measured gap in points, and the confidence grade is capped one step for it.",
+    why: "A name lagging its group is a real and often decisive fact, but it is a fact about relative return. Vetoing an absolute direction with it discards the direction rather than qualifying it.",
+  },
 ];
 
 // Every number the decision rules use, with the file it is read from. A rule table without its
@@ -36,8 +56,23 @@ const THRESHOLDS = [
   },
   {
     value: "8 stories",
-    rule: "Below this, news counts as thin. Only a gate when the price also moved unusually.",
+    rule: "Below this, news counts as thin. Printed as a caveat under an unusual move; no longer a check.",
     file: "lib/decision.ts THIN_NEWS_BELOW",
+  },
+  {
+    value: "2x the risk",
+    rule: "A measured reward at least this far above the stop carries a direction past a disagreeing longer view (check 5) or past incomplete conditions (check 8). 111 of 717 stored setups reached it on 2026-10-09.",
+    file: "lib/decision.ts ASYMMETRY_CLEARS",
+  },
+  {
+    value: "2.5 to 11 points, by market",
+    rule: "How far from its peer median a name must be over 20 sessions before that counts either way: confirming the direction, or arguing against it and capping the grade. FX 2.5, PSX 7, US 7.5, crypto 11 — twice each market's own measured median gap, because a point of relative return means a different thing to a currency pair than to a coin.",
+    file: "lib/decision.ts REL_BAND",
+  },
+  {
+    value: "positive or negative",
+    rule: "A published coverage verdict pointing the opposite way stops the matched past days counting as confirmation, and stops check 8 carrying a trend at all. A neutral reading, or none, changes nothing. 378 of 454 stored readings were neutral on 2026-10-09.",
+    file: "lib/decision.ts newsContradicts",
   },
   {
     value: "±2σ",
@@ -191,11 +226,73 @@ export default async function MethodologyPage() {
           ))}
         </Table>
         <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
-          Checks 1 to 4 are faults in the data and name the missing thing. Checks 5 and 6 are real
-          disagreement in the data and are not faults. Check 9 is WAIT rather than a direction
+          Checks 1 to 4 are faults in the data and name the missing thing. Check 5 is real
+          disagreement in the data and is not a fault. Check 9 is WAIT rather than a direction
           because a rule table that falls through to LONG is how a page recommends a trade it has
           no reason for.
         </p>
+        <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
+          Check 8 is the one that produces a direction over an incomplete set of conditions, and it
+          is deliberately narrow. The direction is one already measured and stored, never one
+          computed here: either the trend reading the condition job withheld, or — where even that
+          came back mixed — which side of the 50 day average the 20 day average sits on. It is
+          only carried when one of three stored figures backs it: volume at or above its own
+          20-session average, a gap against its peer group wide enough for the market it trades
+          in, or a measured reward of at least twice the risk. With none of the three, the name
+          falls through to check 9 exactly as it did before, and every missing confirmation is
+          still listed on the page.
+        </p>
+        <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
+          The two readings are never given the same words. Three things lining up — the close, the
+          20 day average and the 50 day average — is a trend. Two things, with the price sitting
+          between them, is written as &ldquo;price is between its own averages, with the 20 day
+          above the 50 day&rdquo;, because calling that a trend would claim a measurement that was
+          not taken.
+        </p>
+
+        <h3 className="mt-6 font-medium">When the news and the history disagree</h3>
+        <p className="text-muted-foreground mt-2 max-w-3xl text-sm leading-relaxed">
+          The “what followed similar past days” figure is matched on three things — the day&rsquo;s
+          return, the volume multiple and the five-day return — and nothing else. None of those
+          past days had today&rsquo;s headline in it. So when the stored coverage reading carries a
+          direction and it is the opposite one, those matched days stop counting as confirmation:
+          they describe a situation that is missing the thing most likely to move the price next.
+          The set is still shown, with how many days were in it and why it is not being counted.
+        </p>
+        <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
+          This only ever takes evidence away. Coverage pointing the <em>same</em> way is not
+          counted as confirmation and cannot raise a grade — the reading is a word list over
+          headlines, with no article bodies, no negation and no sarcasm, which is enough to
+          withdraw a claim and not enough to make one. A reading that came back neutral, and an
+          asset with no reading stored at all, both change nothing.
+        </p>
+
+        <h3 className="mt-6 font-medium">What stopped being a check, and where it went</h3>
+        <p className="text-muted-foreground mt-2 max-w-3xl text-sm leading-relaxed">
+          Two checks used to answer WAIT and no longer do. Both are still measured and both are
+          still printed next to the decision, under “What argues against it”. Neither was removed
+          from the page; both were moved out of the way of the answer.
+        </p>
+        <Table
+          minWidth="760px"
+          head={
+            <>
+              <th className="px-3 py-2 font-medium">Was a check</th>
+              <th className="px-3 py-2 font-medium">What it did</th>
+              <th className="px-3 py-2 font-medium">What it does now</th>
+              <th className="px-3 py-2 font-medium">Why</th>
+            </>
+          }
+        >
+          {DEMOTED.map((d) => (
+            <tr key={d.gate}>
+              <td className="px-3 py-2">{d.gate}</td>
+              <td className="text-muted-foreground px-3 py-2 text-xs">{d.was}</td>
+              <td className="text-muted-foreground px-3 py-2 text-xs">{d.now}</td>
+              <td className="text-muted-foreground px-3 py-2 text-xs">{d.why}</td>
+            </tr>
+          ))}
+        </Table>
 
         <h3 className="mt-6 font-medium">Every number these checks use</h3>
         <Table
