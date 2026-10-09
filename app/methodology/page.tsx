@@ -267,6 +267,59 @@ export default async function MethodologyPage() {
           asset with no reading stored at all, both change nothing.
         </p>
 
+        <h3 className="mt-6 font-medium">What a LONG or a SHORT here is, and what it is not</h3>
+        <p className="text-muted-foreground mt-2 max-w-3xl text-sm leading-relaxed">
+          It is a <strong>trend reading</strong>. The condition behind nearly every direction is
+          the close sitting above its own 20-day average, which sits above its 50-day average —
+          or, where those three do not line up, the two averages on one side of each other. Both
+          are backward-looking by construction: they describe a move that has already started.
+          Nothing here attempts to detect a move before it begins.
+        </p>
+        <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
+          Measured over the 467 directional readings on 2026-10-09, this is how far along each one
+          already was when it was written:
+        </p>
+        <Table
+          minWidth="640px"
+          head={
+            <>
+              <th className="px-3 py-2 font-medium">Reading</th>
+              <th className="px-3 py-2 font-medium">Move already made, 20 sessions</th>
+              <th className="px-3 py-2 font-medium">Where it sits in its own range</th>
+              <th className="px-3 py-2 font-medium">Sessions the trend had already held</th>
+            </>
+          }
+        >
+          <tr>
+            <td className="px-3 py-2">LONG (166)</td>
+            <td className="num px-3 py-2">median +3.1%, upper quarter above +11.3%</td>
+            <td className="num px-3 py-2">72% of the way up</td>
+            <td className="num px-3 py-2">median 40</td>
+          </tr>
+          <tr>
+            <td className="px-3 py-2">SHORT (301)</td>
+            <td className="num px-3 py-2">median −3.9%, lower quarter below −7.2%</td>
+            <td className="num px-3 py-2">18% of the way up</td>
+            <td className="num px-3 py-2">median 24</td>
+          </tr>
+        </Table>
+        <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
+          So a typical long is a name that has already risen, sitting near the top of its own
+          range, roughly forty sessions into the trend being read. A typical short is the mirror.
+          Only 16% of longs and 13% of shorts are written within five sessions of the trend
+          starting. <strong>These are not early entries and the site does not claim they are.</strong>
+        </p>
+        <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
+          Whether that is a weakness is a separate question, and the stored history answers part of
+          it: over 680,800 asset-sessions, a day on which volume reached 1.2 times its own average
+          was followed by a move about a percentage point wider than an ordinary day. Trends tend
+          to continue in <em>size</em>. The thing the same measurement does not support is the
+          common belief that a quiet, compressed market precedes a large move: over 133,463
+          compressed sessions the next twenty sessions moved <em>less</em> than average, not more.
+          A pre-breakout detector was considered, measured, and not built, because the data said
+          it would fire hardest on the names least likely to move.
+        </p>
+
         <h3 className="mt-6 font-medium">What stopped being a check, and where it went</h3>
         <p className="text-muted-foreground mt-2 max-w-3xl text-sm leading-relaxed">
           Two checks used to answer WAIT and no longer do. Both are still measured and both are

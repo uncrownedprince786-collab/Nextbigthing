@@ -1248,3 +1248,67 @@ reads rows that already exist:
     is correct and the evidence behind each is published on its card. Whether the short side
     should be issued at all remains the open question, and `DecisionLog` is now the only thing
     that will answer it.
+
+51. **These are trend readings, and the measurement that says so is the one worth keeping.**
+    Asked to confirm and document that the verdicts are forward-looking entries rather than
+    lagging trend chasers. They are not, and the stored history says so plainly enough that
+    writing the opposite into the methodology page would have been the single most harmful line
+    in this repository.
+
+    The condition behind nearly every direction is `close > 20d > 50d`, or where those three do
+    not line up, the two averages on one side of each other. Both describe a move that has already
+    started; that is what a moving average is. Measured over the 467 directional readings on
+    2026-10-09:
+
+        reading      move already made (20 sessions)   range position   trend age at entry
+        LONG  (166)  median +3.1%, upper quarter +11.3%        72%           median 40 sessions
+        SHORT (301)  median -3.9%, lower quarter -7.2%         18%           median 24 sessions
+
+    A typical long is a name that has already risen, sitting near the top of its own range, about
+    **forty sessions** into the trend being read. Only 16% of longs and 13% of shorts are written
+    within five sessions of the trend starting; 19% of longs are written after sixty.
+
+    **This is not a defect to fix, and the attempt to fix it was already measured.** Rule 46
+    tested the two standard pre-trend detectors against 582,252 asset-sessions. Compression is
+    followed by a *smaller* move than average, not a larger one, and a volume spike with no price
+    move is indistinguishable from the baseline. The same data does support trend continuation in
+    size: a session at 1.2x its own average volume is followed by a move about a percentage point
+    wider. So the engine is doing the thing the data supports and not the thing it does not, and
+    the honest description of it is "a trend reading with a measured stop and a measured target",
+    which is now what `/methodology` says in those words.
+
+    **The general rule this is an instance of.** A request to confirm something is not a request
+    to agree with it. Every claim this project makes about itself is checkable against the same
+    stored rows the claims are built from, and when a flattering description and a measurement
+    disagree, the measurement is the deliverable. Principle 8: a thin reading said plainly is
+    worth more than a confident one that cannot be checked.
+
+52. **The feedback loop is running, and what it can and cannot yet say.**
+    `DecisionLog` holds 2,054 rows from 2026-10-02 onward, every one carrying the close it was
+    measured from. `matureRows` in `tools/decide.mjs` returns to each past row and records what
+    followed at +1, +5 and +20 **stored sessions** for that asset, and `tools/scorecard.py` scores
+    the matured ones against the direction and the stop they stated. State on 2026-10-09:
+
+        status      rows    window     measured   pending
+        measured1   1,076   +1              1,100     954
+        measured5      24   +5                 24   --
+        open          954   +20                 0   --
+
+    No +20 figure exists yet and cannot: the oldest row is seven days old and twenty sessions have
+    not elapsed. The first will land around 2026-10-30.
+
+    The +1 scorecard reads 124 right, 95 wrong, 41 stopped out of 263 matured rows -- and prints,
+    every time, that those 263 rows are **95 distinct names over 5 sessions**, so they are repeated
+    observations rather than independent trials. The per-grade split currently has Low ahead of
+    High, which is noise at 37 High rows over a one-session horizon and must not be read as a
+    finding. The tool refuses to publish a rate under `MIN_SAMPLE` for exactly this reason.
+
+    **What is genuinely closed and what is not.** The measurement loop is closed: decisions are
+    logged with their gate, their reward and their base rate, outcomes are recorded against them,
+    and a scorer compares the two. The *learning* loop is not -- nothing reads the matured rows
+    and changes a threshold. That is deliberate and it is the right order: rule 48's stop width
+    and rule 50's removal of the last gate were both argued from backtests over stored history,
+    and feeding a live 263-row sample back into those constants would be fitting to noise. The
+    sample that can answer the open questions -- whether `unconfirmed-*` calls pay, whether the
+    short side should be issued at all -- is weeks away, and the columns to answer them with are
+    already being written.
