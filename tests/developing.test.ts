@@ -64,9 +64,24 @@ test("a measured direction is an action now, never a developing read", () => {
   assert.equal(up.action, "LONG");
   assert.equal(up.developing, null);
 
-  const down = decide(input({ setup: { direction: "flat", horizon: "swing", trend: "down" } }));
+  // The short side is the one place a direction can still be refused, and the fixture's market
+  // is US -- where shorts measured -0.11R with nothing behind them. One confirmation is all the
+  // gate asks for, so this gives it the peer reading and the direction prints.
+  const down = decide(
+    input({
+      setup: { direction: "flat", horizon: "swing", trend: "down" },
+      relStrength: -9,
+    }),
+  );
   assert.equal(down.action, "SHORT");
   assert.equal(down.developing, null);
+
+  // Without it, the gate holds it and still produces no developing read: the contract this file
+  // pins is that a direction and a forming read are never both set, whichever way it goes.
+  const gated = decide(input({ setup: { direction: "flat", horizon: "swing", trend: "down" } }));
+  assert.equal(gated.action, "WAIT");
+  assert.equal(gated.gate, "short-unbacked");
+  assert.equal(gated.developing, null);
 });
 
 test("with nothing confirming it, the gate says so and the grade says so", () => {

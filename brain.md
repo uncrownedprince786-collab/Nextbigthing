@@ -1312,3 +1312,87 @@ reads rows that already exist:
     sample that can answer the open questions -- whether `unconfirmed-*` calls pay, whether the
     short side should be issued at all -- is weeks away, and the columns to answer them with are
     already being written.
+
+53. **The short side's problem is not the short side. It is US equities.**
+    Rule 48 measured the short side as negative at every stop width but the two tightest and left
+    the question open. Conditioning the same backtest on what the rule table can see at decision
+    time answers it. 171,010 shorts, eight years, entry at the close with a 1.5 sigma stop and a
+    2.0 sigma target, first touch over 20 sessions:
+
+        market          n        target hit   mean R
+        crypto     26,545             46%     +0.057
+        PSX        20,208             46%     +0.054
+        FX         14,544             45%     +0.035
+        US        105,705             38%     -0.111
+        Commodity   4,008             38%     -0.127
+
+    Pooled, shorts read -0.053 and that sounds like "shorting does not work here". Split, **three
+    of five markets are positive and the entire loss is the 105,705 US observations**. 2018 to
+    2026 is a period of sustained appreciation in US equities; a short there was fighting a drift
+    the other markets did not have to the same degree. A second, independent cut says the same
+    thing about timing:
+
+        already fallen        n        target hit   mean R
+        less than 3%     44,761             44%     +0.008
+        3 to 10%         67,062             41%     -0.052
+        more than 10%    59,187             39%     -0.101
+
+    So `shortNeedsBacking` asks for at least one of the four confirmations when either applies:
+    the market measured negative, or the name has already fallen past `SHORT_LATE_AT`. It refuses
+    rather than downgrades, because a grade is a statement about evidence and this is a statement
+    about the trade.
+
+        measure                     before     after
+        LONG                           166       166
+        SHORT                          301       239
+        WAIT                            10        72
+        US shorts                      158        96
+        shorts in positive markets     46%       58%
+        expected book outcome      +0.0221R  +0.0424R per position
+
+    The last line is the point and it is worth reading carefully: it is the measured per-market
+    expectancy applied to today's book, so it is an estimate from history and not a result. It
+    says the gate removes 62 positions and **+6.88R of expected loss**, which is the whole of the
+    case for holding one direction to a different bar than the other.
+
+    **The asymmetry is in the data, not in an opinion about the two sides.** Longs measured
+    positive in the same backtest everywhere, so longs are not gated. If a later regime turns US
+    equities down, this table is wrong in the direction of missing trades rather than taking bad
+    ones -- which is the right way round for a number resting on one regime, and `DecisionLog`
+    records every `short-unbacked` so the live record will eventually argue with it.
+
+54. **Four candidate entry rules were measured against the moving-average stack. Three are
+    earlier and slightly better, and all three are far rarer.**
+    Rule 51 established that the engine enters a median of 40 sessions into a long. The obvious
+    response is to replace `close > 20d > 50d` with something that fires sooner, so four
+    candidates were backtested on identical terms -- same stop, same target, same forward window,
+    same outcome measure -- with two numbers each: how many sessions the stack had **already**
+    held when the rule fired, and what it paid.
+
+        long side          n        stack age   fires at 0   mean R
+        ma_stack      223,667               8          0%     0.128
+        breakout20     90,029               5         30%     0.133
+        squeeze_break  11,361               1         42%     0.153
+        vol_flip       13,408               0         58%     0.146
+        inflection     49,395               0        100%     0.099
+
+    Three findings, and the third is the one that decides what to build.
+
+    **Earlier is not automatically better.** `inflection` -- the fast mean turning while price is
+    still the wrong side of the slow one -- fires before the stack exists every single time and
+    pays *less* than the stack does. Being early is only worth something if the thing being
+    caught early is real.
+
+    **The squeeze result does not contradict rule 46, and the distinction matters.** Rule 46
+    measured compression as a standing state and found it followed by *smaller* moves. This
+    measures the **expansion bar out of** a compression, which is a different event: not "it is
+    quiet so something will happen", but "it was quiet and something just did".
+
+    **But every candidate that beats the stack is rare.** `squeeze_break` fires on 11,361
+    sessions against the stack's 223,667 -- 5% as often -- and the margin, 0.128 to 0.153, is
+    about two standard errors on that sample. Swapping the entry rule would cut the pool from 467
+    directions to a few dozen and buy an improvement the sample can barely see. So they are not a
+    replacement for the trend, and the honest use of them is as a fifth confirmation and as a
+    marker on the card saying this one was caught at the start -- which keeps the coverage, tells
+    the reader what rule 51 says they are owed, and lets `DecisionLog` settle the two standard
+    errors with live rows instead of an argument.

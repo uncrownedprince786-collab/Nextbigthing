@@ -284,6 +284,60 @@ export function relBandFor(input: DecisionInput): number {
 /// It is used in exactly two places and both are bypasses, never promotions on their own: gate 5
 /// stops refusing a disagreement, and gate 8 carries a trend whose other conditions are
 /// incomplete. Neither invents a direction — the direction is already measured and stored.
+/// Mean outcome of a short in each market, in units of the risk taken, measured over the whole
+/// stored history. **Negative means the side lost money there.**
+///
+/// Method, identical to rule 48's: every session on which the engine's short condition held --
+/// close below its 20-day mean below its 50-day -- entered at that close with a stop 1.5 of the
+/// asset's own daily dispersion above it and a target 2.0 below, first touch over the next 20
+/// stored sessions, outcome in units of the risk. 171,010 shorts.
+///
+///     market       n          target hit   mean R
+///     crypto      26,545           46%      +0.057
+///     PSX         20,208           46%      +0.054
+///     FX          14,544           45%      +0.035
+///     US         105,705           38%      -0.111
+///     Commodity    4,008           38%      -0.127
+///
+/// **The short side's problem is not the short side. It is US equities.** Pooled, shorts measured
+/// -0.053 and that reads as "shorting does not work here"; split by market, three of the five are
+/// positive and the whole of the loss sits in the 105,705 US observations. 2018 to 2026 is a
+/// period of sustained appreciation in US equities, and a short there was fighting a drift the
+/// other markets did not have to the same degree.
+///
+/// Which is the honest caveat to carry with this table: it is one regime, and a regime can turn.
+/// It is used to *restrict* rather than to loosen -- a market measured negative needs a
+/// confirmation before a short prints, where before it needed none -- so being wrong about the
+/// regime costs opportunities rather than money, which is the right way round for a number this
+/// uncertain. `DecisionLog` records every short's gate and matures it, so the live table will
+/// eventually have something to say about this that is not eight years of history.
+export const SHORT_EXPECTANCY: Record<Market, number> = {
+  Crypto: 0.057,
+  PSX: 0.054,
+  FX: 0.035,
+  US: -0.111,
+  Commodity: -0.127,
+  // No measurement of its own. It takes the US figure, which is the stricter of the two
+  // directions a guess could go: an unmeasured market asks for a confirmation rather than
+  // being waved through on a number nothing produced.
+  Other: -0.111,
+};
+
+/// How far a name may already have fallen, in percent over 20 sessions, before a short on it
+/// counts as late.
+///
+/// From the same 171,010 shorts, split by how much the move had already made:
+///
+///     already fallen        n        target hit   mean R
+///     less than 3%     44,761            44%      +0.008
+///     3 to 10%         67,062            41%      -0.052
+///     more than 10%    59,187            39%      -0.101
+///
+/// The late bucket is the worst of the three and it is a third of all shorts. Shorting something
+/// that has already dropped more than a tenth is the trade with the least left in it, which is
+/// the mirror of what rule 51 found about the long side: the engine arrives after the move.
+export const SHORT_LATE_AT = 10;
+
 export const ASYMMETRY_CLEARS = 2.75;
 
 /// The trade in levels and measured frequencies, for a decision that produced a direction.
@@ -376,6 +430,13 @@ export interface DecisionInput {
   volumeRatio?: number | null;
   /// 20-session return minus the peer median, in percentage points. Null when too few peers.
   relStrength?: number | null;
+  /// This asset's own 20-session return, in percent. How much of the move is already behind it.
+  ///
+  /// Read by the short gate and by nothing else: a short on a name already down more than
+  /// `SHORT_LATE_AT` is the worst-measured third of the short side. Null when the factor job has
+  /// not reached the name, which the gate treats as "not late" rather than as late — an
+  /// unmeasured move is not a large one.
+  r20?: number | null;
   unusualMove: boolean;
   /// What the stored coverage reading says, when it says anything.
   ///
@@ -523,34 +584,32 @@ function timeSenseFor(input: DecisionInput, action: Action): TimeSense {
 /// Counting confirmations rather than deducting for weaknesses matters when a factor is simply
 /// absent: a name with no published volume is not thereby a worse trade, it is one with less
 /// evidence, and it lands at Medium rather than being punished down to Low twice over.
-function confidenceFor(input: DecisionInput, action: Action): Confidence {
-  if (action === "WAIT") return "Low";
-  const direction = action === "LONG" ? "up" : "down";
+/// How many independent stored things agree with this direction. 0 to 4.
+///
+/// Split out of `confidenceFor` because the short gate needs the same count and a second
+/// implementation of "how much backs this" is how a name comes to be graded Low and gated as
+/// though it were confirmed. One count, two readers.
+function confirmationCount(input: DecisionInput, direction: "up" | "down"): number {
   const agrees = Boolean(
     input.setup && input.horizon && input.setup.direction === input.horizon.direction,
   );
-  // The analog leg is withdrawn when the published coverage points the other way. See
-  // `newsContradicts`: those matched past days did not have today's headline in them, so a set
-  // that agrees with the setup and disagrees with the present is not independent support.
-  //
-  // Withdrawn and not inverted. It drops from a confirmation to nothing, which costs one grade
-  // step, rather than counting as evidence against — a word list is not strong enough to argue
-  // the other side, only strong enough to stop this one being claimed.
   const historyConfirms =
     analogConfirms(input, direction) === true && !newsContradicts(input, direction);
-  // Four legs now, not three. The fourth is the peer reading, which this function could
-  // previously only ever subtract for -- see `peersConfirm`. A name beating its group is
-  // evidence, and reading one measurement in one direction only was the asymmetry, not the fix.
-  //
-  // The High bar stays at two. It is "two independent things agree", not "half of what is
-  // available", and moving it with the number of legs would silently re-grade every asset on the
-  // site without a single new measurement.
-  const confirmations = [
+  return [
     agrees,
     volumeConfirms(input) === true,
     historyConfirms,
     peersConfirm(input, direction),
   ].filter(Boolean).length;
+}
+
+function confidenceFor(input: DecisionInput, action: Action): Confidence {
+  if (action === "WAIT") return "Low";
+  const direction = action === "LONG" ? "up" : "down";
+  // The count lives in `confirmationCount`, which the short gate reads too. The High bar stays
+  // at two: it is "two independent things agree", not "half of what is available", and moving it
+  // with the number of legs would re-grade every asset on the site without a new measurement.
+  const confirmations = confirmationCount(input, direction);
   const grade: Confidence = confirmations >= 2 ? "High" : confirmations === 1 ? "Medium" : "Low";
 
   // Rule 6: a grade must never be more confident than the note beside it. When the peer reading
@@ -1024,6 +1083,36 @@ function developingRead(input: DecisionInput): Developing | null {
   };
 }
 
+/// Does this short need a confirmation before it prints, and why?
+///
+/// Null when it does not. Otherwise the reason, in the words the reader gets.
+///
+/// Two conditions, both measured and both independent of each other. A short in a market whose
+/// measured expectancy is negative -- US and Commodity, see `SHORT_EXPECTANCY` -- and a short on
+/// a name that has already fallen past `SHORT_LATE_AT`, in any market. Either one asks for at
+/// least one of the four confirmations; neither refuses a short that has one.
+///
+/// **This is the only place in the table where one direction is held to a different bar than the
+/// other, and it is there because the measurement is different.** 171,010 shorts across eight
+/// years: pooled they lose, split by market three of five markets win and the whole of the loss
+/// is 105,705 US observations. A rule table that treats the two sides identically in the face of
+/// that is not being even-handed, it is ignoring its own data. Longs are not gated because longs
+/// measured positive everywhere.
+function shortNeedsBacking(input: DecisionInput): string | null {
+  const expectancy = SHORT_EXPECTANCY[input.market];
+  const late = input.r20 !== null && input.r20 !== undefined && input.r20 <= -SHORT_LATE_AT;
+  if (expectancy < 0 && late) {
+    return `Shorts in this market measured ${expectancy.toFixed(2)}R over eight years of stored history, and this one has already fallen ${Math.abs(input.r20!).toFixed(1)}% in 20 sessions.`;
+  }
+  if (expectancy < 0) {
+    return `Shorts in this market measured ${expectancy.toFixed(2)}R per unit risked over eight years of stored history, against a positive figure in every other market.`;
+  }
+  if (late) {
+    return `It has already fallen ${Math.abs(input.r20!).toFixed(1)}% in 20 sessions, and shorts entered after a fall of ${SHORT_LATE_AT}% measured -0.10R where earlier ones measured +0.01R.`;
+  }
+  return null;
+}
+
 export function decide(input: DecisionInput): Decision {
   // 1. Nothing stored. The reader gets the name of what is absent, not an empty panel.
   if (input.asOf === null || input.lastClose === null) {
@@ -1080,6 +1169,21 @@ export function decide(input: DecisionInput): Decision {
   /// two of the three come to carry different fields.
   const direction = (dir: "up" | "down", gate: string, opening: string): Decision => {
     const action: Action = dir === "up" ? "LONG" : "SHORT";
+    // The short gate. Nothing else in this table holds one direction to a different bar, and the
+    // reason is that the two sides measured differently -- see `shortNeedsBacking`.
+    //
+    // It refuses rather than downgrades, because a grade is a statement about evidence and this
+    // is a statement about the trade: a short with no confirmation, in a market where the side
+    // lost money over 105,705 observations, is a position whose own history argues against it.
+    // The name keeps its levels and its reasons on its own page; what it does not get is a
+    // printed instruction to take the side.
+    const backing = dir === "down" ? shortNeedsBacking(input) : null;
+    if (backing && confirmationCount(input, dir) === 0) {
+      return wait(input, "short-unbacked", "evidence", [
+        "The trend is down and nothing independent confirms it.",
+        backing,
+      ], []);
+    }
     return {
       action,
       why: [opening, secondLine(dir, horizon), confirmLine(input, dir)],

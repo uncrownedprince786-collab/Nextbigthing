@@ -288,7 +288,7 @@ export async function getFactor(assetId: string) {
   return prisma.assetFactor.findFirst({
     where: { assetId },
     orderBy: { periodEnd: "desc" },
-    select: { periodEnd: true, volumeRatio: true, relStrength: true, peers: true },
+    select: { periodEnd: true, volumeRatio: true, relStrength: true, peers: true, r20: true },
   });
 }
 
@@ -847,7 +847,9 @@ export async function getDecisionBundle(assetId: string) {
     // job has not written for this asset. Not flattened into two top-level fields, because
     // `{ volumeRatio: null, relStrength: null }` and "no factor row at all" are different states and
     // flattening them would make the second indistinguishable from the first.
-    factor: factor ? { volumeRatio: factor.volumeRatio, relStrength: factor.relStrength } : null,
+    factor: factor
+      ? { volumeRatio: factor.volumeRatio, relStrength: factor.relStrength, r20: factor.r20 }
+      : null,
     factorPeriodEnd: factor?.periodEnd ?? null,
     /// How many peers the relative reading was taken over. Carried so a panel can say *why*
     /// `relStrength` is null — a group of four names rather than a measurement that came out even.
@@ -944,6 +946,8 @@ export type DecisionQueryRow = {
   /// evidence rather than as evidence against.
   volumeRatio: number | null;
   relStrength: number | null;
+  /// This asset's own 20-session return, read by the short gate in lib/decision.ts.
+  r20: number | null;
   /// Stories, not items: twenty outlets carrying one wire report is one story. The reasoning is
   /// at `getStories` and on `HumanSignal.recentStories`.
   recentStories: number | null;
@@ -1198,7 +1202,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       ? prisma.assetFactor.findMany({
           where: { periodEnd: { in: factorDayList } },
           orderBy: { periodEnd: "desc" },
-          select: { assetId: true, volumeRatio: true, relStrength: true },
+          select: { assetId: true, volumeRatio: true, relStrength: true, r20: true },
         })
       : [],
   ]);
@@ -1269,6 +1273,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       // sentence explaining which it is and a row in a list cannot.
       volumeRatio: factor?.volumeRatio ?? null,
       relStrength: factor?.relStrength ?? null,
+      r20: factor?.r20 ?? null,
       recentStories: signal?.recentStories ?? null,
       newsTone: signal?.tone ?? null,
       newsCatalyst: signal?.catalyst ?? null,

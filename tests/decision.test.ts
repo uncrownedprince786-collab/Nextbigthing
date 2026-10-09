@@ -495,20 +495,85 @@ test("every measured direction prints, and the grade carries how much backs it",
   assert.match(carried.why[0], /2\.4x its 20-session average carries it/);
 });
 
-test("a falling trend with nothing behind it is a SHORT, recorded as unconfirmed", () => {
-  const d = decide(
-    base({
-      setup: { direction: "flat", horizon: "swing", trend: "down" },
-      horizon: null,
-      volumeRatio: 0.5,
-      relStrength: 0,
-      analogs: null,
-      target: null,
-    }),
-  );
-  assert.equal(d.action, "SHORT");
-  assert.equal(d.gate, "unconfirmed-short");
-  assert.equal(d.confidence, "Low");
+test("a falling trend with nothing behind it is gated where shorts measured negative", () => {
+  // The short gate. 171,010 shorts over eight years: pooled they lose, and split by market the
+  // whole of the loss is the 105,705 US observations while crypto, PSX and FX are positive. A
+  // US short with none of the four confirmations is a position whose own history argues against
+  // it, so it is refused rather than printed and graded Low.
+  const bare = {
+    setup: { direction: "flat", horizon: "swing", trend: "down" } as const,
+    horizon: null,
+    volumeRatio: 0.5,
+    relStrength: 0,
+    analogs: null,
+    target: null,
+  };
+  const gated = decide(base({ ...bare, market: "US" }));
+  assert.equal(gated.action, "WAIT");
+  assert.equal(gated.gate, "short-unbacked");
+  assert.match(gated.why[1], /measured -0\.11R per unit risked/);
+
+  // The same row in a market where shorts measured positive prints, because there is nothing in
+  // the history to hold it back.
+  for (const market of ["Crypto", "PSX", "FX"] as const) {
+    const through = decide(base({ ...bare, market }));
+    assert.equal(through.action, "SHORT", market);
+    assert.equal(through.gate, "unconfirmed-short", market);
+  }
+});
+
+test("one confirmation is all the short gate asks for", () => {
+  // It is a gate on *unbacked* shorts, not a ban on US shorts. A single confirmation satisfies
+  // it, because the measurement is about shorts with nothing behind them.
+  const bare = {
+    market: "US" as const,
+    setup: { direction: "flat", horizon: "swing", trend: "down" } as const,
+    horizon: null,
+    relStrength: 0,
+    analogs: null,
+    target: null,
+  };
+  assert.equal(decide(base({ ...bare, volumeRatio: 0.5 })).action, "WAIT");
+  assert.equal(decide(base({ ...bare, volumeRatio: 2.4 })).action, "SHORT");
+});
+
+test("a late short is gated in every market, including the ones that measured positive", () => {
+  // The second half of the gate, and it is independent of the first. Shorts entered after a
+  // fall of more than 10% measured -0.10R where earlier ones measured +0.01R, over 59,187 and
+  // 44,761 observations, so this one applies wherever the name is listed.
+  const late = {
+    market: "Crypto" as const,
+    setup: { direction: "flat", horizon: "swing", trend: "down" } as const,
+    horizon: null,
+    volumeRatio: 0.5,
+    relStrength: 0,
+    analogs: null,
+    target: null,
+  };
+  assert.equal(decide(base({ ...late, r20: -4 })).action, "SHORT", "not late, prints");
+  const gated = decide(base({ ...late, r20: -18 }));
+  assert.equal(gated.action, "WAIT");
+  assert.match(gated.why[1], /already fallen 18\.0%/);
+
+  // Unmeasured is not late. A null r20 is a factor row the job has not reached, and treating it
+  // as a large fall would gate on an absence.
+  assert.equal(decide(base({ ...late, r20: null })).action, "SHORT");
+});
+
+test("longs are not gated, because longs measured positive everywhere", () => {
+  // The asymmetry is in the data, not in the table's opinion of the two sides.
+  const bare = {
+    market: "US" as const,
+    setup: { direction: "flat", horizon: "swing", trend: "up" } as const,
+    horizon: null,
+    volumeRatio: 0.5,
+    relStrength: 0,
+    analogs: null,
+    target: null,
+    r20: -18,
+  };
+  assert.equal(decide(base(bare)).action, "LONG");
+  assert.equal(decide(base(bare)).gate, "unconfirmed-long");
 });
 
 test("contradicting coverage no longer refuses a thin direction, it notes it", () => {

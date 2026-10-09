@@ -285,7 +285,7 @@ export interface DecisionBundle {
   /// distinguishable from a factor that was computed and came out low: the rules treat an absent
   /// reading as missing evidence rather than evidence against, which is the only reason adding
   /// these gates did not empty the lists.
-  factors: { volumeRatio: number | null; relStrength: number | null } | null;
+  factors: { volumeRatio: number | null; relStrength: number | null; r20?: number | null } | null;
   nextEvent: { date: Date | string } | null;
   /// From `getSourceHealth()`; only the newest row per source is expected.
   sourceHealth: { source: string; status: string }[];
@@ -379,6 +379,10 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
       : null,
     volumeRatio: bundle.factors?.volumeRatio ?? null,
     relStrength: bundle.factors?.relStrength ?? null,
+    // The asset's own 20-session return, for the short gate. Fifth field to cross this seam and
+    // the fifth to get a test for it: an optional field that is never named here is dropped
+    // silently, which has now happened four times.
+    r20: bundle.factors?.r20 ?? null,
     unusualMove: isUnusualMove(bundle.investigation),
     // A missing HumanSignal row means news was never checked for this name, which the rule table
     // reports differently from a row saying zero. Keep the null.
@@ -455,7 +459,7 @@ export interface QueryBundle {
   investigation: { robustZ: number | null; trigger: string } | null;
   nextEvent: { date: Date | string } | null;
   /// Newest `AssetFactor`, when the factor job has written one for this asset.
-  factor?: { volumeRatio: number | null; relStrength: number | null } | null;
+  factor?: { volumeRatio: number | null; relStrength: number | null; r20?: number | null } | null;
 }
 
 /// `sourceHealth` is passed in rather than fetched, because it is one site-wide read that every
@@ -505,7 +509,11 @@ export function bundleFromQuery(
       : null,
     nextEvent: row.nextEvent ? { date: row.nextEvent.date } : null,
     factors: row.factor
-      ? { volumeRatio: row.factor.volumeRatio, relStrength: row.factor.relStrength }
+      ? {
+          volumeRatio: row.factor.volumeRatio,
+          relStrength: row.factor.relStrength,
+          r20: row.factor.r20 ?? null,
+        }
       : null,
     sourceHealth,
   };
@@ -562,6 +570,8 @@ export interface QueryRow {
   analogPositive?: number | null;
   volumeRatio?: number | null;
   relStrength?: number | null;
+  /// This asset's own 20-session return, for the short gate.
+  r20?: number | null;
 }
 
 export function bundleFromRow(
@@ -608,7 +618,11 @@ export function bundleFromRow(
       factor:
         row.volumeRatio === undefined && row.relStrength === undefined
           ? null
-          : { volumeRatio: row.volumeRatio ?? null, relStrength: row.relStrength ?? null },
+          : {
+              volumeRatio: row.volumeRatio ?? null,
+              relStrength: row.relStrength ?? null,
+              r20: row.r20 ?? null,
+            },
     },
     sourceHealth,
   );
