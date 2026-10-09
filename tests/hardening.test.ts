@@ -36,6 +36,19 @@ import {
 } from "../lib/decision.ts";
 import { marketOf } from "../lib/decisionInput.ts";
 
+/// The stop a valid plan carries for whichever way the row points: below the close for a long,
+/// above it for a short. The fixtures used 94 for both, which gave every SHORT a stop below the
+/// price -- a plan already invalidated, and exactly the defect `stopCrossed` now refuses. Mirrored
+/// here rather than weakened there. An explicit `invalidation` in a test still overrides it.
+function stopFor(over: Partial<DecisionInput>): number {
+  const s = over.setup;
+  const down =
+    s?.direction === "down" ||
+    s?.trend === "down" ||
+    (s?.trend !== "up" && s?.bias === "down");
+  return down ? 106 : 94;
+}
+
 function base(over: Partial<DecisionInput> = {}): DecisionInput {
   return {
     symbol: "AAPL",
@@ -46,7 +59,7 @@ function base(over: Partial<DecisionInput> = {}): DecisionInput {
     setup: { direction: "up", horizon: "swing" },
     horizon: { direction: "up" },
     entry: { low: 98, high: 102 },
-    invalidation: 94,
+    invalidation: stopFor(over),
     target: { method: "structure", low: 108, high: 112, rewardRisk: 1.5 },
     analogs: { count: 12, lowPct: -3.2, highPct: 6.4, medianPct: 1.4, positive: 8 },
     volumeRatio: 1.8,

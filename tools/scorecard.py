@@ -180,6 +180,104 @@ def verdict_of(action, move, was_stopped):
     return "right" if (action == "LONG") == (move > 0) else "wrong"
 
 
+# --- what the log has learned, and what it is not allowed to conclude from it ------------------
+#
+# **This reports. It does not re-weight anything, and the reason is the design rather than caution.**
+#
+# The grade is a count of independent confirmations -- two or more is High, one is Medium, none is
+# Low -- so there are no weights to adjust, and inventing some in order to adjust them would add the
+# degrees of freedom an overfit needs. The thresholds the rule table does carry (the 1.2x volume
+# bar, the 0.55 analog share, the 1.5 sigma stop) were each argued from backtests of 100,000 to
+# 220,000 observations. A live log is hundreds of rows that are repeated observations of the same
+# few hundred names, so letting it move those numbers automatically would trade a measurement
+# with a large sample for one with a small, correlated one, on a loop that rewards whatever
+# happened last month. That is noise-chasing with a feedback path.
+#
+# What the log CAN do is say, per confirmation, whether the names it backed did better than the
+# names it did not, with an interval that is honest about how few independent names stand behind
+# it -- and say "not separable" until the intervals stop overlapping. A change to the rule table
+# is then a proposal with evidence attached, reviewed by a person, which is the same bar every
+# rule in brain.md was held to.
+
+def legs_of(row):
+    """The legs recorded on a row, or None when the row never recorded them.
+
+    None and an empty list are different findings and are kept apart: an empty list says a
+    direction was considered and nothing backed it, None says this row predates the column or
+    names no side. Treating the second as the first would count every old row as unconfirmed.
+    """
+    raw = row.get("legs")
+    if raw is None:
+        return None
+    return [part for part in raw.split(",") if part]
+
+
+def arm(items):
+    """(right, decided, distinct names) over `(row, verdict)` pairs. Only right and wrong count.
+
+    `flat` and `stopped` are excluded from the denominator and reported elsewhere, for the reason
+    the headline rate excludes them: they are not a call going the stated way or against it.
+    """
+    decided = [(r, v) for r, v in items if v in ("right", "wrong")]
+    right = sum(1 for _, v in decided if v == "right")
+    names = len({r["symbol"] for r, _ in decided})
+    return right, len(decided), names
+
+
+def interval_of(counts):
+    """(low, high, effective n) for an arm, or None when it holds nothing."""
+    right, decided, names = counts
+    if decided == 0:
+        return None
+    eff = effective_n(decided, names)
+    if eff == 0:
+        return None
+    low, high = wilson(round(right * eff / decided), eff)
+    return low, high, eff
+
+
+def lift_verdict(with_counts, without_counts):
+    """One sentence on whether a leg separates the names it backed from the ones it did not.
+
+    Both arms need MIN_SAMPLE effective observations before anything is said, and the intervals
+    must stop overlapping before it is called a difference. Overlap is the default answer for a
+    long time and that is the correct behaviour: it is what stops a lucky fortnight on a handful
+    of names from reading as a finding. Never says "apply".
+    """
+    a, b = interval_of(with_counts), interval_of(without_counts)
+    if a is None or b is None:
+        return "no matured rows on one side yet"
+    if a[2] < MIN_SAMPLE or b[2] < MIN_SAMPLE:
+        return f"too few independent names (need {MIN_SAMPLE} on each side)"
+    if a[0] > b[1]:
+        return "backed names did better and the intervals do not overlap: worth a person's review"
+    if a[1] < b[0]:
+        return "backed names did WORSE and the intervals do not overlap: worth a person's review"
+    return "not separable: the intervals overlap, so no change is proposed"
+
+
+def leg_report(items, leg_names):
+    """Lines for the per-leg comparison over directional `(row, verdict)` pairs."""
+    out = []
+    for leg in leg_names:
+        w = arm([(r, v) for r, v in items if legs_of(r) is not None and leg in legs_of(r)])
+        wo = arm([(r, v) for r, v in items if legs_of(r) is not None and leg not in legs_of(r)])
+        out.append((leg, w, wo, lift_verdict(w, wo)))
+    return out
+
+
+def fmt_arm(counts):
+    right, decided, names = counts
+    if decided == 0:
+        return "0 decided"
+    iv = interval_of(counts)
+    band = "" if iv is None else f" [{iv[0]:.0%}-{iv[1]:.0%}]"
+    return f"{right}/{decided} ({right / decided:.0%}){band} over {names} names"
+
+
+LEG_NAMES = ("timeframe", "volume", "history", "peers", "trigger")
+
+
 def main() -> int:
     window = 5
     if "--window" in sys.argv:
@@ -198,7 +296,7 @@ def main() -> int:
         f"""
         SELECT d.id, a.symbol, d.action, d.gate, d.confidence, d."periodEnd",
                d."baseClose", d.invalidation, d."{move_col}" AS move, d."{on_col}" AS measured_on,
-               d.status, d."assetId"
+               d.status, d."assetId", d.legs, d.intent
           FROM "DecisionLog" d JOIN "Asset" a ON a.id = d."assetId"
          WHERE d.action <> 'WAIT'
          ORDER BY d."periodEnd", a.symbol
@@ -213,6 +311,21 @@ def main() -> int:
     print(f"  window {window} session(s): {len(scored)} matured, {len(pending)} still pending")
     if rows:
         print(f"  logged from {rows[0]['periodEnd']} to {rows[-1]['periodEnd']}")
+
+    # What the learning loop has to work with, printed even when nothing has matured: it is the
+    # answer to "is this recording what it needs to", which is worth knowing on day one and not
+    # only on day twenty-one.
+    cur.execute(
+        """
+        SELECT gate, count(*) AS n, count(legs) AS with_legs, count(intent) AS with_intent,
+               count(*) FILTER (WHERE status <> 'open') AS matured
+          FROM "DecisionLog" GROUP BY gate ORDER BY n DESC
+        """
+    )
+    print("\n--- what the log holds, by gate")
+    print(f"    {'gate':20} {'rows':>6} {'legs':>6} {'intent':>7} {'matured':>8}")
+    for g in cur.fetchall():
+        print(f"    {g['gate']:20} {g['n']:>6} {g['with_legs']:>6} {g['with_intent']:>7} {g['matured']:>8}")
 
     if not scored:
         print(
@@ -259,6 +372,7 @@ def main() -> int:
 
     tally: Counter[str] = Counter()
     by_conf: dict[str, Counter[str]] = {}
+    items = []
     for r in scored:
         verdict = verdict_of(r["action"], r["move"], r["id"] in stopped)
         if verdict is None:
@@ -268,6 +382,7 @@ def main() -> int:
             # falls over on one odd row publishes nothing about the several hundred good ones.
             continue
         tally[verdict] += 1
+        items.append((r, verdict))
         by_conf.setdefault(r["confidence"], Counter())[verdict] += 1
 
     print(f"\n--- scored at {window} session(s), against the direction and the stop as stated")
@@ -321,6 +436,37 @@ def main() -> int:
                 print(f"      {conf:7} {c['right']}/{d} ({c['right']/d:.0%}){band}{flag}")
             else:
                 print(f"      {conf:7} {c['right']}/{d} — under the floor, no rate")
+
+    # Per confirmation: did the names it backed do better than the names it did not?
+    print(f"\n--- does each confirmation earn its place? (window {window}, directional rows only)")
+    print("    reported, never applied: the grade counts legs and has no weights to move,")
+    print("    and a change to the rule table is a proposal for a person to review.")
+    for leg, w, wo, verdict in leg_report(items, LEG_NAMES):
+        print(f"    {leg:10} with    {fmt_arm(w)}")
+        print(f"    {'':10} without {fmt_arm(wo)}")
+        print(f"    {'':10} -> {verdict}")
+
+    # The refusals, judged by what the refused side would have done. A refusal is a claim.
+    move_col, _ = WINDOWS[window]
+    cur.execute(
+        f"""
+        SELECT a.symbol, d.gate, d.intent, d."{move_col}" AS move
+          FROM "DecisionLog" d JOIN "Asset" a ON a.id = d."assetId"
+         WHERE d.action = 'WAIT' AND d.intent IS NOT NULL AND d."{move_col}" IS NOT NULL
+        """
+    )
+    refused = cur.fetchall()
+    print(f"\n--- were the refusals right? ({len(refused)} matured, window {window})")
+    print("    scored on the sign of the move alone: for a refused plan whose stop was already")
+    print("    crossed, 'stopped out' is true by construction and would say nothing.")
+    by_gate: dict[str, list] = {}
+    for r in refused:
+        side = "LONG" if r["intent"] == "up" else "SHORT"
+        by_gate.setdefault(r["gate"], []).append((r, verdict_of(side, r["move"], False)))
+    for gate, pairs in sorted(by_gate.items()):
+        counts = arm(pairs)
+        print(f"    {gate:16} the refused side went the stated way: {fmt_arm(counts)}")
+        print(f"    {'':16} (a refusal is right when this is at or below 50%)")
 
     conn.close()
     return 0

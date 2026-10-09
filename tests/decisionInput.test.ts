@@ -522,7 +522,9 @@ test("the longer row cannot be both the setup and its own confirmation", () => {
 
 /// The fixture is a PSX short; these tests need a clean long, on both horizons. Setting only the
 /// swing leaves the longer view opposed, which gate 5 correctly refuses.
-const UP = { state: "buy", entryLevel: 94, invalidateLevel: 100 };
+// A buy: entry above the close (the level a move has to clear) and the stop below it. It was
+// entry 94 and stop 100 against a close of 97, a LONG already below its own stop.
+const UP = { state: "buy", entryLevel: 100, invalidateLevel: 94 };
 
 // --- Factors reaching the rules ----------------------------------------------------------------
 //

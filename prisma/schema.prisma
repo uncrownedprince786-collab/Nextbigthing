@@ -1660,6 +1660,20 @@ model DecisionLog {
   /// The close the move is measured from.
   baseClose Float?
 
+  /// Which of the five confirmations backed the direction this row is about, as stable names in a
+  /// fixed order: "timeframe,volume,history,peers,trigger" or any subset. The empty string means
+  /// the direction was considered and nothing backed it; null means the row names no direction.
+  ///
+  /// Recorded because the log held the grade and the gate and not the legs, so nothing could ever
+  /// be learned about whether a leg earns its place. `tools/scorecard.py` compares matured
+  /// outcomes with and without each leg. They cannot be reconstructed afterwards: the factor,
+  /// setup and analog rows they were computed from are rewritten every night.
+  legs   String?
+  /// The side a refusal was refusing ("up" or "down"), on `stop-crossed` and `short-unbacked`;
+  /// null on a direction and on every WAIT that names no side. A refusal is a claim -- this was
+  /// not worth doing -- and the claim is only checkable if the refused side is known.
+  intent String?
+
   move1Pct     Float?
   measured1On  DateTime? @db.Date
   move5Pct     Float?

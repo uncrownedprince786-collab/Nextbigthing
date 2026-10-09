@@ -70,6 +70,9 @@ test("a measured direction is an action now, never a developing read", () => {
   const down = decide(
     input({
       setup: { direction: "flat", horizon: "swing", trend: "down" },
+      // Above the close: a short's stop. The fixture's 110 sits below 118.4, which for a short is
+      // a plan already invalidated and is refused before anything else is asked.
+      invalidation: 126,
       relStrength: -9,
     }),
   );
@@ -78,7 +81,9 @@ test("a measured direction is an action now, never a developing read", () => {
 
   // Without it, the gate holds it and still produces no developing read: the contract this file
   // pins is that a direction and a forming read are never both set, whichever way it goes.
-  const gated = decide(input({ setup: { direction: "flat", horizon: "swing", trend: "down" } }));
+  const gated = decide(
+    input({ setup: { direction: "flat", horizon: "swing", trend: "down" }, invalidation: 126 }),
+  );
   assert.equal(gated.action, "WAIT");
   assert.equal(gated.gate, "short-unbacked");
   assert.equal(gated.developing, null);

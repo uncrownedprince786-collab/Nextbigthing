@@ -554,6 +554,21 @@ export interface Decision {
   /// refusal invites it to be read as the trade. The developing read already names what is
   /// missing; the levels are in `entry` and `invalidation` for anyone who wants them.
   plan: TradePlan | null;
+  /// Which confirmations backed the direction, by name in `LEGS` order. Empty on every WAIT and on a
+  /// direction nothing backed -- the table prints those two differently by its action, not by this.
+  ///
+  /// The same list `DecisionLog.legs` records, so a name on a market page and the row the learning
+  /// loop scores are described by one computation rather than two.
+  legs: Leg[];
+  /// The direction this decision was about, when it is a refusal of one. Null on a direction and on
+  /// every WAIT that is not refusing a particular side.
+  ///
+  /// `stop-crossed` and `short-unbacked` are both "the trend reads this way and the plan is not
+  /// taken", and the gate name alone only says which way for the second. A refusal is a claim --
+  /// this was not worth doing -- and principle 7 says every claim is checked against what followed.
+  /// That needs the side that was refused, so `DecisionLog` can later score what it would have
+  /// done and say whether the refusal was right.
+  intent: "up" | "down" | null;
   /// A direction forming behind an incomplete set of conditions. Null unless that is the state.
   ///
   /// Only ever set alongside `action: "WAIT"`, and a reader must never see it as a verdict. It is
@@ -622,18 +637,37 @@ function timeSenseFor(input: DecisionInput, action: Action): TimeSense {
 /// in a negative market, and `DecisionLog` records the gate on every row — which is how the
 /// short-side margin gets settled by live outcomes rather than by this comment.
 function confirmationCount(input: DecisionInput, direction: "up" | "down"): number {
+  return confirmingLegs(input, direction).length;
+}
+
+/// Which of the five confirmations back this direction, by name, in a fixed order.
+///
+/// **The count and the list are the same computation.** `confirmationCount` is the length of this,
+/// so the grade, the short gate and `DecisionLog` cannot disagree about what backed a call -- the
+/// failure this file's "one count, two readers" comment warns about, with a third reader added.
+///
+/// It exists because the log recorded the grade and the gate and not the legs, so nothing could
+/// ever be learned about whether a leg earns its place. `tools/scorecard.py` compares matured
+/// outcomes with and without each leg, and that needs the names written down at decision time:
+/// recomputing them later from rows that have since been rewritten would answer a different
+/// question. The names are stable identifiers, not display text.
+export const LEGS = ["timeframe", "volume", "history", "peers", "trigger"] as const;
+export type Leg = (typeof LEGS)[number];
+
+export function confirmingLegs(input: DecisionInput, direction: "up" | "down"): Leg[] {
   const agrees = Boolean(
     input.setup && input.horizon && input.setup.direction === input.horizon.direction,
   );
   const historyConfirms =
     analogConfirms(input, direction) === true && !newsContradicts(input, direction);
-  return [
-    agrees,
-    volumeConfirms(input) === true,
-    historyConfirms,
-    peersConfirm(input, direction),
-    triggerConfirms(input, direction),
-  ].filter(Boolean).length;
+  const present: Record<Leg, boolean> = {
+    timeframe: agrees,
+    volume: volumeConfirms(input) === true,
+    history: historyConfirms,
+    peers: peersConfirm(input, direction),
+    trigger: triggerConfirms(input, direction),
+  };
+  return LEGS.filter((leg) => present[leg]);
 }
 
 function confidenceFor(input: DecisionInput, action: Action): Confidence {
@@ -1096,6 +1130,8 @@ function wait(
     basis,
     // No plan on a refusal. See `Decision.plan`.
     plan: null,
+    legs: [],
+    intent: null,
     developing,
   };
 }
@@ -1179,6 +1215,44 @@ function developingRead(input: DecisionInput): Developing | null {
     waitingOn,
     closeness: distances.length ? Math.max(...distances) : null,
   };
+}
+
+/// Has price already moved through this direction's own invalidation? The reason, or null.
+///
+/// **A stop is the level at which the reason for the trade has stopped being true.** A LONG whose
+/// stop sits at or above the current close is therefore a LONG whose reason is already gone, and
+/// the same is true mirrored for a SHORT. Printing it as an action is telling a reader to open a
+/// position whose protective order would trigger the moment it was placed.
+///
+/// Measured 2026-10-10 over the 404 directional decisions then live: **189 of them, 47%, were in
+/// exactly this state** -- 35 `trend-long`, 40 `trend-short`, 45 `unconfirmed-long`, 49
+/// `unconfirmed-short`, and 20 from the plain `long`/`short` gates. The cause is the geometry
+/// `jobs/setup.py` writes and not any one rule: the entry is the 20-session window extreme and the
+/// stop is 1.5 of the asset's daily moves from *that*, as the backtests behind it assumed ("entry
+/// at the window extreme with price already there"). A name sitting in a pullback is nowhere near
+/// its window extreme, so a stop measured from the extreme lands on the wrong side of the price it
+/// is actually at. AMAT read SHORT at 509.57 with a stop at 433.65.
+///
+/// It refuses rather than repairs. Re-anchoring the plan to the close would change the entry,
+/// stop, target and reward-to-risk of 189 names at once on the strength of a geometry the
+/// stored backtests only partly cover; refusing changes nothing that was true and removes only
+/// what was never valid. `DecisionLog` records every `stop-crossed`, which matures, so whether a
+/// crossed stop predicts anything is a question the loop can now answer instead of assume.
+///
+/// Equality counts as crossed: a stop exactly at the close is a plan with no distance to be
+/// wrong across, which has no reward-to-risk to speak of. A missing stop or close is not this
+/// gate's business -- gate 4 refused the first and gate 1 the second -- so it passes.
+function stopCrossed(input: DecisionInput, direction: "up" | "down"): string | null {
+  const stop = figure(input.invalidation);
+  const close = figure(input.lastClose);
+  if (stop === null || close === null) return null;
+  if (direction === "up" && stop >= close) {
+    return `Its stop is ${stop.toFixed(2)} and it last closed at ${close.toFixed(2)}, so it is already below the level a long needed to hold.`;
+  }
+  if (direction === "down" && stop <= close) {
+    return `Its stop is ${stop.toFixed(2)} and it last closed at ${close.toFixed(2)}, so it is already above the level a short needed to stay under.`;
+  }
+  return null;
 }
 
 /// Does this short need a confirmation before it prints, and why?
@@ -1276,12 +1350,28 @@ export function decide(input: DecisionInput): Decision {
     // lost money over 105,705 observations, is a position whose own history argues against it.
     // The name keeps its levels and its reasons on its own page; what it does not get is a
     // printed instruction to take the side.
+    // The stop must still be ahead of price. Checked first, because a plan whose own invalidation
+    // has already been crossed is not a weak plan, it is a finished one, and no amount of
+    // confirmation changes that. See `stopCrossed`.
+    const crossed = stopCrossed(input, dir);
+    if (crossed) {
+      return {
+        ...wait(input, "stop-crossed", "evidence", [
+          `The trend reads ${dir}, but price has already moved through the level that would prove it wrong.`,
+          crossed,
+        ], []),
+        intent: dir,
+      };
+    }
     const backing = dir === "down" ? shortNeedsBacking(input) : null;
     if (backing && confirmationCount(input, dir) === 0) {
-      return wait(input, "short-unbacked", "evidence", [
-        "The trend is down and nothing independent confirms it.",
-        backing,
-      ], []);
+      return {
+        ...wait(input, "short-unbacked", "evidence", [
+          "The trend is down and nothing independent confirms it.",
+          backing,
+        ], []),
+        intent: dir,
+      };
     }
     return {
       action,
@@ -1312,6 +1402,8 @@ export function decide(input: DecisionInput): Decision {
       plan: planFor(input, dir, invalidation),
       // A printed direction is not developing; it has arrived.
       developing: null,
+      legs: confirmingLegs(input, dir),
+      intent: null,
     };
   };
 

@@ -12,6 +12,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   decide,
+  confirmingLegs,
+  LEGS,
   type DecisionInput,
   STALE_AFTER_DAYS,
   ANALOG_SHARE_CONFIRMS,
@@ -20,6 +22,19 @@ import {
 
 /// A healthy LONG. Every test below starts from this and breaks exactly one thing, so the thing
 /// being tested is the only difference from a known-good answer.
+/// The stop a valid plan carries for whichever way the row points: below the close for a long,
+/// above it for a short. The fixtures used 94 for both, which gave every SHORT a stop below the
+/// price -- a plan already invalidated, and exactly the defect `stopCrossed` now refuses. Mirrored
+/// here rather than weakened there. An explicit `invalidation` in a test still overrides it.
+function stopFor(over: Partial<DecisionInput>): number {
+  const s = over.setup;
+  const down =
+    s?.direction === "down" ||
+    s?.trend === "down" ||
+    (s?.trend !== "up" && s?.bias === "down");
+  return down ? 106 : 94;
+}
+
 function base(over: Partial<DecisionInput> = {}): DecisionInput {
   return {
     symbol: "AAPL",
@@ -30,7 +45,7 @@ function base(over: Partial<DecisionInput> = {}): DecisionInput {
     setup: { direction: "up", horizon: "swing" },
     horizon: { direction: "up" },
     entry: { low: 98, high: 102 },
-    invalidation: 94,
+    invalidation: stopFor(over),
     // A measured target, so the healthy case carries a complete plan and the tests that break
     // one thing break it against a decision that had a reward figure to lose. 1.5x is
     // deliberately under `ASYMMETRY_CLEARS`: the base case must not silently qualify for a
@@ -1167,4 +1182,153 @@ test("the trigger clause sits last in the confirmation sentence", () => {
   const vol = d.why[2].indexOf("volume 2.4x");
   const trig = d.why[2].indexOf("five-session momentum");
   assert.ok(vol >= 0 && trig > vol, d.why[2]);
+});
+
+// --- plan validity: a stop that price has already moved through ---------------------------------
+//
+// Measured 2026-10-10: 189 of 404 live directional decisions, 47%, carried a stop on the wrong side
+// of the close. `jobs/setup.py` anchors the entry at the 20-session window extreme and measures the
+// stop from *that*, so a name in a pullback has a stop that price is already past. A stop is the
+// level at which the reason for the trade stops being true, so a crossed one is a finished plan.
+
+test("a long whose stop is at or above the close is refused, not graded", () => {
+  const crossed = decide(base({ lastClose: 100, invalidation: 104 }));
+  assert.equal(crossed.action, "WAIT");
+  assert.equal(crossed.gate, "stop-crossed");
+  assert.equal(crossed.basis, "evidence");
+  assert.match(crossed.why[1], /stop is 104\.00 and it last closed at 100\.00/);
+  assert.equal(crossed.plan, null);
+
+  // Exactly at the close is crossed too: a stop with no distance to be wrong across has no
+  // reward-to-risk to speak of, and "a close below it" is already true of a close that equals it.
+  assert.equal(decide(base({ lastClose: 100, invalidation: 100 })).gate, "stop-crossed");
+  // And one tick the right side of it is a plan.
+  assert.equal(decide(base({ lastClose: 100, invalidation: 99.99 })).action, "LONG");
+});
+
+test("a short whose stop is at or below the close is refused, mirrored", () => {
+  const down = { setup: { direction: "down", horizon: "swing" } as const, horizon: { direction: "down" } as const };
+  const crossed = decide(base({ ...down, lastClose: 100, invalidation: 96 }));
+  assert.equal(crossed.action, "WAIT");
+  assert.equal(crossed.gate, "stop-crossed");
+  assert.match(crossed.why[1], /already above the level a short needed to stay under/);
+  assert.equal(decide(base({ ...down, lastClose: 100, invalidation: 100 })).gate, "stop-crossed");
+  assert.equal(decide(base({ ...down, lastClose: 100, invalidation: 100.01 })).action, "SHORT");
+});
+
+test("the stop check runs before the short gate and before any confirmation counts", () => {
+  // A US short with nothing behind it would be `short-unbacked`; with a crossed stop it is
+  // `stop-crossed`, because the plan is finished whatever the history says. And a name with every
+  // confirmation present is refused all the same: confirmation grades a live plan, it does not
+  // revive a dead one.
+  const bare = {
+    market: "US" as const,
+    setup: { direction: "flat", horizon: "swing", trend: "down" } as const,
+    horizon: null,
+    volumeRatio: 0.5,
+    relStrength: 0,
+    analogs: null,
+    target: null,
+    lastClose: 100,
+    invalidation: 96,
+  };
+  assert.equal(decide(base(bare)).gate, "stop-crossed");
+  assert.equal(
+    decide(base({ ...bare, volumeRatio: 3, relStrength: -12, entryTrigger: { rule: "vol_flip", direction: "down" } })).gate,
+    "stop-crossed",
+  );
+});
+
+test("it covers all three ways a direction can be reached", () => {
+  // The direction builder is shared by a stated state, a withheld trend and a bias, and the check
+  // lives in the builder so none of them can print a crossed plan.
+  const stated = decide(base({ lastClose: 100, invalidation: 104 }));
+  const withheld = decide(
+    base({ setup: { direction: "flat", horizon: "swing", trend: "up" }, lastClose: 100, invalidation: 104 }),
+  );
+  const bias = decide(
+    base({
+      setup: { direction: "unknown", horizon: "swing", trend: "mixed", bias: "up" },
+      lastClose: 100,
+      invalidation: 104,
+    }),
+  );
+  for (const d of [stated, withheld, bias]) assert.equal(d.gate, "stop-crossed");
+});
+
+test("a missing or unreadable stop is not this gate's business", () => {
+  // Gate 4 refuses a missing stop and gate 1 a missing close; this gate must not invent a second
+  // reason for them, and a non-finite figure is unmeasured rather than crossed.
+  assert.equal(decide(base({ invalidation: null })).gate, "no-invalidation");
+  assert.notEqual(decide(base({ invalidation: Number.NaN })).gate, "stop-crossed");
+  assert.notEqual(decide(base({ lastClose: Number.POSITIVE_INFINITY })).gate, "stop-crossed");
+});
+
+
+// --- what the learning loop reads: which legs backed a call, and which side a refusal refused ---
+
+test("the legs are named in a fixed order, as identifiers a log can keep", () => {
+  assert.deepEqual([...LEGS], ["timeframe", "volume", "history", "peers", "trigger"]);
+  // Everything confirming at once: the full list, in `LEGS` order whatever order they were found in.
+  const all = base({
+    volumeRatio: 2.4,
+    relStrength: 12,
+    entryTrigger: { rule: "vol_flip", direction: "up" },
+  });
+  assert.deepEqual(confirmingLegs(all, "up"), ["timeframe", "volume", "history", "peers", "trigger"]);
+});
+
+test("a direction nothing backs has an empty list, which is a finding and not an absence", () => {
+  const bare = base({ ...{ horizon: null, volumeRatio: 0.5, relStrength: 0, analogs: null, target: null } });
+  assert.deepEqual(confirmingLegs(bare, "up"), []);
+});
+
+test("the legs name the side being asked about and no other", () => {
+  const input = base({ entryTrigger: { rule: "squeeze_break", direction: "down" }, relStrength: -12 });
+  assert.ok(confirmingLegs(input, "down").includes("trigger"));
+  assert.ok(confirmingLegs(input, "down").includes("peers"));
+  assert.ok(!confirmingLegs(input, "up").includes("trigger"));
+  assert.ok(!confirmingLegs(input, "up").includes("peers"));
+});
+
+test("the list and the grade are one computation, so they cannot disagree", () => {
+  // The grade is High at two legs, Medium at one, Low at none. Swept across the legs one at a time
+  // and in pairs, so a refactor that let the list and the count drift apart fails here.
+  const thin = { horizon: null, volumeRatio: 0.5, relStrength: 0, analogs: null, target: null } as const;
+  const one: Partial<DecisionInput>[] = [
+    { volumeRatio: 2.4 },
+    { relStrength: 12 },
+    { entryTrigger: { rule: "vol_flip", direction: "up" } },
+  ];
+  for (const over of one) {
+    const input = base({ ...thin, ...over });
+    assert.equal(confirmingLegs(input, "up").length, 1);
+    assert.equal(decide(input).confidence, "Medium");
+  }
+  const two = base({ ...thin, volumeRatio: 2.4, relStrength: 12 });
+  assert.equal(confirmingLegs(two, "up").length, 2);
+  assert.equal(decide(two).confidence, "High");
+});
+
+test("a refusal carries the side it refused, and a direction or a plain WAIT carries none", () => {
+  const crossed = decide(base({ lastClose: 100, invalidation: 104 }));
+  assert.equal(crossed.gate, "stop-crossed");
+  assert.equal(crossed.intent, "up");
+
+  const unbacked = decide(
+    base({
+      market: "US",
+      setup: { direction: "flat", horizon: "swing", trend: "down" },
+      horizon: null,
+      volumeRatio: 0.5,
+      relStrength: 0,
+      analogs: null,
+      target: null,
+    }),
+  );
+  assert.equal(unbacked.gate, "short-unbacked");
+  assert.equal(unbacked.intent, "down");
+
+  assert.equal(decide(base()).intent, null, "a printed direction names its side by its action");
+  assert.equal(decide(base({ asOf: null })).intent, null, "a data fault refuses no particular side");
 });

@@ -37,7 +37,7 @@ import fs from "node:fs";
 import { config as loadEnv } from "dotenv";
 import pg from "pg";
 
-import { decide } from "../lib/decision.ts";
+import { decide, confirmingLegs } from "../lib/decision.ts";
 import { bundleFromRow, toDecisionInput, todayISO } from "../lib/decisionInput.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -388,6 +388,20 @@ function decideAll(input, today) {
       rewardRisk: decision.plan?.rewardRisk ?? null,
       baseRateShare: decision.plan?.baseRate?.share ?? null,
       baseRateCount: decision.plan?.baseRate?.count ?? null,
+      // What the learning loop reads. `legs` names the confirmations that backed the direction
+      // this row is about, in a fixed order and as stable identifiers; `intent` is the side a
+      // refusal was refusing. Both are recorded at decision time because they cannot be
+      // reconstructed later: the rows they were computed from are rewritten every night.
+      //
+      // The direction is the decided one for a LONG or SHORT and the refused one for a
+      // `stop-crossed` or `short-unbacked`. Every other WAIT names no side, so it logs neither --
+      // null, not an empty string, because "no legs backed it" is a finding and "not applicable"
+      // is not, and a comma list cannot say which of the two it is.
+      legs: (() => {
+        const dir = decision.action === "LONG" ? "up" : decision.action === "SHORT" ? "down" : decision.intent;
+        return dir ? confirmingLegs(decisionInput, dir).join(",") : null;
+      })(),
+      intent: decision.intent,
     });
   }
   return out;
@@ -413,6 +427,10 @@ const CORE_COLUMNS = [
   "eventInDays", "baseClose",
 ];
 const SIZING_COLUMNS = ["rewardRisk", "baseRateShare", "baseRateCount"];
+/// The two the learning loop reads, added by 20261010150000_decision_legs. Optional for the same
+/// reason as the sizing columns, and independently of them: a database can have either group.
+const LEARNING_COLUMNS = ["legs", "intent"];
+const OPTIONAL_COLUMNS = [...SIZING_COLUMNS, ...LEARNING_COLUMNS];
 
 /// Which of `names` exist on `table` right now. Asked once per run, not once per batch.
 async function presentColumns(db, table, names) {
@@ -431,14 +449,13 @@ async function presentColumns(db, table, names) {
 /// row compare as unchanged and never be stored -- the one failure mode a skip clause has, and
 /// the kind that leaves no trace anywhere: no error, no row, and a log that silently keeps
 /// yesterday's verdict under today's date.
-function changingColumns(withSizing) {
-  return (withSizing ? [...CORE_COLUMNS, ...SIZING_COLUMNS] : CORE_COLUMNS).filter(
-    (c) => c !== "assetId" && c !== "periodEnd",
-  );
+function changingColumns(extra) {
+  return [...CORE_COLUMNS, ...extra].filter((c) => c !== "assetId" && c !== "periodEnd");
 }
 
-async function writeDecisions(client, decisions, today, withSizing) {
-  const columns = withSizing ? [...CORE_COLUMNS, ...SIZING_COLUMNS] : CORE_COLUMNS;
+/// `extra` is the optional columns this database actually has, in `OPTIONAL_COLUMNS` order.
+async function writeDecisions(client, decisions, today, extra) {
+  const columns = [...CORE_COLUMNS, ...extra];
   let written = 0;
   const failures = [];
 
@@ -452,26 +469,30 @@ async function writeDecisions(client, decisions, today, withSizing) {
         d.entryLow, d.entryHigh, d.invalidation, null, d.analogRefs,
         d.eventInDays, d.baseClose,
       );
-      if (withSizing) values.push(d.rewardRisk, d.baseRateShare, d.baseRateCount);
+      for (const c of extra) values.push(d[c]);
       const marks = columns.map((_, c) => `$${base + c + 1}`);
       marks[1] = `${marks[1]}::date`;
       return `(${marks.join(", ")})`;
     });
 
     const sql =
-      `INSERT INTO "DecisionLog" (${columns.map((c) => `"${c}"`).join(", ")})\n` +
-      `VALUES ${tuples.join(", ")}\n` +
-      `ON CONFLICT ("assetId", "periodEnd") DO UPDATE SET\n` +
-      `  action = EXCLUDED.action, gate = EXCLUDED.gate, confidence = EXCLUDED.confidence,\n` +
-      `  "entryLow" = EXCLUDED."entryLow", "entryHigh" = EXCLUDED."entryHigh",\n` +
-      `  invalidation = EXCLUDED.invalidation, "factorId" = EXCLUDED."factorId",\n` +
-      `  "analogRefs" = EXCLUDED."analogRefs", "eventInDays" = EXCLUDED."eventInDays",\n` +
+      `INSERT INTO "DecisionLog" (${columns.map((c) => `"${c}"`).join(", ")})
+` +
+      `VALUES ${tuples.join(", ")}
+` +
+      `ON CONFLICT ("assetId", "periodEnd") DO UPDATE SET
+` +
+      `  action = EXCLUDED.action, gate = EXCLUDED.gate, confidence = EXCLUDED.confidence,
+` +
+      `  "entryLow" = EXCLUDED."entryLow", "entryHigh" = EXCLUDED."entryHigh",
+` +
+      `  invalidation = EXCLUDED.invalidation, "factorId" = EXCLUDED."factorId",
+` +
+      `  "analogRefs" = EXCLUDED."analogRefs", "eventInDays" = EXCLUDED."eventInDays",
+` +
       `  "baseClose" = EXCLUDED."baseClose", "computedAt" = now()` +
-      (withSizing
-        ? `,\n  "rewardRisk" = EXCLUDED."rewardRisk",\n` +
-          `  "baseRateShare" = EXCLUDED."baseRateShare",\n` +
-          `  "baseRateCount" = EXCLUDED."baseRateCount"`
-        : "") +
+      extra.map((c) => `,
+  "${c}" = EXCLUDED."${c}"`).join("") +
       // Skip the write entirely when today's verdict is identical to the one already stored.
       //
       // Not about duplicate rows: the unique key already made those impossible, and this lane
@@ -490,9 +511,9 @@ async function writeDecisions(client, decisions, today, withSizing) {
       // band, no target, no dated event -- and `<>` against a null is null rather than true, so
       // a row that went from null to a number would compare as unchanged and never be written.
       `
-WHERE (${changingColumns(withSizing).map((c) => `"DecisionLog"."${c}"`).join(", ")})
+WHERE (${changingColumns(extra).map((c) => `"DecisionLog"."${c}"`).join(", ")})
 ` +
-      `   IS DISTINCT FROM (${changingColumns(withSizing).map((c) => `EXCLUDED."${c}"`).join(", ")})`;
+      `   IS DISTINCT FROM (${changingColumns(extra).map((c) => `EXCLUDED."${c}"`).join(", ")})`;
 
     // One batch, one transaction. A failed batch is rolled back and named; the batches that
     // already committed stay written, which is the whole point of batching.
@@ -780,15 +801,16 @@ async function main() {
           // lane and the data lanes are separate workflows on separate schedules, and this job
           // must keep writing its 477 rows through the window where the code is ahead of the
           // column. Reported in the summary so "no reward figures" never reads as "no rewards".
-          const sizing = await presentColumns(client, "DecisionLog", SIZING_COLUMNS);
-          const withSizing = SIZING_COLUMNS.every((c) => sizing.has(c));
-          if (!withSizing) {
+          const present = await presentColumns(client, "DecisionLog", OPTIONAL_COLUMNS);
+          const extra = OPTIONAL_COLUMNS.filter((c) => present.has(c));
+          const missing = OPTIONAL_COLUMNS.filter((c) => !present.has(c));
+          if (missing.length) {
             console.log(
-              '  "DecisionLog" has no sizing columns yet, so the reward and base rate are not ' +
-                "logged this run. Everything else is written as usual.",
+              `  "DecisionLog" has no ${missing.join(", ")} column(s) yet, so ${missing.length === 1 ? "it is" : "they are"} ` +
+                "not logged this run. Everything else is written as usual.",
             );
           }
-          const result = await writeDecisions(client, decisions, today, withSizing);
+          const result = await writeDecisions(client, decisions, today, extra);
           written = result.written;
           failures = [...maturation.failures, ...result.failures];
         } else {
