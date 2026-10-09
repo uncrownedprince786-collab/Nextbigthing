@@ -1,6 +1,7 @@
 import * as React from "react";
 import { targetMethodLabel, type TargetLike } from "@/lib/target";
 import { price, relativeTime } from "@/lib/format";
+import { CONFIDENCE_ORDER } from "@/lib/decision";
 import type { Action, Confidence, Decision, Market, TimeSense } from "@/lib/decision";
 import type { ProductDecision, WhereToCheck } from "@/lib/productDecision";
 import {
@@ -725,6 +726,108 @@ function bySector(rows: DecisionRow[]): { sector: string | null; rows: DecisionR
     .map((g) => ({ sector: g.sector, rows: g.rows }));
 }
 
+/// Rows past this many in one sector and the sector scrolls inside itself.
+///
+/// Below it a scrollbar would be noise: a four-row sector fits on any screen and capping it adds
+/// a scroll trap for no gain. Above it the sector is taller than a phone and the reader is
+/// scrolling a sector when they wanted to be scrolling the page. 10 is roughly a laptop screen's
+/// worth of table rows and well over a phone's, so the containers that engage are the ones that
+/// were actually making the page long.
+const SECTOR_SCROLL_AFTER = 10;
+
+/// The height a scrolling sector is held to, in viewport units.
+///
+/// Viewport-relative rather than a pixel count, because the thing it is trying to stay smaller
+/// than is the screen. 70vh leaves the sector heading, the page heading and some of the next
+/// sector visible on a phone, which is what stops a nested scroll feeling like a trap: a reader
+/// can always see something outside the box they are scrolling.
+const SECTOR_MAX_HEIGHT = "70vh";
+
+/// One block per sector, holding every direction in it, both ways round.
+///
+/// **Why both directions in one block.** Separate LONG and SHORT sections answered "what should I
+/// do" first and buried the sector; a reader watching Banking had to read two lists and join them
+/// in their head to see what the sector was doing. One block per sector answers "what is this
+/// group doing" in one place, and the action is still the first coloured thing in every row, so
+/// the directional question is a glance rather than a scroll.
+///
+/// Within a sector the longs come first and then the shorts, each best-evidenced first. Merging
+/// them into one confidence ranking was the other option and is worse: a reader scanning for one
+/// side would have to filter visually down the whole block, which is the work the two lists at
+/// least did for them.
+///
+/// Each sector past `SECTOR_SCROLL_AFTER` rows scrolls inside itself, so a 40-name sector is a
+/// box on the page rather than a page of its own. `aria-label` and `tabIndex` are on the scroller
+/// because a keyboard user has to be able to reach a scroll container that holds focusable links,
+/// and a div that scrolls without either is unreachable without a mouse.
+export function SectorBoard({
+  rows,
+  empty,
+  maxSectors,
+}: {
+  rows: DecisionRow[];
+  empty: React.ReactNode;
+  /// Show only this many sectors, for the overview where the block is a summary rather than the
+  /// index. Undefined shows every sector, which is right on a market page.
+  maxSectors?: number;
+}) {
+  if (!rows.length) return <Empty>{empty}</Empty>;
+
+  const order = { LONG: 0, SHORT: 1, WAIT: 2 } as const;
+  const all = bySector(rows).map((section) => ({
+    ...section,
+    rows: [...section.rows].sort(
+      (a, b) =>
+        order[a.action] - order[b.action] ||
+        CONFIDENCE_ORDER[a.confidence] - CONFIDENCE_ORDER[b.confidence] ||
+        a.symbol.localeCompare(b.symbol),
+    ),
+  }));
+  const shown = maxSectors === undefined ? all : all.slice(0, maxSectors);
+  const hiddenSectors = all.length - shown.length;
+
+  return (
+    <div className="space-y-4">
+      {shown.map((section) => {
+        const longs = section.rows.filter((r) => r.action === "LONG").length;
+        const shorts = section.rows.filter((r) => r.action === "SHORT").length;
+        const scrolls = section.rows.length > SECTOR_SCROLL_AFTER;
+        const label = section.sector ?? "Other";
+        return (
+          <div key={label} className="border-border overflow-hidden rounded-lg border">
+            <div className="border-border bg-muted/60 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b px-3 py-2">
+              <h3 className="text-sm font-medium">{label}</h3>
+              <p className="text-muted-foreground text-xs">
+                <span className="num">{section.rows.length}</span>
+                {" names · "}
+                <span className="num">{longs}</span> long{" · "}
+                <span className="num">{shorts}</span> short
+                {scrolls ? " · scrolls" : ""}
+              </p>
+            </div>
+            <div
+              className={scrolls ? "overflow-y-auto overscroll-contain" : undefined}
+              style={scrolls ? { maxHeight: SECTOR_MAX_HEIGHT } : undefined}
+              tabIndex={scrolls ? 0 : undefined}
+              role={scrolls ? "group" : undefined}
+              aria-label={scrolls ? `${label}, scrollable list of ${section.rows.length} names` : undefined}
+            >
+              <DecisionRows rows={section.rows} />
+            </div>
+          </div>
+        );
+      })}
+      {hiddenSectors > 0 ? (
+        <p className="text-muted-foreground text-sm">
+          {hiddenSectors} further {hiddenSectors === 1 ? "sector reads" : "sectors read"} the same
+          way with less evidence behind {hiddenSectors === 1 ? "it" : "them"}. Every one is on its
+          own market page, in this order.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 /// A home-page list of decisions.
 ///
 /// Not a `Table`. Seven columns is where the site's table scroller stops being enough: the useful
@@ -736,157 +839,180 @@ function bySector(rows: DecisionRow[]): { sector: string | null; rows: DecisionR
 ///
 /// The whole row is the link, so the tap target is the card rather than the name inside it, and
 /// there is nothing else interactive in a row to conflict with it.
+/// The shared column track, and the one breakpoint that decides whether this is a table or a
+/// stack of labelled cards.
+///
+/// Eight columns since the current price joined the row: name, market, action, price, zone, stop,
+/// target, confidence. The three level columns are given the same width as each other on purpose
+/// -- they are what a reader compares, and sizing one smaller would read as one of them mattering
+/// less.
+///
+/// Two breakpoints rather than one. Below `sm` each field is its own labelled line. From `sm` to
+/// `lg` the fields pair up two to a line, which is the shape a tablet has room for. The
+/// eight-column table starts at `lg`, where there is genuinely width for eight tracks -- at 640px
+/// a price track is about 70px and "Rs.1,201.22" does not fit in it.
+const DECISION_COLS =
+  "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,0.6fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)] lg:items-baseline lg:gap-y-0";
+
+/// The column header, shown only where the table layout is.
+///
+/// On a phone and a tablet each cell labels itself, so a header there would be eight words of
+/// duplication over every row.
+function DecisionHeader({ rounded = true }: { rounded?: boolean }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={`text-muted-foreground border-border bg-muted/60 hidden border px-3 py-2 text-xs lg:grid ${
+        rounded ? "rounded-t-lg" : "border-x-0 border-t-0"
+      } ${DECISION_COLS}`}
+    >
+      <span>Name</span>
+      <span>Market</span>
+      <span>Action</span>
+      <span>Current price</span>
+      <span>Entry zone</span>
+      <span>Stop loss</span>
+      <span>Take profit</span>
+      <span>Confidence</span>
+    </div>
+  );
+}
+
+/// The rows themselves, with no heading and no section chrome around them.
+///
+/// Extracted so `DecisionList` and `SectorBoard` render an identical row. Two copies of this
+/// markup is how the overview and a market page come to show the same name with different
+/// columns -- which is the fault rule 36 names, and this block is eight columns of chances to
+/// commit it.
+function DecisionRows({ rows }: { rows: DecisionRow[] }) {
+  return (
+    <ul className="space-y-2 lg:space-y-0">
+{rows.map((r) => {
+        const currency = r.currency ?? "USD";
+        return (
+          <li
+            key={r.symbol}
+            className="lg:border-border lg:border-x lg:border-b lg:last:rounded-b-lg"
+          >
+            <Card
+              href={`/asset/${encodeURIComponent(r.symbol)}`}
+              className={`${DECISION_COLS} lg:rounded-none lg:border-0 lg:px-3 lg:py-3`}
+            >
+              <span className="col-span-2 min-w-0 lg:col-span-1">
+                <span className={ROW_LABEL}>Name</span>
+                <span className="block text-sm font-medium">{r.name}</span>
+                <span className="text-muted-foreground num block text-micro">{r.symbol}</span>
+              </span>
+
+              <span className="min-w-0">
+                <span className={ROW_LABEL}>Market</span>
+                <span className="block text-sm">{r.market}</span>
+              </span>
+
+              <span className="min-w-0">
+                <span className={ROW_LABEL}>Action</span>
+                <span className="mt-0.5 flex flex-wrap items-center gap-1 lg:mt-0">
+                  <Pill tone={ACTION_TONE[r.action]}>{r.action}</Pill>
+                  {/* A dated event is a hazard on a row that says LONG, and the rule table
+                      already decided that by setting the time sense. Printed as its own word
+                      rather than a colour, because colour is not a reason. */}
+                  {r.timeSense === "CARE" ? <Pill tone="warn">CARE</Pill> : null}
+                </span>
+                {r.timeSense === "CARE" && r.eventNote ? (
+                  <span className="text-warn text-micro mt-0.5 block">{r.eventNote}</span>
+                ) : null}
+              </span>
+
+              <span className="min-w-0">
+                <span className={ROW_LABEL}>Current price</span>
+                <span
+                  className={
+                    r.priceNow !== null && r.priceNow !== undefined
+                      ? "num block text-sm font-medium"
+                      : "text-muted-foreground block text-sm"
+                  }
+                  title="The newest stored close, not a live quote."
+                >
+                  {r.priceNow !== null && r.priceNow !== undefined
+                    ? price(r.priceNow, currency)
+                    : "none stored"}
+                </span>
+              </span>
+
+              <span className="min-w-0">
+                <span className={ROW_LABEL}>Entry zone</span>
+                <span className="num block text-sm">
+                  {r.entry
+                    ? `${price(r.entry.low, currency)} to ${price(r.entry.high, currency)}`
+                    : "none stored"}
+                </span>
+              </span>
+
+              <span className="min-w-0">
+                <span className={ROW_LABEL}>Stop loss</span>
+                <span className="num block text-sm">
+                  {r.invalidation !== null ? price(r.invalidation, currency) : "none stored"}
+                </span>
+              </span>
+
+              {/* The other exit. A list that names only the level a reading is wrong at
+                  answers half the question, and the half it leaves out is the one a reader
+                  asks second. One measured method, never an average; a name whose job
+                  stored no target says so rather than being given one. */}
+              <span className="min-w-0">
+                <span className={ROW_LABEL}>Take profit</span>
+                <span
+                  className={r.target ? "num block text-sm" : "text-muted-foreground block text-sm"}
+                  title={
+                    r.target
+                      ? `Measured from ${targetMethodLabel(r.target.method)} — a measured level, not a promise.`
+                      : undefined
+                  }
+                >
+                  {r.target
+                    ? r.target.low === r.target.high
+                      ? price(r.target.low, currency)
+                      : `${price(r.target.low, currency)} to ${price(r.target.high, currency)}`
+                    : "none stored"}
+                </span>
+              </span>
+
+              <span className="min-w-0">
+                <span className={ROW_LABEL}>Confidence</span>
+                <span className="mt-0.5 block lg:mt-0">
+                  <ConfidenceBadge grade={r.confidence.toLowerCase()} />
+                </span>
+              </span>
+            </Card>
+          </li>
+        );
+      })}    </ul>
+  );
+}
+
 export function DecisionList({ title, lead, rows, empty, cap, grouped = false }: DecisionListProps) {
   const shown = cap === undefined ? rows : rows.slice(0, cap);
   const hidden = rows.length - shown.length;
   const sections = grouped ? bySector(shown) : [{ sector: null, rows: shown }];
-  // Eight columns since the current price joined the row: name, market, action, price, zone,
-  // stop, target, confidence. The three level columns are given the same width as each other on
-  // purpose -- they are what a reader compares, and sizing one smaller would read as one of them
-  // mattering less.
-  //
-  // Two breakpoints rather than one. Below `sm` each field is its own labelled line. From `sm` to
-  // `lg` the fields pair up two to a line, which is the shape a tablet has room for and a phone
-  // held sideways reads without zooming. The eight-column table starts at `lg`, where there is
-  // genuinely width for eight tracks -- at 640px a price track is about 70px and "Rs.1,201.22"
-  // does not fit in it.
-  const cols =
-    "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,0.6fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)] lg:items-baseline lg:gap-y-0";
 
   return (
     <Section title={title} lead={lead}>
       {rows.length ? (
         <>
-          {/* The header exists only where the row layout does. On a phone each cell labels
-              itself, so a header row there would be six words of duplication. */}
-          <div
-            aria-hidden="true"
-            className={`text-muted-foreground border-border bg-muted/60 hidden rounded-t-lg border px-3 py-2 text-xs lg:grid ${cols}`}
-          >
-            <span>Name</span>
-            <span>Market</span>
-            <span>Action</span>
-            <span>Current price</span>
-            <span>Entry zone</span>
-            <span>Stop loss</span>
-            <span>Take profit</span>
-            <span>Confidence</span>
-          </div>
+          <DecisionHeader />
           {sections.map((section) => (
-          <div key={section.sector ?? "all"}>
-            {/* The heading exists only when the list is grouped, and it carries its own count so
-                a reader scanning headings knows the size of each without expanding anything. It
-                is sticky on the table layout because a 40-row sector scrolls past its own title
-                otherwise, and the title is the thing that makes the rows mean something. */}
-            {section.sector ? (
-              <h3 className="bg-background/95 text-muted-foreground supports-[position:sticky]:lg:sticky supports-[position:sticky]:lg:top-0 z-10 mt-4 border-b px-1 pt-2 pb-1 text-xs font-medium first:mt-0">
-                {section.sector}{" "}
-                <span className="num">({section.rows.length})</span>
-              </h3>
-            ) : null}
-          <ul className="space-y-2 lg:space-y-0">
-            {section.rows.map((r) => {
-              const currency = r.currency ?? "USD";
-              return (
-                <li
-                  key={r.symbol}
-                  className="lg:border-border lg:border-x lg:border-b lg:last:rounded-b-lg"
-                >
-                  <Card
-                    href={`/asset/${encodeURIComponent(r.symbol)}`}
-                    className={`${cols} lg:rounded-none lg:border-0 lg:px-3 lg:py-3`}
-                  >
-                    <span className="col-span-2 min-w-0 lg:col-span-1">
-                      <span className={ROW_LABEL}>Name</span>
-                      <span className="block text-sm font-medium">{r.name}</span>
-                      <span className="text-muted-foreground num block text-micro">{r.symbol}</span>
-                    </span>
-
-                    <span className="min-w-0">
-                      <span className={ROW_LABEL}>Market</span>
-                      <span className="block text-sm">{r.market}</span>
-                    </span>
-
-                    <span className="min-w-0">
-                      <span className={ROW_LABEL}>Action</span>
-                      <span className="mt-0.5 flex flex-wrap items-center gap-1 lg:mt-0">
-                        <Pill tone={ACTION_TONE[r.action]}>{r.action}</Pill>
-                        {/* A dated event is a hazard on a row that says LONG, and the rule table
-                            already decided that by setting the time sense. Printed as its own word
-                            rather than a colour, because colour is not a reason. */}
-                        {r.timeSense === "CARE" ? <Pill tone="warn">CARE</Pill> : null}
-                      </span>
-                      {r.timeSense === "CARE" && r.eventNote ? (
-                        <span className="text-warn text-micro mt-0.5 block">{r.eventNote}</span>
-                      ) : null}
-                    </span>
-
-                    <span className="min-w-0">
-                      <span className={ROW_LABEL}>Current price</span>
-                      <span
-                        className={
-                          r.priceNow !== null && r.priceNow !== undefined
-                            ? "num block text-sm font-medium"
-                            : "text-muted-foreground block text-sm"
-                        }
-                        title="The newest stored close, not a live quote."
-                      >
-                        {r.priceNow !== null && r.priceNow !== undefined
-                          ? price(r.priceNow, currency)
-                          : "none stored"}
-                      </span>
-                    </span>
-
-                    <span className="min-w-0">
-                      <span className={ROW_LABEL}>Entry zone</span>
-                      <span className="num block text-sm">
-                        {r.entry
-                          ? `${price(r.entry.low, currency)} to ${price(r.entry.high, currency)}`
-                          : "none stored"}
-                      </span>
-                    </span>
-
-                    <span className="min-w-0">
-                      <span className={ROW_LABEL}>Stop loss</span>
-                      <span className="num block text-sm">
-                        {r.invalidation !== null ? price(r.invalidation, currency) : "none stored"}
-                      </span>
-                    </span>
-
-                    {/* The other exit. A list that names only the level a reading is wrong at
-                        answers half the question, and the half it leaves out is the one a reader
-                        asks second. One measured method, never an average; a name whose job
-                        stored no target says so rather than being given one. */}
-                    <span className="min-w-0">
-                      <span className={ROW_LABEL}>Take profit</span>
-                      <span
-                        className={r.target ? "num block text-sm" : "text-muted-foreground block text-sm"}
-                        title={
-                          r.target
-                            ? `Measured from ${targetMethodLabel(r.target.method)} — a measured level, not a promise.`
-                            : undefined
-                        }
-                      >
-                        {r.target
-                          ? r.target.low === r.target.high
-                            ? price(r.target.low, currency)
-                            : `${price(r.target.low, currency)} to ${price(r.target.high, currency)}`
-                          : "none stored"}
-                      </span>
-                    </span>
-
-                    <span className="min-w-0">
-                      <span className={ROW_LABEL}>Confidence</span>
-                      <span className="mt-0.5 block lg:mt-0">
-                        <ConfidenceBadge grade={r.confidence.toLowerCase()} />
-                      </span>
-                    </span>
-                  </Card>
-                </li>
-              );
-            })}
-          </ul>
-          </div>
+            <div key={section.sector ?? "all"}>
+              {/* The heading carries its own count so a reader scanning headings knows the size
+                  of each without expanding anything. Sticky on the table layout because a 40-row
+                  sector scrolls past its own title otherwise, and the title is the thing that
+                  makes the rows mean something. */}
+              {section.sector ? (
+                <h3 className="bg-background/95 text-muted-foreground supports-[position:sticky]:lg:sticky supports-[position:sticky]:lg:top-0 z-10 mt-4 border-b px-1 pt-2 pb-1 text-xs font-medium first:mt-0">
+                  {section.sector} <span className="num">({section.rows.length})</span>
+                </h3>
+              ) : null}
+              <DecisionRows rows={section.rows} />
+            </div>
           ))}
           {hidden > 0 ? (
             <p className="text-muted-foreground mt-3 text-sm">

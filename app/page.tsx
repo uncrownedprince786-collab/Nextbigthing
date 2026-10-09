@@ -39,7 +39,7 @@ import { TopByClass } from "@/components/topByClass";
 import { WeeklyFocusBlock } from "@/components/weeklyFocusBlock";
 import { ProductsCard } from "@/components/productsCard";
 import { EVENT_SOON_DAYS } from "@/lib/decision";
-import { DecisionList } from "@/components/decision";
+import { DecisionList, SectorBoard } from "@/components/decision";
 import { FilterChips } from "@/components/filters";
 import { describeFilters, readFilters, type FilterGroup } from "@/lib/filters";
 import { isoDate, money, price, pct, sizeLabel, toneClass } from "@/lib/format";
@@ -168,6 +168,14 @@ const DEVELOPING_SHOWN = 18;
 /// different rules rather than one -- and the order is `byOpportunity`, so what is hidden is
 /// always less well evidenced than what is shown, never more urgent.
 const LIST_SHOWN = 12;
+
+/// Sectors printed in the overview's sector block before the rest are counted.
+///
+/// The market pages print every sector because there the block *is* the index. Here it is a
+/// summary, and 41 sector cards would make the overview longer than the page it is summarising.
+/// Six is the same judgement `LIST_SHOWN` makes one block up: enough to see the shape of the
+/// day, ordered so what is cut is always less well evidenced than what is shown.
+const SECTORS_SHOWN = 6;
 
 const MARKET_NAME: Record<string, string> = {
   US: "United States listings",
@@ -378,6 +386,10 @@ export default async function Home({
 
   const longs = matching.filter((s) => s.decision.action === "LONG").sort(byConfidence);
   const shorts = matching.filter((s) => s.decision.action === "SHORT").sort(byConfidence);
+  // Both directions, in one list, for the sector block. Built from the same `matching` rows the
+  // two lists above use, so a filter narrows all three together and the overview cannot show a
+  // name in one block that it has filtered out of another.
+  const sectorRows = [...longs, ...shorts].map(toListRow);
   // A developing row is still a WAIT and is counted in neither of the two directional lists. It
   // is lifted out of the WAIT list rather than added beside it, because leaving it in both would
   // print the same asset twice with two different framings on one page.
@@ -512,6 +524,33 @@ export default async function Home({
             : "No asset reads SHORT today. Same rule as LONG, mirrored: a direction is only printed when a break level is stored."
         }
       />
+
+      {/* The same blocks the market pages are built from, in the same order, so a reader who
+          learned the overview has not got to learn a second layout when they click through.
+          
+          It is not a third copy of the two lists above: those answer "the best evidenced names
+          anywhere", ranked across every sector, and this answers "what is each group doing",
+          which is the question the two lists cannot be read for. Six sectors here against every
+          sector on a market page, for the reason `SECTORS_SHOWN` gives. */}
+      <Section
+        title="By sector"
+        lead={
+          `Both directions together, grouped the way the market pages group them. ` +
+          (sectorRows.length > 0
+            ? `Longs lead each block, then shorts, best evidenced first.`
+            : ``)
+        }
+      >
+        <SectorBoard
+          rows={sectorRows}
+          maxSectors={SECTORS_SHOWN}
+          empty={
+            Object.keys(current).length > 0
+              ? `No stored asset carries a direction under ${showing}. Clear the filters to see the rest.`
+              : "No asset carries a direction today, so there is no sector to group."
+          }
+        />
+      </Section>
 
       <Section
         title="Developing"

@@ -84,7 +84,11 @@ test("the eight-column table starts at lg, not at sm", () => {
 
   // The per-cell labels and the header are the two halves that must not be on screen together.
   assert.match(decision, /const ROW_LABEL = "[^"]*lg:hidden"/);
-  assert.match(decision, /text-xs lg:grid \$\{cols\}/);
+  assert.match(decision, /text-xs lg:grid \$\{/, "the header must only grid at lg");
+
+  // One track definition, used by the header and by every row. Two copies is how the overview
+  // and a market page come to show the same name under different columns.
+  assert.equal((decision.match(/grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4/g) ?? []).length, 1);
 });
 
 test("a sector heading never reorders the rows inside it", () => {
@@ -99,4 +103,29 @@ test("a sector heading never reorders the rows inside it", () => {
   assert.equal((body.match(/\.sort\(/g) ?? []).length, 1);
   assert.match(body, /groups\.values\(\)\]\s*\n?\s*\.sort\(/);
   assert.doesNotMatch(body, /rows\.sort\(/);
+});
+
+test("only a sector big enough to be a problem gets a scroll container", () => {
+  // A nested scroll box is a cost: it traps a gesture and hides its own content behind a
+  // scrollbar. It earns that cost on a 40-row sector and not on a four-row one, so the
+  // container is conditional and the threshold is a named constant rather than a literal
+  // somewhere in the markup.
+  assert.match(decision, /const SECTOR_SCROLL_AFTER = \d+;/);
+  assert.match(decision, /const scrolls = section\.rows\.length > SECTOR_SCROLL_AFTER;/);
+  assert.match(
+    decision,
+    /className=\{scrolls \? "overflow-y-auto overscroll-contain" : undefined\}/,
+    "the scroll container must be conditional, and must not chain its scroll to the page",
+  );
+
+  // Viewport-relative, because the thing it is staying smaller than is the screen. A pixel
+  // height that fits a laptop fills a phone.
+  assert.match(decision, /const SECTOR_MAX_HEIGHT = "\d+vh";/);
+});
+
+test("a scrolling sector is reachable without a mouse", () => {
+  // A div that scrolls and holds focusable links is unreachable by keyboard unless it is
+  // focusable itself, and unannounced unless it is labelled.
+  assert.match(decision, /tabIndex=\{scrolls \? 0 : undefined\}/);
+  assert.match(decision, /aria-label=\{scrolls \?/);
 });

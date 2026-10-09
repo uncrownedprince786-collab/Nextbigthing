@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Empty, Section } from "@/components/ui";
-import { DecisionList } from "@/components/decision";
+import { DecisionList, SectorBoard } from "@/components/decision";
 import { cachedDecisionRows, cachedSourceHealth } from "@/lib/cached";
 import { todayISO } from "@/lib/decisionInput";
 import { isoDate } from "@/lib/format";
@@ -82,39 +82,31 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
         </Section>
       ) : (
         <>
-          {/* Grouped, because this page is the index and 158 names in one column is a wall.
-              The sector headings are the structure a reader navigates by; the order inside each
-              one is still best-evidenced first, which is the order the list was sorted in. */}
-          <DecisionList
-            grouped
-            title={`Long (${longs.length})`}
-            lead="Setup is up and the longer view does not disagree. The stop is the level the reading is wrong at."
-            rows={longs.map(toListRow)}
-            empty={
-              <>
-                Nothing in this class reads long today. That is an answer, not a missing one: the
-                rules looked and found no name whose trend and confirmations agree.
-              </>
-            }
-          />
+          {/* One block per sector, holding both directions.
+              
+              Two detached Long and Short sections answered "what should I do" first and buried
+              the sector: a reader watching Banking had to read two lists and join them in their
+              head. The action is still the first coloured thing in every row, so the directional
+              question is a glance; what changes is that the sector is now a thing you can look
+              at. Longs lead inside each block, then shorts, each best-evidenced first.
+              
+              Sectors past ten rows scroll inside themselves, so a 40-name sector is a box on the
+              page rather than a page of its own. */}
+          <Section
+            title={`Directions (${longs.length + shorts.length})`}
+            lead={`${longs.length} long and ${shorts.length} short, grouped by sector. Each block is best-evidenced first within its direction; the stop is the level the reading is wrong at.`}
+          >
+            <SectorBoard
+              rows={[...longs, ...shorts].map(toListRow)}
+              empty={
+                <>
+                  Nothing in this class carries a direction today. That is an answer rather than a
+                  missing one: the rules refuse a direction without a level to be wrong at.
+                </>
+              }
+            />
+          </Section>
 
-          <DecisionList
-            grouped
-            title={`Short (${shorts.length})`}
-            lead="Setup is down and the longer view does not disagree."
-            rows={shorts.map(toListRow)}
-            empty={<>Nothing in this class reads short today.</>}
-          />
-
-          {/* Between the directions and the waiting list, because that is where it belongs in the
-              reader's order: something to act on, something to watch, and then the index. Open
-              rather than collapsed -- this is the half of the old waiting list that was worth
-              reading, and burying it again under a summary would be the fault this split exists
-              to fix.
-
-              The lead names the one thing that separates these rows from the two lists above:
-              the direction is measured and the confirmations are not all there. The shortfall
-              itself, with its own stored value, is on each name's page under Details. */}
           {/* Rendered only when it has rows, which after 2026-10-09 is almost never: every
               measured direction now prints as an action, so `Decision.developing` is set at a
               gate nothing reaches. The block is kept rather than deleted because the rule behind
