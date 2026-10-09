@@ -46,22 +46,18 @@ test("every gate that lacks a measurement reports file", () => {
   assert.equal(decide(input({ asOf: "2026-09-01" })).basis, "file");
 });
 
-test("every gate that holds a measurement which does not confirm reports evidence", () => {
-  const mixed = decide(
+test("the one gate that holds a measurement and still refuses reports evidence", () => {
+  // `mixed-horizons` and `peers-against` both used to live here and are notes now. What is left
+  // is the fall-through over a setup row that was read and came back with no side: the job
+  // looked, and found price between its own averages with neither of them far enough from the
+  // other to name one. Something was judged and the answer was no.
+  const fellThrough = decide(
     input({
-      setup: { direction: "up", horizon: "swing", trend: null },
-      horizon: { direction: "down" },
+      setup: { direction: "flat", horizon: "swing", trend: "mixed", bias: "mixed" },
+      horizon: null,
     }),
   );
-  assert.equal(mixed.gate, "mixed-horizons");
-  assert.equal(mixed.basis, "evidence");
-
-  // The fall-through over a measured setup is the other one. `peers-against` used to be here and
-  // is no longer a gate at all -- it is a note on the direction, and a note has no basis because
-  // nothing was withheld. See `notes` in lib/decision.ts.
-  const fellThrough = decide(
-    input({ setup: { direction: "flat", horizon: "swing", trend: null }, horizon: null }),
-  );
+  assert.equal(fellThrough.action, "WAIT");
   assert.equal(fellThrough.gate, "incomplete");
   assert.equal(fellThrough.basis, "evidence");
 });
@@ -117,15 +113,18 @@ test("the fall-through with a stored setup is evidence, and keeps its wording", 
   assert.match(measured.why.join(" "), /between its own averages/);
 });
 
-test("a withheld direction is evidence, never a missing file", () => {
+test("a withheld direction no longer reaches a basis at all, because it acts", () => {
   // `setup.py` writes `wait` when the trend is clear and the conditions behind it are not all
-  // present. That is a measurement that came back negative, and the most likely row to be
-  // mislabelled because the reader sees the same grey WAIT.
+  // present. That used to be the row most likely to be mislabelled, because the reader saw the
+  // same grey WAIT as a dead feed. It is not a WAIT any more: the direction prints, `basis` is
+  // null because nothing was withheld, and how little backs it is in the gate and the grade.
   const withheld = decide(
     input({ setup: { direction: "flat", horizon: "swing", trend: "up" }, volumeRatio: 0.4 }),
   );
-  assert.equal(withheld.gate, "incomplete");
-  assert.equal(withheld.basis, "evidence");
+  assert.equal(withheld.action, "LONG");
+  assert.equal(withheld.gate, "unconfirmed-long");
+  assert.equal(withheld.basis, null);
+  assert.equal(withheld.confidence, "Low");
 });
 
 test("a direction carries no basis at all", () => {

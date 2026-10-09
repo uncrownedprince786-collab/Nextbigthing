@@ -1182,3 +1182,69 @@ reads rows that already exist:
     asserted on a literal source line, so when that line was rewritten the test was rewritten with
     it rather than failing. A guard that is edited by the change it guards against is not a guard,
     which is why those assertions are now calls into `stop_level` and `aimed_at`.
+
+50. **Every measured direction now prints, and `confidence` is the only thing left holding the
+    distinction a gate used to hold.**
+    The carrier requirement was the last filter. Gate 8 asked for one of three stored figures --
+    volume at or above its own average, a peer gap wide enough for the market, a reward at
+    `ASYMMETRY_CLEARS` -- before it would act on a direction whose other conditions were
+    incomplete. Measured 2026-10-09: **176 of the 187 refused names had a measured direction, an
+    entry and a stop**, and were held back only because none of the three was present.
+
+    The argument for the carrier was that such a direction should not print as an action. The
+    argument that beat it: `confidence` already said exactly that, with more resolution than a
+    gate can. **A gate is one bit** -- acted on, or not. The grade counts four independent
+    confirmations and reports none as Low, one as Medium, two or more as High. So a carrier-less
+    direction was already distinguished from a confirmed one by the field built to distinguish
+    them, and the gate was the same judgement made twice, the second time by deletion.
+
+    Three other refusals went with it, each demoted to the thing it always was:
+
+    - **Mixed horizons** is a note. A swing read and a quarterly read measure different windows
+      and answer different questions, which is the sentence the horizons block on every asset page
+      has always carried; refusing both because they differ withheld the nearer one on the
+      strength of the further one. It still costs a grade, because there is no agreeing second
+      timeframe to count.
+    - **Contradicting coverage** keeps all of rule 44's substance -- the matched past days stop
+      counting, the grade falls, the contradiction prints -- and stops deleting the direction.
+    - **The asymmetric-reward bypass** is gone as a concept, because there is no longer a refusal
+      for it to bypass. `ASYMMETRY_CLEARS` now only marks a gate name.
+
+        action      before   after
+        LONG           112      166
+        SHORT          178      301
+        WAIT           187       10
+
+    **What stayed, and why those are not caution.** 2 names have no stored invalidation, so there
+    is no price at which being wrong is known -- the one output this table must never print. 8
+    have no measured direction at all: a mixed trend with the two averages inside `BIAS_MIN_GAP`
+    of each other, where a side would be this file's choice rather than a measurement.
+
+    **What makes this defensible rather than reckless is that it is measurable.** The thin calls
+    are written to `DecisionLog` as `unconfirmed-long` and `unconfirmed-short` -- 170 of today's
+    467 -- beside `trend-long` and `long`, and the table matures at +1, +5 and +20 sessions.
+    Within weeks, grouping those gates by outcome answers whether an unconfirmed direction is
+    worth printing. Letting a thinner case through is only defensible because the loop that judges
+    it was built first. Principle 7.
+
+    **The one thing that was asked for and not done: the Low grade stays.** It is the count of how
+    many independent things agree, and deleting the word does not change the count -- it removes
+    the reader's only way to tell a four-confirmation call from a none. 129 of today's 467 calls
+    are Low. With real money that label is the most valuable text on the card, and it is the one
+    piece of this engine whose removal would cost something that no later measurement could
+    recover.
+
+    **Consequence to clean up if this policy holds.** `developingRead`, `Decision.developing`,
+    `byCloseness`, the overview's developing block and the class pages' Forming list are now
+    unreachable: everything that could produce a developing read produces a direction instead. The
+    code is kept because the rule behind it is sound and this is a policy, not a measurement --
+    but built-and-unused is this repository's recurring fault, and if every direction still prints
+    a month from now, all of it should go.
+
+    **And the warning that outranks the change.** 301 of 467 calls are shorts. The backtest in
+    rule 48 measured mean expectancy on the short side as **negative at every stop width but the
+    two tightest**, over 104,336 setups, where the long side is positive everywhere. This pass
+    did not make that better; it increased exposure to it by 123 names. The geometry of every one
+    is correct and the evidence behind each is published on its card. Whether the short side
+    should be issued at all remains the open question, and `DecisionLog` is now the only thing
+    that will answer it.

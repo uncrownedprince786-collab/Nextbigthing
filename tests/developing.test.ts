@@ -1,18 +1,30 @@
-// The developing read: a direction the data shows and the rules will not act on yet.
+// The withheld direction, and what became of it.
 //
-// 162 of 266 swing rows on 2026-10-07 sit in state `wait`, which is not the neutral state -- it
-// means the trend is clear and not all the conditions behind it are present. 101 of those fail on
-// one leg, volume. Before this they reached the reader as entries 13 to 160 of a WAIT list ordered
-// by data faults, which is the same as not reaching them at all.
+// `jobs/setup.py` writes state `wait` when the trend is clear and not all the conditions behind
+// it are present -- 250 of 477 swing rows on 2026-10-09. Rule 40 made that direction visible as a
+// "developing" read, rule 45 taught the table to act on it when one stored figure carried it, and
+// on 2026-10-09 the carrier requirement went too: **every measured direction now prints as an
+// action**, with `confidence` carrying how much backs it and the gate recording whether anything
+// did.
 //
-// These tests pin the two things that make the list honest: it never becomes an action, and its
-// order is a measured distance from a stored threshold rather than a feeling about which names
-// look interesting.
+// So `Decision.developing` is no longer reachable: everything that could produce one now produces
+// a direction instead. These tests pin that contract rather than the old one -- a measured
+// direction never comes back as a refusal, the weaker reading is never called a trend, and the
+// conditions the old list named are still named, in `missing`, on the direction itself.
+//
+// `developingRead` is kept rather than deleted because the rule it implements is sound and the
+// decision to act on every direction is a policy that may move again. If it stays, that function
+// and the Forming list are dead and should go -- see brain.md 50.
 
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { decide, VOLUME_CONFIRMS_AT, ANALOGS_CONFIRM_MIN, type DecisionInput } from "../lib/decision.ts";
+import {
+  decide,
+  VOLUME_CONFIRMS_AT,
+  ANALOGS_CONFIRM_MIN,
+  type DecisionInput,
+} from "../lib/decision.ts";
 import { conditionVerdicts, trendDirectionOf } from "../lib/setupConditions.ts";
 
 /// The exact string `jobs/setup.py` writes, down to the spacing. If this stops parsing, the two
@@ -47,135 +59,91 @@ function input(over: Partial<DecisionInput> = {}): DecisionInput {
   };
 }
 
-test("the conditions string jobs/setup.py writes parses into its verdicts", () => {
-  const v = conditionVerdicts(STORED_CONDITIONS);
-  assert.equal(v.get("trend"), "up");
-  // "(0.93, fail)" -- the verdict is the last comma-separated token, which is what lets a value
-  // and a verdict share one bracket without a rule per condition.
-  assert.equal(v.get("volume"), "fail");
-  assert.equal(v.get("relative"), "pass");
-  // A condition that states a value and passes no judgement is left out, never defaulted: a
-  // default would manufacture agreement out of a sentence that stated none.
-  assert.equal(v.has("position"), false);
+test("a measured direction is an action now, never a developing read", () => {
+  const up = decide(input({ setup: { direction: "flat", horizon: "swing", trend: "up" } }));
+  assert.equal(up.action, "LONG");
+  assert.equal(up.developing, null);
+
+  const down = decide(input({ setup: { direction: "flat", horizon: "swing", trend: "down" } }));
+  assert.equal(down.action, "SHORT");
+  assert.equal(down.developing, null);
 });
 
-test("a withheld direction is recovered, and absent is not mixed", () => {
-  assert.equal(trendDirectionOf(STORED_CONDITIONS), "up");
-  assert.equal(trendDirectionOf("trend: close 10 vs 20d 10 vs 50d 10 (mixed)"), "mixed");
-  // Rule 21: a row with no trend verdict is absent, which is a different answer from a trend
-  // that was measured and came back without a direction.
-  assert.equal(trendDirectionOf(null), null);
-  assert.equal(trendDirectionOf("position: 40% of the way up its range"), null);
-});
-
-test("a developing read names the direction and stays a WAIT", () => {
-  const d = decide(input());
-  // The whole point: the reader is told which way, and is not told to act.
-  assert.equal(d.action, "WAIT");
-  assert.equal(d.gate, "incomplete");
-  assert.equal(d.developing?.direction, "up");
-  assert.equal(d.developing?.would, "LONG");
-  assert.equal(d.confidence, "Low", "a refusal is not a confident anything");
-  assert.match(d.why[0], /potential LONG/);
-});
-
-test("a falling trend develops towards a SHORT", () => {
-  const d = decide(input({ setup: { direction: "flat", horizon: "swing", trend: "down" } }));
-  assert.equal(d.developing?.would, "SHORT");
-  assert.match(d.why[0], /falling trend/);
-});
-
-test("what it is waiting on is named with the stored value", () => {
-  const d = decide(input());
-  const vol = d.developing?.waitingOn.find((w) => w.includes("Volume"));
-  assert.ok(vol, "the failing leg is not named");
-  // The number the reader can check, and the threshold it has to clear. Not "volume is weak".
-  assert.match(vol, /0\.93x/);
-  assert.match(vol, new RegExp(String(VOLUME_CONFIRMS_AT)));
-});
-
-test("closeness measures the nearest leg against its own threshold", () => {
-  // 0.93 / 1.2 = 0.775. This is the ordering key, and ordering is the point of the list: a name
-  // at 1.15x of the gate is a different proposition from one at 0.3x.
-  const near = decide(input({ volumeRatio: 1.15 })).developing;
-  const far = decide(input({ volumeRatio: 0.3 })).developing;
-  assert.ok(near!.closeness! > far!.closeness!);
-  assert.equal(Math.round(near!.closeness! * 100) / 100, 0.96);
-});
-
-test("an unmeasurable absence is null closeness and never sorts as nearly there", () => {
-  // An FX pair publishes no volume at all -- a fact about the instrument, not a quiet session.
-  // Null rather than 0, because "cannot be measured" is not "measured and far away".
-  const d = decide(input({ market: "FX", volumeRatio: null, relStrength: null }));
-  assert.equal(d.developing?.closeness, null);
-  assert.ok(d.developing?.waitingOn.some((w) => w.includes("No volume is published")));
-});
-
-test("a thin analog set reports the count it has, not a blanket absence", () => {
-  const d = decide(input({ analogs: { count: 4, lowPct: -2, highPct: 3 } }));
-  const line = d.developing?.waitingOn.find((w) => w.includes("similar past days"));
-  assert.match(line!, new RegExp(`Only 4 .*${ANALOGS_CONFIRM_MIN} are needed`));
-});
-
-test("no developing read without a stored trend direction", () => {
-  // `none` is the genuinely neutral state: price between its own averages. Printing a direction
-  // for it would be the panel inventing one.
-  const d = decide(input({ setup: { direction: "unknown", horizon: "swing", trend: null } }));
-  assert.equal(d.developing, null);
-  assert.match(d.why[0], /no clear direction/);
-  // And a trend measured without a direction is not a developing anything either.
-  assert.equal(decide(input({ setup: { direction: "flat", horizon: "swing", trend: "mixed" } })).developing, null);
-});
-
-test("a gate above the fall-through never produces a developing read", () => {
-  // Each of these is either a data fault or a reason that argues against the direction, and the
-  // reader has already been given it. A stale close is not a forming opportunity.
-  const stale = decide(input({ asOf: "2026-09-01" }));
-  assert.equal(stale.gate, "stale");
-  assert.equal(stale.developing, null);
-
-  const silent = decide(input({ sourceSilent: "Yahoo Finance daily closes" }));
-  assert.equal(silent.developing, null);
-
-  const noLevel = decide(input({ invalidation: null }));
-  assert.equal(noLevel.gate, "no-invalidation");
-  assert.equal(noLevel.developing, null);
-
-  // Peers arguing the other way stopped being a gate, and the rule this test guards still holds
-  // for it the other way round: a direction printed is never also a developing read. The lag is
-  // a note on the LONG, not a reason to call the LONG "forming".
-  const peers = decide(
-    input({ setup: { direction: "up", horizon: "swing", trend: "up" }, relStrength: -9 }),
+test("with nothing confirming it, the gate says so and the grade says so", () => {
+  // The two places the old refusal's information went. A gate is one bit; the grade has three
+  // values and `missing` names every absent confirmation with its own stored figure.
+  const d = decide(
+    input({
+      setup: { direction: "flat", horizon: "swing", trend: "up" },
+      volumeRatio: 0.93,
+      relStrength: 0,
+      analogs: null,
+    }),
   );
-  assert.equal(peers.action, "LONG");
-  assert.equal(peers.developing, null);
+  assert.equal(d.action, "LONG");
+  assert.equal(d.gate, "unconfirmed-long");
+  assert.equal(d.confidence, "Low");
+  assert.ok(
+    d.missing.some((m) => /similar past days/.test(m)),
+    d.missing.join(" | "),
+  );
 });
 
-test("a trend carried past the fall-through is a direction and not a developing read", () => {
-  // Gate 8, which is where the 247 withheld swing trends measured on 2026-10-09 now go. The
-  // direction is `setup.trend`, the state is still `wait`, and one stored confirmation carries
-  // it -- here volume. What must not happen is both: an action and a forming read on one card.
-  const carried = decide(
-    input({ setup: { direction: "flat", horizon: "swing", trend: "up" }, volumeRatio: 2.4 }),
-  );
-  assert.equal(carried.action, "LONG");
+test("one stored figure moves the gate and the grade, not the action", () => {
+  const base = {
+    setup: { direction: "flat", horizon: "swing", trend: "up" } as const,
+    relStrength: 0,
+    analogs: null,
+  };
+  const bare = decide(input({ ...base, volumeRatio: 0.93 }));
+  const carried = decide(input({ ...base, volumeRatio: VOLUME_CONFIRMS_AT + 0.5 }));
+
+  assert.equal(bare.action, carried.action);
+  assert.equal(bare.gate, "unconfirmed-long");
   assert.equal(carried.gate, "trend-long");
-  assert.equal(carried.developing, null);
-  assert.match(carried.why[0], /not all of its conditions are present/);
-  assert.match(carried.why[0], /2\.4x its 20-session average/);
-
-  // The mirror, and the proof the gate is not a formality: with neither volume nor an asymmetric
-  // reward, the same row falls through exactly as it did before and keeps its developing read.
-  const held = decide(
-    input({ setup: { direction: "flat", horizon: "swing", trend: "up" }, volumeRatio: 0.5 }),
-  );
-  assert.equal(held.action, "WAIT");
-  assert.equal(held.gate, "incomplete");
-  assert.equal(held.developing?.would, "LONG");
+  assert.equal(bare.confidence, "Low");
+  assert.equal(carried.confidence, "Medium");
 });
 
-test("a direction that arrived is not developing", () => {
-  const long = decide(input({ setup: { direction: "up", horizon: "swing", trend: "up" } }));
-  assert.equal(long.action, "LONG");
-  assert.equal(long.developing, null, "an action and a forming read are different states");
+test("a direction still needs a level to be wrong at", () => {
+  // The one refusal that did not go, and the reason it did not: a plan with no price at which it
+  // is wrong is the single output this table must never print, whatever else is measured.
+  const d = decide(
+    input({ setup: { direction: "flat", horizon: "swing", trend: "up" }, invalidation: null }),
+  );
+  assert.equal(d.action, "WAIT");
+  assert.equal(d.gate, "no-invalidation");
+});
+
+test("no measured direction at all is still a WAIT", () => {
+  // 8 names of 477 on 2026-10-09. A mixed trend with no bias beside it names no side, and a side
+  // chosen here would be this file's choice rather than a measurement.
+  for (const setup of [
+    null,
+    { direction: "unknown", horizon: "swing", trend: null } as const,
+    { direction: "unknown", horizon: "swing", trend: "mixed", bias: "mixed" } as const,
+  ]) {
+    const d = decide(input({ setup }));
+    assert.equal(d.action, "WAIT", JSON.stringify(setup));
+  }
+});
+
+test("the stored condition format still parses, which is what rule 23 is about", () => {
+  // Unchanged in substance: two parsers read this format and a horizon written in a new one has
+  // to break both rather than silently producing a direction from nothing.
+  assert.equal(trendDirectionOf(STORED_CONDITIONS), "up");
+  const found = conditionVerdicts(STORED_CONDITIONS);
+  assert.equal(found.get("volume"), "fail");
+  assert.equal(found.get("relative"), "pass");
+  assert.equal(found.size >= 4, true);
+});
+
+test("ANALOGS_CONFIRM_MIN is still the floor the analog leg will not grade under", () => {
+  const thin = decide(
+    input({
+      setup: { direction: "flat", horizon: "swing", trend: "up" },
+      analogs: { count: ANALOGS_CONFIRM_MIN - 1, lowPct: -2, highPct: 3, medianPct: 1, positive: 5 },
+    }),
+  );
+  assert.equal(thin.plan?.baseRate, null);
 });

@@ -16,17 +16,11 @@
 //          market's own freshness rule
 //   3      a source is silent          WAIT     the source that feeds this name answered nothing
 //   4      no break level              WAIT     there is no level at which being wrong is known
-//   5      setup and horizon disagree, WAIT     the two timeframes want opposite things and
-//          and reward is not                    nothing pays for taking the shorter one
-//          asymmetric
-//   6      setup up, horizon not down  LONG
-//   7      setup down, horizon not up  SHORT
-//   8      a withheld trend, carried   LONG     the direction is measured, its conditions are
-//          by volume, by the peer      SHORT    incomplete, and one thing carries it anyway
-//          reading or by asymmetry,
-//          and not contradicted by
-//          the published coverage
-//   9      anything left               WAIT     conditions are incomplete
+//   5      setup is up                 LONG     the direction the setup states
+//   6      setup is down               SHORT    the direction the setup states
+//   7      a withheld trend, or the    LONG     the direction is measured and its other
+//          side the averages sit on    SHORT    conditions are not all present
+//   8      anything left               WAIT     no direction was measured at all
 //
 // **News is a veto on gate 8 and a deduction everywhere else.** An analog set answers "what
 // followed past days that looked like this one" on price, volume and the five-day return — and
@@ -1098,7 +1092,17 @@ export function decide(input: DecisionInput): Decision {
         ...(input.entry ? [] : ["No measured entry band stored; only the break level is set."]),
         ...confirmMissing(input, dir),
       ],
-      notes: notesFor(input, dir),
+      notes: [
+        // The demoted horizon disagreement, printed where every other qualification is. It
+        // already costs a confidence step -- `confidenceFor` counts an agreeing second timeframe
+        // and there is none to count -- so this is the sentence, not a second penalty.
+        ...((dir === "up" && horizon === "down") || (dir === "down" && horizon === "up")
+          ? [
+              `The longer view reads ${horizon} where this reads ${dir}. They measure different windows, so this is a disagreement to size rather than a contradiction.`,
+            ]
+          : []),
+        ...notesFor(input, dir),
+      ],
       measured: measuredLine(input),
       gate,
       // A direction was produced, so nothing was withheld and there is no basis to report.
@@ -1123,37 +1127,29 @@ export function decide(input: DecisionInput): Decision {
     return rr !== null ? `reward at ${rr.toFixed(1)}x the risk` : "a stored confirmation";
   };
 
-  // 5. The two timeframes want opposite things. Still a real disagreement, and still a refusal
-  //    when nothing pays for taking the shorter one — but a measured reward at `ASYMMETRY_CLEARS`
-  //    or better is exactly that payment, and the disagreement then travels as a note instead of
-  //    deleting the trade. One name on 2026-10-09 sat at this gate; the bypass is written for the
-  //    setup it describes rather than for the count.
+  // 5. The two timeframes want opposite things. A note now, not a refusal.
+  //
+  // It was the last soft veto in the table. A disagreement between a swing read and a quarterly
+  // one is a real finding and it is not evidence that the shorter one is wrong -- the two measure
+  // different windows and answer different questions, which is the sentence the horizons block on
+  // every asset page has always carried. Refusing both because they differ withheld the nearer
+  // read on the strength of the further one.
+  //
+  // It costs a confidence step through `confidenceFor`, where the agreeing-timeframe leg simply
+  // does not count, and it prints under "What argues against it". One name sat here on
+  // 2026-10-09; the demotion is written for the shape rather than for the count.
   const opposed =
     (setup === "up" && horizon === "down") || (setup === "down" && horizon === "up");
-  if (opposed && !asym) {
-    return wait(
-      input,
-      "mixed-horizons",
-      "evidence",
-      [
-        `Mixed horizons: setup is ${setup}, longer view is ${horizon}.`,
-        rewardRisk(input) === null
-          ? "No measured reward is stored, so nothing offsets the disagreement."
-          : `Reward is ${rewardRisk(input)!.toFixed(1)}x the risk, short of the ${ASYMMETRY_CLEARS}x that would carry it.`,
-      ],
-      [],
-    );
-  }
 
   // 6 and 7. A direction, with a level to be wrong at, and whatever confirms it.
-  if (setup === "up" && (horizon !== "down" || asym)) {
+  if (setup === "up") {
     return direction(
       "up",
       "long",
       `Setup is up${input.setup?.horizon ? ` on the ${input.setup.horizon} view` : ""}.`,
     );
   }
-  if (setup === "down" && (horizon !== "up" || asym)) {
+  if (setup === "down") {
     return direction(
       "down",
       "short",
@@ -1211,40 +1207,53 @@ export function decide(input: DecisionInput): Decision {
       ? biasRead
       : null;
   if (trend === "up" || trend === "down") {
-    // Three carriers, not two. The peer reading joins volume and the asymmetric reward for the
-    // reason given at `peersConfirm`: it is an independent stored measurement that was only ever
-    // allowed to subtract. It matters most where the other two cannot exist -- a currency pair
-    // has no consolidated tape, so `volumeConfirms` is null for all 27 of them forever, and this
-    // is the only leg of the three that is populated for every single one.
-    const carried = volumeConfirms(input) === true || peersConfirm(input, trend) || asym;
-    const trendOpposed =
-      (trend === "up" && horizon === "down") || (trend === "down" && horizon === "up");
-    // The one place a contradicting coverage reading stops a direction outright rather than
-    // qualifying it, and the reason is what this gate is.
+    // **No carrier is required any more, and this is the last filter to go.**
     //
-    // Gates 6 and 7 print a direction whose own conditions `jobs/setup.py` found and confirmed;
-    // a word list over headlines is not entitled to overrule that, so there it is a note and a
-    // withdrawn confirmation. This gate is the opposite case: the conditions behind the trend
-    // did NOT all hold -- that is what state `wait` means -- and the direction is being carried
-    // on a single stored figure. A thin case pointing one way while the published coverage
-    // points the other is precisely the blind trap, and the honest answer is that it is still
-    // forming rather than that it has arrived.
+    // It asked for one of three stored figures -- volume at or above its own average, a peer gap
+    // wide enough for the market, or a reward at `ASYMMETRY_CLEARS`. Measured 2026-10-09 after
+    // every other change in this file: **176 of the 187 refused names had a measured direction,
+    // an entry and a stop, and were held back only because none of those three was present.**
     //
-    // It is not a WAIT-with-nothing-said. The name falls through to gate 9 and keeps its
-    // developing read, where `waitingOn` names the coverage as the thing standing in the way,
-    // so a reader sees the direction, sees what is carrying it, and sees what is against it.
-    const contradicted = newsContradicts(input, trend);
-    if (carried && !contradicted && (!trendOpposed || asym)) {
-      return direction(
-        trend,
-        trend === "up" ? "trend-long" : "trend-short",
-        fromTrend
-          ? `The trend is ${trend} and not all of its conditions are present; ${carriedBy(trend)} carries it.`
-          : `Price is between its own averages, with the 20 day ${
-              trend === "up" ? "above" : "below"
-            } the 50 day; ${carriedBy(trend)} carries it.`,
-      );
-    }
+    // The argument for the carrier was that a direction whose own conditions failed should not
+    // print as an action. The argument against it, which wins, is that `confidence` already says
+    // exactly that and says it with more resolution than a gate can. A gate is one bit: acted on,
+    // or not. The grade counts four independent confirmations and reports none of them as Low,
+    // one as Medium, two or more as High -- so a carrier-less direction was already distinguished
+    // from a confirmed one by the field built to distinguish them, and the gate was the same
+    // judgement made twice, the second time by deletion.
+    //
+    // What this does not do is invent anything. The direction is `jobs/setup.py`'s own stored
+    // trend or bias verdict, the stop is the measured level 1.5 of the asset's daily moves from
+    // the entry, and the target and reward are `jobs/horizons.py`'s. A name with none of the
+    // three carriers prints Low, says in its own why line that nothing confirms it, and lists
+    // every absent confirmation under what is missing.
+    //
+    // **And it is recorded as its own gate so it can be judged.** `unconfirmed-long` and
+    // `unconfirmed-short` are written to `DecisionLog` beside `trend-long` and `long`, which
+    // matures at +1, +5 and +20 sessions. Letting a thinner case through is defensible only
+    // because the loop that measures whether it pays is already running -- principle 7, and the
+    // reason this change is a change in what is printed rather than in what is claimed.
+    const carriers =
+      volumeConfirms(input) === true || peersConfirm(input, trend) || asymmetric(input);
+    const gate = carriers
+      ? trend === "up"
+        ? "trend-long"
+        : "trend-short"
+      : trend === "up"
+        ? "unconfirmed-long"
+        : "unconfirmed-short";
+    const opening = fromTrend
+      ? carriers
+        ? `The trend is ${trend} and not all of its conditions are present; ${carriedBy(trend)} carries it.`
+        : `The trend is ${trend} and none of its other conditions are present.`
+      : carriers
+        ? `Price is between its own averages, with the 20 day ${
+            trend === "up" ? "above" : "below"
+          } the 50 day; ${carriedBy(trend)} carries it.`
+        : `Price is between its own averages, with the 20 day ${
+            trend === "up" ? "above" : "below"
+          } the 50 day, and nothing else confirms it.`;
+    return direction(trend, gate, opening);
   }
 
   // 9. Nothing fired. Falling through to a direction here is how a panel recommends a trade it has

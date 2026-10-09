@@ -67,7 +67,8 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
         <p className="text-muted-foreground mt-2 text-sm">
           {mine.length} {mine.length === 1 ? "name" : "names"}, priced to{" "}
           {asOf ?? "no stored close"}. {longs.length} long, {shorts.length} short,{" "}
-          {forming.length} forming, {waits.length} waiting. Readings, not advice.
+          {forming.length ? `${forming.length} forming, ` : ""}
+          {waits.length} waiting. Readings, not advice.
         </p>
       </div>
 
@@ -109,6 +110,12 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
               The lead names the one thing that separates these rows from the two lists above:
               the direction is measured and the confirmations are not all there. The shortfall
               itself, with its own stored value, is on each name's page under Details. */}
+          {/* Rendered only when it has rows, which after 2026-10-09 is almost never: every
+              measured direction now prints as an action, so `Decision.developing` is set at a
+              gate nothing reaches. The block is kept rather than deleted because the rule behind
+              it is sound and acting on every direction is a policy that may move again -- see
+              brain.md 50. An always-empty section on five pages is clutter, so it waits. */}
+          {forming.length ? (
           <DecisionList
             title={`Forming (${forming.length})`}
             lead="A direction is measured and not all of its confirmations are present. Not an action: each name's page says exactly what is missing and how far off it is."
@@ -120,6 +127,7 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
               </>
             }
           />
+          ) : null}
 
           {/* Collapsed, and complete inside.
 
