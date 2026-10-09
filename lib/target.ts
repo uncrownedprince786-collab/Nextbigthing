@@ -89,15 +89,47 @@ export function pickTarget(setups: SetupLike[]): TargetLike | null {
 /// a second time over a different list and could land on another horizon's target — and writing
 /// the order out again in `decisionInput.ts` would be a second copy of one preference, which is
 /// the shape rule 36 warns about. One order, two callers, no second list.
+/// Below this reward against risk, a "target" is sitting on the entry and is not one.
+///
+/// `jobs/horizons.py` measures the structural target as the nearest price where the series has
+/// already turned, and takes whatever that is — so when the nearest pivot happens to sit a few
+/// ticks above the entry, the row is written with a reward of 0.03x and the panel prints "0.0x".
+/// Live on Algorand on 2026-10-09: entry 0.10 to 0.14, stop 0.10, structural target 0.14, reward
+/// 0.0x. Every number true, and together they describe a trade with no room in it.
+///
+/// A tenth of the stop distance is the floor because that is the point at which the reward stops
+/// being a reward: a target nearer to the entry than a tenth of the distance to being wrong is
+/// inside the noise the stop was sized against. It is not a filter on quality — a 0.4x setup
+/// still prints 0.4x — only on whether the method produced a target at all.
+const REWARD_FLOOR = 0.1;
+
 /// Generic over the row rather than taking `TargetLike`, because the two callers hold different
 /// slices of the same stored row: the pages want `note` and `distancePct` to print, the rule
 /// table wants only `rewardRisk` to size with. A shared concrete type would force one of them to
 /// carry columns it has no use for, which is how a rule table ends up importing a query's shape.
-/// `method` is all the order is chosen on, so `method` is all this asks for.
-export function preferredTarget<T extends { method: string }>(
+///
+/// Two passes over the preference order, and the second is the fallback the structural method
+/// needs. The first takes the most-preferred method whose reward clears `REWARD_FLOOR`; the
+/// second takes the most-preferred method at all, so a setup whose every method is flat still
+/// shows its real figure rather than nothing.
+///
+/// This is where the volatility method earns its place in the order. It is a multiple of the
+/// asset's own average true range, so it always produces a distance — where `structure` depends
+/// on a pivot existing above the entry and `analog` on a median that points the right way.
+/// Preferring structure is still right when structure says something; falling to the ATR
+/// distance when it does not is the difference between a card that quotes a level and a card
+/// that quotes the entry back to the reader.
+export function preferredTarget<T extends { method: string; rewardRisk?: number | null }>(
   targets: readonly T[] | null | undefined,
 ): T | null {
   if (!targets || !targets.length) return null;
+  const usable = (t: T) => t.rewardRisk !== null && t.rewardRisk !== undefined && t.rewardRisk >= REWARD_FLOOR;
+  for (const method of PREFERENCE) {
+    const found = targets.find((t) => t.method === method && usable(t));
+    if (found) return found;
+  }
+  const anyUsable = targets.find(usable);
+  if (anyUsable) return anyUsable;
   for (const method of PREFERENCE) {
     const found = targets.find((t) => t.method === method);
     if (found) return found;

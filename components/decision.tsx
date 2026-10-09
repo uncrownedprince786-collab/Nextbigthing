@@ -209,7 +209,13 @@ function Sizing({ plan }: { plan: NonNullable<Decision["plan"]> }) {
         }
       >
         {plan.rewardRisk !== null ? (
-          <span className="num text-lg font-semibold">{plan.rewardRisk.toFixed(1)}x</span>
+          // Two decimals under 1, one at or above it. A measured 0.04x printed as "0.0x" reads
+          // as a missing number, which is the one thing this figure must never look like: it is
+          // the reader's whole answer to "is this trade worth its own stop", and a flat answer
+          // is still an answer.
+          <span className="num text-lg font-semibold">
+            {plan.rewardRisk < 1 ? plan.rewardRisk.toFixed(2) : plan.rewardRisk.toFixed(1)}x
+          </span>
         ) : (
           <span className="text-muted-foreground">
             No measured target is stored, so the reward cannot be sized.

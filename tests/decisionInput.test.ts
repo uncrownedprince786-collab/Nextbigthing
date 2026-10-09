@@ -604,6 +604,55 @@ test("a setup's measured target reaches the rules and sizes the trade", () => {
   assert.equal(decide(input).plan?.rewardRisk, 2.6);
 });
 
+test("a target sitting on the entry falls through to the one that measured a distance", () => {
+  // Live on Algorand on 2026-10-09 and on 608 setups that had just been given targets: the
+  // nearest structural pivot sat a few ticks above the entry, so the preferred method produced
+  // a reward of 0.0x and the card quoted the entry back to the reader as its exit.
+  //
+  // The volatility method is the fallback because it cannot fail to produce a distance -- it is
+  // a multiple of the asset's own average true range -- where structure needs a pivot above the
+  // entry and analog needs a median pointing the right way.
+  const withFlatStructure = toDecisionInput(
+    bundleFromRow(
+      row({
+        swing: {
+          ...UP,
+          targets: [
+            { method: "structure", low: 94.1, high: 94.1, rewardRisk: 0.02 },
+            { method: "volatility", low: 118, high: 124, rewardRisk: 1.8 },
+          ],
+        },
+        longer: UP,
+      }),
+      [],
+    ),
+    "2026-10-03",
+  );
+  assert.equal(withFlatStructure.target?.method, "volatility");
+  assert.equal(withFlatStructure.target?.rewardRisk, 1.8);
+
+  // And when every method is flat, the real figure is still shown rather than nothing. A trade
+  // with no room is a finding, and hiding it would be the one dishonest outcome here.
+  const allFlat = toDecisionInput(
+    bundleFromRow(
+      row({
+        swing: {
+          ...UP,
+          targets: [
+            { method: "structure", low: 94.1, high: 94.1, rewardRisk: 0.02 },
+            { method: "volatility", low: 94.2, high: 94.2, rewardRisk: 0.04 },
+          ],
+        },
+        longer: UP,
+      }),
+      [],
+    ),
+    "2026-10-03",
+  );
+  assert.equal(allFlat.target?.method, "structure");
+  assert.equal(allFlat.target?.rewardRisk, 0.02);
+});
+
 test("the target is taken off the setup that decided, not off whichever row has one", () => {
   // `pickSetup` prefers a directional row, and here that is `longer`. A target lifted from the
   // swing row would size a quarterly trade against a swing exit -- the same fault `decidingSetup`

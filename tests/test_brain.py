@@ -3875,6 +3875,56 @@ def code_only(text: str) -> str:
     return "".join(out)
 
 
+class TargetDirection(unittest.TestCase):
+    """Which way a target points, and when it is refused.
+
+    The gap this covers cost the site most of its targets: `run_targets` selected only
+    `state IN ('buy','short')`, so 745 current swing and longer rows -- every one of them
+    carrying both an entry and an invalidation -- held no target at all and the panel printed
+    "No clear target stored" with no reward against risk beside it.
+    """
+
+    def test_a_stated_direction_is_taken_as_stated(self):
+        self.assertEqual(horizons.aimed_at({"state": "buy", "conditions": ""}), "buy")
+        self.assertEqual(horizons.aimed_at({"state": "short", "conditions": ""}), "short")
+
+    def test_a_withheld_trend_still_names_a_side(self):
+        # State `wait` is setup.py saying the trend is clear and the conditions behind it are
+        # not all present. The direction is measured; only the action was withheld.
+        row = {"state": "wait",
+               "conditions": "trend: close 9.1 vs 20d 9.4 vs 50d 9.9 (down) | volume: 0.7x (fail)"}
+        self.assertEqual(horizons.aimed_at(row), "short")
+
+    def test_the_bias_is_read_only_when_the_trend_says_nothing(self):
+        # Rule 45's weaker reading, and it is asked last. A mixed trend with a bias beside it
+        # points the bias's way; a directional trend beats a contradicting bias outright.
+        mixed = {"state": "none",
+                 "conditions": "trend: close 10 vs 20d 10.1 vs 50d 9.9 (mixed) | "
+                               "bias: 20d average 2.00% above the 50d (up)"}
+        self.assertEqual(horizons.aimed_at(mixed), "buy")
+
+        both = {"state": "wait",
+                "conditions": "trend: close 9 vs 20d 9.4 vs 50d 9.9 (down) | "
+                              "bias: 20d average 2.00% above the 50d (up)"}
+        self.assertEqual(horizons.aimed_at(both), "short")
+
+    def test_nothing_naming_a_side_gets_no_target(self):
+        # A target with nothing to point at would have its direction chosen by this job rather
+        # than measured, which is the one thing it may not do.
+        self.assertIsNone(horizons.aimed_at({"state": "none", "conditions": ""}))
+        self.assertIsNone(horizons.aimed_at({"state": "none", "conditions": None}))
+        self.assertIsNone(horizons.aimed_at(
+            {"state": "none", "conditions": "trend: close 10 vs 20d 10 vs 50d 10 (mixed)"}))
+
+    def test_it_reads_the_same_format_thesis_does(self):
+        # Rule 23, asserted rather than asserted-in-a-comment: this uses thesis.verdicts, so a
+        # new horizon written in a new format breaks both rather than silently aiming targets
+        # at nothing.
+        conditions = "trend: close 1 vs 20d 2 vs 50d 3 (up) | position: 40% of the way up"
+        self.assertEqual(thesis.verdicts(conditions).get("trend"), "up")
+        self.assertEqual(horizons.aimed_at({"state": "wait", "conditions": conditions}), "buy")
+
+
 class WatchedSources(unittest.TestCase):
     """What the freshness panel watches has to stay in step with what the jobs write.
 

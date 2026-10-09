@@ -61,6 +61,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from nbt import db, median, one, rows, step  # noqa: E402
+from thesis import verdicts  # noqa: E402
 
 try:
     from dotenv import load_dotenv
@@ -856,6 +857,44 @@ def run_longer(cur, today: date) -> int:
 # ----------------------------------------------------------------------------------- targets
 
 
+def aimed_at(setup: dict) -> str | None:
+    """Which way a target for this setup points: "buy", "short", or None when nothing says.
+
+    Three readings in order of how much each one is, which is the same order
+    `lib/decision.ts` applies at gate 8 and for the same reason:
+
+      1. **The state.** `buy` or `short` is the setup saying so itself, with every condition
+         behind it present. Nothing above it.
+      2. **The trend verdict**, from the conditions string. State `wait` means setup.py found
+         the trend clear and its other conditions incomplete -- the direction is measured and
+         deliberately withheld, which is rule 40. A target measured toward it is a measurement
+         of where that move would reach, not a claim that it will.
+      3. **The bias verdict**, from the same string. Rule 45: when the close, the fast mean and
+         the slow mean do not line up, the two means still sit one above the other, and
+         `setup.py` records which. Weakest of the three and it is the last one asked.
+
+    None when none of them names a side -- a `mixed` trend with no bias beside it, or a `longer`
+    row, which `run_longer` writes in its own format and which carries no bias condition. A
+    target with nothing to point at is not written, because its direction would be the job's
+    choice rather than a measurement.
+
+    `verdicts` is imported from jobs/thesis.py rather than reimplemented. Rule 23: that parser
+    and setup.py's writer must agree about this format, and a third copy here is how they stop
+    agreeing. `lib/setupConditions.ts` is the one other reader and is tested against the same
+    literal strings.
+    """
+    if setup["state"] in ("buy", "short"):
+        return "buy" if setup["state"] == "buy" else "short"
+    found = verdicts(setup.get("conditions") or "")
+    for name in ("trend", "bias"):
+        token = found.get(name)
+        if token == "up":
+            return "buy"
+        if token == "down":
+            return "short"
+    return None
+
+
 def target_rows(entry: float, invalid: float, direction: str, atr: float | None,
                 level: float | None, analog: dict | None) -> list[dict]:
     """Every target range the stored data supports, one row per method.
@@ -1006,21 +1045,53 @@ def run_targets(cur) -> int:
         SELECT * FROM (
             SELECT DISTINCT ON (s."assetId", s.horizon)
                    s.id, s."assetId", s.horizon, s.state, s."entryLevel",
-                   s."invalidateLevel", a.symbol
+                   s."invalidateLevel", s.conditions, a.symbol
             FROM "AssetSetup" s JOIN "Asset" a ON a.id = s."assetId"
             ORDER BY s."assetId", s.horizon, s."periodEnd" DESC
         ) current
-        WHERE state IN ('buy','short')
-          AND "entryLevel" IS NOT NULL AND "invalidateLevel" IS NOT NULL
+        WHERE "entryLevel" IS NOT NULL AND "invalidateLevel" IS NOT NULL
         ORDER BY symbol, horizon
         """,
     )
-    print(f"  {len(setups)} directional setups have both an entry and an invalidation")
-    if not setups:
+
+    # The state filter moved out of the SQL and into `aimed_at` below, and the reason is a gap
+    # that was costing the site most of its targets.
+    #
+    # This selected `state IN ('buy','short')` and wrote a target for every one of them -- 100%
+    # coverage, 215 rows. Every *other* current setup got none. Measured 2026-10-09: 745 swing
+    # and longer rows in state `wait` or `none`, **every single one of them carrying both an
+    # entry and an invalidation level**, held no target at all. The page then printed "No clear
+    # target stored" and the panel had no reward against risk and no expectancy to show.
+    #
+    # Those are not rows without a direction. A `wait` row means setup.py found the trend clear
+    # and its other conditions incomplete, and the trend verdict is in the conditions string --
+    # 398 of them. A swing `none` row means price sits between its averages, and rule 45 added a
+    # `bias` condition saying which side they sit on -- 149 more. Those directions are what gate
+    # 8 in lib/decision.ts now acts on, so the decision had a direction while the target pass
+    # still did not, and the two were reading the same column.
+    #
+    # Nothing new is computed for them. The same three methods, the same ATR multiple, the same
+    # structural pivots and the same analog set, pointed the way the stored conditions already
+    # say. What a derived row carries that a stated one does not is a sentence in its note, so a
+    # reader is never shown a target measured toward a direction the setup itself withheld
+    # without being told that is what it is.
+    aimed = [(s, aimed_at(s)) for s in setups]
+    skipped_no_direction = sum(1 for _, d in aimed if d is None)
+    setups = [s for s, d in aimed if d is not None]
+    directions = {s["id"]: d for s, d in aimed if d is not None}
+    stated = sum(1 for s in setups if s["state"] in ("buy", "short"))
+
+    print(
+        f"  {len(setups)} setups have an entry, an invalidation and a direction to measure "
+        f"toward: {stated} stated by the setup, {len(setups) - stated} read from the trend or "
+        "bias it recorded"
+    )
+    if skipped_no_direction:
         print(
-            "  no target is written for a wait or no-clear-setup read, because a target with "
-            "no stated entry is a number with no decision attached to it"
+            f"  {skipped_no_direction} skipped: price is between its averages and neither the "
+            "trend nor the bias names a side, so there is nothing to aim a target at"
         )
+    if not setups:
         return 0
 
     written = 0
@@ -1062,11 +1133,21 @@ def run_targets(cur) -> int:
         atr = true_range(bars, ATR_WINDOW)
         highs, lows = pivots(bars, STRUCTURE_LOOKBACK)
         entry = float(s["entryLevel"])
-        level = next_level(highs if s["state"] == "buy" else lows, entry,
-                           above=s["state"] == "buy")
+        aim = directions[s["id"]]
+        level = next_level(highs if aim == "buy" else lows, entry, above=aim == "buy")
         analog = analogs.get(s["assetId"]) if s["horizon"] != "intraday" else None
 
-        got = target_rows(entry, float(s["invalidateLevel"]), s["state"], atr, level, analog)
+        got = target_rows(entry, float(s["invalidateLevel"]), aim, atr, level, analog)
+        if s["state"] not in ("buy", "short"):
+            # Said on every row rather than once on the setup, because a target is read one
+            # method at a time and the qualification has to travel with whichever one a page
+            # happens to show.
+            for row in got:
+                row["note"] = (
+                    f"{row['note']}. Measured toward the {'rising' if aim == 'buy' else 'falling'} "
+                    f"direction this setup recorded without acting on it, so it is where the move "
+                    f"would reach if the conditions behind it completed"
+                )
 
         # Remove any method that no longer qualifies for this setup.
         #

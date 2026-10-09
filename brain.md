@@ -1024,3 +1024,47 @@ reads rows that already exist:
     when 14 of those had a direction. That list, ordered by closeness, is the honest version of
     "catch it before it is obvious": not an invented early signal, but the names where the
     direction is already readable and the confirmations have not all arrived.
+
+47. **The target pass only ever looked at a quarter of the setups it had the levels for.**
+    `run_targets` selected `state IN ('buy','short')` and wrote a target for every one of them,
+    100% coverage, 215 rows. Every other current setup got none. Measured 2026-10-09: **745 swing
+    and longer rows in state `wait` or `none`, every single one carrying both an entry and an
+    invalidation level**, held no target at all. The page printed "No clear target stored" and the
+    panel had no reward against risk and no expectancy to put beside it.
+
+    Those rows are not directionless. `wait` means setup.py found the trend clear and the other
+    conditions incomplete, and the trend verdict is in the conditions string — 398 of them. A
+    swing `none` row carries the `bias` verdict rule 45 added — 149 more. Those are the directions
+    gate 8 already acts on, so the decision had a direction while the target pass, reading the
+    same column, did not.
+
+    `aimed_at` now reads the three in order — stated state, then trend, then bias — and the pass
+    covers **823 setups, 608 of them on a direction the setup recorded without acting on**. 253
+    are still skipped and should be: a `longer` row carries no bias condition, and a mixed trend
+    with nothing beside it names no side. A target with nothing to point at would have its
+    direction chosen by the job rather than measured.
+
+    Nothing new is computed. The same three methods, the same ATR multiple, the same pivots, the
+    same analog set. A derived row carries one extra sentence in its note saying the direction was
+    recorded and not acted on, so a reader is never shown a target measured toward a withheld
+    direction without being told that is what it is.
+
+    **Second fault, found by fixing the first.** `structure` takes the nearest price the series
+    already turned at, whatever that is — so where the nearest pivot sits a few ticks above the
+    entry the row is written with a reward of 0.02x and the panel prints "0.0x". Live on Algorand:
+    entry 0.10 to 0.14, stop 0.10, structural target 0.14. Every number true, and together they
+    describe a trade with no room in it, printed as though the figure were missing.
+    `preferredTarget` now passes over a method whose reward is under a tenth of the stop distance
+    and takes the next one — which is where the volatility method earns its place in the order,
+    because a multiple of the asset's own true range cannot fail to produce a distance. Algorand
+    now reads 0.16 at 0.71x. When every method is flat the real figure is still shown: a trade
+    with no room is a finding, and hiding it is the only dishonest outcome available.
+
+    **What the coverage then revealed, and it is the number to act on.** All 265 directional calls
+    now carry a reward figure, none below 0.1x. The median is **0.41x**: 28 of 265 reach 1x and
+    **6 reach 2x**. The engine's typical call risks two and a half times what it stands to make at
+    the nearest measured target. That is not a rule-table problem and no threshold in
+    `lib/decision.ts` can fix it — it is where `jobs/setup.py` places the invalidation level,
+    which is the lowest close of the trailing window and is wide by construction. Sniper entries
+    are a stop problem before they are a conviction problem, and this is the first time the site
+    has had the coverage to say so.
