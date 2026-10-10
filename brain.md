@@ -2474,3 +2474,21 @@ reads rows that already exist:
     arithmetic in the database and on the live pages; its first run found FX pairs printing entry and
     stop as the same two-decimal number, so pairs now print in pips (`c36d2a0`). Rule 87's two decimals
     from a dollar stand for every other market.
+
+90. **No unconfirmed return within three days; writes survive a primary pause and come back after.**
+    *Whipsaw.* The audit's case -- table SHORT, a forced LONG on a stop-cross, an unconfirmed up-turn --
+    printed SHORT, LONG, SHORT, because the reversal gate (rule 80) reads only calls the evidence table
+    made, and the held flip kept the table's last call rather than the one the reader held. The gate's
+    reading stays (a forced call is logged daily and would keep a turn recent for ever); what changed is
+    in lib/resolve.ts, fed by the log's current directional run before today: a held flip keeps the
+    reader's call, and `whipsawHold` keeps the current call when today's would go back, unconfirmed, to
+    the direction it replaced fewer than `WHIPSAW_DAYS` (3) days ago -- counted from the day the current
+    direction began, which a re-log does not move. One confirmation lets a return through. Decided by the
+    technical lead at the owner's instruction, as a guard rather than as documented behaviour.
+    *Failover.* Rule 69's "the lanes connect to the primary and never fail over" is withdrawn. Neon paused
+    twice on its compute quota and every lane stopped. `jobs/nbt.py db()` and `tools/writer.mjs` now write
+    the standby when the primary cannot be reached (never on a bad password), and `jobs/reconcile.py`
+    copies the standby's newer rows back -- prices, the call log, signals, theses, vetoes, by natural key,
+    never deleting -- the first time a lane reaches the primary, and before the nightly mirror copies the
+    other way. What two written databases needed was a copy back, not a ban. The site's read pool is still
+    never used by a writer: it switches mid-run and has nothing to reconcile with.

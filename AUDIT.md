@@ -1,12 +1,12 @@
 # Production audit — 2026-10-10 (final)
 
-**Status: PRODUCTION LOCKED** — on the owner's criteria, every one measured on 2026-10-10 between 18:07
-and 19:30 UTC: the suites pass, the live display checker passes, `/api/health` reads `ok: true`, the
-latest run of every workflow is green, and the logic audit reads PASSED MATHEMATICALLY.
+**Status: PRODUCTION LOCKED** on `f6edc7e` (Next.js 16.3.8) — on the owner's criteria, every one
+measured on 2026-10-10 between 18:07 and 20:17 UTC: the suites pass, the live display checker passes,
+`/api/health` reads `ok: true`, the latest run of every workflow is green, and the logic audit reads
+PASSED MATHEMATICALLY.
 
-**Locked does not mean defect-free.** Section 4 lists what is known and not fixed. The first item is a
-High: the patient flip can bring back a call a reader was already told to drop. It changes which call
-readers see, so it is left for the owner under rule 86.
+**Locked does not mean defect-free.** Section 4 lists what is known and not fixed; nothing in it is
+rated High. The High finding of the first pass (the patient-flip whipsaw) was resolved in `78bdc7c`.
 
 One authoritative matrix, replacing the 2026-10-02 audit. Every row says how it was established.
 
@@ -36,40 +36,41 @@ before it was acted on or listed here.
 
 | requirement | status | evidence |
 | --- | --- | --- |
-| Python suite | **verified** | 683 tests, OK |
-| Web suite | **verified** | 416 tests, 0 failures |
+| Python suite | **verified** | 688 tests, OK |
+| Web suite | **verified** | 422 tests, 0 failures |
 | Type check, lint, compile | **verified** | `tsc --noEmit` 0, `eslint` 0, `compileall jobs tools` 0, `next typegen` 0 |
-| CI on the release | **verified** | `tests` and `schema` green on `c36d2a0` |
-| Production deploy | **verified** | `c36d2a0` Ready; ISR pages 1h, 36 industry pages prerendered |
-| A build cannot fail on an unreachable database | **verified** | `next build` with all three tiers on dead local ports: exit 0, every database page deferred to request time. Before the fix the same build failed on P1001; two production builds failed that way on 2026-10-10 |
+| CI on the release | **verified** | `tests` and `schema` green on `f6edc7e` |
+| Production deploy | **verified** | `f6edc7e` Ready on Next.js 16.3.8; ISR pages 1h, industry pages prerendered |
+| A build cannot fail on an unreachable database | **verified** | `next build` with all three tiers on dead local ports, on 16.3.7 and again on 16.3.8: exit 0, every database page deferred to request time. Before the fix the same build failed on P1001; two production builds failed that way on 2026-10-10 |
 
 ### Live site
 
 | requirement | status | evidence |
 | --- | --- | --- |
 | Pages answer | **verified** | every page 200, unknown routes 404 |
-| Heartbeat | **verified** | `/api/health` `ok: true` at 19:21 UTC: closes within limits for all five markets, decisions dated today, newest headline 0.9 h, newest quote 29 min, pool 529 |
-| Display rules | **verified** | `tools/ui_audit.py` on `c36d2a0`: 706 rows on 6 pages, every price cell, 529 of 529 assets listed, every check passed |
+| Heartbeat | **verified** | `/api/health` `ok: true` at 20:17 UTC: closes within limits for all five markets, decisions dated today, newest headline 1.8 h, newest quote 10 min, pool 532 |
+| Display rules | **verified** | `tools/ui_audit.py` on `f6edc7e`: 707 rows on 6 pages, every price cell, 532 of 532 assets listed, every check passed |
 | Action cell is one line | **verified, test-covered** | live at 1280, 1024, 375 px: row, no wrap, 6px gap, 176px track, 0 of 25 stars wrapped, 0 cells overflowing; row height set by the Horizon column, not the star. Before: 25 of 25 wrapped at 1280 |
 | No horizontal scroll on a phone | **verified** | 8 pages at 375 px |
 | Sub-cent prices | **verified, test-covered** | PEPE `$0.000004043` on its page, `$0.0₅4036` form in cells; `compactPrice(0.0000099999)` is `$0.0₄1` (was a tenth of that) |
 | FX prices | **verified, test-covered** | pairs print in pips (4 decimals, 3 from 20); EURUSD's entry and stop had printed as the same "1.12" |
 | One reading per name, the same on its page | **test-covered** | the asset page's call reads swing and longer only, as the lists and the nightly log do |
+| No whipsaw | **verified, test-covered** | a held flip keeps the call the reader holds, and no call returns unconfirmed to the side it left within 3 days (`forced-whipsaw-hold`). Through `decideCall` on the audit's case: SHORT, LONG, SHORT became SHORT, LONG, LONG |
 
-### Logic audit (`tools/logic_audit.py`, 19:14 UTC) — PASSED MATHEMATICALLY
+### Logic audit (`tools/logic_audit.py`, 20:17 UTC, on `f6edc7e`) — PASSED MATHEMATICALLY
 
 | check | database: DecisionLog 2026-10-10 | live pages |
 | --- | --- | --- |
-| checked | 565 LONG/SHORT calls (20 WAIT rows carry no levels) | 529 names, 706 rows |
-| stop or target on the wrong side, stop inside the zone | 0 | 0 (294 targets) |
+| checked | 570 LONG/SHORT calls (20 WAIT rows carry no levels) | 532 names, 707 rows |
+| stop or target on the wrong side, stop inside the zone | 0 | 0 (298 targets) |
 | entry equal to stop | 0 | 0 (2 before the FX fix, display only) |
-| invalid reward:risk | 0 of 267 stored | 0 |
-| reward:risk outside what the printed levels allow | — | 0 of 294 |
-| resolved-call stops | 298 of 298 explained: 277 at exactly 2.00 × atr14 from the close, 21 the setup's own level, none at the price | — |
-| under $1 | 0 collapses of 38; smallest risk 0.26% of the close | 0 of 37 |
-| stored targets, 14 days | 2,193: none non-positive, none reversed, no invalid reward:risk | — |
+| invalid reward:risk | 0 of 294 stored | 0 |
+| reward:risk outside what the printed levels allow | — | 0 of 298 |
+| resolved-call stops | 276 of 276 explained: 254 at exactly 2.00 × atr14 from the close, 22 the setup's own level, none at the price | — |
+| under $1 | no collapse | 0 of 37 |
+| stored targets, 14 days | 2,216: none non-positive, none reversed, no invalid reward:risk | — |
 
-The stop equals the zone's far edge on 267 logged calls (250 page rows). That is the construction —
+The stop equals the zone's far edge on 294 logged calls (254 page rows). That is the construction —
 the zone is the range from the entry level to the stop, both ends inclusive — not an inversion, and
 risk measured from the entry level is never zero. A strict "stop beyond the zone" rule would need the
 zone presented differently; that is a presentation choice, listed in section 4.
@@ -83,8 +84,9 @@ zone presented differently; that is a presentation choice, listed in section 4.
 | backfill | **verified** | green on `f77e2d7` |
 | mirror | **verified** | green on `f77e2d7`: Supabase took 349 prices, 1,141 decisions, 143 theses, no timeout |
 | products | **verified** | green on `f548e85` — the lane's first completed run since it was created on 2026-10-03 (8 of 8 cancelled before): signals 14 min, geo 20 min. On `f77e2d7` its signals job failed on a stalled Reddit feed, the cause `f548e85` fixed; geo passed there too. `retry.yml` re-ran that failed job by itself, its first working retry |
-| live quotes, calendar, crypto, watchdog, retry | **verified** | latest runs green |
-| decision, audit, PSX, US prices | **verified** | latest runs green (scheduled, on earlier commits) |
+| decision, calendar | **verified** | green on `f6edc7e`, dispatched to exercise the new code: the copy-back check ran first ("the primary is current against SUPABASE_DATABASE_URL"), no write fell over, no `PRIMARY` warning, the decision lane wrote 590 rows with the whipsaw guard in place |
+| live quotes, crypto, watchdog, retry | **verified** | latest runs green |
+| audit, PSX, US prices | **verified** | latest runs green (scheduled, on earlier commits) |
 
 ### Database and configuration
 
@@ -95,16 +97,18 @@ zone presented differently; that is a presentation choice, listed in section 4.
 | Site reads the Neon primary | **verified** | no failover warning in three hours of production logs, and the site shows the quotes and headlines the Neon lanes wrote minutes earlier |
 | Unmaintained Vercel fallback tier removed | **verified** | `DATABASE_URL_FALLBACK` gone from Vercel; deployments since `f548e85` run without it |
 | Supabase standby | **verified** | mirrored and migrated, above |
+| Reads survive a Neon pause | **test-covered, read** | the site's pool fails over to Supabase on a quota error (lib/failover.ts), and a build with no reachable tier defers instead of failing |
+| Writes survive a Neon pause | **test-covered** | `jobs/nbt.py db()` and `tools/writer.mjs` write the standby when the primary cannot be reached (never on a bad password); `jobs/reconcile.py` copies the standby's newer rows back the first time a lane reaches the primary, and cron-mirror runs it before its own copy. Both databases' maxima were checked identical before deploying. **Not yet exercised by a real outage**: the next quota pause is the first live test, and its runs will carry a "Writing to the standby" warning |
 | Free-tier storage | **verified** | 238 MB on the primary |
-| Neon compute-hours quota | **owner** | rule 88's reason for preferring Supabase still stands: hourly jobs keep Neon awake |
+| Neon compute-hours quota | **mitigated** | a pause no longer stops the site or the lanes; rule 88's case for Supabase as primary still stands if pauses become routine |
 
 ### Security
 
 | item | status | evidence |
 | --- | --- | --- |
-| Secrets in history | **verified** | every connection-string match in all commits is a test placeholder |
+| Secrets in history | **verified** | none of the six live secrets in the local env files (five database passwords, one GitHub token) appears in any tracked file or any commit; every connection-string match in history is a test placeholder; no Neon password, API key, GitHub token, JWT, AWS key or private key pattern anywhere. Only `.env.example` is tracked; `.env` and its backup are git-ignored. All code reads credentials from the environment |
 | Write surface | **read** | two route handlers, both `GET`; no forms, no accounts |
-| Dependencies | **verified** | `next` 16.3.7 has six advisories fixed in 16.3.8; image-optimizer SSRF, self-hosted ISR poisoning and Draft Mode do not apply here. Patch bump still due |
+| Dependencies | **verified** | `next` 16.3.8: its six advisories closed (`7c2cc31`). Remaining: Prisma's transitive `mysql2` and `deepmerge-ts`, not on the request path, whose only offered fix is a major downgrade |
 | Headers | **verified** | HSTS present; no CSP, `X-Frame-Options` or `nosniff` — low risk for a read-only site |
 | The connection string pasted into a chat earlier | **owner** | rotate that Neon password |
 
@@ -127,14 +131,14 @@ zone presented differently; that is a presentation choice, listed in section 4.
 | `f77e2d7` | `compactPrice` a tenth off just under a power of ten | rounds before counting zeros |
 | `f77e2d7` | asset page and list could print opposite calls | the page reads swing and longer only |
 | `c36d2a0` | FX entry and stop printed as one number | pairs print in pips; `tools/logic_audit.py` added |
+| `7c2cc31` | `next` 16.3.7 advisories | bumped to 16.3.8 |
+| `78bdc7c` | the patient-flip whipsaw (SHORT, LONG, SHORT) | a held flip keeps the reader's call; `whipsawHold` blocks an unconfirmed return within 3 days |
+| `cffe7ac` | a Neon quota pause stopped every lane | writes fail over to the standby and are copied back after |
+| `f6edc7e` | an old Neon endpoint id in RESUME.md | removed (an identifier, not a credential) |
 
 ## 4. Known and not fixed
 
-1. **High — the patient flip can hold against a call the reader no longer has** (demonstrated in a
-   scratch script). The reversal gate reads only calls the rule table made, so after a forced flip it
-   keeps an older call: table SHORT, then a forced LONG on a stop-cross, then an unconfirmed up-turn
-   prints SHORT again, with "the last call holds". Likely fix: hold against the last logged call of any
-   kind. Owner's decision (rule 86).
+1. **Resolved — the patient-flip whipsaw** (`78bdc7c`): kept for the record; see section 3.
 2. **Medium** — the "timeframe" confirmation ignores direction (`decision.ts:718`); the asset page's
    gap sentence can contradict a forced call (`reconcile.ts:96`); the scorecard still reads WAIT rows
    for refusals and mixes forced with table calls; health cannot see which tier serves or how far a
@@ -147,23 +151,25 @@ zone presented differently; that is a presentation choice, listed in section 4.
 4. **Presentation** — the stop sits on the entry zone's far edge by construction (section 2).
 5. **Operational** — GitHub drops most scheduled runs; the watchdog now restarts the five data lanes
    and quotes, but it is itself chained to lane completions. The news hang's root cause (most likely
-   throttling of the runner) is unconfirmed; the lane now fails visibly instead of silently.
+   throttling of the runner) is unconfirmed; the lane now fails visibly instead of silently. The write
+   failover has passed its tests but not yet a real outage. During one, rows derived on the standby
+   (setups, factors) are rebuilt on the primary by the next decision run rather than copied back.
 
 ## 5. Owner actions
 
 Done, and verified: `PRIMARY` deleted; GitHub `DATABASE_URL` on the working Neon project; Vercel
-`DATABASE_URL_FALLBACK` deleted and redeployed.
+`DATABASE_URL_FALLBACK` deleted and redeployed. Done by the technical lead at the owner's instruction:
+`next` 16.3.8; the whipsaw decision (a guard, not a documented quirk); write failover; credential sweep.
 
 Still open:
-1. **Rotate the Neon password** pasted into a chat earlier, then update `DATABASE_URL` in GitHub and
-   Vercel with the new string.
-2. **Bump `next` to 16.3.8** (exact pin), a routine patch.
-3. **Decide section 4.1**, the patient-flip whipsaw.
-4. **Decide the primary for the long run**: Neon meters compute hours and has gone over quota twice;
-   rule 88 sets out the Supabase path.
+1. **Rotate the Neon password** that was pasted into a chat earlier (it is in no file and no commit, but
+   a chat transcript is outside this repository's control), then update `DATABASE_URL` in GitHub and
+   Vercel. The session cannot confirm whether this was done.
+2. **Optional**: make Supabase the primary (rule 88) if Neon's pauses become routine; failover now
+   carries the site and the lanes through them either way.
 
 ## 6. Decision
 
-**PRODUCTION LOCKED** as of 2026-10-10 19:30 UTC, on `c36d2a0`, under the owner's criteria. The lock is
+**PRODUCTION LOCKED** as of 2026-10-10 20:17 UTC, on `f6edc7e`, under the owner's criteria. The lock is
 a statement about what was measured, not a promise: re-run `tools/ui_audit.py`,
 `tools/logic_audit.py` and the suites before treating any later commit as covered by it.
