@@ -78,3 +78,12 @@ export function biasDirectionOf(conditions: string | null | undefined): TrendDir
   const token = conditionVerdicts(conditions).get("bias");
   return token === "up" || token === "down" || token === "mixed" ? token : null;
 }
+
+/// The parts of a setup's `conditions` the list rows read: the trend and the longer-view bias, in
+/// the stored form, so `trendDirectionOf` and `biasDirectionOf` answer exactly as on the full text.
+export function listConditions(conditions: string): string {
+  return conditions
+    .split(" | ")
+    .filter((p) => /^(trend|bias):/.test(p.trim()))
+    .join(" | ");
+}

@@ -89,7 +89,7 @@ test("PRICE: the cell is the price alone, with its time on hover and never print
   assert.ok(cell.indexOf("price(r.quote.price, currency)") < cell.indexOf("price(r.priceNow, currency)"));
   // The time is a tooltip, not a line: no "Last trade ·" and no "close" sub-line in the cell.
   assert.doesNotMatch(cell, /Last trade ·|\} close<|text-micro/);
-  assert.match(cell, /title=\{`Last trade, /);
+  assert.match(cell, /, last trade \$\{shortDay/);
   // The asset panel follows the same rule.
   const panel = decision.slice(decision.indexOf("export function DecisionPanel("), decision.indexOf("export function ProductDecisionPanel("));
   assert.doesNotMatch(panel, /Last trade ·/);

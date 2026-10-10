@@ -225,10 +225,10 @@ test("the target comes from the setup the decision actually rested on", () => {
 
   // And when the swing row IS the directional one, it still wins.
   const swingFirst = scored({}, {
-    swing: { state: "buy", targets: [target("structure", 10, 10)] },
+    swing: { state: "buy", targets: [target("structure", 20, 20)] },
     longer: { state: "buy", targets: [target("structure", 99, 99)] },
   });
-  assert.equal(weeklyTarget(swingFirst)?.low, 10);
+  assert.equal(weeklyTarget(swingFirst)?.low, 20);
 });
 
 test("one grade's slots are spread across the markets before any market gets a second", () => {
@@ -266,4 +266,18 @@ test("balance never lifts a weaker grade over a stronger one", () => {
     got.long.every((s) => s.decision.confidence === "High"),
     "a Medium name displaced a High one to balance the markets",
   );
+});
+
+test("a target on the wrong side of the call is never shown, and a resolved call's reward is its own", async () => {
+  const { targetForCall } = await import("../lib/target.ts");
+  const t = { method: "structure", low: 120, high: 125, distancePct: null, rewardRisk: 3 };
+  const long = { action: "LONG", entry: { low: 100, high: 100 }, invalidation: 90, gate: "long" };
+  assert.equal(targetForCall(t, long), t, "a long's target above the entry is kept as stored");
+  // A close through a long's stop resolved to SHORT: the long's target sits above the price.
+  const short = { action: "SHORT", entry: { low: 100, high: 100 }, invalidation: 105, gate: "forced-stop-crossed" };
+  assert.equal(targetForCall(t, short), null);
+  // A resolved short with a target below: reward:risk against its own stop, 10 / 5.
+  const below = { ...t, low: 88, high: 90, rewardRisk: 9 };
+  assert.equal(targetForCall(below, short)?.rewardRisk, 2);
+  assert.equal(targetForCall(below, { ...short, invalidation: null })?.rewardRisk, null);
 });

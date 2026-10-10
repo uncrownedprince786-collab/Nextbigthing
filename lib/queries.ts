@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { marketOf, pickAnalog } from "@/lib/decisionInput";
 import { latestWindow } from "@/lib/rankingWindow";
 import { toSummary } from "@/lib/logbook";
+import { listConditions } from "@/lib/setupConditions";
 
 // Re-exported so the pages keep a single import site for everything they read about rankings;
 // the rule itself lives in a database-free module so the test lane can import it.
@@ -295,7 +296,6 @@ export async function getFactor(assetId: string) {
       relStrength: true,
       peers: true,
       r20: true,
-      atr14: true,
       entryTrigger: true,
       triggerDirection: true,
     },
@@ -842,7 +842,8 @@ export async function getHealthReadings() {
        GROUP BY 1, 2`,
     prisma.decisionLog.aggregate({ _max: { periodEnd: true } }),
     prisma.news.aggregate({ _max: { publishedAt: true } }),
-    prisma.asset.count(),
+    // The active pool (jobs/pool.py), which is what the market pages list and the page checker counts.
+    Promise.all([prisma.asset.count(), getLateColumns()]).then(([n, late]) => n - late.inactive.size),
   ]);
   let newestQuote: Date | null = null;
   try {
@@ -1039,6 +1040,7 @@ async function getMacroVetoes(assetId?: string): Promise<Map<string, { reason: s
 export async function getDecisionBundle(assetId: string) {
   const vetoes = getMacroVetoes(assetId);
   const priors = getPriorDirections(assetId);
+  const lateRead = getLateColumns();
   const [asset, freshness, horizons, analogs, humanSignal, investigation, upcoming, factor] =
     await Promise.all([
       prisma.asset.findUnique({
@@ -1069,6 +1071,7 @@ export async function getDecisionBundle(assetId: string) {
       getFactor(assetId),
     ]);
 
+  const late = await lateRead;
   return {
     assetId,
     symbol: asset?.symbol ?? null,
@@ -1101,7 +1104,7 @@ export async function getDecisionBundle(assetId: string) {
           volumeRatio: factor.volumeRatio,
           relStrength: factor.relStrength,
           r20: factor.r20,
-          atr14: factor.atr14,
+          atr14: late.atr.get(assetId) ?? null,
           entryTrigger: factor.entryTrigger,
           triggerDirection: factor.triggerDirection,
         }
@@ -1337,9 +1340,37 @@ function distinctDays(maxes: (Date | null)[]): Date[] {
 /// this whole function exists. A per-asset read there is 160 round trips today and one per name
 /// forever after, which on Neon's free tier is the failure mode described above and not merely a
 /// slower page. Two bulk queries cost the same whether the universe is 160 names or 1,000.
+/// The columns added after the standby databases were last migrated, read raw and fail-open.
+///
+/// `AssetFactor.atr14` (a resolved call's stop) and `Asset.active` (the liquidity pool) are kept out
+/// of the Prisma model on purpose: Prisma selects every model column by default, and on 2026-10-10 a
+/// failover to a standby without `atr14` turned every uncached asset page into a 500. Read here, a
+/// database without them answers "no ATR, everyone active" -- the site as it was before them --
+/// instead of failing. One query each for the whole universe.
+export async function getLateColumns(): Promise<{ atr: Map<string, number>; inactive: Set<string> }> {
+  const atr = new Map<string, number>();
+  const inactive = new Set<string>();
+  await Promise.all([
+    prisma.$queryRaw<{ assetId: string; atr14: number | null }[]>`
+      SELECT DISTINCT ON ("assetId") "assetId", atr14 FROM "AssetFactor" ORDER BY "assetId", "periodEnd" DESC`
+      .then((rows) => {
+        for (const r of rows) if (r.atr14 != null && Number.isFinite(r.atr14)) atr.set(r.assetId, r.atr14);
+      })
+      .catch(() => undefined),
+    prisma.$queryRaw<{ id: string }[]>`
+      SELECT id FROM "Asset" WHERE NOT active`
+      .then((rows) => {
+        for (const r of rows) inactive.add(r.id);
+      })
+      .catch(() => undefined),
+  ]);
+  return { atr, inactive };
+}
+
 export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   const vetoes = getMacroVetoes();
   const priors = getPriorDirections();
+  const lateRead = getLateColumns();
   const quotes = getLiveQuotes();
   const runs = getCallRuns();
   const today = new Date();
@@ -1526,7 +1557,6 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
             volumeRatio: true,
             relStrength: true,
             r20: true,
-            atr14: true,
             entryTrigger: true,
             triggerDirection: true,
           },
@@ -1559,7 +1589,10 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       confidence: row.confidence,
       periodEnd: row.periodEnd,
       headline: row.headline,
-      conditions: row.conditions,
+      // Only the two parts a list reads (`trendDirectionOf`, `biasDirectionOf`). The full text --
+      // every measured condition, a few hundred characters per setup -- is the asset page's, which
+      // reads its own copy; carried here it was a fifth of the shared cache entry (lib/cached.ts).
+      conditions: listConditions(row.conditions),
       targets: row.targets ?? [],
     };
   };
@@ -1572,7 +1605,10 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   const quoteByAsset = await quotes;
   const priorByAsset = await priors;
   const runByAsset = await runs;
-  return assets.map((asset): DecisionQueryRow => {
+  const late = await lateRead;
+  // The active pool only (jobs/pool.py): a name under its market's liquidity floor, or with no
+  // current close, is out of the lists and the calls. Fail-open: no column, everyone is in.
+  return assets.filter((a) => !late.inactive.has(a.id)).map((asset): DecisionQueryRow => {
     const price = priceByAsset.get(asset.id);
     const analog = analogByAsset.get(asset.id);
     const signal = signalByAsset.get(asset.id);
@@ -1608,7 +1644,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       volumeRatio: factor?.volumeRatio ?? null,
       relStrength: factor?.relStrength ?? null,
       r20: factor?.r20 ?? null,
-      atr14: factor?.atr14 ?? null,
+      atr14: late.atr.get(asset.id) ?? null,
       entryTrigger: factor?.entryTrigger ?? null,
       triggerDirection: factor?.triggerDirection ?? null,
       quotePrice: quoteByAsset.get(asset.id)?.price ?? null,

@@ -31,7 +31,8 @@ import urllib.request
 
 PAGES = ["/", "/stocks", "/crypto", "/psx", "/forex", "/commodities"]
 CLASS_PAGES = ["/stocks", "/crypto", "/psx", "/forex", "/commodities"]
-PRICE = r"[$€£¥]?(?:Rs\.?)?\s?-?[\d,]+\.\d+"
+# A price, including the compact sub-cent form "$0.0₅4036" (subscript count of zeros).
+PRICE = r"[$€£¥]?(?:Rs\.?)?\s?-?[\d,]+\.\d+(?:[₀-₉]+\d+)?"
 BANNED = re.compile(r"(?i)none stored|not stored|not applicable|\bN/A\b|\b\d+ waiting\b")
 TAG = re.compile(r"<[^>]+>")
 

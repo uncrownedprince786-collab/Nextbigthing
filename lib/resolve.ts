@@ -97,7 +97,8 @@ export function resolvedStop(side: Side, input: DecisionInput): number | null {
   const atr = input.atr;
   if (atr == null || !Number.isFinite(atr) || atr <= 0) return null;
   const stop = side === "up" ? close - ATR_STOP_MULTIPLE * atr : close + ATR_STOP_MULTIPLE * atr;
-  return stop > 0 ? Math.round(stop * 1e6) / 1e6 : null;
+  // Eight significant digits, not a fixed number of decimals: a fixed six would flatten a sub-cent coin.
+  return stop > 0 ? Number(stop.toPrecision(8)) : null;
 }
 
 const WORDS: Record<string, string> = {

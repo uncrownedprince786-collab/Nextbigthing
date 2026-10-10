@@ -1,7 +1,8 @@
 """Seed the fixed lists: industries, assets, products, product to asset links.
 
-The asset list is fixed on purpose. Widening or narrowing it silently would change what
-"top" means between one run and the next, so a change here is a deliberate edit.
+The asset list here is the fixed core. Since brain.md rule 87, `jobs/pool.py` also adds the day's
+most traded names on its own (recorded in each asset's `poolNote`) and sets illiquid ones inactive;
+nothing in this file is removed by it, and nothing it adds is written here.
 
 Run: python jobs/seed.py
 """

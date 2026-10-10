@@ -60,6 +60,10 @@ HERE = Path(__file__).resolve().parent
 DAILY = [
     ("prices", ["yahoo", "crypto", "news"]),
     ("psx", ["recent"]),
+    # pool sets illiquid names out of the active pool and adds the day's most traded new names with
+    # their closes (brain.md rule 87). Before factors, so a name that joins tonight is measured and
+    # called tonight, and after the price jobs, so the gate reads tonight's volume.
+    ("pool", []),
     # analogs reads the closes the two price jobs have just written, so it follows them.
     # Arithmetic over stored rows, no network.
     # factors reads the closes the two price jobs have just written and nothing else, so it is

@@ -172,3 +172,31 @@ export function targetMethodLabel(method: string): string {
   if (method === "analog") return "what followed similar past days";
   return method;
 }
+
+/// The target a call may show: only one on the profit side of its entry, and for a resolved call
+/// (gate "forced-...", lib/resolve.ts) with its reward:risk measured against that call's own stop.
+///
+/// A setup's targets are measured toward the setup's direction. When a call goes the other way -- a
+/// close through a long's stop resolved to SHORT -- the long's target sits above the price and would
+/// print as a short's take profit, with a reward:risk measured against a stop the call does not use.
+/// A target on the wrong side is not shown at all; there is no measured exit for that direction.
+export function targetForCall<T extends TargetLike>(
+  target: T | null,
+  call: {
+    action: string;
+    entry: { low: number; high: number } | null;
+    invalidation: number | null;
+    gate: string;
+  },
+): T | null {
+  if (!target || (call.action !== "LONG" && call.action !== "SHORT")) return target;
+  if (!call.entry) return null;
+  const long = call.action === "LONG";
+  const from = long ? call.entry.high : call.entry.low;
+  const near = long ? target.low : target.high;
+  if (!Number.isFinite(near) || !Number.isFinite(from) || (long ? near <= from : near >= from)) return null;
+  if (!call.gate.startsWith("forced-")) return target;
+  const stop = call.invalidation;
+  const risk = stop === null || !Number.isFinite(stop) ? 0 : Math.abs(from - stop);
+  return { ...target, rewardRisk: risk > 0 ? Math.abs(near - from) / risk : null };
+}

@@ -28,7 +28,7 @@ import {
   weakest,
 } from "@/components/ui";
 import { DecisionPanel } from "@/components/decision";
-import { pickTarget } from "@/lib/target";
+import { pickTarget, targetForCall } from "@/lib/target";
 import { rankHeadlines } from "@/lib/newsRank";
 import {
   getAccuracy,
@@ -54,7 +54,7 @@ import { validityOf } from "@/lib/validity";
 import { earlySignalOf } from "@/lib/earlySignal";
 import { changeTimeline, latestChange } from "@/lib/stateChange";
 import { quoteBesideClose } from "@/lib/liveQuote";
-import { isoDate, longDate, money, pct, relativeTime, sizeAbsence, sizeBasisText, toneClass } from "@/lib/format";
+import { isoDate, longDate, money, pct, plainPrice, relativeTime, sizeAbsence, sizeBasisText, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
 
@@ -245,7 +245,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
           priceNow={bundle.newestClose ?? latestPrice?.close ?? null}
           /* The measured exit, from the same rule the overview and the coming-week block use, so
              one name cannot be quoted two different levels on two pages. */
-          target={pickTarget(horizons)}
+          target={targetForCall(pickTarget(horizons), decision)}
           validity={validity}
           early={early}
           change={change}
@@ -319,7 +319,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
                 <Card>
                   <p className="text-muted-foreground text-xs">Last stored close</p>
                   <p className="num mt-1 text-2xl font-semibold">
-                    {latestPrice ? latestPrice.close.toFixed(2) : "no close stored yet"}
+                    {latestPrice ? plainPrice(latestPrice.close) : "no close stored yet"}
                   </p>
                   <p className="text-muted-foreground text-xs">{isoDate(latestPrice?.date)}</p>
                   {/* The last trade, refreshed in the browser when it is more than five minutes old.

@@ -44,15 +44,34 @@ export function money(
 }
 
 /// A price, which needs more precision than a size and never an abbreviation.
+/// A price as digits, with as many decimals as its size needs to stay distinct from its neighbours.
+///
+/// Two decimals at a dollar and above; four between a cent and a dollar; under a cent, four
+/// significant digits (0.0024, 0.00001523). A fixed two decimals printed every sub-cent coin as
+/// $0.00 or $0.01, so an entry band, its stop and its target all read "$0.01 to $0.01". Not a number
+/// (null, NaN, infinite) is said in words, never printed as "NaN".
+export function plainPrice(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "not available";
+  const size = Math.abs(value);
+  if (size === 0 || size >= 1) {
+    return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  if (size >= 0.01) {
+    return value.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+  }
+  return value.toLocaleString("en-US", {
+    minimumSignificantDigits: 2,
+    maximumSignificantDigits: 4,
+    maximumFractionDigits: 12,
+  } as Intl.NumberFormatOptions);
+}
+
 export function price(
   value: number | null | undefined,
   currency: string | null | undefined = "USD",
 ): string {
-  if (value == null || Number.isNaN(value)) return "not available";
-  return `${currencyMark(currency)}${value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  if (value == null || !Number.isFinite(value)) return "not available";
+  return `${currencyMark(currency)}${plainPrice(value)}`;
 }
 
 export function sizeLabel(basis: string): string {
@@ -155,4 +174,26 @@ export function sizeAbsence(assetType: string | null | undefined): string {
     default:
       return "no share count published";
   }
+}
+
+const SUBSCRIPT = "₀₁₂₃₄₅₆₇₈₉";
+
+/// A price for a narrow table cell. Below 0.0001 the run of zeros is written as a subscript count,
+/// the convention crypto venues use: 0.000004036 is "0.0₅4036", read as "zero point, five zeros,
+/// then 4036". Everything else is `price` unchanged. The full figure belongs in
+/// the cell's tooltip and on the asset page, where there is room for it.
+export function compactPrice(
+  value: number | null | undefined,
+  currency: string | null | undefined = "USD",
+): string {
+  if (value == null || !Number.isFinite(value)) return "not available";
+  const size = Math.abs(value);
+  if (size === 0 || size >= 0.0001) return price(value, currency);
+  const zeros = -Math.floor(Math.log10(size)) - 1; // 0.000004036 -> 5 zeros after the point
+  const digits = (size * 10 ** (zeros + 1)).toPrecision(4).replace(".", "").replace(/0+$/, "").slice(0, 4);
+  const sub = String(zeros)
+    .split("")
+    .map((d) => SUBSCRIPT[Number(d)])
+    .join("");
+  return `${value < 0 ? "-" : ""}${currencyMark(currency)}0.0${sub}${digits}`;
 }

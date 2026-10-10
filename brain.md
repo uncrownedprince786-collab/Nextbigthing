@@ -2416,3 +2416,25 @@ reads rows that already exist:
     page. Data feeds were not the cause: on the day this was built no held-back name was stale or
     silent -- 236 had crossed their stop, 43 were unconfirmed shorts, 7 had no side, 3 no stop.
     Only a name with no stored close at all can still be held back; the page checker fails on one.
+
+87. **The pool has a liquidity floor and a discovery feed; prices keep their digits; late columns stay out of the model.**
+    `jobs/pool.py` runs nightly before `factors`. The gate sets an asset inactive when its median daily
+    traded value over 20 sessions is under its market's floor (crypto $10M worldwide, US $5M, PSX
+    PKR 2M; FX and futures exempt) or its newest close is older than 10 days; it returns above 1.5x
+    the floor, or at the floor once a stale feed is current again. Nothing is deleted, and a night
+    that would remove over 30% of one market is refused as a data fault. Crypto is judged only on a
+    positive worldwide volume, because Polkadot read $4M on one exchange the night CoinPaprika
+    listed it at zero. Discovery adds up to 5 coins (over $100M a day, top 300) and 5 US stocks
+    (Yahoo most-active and gainers, over $200M a day, $5+, $2B+ cap) a night, 40 in all, each with
+    at least 60 current closes written in the same step: the first dry run would have added Monero
+    on a Binance series that stopped in 2024. Prices print 2 decimals from $1, 4 under it, 4
+    significant digits under a cent ($0.000004036), and list cells use the subscript-zero form
+    ($0.0₅4036) so a sub-cent coin neither wraps mid-number nor spills into the next column. A target
+    is shown only on the profit side of the call, and a resolved call's reward:risk is measured
+    against its own stop: PEPE resolved SHORT was printing its old long target above the price.
+    **The outage this rule was written in:** the Neon primary hit its free-tier quota on 2026-10-10
+    and the site failed over to the standby, which had not received the day's two migrations.
+    Prisma selects every model column by default, so every uncached asset page became a 500. The
+    late columns (`AssetFactor.atr14`, `Asset.active`, `Asset.poolNote`) are therefore not in the
+    Prisma model; `getLateColumns` reads them raw and fail-open, and a database without them serves
+    the site as it was before them. Standbys must be migrated whenever the primary is.

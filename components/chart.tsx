@@ -1,4 +1,4 @@
-import { isoDate } from "@/lib/format";
+import { isoDate, plainPrice } from "@/lib/format";
 
 /// Inline SVG so the chart needs no client side JavaScript and no chart library.
 export function Sparkline({
@@ -55,13 +55,13 @@ export function Sparkline({
       </svg>
       <figcaption className="text-muted-foreground num mt-1 flex flex-wrap justify-between text-[11px]">
         <span>
-          {isoDate(first.date)} {first.close.toFixed(2)}
+          {isoDate(first.date)} {plainPrice(first.close)}
         </span>
         <span>
-          high {max.toFixed(2)} low {min.toFixed(2)}
+          high {plainPrice(max)} low {plainPrice(min)}
         </span>
         <span>
-          {isoDate(last.date)} {last.close.toFixed(2)}
+          {isoDate(last.date)} {plainPrice(last.close)}
         </span>
       </figcaption>
     </figure>

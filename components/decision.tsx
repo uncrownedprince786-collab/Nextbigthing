@@ -4,7 +4,7 @@ import { shortDay, type Validity } from "@/lib/validity";
 import type { EarlySignal } from "@/lib/earlySignal";
 import { changeSentence, type StateChange, type Transition } from "@/lib/stateChange";
 import { targetMethodLabel, type TargetLike } from "@/lib/target";
-import { price, relativeTime } from "@/lib/format";
+import { compactPrice, plainPrice, price, relativeTime } from "@/lib/format";
 import { CONFIDENCE_ORDER } from "@/lib/decision";
 import type { Action, Confidence, Decision, Market, TimeSense } from "@/lib/decision";
 import type { ProductDecision, WhereToCheck } from "@/lib/productDecision";
@@ -132,8 +132,8 @@ export function ChangeBanner({ changes, latest }: { changes: Transition[]; lates
         {recent.map((t) => (
           <li key={t.on}>
             {shortDay(t.fromOn)}: {t.from}
-            {t.fromClose != null ? ` (${t.fromClose.toFixed(2)})` : ""} ➔ {shortDay(t.on)}: {t.to}
-            {t.toClose != null ? ` (${t.toClose.toFixed(2)})` : ""} — {t.kind.toLowerCase()}, because {t.reason}.
+            {t.fromClose != null ? ` (${plainPrice(t.fromClose)})` : ""} ➔ {shortDay(t.on)}: {t.to}
+            {t.toClose != null ? ` (${plainPrice(t.toClose)})` : ""} — {t.kind.toLowerCase()}, because {t.reason}.
           </li>
         ))}
       </ol>
@@ -492,7 +492,9 @@ export function DecisionPanel({
         >
           {decision.entry ? (
             <span className="num">
-              {price(decision.entry.low, currency)} to {price(decision.entry.high, currency)}
+              {decision.entry.low === decision.entry.high
+                ? price(decision.entry.low, currency)
+                : `${price(decision.entry.low, currency)} to ${price(decision.entry.high, currency)}`}
             </span>
           ) : (
             <span className="text-muted-foreground">
@@ -1037,6 +1039,28 @@ export function SectorBoard({
 const DECISION_COLS =
   "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.55fr)_minmax(0,0.95fr)_minmax(0,0.85fr)_minmax(0,1.15fr)_minmax(0,0.9fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,1.15fr)_minmax(0,1.3fr)] lg:items-baseline lg:gap-y-0";
 
+/// One price in a list cell: never broken across lines, and compact under 0.0001 (the subscript-zero
+/// form, `compactPrice`) so a sub-cent coin fits the column instead of wrapping mid-number or spilling
+/// into the next one. The full figure is the tooltip.
+function Px({ v, currency }: { v: number; currency: string }) {
+  return (
+    <span className="whitespace-nowrap" title={price(v, currency)}>
+      {compactPrice(v, currency)}
+    </span>
+  );
+}
+
+/// A band in a list cell: one price when both ends are the same, else two that may break only at "to".
+function PxRange({ low, high, currency }: { low: number; high: number; currency: string }) {
+  return low === high ? (
+    <Px v={low} currency={currency} />
+  ) : (
+    <>
+      <Px v={low} currency={currency} /> to <Px v={high} currency={currency} />
+    </>
+  );
+}
+
 /// The column header, shown only where the table layout is.
 ///
 /// On a phone and a tablet each cell labels itself, so a header there would be eight words of
@@ -1140,14 +1164,17 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                     price history. */}
                 {r.quote ? (
                   <span
-                    className="num block text-sm font-medium"
-                    title={`Last trade, ${shortDay(r.quote.quotedAt.slice(0, 10))} ${clockUtc(r.quote.quotedAt)}`}
+                    className="num block text-sm font-medium whitespace-nowrap"
+                    title={`${price(r.quote.price, currency)}, last trade ${shortDay(r.quote.quotedAt.slice(0, 10))} ${clockUtc(r.quote.quotedAt)}`}
                   >
-                    {price(r.quote.price, currency)}
+                    {compactPrice(r.quote.price, currency)}
                   </span>
                 ) : r.priceNow !== null && r.priceNow !== undefined ? (
-                  <span className="num block text-sm font-medium" title={r.closeDate ? `Close of ${shortDay(r.closeDate)}` : undefined}>
-                    {price(r.priceNow, currency)}
+                  <span
+                    className="num block text-sm font-medium whitespace-nowrap"
+                    title={`${price(r.priceNow, currency)}${r.closeDate ? `, close of ${shortDay(r.closeDate)}` : ""}`}
+                  >
+                    {compactPrice(r.priceNow, currency)}
                   </span>
                 ) : (
                   <span className="text-muted-foreground block text-sm">no close yet</span>
@@ -1157,18 +1184,14 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
               <span className="min-w-0">
                 <span className={ROW_LABEL}>Entry zone</span>
                 <span className="num block text-sm">
-                  {r.entry
-                    ? r.entry.low === r.entry.high
-                      ? price(r.entry.low, currency)
-                      : `${price(r.entry.low, currency)} to ${price(r.entry.high, currency)}`
-                    : "no entry band measured"}
+                  {r.entry ? <PxRange low={r.entry.low} high={r.entry.high} currency={currency} /> : "no entry band measured"}
                 </span>
               </span>
 
               <span className="min-w-0">
                 <span className={ROW_LABEL}>Stop loss</span>
                 <span className="num block text-sm">
-                  {r.invalidation !== null ? price(r.invalidation, currency) : "no stop level set"}
+                  {r.invalidation !== null ? <Px v={r.invalidation} currency={currency} /> : "no stop level set"}
                 </span>
               </span>
 
@@ -1186,11 +1209,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                       : undefined
                   }
                 >
-                  {r.target
-                    ? r.target.low === r.target.high
-                      ? price(r.target.low, currency)
-                      : `${price(r.target.low, currency)} to ${price(r.target.high, currency)}`
-                    : "no target measured"}
+                  {r.target ? <PxRange low={r.target.low} high={r.target.high} currency={currency} /> : "no target measured"}
                 </span>
               </span>
 
@@ -1203,11 +1222,11 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                 <span className={ROW_LABEL}>Reward:risk</span>
                 <span
                   className={
-                    r.target?.rewardRisk != null ? "num block text-sm whitespace-nowrap" : "text-muted-foreground block text-sm"
+                    r.target?.rewardRisk != null && Number.isFinite(r.target.rewardRisk) ? "num block text-sm whitespace-nowrap" : "text-muted-foreground block text-sm"
                   }
                   title="Measured from the entry level. From today's price it is at least this."
                 >
-                  {r.target?.rewardRisk != null ? `${r.target.rewardRisk.toFixed(1)}:1` : "no target to weigh"}
+                  {r.target?.rewardRisk != null && Number.isFinite(r.target.rewardRisk) ? `${r.target.rewardRisk.toFixed(1)}:1` : "no target to weigh"}
                 </span>
               </span>
 

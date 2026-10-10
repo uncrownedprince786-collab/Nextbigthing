@@ -3633,6 +3633,10 @@ class NoLookAhead(unittest.TestCase):
             "human.py": "reads coverage as of the row's period",
             "graph.py": "walks stored relationships, stores no dated claim",
             "events.py": "stores published dates, computes no state",
+            "pool.py": (
+                "stores which names are in tonight's pool and the closes a venue published for a new one; "
+                "it makes no claim about a past moment"
+            ),
             "live.py": (
                 "stores the last trade as quoted, with the time it was struck, and only ever moves a quote "
                 "forward; it makes no claim about a past moment and no rule reads it"

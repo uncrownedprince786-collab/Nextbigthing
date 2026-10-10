@@ -148,8 +148,11 @@ async function readInputs(db, today) {
   const [assets, prices, setups, targets, analogs, signals, investigations, factors, events, coverage] =
     await Promise.all([
       db.query(
+        // Active names only (jobs/pool.py): an asset below its market's liquidity floor is out of the
+        // pool and gets no call, here and on the lists alike.
         `SELECT a.id, a.symbol, a."assetType"::text AS "assetType", i.market
            FROM "Asset" a JOIN "Industry" i ON i.id = a."industryId"
+          WHERE a.active
           ORDER BY a.symbol ASC`,
       ),
       db.query(

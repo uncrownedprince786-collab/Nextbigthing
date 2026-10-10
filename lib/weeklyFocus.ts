@@ -19,7 +19,7 @@
 import type { Scored } from "./assetClass.ts";
 import { CONFIDENCE_ORDER, type TimeSense } from "./decision.ts";
 import type { DecisionTarget } from "./queries.ts";
-import { pickTarget } from "./target.ts";
+import { pickTarget, targetForCall } from "./target.ts";
 
 /// How many names a side may carry.
 ///
@@ -181,11 +181,16 @@ export function weeklyWhy(s: Scored): string[] {
 /// asset panel and the home rows — and three copies of a preference order is how two of them come
 /// to quote different levels for one name.
 export function weeklyTarget(s: Scored): DecisionTarget | null {
-  return pickTarget(
-    [
-      s.row.swing ? { ...s.row.swing, horizon: "swing" } : null,
-      s.row.longer ? { ...s.row.longer, horizon: "longer" } : null,
-    ].filter((x): x is NonNullable<typeof x> => x !== null),
+  // Through `targetForCall`, like the rows and the asset panel: a target on the wrong side of the
+  // call (a resolved call going against its setup) is not shown here either.
+  return targetForCall(
+    pickTarget(
+      [
+        s.row.swing ? { ...s.row.swing, horizon: "swing" } : null,
+        s.row.longer ? { ...s.row.longer, horizon: "longer" } : null,
+      ].filter((x): x is NonNullable<typeof x> => x !== null),
+    ),
+    s.decision,
   ) as DecisionTarget | null;
 }
 

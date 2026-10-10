@@ -1,5 +1,5 @@
 import type { DecisionQueryRow } from "@/lib/queries";
-import { pickTarget } from "@/lib/target";
+import { pickTarget, targetForCall } from "@/lib/target";
 import { bundleFromRow, toDecisionInput, todayISO } from "@/lib/decisionInput";
 import { decideCall } from "@/lib/resolve";
 import { quoteBesideClose } from "@/lib/liveQuote";
@@ -137,11 +137,14 @@ export function toListRow(s: Scored): DecisionRow {
     invalidation: s.decision.invalidation,
     // The measured exit if it works, from the one rule every surface shares. A row that names
     // only the level it is wrong at answers half the question a reader has.
-    target: pickTarget(
-      [
-        s.row.swing ? { ...s.row.swing, horizon: "swing" } : null,
-        s.row.longer ? { ...s.row.longer, horizon: "longer" } : null,
-      ].filter((x): x is NonNullable<typeof x> => x !== null),
+    target: targetForCall(
+      pickTarget(
+        [
+          s.row.swing ? { ...s.row.swing, horizon: "swing" } : null,
+          s.row.longer ? { ...s.row.longer, horizon: "longer" } : null,
+        ].filter((x): x is NonNullable<typeof x> => x !== null),
+      ),
+      s.decision,
     ),
     confidence: s.decision.confidence,
     // Which confirmations backed it. The table prints how many and which, because a grade of
