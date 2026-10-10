@@ -471,6 +471,9 @@ export interface DecisionInput {
   /// `reversalUnconfirmed`). From stored rows, never from the page's own earlier reading, so `decide`
   /// stays a pure function of what is stored.
   priorDirection?: { direction: "up" | "down"; asOf: string } | null;
+  /// The 14-session average true range, in price units, from `AssetFactor.atr14`. Not read by the
+  /// evidence table; `lib/resolve.ts` measures a stop from it where a resolved call has none.
+  atr?: number | null;
   /// This asset's own 20-session return, in percent. How much of the move is already behind it.
   ///
   /// Read by the short gate and by nothing else: a short on a name already down more than

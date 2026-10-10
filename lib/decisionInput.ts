@@ -289,6 +289,7 @@ export interface DecisionBundle {
     volumeRatio: number | null;
     relStrength: number | null;
     r20?: number | null;
+    atr14?: number | null;
     /// The entry rule that fired on this session and which way, as two stored columns.
     ///
     /// Kept as the raw pair across this seam rather than as the shape the rules take, because
@@ -450,6 +451,8 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
     // the fifth to get a test for it: an optional field that is never named here is dropped
     // silently, which has now happened four times.
     r20: bundle.factors?.r20 ?? null,
+    // Seventh across this seam: the range a resolved call's stop is measured from (lib/resolve.ts).
+    atr: bundle.factors?.atr14 ?? null,
     // Sixth field across this seam, and the count in the comment above is the reason it has its
     // own test rather than being assumed to arrive.
     entryTrigger: entryTriggerOf(
@@ -540,6 +543,7 @@ export interface QueryBundle {
     volumeRatio: number | null;
     relStrength: number | null;
     r20?: number | null;
+    atr14?: number | null;
     entryTrigger?: string | null;
     triggerDirection?: string | null;
   } | null;
@@ -600,6 +604,7 @@ export function bundleFromQuery(
           volumeRatio: row.factor.volumeRatio,
           relStrength: row.factor.relStrength,
           r20: row.factor.r20 ?? null,
+          atr14: row.factor.atr14 ?? null,
           entryTrigger: row.factor.entryTrigger ?? null,
           triggerDirection: row.factor.triggerDirection ?? null,
         }
@@ -663,6 +668,8 @@ export interface QueryRow {
   relStrength?: number | null;
   /// This asset's own 20-session return, for the short gate.
   r20?: number | null;
+  /// The 14-session average true range, for a resolved call's stop.
+  atr14?: number | null;
   /// The entry rule that fired this session, for the fifth confirmation. Named `entryTrigger`
   /// and not `trigger`: `trigger` on this same row is the investigation's, a different thing
   /// from a different table, and two fields one word apart is how a list comes to confirm a
@@ -726,6 +733,7 @@ export function bundleFromRow(
               volumeRatio: row.volumeRatio ?? null,
               relStrength: row.relStrength ?? null,
               r20: row.r20 ?? null,
+              atr14: row.atr14 ?? null,
               entryTrigger: row.entryTrigger ?? null,
               triggerDirection: row.triggerDirection ?? null,
             },

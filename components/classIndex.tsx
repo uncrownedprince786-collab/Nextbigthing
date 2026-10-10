@@ -66,9 +66,9 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
         <p className="mt-2 max-w-2xl text-sm">{cls.lead}</p>
         <p className="text-muted-foreground mt-2 text-sm">
           {mine.length} {mine.length === 1 ? "name" : "names"}, priced to{" "}
-          {asOf ?? "no stored close"}. {longs.length} long, {shorts.length} short,{" "}
-          {forming.length ? `${forming.length} forming, ` : ""}
-          {waits.length} held back. Readings, not advice.
+          {asOf ?? "no stored close"}. {longs.length} long, {shorts.length} short
+          {forming.length ? `, ${forming.length} forming` : ""}
+          {waits.length ? `, ${waits.length} with no stored price` : ""}. Readings, not advice.
         </p>
       </div>
 
@@ -137,6 +137,10 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
               industry cards, and for the same reason: a reader who wants it wants to be
               somewhere other than the two lists above. The count is in the summary, so what is
               inside is never a surprise and never looks like a gap. */}
+          {/* Every priced name resolves to LONG or SHORT (lib/resolve.ts, brain.md rule 86), so this
+              renders only for a name with no stored close at all -- none today. Kept so such a name is
+              still listed somewhere, which is what the pool-parity check counts. */}
+          {waits.length ? (
           <details className="border-border bg-muted/30 mt-6 rounded-lg border px-4 py-1 text-sm sm:py-3">
             <summary className="-my-1 cursor-pointer py-3 font-medium select-none sm:my-0 sm:py-0">
               Held back: {waits.length} {waits.length === 1 ? "name" : "names"} with no call today
@@ -151,6 +155,7 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
               />
             </div>
           </details>
+          ) : null}
         </>
       )}
 

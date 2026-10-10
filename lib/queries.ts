@@ -295,6 +295,7 @@ export async function getFactor(assetId: string) {
       relStrength: true,
       peers: true,
       r20: true,
+      atr14: true,
       entryTrigger: true,
       triggerDirection: true,
     },
@@ -939,6 +940,10 @@ async function getPriorDirections(assetId?: string): Promise<Map<string, { actio
       where: {
         ...(assetId ? { assetId } : {}),
         action: { in: ["LONG", "SHORT"] },
+        // Only calls the evidence table made itself. A resolved call (lib/resolve.ts) is logged every
+        // day, so counting it would keep a week-old turn "recent" forever and no flip would ever
+        // age out of needing a confirmation.
+        NOT: { gate: { startsWith: "forced-" } },
         periodEnd: { lt: today, gte: new Date(today.getTime() - 7 * 86_400_000) },
       },
       orderBy: { periodEnd: "desc" },
@@ -1096,6 +1101,7 @@ export async function getDecisionBundle(assetId: string) {
           volumeRatio: factor.volumeRatio,
           relStrength: factor.relStrength,
           r20: factor.r20,
+          atr14: factor.atr14,
           entryTrigger: factor.entryTrigger,
           triggerDirection: factor.triggerDirection,
         }
@@ -1201,6 +1207,8 @@ export type DecisionQueryRow = {
   relStrength: number | null;
   /// This asset's own 20-session return, read by the short gate in lib/decision.ts.
   r20: number | null;
+  /// The 14-session average true range, for a resolved call's stop (lib/resolve.ts).
+  atr14: number | null;
   /// The entry rule that fired on this session and which way, for the fifth confirmation.
   /// Null on about nineteen sessions in twenty, which is the rule being silent and not a
   /// measurement that failed — see `DecisionInput.entryTrigger`.
@@ -1518,6 +1526,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
             volumeRatio: true,
             relStrength: true,
             r20: true,
+            atr14: true,
             entryTrigger: true,
             triggerDirection: true,
           },
@@ -1599,6 +1608,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       volumeRatio: factor?.volumeRatio ?? null,
       relStrength: factor?.relStrength ?? null,
       r20: factor?.r20 ?? null,
+      atr14: factor?.atr14 ?? null,
       entryTrigger: factor?.entryTrigger ?? null,
       triggerDirection: factor?.triggerDirection ?? null,
       quotePrice: quoteByAsset.get(asset.id)?.price ?? null,

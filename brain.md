@@ -2397,3 +2397,22 @@ reads rows that already exist:
     excluded), and a switch within 7 days of the opposite call needs one independent confirmation, or
     the name is held back -- which ends the old call first, so a holder is told to step aside before
     being told to turn round (rule 80's `reversal-unconfirmed`).
+
+86. **Every priced name gets LONG or SHORT, at the owner's instruction; the refusal in rule 85 is withdrawn.**
+    The owner decided that the site makes a call on every name. `decide()` (the evidence table) is
+    unchanged and still says WAIT where its evidence is missing; `lib/resolve.ts` runs after it, in one
+    function (`decideCall`) used by the lists, the asset page and the nightly log, and gives every WAIT
+    a side: a close through the stop follows the break; an unconfirmed short is SHORT; an unconfirmed
+    flip keeps the last call (the patient flip, which lifts on a confirmation or after a week, because
+    the reversal gate now reads only calls the evidence table made); a macro veto gives the other side;
+    otherwise the side the table leaned toward, else a momentum vote (trend, longer bias, 20-session
+    return, peer gap, similar past days, and an entry rule on volume counted twice), else LONG, logged
+    as `forced-nosignal`. The stop is the setup's own when the call goes the setup's way, else
+    2 x the 14-session average true range (`AssetFactor.atr14`, computed nightly by jobs/factors.py
+    from highs and lows); a broken direction's stop is never reused. Confidence is capped at Medium.
+    What keeps this honest is the log, not the page: every such call is logged as `forced-<reason>`
+    and /logbook grades them in their own box, "Resolved calls right", beside the overall rate. If
+    that box runs well below the calls the table made itself, the evidence for rule 85 is on the
+    page. Data feeds were not the cause: on the day this was built no held-back name was stale or
+    silent -- 236 had crossed their stop, 43 were unconfirmed shorts, 7 had no side, 3 no stop.
+    Only a name with no stored close at all can still be held back; the page checker fails on one.

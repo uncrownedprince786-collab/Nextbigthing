@@ -3,7 +3,7 @@
     python tools/ui_audit.py                  checks https://nextbigthing-nu.vercel.app
     SITE_URL=http://localhost:3000 python tools/ui_audit.py
 
-Every rule here was asked for and built (brain.md rules 74, 78, 79, 80 and 85); this is the check that
+Every rule here was asked for and built (brain.md rules 74, 78, 79, 80, 85 and 86); this is the check that
 they still hold on the pages people actually read, not just in the code that renders them. It reads the
 rendered HTML of the home page and every market page and checks, row by row:
 
@@ -12,6 +12,8 @@ rendered HTML of the home page and every market page and checks, row by row:
   2. nothing contradicts its call: no Falling Star on a LONG, no Rising Star on a SHORT, and a
      change sentence ("Switched from Short to Long on Oct 10: ...") always ends in the row's verdict;
   3. no badges: no WAIT pill, and no change badge ("REVERSED: SHORT ➔ LONG") anywhere in a row;
+     and every row is LONG or SHORT -- a "Held back" row fails (brain.md rule 86; only a name with
+     no stored close at all can produce one, and that is worth an alert);
   4. no placeholder cell: "none stored", "not stored", "not applicable", "N/A", "N waiting";
   5. the held-back list is folded away on every page that has one;
   6. pool parity: every asset the database holds is listed on one of the market pages.
@@ -68,6 +70,8 @@ def check_badges(row: str) -> str | None:
     action = action_of(row)
     if action == "WAIT":
         return "a WAIT pill in the action cell"
+    if action == "Held back":
+        return "a held-back row: every priced name must resolve to LONG or SHORT"
     if re.search(r"\b(?:REVERSED|INVALIDATED|OVERRIDDEN|WITHDRAWN|NEW CALL):|➔", row):
         return "a change badge in the row"
     if action == "LONG" and "FALLING STAR" in row:

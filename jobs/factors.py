@@ -519,6 +519,33 @@ def entry_trigger(closes: list[float], ratio: float | None) -> tuple[str | None,
     return None, None
 
 
+# Sessions in the average true range, the usual 14.
+ATR_SPAN = 14
+
+
+def atr(bars: list[dict], span: int = ATR_SPAN) -> float | None:
+    """The average true range over the last `span` sessions, in price units, or None below span + 1 bars.
+
+    True range is max(high - low, |high - previous close|, |low - previous close|). A venue that stores
+    no high or low for a session contributes its close-to-close move instead, which is the part of the
+    range a close series can see -- smaller than the true range, never larger. `bars` must already be
+    sorted and cut off at the session being measured.
+    """
+    if len(bars) < span + 1:
+        return None
+    ranges = []
+    for prev, cur in zip(bars[-span - 1 : -1], bars[-span:]):
+        pc, c = float(prev["close"]), float(cur["close"])
+        hi, lo = cur.get("high"), cur.get("low")
+        if hi is None or lo is None or float(hi) < float(lo):
+            ranges.append(abs(c - pc))
+        else:
+            hi, lo = float(hi), float(lo)
+            ranges.append(max(hi - lo, abs(hi - pc), abs(lo - pc)))
+    value = sum(ranges) / span
+    return value if value > 0 else None
+
+
 def peer_median_r20(peer_returns: list[float]) -> float | None:
     """Median 20 session return across the peers that have one, or None below the floor.
 
@@ -584,6 +611,7 @@ def compute(bars: list[dict], period_end: date, peer_returns: list[float] | None
     out["sma50"] = sma(closes, SMA_LONG)
     out["rangePct"] = range_pct(closes)
     out["drawdownPct"] = drawdown_pct(closes)
+    out["atr14"] = atr(usable)
 
     peer_med = peer_median_r20(peer_returns or [])
     out["peerMedianR20"] = peer_med
@@ -631,7 +659,7 @@ def read_history(cur, period_end: date) -> dict[str, list[dict]]:
     got = rows(
         cur,
         """
-        SELECT "assetId", date, close, volume
+        SELECT "assetId", date, close, volume, high, low
         FROM "PriceSnapshot"
         WHERE close IS NOT NULL AND date <= %s AND date >= %s
         ORDER BY "assetId", date ASC
@@ -709,8 +737,8 @@ def flush(conn, cur, payload: list[tuple]) -> int:
         INSERT INTO "AssetFactor" ("assetId", "periodEnd", r1, r5, r20, "returnZ",
             "volumeRatio", "peerMedianR20", "relStrength", peers, sma20, sma50, "rangePct",
             "drawdownPct", "eventInDays", "newsStories", "entryTrigger", "triggerDirection",
-            bars, source, "computedAt")
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now())
+            bars, source, atr14, "computedAt")
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now())
         ON CONFLICT ("assetId", "periodEnd") DO UPDATE SET
             r1 = EXCLUDED.r1, r5 = EXCLUDED.r5, r20 = EXCLUDED.r20,
             "returnZ" = EXCLUDED."returnZ", "volumeRatio" = EXCLUDED."volumeRatio",
@@ -722,7 +750,7 @@ def flush(conn, cur, payload: list[tuple]) -> int:
             "newsStories" = EXCLUDED."newsStories",
             "entryTrigger" = EXCLUDED."entryTrigger",
             "triggerDirection" = EXCLUDED."triggerDirection", bars = EXCLUDED.bars,
-            source = EXCLUDED.source, "computedAt" = now()
+            source = EXCLUDED.source, atr14 = EXCLUDED.atr14, "computedAt" = now()
         WHERE (
             "AssetFactor".r1, "AssetFactor".r5, "AssetFactor".r20, "AssetFactor"."returnZ",
             "AssetFactor"."volumeRatio", "AssetFactor"."peerMedianR20",
@@ -730,7 +758,7 @@ def flush(conn, cur, payload: list[tuple]) -> int:
             "AssetFactor".sma50, "AssetFactor"."rangePct", "AssetFactor"."drawdownPct",
             "AssetFactor"."eventInDays", "AssetFactor"."newsStories",
             "AssetFactor"."entryTrigger", "AssetFactor"."triggerDirection",
-            "AssetFactor".bars, "AssetFactor".source
+            "AssetFactor".bars, "AssetFactor".source, "AssetFactor".atr14
         ) IS DISTINCT FROM (
             EXCLUDED.r1, EXCLUDED.r5, EXCLUDED.r20, EXCLUDED."returnZ",
             EXCLUDED."volumeRatio", EXCLUDED."peerMedianR20",
@@ -738,7 +766,7 @@ def flush(conn, cur, payload: list[tuple]) -> int:
             EXCLUDED.sma50, EXCLUDED."rangePct", EXCLUDED."drawdownPct",
             EXCLUDED."eventInDays", EXCLUDED."newsStories",
             EXCLUDED."entryTrigger", EXCLUDED."triggerDirection",
-            EXCLUDED.bars, EXCLUDED.source
+            EXCLUDED.bars, EXCLUDED.source, EXCLUDED.atr14
         )
         """,
         payload,
@@ -808,7 +836,7 @@ def main() -> None:
                     event_in_days(period_end, events.get(a["id"])),
                     news_stories(period_end, n.get("periodEnd"), n.get("recentStories")),
                     f["entryTrigger"], f["triggerDirection"],
-                    f["bars"], COMPUTED,
+                    f["bars"], COMPUTED, f["atr14"],
                 )
             )
             if len(payload) >= BATCH_ROWS:

@@ -37,7 +37,8 @@ import fs from "node:fs";
 import { config as loadEnv } from "dotenv";
 import pg from "pg";
 
-import { decide, confirmingLegs } from "../lib/decision.ts";
+import { confirmingLegs } from "../lib/decision.ts";
+import { decideCall } from "../lib/resolve.ts";
 import { bundleFromRow, toDecisionInput, todayISO } from "../lib/decisionInput.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -229,7 +230,7 @@ async function readInputs(db, today) {
       // venue publishes no volume and `relStrength` is null where `jobs/factors.py` found too few
       // peers to take a median over, and both are absences of a measurement rather than a flat one.
       db.query(
-        `SELECT DISTINCT ON ("assetId") "assetId", "volumeRatio", "relStrength", "r20",
+        `SELECT DISTINCT ON ("assetId") "assetId", "volumeRatio", "relStrength", "r20", "atr14",
                 "entryTrigger", "triggerDirection"
            FROM "AssetFactor" ORDER BY "assetId", "periodEnd" DESC`,
       ),
@@ -278,7 +279,8 @@ async function readInputs(db, today) {
       await db.query(
         `SELECT DISTINCT ON ("assetId") "assetId", action, "periodEnd"
            FROM "DecisionLog"
-          WHERE action IN ('LONG', 'SHORT') AND "periodEnd" < $1::date AND "periodEnd" >= ($1::date - 7)
+          WHERE action IN ('LONG', 'SHORT') AND gate NOT LIKE 'forced-%'
+            AND "periodEnd" < $1::date AND "periodEnd" >= ($1::date - 7)
           ORDER BY "assetId", "periodEnd" DESC`,
         [today],
       )
@@ -378,6 +380,7 @@ function rowsForDecisions(input) {
         // -- which is the one disagreement this file cannot have, because the log is what the
         // refusal will eventually be judged by.
         r20: factor?.r20 ?? null,
+        atr14: factor?.atr14 ?? null,
         // The fifth confirmation, on the same terms and in the same place, so the two cannot
         // drift apart again in the same way.
         entryTrigger: factor?.entryTrigger ?? null,
@@ -408,7 +411,7 @@ function decideAll(input, today) {
   for (const { assetId, analogId, row } of rowsForDecisions(input)) {
     const bundle = bundleFromRow(row, input.sourceHealth);
     const decisionInput = toDecisionInput(bundle, today);
-    const decision = decide(decisionInput);
+    const decision = decideCall(decisionInput);
     out.push({
       assetId,
       symbol: row.symbol,

@@ -1,13 +1,13 @@
 import type { DecisionQueryRow } from "@/lib/queries";
 import { pickTarget } from "@/lib/target";
 import { bundleFromRow, toDecisionInput, todayISO } from "@/lib/decisionInput";
+import { decideCall } from "@/lib/resolve";
 import { quoteBesideClose } from "@/lib/liveQuote";
 import { validityOf } from "@/lib/validity";
 import { earlySignalOf } from "@/lib/earlySignal";
 import { latestChange } from "@/lib/stateChange";
 import {
   CONFIDENCE_ORDER,
-  decide,
   EVENT_SOON_DAYS,
   type Decision,
   type Market,
@@ -51,7 +51,7 @@ export function scoreRows(
 ): Scored[] {
   return rows.map((row) => {
     const input = toDecisionInput(bundleFromRow(row, health), today);
-    return { row, market: input.market, decision: decide(input), setupHorizon: input.setup?.horizon ?? null, today };
+    return { row, market: input.market, decision: decideCall(input), setupHorizon: input.setup?.horizon ?? null, today };
   });
 }
 

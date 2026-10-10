@@ -534,6 +534,8 @@ export default async function Home({
           day -- and twelve cards of it sat between the reader and the calls. It stays one click away,
           with every row's reason, because a held-back name must still be findable; and the one thing a
           holder cannot miss is said on the closed line itself: how many calls ended in this cycle. */}
+      {/* Renders only for a name with no stored close at all (brain.md rule 86) -- none today. */}
+      {waits.length ? (
       <details className="border-border bg-muted/30 mt-10 rounded-lg border px-4 py-1 text-sm sm:py-3">
         <summary className="-my-1 cursor-pointer py-3 font-medium select-none sm:my-0 sm:py-0">
           Held back: {waits.length} {waits.length === 1 ? "name" : "names"} with no call today
@@ -573,15 +575,17 @@ export default async function Home({
           )}
         </div>
       </details>
+      ) : null}
 
       {/* The legend, under the three lists rather than above them. A reader who has just scrolled
           past forty rows of LONG and SHORT is the one who needs it; printing it first would be
           explaining an answer nobody has been given yet. Three sentences, no stored vocabulary. */}
       <p className="text-muted-foreground border-border mt-6 border-t pt-4 text-sm">
         <strong className="text-foreground">LONG</strong> or{" "}
-        <strong className="text-foreground">SHORT</strong> means the rules found a setup and a
-        level that would prove it wrong. <strong className="text-foreground">Held back</strong> means
-        no clear action today. None of it is a promise, and confidence says how much evidence sat
+        <strong className="text-foreground">SHORT</strong> is the call on every name, with the level
+        that would prove it wrong. Where the setup alone does not settle the side, the break of the
+        old stop, the last call or the momentum read does, and the stop is measured from the
+        price&apos;s own range. None of it is a promise, and confidence says how much evidence sat
         behind the reading — not how likely it is to work.
       </p>
 

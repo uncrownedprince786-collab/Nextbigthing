@@ -211,6 +211,10 @@ def summarise(day: date, graded: list[tuple[dict, dict]], flips: list[dict], sta
          "direction": "up" if r["action"] == "LONG" else "down", "result": star_result(o)}
         for r, o in stars
     ]
+    # Calls the evidence table refused and lib/resolve.ts gave a side anyway (gate "forced-..."),
+    # graded on their own so the owner can see whether the binary rule holds up (brain.md rule 86).
+    forced = [o for r, o in graded if str(r.get("gate") or "").startswith("forced-") and o["verdict"] in ("right", "wrong", "stopped", "flat")]
+    forced_right = sum(1 for o in forced if o["verdict"] == "right")
     star_graded = [x for x in star_rows if x["result"] in ("accurate", "failed", "flat")]
     star_right = sum(1 for x in star_graded if x["result"] == "accurate")
     return {
@@ -230,6 +234,9 @@ def summarise(day: date, graded: list[tuple[dict, dict]], flips: list[dict], sta
         "starsGraded": len(star_graded),
         "starsAccurate": star_right,
         "starsAccuratePct": round(100 * star_right / len(star_graded)) if star_graded else None,
+        "forcedGraded": len(forced),
+        "forcedAccurate": forced_right,
+        "forcedAccuratePct": round(100 * forced_right / len(forced)) if forced else None,
     }
 
 
@@ -322,7 +329,7 @@ def load_summary(cur, day: date) -> dict:
     """Everything graded up to `day`, and the last 30 days of flips and stars, in four queries."""
     cur.execute(
         """SELECT d."assetId", a.symbol, a.name, d.action, d."periodEnd", d."baseClose", d.invalidation,
-                  d."move5Pct", d."measured5On", d.legs
+                  d."move5Pct", d."measured5On", d.legs, d.gate
              FROM "DecisionLog" d JOIN "Asset" a ON a.id = d."assetId"
             WHERE d.action IN ('LONG', 'SHORT') AND (d."measured5On" <= %s
                   OR (d.legs LIKE '%%trigger%%' AND d."periodEnd" >= %s::date - 30))""",

@@ -42,7 +42,7 @@ function Scorecard({ s }: { s: Summary }) {
   return (
     <section className="space-y-3">
       <h2 className="text-lg font-semibold tracking-tight">Final verdicts</h2>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Stat
           label="Calls graded"
           value={String(s.graded)}
@@ -69,6 +69,15 @@ function Scorecard({ s }: { s: Summary }) {
             s.starsGraded
               ? `${s.starsAccurate} of ${s.starsGraded} graded`
               : "none graded yet"
+          }
+        />
+        <Stat
+          label="Resolved calls right"
+          value={s.forcedAccuratePct === null ? "—" : `${s.forcedAccuratePct}%`}
+          note={
+            s.forcedGraded
+              ? `${s.forcedAccurate} of ${s.forcedGraded}: calls the evidence rules alone held back`
+              : "calls the evidence rules alone held back; none graded yet"
           }
         />
       </div>

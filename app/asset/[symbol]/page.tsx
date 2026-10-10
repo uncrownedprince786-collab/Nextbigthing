@@ -49,7 +49,7 @@ import {
   getUpcoming,
 } from "@/lib/queries";
 import { bundleFromQuery, marketOf, toDecisionInput, todayISO } from "@/lib/decisionInput";
-import { decide } from "@/lib/decision";
+import { decideCall } from "@/lib/resolve";
 import { validityOf } from "@/lib/validity";
 import { earlySignalOf } from "@/lib/earlySignal";
 import { changeTimeline, latestChange } from "@/lib/stateChange";
@@ -170,7 +170,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
   // the panel and the page come to disagree about whether the number on screen is today's.
   const today = todayISO();
   const decisionInput = toDecisionInput(bundleFromQuery(bundle, sourceHealth), today);
-  const decision = decide(decisionInput);
+  const decision = decideCall(decisionInput);
   // The same function the list rows use, fed the same three facts, so this page and the market page
   // show one horizon and one window for this name.
   const validity = validityOf({

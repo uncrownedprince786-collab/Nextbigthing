@@ -1494,6 +1494,10 @@ model AssetFactor {
   r1  Float?
   r5  Float?
   r20 Float?
+  /// The 14-session average true range, in price units: the mean of max(high - low, |high - previous
+  /// close|, |low - previous close|), with the close-to-close move standing in where a venue stores no
+  /// high or low. The distance lib/resolve.ts measures a resolved call's stop from.
+  atr14 Float?
 
   /// How unusual r1 is against this asset's own history, as a robust z-score: the median and
   /// the median absolute deviation rather than mean and standard deviation, because one

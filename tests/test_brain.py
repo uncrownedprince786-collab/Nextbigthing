@@ -4891,6 +4891,44 @@ class PsxHistoryDepth(unittest.TestCase):
         self.assertIn("ON CONFLICT", sql)
 
 
+class TheAverageTrueRange(unittest.TestCase):
+    """`factors.atr`: the 14-session average true range a resolved call's stop is measured from
+    (lib/resolve.ts, brain.md rule 86)."""
+
+    def bars(self, n, high=None, low=None):
+        from datetime import date, timedelta
+
+        return [
+            {"date": date(2026, 9, 1) + timedelta(days=i), "close": 100.0 + (i % 2),
+             "high": None if high is None else 100.0 + (i % 2) + high,
+             "low": None if low is None else 100.0 + (i % 2) - low}
+            for i in range(n)
+        ]
+
+    def test_true_range_uses_high_low_and_the_previous_close(self):
+        # Closes alternate 100, 101; each bar spans 1.5 either side of its close, so high - low is 3.0
+        # and the gaps to the previous close are 2.5 and 0.5: the true range is 3.0 on every bar.
+        self.assertAlmostEqual(factors.atr(self.bars(15, high=1.5, low=1.5)), 3.0)
+        # A gap wider than the bar wins: a 0.2-wide bar 1.0 from the previous close ranges 1.1.
+        self.assertAlmostEqual(factors.atr(self.bars(15, high=0.1, low=0.1)), 1.1)
+
+    def test_a_venue_without_highs_and_lows_uses_the_close_to_close_move(self):
+        self.assertAlmostEqual(factors.atr(self.bars(15)), 1.0)
+
+    def test_too_short_a_history_measures_nothing(self):
+        self.assertIsNone(factors.atr(self.bars(14)))
+
+    def test_it_is_computed_stored_and_read_by_the_resolver(self):
+        f = factors.compute(self.bars(60, high=1.0, low=1.0), self.bars(60)[-1]["date"])
+        self.assertIsNotNone(f["atr14"])
+        text = (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8")
+        self.assertIn('SELECT "assetId", date, close, volume, high, low', text)
+        self.assertIn("atr14 = EXCLUDED.atr14", text)
+        self.assertIn('"AssetFactor".atr14', text, "a changed ATR must count as a changed row")
+        sql = (ROOT / "prisma" / "migrations" / "20261011000000_atr14" / "migration.sql").read_text(encoding="utf-8")
+        self.assertIn('ADD COLUMN "atr14" DOUBLE PRECISION', sql)
+
+
 class PriceFactors(unittest.TestCase):
     """The arithmetic in jobs/factors.py, and the three properties it would be worst to lose.
 
@@ -7950,7 +7988,6 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
         failures, counts = self.ua().audit("x", self.site([
             self.row("LONG", self.GOOD_PRICE, "<span>★ RISING STAR ↑</span>" + self.SWITCHED),
             self.row("SHORT", "<span>Rs.105.24</span>", "<span>★ FALLING STAR ↓</span>"),
-            self.row("Held back", "<span>$3.00</span>"),
             self.row("LONG", "<span>no close yet</span>"),
         ]))
         self.assertEqual(failures, [])
@@ -7963,6 +8000,7 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
             "a time printed under the price": self.row("LONG", "<span>$5.25</span><span>Last trade · Oct 10 10:56 UTC</span>"),
             "a close day printed under the price": self.row("LONG", "<span>$5.25</span><span>Oct 9 close</span>"),
             "a WAIT pill": self.row("WAIT", self.GOOD_PRICE),
+            "a held-back row": self.row("Held back", "<span>$3.00</span>"),
             "a change badge": self.row("LONG", self.GOOD_PRICE, "<span>REVERSED: SHORT ➔ LONG</span>"),
             "a change badge through WAIT": self.row("LONG", self.GOOD_PRICE, "<span>NEW CALL: WAIT ➔ LONG</span>"),
             "a Falling Star on a LONG": self.row("LONG", self.GOOD_PRICE, "<span>★ FALLING STAR ↓</span>"),
@@ -8090,6 +8128,16 @@ class TheWeeklyAuditLog(unittest.TestCase):
         self.assertEqual((s["starsGraded"], s["starsAccuratePct"]), (1, 100))
         self.assertEqual((s["flipsTotal"], s["starsTotal"]), (1, 2))
         json.dumps(s)  # stored as JSON, so it must serialise
+
+    def test_resolved_calls_are_graded_on_their_own(self):
+        from datetime import date
+
+        al = self.al()
+        forced = dict(self.call(), gate="forced-stop-crossed")
+        graded = [(self.call(), {"verdict": "right"}), (forced, {"verdict": "wrong"}), (forced, {"verdict": "right"})]
+        s = al.summarise(date(2026, 10, 20), graded, [], [])
+        self.assertEqual((s["graded"], s["forcedGraded"], s["forcedAccurate"], s["forcedAccuratePct"]), (3, 2, 1, 50))
+        self.assertIsNone(al.summarise(date(2026, 10, 20), [(self.call(), {"verdict": "right"})], [], [])["forcedAccuratePct"])
 
     def test_no_rate_from_nothing(self):
         from datetime import date

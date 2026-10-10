@@ -51,6 +51,10 @@ export type Summary = {
   starsGraded: number;
   starsAccurate: number;
   starsAccuratePct: number | null;
+  /// Calls the evidence rules alone would have held back, which lib/resolve.ts gave a side.
+  forcedGraded: number;
+  forcedAccurate: number;
+  forcedAccuratePct: number | null;
 };
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -106,5 +110,8 @@ export function toSummary(stored: unknown): Summary | null {
     starsGraded: count(s.starsGraded) ?? 0,
     starsAccurate: count(s.starsAccurate) ?? 0,
     starsAccuratePct: count(s.starsGraded) ? pct(s.starsAccuratePct) : null,
+    forcedGraded: count(s.forcedGraded) ?? 0,
+    forcedAccurate: count(s.forcedAccurate) ?? 0,
+    forcedAccuratePct: count(s.forcedGraded) ? pct(s.forcedAccuratePct) : null,
   };
 }

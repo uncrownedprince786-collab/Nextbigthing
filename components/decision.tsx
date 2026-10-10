@@ -1158,7 +1158,9 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                 <span className={ROW_LABEL}>Entry zone</span>
                 <span className="num block text-sm">
                   {r.entry
-                    ? `${price(r.entry.low, currency)} to ${price(r.entry.high, currency)}`
+                    ? r.entry.low === r.entry.high
+                      ? price(r.entry.low, currency)
+                      : `${price(r.entry.low, currency)} to ${price(r.entry.high, currency)}`
                     : "no entry band measured"}
                 </span>
               </span>
