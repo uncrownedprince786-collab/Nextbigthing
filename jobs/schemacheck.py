@@ -115,8 +115,20 @@ def main() -> None:
     print(f"  DATABASE_URL points at: {provider}")
     # Unless Supabase was made the primary on purpose: the repository variable PRIMARY=supabase says so
     # (brain.md rule 88). A pasted wrong secret cannot set a variable, so the mistake above stays refused.
-    if provider == "Supabase" and os.environ.get("PRIMARY", "").strip().lower() == "supabase":
+    declared = os.environ.get("PRIMARY", "").strip().lower()
+    if provider == "Supabase" and declared == "supabase":
         print("  Supabase is the primary by the PRIMARY=supabase repository variable.")
+    elif declared == "supabase":
+        # The reverse half-switch, seen in production on 2026-10-10: the variable says Supabase, the
+        # secret still names Neon, so every lane writes Neon while anything reading the variable believes
+        # otherwise. Not refused -- the secret is the one the owner set last, and refusing would stop
+        # every lane -- but said where it cannot be missed, as an annotation on the run.
+        print(
+            f"::warning title=PRIMARY does not match DATABASE_URL::The repository variable PRIMARY=supabase "
+            f"says Supabase is the primary, but the DATABASE_URL secret points at {provider}, so this lane "
+            f"writes to {provider}. Delete the PRIMARY variable if {provider} is meant to be the primary, or "
+            f"set DATABASE_URL to Supabase if it is not."
+        )
     elif provider == "Supabase":
         print("  refusing: that is the standby, which the website does not read. The data lanes must")
         print("  write to the primary (Neon). Set the DATABASE_URL secret to the line in .env that")

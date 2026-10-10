@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { isConnectionFailure } from "@/lib/failover";
 import { marketOf, pickAnalog } from "@/lib/decisionInput";
 import { latestWindow } from "@/lib/rankingWindow";
 import { toSummary } from "@/lib/logbook";
@@ -959,6 +960,10 @@ async function getPriorDirections(assetId?: string): Promise<Map<string, { actio
 
 /// The logbook's entries, newest written first (a Monday's review of the week before sorts with the day it
 /// was written, not the week it covers). Fails open: no table, or no entries, is an empty logbook.
+///
+/// An unreachable database is not an empty logbook, and is raised: swallowed, it let a build with no
+/// database prerender "0 calls graded" and an hourly regeneration during an outage cache the same, where
+/// raising keeps the last good page (and defers a build's page to request time, lib/buildSafe.ts).
 export async function getAuditLog() {
   try {
     return await prisma.auditLog.findMany({
@@ -967,7 +972,8 @@ export async function getAuditLog() {
       take: 120,
       select: { day: true, kind: true, title: true, lines: true },
     });
-  } catch {
+  } catch (error) {
+    if (isConnectionFailure(error)) throw error;
     return [];
   }
 }
@@ -981,7 +987,8 @@ export async function getLogbookSummary() {
       select: { lines: true },
     });
     return row ? toSummary(row.lines) : null;
-  } catch {
+  } catch (error) {
+    if (isConnectionFailure(error)) throw error;
     return null;
   }
 }

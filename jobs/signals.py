@@ -566,13 +566,19 @@ RUNNERS = {
 def main() -> None:
     todo = sys.argv[1:] or ["wiki", "hn", "news"]
     conn = db()
-    with conn, conn.cursor() as cur:
-        for name in todo:
-            if name in RUNNERS:
-                RUNNERS[name](cur)
-            else:
-                print(f"unknown source {name}, choose from {', '.join(RUNNERS)}")
-    conn.close()
+    try:
+        with conn.cursor() as cur:
+            for name in todo:
+                if name in RUNNERS:
+                    RUNNERS[name](cur)
+                    # Kept as soon as each source finishes. The whole run was one transaction, so a
+                    # lane cut off at its time limit during the fifth source threw away the four
+                    # finished before it -- which is how eight runs in a row stored nothing.
+                    conn.commit()
+                else:
+                    print(f"unknown source {name}, choose from {', '.join(RUNNERS)}")
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

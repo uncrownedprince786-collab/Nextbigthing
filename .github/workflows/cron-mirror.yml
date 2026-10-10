@@ -76,8 +76,8 @@ jobs:
           SUPA: ${{ secrets.SUPABASE_DATABASE_URL }}
           PRIMARY_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          # A standby that is the primary itself is not a target: since 2026-10-10 Supabase is the
-          # primary (brain.md rule 88), and mirror.py refuses the whole run when a target is its source.
+          # A standby that is the primary itself is not a target: Supabase can be made the primary
+          # (brain.md rule 88), and mirror.py refuses the whole run when a target is its source.
           trim() { printf '%s' "$1" | tr -d '[:space:]'; }
           primary="$(trim "$PRIMARY_URL")"
           names=""
@@ -108,8 +108,13 @@ jobs:
           python jobs/mirror.py --from-env DATABASE_URL --to-env "${{ steps.targets.outputs.names }}" \
             --tables PriceSnapshot --since "$since"
 
-      - name: Decisions, signals and theses, a trailing 40 days
-        if: steps.targets.outputs.any == 'true'
+      # `always()`: a failed price copy must not skip the decisions. On 2026-10-10 the prices step timed
+      # out and this step was skipped with it, so a standby that already held every price received no
+      # decisions at all -- and DecisionLog's matured outcomes are the one table that cannot be rebuilt.
+      # MacroGate rides here too: its vetoes are inputs to the call, and a standby without them prints a
+      # direction the primary refused.
+      - name: Decisions, signals, theses and vetoes, a trailing 40 days
+        if: always() && steps.targets.outputs.any == 'true'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
@@ -118,4 +123,4 @@ jobs:
         run: |
           since="$(date -u -d '40 days ago' +%Y-%m-%d)"
           python jobs/mirror.py --from-env DATABASE_URL --to-env "${{ steps.targets.outputs.names }}" \
-            --tables DecisionLog,SignalLog,AssetThesis --since "$since"
+            --tables DecisionLog,SignalLog,AssetThesis,MacroGate --since "$since"

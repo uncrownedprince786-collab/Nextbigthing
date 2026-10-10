@@ -30,6 +30,12 @@ test("a narrow cell writes the zeros of a tiny price as a subscript count", () =
   assert.equal(compactPrice(0.00000546), "$0.0₅546");
   assert.equal(compactPrice(0.00001), "$0.0₄1");
   assert.equal(compactPrice(0.0000001234), "$0.0₆1234");
+  // The zeros are counted after rounding: just under a power of ten rounds up to it, never down a
+  // factor of ten. 0.0000099999 printed as $0.0₅1 (0.000001) before.
+  assert.equal(compactPrice(0.0000099999), "$0.0₄1");
+  assert.equal(compactPrice(0.00009999949), price(0.00009999949));
+  assert.equal(compactPrice(-0.000004036), "$-0.0₅4036", "the sign sits where price() puts it");
+  assert.equal(price(-5), "$-5.00");
   // At 0.0001 and above it is the ordinary price.
   assert.equal(compactPrice(0.005458), price(0.005458));
   assert.equal(compactPrice(510.08), "$510.08");

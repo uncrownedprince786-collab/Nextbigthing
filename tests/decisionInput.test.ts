@@ -946,6 +946,43 @@ test("the asset-page bundle carries the trigger as well as the list row", () => 
   assert.deepEqual(input.entryTrigger, { rule: "vol_flip", direction: "down" });
 });
 
+test("an intraday row never decides the asset page's call: the page reads what the list and log read", () => {
+  // The asset page passes every horizon it shows; the list and tools/decide.mjs read swing and longer
+  // only. With the swing row withheld and an intraday buy, the page printed LONG while the list and the
+  // log printed SHORT for the same name on the same day (audit, 2026-10-10).
+  const page = toDecisionInput(
+    bundleFromQuery(
+      {
+        symbol: "AAPL",
+        assetType: "stock",
+        market: "US",
+        newestClose: 97,
+        newestCloseDate: new Date("2026-10-02T00:00:00Z"),
+        horizons: [
+          { horizon: "intraday", state: "buy", entryLevel: 96, invalidateLevel: 95 },
+          { horizon: "swing", state: "wait", entryLevel: 100, invalidateLevel: 104 },
+        ],
+        analogs: [],
+        humanSignal: null,
+        investigation: null,
+        nextEvent: null,
+        factor: null,
+      },
+      [],
+    ),
+    "2026-10-03",
+  );
+  const list = toDecisionInput(
+    bundleFromRow(row({ swing: { state: "wait", entryLevel: 100, invalidateLevel: 104, conditions: null }, longer: null }), []),
+    "2026-10-03",
+  );
+  assert.equal(page.setup?.horizon, "swing");
+  // The fixtures differ in symbol and stored analogs (the row helper's defaults); the call must not.
+  const [p, l] = [decide(page), decide(list)];
+  assert.deepEqual([p.action, p.gate, p.invalidation], [l.action, l.gate, l.invalidation]);
+  assert.notEqual(p.invalidation, 95, "the intraday stop must not be the page's stop");
+});
+
 // --- The macro veto crossing the seam ----------------------------------------------------------
 //
 // The seventh field to cross it, and the reason it has a test is the one above: an optional field

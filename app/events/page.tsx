@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Card, ConfidenceBadge, Empty, HowToRead, Note, Pill, Section } from "@/components/ui";
 import { EVENT_DUPLICATE_WITHIN_DAYS, getEvents, getRecentMarketNews } from "@/lib/queries";
+import { loadOrDefer } from "@/lib/buildSafe";
 import { headlineOf, rankHeadlines } from "@/lib/newsRank";
 import { EVENT_SOON_DAYS } from "@/lib/decision";
 import { calendarDaysUntil, isoDate, longDate, startOfToday } from "@/lib/format";
@@ -162,7 +163,7 @@ export default async function EventsPage() {
   // with another about which date comes next.
   // Two independent reads, in parallel: the calendar and the week's published news are
   // different claims from different tables and neither waits on the other.
-  const [events, recentNews] = await Promise.all([getEvents(), getRecentMarketNews(7)]);
+  const [events, recentNews] = await loadOrDefer(() => Promise.all([getEvents(), getRecentMarketNews(7)]));
 
   // Ranked by the same reading the asset pages use, then capped. Eight is the most this block
   // can hold without becoming the page: the calendar is still what this page is for, and a

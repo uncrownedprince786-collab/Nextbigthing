@@ -187,7 +187,10 @@ export function compactPrice(
   currency: string | null | undefined = "USD",
 ): string {
   if (value == null || !Number.isFinite(value)) return "not available";
-  const size = Math.abs(value);
+  // Rounded to four significant digits before the zeros are counted, not after: 0.0000099999 rounds
+  // up to 0.00001, which has four zeros, and counting on the unrounded figure printed five ($0.0₅1,
+  // ten times too small).
+  const size = Number(Math.abs(value).toPrecision(4));
   if (size === 0 || size >= 0.0001) return price(value, currency);
   const zeros = -Math.floor(Math.log10(size)) - 1; // 0.000004036 -> 5 zeros after the point
   const digits = (size * 10 ** (zeros + 1)).toPrecision(4).replace(".", "").replace(/0+$/, "").slice(0, 4);
@@ -195,5 +198,6 @@ export function compactPrice(
     .split("")
     .map((d) => SUBSCRIPT[Number(d)])
     .join("");
-  return `${value < 0 ? "-" : ""}${currencyMark(currency)}0.0${sub}${digits}`;
+  // The sign after the currency mark, where `price` puts it, so "$-0.0₅4" and "$-5.00" agree.
+  return `${currencyMark(currency)}${value < 0 ? "-" : ""}0.0${sub}${digits}`;
 }

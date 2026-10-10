@@ -103,6 +103,10 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
           PYTHONIOENCODING: utf-8
+          # Under the job's 25 minutes, so run.py stops a stuck step itself and reports it as a
+          # failure the watchdog counts. Its default of 50 never fired here: GitHub cancelled the job
+          # first, a cancel is not a failure, and on 2026-10-10 the lane was dead for five hours.
+          NBT_STEP_TIMEOUT_MIN: "20"
         run: |
           set +e
           # Half the asset list per run, alternating on the hour.
@@ -122,9 +126,12 @@ jobs:
           # belongs to the same half on every run whatever order the query returns.
           half=$(( ($(date -u +%H | sed 's/^0//') / 2) % 2 + 1 ))
           echo "news slice $half of 2"
-          out="$(python jobs/run.py news --chunk $half/2 2>&1)"
-          code=$?
-          echo "$out"
+          # Streamed, not captured: `out="$(...)"` printed nothing until the end, so a run cut off at
+          # the timeout left 25 silent minutes and no clue where it stopped. tee keeps the copy the
+          # summary needs, and PIPESTATUS keeps run.py's exit code rather than tee's.
+          python -u jobs/run.py news --chunk $half/2 2>&1 | tee "$RUNNER_TEMP/news.log"
+          code=${PIPESTATUS[0]}
+          out="$(cat "$RUNNER_TEMP/news.log")"
           {
             echo "## News ingest, dedupe and junk filter"
             echo

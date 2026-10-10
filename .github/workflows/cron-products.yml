@@ -33,12 +33,14 @@ concurrency:
 
 jobs:
   products:
-    name: product signals ${{ matrix.chunk }}/2
+    name: product ${{ matrix.part }}
     runs-on: ubuntu-latest
-    # Bounded hard, for the same reason `backfill.yml` was cut from 60 to 35: a product fetch
-    # that has not finished in 30 minutes is in a retry wall and will not finish. Losing it
-    # costs one cycle of one chunk of an enrichment signal.
-    timeout-minutes: 30
+    # Two parts by source, not two chunks. None of signals, marketplace or geo reads --chunk, so the
+    # old 1/2 and 2/2 each ran the whole group, and both were cancelled at 30 minutes on every one of
+    # their eight runs (2026-10-03 to 10-10) -- geo alone had a 45 minute budget. Now the five signal
+    # sources are one job and marketplace plus geo the other; geo is budgeted to stop and write well
+    # inside the cap, and run.py stops any step at 27 minutes so it reports a failure, never a cancel.
+    timeout-minutes: 35
     strategy:
       # The reason this is a matrix at all. The default would cancel the sibling chunk the
       # moment one chunk was rate limited, which is the coupling this whole split removes.
@@ -48,7 +50,7 @@ jobs:
       # these are serialised even though they are independent.
       max-parallel: 1
       matrix:
-        chunk: [1, 2]
+        part: [signals, geo]
     steps:
       # main, explicitly. GitHub reads a scheduled workflow's file from the default branch,
       # `master`, and defaults to running that branch's code; `master` was 34 commits behind
@@ -90,24 +92,23 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: python jobs/schemacheck.py
 
-      # The chunk goes in through the fixed interface and nowhere else:
-      # `python jobs/run.py products --chunk i/N`. Per-chunk commits belong to the job.
-      #
-      # Summary written as `schema.yml` writes it — an Actions log needs a GitHub sign-in, the
-      # run summary does not — with the chunk in the heading so the two sections are telling
-      # apart.
-      - name: Fetch product signals for this chunk
+      # The part goes in as a run.py group (`product-signals`, `product-geo`), selections over the
+      # one PRODUCTS list. Streamed through tee for the reason cron-news.yml gives: a captured run
+      # that is cut off prints nothing. The summary heading names the part so the two read apart.
+      - name: Fetch product signals for this part
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
           PYTHONIOENCODING: utf-8
+          NBT_STEP_TIMEOUT_MIN: "27"
+          GEO_FETCH_BUDGET_MIN: "18"
         run: |
           set +e
-          out="$(python jobs/run.py products --chunk ${{ matrix.chunk }}/2 2>&1)"
-          code=$?
-          echo "$out"
+          python -u jobs/run.py product-${{ matrix.part }} 2>&1 | tee "$RUNNER_TEMP/products.log"
+          code=${PIPESTATUS[0]}
+          out="$(cat "$RUNNER_TEMP/products.log")"
           {
-            echo "## Product signals, chunk ${{ matrix.chunk }} of 2"
+            echo "## Product signals, ${{ matrix.part }}"
             echo
             echo "exit code \`$code\`"
             echo

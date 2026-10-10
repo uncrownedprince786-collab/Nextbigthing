@@ -78,6 +78,10 @@ jobs:
       - name: Re-run the failed jobs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # There is no checkout in this job, so gh cannot find the repository from a .git directory:
+          # every one of the 13 re-runs this lane attempted up to 2026-10-10 failed with "failed to
+          # determine base repo" and stayed green because of the `exit 0` below. Named explicitly.
+          GH_REPO: ${{ github.repository }}
           RUN_ID: ${{ github.event.workflow_run.id }}
           LANE: ${{ github.event.workflow_run.name }}
           WHY: ${{ github.event.workflow_run.conclusion }}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Empty, HowToRead, Note, ProductCard, Section } from "@/components/ui";
 import { getProducts } from "@/lib/queries";
+import { loadOrDefer } from "@/lib/buildSafe";
 import { relativeTime } from "@/lib/format";
 
 export const revalidate = 3600;
@@ -48,7 +49,7 @@ const GROUPS = [
 ];
 
 export default async function ProductsPage() {
-  const all = await getProducts();
+  const all = await loadOrDefer(() => getProducts());
   const groups = GROUPS.map((g) => ({
     ...g,
     items: all.filter((p) => (p.status || "unknown") === g.key),

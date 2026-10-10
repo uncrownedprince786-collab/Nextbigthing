@@ -14,7 +14,7 @@ import { STALE_AFTER_DAYS, type Market } from "./decision.ts";
 
 /// The workflow file that refreshes each kind of reading. A problem names one so the watchdog can start
 /// it; a problem with no lane is one only a person can fix.
-export const LANE_FOR: Record<Market | "decisions" | "news", string | null> = {
+export const LANE_FOR: Record<Market | "decisions" | "news" | "quotes", string | null> = {
   Crypto: "cron-crypto.yml",
   US: "cron-us-prices.yml",
   FX: "cron-us-prices.yml",
@@ -23,6 +23,7 @@ export const LANE_FOR: Record<Market | "decisions" | "news", string | null> = {
   Other: null,
   decisions: "cron-decision.yml",
   news: "cron-news.yml",
+  quotes: "cron-live.yml",
 };
 
 /// The decision lane runs once a day at 22:10 UTC, so before that the newest row is yesterday's. Two
@@ -30,13 +31,22 @@ export const LANE_FOR: Record<Market | "decisions" | "news", string | null> = {
 export const DECISIONS_STALE_AFTER_DAYS = 2;
 /// The news lane runs every two hours. Six hours is three missed runs, not one slow feed.
 export const NEWS_STALE_AFTER_HOURS = 6;
+/// The live-quote lane runs every 15 minutes for crypto, around the clock, so the newest quote of any
+/// kind is never meant to be older than that. An hour is four missed runs: GitHub dropped all but two
+/// of the lane's scheduled runs on 2026-10-10, and the quotes sat two hours old with nothing reporting it.
+export const QUOTES_STALE_AFTER_MINUTES = 60;
+/// Quotes are opt-in (the LIVE_QUOTES variable). A newest quote this old means the lane was switched
+/// off, not that it stalled, so it is reported and is not a problem -- or the watchdog would dispatch a
+/// lane that skips itself, every hour, for ever.
+export const QUOTES_OFF_AFTER_HOURS = 72;
 
 export interface HealthReadings {
   /// The newest stored close per market, as an ISO day, or null when the market has none at all.
   closes: { market: Market; newest: string | null }[];
   newestDecision: string | null;
   newestNews: Date | string | null;
-  /// Information only: quotes are opt-in (`LIVE_QUOTES`), so an old quote is not a fault by itself.
+  /// Opt-in (`LIVE_QUOTES`): none at all, or none for days, is a lane that is off and not a fault; a
+  /// lane that is on and has stopped is (see QUOTES_STALE_AFTER_MINUTES).
   newestQuote: Date | string | null;
   /// How many assets the universe holds, so a page that lists fewer can be caught (tools/ui_audit.py).
   pool?: number;
@@ -113,6 +123,13 @@ export function assess(r: HealthReadings, now: Date): Health {
   }
 
   const quoteMs = msAge(r.newestQuote, now);
+  if (quoteMs !== null && quoteMs > QUOTES_STALE_AFTER_MINUTES * 60_000 && quoteMs <= QUOTES_OFF_AFTER_HOURS * 3_600_000) {
+    problems.push({
+      check: "quotes",
+      lane: LANE_FOR.quotes,
+      detail: `newest live quote is ${Math.round(quoteMs / 60_000)} minutes old; the lane runs every 15`,
+    });
+  }
   return {
     ok: problems.length === 0,
     checkedAt: now.toISOString(),

@@ -62,14 +62,21 @@ export function isConnectionFailure(error: unknown): boolean {
   // 15 slots are taken. That is capacity exhaustion, the same condition as `53300`, and treating it as
   // a configuration fault made a full standby fail the request instead of being skipped.
   if (/^08/.test(code) || /^53/.test(code) || ["57P01", "57P02", "57P03"].includes(code)) return true;
+  // The same conditions as Prisma reports them to a query, which is the shape a page sees (the pool
+  // sees pg's): P1001 cannot reach the server, P1002 timed out reaching it, P1017 the server closed the
+  // connection. Found by a build run with every tier unreachable: the page's error was P1001 with the
+  // driver's own error tucked in `meta.driverAdapterError`, and nothing above recognised it.
+  if (["P1001", "P1002", "P1017"].includes(code)) return true;
   // The same conditions when the driver wraps them and the code is gone.
   if (
-    /exceeded the quota|timeout exceeded when trying to connect|connection terminated|connection timeout|the database system is (starting up|shutting down)|too many clients|remaining connection slots|max clients reached|EMAXCONN/i.test(
+    /exceeded the quota|timeout exceeded when trying to connect|connection terminated|connection timeout|the database system is (starting up|shutting down)|too many clients|remaining connection slots|max clients reached|EMAXCONN|can't reach database server|DatabaseNotReachable/i.test(
       message,
     )
   ) {
     return true;
   }
+  const adapter = (e as { meta?: { driverAdapterError?: unknown } }).meta?.driverAdapterError;
+  if (adapter && isConnectionFailure(adapter)) return true;
   return e.cause ? isConnectionFailure(e.cause) : false;
 }
 

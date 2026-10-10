@@ -14,14 +14,17 @@ import {
   weakest,
 } from "@/components/ui";
 import { getAllIndustriesByBasis, getIndustry, getRankings, rankingAsOf } from "@/lib/queries";
+import { loadOrDefer, paramsOrNone } from "@/lib/buildSafe";
 import { isoDate, longDate, money, pct, relativeTime, sizeLabel, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
 
 export async function generateStaticParams() {
-  const all = await getAllIndustriesByBasis("sizeNow");
-  const slugs = new Set(all.map((r) => r.asset.industry.slug));
-  return [...slugs].map((slug) => ({ slug }));
+  return paramsOrNone(async () => {
+    const all = await getAllIndustriesByBasis("sizeNow");
+    const slugs = new Set(all.map((r) => r.asset.industry.slug));
+    return [...slugs].map((slug) => ({ slug }));
+  });
 }
 
 export async function generateMetadata({
@@ -30,22 +33,24 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const ind = await getIndustry(slug);
+  const ind = await loadOrDefer(() => getIndustry(slug));
   if (!ind) return { title: "Industry not found" };
   return { title: ind.name, description: ind.summary };
 }
 
 export default async function IndustryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const ind = await getIndustry(slug);
+  const ind = await loadOrDefer(() => getIndustry(slug));
   if (!ind) notFound();
 
-  const [sizePre, sizeNow, total, rising] = await Promise.all([
-    getRankings(ind.id, "size"),
-    getRankings(ind.id, "sizeNow"),
-    getRankings(ind.id, "totalReturn"),
-    getRankings(ind.id, "rising"),
-  ]);
+  const [sizePre, sizeNow, total, rising] = await loadOrDefer(() =>
+    Promise.all([
+      getRankings(ind.id, "size"),
+      getRankings(ind.id, "sizeNow"),
+      getRankings(ind.id, "totalReturn"),
+      getRankings(ind.id, "rising"),
+    ]),
+  );
 
   const shift = ind.analysis.find((a) => a.kind === "industryShift");
   const forward = ind.analysis.find((a) => a.kind === "forwardLook");

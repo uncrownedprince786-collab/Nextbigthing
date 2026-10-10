@@ -568,7 +568,12 @@ export function bundleFromQuery(
       industry: row.market ? { market: row.market } : null,
     },
     freshness: { newest: row.newestCloseDate, close: row.newestClose },
-    setups: row.horizons.map((h) => ({
+    // The call reads swing and longer only, the two horizons the lists and the nightly log
+    // (tools/decide.mjs) read. The asset page passes every horizon it shows, intraday included, and
+    // `pickSetup` falls back to intraday, so a name could read LONG on its page and SHORT on the list
+    // and in the log -- the home page promises "the same one its own page shows". The intraday row
+    // is still on the page, in the horizons table; it is not the call.
+    setups: row.horizons.filter((h) => h.horizon === "swing" || h.horizon === "longer").map((h) => ({
       horizon: h.horizon,
       state: h.state,
       entryLevel: h.entryLevel,

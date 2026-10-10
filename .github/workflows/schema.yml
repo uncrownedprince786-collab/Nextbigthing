@@ -131,7 +131,13 @@ jobs:
         env:
           DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        # `set +e`, as in the primary's step: under the default `bash -e` the first standby that failed
+        # ended the step on the spot, silently, so the standby after it was never migrated and the
+        # summary line was never written. Each standby is now tried, each result is written down, and
+        # a failure is an error annotation on the run (the job still goes on to the seed).
         run: |
+          set +e
+          failed=""
           for name in DATABASE_URL_FALLBACK SUPABASE_DATABASE_URL; do
             url="${!name}"
             [ -z "$url" ] && { echo "$name is not set, skipped"; continue; }
@@ -139,7 +145,12 @@ jobs:
             code=$?
             echo "$out" | sed -E 's#://[^@ ]+@#://***@#g' | tail -3
             echo "## Migration on $name: exit code \`$code\`" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$code" -ne 0 ]; then
+              failed="${failed:+$failed, }$name"
+              echo "::error title=Standby migration failed::$name did not take the migrations (exit $code). A failover to it would serve pages missing the new columns."
+            fi
           done
+          [ -z "$failed" ] || exit 1
 
       - uses: actions/setup-python@v5
         with:

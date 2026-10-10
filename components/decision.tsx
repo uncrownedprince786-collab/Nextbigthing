@@ -150,7 +150,7 @@ export function EarlySignalBadge({ s }: { s: EarlySignal }) {
     <span
       title={s.explain}
       aria-label={s.explain}
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-micro leading-4 font-semibold tracking-wide sm:py-0.5 ${
+      className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-1 text-micro leading-4 font-semibold whitespace-nowrap sm:py-0.5 ${
         held ? "border-border text-muted-foreground" : "border-warn bg-warn-bg text-warn ring-warn/30 ring-2"
       }`}
     >
@@ -1036,8 +1036,15 @@ export function SectorBoard({
 /// `lg` the fields pair up two to a line, which is the shape a tablet has room for. The
 /// eight-column table starts at `lg`, where there is genuinely width for eight tracks -- at 640px
 /// a price track is about 70px and "Rs.1,201.22" does not fit in it.
+///
+/// The Action track has a floor of 176px because its cell is one line by rule: the widest pair, SHORT
+/// beside a compact "★ FALLING STAR ↓", measured 171px in a browser. At 0.95fr it was 75px at 1024
+/// and 89px at 1280, so every star wrapped under its call and grew the row. The three price tracks
+/// keep a 76px floor for "$1,728.06", which already spilled 3px into the next column at 1024. Measured
+/// at 1024 and 1280 with these tracks and a 10px gap: no cell overflows and no star wraps. Below lg the
+/// Action cell spans two tracks and the grid packs densely, so the one-line cell fits a phone too.
 const DECISION_COLS =
-  "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.55fr)_minmax(0,0.95fr)_minmax(0,0.85fr)_minmax(0,1.15fr)_minmax(0,0.9fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,1.15fr)_minmax(0,1.3fr)] lg:items-baseline lg:gap-y-0";
+  "grid grid-flow-row-dense grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.5fr)_minmax(176px,0.95fr)_minmax(76px,0.85fr)_minmax(0,1.15fr)_minmax(76px,0.9fr)_minmax(76px,0.95fr)_minmax(0,0.7fr)_minmax(0,1.05fr)_minmax(0,1.2fr)] lg:items-baseline lg:gap-x-2.5 lg:gap-y-0";
 
 /// One price in a list cell: never broken across lines, and compact under 0.0001 (the subscript-zero
 /// form, `compactPrice`) so a sub-cent coin fits the column instead of wrapping mid-number or spilling
@@ -1131,9 +1138,11 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                 <span className="block text-sm">{r.market}</span>
               </span>
 
-              <span className="min-w-0">
+              <span className="col-span-2 min-w-0 lg:col-span-1">
                 <span className={ROW_LABEL}>Action</span>
-                <span className="mt-0.5 flex flex-wrap items-center gap-1 lg:mt-0">
+                {/* One line, always: the verdict and the star side by side, never stacked, so a star
+                    does not make its row taller than its neighbours. The track is sized for it. */}
+                <span className="mt-0.5 flex flex-row flex-nowrap items-center gap-1.5 whitespace-nowrap lg:mt-0">
                   {/* A held-back row prints no verdict pill: WAIT is the rule table's working state,
                       not a call, and the list it sits in already says the names in it are held back.
                       Its reason is in the row, under "Why no call". */}

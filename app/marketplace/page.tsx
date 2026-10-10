@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AsOf, Empty, HowToRead, Note, Pill, Section, Table } from "@/components/ui";
 import { getMarketplace } from "@/lib/queries";
+import { loadOrDefer } from "@/lib/buildSafe";
 import { isoDate } from "@/lib/format";
 
 export const revalidate = 3600;
@@ -31,7 +32,7 @@ function Move({ rank, previousRank }: { rank: number; previousRank: number | nul
 }
 
 export default async function MarketplacePage() {
-  const { periodEnd, items } = await getMarketplace();
+  const { periodEnd, items } = await loadOrDefer(() => getMarketplace());
 
   const byCategory = new Map<string, typeof items>();
   for (const it of items) {

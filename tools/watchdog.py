@@ -25,7 +25,7 @@ A red run here is the alert. A green one means everything stale was restarted or
 What it will never do
 ---------------------
   * Dispatch a workflow that is not on `LANES`. The health document comes over the network and is
-    treated as untrusted input: a lane name in it is a request, and only five files can be requested.
+    treated as untrusted input: a lane name in it is a request, and only six files can be requested.
   * Print the token, or anything from a response body beyond the fields it names.
   * Change a threshold, a rule or a row. It starts lanes; the lanes do what they always do.
 """
@@ -40,8 +40,14 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 
 # The only workflows the watchdog may start, by file name. Exactly the lanes `lib/health.ts` names.
-LANES = frozenset({"cron-crypto.yml", "cron-us-prices.yml", "cron-psx.yml", "cron-decision.yml", "cron-news.yml"})
+LANES = frozenset({
+    "cron-crypto.yml", "cron-us-prices.yml", "cron-psx.yml", "cron-decision.yml", "cron-news.yml", "cron-live.yml",
+})
 ACTIVE = frozenset({"queued", "in_progress", "waiting", "pending", "requested"})
+# A run that ended without doing its work. "cancelled" is how GitHub reports a job that hit its own
+# timeout, which is how the news and products lanes actually died; counting only "failure" meant a lane
+# that timed out every run was restarted for ever and never reached a person.
+FAILED = frozenset({"failure", "cancelled", "timed_out"})
 DISPATCH_COOLDOWN = timedelta(minutes=50)
 FAILURE_WINDOW = timedelta(hours=3)
 FAILURES_TO_ESCALATE = 2
@@ -85,7 +91,7 @@ def plan(health: dict | None, runs: dict[str, list[dict]], now: datetime) -> lis
             continue
         failures = [
             r for r in recent
-            if r.get("conclusion") == "failure" and (t := parse_time(r.get("created_at"))) and now - t <= FAILURE_WINDOW
+            if r.get("conclusion") in FAILED and (t := parse_time(r.get("created_at"))) and now - t <= FAILURE_WINDOW
         ]
         if len(failures) >= FAILURES_TO_ESCALATE:
             actions.append({
@@ -93,9 +99,14 @@ def plan(health: dict | None, runs: dict[str, list[dict]], now: datetime) -> lis
                 "why": f"{detail}; the lane failed {len(failures)} times in the last 3 hours, so restarting it will not help",
             })
             continue
+        # The cooldown is for a dispatch that ran and did its job; one that already died is no reason to
+        # wait (2026-10-10: a manual news run cancelled at its timeout held the restart back for 50
+        # minutes). A dead run counts toward escalation above instead.
         mine = [
             r for r in recent
-            if r.get("event") == "workflow_dispatch" and (t := parse_time(r.get("created_at"))) and now - t < DISPATCH_COOLDOWN
+            if r.get("event") == "workflow_dispatch"
+            and r.get("conclusion") not in FAILED
+            and (t := parse_time(r.get("created_at"))) and now - t < DISPATCH_COOLDOWN
         ]
         if mine:
             actions.append({"lane": lane, "action": "wait", "why": f"{detail}; dispatched within the last 50 minutes"})

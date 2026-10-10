@@ -198,3 +198,25 @@ test("a WAIT prints its reason, never a confirmation score or a placeholder", ()
   assert.ok(!/not applicable/.test(rows));
 });
 
+
+test("the action cell is one line: the verdict and the star side by side, never stacked", () => {
+  // Measured 2026-10-10 at 1280px: the Action track was 89px and SHORT beside "★ FALLING STAR ↓"
+  // needs 171px, so all 25 stars on the stocks page wrapped under their call and made the row taller.
+  // A row (no wrap, 6px gap) and a track with a floor wide enough for the widest pair fix it together;
+  // either one alone brings the stack back or spills the star into the Price column.
+  const rows = decision.slice(decision.indexOf("function DecisionRows("));
+  const action = rows.slice(rows.indexOf("<span className={ROW_LABEL}>Action</span>"), rows.indexOf("<span className={ROW_LABEL}>Price</span>"));
+  assert.match(action, /className="[^"]*\bflex flex-row flex-nowrap\b[^"]*\bgap-1\.5\b[^"]*\bwhitespace-nowrap\b/);
+  assert.doesNotMatch(action, /flex-wrap(?!\S)/, "a wrapping action cell stacks the star under the call");
+  const cols = decision.match(/const DECISION_COLS =\s*"([^"]+)"/)?.[1] ?? "";
+  const tracks = cols.match(/lg:grid-cols-\[([^\]]+)\]/)?.[1].split("_") ?? [];
+  assert.equal(tracks.length, 10);
+  const floor = Number(tracks[2].match(/^minmax\((\d+)px,/)?.[1] ?? 0);
+  assert.ok(floor >= 171, `the Action track needs a floor of at least 171px for SHORT and a falling star, has ${floor}`);
+  // Below lg the cell spans two tracks, because one half-width track on a phone is narrower than the pair.
+  assert.match(rows, /<span className="col-span-2 min-w-0 lg:col-span-1">\s*<span className=\{ROW_LABEL\}>Action<\/span>/);
+  assert.match(cols, /\bgrid-flow-row-dense\b/, "without dense packing the spanning cell leaves a hole beside Market");
+  // The badge itself never breaks inside.
+  const badge = decision.slice(decision.indexOf("export function EarlySignalBadge("), decision.indexOf("export interface DecisionPanelProps"));
+  assert.match(badge, /whitespace-nowrap/);
+});

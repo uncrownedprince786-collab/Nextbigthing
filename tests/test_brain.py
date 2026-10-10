@@ -7174,9 +7174,11 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
         # Every step that runs the mirror carries the guard, not merely one of them: a second step
         # left unguarded would run with no target and exit 2 on exactly the deployment this protects.
         runs = text.count("python jobs/mirror.py")
-        guards = text.count("if: steps.targets.outputs.any == 'true'")
+        guards = len(re.findall(r"if: (?:always\(\) && )?steps\.targets\.outputs\.any == 'true'", text))
         self.assertGreaterEqual(runs, 2)
         self.assertEqual(runs, guards, "a mirror step runs without checking that a standby exists")
+        # A failed price copy must not skip the decisions (2026-10-10: it did, and the standby got none).
+        self.assertIn("if: always() && steps.targets.outputs.any == 'true'", text)
         # Only secrets, only through env, and never echoed.
         self.assertNotRegex(text, r"echo[^\n]*\$\{\{\s*secrets\.")
         self.assertNotRegex(text, r"echo[^\n]*(\$NEON2|\$SUPA)\b")
@@ -7196,7 +7198,7 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
             tables: int(n)
             for n, tables in _re.findall(r"date -u -d '(\d+) days ago'[^\n]*\n(?:[^\n]*\n)*?[^\n]*--tables ([A-Za-z,]+)", text)
         }
-        self.assertGreaterEqual(days["DecisionLog,SignalLog,AssetThesis"], 35)
+        self.assertGreaterEqual(days["DecisionLog,SignalLog,AssetThesis,MacroGate"], 35)
 
     def test_the_site_failover_and_the_nightly_writers_are_kept_apart(self):
         """The mirror is the only thing that writes a standby. The pool that reads one (lib/failover)
@@ -7692,6 +7694,26 @@ class TheWatchdogRestartsWhatStopped(unittest.TestCase):
         old = [dict(f, created_at="2026-10-14T06:00:00Z") for f in fails]
         self.assertEqual(w.plan({"problems": [self.problem("cron-us-prices.yml")]}, {"cron-us-prices.yml": old}, self.now())[0]["action"], "dispatch")
 
+    def test_a_lane_that_keeps_timing_out_is_escalated_too(self):
+        """GitHub reports a job that hit its timeout as "cancelled". Counting only "failure" restarted a
+        lane that timed out every run for ever, and never turned the watchdog red."""
+        w = self.wd()
+        cut = [
+            {"status": "completed", "conclusion": "cancelled", "event": "schedule", "created_at": "2026-10-14T10:05:00Z"},
+            {"status": "completed", "conclusion": "timed_out", "event": "workflow_dispatch", "created_at": "2026-10-14T09:30:00Z"},
+        ]
+        acts = w.plan({"problems": [self.problem("cron-news.yml")]}, {"cron-news.yml": cut}, self.now())
+        self.assertEqual(acts[0]["action"], "escalate")
+
+    def test_a_dispatch_that_already_died_does_not_hold_back_the_restart(self):
+        w = self.wd()
+        died = [{"status": "completed", "conclusion": "cancelled", "event": "workflow_dispatch", "created_at": "2026-10-14T11:20:00Z"}]
+        self.assertEqual(w.plan({"problems": [self.problem("cron-news.yml")]}, {"cron-news.yml": died}, self.now())[0]["action"], "dispatch")
+
+    def test_the_live_quote_lane_can_be_restarted(self):
+        acts = self.wd().plan({"problems": [self.problem("cron-live.yml")]}, {}, self.now())
+        self.assertEqual([(a["lane"], a["action"]) for a in acts], [("cron-live.yml", "dispatch")])
+
     def test_an_unreadable_site_and_a_problem_with_no_lane_go_to_a_person(self):
         w = self.wd()
         self.assertEqual(w.plan(None, {}, self.now())[0]["action"], "escalate")
@@ -7700,7 +7722,7 @@ class TheWatchdogRestartsWhatStopped(unittest.TestCase):
 
     def test_the_health_document_cannot_make_it_start_any_other_workflow(self):
         w = self.wd()
-        for evil in ("schema.yml", "../x.yml", "cron-live.yml", "deploy.yml", "CRON-CRYPTO.YML", 7):
+        for evil in ("schema.yml", "../x.yml", "cron-mirror.yml", "deploy.yml", "CRON-CRYPTO.YML", 7):
             acts = w.plan({"problems": [self.problem(evil)]}, {}, self.now())
             self.assertEqual([a["action"] for a in acts], ["escalate"], evil)
             self.assertIsNone(acts[0]["lane"])
@@ -8048,8 +8070,11 @@ class SupabaseAsPrimary(unittest.TestCase):
 
     def test_the_schema_check_refuses_supabase_unless_the_variable_says_so(self):
         text = (ROOT / "jobs" / "schemacheck.py").read_text(encoding="utf-8")
-        self.assertIn('os.environ.get("PRIMARY", "").strip().lower() == "supabase"', text)
+        self.assertIn('declared = os.environ.get("PRIMARY", "").strip().lower()', text)
+        self.assertIn('if provider == "Supabase" and declared == "supabase":', text)
         self.assertIn('elif provider == "Supabase":', text)
+        # The reverse half-switch (variable says Supabase, secret names Neon) is annotated, not silent.
+        self.assertIn("::warning title=PRIMARY does not match DATABASE_URL::", text)
         for wf in (ROOT / ".github" / "workflows").glob("*.yml"):
             body = wf.read_text(encoding="utf-8")
             if "jobs/schemacheck.py" in body:

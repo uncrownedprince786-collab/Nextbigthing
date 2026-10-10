@@ -211,6 +211,10 @@ GROUPS ={
     "psx": [[("psx", ["recent"])]],
     "news": [[("prices", ["news"])]],
     "products": [PRODUCTS],
+    # The products lane's two jobs (cron-products.yml): the five signal sources, then marketplace
+    # and geo. Selections over PRODUCTS, never copies, so the weekly lane and these run one list.
+    "product-signals": [PRODUCTS[:1]],
+    "product-geo": [PRODUCTS[1:]],
     "decision": [DECISION],
     "calendar": [[("upcoming", [])]],
     "audit": [[("audit", [])]],

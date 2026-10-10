@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Card, Pill, Table } from "@/components/ui";
 import { getAuditLog, getLogbookSummary } from "@/lib/queries";
+import { loadOrDefer } from "@/lib/buildSafe";
 import { toLines, type Summary } from "@/lib/logbook";
 
 export const metadata: Metadata = {
@@ -225,10 +226,7 @@ function Stars({ s }: { s: Summary }) {
 }
 
 export default async function LogbookPage() {
-  const [summary, entries] = await Promise.all([
-    getLogbookSummary(),
-    getAuditLog(),
-  ]);
+  const [summary, entries] = await loadOrDefer(() => Promise.all([getLogbookSummary(), getAuditLog()]));
   return (
     <div className="max-w-4xl space-y-8">
       <div>

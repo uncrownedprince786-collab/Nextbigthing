@@ -73,11 +73,24 @@ test("news: six hours is the limit, and no news at all is a problem, not a quiet
   assert.deepEqual(assess(healthy({ newestNews: null }), NOW).problems.map((p) => p.check), ["news"]);
 });
 
-test("an old quote is reported but is never a problem: quotes are opt-in", () => {
+test("quotes are opt-in: none, or none for days, is a lane that is off and never a problem", () => {
   const h = assess(healthy({ newestQuote: "2026-10-01T00:00:00Z" }), NOW);
   assert.equal(h.ok, true);
   assert.ok((h.quotes.ageMinutes ?? 0) > 10_000);
   assert.equal(assess(healthy({ newestQuote: null }), NOW).ok, true);
+});
+
+test("a quote lane that is on and has stopped is a problem the watchdog can restart", () => {
+  // NOW is 12:00. Two hours is eight missed 15-minute runs, the state GitHub's dropped schedules left
+  // on 2026-10-10.
+  const h = assess(healthy({ newestQuote: "2026-10-14T10:00:00Z" }), NOW);
+  assert.equal(h.ok, false);
+  assert.deepEqual(h.problems.map((p) => [p.check, p.lane]), [["quotes", "cron-live.yml"]]);
+  // Inside the hour: one or two late runs are not an outage.
+  assert.equal(assess(healthy({ newestQuote: "2026-10-14T11:01:00Z" }), NOW).ok, true);
+  // The edges: just past the hour is a problem, just past three days is a lane switched off.
+  assert.equal(assess(healthy({ newestQuote: "2026-10-14T10:59:00Z" }), NOW).ok, false);
+  assert.equal(assess(healthy({ newestQuote: "2026-10-11T11:59:00Z" }), NOW).ok, true);
 });
 
 test("a market with no close at all is a problem, and every problem is reported, not the first", () => {

@@ -48,6 +48,7 @@ Writes: ProductRegion
 
 from __future__ import annotations
 
+import os
 import sys
 import time
 from datetime import date
@@ -130,7 +131,9 @@ RETRY_SLEEP = 15.0
 # product with a country breakdown and no US breakdown is a product with one fewer table, not a
 # corrupt one. That already happens whenever PK returns nothing. What is not fine is leaving it
 # unsaid, so a part-asked product is named in the summary.
-FETCH_BUDGET_MINUTES = 45.0
+# Overridable with GEO_FETCH_BUDGET_MIN: the products lane runs geo in a 35 minute job after the
+# marketplace fetch and sets 18 there; 45 was longer than that job, so geo never wrote a row.
+FETCH_BUDGET_MINUTES = float(os.environ.get("GEO_FETCH_BUDGET_MIN") or 45.0)
 
 
 def why(exc: BaseException) -> str:

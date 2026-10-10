@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Empty, Section } from "@/components/ui";
 import { DecisionList, SectorBoard } from "@/components/decision";
 import { cachedDecisionRows, cachedSourceHealth } from "@/lib/cached";
+import { loadOrDefer } from "@/lib/buildSafe";
 import { todayISO } from "@/lib/decisionInput";
 import { isoDate } from "@/lib/format";
 import {
@@ -25,7 +26,7 @@ import {
 /// question this page answers is "show me all of them". The waiting list, which is most of the
 /// names, opens collapsed: complete inside, and not the first thing on the page.
 export async function ClassIndex({ cls }: { cls: AssetClass }) {
-  const [rows, health] = await Promise.all([cachedDecisionRows(), cachedSourceHealth()]);
+  const [rows, health] = await loadOrDefer(() => Promise.all([cachedDecisionRows(), cachedSourceHealth()]));
   const today = todayISO();
 
   const all = scoreRows(rows, health, today);

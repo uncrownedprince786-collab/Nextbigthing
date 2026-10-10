@@ -87,6 +87,11 @@ DATE_COLUMN = {
 # large enough that the copy is not a round trip per row.
 BATCH = 1000
 
+# Replaces a server's own statement timeout for the duration of one transaction. Thirty minutes, not
+# none: long enough for the largest table's full stream, short enough that a hung statement still ends
+# well inside the workflow's own budget.
+STATEMENT_CEILING = "SET LOCAL statement_timeout = '30min'"
+
 
 @dataclass
 class Tally:
@@ -257,6 +262,11 @@ def copy_table(
             "SELECT " + ", ".join('"' + c + '"' for c in cols) + f' FROM "{table}"' + where + " ORDER BY "
             + ", ".join('"' + k + '"' for k in key)
         )
+        # A generous statement ceiling on both sides, set per transaction (`SET LOCAL`, because a
+        # transaction-mode pooler hands each transaction a different session). A first full copy
+        # streams every price since 2018 through one cursor, and on 2026-10-10 that run was cancelled
+        # by a server-side statement timeout two minutes in, part way through PriceSnapshot.
+        sc.execute(STATEMENT_CEILING)
         # Server side cursor, so a table of 600,000 rows is streamed rather than held in memory.
         with src.cursor(name=f"mirror_{table.lower()}") as stream:
             stream.itersize = BATCH
@@ -274,6 +284,7 @@ def copy_table(
                     else:
                         out.append(mapped)
                 if out and not dry_run:
+                    dc.execute(STATEMENT_CEILING)  # each batch is its own transaction on the target
                     dc.executemany(sql, out)
                     # rowcount over executemany is the number of rows actually written: a skipped
                     # unchanged row writes nothing, which is how the clause is verified end to end.
@@ -319,6 +330,7 @@ def mirror_one(src_url: str, label: str, dst_url: str, chosen: list[str], dry: b
     except Exception as e:  # noqa: BLE001
         print(f"  could not connect: {redact(str(e).splitlines()[0])}")
         return False
+    current = "the asset map"
     try:
         with src.cursor() as sc, dst.cursor() as dc:
             amap = build_asset_map(asset_identity(sc), asset_identity(dc))
@@ -326,13 +338,16 @@ def mirror_one(src_url: str, label: str, dst_url: str, chosen: list[str], dry: b
         print(f"  assets matched by (industry, symbol): {len(amap)}")
         print(("  DRY RUN, nothing written\n" if dry else "") + f"  {'table':14} {'read':>9} {'written':>9} {'unchanged':>10} {'unmatched':>10}")
         for table in chosen:
+            current = table
             t = copy_table(src, dst, table, amap, dry, since, pmap)
             print(f"  {table:14} {t.read:>9} {t.copied:>9} {t.unchanged:>10} {t.unmatched:>10}")
             if t.unmatched_assets:
                 print(f"      {len(t.unmatched_assets)} source asset(s) have no counterpart here, e.g. {sorted(t.unmatched_assets)[:3]}")
         return True
     except Exception as e:  # noqa: BLE001
-        print(f"  failed part way: {redact(str(e).splitlines()[0])}")
+        # Names the table: the line used to say only "statement timeout", which left open which of
+        # five tables and which side had stopped. Rows already committed stay; a rerun is safe.
+        print(f"  failed part way through {current}: {redact(str(e).splitlines()[0])}")
         return False
     finally:
         for c in (src, dst):

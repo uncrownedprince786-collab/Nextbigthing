@@ -92,6 +92,24 @@ test("the driver's wording counts when the code is gone, including a full pooler
   assert.equal(isConnectionFailure(Object.assign(new Error("wrapped"), { cause: refused })), true);
 });
 
+test("Prisma's wrapping of the same conditions counts: what a page's query sees, not the pool", () => {
+  // The exact shape a build with every tier unreachable produced on 2026-10-10 (P1001, with the
+  // driver's error under meta.driverAdapterError), which went unrecognised and failed the build.
+  const p1001 = Object.assign(new Error("Invalid `prisma.ranking.findMany()` invocation:\n\nCan't reach database server at 127.0.0.1:1"), {
+    code: "P1001",
+    meta: { modelName: "Ranking", driverAdapterError: new Error("DatabaseNotReachable") },
+  });
+  assert.equal(isConnectionFailure(p1001), true);
+  for (const code of ["P1001", "P1002", "P1017"]) {
+    assert.equal(isConnectionFailure(Object.assign(new Error("x"), { code })), true, code);
+  }
+  assert.equal(isConnectionFailure(Object.assign(new Error("x"), { meta: { driverAdapterError: refused } })), true);
+  // A Prisma request error is still a request error: no record found, unique violation.
+  for (const code of ["P2025", "P2002"]) {
+    assert.equal(isConnectionFailure(Object.assign(new Error("x"), { code })), false, code);
+  }
+});
+
 test("a bad credential or a bad request is not a reason to switch databases", () => {
   assert.equal(isConnectionFailure(badPassword), false);
   assert.equal(isConnectionFailure(Object.assign(new Error("syntax error"), { code: "42601" })), false);

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Card, HowToRead, Note, Section, SourceHealthBlock, Table } from "@/components/ui";
 import { getIntradayCoverage, getSourceHealth } from "@/lib/queries";
+import { loadOrDefer } from "@/lib/buildSafe";
 import { isoDate } from "@/lib/format";
 
 export const revalidate = 3600;
@@ -184,8 +185,7 @@ const NEW_SECTIONS = [
 ];
 
 export default async function MethodologyPage() {
-  const health = await getSourceHealth();
-  const intraday = await getIntradayCoverage();
+  const [health, intraday] = await loadOrDefer(async () => [await getSourceHealth(), await getIntradayCoverage()] as const);
   return (
     <div className="max-w-4xl">
       <div>
