@@ -65,6 +65,9 @@ TABLES: dict[str, tuple[str, ...]] = {
     "PriceSnapshot": ("assetId", "date"),
     "SignalLog": ("kind", "targetRef", "issuedOn"),
     "AssetThesis": ("assetId", "horizon", "openedOn"),
+    # The macro gatekeeper's stored answers. Mirrored so a standby that takes over serves the same vetoes
+    # as the primary; absent on a target the migration has not reached, in which case `copy_table` skips it.
+    "MacroGate": ("assetId", "periodEnd"),
 }
 
 # The date column each table is keyed on, for `--since`. A nightly mirror copies a trailing window
@@ -77,6 +80,7 @@ DATE_COLUMN = {
     "PriceSnapshot": "date",
     "SignalLog": "issuedOn",
     "AssetThesis": "openedOn",
+    "MacroGate": "periodEnd",
 }
 
 # Rows per statement and per commit. Small enough that a dropped pooler connection costs one batch,

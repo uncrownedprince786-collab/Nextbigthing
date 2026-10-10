@@ -1980,3 +1980,62 @@ reads rows that already exist:
     "C"`, because the two servers also collate differently) is identical for every price, decision and
     thesis row. A copy is verified by exact, order-independent content, never by an aggregate of floats.
 
+72. **A language model was given the power to say no, and nothing else.**
+    `lib/macroGate.ts`, `tools/macro_gate.mjs`, the `MacroGate` table and the `macro-veto` gate in
+    `lib/decision.ts`. A nightly job shows a model one LONG or SHORT the rule table already produced,
+    with the last day's headlines and each source's stored Beta(alpha, beta), and asks whether they
+    describe an extreme macro shock. The answer is stored. The rule table reads a fresh stored REJECT as
+    one more input to `decide` and turns that name into a WAIT. That is all it can do.
+
+    **Why it is a stored input and not a call.** The site computes every verdict at read time, so a
+    nightly job that only wrote a log row would change nothing a reader sees. And a model is not
+    deterministic: the prompt asked for "deterministic" output, which no model can promise. Storing the
+    answer is how `decide` stays a pure function of what is stored and a page refresh can never show a
+    different verdict. The determinism lives in the rule table; the model's contribution is one stored
+    row that is honest about being one.
+
+    **What it cannot do, and where that is enforced -- not asked for.** Telling a model "never invent a
+    number" is a request. Here the reply schema has four fields and none is a number, the parser
+    (`parseGateReply`) rejects a reply with any extra key, a fence, a preamble, the wrong symbol, a
+    REJECT with no reason, or an EXECUTE with one, and the rule table prints fixed words per reason and
+    never the model's rationale (stored for the log only). The asymmetry rule 44 gives coverage -- it can
+    withdraw a claim and never make one -- holds here for the same reason.
+
+    **It fails open, in three places.** An unusable reply, a refusal by the model, a timeout or an API
+    error resolve to EXECUTE and are stored as `valid = false` so they are visible and retried. A read
+    of `MacroGate` that throws (a standby the migration has not reached, a dropped connection) is "no
+    veto" in both the site query and the decision job. And the job exits 0 whatever happens and the
+    workflow steps are `continue-on-error`: the one thing this layer must not do is turn a third party's
+    outage into a red decision lane or a blank site.
+
+    **Headlines are an attack surface.** A feed anyone can publish to is text copied into a prompt.
+    Control characters are removed (an earlier draft of this layer's prompt contained a literal vertical
+    tab from a stray escape), both angle brackets are neutralised so a headline cannot close its own
+    block, the system prompt says the contents of those blocks are data and never instruction, and a
+    symbol is refused rather than cleaned if it is not an identifier. One mutation check slipped: with
+    only the `>` neutralised the test still passed, because the closing tag was destroyed anyway; the
+    test now asserts that no angle bracket survives outside the template's own tags.
+
+    **Two things found by running it, not by reading it.** `pg` returns a `@db.Date` as local midnight,
+    so east of UTC the seam read 2026-10-09 as 2026-10-08 and a veto filed yesterday looked two days old:
+    six inserted refusals changed nothing in the decision job until the job passed `dayOf(...)`. Every
+    pure test had passed. And the SDK's zod helper, at the pinned zod, rendered the two enums as
+    description text rather than `enum` constraints, so the schema is written out by hand and the zod
+    dependency is gone.
+
+    **Verified against the live database, with no model.** Six temporary REJECT rows produced exactly six
+    `macro-veto` rows in the decision job's dry run (LONG and SHORT fell by four and two), and removing
+    them restored 280 WAIT / 189 SHORT / 107 LONG. Neon and Supabase carry the table with identical
+    structure (38 tables, 527 columns, 126 indexes, 80 constraints). **No call to the real API has been
+    made**: there is no key here, so the request shape was checked against the SDK with a fake transport
+    and the first real answer will arrive when the secret is set.
+
+    **What was claimed and was not delivered.** "Deterministic grounded reasoning" and "the gate
+    guarantees zero invented numbers" are properties of the surrounding code, not of the model, and are
+    described that way above. The user's source-reliability weighting is given to the model as data
+    (Beta statistics and the implied mean per source); whether the model uses it well is not something a
+    test here can say, and the scorecard should be asked after the first sessions, like every other claim
+    (principle 7): what the refused names did next against the ones let through. Every answer, EXECUTE
+    and fallback included, is stored for that reason. Cost: only names with a direction and a headline in
+    the last 24 hours are asked about, at most 60 a run, `MACRO_GATE_MODEL=claude-haiku-5-5` is the cheap
+    switch.

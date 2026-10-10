@@ -1332,3 +1332,71 @@ test("a refusal carries the side it refused, and a direction or a plain WAIT car
   assert.equal(decide(base()).intent, null, "a printed direction names its side by its action");
   assert.equal(decide(base({ asOf: null })).intent, null, "a data fault refuses no particular side");
 });
+
+// --- the macro veto: a stored refusal that can only ever remove a verdict ----------------------
+//
+// `lib/macroGate.ts` asks a model; this table only reads what was stored. The properties that
+// matter are asymmetric: a veto may turn a LONG or SHORT into a WAIT and may do nothing else --
+// not raise a grade, not touch a level, not rescue a name that was already refused.
+
+const VETO = { reason: "macro-warning", asOf: "2026-10-03" } as const;
+
+test("a fresh macro veto turns a LONG into a refusal that records the side it refused", () => {
+  const alone = decide(base());
+  assert.equal(alone.action, "LONG");
+  const vetoed = decide(base({ macroVeto: VETO }));
+  assert.equal(vetoed.action, "WAIT");
+  assert.equal(vetoed.gate, "macro-veto");
+  assert.equal(vetoed.basis, "evidence");
+  assert.equal(vetoed.intent, "up");
+  assert.equal(vetoed.plan, null);
+  assert.match(vetoed.why[0], /trend reads up/);
+});
+
+test("a fresh macro veto turns a SHORT into a refusal, mirrored", () => {
+  const down = { setup: { direction: "down", horizon: "swing" } as const, horizon: { direction: "down" } as const };
+  const vetoed = decide(base({ ...down, macroVeto: { reason: "sentiment-conflict", asOf: "2026-10-03" } }));
+  assert.equal(vetoed.action, "WAIT");
+  assert.equal(vetoed.gate, "macro-veto");
+  assert.equal(vetoed.intent, "down");
+});
+
+test("a veto counts for today and yesterday and for no longer, and never from the future", () => {
+  const at = (asOf: string) => decide(base({ macroVeto: { reason: "macro-warning", asOf } })).gate;
+  assert.equal(at("2026-10-03"), "macro-veto");
+  assert.equal(at("2026-10-02"), "macro-veto");
+  assert.equal(at("2026-10-01"), "long");
+  assert.equal(at("2026-09-01"), "long");
+  assert.equal(at("2026-10-04"), "long");
+  assert.equal(at("not-a-date"), "long");
+});
+
+test("a macro veto never changes anything it does not refuse", () => {
+  // No veto, null, and an expired one all decide exactly as the rule table alone does.
+  const alone = decide(base());
+  assert.deepEqual(decide(base({ macroVeto: null })), alone);
+  assert.deepEqual(decide(base({ macroVeto: { reason: "macro-warning", asOf: "2026-09-01" } })), alone);
+  // A name already refused for another reason keeps that reason: the veto is not a second opinion.
+  const stale = base({ asOf: "2026-09-01" });
+  assert.deepEqual(decide({ ...stale, macroVeto: VETO }), decide(stale));
+  // And a plan that is already finished is reported as finished, not as vetoed.
+  const crossed = base({ lastClose: 100, invalidation: 104 });
+  assert.equal(decide({ ...crossed, macroVeto: VETO }).gate, "stop-crossed");
+});
+
+test("the veto is deterministic and prints only fixed words, never the model's text", () => {
+  const input = base({ macroVeto: VETO });
+  assert.deepEqual(decide(input), decide(input));
+  const printed = JSON.stringify(decide(input));
+  assert.match(printed, /an extreme market-wide shock/);
+  const conflict = JSON.stringify(decide(base({ macroVeto: { reason: "sentiment-conflict", asOf: "2026-10-03" } })));
+  assert.match(conflict, /directly contradict that direction/);
+});
+
+test("an unrecognised veto reason is no veto at all, and the freshness window matches the gate's", async () => {
+  const odd = decide(base({ macroVeto: { reason: "vibes" as never, asOf: "2026-10-03" } }));
+  assert.equal(odd.gate, "long");
+  const mod = await import("../lib/macroGate.ts");
+  const src = (await import("node:fs")).readFileSync(new URL("../lib/decision.ts", import.meta.url), "utf8");
+  assert.match(src, new RegExp(`const MACRO_VETO_FRESH_DAYS = ${mod.MACRO_VETO_FRESH_DAYS};`));
+});

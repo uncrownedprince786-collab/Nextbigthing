@@ -124,6 +124,10 @@ export type Direction = "up" | "down" | "flat" | "unknown";
 ///
 /// Null on a LONG or a SHORT: a direction was produced, so nothing was withheld.
 export type WaitBasis = "file" | "evidence";
+
+/// How many whole days a stored macro refusal applies. Mirrors `lib/macroGate.ts`, which this file does not
+/// import so the rule table keeps no dependency outside itself.
+const MACRO_VETO_FRESH_DAYS = 1;
 export type Market = "US" | "PSX" | "Crypto" | "FX" | "Commodity" | "Other";
 
 /// How old a close may be before the panel refuses to act on it, per market, in calendar days.
@@ -451,6 +455,15 @@ export interface DecisionInput {
   /// `rule` is `jobs/factors.py`'s own name for what fired, carried through rather than
   /// re-derived, so the card names the measurement that was actually taken.
   entryTrigger?: { rule: string; direction: "up" | "down" } | null;
+  /// A stored refusal from the macro gatekeeper (`lib/macroGate.ts`), or null. A *veto only*: it can turn a
+  /// LONG or SHORT into a WAIT and can do nothing else -- there is no field here that raises confidence,
+  /// moves a level or adds a number. The model is asked once, by a nightly job, and the answer is stored;
+  /// this input is that stored answer, so `decide` stays a pure function of what is stored and a reader
+  /// refreshing the page can never get a different verdict.
+  ///
+  /// `asOf` is the session the refusal was made for. It counts for `MACRO_VETO_FRESH_DAYS` and no
+  /// longer, because a refusal that outlives the news that caused it is a stale claim.
+  macroVeto?: { reason: "macro-warning" | "sentiment-conflict"; asOf: string } | null;
   /// This asset's own 20-session return, in percent. How much of the move is already behind it.
   ///
   /// Read by the short gate and by nothing else: a short on a name already down more than
@@ -583,6 +596,19 @@ function daysBetween(fromISO: string, toISO: string): number {
   const b = Date.parse(toISO + "T00:00:00Z");
   if (Number.isNaN(a) || Number.isNaN(b)) return Number.NaN;
   return Math.round((b - a) / 86_400_000);
+}
+
+/// The words for a stored veto, or null when there is none or it has expired. Fixed text per reason:
+/// the model's own rationale is stored for the log and never printed on a card, because it is the one
+/// string in the pipeline that no rule table produced.
+function macroVetoOf(input: DecisionInput): string | null {
+  const v = input.macroVeto;
+  if (!v) return null;
+  const age = daysBetween(v.asOf, input.today);
+  if (!Number.isFinite(age) || age < 0 || age > MACRO_VETO_FRESH_DAYS) return null;
+  if (v.reason === "macro-warning") return "an extreme market-wide shock";
+  if (v.reason === "sentiment-conflict") return "events that directly contradict that direction";
+  return null;
 }
 
 function pct(n: number): string {
@@ -1359,6 +1385,19 @@ export function decide(input: DecisionInput): Decision {
         ...wait(input, "stop-crossed", "evidence", [
           `The trend reads ${dir}, but price has already moved through the level that would prove it wrong.`,
           crossed,
+        ], []),
+        intent: dir,
+      };
+    }
+    // A stored macro refusal. Placed after the stop check and before the short gate: a plan that is
+    // already finished needs no second reason, and a veto is a statement about the world, not about
+    // this name's confirmations, so no number of them overrides it.
+    const veto = macroVetoOf(input);
+    if (veto) {
+      return {
+        ...wait(input, "macro-veto", "evidence", [
+          `The trend reads ${dir}, but recent news describes ${veto}.`,
+          "This is a refusal and not a forecast: the rule table's own reading is unchanged beneath it.",
         ], []),
         intent: dir,
       };

@@ -299,8 +299,29 @@ export interface DecisionBundle {
     triggerDirection?: string | null;
   } | null;
   nextEvent: { date: Date | string } | null;
+  /// The newest stored REJECT from the macro gatekeeper for this name, or null. Raw across this seam,
+  /// like every other field: `macroVetoFrom` validates it once, where the bundle becomes a
+  /// `DecisionInput`. Optional so a caller that has not learned to read it keeps deciding exactly as
+  /// before, which is also what the gate being off looks like.
+  macroVeto?: { reason: string | null; asOf: Date | string } | null;
   /// From `getSourceHealth()`; only the newest row per source is expected.
   sourceHealth: { source: string; status: string }[];
+}
+
+/// A stored refusal read into the shape the rules take, or null when it is not one.
+///
+/// The reason is **checked against the two words rather than cast**: `MacroGate.reason` is a
+/// `String?`, and a cast would turn anything a job or a hand-written UPDATE put there into a printed
+/// refusal. An unrecognised reason or an unreadable date yields null, which is the same as no veto
+/// and costs nothing -- the one direction in which this seam may fail.
+function macroVetoFrom(
+  v: { reason: string | null; asOf: Date | string } | null | undefined,
+): { reason: "macro-warning" | "sentiment-conflict"; asOf: string } | null {
+  if (!v) return null;
+  if (v.reason !== "macro-warning" && v.reason !== "sentiment-conflict") return null;
+  const t = v.asOf instanceof Date ? v.asOf.getTime() : Date.parse(String(v.asOf));
+  if (!Number.isFinite(t)) return null;
+  return { reason: v.reason, asOf: new Date(t).toISOString().slice(0, 10) };
 }
 
 /// The two stored columns read into the pair the rules take, or null when they are not one.
@@ -421,6 +442,8 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
       bundle.factors?.entryTrigger,
       bundle.factors?.triggerDirection,
     ),
+    // Seventh field across this seam, and it has its own test for the reason the sixth did.
+    macroVeto: macroVetoFrom(bundle.macroVeto),
     unusualMove: isUnusualMove(bundle.investigation),
     // A missing HumanSignal row means news was never checked for this name, which the rule table
     // reports differently from a row saying zero. Keep the null.
@@ -504,6 +527,8 @@ export interface QueryBundle {
     entryTrigger?: string | null;
     triggerDirection?: string | null;
   } | null;
+  /// Newest stored REJECT from the macro gatekeeper; see `DecisionBundle.macroVeto`.
+  macroVeto?: { reason: string | null; asOf: Date | string } | null;
 }
 
 /// `sourceHealth` is passed in rather than fetched, because it is one site-wide read that every
@@ -561,6 +586,7 @@ export function bundleFromQuery(
           triggerDirection: row.factor.triggerDirection ?? null,
         }
       : null,
+    macroVeto: row.macroVeto ?? null,
     sourceHealth,
   };
 }
@@ -624,6 +650,10 @@ export interface QueryRow {
   /// direction with an unusual-move flag.
   entryTrigger?: string | null;
   triggerDirection?: string | null;
+  /// The newest stored macro REJECT and the session it was made for. Both or neither: a reason with
+  /// no date cannot be aged, so it is not a veto.
+  macroVetoReason?: string | null;
+  macroVetoAsOf?: Date | string | null;
 }
 
 export function bundleFromRow(
@@ -677,6 +707,10 @@ export function bundleFromRow(
               entryTrigger: row.entryTrigger ?? null,
               triggerDirection: row.triggerDirection ?? null,
             },
+      macroVeto:
+        row.macroVetoReason && row.macroVetoAsOf
+          ? { reason: row.macroVetoReason, asOf: row.macroVetoAsOf }
+          : null,
     },
     sourceHealth,
   );

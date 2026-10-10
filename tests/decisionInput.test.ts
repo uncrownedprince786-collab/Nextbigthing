@@ -945,3 +945,51 @@ test("the asset-page bundle carries the trigger as well as the list row", () => 
   );
   assert.deepEqual(input.entryTrigger, { rule: "vol_flip", direction: "down" });
 });
+
+// --- The macro veto crossing the seam ----------------------------------------------------------
+//
+// The seventh field to cross it, and the reason it has a test is the one above: an optional field
+// that is never named in an object literal is dropped without anything failing. Here the failure is
+// the harmless-looking one -- a stored refusal that never reaches the rules -- so the gate would be
+// running, costing money, and changing nothing.
+
+test("a stored macro refusal reaches the rules from both the list and the asset page", () => {
+  const veto = { macroVetoReason: "macro-warning", macroVetoAsOf: "2026-10-03" };
+  const fromRow = toDecisionInput(bundleFromRow(row({ swing: UP, longer: null, ...veto }), []), "2026-10-03");
+  assert.deepEqual(fromRow.macroVeto, { reason: "macro-warning", asOf: "2026-10-03" });
+  assert.equal(decide(fromRow).gate, "macro-veto");
+
+  const query = (macroVeto: object | null | undefined) =>
+    toDecisionInput(
+      bundleFromQuery(
+        {
+          symbol: "AAPL",
+          assetType: "stock",
+          market: "US",
+          newestClose: 97,
+          newestCloseDate: new Date("2026-10-02T00:00:00Z"),
+          horizons: [{ horizon: "swing", state: "buy", entryLevel: 100, invalidateLevel: 94 }],
+          analogs: [{ horizonDays: 5, matches: 22, minPct: -4.1, maxPct: 7.7 }],
+          humanSignal: { recentStories: 14 },
+          investigation: null,
+          nextEvent: null,
+          macroVeto: macroVeto as never,
+        },
+        [],
+      ),
+      "2026-10-03",
+    );
+  const page = query({ reason: "sentiment-conflict", asOf: new Date("2026-10-03T00:00:00Z") });
+  assert.deepEqual(page.macroVeto, { reason: "sentiment-conflict", asOf: "2026-10-03" });
+  assert.equal(query(undefined).macroVeto, null);
+});
+
+test("a stored refusal that is not one is no veto, and a row without one is unchanged", () => {
+  const plain = toDecisionInput(bundleFromRow(row({ swing: UP, longer: null }), []), "2026-10-03");
+  assert.equal(plain.macroVeto, null);
+  const half = (v: object) => toDecisionInput(bundleFromRow(row({ swing: UP, longer: null, ...v }), []), "2026-10-03").macroVeto;
+  assert.equal(half({ macroVetoReason: "macro-warning" }), null);
+  assert.equal(half({ macroVetoAsOf: "2026-10-03" }), null);
+  assert.equal(half({ macroVetoReason: "vibes", macroVetoAsOf: "2026-10-03" }), null);
+  assert.equal(half({ macroVetoReason: "macro-warning", macroVetoAsOf: "garbage" }), null);
+});

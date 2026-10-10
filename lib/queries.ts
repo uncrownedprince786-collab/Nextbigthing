@@ -777,6 +777,37 @@ export async function getAssetFreshness(assetId: string): Promise<{
   return { newest: row.date, close: row.close, priceSource: row.source };
 }
 
+/// The newest stored macro-gatekeeper answer per name, kept only where it is a REJECT.
+///
+/// **Fails open, in the way that matters most here.** A missing table (a standby that has not had the
+/// migration), a connection error or anything else yields an empty map, which is the same as "no veto"
+/// and leaves every verdict exactly what the rule table would have said alone. A veto layer whose own
+/// read can take the page down would be the one thing worse than having no veto layer.
+///
+/// The newest *valid* row decides, whichever way it went: a later EXECUTE supersedes an earlier REJECT
+/// for the same name, so a refusal is never kept alive by an answer the gate has since reversed. The
+/// rule table ages what it is handed, so this only bounds the read to a few days.
+async function getMacroVetoes(assetId?: string): Promise<Map<string, { reason: string | null; asOf: Date }>> {
+  const out = new Map<string, { reason: string | null; asOf: Date }>();
+  try {
+    const since = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000);
+    const rows = await prisma.macroGate.findMany({
+      where: { valid: true, periodEnd: { gte: since }, ...(assetId ? { assetId } : {}) },
+      orderBy: [{ periodEnd: "desc" }, { createdAt: "desc" }],
+      select: { assetId: true, verdict: true, reason: true, periodEnd: true },
+    });
+    const seen = new Set<string>();
+    for (const r of rows) {
+      if (seen.has(r.assetId)) continue;
+      seen.add(r.assetId);
+      if (r.verdict === "REJECT") out.set(r.assetId, { reason: r.reason, asOf: r.periodEnd });
+    }
+  } catch {
+    out.clear();
+  }
+  return out;
+}
+
 /// Everything the decision panel on one asset page reads: 9 queries, issued together.
 ///
 /// Flat and not nested. The panel's whole claim is that these readings are being looked at
@@ -798,6 +829,7 @@ export async function getAssetFreshness(assetId: string): Promise<{
 /// would be free to render the direction before they arrived, which is exactly the selective reading
 /// argued against above.
 export async function getDecisionBundle(assetId: string) {
+  const vetoes = getMacroVetoes(assetId);
   const [asset, freshness, horizons, analogs, humanSignal, investigation, upcoming, factor] =
     await Promise.all([
       prisma.asset.findUnique({
@@ -867,6 +899,7 @@ export async function getDecisionBundle(assetId: string) {
     factorPeriodEnd: factor?.periodEnd ?? null,
     /// How many peers the relative reading was taken over. Carried so a panel can say *why*
     /// `relStrength` is null — a group of four names rather than a measurement that came out even.
+    macroVeto: (await vetoes).get(assetId) ?? null,
     factorPeers: factor?.peers ?? null,
   };
 }
@@ -967,6 +1000,10 @@ export type DecisionQueryRow = {
   /// measurement that failed — see `DecisionInput.entryTrigger`.
   entryTrigger: string | null;
   triggerDirection: string | null;
+  /// The newest stored macro REJECT and the session it was made for; see `getMacroVetoes`. Null on
+  /// both when there is none, which is every name while the gate is off.
+  macroVetoReason: string | null;
+  macroVetoAsOf: Date | null;
   /// Stories, not items: twenty outlets carrying one wire report is one story. The reasoning is
   /// at `getStories` and on `HumanSignal.recentStories`.
   recentStories: number | null;
@@ -1075,6 +1112,7 @@ function distinctDays(maxes: (Date | null)[]): Date[] {
 /// forever after, which on Neon's free tier is the failure mode described above and not merely a
 /// slower page. Two bulk queries cost the same whether the universe is 160 names or 1,000.
 export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
+  const vetoes = getMacroVetoes();
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
@@ -1296,6 +1334,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   // assets that happen to have a setup would make the three lists add up to fewer names than the
   // site covers, and a reader counting them would read that gap as a judgement about the missing
   // ones rather than as a job that has not run.
+  const vetoByAsset = await vetoes;
   return assets.map((asset): DecisionQueryRow => {
     const price = priceByAsset.get(asset.id);
     const analog = analogByAsset.get(asset.id);
@@ -1334,6 +1373,8 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       r20: factor?.r20 ?? null,
       entryTrigger: factor?.entryTrigger ?? null,
       triggerDirection: factor?.triggerDirection ?? null,
+      macroVetoReason: vetoByAsset.get(asset.id)?.reason ?? null,
+      macroVetoAsOf: vetoByAsset.get(asset.id)?.asOf ?? null,
       recentStories: signal?.recentStories ?? null,
       newsTone: signal?.tone ?? null,
       newsCatalyst: signal?.catalyst ?? null,

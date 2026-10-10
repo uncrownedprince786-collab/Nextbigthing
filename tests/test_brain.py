@@ -4031,7 +4031,12 @@ class NothingBuiltAndUnused(unittest.TestCase):
 
     # Anything deliberately kept without a consumer goes here, with the reason. Empty is the
     # healthy state; a name added without a reason is the thing this test exists to catch.
-    ALLOWED: dict[str, str] = {}
+    ALLOWED: dict[str, str] = {
+        # Read by `tools/macro_gate.mjs`, the nightly job, and deliberately by nothing on the site: the
+        # site never calls the model, it reads the answer the job stored. That the job really imports it
+        # is pinned in `TheMacroGateOnlyRefuses`, so this entry cannot outlive its only consumer.
+        "evaluate": "tools/macro_gate.mjs",
+    }
 
     def exports_without_consumers(self) -> list[str]:
         import re
@@ -6894,7 +6899,11 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
 
     def test_it_copies_exactly_the_four_tables_nothing_else_may_lose(self):
         m = self.mirror()
-        self.assertEqual(set(m.TABLES), {"DecisionLog", "PriceSnapshot", "SignalLog", "AssetThesis"})
+        # `MacroGate` joined the four when the macro gatekeeper did: its refusals are inputs to `decide`,
+        # so a standby that took over without them would print verdicts the primary had refused.
+        self.assertEqual(
+            set(m.TABLES), {"DecisionLog", "PriceSnapshot", "SignalLog", "AssetThesis", "MacroGate"}
+        )
         # Each is keyed on something a person would call the row's identity, never on the UUID.
         for table, key in m.TABLES.items():
             self.assertNotIn("id", key, table)
@@ -7097,6 +7106,159 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
                 continue
             text = lane.read_text(encoding="utf-8")
             self.assertNotIn("DATABASE_URL_FALLBACK", text, lane.name)
+
+
+class TheMacroGateOnlyRefuses(unittest.TestCase):
+    """The gatekeeper is a language model reading headlines, which is the one input to this system
+    nobody can check, so every property worth having is one that limits what it can do: it is off
+    until asked, it can only refuse, it cannot print a number, it fails open, it never takes the
+    site or the lane down, and the key never leaves the one step that needs it.
+
+    The behaviour of the pure core (strict parsing, fail-open, injection handling) is in
+    `tests/macroGate.test.ts`; these pin the parts that live in a job, a query and a workflow."""
+
+    @staticmethod
+    def text(rel: str) -> str:
+        return (ROOT / rel).read_text(encoding="utf-8")
+
+    def job(self) -> str:
+        return code_only(self.text("tools/macro_gate.mjs"))
+
+    @staticmethod
+    def function_body(src: str, header: str, close: str = "}") -> str:
+        start = src.index(header)
+        end = src.index(chr(10) + close + chr(10), start)
+        return src[start:end]
+
+    def test_the_job_is_off_until_asked_and_checks_before_it_connects_to_anything(self):
+        src = self.job()
+        off = src.index('process.env.MACRO_GATE !== "on"')
+        self.assertLess(off, src.index("new Anthropic("))
+        self.assertLess(off, src.index("new pg.Pool("))
+        self.assertIn("ANTHROPIC_API_KEY", src[off : src.index("new pg.Pool(")])
+
+    def test_the_reply_schema_has_no_place_for_a_number(self):
+        schema = self.function_body(self.job(), "const REPLY_SCHEMA = {", "};")
+        for numeric in ('"number"', '"integer"'):
+            self.assertNotIn(numeric, schema)
+        for field in ("symbol", "verdict", "refusal_reason", "rationale"):
+            self.assertIn(field + ":", schema)
+        self.assertIn("additionalProperties: false", schema)
+        core = code_only(self.text("lib/macroGate.ts"))
+        self.assertIn('const KEYS = ["symbol", "verdict", "refusal_reason", "rationale"]', core)
+
+    def test_the_job_writes_one_table_and_only_that_one(self):
+        import re
+
+        src = self.text("tools/macro_gate.mjs")
+        verbs = re.findall(r'(?:INSERT INTO|UPDATE|DELETE FROM)\s+"(\w+)"', src)
+        self.assertTrue(verbs)
+        self.assertEqual(set(verbs), {"MacroGate"})
+
+    def test_nothing_secret_or_model_authored_is_ever_printed(self):
+        import re
+
+        src = self.job()
+        self.assertIsNone(re.search(r"[.]message" + chr(92) + "b", src))
+        # Naming a variable in a message ("no ANTHROPIC_API_KEY") is the point of the message; what must
+        # never happen is a *value* reaching one, so only the interpolated expressions are searched.
+        for call in re.findall(r"say[(][^;]*;", src):
+            self.assertNotIn("process.env", call, call)
+            for expression in re.findall(r"[$][{]([^}]*)[}]", call):
+                for leak in ("KEY", "URL", "rationale", "message", "env"):
+                    self.assertNotIn(leak, expression, call)
+        self.assertNotIn("console.error", src)
+
+    def test_the_job_cannot_fail_the_lane(self):
+        src = self.job()
+        tail = src[src.index("main().catch(") :]
+        self.assertIn("catch", tail)
+        self.assertNotIn("process.exit", src)
+        self.assertNotIn("throw", tail)
+
+    def test_the_one_export_the_web_layer_does_not_use_is_used_by_the_job(self):
+        self.assertIn("evaluate", self.job().split("from " + chr(34) + "../lib/macroGate.ts" + chr(34))[0])
+
+    def test_the_model_is_called_as_the_api_documents_it(self):
+        src = self.job()
+        self.assertIn('"claude-opus-5-5"', src)
+        self.assertNotIn("budget_tokens", src)
+        self.assertNotIn("thinking:", src)
+        self.assertNotIn('role: "assistant"', src)
+        self.assertIn('res.stop_reason === "refusal"', src)
+        self.assertIn('res.stop_reason === "max_tokens"', src)
+
+    def test_the_read_paths_fail_open_so_a_missing_table_cannot_take_the_page_down(self):
+        queries = code_only(self.text("lib/queries.ts"))
+        body = self.function_body(queries, "async function getMacroVetoes(")
+        self.assertIn("catch", body)
+        self.assertIn("out.clear()", body)
+        decide = self.text("tools/decide.mjs")
+        around = decide[decide.index('FROM "MacroGate"') - 400 : decide.index('FROM "MacroGate"') + 600]
+        self.assertIn("try {", around)
+        # The handler resets to "no vetoes". One that rethrew would turn a database the migration has
+        # not reached into a dead decision lane.
+        self.assertIn("catch {" + chr(10) + "    macro = [];", around)
+
+    def test_the_job_hands_the_seam_an_iso_day_and_not_a_local_midnight_date(self):
+        """`pg` returns a `@db.Date` as local midnight. East of UTC the seam's `toISOString()` read
+        2026-10-09 as 2026-10-08, so a veto filed yesterday looked two days old and expired: six
+        inserted refusals produced no change in the decision job until `dayOf` was used. Found by
+        running it against the database, not by any test of the pure code, which is why it is pinned."""
+        decide = code_only(self.text("tools/decide.mjs"))
+        self.assertIn("macroVetoAsOf: dayOf(", decide)
+
+    def test_the_newest_answer_wins_so_a_reversed_refusal_does_not_live_on(self):
+        body = self.function_body(code_only(self.text("lib/queries.ts")), "async function getMacroVetoes(")
+        self.assertIn("seen.has(r.assetId)", body)
+        self.assertIn("valid: true", body)
+        decide = self.text("tools/decide.mjs")
+        self.assertIn('ORDER BY "assetId", "periodEnd" DESC, "createdAt" DESC', decide)
+
+    def test_the_migration_adds_one_table_and_touches_nothing_else(self):
+        import re
+
+        sql = code_only_sql(self.text("prisma/migrations/20261010180000_macro_gate/migration.sql"))
+        # The new table's own foreign key says ON DELETE / ON UPDATE CASCADE, which is a rule about
+        # what happens to *its* rows, so those phrases are removed before looking for a statement.
+        statements = re.sub(r"ON (?:DELETE|UPDATE) CASCADE", "", sql)
+        for danger in ("DROP", "TRUNCATE", "DELETE", "UPDATE", "RENAME"):
+            self.assertIsNone(re.search(r"\b" + danger + r"\b", statements), danger)
+        for statement in re.findall(r"(?:CREATE TABLE|ALTER TABLE|ON)\s+" + chr(34) + r"(\w+)" + chr(34), sql):
+            self.assertEqual(statement, "MacroGate")
+
+    def test_a_logged_row_is_never_pruned(self):
+        self.assertNotIn("MacroGate", self.text("jobs/retention.py"))
+
+    def test_the_workflow_keeps_the_key_in_one_step_and_never_lets_the_gate_redden_the_lane(self):
+        import yaml
+
+        wf = yaml.safe_load(self.text(".github/workflows/cron-decision.yml"))
+        steps = wf["jobs"]["decide"]["steps"]
+        holders = [s for s in steps if "ANTHROPIC_API_KEY" in str(s.get("env", {}))]
+        self.assertEqual(len(holders), 1)
+        gate = holders[0]
+        self.assertTrue(gate.get("continue-on-error"))
+        self.assertIn("macro_gate.mjs", gate["run"])
+        self.assertIn("MACRO_GATE", gate["env"])
+        second = [s for s in steps if "Apply the stored vetoes" in s.get("name", "")]
+        self.assertEqual(len(second), 1)
+        self.assertTrue(second[0].get("continue-on-error"))
+        self.assertIn("vars.MACRO_GATE == 'on'", second[0]["if"])
+        # The gate runs after the first decision pass and before the second.
+        names = [s.get("name", "") for s in steps]
+        first = names.index("Write one decision row per asset")
+        self.assertLess(first, steps.index(gate))
+        self.assertLess(steps.index(gate), steps.index(second[0]))
+        for step in steps:
+            self.assertNotIn("echo " + chr(34) + "$ANTHROPIC", step.get("run", ""))
+
+    def test_the_key_is_only_ever_named_in_the_example_file_and_the_job(self):
+        for rel in ("lib", "app", "components"):
+            for path in (ROOT / rel).rglob("*.ts*"):
+                self.assertNotIn("ANTHROPIC_API_KEY", path.read_text(encoding="utf-8"), str(path))
+        self.assertIn("ANTHROPIC_API_KEY", self.text(".env.example"))
+        self.assertIn("MACRO_GATE", self.text(".env.example"))
 
 
 class ShortLevelsAreMirrored(unittest.TestCase):

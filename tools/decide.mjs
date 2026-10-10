@@ -249,6 +249,26 @@ async function readInputs(db, today) {
       ),
     ]);
 
+  // The macro gatekeeper's stored refusals, read apart from the nine above and **fail-open**: a
+  // database the migration has not reached has no such table, and a decision run that died on that
+  // would take the whole log down for the want of an optional layer. Any failure here is "no vetoes",
+  // which decides every name exactly as the rule table alone would. The newest valid answer per name
+  // wins, so a later EXECUTE supersedes an earlier REJECT; the rule table ages what it is given.
+  let macro = [];
+  try {
+    macro = (
+      await db.query(
+        `SELECT DISTINCT ON ("assetId") "assetId", verdict, reason, "periodEnd"
+           FROM "MacroGate"
+          WHERE valid AND "periodEnd" >= ($1::date - 4)
+          ORDER BY "assetId", "periodEnd" DESC, "createdAt" DESC`,
+        [today],
+      )
+    ).rows.filter((r) => r.verdict === "REJECT");
+  } catch {
+    macro = [];
+  }
+
   return {
     assets: assets.rows,
     priceByAsset: firstPerKey(prices.rows, (r) => r.assetId),
@@ -262,6 +282,7 @@ async function readInputs(db, today) {
     investigationByAsset: firstPerKey(investigations.rows, (r) => r.assetId),
     factorByAsset: firstPerKey(factors.rows, (r) => r.assetId),
     eventByAsset: firstPerKey(events.rows, (r) => r.assetId),
+    macroByAsset: firstPerKey(macro, (r) => r.assetId),
     sourceHealth: coverage.rows.map((r) => ({ source: r.source, status: r.status })),
   };
 }
@@ -297,6 +318,7 @@ function rowsForDecisions(input) {
     const investigation = input.investigationByAsset.get(asset.id);
     const factor = input.factorByAsset.get(asset.id);
     const event = input.eventByAsset.get(asset.id);
+    const veto = input.macroByAsset.get(asset.id);
     return {
       assetId: asset.id,
       analogId: analog?.id ?? null,
@@ -340,6 +362,12 @@ function rowsForDecisions(input) {
         // drift apart again in the same way.
         entryTrigger: factor?.entryTrigger ?? null,
         triggerDirection: factor?.triggerDirection ?? null,
+        // The stored macro refusal, if any, on the same terms and in the same place as the site
+        // reads it (`getMacroVetoes` in lib/queries.ts), so the log and the page cannot disagree.
+        macroVetoReason: veto?.reason ?? null,
+        // `dayOf`, not the Date: `pg` hands back a `@db.Date` as local midnight, and east of UTC the
+        // seam's `toISOString()` would read it as the day before and expire the veto a day early.
+        macroVetoAsOf: dayOf(veto?.periodEnd),
         recentStories: signal?.recentStories ?? null,
         newsTone: signal?.tone ?? null,
         newsCatalyst: signal?.catalyst ?? null,

@@ -109,6 +109,7 @@ model Asset {
   investigations   Investigation[]
   factors          AssetFactor[]
   decisions        DecisionLog[]
+  macroGates       MacroGate[]
 
   createdAt DateTime @default(now())
 
@@ -1744,3 +1745,38 @@ model ChunkRun {
   @@index([source, startedAt])
 }
 
+/// One answer from the macro gatekeeper (`lib/macroGate.ts`, `tools/macro_gate.mjs`) for one name on one
+/// session. A veto layer over the rule table: the model may refuse a LONG or SHORT and can do nothing
+/// else, and the rule table reads a fresh REJECT from here as an input to `decide`.
+///
+/// Every answer is stored, EXECUTE and the fail-open fallbacks included, because a refusal layer has to
+/// be scored like any other claim (principle 7): what the names it refused did next, against what the
+/// names it let through did. A table of only the refusals could not say whether it was right.
+model MacroGate {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId   String
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  /// The session the decision it was asked about was made on.
+  periodEnd DateTime @db.Date
+
+  /// The side the rule table had chosen: LONG or SHORT.
+  direction String
+  /// EXECUTE or REJECT. EXECUTE also when the reply was unusable; see `valid`.
+  verdict   String
+  /// macro-warning or sentiment-conflict on a REJECT, null otherwise.
+  reason    String?
+  /// The model's own words, cleaned and capped. Stored for the log and never printed on a card.
+  rationale String
+  /// False when the answer is the fail-open default rather than something the model said.
+  valid     Boolean
+  /// Why it was not used, in words that carry no credential and no model text. Null when valid.
+  fallback  String?
+  /// The model that answered. A verdict is not reproducible, so which model said it is part of it.
+  model     String
+  /// Headlines shown to it.
+  newsCount Int
+  createdAt DateTime @default(now())
+
+  @@unique([assetId, periodEnd])
+  @@index([periodEnd, verdict])
+}

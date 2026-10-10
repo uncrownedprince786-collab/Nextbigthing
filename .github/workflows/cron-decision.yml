@@ -205,3 +205,53 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           exit $code
+
+      # The macro gatekeeper: a veto-only layer over the rows just written. Off unless BOTH the
+      # repository variable MACRO_GATE is "on" and the secret ANTHROPIC_API_KEY exists, and the job
+      # prints one line saying so when it is not -- so a missing key is visible and not a silent no-op.
+      #
+      # It is `continue-on-error` and the script itself exits 0 whatever happens, because the one
+      # thing this layer must never do is turn a third party's outage into a red decision lane. A
+      # reply it cannot use is stored as EXECUTE and changes nothing.
+      - name: Ask the macro gatekeeper about today's directional names
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MACRO_GATE: ${{ vars.MACRO_GATE }}
+        run: |
+          set +e
+          out="$(node tools/macro_gate.mjs 2>&1)"
+          echo "$out"
+          {
+            echo "## Macro gate"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+
+      # The second pass. `decide` reads the stored vetoes as an input, so a name refused above is
+      # written as a WAIT now; every row that did not change is skipped by the `IS DISTINCT FROM`
+      # guard, so with the gate off this step rewrites nothing.
+      - name: Apply the stored vetoes to today's rows
+        if: ${{ vars.MACRO_GATE == 'on' }}
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set +e
+          out="$(node tools/decide.mjs 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## Decision rows, second pass"
+            echo
+            echo "exit code \`$code\`"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
