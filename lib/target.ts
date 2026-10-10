@@ -15,7 +15,7 @@ export interface TargetLike {
   high: number;
   distancePct: number | null;
   rewardRisk: number | null;
-  note: string;
+  note?: string;
 }
 
 export interface SetupLike {

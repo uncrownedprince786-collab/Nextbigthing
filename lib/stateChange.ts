@@ -56,6 +56,23 @@ function iso(d: Date | string | null | undefined): string | null {
   return Number.isFinite(t) ? new Date(t).toISOString().slice(0, 10) : null;
 }
 
+const WORD: Record<string, string> = { LONG: "Long", SHORT: "Short" };
+
+/// A change said as one plain sentence: what it was, the day, and the rule table's own reason. This is
+/// what a row prints under its action and what heads the asset page's history -- in place of a badge.
+/// The reason is `gateWords`, never a description written after the fact.
+export function changeSentence(c: StateChange): string {
+  const t = Date.parse(c.on + "T00:00:00Z");
+  const day = Number.isFinite(t)
+    ? new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
+    : c.on;
+  const from = WORD[c.from] ?? c.from;
+  const to = WORD[c.to] ?? c.to;
+  if (c.kind === "REVERSED") return `Switched from ${from} to ${to} on ${day}: ${c.reason}.`;
+  if (c.kind === "NEW CALL") return `New ${to} call on ${day}: ${c.reason}.`;
+  return `The ${from} call ended on ${day}: ${c.reason}.`;
+}
+
 /// One change, from the verdict before it, the verdict after it and the gate that decided the after.
 /// Null when nothing changed or there is nothing before to compare with.
 export function classifyChange(

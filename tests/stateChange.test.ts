@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { changeTimeline, classifyChange, gateWords, latestChange } from "../lib/stateChange.ts";
+import { changeSentence, changeTimeline, classifyChange, gateWords, latestChange } from "../lib/stateChange.ts";
 
 const ON = "2026-10-10";
 
@@ -77,20 +77,36 @@ test("the list and the asset page take the change from the same functions", () =
   const page = read("app/asset/[symbol]/page.tsx");
   assert.ok(page.includes("changeTimeline(") && page.includes("latestChange({"));
   const decision = read("components/decision.tsx");
-  assert.ok(decision.slice(decision.indexOf("function DecisionRows(")).includes("<StateChangeBadge"));
+  assert.ok(decision.slice(decision.indexOf("function DecisionRows(")).includes("changeSentence(shownChange(r.change)!)"));
 });
 
-test("PRICE: one price and one line -- the trade with its own time, or the close with its day", () => {
+test("PRICE: the cell is the price alone, with its time on hover and never printed under it", () => {
   const decision = readFileSync(new URL("../components/decision.tsx", import.meta.url), "utf8");
   const rows = decision.slice(decision.indexOf("function DecisionRows("));
-  const cell = rows.slice(rows.indexOf("<span className={ROW_LABEL}>Price & time</span>"), rows.indexOf("<span className={ROW_LABEL}>Entry zone</span>"));
-  const quoted = cell.slice(cell.indexOf("{r.quote ? ("), cell.indexOf(") : ("));
-  // Inside the quoted branch the headline is the trade's price and the line under it is the trade's time.
-  assert.ok(quoted.indexOf("price(r.quote.price, currency)") < quoted.indexOf("clockUtc(r.quote.quotedAt)"));
-  // When a trade leads, the close is not printed in the cell at all: one price, one line.
-  assert.ok(!quoted.includes("r.priceNow"), "the quoted branch prints no second price");
-  assert.match(quoted, /Last trade ·/);
-  // The first price after the headline style is the trade's, so the close cannot be the headline.
-  const head = quoted.indexOf("font-medium");
-  assert.ok(head > 0 && quoted.startsWith("price(r.quote.price", quoted.indexOf("price(", head)), "the headline is the trade");
+  const cell = rows.slice(rows.indexOf("<span className={ROW_LABEL}>Price</span>"), rows.indexOf("<span className={ROW_LABEL}>Entry zone</span>"));
+  assert.ok(cell.length > 0);
+  // The trade leads when there is one; the close only when there is none.
+  assert.ok(cell.indexOf("price(r.quote.price, currency)") < cell.indexOf("price(r.priceNow, currency)"));
+  // The time is a tooltip, not a line: no "Last trade ·" and no "close" sub-line in the cell.
+  assert.doesNotMatch(cell, /Last trade ·|\} close<|text-micro/);
+  assert.match(cell, /title=\{`Last trade, /);
+  // The asset panel follows the same rule.
+  const panel = decision.slice(decision.indexOf("export function DecisionPanel("), decision.indexOf("export function ProductDecisionPanel("));
+  assert.doesNotMatch(panel, /Last trade ·/);
+});
+
+test("a change is said in one sentence with the rule table's own reason, never as a badge", () => {
+  const on = "2026-10-10";
+  assert.equal(
+    changeSentence(classifyChange("SHORT", "LONG", "long", on)!),
+    "Switched from Short to Long on Oct 10: the setup turned up with its confirmations.",
+  );
+  assert.equal(changeSentence(classifyChange("WAIT", "SHORT", "short", on)!), "New Short call on Oct 10: the setup turned down with its confirmations.");
+  assert.equal(changeSentence(classifyChange("LONG", "WAIT", "stop-crossed", on)!), "The Long call ended on Oct 10: price moved through the stop.");
+  const decision = readFileSync(new URL("../components/decision.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(decision, /StateChangeBadge|\{c\.kind\}: \{c\.from\}/, "no change badge is left anywhere");
+  // The action cell holds the verdict and the star, nothing else.
+  const rows = decision.slice(decision.indexOf("function DecisionRows("));
+  const action = rows.slice(rows.indexOf("<span className={ROW_LABEL}>Action</span>"), rows.indexOf("<span className={ROW_LABEL}>Price</span>"));
+  assert.doesNotMatch(action, /<ConfidenceBadge|<Pill tone="warn">CARE/);
 });

@@ -2377,3 +2377,23 @@ reads rows that already exist:
     that day, not recomputed at read time: the logbook is a record of what was reported, and an old
     entry recomputed later would quietly carry outcomes nobody knew then. The Google code and its
     library were removed rather than left unused.
+
+85. **The logbook leads with a summary; the lists print the price alone and say a change in words.**
+    `/logbook` now opens with the verdict counts and rates (graded, accurate, failed, stops counted as
+    failed), every LONG/SHORT switch of the last 30 days, and every Rising/Falling Star of the last 30
+    days with its result; the full daily entries fold below. The job stores the summary as its own row
+    (kind "summary"), built from the scorecard's verdicts, with no rate before anything is graded.
+    On the lists the price cell is the price alone: when it was struck is a tooltip, not a line. The
+    action cell is the verdict and the star only: the change badge became one sentence under it
+    ("Switched from Short to Long on Oct 10: <the rule table's reason>"), the dated-event pill became
+    its sentence, and the confidence grade moved off the row to the asset page. The reason in that
+    sentence is the gate's own words, never a description written afterwards ("multi-timeframe
+    accumulation" was asked for, and the engine measures no such thing).
+    **Declined: forcing every name to LONG or SHORT.** A name is held back when the data cannot
+    support a direction -- a stale close, a silent feed, no stop level, or a price between its own
+    averages. Printing a direction there is a guess presented as a call, and the scorecard would grade
+    it like one. Held-back names stay folded under "Held back", never labelled "No direction". The
+    patient flip asked for already exists: calls read only completed daily closes (the forming bar is
+    excluded), and a switch within 7 days of the opposite call needs one independent confirmation, or
+    the name is held back -- which ends the old call first, so a holder is told to step aside before
+    being told to turn round (rule 80's `reversal-unconfirmed`).

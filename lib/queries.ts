@@ -1141,8 +1141,9 @@ export type DecisionTarget = {
   /// Against the setup's own invalidation. Null when there is no invalidation, in which case
   /// `jobs/horizons.py` writes no target row at all.
   rewardRisk: number | null;
-  /// What this range was measured from, and what it is not. Written by the job, shown verbatim.
-  note: string;
+  /// What this range was measured from, and what it is not. Written by the job, shown verbatim on
+  /// the asset page. Absent on the list read (`getDecisionRows`), which never prints it.
+  note?: string;
 };
 
 /// What is *stored* about one asset, which is not the same thing as what the home page shows.
@@ -1458,7 +1459,11 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
               orderBy: { method: "asc" },
               select: {
                 method: true, low: true, high: true,
-                distancePct: true, rewardRisk: true, note: true,
+                // No `note`: it is the asset page's prose (`getHorizons` reads it there), no list or
+                // rule reads it, and it was half of this result -- 2.1 MB with it, over the 2 MB
+                // `unstable_cache` refuses, so the site-wide cache in lib/cached.ts silently stored
+                // nothing and every list page ran these queries itself.
+                distancePct: true, rewardRisk: true,
               },
             },
           },

@@ -3,15 +3,15 @@
     python tools/ui_audit.py                  checks https://nextbigthing-nu.vercel.app
     SITE_URL=http://localhost:3000 python tools/ui_audit.py
 
-Every rule here was asked for and built (brain.md rules 74, 78, 79 and 80); this is the check that
+Every rule here was asked for and built (brain.md rules 74, 78, 79, 80 and 85); this is the check that
 they still hold on the pages people actually read, not just in the code that renders them. It reads the
 rendered HTML of the home page and every market page and checks, row by row:
 
-  1. one price and one line: the headline is a single price, and the line under it is either that
-     trade's time ("Last trade · Oct 10 10:56 UTC") or the close's day ("Oct 9 close") -- never both;
-  2. no badge contradicts its call: no Falling Star on a LONG, no Rising Star on a SHORT, and a
-     change badge always ends in the verdict the row shows;
-  3. no WAIT in any action cell: no WAIT pill and no change badge passing through WAIT;
+  1. the price alone: the price cell holds one price and nothing under it -- no "Last trade" line,
+     no "Oct 9 close" line, no UTC time (the time is a tooltip);
+  2. nothing contradicts its call: no Falling Star on a LONG, no Rising Star on a SHORT, and a
+     change sentence ("Switched from Short to Long on Oct 10: ...") always ends in the row's verdict;
+  3. no badges: no WAIT pill, and no change badge ("REVERSED: SHORT ➔ LONG") anywhere in a row;
   4. no placeholder cell: "none stored", "not stored", "not applicable", "N/A", "N waiting";
   5. the held-back list is folded away on every page that has one;
   6. pool parity: every asset the database holds is listed on one of the market pages.
@@ -53,17 +53,14 @@ def action_of(row: str) -> str | None:
 
 
 def check_price(row: str) -> str | None:
-    cell = row.split("Price & time", 1)[-1].split("Entry zone", 1)[0]
-    if "no close yet" in cell:
+    m = re.search(r"\bPrice (.*?) Entry zone\b", row)
+    if not m:
+        return "no price cell"
+    cell = m.group(1).strip()
+    if cell == "no close yet":
         return None
-    prices = re.findall(PRICE, cell)
-    if len(prices) != 1:
-        return f"the price cell carries {len(prices)} prices, not one"
-    trade, close = "Last trade" in cell, re.search(r"\bclose\b", cell) is not None
-    if trade and close:
-        return "the price cell carries both a last trade and a close line"
-    if not trade and not close:
-        return "the price cell says neither which trade nor which close it is"
+    if not re.fullmatch(PRICE, cell):
+        return f"the price cell is not a price alone: '{cell[:60]}'"
     return None
 
 
@@ -71,15 +68,15 @@ def check_badges(row: str) -> str | None:
     action = action_of(row)
     if action == "WAIT":
         return "a WAIT pill in the action cell"
-    if re.search(r"\b(?:REVERSED|INVALIDATED|OVERRIDDEN|WITHDRAWN|NEW CALL): [^ ]* ?➔ ?WAIT\b|\b(?:REVERSED|INVALIDATED|OVERRIDDEN|WITHDRAWN|NEW CALL): WAIT\b", row):
-        return "a change badge passing through WAIT"
+    if re.search(r"\b(?:REVERSED|INVALIDATED|OVERRIDDEN|WITHDRAWN|NEW CALL):|➔", row):
+        return "a change badge in the row"
     if action == "LONG" and "FALLING STAR" in row:
         return "Falling Star on a LONG"
     if action == "SHORT" and "RISING STAR" in row:
         return "Rising Star on a SHORT"
-    for kind, to in re.findall(r"\b(REVERSED|INVALIDATED|OVERRIDDEN|WITHDRAWN|NEW CALL): \w+ ➔ (\w+)", row):
-        if action and to != action:
-            return f"{kind} badge ends in {to} on a {action} row"
+    for to in re.findall(r"\bSwitched from \w+ to (\w+) on ", row):
+        if action and to.upper() != action:
+            return f"a change sentence ends in {to} on a {action} row"
     return None
 
 
@@ -94,7 +91,7 @@ def folded(html: str, summary_start: str) -> bool | None:
 def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
     fetch = fetch or (lambda url: urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "nbt-ui-audit"}), timeout=60).read().decode("utf-8", "replace"))
     failures: list[str] = []
-    counts = {"rows": 0, "price_cells_with_trade": 0, "stars": 0, "changes": 0, "listed": 0, "pool": 0}
+    counts = {"rows": 0, "stars": 0, "changes": 0, "listed": 0, "pool": 0}
     listed: set[str] = set()
     for page in PAGES:
         html = fetch(site + page)
@@ -102,9 +99,8 @@ def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
             listed.update(re.findall(r'href="/asset/([^"#?]+)"', html))
         for row in rows_of(html):
             counts["rows"] += 1
-            counts["price_cells_with_trade"] += "Last trade" in row
             counts["stars"] += len(re.findall(r"(RISING|FALLING) STAR", row))
-            counts["changes"] += len(re.findall(r"\b(REVERSED|INVALIDATED|OVERRIDDEN|WITHDRAWN|NEW CALL):", row))
+            counts["changes"] += len(re.findall(r"\bSwitched from ", row))
             for check in (check_price, check_badges):
                 why = check(row)
                 if why:
@@ -134,8 +130,8 @@ def main() -> int:
         print(f"ui audit: could not read {site} ({type(e).__name__})")
         return 2
     print(
-        f"ui audit: {counts['rows']} rows on {len(PAGES)} pages, {counts['price_cells_with_trade']} led by a last trade, "
-        f"{counts['stars']} star markers, {counts['changes']} change badges, "
+        f"ui audit: {counts['rows']} rows on {len(PAGES)} pages, every price cell checked, "
+        f"{counts['stars']} star markers, {counts['changes']} change sentences, "
         f"{counts['listed']} of {counts['pool']} assets listed on the market pages"
     )
     if failures:

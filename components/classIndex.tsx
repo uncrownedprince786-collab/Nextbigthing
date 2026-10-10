@@ -139,14 +139,13 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
               inside is never a surprise and never looks like a gap. */}
           <details className="border-border bg-muted/30 mt-6 rounded-lg border px-4 py-1 text-sm sm:py-3">
             <summary className="-my-1 cursor-pointer py-3 font-medium select-none sm:my-0 sm:py-0">
-              No direction: {waits.length} {waits.length === 1 ? "name" : "names"} with no measured
-              direction at all
+              Held back: {waits.length} {waits.length === 1 ? "name" : "names"} with no call today
             </summary>
             <div className="mt-2 pb-2">
               <DecisionList
                 grouped
-                title={`No direction (${waits.length})`}
-                lead="No direction could be read: the close is too old, the venue answered nothing, no stop level exists, or the price sits between its own averages with neither side measurable. Each row's own page says which."
+                title={`Held back (${waits.length})`}
+                lead="No call could be made: the close is too old, the venue answered nothing, no stop level exists, or the price sits between its own averages with neither side measurable. Each row's own page says which."
                 rows={waits.map(toListRow)}
                 empty={<>Every name in this class has a direction.</>}
               />

@@ -7409,7 +7409,9 @@ class NoPlaceholdersInTheRenderedLayer(unittest.TestCase):
         self.assertNotIn("function WaitCard(", overview)
         rows = decision[decision.index("function DecisionRows(") :]
         self.assertIn('r.action === "WAIT" ? (' + chr(10) + '                    <span className="text-muted-foreground text-sm">Held back</span>', rows)
-        self.assertIn('{r.action === "WAIT" ? null : <ConfidenceBadge grade={r.confidence.toLowerCase()} />}', rows)
+        # A list row prints no grade at all now (the action cell is the verdict and the star only),
+        # so a held-back row cannot carry one either; the grade is on the asset page.
+        self.assertNotIn("<ConfidenceBadge", rows)
 
 
 class TheLiveLane(unittest.TestCase):
@@ -7933,7 +7935,7 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
     def row(action, price_cell, extra=""):
         return (
             f"<li><span>Name</span>Merck<span>Action</span><span>{action}</span>{extra}"
-            f"<span>Price &amp; time</span>{price_cell}<span>Entry zone</span>$1 to $2</li>"
+            f"<span>Price</span>{price_cell}<span>Entry zone</span>$1 to $2</li>"
         )
 
     def site(self, rows, details="<details><summary>Held back: 3 names</summary></details>", pool=None):
@@ -7941,27 +7943,31 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
         page = page.replace("&amp;", "&")
         return lambda url: ('{"pool": %s}' % ("null" if pool is None else pool)) if url.endswith("/api/health") else page
 
-    GOOD_PRICE = "<span>$5.25</span><span>Last trade · Oct 10 10:56 UTC</span>"
+    GOOD_PRICE = '<span title="Last trade, Oct 10 10:56 UTC">$5.25</span>'
+    SWITCHED = "<span>Switched from Short to Long on Oct 10: the setup turned up with its confirmations.</span>"
 
     def test_a_clean_site_passes(self):
         failures, counts = self.ua().audit("x", self.site([
-            self.row("LONG", self.GOOD_PRICE, "<span>★ RISING STAR ↑</span><span>REVERSED: SHORT ➔ LONG</span>"),
-            self.row("SHORT", "<span>$9.00</span><span>Oct 9 close</span>", "<span>★ FALLING STAR ↓</span>"),
-            self.row("Held back", "<span>$3.00</span><span>Oct 9 close</span>"),
+            self.row("LONG", self.GOOD_PRICE, "<span>★ RISING STAR ↑</span>" + self.SWITCHED),
+            self.row("SHORT", "<span>Rs.105.24</span>", "<span>★ FALLING STAR ↓</span>"),
+            self.row("Held back", "<span>$3.00</span>"),
+            self.row("LONG", "<span>no close yet</span>"),
         ]))
         self.assertEqual(failures, [])
-        self.assertEqual(counts["price_cells_with_trade"], 1 * len(self.ua().PAGES))
+        self.assertEqual(counts["changes"], 1 * len(self.ua().PAGES))
 
     def test_each_planted_violation_is_caught(self):
         ua = self.ua()
         cases = {
-            "two prices in the cell": self.row("LONG", "<span>$5.25</span><span>Last trade · 10:56 UTC</span><span>close $4.88, Oct 9</span>"),
-            "a price that says neither trade nor close": self.row("LONG", "<span>$5.25</span>"),
+            "two prices in the cell": self.row("LONG", "<span>$5.25</span><span>$4.88</span>"),
+            "a time printed under the price": self.row("LONG", "<span>$5.25</span><span>Last trade · Oct 10 10:56 UTC</span>"),
+            "a close day printed under the price": self.row("LONG", "<span>$5.25</span><span>Oct 9 close</span>"),
             "a WAIT pill": self.row("WAIT", self.GOOD_PRICE),
+            "a change badge": self.row("LONG", self.GOOD_PRICE, "<span>REVERSED: SHORT ➔ LONG</span>"),
             "a change badge through WAIT": self.row("LONG", self.GOOD_PRICE, "<span>NEW CALL: WAIT ➔ LONG</span>"),
             "a Falling Star on a LONG": self.row("LONG", self.GOOD_PRICE, "<span>★ FALLING STAR ↓</span>"),
             "a Rising Star on a SHORT": self.row("SHORT", self.GOOD_PRICE, "<span>★ RISING STAR ↑</span>"),
-            "a change badge ending in another verdict": self.row("SHORT", self.GOOD_PRICE, "<span>REVERSED: SHORT ➔ LONG</span>"),
+            "a change sentence ending in another verdict": self.row("SHORT", self.GOOD_PRICE, self.SWITCHED),
             "a placeholder": self.row("LONG", "<span>none stored</span>"),
         }
         for name, bad in cases.items():
