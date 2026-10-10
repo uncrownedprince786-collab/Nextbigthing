@@ -2039,3 +2039,25 @@ reads rows that already exist:
     and fallback included, is stored for that reason. Cost: only names with a direction and a headline in
     the last 24 hours are asked about, at most 60 a run, `MACRO_GATE_MODEL=claude-haiku-5-5` is the cheap
     switch.
+
+    **The adversarial exam, and what it can and cannot show.** Twenty cases (`tests/macroGateCases.ts`):
+    fake pumps and lookalike domains, genuine shocks, stale decoys, malformed replies, edge cases. Seven
+    are decided by code and the offline suite asserts them exactly (`tests/macroGateAdversarial.test.ts`):
+    a stale or empty feed is never asked about, and every malformed reply fails open and is recorded as
+    unusable. The other thirteen are a *model's judgement* -- whether a 0.5/20 telegram channel is a
+    pump -- which no test of code can answer. Offline, the suite proves only that the model is shown what
+    it needs to judge (each source's alpha, beta and mean; the headline inside a data block; the levels as
+    read-only context) and that a correct answer survives the pipeline; the scripted "model" there reads
+    the answer key and is labelled as plumbing. `tools/macro_gate_exam.mjs` scores the real model, and
+    **has not been run**: there is no API key here. Anyone quoting a pass rate for the judgement cases
+    before it is run is inventing one.
+
+    Where the gate is stricter than the exam's own comments, on purpose: TC-12's clean reply is rejected
+    for its fence, and TC-13's reply is rejected whole where the exam says extra keys are "stripped or
+    ignored". The expected verdict (EXECUTE) is the same, and a REJECT carrying an invented number cannot
+    veto. Four of the exam's cases (TC-12 to TC-15) had no headline, so the gate would never have called
+    the model and the mock output would never have been read; a benign headline was added so the parser is
+    what is tested. Two expectations are labelling judgements and will be the first to disagree with a
+    real model: TC-08 (an auditor resigning over fraud is called `sentiment-conflict`, though it could as
+    fairly be `macro-warning`) and TC-20 (a vague "emergency regulatory statement" six hours old is
+    expected to pass, which depends on how much a headline with no content is allowed to weigh).

@@ -7179,6 +7179,15 @@ class TheMacroGateOnlyRefuses(unittest.TestCase):
     def test_the_one_export_the_web_layer_does_not_use_is_used_by_the_job(self):
         self.assertIn("evaluate", self.job().split("from " + chr(34) + "../lib/macroGate.ts" + chr(34))[0])
 
+    def test_the_exam_runner_asks_the_model_the_way_the_job_does_and_touches_no_database(self):
+        exam = code_only(self.text("tools/macro_gate_exam.mjs"))
+        self.assertIn("makeCall", exam)
+        for forbidden in ('from "pg"', "DATABASE_URL", "INSERT", "UPDATE", "DELETE"):
+            self.assertNotIn(forbidden, exam)
+        # Importing the job must not start a run, or the exam would write to the database.
+        job = self.job()
+        self.assertIn("if (direct) main()", job)
+
     def test_the_model_is_called_as_the_api_documents_it(self):
         src = self.job()
         self.assertIn('"claude-opus-5-5"', src)

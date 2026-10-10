@@ -53,7 +53,7 @@ const CONCURRENCY = 4;
 /// confidence. (The SDK's zod helper was tried first and, at the pinned zod, rendered the enums as
 /// description text instead of `enum` constraints -- so the constraint the model sees is the one
 /// written here.) `parseGateReply` re-validates every reply regardless of what the API enforced.
-const REPLY_SCHEMA = {
+export const REPLY_SCHEMA = {
   type: "object",
   properties: {
     symbol: { type: "string" },
@@ -69,7 +69,7 @@ function say(line) {
   console.log(`macro gate: ${line}`);
 }
 
-function makeCall(client) {
+export function makeCall(client) {
   return async ({ system, user }) => {
     const res = await client.messages.create({
       model: MODEL,
@@ -233,7 +233,10 @@ async function main() {
   }
 }
 
-main().catch((error) => {
+// Only when run directly: `tools/macro_gate_exam.mjs` imports `makeCall` from here so the exam asks the
+// model exactly the way the nightly job does, and importing must not start a run.
+const direct = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (direct) main().catch((error) => {
   // Name only: an SDK or driver error can carry request detail, and this lane must never fail.
   say(`stopped early (${error instanceof Error ? error.name : "error"}). Nothing here can change a verdict.`);
 });
