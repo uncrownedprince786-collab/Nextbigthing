@@ -19,7 +19,12 @@ import type { Decision } from "./decision.ts";
 import type { TargetLike } from "./target.ts";
 import { STOP_BUFFER_ATR } from "./resolve.ts";
 
-export const MIN_REWARD_RISK = 1.5;
+/// 1.2, set by the technical lead at the owner's request on 2026-10-11. The owner's latest directive said
+/// 1.5, and on that day the highest measured reward:risk of any call was 1.4, so 1.5 published nothing;
+/// 1.0 (two earlier directives) published 110, the flood the gate was asked to stop; 1.2 published 36.
+/// It is measured from the worst entry in the zone against a stop a full ATR beyond it, so 1.2 already
+/// means reward clearly above risk.
+export const MIN_REWARD_RISK = 1.2;
 export const MIN_CONFIRMATIONS = 1;
 export const MIN_STOP_ATR = STOP_BUFFER_ATR;
 
@@ -57,7 +62,8 @@ export function qualityGate(
   } else if (target.rewardRisk == null || !Number.isFinite(target.rewardRisk)) {
     reasons.push("no reward:risk");
   } else if (target.rewardRisk < MIN_REWARD_RISK) {
-    reasons.push(`reward:risk ${target.rewardRisk.toFixed(1)}, under ${MIN_REWARD_RISK}`);
+    // Two decimals: 1.19 printed as "1.2, under 1.2" reads as a contradiction.
+    reasons.push(`reward:risk ${target.rewardRisk.toFixed(2)}, under ${MIN_REWARD_RISK}`);
   }
   if ((call.legs?.length ?? 0) < MIN_CONFIRMATIONS) reasons.push("no confirmation");
   return { published: reasons.length === 0, reasons };

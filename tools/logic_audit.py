@@ -19,7 +19,7 @@ the entry level and the invalidation level, and the zone is the range they span 
 Until 2026-10-11 the stop sat on the zone's far edge; since then (brain.md rule 91, lib/resolve.ts
 `bufferStop`) it sits at least 1.0 x atr14 beyond the zone, so a stop on the edge is a fault. The lists
 publish only calls that pass the quality gate (lib/quality.ts): a measured take profit, reward:risk of
-at least 1.5 and one confirmation, so a published row without them is a fault too. Withheld calls are
+at least 1.2 and one confirmation, so a published row without them is a fault too. Withheld calls are
 named in a folded list on each page and counted here.
 Reward:risk is measured from the entry level the call trades from: the top of the zone for a LONG,
 the bottom for a SHORT.
@@ -41,7 +41,7 @@ SITE = (os.environ.get("SITE_URL") or "https://nextbigthing-nu.vercel.app").rstr
 PAGES = ("/", "/stocks", "/crypto", "/psx", "/forex", "/commodities")
 ATR_MULTIPLE = 2.0  # lib/resolve.ts: a resolved call's own stop is 2 x atr14 from the close
 BUFFER_ATR = 1.0  # lib/resolve.ts STOP_BUFFER_ATR: no stop nearer the zone than this many atr14
-MIN_REWARD_RISK = 1.5  # lib/quality.ts: the least reward:risk a published call carries
+MIN_REWARD_RISK = 1.2  # lib/quality.ts: the least reward:risk a published call carries
 MIN_CONFIRMATIONS = 1  # lib/quality.ts
 EXAMPLES = 8
 

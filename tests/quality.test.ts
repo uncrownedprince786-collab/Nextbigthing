@@ -11,8 +11,8 @@ type Call = Pick<Decision, "action" | "entry" | "invalidation" | "legs">;
 const LONG: Call = { action: "LONG", entry: { low: 102.5, high: 106.19 }, invalidation: 100.5, legs: ["volume"] };
 const TARGET = { method: "structure", low: 112, high: 114, distancePct: null, rewardRisk: 1.6 };
 
-test("a complete, measured call with reward:risk of at least 1.5 and a confirmation is published", () => {
-  assert.equal(MIN_REWARD_RISK, 1.5);
+test("a complete, measured call with reward:risk of at least 1.2 and a confirmation is published", () => {
+  assert.equal(MIN_REWARD_RISK, 1.2);
   assert.equal(MIN_STOP_ATR, 1);
   assert.deepEqual(qualityGate(LONG, TARGET, 2), { published: true, reasons: [] });
   const short: Call = { action: "SHORT", entry: { low: 50, high: 52 }, invalidation: 53, legs: ["peers"] };
@@ -24,7 +24,8 @@ test("every missing or weak part withholds the call, and each is named", () => {
   // APL's case: no measured target.
   assert.deepEqual(why(LONG, null, 2), ["no measured target"]);
   // PRL and NRL's case: a measured target, but reward:risk under the floor.
-  assert.deepEqual(why(LONG, { ...TARGET, rewardRisk: 0.8 }, 2), ["reward:risk 0.8, under 1.5"]);
+  assert.deepEqual(why(LONG, { ...TARGET, rewardRisk: 0.8 }, 2), ["reward:risk 0.80, under 1.2"]);
+  assert.deepEqual(why(LONG, { ...TARGET, rewardRisk: 1.19 }, 2), ["reward:risk 1.19, under 1.2"]);
   // No confirmation.
   assert.deepEqual(why({ ...LONG, legs: [] }, TARGET, 2), ["no confirmation"]);
   // ATRL's case: the stop on the zone's edge.
