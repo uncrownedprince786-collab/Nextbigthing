@@ -19,7 +19,9 @@ Run: python jobs/signals.py [trends|wiki|hn|news|reddit]
 
 from __future__ import annotations
 
+import os
 import sys
+import threading
 import time
 import urllib.parse
 import warnings
@@ -83,6 +85,29 @@ REDDIT_RECENT_DAYS = 30
 REDDIT_PRIOR_DAYS = 90
 # What the prior count has to be divided by to become a 30 day rate.
 REDDIT_PRIOR_SCALE = REDDIT_PRIOR_DAYS / REDDIT_RECENT_DAYS
+
+# Reddit from a GitHub runner, 2026-10-10: the first feed of the run neither answered nor failed for
+# twenty minutes -- not one line printed -- until the step was killed, and the four sources before it
+# were lost with it. A socket timeout only fires on silence, so a feed that trickles or stalls inside
+# the handshake can hold a request open indefinitely. So each feed gets a wall-clock cap, the first feed
+# to pass it ends Reddit for the run, and the source as a whole has a budget. Overridable per lane.
+REDDIT_FEED_CAP_S = 90
+REDDIT_BUDGET_MIN = float(os.environ.get("REDDIT_BUDGET_MIN") or 8.0)
+
+
+def capped(fetch, cap_s: float):
+    """(result, stuck): `fetch()` run with a wall-clock cap.
+
+    The fetch runs on a daemon thread, so one that never returns is abandoned rather than waited for,
+    and it cannot hold the process open at exit.
+    """
+    box: dict = {}
+    worker = threading.Thread(target=lambda: box.setdefault("value", fetch()), daemon=True)
+    worker.start()
+    worker.join(cap_s)
+    if worker.is_alive():
+        return None, True
+    return box.get("value"), False
 
 
 def last_complete_week(today: date) -> date:
@@ -358,7 +383,15 @@ def reddit_signals(cur) -> None:
     )
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     got = 0
-    for p in products:
+    deadline = time.monotonic() + REDDIT_BUDGET_MIN * 60
+    stalled = False
+    for n, p in enumerate(products):
+        if stalled or time.monotonic() > deadline:
+            # Not asked is not the same as asked and empty: these products keep whatever Reddit
+            # count they already had, with its own date, and nothing is cleared for them.
+            why = "a feed stalled" if stalled else f"the {REDDIT_BUDGET_MIN:.0f} minute budget was spent"
+            print(f"  reddit stopped: {why}; {len(products) - n} products not asked this run")
+            break
         subs = [s.strip() for s in (p["subreddits"] or "").split(",") if s.strip()]
         if not subs:
             continue
@@ -373,7 +406,14 @@ def reddit_signals(cur) -> None:
                 + urllib.parse.quote(term)
                 + "&restrict_sr=1&sort=top&t=year"
             )
-            raw = get(url, cache_key=f"rd-{p['slug']}-{sub}-year", ttl=20 * 3600)
+            raw, stuck = capped(
+                lambda url=url, key=f"rd-{p['slug']}-{sub}-year": get(url, cache_key=key, ttl=20 * 3600),
+                REDDIT_FEED_CAP_S,
+            )
+            if stuck:
+                print(f"  r/{sub}: no answer within {REDDIT_FEED_CAP_S} s, so Reddit is not answering this runner")
+                stalled = True
+                break
             if not raw:
                 # A blocked subreddit is not the same as a subreddit with nothing to report.
                 missing.append(f"r/{sub}")
@@ -389,6 +429,8 @@ def reddit_signals(cur) -> None:
             )
             if evidence is None:
                 evidence = first_recent(raw, now - timedelta(days=REDDIT_RECENT_DAYS))
+        if stalled:
+            continue
         if missing:
             # Counting only the subreddits that answered would understate the product and look
             # like a collapse in discussion, and next week the same product might be counted

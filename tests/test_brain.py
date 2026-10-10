@@ -1074,6 +1074,45 @@ class ChunkStatus(unittest.TestCase):
             )
 
 
+class RedditCannotHoldTheLane(unittest.TestCase):
+    """2026-10-10: the first Reddit feed stalled for twenty minutes without a line printed, the step was
+    killed, and the four product sources before it were lost with it."""
+
+    @staticmethod
+    def signals():
+        sys.path.insert(0, str(ROOT / "jobs"))
+        import signals
+
+        return signals
+
+    def test_a_fetch_that_never_returns_is_abandoned_at_the_cap(self):
+        import threading as _t
+        import time as _time
+
+        s = self.signals()
+        never = _t.Event()
+        start = _time.monotonic()
+        value, stuck = s.capped(lambda: never.wait(30), 0.2)
+        self.assertTrue(stuck)
+        self.assertIsNone(value)
+        self.assertLess(_time.monotonic() - start, 5)
+
+    def test_a_fetch_that_answers_returns_its_value(self):
+        self.assertEqual(self.signals().capped(lambda: b"feed", 5), (b"feed", False))
+        self.assertEqual(self.signals().capped(lambda: None, 5), (None, False))
+
+    def test_a_stall_ends_reddit_for_the_run_and_clears_nothing(self):
+        src = code_only((ROOT / "jobs" / "signals.py").read_text(encoding="utf-8"))
+        body = src[src.index("def reddit_signals("):]
+        body = body[: body.index("\ndef ", 1)]
+        self.assertIn("REDDIT_FEED_CAP_S", body)
+        self.assertIn("deadline", body)
+        # The stalled product is skipped before the branch that deletes the day's rows.
+        self.assertLess(body.index("if stalled:\n            continue"), body.index("DELETE FROM"))
+        # Each finished source is committed before the next starts (main).
+        self.assertIn("conn.commit()", src[src.index("def main("):])
+
+
 class ChunkGroups(unittest.TestCase):
     """The small groups are selections over the existing steps, not second copies of them."""
 
