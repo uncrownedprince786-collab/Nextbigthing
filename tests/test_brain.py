@@ -7543,6 +7543,116 @@ class TheLiveLane(unittest.TestCase):
         self.assertTrue(run.rstrip().endswith("exit 0"))
 
 
+class TheWatchdogRestartsWhatStopped(unittest.TestCase):
+    """`tools/watchdog.py` and `cron-watchdog.yml`: hourly, read `/api/health`, restart stale lanes.
+
+    The properties that matter are its limits. It restarts only five named lanes, never twice an hour,
+    never on top of a running one, and it stops restarting a lane that keeps failing and asks for a
+    person instead -- by going red, which is GitHub's own email to the owner."""
+
+    @staticmethod
+    def wd():
+        sys.path.insert(0, str(ROOT / "tools"))
+        import watchdog
+
+        return watchdog
+
+    def now(self):
+        from datetime import datetime, timezone
+
+        return datetime(2026, 10, 14, 12, 0, tzinfo=timezone.utc)
+
+    @staticmethod
+    def problem(lane, detail="stale"):
+        return {"check": "x", "lane": lane, "detail": detail}
+
+    def test_a_stale_lane_with_no_recent_run_is_dispatched(self):
+        acts = self.wd().plan({"problems": [self.problem("cron-crypto.yml")]}, {}, self.now())
+        self.assertEqual([(a["lane"], a["action"]) for a in acts], [("cron-crypto.yml", "dispatch")])
+
+    def test_healthy_means_no_action(self):
+        self.assertEqual(self.wd().plan({"ok": True, "problems": []}, {}, self.now()), [])
+
+    def test_it_never_starts_a_second_copy_of_a_running_lane(self):
+        runs = {"cron-news.yml": [{"status": "in_progress", "conclusion": None, "event": "schedule", "created_at": "2026-10-14T11:20:00Z"}]}
+        acts = self.wd().plan({"problems": [self.problem("cron-news.yml")]}, runs, self.now())
+        self.assertEqual(acts[0]["action"], "wait")
+
+    def test_once_an_hour_at_most(self):
+        w = self.wd()
+        recent = [{"status": "completed", "conclusion": "success", "event": "workflow_dispatch", "created_at": "2026-10-14T11:20:00Z"}]
+        self.assertEqual(w.plan({"problems": [self.problem("cron-psx.yml")]}, {"cron-psx.yml": recent}, self.now())[0]["action"], "wait")
+        older = [{"status": "completed", "conclusion": "success", "event": "workflow_dispatch", "created_at": "2026-10-14T11:05:00Z"}]
+        self.assertEqual(w.plan({"problems": [self.problem("cron-psx.yml")]}, {"cron-psx.yml": older}, self.now())[0]["action"], "dispatch")
+
+    def test_a_lane_that_keeps_failing_is_escalated_not_restarted(self):
+        w = self.wd()
+        fails = [
+            {"status": "completed", "conclusion": "failure", "event": "schedule", "created_at": "2026-10-14T10:05:00Z"},
+            {"status": "completed", "conclusion": "failure", "event": "workflow_dispatch", "created_at": "2026-10-14T09:30:00Z"},
+        ]
+        acts = w.plan({"problems": [self.problem("cron-us-prices.yml")]}, {"cron-us-prices.yml": fails}, self.now())
+        self.assertEqual(acts[0]["action"], "escalate")
+        # Old failures, outside the window, do not count against it.
+        old = [dict(f, created_at="2026-10-14T06:00:00Z") for f in fails]
+        self.assertEqual(w.plan({"problems": [self.problem("cron-us-prices.yml")]}, {"cron-us-prices.yml": old}, self.now())[0]["action"], "dispatch")
+
+    def test_an_unreadable_site_and_a_problem_with_no_lane_go_to_a_person(self):
+        w = self.wd()
+        self.assertEqual(w.plan(None, {}, self.now())[0]["action"], "escalate")
+        acts = w.plan({"problems": [{"check": "database", "lane": None, "detail": "cannot read"}]}, {}, self.now())
+        self.assertEqual(acts[0]["action"], "escalate")
+
+    def test_the_health_document_cannot_make_it_start_any_other_workflow(self):
+        w = self.wd()
+        for evil in ("schema.yml", "../x.yml", "cron-live.yml", "deploy.yml", "CRON-CRYPTO.YML", 7):
+            acts = w.plan({"problems": [self.problem(evil)]}, {}, self.now())
+            self.assertEqual([a["action"] for a in acts], ["escalate"], evil)
+            self.assertIsNone(acts[0]["lane"])
+
+    def test_one_lane_named_by_several_problems_is_dispatched_once(self):
+        acts = self.wd().plan(
+            {"problems": [self.problem("cron-us-prices.yml", "US"), self.problem("cron-us-prices.yml", "FX")]}, {}, self.now()
+        )
+        self.assertEqual([(a["lane"], a["action"]) for a in acts], [("cron-us-prices.yml", "dispatch")])
+
+    def test_its_lanes_are_exactly_the_ones_health_names(self):
+        import re as _re
+
+        ts = (ROOT / "lib" / "health.ts").read_text(encoding="utf-8")
+        named = set(_re.findall(r'"(cron-[a-z-]+\.yml)"', ts))
+        self.assertEqual(named, set(self.wd().LANES))
+        for lane in named:
+            self.assertTrue((ROOT / ".github" / "workflows" / lane).is_file(), lane)
+            wf = (ROOT / ".github" / "workflows" / lane).read_text(encoding="utf-8")
+            self.assertIn("workflow_dispatch", wf, f"{lane} cannot be started by the watchdog")
+
+    def test_it_never_prints_the_token_and_changes_nothing_but_runs(self):
+        text = code_only((ROOT / "tools" / "watchdog.py").read_text(encoding="utf-8"))
+        for call in re.findall(r"print\(([^\n]*)\)", text):
+            self.assertNotIn("token", call.lower(), call)
+        for forbidden in ("INSERT", "UPDATE", "DELETE", "psycopg", "DATABASE_URL"):
+            self.assertNotIn(forbidden, text)
+
+    def test_the_workflow_runs_hourly_with_only_the_permission_it_needs(self):
+        import yaml
+
+        wf = yaml.safe_load((ROOT / ".github" / "workflows" / "cron-watchdog.yml").read_text(encoding="utf-8"))
+        self.assertEqual([c["cron"] for c in wf[True]["schedule"]], ["45 * * * *"])
+        self.assertEqual(wf["permissions"], {"actions": "write", "contents": "read"})
+        self.assertIn("exit $code", wf["jobs"]["watch"]["steps"][-1]["run"])
+
+    def test_the_health_endpoint_is_read_only_and_judges_with_the_rule_tables_limits(self):
+        route = code_only((ROOT / "app" / "api" / "health" / "route.ts").read_text(encoding="utf-8"))
+        for write in ("upsert", "create(", "update(", "delete(", "$executeRaw", "export async function POST"):
+            self.assertNotIn(write, route)
+        health = (ROOT / "lib" / "health.ts").read_text(encoding="utf-8")
+        self.assertIn('import { STALE_AFTER_DAYS, type Market } from "./decision.ts";', health)
+        # Imported, never redefined: a second copy of the limits is how a health page and a decision come
+        # to disagree about one close. Whole identifier only (DECISIONS_STALE_AFTER_DAYS is a different one).
+        self.assertIsNone(re.search(r"(?<![A-Z_])STALE_AFTER_DAYS\s*[:=]", code_only(health)))
+
+
 class ShortLevelsAreMirrored(unittest.TestCase):
     """A short's stop belongs above the price, not below it.
 

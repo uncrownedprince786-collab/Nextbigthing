@@ -2172,3 +2172,40 @@ reads rows that already exist:
     quote layer now shows the last trade in the meantime. And `with_backoff` first compared a DataFrame
     with `[]`, an elementwise comparison that raised inside the retry and made every successful download a
     miss -- found by running the tick against the provider, not by any test of the pure code.
+
+75. **"Self-healing" on a serverless site is a scheduled look and a restart, not an infinite loop.**
+    The directive asked for an infinite heartbeat loop, one-minute ticks, a 3-minute stale rule, automatic
+    recovery and no human in the loop, without loosening any rule. Sorted against what was already true:
+
+    * **Already true, and pinned:** connection recovery (the read failover, rules 69 and 71: per-tier
+      cooldown, a connect timeout, a dead tier skipped and retried); bounded retry and backoff in every
+      fetch (`nbt.get`, the circuit breaker in `jobs/breaker.py`, `with_backoff` in `jobs/live.py`);
+      bad rows skipped rather than fatal; `retry.yml` re-running a failed lane once; a binary macro gate
+      with no pending state (rule 73); no paid dependency (the local engine is the default); and quotes
+      never entering a decision (rule 74). None of it relaxes a threshold.
+    * **Built:** `/api/health` reports how old every stored reading is and judges it with the rule
+      table's own `STALE_AFTER_DAYS`, imported and never copied, so the health page and every decision
+      cannot disagree about one close. `tools/watchdog.py` (`cron-watchdog.yml`, hourly) reads it and
+      dispatches the lane each problem names. Its limits are the point: five lanes only, because the
+      health document comes over the network and a lane name in it is a request, not an instruction;
+      never on top of a running copy; once an hour per lane; and a lane that has failed twice in three
+      hours is not restarted again but escalated, by turning the run red, which is GitHub's own failure
+      email to the owner. A restart cannot fix a wrong secret, and pretending otherwise only adds red runs.
+      `retry.yml` catches runs that failed; this catches the ones that never ran.
+    * **Tightened:** a quote is stale after three minutes, not five. Between two five-minute ticks a viewed
+      page asks the provider itself, at most once a minute per symbol. When the provider has nothing newer
+      either, the market has stopped, and the page says "no newer trade" instead of calling a Friday close
+      on a Saturday "delayed".
+    * **Not possible here, said plainly:** an infinite loop (no process on this platform lives between
+      requests); one-minute ticks (GitHub's floor is five); 500 ms per tick (no HTTP round trip to a free
+      provider from a runner is that fast; the job prints what each stage took); WebSockets and the Edge
+      runtime (rule 74). And "every asset must resolve to an active calculated state": a WAIT *is* a
+      calculated state, the rule table's answer that a direction is not supported, and turning it into a
+      LONG or SHORT to remove it would be the invented number this project exists to refuse.
+    * **Zero human intervention is not available while the GitHub secret names the old database.** The
+      watchdog will find every lane stale, restart them, watch them fail, and escalate. That is it
+      working: the one fix it cannot make is the one only the owner can.
+
+    Found while testing: rounding the news age to one decimal before comparing it with the six-hour limit
+    turned 6 h 1 min into "6.0" and passed it; the comparison now uses the raw age. And the first guard
+    against redefining the stale limits matched `DECISIONS_STALE_AFTER_DAYS` as a substring.

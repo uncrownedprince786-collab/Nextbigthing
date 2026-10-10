@@ -13,7 +13,9 @@ import * as React from "react";
 /// can change a verdict. It reaches no server value: it imports no database module, reads no
 /// environment, and talks to one same-origin URL.
 
-const STALE_MS = 5 * 60 * 1000;
+// Matches `QUOTE_STALE_MS` in lib/liveQuote.ts, which this file does not import so it stays free of
+// anything but React.
+const STALE_MS = 3 * 60 * 1000;
 const POLL_MS = 60 * 1000;
 
 interface Quote {
@@ -57,6 +59,9 @@ export function LivePrice({
   // server would be wrong by the time anyone read it, and would not match the browser's first paint.
   const [now, setNow] = React.useState<number | null>(null);
   const [tried, setTried] = React.useState(false);
+  // True when the endpoint asked the provider and it had nothing newer either: the market has stopped
+  // trading, so the quote is the last one there is, not a late one.
+  const [settled, setSettled] = React.useState(false);
 
   React.useEffect(() => {
     let alive = true;
@@ -66,7 +71,8 @@ export function LivePrice({
       try {
         const res = await fetch(`/api/quote?symbol=${encodeURIComponent(symbol)}`, { signal: controller.signal });
         if (!res.ok) return;
-        const body = (await res.json()) as { price?: number; quotedAt?: string };
+        const body = (await res.json()) as { price?: number; quotedAt?: string; stale?: boolean; revalidated?: boolean };
+        if (alive) setSettled(Boolean(body.stale && body.revalidated));
         if (alive && typeof body.price === "number" && body.price > 0 && typeof body.quotedAt === "string") {
           setQuote((old) =>
             !old || new Date(body.quotedAt as string).getTime() >= new Date(old.quotedAt).getTime()
@@ -121,7 +127,13 @@ export function LivePrice({
         · {clock(quote.quotedAt)}
         {age !== null ? ` · ${ago(age)}` : ""}
       </span>
-      {delayed ? <span className="text-warn"> · delayed</span> : null}
+      {delayed ? (
+        settled ? (
+          <span className="text-muted-foreground"> · no newer trade</span>
+        ) : (
+          <span className="text-warn"> · delayed</span>
+        )
+      ) : null}
     </p>
   );
 }

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { pickAnalog } from "@/lib/decisionInput";
+import { marketOf, pickAnalog } from "@/lib/decisionInput";
 import { latestWindow } from "@/lib/rankingWindow";
 
 // Re-exported so the pages keep a single import site for everything they read about rankings;
@@ -819,6 +819,50 @@ export async function getQuoteTarget(symbol: string) {
     }),
   ]);
   return { asset, quote: quotes.get(asset.id) ?? null, close };
+}
+
+/// The newest stored reading of each kind, for `/api/health` and the hourly watchdog.
+///
+/// The newest close per market is found with one index probe per asset (the same LATERAL shape the
+/// list query uses), not a scan of the price history: this runs every hour, and a health check that
+/// read 780,000 rows to say the database was fine would be the thing that made it not fine. Each
+/// asset is filed under the market the rule table gives it (`marketOf`), so "stale" here and "stale" on
+/// a decision are the same judgement. The quote read fails open: quotes are optional.
+export async function getHealthReadings() {
+  const [groups, decision, news] = await Promise.all([
+    prisma.$queryRaw<{ assetType: string; market: string | null; newest: Date | null }[]>`
+      SELECT a."assetType"::text AS "assetType", i.market::text AS market, max(p.date) AS newest
+        FROM "Asset" a
+        JOIN "Industry" i ON i.id = a."industryId"
+        LEFT JOIN LATERAL (
+              SELECT s.date FROM "PriceSnapshot" s
+               WHERE s."assetId" = a.id ORDER BY s.date DESC LIMIT 1) p ON true
+       GROUP BY 1, 2`,
+    prisma.decisionLog.aggregate({ _max: { periodEnd: true } }),
+    prisma.news.aggregate({ _max: { publishedAt: true } }),
+  ]);
+  let newestQuote: Date | null = null;
+  try {
+    newestQuote = (await prisma.liveQuote.aggregate({ _max: { quotedAt: true } }))._max.quotedAt ?? null;
+  } catch {
+    newestQuote = null;
+  }
+  const byMarket = new Map<ReturnType<typeof marketOf>, string | null>();
+  for (const g of groups) {
+    const market = marketOf({ assetType: g.assetType, industry: g.market ? { market: g.market } : null });
+    const day = g.newest ? g.newest.toISOString().slice(0, 10) : null;
+    const prev = byMarket.get(market);
+    if (prev === undefined || (day !== null && (prev === null || day > prev))) byMarket.set(market, day);
+  }
+  return {
+    closes: [...byMarket.entries()]
+      .filter(([market]) => market !== "Other")
+      .map(([market, newest]) => ({ market, newest }))
+      .sort((a, b) => a.market.localeCompare(b.market)),
+    newestDecision: decision._max.periodEnd ? decision._max.periodEnd.toISOString().slice(0, 10) : null,
+    newestNews: news._max.publishedAt ?? null,
+    newestQuote,
+  };
 }
 
 /// The newest stored macro-gatekeeper answer per name, kept only where it is a REJECT.

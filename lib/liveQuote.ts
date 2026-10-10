@@ -4,9 +4,12 @@
 /// network. A quote is a last trade, shown beside a close and never in place of one: the rule table
 /// reads closes, and a decision that moved with the tape would change on every refresh.
 
-/// A quote older than this is stale and is refreshed on demand. Five minutes is also the platform
-/// floor for the job that writes them, so a healthy tick is never stale by this measure.
-export const QUOTE_STALE_MS = 5 * 60 * 1000;
+/// A quote older than this is stale and is refreshed on demand. Three minutes, which is tighter than
+/// the five-minute floor of the job that writes them: between two ticks a viewed page asks the provider
+/// itself (once a minute per symbol at most, see `MEMO_TTL_MS`), so what a reader sees is never more
+/// than a few minutes behind while a market is trading. When the provider has nothing newer either, the
+/// market has stopped trading, and that is reported as such rather than as a delay.
+export const QUOTE_STALE_MS = 3 * 60 * 1000;
 /// How long one on-demand answer is reused. The only thing between a public endpoint and a free
 /// provider's rate limit, so it is per symbol and it is not optional.
 export const MEMO_TTL_MS = 60 * 1000;

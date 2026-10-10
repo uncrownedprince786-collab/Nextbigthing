@@ -1,0 +1,57 @@
+name: cron watchdog
+
+# Every hour: read the site's heartbeat (/api/health) and restart whichever lane has gone stale.
+# See tools/watchdog.py for the rules: it only ever dispatches the five data lanes, never more than once
+# an hour each, never on top of a run that is already going, and it goes red -- which is GitHub's own
+# failure email to the owner -- only when a restart cannot fix the problem (a lane failing repeatedly,
+# a database that cannot be read, a site that does not answer).
+#
+# `retry.yml` re-runs a run that failed. This catches the runs that never happened: a schedule GitHub
+# skipped under load, or a lane that went quiet. The two together are the self-healing this platform
+# can actually do; neither changes a threshold, a rule or a row.
+on:
+  schedule:
+    # Minute 45, clear of the data lanes (05, 20, 35, 50) and the decision lane (22:10), so it reads a
+    # state that is not mid-write.
+    - cron: "45 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: nbt-watchdog
+  cancel-in-progress: false
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  watch:
+    name: read the heartbeat, restart what stopped
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Read the heartbeat and act on it
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          set +e
+          out="$(python tools/watchdog.py 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## Watchdog"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code

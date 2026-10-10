@@ -16,11 +16,11 @@ const ago = (ms: number) => new Date(NOW.getTime() - ms).toISOString();
 
 // --- stale or not -----------------------------------------------------------------------------
 
-test("a quote is stale after five minutes exactly, and a missing or unreadable one is stale", () => {
-  assert.equal(QUOTE_STALE_MS, 300_000);
-  assert.equal(isStale(ago(299_999), NOW), false);
-  assert.equal(isStale(ago(300_000), NOW), false);
-  assert.equal(isStale(ago(300_001), NOW), true);
+test("a quote is stale after three minutes exactly, and a missing or unreadable one is stale", () => {
+  assert.equal(QUOTE_STALE_MS, 180_000);
+  assert.equal(isStale(ago(179_999), NOW), false);
+  assert.equal(isStale(ago(180_000), NOW), false);
+  assert.equal(isStale(ago(180_001), NOW), true);
   assert.equal(isStale(null, NOW), true);
   assert.equal(isStale(undefined, NOW), true);
   assert.equal(isStale("not a date", NOW), true);
