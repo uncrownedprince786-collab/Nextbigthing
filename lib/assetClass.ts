@@ -1,6 +1,6 @@
 import type { DecisionQueryRow } from "@/lib/queries";
 import { pickTarget, targetForCall, type TargetLike } from "@/lib/target";
-import { qualityGate, type GateResult } from "@/lib/quality";
+import { openSince, qualityGate, withOpenPosition, type GateResult } from "@/lib/quality";
 import { bundleFromRow, toDecisionInput, todayISO } from "@/lib/decisionInput";
 import { decideCall } from "@/lib/resolve";
 import { quoteBesideClose } from "@/lib/liveQuote";
@@ -41,6 +41,8 @@ export interface Scored {
   /// hand-built Scored keeps compiling; `scoreRows` always sets both.
   target?: TargetLike | null;
   gate?: GateResult;
+  /// "SWING" or "POSITION": the trading style of the setup that decided; null on a WAIT.
+  style?: string | null;
 }
 
 export { isPublished } from "@/lib/quality";
@@ -73,14 +75,34 @@ export function scoreRows(
     const input = toDecisionInput(bundleFromRow(row, health), today);
     const decision = decideCall(input);
     const target = rowTarget(row, decision);
+    const setupHorizon = input.setup?.horizon ?? null;
+    // The trading style is the window of the setup that decided (lib/validity.ts): Swing or Position.
+    const validity = validityOf({
+      action: decision.action,
+      setupHorizon,
+      runAction: row.callAction,
+      runSince: row.callSince,
+      asOf: row.closeDate,
+      today,
+    });
+    const style = validity ? validity.label.toUpperCase() : null;
+    const since = openSince({
+      action: decision.action,
+      publishedAction: row.publishedAction,
+      publishedOn: row.publishedOn,
+      lastRunAction: row.lastRunAction,
+      lastRunSince: row.lastRunSince,
+      validityStatus: validity?.status ?? null,
+    });
     return {
       row,
       market: input.market,
       decision,
-      setupHorizon: input.setup?.horizon ?? null,
+      setupHorizon,
       today,
       target,
-      gate: qualityGate(decision, target, input.atr ?? null),
+      style,
+      gate: withOpenPosition(qualityGate(decision, target, input.atr ?? null, style), since),
     };
   });
 }
@@ -168,6 +190,8 @@ export function toListRow(s: Scored): DecisionRow {
     // The measured exit if it works, from the one rule every surface shares. A row that names
     // only the level it is wrong at answers half the question a reader has.
     target: s.target !== undefined ? s.target : rowTarget(s.row, s.decision),
+    // An open call published only because it is open: the line under the verdict says so.
+    held: s.gate?.held ?? null,
     confidence: s.decision.confidence,
     // Which confirmations backed it. The table prints how many and which, because a grade of
     // "Medium" says one thing was behind a call and not what it was.

@@ -959,6 +959,35 @@ async function getLastRuns(assetId?: string): Promise<Map<string, LastRun>> {
   return out;
 }
 
+/// The most recent day before today on which each name's logged call passed the quality gate on its own
+/// stored fields: a direction, an entry range and a stop, a recorded reward:risk of at least the gate's
+/// floor (1.2 -- the literal must equal `MIN_REWARD_RISK` in lib/quality.ts, which a test pins), and at
+/// least one confirmation. Read by `openSince` so a published call is held open rather than dropped.
+/// From 2026-10-10 only: that is the first day the log recorded the reward:risk the reader saw and the
+/// gate existed, so no earlier call is claimed as published. No interpolated value in the SQL.
+export interface PublishedRun {
+  action: string;
+  on: Date;
+}
+
+async function getPublishedRuns(): Promise<Map<string, PublishedRun>> {
+  const out = new Map<string, PublishedRun>();
+  try {
+    const rows = await prisma.$queryRaw<{ assetId: string; action: string; on: Date }[]>`
+      SELECT DISTINCT ON ("assetId") "assetId", action, "periodEnd" AS on
+        FROM "DecisionLog"
+       WHERE "periodEnd" < CURRENT_DATE AND "periodEnd" >= DATE '2026-10-10'
+         AND action IN ('LONG', 'SHORT') AND "rewardRisk" >= 1.2
+         AND coalesce(legs, '') <> ''
+         AND "entryLow" IS NOT NULL AND "entryHigh" IS NOT NULL AND invalidation IS NOT NULL
+       ORDER BY "assetId", "periodEnd" DESC`;
+    for (const r of rows) out.set(r.assetId, { action: r.action, on: r.on });
+  } catch {
+    out.clear();
+  }
+  return out;
+}
+
 /// The most recent directional verdict the log recorded for each name before today, within a week:
 /// the call a flip has to be confirmed against (`reversalUnconfirmed` in lib/decision.ts). Before
 /// today, never today, so the page's verdict and the nightly job's are both judged against the same
@@ -1078,6 +1107,7 @@ export async function getDecisionBundle(assetId: string) {
   const vetoes = getMacroVetoes(assetId);
   const priors = getPriorDirections(assetId);
   const lastRuns = getLastRuns(assetId);
+  const publishedRuns = getPublishedRuns();
   const lateRead = getLateColumns();
   const [asset, freshness, horizons, analogs, humanSignal, investigation, upcoming, factor] =
     await Promise.all([
@@ -1153,6 +1183,7 @@ export async function getDecisionBundle(assetId: string) {
     macroVeto: (await vetoes).get(assetId) ?? null,
     prior: (await priors).get(assetId) ?? null,
     lastRun: (await lastRuns).get(assetId) ?? null,
+    published: (await publishedRuns).get(assetId) ?? null,
     factorPeers: factor?.peers ?? null,
   };
 }
@@ -1267,6 +1298,9 @@ export type DecisionQueryRow = {
   lastRunAction: string | null;
   lastRunSince: Date | null;
   lastRunPrev: string | null;
+  /// The most recent earlier day the call passed the quality gate; see getPublishedRuns.
+  publishedAction: string | null;
+  publishedOn: Date | null;
   /// The newest stored last trade and when it was struck; see `getLiveQuotes`. Null on both when none.
   quotePrice: number | null;
   quoteAt: Date | null;
@@ -1414,6 +1448,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   const vetoes = getMacroVetoes();
   const priors = getPriorDirections();
   const lastRuns = getLastRuns();
+  const publishedRuns = getPublishedRuns();
   const lateRead = getLateColumns();
   const quotes = getLiveQuotes();
   const runs = getCallRuns();
@@ -1649,6 +1684,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   const quoteByAsset = await quotes;
   const priorByAsset = await priors;
   const lastRunByAsset = await lastRuns;
+  const publishedByAsset = await publishedRuns;
   const runByAsset = await runs;
   const late = await lateRead;
   // The active pool only (jobs/pool.py): a name under its market's liquidity floor, or with no
@@ -1705,6 +1741,8 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       lastRunAction: lastRunByAsset.get(asset.id)?.action ?? null,
       lastRunSince: lastRunByAsset.get(asset.id)?.since ?? null,
       lastRunPrev: lastRunByAsset.get(asset.id)?.prev ?? null,
+      publishedAction: publishedByAsset.get(asset.id)?.action ?? null,
+      publishedOn: publishedByAsset.get(asset.id)?.on ?? null,
       macroVetoAsOf: vetoByAsset.get(asset.id)?.asOf ?? null,
       recentStories: signal?.recentStories ?? null,
       newsTone: signal?.tone ?? null,

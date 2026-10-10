@@ -40,6 +40,7 @@ import { confirmingLegs } from "../lib/decision.ts";
 import { writerPool } from "./writer.mjs";
 import { decideCall } from "../lib/resolve.ts";
 import { bundleFromRow, toDecisionInput, todayISO } from "../lib/decisionInput.ts";
+import { pickTarget, targetForCall } from "../lib/target.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -442,6 +443,13 @@ function decideAll(input, today) {
     const bundle = bundleFromRow(row, input.sourceHealth);
     const decisionInput = toDecisionInput(bundle, today);
     const decision = decideCall(decisionInput);
+    // The take profit the lists show, by the same two functions (lib/assetClass.ts `rowTarget`).
+    const shown = targetForCall(
+      pickTarget(
+        [row.swing ? { ...row.swing, horizon: "swing" } : null, row.longer ? { ...row.longer, horizon: "longer" } : null].filter(Boolean),
+      ),
+      decision,
+    );
     out.push({
       assetId,
       symbol: row.symbol,
@@ -464,11 +472,12 @@ function decideAll(input, today) {
       analogRefs: analogId ?? "",
       eventInDays: decisionInput.eventInDays,
       baseClose: decisionInput.lastClose,
-      // What the trade was worth when it was decided. Null on every WAIT, because `plan` is,
-      // and null on a direction whose setup carries no measured target. Recorded rather than
-      // recomputed later: `jobs/horizons.py` rewrites "SetupTarget" every run, so a reward read
-      // back in a month would be this month's reward attached to last month's call.
-      rewardRisk: decision.plan?.rewardRisk ?? null,
+      // What the trade was worth when it was decided: the reward:risk the lists printed beside it --
+      // the measured target against the call's own stop, from the entry level -- since 2026-10-10,
+      // when the quality gate began reading it back (getPublishedRuns). Null on every WAIT and on a
+      // direction with no measured target on its side. Recorded rather than recomputed later:
+      // `jobs/horizons.py` rewrites "SetupTarget" every run.
+      rewardRisk: shown?.rewardRisk ?? null,
       baseRateShare: decision.plan?.baseRate?.share ?? null,
       baseRateCount: decision.plan?.baseRate?.count ?? null,
       // What the learning loop reads. `legs` names the confirmations that backed the direction

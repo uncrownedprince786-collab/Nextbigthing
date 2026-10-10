@@ -29,7 +29,7 @@ import {
 } from "@/components/ui";
 import { DecisionPanel } from "@/components/decision";
 import { pickTarget, targetForCall } from "@/lib/target";
-import { qualityGate } from "@/lib/quality";
+import { openSince, qualityGate, withOpenPosition } from "@/lib/quality";
 import { rankHeadlines } from "@/lib/newsRank";
 import {
   getAccuracy,
@@ -175,7 +175,6 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
   // The take profit and the quality gate's verdict, by the same functions the lists use, so a name
   // withheld from the lists says so here, and why.
   const target = targetForCall(pickTarget(horizons), decision);
-  const gate = qualityGate(decision, target, decisionInput.atr ?? null);
   // The same function the list rows use, fed the same three facts, so this page and the market page
   // show one horizon and one window for this name.
   const validity = validityOf({
@@ -186,6 +185,19 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
     asOf: bundle.newestCloseDate ?? null,
     today,
   });
+  // The quality gate, with the trading style and open-position protection, as scoreRows applies them.
+  const style = validity ? validity.label.toUpperCase() : null;
+  const gate = withOpenPosition(
+    qualityGate(decision, target, decisionInput.atr ?? null, style),
+    openSince({
+      action: decision.action,
+      publishedAction: bundle.published?.action ?? null,
+      publishedOn: bundle.published?.on ?? null,
+      lastRunAction: decisionInput.lastRun ? (decisionInput.lastRun.direction === "up" ? "LONG" : "SHORT") : null,
+      lastRunSince: decisionInput.lastRun?.since ?? null,
+      validityStatus: validity?.status ?? null,
+    }),
+  );
   // The verdict change in the newest cycle (same function as the rows) and the timeline for the banner.
   const change = latestChange({
     action: decision.action,
@@ -253,6 +265,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
              one name cannot be quoted two different levels on two pages. */
           target={target}
           withheld={gate.published ? null : gate.reasons}
+          held={gate.held ?? null}
           validity={validity}
           early={early}
           change={change}

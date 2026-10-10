@@ -144,7 +144,8 @@ function spreadAcrossMarkets(sorted: Scored[], cap: number): Scored[] {
 /// otherwise.
 export function weeklyFocus(rows: Scored[], cap = WEEKLY_MAX_PER_SIDE): WeeklyFocus {
   // Published calls only (lib/quality.ts): the block is a signal list like the others.
-  const eligible = rows.filter((s) => (s.gate ? s.gate.published : true) && qualifiesForWeek(s));
+  // Published calls only (lib/quality.ts), and not one held open past its entry rules: the block is new ideas.
+  const eligible = rows.filter((s) => (s.gate ? s.gate.published && !s.gate.held : true) && qualifiesForWeek(s));
   const long = eligible.filter((s) => s.decision.action === "LONG").sort(byWeeklyFocus);
   const short = eligible.filter((s) => s.decision.action === "SHORT").sort(byWeeklyFocus);
   return {

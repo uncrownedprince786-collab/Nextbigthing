@@ -218,7 +218,10 @@ def audit_database(url: str) -> dict:
 
 # --- the live-page half ---------------------------------------------------------------------------
 
-LABEL = re.compile(r'<span class="[^"]*lg:sr-only">([^<]+)</span>')
+# The per-cell label is visually hidden where the table header carries it: `xl:sr-only` since the table
+# moved to xl on 2026-10-11 (it was `lg:sr-only`). The first run after that move parsed every cell as empty
+# and passed -- so an unparsed page is now a failure in itself (see `unparsed` below).
+LABEL = re.compile(r'<span class="[^"]*(?:lg|xl):sr-only">([^<]+)</span>')
 TITLE = re.compile(r'title="([^"]*)"')
 # A number must start with a digit: the rupee mark is "Rs.", and a pattern allowing a leading point
 # read "Rs.1,234.56" as ".1234" and ".56" -- the first run of this script reported 65 PSX "violations"
@@ -273,6 +276,9 @@ def parse_rows(page_html: str) -> list[dict]:
         action = "LONG" if ">LONG<" in action_html else "SHORT" if ">SHORT<" in action_html else "WAIT"
         rr = re.search(r"(-?\d+\.\d):1", re.sub(r"<[^>]+>", "", cells.get("Reward:risk", "")))
         rows.append({
+            "parsed": "Action" in cells and "Stop loss" in cells,
+            # An open call listed past its entry rules says so under the verdict (lib/quality.ts).
+            "held": "Open since" in re.sub(r"<[^>]+>", "", cells.get("Action", "")),
             "symbol": _html.unescape(sym.group(1)),
             "action": action,
             "entry": prices_in(cells.get("Entry zone", "")),
@@ -292,7 +298,8 @@ def audit_pages() -> dict:
     out = {"rows": 0, "names": 0, "actions": Counter(), "inconsistent": [], "t_wrong": [], "t_none": 0,
            "s_wrong": [], "s_inside": [], "s_edge": 0, "s_beyond": 0, "zero_risk": [], "rr_bad": [],
            "rr_mismatch": [], "rr_checked": 0, "subcent_rows": 0, "subcent_bad": [], "t_missing": [],
-           "rr_low": [], "unconfirmed": [], "withheld": 0}
+           "rr_low": [], "unconfirmed": [], "withheld": 0, "unparsed": 0, "held": 0, "api_mismatch": [],
+           "api_published": None}
     for path in PAGES:
         req = urllib.request.Request(SITE + path, headers={"User-Agent": "nbt-logic-audit"})
         with urllib.request.urlopen(req, timeout=60) as r:
@@ -302,6 +309,8 @@ def audit_pages() -> dict:
             out["withheld"] += int(m.group(1)) if m else 0
         for row in parse_rows(page):
             out["rows"] += 1
+            if not row.get("parsed"):
+                out["unparsed"] += 1
             key = row["symbol"]
             if key in seen:
                 a, b = seen[key], row
@@ -310,6 +319,34 @@ def audit_pages() -> dict:
                 continue
             seen[key] = row
     out["names"] = len(seen)
+    # The engine's own output, as data, against what the pages rendered from the same cached rows.
+    try:
+        import json
+
+        req = urllib.request.Request(SITE + "/api/signals", headers={"User-Agent": "nbt-logic-audit"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            api = json.load(r)
+        calls = {c["symbol"]: c for c in api.get("published", [])}
+        out["api_published"] = len(calls)
+        page_calls = {k: v for k, v in seen.items() if v["action"] in ("LONG", "SHORT")}
+        for sym in sorted(set(calls) ^ set(page_calls)):
+            out["api_mismatch"].append(f"{sym} {'only in the API' if sym in calls else 'only on the pages'}")
+        for sym in sorted(set(calls) & set(page_calls)):
+            c, p = calls[sym], page_calls[sym]
+            h = p["half"]
+            close = lambda a, b: a is not None and b is not None and abs(a - b) <= h.get(b, 0.005) + 1e-9
+            if c["direction"] != p["action"]:
+                out["api_mismatch"].append(f"{sym} direction {c['direction']} vs page {p['action']}")
+            if p["stop"] and not close(c["stop"], p["stop"][0]):
+                out["api_mismatch"].append(f"{sym} stop {c['stop']} vs page {p['stop'][0]}")
+            if p["target"] and c["target"] and not close(c["target"]["low"], min(p["target"])):
+                out["api_mismatch"].append(f"{sym} target {c['target']['low']} vs page {min(p['target'])}")
+            if p["rr"] is not None and c["rewardRisk"] is not None and abs(round(c["rewardRisk"], 1) - p["rr"]) > 0.051:
+                out["api_mismatch"].append(f"{sym} R:R {c['rewardRisk']:.2f} vs page {p['rr']}")
+            if c.get("style") not in ("SWING", "POSITION"):
+                out["api_mismatch"].append(f"{sym} style {c.get('style')}")
+    except Exception as e:  # noqa: BLE001
+        out["api_mismatch"].append(f"/api/signals could not be read: {type(e).__name__}")
     for sym, r in seen.items():
         out["actions"][r["action"]] += 1
         if r["action"] not in ("LONG", "SHORT") or not r["entry"] or not r["stop"]:
@@ -341,9 +378,11 @@ def audit_pages() -> dict:
                 out["rr_bad"].append(f"{sym} prints R:R {r['rr']} with no target")
             out["t_missing"].append(f"{sym} {r['action']} zone {lo}..{hi} stop {stop}: published with no take profit")
             continue
-        if r["rr"] is not None and r["rr"] < MIN_REWARD_RISK:
+        if r["held"]:
+            out["held"] += 1
+        elif r["rr"] is not None and r["rr"] < MIN_REWARD_RISK:
             out["rr_low"].append(f"{sym} {r['action']} published at {r['rr']}:1")
-        if r["confirmations"] is not None and r["confirmations"] < MIN_CONFIRMATIONS:
+        if not r["held"] and r["confirmations"] is not None and r["confirmations"] < MIN_CONFIRMATIONS:
             out["unconfirmed"].append(f"{sym} {r['action']} published with {r['confirmations']} of 5")
         tlo, thi = min(r["target"]), max(r["target"])
         if (long and not tlo > hi) or (not long and not thi < lo):
@@ -417,7 +456,9 @@ def main() -> int:
     print(f"  stop vs zone: beyond {pg['s_beyond']}, ON THE EDGE {pg['s_edge']}, inside {len(pg['s_inside'])}, wrong side {len(pg['s_wrong'])}")
     show("WRONG SIDE", pg["s_wrong"]); show("STOP INSIDE THE ZONE", pg["s_inside"])
     show("ZERO RISK", pg["zero_risk"])
-    print(f"  published rows {pg['names']}, withheld by the quality gate {pg['withheld']} (named, folded, on the market pages)")
+    print(f"  published rows {pg['names']} ({pg['held']} held open past their entry rules), withheld by the quality gate {pg['withheld']} (named, folded, on the market pages)")
+    print(f"  /api/signals: {pg['api_published']} published; disagreements with the pages {len(pg['api_mismatch'])}")
+    show("API AND PAGES DISAGREE", pg["api_mismatch"])
     print(f"  targets: shown {pg['names'] - pg['t_none'] - pg['actions'].get('WAIT', 0)}, none {pg['t_none']}, on the wrong side {len(pg['t_wrong'])}")
     show("PUBLISHED WITHOUT A TAKE PROFIT", pg["t_missing"])
     show(f"PUBLISHED UNDER {MIN_REWARD_RISK}:1", pg["rr_low"])
@@ -436,6 +477,8 @@ def main() -> int:
         "unexplained forced stop": len(db["forced_other"]),
         "missing band/stop on a call": len(db["no_band"]) + len(db["no_stop"]),
         "page disagreement": len(pg["inconsistent"]),
+        "rows whose cells could not be read": pg["unparsed"],
+        "engine output (API) and pages disagree": len(pg["api_mismatch"]),
         "stop on the zone's edge (rule 91)": db["dir_edge"] + pg["s_edge"],
         "stop nearer the zone than 1.0 x atr14": len(db["buffer_short"]),
         "published call without a take profit": len(pg["t_missing"]),

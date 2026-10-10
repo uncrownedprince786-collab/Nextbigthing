@@ -204,6 +204,8 @@ export interface DecisionPanelProps {
   quote?: { price: number; quotedAt: string } | null;
   /// The quality gate's reasons when the lists withhold this call (lib/quality.ts); null when published.
   withheld?: string[] | null;
+  /// Set when the call is listed only because it is open (lib/quality.ts `withOpenPosition`).
+  held?: { since: string; todays: string[] } | null;
 }
 
 /// One labelled figure or sentence. Used for every field in the panel so that the label and the
@@ -435,6 +437,7 @@ export function DecisionPanel({
   changes = [],
   quote = null,
   withheld = null,
+  held = null,
 }: DecisionPanelProps) {
   const grade = decision.confidence.toLowerCase();
   const gap = gapLine(decision);
@@ -448,6 +451,15 @@ export function DecisionPanel({
         <div role="note" className="border-warn bg-warn-bg text-warn mb-3 rounded-lg border px-3 py-2 text-sm">
           <p className="font-semibold">Not on the signal lists today: this call did not pass the quality gate.</p>
           <p className="mt-0.5 text-xs">{withheld.join("; ")}. What follows is the analysis, not a published call.</p>
+        </div>
+      ) : null}
+      {held ? (
+        <div role="note" className="border-border bg-muted/40 mb-3 rounded-lg border px-3 py-2 text-sm">
+          <p className="font-semibold">Open call, published {shortDay(held.since)}: held to its stop.</p>
+          <p className="text-muted-foreground mt-0.5 text-xs">
+            Today&apos;s reading alone would not publish it ({held.todays.join("; ")}), so it is not a new entry; it
+            stays listed until its stop is crossed or its window ends.
+          </p>
         </div>
       ) : null}
       {/* The word, and then everything that qualifies it. `wrap-hard` is not needed — the three
@@ -797,6 +809,8 @@ export function ProductDecisionPanel({ decision, name }: ProductDecisionPanelPro
 /// Exported as a named interface rather than left inline: three pages build these arrays and a
 /// shape nobody can import is a shape everybody retypes slightly differently.
 export interface DecisionRow {
+  /// Set when the row is listed only because it is an open call (lib/quality.ts `withOpenPosition`).
+  held?: { since: string; todays: string[] } | null;
   /// Raw stored symbol. Contains `^`, `=`, `.` and `-`, so every link encodes it.
   symbol: string;
   name: string;
@@ -1213,6 +1227,11 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                       asset page; a change and a dated event are said in a sentence below. */}
                   {r.early ? <EarlySignalBadge s={r.early} /> : null}
                 </span>
+                {r.held ? (
+                  <span className="text-muted-foreground text-micro mt-0.5 block leading-snug">
+                    Open since {shortDay(r.held.since)}: held to its stop, not a new entry ({r.held.todays.join("; ")}).
+                  </span>
+                ) : null}
                 {shownChange(r.change) ? (
                   <span className="text-down text-micro mt-0.5 block leading-snug">{changeSentence(shownChange(r.change)!)}</span>
                 ) : null}
