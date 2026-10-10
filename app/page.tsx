@@ -1,3 +1,4 @@
+import { latestChange } from "@/lib/stateChange";
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import {
@@ -396,6 +397,19 @@ export default async function Home({
   const developing = allWaits.filter((s) => s.decision.developing !== null).sort(byCloseness);
   const waits = allWaits.filter((s) => s.decision.developing === null).sort(byUrgency);
   const waitHidden = Math.max(0, waits.length - WAIT_SHOWN);
+  // Calls that ended in the newest decision cycle -- invalidated, overridden or reversed into a WAIT --
+  // counted for the closed line above the folded list, from the same function the row badges use.
+  const endedNow = allWaits.filter((w) => {
+    const c = latestChange({
+      action: w.decision.action,
+      runAction: w.row.callAction,
+      runSince: w.row.callSince,
+      runPrev: w.row.callPrev,
+      runGate: w.row.callGate,
+      latestCycle: w.row.callLatest,
+    });
+    return c !== null && c.warn;
+  }).length;
   const developingHidden = Math.max(0, developing.length - DEVELOPING_SHOWN);
 
   // Rows exist, and the filters removed all of them. Without this the reader gets three empty lists
@@ -591,37 +605,48 @@ export default async function Home({
         )}
       </Section>
 
-      <Section
-        title="WAIT / caution"
-        lead={
-          waitHidden > 0
-            ? `Most urgent first: a date today, then an unexplained move, then a data fault. ${WAIT_SHOWN} of ${waits.length} shown.`
-            : "Most urgent first: a date today, then an unexplained move, then a data fault."
-        }
-        aside={<AsOf date={asOf} />}
-      >
-        {waits.length ? (
-          <>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {waits.slice(0, WAIT_SHOWN).map((s) => (
-                <WaitCard key={s.row.symbol} item={s} />
-              ))}
-            </div>
-            {waitHidden > 0 ? (
-              <p className="text-muted-foreground mt-3 text-sm">
-                <span className="num">{waitHidden}</span> further assets are in WAIT for reasons
-                less urgent than every card above. Each one carries its reason on its own asset page.
-              </p>
-            ) : null}
-          </>
-        ) : (
-          <Empty>
-            Nothing is in WAIT{Object.keys(current).length > 0 ? ` under ${showing}` : ""}. For a
-            rule table whose fall-through is WAIT that is unusual rather than reassuring, so check
-            the source health in Details below before reading it as good news.
-          </Empty>
-        )}
-      </Section>
+      {/* Held back, folded away. WAIT is the rule table's working state -- most names are in it on any
+          day -- and twelve cards of it sat between the reader and the calls. It stays one click away,
+          with every row's reason, because a held-back name must still be findable; and the one thing a
+          holder cannot miss is said on the closed line itself: how many calls ended in this cycle. */}
+      <details className="border-border bg-muted/30 mt-10 rounded-lg border px-4 py-1 text-sm sm:py-3">
+        <summary className="-my-1 cursor-pointer py-3 font-medium select-none sm:my-0 sm:py-0">
+          Held back: {waits.length} {waits.length === 1 ? "name" : "names"} with no call today
+          {endedNow > 0 ? (
+            <span className="text-down">
+              {" "}
+              · {endedNow} {endedNow === 1 ? "call" : "calls"} ended in the latest cycle
+            </span>
+          ) : null}
+        </summary>
+        <div className="mt-3 pb-2">
+          <p className="text-muted-foreground mb-3 text-sm">
+            Most urgent first: a date today, then an unexplained move, then a data fault.
+            {waitHidden > 0 ? ` ${WAIT_SHOWN} of ${waits.length} shown.` : ""}
+          </p>
+          {waits.length ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {waits.slice(0, WAIT_SHOWN).map((s) => (
+                  <WaitCard key={s.row.symbol} item={s} />
+                ))}
+              </div>
+              {waitHidden > 0 ? (
+                <p className="text-muted-foreground mt-3 text-sm">
+                  <span className="num">{waitHidden}</span> further assets are held back for reasons
+                  less urgent than every card above. Each one carries its reason on its own asset page.
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <Empty>
+              Nothing is held back{Object.keys(current).length > 0 ? ` under ${showing}` : ""}. For a
+              rule table whose fall-through is WAIT that is unusual rather than reassuring, so check the
+              source health in Details below before reading it as good news.
+            </Empty>
+          )}
+        </div>
+      </details>
 
       {/* The legend, under the three lists rather than above them. A reader who has just scrolled
           past forty rows of LONG and SHORT is the one who needs it; printing it first would be

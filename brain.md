@@ -2308,3 +2308,22 @@ reads rows that already exist:
     disagree), and the close the decision reads on a third, labelled line. The column, and the asset
     panel's matching field, are "Price & time". The decision still reads the close: a price for a
     session still trading is not a close (rule 41), and that is now said on the row rather than hidden.
+
+80. **A flip against a recent call must be confirmed; a marker never contradicts its call; WAIT folds away.**
+    **Patience.** A direction can reverse on the trend alone and print at Low confidence with no
+    confirmation; that is the flip most exposed to flipping straight back, and it hands a reader two
+    opposite calls in two days. `reversalUnconfirmed` holds such a flip as WAIT (`reversal-unconfirmed`,
+    with its `intent`) when the log recorded the opposite direction within the last seven days, until
+    one of the five independent confirmations arrives or the old call ages out. It reads the log before
+    today, never today, so the page and the nightly job judge against the same stored past. It is a
+    refusal only, and it has not been shown to improve outcomes: the scorecard will say. Decisions were
+    already immune to intraday noise -- they read daily closes only, and neither a live quote nor a
+    headline can move one (rules 74 and 44). On its first day the rule changed nothing: the one
+    reversal that day (VRTX, SHORT to LONG) was confirmed three of five.
+
+    **No contradictory pairing.** A Falling Star beside a LONG read as two opposite instructions on one
+    row. The marker now shows only when it agrees with the call; an opposing event is already weighed
+    where it belongs, as a confirmation the call lacks. **Clean UI.** The home page's twelve WAIT cards
+    are one closed line, "Held back: N names with no call today", which also says how many calls ended in
+    the latest cycle so a holder cannot miss an invalidation. WAIT is not hidden from the data or the
+    log, only from the first screen: a held-back name stays findable, with its reason.

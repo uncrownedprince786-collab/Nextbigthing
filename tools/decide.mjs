@@ -269,6 +269,24 @@ async function readInputs(db, today) {
     macro = [];
   }
 
+  // The most recent directional verdict logged before today, within a week: the call a flip has to be
+  // confirmed against. The same rule and window as `getPriorDirections` in lib/queries.ts, so the log
+  // and the page judge a reversal against the same stored past. Fail-open like the macro read above.
+  let prior = [];
+  try {
+    prior = (
+      await db.query(
+        `SELECT DISTINCT ON ("assetId") "assetId", action, "periodEnd"
+           FROM "DecisionLog"
+          WHERE action IN ('LONG', 'SHORT') AND "periodEnd" < $1::date AND "periodEnd" >= ($1::date - 7)
+          ORDER BY "assetId", "periodEnd" DESC`,
+        [today],
+      )
+    ).rows;
+  } catch {
+    prior = [];
+  }
+
   return {
     assets: assets.rows,
     priceByAsset: firstPerKey(prices.rows, (r) => r.assetId),
@@ -283,6 +301,7 @@ async function readInputs(db, today) {
     factorByAsset: firstPerKey(factors.rows, (r) => r.assetId),
     eventByAsset: firstPerKey(events.rows, (r) => r.assetId),
     macroByAsset: firstPerKey(macro, (r) => r.assetId),
+    priorByAsset: firstPerKey(prior, (r) => r.assetId),
     sourceHealth: coverage.rows.map((r) => ({ source: r.source, status: r.status })),
   };
 }
@@ -319,6 +338,7 @@ function rowsForDecisions(input) {
     const factor = input.factorByAsset.get(asset.id);
     const event = input.eventByAsset.get(asset.id);
     const veto = input.macroByAsset.get(asset.id);
+    const prior = input.priorByAsset.get(asset.id);
     return {
       assetId: asset.id,
       analogId: analog?.id ?? null,
@@ -368,6 +388,8 @@ function rowsForDecisions(input) {
         // `dayOf`, not the Date: `pg` hands back a `@db.Date` as local midnight, and east of UTC the
         // seam's `toISOString()` would read it as the day before and expire the veto a day early.
         macroVetoAsOf: dayOf(veto?.periodEnd),
+        priorAction: prior?.action ?? null,
+        priorAsOf: dayOf(prior?.periodEnd),
         recentStories: signal?.recentStories ?? null,
         newsTone: signal?.tone ?? null,
         newsCatalyst: signal?.catalyst ?? null,

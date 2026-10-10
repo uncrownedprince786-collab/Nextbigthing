@@ -923,6 +923,31 @@ export async function getDecisionHistory(assetId: string) {
   }
 }
 
+/// The most recent directional verdict the log recorded for each name before today, within a week:
+/// the call a flip has to be confirmed against (`reversalUnconfirmed` in lib/decision.ts). Before
+/// today, never today, so the page's verdict and the nightly job's are both judged against the same
+/// stored past and neither against itself. Fails open: no log is no prior call, and no rule changes.
+async function getPriorDirections(assetId?: string): Promise<Map<string, { action: string; asOf: Date }>> {
+  const out = new Map<string, { action: string; asOf: Date }>();
+  try {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const rows = await prisma.decisionLog.findMany({
+      where: {
+        ...(assetId ? { assetId } : {}),
+        action: { in: ["LONG", "SHORT"] },
+        periodEnd: { lt: today, gte: new Date(today.getTime() - 7 * 86_400_000) },
+      },
+      orderBy: { periodEnd: "desc" },
+      select: { assetId: true, action: true, periodEnd: true },
+    });
+    for (const r of rows) if (!out.has(r.assetId)) out.set(r.assetId, { action: r.action, asOf: r.periodEnd });
+  } catch {
+    out.clear();
+  }
+  return out;
+}
+
 /// The newest stored macro-gatekeeper answer per name, kept only where it is a REJECT.
 ///
 /// **Fails open, in the way that matters most here.** A missing table (a standby that has not had the
@@ -976,6 +1001,7 @@ async function getMacroVetoes(assetId?: string): Promise<Map<string, { reason: s
 /// argued against above.
 export async function getDecisionBundle(assetId: string) {
   const vetoes = getMacroVetoes(assetId);
+  const priors = getPriorDirections(assetId);
   const [asset, freshness, horizons, analogs, humanSignal, investigation, upcoming, factor] =
     await Promise.all([
       prisma.asset.findUnique({
@@ -1046,6 +1072,7 @@ export async function getDecisionBundle(assetId: string) {
     /// How many peers the relative reading was taken over. Carried so a panel can say *why*
     /// `relStrength` is null — a group of four names rather than a measurement that came out even.
     macroVeto: (await vetoes).get(assetId) ?? null,
+    prior: (await priors).get(assetId) ?? null,
     factorPeers: factor?.peers ?? null,
   };
 }
@@ -1150,6 +1177,9 @@ export type DecisionQueryRow = {
   /// both when there is none, which is every name while the gate is off.
   macroVetoReason: string | null;
   macroVetoAsOf: Date | null;
+  /// The most recent directional verdict logged before today, within a week; see getPriorDirections.
+  priorAction: string | null;
+  priorAsOf: Date | null;
   /// The newest stored last trade and when it was struck; see `getLiveQuotes`. Null on both when none.
   quotePrice: number | null;
   quoteAt: Date | null;
@@ -1268,6 +1298,7 @@ function distinctDays(maxes: (Date | null)[]): Date[] {
 /// slower page. Two bulk queries cost the same whether the universe is 160 names or 1,000.
 export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   const vetoes = getMacroVetoes();
+  const priors = getPriorDirections();
   const quotes = getLiveQuotes();
   const runs = getCallRuns();
   const today = new Date();
@@ -1493,6 +1524,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   // ones rather than as a job that has not run.
   const vetoByAsset = await vetoes;
   const quoteByAsset = await quotes;
+  const priorByAsset = await priors;
   const runByAsset = await runs;
   return assets.map((asset): DecisionQueryRow => {
     const price = priceByAsset.get(asset.id);
@@ -1540,6 +1572,8 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       callLatest: runByAsset.get(asset.id)?.latest ?? null,
       quoteAt: quoteByAsset.get(asset.id)?.quotedAt ?? null,
       macroVetoReason: vetoByAsset.get(asset.id)?.reason ?? null,
+      priorAction: priorByAsset.get(asset.id)?.action ?? null,
+      priorAsOf: priorByAsset.get(asset.id)?.asOf ?? null,
       macroVetoAsOf: vetoByAsset.get(asset.id)?.asOf ?? null,
       recentStories: signal?.recentStories ?? null,
       newsTone: signal?.tone ?? null,

@@ -1400,3 +1400,55 @@ test("an unrecognised veto reason is no veto at all, and the freshness window ma
   const src = (await import("node:fs")).readFileSync(new URL("../lib/decision.ts", import.meta.url), "utf8");
   assert.match(src, new RegExp(`const MACRO_VETO_FRESH_DAYS = ${mod.MACRO_VETO_FRESH_DAYS};`));
 });
+
+// --- patient flips: a reversal against a recent call must be confirmed -------------------------
+//
+// A direction can flip on the trend alone and print at Low confidence with nothing confirming it;
+// that is the case most exposed to flipping straight back. Inside a week of the opposite call, the
+// flip waits for one independent confirmation. A refusal only: it never creates a call.
+
+const BARE = { volumeRatio: 0.4, relStrength: null, analogs: null, horizon: null, entryTrigger: null } as const;
+const SHORT_YESTERDAY = { direction: "down", asOf: "2026-10-02" } as const;
+
+test("an unconfirmed flip against yesterday's call waits, and records the side it would have taken", () => {
+  const alone = decide(base(BARE));
+  assert.equal(alone.action, "LONG", `fixture should be a bare LONG, got ${alone.gate}`);
+  assert.equal(alone.legs.length, 0);
+  const held = decide(base({ ...BARE, priorDirection: SHORT_YESTERDAY }));
+  assert.equal(held.action, "WAIT");
+  assert.equal(held.gate, "reversal-unconfirmed");
+  assert.equal(held.basis, "evidence");
+  assert.equal(held.intent, "up");
+  assert.match(held.why[0], /against the SHORT call of 2026-10-02/);
+});
+
+test("a confirmed flip goes through at once, which is the reversal worth taking", () => {
+  const confirmed = decide(base({ priorDirection: SHORT_YESTERDAY }));
+  assert.equal(confirmed.action, "LONG");
+  assert.ok(confirmed.legs.length > 0);
+});
+
+test("the buffer is a week, never today's own call, and never a call in the same direction", () => {
+  const at = (asOf: string, direction: "up" | "down" = "down") =>
+    decide(base({ ...BARE, priorDirection: { direction, asOf } })).gate;
+  assert.equal(at("2026-09-26"), "reversal-unconfirmed"); // 7 days
+  assert.notEqual(at("2026-09-25"), "reversal-unconfirmed"); // 8 days: aged out
+  assert.notEqual(at("2026-10-03"), "reversal-unconfirmed"); // today is not "before today"
+  assert.notEqual(at("2026-10-02", "up"), "reversal-unconfirmed"); // same side, not a flip
+  assert.notEqual(at("not-a-day"), "reversal-unconfirmed");
+});
+
+test("a crossed stop or a macro veto is still reported first, and the rule never creates a call", () => {
+  assert.equal(
+    decide(base({ ...BARE, priorDirection: SHORT_YESTERDAY, lastClose: 100, invalidation: 104 })).gate,
+    "stop-crossed",
+  );
+  assert.equal(
+    decide(base({ ...BARE, priorDirection: SHORT_YESTERDAY, macroVeto: { reason: "macro-warning", asOf: "2026-10-03" } })).gate,
+    "macro-veto",
+  );
+  // A WAIT stays a WAIT whatever came before.
+  const stale = base({ asOf: "2026-09-01", priorDirection: SHORT_YESTERDAY });
+  assert.equal(decide(stale).action, "WAIT");
+  assert.notEqual(decide(stale).gate, "reversal-unconfirmed");
+});

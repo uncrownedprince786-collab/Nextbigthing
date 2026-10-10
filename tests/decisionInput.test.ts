@@ -993,3 +993,16 @@ test("a stored refusal that is not one is no veto, and a row without one is unch
   assert.equal(half({ macroVetoReason: "vibes", macroVetoAsOf: "2026-10-03" }), null);
   assert.equal(half({ macroVetoReason: "macro-warning", macroVetoAsOf: "garbage" }), null);
 });
+
+// --- The prior call crossing the seam ----------------------------------------------------------
+
+test("the prior logged call reaches the rules from the list, checked rather than cast", () => {
+  const at = (v: object) =>
+    toDecisionInput(bundleFromRow(row({ swing: UP, longer: null, ...v }), []), "2026-10-03").priorDirection;
+  assert.deepEqual(at({ priorAction: "SHORT", priorAsOf: "2026-10-02" }), { direction: "down", asOf: "2026-10-02" });
+  assert.deepEqual(at({ priorAction: "LONG", priorAsOf: new Date("2026-10-02T00:00:00Z") }), { direction: "up", asOf: "2026-10-02" });
+  assert.equal(at({ priorAction: "WAIT", priorAsOf: "2026-10-02" }), null);
+  assert.equal(at({ priorAction: "short", priorAsOf: "2026-10-02" }), null);
+  assert.equal(at({ priorAction: "SHORT" }), null);
+  assert.equal(at({}), null);
+});

@@ -30,7 +30,8 @@ export interface EarlySignal {
   label: string;
   /// The event in words.
   words: string;
-  /// How it sits with the call beside it.
+  /// How it sits with the call beside it. Never "against": an event that contradicts the call is not
+  /// shown beside it (see `earlySignalOf`).
   stance: "with" | "against" | "held";
   /// The full sentence for a tooltip or the asset page.
   explain: string;
@@ -52,14 +53,15 @@ export function earlySignalOf(
   if (direction !== "up" && direction !== "down") return null;
   const stance: EarlySignal["stance"] =
     action === "WAIT" ? "held" : (action === "LONG") === (direction === "up") ? "with" : "against";
+  // Never beside a call it contradicts. A Falling Star on a LONG reads as two opposite instructions on
+  // one row, and the event is already weighed where it belongs: as a confirmation the call lacks.
+  if (stance === "against") return null;
   const label = direction === "up" ? "Rising star" : "Falling star";
   const words = WORDS[rule];
   const sits =
     stance === "with"
       ? "It agrees with this call."
-      : stance === "against"
-        ? "It points the other way from this call."
-        : "The rule table still holds this name back; the reason is printed beside it.";
+      : "The rule table still holds this name back; the reason is printed beside it.";
   return {
     rule,
     direction,

@@ -22,16 +22,18 @@ test("nothing else fires it: no event, an unknown rule, or a direction that is n
   for (const dir of ["UP", "flat", "sideways", ""]) assert.equal(earlySignalOf("vol_flip", dir, "LONG"), null, dir);
 });
 
-test("it says how it sits with the call: with it, against it, or held back by the rule table", () => {
-  assert.equal(earlySignalOf("squeeze_break", "up", "SHORT")!.stance, "against");
-  assert.equal(earlySignalOf("squeeze_break", "down", "LONG")!.stance, "against");
+test("it never contradicts the call: a Rising Star only on a LONG, a Falling Star only on a SHORT", () => {
+  assert.equal(earlySignalOf("squeeze_break", "up", "SHORT"), null);
+  assert.equal(earlySignalOf("squeeze_break", "down", "LONG"), null);
+  assert.equal(earlySignalOf("vol_flip", "up", "LONG")!.label, "Rising star");
+  assert.equal(earlySignalOf("vol_flip", "down", "SHORT")!.label, "Falling star");
   const held = earlySignalOf("vol_flip", "up", "WAIT")!;
   assert.equal(held.stance, "held");
   assert.match(held.explain, /still holds this name back/);
 });
 
 test("it describes an event and never tells anyone to act", () => {
-  for (const [rule, dir, action] of [["squeeze_break", "up", "LONG"], ["vol_flip", "down", "WAIT"], ["vol_flip", "up", "SHORT"]] as const) {
+  for (const [rule, dir, action] of [["squeeze_break", "up", "LONG"], ["vol_flip", "down", "WAIT"], ["vol_flip", "down", "SHORT"]] as const) {
     const s = earlySignalOf(rule, dir, action)!;
     assert.match(s.explain, /A marker, not an instruction\./);
     assert.ok(!/asap|enter now|buy now|sell now|guarantee/i.test(s.explain), s.explain);

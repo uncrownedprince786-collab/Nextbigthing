@@ -304,8 +304,22 @@ export interface DecisionBundle {
   /// `DecisionInput`. Optional so a caller that has not learned to read it keeps deciding exactly as
   /// before, which is also what the gate being off looks like.
   macroVeto?: { reason: string | null; asOf: Date | string } | null;
+  /// The most recent directional verdict the log recorded before today, raw; see
+  /// `DecisionInput.priorDirection`, and `priorDirectionFrom`, which validates it once.
+  prior?: { action: string | null; asOf: Date | string } | null;
   /// From `getSourceHealth()`; only the newest row per source is expected.
   sourceHealth: { source: string; status: string }[];
+}
+
+/// A logged verdict read into the direction the rules take, or null when it is not a direction.
+/// Checked, not cast: `DecisionLog.action` is free text in Postgres.
+function priorDirectionFrom(
+  p: { action: string | null; asOf: Date | string } | null | undefined,
+): { direction: "up" | "down"; asOf: string } | null {
+  if (!p || (p.action !== "LONG" && p.action !== "SHORT")) return null;
+  const t = p.asOf instanceof Date ? p.asOf.getTime() : Date.parse(String(p.asOf).slice(0, 10) + "T00:00:00Z");
+  if (!Number.isFinite(t)) return null;
+  return { direction: p.action === "LONG" ? "up" : "down", asOf: new Date(t).toISOString().slice(0, 10) };
 }
 
 /// A stored refusal read into the shape the rules take, or null when it is not one.
@@ -444,6 +458,8 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
     ),
     // Seventh field across this seam, and it has its own test for the reason the sixth did.
     macroVeto: macroVetoFrom(bundle.macroVeto),
+    // Eighth across the seam: the recent opposite call a flip has to be confirmed against.
+    priorDirection: priorDirectionFrom(bundle.prior),
     unusualMove: isUnusualMove(bundle.investigation),
     // A missing HumanSignal row means news was never checked for this name, which the rule table
     // reports differently from a row saying zero. Keep the null.
@@ -529,6 +545,8 @@ export interface QueryBundle {
   } | null;
   /// Newest stored REJECT from the macro gatekeeper; see `DecisionBundle.macroVeto`.
   macroVeto?: { reason: string | null; asOf: Date | string } | null;
+  /// Most recent directional verdict logged before today; see `DecisionBundle.prior`.
+  prior?: { action: string | null; asOf: Date | string } | null;
 }
 
 /// `sourceHealth` is passed in rather than fetched, because it is one site-wide read that every
@@ -587,6 +605,7 @@ export function bundleFromQuery(
         }
       : null,
     macroVeto: row.macroVeto ?? null,
+    prior: row.prior ?? null,
     sourceHealth,
   };
 }
@@ -654,6 +673,9 @@ export interface QueryRow {
   /// no date cannot be aged, so it is not a veto.
   macroVetoReason?: string | null;
   macroVetoAsOf?: Date | string | null;
+  /// The most recent directional verdict logged before today, and its day. Both or neither.
+  priorAction?: string | null;
+  priorAsOf?: Date | string | null;
 }
 
 export function bundleFromRow(
@@ -711,6 +733,7 @@ export function bundleFromRow(
         row.macroVetoReason && row.macroVetoAsOf
           ? { reason: row.macroVetoReason, asOf: row.macroVetoAsOf }
           : null,
+      prior: row.priorAction && row.priorAsOf ? { action: row.priorAction, asOf: row.priorAsOf } : null,
     },
     sourceHealth,
   );

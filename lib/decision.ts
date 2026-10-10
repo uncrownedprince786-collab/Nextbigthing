@@ -464,6 +464,13 @@ export interface DecisionInput {
   /// `asOf` is the session the refusal was made for. It counts for `MACRO_VETO_FRESH_DAYS` and no
   /// longer, because a refusal that outlives the news that caused it is a stale claim.
   macroVeto?: { reason: "macro-warning" | "sentiment-conflict"; asOf: string } | null;
+  /// The most recent direction the decision log recorded for this name before today, within
+  /// `REVERSAL_LOOKBACK_DAYS`, and the day it was recorded. Null when the log holds none that recent.
+  ///
+  /// Read for one rule only: a flip against a call that recent must be confirmed (see
+  /// `reversalUnconfirmed`). From stored rows, never from the page's own earlier reading, so `decide`
+  /// stays a pure function of what is stored.
+  priorDirection?: { direction: "up" | "down"; asOf: string } | null;
   /// This asset's own 20-session return, in percent. How much of the move is already behind it.
   ///
   /// Read by the short gate and by nothing else: a short on a name already down more than
@@ -601,6 +608,30 @@ function daysBetween(fromISO: string, toISO: string): number {
 /// The words for a stored veto, or null when there is none or it has expired. Fixed text per reason:
 /// the model's own rationale is stored for the log and never printed on a card, because it is the one
 /// string in the pipeline that no rule table produced.
+/// How recent an opposite call must be for a flip against it to need confirming, in calendar days.
+/// A week: inside it a turn is the kind that whipsaws; past it the old call has aged out and a new
+/// direction is simply a new direction.
+export const REVERSAL_LOOKBACK_DAYS = 7;
+
+/// The day of the recent opposite call this direction would flip, when the flip has nothing confirming
+/// it; otherwise null.
+///
+/// **Why.** A direction can reverse on the trend alone -- the averages tip over -- and print at Low
+/// confidence with no confirmation at all. That is the case most exposed to flipping straight back, and
+/// a reader who acted on yesterday's call gets two opposite instructions in two days. Requiring one of
+/// the five independent confirmations for a flip inside a week is a refusal and only a refusal: it can
+/// hold a call back, never create one, and it lifts as soon as a confirmation arrives or the old call
+/// ages out. It has not been measured to improve outcomes -- the log is two days old -- so every
+/// `reversal-unconfirmed` is logged with its `intent` and the scorecard will say whether it helped.
+function reversalUnconfirmed(input: DecisionInput, dir: "up" | "down"): string | null {
+  const prior = input.priorDirection;
+  if (!prior || prior.direction === dir) return null;
+  const age = daysBetween(prior.asOf, input.today);
+  if (!Number.isFinite(age) || age < 1 || age > REVERSAL_LOOKBACK_DAYS) return null;
+  if (confirmationCount(input, dir) > 0) return null;
+  return prior.asOf;
+}
+
 function macroVetoOf(input: DecisionInput): string | null {
   const v = input.macroVeto;
   if (!v) return null;
@@ -1398,6 +1429,19 @@ export function decide(input: DecisionInput): Decision {
         ...wait(input, "macro-veto", "evidence", [
           `The trend reads ${dir}, but recent news describes ${veto}.`,
           "This is a refusal and not a forecast: the rule table's own reading is unchanged beneath it.",
+        ], []),
+        intent: dir,
+      };
+    }
+    // A flip against a recent call must be confirmed. Placed after the two refusals that are about the
+    // world (a crossed stop, a macro veto) and before the short gate, because it is about this name's
+    // own history: the trend has turned, and nothing independent has yet said the turn is real.
+    const reversal = reversalUnconfirmed(input, dir);
+    if (reversal) {
+      return {
+        ...wait(input, "reversal-unconfirmed", "evidence", [
+          `The trend now reads ${dir}, against the ${dir === "up" ? "SHORT" : "LONG"} call of ${reversal}.`,
+          "A turn this recent prints only once something independent confirms it: volume, peers, the longer view, similar past days or an entry event.",
         ], []),
         intent: dir,
       };
