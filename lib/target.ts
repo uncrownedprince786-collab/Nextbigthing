@@ -196,7 +196,9 @@ export function targetForCall<T extends TargetLike>(
     gate: string;
   },
 ): T | null {
-  if (call.action !== "LONG" && call.action !== "SHORT") return target;
+  // A held-back name keeps its setup's measured exit beside its developing read (rule 40), except a call
+  // that ended at its stop (rule 92): it has nothing left to exit.
+  if (call.action !== "LONG" && call.action !== "SHORT") return call.gate === "stop-crossed" ? null : target;
   if (!call.entry || !target) return null;
   const long = call.action === "LONG";
   const from = long ? call.entry.high : call.entry.low;

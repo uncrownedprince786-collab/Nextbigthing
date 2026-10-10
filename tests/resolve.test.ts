@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { decide, type Decision, type DecisionInput } from "../lib/decision.ts";
 import { ATR_STOP_MULTIPLE, bufferStop, decideCall, momentumSide, NO_DIRECTION, resolveCall, STOP_BUFFER_ATR, whipsawHold, WHIPSAW_DAYS } from "../lib/resolve.ts";
+import { targetForCall } from "../lib/target.ts";
 
 function input(over: Partial<DecisionInput> = {}): DecisionInput {
   return {
@@ -43,12 +44,25 @@ function wait(gate: string, intent: "up" | "down" | null = null): Decision {
 test("a close through the stop ends the call: no opposite call, and not the old one either", () => {
   // Rule 92. A long's stop crossed downward stays WAIT under the table's own reason; before 2026-10-11 it
   // became a SHORT stopped 2 x ATR above the close, with no measured target on that side (0 of 223).
-  const ended = wait("stop-crossed", "up");
+  const ended = { ...wait("stop-crossed", "up"), entry: { low: 95, high: 98 }, invalidation: 94 };
   const d = resolveCall(ended, input({ lastClose: 90, invalidation: 94 }));
-  assert.equal(d, ended, "the table's WAIT, unchanged");
+  assert.equal(d.action, "WAIT");
+  assert.equal(d.gate, "stop-crossed");
+  assert.deepEqual(d.why, ended.why, "the table's own reason");
+  // It keeps the stop it ended at and loses the zone to enter and the plan: nothing is left to act on.
+  assert.equal(d.invalidation, 94);
+  assert.equal(d.entry, null);
+  assert.equal(d.plan, null);
   // The short mirror.
-  const up = wait("stop-crossed", "down");
-  assert.equal(resolveCall(up, input({ setup: { direction: "down", horizon: "swing" }, lastClose: 110, invalidation: 104 })), up);
+  const up = resolveCall(wait("stop-crossed", "down"), input({ setup: { direction: "down", horizon: "swing" }, lastClose: 110, invalidation: 104 }));
+  assert.equal(up.action, "WAIT");
+  // And no surface gives it an exit: rows, the asset panel and the coming-week block all go through targetForCall.
+  const stored = { method: "structure", low: 80, high: 82, distancePct: null, rewardRisk: 3.4 };
+  assert.equal(targetForCall(stored, d), null);
+  assert.equal(targetForCall(stored, { ...d, gate: "unconfirmed-long" }), stored, "a developing read keeps its exit (rule 40)");
+  const ui = readFileSync(new URL("../components/decision.tsx", import.meta.url), "utf8");
+  assert.match(ui, /r\.ended \? "none: the call ended" : "no entry band measured"/);
+  assert.match(ui, /const ended = decision\.action === "WAIT" && decision\.gate === "stop-crossed";/);
   // Through the whole path: a long setup whose stop is above the close is WAIT, gate stop-crossed.
   const whole = decideCall(input({ invalidation: 104 }));
   assert.equal(whole.action, "WAIT");

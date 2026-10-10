@@ -2536,7 +2536,10 @@ reads rows that already exist:
       `getLastRuns` (and the same SQL in tools/decide.mjs) reads a `stop-crossed` WAIT as `ENDED`: the
       reversal hold has no open call to keep and stays WAIT (its fallback to the table's last call is
       gone), the whipsaw guard has no run to hold, and `openSince` cannot call a later direction the same
-      open position. The opposite side is called only when the evidence table produces it.
+      open position. The opposite side is called only when the evidence table produces it. On the page
+      the stopped call keeps its stop -- the level it ended at, which its reason quotes -- and prints no
+      entry zone, measured exit or reward:risk ("none: the call ended"): a finished plan shown with a
+      zone to enter and a 3.4:1 reward reads as a live trade.
     - **Nothing from an assumption.** With no measured vote at all, the momentum read returned LONG, "the
       long-run drift of most markets", logged as `forced-nosignal`. It now returns nothing and the name
       stays WAIT, saying "Nothing measured leans either way, so no direction is given."

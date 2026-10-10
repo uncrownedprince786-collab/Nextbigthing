@@ -146,11 +146,14 @@ export function resolveCall(d: Decision, input: DecisionInput): Decision {
   if (d.action !== "WAIT") return d;
   const r = resolvedSide(d, input);
   if (r) return forcedCall(d, input, r);
-  // Still WAIT. A stopped call, a held turn with nothing open to hold, and a name with no close keep the
-  // table's own words; a name with nothing measured says so, second, where the held-back row shows it.
+  // A stopped call keeps its stop -- the level it ended at, which its reason quotes -- and loses its entry
+  // band and plan: an ended call printing a zone to enter and a reward to weigh reads as a live trade.
+  if (d.gate === "stop-crossed") return { ...d, entry: null, plan: null };
+  // Still WAIT. A held turn with nothing open to hold and a name with no close keep the table's own words;
+  // a name with nothing measured says so, second, where the held-back row shows it.
   const close = input.lastClose;
   const priced = close !== null && Number.isFinite(close);
-  const unmeasured = priced && d.gate !== "stop-crossed" && d.gate !== "reversal-unconfirmed" && !d.intent;
+  const unmeasured = priced && d.gate !== "reversal-unconfirmed" && !d.intent;
   return unmeasured ? { ...d, why: [d.why[0], NO_DIRECTION, ...d.why.slice(1)] } : d;
 }
 

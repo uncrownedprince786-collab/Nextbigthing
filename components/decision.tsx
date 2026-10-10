@@ -439,6 +439,8 @@ export function DecisionPanel({
   withheld = null,
   held = null,
 }: DecisionPanelProps) {
+  // A call that ended at its stop (brain.md rule 92): its entry, exit and reward fields say so.
+  const ended = decision.action === "WAIT" && decision.gate === "stop-crossed";
   const grade = decision.confidence.toLowerCase();
   const gap = gapLine(decision);
 
@@ -533,7 +535,7 @@ export function DecisionPanel({
             </span>
           ) : (
             <span className="text-muted-foreground">
-              No measured zone is stored, so no entry is named.
+              {ended ? "None: the call ended at its stop." : "No measured zone is stored, so no entry is named."}
             </span>
           )}
         </Field>
@@ -545,7 +547,9 @@ export function DecisionPanel({
           label="Stop loss"
           hint={
             decision.invalidation !== null
-              ? "Past this level the reason above no longer holds."
+              ? ended
+                ? "The close went through this level, so the call ended here."
+                : "Past this level the reason above no longer holds."
               : undefined
           }
         >
@@ -578,7 +582,7 @@ export function DecisionPanel({
                 : `${price(target.low, currency, market)} to ${price(target.high, currency, market)}`}
             </span>
           ) : (
-            <span className="text-muted-foreground">No measured exit stored.</span>
+            <span className="text-muted-foreground">{ended ? "None: the call ended at its stop." : "No measured exit stored."}</span>
           )}
         </Field>
 
@@ -588,7 +592,7 @@ export function DecisionPanel({
           {target?.rewardRisk != null ? (
             <span className="num">{target.rewardRisk.toFixed(1)}:1</span>
           ) : (
-            <span className="text-muted-foreground">No measured exit to weigh.</span>
+            <span className="text-muted-foreground">{ended ? "None: the call ended." : "No measured exit to weigh."}</span>
           )}
         </Field>
 
@@ -834,6 +838,8 @@ export interface DecisionRow {
   sectorSort?: number | null;
   entry: { low: number; high: number } | null;
   invalidation: number | null;
+  /// A call that ended at its stop: no entry, exit or reward is printed for it (brain.md rule 92).
+  ended?: boolean;
   /// The measured exit if the setup works, chosen by `pickTarget` and never averaged. Null when
   /// `jobs/horizons.py` stored no target row, which it does not when there is no stop to measure
   /// reward against. Optional so a caller that has not fetched targets renders exactly as before.
@@ -1270,7 +1276,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
               <span className="min-w-0">
                 <span className={ROW_LABEL}>Entry zone</span>
                 <span className="num block text-sm">
-                  {r.entry ? <PxRange low={r.entry.low} high={r.entry.high} currency={currency} market={r.market} /> : "no entry band measured"}
+                  {r.entry ? <PxRange low={r.entry.low} high={r.entry.high} currency={currency} market={r.market} /> : r.ended ? "none: the call ended" : "no entry band measured"}
                 </span>
               </span>
 
@@ -1295,7 +1301,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                       : undefined
                   }
                 >
-                  {r.target ? <PxRange low={r.target.low} high={r.target.high} currency={currency} market={r.market} /> : "no exit measured"}
+                  {r.target ? <PxRange low={r.target.low} high={r.target.high} currency={currency} market={r.market} /> : r.ended ? "none: the call ended" : "no exit measured"}
                 </span>
               </span>
 
@@ -1312,7 +1318,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                   }
                   title="Measured from the entry level. From today's price it is at least this."
                 >
-                  {r.target?.rewardRisk != null && Number.isFinite(r.target.rewardRisk) ? `${r.target.rewardRisk.toFixed(1)}:1` : "no exit to weigh"}
+                  {r.target?.rewardRisk != null && Number.isFinite(r.target.rewardRisk) ? `${r.target.rewardRisk.toFixed(1)}:1` : r.ended ? "none: the call ended" : "no exit to weigh"}
                 </span>
               </span>
 

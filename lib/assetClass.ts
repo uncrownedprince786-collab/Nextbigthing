@@ -187,6 +187,8 @@ export function toListRow(s: Scored): DecisionRow {
     sectorSort: s.row.sectorSort,
     entry: s.decision.entry,
     invalidation: s.decision.invalidation,
+    // A call that ended at its stop (rule 92): its cells say so rather than "not measured".
+    ended: s.decision.action === "WAIT" && s.decision.gate === "stop-crossed",
     // The measured exit if it works, from the one rule every surface shares. A row that names
     // only the level it is wrong at answers half the question a reader has.
     target: s.target !== undefined ? s.target : rowTarget(s.row, s.decision),
