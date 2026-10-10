@@ -17,6 +17,7 @@ Where a case is here because it was a real bug, the test says so.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import unittest
@@ -7699,6 +7700,48 @@ class EveryImportIsDeclared(unittest.TestCase):
                     if dist not in declared:
                         missing.append(f"{f.relative_to(ROOT).as_posix()}: {top}")
         self.assertEqual(sorted(set(missing)), [], "imported but not in requirements.txt")
+
+
+class TheLanesWriteToThePrimary(unittest.TestCase):
+    """On 2026-10-10 the GitHub `DATABASE_URL` secret held the Supabase string. Every lane went green
+    while writing to the standby the website does not read, and nothing in a log said which database it
+    was. `jobs/schemacheck.py` runs before every data lane; it now names the provider and refuses the
+    standby, before it ever connects."""
+
+    @staticmethod
+    def sc():
+        import schemacheck
+
+        return schemacheck
+
+    def test_the_provider_is_named_and_nothing_more(self):
+        sc = self.sc()
+        self.assertEqual(sc.provider_of("postgresql://u:p@ep-x-pooler.c-7.us-east-2.aws.neon.tech/neondb"), "Neon")
+        self.assertEqual(sc.provider_of("postgresql://postgres.abc:p@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres"), "Supabase")
+        self.assertEqual(sc.provider_of("postgresql://u:p@db.abc.supabase.co:5432/postgres"), "Supabase")
+        self.assertEqual(sc.provider_of("postgresql://u:p@localhost/x"), "another host")
+        self.assertEqual(sc.provider_of(""), "another host")
+        # A lookalike is not Neon.
+        self.assertEqual(sc.provider_of("postgresql://u:p@neon.tech.evil.example/x"), "another host")
+
+    def test_the_standby_is_refused_before_any_connection_is_attempted(self):
+        import contextlib
+        import io as _io
+        from unittest import mock
+
+        sc = self.sc()
+        url = "postgresql://postgres.abc:secretpw@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres"
+        out = _io.StringIO()
+        with mock.patch.dict(os.environ, {"DATABASE_URL": url}), mock.patch.object(sc, "db") as connect, \
+                contextlib.redirect_stdout(out):
+            with self.assertRaises(SystemExit) as stop:
+                sc.main()
+        self.assertEqual(stop.exception.code, 2)
+        connect.assert_not_called()
+        printed = out.getvalue()
+        self.assertIn("points at: Supabase", printed)
+        self.assertNotIn("secretpw", printed)
+        self.assertNotIn("pooler.supabase.com", printed)
 
 
 class ShortLevelsAreMirrored(unittest.TestCase):

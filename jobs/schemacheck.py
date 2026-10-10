@@ -40,6 +40,8 @@ Writes: nothing
 
 from __future__ import annotations
 
+import os
+
 import sys
 from pathlib import Path
 
@@ -79,6 +81,22 @@ def extra(have: list[str], applied: set[str]) -> list[str]:
     return sorted(applied - set(have))
 
 
+def provider_of(url: str) -> str:
+    """Which provider a connection string names: "Neon", "Supabase" or "another host".
+
+    Only the provider is ever printed. The host would identify the project, and the log of a public
+    repository is public, so a name is as far as this goes.
+    """
+    import urllib.parse
+
+    host = (urllib.parse.urlsplit(url or "").hostname or "").lower()
+    if host.endswith(".neon.tech"):
+        return "Neon"
+    if host.endswith(".supabase.com") or host.endswith(".supabase.co"):
+        return "Supabase"
+    return "another host"
+
+
 def main() -> None:
     have = on_disk(MIGRATIONS)
     if not have:
@@ -87,6 +105,19 @@ def main() -> None:
         raise SystemExit(2)
 
     step(f"check the database has all {len(have)} migrations this checkout knows about")
+
+    # The data lanes write to the primary, and the primary is Neon. Supabase is the standby that
+    # `jobs/mirror.py` fills from it. On 2026-10-10 the GitHub secret was set to the Supabase string by
+    # mistake (both lines of .env contain "DATABASE_URL="): every lane went green while writing to a
+    # copy the website does not read, the news lane timed out against a database with no news in it,
+    # and nothing said which database it was. Now it is said, and the standby is refused.
+    provider = provider_of(os.environ.get("DATABASE_URL", ""))
+    print(f"  DATABASE_URL points at: {provider}")
+    if provider == "Supabase":
+        print("  refusing: that is the standby, which the website does not read. The data lanes must")
+        print("  write to the primary (Neon). Set the DATABASE_URL secret to the line in .env that")
+        print("  starts with DATABASE_URL=, not the one that starts with SUPABASE_DATABASE_URL=.")
+        raise SystemExit(2)
 
     try:
         conn = db()
