@@ -18,8 +18,9 @@ const TONE = { LONG: "up", SHORT: "down", WAIT: "default" } as const;
 /// strongest evidence, then alphabetical -- see `byOpportunity`. Nothing is weighted and no score
 /// is computed, because a score would be a new number the site would then have to source.
 function ClassCard({ cls, rows }: { cls: AssetClass; rows: Scored[] }) {
-  const top = [...rows].sort(byOpportunity).slice(0, TOP_PER_CLASS);
-  const directional = rows.filter((s) => s.decision.action !== "WAIT").length;
+  // Published calls only (lib/quality.ts): a withheld call is not a signal on any list.
+  const top = rows.filter((s) => s.decision.action !== "WAIT" && (s.gate ? s.gate.published : true)).sort(byOpportunity).slice(0, TOP_PER_CLASS);
+  const directional = rows.filter((s) => s.decision.action !== "WAIT" && (s.gate ? s.gate.published : true)).length;
 
   return (
     // `min-w-0` is load-bearing on a phone and does nothing anywhere else. A grid item defaults

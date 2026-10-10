@@ -124,32 +124,36 @@ test("the guard lets a confirmed return through, and any return once the window 
   assert.equal(whipsawHold(call("SHORT"), input({ setup: down })).action, "SHORT");
 });
 
-test("the stop sits 1.5 ATR beyond the entry zone, never on its edge: the Askari Bank case", () => {
-  // Band Rs.102.50 to Rs.106.19 with the stop at Rs.102.50, ATR Rs.2: the stop moves to 102.50 - 3.00.
+test("the stop sits 1 ATR beyond the entry zone, never on its edge: the Askari Bank case", () => {
+  // Band Rs.102.50 to Rs.106.19 with the stop at Rs.102.50, ATR Rs.2: the stop moves to 102.50 - 2.00.
   const long = call("LONG", { entry: { low: 102.5, high: 106.19 }, invalidation: 102.5 });
   const d = bufferStop(long, input({ atr: 2 }));
-  assert.equal(STOP_BUFFER_ATR, 1.5);
-  assert.equal(d.invalidation, 99.5);
+  assert.equal(STOP_BUFFER_ATR, 1);
+  assert.equal(d.invalidation, 100.5);
   assert.ok(d.invalidation! < d.entry!.low, "strictly below the band");
   assert.deepEqual(d.why, long.why, "a table call keeps its reasons");
-  assert.match(d.notes.at(-1)!, /1\.5 x the 14-session average true range beyond the entry zone/);
-  // A structural stop already further away is kept: min(zone low - 1.5 ATR, the structural stop).
-  assert.equal(bufferStop(call("LONG", { entry: { low: 102.5, high: 106.19 }, invalidation: 95 }), input({ atr: 2 })).invalidation, 95);
-  // The short mirror: max(zone high + 1.5 ATR, the structural stop).
+  assert.match(d.notes.at(-1)!, /1 x the 14-session average true range beyond the entry zone/);
+  // A structural stop already further away is kept exactly, with no rounding and no sentence: NKE's
+  // setup stop 36.66999816894531 was being rounded to 36.669998 and labelled as a buffer it was not.
+  const far = call("LONG", { entry: { low: 102.5, high: 106.19 }, invalidation: 95.12345678912 });
+  assert.equal(bufferStop(far, input({ atr: 2 })), far);
+  const nke = call("SHORT", { entry: { low: 34.709999084472656, high: 34.709999084472656 }, invalidation: 36.66999816894531 });
+  assert.equal(bufferStop(nke, input({ atr: 1.1607144219534737 })).invalidation, 36.66999816894531);
+  // The short mirror: max(zone high + 1 ATR, the structural stop).
   const short = call("SHORT", { entry: { low: 50, high: 52 }, invalidation: 52 });
-  assert.equal(bufferStop(short, input({ atr: 1 })).invalidation, 53.5);
+  assert.equal(bufferStop(short, input({ atr: 1 })).invalidation, 53);
 });
 
 test("the buffer leaves a 2 x ATR resolved stop alone, moves a nearer one, and invents no volatility", () => {
   // A resolved call's zone is its close; a 2 x ATR stop is already past 1.5 ATR, so nothing changes.
   const forced = resolveCall(wait("stop-crossed", "up"), input({ lastClose: 90, invalidation: 94 }));
   assert.equal(bufferStop(forced, input({ lastClose: 90, atr: 2.5 })).invalidation, forced.invalidation);
-  // The setup's own stop 1 below a close of 100 is nearer than 1.5 x 2.5: it moves to 96.25, and the
+  // The setup's own stop 1 below a close of 100 is nearer than 1 x 2.5: it moves to 97.5, and the
   // stop sentence says so.
   const own = resolveCall(wait("incomplete", "up"), input({ invalidation: 99 }));
   assert.equal(own.invalidation, 99);
   const moved = bufferStop(own, input({ invalidation: 99 }));
-  assert.equal(moved.invalidation, 96.25);
+  assert.equal(moved.invalidation, 97.5);
   assert.match(moved.why[1], /beyond the entry zone/);
   // No stored ATR: the stop is left as it was rather than buffered by a made-up range.
   const bare = call("LONG", { entry: { low: 102.5, high: 106.19 }, invalidation: 102.5 });
@@ -161,11 +165,11 @@ test("the buffer leaves a 2 x ATR resolved stop alone, moves a nearer one, and i
 test("the plan's reward:risk is re-measured against the moved stop, from the entry level", () => {
   const plan = { entry: { low: 100, high: 104 }, invalidation: 100, target: { low: 112, high: 115, method: "structure" }, rewardRisk: 2, baseRate: { share: 0.6, count: 30 }, expectancyR: 0.8 };
   const d = bufferStop(call("LONG", { entry: { low: 100, high: 104 }, invalidation: 100, plan }), input({ atr: 2 }));
-  // Stop 100 - 3 = 97; reward 112 - 104 = 8; risk 104 - 97 = 7.
-  assert.equal(d.invalidation, 97);
-  assert.equal(d.plan?.invalidation, 97);
-  assert.ok(Math.abs((d.plan?.rewardRisk ?? 0) - 8 / 7) < 1e-12);
-  assert.ok(Math.abs((d.plan?.expectancyR ?? 0) - (0.6 * (8 / 7) - 0.4)) < 1e-12);
+  // Stop 100 - 2 = 98; reward 112 - 104 = 8; risk 104 - 98 = 6.
+  assert.equal(d.invalidation, 98);
+  assert.equal(d.plan?.invalidation, 98);
+  assert.ok(Math.abs((d.plan?.rewardRisk ?? 0) - 8 / 6) < 1e-12);
+  assert.ok(Math.abs((d.plan?.expectancyR ?? 0) - (0.6 * (8 / 6) - 0.4)) < 1e-12);
 });
 
 test("a macro veto on one side gives the other side", () => {
@@ -212,7 +216,7 @@ test("decideCall never returns WAIT for a priced name", () => {
 
 test("every caller goes through decideCall, and the reversal gate reads only calls the table made", () => {
   const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
-  assert.match(read("lib/assetClass.ts"), /decision: decideCall\(input\)/);
+  assert.match(read("lib/assetClass.ts"), /const decision = decideCall\(input\);/);
   assert.match(read("app/asset/[symbol]/page.tsx"), /const decision = decideCall\(decisionInput\)/);
   const job = read("tools/decide.mjs");
   assert.match(job, /const decision = decideCall\(decisionInput\)/);

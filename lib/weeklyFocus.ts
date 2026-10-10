@@ -143,7 +143,8 @@ function spreadAcrossMarkets(sorted: Scored[], cap: number): Scored[] {
 /// in words rather than disappearing, because an empty answer and a missing section look identical
 /// otherwise.
 export function weeklyFocus(rows: Scored[], cap = WEEKLY_MAX_PER_SIDE): WeeklyFocus {
-  const eligible = rows.filter(qualifiesForWeek);
+  // Published calls only (lib/quality.ts): the block is a signal list like the others.
+  const eligible = rows.filter((s) => (s.gate ? s.gate.published : true) && qualifiesForWeek(s));
   const long = eligible.filter((s) => s.decision.action === "LONG").sort(byWeeklyFocus);
   const short = eligible.filter((s) => s.decision.action === "SHORT").sort(byWeeklyFocus);
   return {

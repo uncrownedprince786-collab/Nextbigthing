@@ -113,7 +113,7 @@ def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
         page_text = text_of(html)
         for hit in sorted(set(BANNED.findall(page_text))):
             failures.append(f"{page}: placeholder text '{hit}'")
-        for summary in ("Held back:", "No direction:"):
+        for summary in ("Held back:", "No direction:", "Not published:"):
             state = folded(html, summary)
             if state is False:
                 failures.append(f"{page}: the '{summary}' list is open on load")

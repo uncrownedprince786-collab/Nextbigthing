@@ -1,5 +1,6 @@
 import type { DecisionQueryRow } from "@/lib/queries";
-import { pickTarget, targetForCall } from "@/lib/target";
+import { pickTarget, targetForCall, type TargetLike } from "@/lib/target";
+import { qualityGate, type GateResult } from "@/lib/quality";
 import { bundleFromRow, toDecisionInput, todayISO } from "@/lib/decisionInput";
 import { decideCall } from "@/lib/resolve";
 import { quoteBesideClose } from "@/lib/liveQuote";
@@ -36,6 +37,25 @@ export interface Scored {
   setupHorizon?: string | null;
   /// The `today` the row was decided against, so the validity window is measured on the same day.
   today?: string;
+  /// The take profit the row shows and the quality gate's verdict on it (lib/quality.ts). Optional so a
+  /// hand-built Scored keeps compiling; `scoreRows` always sets both.
+  target?: TargetLike | null;
+  gate?: GateResult;
+}
+
+export { isPublished } from "@/lib/quality";
+
+/// The measured exit for a row, from the one rule every surface shares.
+export function rowTarget(row: DecisionQueryRow, decision: Decision): TargetLike | null {
+  return targetForCall(
+    pickTarget(
+      [
+        row.swing ? { ...row.swing, horizon: "swing" } : null,
+        row.longer ? { ...row.longer, horizon: "longer" } : null,
+      ].filter((x): x is NonNullable<typeof x> => x !== null),
+    ),
+    decision,
+  );
 }
 
 /// Every row scored against one `today` and one source-health reading.
@@ -51,7 +71,17 @@ export function scoreRows(
 ): Scored[] {
   return rows.map((row) => {
     const input = toDecisionInput(bundleFromRow(row, health), today);
-    return { row, market: input.market, decision: decideCall(input), setupHorizon: input.setup?.horizon ?? null, today };
+    const decision = decideCall(input);
+    const target = rowTarget(row, decision);
+    return {
+      row,
+      market: input.market,
+      decision,
+      setupHorizon: input.setup?.horizon ?? null,
+      today,
+      target,
+      gate: qualityGate(decision, target, input.atr ?? null),
+    };
   });
 }
 
@@ -137,15 +167,7 @@ export function toListRow(s: Scored): DecisionRow {
     invalidation: s.decision.invalidation,
     // The measured exit if it works, from the one rule every surface shares. A row that names
     // only the level it is wrong at answers half the question a reader has.
-    target: targetForCall(
-      pickTarget(
-        [
-          s.row.swing ? { ...s.row.swing, horizon: "swing" } : null,
-          s.row.longer ? { ...s.row.longer, horizon: "longer" } : null,
-        ].filter((x): x is NonNullable<typeof x> => x !== null),
-      ),
-      s.decision,
-    ),
+    target: s.target !== undefined ? s.target : rowTarget(s.row, s.decision),
     confidence: s.decision.confidence,
     // Which confirmations backed it. The table prints how many and which, because a grade of
     // "Medium" says one thing was behind a call and not what it was.

@@ -191,15 +191,12 @@ test("the preference order is volatility, then structure, then analog", () => {
   assert.equal(weeklyTarget(all("analog"))?.method, "analog");
 });
 
-test("no stored target: a projection at twice the risk, named as one, never a measured method", () => {
-  // Since 2026-10-11 every active call shows an exit (the owner's rule). Where the job measured none on
-  // the call's side, the exit is projected at 2 x the risk from the entry level and printed as a
-  // projection; it never borrows a measured method's name.
-  for (const s of [scored({}, { swing: { targets: [] } }), scored({}, { swing: null, longer: null })]) {
-    const t = weeklyTarget(s);
-    assert.equal(t?.method, "projection");
-    assert.equal(t?.rewardRisk, 2);
-  }
+test("no stored target is null, never a projection", () => {
+  // A 2 x risk projection was tried on 2026-10-11 and withdrawn the same day: the quality gate publishes
+  // only measured exits (lib/quality.ts), and a projection's reward:risk is the multiple it was
+  // projected at, so it could never fail the gate's test.
+  assert.equal(weeklyTarget(scored({}, { swing: { targets: [] } })), null);
+  assert.equal(weeklyTarget(scored({}, { swing: null, longer: null })), null);
 });
 
 test("a target is read off the longer setup when there is no swing one", () => {
@@ -278,12 +275,11 @@ test("a target on the wrong side of the call is never shown, and a resolved call
   const long = { action: "LONG", entry: { low: 100, high: 100 }, invalidation: 90, gate: "long" };
   // Kept, with its reward:risk measured against the stop the call carries: (120 - 100) / (100 - 90).
   assert.deepEqual(targetForCall(t, long), { ...t, rewardRisk: 2 }, "a long's target above the entry is kept, re-measured");
-  // A close through a long's stop resolved to SHORT: the long's target sits above the price, so it is
-  // not shown -- the exit is a projection at 2 x the risk below the entry instead.
+  // A close through a long's stop resolved to SHORT: the long's target sits above the price, so the
+  // short has no measured exit and none is shown.
   const short = { action: "SHORT", entry: { low: 100, high: 100 }, invalidation: 105, gate: "forced-stop-crossed" };
-  assert.deepEqual(targetForCall(t, short), { method: "projection", low: 90, high: 90, distancePct: null, rewardRisk: 2 });
-  // A short whose projection would reach zero or below has none.
-  assert.equal(targetForCall(null, { ...short, invalidation: 160 }), null);
+  assert.equal(targetForCall(t, short), null);
+  assert.equal(targetForCall(null, short), null);
   // A resolved short with a target below: reward:risk against its own stop, 10 / 5.
   const below = { ...t, low: 88, high: 90, rewardRisk: 9 };
   assert.equal(targetForCall(below, short)?.rewardRisk, 2);

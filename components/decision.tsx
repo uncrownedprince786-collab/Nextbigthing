@@ -12,6 +12,7 @@ import {
   AsOf, Card, ConfidenceBadge, Empty, Note, Pill, Section, WaitBasisChip,
 } from "@/components/ui";
 import { gapLine } from "@/lib/reconcile";
+import { MIN_CONFIRMATIONS, MIN_REWARD_RISK, MIN_STOP_ATR } from "@/lib/quality";
 import { headlineOf } from "@/lib/newsRank";
 
 // The decision panel, and nothing else.
@@ -201,6 +202,8 @@ export interface DecisionPanelProps {
   changes?: Transition[];
   /// The stored last trade, when it says something the close does not. Shown as the price.
   quote?: { price: number; quotedAt: string } | null;
+  /// The quality gate's reasons when the lists withhold this call (lib/quality.ts); null when published.
+  withheld?: string[] | null;
 }
 
 /// One labelled figure or sentence. Used for every field in the panel so that the label and the
@@ -318,7 +321,7 @@ function Sizing({ plan }: { plan: NonNullable<Decision["plan"]> }) {
           </span>
         ) : (
           <span className="text-muted-foreground">
-            No measured target is stored, so the reward cannot be sized here; a take profit shown above is a projection.
+            No measured target is stored, so the reward cannot be sized.
           </span>
         )}
       </Field>
@@ -431,6 +434,7 @@ export function DecisionPanel({
   change = null,
   changes = [],
   quote = null,
+  withheld = null,
 }: DecisionPanelProps) {
   const grade = decision.confidence.toLowerCase();
   const gap = gapLine(decision);
@@ -440,6 +444,12 @@ export function DecisionPanel({
       {/* The verdict's history first: a reader holding yesterday's call needs to know it changed
           before reading today's. Nothing renders when the log holds no change for this name. */}
       <ChangeBanner changes={changes} latest={change} market={market} />
+      {withheld && withheld.length ? (
+        <div role="note" className="border-warn bg-warn-bg text-warn mb-3 rounded-lg border px-3 py-2 text-sm">
+          <p className="font-semibold">Not on the signal lists today: this call did not pass the quality gate.</p>
+          <p className="mt-0.5 text-xs">{withheld.join("; ")}. What follows is the analysis, not a published call.</p>
+        </div>
+      ) : null}
       {/* The word, and then everything that qualifies it. `wrap-hard` is not needed — the three
           words are short — but the row wraps because the pills beside it will not fit at 375px. */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -881,7 +891,7 @@ export interface DecisionListProps {
 // 640px each price track is about 70px, which "Rs.1,201.22" does not fit in, and the row either
 // wraps into an unreadable stack or clips. A phone and a tablet both get the labelled card, and
 // only a screen with the width for eight columns gets the eight columns.
-const ROW_LABEL = "text-muted-foreground text-micro font-medium lg:sr-only";
+const ROW_LABEL = "text-muted-foreground text-micro font-medium xl:sr-only";
 
 /// How many confirmations exist, for the "n of 5" a row prints. Kept beside the labels so the two
 /// numbers a reader compares -- how many backed it and how many could have -- are written together.
@@ -1057,7 +1067,7 @@ export function SectorBoard({
 /// at 1024 and 1280 with these tracks and a 10px gap: no cell overflows and no star wraps. Below lg the
 /// Action cell spans two tracks and the grid packs densely, so the one-line cell fits a phone too.
 const DECISION_COLS =
-  "grid grid-flow-row-dense grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.5fr)_minmax(176px,0.95fr)_minmax(76px,0.85fr)_minmax(0,1.15fr)_minmax(76px,0.9fr)_minmax(76px,0.95fr)_minmax(0,0.7fr)_minmax(0,1.05fr)_minmax(0,1.2fr)] lg:items-baseline lg:gap-x-2.5 lg:gap-y-0";
+  "grid grid-flow-row-dense grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.5fr)_minmax(176px,0.95fr)_minmax(92px,0.85fr)_minmax(112px,1.15fr)_minmax(92px,0.9fr)_minmax(112px,0.95fr)_minmax(0,0.7fr)_minmax(0,1.05fr)_minmax(0,1.2fr)] xl:items-baseline xl:gap-x-2.5 xl:gap-y-0";
 
 /// One price in a list cell: never broken across lines, and compact under 0.0001 (the subscript-zero
 /// form, `compactPrice`) so a sub-cent coin fits the column instead of wrapping mid-number or spilling
@@ -1076,8 +1086,43 @@ function PxRange({ low, high, currency, market = null }: { low: number; high: nu
     <Px v={low} currency={currency} market={market} />
   ) : (
     <>
-      <Px v={low} currency={currency} market={market} /> to <Px v={high} currency={currency} market={market} />
+      {/* "to" travels with the second price, so a range is at most two lines: "Rs.1,165.00" over
+          "to Rs.1,210.00", never the word alone on a line between them (ATRL, 2026-10-11). */}
+      <Px v={low} currency={currency} market={market} />{" "}
+      <span className="whitespace-nowrap">
+        to <Px v={high} currency={currency} market={market} />
+      </span>
     </>
+  );
+}
+
+/// The calls the quality gate kept off the lists (lib/quality.ts): named, linked, each with the rule it
+/// failed, and with no direction or levels, because they are not signals. Folded, so it is found on
+/// purpose; complete inside, so a reader looking a name up can see why it is not on the board.
+export function WithheldList({ rows }: { rows: { symbol: string; name: string; reasons: string[] }[] }) {
+  if (!rows.length) return null;
+  return (
+    <details className="border-border bg-muted/30 mt-6 rounded-lg border px-4 py-1 text-sm sm:py-3">
+      <summary className="-my-1 cursor-pointer py-3 font-medium select-none sm:my-0 sm:py-0">
+        Not published: {rows.length} {rows.length === 1 ? "call" : "calls"} did not pass the quality gate
+      </summary>
+      <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+        A call is published only with an entry range, a stop at least {MIN_STOP_ATR} x ATR beyond it, a measured
+        target, reward:risk of at least {MIN_REWARD_RISK}:1 and at least {MIN_CONFIRMATIONS} independent
+        confirmation. These were computed, and are logged and graded; they are not shown as signals.
+      </p>
+      <ul className="mt-2 space-y-1 pb-2">
+        {rows.map((r) => (
+          <li key={r.symbol} className="flex flex-wrap items-baseline gap-x-2">
+            <a href={`/asset/${encodeURIComponent(r.symbol)}`} className="font-medium underline-offset-2 hover:underline">
+              {r.name}
+            </a>
+            <span className="text-muted-foreground num text-micro">{r.symbol}</span>
+            <span className="text-muted-foreground text-xs">{r.reasons.join("; ")}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -1098,7 +1143,7 @@ function DecisionHeader({
   return (
     <div
       aria-hidden="true"
-      className={`text-muted-foreground border-border hidden border px-3 py-2 text-xs lg:grid ${
+      className={`text-muted-foreground border-border hidden border px-3 py-2 text-xs xl:grid ${
         sticky ? "bg-muted sticky top-0 z-10" : "bg-muted/60"
       } ${rounded ? "rounded-t-lg" : "border-x-0 border-t-0"} ${DECISION_COLS}`}
     >
@@ -1128,19 +1173,19 @@ function DecisionHeader({
 /// commit it.
 function DecisionRows({ rows }: { rows: DecisionRow[] }) {
   return (
-    <ul className="space-y-2 lg:space-y-0">
+    <ul className="space-y-2 xl:space-y-0">
 {rows.map((r) => {
         const currency = r.currency ?? "USD";
         return (
           <li
             key={r.symbol}
-            className="lg:border-border lg:border-x lg:border-b lg:last:rounded-b-lg"
+            className="xl:border-border xl:border-x xl:border-b xl:last:rounded-b-lg"
           >
             <Card
               href={`/asset/${encodeURIComponent(r.symbol)}`}
-              className={`${DECISION_COLS} lg:rounded-none lg:border-0 lg:px-3 lg:py-3`}
+              className={`${DECISION_COLS} xl:rounded-none xl:border-0 xl:px-3 xl:py-3`}
             >
-              <span className="col-span-2 min-w-0 lg:col-span-1">
+              <span className="col-span-2 min-w-0 xl:col-span-1">
                 <span className={ROW_LABEL}>Name</span>
                 <span className="block text-sm font-medium">{r.name}</span>
                 <span className="text-muted-foreground num block text-micro">{r.symbol}</span>
@@ -1151,11 +1196,11 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                 <span className="block text-sm">{r.market}</span>
               </span>
 
-              <span className="col-span-2 min-w-0 lg:col-span-1">
+              <span className="col-span-2 min-w-0 xl:col-span-1">
                 <span className={ROW_LABEL}>Action</span>
                 {/* One line, always: the verdict and the star side by side, never stacked, so a star
                     does not make its row taller than its neighbours. The track is sized for it. */}
-                <span className="mt-0.5 flex flex-row flex-nowrap items-center gap-1.5 whitespace-nowrap lg:mt-0">
+                <span className="mt-0.5 flex flex-row flex-nowrap items-center gap-1.5 whitespace-nowrap xl:mt-0">
                   {/* A held-back row prints no verdict pill: WAIT is the rule table's working state,
                       not a call, and the list it sits in already says the names in it are held back.
                       Its reason is in the row, under "Why no call". */}
@@ -1256,7 +1301,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                   a Low badge and a dash would be two placeholders standing where the one thing the
                   rule table did say belongs. This prints that instead, across the two columns. */}
               {r.action === "WAIT" ? (
-                <span className="col-span-2 min-w-0 sm:col-span-2 lg:col-span-2">
+                <span className="col-span-2 min-w-0 sm:col-span-2 xl:col-span-2">
                   <span className={ROW_LABEL}>Why no call</span>
                   {r.reason?.length ? (
                     r.reason.map((line, i) => (
@@ -1277,7 +1322,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                 <>
               <span className="min-w-0">
                 <span className={ROW_LABEL}>Horizon & validity</span>
-                <span className="mt-0.5 block lg:mt-0">
+                <span className="mt-0.5 block xl:mt-0">
                   <HorizonValidity v={r.validity} />
                 </span>
               </span>
@@ -1326,7 +1371,7 @@ export function DecisionList({ title, lead, rows, empty, cap, grouped = false }:
                   sector scrolls past its own title otherwise, and the title is the thing that
                   makes the rows mean something. */}
               {section.sector ? (
-                <h3 className="bg-background/95 text-muted-foreground supports-[position:sticky]:lg:sticky supports-[position:sticky]:lg:top-0 z-10 mt-4 border-b px-1 pt-2 pb-1 text-xs font-medium first:mt-0">
+                <h3 className="bg-background/95 text-muted-foreground supports-[position:sticky]:xl:sticky supports-[position:sticky]:xl:top-0 z-10 mt-4 border-b px-1 pt-2 pb-1 text-xs font-medium first:mt-0">
                   {section.sector} <span className="num">({section.rows.length})</span>
                 </h3>
               ) : null}

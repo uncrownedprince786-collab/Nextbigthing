@@ -30,6 +30,7 @@ import {
   byCloseness,
   byConfidence,
   scoreRows,
+  isPublished,
   toListRow,
   type Scored,
 } from "@/lib/assetClass";
@@ -38,7 +39,7 @@ import { TopByClass } from "@/components/topByClass";
 import { WeeklyFocusBlock } from "@/components/weeklyFocusBlock";
 import { ProductsCard } from "@/components/productsCard";
 import { EVENT_SOON_DAYS } from "@/lib/decision";
-import { DecisionList, SectorBoard } from "@/components/decision";
+import { DecisionList, SectorBoard, WithheldList } from "@/components/decision";
 import { FilterChips } from "@/components/filters";
 import { describeFilters, readFilters, type FilterGroup } from "@/lib/filters";
 import { isoDate, money, pct, sizeLabel, toneClass } from "@/lib/format";
@@ -309,8 +310,10 @@ export default async function Home({
       (current.confidence === undefined || s.decision.confidence === current.confidence),
   );
 
-  const longs = matching.filter((s) => s.decision.action === "LONG").sort(byConfidence);
-  const shorts = matching.filter((s) => s.decision.action === "SHORT").sort(byConfidence);
+  // Published calls only (lib/quality.ts); the rest are named, folded, below the board.
+  const longs = matching.filter((s) => s.decision.action === "LONG" && isPublished(s)).sort(byConfidence);
+  const shorts = matching.filter((s) => s.decision.action === "SHORT" && isPublished(s)).sort(byConfidence);
+  const withheld = matching.filter((s) => s.decision.action !== "WAIT" && !isPublished(s));
   // Both directions, in one list, for the sector block. Built from the same `matching` rows the
   // two lists above use, so a filter narrows all three together and the overview cannot show a
   // name in one block that it has filtered out of another.
@@ -529,6 +532,8 @@ export default async function Home({
           </Empty>
         )}
       </Section>
+
+      <WithheldList rows={withheld.map((s) => ({ symbol: s.row.symbol, name: s.row.name, reasons: s.gate?.reasons ?? [] }))} />
 
       {/* Held back, folded away. WAIT is the rule table's working state -- most names are in it on any
           day -- and twelve cards of it sat between the reader and the calls. It stays one click away,

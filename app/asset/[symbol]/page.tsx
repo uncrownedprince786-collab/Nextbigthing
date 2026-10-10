@@ -29,6 +29,7 @@ import {
 } from "@/components/ui";
 import { DecisionPanel } from "@/components/decision";
 import { pickTarget, targetForCall } from "@/lib/target";
+import { qualityGate } from "@/lib/quality";
 import { rankHeadlines } from "@/lib/newsRank";
 import {
   getAccuracy,
@@ -171,6 +172,10 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
   const today = todayISO();
   const decisionInput = toDecisionInput(bundleFromQuery(bundle, sourceHealth), today);
   const decision = decideCall(decisionInput);
+  // The take profit and the quality gate's verdict, by the same functions the lists use, so a name
+  // withheld from the lists says so here, and why.
+  const target = targetForCall(pickTarget(horizons), decision);
+  const gate = qualityGate(decision, target, decisionInput.atr ?? null);
   // The same function the list rows use, fed the same three facts, so this page and the market page
   // show one horizon and one window for this name.
   const validity = validityOf({
@@ -246,7 +251,8 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
           priceNow={bundle.newestClose ?? latestPrice?.close ?? null}
           /* The measured exit, from the same rule the overview and the coming-week block use, so
              one name cannot be quoted two different levels on two pages. */
-          target={targetForCall(pickTarget(horizons), decision)}
+          target={target}
+          withheld={gate.published ? null : gate.reasons}
           validity={validity}
           early={early}
           change={change}

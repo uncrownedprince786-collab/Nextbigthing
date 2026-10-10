@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Empty, Section } from "@/components/ui";
-import { DecisionList, SectorBoard } from "@/components/decision";
+import { WithheldList, DecisionList, SectorBoard } from "@/components/decision";
 import { cachedDecisionRows, cachedSourceHealth } from "@/lib/cached";
 import { loadOrDefer } from "@/lib/buildSafe";
 import { todayISO } from "@/lib/decisionInput";
@@ -9,6 +9,7 @@ import {
   byCloseness,
   byConfidence,
   scoreRows,
+  isPublished,
   toListRow,
   type AssetClass,
 } from "@/lib/assetClass";
@@ -32,8 +33,10 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
   const all = scoreRows(rows, health, today);
   const mine = all.filter(cls.holds);
 
-  const longs = mine.filter((s) => s.decision.action === "LONG").sort(byConfidence);
-  const shorts = mine.filter((s) => s.decision.action === "SHORT").sort(byConfidence);
+  // Published calls only (lib/quality.ts); the rest are named, folded, with the rule each failed.
+  const longs = mine.filter((s) => s.decision.action === "LONG" && isPublished(s)).sort(byConfidence);
+  const shorts = mine.filter((s) => s.decision.action === "SHORT" && isPublished(s)).sort(byConfidence);
+  const withheld = mine.filter((s) => s.decision.action !== "WAIT" && !isPublished(s));
 
   // The waiting list, split the way the overview has always split it and this page did not.
   //
@@ -67,7 +70,8 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
         <p className="mt-2 max-w-2xl text-sm">{cls.lead}</p>
         <p className="text-muted-foreground mt-2 text-sm">
           {mine.length} {mine.length === 1 ? "name" : "names"}, priced to{" "}
-          {asOf ?? "no stored close"}. {longs.length} long, {shorts.length} short
+          {asOf ?? "no stored close"}. {longs.length} long, {shorts.length} short published
+          {withheld.length ? `, ${withheld.length} withheld by the quality gate` : ""}
           {forming.length ? `, ${forming.length} forming` : ""}
           {waits.length ? `, ${waits.length} with no stored price` : ""}. Readings, not advice.
         </p>
@@ -107,6 +111,8 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
               }
             />
           </Section>
+
+          <WithheldList rows={withheld.map((s) => ({ symbol: s.row.symbol, name: s.row.name, reasons: s.gate?.reasons ?? [] }))} />
 
           {/* Rendered only when it has rows, which after 2026-10-09 is almost never: every
               measured direction now prints as an action, so `Decision.developing` is set at a

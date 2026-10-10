@@ -17,8 +17,10 @@ Read only. The session is opened read-only, so even a mistaken statement here co
 How the entry zone is built, because the stop checks depend on it: `AssetSetup` stores two levels,
 the entry level and the invalidation level, and the zone is the range they span (lib/decisionInput.ts).
 Until 2026-10-11 the stop sat on the zone's far edge; since then (brain.md rule 91, lib/resolve.ts
-`bufferStop`) it sits at least 1.5 x atr14 beyond the zone, so a stop on the edge is a fault, and so is
-an active call with no take profit (a measured target, or a 2 x risk projection, lib/target.ts).
+`bufferStop`) it sits at least 1.0 x atr14 beyond the zone, so a stop on the edge is a fault. The lists
+publish only calls that pass the quality gate (lib/quality.ts): a measured take profit, reward:risk of
+at least 1.5 and one confirmation, so a published row without them is a fault too. Withheld calls are
+named in a folded list on each page and counted here.
 Reward:risk is measured from the entry level the call trades from: the top of the zone for a LONG,
 the bottom for a SHORT.
 """
@@ -38,8 +40,9 @@ ROOT = Path(__file__).resolve().parent.parent
 SITE = (os.environ.get("SITE_URL") or "https://nextbigthing-nu.vercel.app").rstrip("/")
 PAGES = ("/", "/stocks", "/crypto", "/psx", "/forex", "/commodities")
 ATR_MULTIPLE = 2.0  # lib/resolve.ts: a resolved call's own stop is 2 x atr14 from the close
-BUFFER_ATR = 1.5  # lib/resolve.ts STOP_BUFFER_ATR: no stop nearer the zone than this many atr14
-PROJECTION_R = 2.0  # lib/target.ts PROJECTION_R
+BUFFER_ATR = 1.0  # lib/resolve.ts STOP_BUFFER_ATR: no stop nearer the zone than this many atr14
+MIN_REWARD_RISK = 1.5  # lib/quality.ts: the least reward:risk a published call carries
+MIN_CONFIRMATIONS = 1  # lib/quality.ts
 EXAMPLES = 8
 
 
@@ -80,14 +83,21 @@ def audit_database(url: str) -> dict:
         cur = conn.cursor()
         cur.execute('SELECT max("periodEnd") AS d FROM "DecisionLog"')
         day = cur.fetchone()["d"]
-        cur.execute(
-            """SELECT a.id AS "assetId", a.symbol, i.market, d.action, d.gate, d.confidence,
+        # The active pool only, as the pages and the nightly job are (jobs/pool.py): a name taken out of
+        # the pool keeps the rows it was logged with earlier in the day, which no page shows and no run
+        # rewrites, so they would be audited against rules they were never written under.
+        select = """SELECT a.id AS "assetId", a.symbol, i.market, d.action, d.gate, d.confidence,
                       d."entryLow", d."entryHigh", d.invalidation, d."rewardRisk", d."baseClose"
                  FROM "DecisionLog" d JOIN "Asset" a ON a.id = d."assetId"
                  JOIN "Industry" i ON i.id = a."industryId"
-                WHERE d."periodEnd" = %s""",
-            (day,),
-        )
+                WHERE d."periodEnd" = %s"""
+        try:
+            cur.execute(select + " AND a.active", (day,))
+        except Exception:  # noqa: BLE001 - no pool column: every name is in the pool
+            conn.rollback()
+            conn.read_only = True
+            cur = conn.cursor()
+            cur.execute(select, (day,))
         logged = cur.fetchall()
         try:
             cur.execute('SELECT count(*) AS n FROM "Asset" WHERE active')
@@ -168,7 +178,8 @@ def audit_database(url: str) -> dict:
         a14 = atr.get(r["assetId"])
         if fin(a14) and a14 > 0:
             beyond = (lo - stop) if long else (stop - hi)
-            if beyond < BUFFER_ATR * a14 * (1 - 1e-6):
+            # 1e-4 relative: stops are rounded to eight significant digits (lib/resolve.ts).
+            if beyond < BUFFER_ATR * a14 * (1 - 1e-4):
                 out["buffer_short"].append(f"{sym} {act} zone {lo}..{hi} stop {stop}: {beyond / a14:.2f} x atr14 beyond the zone")
         else:
             out["no_atr"] += 1
@@ -240,7 +251,9 @@ def prices_with_rounding(cell: str) -> list[tuple[float, float]]:
     out = []
     for t in TITLE.findall(cell):
         t = _html.unescape(t)
-        if t.startswith("Measured") or not re.search(r"\d", t):
+        # Only a price tooltip ("$1,234.56", "Rs.102.50", "USD 1.1201"): the take-profit cell's own title
+        # is a sentence ("Measured from ...", "Projected at 2 x the risk ..."), and its "2" is not a price.
+        if not re.match(r"^\s*(?:\$|Rs\.|[A-Z]{3} )?-?\d", t):
             continue
         v = price_of(t)
         if v is not None:
@@ -266,7 +279,7 @@ def parse_rows(page_html: str) -> list[dict]:
             "stop": prices_in(cells.get("Stop loss", "")),
             "target": prices_in(cells.get("Take profit", "")),
             "rr": float(rr.group(1)) if rr else None,
-            "projection": "Projected at" in cells.get("Take profit", ""),
+            "confirmations": (lambda m: int(m.group(1)) if m else None)(re.search(r"(\d+) of 5", re.sub(r"<[^>]+>", "", cells.get("Confirmations", "")))),
             # The rounding of every printed level, so a reward:risk can be checked against what the
             # printed figures allow rather than against a guessed tolerance.
             "half": {v: h for cell in ("Entry zone", "Stop loss", "Take profit") for v, h in prices_with_rounding(cells.get(cell, ""))},
@@ -279,11 +292,14 @@ def audit_pages() -> dict:
     out = {"rows": 0, "names": 0, "actions": Counter(), "inconsistent": [], "t_wrong": [], "t_none": 0,
            "s_wrong": [], "s_inside": [], "s_edge": 0, "s_beyond": 0, "zero_risk": [], "rr_bad": [],
            "rr_mismatch": [], "rr_checked": 0, "subcent_rows": 0, "subcent_bad": [], "t_missing": [],
-           "t_impossible": 0, "projections": 0}
+           "rr_low": [], "unconfirmed": [], "withheld": 0}
     for path in PAGES:
         req = urllib.request.Request(SITE + path, headers={"User-Agent": "nbt-logic-audit"})
         with urllib.request.urlopen(req, timeout=60) as r:
             page = r.read().decode("utf-8", "replace")
+        if path != "/":
+            m = re.search(r"Not published: (?:<!-- -->)?(\d+)", page)
+            out["withheld"] += int(m.group(1)) if m else 0
         for row in parse_rows(page):
             out["rows"] += 1
             key = row["symbol"]
@@ -323,14 +339,12 @@ def audit_pages() -> dict:
             out["t_none"] += 1
             if r["rr"] is not None:
                 out["rr_bad"].append(f"{sym} prints R:R {r['rr']} with no target")
-            # Every active call shows an exit, unless a short's projection would reach zero or below.
-            if not long and entry - PROJECTION_R * risk <= 0:
-                out["t_impossible"] += 1
-            else:
-                out["t_missing"].append(f"{sym} {r['action']} zone {lo}..{hi} stop {stop}: no take profit")
+            out["t_missing"].append(f"{sym} {r['action']} zone {lo}..{hi} stop {stop}: published with no take profit")
             continue
-        if r.get("projection"):
-            out["projections"] += 1
+        if r["rr"] is not None and r["rr"] < MIN_REWARD_RISK:
+            out["rr_low"].append(f"{sym} {r['action']} published at {r['rr']}:1")
+        if r["confirmations"] is not None and r["confirmations"] < MIN_CONFIRMATIONS:
+            out["unconfirmed"].append(f"{sym} {r['action']} published with {r['confirmations']} of 5")
         tlo, thi = min(r["target"]), max(r["target"])
         if (long and not tlo > hi) or (not long and not thi < lo):
             out["t_wrong"].append(f"{sym} {r['action']} zone {lo}..{hi} target {tlo}..{thi}")
@@ -403,9 +417,11 @@ def main() -> int:
     print(f"  stop vs zone: beyond {pg['s_beyond']}, ON THE EDGE {pg['s_edge']}, inside {len(pg['s_inside'])}, wrong side {len(pg['s_wrong'])}")
     show("WRONG SIDE", pg["s_wrong"]); show("STOP INSIDE THE ZONE", pg["s_inside"])
     show("ZERO RISK", pg["zero_risk"])
-    print(f"  targets: shown {pg['names'] - pg['t_none'] - pg['actions'].get('WAIT', 0)} ({pg['projections']} of them 2 x risk projections), "
-          f"none {pg['t_none']} ({pg['t_impossible']} where a projection would reach zero), on the wrong side {len(pg['t_wrong'])}")
-    show("ACTIVE CALL WITHOUT A TAKE PROFIT", pg["t_missing"])
+    print(f"  published rows {pg['names']}, withheld by the quality gate {pg['withheld']} (named, folded, on the market pages)")
+    print(f"  targets: shown {pg['names'] - pg['t_none'] - pg['actions'].get('WAIT', 0)}, none {pg['t_none']}, on the wrong side {len(pg['t_wrong'])}")
+    show("PUBLISHED WITHOUT A TAKE PROFIT", pg["t_missing"])
+    show(f"PUBLISHED UNDER {MIN_REWARD_RISK}:1", pg["rr_low"])
+    show("PUBLISHED WITHOUT A CONFIRMATION", pg["unconfirmed"])
     show("TARGET ON THE WRONG SIDE", pg["t_wrong"])
     print(f"  reward:risk recomputed {pg['rr_checked']}: mismatched {len(pg['rr_mismatch'])}, invalid {len(pg['rr_bad'])}")
     show("R:R MISMATCH", pg["rr_mismatch"]); show("INVALID R:R", pg["rr_bad"])
@@ -421,8 +437,10 @@ def main() -> int:
         "missing band/stop on a call": len(db["no_band"]) + len(db["no_stop"]),
         "page disagreement": len(pg["inconsistent"]),
         "stop on the zone's edge (rule 91)": db["dir_edge"] + pg["s_edge"],
-        "stop nearer the zone than 1.5 x atr14": len(db["buffer_short"]),
-        "active call without a take profit": len(pg["t_missing"]),
+        "stop nearer the zone than 1.0 x atr14": len(db["buffer_short"]),
+        "published call without a take profit": len(pg["t_missing"]),
+        f"published call under {MIN_REWARD_RISK}:1": len(pg["rr_low"]),
+        "published call without a confirmation": len(pg["unconfirmed"]),
     }
     print("\n== verdict")
     for k, v in faults.items():

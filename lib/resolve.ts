@@ -50,11 +50,11 @@ export const FORCED = "forced-";
 export const WHIPSAW_DAYS = 3;
 
 /// The stop's least distance beyond the entry zone, in 14-session average true ranges (the owner's rule,
-/// 2026-10-11). The zone runs from the setup's stop to its entry level, so the stop sat exactly on the
-/// zone's edge -- Askari Bank's band Rs.102.50 to Rs.106.19 with its stop at Rs.102.50 -- and a reader
-/// buying at the bottom of the band was buying at the stop. Now the stop is
-/// `min(zone low - 1.5 x ATR, the structural stop)` for a LONG, mirrored for a SHORT.
-export const STOP_BUFFER_ATR = 1.5;
+/// 2026-10-11, first given as 1.5 and settled at 1.0). The zone runs from the setup's stop to its entry
+/// level, so the stop sat exactly on the zone's edge -- Askari Bank's band Rs.102.50 to Rs.106.19 with its
+/// stop at Rs.102.50 -- and a reader buying at the bottom of the band was buying at the stop. Now the stop
+/// is `min(zone low - 1.0 x ATR, the structural stop)` for a LONG, mirrored for a SHORT.
+export const STOP_BUFFER_ATR = 1.0;
 
 type Side = "up" | "down";
 
@@ -215,10 +215,11 @@ export function bufferStop(d: Decision, input: DecisionInput): Decision {
   const buffered = long ? edge - STOP_BUFFER_ATR * atr : edge + STOP_BUFFER_ATR * atr;
   if (!(buffered > 0)) return d;
   const own = d.invalidation;
-  const hasOwn = own !== null && Number.isFinite(own);
+  // min(buffered, structural) for a LONG, max for a SHORT: a structural stop already at least the buffer
+  // away is the answer as it stands -- untouched, unrounded, and with no sentence claiming otherwise.
+  if (own !== null && Number.isFinite(own) && (long ? own <= buffered : own >= buffered)) return d;
   // Eight significant digits, as resolvedStop rounds: a fixed number of decimals would flatten a coin.
-  const stop = Number((hasOwn ? (long ? Math.min(buffered, own) : Math.max(buffered, own)) : buffered).toPrecision(8));
-  if (hasOwn && stop === own) return d;
+  const stop = Number(buffered.toPrecision(8));
   const sentence = `The stop is ${STOP_BUFFER_ATR} x the 14-session average true range beyond the entry zone, so it never sits on the zone's edge.`;
   const forced = d.gate.startsWith(FORCED);
   return {

@@ -66,7 +66,10 @@ test("the nav can still be reached when it outgrows the screen", () => {
 });
 
 
-test("the eight-column table starts at lg, not at sm", () => {
+test("the ten-column table starts at xl, not at sm or lg", () => {
+  // Moved from lg to xl on 2026-10-11. At 1024 the Entry zone track was 86px and "Rs.1,165.00" is 91px,
+  // so 106 of 176 PSX ranges broke into three lines and four-digit rupee prices spilled into the next
+  // column. Between 1024 and 1279 the four-cells-a-line card layout has the room; the table needs 1280.
   // The row grew from six columns to eight when the current price joined it. At 640px that is
   // about 70px of track per price column, which "Rs.1,201.22" does not fit in -- the row either
   // wraps into an unreadable stack or clips. Measured in a browser at 768x1024 after the move:
@@ -75,7 +78,8 @@ test("the eight-column table starts at lg, not at sm", () => {
   // The fragile part is that one breakpoint has to be right in six places at once: the grid, the
   // header, the row border, the padding, the name's column span and the per-cell labels. A
   // single `sm:` left behind puts the labels and the table on screen together.
-  assert.match(decision, /lg:grid-cols-\[minmax/, "the ten-track grid must start at lg");
+  assert.match(decision, /xl:grid-cols-\[minmax/, "the ten-track grid must start at xl");
+  assert.doesNotMatch(decision, /lg:grid-cols-\[minmax/, "ten tracks at 1024 cannot hold a rupee price");
   assert.doesNotMatch(
     decision,
     /sm:grid-cols-\[minmax/,
@@ -86,10 +90,12 @@ test("the eight-column table starts at lg, not at sm", () => {
   // `lg:sr-only` and not `lg:hidden`: visually gone where the header carries them, but still in the
   // accessibility tree. The header is `aria-hidden`, so `lg:hidden` left a screen reader on a
   // desktop width with ten values per row and no names for any of them.
-  assert.match(decision, /const ROW_LABEL = "[^"]*lg:sr-only"/);
-  assert.doesNotMatch(decision, /const ROW_LABEL = "[^"]*lg:hidden"/);
+  assert.match(decision, /const ROW_LABEL = "[^"]*xl:sr-only"/);
+  assert.doesNotMatch(decision, /const ROW_LABEL = "[^"]*xl:hidden"/);
   assert.match(decision, /aria-hidden="true"/, "the header must stay hidden from assistive tech");
-  assert.match(decision, /text-xs lg:grid \$\{/, "the header must only grid at lg");
+  assert.match(decision, /text-xs xl:grid \$\{/, "the header must only grid at xl");
+  // A range breaks only before "to", which travels with the second price: two lines at most.
+  assert.match(decision, /<span className="whitespace-nowrap">\s*to <Px v=\{high\}/);
 
   // One track definition, used by the header and by every row. Two copies is how the overview
   // and a market page come to show the same name under different columns.
@@ -209,12 +215,17 @@ test("the action cell is one line: the verdict and the star side by side, never 
   assert.match(action, /className="[^"]*\bflex flex-row flex-nowrap\b[^"]*\bgap-1\.5\b[^"]*\bwhitespace-nowrap\b/);
   assert.doesNotMatch(action, /flex-wrap(?!\S)/, "a wrapping action cell stacks the star under the call");
   const cols = decision.match(/const DECISION_COLS =\s*"([^"]+)"/)?.[1] ?? "";
-  const tracks = cols.match(/lg:grid-cols-\[([^\]]+)\]/)?.[1].split("_") ?? [];
+  const tracks = cols.match(/xl:grid-cols-\[([^\]]+)\]/)?.[1].split("_") ?? [];
   assert.equal(tracks.length, 10);
   const floor = Number(tracks[2].match(/^minmax\((\d+)px,/)?.[1] ?? 0);
   assert.ok(floor >= 171, `the Action track needs a floor of at least 171px for SHORT and a falling star, has ${floor}`);
   // Below lg the cell spans two tracks, because one half-width track on a phone is narrower than the pair.
-  assert.match(rows, /<span className="col-span-2 min-w-0 lg:col-span-1">\s*<span className=\{ROW_LABEL\}>Action<\/span>/);
+  assert.match(rows, /<span className="col-span-2 min-w-0 xl:col-span-1">\s*<span className=\{ROW_LABEL\}>Action<\/span>/);
+  // The price tracks hold a four-digit rupee price, "Rs.1,165.00" (91px), and the range tracks
+  // "to Rs.1,210.00" on its second line.
+  for (const [i, floor] of [[3, 92], [4, 112], [5, 92], [6, 112]] as const) {
+    assert.ok(Number(tracks[i].match(/^minmax\((\d+)px,/)?.[1] ?? 0) >= floor, `track ${i} needs ${floor}px`);
+  }
   assert.match(cols, /\bgrid-flow-row-dense\b/, "without dense packing the spanning cell leaves a hole beside Market");
   // The badge itself never breaks inside.
   const badge = decision.slice(decision.indexOf("export function EarlySignalBadge("), decision.indexOf("export interface DecisionPanelProps"));
