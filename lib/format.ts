@@ -50,9 +50,18 @@ export function money(
 /// significant digits (0.0024, 0.00001523). A fixed two decimals printed every sub-cent coin as
 /// $0.00 or $0.01, so an entry band, its stop and its target all read "$0.01 to $0.01". Not a number
 /// (null, NaN, infinite) is said in words, never printed as "NaN".
-export function plainPrice(value: number | null | undefined): string {
+///
+/// FX is the exception, by market rather than by size: a currency pair moves in its fourth decimal (a
+/// pip), so two decimals printed EURUSD's entry band, stop and target all as "1.12" -- a trade that
+/// read as zero risk on the page while the stored levels were 0.38% apart (logic audit, 2026-10-10).
+/// Pairs print four decimals, or three from 20 (yen-sized pairs, where a pip is the second decimal).
+export function plainPrice(value: number | null | undefined, market?: string | null): string {
   if (value == null || !Number.isFinite(value)) return "not available";
   const size = Math.abs(value);
+  if (market === "FX" && size >= 1) {
+    const digits = size >= 20 ? 3 : 4;
+    return value.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
   if (size === 0 || size >= 1) {
     return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
@@ -69,9 +78,10 @@ export function plainPrice(value: number | null | undefined): string {
 export function price(
   value: number | null | undefined,
   currency: string | null | undefined = "USD",
+  market?: string | null,
 ): string {
   if (value == null || !Number.isFinite(value)) return "not available";
-  return `${currencyMark(currency)}${plainPrice(value)}`;
+  return `${currencyMark(currency)}${plainPrice(value, market)}`;
 }
 
 export function sizeLabel(basis: string): string {
@@ -185,13 +195,14 @@ const SUBSCRIPT = "₀₁₂₃₄₅₆₇₈₉";
 export function compactPrice(
   value: number | null | undefined,
   currency: string | null | undefined = "USD",
+  market?: string | null,
 ): string {
   if (value == null || !Number.isFinite(value)) return "not available";
   // Rounded to four significant digits before the zeros are counted, not after: 0.0000099999 rounds
   // up to 0.00001, which has four zeros, and counting on the unrounded figure printed five ($0.0₅1,
   // ten times too small).
   const size = Number(Math.abs(value).toPrecision(4));
-  if (size === 0 || size >= 0.0001) return price(value, currency);
+  if (size === 0 || size >= 0.0001) return price(value, currency, market);
   const zeros = -Math.floor(Math.log10(size)) - 1; // 0.000004036 -> 5 zeros after the point
   const digits = (size * 10 ** (zeros + 1)).toPrecision(4).replace(".", "").replace(/0+$/, "").slice(0, 4);
   const sub = String(zeros)

@@ -85,14 +85,14 @@ function Row({ item }: { item: Scored }) {
           <dt className="text-muted-foreground">Entry zone</dt>
           <dd className="num">
             {decision.entry
-              ? `${price(decision.entry.low, currency)} to ${price(decision.entry.high, currency)}`
+              ? `${price(decision.entry.low, currency, market)} to ${price(decision.entry.high, currency, market)}`
               : "no entry band measured"}
           </dd>
         </div>
         <div className="min-w-0">
           <dt className="text-muted-foreground">Stop loss</dt>
           <dd className="num text-down">
-            {decision.invalidation !== null ? price(decision.invalidation, currency) : "no stop level set"}
+            {decision.invalidation !== null ? price(decision.invalidation, currency, market) : "no stop level set"}
           </dd>
         </div>
         <div className="min-w-0">
@@ -100,8 +100,8 @@ function Row({ item }: { item: Scored }) {
           <dd className={target ? "num" : "text-muted-foreground"}>
             {target
               ? single
-                ? price(target.low, currency)
-                : `${price(target.low, currency)} to ${price(target.high, currency)}`
+                ? price(target.low, currency, market)
+                : `${price(target.low, currency, market)} to ${price(target.high, currency, market)}`
               : "No clear target stored"}
           </dd>
         </div>
@@ -110,9 +110,9 @@ function Row({ item }: { item: Scored }) {
       {target ? (
         <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
           Prefer exit near{" "}
-          <span className="num">{price(target.low, currency)}</span>; cut if{" "}
+          <span className="num">{price(target.low, currency, market)}</span>; cut if{" "}
           <span className="num">
-            {decision.invalidation !== null ? price(decision.invalidation, currency) : "the stop"}
+            {decision.invalidation !== null ? price(decision.invalidation, currency, market) : "the stop"}
           </span>{" "}
           breaks. Measured from {targetMethodLabel(target.method)} &mdash; a measured level, not a
           promise.

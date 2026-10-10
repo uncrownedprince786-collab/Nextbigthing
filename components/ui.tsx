@@ -624,7 +624,10 @@ export function DiscussionBlock({
 export function SetupBlock({
   setup,
   currency = "USD",
+  market = null,
 }: {
+  /// FX prints in pips (`plainPrice`).
+  market?: string | null;
   setup: {
     state: string;
     horizon: string;
@@ -723,7 +726,7 @@ export function SetupBlock({
         {setup.entryLevel != null ? (
           <div>
             <p className="text-muted-foreground text-xs font-medium">Level above</p>
-            <p className="num mt-0.5 text-sm">{price(setup.entryLevel, currency)}</p>
+            <p className="num mt-0.5 text-sm">{price(setup.entryLevel, currency, market)}</p>
             <p className="text-muted-foreground mt-0.5 text-micro leading-relaxed">
               {setup.entryNote}
             </p>
@@ -734,7 +737,7 @@ export function SetupBlock({
             <p className="text-muted-foreground text-xs font-medium">
               Stop price &mdash; where this read is wrong
             </p>
-            <p className="num mt-0.5 text-sm">{price(setup.invalidateLevel, currency)}</p>
+            <p className="num mt-0.5 text-sm">{price(setup.invalidateLevel, currency, market)}</p>
             <p className="text-muted-foreground mt-0.5 text-micro leading-relaxed">
               {setup.invalidateNote}
             </p>
@@ -1145,7 +1148,10 @@ export function CurrencyNote({ currency, market }: { currency: string; market: s
 export function ThesisBlock({
   thesis,
   currency = "USD",
+  market = null,
 }: {
+  /// FX prints in pips (`plainPrice`).
+  market?: string | null;
   currency?: string;
   thesis: {
     direction: string;
@@ -1217,12 +1223,12 @@ export function ThesisBlock({
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div>
           <p className="text-muted-foreground text-xs">Close when recorded</p>
-          <p className="num mt-0.5 text-sm">{price(thesis.openClose, currency)}</p>
+          <p className="num mt-0.5 text-sm">{price(thesis.openClose, currency, market)}</p>
         </div>
         <div>
           <p className="text-muted-foreground text-xs">Close now</p>
           <p className="num mt-0.5 text-sm">
-            {price(thesis.lastClose, currency)}
+            {price(thesis.lastClose, currency, market)}
             {thesis.changePctSinceOpen != null ? (
               <span className={`ml-2 ${toneClass(thesis.changePctSinceOpen)}`}>
                 {pct(thesis.changePctSinceOpen)}
@@ -1232,7 +1238,7 @@ export function ThesisBlock({
         </div>
         <div>
           <p className="text-muted-foreground text-xs">Stop price named that day</p>
-          <p className="num mt-0.5 text-sm">{price(thesis.invalidateLevel, currency)}</p>
+          <p className="num mt-0.5 text-sm">{price(thesis.invalidateLevel, currency, market)}</p>
         </div>
       </div>
 
@@ -1486,7 +1492,10 @@ export function NeighbourhoodBlock({
 export function HorizonStrip({
   horizons,
   currency = "USD",
+  market = null,
 }: {
+  /// FX prints in pips (`plainPrice`).
+  market?: string | null;
   currency?: string;
   horizons: {
     id: string;
@@ -1545,13 +1554,13 @@ export function HorizonStrip({
                 {h.entryLevel != null ? (
                   <div className="flex justify-between gap-2">
                     <dt className="text-muted-foreground">Above</dt>
-                    <dd className="num">{price(h.entryLevel, currency)}</dd>
+                    <dd className="num">{price(h.entryLevel, currency, market)}</dd>
                   </div>
                 ) : null}
                 {h.invalidateLevel != null ? (
                   <div className="flex justify-between gap-2">
                     <dt className="text-muted-foreground">Stop price</dt>
-                    <dd className="num">{price(h.invalidateLevel, currency)}</dd>
+                    <dd className="num">{price(h.invalidateLevel, currency, market)}</dd>
                   </div>
                 ) : null}
               </dl>
@@ -1573,8 +1582,8 @@ export function HorizonStrip({
                       </span>
                       <span className="num">
                         {t.low === t.high
-                          ? price(t.low, currency)
-                          : `${price(t.low, currency)} to ${price(t.high, currency)}`}
+                          ? price(t.low, currency, market)
+                          : `${price(t.low, currency, market)} to ${price(t.high, currency, market)}`}
                       </span>
                       {rewardWords(t.rewardRisk) ? (
                         <span className="text-muted-foreground w-full text-micro leading-relaxed">

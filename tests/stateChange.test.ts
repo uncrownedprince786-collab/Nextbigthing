@@ -86,7 +86,8 @@ test("PRICE: the cell is the price alone, with its time on hover and never print
   const cell = rows.slice(rows.indexOf("<span className={ROW_LABEL}>Price</span>"), rows.indexOf("<span className={ROW_LABEL}>Entry zone</span>"));
   assert.ok(cell.length > 0);
   // The trade leads when there is one; the close only when there is none.
-  assert.ok(cell.indexOf("price(r.quote.price, currency)") < cell.indexOf("price(r.priceNow, currency)"));
+  const trade = cell.indexOf("price(r.quote.price, currency, r.market)");
+  assert.ok(trade >= 0 && trade < cell.indexOf("price(r.priceNow, currency, r.market)"));
   // The time is a tooltip, not a line: no "Last trade ·" and no "close" sub-line in the cell.
   assert.doesNotMatch(cell, /Last trade ·|\} close<|text-micro/);
   assert.match(cell, /, last trade \$\{shortDay/);

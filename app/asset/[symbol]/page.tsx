@@ -238,6 +238,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
           decision={decision}
           symbol={asset.symbol}
           currency={asset.currency}
+          market={bundle.market}
           asOf={bundle.newestCloseDate}
           /* The close the panel prints is the one the bundle decided on, not `latestPrice`.
              They are the same row today, and taking it from the bundle is what keeps them the
@@ -281,14 +282,14 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
               title="The same asset over three time frames"
               lead="Today, the next few weeks, and the longer term; they will sometimes disagree."
             >
-              <HorizonStrip horizons={horizons} currency={asset.currency} />
+              <HorizonStrip horizons={horizons} currency={asset.currency} market={bundle.market} />
             </Detail>
 
             <Detail
               title="What the conditions say right now"
               lead="Every condition tested, including the ones that failed and the inputs that were unavailable."
             >
-              <SetupBlock setup={setup} currency={asset.currency} />
+              <SetupBlock setup={setup} currency={asset.currency} market={bundle.market} />
             </Detail>
 
             {/* Kept next to the conditions above, because the two are one question asked twice:
@@ -298,7 +299,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
               title="What we said before, and whether it still holds"
               lead="The last directional read, compared against the day it first appeared rather than against yesterday."
             >
-              <ThesisBlock thesis={thesis} currency={asset.currency} />
+              <ThesisBlock thesis={thesis} currency={asset.currency} market={bundle.market} />
             </Detail>
 
             <Detail
@@ -319,7 +320,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
                 <Card>
                   <p className="text-muted-foreground text-xs">Last stored close</p>
                   <p className="num mt-1 text-2xl font-semibold">
-                    {latestPrice ? plainPrice(latestPrice.close) : "no close stored yet"}
+                    {latestPrice ? plainPrice(latestPrice.close, bundle.market) : "no close stored yet"}
                   </p>
                   <p className="text-muted-foreground text-xs">{isoDate(latestPrice?.date)}</p>
                   {/* The last trade, refreshed in the browser when it is more than five minutes old.
