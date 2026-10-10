@@ -2112,3 +2112,63 @@ reads rows that already exist:
     label -- and the suffix is stripped from the text the rules read, so an outlet called "Federal News
     Network" cannot satisfy a word in the table. The list is a judgement and not a measurement; the
     scorecard is where an entry should be removed if its vetoes prove wrong.
+
+74. **"Real time" was asked for. The lag was not a cadence problem, and the floor is five minutes.**
+    The directive described a site that lags and asked for one-minute micro-batches. Measured first:
+    on 2026-10-10 at 01:16 UTC the newest US and crypto closes were 2026-10-08 -- two days old -- because
+    no GitHub lane had written to the new database since it replaced the old one (the `DATABASE_URL`
+    secret still names the over-quota project). The lanes' designed cadence (crypto every 2 h, US four
+    times a day, PSX three) was never the problem; they were not running. Refreshed by hand the same
+    night (crypto, all four US chunks, the derive lane and a new day of decisions: 576 rows for
+    2026-10-10). The permanent fix is the secret, which only the owner can set.
+
+    **What was built: a quote layer beside the closes, never instead of them.** `LiveQuote` holds one
+    row per asset, upserted in place by `jobs/live.py`, so it stays the size of the universe -- a row per
+    tick would be 576 x 288 a day, the growth that took the first database over its quota. A quote only
+    moves forward (`WHERE "quotedAt" < EXCLUDED."quotedAt"`), so a closed market costs no writes and a
+    late slice cannot put an old price over a newer one. Crypto comes from CoinPaprika in one request for
+    every coin (0.7 s measured); US names, ETFs, futures and FX from Yahoo 1-minute bars, batched over a
+    rotating slice of the active set (60 symbols in 12 to 16 s measured). Binance is not used: it stopped
+    answering GitHub runners on 2026-09-29. PSX has no free quote endpoint and keeps its closes.
+    `cron-live.yml` runs every five minutes through the US session and every fifteen around the clock for
+    crypto, opt-in by the `LIVE_QUOTES` variable.
+
+    **A quote is never an input to a decision.** A price for a session still trading is not a close (rule
+    41), and a verdict that moved with the tape would change on every refresh. A test fences every file
+    that decides (`lib/decision.ts`, the seam, both macro engines, `decide.mjs`, the factor, setup,
+    horizon and analog jobs) against reading the table, and the list row still takes its `priceNow` from
+    the close. The column headed "Current price" was printing a close that could be days old, which is
+    the mismatch the directive described; it is now "Last close", with the last trade under it and the
+    UTC time it was struck. A quote that only repeats the close is not printed.
+
+    **Refreshing in the browser.** `/api/quote` is read-only: it answers the stored quote and, if that is
+    more than five minutes old, asks the provider once (1.5 s timeout, the answer held a minute per symbol
+    so a page of readers costs one request a minute), returning it marked `revalidated` without storing
+    it -- a public endpoint must not be a way to put a price in the database. `components/LivePrice.tsx`
+    is the third client component on the site, held to the error boundaries' rule (no server module, no
+    environment) and to one more: it fetches exactly one same-origin URL, polls only while the tab is
+    visible, and asks at once when a tab comes back. Checked in a real browser: a hidden tab made no
+    request, and on becoming visible it fetched once and moved from "16 min ago, delayed" to "2 min ago".
+
+    **What was asked for and is not true here.** A one-minute schedule: GitHub Actions will not run one
+    more often than every five minutes. Under 500 ms per tick: no HTTP round trip to a free provider is
+    that fast from a runner; the job prints what each stage took instead (crypto 0.7 s, a Yahoo slice
+    12 to 16 s, the write 0.25 s). A WebSocket: a scheduled job cannot hold one open, and Vercel functions
+    are request-scoped. Edge runtime: the quote is read through the same TCP Postgres client as every
+    page, which does not run on Edge; the route stays within Edge-like bounds anyway. Redis: not in this
+    stack, and not needed for 576 rows.
+
+    **Placeholders.** "none stored", "not stored", "not applicable", "N/A" and "waiting" were each a cell
+    saying it was empty and nothing about the name. A held-back row now prints the rule table's own reason
+    in a "Why no call" cell instead of a Low badge and a dash; the Low badge is gone from every WAIT
+    (asset panel, overview card, rows), because a grade grades a direction and a WAIT has none; an absent
+    size is explained by what the asset is (`sizeAbsence`); an absent level says which. No number was
+    invented to fill a cell and no grade was raised: directional rows keep the grade the rule table gave.
+    A guard bans the strings from every page and component, the methodology prose exempt.
+
+    **Found on the way.** The price lane keeps a futures bar out until the provider's 24-hour session
+    window ends (Friday 04:00 to Saturday 03:59 UTC for `BZ=F` and `GC=F`), so commodity closes arrive a
+    few hours after the real settle. That is the forming-bar guard doing its job, not a fault, and the
+    quote layer now shows the last trade in the meantime. And `with_backoff` first compared a DataFrame
+    with `[]`, an elementwise comparison that raised inside the retry and made every successful download a
+    miss -- found by running the tick against the provider, not by any test of the pure code.

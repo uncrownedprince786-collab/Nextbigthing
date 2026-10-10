@@ -1,6 +1,7 @@
 import type { DecisionQueryRow } from "@/lib/queries";
 import { pickTarget } from "@/lib/target";
 import { bundleFromRow, toDecisionInput } from "@/lib/decisionInput";
+import { quoteBesideClose } from "@/lib/liveQuote";
 import {
   CONFIDENCE_ORDER,
   decide,
@@ -138,6 +139,11 @@ export function toListRow(s: Scored): DecisionRow {
     // Which confirmations backed it. The table prints how many and which, because a grade of
     // "Medium" says one thing was behind a call and not what it was.
     legs: s.decision.legs,
+    // The last trade, only where it adds something beside the close printed next to it.
+    quote: quoteBesideClose(
+      s.row.quotePrice !== null && s.row.quoteAt ? { price: s.row.quotePrice, quotedAt: s.row.quoteAt } : null,
+      { price: s.row.close, date: s.row.closeDate },
+    ),
     // Why there is no call, in the rule table's own words, for a WAIT only. A held-back row used to
     // print a grade of Low and a dash, which says nothing; the reason is what the reader came for.
     reason: s.decision.action === "WAIT" ? s.decision.why.slice(0, 2) : null,

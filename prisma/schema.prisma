@@ -110,6 +110,7 @@ model Asset {
   factors          AssetFactor[]
   decisions        DecisionLog[]
   macroGates       MacroGate[]
+  liveQuote        LiveQuote?
 
   createdAt DateTime @default(now())
 
@@ -1779,4 +1780,28 @@ model MacroGate {
 
   @@unique([assetId, periodEnd])
   @@index([periodEnd, verdict])
+}
+
+/// The newest quote for one asset, upserted in place by `jobs/live.py` every few minutes.
+///
+/// **One row per asset and no history.** A quote written as a row per tick would be 576 names times
+/// 288 ticks a day, which is the storage growth that took the first database over its quota. This is
+/// the opposite: the primary key is the asset, a newer quote overwrites the older, and the table stays
+/// the size of the universe. The bar history that the rule table reads lives in `PriceSnapshot` and is
+/// untouched.
+///
+/// **Never an input to a decision.** The rule table reads closes. A quote is shown beside a close,
+/// labelled with the time it was quoted, and never replaces one: a price for a session still being
+/// traded is not a close (rule 41), and a decision that moved with the tape would be a different
+/// decision on every refresh.
+model LiveQuote {
+  assetId   String   @id
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  price     Float
+  /// When the exchange or aggregator says the price was struck, not when this row was written.
+  quotedAt  DateTime
+  /// coinpaprika or yahoo.
+  source    String
+  /// When this row last changed. Not the quote's age: that is `quotedAt`.
+  updatedAt DateTime @default(now())
 }

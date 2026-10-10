@@ -1,4 +1,5 @@
 import * as React from "react";
+import { clockUtc } from "@/lib/liveQuote";
 import { targetMethodLabel, type TargetLike } from "@/lib/target";
 import { price, relativeTime } from "@/lib/format";
 import { CONFIDENCE_ORDER } from "@/lib/decision";
@@ -658,6 +659,8 @@ export interface DecisionRow {
   /// Why the rule table made no call, for a WAIT: one or two sentences from the decision itself.
   /// Null on a direction. A row that is held back prints this instead of a grade and a dash.
   reason?: string[] | null;
+  /// The last trade and when it was struck, when it adds something beside the close. Never replaces it.
+  quote?: { price: number; quotedAt: string } | null;
   /// Quoted currency for this row's levels. Defaults to USD, which is wrong for PSX names, so
   /// callers covering PSX must pass it.
   currency?: string;
@@ -903,7 +906,9 @@ function DecisionHeader({
       <span>Name</span>
       <span>Market</span>
       <span>Action</span>
-      <span>Current price</span>
+      <span title="The newest stored close, which is what the decision is read from. A later last trade is printed under it with its time.">
+        Last close
+      </span>
       <span>Entry zone</span>
       <span>Stop loss</span>
       <span>Take profit</span>
@@ -964,7 +969,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
               </span>
 
               <span className="min-w-0">
-                <span className={ROW_LABEL}>Current price</span>
+                <span className={ROW_LABEL}>Last close</span>
                 <span
                   className={
                     r.priceNow !== null && r.priceNow !== undefined
@@ -977,6 +982,17 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                     ? price(r.priceNow, currency)
                     : "no close yet"}
                 </span>
+                {/* The last trade, when it says something the close does not. Its time is printed in
+                    UTC beside it because this page is cached for an hour: a bare "now" would be a
+                    claim the page cannot keep. */}
+                {r.quote ? (
+                  <span
+                    className="text-muted-foreground num text-micro block"
+                    title="The last trade, with the time it was struck. The decision is read from the close above, never from this."
+                  >
+                    last trade {price(r.quote.price, currency)} · {clockUtc(r.quote.quotedAt)}
+                  </span>
+                ) : null}
               </span>
 
               <span className="min-w-0">

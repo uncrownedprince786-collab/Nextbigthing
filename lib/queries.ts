@@ -777,6 +777,50 @@ export async function getAssetFreshness(assetId: string): Promise<{
   return { newest: row.date, close: row.close, priceSource: row.source };
 }
 
+/// The newest stored quote per asset (`LiveQuote`, written by `jobs/live.py`), or one asset's.
+///
+/// **Fails open, and is never an input to a decision.** A missing table (a standby the migration has not
+/// reached), a dropped connection or anything else yields an empty map, so every price on the site is
+/// the stored close it always was. A quote is shown beside a close with the time it was struck; the
+/// rule table reads closes only, so a refresh of this table can never change a verdict.
+async function getLiveQuotes(assetId?: string): Promise<Map<string, { price: number; quotedAt: Date }>> {
+  const out = new Map<string, { price: number; quotedAt: Date }>();
+  try {
+    const rows = await prisma.liveQuote.findMany({
+      where: assetId ? { assetId } : undefined,
+      select: { assetId: true, price: true, quotedAt: true },
+    });
+    for (const r of rows) out.set(r.assetId, { price: r.price, quotedAt: r.quotedAt });
+  } catch {
+    out.clear();
+  }
+  return out;
+}
+
+/// One asset's stored quote for the asset page, or null.
+export async function getLiveQuoteFor(assetId: string): Promise<{ price: number; quotedAt: Date } | null> {
+  return (await getLiveQuotes(assetId)).get(assetId) ?? null;
+}
+
+/// What `/api/quote` needs for one symbol: the asset's provider reference, its stored quote if any, and
+/// its newest close. Read-only, and the quote half fails open (see `getLiveQuotes`).
+export async function getQuoteTarget(symbol: string) {
+  const asset = await prisma.asset.findFirst({
+    where: { symbol },
+    select: { id: true, source: true, sourceRef: true },
+  });
+  if (!asset) return null;
+  const [quotes, close] = await Promise.all([
+    getLiveQuotes(asset.id),
+    prisma.priceSnapshot.findFirst({
+      where: { assetId: asset.id },
+      orderBy: { date: "desc" },
+      select: { close: true, date: true },
+    }),
+  ]);
+  return { asset, quote: quotes.get(asset.id) ?? null, close };
+}
+
 /// The newest stored macro-gatekeeper answer per name, kept only where it is a REJECT.
 ///
 /// **Fails open, in the way that matters most here.** A missing table (a standby that has not had the
@@ -1004,6 +1048,9 @@ export type DecisionQueryRow = {
   /// both when there is none, which is every name while the gate is off.
   macroVetoReason: string | null;
   macroVetoAsOf: Date | null;
+  /// The newest stored last trade and when it was struck; see `getLiveQuotes`. Null on both when none.
+  quotePrice: number | null;
+  quoteAt: Date | null;
   /// Stories, not items: twenty outlets carrying one wire report is one story. The reasoning is
   /// at `getStories` and on `HumanSignal.recentStories`.
   recentStories: number | null;
@@ -1113,6 +1160,7 @@ function distinctDays(maxes: (Date | null)[]): Date[] {
 /// slower page. Two bulk queries cost the same whether the universe is 160 names or 1,000.
 export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   const vetoes = getMacroVetoes();
+  const quotes = getLiveQuotes();
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
@@ -1335,6 +1383,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   // site covers, and a reader counting them would read that gap as a judgement about the missing
   // ones rather than as a job that has not run.
   const vetoByAsset = await vetoes;
+  const quoteByAsset = await quotes;
   return assets.map((asset): DecisionQueryRow => {
     const price = priceByAsset.get(asset.id);
     const analog = analogByAsset.get(asset.id);
@@ -1373,6 +1422,8 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       r20: factor?.r20 ?? null,
       entryTrigger: factor?.entryTrigger ?? null,
       triggerDirection: factor?.triggerDirection ?? null,
+      quotePrice: quoteByAsset.get(asset.id)?.price ?? null,
+      quoteAt: quoteByAsset.get(asset.id)?.quotedAt ?? null,
       macroVetoReason: vetoByAsset.get(asset.id)?.reason ?? null,
       macroVetoAsOf: vetoByAsset.get(asset.id)?.asOf ?? null,
       recentStories: signal?.recentStories ?? null,

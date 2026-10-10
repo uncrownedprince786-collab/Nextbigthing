@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LivePrice } from "@/components/LivePrice";
 import { notFound } from "next/navigation";
 import * as React from "react";
 import { Sparkline } from "@/components/chart";
@@ -35,6 +36,7 @@ import {
   getAssetPrices,
   getAttribution,
   getDecisionBundle,
+  getLiveQuoteFor,
   getIntradayHealth,
   getRelevance,
   getSourceHealth,
@@ -127,6 +129,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
     intradayHealth,
     stories,
     topNews,
+    liveQuote,
   ] = await Promise.all([
     getDecisionBundle(asset.id),
     getSourceHealth(),
@@ -140,6 +143,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
     getIntradayHealth(asset.id),
     getStories(asset.id),
     getTopNews(asset.id),
+    getLiveQuoteFor(asset.id),
   ]);
 
   // The horizons, analogs, news reading and investigation are taken off the bundle instead of
@@ -279,6 +283,17 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
                     {latestPrice ? latestPrice.close.toFixed(2) : "no close stored yet"}
                   </p>
                   <p className="text-muted-foreground text-xs">{isoDate(latestPrice?.date)}</p>
+                  {/* The last trade, refreshed in the browser when it is more than five minutes old.
+                      Beside the close and never instead of it: the decision is read from closes. */}
+                  <LivePrice
+                    symbol={asset.symbol}
+                    currency={asset.currency}
+                    initial={
+                      liveQuote
+                        ? { price: liveQuote.price, quotedAt: liveQuote.quotedAt.toISOString() }
+                        : null
+                    }
+                  />
                 </Card>
                 <Card>
                   <p className="text-muted-foreground text-xs">Return over the last year</p>

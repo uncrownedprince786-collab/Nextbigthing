@@ -3594,6 +3594,10 @@ class NoLookAhead(unittest.TestCase):
             "human.py": "reads coverage as of the row's period",
             "graph.py": "walks stored relationships, stores no dated claim",
             "events.py": "stores published dates, computes no state",
+            "live.py": (
+                "stores the last trade as quoted, with the time it was struck, and only ever moves a quote "
+                "forward; it makes no claim about a past moment and no rule reads it"
+            ),
             "runlog.py": (
                 "records what a slice of a job did; its only date is the newest row that slice "
                 "stored, which is a fact about the fetch and not a claim about an asset"
@@ -4052,7 +4056,9 @@ class NothingBuiltAndUnused(unittest.TestCase):
             for m in re.finditer(r"^export (?:async )?function (\w+)|^export const (\w+)", text, re.M):
                 exports[m.group(1) or m.group(2)] = str(f)
         files = {}
-        for pattern in ("app/**/*.tsx", "app/*.tsx", "lib/*.ts", "components/*.tsx"):
+        # Route handlers are `.ts`, and one is a consumer like any page: `app/api/quote/route.ts` is
+        # what reads the quote helpers.
+        for pattern in ("app/**/*.tsx", "app/*.tsx", "app/**/*.ts", "lib/*.ts", "components/*.tsx"):
             for f in ROOT.glob(pattern):
                 # Comments stripped: a name that survives only in a comment explaining where it
                 # used to be used is not a consumer, and counting it as one is how a deleted
@@ -4288,7 +4294,11 @@ class SqlSafety(unittest.TestCase):
     # Next requires an error boundary to be a Client Component -- there is no server-rendered
     # form of one -- so the site cannot have error pages and also have no client components at
     # all. Rule 37: the guard fired on correct code, so the guard is what changes.
-    CLIENT_ALLOWED = ("app/error.tsx", "app/global-error.tsx")
+    # `components/LivePrice.tsx` joined the two error boundaries: a last trade has to refresh in the
+    # browser, and that is the one thing a server-rendered, hourly-cached page cannot do. It is held to
+    # the same rule as they are -- no server module, no environment, no database -- and to one more in
+    # `TheLiveLane`: it may fetch exactly one same-origin URL.
+    CLIENT_ALLOWED = ("app/error.tsx", "app/global-error.tsx", "components/LivePrice.tsx")
 
     def test_nothing_is_exposed_to_the_browser(self):
         # No NEXT_PUBLIC_ variable and no client component means no server-only value can reach
@@ -7349,6 +7359,188 @@ class NoPlaceholdersInTheRenderedLayer(unittest.TestCase):
         overview = code_only((ROOT / "app" / "page.tsx").read_text(encoding="utf-8"))
         wait_card = overview[overview.index('<Pill tone="warn">WAIT</Pill>') :][:400]
         self.assertNotIn("ConfidenceBadge", wait_card)
+
+
+class TheLiveLane(unittest.TestCase):
+    """`jobs/live.py`, `LiveQuote`, `/api/quote` and `components/LivePrice.tsx`.
+
+    The property that matters most is not in the lane at all: **a quote is never an input to a
+    decision.** The rule table reads closes; a price for a session still being traded is not one
+    (rule 41), and a verdict that moved with the tape would be a different verdict on every refresh.
+    So the first test here is a fence around every file that decides. The rest pin the lane: it only
+    moves a quote forward, it fails soft, it never writes from the web, and it polls within the
+    platform's real floor rather than a one-minute schedule it cannot have."""
+
+    @staticmethod
+    def live():
+        import live
+
+        return live
+
+    # --- the fence --------------------------------------------------------------------------------
+
+    def test_no_file_that_decides_can_read_a_quote(self):
+        deciders = [
+            "lib/decision.ts", "lib/decisionInput.ts", "lib/macroGate.ts", "lib/macroGateLocal.ts",
+            "tools/decide.mjs", "tools/macro_gate.mjs", "jobs/factors.py", "jobs/setup.py",
+            "jobs/horizons.py", "jobs/analogs.py",
+        ]
+        for rel in deciders:
+            text = (ROOT / rel).read_text(encoding="utf-8")
+            for name in ("LiveQuote", "liveQuote", "quotePrice", "getLiveQuote"):
+                self.assertNotIn(name, text, f"{rel} reads {name}")
+
+    def test_the_list_carries_the_quote_beside_the_close_and_never_as_it(self):
+        assets = (ROOT / "lib" / "assetClass.ts").read_text(encoding="utf-8")
+        # The decision's price is still the close; the quote is a separate field.
+        self.assertIn("priceNow: s.row.close,", assets)
+        self.assertIn("quote: quoteBesideClose(", assets)
+
+    # --- the job's pure parts ---------------------------------------------------------------------
+
+    def test_rotating_slices_cover_every_name_once_and_never_overlap(self):
+        m = self.live()
+        for n, limit in ((125, 60), (60, 60), (1, 60), (301, 50)):
+            seen = []
+            pages = -(-n // limit)
+            for k in range(pages):
+                lo, hi = m.slice_for_tick(n, limit, now_ts=k * m.TICK_SECONDS)
+                seen.extend(range(lo, hi))
+            self.assertEqual(sorted(seen), list(range(n)), (n, limit))
+        self.assertEqual(m.slice_for_tick(0, 60, 123.0), (0, 0))
+
+    def test_only_a_finite_positive_number_is_a_price(self):
+        m = self.live()
+        for good in (1, 0.0001, "3.5"):
+            self.assertTrue(m.is_price(good), good)
+        for bad in (0, -1, float("nan"), float("inf"), None, "x"):
+            self.assertFalse(m.is_price(bad), bad)
+
+    def test_coinpaprika_is_read_with_its_own_timestamp_and_a_bad_row_is_skipped(self):
+        from datetime import datetime
+
+        m = self.live()
+        now = datetime(2026, 10, 10, 12, 0, 0)
+        tickers = [
+            {"id": "btc-bitcoin", "last_updated": "2026-10-10T11:58:00Z", "quotes": {"USD": {"price": 61000.5}}},
+            {"id": "zero-coin", "last_updated": "2026-10-10T11:58:00Z", "quotes": {"USD": {"price": 0}}},
+            {"id": "future-coin", "last_updated": "2026-10-10T13:00:00Z", "quotes": {"USD": {"price": 2}}},
+            {"id": "no-stamp", "quotes": {"USD": {"price": 2}}},
+        ]
+        assets = [{"id": i, "sourceRef": i} for i in ("btc-bitcoin", "zero-coin", "future-coin", "no-stamp", "missing")]
+        got = m.parse_paprika(tickers, assets, now)
+        self.assertEqual(len(got), 1)
+        self.assertEqual(got[0]["assetId"], "btc-bitcoin")
+        self.assertEqual(got[0]["quotedAt"], datetime(2026, 10, 10, 11, 58, 0))
+        self.assertEqual(got[0]["source"], "coinpaprika")
+
+    def test_yahoo_is_read_for_the_last_real_trade_and_a_gap_is_not_a_price(self):
+        from datetime import datetime
+
+        import pandas as pd
+
+        m = self.live()
+        idx = pd.DatetimeIndex(
+            ["2026-10-09 19:57", "2026-10-09 19:58", "2026-10-09 19:59"], tz="America/New_York"
+        )
+        cols = pd.MultiIndex.from_product([["AAPL", "DEAD"], ["Close", "Volume"]])
+        frame = pd.DataFrame(
+            [[210.0, 1, float("nan"), 0], [211.0, 1, float("nan"), 0], [float("nan"), 0, float("nan"), 0]],
+            index=idx, columns=cols,
+        )
+        assets = [{"id": "a", "sourceRef": "AAPL"}, {"id": "d", "sourceRef": "DEAD"}, {"id": "x", "sourceRef": "GONE"}]
+        got = m.parse_download(frame, assets, datetime(2026, 10, 10, 12, 0))
+        self.assertEqual([q["assetId"] for q in got], ["a"])
+        # 19:58 New York is 23:58 UTC: the last bar that traded, not the empty 19:59 one.
+        self.assertEqual(got[0]["price"], 211.0)
+        self.assertEqual(got[0]["quotedAt"], datetime(2026, 10, 9, 23, 58))
+
+    def test_backoff_retries_with_growing_pauses_then_gives_up_quietly(self):
+        import pandas as pd
+
+        m = self.live()
+        pauses = []
+        calls = []
+
+        def failing():
+            calls.append(1)
+            raise TimeoutError("rate limited")
+
+        self.assertIsNone(m.with_backoff(failing, tries=3, base=1.0, sleep=pauses.append, rand=lambda: 0.0))
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(pauses, [1.0, 2.0])
+        # An empty answer is a miss and a real frame is an answer. The first version compared a frame
+        # with [] -- an elementwise comparison that raised inside the retry -- and so treated every
+        # successful Yahoo download as a failure. Found by running it against the provider.
+        frames = [pd.DataFrame(), pd.DataFrame({"x": [1]})]
+        got = m.with_backoff(lambda: frames.pop(0), tries=3, base=0, sleep=lambda _s: None, rand=lambda: 0.0)
+        self.assertFalse(got.empty)
+        self.assertEqual(m.with_backoff(lambda: [], tries=2, base=0, sleep=lambda _s: None, rand=lambda: 0.0), None)
+
+    # --- the job's writes -------------------------------------------------------------------------
+
+    def test_a_quote_only_ever_moves_forward(self):
+        sql = self.live().UPSERT
+        self.assertIn('ON CONFLICT ("assetId") DO UPDATE', sql)
+        self.assertIn('WHERE "LiveQuote"."quotedAt" < EXCLUDED."quotedAt"', sql)
+
+    def test_the_job_writes_one_table_never_deletes_and_never_prints_a_connection_string(self):
+        import re as _re
+
+        text = (ROOT / "jobs" / "live.py").read_text(encoding="utf-8")
+        self.assertEqual(set(_re.findall(r'INSERT INTO "(\w+)"', text)), {"LiveQuote"})
+        code = code_only(text)
+        for forbidden in ("DELETE", "TRUNCATE", "DROP"):
+            self.assertNotIn(forbidden, code)
+        self.assertNotIn("str(error)", code)
+        self.assertNotIn("{error}", code)
+        self.assertNotIn("DATABASE_URL", code.replace('os.environ["DATABASE_URL"]', ""))
+
+    def test_the_job_never_fails_the_workflow(self):
+        text = code_only((ROOT / "jobs" / "live.py").read_text(encoding="utf-8"))
+        body = text[text.index("def main("):]
+        self.assertNotIn("return 1", body)
+        self.assertNotIn("raise", body)
+
+    # --- the web side -----------------------------------------------------------------------------
+
+    def test_the_endpoint_is_read_only(self):
+        route = code_only((ROOT / "app" / "api" / "quote" / "route.ts").read_text(encoding="utf-8"))
+        for write in ("upsert", "create(", "update(", "delete(", "$executeRaw", "INSERT", "export async function POST"):
+            self.assertNotIn(write, route)
+        self.assertIn("makeMemo", route)
+        self.assertIn("isStale(", route)
+
+    def test_the_client_component_talks_to_one_same_origin_url_and_nothing_else(self):
+        import re as _re
+
+        text = code_only((ROOT / "components" / "LivePrice.tsx").read_text(encoding="utf-8"))
+        urls = _re.findall(r"fetch\(\s*`([^`]*)`", text)
+        self.assertEqual(urls, ["/api/quote?symbol=${encodeURIComponent(symbol)}"])
+        self.assertNotIn("http", text)
+        self.assertIn('document.visibilityState !== "visible"', text)
+        # Hidden tabs are skipped, so a tab coming back must ask at once and remove its listener after.
+        self.assertIn('addEventListener("visibilitychange", onVisible)', text)
+        self.assertIn('removeEventListener("visibilitychange", onVisible)', text)
+
+    # --- the schedule ------------------------------------------------------------------------------
+
+    def test_the_workflow_is_opt_in_within_the_platform_floor_and_soft_on_failure(self):
+        import yaml
+
+        wf = yaml.safe_load((ROOT / ".github" / "workflows" / "cron-live.yml").read_text(encoding="utf-8"))
+        crons = [c["cron"] for c in wf[True]["schedule"]]
+        self.assertEqual(crons, ["*/5 13-21 * * 1-5", "7,22,37,52 * * * *"])
+        for c in crons:
+            # GitHub does not run a schedule more often than every five minutes. Nothing here claims to.
+            self.assertNotIn("* * * * *", c.replace("7,22,37,52 ", "").replace("*/5 ", "x "))
+        job = wf["jobs"]["live"]
+        self.assertEqual(job["if"], "${{ vars.LIVE_QUOTES == 'on' }}")
+        self.assertLessEqual(job["timeout-minutes"], 5)
+        self.assertFalse(wf["concurrency"]["cancel-in-progress"])
+        run = job["steps"][-1]["run"]
+        self.assertIn('--only crypto', run)
+        self.assertTrue(run.rstrip().endswith("exit 0"))
 
 
 class ShortLevelsAreMirrored(unittest.TestCase):
