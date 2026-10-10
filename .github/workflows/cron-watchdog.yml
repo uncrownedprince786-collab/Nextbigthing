@@ -75,3 +75,24 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           exit $code
+
+      # The display rules a reader relies on, checked on the live pages: one price per line, no badge
+      # that contradicts its call, no placeholder cell, the held-back list folded. Not
+      # continue-on-error: a broken rule turns the run red, which is GitHub's email to the owner.
+      - name: Check the live pages keep their display rules
+        if: always()
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          set +e
+          out="$(python tools/ui_audit.py 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## Display rules"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code

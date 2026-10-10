@@ -7909,6 +7909,65 @@ class TheLearningLoopRunsItself(unittest.TestCase):
             self.assertNotIn(write, text, write)
 
 
+class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
+    """`tools/ui_audit.py` checks the rendered pages, hourly, for the rules a reader relies on. These
+    feed it pages with each violation planted, because a checker that passes a clean site proves
+    nothing until it has been seen to fail a broken one."""
+
+    @staticmethod
+    def ua():
+        sys.path.insert(0, str(ROOT / "tools"))
+        import ui_audit
+
+        return ui_audit
+
+    @staticmethod
+    def row(action, price_cell, extra=""):
+        return (
+            f"<li><span>Name</span>Merck<span>Action</span><span>{action}</span>{extra}"
+            f"<span>Price &amp; time</span>{price_cell}<span>Entry zone</span>$1 to $2</li>"
+        )
+
+    def site(self, rows, details="<details><summary>Held back: 3 names</summary></details>"):
+        page = "<html><body><ul>" + "".join(rows) + "</ul>" + details + "</body></html>"
+        return lambda url: page.replace("&amp;", "&")
+
+    GOOD_PRICE = "<span>$5.25</span><span>last trade, Oct 10 10:56 UTC</span><span>close $4.88, Oct 9</span>"
+
+    def test_a_clean_site_passes(self):
+        failures, counts = self.ua().audit("x", self.site([
+            self.row("LONG", self.GOOD_PRICE, "<span>★ RISING STAR ↑</span><span>REVERSED: SHORT ➔ LONG</span>"),
+            self.row("SHORT", "<span>$9.00</span><span>Oct 9 close</span>", "<span>★ FALLING STAR ↓</span>"),
+        ]))
+        self.assertEqual(failures, [])
+        self.assertEqual(counts["price_cells_with_trade"], 1 * len(self.ua().PAGES))
+
+    def test_each_planted_violation_is_caught(self):
+        ua = self.ua()
+        cases = {
+            "the close as the headline": self.row("LONG", "<span>close $4.88</span><span>last trade, Oct 10 10:56 UTC</span>"),
+            "a trade with no close labelled": self.row("LONG", "<span>$5.25</span><span>last trade, Oct 10 10:56 UTC</span>"),
+            "a Falling Star on a LONG": self.row("LONG", self.GOOD_PRICE, "<span>★ FALLING STAR ↓</span>"),
+            "a Rising Star on a SHORT": self.row("SHORT", self.GOOD_PRICE, "<span>★ RISING STAR ↑</span>"),
+            "a change badge ending in another verdict": self.row("WAIT", self.GOOD_PRICE, "<span>REVERSED: SHORT ➔ LONG</span>"),
+            "a placeholder": self.row("LONG", "<span>none stored</span>"),
+        }
+        for name, bad in cases.items():
+            failures, _ = ua.audit("x", self.site([bad]))
+            self.assertTrue(failures, name)
+        failures, _ = ua.audit("x", self.site([], "<details open><summary>Held back: 3 names</summary></details>"))
+        self.assertTrue(any("open on load" in f for f in failures))
+
+    def test_it_runs_every_hour_with_the_watchdog_and_its_failure_is_the_alert(self):
+        import yaml
+
+        wf = yaml.safe_load((ROOT / ".github" / "workflows" / "cron-watchdog.yml").read_text(encoding="utf-8"))
+        steps = wf["jobs"]["watch"]["steps"]
+        audit = [s for s in steps if "ui_audit.py" in s.get("run", "")]
+        self.assertEqual(len(audit), 1)
+        self.assertFalse(audit[0].get("continue-on-error", False), "a broken display rule must turn the run red")
+
+
 class ShortLevelsAreMirrored(unittest.TestCase):
     """A short's stop belongs above the price, not below it.
 
