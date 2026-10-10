@@ -2327,3 +2327,15 @@ reads rows that already exist:
     are one closed line, "Held back: N names with no call today", which also says how many calls ended in
     the latest cycle so a holder cannot miss an invalidation. WAIT is not hidden from the data or the
     log, only from the first screen: a held-back name stays findable, with its reason.
+
+81. **The five display and patience gates are checked on the live pages, hourly, not only in code.**
+    Audited 2026-10-10 against the "institutional stability" directive. Each gate already held: one
+    price per line (rule 79); no badge contradicting its call (rule 80); verdicts read only from daily
+    closes, with the stop tested against the daily close and a session still trading never stored as
+    one (rule 41), so an intraday wick or a 15-minute spike cannot flip or invalidate a call; a macro
+    veto that only ever holds, never flips, and lapses after a day; an unconfirmed reversal against a
+    recent call held until confirmed (rule 80); WAIT folded away on every page. `tools/ui_audit.py` now
+    reads the rendered pages in the hourly watchdog and turns the run red on any violation -- tested by
+    planting each one. First production result: 654 rows, 0 violations. Not built, and said so: a
+    "Rising Star" attached to every confirmed flip. The marker means a measured entry event fired; a
+    flip without one gets none, because attaching it anyway would be the invented signal rule 78 refuses.
