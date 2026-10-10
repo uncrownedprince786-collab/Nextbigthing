@@ -2339,3 +2339,18 @@ reads rows that already exist:
     planting each one. First production result: 654 rows, 0 violations. Not built, and said so: a
     "Rising Star" attached to every confirmed flip. The marker means a measured entry event fired; a
     flip without one gets none, because attaching it anyway would be the invented signal rule 78 refuses.
+
+82. **The lists print calls; WAIT lives in the log, the reasons and the asset page.**
+    The action cell of a held-back row prints "Held back" in plain text and no WAIT pill, and a change
+    badge is shown on a row or header only when it is a flip between two directions (REVERSED); every
+    change that passes through WAIT stays in the asset page's timeline, where a holder looks for what
+    happened to a call. The price cell is one price and one line: the newest trade with its own time, or
+    the close with its day -- never both; the decision still reads the daily close, and the asset page
+    shows it beside the price history. The home page's held-back list is the same row component as the
+    sector pages, its heading is "Today's calls: LONG or SHORT", and Events and Methodology are off the
+    header and footer (the pages still exist). `/privacy` states only what the code does: no accounts,
+    no forms, no cookies, no analytics, standard hosting logs at Vercel; it is a plain-language policy,
+    not legal advice. `tools/ui_audit.py` now also checks no WAIT in any action cell, the one-price rule,
+    and pool parity (every asset in the database listed on a market page, against `/api/health`'s pool).
+    Its first run against the new pages failed five times on its own bug -- `<li[^>]*>` matched
+    `<link>` in the page head -- which is the second time a checker's first run caught the checker.

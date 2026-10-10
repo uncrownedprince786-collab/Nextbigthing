@@ -7,12 +7,14 @@ Every rule here was asked for and built (brain.md rules 74, 78, 79 and 80); this
 they still hold on the pages people actually read, not just in the code that renders them. It reads the
 rendered HTML of the home page and every market page and checks, row by row:
 
-  1. one price per line: when a row leads with a last trade, the trade's own time is the line under
-     it and the close the decision reads comes after, labelled -- the headline is never the close;
+  1. one price and one line: the headline is a single price, and the line under it is either that
+     trade's time ("Last trade · Oct 10 10:56 UTC") or the close's day ("Oct 9 close") -- never both;
   2. no badge contradicts its call: no Falling Star on a LONG, no Rising Star on a SHORT, and a
      change badge always ends in the verdict the row shows;
-  3. no placeholder cell: "none stored", "not stored", "not applicable", "N/A", "N waiting";
-  4. the held-back list is folded away on every page that has one.
+  3. no WAIT in any action cell: no WAIT pill and no change badge passing through WAIT;
+  4. no placeholder cell: "none stored", "not stored", "not applicable", "N/A", "N waiting";
+  5. the held-back list is folded away on every page that has one;
+  6. pool parity: every asset the database holds is listed on one of the market pages.
 
 Exit 0 when every check passes, 1 when any fails (with the row that failed), 2 when the site cannot be
 read. Read-only: it fetches pages and changes nothing.
@@ -26,6 +28,8 @@ import sys
 import urllib.request
 
 PAGES = ["/", "/stocks", "/crypto", "/psx", "/forex", "/commodities"]
+CLASS_PAGES = ["/stocks", "/crypto", "/psx", "/forex", "/commodities"]
+PRICE = r"[$€£¥]?(?:Rs\.?)?\s?-?[\d,]+\.\d+"
 BANNED = re.compile(r"(?i)none stored|not stored|not applicable|\bN/A\b|\b\d+ waiting\b")
 TAG = re.compile(r"<[^>]+>")
 
@@ -35,32 +39,40 @@ def text_of(html: str) -> str:
 
 
 def rows_of(html: str) -> list[str]:
-    """The text of every decision row on a page: list items that carry an Action cell."""
-    return [t for t in (text_of(li) for li in re.findall(r"<li[^>]*>(.*?)</li>", html, re.S)) if " Action " in f" {t} "]
+    """The text of every decision row on a page: list items that carry an Action cell.
+
+    `<li` followed by whitespace or `>` only: a bare `<li[^>]*>` also matches `<link ...>` in the
+    page head, and once read every market page as one giant "row" -- a false failure, caught on its
+    first run against the live pages."""
+    return [t for t in (text_of(li) for li in re.findall(r"<li(?:\s[^>]*)?>(.*?)</li>", html, re.S)) if " Action " in f" {t} "]
 
 
 def action_of(row: str) -> str | None:
-    m = re.search(r"\bAction (LONG|SHORT|WAIT)\b", row)
+    m = re.search(r"\bAction (LONG|SHORT|WAIT|Held back)\b", row)
     return m.group(1) if m else None
 
 
 def check_price(row: str) -> str | None:
     cell = row.split("Price & time", 1)[-1].split("Entry zone", 1)[0]
-    if "last trade," not in cell:
+    if "no close yet" in cell:
         return None
-    head = cell.index("last trade,")
-    # The headline is the first price in the cell and it sits before the trade's time line.
-    if not re.search(r"[$€£¥₨Rs]*\s?[\d,]+\.\d+", cell[:head]):
-        return "a last trade's time is printed with no price above it"
-    if "close" in cell[:head].lower():
-        return "the close is printed above the last trade, as if it were the headline"
-    if not re.search(r"\bclose\b", cell[head:]):
-        return "a last trade is the headline but the close the decision reads is not labelled under it"
+    prices = re.findall(PRICE, cell)
+    if len(prices) != 1:
+        return f"the price cell carries {len(prices)} prices, not one"
+    trade, close = "Last trade" in cell, re.search(r"\bclose\b", cell) is not None
+    if trade and close:
+        return "the price cell carries both a last trade and a close line"
+    if not trade and not close:
+        return "the price cell says neither which trade nor which close it is"
     return None
 
 
 def check_badges(row: str) -> str | None:
     action = action_of(row)
+    if action == "WAIT":
+        return "a WAIT pill in the action cell"
+    if re.search(r"\b(?:REVERSED|INVALIDATED|OVERRIDDEN|WITHDRAWN|NEW CALL): [^ ]* ?➔ ?WAIT\b|\b(?:REVERSED|INVALIDATED|OVERRIDDEN|WITHDRAWN|NEW CALL): WAIT\b", row):
+        return "a change badge passing through WAIT"
     if action == "LONG" and "FALLING STAR" in row:
         return "Falling Star on a LONG"
     if action == "SHORT" and "RISING STAR" in row:
@@ -82,12 +94,15 @@ def folded(html: str, summary_start: str) -> bool | None:
 def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
     fetch = fetch or (lambda url: urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "nbt-ui-audit"}), timeout=60).read().decode("utf-8", "replace"))
     failures: list[str] = []
-    counts = {"rows": 0, "price_cells_with_trade": 0, "stars": 0, "changes": 0}
+    counts = {"rows": 0, "price_cells_with_trade": 0, "stars": 0, "changes": 0, "listed": 0, "pool": 0}
+    listed: set[str] = set()
     for page in PAGES:
         html = fetch(site + page)
+        if page in CLASS_PAGES:
+            listed.update(re.findall(r'href="/asset/([^"#?]+)"', html))
         for row in rows_of(html):
             counts["rows"] += 1
-            counts["price_cells_with_trade"] += "last trade," in row
+            counts["price_cells_with_trade"] += "Last trade" in row
             counts["stars"] += len(re.findall(r"(RISING|FALLING) STAR", row))
             counts["changes"] += len(re.findall(r"\b(REVERSED|INVALIDATED|OVERRIDDEN|WITHDRAWN|NEW CALL):", row))
             for check in (check_price, check_badges):
@@ -101,6 +116,13 @@ def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
             state = folded(html, summary)
             if state is False:
                 failures.append(f"{page}: the '{summary}' list is open on load")
+    # Pool parity: every asset the database holds appears on one of the market pages.
+    import json
+
+    pool = json.loads(fetch(site + "/api/health")).get("pool")
+    counts["listed"], counts["pool"] = len(listed), pool or 0
+    if isinstance(pool, int) and len(listed) != pool:
+        failures.append(f"pool parity: the market pages list {len(listed)} assets, the database holds {pool}")
     return failures, counts
 
 
@@ -113,7 +135,8 @@ def main() -> int:
         return 2
     print(
         f"ui audit: {counts['rows']} rows on {len(PAGES)} pages, {counts['price_cells_with_trade']} led by a last trade, "
-        f"{counts['stars']} star markers, {counts['changes']} change badges"
+        f"{counts['stars']} star markers, {counts['changes']} change badges, "
+        f"{counts['listed']} of {counts['pool']} assets listed on the market pages"
     )
     if failures:
         print(f"ui audit: {len(failures)} FAILED")

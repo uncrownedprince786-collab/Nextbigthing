@@ -80,15 +80,16 @@ test("the list and the asset page take the change from the same functions", () =
   assert.ok(decision.slice(decision.indexOf("function DecisionRows(")).includes("<StateChangeBadge"));
 });
 
-test("PRICE: the big number and the line under it are one trade, and the close is labelled apart", () => {
+test("PRICE: one price and one line -- the trade with its own time, or the close with its day", () => {
   const decision = readFileSync(new URL("../components/decision.tsx", import.meta.url), "utf8");
   const rows = decision.slice(decision.indexOf("function DecisionRows("));
   const cell = rows.slice(rows.indexOf("<span className={ROW_LABEL}>Price & time</span>"), rows.indexOf("<span className={ROW_LABEL}>Entry zone</span>"));
   const quoted = cell.slice(cell.indexOf("{r.quote ? ("), cell.indexOf(") : ("));
   // Inside the quoted branch the headline is the trade's price and the line under it is the trade's time.
   assert.ok(quoted.indexOf("price(r.quote.price, currency)") < quoted.indexOf("clockUtc(r.quote.quotedAt)"));
-  // The close appears only as a labelled line, never as the headline, when a newer trade exists.
-  assert.match(quoted, /close \{price\(r\.priceNow, currency\)\}/);
+  // When a trade leads, the close is not printed in the cell at all: one price, one line.
+  assert.ok(!quoted.includes("r.priceNow"), "the quoted branch prints no second price");
+  assert.match(quoted, /Last trade ·/);
   // The first price after the headline style is the trade's, so the close cannot be the headline.
   const head = quoted.indexOf("font-medium");
   assert.ok(head > 0 && quoted.startsWith("price(r.quote.price", quoted.indexOf("price(", head)), "the headline is the trade");

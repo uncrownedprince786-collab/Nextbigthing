@@ -38,6 +38,8 @@ export interface HealthReadings {
   newestNews: Date | string | null;
   /// Information only: quotes are opt-in (`LIVE_QUOTES`), so an old quote is not a fault by itself.
   newestQuote: Date | string | null;
+  /// How many assets the universe holds, so a page that lists fewer can be caught (tools/ui_audit.py).
+  pool?: number;
 }
 
 export interface Problem {
@@ -54,6 +56,7 @@ export interface Health {
   decisions: { newest: string | null; ageDays: number | null };
   news: { newest: string | null; ageHours: number | null };
   quotes: { newest: string | null; ageMinutes: number | null };
+  pool: number | null;
 }
 
 function dayAge(iso: string | null, now: Date): number | null {
@@ -121,5 +124,6 @@ export function assess(r: HealthReadings, now: Date): Health {
       newest: r.newestQuote ? new Date(r.newestQuote).toISOString() : null,
       ageMinutes: quoteMs === null ? null : Math.round(quoteMs / 60_000),
     },
+    pool: r.pool ?? null,
   };
 }

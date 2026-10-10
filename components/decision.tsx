@@ -126,6 +126,14 @@ export function StateChangeBadge({ c }: { c: StateChange }) {
   );
 }
 
+/// The change a row or a header shows: a flip between two directions, and nothing that passes through
+/// WAIT. WAIT is the rule table's working state; on the lists it is not printed as a verdict, so a badge
+/// naming it would bring back the one word the lists keep out. The full history, WAIT included, stays in
+/// the asset page's timeline, where a holder looks for what happened to a call.
+export function shownChange(c: StateChange | null | undefined): StateChange | null {
+  return c && c.kind === "REVERSED" ? c : null;
+}
+
 /// The change timeline at the top of an asset page: every change the log holds for the last 60 days,
 /// newest first, and an alert treatment when the newest cycle carried one a holder must not miss.
 export function ChangeBanner({ changes, latest }: { changes: Transition[]; latest: StateChange | null }) {
@@ -454,7 +462,7 @@ export function DecisionPanel({
               judgement where nothing was judged; the basis chip beside it already says why. */}
           {decision.action === "WAIT" ? null : <ConfidenceBadge grade={grade} />}
           {early ? <EarlySignalBadge s={early} /> : null}
-          {change ? <StateChangeBadge c={change} /> : null}
+          {shownChange(change) ? <StateChangeBadge c={shownChange(change)!} /> : null}
           <AsOf date={asOf} />
         </span>
       </div>
@@ -473,19 +481,13 @@ export function DecisionPanel({
           one the market last printed. Three columns from `sm` up; at 375px all of them stack,
           which is the point — nothing in this block may need a second column to be legible. */}
       <div className="border-border mt-4 grid gap-3 border-t pt-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Price & time" hint="The newest trade when one is stored; the close the decision is read from is under it.">
+        <Field label="Price & time" hint="The newest trade when one is stored, else the close. The decision reads the daily close, shown under Price and history.">
           {quote ? (
             <span className="block">
               <span className="num text-lg font-semibold">{price(quote.price, currency)}</span>
               <span className="text-muted-foreground text-micro block">
-                last trade, {shortDay(quote.quotedAt.slice(0, 10))} {clockUtc(quote.quotedAt)}
+                Last trade · {shortDay(quote.quotedAt.slice(0, 10))} {clockUtc(quote.quotedAt)}
               </span>
-              {priceNow !== null ? (
-                <span className="text-muted-foreground num text-micro block">
-                  close {price(priceNow, currency)}
-                  {asOf ? `, ${shortDay(new Date(asOf).toISOString().slice(0, 10))}` : ""} (the decision reads this)
-                </span>
-              ) : null}
             </span>
           ) : priceNow !== null ? (
             <span className="block">
@@ -1133,12 +1135,19 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
               <span className="min-w-0">
                 <span className={ROW_LABEL}>Action</span>
                 <span className="mt-0.5 flex flex-wrap items-center gap-1 lg:mt-0">
-                  <Pill tone={ACTION_TONE[r.action]}>{r.action}</Pill>
+                  {/* A held-back row prints no verdict pill: WAIT is the rule table's working state,
+                      not a call, and the list it sits in already says the names in it are held back.
+                      Its reason is in the row, under "Why no call". */}
+                  {r.action === "WAIT" ? (
+                    <span className="text-muted-foreground text-sm">Held back</span>
+                  ) : (
+                    <Pill tone={ACTION_TONE[r.action]}>{r.action}</Pill>
+                  )}
                   {/* The grade rides with the action it grades. It had a column of its own, which the
                       horizon now has; a WAIT carries none, because a grade grades a direction. */}
                   {r.action === "WAIT" ? null : <ConfidenceBadge grade={r.confidence.toLowerCase()} />}
                   {r.early ? <EarlySignalBadge s={r.early} /> : null}
-                  {r.change ? <StateChangeBadge c={r.change} /> : null}
+                  {shownChange(r.change) ? <StateChangeBadge c={shownChange(r.change)!} /> : null}
                   {/* A dated event is a hazard on a row that says LONG, and the rule table
                       already decided that by setting the time sense. Printed as its own word
                       rather than a colour, because colour is not a reason. */}
@@ -1151,28 +1160,21 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
 
               <span className="min-w-0">
                 <span className={ROW_LABEL}>Price & time</span>
-                {/* One price per line and each line says what it is. The big number is the newest
-                    trade when one is stored and adds something, with its own day and UTC time directly
-                    under it -- the two can no longer disagree, because they are one fact. The close the
-                    decision is read from is the third line, labelled, so a reader can see why the
-                    levels are where they are. */}
+                {/* One price and one line under it. The headline is the newest stored trade when there
+                    is one that says something the close does not, with that trade's own time beneath;
+                    otherwise the close, with its day. The decision reads the close either way, and the
+                    asset page shows it beside the price history. */}
                 {r.quote ? (
                   <>
                     <span
                       className="num block text-sm font-medium"
-                      title="The newest stored trade, with the time it was struck. The decision is read from the close under it, never from this."
+                      title="The newest stored trade, with the time it was struck. The decision is read from the daily close."
                     >
                       {price(r.quote.price, currency)}
                     </span>
-                    <span className="text-muted-foreground text-micro block">
-                      last trade, {shortDay(r.quote.quotedAt.slice(0, 10))} {clockUtc(r.quote.quotedAt)}
+                    <span className="text-muted-foreground text-micro block whitespace-nowrap">
+                      Last trade · {shortDay(r.quote.quotedAt.slice(0, 10))} {clockUtc(r.quote.quotedAt)}
                     </span>
-                    {r.priceNow !== null && r.priceNow !== undefined ? (
-                      <span className="text-muted-foreground num text-micro block">
-                        close {price(r.priceNow, currency)}
-                        {r.closeDate ? `, ${shortDay(r.closeDate)}` : ""}
-                      </span>
-                    ) : null}
                   </>
                 ) : (
                   <>

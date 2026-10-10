@@ -5,7 +5,6 @@ import {
   AsOf,
   Card,
   ConfidenceBadge,
-  WaitBasisChip,
   Empty,
   HowToRead,
   Note,
@@ -30,7 +29,6 @@ import {
   ASSET_CLASSES,
   byCloseness,
   byConfidence,
-  eventLabel,
   scoreRows,
   toListRow,
   type Scored,
@@ -43,7 +41,7 @@ import { EVENT_SOON_DAYS } from "@/lib/decision";
 import { DecisionList, SectorBoard } from "@/components/decision";
 import { FilterChips } from "@/components/filters";
 import { describeFilters, readFilters, type FilterGroup } from "@/lib/filters";
-import { isoDate, money, price, pct, sizeLabel, toneClass } from "@/lib/format";
+import { isoDate, money, pct, sizeLabel, toneClass } from "@/lib/format";
 
 // The home page is three lists and nothing else above the fold.
 //
@@ -226,79 +224,6 @@ function byUrgency(a: Scored, b: Scored): number {
 
 /// LONG and SHORT, best-evidenced first. A High-confidence row is the one worth reading, and within
 /// a grade the symbol keeps the order stable.
-/// One WAIT card.
-///
-/// Not a `DecisionList` row, and this is the one place the three lists differ in shape. A WAIT row's
-/// two price columns are usually "none stored" — that absence is frequently the whole reason the row
-/// is in WAIT — so the six-column layout would spend most of its width printing the same two words
-/// over and over, with no room left for the thing the reader came for. What a WAIT row owes the
-/// reader is the reason, in a sentence, and a sentence does not fit in a column. So the fields the
-/// user's spec asks for are all here, stacked: name, market, action, entry, invalidation, confidence
-/// and the link, with the reason given the width it needs.
-function WaitCard({ item }: { item: Scored }) {
-  const { row, decision, market } = item;
-  const event = eventLabel(row);
-  const currency = row.currency;
-
-  return (
-    <Card href={`/asset/${encodeURIComponent(row.symbol)}`} className="space-y-1.5">
-      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-        <span className="min-w-0">
-          <span className="block text-sm font-medium">{row.name}</span>
-          <span className="num text-muted-foreground block text-xs">{row.symbol}</span>
-        </span>
-        <span className="flex flex-wrap items-center gap-2">
-          <Pill tone="default">{market}</Pill>
-          <Pill tone="warn">WAIT</Pill>
-          {/* Why it is a WAIT, which the grade alone cannot say: "Low" reads as a weak judgement
-              even when nothing was judged at all. */}
-          <WaitBasisChip basis={decision.basis} />
-        </span>
-      </div>
-
-      {event ? <p className="text-warn text-xs font-medium">{event}</p> : null}
-
-      {/* The reason, always. A WAIT with no reason printed is the silent empty this page exists to
-          end, so the fallback is a sentence that says the absence is itself a fault. */}
-      <p className="text-sm leading-relaxed">
-        {decision.why[0] ?? "No reason was recorded for this WAIT, which is itself a fault."}
-      </p>
-
-      {decision.missing.length ? (
-        <ul className="space-y-0.5">
-          {decision.missing.slice(0, 2).map((m, i) => (
-            <li key={i} className="text-muted-foreground text-xs leading-relaxed">
-              {m}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      {/* The same three words the tables use. This card is the one place on the site that still
-          said "Entry" and "Exit if wrong" after the relabelling, because it is not a
-          `DecisionList` row and the sweep that renamed the columns did not reach it. A reader
-          moving between the overview and a market page must not meet two vocabularies for one
-          level. The current price leads, for the reason it leads everywhere else: every figure
-          after it is read against it. */}
-      <p className="text-muted-foreground text-xs">
-        Price{" "}
-        <span className="num">
-          {row.close !== null ? price(row.close, currency) : "no close yet"}
-        </span>
-        {" · "}Entry zone{" "}
-        <span className="num">
-          {decision.entry
-            ? `${price(decision.entry.low, currency)} to ${price(decision.entry.high, currency)}`
-            : "no entry band measured"}
-        </span>
-        {" · "}Stop loss{" "}
-        <span className="num">
-          {decision.invalidation !== null ? price(decision.invalidation, currency) : "no stop level set"}
-        </span>
-      </p>
-    </Card>
-  );
-}
 
 /// One developing card: the direction forming, and what would confirm it.
 ///
@@ -450,7 +375,7 @@ export default async function Home({
   return (
     <div className="space-y-2">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">LONG, SHORT or WAIT</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Today&apos;s calls: LONG or SHORT</h1>
         {/* What the site is, before what it says. Someone arriving here for the first time has
             three words in 48px type in front of them and no way to tell whether this is a tip
             sheet; the old subtitle began "One verdict per asset, from the same rule table the
@@ -626,11 +551,12 @@ export default async function Home({
           </p>
           {waits.length ? (
             <>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {waits.slice(0, WAIT_SHOWN).map((s) => (
-                  <WaitCard key={s.row.symbol} item={s} />
-                ))}
-              </div>
+              {/* The same row component, columns and badges as every sector page. */}
+              <DecisionList
+                title="Held back, most urgent first"
+                rows={waits.slice(0, WAIT_SHOWN).map(toListRow)}
+                empty={<>Every name here has a call.</>}
+              />
               {waitHidden > 0 ? (
                 <p className="text-muted-foreground mt-3 text-sm">
                   <span className="num">{waitHidden}</span> further assets are held back for reasons
@@ -654,7 +580,7 @@ export default async function Home({
       <p className="text-muted-foreground border-border mt-6 border-t pt-4 text-sm">
         <strong className="text-foreground">LONG</strong> or{" "}
         <strong className="text-foreground">SHORT</strong> means the rules found a setup and a
-        level that would prove it wrong. <strong className="text-foreground">WAIT</strong> means
+        level that would prove it wrong. <strong className="text-foreground">Held back</strong> means
         no clear action today. None of it is a promise, and confidence says how much evidence sat
         behind the reading — not how likely it is to work.
       </p>

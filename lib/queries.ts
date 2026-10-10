@@ -829,7 +829,7 @@ export async function getQuoteTarget(symbol: string) {
 /// asset is filed under the market the rule table gives it (`marketOf`), so "stale" here and "stale" on
 /// a decision are the same judgement. The quote read fails open: quotes are optional.
 export async function getHealthReadings() {
-  const [groups, decision, news] = await Promise.all([
+  const [groups, decision, news, pool] = await Promise.all([
     prisma.$queryRaw<{ assetType: string; market: string | null; newest: Date | null }[]>`
       SELECT a."assetType"::text AS "assetType", i.market::text AS market, max(p.date) AS newest
         FROM "Asset" a
@@ -840,6 +840,7 @@ export async function getHealthReadings() {
        GROUP BY 1, 2`,
     prisma.decisionLog.aggregate({ _max: { periodEnd: true } }),
     prisma.news.aggregate({ _max: { publishedAt: true } }),
+    prisma.asset.count(),
   ]);
   let newestQuote: Date | null = null;
   try {
@@ -862,6 +863,7 @@ export async function getHealthReadings() {
     newestDecision: decision._max.periodEnd ? decision._max.periodEnd.toISOString().slice(0, 10) : null,
     newestNews: news._max.publishedAt ?? null,
     newestQuote,
+    pool,
   };
 }
 

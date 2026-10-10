@@ -7399,9 +7399,14 @@ class NoPlaceholdersInTheRenderedLayer(unittest.TestCase):
     def test_no_grade_is_printed_for_a_decision_that_made_no_call(self):
         decision = code_only((ROOT / "components" / "decision.tsx").read_text(encoding="utf-8"))
         self.assertIn('decision.action === "WAIT" ? null : <ConfidenceBadge grade={grade} />', decision)
+        # The overview's held-back list is the same row component as every sector page now, so the rule
+        # is the row's: a held-back row prints no WAIT pill and no grade.
         overview = code_only((ROOT / "app" / "page.tsx").read_text(encoding="utf-8"))
-        wait_card = overview[overview.index('<Pill tone="warn">WAIT</Pill>') :][:400]
-        self.assertNotIn("ConfidenceBadge", wait_card)
+        self.assertNotIn('<Pill tone="warn">WAIT</Pill>', overview)
+        self.assertNotIn("function WaitCard(", overview)
+        rows = decision[decision.index("function DecisionRows(") :]
+        self.assertIn('r.action === "WAIT" ? (' + chr(10) + '                    <span className="text-muted-foreground text-sm">Held back</span>', rows)
+        self.assertIn('{r.action === "WAIT" ? null : <ConfidenceBadge grade={r.confidence.toLowerCase()} />}', rows)
 
 
 class TheLiveLane(unittest.TestCase):
@@ -7928,16 +7933,18 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
             f"<span>Price &amp; time</span>{price_cell}<span>Entry zone</span>$1 to $2</li>"
         )
 
-    def site(self, rows, details="<details><summary>Held back: 3 names</summary></details>"):
+    def site(self, rows, details="<details><summary>Held back: 3 names</summary></details>", pool=None):
         page = "<html><body><ul>" + "".join(rows) + "</ul>" + details + "</body></html>"
-        return lambda url: page.replace("&amp;", "&")
+        page = page.replace("&amp;", "&")
+        return lambda url: ('{"pool": %s}' % ("null" if pool is None else pool)) if url.endswith("/api/health") else page
 
-    GOOD_PRICE = "<span>$5.25</span><span>last trade, Oct 10 10:56 UTC</span><span>close $4.88, Oct 9</span>"
+    GOOD_PRICE = "<span>$5.25</span><span>Last trade · Oct 10 10:56 UTC</span>"
 
     def test_a_clean_site_passes(self):
         failures, counts = self.ua().audit("x", self.site([
             self.row("LONG", self.GOOD_PRICE, "<span>★ RISING STAR ↑</span><span>REVERSED: SHORT ➔ LONG</span>"),
             self.row("SHORT", "<span>$9.00</span><span>Oct 9 close</span>", "<span>★ FALLING STAR ↓</span>"),
+            self.row("Held back", "<span>$3.00</span><span>Oct 9 close</span>"),
         ]))
         self.assertEqual(failures, [])
         self.assertEqual(counts["price_cells_with_trade"], 1 * len(self.ua().PAGES))
@@ -7945,11 +7952,13 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
     def test_each_planted_violation_is_caught(self):
         ua = self.ua()
         cases = {
-            "the close as the headline": self.row("LONG", "<span>close $4.88</span><span>last trade, Oct 10 10:56 UTC</span>"),
-            "a trade with no close labelled": self.row("LONG", "<span>$5.25</span><span>last trade, Oct 10 10:56 UTC</span>"),
+            "two prices in the cell": self.row("LONG", "<span>$5.25</span><span>Last trade · 10:56 UTC</span><span>close $4.88, Oct 9</span>"),
+            "a price that says neither trade nor close": self.row("LONG", "<span>$5.25</span>"),
+            "a WAIT pill": self.row("WAIT", self.GOOD_PRICE),
+            "a change badge through WAIT": self.row("LONG", self.GOOD_PRICE, "<span>NEW CALL: WAIT ➔ LONG</span>"),
             "a Falling Star on a LONG": self.row("LONG", self.GOOD_PRICE, "<span>★ FALLING STAR ↓</span>"),
             "a Rising Star on a SHORT": self.row("SHORT", self.GOOD_PRICE, "<span>★ RISING STAR ↑</span>"),
-            "a change badge ending in another verdict": self.row("WAIT", self.GOOD_PRICE, "<span>REVERSED: SHORT ➔ LONG</span>"),
+            "a change badge ending in another verdict": self.row("SHORT", self.GOOD_PRICE, "<span>REVERSED: SHORT ➔ LONG</span>"),
             "a placeholder": self.row("LONG", "<span>none stored</span>"),
         }
         for name, bad in cases.items():
@@ -7957,6 +7966,20 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
             self.assertTrue(failures, name)
         failures, _ = ua.audit("x", self.site([], "<details open><summary>Held back: 3 names</summary></details>"))
         self.assertTrue(any("open on load" in f for f in failures))
+        # Pool parity: the database holds more assets than the market pages list.
+        listed = self.row("LONG", self.GOOD_PRICE).replace("<li>", '<li><a href="/asset/MRK">')
+        failures, counts = ua.audit("x", self.site([listed], pool=2))
+        self.assertTrue(any("pool parity" in f for f in failures), failures)
+        failures, counts = ua.audit("x", self.site([listed], pool=1))
+        self.assertEqual(failures, [])
+
+    def test_a_link_tag_in_the_head_is_not_read_as_a_row(self):
+        # Its first live run read `<link ...>` as `<li ...>` and every market page as one giant row.
+        head = '<html><head><link rel="icon" href="/i.png"><title>Stocks</title></head><body>'
+        page = head + "<ul>" + self.row("LONG", self.GOOD_PRICE) + "</ul></body></html>"
+        rows = self.ua().rows_of(page.replace("&amp;", "&"))
+        self.assertEqual(len(rows), 1)
+        self.assertTrue(rows[0].startswith("Name Merck"))
 
     def test_it_runs_every_hour_with_the_watchdog_and_its_failure_is_the_alert(self):
         import yaml

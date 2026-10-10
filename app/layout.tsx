@@ -30,8 +30,6 @@ const NAV = [
   { href: "/forex", label: "Forex" },
   { href: "/commodities", label: "Commodities" },
   { href: "/products", label: "Products" },
-  { href: "/events", label: "Events" },
-  { href: "/methodology", label: "Methodology" },
 ];
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -117,8 +115,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               investment advice or a prediction, and where an event sits next to a price
               move the site is reporting a sequence, not a cause.
             </p>
-            <Link href="/methodology" className="underline underline-offset-2">
-              How each number is measured, and what is missing
+            <Link href="/privacy" className="underline underline-offset-2">
+              Privacy and disclaimer
             </Link>
           </div>
         </footer>
