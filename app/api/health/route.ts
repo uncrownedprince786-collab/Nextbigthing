@@ -1,4 +1,5 @@
 import { getHealthReadings } from "@/lib/queries";
+import { cachedDecisionRows } from "@/lib/cached";
 import { assess } from "@/lib/health";
 
 /// The site's heartbeat: how fresh every stored reading is, and which lane would fix what is not.
@@ -9,7 +10,13 @@ import { assess } from "@/lib/health";
 /// can report -- and the watchdog treats it as the one problem only a person can fix.
 export async function GET() {
   try {
-    const health = assess(await getHealthReadings(), new Date());
+    // The pool is counted from the same cached list the market pages are built from, so the page
+    // checker compares the pages with what they were given. Counted from the table, it raced the
+    // nightly pool job: membership changed at once, the pages within the hour, and the hourly check
+    // reported a parity failure that fixed itself (2026-10-10, 523 of 528). The table count stays
+    // the fallback when the cached list cannot be read.
+    const [readings, rows] = await Promise.all([getHealthReadings(), cachedDecisionRows().catch(() => null)]);
+    const health = assess(rows ? { ...readings, pool: rows.length } : readings, new Date());
     return Response.json(health, {
       status: 200,
       headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60" },
