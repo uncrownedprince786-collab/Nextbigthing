@@ -113,7 +113,11 @@ def main() -> None:
     # and nothing said which database it was. Now it is said, and the standby is refused.
     provider = provider_of(os.environ.get("DATABASE_URL", ""))
     print(f"  DATABASE_URL points at: {provider}")
-    if provider == "Supabase":
+    # Unless Supabase was made the primary on purpose: the repository variable PRIMARY=supabase says so
+    # (brain.md rule 88). A pasted wrong secret cannot set a variable, so the mistake above stays refused.
+    if provider == "Supabase" and os.environ.get("PRIMARY", "").strip().lower() == "supabase":
+        print("  Supabase is the primary by the PRIMARY=supabase repository variable.")
+    elif provider == "Supabase":
         print("  refusing: that is the standby, which the website does not read. The data lanes must")
         print("  write to the primary (Neon). Set the DATABASE_URL secret to the line in .env that")
         print("  starts with DATABASE_URL=, not the one that starts with SUPABASE_DATABASE_URL=.")

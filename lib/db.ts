@@ -13,7 +13,30 @@ const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 ///
 /// What a standby is and is not (a copy that `jobs/mirror.py` refreshes, possibly behind, never a
 /// place anything is written) is in lib/failover.ts.
-function standbys(): StandbyConfig[] {
+/// The host, port and database a connection string selects, credentials and `-pooler` ignored, so the
+/// primary and a standby that are the same database compare equal.
+function databaseKey(url: string): string {
+  try {
+    const u = new URL(url);
+    return `${u.hostname.replace("-pooler", "")}:${u.port || "5432"}${u.pathname}`;
+  } catch {
+    return url;
+  }
+}
+
+/// A Supabase pooler admits 15 session clients in all, shared by every server instance and every job;
+/// pg's default of 10 per instance would fill it on the second instance. So a Supabase primary gets
+/// two connections per instance, let go after two seconds idle. Neon is unchanged.
+export function primaryLimits(url: string): { max?: number; idleTimeoutMillis?: number; allowExitOnIdle?: boolean } {
+  try {
+    if (new URL(url).hostname.endsWith(".supabase.com")) return { max: 2, idleTimeoutMillis: 2_000, allowExitOnIdle: true };
+  } catch {
+    // An unparseable string is pg's problem to report, not this function's.
+  }
+  return {};
+}
+
+function standbys(primary: string): StandbyConfig[] {
   const candidates: { name: string; url: string | undefined }[] = [
     // Trimmed: a value pasted with its trailing line break names a database that does not exist.
     { name: "the second Neon project", url: process.env.DATABASE_URL_FALLBACK?.trim() },
@@ -21,6 +44,8 @@ function standbys(): StandbyConfig[] {
   ];
   return candidates
     .filter((c): c is { name: string; url: string } => Boolean(c.url))
+    // A standby that is the primary itself (Supabase promoted to primary) is not a second chance.
+    .filter((c) => databaseKey(c.url) !== databaseKey(primary))
     .map((c) => ({ name: c.name, config: { connectionString: withEncryption(c.url) } }));
 }
 
@@ -31,7 +56,7 @@ function create() {
       "DATABASE_URL is not set. Copy .env.example to .env and paste the Neon connection string.",
     );
   }
-  const pool = makeFailoverPool({ connectionString: url }, standbys());
+  const pool = makeFailoverPool({ connectionString: url, ...primaryLimits(url) }, standbys(url));
   return new PrismaClient({ adapter: new PrismaPg(pool) });
 }
 

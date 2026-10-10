@@ -2438,3 +2438,17 @@ reads rows that already exist:
     late columns (`AssetFactor.atr14`, `Asset.active`, `Asset.poolNote`) are therefore not in the
     Prisma model; `getLateColumns` reads them raw and fail-open, and a database without them serves
     the site as it was before them. Standbys must be migrated whenever the primary is.
+
+88. **Supabase can be the primary, on purpose only; every migration reaches every database.**
+    Neon's free plan meters the hours its compute is awake, and hourly jobs plus page regeneration
+    kept it awake around the clock; on 2026-10-10 it went over quota. Supabase's free plan meters
+    storage (500 MB; the backup used 244 MB) and transfer, not hours, which suits this workload, and
+    the backup already held the full price history (785,231 closes back to 2018), the setups and the
+    call log. So Supabase may be made the primary: the DATABASE_URL secret set to it AND the repository
+    variable PRIMARY=supabase. The schema check still refuses Supabase without the variable, because a
+    wrongly pasted secret was the mistake it was written for and cannot set a variable. A Supabase
+    primary gets two connections per server instance (its pooler admits 15 in all) and is never listed
+    as its own standby. The schema workflow now migrates the standbys right after the primary, so a
+    failover never again lands on a database missing a column. Test suites never touch a database
+    (they use stand-ins); what burned the quota alongside the jobs was development-time measuring and
+    page checks against a local server that read the production database. That is not done again.

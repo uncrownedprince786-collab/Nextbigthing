@@ -122,6 +122,25 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit $code
 
+      # The standbys get the same migrations, every time (brain.md rule 87). On 2026-10-10 the primary
+      # went over its quota, the site failed over to a standby two migrations behind, and every page
+      # that read a new column failed. A standby that cannot be reached (over its own quota, pooler
+      # full) is reported and skipped: it must not stop the primary's migration or the seed after it.
+      - name: Apply the same migrations to the standbys
+        continue-on-error: true
+        env:
+          DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: |
+          for name in DATABASE_URL_FALLBACK SUPABASE_DATABASE_URL; do
+            url="${!name}"
+            [ -z "$url" ] && { echo "$name is not set, skipped"; continue; }
+            out="$(DATABASE_URL="${url/-pooler./.}" npx prisma migrate deploy 2>&1)"
+            code=$?
+            echo "$out" | sed -E 's#://[^@ ]+@#://***@#g' | tail -3
+            echo "## Migration on $name: exit code \`$code\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

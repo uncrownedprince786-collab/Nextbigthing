@@ -392,3 +392,10 @@ test("a standby pool is small, because a free pooler admits few clients in total
   const src = readFileSync(new URL("../lib/failover.ts", import.meta.url), "utf8");
   assert.match(src, /withTimeout\(s\.config, STANDBY_MAX_CLIENTS\)/);
 });
+
+test("a Supabase primary gets two connections per instance; Neon keeps pg's default", async () => {
+  const src = readFileSync(new URL("../lib/db.ts", import.meta.url), "utf8");
+  assert.match(src, /makeFailoverPool\(\{ connectionString: url, \.\.\.primaryLimits\(url\) \}, standbys\(url\)\)/);
+  assert.match(src, /databaseKey\(c\.url\) !== databaseKey\(primary\)/, "the primary is never its own standby");
+  assert.match(src, /hostname\.endsWith\("\.supabase\.com"\)\) return \{ max: 2,/);
+});

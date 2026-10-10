@@ -15,7 +15,9 @@ import { fetchFreshQuote, isStale, makeMemo, MEMO_TTL_MS, quoteAgeMs, type Quote
 /// full of readers costs the provider one request a minute, not one each.
 const memo = makeMemo<Quote | null>(MEMO_TTL_MS);
 const SYMBOL = /^[A-Za-z0-9.=^-]{1,32}$/;
-const HEADERS = { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" };
+// A minute at the edge, matching the browser's one-minute poll: one database read per symbol per
+// minute however many people have the page open, and a stale answer served while it refreshes.
+const HEADERS = { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" };
 
 export async function GET(request: NextRequest) {
   const symbol = request.nextUrl.searchParams.get("symbol") ?? "";

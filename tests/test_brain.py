@@ -8042,6 +8042,32 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
         self.assertFalse(audit[0].get("continue-on-error", False), "a broken display rule must turn the run red")
 
 
+class SupabaseAsPrimary(unittest.TestCase):
+    """brain.md rule 88: Supabase may be the primary only by the PRIMARY=supabase repository variable,
+    which a wrongly pasted secret cannot set; and every migration reaches the standbys too."""
+
+    def test_the_schema_check_refuses_supabase_unless_the_variable_says_so(self):
+        text = (ROOT / "jobs" / "schemacheck.py").read_text(encoding="utf-8")
+        self.assertIn('os.environ.get("PRIMARY", "").strip().lower() == "supabase"', text)
+        self.assertIn('elif provider == "Supabase":', text)
+        for wf in (ROOT / ".github" / "workflows").glob("*.yml"):
+            body = wf.read_text(encoding="utf-8")
+            if "jobs/schemacheck.py" in body:
+                self.assertIn("PRIMARY: ${{ vars.PRIMARY }}", body, wf.name)
+
+    def test_the_standbys_are_migrated_with_the_primary(self):
+        import yaml
+
+        wf = yaml.safe_load((ROOT / ".github" / "workflows" / "schema.yml").read_text(encoding="utf-8"))
+        steps = [s for job in wf["jobs"].values() for s in job["steps"]]
+        names = [s.get("name") for s in steps]
+        i, j = names.index("Apply pending schema migrations"), names.index("Apply the same migrations to the standbys")
+        self.assertEqual(j, i + 1)
+        standby = steps[j]
+        self.assertTrue(standby.get("continue-on-error"), "an unreachable standby must not stop the primary's run")
+        self.assertEqual(set(standby["env"]), {"DATABASE_URL_FALLBACK", "SUPABASE_DATABASE_URL"})
+
+
 class TheWeeklyAuditLog(unittest.TestCase):
     """`tools/audit_log.py`: the daily entry and Monday review saved to the logbook on /logbook. Every
     verdict is the scorecard's own; nothing is invented; one entry per day, never doubled."""
