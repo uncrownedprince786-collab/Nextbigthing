@@ -94,6 +94,19 @@ jobs:
             echo "names=$names" >> "$GITHUB_OUTPUT"
           fi
 
+      # Rows the lanes wrote to the standby during an outage go back to the primary first
+      # (jobs/reconcile.py). The copies below run primary to standby; without this they would put the
+      # primary's older values over the standby's newer ones -- an outcome measured during the outage,
+      # say, overwritten with the null the primary still held.
+      - name: Copy the standby's outage rows back first
+        if: steps.targets.outputs.any == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/reconcile.py
+
       - name: Prices, a trailing week
         if: steps.targets.outputs.any == 'true'
         env:

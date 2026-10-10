@@ -164,6 +164,7 @@ jobs:
       - name: Seed the reference lists
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/seed.py
 
@@ -186,36 +187,42 @@ jobs:
       - name: Advance the event lifecycle
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/lifecycle.py
 
       - name: Cluster headlines into stories
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/lineage.py
 
       - name: Read the current human signal
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/human.py
 
       - name: Read the near term analogs
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/analogs.py
 
       - name: Measure what followed earlier readings
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/accuracy.py
 
       - name: Read the measured conditions
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/setup.py
 
@@ -226,18 +233,21 @@ jobs:
       - name: Compare each held state against the day it opened
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/thesis.py
 
       - name: Split recent moves into market, industry and specific parts
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/attribution.py
 
       - name: Walk today's catalysts across the stored relationships
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/graph.py
 
@@ -248,12 +258,14 @@ jobs:
       - name: Read the longer term conditions
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/horizons.py longer
 
       - name: Attach measured target ranges
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/horizons.py targets
 
@@ -262,18 +274,21 @@ jobs:
       - name: Investigate the material moves
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/investigate.py
 
       - name: Audit coverage and calibration
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/audit.py
 
       - name: Regenerate the written lines
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/analysis.py
 
@@ -281,5 +296,6 @@ jobs:
         if: always()
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/stats.py

@@ -33,12 +33,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { config as loadEnv } from "dotenv";
-import pg from "pg";
 import Anthropic from "@anthropic-ai/sdk";
 
 import { MACRO_WINDOW_HOURS, evaluate, REFUSAL_REASONS, selectNews, shouldEvaluate } from "../lib/macroGate.ts";
 import { LOCAL_ENGINE, evaluateLocal } from "../lib/macroGateLocal.ts";
 import { todayISO } from "../lib/decisionInput.ts";
+import { writerPool } from "./writer.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 loadEnv({ path: path.join(ROOT, ".env"), quiet: true });
@@ -184,7 +184,8 @@ async function main() {
 
   const today = todayISO();
   const now = new Date();
-  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL.trim(), max: 3 });
+  // The primary, or the standby when it cannot be reached (tools/writer.mjs), like every writer in the lane.
+  const { pool } = await writerPool(3);
   try {
     const present = await pool.query(`SELECT to_regclass('public."MacroGate"') AS t`);
     if (!present.rows[0].t) return say("the MacroGate table does not exist here yet (migration pending). Nothing stored.");

@@ -127,6 +127,7 @@ jobs:
       - name: Refuse to run against a schema that is behind
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PRIMARY: ${{ vars.PRIMARY }}
           PYTHONIOENCODING: utf-8
         run: python jobs/schemacheck.py
@@ -134,6 +135,7 @@ jobs:
       - name: Derive the inputs a decision is read from
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: |
           set +e
@@ -164,6 +166,7 @@ jobs:
         continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: |
           set +e
@@ -216,6 +219,7 @@ jobs:
       - name: Write one decision row per asset
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
           set +e
           out="$(node tools/decide.mjs 2>&1)"
@@ -246,6 +250,7 @@ jobs:
         continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MACRO_GATE: ${{ vars.MACRO_GATE }}
           # Empty or unset means the local rule engine: free, offline, deterministic, no key. Only the value
@@ -272,6 +277,7 @@ jobs:
         continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
           set +e
           out="$(node tools/decide.mjs 2>&1)"
@@ -315,6 +321,7 @@ jobs:
         continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: |
           set +e

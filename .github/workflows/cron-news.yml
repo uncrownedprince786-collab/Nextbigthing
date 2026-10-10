@@ -89,6 +89,7 @@ jobs:
       - name: Refuse to run against a schema that is behind
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PRIMARY: ${{ vars.PRIMARY }}
           PYTHONIOENCODING: utf-8
         run: python jobs/schemacheck.py
@@ -101,6 +102,7 @@ jobs:
       - name: Ingest, dedupe and filter the feeds
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
           PYTHONIOENCODING: utf-8
           # Under the job's 25 minutes, so run.py stops a stuck step itself and reports it as a

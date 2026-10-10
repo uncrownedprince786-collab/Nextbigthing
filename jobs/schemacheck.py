@@ -35,7 +35,8 @@ Exit codes
 
 Run: python jobs/schemacheck.py
 Reads: _prisma_migrations
-Writes: nothing
+Writes: nothing itself. After an outage, jobs/reconcile.py copies the standby's newer rows back to the
+        primary first; when the primary cannot be reached, this checks the standby the run will write.
 """
 
 from __future__ import annotations
@@ -47,6 +48,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import nbt  # noqa: E402
 from nbt import db, rows, step  # noqa: E402
 
 try:
@@ -135,8 +137,15 @@ def main() -> None:
         print("  starts with DATABASE_URL=, not the one that starts with SUPABASE_DATABASE_URL=.")
         raise SystemExit(2)
 
+    # After an outage, the standby's newer rows go back to the primary before anything writes it.
+    import reconcile
+
+    reconcile.main()
+
     try:
         conn = db()
+        if nbt.WRITING_TO != "primary":
+            print(f"  the primary cannot be reached, so this run writes {nbt.WRITING_TO}; its schema is checked instead")
     except Exception as e:  # noqa: BLE001 - a connection failure is not a schema answer
         print(f"  could not connect: {type(e).__name__}")
         print("  this says nothing about the schema, so it exits 2 rather than 1")

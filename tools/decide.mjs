@@ -35,9 +35,9 @@ import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 
 import { config as loadEnv } from "dotenv";
-import pg from "pg";
 
 import { confirmingLegs } from "../lib/decision.ts";
+import { writerPool } from "./writer.mjs";
 import { decideCall } from "../lib/resolve.ts";
 import { bundleFromRow, toDecisionInput, todayISO } from "../lib/decisionInput.ts";
 
@@ -859,9 +859,9 @@ async function main() {
   const today = todayISO();
 
   // A small pool for the parallel reads; the writes take one connection out of it and keep it, so
-  // every BEGIN and its COMMIT are certainly on the same connection.
-  // Trimmed: a secret pasted with its trailing line break names a database that does not exist.
-  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL.trim(), max: 4 });
+  // every BEGIN and its COMMIT are certainly on the same connection. The primary, or the standby when the
+  // primary cannot be reached (tools/writer.mjs), the same rule every Python job in the lane follows.
+  const { pool } = await writerPool(4);
 
   let decisions = [];
   let written = 0;

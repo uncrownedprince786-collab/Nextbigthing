@@ -334,18 +334,26 @@ test("each standby is optional, so no configuration is the single-endpoint clien
   assert.match(failover, /if \(standbys\.length === 0\) return new pg\.Pool\(primary\)/);
 });
 
-test("no writer reaches a standby: the nightly lanes never import the failover pool", () => {
-  // Two databases both being written to is split-brain and nothing here resolves it. The lanes
-  // connect to the primary directly and must stay that way. The mirror is the one thing that writes
-  // a standby, and it does so by an explicit target and not through this.
+test("a writer reaches a standby only through the write failover, never through the site's pool", () => {
+  // Until 2026-10-10 no lane wrote a standby at all. Writes now survive a quota pause: jobs/nbt.py `db`
+  // and tools/writer.mjs move a lane to the standby when the primary cannot be reached, and
+  // jobs/reconcile.py copies those rows back before the primary is written again -- which is what makes
+  // two written databases safe. What stays forbidden is this file's pool, which switches mid-run and
+  // has no copy back, and any other job naming a standby on its own.
   const root = new URL("../", import.meta.url);
+  // schemacheck.py names SUPABASE_DATABASE_URL only in the message telling the owner which .env line to use.
+  const allowed = new Set(["mirror.py", "schema_parity.py", "nbt.py", "reconcile.py", "writer.mjs", "logic_audit.py", "schemacheck.py"]);
   for (const dir of ["jobs", "tools"]) {
     for (const name of readdirSync(new URL(`${dir}/`, root))) {
       if (!/\.(py|mjs|ts)$/.test(name)) continue;
-      if (name === "mirror.py" || name === "schema_parity.py") continue;
       const text = readFileSync(new URL(`${dir}/${name}`, root), "utf8");
-      assert.ok(!/failover|DATABASE_URL_FALLBACK/i.test(text), `${dir}/${name} references the failover`);
+      assert.ok(!/makeFailoverPool/.test(text), `${dir}/${name} uses the site's read pool`);
+      if (allowed.has(name)) continue;
+      assert.ok(!/DATABASE_URL_FALLBACK|SUPABASE_DATABASE_URL/.test(text), `${dir}/${name} names a standby itself`);
     }
+  }
+  for (const name of ["decide.mjs", "macro_gate.mjs"]) {
+    assert.match(readFileSync(new URL(`tools/${name}`, root), "utf8"), /import \{ writerPool \} from "\.\/writer\.mjs";/, name);
   }
 });
 

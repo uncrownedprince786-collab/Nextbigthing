@@ -58,6 +58,7 @@ jobs:
       - name: One tick
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
           PYTHONIOENCODING: utf-8
           SCHEDULE: ${{ github.event.schedule }}

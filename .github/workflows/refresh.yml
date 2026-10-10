@@ -132,6 +132,7 @@ jobs:
       - name: Refuse to run against a schema that is behind
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PRIMARY: ${{ vars.PRIMARY }}
           PYTHONIOENCODING: utf-8
         run: python jobs/schemacheck.py
@@ -157,6 +158,7 @@ jobs:
       - name: Reconcile every source group
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
           PYTHONIOENCODING: utf-8
         run: |
@@ -209,6 +211,7 @@ jobs:
         if: always()
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: |
           set +e

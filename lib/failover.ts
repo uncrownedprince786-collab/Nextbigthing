@@ -14,9 +14,10 @@ import pg from "pg";
 ///     its prices are as of, and the rule table refuses a stale close at gate 2, which is what stands
 ///     between "serving a standby" and "serving stale numbers as current" -- and why every switch is
 ///     logged.
-///   * **Not for writes.** The only writers are the nightly lanes, which connect to the primary
-///     directly and never through this. A lane that could fail over would leave two databases both
-///     being written to, and nothing here resolves that.
+///   * **Not for writes.** The writers are the lanes, which do not go through this pool. Since
+///     2026-10-10 they fail over on their own (jobs/nbt.py `db`, tools/writer.mjs): when the primary
+///     cannot be reached they write the standby, and jobs/reconcile.py copies those rows back the first
+///     time a lane reaches the primary again -- which is what makes two written databases safe.
 ///   * **Not mid-transaction.** It acts only while a connection is being *established*. A query that
 ///     fails after connecting is a query error and is raised unchanged: retrying half a transaction
 ///     on a different database is how rows end up in neither.

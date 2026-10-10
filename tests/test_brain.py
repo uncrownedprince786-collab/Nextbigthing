@@ -7212,10 +7212,10 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
         self.assertIn("::notice::no standby is configured", text)
         # Every step that runs the mirror carries the guard, not merely one of them: a second step
         # left unguarded would run with no target and exit 2 on exactly the deployment this protects.
-        runs = text.count("python jobs/mirror.py")
+        runs = text.count("python jobs/mirror.py") + text.count("python jobs/reconcile.py")
         guards = len(re.findall(r"if: (?:always\(\) && )?steps\.targets\.outputs\.any == 'true'", text))
-        self.assertGreaterEqual(runs, 2)
-        self.assertEqual(runs, guards, "a mirror step runs without checking that a standby exists")
+        self.assertGreaterEqual(runs, 3)
+        self.assertEqual(runs, guards, "a step that reaches a standby runs without checking that one exists")
         # A failed price copy must not skip the decisions (2026-10-10: it did, and the standby got none).
         self.assertIn("if: always() && steps.targets.outputs.any == 'true'", text)
         # Only secrets, only through env, and never echoed.
@@ -7240,13 +7240,22 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
         self.assertGreaterEqual(days["DecisionLog,SignalLog,AssetThesis,MacroGate"], 35)
 
     def test_the_site_failover_and_the_nightly_writers_are_kept_apart(self):
-        """The mirror is the only thing that writes a standby. The pool that reads one (lib/failover)
-        is never imported by a lane, so the two databases are never both being written to by a lane."""
+        """A lane reaches a standby in exactly two ways: the write failover in jobs/nbt.py `db` (and its
+        Node twin, tools/writer.mjs), and the explicit copies (mirror.py, reconcile.py). No other job
+        names a standby, and none uses the site's read pool (lib/failover's makeFailoverPool), which
+        switches mid-run and has no copy back. Until 2026-10-10 the rule was that no lane wrote a standby
+        at all; the owner asked for writes to survive a quota pause, and reconcile.py is what makes two
+        written databases safe."""
+        # schemacheck.py names SUPABASE_DATABASE_URL only in the message telling the owner which .env line to use.
+        allowed = {"mirror.py", "reconcile.py", "nbt.py", "schema_parity.py", "schemacheck.py"}
         for lane in sorted((ROOT / "jobs").glob("*.py")):
-            if lane.name == "mirror.py":
+            if lane.name in allowed:
                 continue
             text = lane.read_text(encoding="utf-8")
             self.assertNotIn("DATABASE_URL_FALLBACK", text, lane.name)
+            self.assertNotIn("SUPABASE_DATABASE_URL", text, lane.name)
+        for tool in sorted((ROOT / "tools").glob("*.mjs")):
+            self.assertNotIn("makeFailoverPool", tool.read_text(encoding="utf-8"), tool.name)
 
 
 class TheMacroGateOnlyRefuses(unittest.TestCase):
@@ -7275,8 +7284,8 @@ class TheMacroGateOnlyRefuses(unittest.TestCase):
         src = self.job()
         off = src.index('process.env.MACRO_GATE !== "on"')
         self.assertLess(off, src.index("new Anthropic("))
-        self.assertLess(off, src.index("new pg.Pool("))
-        self.assertIn("ANTHROPIC_API_KEY", src[off : src.index("new pg.Pool(")])
+        self.assertLess(off, src.index("await writerPool("))
+        self.assertIn("ANTHROPIC_API_KEY", src[off : src.index("await writerPool(")])
 
     def test_the_reply_schema_has_no_place_for_a_number(self):
         schema = self.function_body(self.job(), "const REPLY_SCHEMA = {", "};")
@@ -7958,8 +7967,10 @@ class APastedSecretsLineBreakIsNotPartOfIt(unittest.TestCase):
             "jobs/mirror.py": 'os.environ.get(env_name) or "").strip()',
             "tools/schema_parity.py": '(os.environ.get(n) or "").strip()',
             "lib/db.ts": "process.env.DATABASE_URL?.trim()",
-            "tools/decide.mjs": "process.env.DATABASE_URL.trim()",
-            "tools/macro_gate.mjs": "process.env.DATABASE_URL.trim()",
+            # The Node writers read it in one place, tools/writer.mjs, which both of them use.
+            "tools/writer.mjs": '(env.DATABASE_URL ?? "").trim()',
+            "tools/decide.mjs": "await writerPool(",
+            "tools/macro_gate.mjs": "await writerPool(",
         }
         for rel, needle in checks.items():
             self.assertIn(needle, (ROOT / rel).read_text(encoding="utf-8"), rel)
@@ -8273,7 +8284,8 @@ class TheWeeklyAuditLog(unittest.TestCase):
         step = [st for st in job["steps"] if "audit_log.py" in st.get("run", "")][0]
         self.assertTrue(step.get("continue-on-error"))
         self.assertIn("--write", step["run"])
-        self.assertEqual(set(step["env"]), {"DATABASE_URL", "PYTHONIOENCODING"}, "no third-party credential")
+        # The standby is this project's own database, there for the write failover (jobs/nbt.py `db`).
+        self.assertEqual(set(step["env"]), {"DATABASE_URL", "SUPABASE_DATABASE_URL", "PYTHONIOENCODING"}, "no third-party credential")
         text = code_only((ROOT / "tools" / "audit_log.py").read_text(encoding="utf-8"))
         self.assertNotIn("google", text.lower())
         self.assertNotIn("n/a", text.lower(), "a placeholder the site bans")
@@ -8415,6 +8427,105 @@ class ShortLevelsAreMirrored(unittest.TestCase):
         self.assertIn("high: Math.max(entryLevel, invalidateLevel)", src)
 
 
+class WritesFailOverAndComeBack(unittest.TestCase):
+    """When the primary cannot be reached the lanes write the standby, and the first lane to reach the
+    primary again copies those rows back first (jobs/nbt.py db, jobs/reconcile.py, lib/writer.ts)."""
+
+    @staticmethod
+    def nbt():
+        sys.path.insert(0, str(ROOT / "jobs"))
+        import nbt
+
+        return nbt
+
+    def test_an_outage_is_unreachable_and_a_wrong_password_is_not(self):
+        n = self.nbt()
+        import psycopg
+
+        for text in (
+            "connection failed: Your account or project has exceeded the quota",
+            "connection timeout expired",
+            "connection failed: Connection refused",
+            "FATAL: sorry, too many clients already",
+            "(EMAXCONNSESSION) max clients reached in session mode",
+        ):
+            self.assertTrue(n.is_unreachable(psycopg.OperationalError(text)), text)
+        self.assertFalse(n.is_unreachable(psycopg.OperationalError('FATAL: password authentication failed for user "x"')))
+        self.assertFalse(n.is_unreachable(psycopg.OperationalError('syntax error at or near "SELEC"')))
+
+    def test_the_standby_is_never_the_primary_and_can_be_switched_off(self):
+        n = self.nbt()
+        neon = "postgresql://u:p@ep-a-pooler.c-6.aws.neon.tech/neondb"
+        supa = "postgresql://postgres.projA:p@aws-0-ap.pooler.supabase.com:5432/postgres"
+        env = {"SUPABASE_DATABASE_URL": supa, "DATABASE_URL_FALLBACK": "postgresql://u:p@ep-b.c-7.aws.neon.tech/neondb"}
+        self.assertEqual(n.standby_url(neon, env), ("SUPABASE_DATABASE_URL", supa))
+        # Supabase promoted to primary: the standby is the Neon fallback, never Supabase itself.
+        self.assertEqual(n.standby_url(supa, env)[0], "DATABASE_URL_FALLBACK")
+        # Two Supabase projects share a pooler host; the user names the project.
+        other = "postgresql://postgres.projB:p@aws-0-ap.pooler.supabase.com:5432/postgres"
+        self.assertNotEqual(n.database_key(supa), n.database_key(other))
+        self.assertIsNone(n.standby_url(neon, {**env, "WRITE_FAILOVER": "off"}))
+        self.assertIsNone(n.standby_url(neon, {}))
+
+    def test_db_writes_the_standby_when_the_primary_is_down_and_raises_on_a_bad_password(self):
+        import unittest.mock as mock
+
+        import psycopg
+
+        n = self.nbt()
+        env = {
+            "DATABASE_URL": "postgresql://u:p@ep-a.aws.neon.tech/neondb",
+            "SUPABASE_DATABASE_URL": "postgresql://postgres.x:p@aws-0.pooler.supabase.com:5432/postgres",
+        }
+
+        def down(url):
+            if "neon" in url:
+                raise psycopg.OperationalError("connection failed: Your account or project has exceeded the quota")
+            return "standby-connection"
+
+        with mock.patch.dict("os.environ", env, clear=False), mock.patch.object(n, "_connect", side_effect=down):
+            self.assertEqual(n.db(), "standby-connection")
+            self.assertEqual(n.WRITING_TO, "SUPABASE_DATABASE_URL")
+
+        def wrong(url):
+            raise psycopg.OperationalError('FATAL: password authentication failed for user "u"')
+
+        with mock.patch.dict("os.environ", env, clear=False), mock.patch.object(n, "_connect", side_effect=wrong):
+            with self.assertRaises(psycopg.OperationalError):
+                n.db()
+
+    def test_the_standby_is_ahead_only_when_it_holds_writes_the_primary_lacks(self):
+        sys.path.insert(0, str(ROOT / "jobs"))
+        import reconcile
+        from datetime import date, datetime
+
+        same = {"price": date(2026, 10, 10), "decided": datetime(2026, 10, 10, 15, 56)}
+        self.assertFalse(reconcile.ahead(same, dict(same)))
+        self.assertTrue(reconcile.ahead(same, {**same, "price": date(2026, 10, 13)}))
+        self.assertTrue(reconcile.ahead(same, {**same, "decided": datetime(2026, 10, 12, 22, 30)}))
+        # Normal life: the standby trails the primary until the nightly mirror.
+        self.assertFalse(reconcile.ahead(same, {"price": date(2026, 10, 9), "decided": datetime(2026, 10, 9, 22, 0)}))
+        self.assertFalse(reconcile.ahead(same, {"price": None, "decided": None}))
+
+    def test_every_lane_step_that_writes_can_reach_the_standby_and_the_mirror_copies_back_first(self):
+        import yaml
+
+        for wf in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+            doc = yaml.safe_load(wf.read_text(encoding="utf-8"))
+            for job in (doc.get("jobs") or {}).values():
+                for step in job.get("steps", []):
+                    env = step.get("env") or {}
+                    if env.get("DATABASE_URL") == "${{ secrets.DATABASE_URL }}" and step.get("name") != "Apply pending schema migrations":
+                        self.assertIn("SUPABASE_DATABASE_URL", env, f"{wf.name}: {step.get('name')}")
+        mirror = (ROOT / ".github" / "workflows" / "cron-mirror.yml").read_text(encoding="utf-8")
+        self.assertLess(mirror.index("python jobs/reconcile.py"), mirror.index("python jobs/mirror.py"))
+        check = code_only((ROOT / "jobs" / "schemacheck.py").read_text(encoding="utf-8"))
+        self.assertLess(check.index("reconcile.main()"), check.index("conn = db()"))
+        for js in ("tools/decide.mjs", "tools/macro_gate.mjs"):
+            text = (ROOT / js).read_text(encoding="utf-8")
+            self.assertIn("await writerPool(", text, js)
+            self.assertNotIn("new pg.Pool", text, js)
+
 class NothingIsDefinedAfterTheEntryPoint(unittest.TestCase):
     """`unittest.main()` belongs at the end of the file, and nothing may follow it.
 
@@ -8446,6 +8557,7 @@ class NothingIsDefinedAfterTheEntryPoint(unittest.TestCase):
         ).countTestCases()
         self.assertGreater(defined, 50)
         self.assertGreater(loaded, 400)
+
 
 
 if __name__ == "__main__":

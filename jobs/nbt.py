@@ -261,8 +261,61 @@ def get_json(url: str, **kw):
         return None
 
 
-def db():
-    url = os.environ["DATABASE_URL"]
+# --- the write target ------------------------------------------------------------------------------
+#
+# The lanes write the primary. When the primary cannot be reached -- Neon over its compute quota, which
+# happened twice on 2026-10-10, a pooler with no free slot, a timeout -- they write the standby instead
+# (SUPABASE_DATABASE_URL, else DATABASE_URL_FALLBACK), say so as a warning on the run, and carry on, so a
+# quota pause stops nothing. `jobs/reconcile.py` copies the standby's newer rows back to the primary the
+# first time a lane reaches it again, before anything else is written there; the site's reads already
+# fail over the same way (lib/failover.ts). A wrong password is not an outage and is never failed over:
+# it is a configuration fault, and absorbing it would let a broken secret run on the standby for weeks.
+# WRITE_FAILOVER=off turns the whole thing off.
+
+# Postgres error classes that mean "this endpoint cannot be used right now", as lib/failover.ts lists them.
+UNREACHABLE_SQLSTATE = ("08", "53", "57P01", "57P02", "57P03")
+UNREACHABLE_WORDS = (
+    "exceeded the quota", "connection timeout", "timeout expired", "connection refused", "could not connect",
+    "could not translate host name", "name or service not known", "no route to host", "network is unreachable",
+    "server closed the connection", "connection terminated", "too many clients", "remaining connection slots",
+    "max clients reached", "emaxconn", "the database system is starting up", "the database system is shutting down",
+)
+WRITING_TO = "primary"  # what db() last connected to: "primary", or the standby's variable name
+_announced = False
+
+
+def is_unreachable(error: BaseException) -> bool:
+    """True when a connection error means the endpoint is down or full, not that the request was wrong."""
+    state = getattr(error, "sqlstate", None) or ""
+    if state and (state.startswith(UNREACHABLE_SQLSTATE[:2]) or state in UNREACHABLE_SQLSTATE[2:]):
+        return True
+    text = str(error).lower()
+    if "password authentication failed" in text or "authentication failed" in text:
+        return False
+    return any(w in text for w in UNREACHABLE_WORDS)
+
+
+def database_key(url: str) -> tuple:
+    """What selects a database in `url`: host without the pooler suffix, port, name -- and, for a Supabase
+    pooler, the user, which is where Supabase puts the project (two projects share one pooler host)."""
+    u = urllib.parse.urlsplit(url or "")
+    host = (u.hostname or "").replace("-pooler", "")
+    user = u.username if host.endswith("supabase.com") else None
+    return (host, u.port or 5432, u.path.lstrip("/"), user)
+
+
+def standby_url(primary: str, env=os.environ) -> tuple[str, str] | None:
+    """(variable name, url) of the standby a lane may write when the primary is down, or None."""
+    if (env.get("WRITE_FAILOVER") or "").strip().lower() == "off":
+        return None
+    for name in ("SUPABASE_DATABASE_URL", "DATABASE_URL_FALLBACK"):
+        url = (env.get(name) or "").strip()
+        if url and database_key(url) != database_key(primary):
+            return name, url
+    return None
+
+
+def _connect(url: str):
     # libpq does not know Prisma's channel_binding parameter. Keepalives matter because
     # these jobs sit idle between statements while a source answers slowly, and Neon's
     # pooler drops idle connections.
@@ -281,6 +334,35 @@ def db():
     conn = psycopg.connect(url, row_factory=dict_row, connect_timeout=20)
     conn.execute("SET TIME ZONE 'UTC'")
     return conn
+
+
+def db():
+    """A connection to the primary, or to the standby when the primary cannot be reached (see above)."""
+    global WRITING_TO, _announced
+    primary = os.environ["DATABASE_URL"].strip()
+    try:
+        conn = _connect(primary)
+        WRITING_TO = "primary"
+        return conn
+    except psycopg.OperationalError as e:
+        standby = standby_url(primary)
+        if standby is None or not is_unreachable(e):
+            raise
+        name, url = standby
+        conn = _connect(url)  # a standby that is down too raises here, which is the honest answer
+        WRITING_TO = name
+        if not _announced:
+            _announced = True
+            first = str(e).splitlines()[0][:160]
+            for marker in ("postgres://", "postgresql://"):
+                if marker in first:
+                    first = first.split(marker)[0] + "<redacted>"
+            print(
+                f"::warning title=Writing to the standby::The primary could not be reached ({first}), so this "
+                f"run writes {name}. jobs/reconcile.py copies these rows back the first time a lane reaches "
+                f"the primary again."
+            )
+        return conn
 
 
 class Link:

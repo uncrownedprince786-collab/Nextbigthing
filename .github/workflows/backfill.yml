@@ -76,6 +76,7 @@ jobs:
       - name: Refuse to run against a schema that is behind
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PRIMARY: ${{ vars.PRIMARY }}
           PYTHONIOENCODING: utf-8
         run: python jobs/schemacheck.py
@@ -83,6 +84,7 @@ jobs:
       - name: Fetch the full PSX history
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/psx.py full
 
@@ -98,6 +100,7 @@ jobs:
         timeout-minutes: 14
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/geo.py
 
@@ -107,6 +110,7 @@ jobs:
       - name: Fetch scheduled dates
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/upcoming.py
 
@@ -117,18 +121,21 @@ jobs:
       - name: Rank
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/rank.py
 
       - name: Grade the rankings
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/confidence.py rankings
 
       - name: Regenerate the written lines
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/analysis.py
 
@@ -140,6 +147,7 @@ jobs:
         if: always()
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: |
           python - <<'PY'
@@ -164,6 +172,7 @@ jobs:
         if: always()
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/stats.py
 

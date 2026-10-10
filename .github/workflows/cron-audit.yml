@@ -78,6 +78,7 @@ jobs:
       - name: Refuse to run against a schema that is behind
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PRIMARY: ${{ vars.PRIMARY }}
           PYTHONIOENCODING: utf-8
         run: python jobs/schemacheck.py
@@ -90,6 +91,7 @@ jobs:
       - name: Snapshot coverage and freshness
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: |
           set +e
@@ -115,6 +117,7 @@ jobs:
         if: always()
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: |
           set +e
