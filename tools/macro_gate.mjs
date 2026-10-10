@@ -3,11 +3,18 @@
 //
 //   node tools/macro_gate.mjs [--dry-run] [--print-prompt]
 //
-// **Off unless asked, twice.** It does nothing without `MACRO_GATE=on` and an `ANTHROPIC_API_KEY`,
-// and prints one line saying so. With the gate off the table stays empty and every verdict on the
-// site is exactly what the rule table decides alone.
+// **Two engines, one default.** `MACRO_GATE_ENGINE=local` (the default) decides with the fixed word
+// table in `lib/macroGateLocal.ts`: free, offline, deterministic, no key. `MACRO_GATE_ENGINE=model`
+// asks a language model instead (paid, not deterministic, needs `ANTHROPIC_API_KEY`). Either way the
+// answer is stored and the rule table reads the stored answer; nothing here changes how a verdict is
+// computed on the site.
 //
-// **Veto only.** The model's reply schema has four fields and none of them is a number; the reply is
+// **Off unless asked.** It does nothing without `MACRO_GATE=on`, and prints one line saying so. With
+// the gate off the table stays empty and every verdict on the site is exactly what the rule table
+// decides alone. The model engine additionally needs its key; the local one needs nothing.
+//
+// **Veto only.** The local engine returns a verdict, one of two reasons and a sentence, and has no way
+// to touch a price. The model's reply schema has four fields and none of them is a number; the reply is
 // then re-validated by `lib/macroGate.ts`, which rejects anything extra. The only thing a stored
 // answer can do downstream is turn a LONG or SHORT into a WAIT (`macro-veto` in `lib/decision.ts`).
 //
@@ -29,7 +36,8 @@ import { config as loadEnv } from "dotenv";
 import pg from "pg";
 import Anthropic from "@anthropic-ai/sdk";
 
-import { evaluate, REFUSAL_REASONS, selectNews, shouldEvaluate } from "../lib/macroGate.ts";
+import { MACRO_WINDOW_HOURS, evaluate, REFUSAL_REASONS, selectNews, shouldEvaluate } from "../lib/macroGate.ts";
+import { LOCAL_ENGINE, evaluateLocal } from "../lib/macroGateLocal.ts";
 import { todayISO } from "../lib/decisionInput.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -38,7 +46,9 @@ loadEnv({ path: path.join(ROOT, ".env"), quiet: true });
 const DRY_RUN = process.argv.includes("--dry-run");
 const PRINT_PROMPT = process.argv.includes("--print-prompt");
 
-/// The default is the most capable model; `MACRO_GATE_MODEL=claude-haiku-5-5` is the cheap switch.
+/// Which engine decides. Anything but "model" is the local one, so a typo costs nothing and calls nothing.
+const ENGINE = process.env.MACRO_GATE_ENGINE === "model" ? "model" : "local";
+/// The model engine's default is the most capable model; `MACRO_GATE_MODEL=claude-haiku-5-5` is the cheap switch.
 const MODEL = process.env.MACRO_GATE_MODEL || "claude-opus-5-5";
 /// Thinking is always on for this model, so `max_tokens` has to cover it as well as the reply.
 const MAX_TOKENS = 4096;
@@ -88,7 +98,7 @@ export function makeCall(client) {
 async function candidates(db, today) {
   return (
     await db.query(
-      `SELECT d."assetId", a.symbol, a."industryId", d.action, d."baseClose", d.invalidation, d."rewardRisk"
+      `SELECT d."assetId", a.symbol, a."assetType"::text AS "assetType", a."industryId", d.action, d."baseClose", d.invalidation, d."rewardRisk"
          FROM "DecisionLog" d JOIN "Asset" a ON a.id = d."assetId"
         WHERE d."periodEnd" = $1::date
           AND d.action IN ('LONG', 'SHORT')
@@ -117,11 +127,12 @@ async function headlines(db, rows) {
       [industryIds],
     ),
   ]);
-  const byKey = (rowsIn) => {
+  const byKey = (rowsIn, scope) => {
     const m = new Map();
     for (const r of rowsIn) {
       if (!m.has(r.key)) m.set(r.key, []);
       m.get(r.key).push({
+        scope,
         title: r.publisher && r.publisher !== r.source ? `${r.title} (via ${r.publisher})` : r.title,
         publishedAt: r.publishedAt,
         source: r.source,
@@ -129,7 +140,7 @@ async function headlines(db, rows) {
     }
     return m;
   };
-  return { own: byKey(own.rows), sector: byKey(sector.rows) };
+  return { own: byKey(own.rows, "asset"), sector: byKey(sector.rows, "sector") };
 }
 
 async function reliabilityOf(db, sources) {
@@ -142,7 +153,7 @@ async function reliabilityOf(db, sources) {
   return rows.map((r) => ({ source: r.source, alpha: Number(r.alpha), beta: Number(r.beta) }));
 }
 
-async function store(db, row, today, result) {
+async function store(db, row, today, result, engineLabel) {
   await db.query(
     `INSERT INTO "MacroGate" ("assetId", "periodEnd", direction, verdict, reason, rationale, valid, fallback, model, "newsCount")
      VALUES ($1, $2::date, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -153,14 +164,16 @@ async function store(db, row, today, result) {
       WHERE "MacroGate".valid = false`,
     [
       row.assetId, today, row.direction, result.verdict, result.reason, result.rationale,
-      result.valid, result.fallback, MODEL, row.newsCount,
+      result.valid, result.fallback, engineLabel, row.newsCount,
     ],
   );
 }
 
 async function main() {
   if (process.env.MACRO_GATE !== "on") return say("off (set MACRO_GATE=on to enable). Nothing asked, nothing stored.");
-  if (!process.env.ANTHROPIC_API_KEY && !PRINT_PROMPT) return say("off (no ANTHROPIC_API_KEY). Nothing asked, nothing stored.");
+  if (ENGINE === "model" && !process.env.ANTHROPIC_API_KEY && !PRINT_PROMPT) {
+    return say("off (the model engine needs ANTHROPIC_API_KEY; the default local engine needs none). Nothing asked, nothing stored.");
+  }
   if (!process.env.DATABASE_URL) return say("no DATABASE_URL. Nothing asked, nothing stored.");
 
   const today = todayISO();
@@ -175,7 +188,9 @@ async function main() {
     const withNews = [];
     for (const c of all) {
       const news = [...(feed.own.get(c.assetId) ?? []), ...(feed.sector.get(c.industryId) ?? [])];
-      const recent = selectNews(news, now);
+      // Every headline in the window. The model's prompt is capped by `buildUserPrompt`; the local engine
+      // reads them all, so a shock is not hidden behind newer routine items.
+      const recent = selectNews(news, now, MACRO_WINDOW_HOURS, 500);
       if (shouldEvaluate(c.action, recent)) withNews.push({ ...c, news: recent });
     }
     const batch = withNews.slice(0, MAX_CANDIDATES);
@@ -187,6 +202,7 @@ async function main() {
 
     const inputOf = (b) => ({
       symbol: b.symbol,
+      assetClass: b.assetType,
       direction: b.action,
       price: b.baseClose,
       stop: b.invalidation,
@@ -195,15 +211,17 @@ async function main() {
       reliability,
     });
 
-    if (PRINT_PROMPT) {
+    if (PRINT_PROMPT && ENGINE === "model") {
       const { buildUserPrompt } = await import("../lib/macroGate.ts");
       console.log(buildUserPrompt(inputOf(batch[0]), now));
       return;
     }
     if (DRY_RUN) return say("dry run: no model call, nothing stored.");
 
-    const client = new Anthropic({ timeout: 60_000, maxRetries: 2 });
-    const call = makeCall(client);
+    const label = ENGINE === "model" ? MODEL : LOCAL_ENGINE;
+    const decideOne = ENGINE === "model"
+      ? ((call) => (input) => evaluate(input, call, now))(makeCall(new Anthropic({ timeout: 60_000, maxRetries: 2 })))
+      : async (input) => evaluateLocal(input, now);
     const counts = { REJECT: 0, EXECUTE: 0, invalid: 0, stored: 0, storeFailed: 0 };
     let next = 0;
     const worker = async () => {
@@ -211,11 +229,11 @@ async function main() {
         const i = next++;
         if (i >= batch.length) return;
         const b = batch[i];
-        const result = await evaluate(inputOf(b), call, now);
+        const result = await decideOne(inputOf(b));
         counts[result.valid ? result.verdict : "invalid"]++;
         if (result.valid && result.verdict === "REJECT") say(`${b.symbol} ${b.action} refused: ${result.reason}`);
         try {
-          await store(pool, { ...b, direction: b.action, newsCount: b.news.length }, today, result);
+          await store(pool, { ...b, direction: b.action, newsCount: b.news.length }, today, result, label);
           counts.stored++;
         } catch (error) {
           counts.storeFailed++;
@@ -226,7 +244,7 @@ async function main() {
     await Promise.all(Array.from({ length: Math.min(CONCURRENCY, batch.length) }, worker));
     say(
       `${counts.REJECT} refused, ${counts.EXECUTE} let through, ${counts.invalid} unusable (fail-open), ` +
-        `${counts.stored} stored, ${counts.storeFailed} not stored. model ${MODEL}.`,
+        `${counts.stored} stored, ${counts.storeFailed} not stored. engine ${label}.`,
     );
   } finally {
     await pool.end().catch(() => {});

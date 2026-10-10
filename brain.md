@@ -2061,3 +2061,44 @@ reads rows that already exist:
     real model: TC-08 (an auditor resigning over fraud is called `sentiment-conflict`, though it could as
     fairly be `macro-warning`) and TC-20 (a vague "emergency regulatory statement" six hours old is
     expected to pass, which depends on how much a headline with no content is allowed to weigh).
+
+73. **The gatekeeper that costs nothing, and the finding that it has nothing to read.**
+    `lib/macroGateLocal.ts` decides the macro veto from a fixed word table and the stored Beta statistics,
+    with no model, no network and no key. It is the job's default engine (`MACRO_GATE_ENGINE=local`);
+    the model of rule 72 is opt-in by name. The reason it is the default is the reason the rule table is
+    what it is: same input, same answer, forever, so it can be put through an exam in CI and nothing it
+    does needs a bill or a secret.
+
+    **Trust is judged before any word is read.** A source is believed on a shock only at a mean of 0.70
+    *and* at least ten observations' worth of mass (alpha + beta), so a new source with one success
+    cannot score 1.0; below 0.30 it is ignored whatever it says; in between, or unlisted, it can never
+    veto alone. Hedged, denied, reversed or proposed news ("may", "denies", "lifted", "resumes") is never
+    a trigger, because refusing on a rumour is the pump-and-dump this layer exists to resist. A systemic
+    warning applies to a LONG and a SHORT alike; corporate bad news (audit resignation, fraud, federal
+    enforcement) conflicts only with a LONG and only when the headline is attached to the asset itself --
+    it supports a short and a sector headline is about other names. Crypto-only headlines bear on crypto
+    only. This direction-awareness is a deliberate departure from the written spec, which refused on
+    corporate bad news whichever way the trade pointed.
+
+    **Scored.** 20 of 20 on the adversarial exam, and 17 tests in all, including shocks and decoys written
+    afterwards in different words (an exam a table was tuned to pass proves little) and every trust
+    boundary. Twelve mutations of the engine were run; three first slipped, and each was a real
+    gap in the tests, not equivalent mutants (the macro-over-conflict ordering, a throw swallowed by the
+    outer guard, a prefix of a trusted name accepted as that name). One test found a real defect in the
+    design: capped at the model's eight headlines, a genuine shock buried under newer routine ones was
+    invisible, so the local engine reads every headline in the window.
+
+    **What it cannot do.** It reads words, not meaning. A shock phrased outside the table passes -- a
+    miss, and the safe direction -- and the test pins three real ones that do, so the limit is on the
+    record and not a surprise. A headline that uses the listed words for something else could refuse a
+    name wrongly; every answer is stored, so the scorecard can say which, once outcomes mature.
+
+    **The gate is inert on today's database, for two reasons found by reading the data and not the code.**
+    The new database holds no `News` rows at all (the news lane's GitHub secret still names the old
+    project), and `SourceReliability` is empty -- and even when the audit fills it, it holds *price-feed*
+    reliability keyed by `h.source`, not the reliability of a news publisher. So no headline arrives and
+    none could be trusted if it did. Both fail open, by design, and the job says so in its one line of
+    output. Inventing a Beta(45, 1) for Reuters would make the gate fire, and would be exactly the
+    invented number this project refuses; the honest options are a measured per-publisher reliability
+    (which needs news outcomes that do not yet exist) or an explicit, labelled list of declared-trusted
+    publishers, which is a judgement for the owner and is not made here.

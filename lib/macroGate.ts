@@ -38,6 +38,9 @@ export interface GateNews {
   title: string;
   publishedAt: Date | string;
   source: string;
+  /// Whether the headline is attached to this asset or only to its sector. Absent reads as the
+  /// asset's own: a caller that supplies news for an asset is saying it is about that asset.
+  scope?: "asset" | "sector";
 }
 
 export interface GateReliability {
@@ -48,6 +51,9 @@ export interface GateReliability {
 
 export interface GateInput {
   symbol: string;
+  /// The stored asset type (stock, etf, crypto, commodity, forex), when known. Only the local rules
+  /// read it, to decide whether a crypto-only headline bears on this asset.
+  assetClass?: string | null;
   direction: Direction;
   /// Read-only context. The model is shown them so it can reason about the trade it is vetoing, and
   /// the reply schema has nowhere to put a number, so they cannot come back changed.

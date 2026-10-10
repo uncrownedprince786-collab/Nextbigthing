@@ -206,9 +206,10 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit $code
 
-      # The macro gatekeeper: a veto-only layer over the rows just written. Off unless BOTH the
-      # repository variable MACRO_GATE is "on" and the secret ANTHROPIC_API_KEY exists, and the job
-      # prints one line saying so when it is not -- so a missing key is visible and not a silent no-op.
+      # The macro gatekeeper: a veto-only layer over the rows just written. Off unless the repository
+      # variable MACRO_GATE is "on"; the job prints one line saying so when it is not. The default engine is
+      # the local rule table (no key, no cost); the model engine is opt-in with MACRO_GATE_ENGINE=model and
+      # then also needs the ANTHROPIC_API_KEY secret.
       #
       # It is `continue-on-error` and the script itself exits 0 whatever happens, because the one
       # thing this layer must never do is turn a third party's outage into a red decision lane. A
@@ -219,6 +220,9 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MACRO_GATE: ${{ vars.MACRO_GATE }}
+          # Empty or unset means the local rule engine: free, offline, deterministic, no key. Only the value
+          # "model" asks a language model, and only then is ANTHROPIC_API_KEY read.
+          MACRO_GATE_ENGINE: ${{ vars.MACRO_GATE_ENGINE }}
         run: |
           set +e
           out="$(node tools/macro_gate.mjs 2>&1)"

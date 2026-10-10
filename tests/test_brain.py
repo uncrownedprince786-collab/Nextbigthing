@@ -4036,6 +4036,11 @@ class NothingBuiltAndUnused(unittest.TestCase):
         # site never calls the model, it reads the answer the job stored. That the job really imports it
         # is pinned in `TheMacroGateOnlyRefuses`, so this entry cannot outlive its only consumer.
         "evaluate": "tools/macro_gate.mjs",
+        # The local engine's two job-facing exports, on the same terms: the site reads the stored answer
+        # and never runs either engine. `test_the_one_export_the_web_layer_does_not_use_is_used_by_the_job`
+        # pins that the job imports all three.
+        "evaluateLocal": "tools/macro_gate.mjs",
+        "LOCAL_ENGINE": "tools/macro_gate.mjs",
     }
 
     def exports_without_consumers(self) -> list[str]:
@@ -7178,6 +7183,9 @@ class TheMacroGateOnlyRefuses(unittest.TestCase):
 
     def test_the_one_export_the_web_layer_does_not_use_is_used_by_the_job(self):
         self.assertIn("evaluate", self.job().split("from " + chr(34) + "../lib/macroGate.ts" + chr(34))[0])
+        local = self.job().split("from " + chr(34) + "../lib/macroGateLocal.ts" + chr(34))[0]
+        self.assertIn("evaluateLocal", local)
+        self.assertIn("LOCAL_ENGINE", local)
 
     def test_the_exam_runner_asks_the_model_the_way_the_job_does_and_touches_no_database(self):
         exam = code_only(self.text("tools/macro_gate_exam.mjs"))
@@ -7187,6 +7195,25 @@ class TheMacroGateOnlyRefuses(unittest.TestCase):
         # Importing the job must not start a run, or the exam would write to the database.
         job = self.job()
         self.assertIn("if (direct) main()", job)
+
+    def test_the_default_engine_is_the_local_one_and_the_model_needs_asking_for_by_name(self):
+        src = self.job()
+        self.assertIn('process.env.MACRO_GATE_ENGINE === "model" ? "model" : "local"', src)
+        self.assertIn('ENGINE === "model" && !process.env.ANTHROPIC_API_KEY', src)
+        # The client is built only inside the model branch, so the local engine cannot reach the network.
+        branch = src[src.index('const decideOne = ENGINE === "model"') :]
+        self.assertLess(branch.index("new Anthropic("), branch.index("evaluateLocal("))
+
+    def test_the_local_engine_is_pure(self):
+        """Same input, same answer, no network, no clock, no randomness, no environment: the property
+        that lets it be scored in CI and the reason it is the default."""
+        src = code_only(self.text("lib/macroGateLocal.ts"))
+        for impure in ("fetch(", "process.", "Date.now", "new Date()", "Math.random", "require(", "import("):
+            self.assertNotIn(impure, src, impure)
+        imports = [line for line in src.splitlines() if line.startswith("import ")]
+        self.assertEqual(len(imports), 2)
+        for line in imports:
+            self.assertIn("./macroGate.ts", line)
 
     def test_the_model_is_called_as_the_api_documents_it(self):
         src = self.job()
