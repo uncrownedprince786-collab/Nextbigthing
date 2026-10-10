@@ -184,7 +184,7 @@ async function main() {
 
   const today = todayISO();
   const now = new Date();
-  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 3 });
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL.trim(), max: 3 });
   try {
     const present = await pool.query(`SELECT to_regclass('public."MacroGate"') AS t`);
     if (!present.rows[0].t) return say("the MacroGate table does not exist here yet (migration pending). Nothing stored.");
@@ -199,7 +199,10 @@ async function main() {
       const recent = selectNews(news, now, MACRO_WINDOW_HOURS, 500);
       if (shouldEvaluate(c.action, recent)) withNews.push({ ...c, news: recent });
     }
-    const batch = withNews.slice(0, MAX_CANDIDATES);
+    // The cap is a cost guard for the paid model, so it applies to the model alone. The local engine
+    // is free and takes milliseconds per name; capping it left 99 of 159 names with fresh headlines
+    // unchecked on its first production run (2026-10-10), which is a gate with a hole in it.
+    const batch = ENGINE === "model" ? withNews.slice(0, MAX_CANDIDATES) : withNews;
     say(`${all.length} directional names today, ${withNews.length} with fresh headlines, asking about ${batch.length}.`);
     if (!batch.length) return;
 

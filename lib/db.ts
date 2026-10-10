@@ -15,8 +15,9 @@ const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 /// place anything is written) is in lib/failover.ts.
 function standbys(): StandbyConfig[] {
   const candidates: { name: string; url: string | undefined }[] = [
-    { name: "the second Neon project", url: process.env.DATABASE_URL_FALLBACK },
-    { name: "Supabase", url: process.env.SUPABASE_DATABASE_URL },
+    // Trimmed: a value pasted with its trailing line break names a database that does not exist.
+    { name: "the second Neon project", url: process.env.DATABASE_URL_FALLBACK?.trim() },
+    { name: "Supabase", url: process.env.SUPABASE_DATABASE_URL?.trim() },
   ];
   return candidates
     .filter((c): c is { name: string; url: string } => Boolean(c.url))
@@ -24,7 +25,7 @@ function standbys(): StandbyConfig[] {
 }
 
 function create() {
-  const url = process.env.DATABASE_URL;
+  const url = process.env.DATABASE_URL?.trim();
   if (!url) {
     throw new Error(
       "DATABASE_URL is not set. Copy .env.example to .env and paste the Neon connection string.",

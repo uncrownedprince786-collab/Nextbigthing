@@ -805,7 +805,8 @@ async function main() {
 
   // A small pool for the parallel reads; the writes take one connection out of it and keep it, so
   // every BEGIN and its COMMIT are certainly on the same connection.
-  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 4 });
+  // Trimmed: a secret pasted with its trailing line break names a database that does not exist.
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL.trim(), max: 4 });
 
   let decisions = [];
   let written = 0;

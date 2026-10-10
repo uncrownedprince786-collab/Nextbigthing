@@ -89,7 +89,7 @@ def diff(a: dict, b: dict, label_a: str, label_b: str) -> list[str]:
 def main(argv: list[str]) -> int:
     name_a = argv[0] if argv else "DATABASE_URL"
     name_b = argv[1] if len(argv) > 1 else "SUPABASE_DATABASE_URL"
-    ua, ub = os.environ.get(name_a), os.environ.get(name_b)
+    ua, ub = ((os.environ.get(n) or "").strip() or None for n in (name_a, name_b))
     if not ua or not ub:
         print(f"need both {name_a} and {name_b} in the environment")
         return 2

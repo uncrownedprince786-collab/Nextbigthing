@@ -7262,6 +7262,10 @@ class TheMacroGateOnlyRefuses(unittest.TestCase):
         self.assertIn("source: pub || r.source", src)
         self.assertIn("r.title.slice(0, -(pub.length + 3))", src)
 
+    def test_the_cost_cap_limits_the_paid_model_and_never_the_free_engine(self):
+        src = self.job()
+        self.assertIn('const batch = ENGINE === "model" ? withNews.slice(0, MAX_CANDIDATES) : withNews;', src)
+
     def test_the_local_engine_is_pure(self):
         """Same input, same answer, no network, no clock, no randomness, no environment: the property
         that lets it be scored in CI and the reason it is the default."""
@@ -7808,6 +7812,39 @@ class TheNewsLaneNeverWritesThroughItsIdleConnection(unittest.TestCase):
         for use in ("cur.execute", "rows(cur", "one(cur", "cur.connection"):
             self.assertNotIn(use, after, use)
         self.assertIn("wire.execute('DELETE FROM", after)
+
+
+class APastedSecretsLineBreakIsNotPartOfIt(unittest.TestCase):
+    """On 2026-10-10 the Supabase secret was pasted with the line break after it. The database name
+    became "postgres" plus a newline, and the mirror failed with `database "postgres` and a log line
+    cut in half. Whitespace is never part of a connection string; every reader now drops it."""
+
+    def test_the_shared_module_strips_every_connection_variable(self):
+        import nbt
+
+        env = {
+            "DATABASE_URL": "postgresql://u:p@h/db" + chr(10),
+            "DIRECT_DATABASE_URL": "  postgresql://u:p@h/db" + chr(13) + chr(10),
+            "OTHER": "keep " + chr(10),
+        }
+        nbt.clean_connection_env(env)
+        self.assertEqual(env["DATABASE_URL"], "postgresql://u:p@h/db")
+        self.assertEqual(env["DIRECT_DATABASE_URL"], "postgresql://u:p@h/db")
+        self.assertEqual(env["OTHER"], "keep " + chr(10), "only connection strings are touched")
+
+    def test_every_other_reader_strips_too(self):
+        checks = {
+            "jobs/mirror.py": 'os.environ.get(env_name) or "").strip()',
+            "tools/schema_parity.py": '(os.environ.get(n) or "").strip()',
+            "lib/db.ts": "process.env.DATABASE_URL?.trim()",
+            "tools/decide.mjs": "process.env.DATABASE_URL.trim()",
+            "tools/macro_gate.mjs": "process.env.DATABASE_URL.trim()",
+        }
+        for rel, needle in checks.items():
+            self.assertIn(needle, (ROOT / rel).read_text(encoding="utf-8"), rel)
+        db = (ROOT / "lib" / "db.ts").read_text(encoding="utf-8")
+        self.assertIn("SUPABASE_DATABASE_URL?.trim()", db)
+        self.assertIn("DATABASE_URL_FALLBACK?.trim()", db)
 
 
 class ShortLevelsAreMirrored(unittest.TestCase):

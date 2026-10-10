@@ -32,6 +32,25 @@ USER_AGENT = (
 )
 CONTACT = os.environ.get("CONTACT_EMAIL", "nextbigthing@example.invalid")
 
+# Connection strings arrive from GitHub secrets, and a secret pasted from an editor easily carries the
+# line break after it. On 2026-10-10 the Supabase secret did: the database name became "postgres" plus
+# a newline, which does not exist, and the mirror failed with a log line cut in half. Whitespace is
+# never part of a connection string, so it is removed once, here, for every job that imports this
+# module -- rather than in each of the thirty places that read one.
+# Only the primary's: a data lane must never so much as name a standby (the standby guards in tests/ and
+# TheMirrorCopiesByNaturalKey), and jobs/mirror.py, the one writer that may, strips its own.
+CONNECTION_VARS = ("DATABASE_URL", "DIRECT_DATABASE_URL")
+
+
+def clean_connection_env(environ=os.environ) -> None:
+    for name in CONNECTION_VARS:
+        value = environ.get(name)
+        if value is not None and value != value.strip():
+            environ[name] = value.strip()
+
+
+clean_connection_env()
+
 # Last close on or before this date, for each snapshot the product compares.
 SNAPSHOTS = [
     date(2019, 12, 31),

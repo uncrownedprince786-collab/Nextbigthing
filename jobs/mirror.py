@@ -328,11 +328,12 @@ def main(argv: list[str]) -> int:
         vals = option_values(argv, name)
         return vals[0] if vals else None
 
-    src_url = single("--from") or os.environ.get(single("--from-env") or "") or None
+    # Stripped: a secret pasted with its trailing line break names a database that does not exist.
+    src_url = (single("--from") or os.environ.get(single("--from-env") or "") or "").strip() or None
     targets: list[tuple[str, str]] = [(f"--to #{n + 1}", u) for n, u in enumerate(option_values(argv, "--to"))]
     for group in option_values(argv, "--to-env"):
         for env_name in filter(None, (g.strip() for g in group.split(","))):
-            url = os.environ.get(env_name)
+            url = (os.environ.get(env_name) or "").strip() or None
             if not url:
                 print(f"{env_name} is not set, so that target is skipped")
                 continue
