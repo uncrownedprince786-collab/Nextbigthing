@@ -11,5 +11,3 @@ pytrends==4.9.2
 # a secret). Missing from this list, those tests passed on a machine that had it installed globally and
 # failed on every CI run from 2026-10-10 01:04 UTC until it was added.
 PyYAML==6.0.3
-# tools/audit_log.py: a service-account token to append the daily audit to the owner's Google Doc.
-google-auth==2.61.0

@@ -950,6 +950,20 @@ async function getPriorDirections(assetId?: string): Promise<Map<string, { actio
   return out;
 }
 
+/// The logbook's entries, newest written first (a Monday's review of the week before sorts with the day it
+/// was written, not the week it covers). Fails open: no table, or no entries, is an empty logbook.
+export async function getAuditLog() {
+  try {
+    return await prisma.auditLog.findMany({
+      orderBy: [{ createdAt: "desc" }],
+      take: 120,
+      select: { day: true, kind: true, title: true, lines: true },
+    });
+  } catch {
+    return [];
+  }
+}
+
 /// The newest stored macro-gatekeeper answer per name, kept only where it is a REJECT.
 ///
 /// **Fails open, in the way that matters most here.** A missing table (a standby that has not had the

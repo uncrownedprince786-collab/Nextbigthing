@@ -1805,3 +1805,25 @@ model LiveQuote {
   /// When this row last changed. Not the quote's age: that is `quotedAt`.
   updatedAt DateTime @default(now())
 }
+
+/// The logbook: one entry per day (and one review per week), written by `tools/audit_log.py` at the end
+/// of the decision workflow and shown on `/logbook`. Append-only in spirit: a day's entry is written once
+/// and a re-run of the same day replaces it with the same content, never a second copy. Never pruned.
+///
+/// `lines` is the entry as it is printed: an ordered list of `[text, style]` pairs, style one of "",
+/// "title", "heading" or "bold". Stored as written rather than recomputed at read time, because the
+/// logbook is a record of what was reported that day; recomputing it later would rewrite history with
+/// outcomes that were not known then.
+model AuditLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  /// The day the entry is for (daily) or the Monday the reviewed week began (weekly).
+  day       DateTime @db.Date
+  /// "daily" or "weekly".
+  kind      String
+  title     String
+  lines     Json
+  createdAt DateTime @default(now())
+
+  @@unique([day, kind])
+}
+

@@ -1,13 +1,9 @@
-"""Append the day's evaluation audit to the owner's Google Doc: a weekly review on Mondays, a daily entry
-every day. Runs at the end of the decision workflow.
+"""Write the day's evaluation audit to the logbook shown on /logbook: a review of the week on Mondays,
+a daily entry every day. Runs at the end of the decision workflow.
 
     python tools/audit_log.py                print today's entry (and the weekly review on a Monday)
-    python tools/audit_log.py --append       also append it to the Google Doc
-    python tools/audit_log.py --date 2026-10-17 --append
-
-Configuration (all optional; without it the entry is printed and goes to the run summary):
-    AUDIT_DOC_ID                  the document id from its URL
-    GOOGLE_SERVICE_ACCOUNT_JSON   a service account key that the document is shared with as Editor
+    python tools/audit_log.py --write        also save it to the logbook (the AuditLog table)
+    python tools/audit_log.py --date 2026-10-17 --write
 
 What it reports, and how each figure is decided
 -----------------------------------------------
@@ -30,16 +26,15 @@ opinions, and a sentence like "the veto should have weighted oil higher" would b
 finding. Nothing is adjusted automatically (brain.md rule 77), and the log says so. A rate is printed
 with its count, and no rate is printed from nothing.
 
-Idempotent: an entry already in the document for that day (or a review for that week) is not appended
-twice, so a re-run or a retried workflow costs nothing. Never prints a credential.
+One entry per day and kind (`@@unique([day, kind])`): a re-run or a retried workflow rewrites the same
+day's entry, never adds a second. Stored as written, because the logbook records what was reported that
+day; recomputing an old entry later would rewrite it with outcomes nobody knew then.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import sys
-import urllib.request
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -162,9 +157,9 @@ def daily_entry(day: date, completed: list[tuple[dict, dict]], shifts: list[dict
         star_result = (
             f"{star} -- {'accurate' if o['verdict'] == 'right' else 'did not hold'}" if "trigger" in legs_of(row) else star
         )
-        entry = f"{o['entry']:.2f}" if o["entry"] is not None else "n/a"
-        exit_ = f"{o['exit']:.2f}" if o["exit"] is not None else "n/a"
-        move = f"{o['move']:+.2f}%" if o["move"] is not None else "n/a"
+        entry = f"{o['entry']:.2f}" if o["entry"] is not None else "not measured"
+        exit_ = f"{o['exit']:.2f}" if o["exit"] is not None else "not measured"
+        move = f"{o['move']:+.2f}%" if o["move"] is not None else "not measured"
         out += [
             (f"- Asset: {row['symbol']} ({row['name']}) | Type: {row['action']} | Called {day_label(row['periodEnd'])}", ""),
             (f"  - Result: {result}", ""),
@@ -280,100 +275,44 @@ def load_week(cur, start: date):
     return rows, completed, flips
 
 
-# --- the document ------------------------------------------------------------------------------
+# --- the logbook --------------------------------------------------------------------------------
+
+UPSERT = """
+    INSERT INTO "AuditLog" (day, kind, title, lines)
+    VALUES (%s, %s, %s, %s::jsonb)
+    ON CONFLICT (day, kind) DO UPDATE SET title = EXCLUDED.title, lines = EXCLUDED.lines
+"""
 
 
-def access_token(info: dict) -> str:
-    from google.auth.transport.requests import Request
-    from google.oauth2 import service_account
-
-    creds = service_account.Credentials.from_service_account_info(
-        info, scopes=["https://www.googleapis.com/auth/documents"]
-    )
-    creds.refresh(Request())
-    return creds.token
+def entry_params(day: date, kind: str, lines: list[tuple[str, str]]) -> tuple:
+    """One entry as stored: the title is its first non-divider line; the lines are kept as printed."""
+    title = next(line for line, _ in lines if line and not line.startswith("="))
+    return (day, kind, title, json.dumps([[line, style] for line, style in lines]))
 
 
-def docs_call(method: str, url: str, token: str, body: dict | None = None) -> dict:
-    req = urllib.request.Request(
-        url, method=method, data=json.dumps(body).encode() if body is not None else None,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=60) as r:
-        raw = r.read()
-        return json.loads(raw) if raw else {}
-
-
-def doc_text(doc: dict) -> tuple[str, int]:
-    text, end = [], 1
-    for el in doc.get("body", {}).get("content", []):
-        end = el.get("endIndex", end)
-        for pe in (el.get("paragraph") or {}).get("elements", []):
-            text.append((pe.get("textRun") or {}).get("content", ""))
-    return "".join(text), end
-
-
-def requests_for(lines: list[tuple[str, str]], at: int) -> list[dict]:
-    """One insert of the whole block at `at`, then the styles, by offset into what was inserted."""
-    text = "".join(line + "\n" for line, _ in lines)
-    reqs: list[dict] = [{"insertText": {"location": {"index": at}, "text": text}}]
-    offset = at
-    for line, style in lines:
-        n = len(line.encode("utf-16-le")) // 2  # Docs indexes count UTF-16 code units
-        if style and n:
-            rng = {"startIndex": offset, "endIndex": offset + n}
-            if style in ("title", "heading"):
-                reqs.append({"updateParagraphStyle": {
-                    "range": rng,
-                    "paragraphStyle": {"namedStyleType": "HEADING_1" if style == "title" else "HEADING_2"},
-                    "fields": "namedStyleType"}})
-            reqs.append({"updateTextStyle": {"range": rng, "textStyle": {"bold": True}, "fields": "bold"}})
-        offset += n + 1
-    return reqs
-
-
-def append(doc_id: str, info: dict, blocks: list[tuple[str, list[tuple[str, str]]]]) -> list[str]:
-    token = access_token(info)
-    base = f"https://docs.googleapis.com/v1/documents/{doc_id}"
-    done = []
-    for marker, lines in blocks:
-        text, end = doc_text(docs_call("GET", base, token))
-        if marker in text:
-            done.append(f"already present: {marker}")
-            continue
-        docs_call("POST", base + ":batchUpdate", token, {"requests": requests_for(lines, max(1, end - 1))})
-        done.append(f"appended: {marker}")
-    return done
+def write(cur, day: date, kind: str, lines: list[tuple[str, str]]) -> None:
+    cur.execute(UPSERT, entry_params(day, kind, lines))
 
 
 def main(argv: list[str]) -> int:
     day = date.fromisoformat(argv[argv.index("--date") + 1]) if "--date" in argv else datetime.now(timezone.utc).date()
     with db() as conn, conn.cursor() as cur:
         completed, shifts, stars = load(cur, day)
-        blocks = []
+        blocks: list[tuple[date, str, list[tuple[str, str]]]] = []
         if day.weekday() == 0:  # Monday: review the week that just ended
             start = day - timedelta(days=7)
             rows, wk_completed, flips = load_week(cur, start)
-            review = weekly_review(start, rows, wk_completed, flips)
-            blocks.append((review[2][0], review))
-        entry = daily_entry(day, completed, shifts, stars)
-        blocks.append((entry[1][0], entry))
+            blocks.append((start, "weekly", weekly_review(start, rows, wk_completed, flips)))
+        blocks.append((day, "daily", daily_entry(day, completed, shifts, stars)))
 
-    for _, lines in blocks:
-        print("\n".join(line for line, _ in lines))
+        for _, _, lines in blocks:
+            print("\n".join(line for line, _ in lines))
 
-    if "--append" not in argv:
-        return 0
-    doc_id = (os.environ.get("AUDIT_DOC_ID") or "").strip()
-    key = (os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON") or "").strip()
-    if not doc_id or not key:
-        print("audit log: not appended (AUDIT_DOC_ID and GOOGLE_SERVICE_ACCOUNT_JSON are not both set)")
-        return 0
-    try:
-        for line in append(doc_id, json.loads(key), blocks):
-            print("audit log:", line)
-    except Exception as e:  # noqa: BLE001 - name only: an auth error can echo request detail
-        print(f"audit log: could not append ({type(e).__name__}); the entry above is in the run summary")
+        if "--write" in argv:
+            # One statement for the day's one or two entries.
+            cur.executemany(UPSERT, [entry_params(when, kind, lines) for when, kind, lines in blocks])
+            conn.commit()
+            print(f"audit log: saved {len(blocks)} entr{'y' if len(blocks) == 1 else 'ies'} for {day.isoformat()}")
     return 0
 
 

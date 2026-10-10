@@ -2368,3 +2368,12 @@ reads rows that already exist:
     service account the document is shared with; without that it writes to the run summary, and an
     entry already in the document is never appended twice. One query for every shifted asset, not one
     each (the in-loop ratchet caught the first draft).
+
+84. **The logbook moved from a Google Doc to the site, because the site needs no credential.**
+    A public Google Doc can be read by anyone but written only through the Docs API with Google
+    credentials, which the owner declined to set up. So the nightly job saves each entry to `AuditLog`
+    (one row per day and kind, rewritten by a re-run, never doubled, never pruned) and `/logbook`
+    shows them newest first, in the same sections and wording as rule 83. Entries are stored as written
+    that day, not recomputed at read time: the logbook is a record of what was reported, and an old
+    entry recomputed later would quietly carry outcomes nobody knew then. The Google code and its
+    library were removed rather than left unused.

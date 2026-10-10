@@ -30,6 +30,7 @@ const NAV = [
   { href: "/forex", label: "Forex" },
   { href: "/commodities", label: "Commodities" },
   { href: "/products", label: "Products" },
+  { href: "/logbook", label: "Logbook" },
 ];
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

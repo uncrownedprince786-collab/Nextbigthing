@@ -7725,7 +7725,7 @@ class EveryImportIsDeclared(unittest.TestCase):
     not with what happens to be installed, so it fails on the machine that has the package too."""
 
     # Import name -> the distribution that provides it, where the two differ.
-    DISTRIBUTION = {"yaml": "pyyaml", "dotenv": "python-dotenv", "psycopg": "psycopg", "google": "google-auth"}
+    DISTRIBUTION = {"yaml": "pyyaml", "dotenv": "python-dotenv", "psycopg": "psycopg"}
 
     def test_every_third_party_import_is_in_requirements(self):
         import ast
@@ -7995,8 +7995,8 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
 
 
 class TheWeeklyAuditLog(unittest.TestCase):
-    """`tools/audit_log.py`: the daily entry and Monday review appended to the owner's Google Doc. Every
-    verdict is the scorecard's own; nothing is invented; nothing is appended twice."""
+    """`tools/audit_log.py`: the daily entry and Monday review saved to the logbook on /logbook. Every
+    verdict is the scorecard's own; nothing is invented; one entry per day, never doubled."""
 
     @staticmethod
     def al():
@@ -8067,35 +8067,25 @@ class TheWeeklyAuditLog(unittest.TestCase):
         self.assertIsNone(al.classify("WAIT", "LONG", "long"))
         self.assertIsNone(al.classify("LONG", "LONG", "long"))
 
-    def test_the_docs_requests_style_by_utf16_offset(self):
-        al = self.al()
-        lines = [("Oct 10 - AUDIT", "heading"), ("RISING STAR ⬆ x", "bold"), ("plain", "")]
-        reqs = al.requests_for(lines, 5)
-        self.assertEqual(reqs[0]["insertText"]["location"]["index"], 5)
-        self.assertEqual(reqs[0]["insertText"]["text"], "Oct 10 - AUDIT\nRISING STAR ⬆ x\nplain\n")
-        ranges = [r[k]["range"] for r in reqs[1:] for k in r]
-        self.assertEqual(ranges[0], {"startIndex": 5, "endIndex": 19})
-        # "⬆" is one UTF-16 unit; the second line starts after the first line and its newline.
-        self.assertIn({"startIndex": 20, "endIndex": 35}, ranges)
-        self.assertEqual(reqs[1]["updateParagraphStyle"]["paragraphStyle"]["namedStyleType"], "HEADING_2")
-
-    def test_nothing_is_appended_twice(self):
-        from unittest import mock
+    def test_one_entry_per_day_saved_as_written(self):
+        from datetime import date
 
         al = self.al()
-        calls = []
+        self.assertIn("ON CONFLICT (day, kind) DO UPDATE", al.UPSERT)
+        seen = []
 
-        def fake(method, url, token, body=None):
-            calls.append(method)
-            if method == "GET":
-                return {"body": {"content": [{"endIndex": 40, "paragraph": {"elements": [{"textRun": {"content": "Oct 10, 2026 - DAILY BRAIN EVALUATION AUDIT\n"}}]}}]}}
-            return {}
+        class Cur:
+            def execute(self, sql, params):
+                seen.append(params)
 
-        with mock.patch.object(al, "access_token", lambda info: "t"), mock.patch.object(al, "docs_call", fake):
-            done = al.append("doc", {}, [("Oct 10, 2026 - DAILY BRAIN EVALUATION AUDIT", [("x", "")]), ("NEW BLOCK", [("y", "")])])
-        self.assertEqual(done[0], "already present: Oct 10, 2026 - DAILY BRAIN EVALUATION AUDIT")
-        self.assertEqual(done[1], "appended: NEW BLOCK")
-        self.assertEqual(calls.count("POST"), 1)
+        lines = [("", ""), ("Oct 10, 2026 - DAILY BRAIN EVALUATION AUDIT", "heading"), ("- None.", "")]
+        al.write(Cur(), date(2026, 10, 10), "daily", lines)
+        day, kind, title, stored = seen[0]
+        self.assertEqual((day, kind, title), (date(2026, 10, 10), "daily", "Oct 10, 2026 - DAILY BRAIN EVALUATION AUDIT"))
+        self.assertEqual(json.loads(stored)[1], ["Oct 10, 2026 - DAILY BRAIN EVALUATION AUDIT", "heading"])
+        review = al.weekly_review(date(2026, 10, 5), [], [], 0)
+        al.write(Cur(), date(2026, 10, 5), "weekly", review)
+        self.assertTrue(seen[1][2].startswith("WEEKLY PERFORMANCE REVIEW"), "a divider is never the title")
 
     def test_it_runs_after_the_decisions_and_cannot_redden_the_lane(self):
         import yaml
@@ -8105,11 +8095,11 @@ class TheWeeklyAuditLog(unittest.TestCase):
         self.assertEqual(job["needs"], "decide")
         step = [st for st in job["steps"] if "audit_log.py" in st.get("run", "")][0]
         self.assertTrue(step.get("continue-on-error"))
-        self.assertIn("--append", step["run"])
-        self.assertIn("GOOGLE_SERVICE_ACCOUNT_JSON", str(step["env"]))
+        self.assertIn("--write", step["run"])
+        self.assertEqual(set(step["env"]), {"DATABASE_URL", "PYTHONIOENCODING"}, "no third-party credential")
         text = code_only((ROOT / "tools" / "audit_log.py").read_text(encoding="utf-8"))
-        for call in re.findall(r"print[(]([^\n]*)[)]", text):
-            self.assertNotIn("key", call.lower().replace("monkey", ""), call)
+        self.assertNotIn("google", text.lower())
+        self.assertNotIn("n/a", text.lower(), "a placeholder the site bans")
 
 
 class ShortLevelsAreMirrored(unittest.TestCase):
