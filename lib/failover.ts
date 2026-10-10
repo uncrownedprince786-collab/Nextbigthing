@@ -98,9 +98,14 @@ export const CONNECT_TIMEOUT_MS = 5_000;
 /// clients in total, across everything that connects to it. An earlier ceiling of 5 per process was
 /// exhausted by three test servers and a running mirror, and in production every concurrent serverless
 /// instance has its own pool, so a handful of instances during an outage would drain it. A standby is
-/// idle until needed and serves a degraded site; three connections is enough to keep a page's reads
-/// moving and few enough to leave the pooler usable by the next instance.
-export const STANDBY_MAX_CLIENTS = 3;
+/// idle until needed and serves a degraded site.
+///
+/// One, since 2026-10-10: during a real failover three per instance filled all 15 slots ("max clients
+/// reached in session mode") and the standby turned every request away, primary already gone. Idle
+/// connections are also let go after `STANDBY_IDLE_MS`, because a serverless instance that is frozen
+/// between requests otherwise keeps its slot until the platform recycles it.
+export const STANDBY_MAX_CLIENTS = 1;
+export const STANDBY_IDLE_MS = 2_000;
 
 export interface Tier<C> {
   /// A label for logs. Never a host and never a credential.
@@ -274,7 +279,7 @@ export function makeFailoverPool(primary: pg.PoolConfig, standbys: StandbyConfig
   // small ceiling, because they are idle until needed and a free-tier pooler admits few clients.
   const withTimeout = (c: pg.PoolConfig, max?: number): pg.PoolConfig => ({
     connectionTimeoutMillis: CONNECT_TIMEOUT_MS,
-    ...(max ? { max } : {}),
+    ...(max ? { max, idleTimeoutMillis: STANDBY_IDLE_MS, allowExitOnIdle: true } : {}),
     ...c,
   });
   const standbyPools = standbys.map((s) => ({ name: s.name, pool: new pg.Pool(withTimeout(s.config, STANDBY_MAX_CLIENTS)) }));
