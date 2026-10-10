@@ -7847,6 +7847,40 @@ class APastedSecretsLineBreakIsNotPartOfIt(unittest.TestCase):
         self.assertIn("DATABASE_URL_FALLBACK?.trim()", db)
 
 
+class TheMirrorTranslatesProductsToo(unittest.TestCase):
+    """`SignalLog.productId` is a per-database UUID like `assetId`, and it was copied untranslated: on
+    2026-10-10 the first product signal broke Supabase's foreign key and failed the mirror run after
+    prices and decisions had already copied. It now goes through the product's slug."""
+
+    @staticmethod
+    def m():
+        import mirror
+
+        return mirror
+
+    def test_products_are_matched_by_slug(self):
+        m = self.m()
+        src = {"s1": "chatgpt", "s2": "claude", "s3": "only-here"}
+        dst = {"t9": "claude", "t8": "chatgpt"}
+        self.assertEqual(m.build_product_map(src, dst), {"s1": "t8", "s2": "t9"})
+
+    def test_a_product_signal_is_translated_and_an_unknown_product_is_skipped_and_counted(self):
+        m = self.m()
+        unmatched = set()
+        row = {"kind": "k", "assetId": None, "productId": "s1", "targetRef": "r"}
+        out = m.remap_row(row, ("kind",), {}, unmatched, {"s1": "t8"})
+        self.assertEqual(out["productId"], "t8")
+        self.assertIsNone(out["assetId"])
+        self.assertIsNone(m.remap_row(dict(row, productId="gone"), ("kind",), {}, unmatched, {"s1": "t8"}))
+        self.assertEqual(unmatched, {"product:gone"})
+        # A row about no product is untouched.
+        self.assertEqual(m.remap_row({"kind": "k", "productId": None}, ("kind",), {}, set(), {})["productId"], None)
+
+    def test_both_ids_on_one_row_are_translated(self):
+        out = self.m().remap_row({"assetId": "a1", "productId": "p1"}, ("assetId",), {"a1": "A"}, set(), {"p1": "P"})
+        self.assertEqual((out["assetId"], out["productId"]), ("A", "P"))
+
+
 class ShortLevelsAreMirrored(unittest.TestCase):
     """A short's stop belongs above the price, not below it.
 

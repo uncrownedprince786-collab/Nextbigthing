@@ -129,7 +129,9 @@ def same_database(a: str, b: str) -> bool:
     return ident(a) == ident(b)
 
 
-def remap_row(row: dict, key_cols: tuple[str, ...], asset_map: dict, unmatched: set) -> dict | None:
+def remap_row(
+    row: dict, key_cols: tuple[str, ...], asset_map: dict, unmatched: set, product_map: dict | None = None
+) -> dict | None:
     """The row with `assetId` translated to the target's id, or None when it cannot be.
 
     A null `assetId` stays null: `SignalLog` carries an optional pointer and a signal about no
@@ -137,14 +139,23 @@ def remap_row(row: dict, key_cols: tuple[str, ...], asset_map: dict, unmatched: 
     recorded, because forcing it in would either break the foreign key or file the row under
     the wrong name.
     """
-    if "assetId" not in row or row["assetId"] is None:
-        return dict(row)
-    mapped = asset_map.get(row["assetId"])
-    if mapped is None:
-        unmatched.add(row["assetId"])
-        return None
     out = dict(row)
-    out["assetId"] = mapped
+    if out.get("assetId") is not None:
+        mapped = asset_map.get(out["assetId"])
+        if mapped is None:
+            unmatched.add(out["assetId"])
+            return None
+        out["assetId"] = mapped
+    # `productId` is the same kind of per-database UUID. It was copied untranslated, so on
+    # 2026-10-10 the first SignalLog row about a product broke the target's foreign key and failed
+    # the whole mirror run. Translated through the product's slug exactly as an asset is through
+    # its (industry, symbol); a product the target does not have is skipped and counted.
+    if out.get("productId") is not None and product_map is not None:
+        mapped = product_map.get(out["productId"])
+        if mapped is None:
+            unmatched.add("product:" + str(out["productId"]))
+            return None
+        out["productId"] = mapped
     return out
 
 
@@ -205,6 +216,18 @@ def build_asset_map(source_ids: dict, target_ids: dict) -> dict[str, str]:
     return {sid: by_identity[identity] for sid, identity in source_ids.items() if identity in by_identity}
 
 
+def product_identity(cur) -> dict[str, str]:
+    """{product id: slug} for one database. The slug is unique, so it is the product's name across both."""
+    cur.execute('SELECT id, slug FROM "Product"')
+    return {r["id"]: r["slug"] for r in cur.fetchall()}
+
+
+def build_product_map(source_ids: dict, target_ids: dict) -> dict[str, str]:
+    """{source product id: target product id}, joined on slug."""
+    by_slug = {slug: tid for tid, slug in target_ids.items()}
+    return {sid: by_slug[slug] for sid, slug in source_ids.items() if slug in by_slug}
+
+
 def columns_of(cur, table: str) -> list[str]:
     cur.execute(
         """
@@ -216,7 +239,9 @@ def columns_of(cur, table: str) -> list[str]:
     return [r["column_name"] for r in cur.fetchall()]
 
 
-def copy_table(src, dst, table: str, asset_map: dict, dry_run: bool, since: str | None = None) -> Tally:
+def copy_table(
+    src, dst, table: str, asset_map: dict, dry_run: bool, since: str | None = None, product_map: dict | None = None
+) -> Tally:
     key = TABLES[table]
     tally = Tally()
     with src.cursor() as sc, dst.cursor() as dc:
@@ -243,7 +268,7 @@ def copy_table(src, dst, table: str, asset_map: dict, dry_run: bool, since: str 
                 tally.read += len(batch)
                 out = []
                 for row in batch:
-                    mapped = remap_row(dict(zip(cols, row)) if not isinstance(row, dict) else row, key, asset_map, tally.unmatched_assets)
+                    mapped = remap_row(dict(zip(cols, row)) if not isinstance(row, dict) else row, key, asset_map, tally.unmatched_assets, product_map)
                     if mapped is None:
                         tally.unmatched += 1
                     else:
@@ -297,10 +322,11 @@ def mirror_one(src_url: str, label: str, dst_url: str, chosen: list[str], dry: b
     try:
         with src.cursor() as sc, dst.cursor() as dc:
             amap = build_asset_map(asset_identity(sc), asset_identity(dc))
+            pmap = build_product_map(product_identity(sc), product_identity(dc))
         print(f"  assets matched by (industry, symbol): {len(amap)}")
         print(("  DRY RUN, nothing written\n" if dry else "") + f"  {'table':14} {'read':>9} {'written':>9} {'unchanged':>10} {'unmatched':>10}")
         for table in chosen:
-            t = copy_table(src, dst, table, amap, dry, since)
+            t = copy_table(src, dst, table, amap, dry, since, pmap)
             print(f"  {table:14} {t.read:>9} {t.copied:>9} {t.unchanged:>10} {t.unmatched:>10}")
             if t.unmatched_assets:
                 print(f"      {len(t.unmatched_assets)} source asset(s) have no counterpart here, e.g. {sorted(t.unmatched_assets)[:3]}")
