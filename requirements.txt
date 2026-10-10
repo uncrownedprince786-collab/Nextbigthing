@@ -7,3 +7,7 @@ python-dotenv==1.2.1
 yfinance==1.7.0
 pandas==2.3.3
 pytrends==4.9.2
+# Read by tests/test_brain.py to check the workflow files (schedules, permissions, which step holds
+# a secret). Missing from this list, those tests passed on a machine that had it installed globally and
+# failed on every CI run from 2026-10-10 01:04 UTC until it was added.
+PyYAML==6.0.3

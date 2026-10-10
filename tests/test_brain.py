@@ -7653,6 +7653,54 @@ class TheWatchdogRestartsWhatStopped(unittest.TestCase):
         self.assertIsNone(re.search(r"(?<![A-Z_])STALE_AFTER_DAYS\s*[:=]", code_only(health)))
 
 
+class EveryImportIsDeclared(unittest.TestCase):
+    """A module that is installed on one machine is not a dependency.
+
+    Three tests read the workflow files with `yaml`. PyYAML was installed globally on the machine they
+    were written on, so they passed there, and it was not in `requirements.txt`, so every CI run from
+    2026-10-10 01:04 UTC failed on `No module named 'yaml'` -- for seven hours, behind a red "tests"
+    badge that the stale database secret was already making look normal. Found by running the suite in a
+    virtualenv holding nothing but `requirements.txt`, which is what the runner has.
+
+    This compares imports with the standard library as Python itself lists it (`sys.stdlib_module_names`),
+    not with what happens to be installed, so it fails on the machine that has the package too."""
+
+    # Import name -> the distribution that provides it, where the two differ.
+    DISTRIBUTION = {"yaml": "pyyaml", "dotenv": "python-dotenv", "psycopg": "psycopg"}
+
+    def test_every_third_party_import_is_in_requirements(self):
+        import ast
+
+        declared = set()
+        for line in (ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines():
+            line = line.split("#", 1)[0].strip()
+            if line:
+                declared.add(re.split(r"[=<>\[;! ]", line, 1)[0].strip().lower())
+        local = set()
+        files = []
+        for folder in ("jobs", "tools", "tests"):
+            for f in sorted((ROOT / folder).rglob("*.py")):
+                local.add(f.stem)
+                files.append(f)
+        missing = []
+        for f in files:
+            tree = ast.parse(f.read_text(encoding="utf-8"))
+            for node in ast.walk(tree):
+                names = []
+                if isinstance(node, ast.Import):
+                    names = [a.name for a in node.names]
+                elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
+                    names = [node.module]
+                for name in names:
+                    top = name.split(".")[0]
+                    if top in sys.stdlib_module_names or top in local or top == "__future__":
+                        continue
+                    dist = self.DISTRIBUTION.get(top, top).lower()
+                    if dist not in declared:
+                        missing.append(f"{f.relative_to(ROOT).as_posix()}: {top}")
+        self.assertEqual(sorted(set(missing)), [], "imported but not in requirements.txt")
+
+
 class ShortLevelsAreMirrored(unittest.TestCase):
     """A short's stop belongs above the price, not below it.
 
