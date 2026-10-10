@@ -13,7 +13,7 @@ owner and verified. brain.md rule 89 records why; `tools/logic_audit.py` re-chec
 
 **The database is a different one now, and several things below this section describe the old one.**
 The Neon project that held everything through 2026-10-09 exceeded its quota and refused every
-connection. A fresh project (`ep-raspy-fire-b5i0eo8w`) was made, all 25 migrations applied, the seed
+connection. A fresh project was made, all 25 migrations applied, the seed
 run, and every source refetched. **Nothing from before 2026-10-09 survived the move**, and the old
 project is still over quota, so the matured decision history from 2026-10-01 to 10-09 is not yet
 recoverable. `python jobs/mirror.py --from OLD --to NEW --tables DecisionLog` is the way to bring it
