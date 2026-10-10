@@ -1,5 +1,14 @@
 # Resume here
 
+## 0. State of play, 2026-10-10 (eleventh session, final audit) — read AUDIT.md first
+
+`AUDIT.md` is the current, authoritative state (PRODUCTION LOCKED on `c36d2a0`): what was verified, what was fixed in `f77e2d7`, `f548e85` and `c36d2a0`
+(builds no longer depend on the database, news/products/mirror/watchdog/retry repaired, one-line
+action cell, sub-cent formatter, asset page reads the same horizons as the lists), the open findings
+ranked, and the owner actions still open (rotate the Neon password, bump `next`, decide the
+patient-flip whipsaw). The `PRIMARY` variable and Vercel's unmaintained fallback were removed by the
+owner and verified. brain.md rule 89 records why; `tools/logic_audit.py` re-checks the arithmetic. The tenth-session notes below are still accurate about the database move.
+
 ## 0. State of play, 2026-10-10 (tenth session) — read this first
 
 **The database is a different one now, and several things below this section describe the old one.**

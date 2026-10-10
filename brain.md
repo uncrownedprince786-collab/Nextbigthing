@@ -2452,3 +2452,25 @@ reads rows that already exist:
     failover never again lands on a database missing a column. Test suites never touch a database
     (they use stand-ins); what burned the quota alongside the jobs was development-time measuring and
     page checks against a local server that read the production database. That is not done again.
+
+89. **A build never waits on the database; a lane that dies says so; a stopped lane is restarted, including quotes.**
+    The final audit (AUDIT.md, 2026-10-10) found the site sound and the plumbing around it quietly broken.
+    *Builds:* `next build` prerenders the ISR pages, which means querying Postgres, so two production
+    builds failed on an unreachable primary and nothing could ship. `lib/buildSafe.ts` now defers such a
+    page to request time for that deployment when no tier answers; a query fault still fails the build.
+    Verified by building against three dead ports. *Silence:* every lane captured its output into a
+    variable and printed it at the end, so a run cut off at its timeout printed nothing, and GitHub
+    reports a timeout as "cancelled", which the watchdog did not count. News and products now stream
+    through `tee`, run.py stops a stuck step inside the job's own limit, and the watchdog counts
+    cancelled and timed-out runs. *Products* had never completed (8 of 8 cancelled): its two "chunks"
+    each ran the whole group because no products job reads `--chunk`; it is now split by source, geo
+    budgeted inside its job, signals committed per source. *Mirror:* a statement ceiling per transaction
+    and the decisions step independent of the prices step. *Quotes:* a quote lane that is on and an hour
+    stale is a health problem the watchdog may restart; none at all, or none for three days, is a lane
+    switched off. *retry.yml* had never re-run anything (no repository named). The rule behind all of
+    it is rule 36's again: a job that exists and reports green is not a job that works -- read the run.
+    *Afterwards:* a Reddit feed that stalled the products lane got a wall-clock cap (`f548e85`), and the
+    first products run since the lane was created went green. `tools/logic_audit.py` checks every call's
+    arithmetic in the database and on the live pages; its first run found FX pairs printing entry and
+    stop as the same two-decimal number, so pairs now print in pips (`c36d2a0`). Rule 87's two decimals
+    from a dollar stand for every other market.

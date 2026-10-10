@@ -1,12 +1,14 @@
-# Production audit — 2026-10-02
+# Production audit — 2026-10-10 (final)
 
-*Second pass: the unblocked sections are now done. Section 6 lists what each one found.*
+**Status: PRODUCTION LOCKED** — on the owner's criteria, every one measured on 2026-10-10 between 18:07
+and 19:30 UTC: the suites pass, the live display checker passes, `/api/health` reads `ok: true`, the
+latest run of every workflow is green, and the logic audit reads PASSED MATHEMATICALLY.
 
-One authoritative matrix. Every row says how it was established. Where something was not
-verified, the row says so rather than reading as a pass.
+**Locked does not mean defect-free.** Section 4 lists what is known and not fixed. The first item is a
+High: the patient flip can bring back a call a reader was already told to drop. It changes which call
+readers see, so it is left for the owner under rule 86.
 
-**Status: NOT FROZEN — blockers remain.** The blockers are in section 4 and none of them is a
-code defect.
+One authoritative matrix, replacing the 2026-10-02 audit. Every row says how it was established.
 
 ---
 
@@ -17,153 +19,151 @@ code defect.
 | **verified** | run or read in this session, with the result quoted |
 | **test-covered** | asserted by the suite, which uses no database and no network |
 | **read** | established by reading the code, not by running it |
-| **unverified** | believed from documentation or inference, and not checked here |
-| **blocked** | cannot be established from this session; section 4 says why |
+| **unverified** | believed from inference, and not checked here |
+| **owner** | a setting only the account holder can change; section 6 |
+
+Method. Database facts come from the lanes' own logs, `/api/health`, the live pages, and two short
+read-only sessions by `tools/logic_audit.py` that the owner asked for (rule 88 otherwise keeps
+development off the production database). Three read-only reviewers covered the decision path, the
+database failover and the data lanes; every finding they reported was checked against code or a log
+before it was acted on or listed here.
 
 ---
 
-## 2. The audit's main finding
+## 2. Requirement matrix
 
-The data and brain layers are substantially ahead of the output layer. Of 33 Prisma models,
-**27 reach a reader**; 6 are written on every run and read by nothing:
+### Code and build
 
-| model | written by | reaches a reader | note |
-| --- | --- | --- | --- |
-| `Coverage` | `audit.py`, every run | **now yes** | surfaced — home page brief, methodology full |
-| `SourceReliability` | `audit.py` | no | source learning; time-gated, and no reader even once it matures |
-| `Calibration` | `audit.py` | no | grade calibration; time-gated, floor-gated in the job and the query layer |
-| `NewsLineage` | `lineage.py` | **now yes** | surfaced on the asset page as "Stories behind the coverage", with `storyWords` saying whether a cluster is one report repeated, a syndicated release, or separate pickups |
-| `EventState` | `events.py` | no | 0 rows; every scheduled date is still in the future |
-| `ProductAssetLink`, `EventLink`, `ThesisCheck`, `SetupTarget`, `InvestigationFinding`, `InvestigationHypothesis` | various | **yes** | read through Prisma relation includes, not by model name — an earlier pass of this audit wrongly listed them as unsurfaced |
-
-Method: every model name matched against `lib/`, `app/` and `components/` for both a Prisma
-accessor and a relation include. The second pass is why six rows moved from "missing" to
-"present" — a string match alone was wrong.
-
-## 3. Requirement matrix
-
-### Data and refresh
-
-| requirement | status | evidence | limitation |
-| --- | --- | --- | --- |
-| Silent source distinguished from an empty one | test-covered | `require_answer` in all four batch lanes; 233 tests | the counter differs per lane by necessity — rows for Yahoo and Binance, feeds parsed for news, published trading days for PSX |
-| A cached source with zero *new* rows is not called broken | test-covered | the news lane counts feeds parsed, never `written`, because `ON CONFLICT DO NOTHING` makes new rows legitimately 0 inside the cache hour | |
-| A failing lane preserves the lanes that worked | test-covered | `SourceSilent` is caught per lane, the transaction commits, `fail_on_silent` exits after `conn.close()` | found by audit, after an earlier guard in this session would have discarded a whole run |
-| Transient failures retried, permanent blocks not | **verified** | live probe against a 503: three attempts, 18s, `None` returned, host usable afterwards. 403 excluded deliberately | |
-| A dead host cannot consume the lane | test-covered | `RETRY_HOST_BUDGET`, worst case asserted under 120s | |
-| No long transaction across HTTP | read | `psx.py` fetches in phase 2 and writes in phase 3 on a fresh connection | |
-| Per-source coverage reported each run | test-covered | `coverage_report` prints rows, newest date and staleness per source | the output lands in the step log, which needs a GitHub sign-in to read |
-| Yahoo lane green in production | **blocked** | — | only `refresh.yml` runs it |
-| Crypto lane green in production | **blocked** | — | two real defects fixed this session; neither has run in production |
-| PSX lane green in production | **verified** | `backfill #7` on `92a6f37` succeeded, running `psx.py full` with the new guard | row counts are in the log, which needs a sign-in |
-| News lane green in production | **blocked** | — | |
-| Intraday lane green in production | unverified | last documented state was 29 checks, 0 failures on 2026-10-01 | |
-| Two consecutive green `refresh.yml` runs | **blocked, 0 of 2** | — | the gate the owner set; see section 4 |
-
-### Market brain
-
-| requirement | status | evidence | limitation |
-| --- | --- | --- | --- |
-| One canonical decision state per asset | read, present | `AssetSetup` per horizon; `SETUP_WORDS` in `lib/plain.ts` gives each state a reader label and a plain sentence | |
-| Directional state derived from explicit evidence | read, present | `setup.py` stores each condition tested, the ones that failed in `against`, and inputs it could not evaluate in `missing` | |
-| Entry, confirmation, invalidation, target ranges | read, present | `setup.py` condition strings, `SetupTarget` with `agreement`, parsed by `thesis.py` | rule 23 requires the format stay stable; a test runs the parser over every horizon |
-| Targets method-separated, never averaged | read, present | three methods stored as three rows; `METHOD_WORDS` names each as a different question; rule 24 forbids averaging | |
-| Multi-horizon disagreement shown, not averaged | read, present | one `AssetSetup` row per horizon, shown side by side; `HORIZON_WORDS` gives one canonical label set | |
-| Horizon words consistent across pages | **verified** | `HORIZON_WORDS` is the single map; the home page's `HORIZON_SHORT` is a scan-row abbreviation of the same three keys | |
-| Thesis memory, no rewriting of history | read, present | `AssetThesis.openConditions` is a copy of the row from the day the state appeared; rules 14 and 15 forbid re-derivation and make `broken` terminal | |
-| Relevance window rather than a fixed holding period | read, present | thesis status plus invalidation level, not a day count | |
-| Freshness visible | read, present | `AsOf` component, per-row as-of dates, home freshness table | |
-
-### Catalysts and events
-
-| requirement | status | evidence | limitation |
-| --- | --- | --- | --- |
-| Candidate catalysts linked to assets | read, present | `investigate.py` writes a row per check — news, attribution, peers, volume, calendar, graph, analog, intraday, product | this is the layer the mandate asks to "build completely"; it exists and is surfaced |
-| Unexplained move is a first-class state | read, present | `notFound` is a stored field with content; `FINDING_WORDS` gives "Nothing there" its own label | by design, per the job's own docstring |
-| No causal language | test-covered | the suite scans generated prose for "because", "driven by", "in response to", "reaction"; rules 10 and 16 | |
-| Story count not copy count | read, present | `lineage.py` counts lineages, keeping the raw item count beside it | the distinction never reaches the reader — `NewsLineage` is unsurfaced |
-| Future events surfaced per asset | read, present | `Event`, `EventImpact`, `upcoming.py`, `UpcomingBlock` on the home page | |
-| Frozen pre-event state | read, time-gated | `EventState`, 0 rows, all 131 scheduled dates still in the future | also unsurfaced, so nothing will show it when it populates |
-
-### Products
-
-| requirement | status | evidence | limitation |
-| --- | --- | --- | --- |
-| Rising products with evidence per source | read, present | `ProductSignal`, five sources on matched windows | |
-| Marketplace rows excluded from demand scores | read, present | rule 11 | `MarketplaceItem` is empty; the weekly job has not run |
-| Geography only where data supports it | read, present | `ProductRegion`; `geo.py` verified for 175 countries, 51 US states, 5 PK provinces | table was empty at session start; `backfill #7` ran `geo.py` to completion, so it is likely populated — **unverified**, the count is in a signed-in log |
-| Pakistan not inferred from global demand | read, present | PSX industries are first-class; regional rows carry their own source | |
-| No invented city-level demand | read, present | province is the finest PK grain stored | |
-| Currency carried everywhere | test-covered | rule 12 | |
-
-### Learning
-
-| requirement | status | evidence | limitation |
-| --- | --- | --- | --- |
-| Signal logged, outcome measured later | read, present | `signals.py` writes `SignalLog`; `accuracy.py` returns at 30 and 60 days and stores only the measurement | |
-| Weights not moved on small samples | read, present | floors in the job and again in the query layer | |
-| Sample size shown | partial | shown where calibration surfaces; `Calibration` itself is unsurfaced | time-gated — earliest maturity about 2026-10-30 |
-| No look-ahead | **verified, test-covered** | the sweep was done: `context_before` carries a strict `< cutoff` on every query, `EventState` is DO NOTHING, the thesis opening record is excluded from its own DO UPDATE list, `accuracy.py` measures from `baseClose`, `signals.py` anchors to a completed week. Six tests, mutation-tested | a seventh test fails when a new state-writing job appears, so the sweep is redone rather than assumed |
-
-### Non-functional
-
-| requirement | status | evidence | limitation |
-| --- | --- | --- | --- |
-| Tests | **verified** | 259 passing, no database, no network | |
-| Typecheck | **verified** | `tsc --noEmit` exit 0 | |
-| Lint | **verified** | `eslint .` exit 0 on the final tree (slow: needs a raised timeout or backgrounding) | |
-| Production build | **blocked** | — | `next build` prerenders pages that query Postgres; no `DATABASE_URL` here |
-| Free-tier measurement | **blocked** | last documented figure was 123 MB of 500 MB | needs the database |
-| Deployed-app verification | **blocked** | the deployment answers HTTP 200 with a sign-in challenge, not the site | Vercel Authentication; reading the status code alone was previously misleading |
-| SQL parameterisation | test-covered | every `INSERT` in `jobs/` scanned for bare reserved words and for column/expression count mismatch | |
-| Secrets | read | `.env` gitignored and absent; workflows read repository secrets | |
-
-## 6. What the second pass found
-
-| section | done | finding |
+| requirement | status | evidence |
 | --- | --- | --- |
-| §26 no look-ahead | yes | no defect. Four properties held and are now six tests, because each is the kind an edit undoes silently. The thesis opening record is protected in SQL, not in a comment |
-| §29 security | yes | no defect. The web layer runs no raw SQL at all, so a route param cannot become SQL. The one place remote content shapes a URL is safe for one reason — the regex capture must start with a single slash — and that anchor is now asserted |
-| §31 performance | measured, not changed | `audit.py` 9 in-loop queries, `horizons.py` 10, `thesis.py` 8. Unmeasurable against production from here, so nothing was rewritten on a guess; the counts are frozen as a ratchet instead |
-| §34 redundancy | yes | six exports had no consumer. Two were finished capabilities answering nobody (`getEventCategoryHistory`, `getIntradayCoverage`) and are now wired; one stored figure was never shown (`rewardRisk`) and now is; three were dead and were deleted. A test keeps the count at zero |
-| §35 user questions | yes | every stored state must have a label and a plain sentence, or the page prints a raw database value. One apparent gap was a different vocabulary (`run.py`'s step status) and the probe now says so |
-| §22 language | yes | no promise and no causal claim on any page. The scanner's first run flagged two disclaimers, which is a fault in the scanner; it now understands negation, and rule 37 records why that mattered |
-| §10 catalyst surfacing | yes | the story-versus-copy distinction reaches the reader for the first time |
+| Python suite | **verified** | 683 tests, OK |
+| Web suite | **verified** | 416 tests, 0 failures |
+| Type check, lint, compile | **verified** | `tsc --noEmit` 0, `eslint` 0, `compileall jobs tools` 0, `next typegen` 0 |
+| CI on the release | **verified** | `tests` and `schema` green on `c36d2a0` |
+| Production deploy | **verified** | `c36d2a0` Ready; ISR pages 1h, 36 industry pages prerendered |
+| A build cannot fail on an unreachable database | **verified** | `next build` with all three tiers on dead local ports: exit 0, every database page deferred to request time. Before the fix the same build failed on P1001; two production builds failed that way on 2026-10-10 |
 
-Sections that remain untouched are the ones needing a rendered page or a database: §30 free tier,
-§32 UX audit across viewports and states, §37's build and smoke tests, §38 deployment.
+### Live site
 
-## 4. Blockers
+| requirement | status | evidence |
+| --- | --- | --- |
+| Pages answer | **verified** | every page 200, unknown routes 404 |
+| Heartbeat | **verified** | `/api/health` `ok: true` at 19:21 UTC: closes within limits for all five markets, decisions dated today, newest headline 0.9 h, newest quote 29 min, pool 529 |
+| Display rules | **verified** | `tools/ui_audit.py` on `c36d2a0`: 706 rows on 6 pages, every price cell, 529 of 529 assets listed, every check passed |
+| Action cell is one line | **verified, test-covered** | live at 1280, 1024, 375 px: row, no wrap, 6px gap, 176px track, 0 of 25 stars wrapped, 0 cells overflowing; row height set by the Horizon column, not the star. Before: 25 of 25 wrapped at 1280 |
+| No horizontal scroll on a phone | **verified** | 8 pages at 375 px |
+| Sub-cent prices | **verified, test-covered** | PEPE `$0.000004043` on its page, `$0.0₅4036` form in cells; `compactPrice(0.0000099999)` is `$0.0₄1` (was a tenth of that) |
+| FX prices | **verified, test-covered** | pairs print in pips (4 decimals, 3 from 20); EURUSD's entry and stop had printed as the same "1.12" |
+| One reading per name, the same on its page | **test-covered** | the asset page's call reads swing and longer only, as the lists and the nightly log do |
 
-Three, and none is a code defect.
+### Logic audit (`tools/logic_audit.py`, 19:14 UTC) — PASSED MATHEMATICALLY
 
-1. **`refresh.yml` cannot be triggered from here.** It runs on schedule or `workflow_dispatch`
-   only, never on push. A dispatch needs a GitHub sign-in, which is the account holder's to
-   give. So the 2-of-2 green gate stands at **0 of 2** and cannot be advanced from this
-   session. `schema.yml` green does not count: it runs the derivation jobs, not `prices.py`
-   or `psx.py`.
-2. **No `DATABASE_URL`.** Nothing that needs the database can be measured or run: newest dates
-   per source, row counts, free-tier usage, the production build, route smoke tests, and any
-   end-to-end check of the two crypto fixes.
-3. **Vercel Authentication fronts the deployment.** The deployed application cannot be checked
-   from outside the account. This is the single external verification limitation.
+| check | database: DecisionLog 2026-10-10 | live pages |
+| --- | --- | --- |
+| checked | 565 LONG/SHORT calls (20 WAIT rows carry no levels) | 529 names, 706 rows |
+| stop or target on the wrong side, stop inside the zone | 0 | 0 (294 targets) |
+| entry equal to stop | 0 | 0 (2 before the FX fix, display only) |
+| invalid reward:risk | 0 of 267 stored | 0 |
+| reward:risk outside what the printed levels allow | — | 0 of 294 |
+| resolved-call stops | 298 of 298 explained: 277 at exactly 2.00 × atr14 from the close, 21 the setup's own level, none at the price | — |
+| under $1 | 0 collapses of 38; smallest risk 0.26% of the close | 0 of 37 |
+| stored targets, 14 days | 2,193: none non-positive, none reversed, no invalid reward:risk | — |
 
-What a sign-in is and is not needed for, measured rather than assumed: run **status,
-conclusion and duration are public**; **step summaries and raw logs both need a sign-in** —
-the run page answers `Sign in to view logs`.
+The stop equals the zone's far edge on 267 logged calls (250 page rows). That is the construction —
+the zone is the range from the entry level to the stop, both ends inclusive — not an inversion, and
+risk measured from the entry level is never zero. A strict "stop beyond the zone" rule would need the
+zone presented differently; that is a presentation choice, listed in section 4.
 
-## 5. Decision
+### Data lanes
 
-**NOT FROZEN — BLOCKERS REMAIN.**
+| lane | status | evidence |
+| --- | --- | --- |
+| tests, schema | **verified** | green on `f77e2d7`, `f548e85`, `c36d2a0`; Supabase migrated alongside ("No pending migrations") |
+| news | **verified** | green on `f77e2d7`, dispatched (12.2 min, 1,340 headlines — slice 2, which had never completed on this database) and scheduled; output now streams |
+| backfill | **verified** | green on `f77e2d7` |
+| mirror | **verified** | green on `f77e2d7`: Supabase took 349 prices, 1,141 decisions, 143 theses, no timeout |
+| products | **verified** | green on `f548e85` — the lane's first completed run since it was created on 2026-10-03 (8 of 8 cancelled before): signals 14 min, geo 20 min. On `f77e2d7` its signals job failed on a stalled Reddit feed, the cause `f548e85` fixed; geo passed there too. `retry.yml` re-ran that failed job by itself, its first working retry |
+| live quotes, calendar, crypto, watchdog, retry | **verified** | latest runs green |
+| decision, audit, PSX, US prices | **verified** | latest runs green (scheduled, on earlier commits) |
 
-The freeze condition the owner set is two consecutive green production refresh runs. That
-number is 0 of 2 and cannot be moved from this session. Declaring anything else would be
-asserting a result that was never measured, which is the one thing this project's rules exist
-to prevent.
+### Database and configuration
 
-Nearest path to frozen, in order:
+| item | status | evidence |
+| --- | --- | --- |
+| Lanes write the Neon primary | **verified** | every lane prints `DATABASE_URL points at: Neon`, and connects |
+| `PRIMARY` variable removed | **verified** | lanes after the owner's change carry no warning annotation |
+| Site reads the Neon primary | **verified** | no failover warning in three hours of production logs, and the site shows the quotes and headlines the Neon lanes wrote minutes earlier |
+| Unmaintained Vercel fallback tier removed | **verified** | `DATABASE_URL_FALLBACK` gone from Vercel; deployments since `f548e85` run without it |
+| Supabase standby | **verified** | mirrored and migrated, above |
+| Free-tier storage | **verified** | 238 MB on the primary |
+| Neon compute-hours quota | **owner** | rule 88's reason for preferring Supabase still stands: hourly jobs keep Neon awake |
 
-1. Owner supplies `DATABASE_URL`, or dispatches `refresh.yml` twice.
-2. Read the per-source coverage lines the run now prints: Yahoo Finance, Binance, Pakistan
-   Stock Exchange daily closing file, each with count, newest date and age.
-3. If both runs are green, record 2 of 2 in `HANDOFF.md` and freeze.
+### Security
+
+| item | status | evidence |
+| --- | --- | --- |
+| Secrets in history | **verified** | every connection-string match in all commits is a test placeholder |
+| Write surface | **read** | two route handlers, both `GET`; no forms, no accounts |
+| Dependencies | **verified** | `next` 16.3.7 has six advisories fixed in 16.3.8; image-optimizer SSRF, self-hosted ISR poisoning and Draft Mode do not apply here. Patch bump still due |
+| Headers | **verified** | HSTS present; no CSP, `X-Frame-Options` or `nosniff` — low risk for a read-only site |
+| The connection string pasted into a chat earlier | **owner** | rotate that Neon password |
+
+---
+
+## 3. What this pass fixed
+
+| commit | fault | fix |
+| --- | --- | --- |
+| `f77e2d7` | builds failed whenever the primary was unreachable | `lib/buildSafe.ts` defers the page to request time; Prisma's P1001/P1002/P1017 recognised; the logbook no longer caches an empty page on an outage |
+| `f77e2d7` | news hung 25 silent minutes, then cancelled | output streamed through `tee`; a stuck step stopped at 20 min as a counted failure |
+| `f77e2d7` | products: 8 of 8 runs cancelled, nothing stored | split by source; geo budgeted inside its job; signals committed per source |
+| `f548e85` | products: a Reddit feed stalled the lane | 90 s wall-clock cap per feed, 8 min budget, a stall ends Reddit for the run |
+| `f77e2d7` | mirror: full copy hit a statement timeout; decisions skipped with it | per-transaction statement ceiling; decisions step independent; MacroGate copied |
+| `f77e2d7` | a failed standby migration ended the step silently | each standby tried and reported, failure annotated |
+| `f77e2d7` | watchdog never escalated a timing-out lane; a dead dispatch blocked a retry | cancelled and timed-out count as failures; cooldown ignores dead runs |
+| `f77e2d7` | skipped quote runs went unnoticed | a quote lane that is on and an hour stale is a health problem the watchdog restarts |
+| `f77e2d7` | `retry.yml` had never re-run anything | repository named — and it has since |
+| `f77e2d7` | star wrapped under its call | one-line action cell, track floors measured in a browser |
+| `f77e2d7` | `compactPrice` a tenth off just under a power of ten | rounds before counting zeros |
+| `f77e2d7` | asset page and list could print opposite calls | the page reads swing and longer only |
+| `c36d2a0` | FX entry and stop printed as one number | pairs print in pips; `tools/logic_audit.py` added |
+
+## 4. Known and not fixed
+
+1. **High — the patient flip can hold against a call the reader no longer has** (demonstrated in a
+   scratch script). The reversal gate reads only calls the rule table made, so after a forced flip it
+   keeps an older call: table SHORT, then a forced LONG on a stop-cross, then an unconfirmed up-turn
+   prints SHORT again, with "the last call holds". Likely fix: hold against the last logged call of any
+   kind. Owner's decision (rule 86).
+2. **Medium** — the "timeframe" confirmation ignores direction (`decision.ts:718`); the asset page's
+   gap sentence can contradict a forced call (`reconcile.ts:96`); the scorecard still reads WAIT rows
+   for refusals and mixes forced with table calls; health cannot see which tier serves or how far a
+   standby lags, and setups, factors, news and quotes are not mirrored.
+3. **Low** — withheld-trend shorts never keep their own stop (`resolve.ts:95`); out-of-pool names get a
+   page call that is never logged; a forced call with no stop says "which is why the action is WAIT";
+   forced flips get a generic reason; the logbook prints sub-cent prices with 2 decimals; the
+   `same_database` check ignores the Supabase project in the user name; the home page is 1.95 MB of
+   HTML (79 KB over the wire).
+4. **Presentation** — the stop sits on the entry zone's far edge by construction (section 2).
+5. **Operational** — GitHub drops most scheduled runs; the watchdog now restarts the five data lanes
+   and quotes, but it is itself chained to lane completions. The news hang's root cause (most likely
+   throttling of the runner) is unconfirmed; the lane now fails visibly instead of silently.
+
+## 5. Owner actions
+
+Done, and verified: `PRIMARY` deleted; GitHub `DATABASE_URL` on the working Neon project; Vercel
+`DATABASE_URL_FALLBACK` deleted and redeployed.
+
+Still open:
+1. **Rotate the Neon password** pasted into a chat earlier, then update `DATABASE_URL` in GitHub and
+   Vercel with the new string.
+2. **Bump `next` to 16.3.8** (exact pin), a routine patch.
+3. **Decide section 4.1**, the patient-flip whipsaw.
+4. **Decide the primary for the long run**: Neon meters compute hours and has gone over quota twice;
+   rule 88 sets out the Supabase path.
+
+## 6. Decision
+
+**PRODUCTION LOCKED** as of 2026-10-10 19:30 UTC, on `c36d2a0`, under the owner's criteria. The lock is
+a statement about what was measured, not a promise: re-run `tools/ui_audit.py`,
+`tools/logic_audit.py` and the suites before treating any later commit as covered by it.
