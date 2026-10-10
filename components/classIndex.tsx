@@ -105,8 +105,8 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
               rows={[...longs, ...shorts].map(toListRow)}
               empty={
                 <>
-                  Nothing in this class carries a direction today. That is an answer rather than a
-                  missing one: the rules refuse a direction without a level to be wrong at.
+                  No call in this class passed the quality gate today. That is an answer rather than a
+                  missing one: each withheld call is named below with the rule it failed.
                 </>
               }
             />

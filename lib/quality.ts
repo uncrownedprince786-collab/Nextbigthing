@@ -47,8 +47,10 @@ export function qualityGate(
     reasons.push("no average true range stored to set the stop by");
   } else if (entry && ok(stop)) {
     const beyond = long ? entry.low - stop : stop - entry.high;
-    // 1e-6 relative: stops are rounded to eight significant digits.
-    if (beyond < MIN_STOP_ATR * atr * (1 - 1e-6)) reasons.push(`stop within ${MIN_STOP_ATR} x ATR of the entry zone`);
+    // 1e-4 relative: stops are rounded to eight significant digits, which on a four-digit price with a
+    // small ATR moves the distance by a few millionths of it -- 12 names exactly 1 ATR away were withheld
+    // as "within 1 x ATR" on the first deploy.
+    if (beyond < MIN_STOP_ATR * atr * (1 - 1e-4)) reasons.push(`stop within ${MIN_STOP_ATR} x ATR of the entry zone`);
   }
   if (!target) {
     reasons.push("no measured target");

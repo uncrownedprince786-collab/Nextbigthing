@@ -29,6 +29,8 @@ test("every missing or weak part withholds the call, and each is named", () => {
   assert.deepEqual(why({ ...LONG, legs: [] }, TARGET, 2), ["no confirmation"]);
   // ATRL's case: the stop on the zone's edge.
   assert.deepEqual(why({ ...LONG, invalidation: 102.5 }, TARGET, 2), ["stop within 1 x ATR of the entry zone"]);
+  // Exactly 1 ATR away after rounding to eight significant digits passes (ATRL-sized price, small ATR).
+  assert.deepEqual(why({ ...LONG, entry: { low: 1165, high: 1210 }, invalidation: Number((1165 - 3.3333333).toPrecision(8)) }, { ...TARGET, low: 1300, high: 1310 }, 3.3333333), []);
   // No ATR to set the stop by.
   assert.deepEqual(why(LONG, TARGET, null), ["no average true range stored to set the stop by"]);
   // Several at once are all named.

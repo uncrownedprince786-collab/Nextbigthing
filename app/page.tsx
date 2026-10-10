@@ -487,8 +487,8 @@ export default async function Home({
           maxSectors={SECTORS_SHOWN}
           empty={
             Object.keys(current).length > 0
-              ? `No stored asset carries a direction under ${showing}. Clear the filters to see the rest.`
-              : "No asset carries a direction today, so there is no sector to group."
+              ? `No published call under ${showing}. Clear the filters to see the rest.`
+              : "No call passed the quality gate today; each withheld call is named below with the rule it failed."
           }
         />
       </Section>
