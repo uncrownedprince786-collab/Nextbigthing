@@ -186,8 +186,15 @@ test("the header names every field a row prints", () => {
   }
 });
 
-test("a WAIT prints no confirmation score rather than 0 of 5", () => {
+test("a WAIT prints its reason, never a confirmation score or a placeholder", () => {
   const rows = decision.slice(decision.indexOf("function DecisionRows("));
-  assert.match(rows, /r\.action === "WAIT" \|\| r\.legs === undefined/);
-  assert.match(rows, /not applicable/);
+  // The WAIT branch is decided before the confirmation cells exist, so a held-back name can never
+  // reach "0 of 5" (which reads as a call that nothing supports) or a grade it was never given.
+  const wait = rows.indexOf('r.action === "WAIT" ? (');
+  const score = rows.indexOf("LEG_TOTAL}");
+  assert.ok(wait > 0 && score > wait, "the WAIT branch has to come first");
+  assert.match(rows, /Why no call/);
+  assert.match(rows, /r\.reason\.map/);
+  assert.ok(!/not applicable/.test(rows));
 });
+

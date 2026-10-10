@@ -343,7 +343,9 @@ export function DecisionPanel({
           {/* Beside the grade, because the grade alone cannot carry it: "Low" reads as a weak
               judgement whether or not anything was judged. This says which. */}
           <WaitBasisChip basis={decision.basis} />
-          <ConfidenceBadge grade={grade} />
+          {/* A grade grades a direction. On a WAIT there is none, and a Low badge there reads as a weak
+              judgement where nothing was judged; the basis chip beside it already says why. */}
+          {decision.action === "WAIT" ? null : <ConfidenceBadge grade={grade} />}
           <AsOf date={asOf} />
         </span>
       </div>
@@ -584,7 +586,7 @@ export function ProductDecisionPanel({ decision, name }: ProductDecisionPanelPro
           {decision.geo ? (
             decision.geo
           ) : (
-            <span className="text-muted-foreground">Geo not stored yet.</span>
+            <span className="text-muted-foreground">Geography not measured yet.</span>
           )}
         </Field>
       </div>
@@ -653,6 +655,9 @@ export interface DecisionRow {
   /// The confirmations that backed this direction, by the names the rule table uses. Optional so a
   /// caller that has not carried them renders as before, with an empty cell rather than a guess.
   legs?: string[];
+  /// Why the rule table made no call, for a WAIT: one or two sentences from the decision itself.
+  /// Null on a direction. A row that is held back prints this instead of a grade and a dash.
+  reason?: string[] | null;
   /// Quoted currency for this row's levels. Defaults to USD, which is wrong for PSX names, so
   /// callers covering PSX must pass it.
   currency?: string;
@@ -970,7 +975,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                 >
                   {r.priceNow !== null && r.priceNow !== undefined
                     ? price(r.priceNow, currency)
-                    : "none stored"}
+                    : "no close yet"}
                 </span>
               </span>
 
@@ -979,14 +984,14 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                 <span className="num block text-sm">
                   {r.entry
                     ? `${price(r.entry.low, currency)} to ${price(r.entry.high, currency)}`
-                    : "none stored"}
+                    : "no entry band measured"}
                 </span>
               </span>
 
               <span className="min-w-0">
                 <span className={ROW_LABEL}>Stop loss</span>
                 <span className="num block text-sm">
-                  {r.invalidation !== null ? price(r.invalidation, currency) : "none stored"}
+                  {r.invalidation !== null ? price(r.invalidation, currency) : "no stop level set"}
                 </span>
               </span>
 
@@ -1008,7 +1013,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                     ? r.target.low === r.target.high
                       ? price(r.target.low, currency)
                       : `${price(r.target.low, currency)} to ${price(r.target.high, currency)}`
-                    : "none stored"}
+                    : "no target measured"}
                 </span>
               </span>
 
@@ -1025,10 +1030,33 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                   }
                   title="Measured from the entry level. From today's price it is at least this."
                 >
-                  {r.target?.rewardRisk != null ? `${r.target.rewardRisk.toFixed(1)}:1` : "none stored"}
+                  {r.target?.rewardRisk != null ? `${r.target.rewardRisk.toFixed(1)}:1` : "no target to weigh"}
                 </span>
               </span>
 
+              {/* A held-back row has no direction, so there is nothing to grade and nothing to confirm:
+                  a Low badge and a dash would be two placeholders standing where the one thing the
+                  rule table did say belongs. This prints that instead, across the two columns. */}
+              {r.action === "WAIT" ? (
+                <span className="col-span-2 min-w-0 sm:col-span-2 lg:col-span-2">
+                  <span className={ROW_LABEL}>Why no call</span>
+                  {r.reason?.length ? (
+                    r.reason.map((line, i) => (
+                      <span
+                        key={i}
+                        className={`block text-micro leading-snug ${i === 0 ? "" : "text-muted-foreground"}`}
+                      >
+                        {line}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="block text-micro leading-snug">
+                      No direction has been read for this name, so there is nothing to grade or confirm.
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <>
               <span className="min-w-0">
                 <span className={ROW_LABEL}>Confidence</span>
                 <span className="mt-0.5 block lg:mt-0">
@@ -1041,8 +1069,8 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                   which would read as a call that nothing supports. */}
               <span className="min-w-0">
                 <span className={ROW_LABEL}>Confirmations</span>
-                {r.action === "WAIT" || r.legs === undefined ? (
-                  <span className="text-muted-foreground block text-sm">not applicable</span>
+                {r.legs === undefined ? (
+                  <span className="text-muted-foreground block text-sm">confirmations not carried</span>
                 ) : (
                   <>
                     <span className="num block text-sm">
@@ -1054,6 +1082,8 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                   </>
                 )}
               </span>
+                </>
+              )}
             </Card>
           </li>
         );

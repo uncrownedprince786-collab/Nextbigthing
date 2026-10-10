@@ -46,7 +46,7 @@ import {
 } from "@/lib/queries";
 import { bundleFromQuery, marketOf, toDecisionInput, todayISO } from "@/lib/decisionInput";
 import { decide } from "@/lib/decision";
-import { isoDate, longDate, money, pct, relativeTime, sizeBasisText, toneClass } from "@/lib/format";
+import { isoDate, longDate, money, pct, relativeTime, sizeAbsence, sizeBasisText, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
 
@@ -276,7 +276,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
                 <Card>
                   <p className="text-muted-foreground text-xs">Last stored close</p>
                   <p className="num mt-1 text-2xl font-semibold">
-                    {latestPrice ? latestPrice.close.toFixed(2) : "not available"}
+                    {latestPrice ? latestPrice.close.toFixed(2) : "no close stored yet"}
                   </p>
                   <p className="text-muted-foreground text-xs">{isoDate(latestPrice?.date)}</p>
                 </Card>
@@ -297,7 +297,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
                     <ConfidenceBadge grade={sizeGrade} />
                   </div>
                   <p className="num mt-1 text-2xl font-semibold">
-                    {sizeNowRow ? money(sizeNowRow.value, asset.currency) : "not stored"}
+                    {sizeNowRow ? money(sizeNowRow.value, asset.currency) : sizeAbsence(asset.assetType)}
                   </p>
                   <p className="text-muted-foreground text-xs">
                     {sizeNowRow

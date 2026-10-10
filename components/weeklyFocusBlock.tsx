@@ -86,13 +86,13 @@ function Row({ item }: { item: Scored }) {
           <dd className="num">
             {decision.entry
               ? `${price(decision.entry.low, currency)} to ${price(decision.entry.high, currency)}`
-              : "none stored"}
+              : "no entry band measured"}
           </dd>
         </div>
         <div className="min-w-0">
           <dt className="text-muted-foreground">Stop loss</dt>
           <dd className="num text-down">
-            {decision.invalidation !== null ? price(decision.invalidation, currency) : "none stored"}
+            {decision.invalidation !== null ? price(decision.invalidation, currency) : "no stop level set"}
           </dd>
         </div>
         <div className="min-w-0">

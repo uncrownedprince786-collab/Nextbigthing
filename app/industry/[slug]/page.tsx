@@ -188,16 +188,16 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
                     <span className="text-muted-foreground ml-2 text-xs">{r.asset.symbol}</span>
                   </td>
                   <td className="num px-3 py-2 text-right">
-                    {pre ? money(pre.value, ind.currency) : "not available"}
+                    {pre ? money(pre.value, ind.currency) : "no earlier size"}
                   </td>
                   <td className="num px-3 py-2 text-right">
-                    {sizeNow.length ? money(r.value, ind.currency) : "not available"}
+                    {sizeNow.length ? money(r.value, ind.currency) : "no size published"}
                   </td>
                   <td className="px-3 py-2">
                     <ConfidenceBadge grade={grade} />
                   </td>
                   <td className={`num px-3 py-2 text-right ${toneClass(move)}`}>
-                    {move == null ? "not available" : move === 0 ? "unchanged" : move > 0 ? `up ${move}` : `down ${-move}`}
+                    {move == null ? "no change measured" : move === 0 ? "unchanged" : move > 0 ? `up ${move}` : `down ${-move}`}
                   </td>
                 </tr>
               );
@@ -283,7 +283,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
                 <td className="px-3 py-2">
                   <ConfidenceBadge grade={r.confidence} />
                 </td>
-                <td className="num text-muted-foreground px-3 py-2 text-right">{r.sizeRank ?? "not applicable"}</td>
+                <td className="num text-muted-foreground px-3 py-2 text-right">{r.sizeRank ?? "unranked"}</td>
               </tr>
             ))}
           </Table>

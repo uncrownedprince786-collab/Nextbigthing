@@ -17,6 +17,7 @@ Where a case is here because it was a real bug, the test says so.
 from __future__ import annotations
 
 import json
+import re
 import sys
 import unittest
 from unittest import mock
@@ -7303,6 +7304,51 @@ class TheMacroGateOnlyRefuses(unittest.TestCase):
                 self.assertNotIn("ANTHROPIC_API_KEY", path.read_text(encoding="utf-8"), str(path))
         self.assertIn("ANTHROPIC_API_KEY", self.text(".env.example"))
         self.assertIn("MACRO_GATE", self.text(".env.example"))
+
+
+class NoPlaceholdersInTheRenderedLayer(unittest.TestCase):
+    """A cell that is empty should say what is absent and why, not that it is empty.
+
+    "none stored", "not stored", "not applicable", "N/A" and "waiting" each say a field has no value
+    without saying anything about the name. Each was replaced by the specific statement that is true:
+    a held-back row prints the rule table's own reason, an absent size is explained by what the asset
+    is, an absent level says which level. This pins the strings out of the code of every page and
+    component, comments excluded.
+
+    `app/methodology/page.tsx` is exempt: it is prose explaining the rules to a reader, where the verb
+    "waiting" describes the reader waiting for a price level, not a cell with nothing in it."""
+
+    BANNED = re.compile(r"(?i)not applicable|" + chr(92) + "bn/a" + chr(92) + "b|non-stored|not stored|none stored|" + chr(92) + "bwaiting" + chr(92) + "b")
+    EXEMPT = {"methodology"}
+
+    def test_no_page_or_component_prints_a_placeholder(self):
+        offenders = []
+        files = list((ROOT / "app").rglob("*.tsx")) + list((ROOT / "components").glob("*.tsx"))
+        self.assertGreater(len(files), 10, "the scan found almost nothing, so it is broken")
+        for f in files:
+            if f.parent.name in self.EXEMPT:
+                continue
+            for n, line in enumerate(code_only(f.read_text(encoding="utf-8")).splitlines(), 1):
+                if self.BANNED.search(line):
+                    offenders.append(f"{f.relative_to(ROOT)}:{n}: {line.strip()[:80]}")
+        self.assertEqual(offenders, [])
+
+    def test_the_scan_would_notice_one(self):
+        self.assertTrue(self.BANNED.search('{x ? y : "none stored"}'))
+        self.assertTrue(self.BANNED.search("not applicable"))
+        self.assertTrue(self.BANNED.search("3 waiting."))
+        self.assertIsNone(self.BANNED.search("waitingOn.push(x)"))
+
+    def test_a_held_back_row_carries_the_rule_tables_reason(self):
+        assets = (ROOT / "lib" / "assetClass.ts").read_text(encoding="utf-8")
+        self.assertIn('reason: s.decision.action === "WAIT" ? s.decision.why.slice(0, 2) : null', assets)
+
+    def test_no_grade_is_printed_for_a_decision_that_made_no_call(self):
+        decision = code_only((ROOT / "components" / "decision.tsx").read_text(encoding="utf-8"))
+        self.assertIn('decision.action === "WAIT" ? null : <ConfidenceBadge grade={grade} />', decision)
+        overview = code_only((ROOT / "app" / "page.tsx").read_text(encoding="utf-8"))
+        wait_card = overview[overview.index('<Pill tone="warn">WAIT</Pill>') :][:400]
+        self.assertNotIn("ConfidenceBadge", wait_card)
 
 
 class ShortLevelsAreMirrored(unittest.TestCase):

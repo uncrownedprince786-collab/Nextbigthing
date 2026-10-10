@@ -142,7 +142,7 @@ export function decideProduct(input: ProductDecisionInput): ProductDecision {
     missing.push(`Attention has not been measured for ${input.name} yet.`);
   }
   if (input.regions.length === 0) {
-    missing.push("Geo not stored yet, so no country or region is known.");
+    missing.push("Geography not measured yet, so no country or region is known.");
   }
   if (input.marketplaceItems === 0) {
     missing.push("No marketplace listing matched this product, so rank is unknown.");

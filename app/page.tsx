@@ -252,7 +252,6 @@ function WaitCard({ item }: { item: Scored }) {
           {/* Why it is a WAIT, which the grade alone cannot say: "Low" reads as a weak judgement
               even when nothing was judged at all. */}
           <WaitBasisChip basis={decision.basis} />
-          <ConfidenceBadge grade={decision.confidence.toLowerCase()} />
         </span>
       </div>
 
@@ -283,17 +282,17 @@ function WaitCard({ item }: { item: Scored }) {
       <p className="text-muted-foreground text-xs">
         Price{" "}
         <span className="num">
-          {row.close !== null ? price(row.close, currency) : "none stored"}
+          {row.close !== null ? price(row.close, currency) : "no close yet"}
         </span>
         {" · "}Entry zone{" "}
         <span className="num">
           {decision.entry
             ? `${price(decision.entry.low, currency)} to ${price(decision.entry.high, currency)}`
-            : "none stored"}
+            : "no entry band measured"}
         </span>
         {" · "}Stop loss{" "}
         <span className="num">
-          {decision.invalidation !== null ? price(decision.invalidation, currency) : "none stored"}
+          {decision.invalidation !== null ? price(decision.invalidation, currency) : "no stop level set"}
         </span>
       </p>
     </Card>

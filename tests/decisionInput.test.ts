@@ -290,7 +290,7 @@ test("an unmeasured status is named, not silently treated as flat", () => {
 test("empty geo and no marketplace match are reported, never blank", () => {
   const d = decideProduct(product({ regions: [], marketplaceItems: 0 }));
   assert.equal(d.geo, null);
-  assert.ok(d.missing.some((m) => /Geo not stored yet/.test(m)));
+  assert.ok(d.missing.some((m) => /Geography not measured yet/.test(m)));
   assert.ok(d.missing.some((m) => /No marketplace listing/.test(m)));
 });
 

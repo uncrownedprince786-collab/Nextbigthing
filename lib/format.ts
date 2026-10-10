@@ -137,3 +137,22 @@ export function toneClass(value: number | null | undefined): string {
   if (value < 0) return "text-down";
   return "text-muted-foreground";
 }
+
+/// Why an asset has no size figure, by what it is. A bare "not stored" says only that a cell is empty;
+/// the reason differs by kind and is known from the kind alone, so it is stated rather than left for
+/// the reader to guess. Nothing here computes a size: a market capitalisation needs a share count, and
+/// where none is published there is nothing honest to multiply a price by.
+export function sizeAbsence(assetType: string | null | undefined): string {
+  switch (assetType) {
+    case "forex":
+      return "a currency has no issuer, so no size";
+    case "commodity":
+      return "a commodity has no issuer, so no size";
+    case "etf":
+      return "no fund size published";
+    case "crypto":
+      return "no market cap published";
+    default:
+      return "no share count published";
+  }
+}

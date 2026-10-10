@@ -68,7 +68,7 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
           {mine.length} {mine.length === 1 ? "name" : "names"}, priced to{" "}
           {asOf ?? "no stored close"}. {longs.length} long, {shorts.length} short,{" "}
           {forming.length ? `${forming.length} forming, ` : ""}
-          {waits.length} waiting. Readings, not advice.
+          {waits.length} held back. Readings, not advice.
         </p>
       </div>
 
@@ -129,7 +129,7 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
           {/* Collapsed, and complete inside.
 
               This list is the index: it is where a reader looks a specific name up, so capping
-              it would remove the only place a waiting name can be found. But it is also most of
+              it would remove the only place a held-back name can be found. But it is also most of
               the page -- 175 of the 249 US names on the day this was written, which is a 1.3 MB
               document whose first screen is a table nobody came for.
 
@@ -139,16 +139,16 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
               inside is never a surprise and never looks like a gap. */}
           <details className="border-border bg-muted/30 mt-6 rounded-lg border px-4 py-1 text-sm sm:py-3">
             <summary className="-my-1 cursor-pointer py-3 font-medium select-none sm:my-0 sm:py-0">
-              Waiting: {waits.length} {waits.length === 1 ? "name" : "names"} with no measured
+              No direction: {waits.length} {waits.length === 1 ? "name" : "names"} with no measured
               direction at all
             </summary>
             <div className="mt-2 pb-2">
               <DecisionList
                 grouped
-                title={`Waiting (${waits.length})`}
+                title={`No direction (${waits.length})`}
                 lead="No direction could be read: the close is too old, the venue answered nothing, no stop level exists, or the price sits between its own averages with neither side measurable. Each row's own page says which."
                 rows={waits.map(toListRow)}
-                empty={<>Nothing in this class is waiting, which means every name has a direction.</>}
+                empty={<>Every name in this class has a direction.</>}
               />
             </div>
           </details>

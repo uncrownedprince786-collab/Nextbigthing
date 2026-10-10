@@ -1099,7 +1099,7 @@ export function AccuracyNote({
         Every reading on this page is logged on the day it is generated, and the price move
         over the {accuracy.horizon} days after it is measured once that window has passed.
         So far {accuracy.measured} readings have reached the end of that window and{" "}
-        {accuracy.open} are still waiting, which is too few to quote a rate from. No accuracy
+        {accuracy.open} have not yet reached it, which is too few to quote a rate from. No accuracy
         figure is published until enough readings have finished to divide by.
       </p>
     );

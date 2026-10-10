@@ -138,6 +138,9 @@ export function toListRow(s: Scored): DecisionRow {
     // Which confirmations backed it. The table prints how many and which, because a grade of
     // "Medium" says one thing was behind a call and not what it was.
     legs: s.decision.legs,
+    // Why there is no call, in the rule table's own words, for a WAIT only. A held-back row used to
+    // print a grade of Low and a dash, which says nothing; the reason is what the reader came for.
+    reason: s.decision.action === "WAIT" ? s.decision.why.slice(0, 2) : null,
     // PSX names are in rupees. Without this every level on the page would be printed with a dollar
     // mark in front of a rupee number, which is worse than printing no level at all.
     currency: s.row.currency,

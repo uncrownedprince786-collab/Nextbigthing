@@ -426,7 +426,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <Note>
                 Nothing is stored because the geography job has not completed for this product,
                 not because the source returned no places. Until it runs, the panel reads
-                &ldquo;geo not stored yet&rdquo; and no country is named anywhere on this page.
+                &ldquo;geography not measured yet&rdquo; and no country is named anywhere on this page.
                 To check it by hand, open the <strong>Google Trends</strong> link under{" "}
                 <strong>Where to check</strong> at the top of this page: it shows the regional
                 breakdown for this term directly.
