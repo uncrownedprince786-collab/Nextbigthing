@@ -7782,6 +7782,34 @@ class TheLanesWriteToThePrimary(unittest.TestCase):
         self.assertNotIn("pooler.supabase.com", printed)
 
 
+class TheNewsLaneNeverWritesThroughItsIdleConnection(unittest.TestCase):
+    """The news lane reads its targets on the lane's connection, then spends ten minutes or more
+    fetching feeds and writing through its own `Link`. On 2026-10-10 the final clean-up `DELETE` ran on
+    the first connection, which had been idle inside its read transaction the whole time; the server
+    killed it (IdleInTransactionSessionTimeout) and a run that had stored 1,405 headlines went red.
+
+    The rule this pins: the read transaction is closed before the fetch, and nothing after that point
+    uses `cur`."""
+
+    def body(self):
+        text = code_only((ROOT / "jobs" / "prices.py").read_text(encoding="utf-8"))
+        start = text.index("def fetch_news(")
+        end = text.index(chr(10) + "def ", start + 10)
+        return text[start:end]
+
+    def test_the_read_transaction_is_closed_before_the_fetch(self):
+        body = self.body()
+        self.assertIn("cur.connection.commit()", body)
+        self.assertLess(body.index("cur.connection.commit()"), body.index("wire.execute("))
+
+    def test_nothing_after_that_point_uses_the_idle_connection(self):
+        body = self.body()
+        after = body[body.index("cur.connection.commit()") + len("cur.connection.commit()") :]
+        for use in ("cur.execute", "rows(cur", "one(cur", "cur.connection"):
+            self.assertNotIn(use, after, use)
+        self.assertIn("wire.execute('DELETE FROM", after)
+
+
 class ShortLevelsAreMirrored(unittest.TestCase):
     """A short's stop belongs above the price, not below it.
 

@@ -1645,6 +1645,12 @@ def fetch_news(cur, chunk: tuple[int, int] | None = None) -> int:
     assets = rows(
         cur, 'SELECT id, symbol, name, "assetType", source FROM "Asset" ORDER BY symbol'
     )
+    # End the read transaction now. The three reads above opened one on the lane's own connection,
+    # and the fetch below spends ten minutes or more talking to feeds through `wire`; a connection
+    # left idle *inside* a transaction that long is killed by the server
+    # (IdleInTransactionSessionTimeout, measured on GitHub 2026-10-10 after 12 minutes). From here on
+    # this function does not use `cur` at all.
+    cur.connection.commit()
     # One slice of the asset list, by the same rule `fetch_yahoo` slices by: sorted on the
     # symbol first, so a name lands in the same slice on every run and a retry covers what the
     # run it is retrying covered. The industry and product feeds are not sliced -- there are
@@ -1875,7 +1881,12 @@ def fetch_news(cur, chunk: tuple[int, int] | None = None) -> int:
         if source != GNEWS:
             print(f"  {source}: {s_parsed} of {s_asked} feeds answered")
 
-    cur.execute('DELETE FROM "News" WHERE "publishedAt" < now() - interval \'120 days\'')
+    # Through `wire`, which has been writing all along and reconnects if it must, not through `cur`,
+    # which has sat idle for the whole fetch. On 2026-10-10 this one line, run on the idle
+    # connection, failed a news run that had already stored 1,405 headlines -- the run went red for
+    # the clean-up, not for the news.
+    wire.execute('DELETE FROM "News" WHERE "publishedAt" < now() - interval \'120 days\'')
+    wire.commit()
     return written
 
 
