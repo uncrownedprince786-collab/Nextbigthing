@@ -2099,6 +2099,16 @@ reads rows that already exist:
     reliability keyed by `h.source`, not the reliability of a news publisher. So no headline arrives and
     none could be trusted if it did. Both fail open, by design, and the job says so in its one line of
     output. Inventing a Beta(45, 1) for Reuters would make the gate fire, and would be exactly the
-    invented number this project refuses; the honest options are a measured per-publisher reliability
-    (which needs news outcomes that do not yet exist) or an explicit, labelled list of declared-trusted
-    publishers, which is a judgement for the owner and is not made here.
+    invented number this project refuses.
+
+    **Decided afterwards: a short declared list, labelled as a declaration.** `DECLARED_TRUSTED` in
+    `lib/macroGateLocal.ts` names thirteen outlets (wire services, national financial papers, the main
+    business daily of each market covered, one crypto specialist). A veto resting on one says
+    "declared-trusted publisher" and quotes no credibility figure, because there is none. Names match
+    exactly after normalisation, so a lookalike ("bloomberg-news-corp.co") earns nothing. Measured
+    statistics outrank a declaration where they have evidence behind them: a mean under 0.30 over at
+    least ten observations ignores a listed outlet, while three bad observations do not. Trust is keyed
+    on the **publisher** -- Google News appends the outlet to the title, `News.source` is only the feed
+    label -- and the suffix is stripped from the text the rules read, so an outlet called "Federal News
+    Network" cannot satisfy a word in the table. The list is a judgement and not a measurement; the
+    scorecard is where an entry should be removed if its vetoes prove wrong.
