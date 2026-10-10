@@ -50,6 +50,7 @@ import {
 import { bundleFromQuery, marketOf, toDecisionInput, todayISO } from "@/lib/decisionInput";
 import { decide } from "@/lib/decision";
 import { validityOf } from "@/lib/validity";
+import { earlySignalOf } from "@/lib/earlySignal";
 import { isoDate, longDate, money, pct, relativeTime, sizeAbsence, sizeBasisText, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
@@ -175,6 +176,8 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
     asOf: bundle.newestCloseDate ?? null,
     today,
   });
+  // The rising-star marker, from the same function the list rows use, fed the same validated pair.
+  const early = earlySignalOf(decisionInput.entryTrigger?.rule, decisionInput.entryTrigger?.direction, decision.action);
 
   const note = asset.analysis[0];
   const market = marketOf(asset);
@@ -229,6 +232,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
              one name cannot be quoted two different levels on two pages. */
           target={pickTarget(horizons)}
           validity={validity}
+          early={early}
           /* Ranked here rather than in the panel: the panel renders what it is given, and a
              component that re-sorted its own input would be a second ordering rule for one
              idea. Three is the panel's own cap; passing a few more lets it stay the only place

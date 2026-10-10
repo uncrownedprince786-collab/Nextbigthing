@@ -3,6 +3,7 @@ import { pickTarget } from "@/lib/target";
 import { bundleFromRow, toDecisionInput, todayISO } from "@/lib/decisionInput";
 import { quoteBesideClose } from "@/lib/liveQuote";
 import { validityOf } from "@/lib/validity";
+import { earlySignalOf } from "@/lib/earlySignal";
 import {
   CONFIDENCE_ORDER,
   decide,
@@ -145,6 +146,9 @@ export function toListRow(s: Scored): DecisionRow {
     // Which confirmations backed it. The table prints how many and which, because a grade of
     // "Medium" says one thing was behind a call and not what it was.
     legs: s.decision.legs,
+    // The rising-star marker: the measured entry event, if one fired, and how it sits with the call.
+    // The same function the asset page uses, fed the same two stored columns.
+    early: earlySignalOf(s.row.entryTrigger, s.row.triggerDirection, s.decision.action),
     // The close's own day, printed under the price so "last close" is never read as "now".
     closeDate: s.row.closeDate ? new Date(s.row.closeDate).toISOString().slice(0, 10) : null,
     // How long the call is meant to run and how long it has been running. One function shared with

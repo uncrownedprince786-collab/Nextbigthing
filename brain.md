@@ -2275,3 +2275,19 @@ reads rows that already exist:
     not make the 15-minute live cadence real; the on-demand refresh in `/api/quote` is what keeps a
     viewed quote fresh between ticks. A fully reliable clock would need an external scheduler calling
     the dispatch API, which means a token held by a third party: the owner's decision, not made here.
+
+78. **The rising-star marker is rule 54's own recommendation, and it is fired by measured events only.**
+    Rule 54 backtested four early entry rules and concluded the two that beat the trend
+    (`squeeze_break`, the expansion out of a six-month compression; `vol_flip`, momentum turning on a
+    busy session) belonged on the card as "a marker saying this one was caught at the start". That is
+    what `lib/earlySignal.ts` is: "Rising star" for an upward event, "Falling star" for a downward one,
+    on the list rows (beside the action and grade) and on the asset page (header and an "Early signal"
+    field), from one function. It says how the event sits with the call -- with it, against it, or on a
+    name the rule table still holds back -- and it never instructs: the requested tooltip "Enter ASAP
+    within Entry Zone" was not used, because urgency is the one thing this site never adds.
+
+    Two requested triggers were not built. Price/RSI or MACD divergence is not computed and has never
+    been tested, and rule 54 found that a rule which is merely earlier (`inflection`) pays less than the
+    trend. A news "sentiment velocity spike" cannot promote a name, because news may only ever withdraw
+    confidence (rule 44); a headline that lifts a name onto a highlighted list is exactly the pump the
+    macro gate refuses. On 2026-10-10, 64 names carried the marker (45 up, 19 down).

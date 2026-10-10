@@ -1,6 +1,7 @@
 import * as React from "react";
 import { clockUtc } from "@/lib/liveQuote";
 import { shortDay, type Validity } from "@/lib/validity";
+import type { EarlySignal } from "@/lib/earlySignal";
 import { targetMethodLabel, type TargetLike } from "@/lib/target";
 import { price, relativeTime } from "@/lib/format";
 import { CONFIDENCE_ORDER } from "@/lib/decision";
@@ -104,6 +105,25 @@ export function HorizonValidity({ v }: { v: Validity | null | undefined }) {
   );
 }
 
+/// The rising-star marker. Gold on its own background so it stands out from the action and grade
+/// pills in both themes; muted when the rule table still holds the name back, because then it marks an
+/// event and not a call. The whole explanation is in the tooltip and the accessible name.
+export function EarlySignalBadge({ s }: { s: EarlySignal }) {
+  const held = s.stance === "held";
+  return (
+    <span
+      title={s.explain}
+      aria-label={s.explain}
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-micro leading-4 font-semibold tracking-wide sm:py-0.5 ${
+        held ? "border-border text-muted-foreground" : "border-warn bg-warn-bg text-warn ring-warn/30 ring-2"
+      }`}
+    >
+      <span aria-hidden="true">★</span>
+      {s.label.toUpperCase()} {s.direction === "up" ? "↑" : "↓"}
+    </span>
+  );
+}
+
 export interface DecisionPanelProps {
   decision: Decision;
   symbol: string;
@@ -126,6 +146,8 @@ export interface DecisionPanelProps {
   target?: TargetLike | null;
   /// The trade horizon and validity window, from the same function the list rows use.
   validity?: Validity | null;
+  /// The rising-star marker, from the same function the list rows use. Null when no entry event fired.
+  early?: EarlySignal | null;
 }
 
 /// One labelled figure or sentence. Used for every field in the panel so that the label and the
@@ -351,6 +373,7 @@ export function DecisionPanel({
   news = [],
   target = null,
   validity = null,
+  early = null,
 }: DecisionPanelProps) {
   const grade = decision.confidence.toLowerCase();
   const gap = gapLine(decision);
@@ -371,6 +394,7 @@ export function DecisionPanel({
           {/* A grade grades a direction. On a WAIT there is none, and a Low badge there reads as a weak
               judgement where nothing was judged; the basis chip beside it already says why. */}
           {decision.action === "WAIT" ? null : <ConfidenceBadge grade={grade} />}
+          {early ? <EarlySignalBadge s={early} /> : null}
           <AsOf date={asOf} />
         </span>
       </div>
@@ -476,6 +500,17 @@ export function DecisionPanel({
             <span className="num">{target.rewardRisk.toFixed(1)}:1</span>
           ) : (
             <span className="text-muted-foreground">No target to weigh.</span>
+          )}
+        </Field>
+
+        <Field label="Early signal">
+          {early ? (
+            <span className="block">
+              <EarlySignalBadge s={early} />
+              <span className="text-muted-foreground text-micro mt-1 block">{early.explain}</span>
+            </span>
+          ) : (
+            <span className="text-muted-foreground">No early entry event fired this session.</span>
           )}
         </Field>
 
@@ -725,6 +760,8 @@ export interface DecisionRow {
   closeDate?: string | null;
   /// Trade horizon and validity window; null on a WAIT.
   validity?: Validity | null;
+  /// The rising-star marker; null when no entry event fired.
+  early?: EarlySignal | null;
   /// Quoted currency for this row's levels. Defaults to USD, which is wrong for PSX names, so
   /// callers covering PSX must pass it.
   currency?: string;
@@ -1025,6 +1062,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                   {/* The grade rides with the action it grades. It had a column of its own, which the
                       horizon now has; a WAIT carries none, because a grade grades a direction. */}
                   {r.action === "WAIT" ? null : <ConfidenceBadge grade={r.confidence.toLowerCase()} />}
+                  {r.early ? <EarlySignalBadge s={r.early} /> : null}
                   {/* A dated event is a hazard on a row that says LONG, and the rule table
                       already decided that by setting the time sense. Printed as its own word
                       rather than a colour, because colour is not a reason. */}
