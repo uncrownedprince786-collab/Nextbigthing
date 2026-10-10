@@ -7682,6 +7682,14 @@ class TheWatchdogRestartsWhatStopped(unittest.TestCase):
 
         wf = yaml.safe_load((ROOT / ".github" / "workflows" / "cron-watchdog.yml").read_text(encoding="utf-8"))
         self.assertEqual([c["cron"] for c in wf[True]["schedule"]], ["45 * * * *"])
+        # And after every data lane, because GitHub drops scheduled runs and an event is not dropped.
+        names = {
+            yaml.safe_load(p.read_text(encoding="utf-8"))["name"]
+            for p in (ROOT / ".github" / "workflows").glob("cron-*.yml")
+            if p.name != "cron-watchdog.yml"
+        }
+        self.assertEqual(set(wf[True]["workflow_run"]["workflows"]), names)
+        self.assertEqual(wf[True]["workflow_run"]["types"], ["completed"])
         self.assertEqual(wf["permissions"], {"actions": "write", "contents": "read"})
         self.assertIn("exit $code", wf["jobs"]["watch"]["steps"][-1]["run"])
 

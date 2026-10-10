@@ -9,11 +9,31 @@ name: cron watchdog
 # `retry.yml` re-runs a run that failed. This catches the runs that never happened: a schedule GitHub
 # skipped under load, or a lane that went quiet. The two together are the self-healing this platform
 # can actually do; neither changes a threshold, a rule or a row.
+# Two triggers, because the first one alone is not reliable. GitHub delays and drops scheduled runs
+# under load: measured 2026-10-10, `cron live quotes` (every 15 minutes) fired once in three hours,
+# this watchdog (hourly) once, and `cron crypto` (every two hours) about every six. A schedule cannot
+# fix a schedule. `workflow_run` is an event, not a schedule, so it is not dropped: every time any data
+# lane finishes -- scheduled or dispatched -- this runs right after and restarts whatever is stale. Its
+# own limits (five lanes, once an hour each, never on a running copy) are what keep the chain from
+# looping: a lane it restarts finishing triggers it again, finds nothing stale, and stops.
 on:
   schedule:
     # Minute 45, clear of the data lanes (05, 20, 35, 50) and the decision lane (22:10), so it reads a
     # state that is not mid-write.
     - cron: "45 * * * *"
+  workflow_run:
+    workflows:
+      - "cron crypto"
+      - "cron us prices"
+      - "cron psx"
+      - "cron news"
+      - "cron decision"
+      - "cron live quotes"
+      - "cron calendar"
+      - "cron audit"
+      - "cron products"
+      - "cron mirror"
+    types: [completed]
   workflow_dispatch:
 
 concurrency:
