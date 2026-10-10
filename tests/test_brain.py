@@ -3222,8 +3222,12 @@ class YahooPartialDay(unittest.TestCase):
         payload = json.loads(json.dumps(self.AAPL))
         meta = payload["chart"]["result"][0]["meta"]
         meta["regularMarketTime"] = meta["currentTradingPeriod"]["regular"]["start"] + 600
-        self.assertEqual(prices.chart_forming_day(meta), date(2026, 10, 2))
-        bars = prices.parse_chart(payload)
+        # Read at the moment it was true, ten minutes into the session; the fixture is from
+        # 2026-10-02 and the rule now consults the clock as well as the marker.
+        mid = meta["currentTradingPeriod"]["regular"]["start"] + 700
+        self.assertEqual(prices.chart_forming_day(meta, now=mid), date(2026, 10, 2))
+        with mock.patch.object(prices, "chart_forming_day", lambda m, now=None: date(2026, 10, 2)):
+            bars = prices.parse_chart(payload)
         self.assertEqual([b[0] for b in bars], [date(2026, 9, 30), date(2026, 10, 1)])
         # And after the close the same body yields every session.
         self.assertIsNone(prices.chart_forming_day(self.AAPL["chart"]["result"][0]["meta"]))
@@ -3283,6 +3287,40 @@ class YahooPartialDay(unittest.TestCase):
             prices.chart_forming_day(meta),
             datetime.fromtimestamp(now - 600, tz=timezone.utc).date(),
         )
+
+    def test_a_finished_futures_or_fx_session_is_a_close_at_the_weekend(self):
+        # Measured 2026-10-10 10:00 UTC, a Saturday. Brent: session Fri 04:00 -> Sat 03:59 UTC, last
+        # trade Fri 20:59. EUR/USD: Thu 23:00 -> Fri 22:59, last trade 21:29. Both markers sit inside
+        # their sessions, so the rule as it was read "still trading" until Sunday night and refused
+        # Friday's bar for every future and FX pair all weekend.
+        saturday = 1791626400  # 2026-10-10 10:00 UTC
+        brent = {
+            "currentTradingPeriod": {"regular": {"start": 1791518400, "end": 1791604740}},
+            "gmtoffset": 0,
+            "regularMarketTime": 1791579540,  # Fri 20:59
+        }
+        eurusd = {
+            "currentTradingPeriod": {"regular": {"start": 1791500400, "end": 1791586740}},
+            "gmtoffset": 3600,
+            "regularMarketTime": 1791581340,  # Fri 21:29
+        }
+        self.assertIsNone(prices.chart_forming_day(brent, now=saturday))
+        self.assertIsNone(prices.chart_forming_day(eurusd, now=saturday))
+        # Inside the session by the clock it is still forming, whatever the marker says.
+        self.assertEqual(prices.chart_forming_day(brent, now=1791579540 + 60), date(2026, 10, 9))
+
+    def test_the_minutes_after_the_bell_still_wait_for_the_final_bar(self):
+        # The case the marker rule exists for, and it must survive the fix: a US session that ended
+        # at 20:00 with a last trade at 19:59, read at 20:10, has not finished landing.
+        us = {
+            "currentTradingPeriod": {"regular": {"start": 1791552600, "end": 1791576000}},
+            "gmtoffset": -14400,
+            "regularMarketTime": 1791575940,  # 19:59
+        }
+        self.assertEqual(prices.chart_forming_day(us, now=1791576600), date(2026, 10, 9))  # 20:10
+        self.assertEqual(prices.LANDING_WINDOW, 2 * 3600)
+        # Two hours of nothing after the bell is a finished session.
+        self.assertIsNone(prices.chart_forming_day(us, now=1791575940 + prices.LANDING_WINDOW + 1))
 
     def test_one_session_probe_per_asset_type_and_not_one_per_symbol(self):
         asked = []

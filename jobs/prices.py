@@ -528,8 +528,25 @@ def session_bounds(meta: dict) -> tuple[date, int, int] | None:
 # added on top for a provider that is merely catching up after the bell.
 STALE_MARKER_GRACE = 24 * 3600
 
+# How long after the last trade a session that has ended by the clock may still be "landing".
+#
+# The marker rule exists for the minutes after the bell, when the session is over but the final bar
+# has not been written. It had no bound on our clock, only on the marker's distance from the session's
+# end, and that was wrong for every venue whose trading stops before its nominal session does.
+# Measured 2026-10-10 (a Saturday) at 10:00 UTC: Yahoo reported Brent and gold as a session running
+# Friday 04:00 to Saturday 03:59 UTC with a last trade at Friday 20:59, and EUR/USD as Thursday 23:00 to
+# Friday 22:59 with a last trade at 21:29. Each marker sat inside its session, within the day of
+# grace, so all three read "still trading" -- and stay so until the provider opens the next session on
+# Sunday night. Friday's settled bar was refused all weekend, for 8 futures and 25 FX pairs, while
+# every decision for them was read from Thursday.
+#
+# Two hours of no trade after a session that has ended by the clock is a session that has finished.
+# A bar that lands later than that is not lost: the incremental download re-reads the last few days,
+# so it is overwritten with the provider's final figure on the next run.
+LANDING_WINDOW = 2 * 3600
 
-def chart_forming_day(meta: dict) -> date | None:
+
+def chart_forming_day(meta: dict, now: float | None = None) -> date | None:
     """The session date whose daily bar is still being written, or None once it has closed.
 
     At `interval=1d` the endpoint returns the day in progress as an ordinary bar stamped at the
@@ -544,18 +561,23 @@ def chart_forming_day(meta: dict) -> date | None:
       exchange and the clock is ours, so this holds whatever the provider says about itself.
     * **The provider's own marker sits inside the session.** This is what catches the minutes
       after the bell, when the session has ended by the clock but the final bar has not landed
-      yet. Trusted only while the marker is plausibly current — see `STALE_MARKER_GRACE`.
+      yet. Trusted only while the marker is plausibly current — see `STALE_MARKER_GRACE` — and
+      only while the last trade is recent by our clock: see `LANDING_WINDOW`.
+
+    `now` is the clock as a Unix timestamp, read from the system when not given, so the rule can be
+    tested at any moment rather than only at the one the test happens to run.
     """
     bounds = session_bounds(meta)
     if bounds is None:
         return None
     day, _start, end = bounds
 
-    if datetime.now(timezone.utc).timestamp() < end:
+    clock = datetime.now(timezone.utc).timestamp() if now is None else now
+    if clock < end:
         return day
 
     seen = (meta or {}).get("regularMarketTime")
-    if seen and 0 < end - int(seen) <= STALE_MARKER_GRACE:
+    if seen and 0 < end - int(seen) <= STALE_MARKER_GRACE and clock - int(seen) <= LANDING_WINDOW:
         return day
 
     return None
