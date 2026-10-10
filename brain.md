@@ -2245,3 +2245,33 @@ reads rows that already exist:
     code, not the deployment. Each of these lived in the gap between the two -- a secret, a clock, a
     connection's lifetime, a foreign key on the other database -- and was found only by running the
     real thing where it really runs and reading its log.
+
+77. **Horizon and validity are read from what decided, and the learning loop reports without rewriting.**
+
+    **Horizon.** Every direction comes from the swing setup (20/50 session averages) or the longer one
+    (100/200). That is the horizon: Swing (1-7 days) or Position (1-4 weeks). The directive suggested
+    deriving it from the stop-to-target distance; that distance is a consequence of the setup's window,
+    not a second measurement of it, so it is not used. **Validity** runs from the day the current call
+    began -- the start of the decision log's run of identical verdicts -- for 7 days (swing) or 28
+    (position), and a call older than that reads "Expired". There is no "Invalidated" on a direction:
+    a crossed stop is already a WAIT (`stop-crossed`) with its reason printed. One function
+    (`lib/validity.ts`) and one component (`HorizonValidity`) serve the list rows and the asset panel,
+    and the two now share one column set; a test pins the shared labels. The grade moved into the Action
+    cell beside the verdict it grades.
+
+    **The learning loop.** Every decision was already logged and measured at +1, +5 and +20 sessions;
+    the report reading those measurements (`tools/scorecard.py`) only ran by hand. It now runs nightly in
+    the decision workflow. It still only reports. The directive asked for automatic down-weighting of
+    sources and parameters that "yield false signals"; a rule that rewrote its own thresholds from a few
+    weeks of outcomes would fit those weeks' noise, unreviewed, which is the opposite of sharper. As of
+    2026-10-10 no outcome has matured (583 logged, 0 matured), and the scorecard prints no rate, which
+    is the correct output for that state.
+
+    **GitHub drops scheduled runs, and a schedule cannot fix a schedule.** Measured the same day:
+    `cron live quotes` (every 15 minutes) fired once in three hours, the watchdog (hourly) once, and
+    `cron crypto` (every two hours) about every six. The watchdog now also runs on `workflow_run` after
+    every data lane, which is an event and is not dropped; proven on GitHub when a live-quotes run
+    finished and the watchdog started by itself. That makes recovery chain off any run at all. It does
+    not make the 15-minute live cadence real; the on-demand refresh in `/api/quote` is what keeps a
+    viewed quote fresh between ticks. A fully reliable clock would need an external scheduler calling
+    the dispatch API, which means a token held by a third party: the owner's decision, not made here.
