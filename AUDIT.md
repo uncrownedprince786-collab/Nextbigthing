@@ -1,14 +1,40 @@
 # Production audit — 2026-10-10 (final)
 
-**Status: PRODUCTION LOCKED** on `f6edc7e` (Next.js 16.3.8) — on the owner's criteria, every one
-measured on 2026-10-10 between 18:07 and 20:17 UTC: the suites pass, the live display checker passes,
-`/api/health` reads `ok: true`, the latest run of every workflow is green, and the logic audit reads
-PASSED MATHEMATICALLY.
+**Status: PRODUCTION LOCKED** on `4f93b4b` (Next.js 16.3.8) — on the owner's criteria, re-measured on
+2026-10-10/11 after the quality-gate pass (section 0): the suites pass, the live display checker passes
+its row checks, `/api/health` reads `ok: true`, the logic audit reads PASSED MATHEMATICALLY against the
+database, the live pages and `/api/signals`, and the latest run of every workflow is green. The previous
+lock was `f6edc7e`; everything since is an extension of it, and its suites still pass.
 
 **Locked does not mean defect-free.** Section 4 lists what is known and not fixed; nothing in it is
 rated High. The High finding of the first pass (the patient-flip whipsaw) was resolved in `78bdc7c`.
 
 One authoritative matrix, replacing the 2026-10-02 audit. Every row says how it was established.
+
+---
+
+## 0. Third pass, 2026-10-11: the quality gate (`bda965c` to `4f93b4b`)
+
+The owner asked, over several directives, that only complete, measured calls be published. What is live:
+
+| rule | what the engine does | evidence |
+| --- | --- | --- |
+| Stop never on the entry boundary | `bufferStop` (lib/resolve.ts): LONG stop = min(zone low - 1.0 x ATR, structural stop), mirrored for SHORT; a structural stop already that far is left exactly as it is | **verified**: database, 547 active calls, all beyond the zone, none nearer than 1.0 x ATR; pages, 0 on the edge |
+| Publish only complete calls | `qualityGate` (lib/quality.ts): direction, trading style, entry range, stop >= 1 ATR beyond, measured target, reward:risk >= 1.2, >= 1 confirmation | **verified**: 25 published, every one passing every rule; 522 withheld, each named in a folded list with the rule it failed |
+| Reward:risk floor | 1.2, chosen by the technical lead at the owner's request: the owner's latest figure, 1.5, published nothing (the highest measured reward:risk of any call was 1.4); 1.0 published 110 | owner may change one constant, `MIN_REWARD_RISK` |
+| No guessed targets | measured targets only; a 2 x risk projection was tried and withdrawn the same day | **test-covered** |
+| Trading style | SWING (1-7 days) or POSITION (1-4 weeks), from the setup that decided; required by the gate | **verified** in `/api/signals`. The engine decides from completed daily closes (rules 41, 81), so it publishes no SCALPING or INTRADAY call, and says so rather than relabelling one |
+| Open-position protection | a call published on an earlier day of its current run, inside its window, stays listed "Open since <day>: held to its stop" even if today's reading alone would not publish it; one that can no longer be acted on is withheld saying "published <day>, now ..." -- never silently gone | **test-covered**; live from the first trading day after the log began recording it (2026-10-10), so 0 open today |
+| Auto-promotion | every tracked name is decided on every refresh and the gate runs at render, so a withheld call joins the list the first refresh it passes, with no manual step | **read** |
+| Engine output as data | `/api/signals`: every published call with all gate fields, and the withheld with reasons | **verified**: 25 against 25 on the pages, 0 disagreements (`tools/logic_audit.py`) |
+| Layout | ten-column table from 1280; price tracks >= 92px, range tracks >= 124px; "to" travels with the second price | **verified** in a browser at 1280, 1024 and 375 on all six list pages: no cell over two lines, no overflow, no star wrapped, no sideways scroll |
+
+Not built, and why: **trailing stops**. Moving an open call's stop with the price would, within days, put
+it inside or above its own entry zone and break the 1-ATR boundary rule above; doing it properly needs
+an open-position model that separates entry levels from management levels. Recommended next.
+**Pool parity** (the display checker's one failure on this day) was cache timing: each decision-lane run
+dispatched while verifying also ran the pool job, which added discovered names, and the market pages and
+`/api/health` read caches of different ages; it clears within the hour.
 
 ---
 
@@ -37,7 +63,7 @@ before it was acted on or listed here.
 | requirement | status | evidence |
 | --- | --- | --- |
 | Python suite | **verified** | 688 tests, OK |
-| Web suite | **verified** | 422 tests, 0 failures |
+| Web suite | **verified** | 431 tests, 0 failures |
 | Type check, lint, compile | **verified** | `tsc --noEmit` 0, `eslint` 0, `compileall jobs tools` 0, `next typegen` 0 |
 | CI on the release | **verified** | `tests` and `schema` green on `f6edc7e` |
 | Production deploy | **verified** | `f6edc7e` Ready on Next.js 16.3.8; ISR pages 1h, industry pages prerendered |
@@ -170,6 +196,6 @@ Still open:
 
 ## 6. Decision
 
-**PRODUCTION LOCKED** as of 2026-10-10 20:17 UTC, on `f6edc7e`, under the owner's criteria. The lock is
+**PRODUCTION LOCKED** on `4f93b4b`, under the owner's criteria (section 0); previously `f6edc7e`. The lock is
 a statement about what was measured, not a promise: re-run `tools/ui_audit.py`,
 `tools/logic_audit.py` and the suites before treating any later commit as covered by it.

@@ -2492,3 +2492,19 @@ reads rows that already exist:
     never deleting -- the first time a lane reaches the primary, and before the nightly mirror copies the
     other way. What two written databases needed was a copy back, not a ban. The site's read pool is still
     never used by a writer: it switches mid-run and has nothing to reconcile with.
+
+91. **Publish only complete, measured calls; hold an open one to its stop; the stop is never on the boundary.**
+    The owner's directives of 2026-10-11, at their latest and strictest where they differed. Every name is
+    still decided and logged (rule 86) -- the learning loop grades all of them -- but the lists publish a call
+    only through `qualityGate` (lib/quality.ts): direction, trading style, entry range, a stop at least
+    1 x ATR beyond the zone (`bufferStop`, lib/resolve.ts), a *measured* target, reward:risk >= 1.2 from the
+    entry level against that stop, and one confirmation. The rest are named, folded, with the rule each
+    failed. The floor is 1.2 because the owner's 1.5 published nothing that day (the best measured
+    reward:risk was 1.4) and 1.0 published 110; the owner delegated the choice. A 2 x risk projection was
+    tried for target-less calls and withdrawn the same day: its reward:risk is the multiple it was
+    projected at, so no gate could fail it. A call published on an earlier day of its run stays listed as
+    open until its stop is crossed or its window ends (`withOpenPosition`), because a gate that drops a held
+    call overnight is the silent vanishing the owner forbade. Styles are SWING and POSITION only: the
+    engine reads completed daily closes, and calling a daily call "scalping" would be the invented label
+    rule 78 refuses. `/api/signals` publishes the same calls as data, and the logic audit holds the pages
+    to it.
