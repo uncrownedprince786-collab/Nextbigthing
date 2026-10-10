@@ -7,7 +7,7 @@ import {
   weeklyFocus,
   weeklyWhy,
   weeklyTarget,
-  targetMethodLabel,
+  targetSourceSentence,
   WEEKLY_MAX_PER_SIDE,
 } from "@/lib/weeklyFocus";
 
@@ -114,8 +114,7 @@ function Row({ item }: { item: Scored }) {
           <span className="num">
             {decision.invalidation !== null ? price(decision.invalidation, currency, market) : "the stop"}
           </span>{" "}
-          breaks. Measured from {targetMethodLabel(target.method)} &mdash; a measured level, not a
-          promise.
+          breaks. {targetSourceSentence(target.method)}
         </p>
       ) : (
         <p className="text-muted-foreground mt-1 text-xs leading-relaxed">

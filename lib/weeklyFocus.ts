@@ -194,4 +194,4 @@ export function weeklyTarget(s: Scored): DecisionTarget | null {
   ) as DecisionTarget | null;
 }
 
-export { targetMethodLabel } from "./target.ts";
+export { targetMethodLabel, targetSourceSentence } from "./target.ts";

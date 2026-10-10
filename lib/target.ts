@@ -167,19 +167,36 @@ export function preferredTarget<T extends { method: string; rewardRisk?: number 
 
 /// What the method measured, in the reader's words rather than the job's.
 export function targetMethodLabel(method: string): string {
+  if (method === PROJECTION) return "twice the risk, projected from the entry level";
   if (method === "structure") return "nearest level it has already turned at";
   if (method === "volatility") return "its own recent daily range";
   if (method === "analog") return "what followed similar past days";
   return method;
 }
 
-/// The target a call may show: only one on the profit side of its entry, and for a resolved call
-/// (gate "forced-...", lib/resolve.ts) with its reward:risk measured against that call's own stop.
+/// The method name of a projected target, and the reward:risk it is projected at.
+export const PROJECTION = "projection";
+export const PROJECTION_R = 2;
+
+/// The sentence printed beside a take profit: what measured it, or that it is a projection.
+export function targetSourceSentence(method: string): string {
+  return method === PROJECTION
+    ? `Projected at ${PROJECTION_R} x the risk from the entry level, because no measured target sits on this side: a projection, not a measured level.`
+    : `Measured from ${targetMethodLabel(method)} — a measured level, not a promise.`;
+}
+
+/// The take profit a call shows, and its reward:risk measured against the call's own stop.
 ///
-/// A setup's targets are measured toward the setup's direction. When a call goes the other way -- a
-/// close through a long's stop resolved to SHORT -- the long's target sits above the price and would
-/// print as a short's take profit, with a reward:risk measured against a stop the call does not use.
-/// A target on the wrong side is not shown at all; there is no measured exit for that direction.
+/// A measured target is shown only on the profit side of the entry the call trades from: a setup's
+/// targets point the setup's way, and when a call goes the other way -- a close through a long's stop
+/// resolved to SHORT -- the long's target would print as a short's take profit. Its reward:risk is
+/// re-measured against the stop the call actually carries (since 2026-10-11 that stop sits 1.5 ATR beyond
+/// the zone, lib/resolve.ts `bufferStop`), so the figure always agrees with the levels printed beside it.
+///
+/// When no measured target sits on the profit side, every active call still gets an exit, at the owner's
+/// instruction: a projection at `PROJECTION_R` times the risk from the entry level, named as a projection
+/// wherever it is printed. Null only when there is no stop to measure risk from, or a short's projection
+/// would fall to zero or below.
 export function targetForCall<T extends TargetLike>(
   target: T | null,
   call: {
@@ -188,15 +205,21 @@ export function targetForCall<T extends TargetLike>(
     invalidation: number | null;
     gate: string;
   },
-): T | null {
-  if (!target || (call.action !== "LONG" && call.action !== "SHORT")) return target;
+): T | TargetLike | null {
+  if (call.action !== "LONG" && call.action !== "SHORT") return target;
   if (!call.entry) return null;
   const long = call.action === "LONG";
   const from = long ? call.entry.high : call.entry.low;
-  const near = long ? target.low : target.high;
-  if (!Number.isFinite(near) || !Number.isFinite(from) || (long ? near <= from : near >= from)) return null;
-  if (!call.gate.startsWith("forced-")) return target;
   const stop = call.invalidation;
-  const risk = stop === null || !Number.isFinite(stop) ? 0 : Math.abs(from - stop);
-  return { ...target, rewardRisk: risk > 0 ? Math.abs(near - from) / risk : null };
+  const risk = stop === null || !Number.isFinite(stop) || !Number.isFinite(from) ? 0 : Math.abs(from - stop);
+  if (target) {
+    const near = long ? target.low : target.high;
+    if (Number.isFinite(near) && (long ? near > from : near < from)) {
+      return { ...target, rewardRisk: risk > 0 ? Math.abs(near - from) / risk : null };
+    }
+  }
+  if (!(risk > 0)) return null;
+  const level = Number((long ? from + PROJECTION_R * risk : from - PROJECTION_R * risk).toPrecision(8));
+  if (!(level > 0)) return null;
+  return { method: PROJECTION, low: level, high: level, distancePct: null, rewardRisk: PROJECTION_R };
 }

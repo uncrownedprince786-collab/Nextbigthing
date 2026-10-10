@@ -3,7 +3,7 @@ import { clockUtc } from "@/lib/liveQuote";
 import { shortDay, type Validity } from "@/lib/validity";
 import type { EarlySignal } from "@/lib/earlySignal";
 import { changeSentence, type StateChange, type Transition } from "@/lib/stateChange";
-import { targetMethodLabel, type TargetLike } from "@/lib/target";
+import { targetSourceSentence, type TargetLike } from "@/lib/target";
 import { compactPrice, plainPrice, price, relativeTime } from "@/lib/format";
 import { CONFIDENCE_ORDER } from "@/lib/decision";
 import type { Action, Confidence, Decision, Market, TimeSense } from "@/lib/decision";
@@ -304,7 +304,7 @@ function Sizing({ plan }: { plan: NonNullable<Decision["plan"]> }) {
         label="Reward against risk"
         hint={
           plan.rewardRisk !== null
-            ? "The measured target against the stop above. Measured, not chosen."
+            ? "The measured target against the stop above, from the entry level. Measured, not chosen."
             : undefined
         }
       >
@@ -318,7 +318,7 @@ function Sizing({ plan }: { plan: NonNullable<Decision["plan"]> }) {
           </span>
         ) : (
           <span className="text-muted-foreground">
-            No measured target is stored, so the reward cannot be sized.
+            No measured target is stored, so the reward cannot be sized here; a take profit shown above is a projection.
           </span>
         )}
       </Field>
@@ -545,7 +545,7 @@ export function DecisionPanel({
           label="Take profit"
           hint={
             target
-              ? `Measured from ${targetMethodLabel(target.method)} — a measured level, not a promise.`
+              ? targetSourceSentence(target.method)
               : undefined
           }
         >
@@ -1227,7 +1227,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                   className={r.target ? "num block text-sm" : "text-muted-foreground block text-sm"}
                   title={
                     r.target
-                      ? `Measured from ${targetMethodLabel(r.target.method)} — a measured level, not a promise.`
+                      ? targetSourceSentence(r.target.method)
                       : undefined
                   }
                 >

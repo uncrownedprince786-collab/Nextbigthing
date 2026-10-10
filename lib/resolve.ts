@@ -32,6 +32,7 @@ import {
   type Confidence,
   type Decision,
   type DecisionInput,
+  type TradePlan,
 } from "./decision.ts";
 
 /// Stop distance in average true ranges, as the owner specified.
@@ -47,6 +48,13 @@ export const FORCED = "forced-";
 /// table made (rightly: a forced call is logged daily and would keep a turn "recent" for ever). This guard
 /// reads the run's *start*, which a daily re-log does not move, so it cannot hold a call for ever either.
 export const WHIPSAW_DAYS = 3;
+
+/// The stop's least distance beyond the entry zone, in 14-session average true ranges (the owner's rule,
+/// 2026-10-11). The zone runs from the setup's stop to its entry level, so the stop sat exactly on the
+/// zone's edge -- Askari Bank's band Rs.102.50 to Rs.106.19 with its stop at Rs.102.50 -- and a reader
+/// buying at the bottom of the band was buying at the stop. Now the stop is
+/// `min(zone low - 1.5 x ATR, the structural stop)` for a LONG, mirrored for a SHORT.
+export const STOP_BUFFER_ATR = 1.5;
 
 type Side = "up" | "down";
 
@@ -191,5 +199,48 @@ function forcedCall(d: Decision, input: DecisionInput, r: { side: Side; gate: st
 /// What every caller uses: the evidence table, then the binary rule. One function, so the lists, the
 /// asset page and the nightly log cannot resolve the same name two ways.
 export function decideCall(input: DecisionInput): Decision {
-  return whipsawHold(resolveCall(decide(input), input), input);
+  return bufferStop(whipsawHold(resolveCall(decide(input), input), input), input);
+}
+
+/// The stop moved to at least `STOP_BUFFER_ATR` average true ranges beyond the entry zone, never nearer
+/// than the structural stop it replaces, with the plan's reward:risk re-measured against it. A name with
+/// no stored ATR keeps its stop: a volatility figure is not invented (every active name had one on
+/// 2026-10-11), and `tools/logic_audit.py` reports any stop left on the zone's edge.
+export function bufferStop(d: Decision, input: DecisionInput): Decision {
+  if ((d.action !== "LONG" && d.action !== "SHORT") || !d.entry) return d;
+  const atr = input.atr;
+  if (atr == null || !Number.isFinite(atr) || atr <= 0) return d;
+  const long = d.action === "LONG";
+  const edge = long ? d.entry.low : d.entry.high;
+  const buffered = long ? edge - STOP_BUFFER_ATR * atr : edge + STOP_BUFFER_ATR * atr;
+  if (!(buffered > 0)) return d;
+  const own = d.invalidation;
+  const hasOwn = own !== null && Number.isFinite(own);
+  // Eight significant digits, as resolvedStop rounds: a fixed number of decimals would flatten a coin.
+  const stop = Number((hasOwn ? (long ? Math.min(buffered, own) : Math.max(buffered, own)) : buffered).toPrecision(8));
+  if (hasOwn && stop === own) return d;
+  const sentence = `The stop is ${STOP_BUFFER_ATR} x the 14-session average true range beyond the entry zone, so it never sits on the zone's edge.`;
+  const forced = d.gate.startsWith(FORCED);
+  return {
+    ...d,
+    invalidation: stop,
+    // A resolved call's second line is its stop sentence; a call the table made keeps its reasons and
+    // gains the sentence as a note.
+    why: forced ? [d.why[0], sentence, ...d.why.slice(2)] : d.why,
+    notes: forced ? d.notes : [...d.notes, sentence],
+    plan: d.plan ? replan(d.plan, d.entry, stop, long) : null,
+  };
+}
+
+/// The plan re-measured against a moved stop: reward:risk from the entry level the call trades from, and
+/// the expectancy that rests on it. A target on the loss side has no reward to weigh.
+function replan(plan: TradePlan, entry: { low: number; high: number }, stop: number, long: boolean): TradePlan {
+  const from = long ? entry.high : entry.low;
+  const risk = Math.abs(from - stop);
+  const near = plan.target ? (long ? plan.target.low : plan.target.high) : null;
+  const rewardRisk =
+    near !== null && risk > 0 && (long ? near > from : near < from) ? Math.abs(near - from) / risk : null;
+  const expectancyR =
+    plan.baseRate && rewardRisk !== null ? plan.baseRate.share * rewardRisk - (1 - plan.baseRate.share) : null;
+  return { ...plan, invalidation: stop, rewardRisk, expectancyR };
 }

@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { decide, type Decision, type DecisionInput } from "../lib/decision.ts";
-import { ATR_STOP_MULTIPLE, decideCall, momentumSide, resolveCall, whipsawHold, WHIPSAW_DAYS } from "../lib/resolve.ts";
+import { ATR_STOP_MULTIPLE, bufferStop, decideCall, momentumSide, resolveCall, STOP_BUFFER_ATR, whipsawHold, WHIPSAW_DAYS } from "../lib/resolve.ts";
 
 function input(over: Partial<DecisionInput> = {}): DecisionInput {
   return {
@@ -124,6 +124,50 @@ test("the guard lets a confirmed return through, and any return once the window 
   assert.equal(whipsawHold(call("SHORT"), input({ setup: down })).action, "SHORT");
 });
 
+test("the stop sits 1.5 ATR beyond the entry zone, never on its edge: the Askari Bank case", () => {
+  // Band Rs.102.50 to Rs.106.19 with the stop at Rs.102.50, ATR Rs.2: the stop moves to 102.50 - 3.00.
+  const long = call("LONG", { entry: { low: 102.5, high: 106.19 }, invalidation: 102.5 });
+  const d = bufferStop(long, input({ atr: 2 }));
+  assert.equal(STOP_BUFFER_ATR, 1.5);
+  assert.equal(d.invalidation, 99.5);
+  assert.ok(d.invalidation! < d.entry!.low, "strictly below the band");
+  assert.deepEqual(d.why, long.why, "a table call keeps its reasons");
+  assert.match(d.notes.at(-1)!, /1\.5 x the 14-session average true range beyond the entry zone/);
+  // A structural stop already further away is kept: min(zone low - 1.5 ATR, the structural stop).
+  assert.equal(bufferStop(call("LONG", { entry: { low: 102.5, high: 106.19 }, invalidation: 95 }), input({ atr: 2 })).invalidation, 95);
+  // The short mirror: max(zone high + 1.5 ATR, the structural stop).
+  const short = call("SHORT", { entry: { low: 50, high: 52 }, invalidation: 52 });
+  assert.equal(bufferStop(short, input({ atr: 1 })).invalidation, 53.5);
+});
+
+test("the buffer leaves a 2 x ATR resolved stop alone, moves a nearer one, and invents no volatility", () => {
+  // A resolved call's zone is its close; a 2 x ATR stop is already past 1.5 ATR, so nothing changes.
+  const forced = resolveCall(wait("stop-crossed", "up"), input({ lastClose: 90, invalidation: 94 }));
+  assert.equal(bufferStop(forced, input({ lastClose: 90, atr: 2.5 })).invalidation, forced.invalidation);
+  // The setup's own stop 1 below a close of 100 is nearer than 1.5 x 2.5: it moves to 96.25, and the
+  // stop sentence says so.
+  const own = resolveCall(wait("incomplete", "up"), input({ invalidation: 99 }));
+  assert.equal(own.invalidation, 99);
+  const moved = bufferStop(own, input({ invalidation: 99 }));
+  assert.equal(moved.invalidation, 96.25);
+  assert.match(moved.why[1], /beyond the entry zone/);
+  // No stored ATR: the stop is left as it was rather than buffered by a made-up range.
+  const bare = call("LONG", { entry: { low: 102.5, high: 106.19 }, invalidation: 102.5 });
+  assert.equal(bufferStop(bare, input({ atr: null })).invalidation, 102.5);
+  // WAIT is never touched.
+  assert.equal(bufferStop(wait("stale"), input()).invalidation, null);
+});
+
+test("the plan's reward:risk is re-measured against the moved stop, from the entry level", () => {
+  const plan = { entry: { low: 100, high: 104 }, invalidation: 100, target: { low: 112, high: 115, method: "structure" }, rewardRisk: 2, baseRate: { share: 0.6, count: 30 }, expectancyR: 0.8 };
+  const d = bufferStop(call("LONG", { entry: { low: 100, high: 104 }, invalidation: 100, plan }), input({ atr: 2 }));
+  // Stop 100 - 3 = 97; reward 112 - 104 = 8; risk 104 - 97 = 7.
+  assert.equal(d.invalidation, 97);
+  assert.equal(d.plan?.invalidation, 97);
+  assert.ok(Math.abs((d.plan?.rewardRisk ?? 0) - 8 / 7) < 1e-12);
+  assert.ok(Math.abs((d.plan?.expectancyR ?? 0) - (0.6 * (8 / 7) - 0.4)) < 1e-12);
+});
+
 test("a macro veto on one side gives the other side", () => {
   assert.equal(resolveCall(wait("macro-veto", "up"), input()).action, "SHORT");
 });
@@ -179,5 +223,5 @@ test("every caller goes through decideCall, and the reversal gate reads only cal
   const runSql = /lag\(action\) OVER \(PARTITION BY "assetId" ORDER BY "periodEnd"\) AS prev\s+FROM "DecisionLog"\s+WHERE action IN \('LONG', 'SHORT'\)/;
   assert.match(job, runSql);
   assert.match(read("lib/queries.ts"), runSql);
-  assert.match(read("lib/resolve.ts"), /return whipsawHold\(resolveCall\(decide\(input\), input\), input\);/);
+  assert.match(read("lib/resolve.ts"), /return bufferStop\(whipsawHold\(resolveCall\(decide\(input\), input\), input\), input\);/);
 });

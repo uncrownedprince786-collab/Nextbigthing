@@ -15,9 +15,10 @@ Two halves, because the numbers live in two places:
 Read only. The session is opened read-only, so even a mistaken statement here could not write.
 
 How the entry zone is built, because the stop checks depend on it: `AssetSetup` stores two levels,
-the entry level and the invalidation level, and the zone is the range they span (lib/decisionInput.ts)
--- "both ends inclusive", with the stop at its far edge. So a stop EQUAL to the zone's far edge is the
-design, and is counted apart from a stop inside the zone or on the wrong side, which would be faults.
+the entry level and the invalidation level, and the zone is the range they span (lib/decisionInput.ts).
+Until 2026-10-11 the stop sat on the zone's far edge; since then (brain.md rule 91, lib/resolve.ts
+`bufferStop`) it sits at least 1.5 x atr14 beyond the zone, so a stop on the edge is a fault, and so is
+an active call with no take profit (a measured target, or a 2 x risk projection, lib/target.ts).
 Reward:risk is measured from the entry level the call trades from: the top of the zone for a LONG,
 the bottom for a SHORT.
 """
@@ -37,6 +38,8 @@ ROOT = Path(__file__).resolve().parent.parent
 SITE = (os.environ.get("SITE_URL") or "https://nextbigthing-nu.vercel.app").rstrip("/")
 PAGES = ("/", "/stocks", "/crypto", "/psx", "/forex", "/commodities")
 ATR_MULTIPLE = 2.0  # lib/resolve.ts: a resolved call's own stop is 2 x atr14 from the close
+BUFFER_ATR = 1.5  # lib/resolve.ts STOP_BUFFER_ATR: no stop nearer the zone than this many atr14
+PROJECTION_R = 2.0  # lib/target.ts PROJECTION_R
 EXAMPLES = 8
 
 
@@ -132,7 +135,8 @@ def audit_database(url: str) -> dict:
         "day": day, "active": active, "logged": len(logged), "actions": Counter(r["action"] for r in logged),
         "dir_wrong": [], "dir_inside": [], "dir_edge": 0, "dir_beyond": 0, "no_band": [], "no_stop": [],
         "zero_risk": [], "stop_at_close": [], "rr_bad": [], "rr_present": 0,
-        "forced": 0, "forced_atr": 0, "forced_setup": 0, "forced_other": [], "forced_no_atr": 0,
+        "forced": 0, "forced_atr": 0, "forced_setup": 0, "forced_buffer": 0, "forced_other": [], "forced_no_atr": 0,
+        "buffer_short": [], "no_atr": 0,
         "subcent": 0, "subcent_bad": [], "subcent_min_rel_risk": None, "targets": targets,
     }
     for r in logged:
@@ -161,6 +165,13 @@ def audit_database(url: str) -> dict:
         risk = abs(entry - stop)
         if risk == 0 or risk <= abs(entry) * 1e-12:
             out["zero_risk"].append(f"{sym} {act} entry {entry} stop {stop}")
+        a14 = atr.get(r["assetId"])
+        if fin(a14) and a14 > 0:
+            beyond = (lo - stop) if long else (stop - hi)
+            if beyond < BUFFER_ATR * a14 * (1 - 1e-6):
+                out["buffer_short"].append(f"{sym} {act} zone {lo}..{hi} stop {stop}: {beyond / a14:.2f} x atr14 beyond the zone")
+        else:
+            out["no_atr"] += 1
         if fin(close) and stop == close:
             out["stop_at_close"].append(f"{sym} {act} close {close} stop {stop}")
         if r["rewardRisk"] is not None:
@@ -177,6 +188,8 @@ def audit_database(url: str) -> dict:
                 ratio = abs(close - stop) / a
                 if abs(ratio - ATR_MULTIPLE) <= 0.01:
                     out["forced_atr"] += 1
+                elif abs(ratio - BUFFER_ATR) <= 0.01:
+                    out["forced_buffer"] += 1
                 else:
                     out["forced_other"].append(f"{sym} {act} {r['gate']} |close-stop|/atr14 = {ratio:.3f}")
             else:
@@ -253,6 +266,7 @@ def parse_rows(page_html: str) -> list[dict]:
             "stop": prices_in(cells.get("Stop loss", "")),
             "target": prices_in(cells.get("Take profit", "")),
             "rr": float(rr.group(1)) if rr else None,
+            "projection": "Projected at" in cells.get("Take profit", ""),
             # The rounding of every printed level, so a reward:risk can be checked against what the
             # printed figures allow rather than against a guessed tolerance.
             "half": {v: h for cell in ("Entry zone", "Stop loss", "Take profit") for v, h in prices_with_rounding(cells.get(cell, ""))},
@@ -264,7 +278,8 @@ def audit_pages() -> dict:
     seen: dict[str, dict] = {}
     out = {"rows": 0, "names": 0, "actions": Counter(), "inconsistent": [], "t_wrong": [], "t_none": 0,
            "s_wrong": [], "s_inside": [], "s_edge": 0, "s_beyond": 0, "zero_risk": [], "rr_bad": [],
-           "rr_mismatch": [], "rr_checked": 0, "subcent_rows": 0, "subcent_bad": []}
+           "rr_mismatch": [], "rr_checked": 0, "subcent_rows": 0, "subcent_bad": [], "t_missing": [],
+           "t_impossible": 0, "projections": 0}
     for path in PAGES:
         req = urllib.request.Request(SITE + path, headers={"User-Agent": "nbt-logic-audit"})
         with urllib.request.urlopen(req, timeout=60) as r:
@@ -308,7 +323,14 @@ def audit_pages() -> dict:
             out["t_none"] += 1
             if r["rr"] is not None:
                 out["rr_bad"].append(f"{sym} prints R:R {r['rr']} with no target")
+            # Every active call shows an exit, unless a short's projection would reach zero or below.
+            if not long and entry - PROJECTION_R * risk <= 0:
+                out["t_impossible"] += 1
+            else:
+                out["t_missing"].append(f"{sym} {r['action']} zone {lo}..{hi} stop {stop}: no take profit")
             continue
+        if r.get("projection"):
+            out["projections"] += 1
         tlo, thi = min(r["target"]), max(r["target"])
         if (long and not tlo > hi) or (not long and not thi < lo):
             out["t_wrong"].append(f"{sym} {r['action']} zone {lo}..{hi} target {tlo}..{thi}")
@@ -354,20 +376,22 @@ def main() -> int:
         db = {"day": "-", "active": "-", "logged": 0, "actions": Counter(), "dir_wrong": [], "dir_inside": [],
               "dir_edge": 0, "dir_beyond": 0, "no_band": [], "no_stop": [], "zero_risk": [], "stop_at_close": [],
               "rr_bad": [], "rr_present": 0, "forced": 0, "forced_atr": 0, "forced_setup": 0, "forced_other": [],
-              "forced_no_atr": 0, "subcent": 0, "subcent_bad": [], "subcent_min_rel_risk": None,
+              "forced_no_atr": 0, "forced_buffer": 0, "buffer_short": [], "no_atr": 0, "subcent": 0, "subcent_bad": [], "subcent_min_rel_risk": None,
               "targets": {"n": 0, "nonpositive": 0, "reversed": 0, "bad_rr": 0}}
 
     print(f"\n== database: DecisionLog for {db['day']} (newest logged day)")
     print(f"  active assets {db['active']}, calls logged {db['logged']}, verdicts {dict(db['actions'])}")
-    print(f"  stop vs zone: beyond the zone {db['dir_beyond']}, at the zone's far edge (design) {db['dir_edge']}, "
+    print(f"  stop vs zone: beyond the zone {db['dir_beyond']}, ON THE ZONE'S EDGE {db['dir_edge']}, "
           f"inside the zone {len(db['dir_inside'])}, wrong side {len(db['dir_wrong'])}")
+    print(f"  buffer: {len(db['buffer_short'])} stops nearer the zone than {BUFFER_ATR} x atr14, {db['no_atr']} calls with no atr14 to check")
+    show("STOP NEARER THE ZONE THAN THE BUFFER", db["buffer_short"])
     show("WRONG SIDE", db["dir_wrong"]); show("STOP INSIDE THE ZONE", db["dir_inside"])
     show("no entry band", db["no_band"]); show("no stop", db["no_stop"])
     show("ZERO RISK (entry == stop)", db["zero_risk"]); show("stop equal to the close", db["stop_at_close"])
     print(f"  stored reward:risk present {db['rr_present']}, invalid {len(db['rr_bad'])}")
     show("INVALID STORED R:R", db["rr_bad"])
     print(f"  resolved (forced) calls {db['forced']}: stop = 2.00 x atr14 from the close {db['forced_atr']}, "
-          f"= the setup's own level {db['forced_setup']}, other {len(db['forced_other'])}")
+          f"= 1.50 x atr14 beyond the zone {db['forced_buffer']}, = the setup's own level {db['forced_setup']}, other {len(db['forced_other'])}")
     show("FORCED STOP NOT EXPLAINED", db["forced_other"])
     m = db["subcent_min_rel_risk"]
     print(f"  under $1: {db['subcent']} calls, smallest risk {m * 100:.2f}% of the close" if m is not None else f"  under $1: {db['subcent']} calls")
@@ -376,10 +400,12 @@ def main() -> int:
     print(f"  stored targets (last 14 days) {t['n']}: non-positive {t['nonpositive']}, low > high {t['reversed']}, invalid R:R {t['bad_rr']}")
 
     print(f"\n== live pages: {pg['rows']} rows, {pg['names']} names, verdicts {dict(pg['actions'])}")
-    print(f"  stop vs zone: beyond {pg['s_beyond']}, at the far edge (design) {pg['s_edge']}, inside {len(pg['s_inside'])}, wrong side {len(pg['s_wrong'])}")
+    print(f"  stop vs zone: beyond {pg['s_beyond']}, ON THE EDGE {pg['s_edge']}, inside {len(pg['s_inside'])}, wrong side {len(pg['s_wrong'])}")
     show("WRONG SIDE", pg["s_wrong"]); show("STOP INSIDE THE ZONE", pg["s_inside"])
     show("ZERO RISK", pg["zero_risk"])
-    print(f"  targets: shown {pg['names'] - pg['t_none'] - pg['actions'].get('WAIT', 0)}, none measured {pg['t_none']}, on the wrong side {len(pg['t_wrong'])}")
+    print(f"  targets: shown {pg['names'] - pg['t_none'] - pg['actions'].get('WAIT', 0)} ({pg['projections']} of them 2 x risk projections), "
+          f"none {pg['t_none']} ({pg['t_impossible']} where a projection would reach zero), on the wrong side {len(pg['t_wrong'])}")
+    show("ACTIVE CALL WITHOUT A TAKE PROFIT", pg["t_missing"])
     show("TARGET ON THE WRONG SIDE", pg["t_wrong"])
     print(f"  reward:risk recomputed {pg['rr_checked']}: mismatched {len(pg['rr_mismatch'])}, invalid {len(pg['rr_bad'])}")
     show("R:R MISMATCH", pg["rr_mismatch"]); show("INVALID R:R", pg["rr_bad"])
@@ -394,6 +420,9 @@ def main() -> int:
         "unexplained forced stop": len(db["forced_other"]),
         "missing band/stop on a call": len(db["no_band"]) + len(db["no_stop"]),
         "page disagreement": len(pg["inconsistent"]),
+        "stop on the zone's edge (rule 91)": db["dir_edge"] + pg["s_edge"],
+        "stop nearer the zone than 1.5 x atr14": len(db["buffer_short"]),
+        "active call without a take profit": len(pg["t_missing"]),
     }
     print("\n== verdict")
     for k, v in faults.items():
