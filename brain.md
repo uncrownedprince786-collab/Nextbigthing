@@ -2209,3 +2209,39 @@ reads rows that already exist:
     Found while testing: rounding the news age to one decimal before comparing it with the six-hour limit
     turned 6 h 1 min into "6.0" and passed it; the comparison now uses the raw age. And the first guard
     against redefining the stale limits matched `DECISIONS_STALE_AFTER_DAYS` as a substring.
+
+76. **The first full run on GitHub found four faults that every local run had hidden.** On 2026-10-10,
+    with the secrets finally pointing at the new database, every lane was dispatched on GitHub in order
+    and its log read. Each fault below was green or invisible locally:
+
+    * **The `DATABASE_URL` secret held the Supabase string** (both lines of `.env` contain
+      `DATABASE_URL=`). Every lane went green while writing to the standby the site does not read.
+      `jobs/schemacheck.py`, which runs before every lane, now names the provider ("Neon", "Supabase";
+      never the host, because a public repository's logs are public) and refuses the standby.
+    * **The forming-bar guard held Friday's futures and FX bars all weekend.** Its allowance for "the
+      minutes after the bell" had no bound on our clock, and futures and FX stop trading hours before
+      Yahoo's nominal session end, so Brent, gold and EUR/USD read "still trading" until Sunday night.
+      Now the marker counts only while the last trade is within two hours (`LANDING_WINDOW`).
+    * **The news lane failed on its clean-up after storing 1,405 headlines.** Its final prune ran on a
+      connection that had sat idle inside a read transaction for twelve minutes, and the server killed
+      it. The read transaction is closed before the fetch, and the prune goes through the `Link`.
+    * **The mirror copied `SignalLog.productId` untranslated** and broke Supabase's foreign key. It now
+      goes through the product's slug, as assets go through (industry, symbol).
+
+    Plus two that were configuration rather than code: a secret pasted with its trailing line break
+    (whitespace is now stripped from every connection string, though no data job may even name a
+    standby to do it), and the macro gate's 60-name cost cap applying to the free local engine, which
+    left 99 of 159 names with fresh headlines unchecked on its first production run.
+
+    **Verified afterwards, on production:** all ten workflows green on their latest run; 576 of 576
+    names priced and decided for 2026-10-10 (every US stock, ETF and future at Friday's close); 289
+    WAITs, of which 279 are evidence (236 stop-crossed, 43 short-unbacked) and 10 are named (7 with no
+    readable setup direction, 3 listings too new for a stop); the local macro gate checked all 159
+    names with fresh headlines and refused none; 2,469 headlines stored; Supabase holds the same 576
+    decisions and 316 signals; `/api/health` clean; the watchdog's own run reported "healthy, nothing
+    to restart".
+
+    **The lesson is the one rule 71 already taught, at larger scale:** a green local run proves the
+    code, not the deployment. Each of these lived in the gap between the two -- a secret, a clock, a
+    connection's lifetime, a foreign key on the other database -- and was found only by running the
+    real thing where it really runs and reading its log.
