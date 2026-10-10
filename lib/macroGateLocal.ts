@@ -21,7 +21,9 @@
 /// **Trust comes first, from the stored Beta statistics, and decides before any word is read.** A
 /// source is believed only at a mean of 0.70 or more *and* at least `MIN_EVIDENCE` observations' worth
 /// of mass, so a brand-new source with one success cannot score 1.0. Below 0.30 it is ignored outright;
-/// between the two it is uncertain, and an uncertain source never vetoes alone.
+/// between the two it is uncertain, and an uncertain source never vetoes alone. Where no statistics exist
+/// at all -- today's state for every news publisher -- a short declared list fills the gap and says so
+/// (`DECLARED_TRUSTED`); a measured reading with real evidence behind it always outranks it.
 
 import { MACRO_WINDOW_HOURS, MAX_RATIONALE, sanitizeText, selectNews } from "./macroGate.ts";
 import type { GateInput, GateNews, GateResult, RefusalReason } from "./macroGate.ts";
@@ -153,16 +155,72 @@ export function assetClassOf(symbol: string, assetType?: string | null): string 
   return "stock";
 }
 
-export type Trust = "trusted" | "uncertain" | "ignored" | "unproven";
+/// Outlets declared trusted **by the owner of this file**, not measured. There are no per-publisher
+/// reliability statistics to compute a mean from (`SourceReliability` holds price-feed reliability), and
+/// inventing a Beta(45, 1) for Reuters would be a number nobody measured. So this is a short, plain list
+/// of names, and the rationale of a veto that rests on one says "declared-trusted publisher" and quotes
+/// no credibility figure. Each entry is a wire service, a national financial paper, or the main business
+/// daily of a market this site covers; an aggregator or a syndication feed is not on it.
+///
+/// Names are compared after `publisherKey`, exactly: "bloomberg-news-corp.co" is not "bloomberg". A
+/// measured reading always outranks a declaration where it has real evidence behind it (see `trustOf`),
+/// and the scorecard is the place to take an entry off this list if its vetoes turn out wrong.
+export const DECLARED_TRUSTED: readonly string[] = [
+  "reuters",
+  "bloomberg",
+  "the wall street journal",
+  "wsj",
+  "financial times",
+  "ft",
+  "associated press",
+  "ap news",
+  "cnbc",
+  "barron s",
+  "dawn",
+  "business recorder",
+  "coindesk",
+];
 
-export function trustOf(source: string, reliability: GateInput["reliability"]): { trust: Trust; mean: number | null } {
+/// A publisher name as compared: lower case, a trailing .com dropped, punctuation collapsed to single
+/// spaces, so "Reuters", "reuters.com" and "REUTERS" are one name and "reuters.com.evil.co" is not.
+export function publisherKey(name: string): string {
+  return String(name ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[.]com$/, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+export type Trust = "trusted" | "uncertain" | "ignored" | "unproven";
+export type TrustBasis = "measured" | "declared" | null;
+
+/// How far to believe a source. Measured statistics come first and a declaration only fills the gap:
+///   * a measured mean of 0.70 with enough mass is trusted, on the numbers;
+///   * a measured mean under 0.30 *with enough mass behind it* is ignored even if the outlet is on the
+///     declared list, because evidence against beats a declaration;
+///   * otherwise an outlet on the declared list is trusted, and a thin or middling measurement does not
+///     take that away (three observations are not evidence against anything);
+///   * otherwise the measured verdict stands, and a source with no row is unproven.
+export function trustOf(
+  source: string,
+  reliability: GateInput["reliability"],
+): { trust: Trust; mean: number | null; basis: TrustBasis } {
   const key = source.trim().toLowerCase();
   const row = reliability.find((r) => r.source.trim().toLowerCase() === key);
-  if (!row || !(row.alpha > 0) || !(row.beta > 0)) return { trust: "unproven", mean: null };
-  const mean = row.alpha / (row.alpha + row.beta);
-  if (mean < IGNORED_BELOW) return { trust: "ignored", mean };
-  if (mean >= TRUSTED_MEAN && row.alpha + row.beta >= MIN_EVIDENCE) return { trust: "trusted", mean };
-  return { trust: "uncertain", mean };
+  let measured: { trust: Trust; mean: number | null; basis: TrustBasis } = { trust: "unproven", mean: null, basis: null };
+  let mass = 0;
+  if (row && row.alpha > 0 && row.beta > 0) {
+    const mean = row.alpha / (row.alpha + row.beta);
+    mass = row.alpha + row.beta;
+    if (mean < IGNORED_BELOW) measured = { trust: "ignored", mean, basis: "measured" };
+    else if (mean >= TRUSTED_MEAN && mass >= MIN_EVIDENCE) measured = { trust: "trusted", mean, basis: "measured" };
+    else measured = { trust: "uncertain", mean, basis: "measured" };
+  }
+  if (measured.trust === "trusted") return measured;
+  if (measured.trust === "ignored" && mass >= MIN_EVIDENCE) return measured;
+  if (DECLARED_TRUSTED.includes(publisherKey(source))) return { trust: "trusted", mean: null, basis: "declared" };
+  return measured;
 }
 
 /// The rule a headline trips for this asset, or null. Pure; trust is judged by the caller.
@@ -193,10 +251,10 @@ export function evaluateLocal(input: GateInput, now: Date): GateResult {
     // would be invisible.
     const fresh = selectNews(input.news ?? [], now, MACRO_WINDOW_HOURS, SCAN_LIMIT);
     if (!fresh.length) return pass(`No headline in the last ${MACRO_WINDOW_HOURS} hours, so nothing to weigh.`);
-    const hits: { rule: Rule; news: GateNews; mean: number }[] = [];
+    const hits: { rule: Rule; news: GateNews; mean: number | null }[] = [];
     for (const n of fresh) {
       const { trust, mean } = trustOf(String(n.source ?? ""), input.reliability ?? []);
-      if (trust !== "trusted" || mean === null) continue;
+      if (trust !== "trusted") continue;
       const rule = ruleFor(n, input);
       if (rule) hits.push({ rule, news: n, mean });
     }
@@ -211,7 +269,9 @@ export function evaluateLocal(input: GateInput, now: Date): GateResult {
       verdict: "REJECT",
       reason: best.rule.reason,
       rationale: sanitizeText(
-        `${sanitizeText(String(best.news.source), 40)} (credibility ${best.mean.toFixed(2)}) reported ${best.rule.says}: "${said}".`,
+        `${sanitizeText(String(best.news.source), 40)} (${
+          best.mean === null ? "declared-trusted publisher" : `credibility ${best.mean.toFixed(2)}`
+        }) reported ${best.rule.says}: "${said}".`,
         MAX_RATIONALE,
       ),
       valid: true,

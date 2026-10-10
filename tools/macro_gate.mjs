@@ -131,11 +131,17 @@ async function headlines(db, rows) {
     const m = new Map();
     for (const r of rowsIn) {
       if (!m.has(r.key)) m.set(r.key, []);
+      // Trust is keyed on the **publisher**, the outlet Google News appends to the title ("Headline -
+      // Reuters"), and not on `source`, which is only the feed label. The suffix is removed from the
+      // text the rules read: an outlet name such as "Federal News Network" must not be able to satisfy
+      // a word in the table. With no publisher the feed label is used and no outlet is declared for it.
+      const pub = String(r.publisher ?? "").trim();
+      const text = pub && r.title.endsWith(` - ${pub}`) ? r.title.slice(0, -(pub.length + 3)) : r.title;
       m.get(r.key).push({
         scope,
-        title: r.publisher && r.publisher !== r.source ? `${r.title} (via ${r.publisher})` : r.title,
+        title: text,
         publishedAt: r.publishedAt,
-        source: r.source,
+        source: pub || r.source,
       });
     }
     return m;

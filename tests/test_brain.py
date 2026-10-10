@@ -7204,6 +7204,14 @@ class TheMacroGateOnlyRefuses(unittest.TestCase):
         branch = src[src.index('const decideOne = ENGINE === "model"') :]
         self.assertLess(branch.index("new Anthropic("), branch.index("evaluateLocal("))
 
+    def test_trust_is_keyed_on_the_publisher_and_the_outlet_is_not_left_in_the_text(self):
+        """Google News appends the outlet to the title. `source` is only the feed label, so trusting it
+        would trust every headline or none; and an outlet name left in the text could satisfy a word in
+        the table ("Federal News Network" against a federal-enforcement rule)."""
+        src = self.job()
+        self.assertIn("source: pub || r.source", src)
+        self.assertIn("r.title.slice(0, -(pub.length + 3))", src)
+
     def test_the_local_engine_is_pure(self):
         """Same input, same answer, no network, no clock, no randomness, no environment: the property
         that lets it be scored in CI and the reason it is the default."""

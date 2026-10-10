@@ -8,7 +8,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  IGNORED_BELOW, MIN_EVIDENCE, TRUSTED_MEAN, assetClassOf, evaluateLocal, normalise, trustOf,
+  IGNORED_BELOW, MIN_EVIDENCE, TRUSTED_MEAN, assetClassOf, evaluateLocal, normalise, publisherKey, trustOf,
 } from "../lib/macroGateLocal.ts";
 import type { GateInput, GateNews } from "../lib/macroGate.ts";
 import { CASES, EXAM_NOW } from "./macroGateCases.ts";
@@ -105,11 +105,11 @@ test("trust: 0.70 with enough evidence is believed, and every neighbour is not",
 });
 
 test("trust: source names match without regard to case or padding, and only exactly", () => {
-  const rel = [{ source: "Reuters.com", alpha: 45, beta: 1 }];
-  assert.equal(trustOf("  reuters.com ", rel).trust, "trusted");
-  assert.equal(trustOf("reuters.com.evil.co", rel).trust, "unproven");
-  assert.equal(trustOf("reuter.com", rel).trust, "unproven");
-  assert.equal(trustOf("reuters", rel).trust, "unproven", "a prefix of a trusted name is not that name");
+  const rel = [{ source: "Acmewire.com", alpha: 45, beta: 1 }];
+  assert.equal(trustOf("  acmewire.com ", rel).trust, "trusted");
+  assert.equal(trustOf("acmewire.com.evil.co", rel).trust, "unproven");
+  assert.equal(trustOf("acmewir.com", rel).trust, "unproven");
+  assert.equal(trustOf("acmewire", rel).trust, "unproven", "a prefix of a trusted name is not that name");
   assert.equal(trustOf("com", rel).trust, "unproven");
 });
 
@@ -202,6 +202,40 @@ test("garbage in is an EXECUTE out, and never a throw", () => {
     assert.equal(r.verdict, "EXECUTE");
     assert.equal(r.reason, null);
   }
+});
+
+test("declared-trusted publishers: they fill the gap where no statistics exist, and say so", () => {
+  const title = "SEC announces immediate ban on crypto derivatives trading";
+  const r = one({ title, source: "Reuters", reliability: [] });
+  assert.deepEqual([r.verdict, r.reason], ["REJECT", "macro-warning"]);
+  assert.match(r.rationale, /declared-trusted publisher/);
+  assert.ok(!/credibility/.test(r.rationale), "a declaration quotes no invented figure");
+  for (const name of ["Reuters", "reuters.com", "REUTERS", "The Wall Street Journal", "Business Recorder", "Dawn"]) {
+    assert.equal(one({ title, source: name, reliability: [] }).verdict, "REJECT", name);
+  }
+});
+
+test("declared-trusted publishers are matched exactly, so a lookalike earns nothing", () => {
+  const title = "SEC announces immediate ban on crypto derivatives trading";
+  for (const name of ["bloomberg-news-corp.co", "reuters.com.evil.co", "Reuters Wire Blog", "bloomberg news", "Yahoo Finance", "Google News", ""]) {
+    assert.equal(one({ title, source: name, reliability: [] }).verdict, "EXECUTE", name);
+  }
+});
+
+test("measured evidence outranks a declaration, in the direction it has evidence for", () => {
+  const title = "SEC announces immediate ban on crypto derivatives trading";
+  // Plenty of evidence that this outlet is wrong: ignored despite being on the list.
+  assert.equal(one({ title, source: "Reuters", reliability: [{ source: "Reuters", alpha: 1, beta: 20 }] }).verdict, "EXECUTE");
+  // Three observations are not evidence against anything: the declaration stands.
+  assert.equal(one({ title, source: "Reuters", reliability: [{ source: "Reuters", alpha: 1, beta: 2 }] }).verdict, "REJECT");
+  // Even a poor mean on very few observations (0.14 over a mass of 3.5) is not evidence against it.
+  assert.equal(one({ title, source: "Reuters", reliability: [{ source: "Reuters", alpha: 0.5, beta: 3 }] }).verdict, "REJECT");
+  // A middling measurement with plenty of mass is uncertain, and the declaration still stands.
+  assert.equal(one({ title, source: "Reuters", reliability: [{ source: "Reuters", alpha: 10, beta: 10 }] }).verdict, "REJECT");
+  // A measured trusted source uses its number, not the declaration.
+  const r = one({ title, source: "Reuters", reliability: [{ source: "Reuters", alpha: 45, beta: 1 }] });
+  assert.match(r.rationale, /credibility 0\.98/);
+  assert.equal(publisherKey("Barron" + String.fromCharCode(39) + "s"), "barron s");
 });
 
 test("a systemic warning outranks a company-level conflict, whichever is newer", () => {
