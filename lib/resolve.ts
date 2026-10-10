@@ -7,7 +7,7 @@
 ///
 ///   * `stop-crossed`         the close went through the setup's stop, so the call follows the break;
 ///   * `short-unbacked`       the setup reads down and nothing independent confirms it: SHORT anyway;
-///   * `reversal-unconfirmed` the flip is not confirmed yet, so the previous direction is kept --
+///   * `reversal-unconfirmed` the flip is not confirmed yet, so the call the reader holds is kept --
 ///                            the patient flip; it lifts when a confirmation arrives or after a week;
 ///   * `macro-veto`           the gatekeeper refused one side on breaking news: the other side;
 ///   * anything else          the side the table was leaning toward when it has one, else momentum.
@@ -17,6 +17,9 @@
 /// true range. Every resolved call is logged with its gate as `forced-<reason>`, so the logbook can
 /// grade these calls apart from the ones the evidence table made itself. Confidence is capped at
 /// Medium: a call the table refused is never printed as its strongest grade.
+///
+/// After that, one guard on every call, the evidence table's included (`whipsawHold`): a call may not return
+/// to the direction it left within `WHIPSAW_DAYS` unless the return is confirmed.
 ///
 /// The one case that cannot be resolved is a name with no stored close at all: there is no price to
 /// put a stop against. None of the 576 has that today; if one appears it stays WAIT and the page
@@ -36,6 +39,14 @@ export const ATR_STOP_MULTIPLE = 2;
 
 /// The gate prefix every resolved call is logged under.
 export const FORCED = "forced-";
+
+/// Calendar days, counted from the day the current direction began, inside which a call may not go back
+/// to the direction it replaced without a confirmation. The final audit (2026-10-10) found SHORT, then a
+/// forced LONG on a stop-cross, then SHORT again on an unconfirmed turn: two reversals in three days, the
+/// whipsaw rule 80 exists to prevent, reachable because the reversal gate reads only calls the evidence
+/// table made (rightly: a forced call is logged daily and would keep a turn "recent" for ever). This guard
+/// reads the run's *start*, which a daily re-log does not move, so it cannot hold a call for ever either.
+export const WHIPSAW_DAYS = 3;
 
 type Side = "up" | "down";
 
@@ -76,7 +87,9 @@ export function resolvedSide(d: Decision, input: DecisionInput): { side: Side; g
   }
   if (d.gate === "short-unbacked") return { side: "down", gate: FORCED + d.gate };
   if (d.gate === "reversal-unconfirmed" && input.priorDirection) {
-    return { side: input.priorDirection.direction, gate: FORCED + d.gate };
+    // The call the reader holds, which after a forced flip is not the table's last call: keeping the
+    // table's SHORT after a forced LONG printed SHORT, LONG, SHORT and said "the last call holds".
+    return { side: input.lastRun?.direction ?? input.priorDirection.direction, gate: FORCED + d.gate };
   }
   if (d.gate === "macro-veto" && d.intent) return { side: flip(d.intent), gate: FORCED + d.gate };
   if (d.intent) return { side: d.intent, gate: FORCED + d.gate };
@@ -106,6 +119,7 @@ const WORDS: Record<string, string> = {
   "short-unbacked": "The setup reads down; no independent confirmation yet.",
   "reversal-unconfirmed": "The setup turned, but the turn is not confirmed yet, so the last call holds.",
   "macro-veto": "Breaking news ruled out the other side.",
+  "whipsaw-hold": `It would go back to the side it left under ${WHIPSAW_DAYS} days ago with nothing confirming the return, so the current call holds.`,
   nosignal: "Nothing measured leans either way; the call follows the long-run drift.",
 };
 
@@ -114,6 +128,35 @@ export function resolveCall(d: Decision, input: DecisionInput): Decision {
   if (d.action !== "WAIT") return d;
   const r = resolvedSide(d, input);
   if (!r) return d;
+  return forcedCall(d, input, r);
+}
+
+function daysBetween(fromISO: string, toISO: string): number {
+  const a = Date.parse(fromISO + "T00:00:00Z");
+  const b = Date.parse(toISO + "T00:00:00Z");
+  return Number.isNaN(a) || Number.isNaN(b) ? Number.NaN : Math.round((b - a) / 86_400_000);
+}
+
+/// The whipsaw guard: a call that would go back, unconfirmed, to the direction the reader's current call
+/// replaced under `WHIPSAW_DAYS` ago keeps the current call instead. A confirmed return is a real turn and
+/// passes; so does any return once the current direction is older than the window.
+export function whipsawHold(d: Decision, input: DecisionInput): Decision {
+  const run = input.lastRun;
+  if (!run || !run.left || run.left === run.direction) return d;
+  if (d.action !== "LONG" && d.action !== "SHORT") return d;
+  const side: Side = d.action === "LONG" ? "up" : "down";
+  if (side !== run.left) return d;
+  const age = daysBetween(run.since, input.today);
+  if (!Number.isFinite(age) || age < 1 || age > WHIPSAW_DAYS) return d;
+  if (confirmingLegs(input, side).length > 0) return d;
+  const close = input.lastClose;
+  if (close === null || !Number.isFinite(close)) return d;
+  return forcedCall(d, input, { side: run.direction, gate: FORCED + "whipsaw-hold" });
+}
+
+/// A call on the given side, with its stop, legs, confidence cap and reason: what every resolution and
+/// the whipsaw guard produce.
+function forcedCall(d: Decision, input: DecisionInput, r: { side: Side; gate: string }): Decision {
   const action = r.side === "up" ? "LONG" : "SHORT";
   const stop = resolvedStop(r.side, input);
   const legs = confirmingLegs(input, r.side);
@@ -148,5 +191,5 @@ export function resolveCall(d: Decision, input: DecisionInput): Decision {
 /// What every caller uses: the evidence table, then the binary rule. One function, so the lists, the
 /// asset page and the nightly log cannot resolve the same name two ways.
 export function decideCall(input: DecisionInput): Decision {
-  return resolveCall(decide(input), input);
+  return whipsawHold(resolveCall(decide(input), input), input);
 }

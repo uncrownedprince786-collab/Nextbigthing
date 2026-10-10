@@ -471,6 +471,11 @@ export interface DecisionInput {
   /// `reversalUnconfirmed`). From stored rows, never from the page's own earlier reading, so `decide`
   /// stays a pure function of what is stored.
   priorDirection?: { direction: "up" | "down"; asOf: string } | null;
+  /// The call a reader currently holds, from the log before today and whichever gate made it: its
+  /// direction, the day that direction began, and the direction it replaced (null when the log shows
+  /// none). Read by lib/resolve.ts only -- the evidence table never sees it -- for two things: a held
+  /// flip keeps *this* call, and a call may not return unconfirmed to `left` within `WHIPSAW_DAYS`.
+  lastRun?: { direction: "up" | "down"; since: string; left: "up" | "down" | null } | null;
   /// The 14-session average true range, in price units, from `AssetFactor.atr14`. Not read by the
   /// evidence table; `lib/resolve.ts` measures a stop from it where a resolved call has none.
   atr?: number | null;

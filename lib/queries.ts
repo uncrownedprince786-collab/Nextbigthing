@@ -929,6 +929,36 @@ export async function getDecisionHistory(assetId: string) {
   }
 }
 
+/// Each name's current run of directional calls in the log before today -- whichever gate made them --
+/// with the day it began and the direction before it. Read by lib/resolve.ts: a held flip keeps this
+/// call, and a call may not return unconfirmed to the side it left within `WHIPSAW_DAYS`. Before today
+/// for the reason `getPriorDirections` gives. WAIT rows are skipped, so a direction is compared with the
+/// last direction. Thirty days is far past the three the guard reads. Fails open to no runs.
+export interface LastRun {
+  action: string;
+  since: Date;
+  prev: string | null;
+}
+
+async function getLastRuns(assetId?: string): Promise<Map<string, LastRun>> {
+  const out = new Map<string, LastRun>();
+  try {
+    const rows = await prisma.$queryRaw<{ assetId: string; action: string; since: Date; prev: string | null }[]>`
+      SELECT DISTINCT ON ("assetId") "assetId", action, "periodEnd" AS since, prev
+        FROM (SELECT "assetId", action, "periodEnd",
+                     lag(action) OVER (PARTITION BY "assetId" ORDER BY "periodEnd") AS prev
+                FROM "DecisionLog"
+               WHERE action IN ('LONG', 'SHORT')
+                 AND "periodEnd" < CURRENT_DATE AND "periodEnd" >= CURRENT_DATE - 30) t
+       WHERE prev IS DISTINCT FROM action
+       ORDER BY "assetId", "periodEnd" DESC`;
+    for (const r of rows) if (!assetId || r.assetId === assetId) out.set(r.assetId, { action: r.action, since: r.since, prev: r.prev });
+  } catch {
+    out.clear();
+  }
+  return out;
+}
+
 /// The most recent directional verdict the log recorded for each name before today, within a week:
 /// the call a flip has to be confirmed against (`reversalUnconfirmed` in lib/decision.ts). Before
 /// today, never today, so the page's verdict and the nightly job's are both judged against the same
@@ -1047,6 +1077,7 @@ async function getMacroVetoes(assetId?: string): Promise<Map<string, { reason: s
 export async function getDecisionBundle(assetId: string) {
   const vetoes = getMacroVetoes(assetId);
   const priors = getPriorDirections(assetId);
+  const lastRuns = getLastRuns(assetId);
   const lateRead = getLateColumns();
   const [asset, freshness, horizons, analogs, humanSignal, investigation, upcoming, factor] =
     await Promise.all([
@@ -1121,6 +1152,7 @@ export async function getDecisionBundle(assetId: string) {
     /// `relStrength` is null — a group of four names rather than a measurement that came out even.
     macroVeto: (await vetoes).get(assetId) ?? null,
     prior: (await priors).get(assetId) ?? null,
+    lastRun: (await lastRuns).get(assetId) ?? null,
     factorPeers: factor?.peers ?? null,
   };
 }
@@ -1231,6 +1263,10 @@ export type DecisionQueryRow = {
   /// The most recent directional verdict logged before today, within a week; see getPriorDirections.
   priorAction: string | null;
   priorAsOf: Date | null;
+  /// The current directional run before today; see getLastRuns.
+  lastRunAction: string | null;
+  lastRunSince: Date | null;
+  lastRunPrev: string | null;
   /// The newest stored last trade and when it was struck; see `getLiveQuotes`. Null on both when none.
   quotePrice: number | null;
   quoteAt: Date | null;
@@ -1377,6 +1413,7 @@ export async function getLateColumns(): Promise<{ atr: Map<string, number>; inac
 export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   const vetoes = getMacroVetoes();
   const priors = getPriorDirections();
+  const lastRuns = getLastRuns();
   const lateRead = getLateColumns();
   const quotes = getLiveQuotes();
   const runs = getCallRuns();
@@ -1611,6 +1648,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   const vetoByAsset = await vetoes;
   const quoteByAsset = await quotes;
   const priorByAsset = await priors;
+  const lastRunByAsset = await lastRuns;
   const runByAsset = await runs;
   const late = await lateRead;
   // The active pool only (jobs/pool.py): a name under its market's liquidity floor, or with no
@@ -1664,6 +1702,9 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       macroVetoReason: vetoByAsset.get(asset.id)?.reason ?? null,
       priorAction: priorByAsset.get(asset.id)?.action ?? null,
       priorAsOf: priorByAsset.get(asset.id)?.asOf ?? null,
+      lastRunAction: lastRunByAsset.get(asset.id)?.action ?? null,
+      lastRunSince: lastRunByAsset.get(asset.id)?.since ?? null,
+      lastRunPrev: lastRunByAsset.get(asset.id)?.prev ?? null,
       macroVetoAsOf: vetoByAsset.get(asset.id)?.asOf ?? null,
       recentStories: signal?.recentStories ?? null,
       newsTone: signal?.tone ?? null,

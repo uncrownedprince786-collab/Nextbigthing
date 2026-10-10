@@ -308,6 +308,9 @@ export interface DecisionBundle {
   /// The most recent directional verdict the log recorded before today, raw; see
   /// `DecisionInput.priorDirection`, and `priorDirectionFrom`, which validates it once.
   prior?: { action: string | null; asOf: Date | string } | null;
+  /// The current run of directional calls in the log before today, raw; see `DecisionInput.lastRun`
+  /// and `lastRunFrom`, which validates it once.
+  lastRun?: { action: string | null; since: Date | string | null; prev: string | null } | null;
   /// From `getSourceHealth()`; only the newest row per source is expected.
   sourceHealth: { source: string; status: string }[];
 }
@@ -321,6 +324,17 @@ function priorDirectionFrom(
   const t = p.asOf instanceof Date ? p.asOf.getTime() : Date.parse(String(p.asOf).slice(0, 10) + "T00:00:00Z");
   if (!Number.isFinite(t)) return null;
   return { direction: p.action === "LONG" ? "up" : "down", asOf: new Date(t).toISOString().slice(0, 10) };
+}
+
+/// The log's current directional run read into the shape lib/resolve.ts takes, or null.
+function lastRunFrom(
+  r: { action: string | null; since: Date | string | null; prev: string | null } | null | undefined,
+): { direction: "up" | "down"; since: string; left: "up" | "down" | null } | null {
+  if (!r || (r.action !== "LONG" && r.action !== "SHORT") || !r.since) return null;
+  const t = r.since instanceof Date ? r.since.getTime() : Date.parse(String(r.since).slice(0, 10) + "T00:00:00Z");
+  if (!Number.isFinite(t)) return null;
+  const left = r.prev === "LONG" ? "up" : r.prev === "SHORT" ? "down" : null;
+  return { direction: r.action === "LONG" ? "up" : "down", since: new Date(t).toISOString().slice(0, 10), left };
 }
 
 /// A stored refusal read into the shape the rules take, or null when it is not one.
@@ -463,6 +477,8 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
     macroVeto: macroVetoFrom(bundle.macroVeto),
     // Eighth across the seam: the recent opposite call a flip has to be confirmed against.
     priorDirection: priorDirectionFrom(bundle.prior),
+    // Ninth: the call the reader holds, for the patient flip and the whipsaw guard in lib/resolve.ts.
+    lastRun: lastRunFrom(bundle.lastRun),
     unusualMove: isUnusualMove(bundle.investigation),
     // A missing HumanSignal row means news was never checked for this name, which the rule table
     // reports differently from a row saying zero. Keep the null.
@@ -551,6 +567,8 @@ export interface QueryBundle {
   macroVeto?: { reason: string | null; asOf: Date | string } | null;
   /// Most recent directional verdict logged before today; see `DecisionBundle.prior`.
   prior?: { action: string | null; asOf: Date | string } | null;
+  /// The current directional run before today; see `DecisionBundle.lastRun`.
+  lastRun?: { action: string | null; since: Date | string | null; prev: string | null } | null;
 }
 
 /// `sourceHealth` is passed in rather than fetched, because it is one site-wide read that every
@@ -616,6 +634,7 @@ export function bundleFromQuery(
       : null,
     macroVeto: row.macroVeto ?? null,
     prior: row.prior ?? null,
+    lastRun: row.lastRun ?? null,
     sourceHealth,
   };
 }
@@ -688,6 +707,10 @@ export interface QueryRow {
   /// The most recent directional verdict logged before today, and its day. Both or neither.
   priorAction?: string | null;
   priorAsOf?: Date | string | null;
+  /// The current directional run before today: its verdict, the day it began, the one before it.
+  lastRunAction?: string | null;
+  lastRunSince?: Date | string | null;
+  lastRunPrev?: string | null;
 }
 
 export function bundleFromRow(
@@ -747,6 +770,9 @@ export function bundleFromRow(
           ? { reason: row.macroVetoReason, asOf: row.macroVetoAsOf }
           : null,
       prior: row.priorAction && row.priorAsOf ? { action: row.priorAction, asOf: row.priorAsOf } : null,
+      lastRun: row.lastRunAction
+        ? { action: row.lastRunAction, since: row.lastRunSince ?? null, prev: row.lastRunPrev ?? null }
+        : null,
     },
     sourceHealth,
   );

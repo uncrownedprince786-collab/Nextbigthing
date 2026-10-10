@@ -292,6 +292,28 @@ async function readInputs(db, today) {
     prior = [];
   }
 
+  // The current run of directional calls before today, whichever gate made them: the same query as
+  // `getLastRuns` in lib/queries.ts, so the log and the page hold the same call and apply the same
+  // whipsaw guard (lib/resolve.ts). Fail-open like the reads above.
+  let lastRun = [];
+  try {
+    lastRun = (
+      await db.query(
+        `SELECT DISTINCT ON ("assetId") "assetId", action, "periodEnd" AS since, prev
+           FROM (SELECT "assetId", action, "periodEnd",
+                        lag(action) OVER (PARTITION BY "assetId" ORDER BY "periodEnd") AS prev
+                   FROM "DecisionLog"
+                  WHERE action IN ('LONG', 'SHORT')
+                    AND "periodEnd" < $1::date AND "periodEnd" >= ($1::date - 30)) t
+          WHERE prev IS DISTINCT FROM action
+          ORDER BY "assetId", "periodEnd" DESC`,
+        [today],
+      )
+    ).rows;
+  } catch {
+    lastRun = [];
+  }
+
   return {
     assets: assets.rows,
     priceByAsset: firstPerKey(prices.rows, (r) => r.assetId),
@@ -307,6 +329,7 @@ async function readInputs(db, today) {
     eventByAsset: firstPerKey(events.rows, (r) => r.assetId),
     macroByAsset: firstPerKey(macro, (r) => r.assetId),
     priorByAsset: firstPerKey(prior, (r) => r.assetId),
+    lastRunByAsset: firstPerKey(lastRun, (r) => r.assetId),
     sourceHealth: coverage.rows.map((r) => ({ source: r.source, status: r.status })),
   };
 }
@@ -344,6 +367,7 @@ function rowsForDecisions(input) {
     const event = input.eventByAsset.get(asset.id);
     const veto = input.macroByAsset.get(asset.id);
     const prior = input.priorByAsset.get(asset.id);
+    const run = input.lastRunByAsset.get(asset.id);
     return {
       assetId: asset.id,
       analogId: analog?.id ?? null,
@@ -396,6 +420,9 @@ function rowsForDecisions(input) {
         macroVetoAsOf: dayOf(veto?.periodEnd),
         priorAction: prior?.action ?? null,
         priorAsOf: dayOf(prior?.periodEnd),
+        lastRunAction: run?.action ?? null,
+        lastRunSince: dayOf(run?.since),
+        lastRunPrev: run?.prev ?? null,
         recentStories: signal?.recentStories ?? null,
         newsTone: signal?.tone ?? null,
         newsCatalyst: signal?.catalyst ?? null,

@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { decide, type Decision, type DecisionInput } from "../lib/decision.ts";
-import { ATR_STOP_MULTIPLE, decideCall, momentumSide, resolveCall } from "../lib/resolve.ts";
+import { ATR_STOP_MULTIPLE, decideCall, momentumSide, resolveCall, whipsawHold, WHIPSAW_DAYS } from "../lib/resolve.ts";
 
 function input(over: Partial<DecisionInput> = {}): DecisionInput {
   return {
@@ -72,6 +72,58 @@ test("an unconfirmed flip keeps the last call: the patient flip", () => {
   assert.equal(d.gate, "forced-reversal-unconfirmed");
 });
 
+test("a held flip keeps the call the reader holds, not the table's last call", () => {
+  // The audit's case: the table said SHORT on the 7th, a close through its stop made a forced LONG on
+  // the 8th, and on the 9th the setup turns up without a confirmation. The gate fires against the 7th's
+  // SHORT; the call the reader holds is the LONG, and that is what is kept.
+  const d = resolveCall(
+    wait("reversal-unconfirmed", "up"),
+    input({
+      today: "2026-10-09",
+      priorDirection: { direction: "down", asOf: "2026-10-07" },
+      lastRun: { direction: "up", since: "2026-10-08", left: "down" },
+    }),
+  );
+  assert.equal(d.action, "LONG");
+  assert.equal(d.gate, "forced-reversal-unconfirmed");
+});
+
+function call(action: "LONG" | "SHORT", over: Partial<Decision> = {}): Decision {
+  return { ...wait("trend"), action, gate: action === "LONG" ? "trend-long" : "trend-short", entry: { low: 98, high: 102 }, invalidation: action === "LONG" ? 94 : 106, ...over };
+}
+
+test("no unconfirmed return to the side just left: SHORT, LONG, SHORT inside three days is held", () => {
+  const down = { direction: "down" as const, horizon: "swing" };
+  const held = whipsawHold(
+    call("SHORT"),
+    input({ setup: down, invalidation: 106, lastRun: { direction: "up", since: "2026-10-09", left: "down" } }),
+  );
+  assert.equal(held.action, "LONG");
+  assert.equal(held.gate, "forced-whipsaw-hold");
+  assert.ok(held.invalidation !== null && held.invalidation < 100, "a held LONG's stop is below the close");
+  assert.match(held.why[0], /side it left/);
+  // Through the whole path too, not only the guard on its own.
+  assert.equal(WHIPSAW_DAYS, 3);
+});
+
+test("the guard lets a confirmed return through, and any return once the window has passed", () => {
+  const down = { direction: "down" as const, horizon: "swing" };
+  const run = { direction: "up" as const, since: "2026-10-09", left: "down" as const };
+  // Confirmed: similar past days lean down (the analog leg), so the return is a real turn.
+  const confirmed = whipsawHold(
+    call("SHORT"),
+    input({ setup: down, invalidation: 106, lastRun: run, analogs: { count: 30, lowPct: -9, highPct: 2, medianPct: -3, positive: 8 } }),
+  );
+  assert.equal(confirmed.action, "SHORT");
+  // The current direction began four days ago: outside the window.
+  const old = whipsawHold(call("SHORT"), input({ setup: down, invalidation: 106, lastRun: { ...run, since: "2026-10-06" } }));
+  assert.equal(old.action, "SHORT");
+  // Continuing the current direction, or a run with nothing before it, is never touched.
+  assert.equal(whipsawHold(call("LONG"), input({ lastRun: run })).gate, "trend-long");
+  assert.equal(whipsawHold(call("SHORT"), input({ setup: down, lastRun: { ...run, left: null } })).action, "SHORT");
+  assert.equal(whipsawHold(call("SHORT"), input({ setup: down })).action, "SHORT");
+});
+
 test("a macro veto on one side gives the other side", () => {
   assert.equal(resolveCall(wait("macro-veto", "up"), input()).action, "SHORT");
 });
@@ -123,4 +175,9 @@ test("every caller goes through decideCall, and the reversal gate reads only cal
   assert.doesNotMatch(job, /[^.\w]decide\(decisionInput\)/);
   assert.match(job, /gate NOT LIKE 'forced-%'/);
   assert.match(read("lib/queries.ts"), /NOT: \{ gate: \{ startsWith: "forced-" \} \}/);
+  // The run the whipsaw guard reads comes from one SQL text in both readers, and the guard runs last.
+  const runSql = /lag\(action\) OVER \(PARTITION BY "assetId" ORDER BY "periodEnd"\) AS prev\s+FROM "DecisionLog"\s+WHERE action IN \('LONG', 'SHORT'\)/;
+  assert.match(job, runSql);
+  assert.match(read("lib/queries.ts"), runSql);
+  assert.match(read("lib/resolve.ts"), /return whipsawHold\(resolveCall\(decide\(input\), input\), input\);/);
 });
