@@ -2291,3 +2291,20 @@ reads rows that already exist:
     trend. A news "sentiment velocity spike" cannot promote a name, because news may only ever withdraw
     confidence (rule 44); a headline that lifts a name onto a highlighted list is exactly the pump the
     macro gate refuses. On 2026-10-10, 64 names carried the marker (45 up, 19 down).
+
+79. **A verdict change is a stored fact, and the price a row leads with is one trade, not two.**
+    `lib/stateChange.ts` reads each name's newest run in the decision log -- the verdict before it, the
+    gate that began it, the cycle it began in -- and names the change: REVERSED (a direction flipped),
+    INVALIDATED (`stop-crossed`), OVERRIDDEN (`macro-veto`), WITHDRAWN (another stated reason) or NEW
+    CALL. The first three are red warnings; the reason is the gate's own words. A row shows a change
+    only if it happened in the newest cycle and the page shows the verdict the log recorded. The asset
+    page opens with a banner listing the last changes with the close each side was read from. On the
+    first two logged days there were 58 real changes (1 reversal, 21 invalidations), so the requested
+    mock mode was built as test fixtures for every kind, not as invented verdicts on the public site.
+
+    **The price column.** It led with the close and put a newer last trade under it, so the row showed
+    two prices that looked like one stale and one fresh. When a stored trade adds something, the row
+    now leads with that trade, its own day and UTC time directly beneath (one fact, so the two cannot
+    disagree), and the close the decision reads on a third, labelled line. The column, and the asset
+    panel's matching field, are "Price & time". The decision still reads the close: a price for a
+    session still trading is not a close (rule 41), and that is now said on the row rather than hidden.

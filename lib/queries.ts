@@ -871,18 +871,33 @@ export async function getHealthReadings() {
 /// One query for every asset, over the last 90 days: the newest row whose verdict differs from the
 /// row before it is where the current run starts. Fails open: no log, or no table, is an empty map,
 /// and a call with no run is dated from the close it is read from.
-async function getCallRuns(): Promise<Map<string, { action: string; since: Date }>> {
-  const out = new Map<string, { action: string; since: Date }>();
+export interface CallRun {
+  action: string;
+  since: Date;
+  /// The verdict before this run began, and the gate that began it: what a state-change badge says.
+  prev: string | null;
+  gate: string | null;
+  /// The asset's newest logged cycle, so a change can be told apart from an old one.
+  latest: Date;
+}
+
+async function getCallRuns(): Promise<Map<string, CallRun>> {
+  const out = new Map<string, CallRun>();
   try {
-    const rows = await prisma.$queryRaw<{ assetId: string; action: string; since: Date }[]>`
-      SELECT DISTINCT ON ("assetId") "assetId", action, "periodEnd" AS since
-        FROM (SELECT "assetId", action, "periodEnd",
-                     lag(action) OVER (PARTITION BY "assetId" ORDER BY "periodEnd") AS prev
+    const rows = await prisma.$queryRaw<
+      { assetId: string; action: string; since: Date; prev: string | null; gate: string | null; latest: Date }[]
+    >`
+      SELECT DISTINCT ON ("assetId") "assetId", action, "periodEnd" AS since, prev, gate, latest
+        FROM (SELECT "assetId", action, gate, "periodEnd",
+                     lag(action) OVER (PARTITION BY "assetId" ORDER BY "periodEnd") AS prev,
+                     max("periodEnd") OVER (PARTITION BY "assetId") AS latest
                 FROM "DecisionLog"
                WHERE "periodEnd" >= CURRENT_DATE - 90) t
        WHERE prev IS DISTINCT FROM action
        ORDER BY "assetId", "periodEnd" DESC`;
-    for (const r of rows) out.set(r.assetId, { action: r.action, since: r.since });
+    for (const r of rows) {
+      out.set(r.assetId, { action: r.action, since: r.since, prev: r.prev, gate: r.gate, latest: r.latest });
+    }
   } catch {
     out.clear();
   }
@@ -890,8 +905,22 @@ async function getCallRuns(): Promise<Map<string, { action: string; since: Date 
 }
 
 /// One asset's current run, for the asset page. The same query as the lists, so the two agree.
-export async function getCallRunFor(assetId: string): Promise<{ action: string; since: Date } | null> {
+export async function getCallRunFor(assetId: string): Promise<CallRun | null> {
   return (await getCallRuns()).get(assetId) ?? null;
+}
+
+/// One asset's logged verdicts for the last 60 days, oldest first, for the change timeline on its page.
+/// Fails open to an empty history.
+export async function getDecisionHistory(assetId: string) {
+  try {
+    return await prisma.decisionLog.findMany({
+      where: { assetId, periodEnd: { gte: new Date(Date.now() - 60 * 86_400_000) } },
+      orderBy: { periodEnd: "asc" },
+      select: { periodEnd: true, action: true, gate: true, baseClose: true },
+    });
+  } catch {
+    return [];
+  }
 }
 
 /// The newest stored macro-gatekeeper answer per name, kept only where it is a REJECT.
@@ -1127,6 +1156,9 @@ export type DecisionQueryRow = {
   /// The current run of identical verdicts in the decision log, for the call's "valid from".
   callAction: string | null;
   callSince: Date | null;
+  callPrev: string | null;
+  callGate: string | null;
+  callLatest: Date | null;
   /// Stories, not items: twenty outlets carrying one wire report is one story. The reasoning is
   /// at `getStories` and on `HumanSignal.recentStories`.
   recentStories: number | null;
@@ -1503,6 +1535,9 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       quotePrice: quoteByAsset.get(asset.id)?.price ?? null,
       callAction: runByAsset.get(asset.id)?.action ?? null,
       callSince: runByAsset.get(asset.id)?.since ?? null,
+      callPrev: runByAsset.get(asset.id)?.prev ?? null,
+      callGate: runByAsset.get(asset.id)?.gate ?? null,
+      callLatest: runByAsset.get(asset.id)?.latest ?? null,
       quoteAt: quoteByAsset.get(asset.id)?.quotedAt ?? null,
       macroVetoReason: vetoByAsset.get(asset.id)?.reason ?? null,
       macroVetoAsOf: vetoByAsset.get(asset.id)?.asOf ?? null,

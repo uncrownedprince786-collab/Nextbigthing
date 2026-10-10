@@ -38,6 +38,7 @@ import {
   getDecisionBundle,
   getLiveQuoteFor,
   getCallRunFor,
+  getDecisionHistory,
   getIntradayHealth,
   getRelevance,
   getSourceHealth,
@@ -51,6 +52,8 @@ import { bundleFromQuery, marketOf, toDecisionInput, todayISO } from "@/lib/deci
 import { decide } from "@/lib/decision";
 import { validityOf } from "@/lib/validity";
 import { earlySignalOf } from "@/lib/earlySignal";
+import { changeTimeline, latestChange } from "@/lib/stateChange";
+import { quoteBesideClose } from "@/lib/liveQuote";
 import { isoDate, longDate, money, pct, relativeTime, sizeAbsence, sizeBasisText, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
@@ -134,6 +137,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
     topNews,
     liveQuote,
     callRun,
+    history,
   ] = await Promise.all([
     getDecisionBundle(asset.id),
     getSourceHealth(),
@@ -149,6 +153,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
     getTopNews(asset.id),
     getLiveQuoteFor(asset.id),
     getCallRunFor(asset.id),
+    getDecisionHistory(asset.id),
   ]);
 
   // The horizons, analogs, news reading and investigation are taken off the bundle instead of
@@ -176,6 +181,16 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
     asOf: bundle.newestCloseDate ?? null,
     today,
   });
+  // The verdict change in the newest cycle (same function as the rows) and the timeline for the banner.
+  const change = latestChange({
+    action: decision.action,
+    runAction: callRun?.action ?? null,
+    runSince: callRun?.since ?? null,
+    runPrev: callRun?.prev ?? null,
+    runGate: callRun?.gate ?? null,
+    latestCycle: callRun?.latest ?? null,
+  });
+  const changes = changeTimeline(history);
   // The rising-star marker, from the same function the list rows use, fed the same validated pair.
   const early = earlySignalOf(decisionInput.entryTrigger?.rule, decisionInput.entryTrigger?.direction, decision.action);
 
@@ -233,6 +248,9 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
           target={pickTarget(horizons)}
           validity={validity}
           early={early}
+          change={change}
+          changes={changes}
+          quote={quoteBesideClose(liveQuote, { price: bundle.newestClose ?? null, date: bundle.newestCloseDate ?? null })}
           /* Ranked here rather than in the panel: the panel renders what it is given, and a
              component that re-sorted its own input would be a second ordering rule for one
              idea. Three is the panel's own cap; passing a few more lets it stay the only place

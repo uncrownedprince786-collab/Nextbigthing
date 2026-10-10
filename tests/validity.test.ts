@@ -60,7 +60,7 @@ test("the list and the asset panel print the same columns under the same names, 
   const decision = read("components/decision.tsx");
   const panel = decision.slice(decision.indexOf("export function DecisionPanel("), decision.indexOf("export function ProductDecisionPanel("));
   const rows = decision.slice(decision.indexOf("function DecisionRows("));
-  for (const label of ["Last close & time", "Entry zone", "Stop loss", "Take profit", "Reward:risk", "Horizon & validity", "Confirmations"]) {
+  for (const label of ["Price & time", "Entry zone", "Stop loss", "Take profit", "Reward:risk", "Horizon & validity", "Confirmations"]) {
     assert.ok(rows.includes(`>${label}</span>`), `list row has no ${label}`);
     assert.ok(panel.includes(`label="${label}"`), `asset panel has no ${label}`);
   }

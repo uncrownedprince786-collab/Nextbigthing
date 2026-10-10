@@ -4,6 +4,7 @@ import { bundleFromRow, toDecisionInput, todayISO } from "@/lib/decisionInput";
 import { quoteBesideClose } from "@/lib/liveQuote";
 import { validityOf } from "@/lib/validity";
 import { earlySignalOf } from "@/lib/earlySignal";
+import { latestChange } from "@/lib/stateChange";
 import {
   CONFIDENCE_ORDER,
   decide,
@@ -148,6 +149,15 @@ export function toListRow(s: Scored): DecisionRow {
     legs: s.decision.legs,
     // The rising-star marker: the measured entry event, if one fired, and how it sits with the call.
     // The same function the asset page uses, fed the same two stored columns.
+    // A verdict change made in the newest decision cycle, from the log, and what kind it was.
+    change: latestChange({
+      action: s.decision.action,
+      runAction: s.row.callAction,
+      runSince: s.row.callSince,
+      runPrev: s.row.callPrev,
+      runGate: s.row.callGate,
+      latestCycle: s.row.callLatest,
+    }),
     early: earlySignalOf(s.row.entryTrigger, s.row.triggerDirection, s.decision.action),
     // The close's own day, printed under the price so "last close" is never read as "now".
     closeDate: s.row.closeDate ? new Date(s.row.closeDate).toISOString().slice(0, 10) : null,
