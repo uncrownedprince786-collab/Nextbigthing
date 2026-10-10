@@ -221,9 +221,9 @@ test("the action cell is one line: the verdict and the star side by side, never 
   assert.ok(floor >= 171, `the Action track needs a floor of at least 171px for SHORT and a falling star, has ${floor}`);
   // Below lg the cell spans two tracks, because one half-width track on a phone is narrower than the pair.
   assert.match(rows, /<span className="col-span-2 min-w-0 xl:col-span-1">\s*<span className=\{ROW_LABEL\}>Action<\/span>/);
-  // The price tracks hold a four-digit rupee price, "Rs.1,165.00" (91px), and the range tracks
-  // "to Rs.1,210.00" on its second line.
-  for (const [i, floor] of [[3, 92], [4, 112], [5, 92], [6, 112]] as const) {
+  // The price tracks hold a four-digit rupee price, "Rs.1,165.00" (91px), and the range tracks the
+  // widest second line measured at 1280, "to Rs.7,075.19" (NESTLE, 116px).
+  for (const [i, floor] of [[3, 92], [4, 124], [5, 92], [6, 124]] as const) {
     assert.ok(Number(tracks[i].match(/^minmax\((\d+)px,/)?.[1] ?? 0) >= floor, `track ${i} needs ${floor}px`);
   }
   assert.match(cols, /\bgrid-flow-row-dense\b/, "without dense packing the spanning cell leaves a hole beside Market");

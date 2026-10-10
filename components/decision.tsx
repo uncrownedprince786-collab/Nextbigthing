@@ -1081,7 +1081,7 @@ export function SectorBoard({
 /// at 1024 and 1280 with these tracks and a 10px gap: no cell overflows and no star wraps. Below lg the
 /// Action cell spans two tracks and the grid packs densely, so the one-line cell fits a phone too.
 const DECISION_COLS =
-  "grid grid-flow-row-dense grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.5fr)_minmax(176px,0.95fr)_minmax(92px,0.85fr)_minmax(112px,1.15fr)_minmax(92px,0.9fr)_minmax(112px,0.95fr)_minmax(0,0.7fr)_minmax(0,1.05fr)_minmax(0,1.2fr)] xl:items-baseline xl:gap-x-2.5 xl:gap-y-0";
+  "grid grid-flow-row-dense grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.5fr)_minmax(176px,0.95fr)_minmax(92px,0.85fr)_minmax(124px,1.15fr)_minmax(92px,0.9fr)_minmax(124px,0.95fr)_minmax(0,0.7fr)_minmax(0,1.05fr)_minmax(0,1.2fr)] xl:items-baseline xl:gap-x-2.5 xl:gap-y-0";
 
 /// One price in a list cell: never broken across lines, and compact under 0.0001 (the subscript-zero
 /// form, `compactPrice`) so a sub-cent coin fits the column instead of wrapping mid-number or spilling

@@ -444,7 +444,7 @@ def main() -> int:
     print(f"  stored reward:risk present {db['rr_present']}, invalid {len(db['rr_bad'])}")
     show("INVALID STORED R:R", db["rr_bad"])
     print(f"  resolved (forced) calls {db['forced']}: stop = 2.00 x atr14 from the close {db['forced_atr']}, "
-          f"= 1.50 x atr14 beyond the zone {db['forced_buffer']}, = the setup's own level {db['forced_setup']}, other {len(db['forced_other'])}")
+          f"= {BUFFER_ATR:.2f} x atr14 beyond the zone {db['forced_buffer']}, = the setup's own level {db['forced_setup']}, other {len(db['forced_other'])}")
     show("FORCED STOP NOT EXPLAINED", db["forced_other"])
     m = db["subcent_min_rel_risk"]
     print(f"  under $1: {db['subcent']} calls, smallest risk {m * 100:.2f}% of the close" if m is not None else f"  under $1: {db['subcent']} calls")
