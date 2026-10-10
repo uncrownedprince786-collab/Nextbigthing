@@ -2354,3 +2354,17 @@ reads rows that already exist:
     and pool parity (every asset in the database listed on a market page, against `/api/health`'s pool).
     Its first run against the new pages failed five times on its own bug -- `<li[^>]*>` matched
     `<link>` in the page head -- which is the second time a checker's first run caught the checker.
+
+83. **The weekly logbook reports what the log measured, in the owner's Google Doc, and invents nothing.**
+    `tools/audit_log.py` runs as a third job in the decision workflow, after the decisions are written:
+    a daily entry every day (calls whose five-session window closed, the shifts and exits of the day,
+    the stars), and on Mondays a review of the week before. Every verdict is the scorecard's own
+    function (stopped checked first, then right/wrong on the move), so the logbook and the scorecard
+    cannot grade one call two ways. Two things the requested template asked for are not written,
+    because the engine does not produce them: a "retrospective lesson" in opinion form ("the veto should
+    have weighted oil higher") -- the entry states the measured facts of the outcome instead -- and a
+    "self-correction action" -- the log says none is applied automatically, which is true (rule 77). A
+    rate is printed with its count, and none from nothing. It appends through the Google Docs API with a
+    service account the document is shared with; without that it writes to the run summary, and an
+    entry already in the document is never appended twice. One query for every shifted asset, not one
+    each (the in-loop ratchet caught the first draft).

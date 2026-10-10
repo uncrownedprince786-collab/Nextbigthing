@@ -5718,9 +5718,12 @@ class DecisionLaneConcurrency(unittest.TestCase):
         decide = text.split(chr(10) + "  decide:" + chr(10), 1)[1]
         self.assertIn("needs: derive", decide)
         self.assertIn("if: always()", decide)
-        # Each on its own runner with its own budget, which is the whole of why it survives.
-        self.assertEqual(text.count("runs-on: ubuntu-latest"), 2)
-        self.assertEqual(text.count("timeout-minutes:"), 2)
+        # Each on its own runner with its own budget, which is the whole of why it survives. The third
+        # job is the audit log (rule 83): it runs after the decision, so it can never take its budget.
+        self.assertEqual(text.count("runs-on: ubuntu-latest"), 3)
+        self.assertEqual(text.count("timeout-minutes:"), 3)
+        audit = text.split(chr(10) + "  audit-log:" + chr(10), 1)[1]
+        self.assertIn("needs: decide", audit)
 
     def test_one_job_writes_each_of_the_two_tables_the_decision_rests_on(self):
         """A single writer is what makes the upserts enough.
@@ -7722,7 +7725,7 @@ class EveryImportIsDeclared(unittest.TestCase):
     not with what happens to be installed, so it fails on the machine that has the package too."""
 
     # Import name -> the distribution that provides it, where the two differ.
-    DISTRIBUTION = {"yaml": "pyyaml", "dotenv": "python-dotenv", "psycopg": "psycopg"}
+    DISTRIBUTION = {"yaml": "pyyaml", "dotenv": "python-dotenv", "psycopg": "psycopg", "google": "google-auth"}
 
     def test_every_third_party_import_is_in_requirements(self):
         import ast
@@ -7989,6 +7992,124 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
         audit = [s for s in steps if "ui_audit.py" in s.get("run", "")]
         self.assertEqual(len(audit), 1)
         self.assertFalse(audit[0].get("continue-on-error", False), "a broken display rule must turn the run red")
+
+
+class TheWeeklyAuditLog(unittest.TestCase):
+    """`tools/audit_log.py`: the daily entry and Monday review appended to the owner's Google Doc. Every
+    verdict is the scorecard's own; nothing is invented; nothing is appended twice."""
+
+    @staticmethod
+    def al():
+        sys.path.insert(0, str(ROOT / "tools"))
+        import audit_log
+
+        return audit_log
+
+    def call(self, action="LONG", move=2.0, legs="volume,trigger", stop=95.0):
+        from datetime import date
+
+        return {
+            "assetId": "a", "symbol": "MRK", "name": "Merck", "action": action, "gate": "long",
+            "periodEnd": date(2026, 10, 9), "measured5On": date(2026, 10, 16), "baseClose": 100.0,
+            "invalidation": stop, "move5Pct": move, "legs": legs,
+        }
+
+    def test_outcomes_use_the_scorecards_verdicts_with_the_stop_checked_first(self):
+        from datetime import date
+
+        al = self.al()
+        calm = [(date(2026, 10, 12), 101.0), (date(2026, 10, 16), 102.0)]
+        self.assertEqual(al.outcome(self.call(), calm)["verdict"], "right")
+        self.assertEqual(al.outcome(self.call(move=-3.0), calm)["verdict"], "wrong")
+        crossed = [(date(2026, 10, 13), 94.0), (date(2026, 10, 16), 103.0)]
+        o = al.outcome(self.call(), crossed)
+        self.assertEqual(o["verdict"], "stopped", "a stopped trade does not get credit for where it finished")
+        self.assertEqual(o["stop_day"], date(2026, 10, 13))
+        self.assertAlmostEqual(o["exit"], 102.0)
+        # The entry close itself cannot stop it out (the window is after the decision).
+        self.assertEqual(al.outcome(self.call(), [(date(2026, 10, 9), 90.0)])["verdict"], "right")
+        self.assertIsNone(al.outcome(self.call(move=None), calm)["verdict"])
+
+    def test_the_lesson_is_measured_facts_and_nothing_invented(self):
+        from datetime import date
+
+        al = self.al()
+        row = self.call()
+        line = al.fact_line(row, al.outcome(row, [(date(2026, 10, 16), 102.0)]))
+        self.assertIn("Moved +2.00% with the call", line)
+        self.assertIn("volume, entry event", line)
+        entry = "\n".join(l for l, _ in al.daily_entry(date(2026, 10, 16), [(row, al.outcome(row, []))], [], []))
+        for invented in ("should have", "adjusted", "adjustment made", "weighted", "lesson learned"):
+            self.assertNotIn(invented, entry.lower(), invented)
+        self.assertIn("Self-correction: none applied automatically", entry)
+
+    def test_no_rate_is_printed_from_nothing(self):
+        from datetime import date
+
+        al = self.al()
+        review = "\n".join(l for l, _ in al.weekly_review(date(2026, 10, 5), [{"action": "LONG"}], [], 0))
+        self.assertIn("Accurate: 0 (no completed cycle yet)", review)
+        self.assertIn("no star has completed a cycle yet", review)
+        self.assertNotIn("0%", review)
+        done = [(self.call(), {"verdict": "right"}), (self.call(), {"verdict": "stopped"}), (self.call(legs="volume"), {"verdict": "wrong"})]
+        review = "\n".join(l for l, _ in al.weekly_review(date(2026, 10, 5), [], done, 4))
+        self.assertIn("Accurate: 1 (33%)", review)
+        self.assertIn("Invalidated or failed: 2 (67%)", review)
+        self.assertIn("Early detection (stars) accurate: 1 of 2 (50%)", review)
+        self.assertIn("Mid-cycle state flips: 4", review)
+
+    def test_shifts_are_the_exits_and_flips_not_new_calls(self):
+        al = self.al()
+        self.assertEqual(al.classify("LONG", "SHORT", "short"), "REVERSED")
+        self.assertEqual(al.classify("LONG", "WAIT", "stop-crossed"), "INVALIDATED")
+        self.assertEqual(al.classify("SHORT", "WAIT", "macro-veto"), "OVERRIDDEN")
+        self.assertEqual(al.classify("SHORT", "WAIT", "short-unbacked"), "WITHDRAWN")
+        self.assertIsNone(al.classify("WAIT", "LONG", "long"))
+        self.assertIsNone(al.classify("LONG", "LONG", "long"))
+
+    def test_the_docs_requests_style_by_utf16_offset(self):
+        al = self.al()
+        lines = [("Oct 10 - AUDIT", "heading"), ("RISING STAR ⬆ x", "bold"), ("plain", "")]
+        reqs = al.requests_for(lines, 5)
+        self.assertEqual(reqs[0]["insertText"]["location"]["index"], 5)
+        self.assertEqual(reqs[0]["insertText"]["text"], "Oct 10 - AUDIT\nRISING STAR ⬆ x\nplain\n")
+        ranges = [r[k]["range"] for r in reqs[1:] for k in r]
+        self.assertEqual(ranges[0], {"startIndex": 5, "endIndex": 19})
+        # "⬆" is one UTF-16 unit; the second line starts after the first line and its newline.
+        self.assertIn({"startIndex": 20, "endIndex": 35}, ranges)
+        self.assertEqual(reqs[1]["updateParagraphStyle"]["paragraphStyle"]["namedStyleType"], "HEADING_2")
+
+    def test_nothing_is_appended_twice(self):
+        from unittest import mock
+
+        al = self.al()
+        calls = []
+
+        def fake(method, url, token, body=None):
+            calls.append(method)
+            if method == "GET":
+                return {"body": {"content": [{"endIndex": 40, "paragraph": {"elements": [{"textRun": {"content": "Oct 10, 2026 - DAILY BRAIN EVALUATION AUDIT\n"}}]}}]}}
+            return {}
+
+        with mock.patch.object(al, "access_token", lambda info: "t"), mock.patch.object(al, "docs_call", fake):
+            done = al.append("doc", {}, [("Oct 10, 2026 - DAILY BRAIN EVALUATION AUDIT", [("x", "")]), ("NEW BLOCK", [("y", "")])])
+        self.assertEqual(done[0], "already present: Oct 10, 2026 - DAILY BRAIN EVALUATION AUDIT")
+        self.assertEqual(done[1], "appended: NEW BLOCK")
+        self.assertEqual(calls.count("POST"), 1)
+
+    def test_it_runs_after_the_decisions_and_cannot_redden_the_lane(self):
+        import yaml
+
+        wf = yaml.safe_load((ROOT / ".github" / "workflows" / "cron-decision.yml").read_text(encoding="utf-8"))
+        job = wf["jobs"]["audit-log"]
+        self.assertEqual(job["needs"], "decide")
+        step = [st for st in job["steps"] if "audit_log.py" in st.get("run", "")][0]
+        self.assertTrue(step.get("continue-on-error"))
+        self.assertIn("--append", step["run"])
+        self.assertIn("GOOGLE_SERVICE_ACCOUNT_JSON", str(step["env"]))
+        text = code_only((ROOT / "tools" / "audit_log.py").read_text(encoding="utf-8"))
+        for call in re.findall(r"print[(]([^\n]*)[)]", text):
+            self.assertNotIn("key", call.lower().replace("monkey", ""), call)
 
 
 class ShortLevelsAreMirrored(unittest.TestCase):

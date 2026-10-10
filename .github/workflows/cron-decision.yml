@@ -286,3 +286,47 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           exit $code
+
+  # The day's audit, appended to the owner's Google Doc after the decisions are written: a review of
+  # the week on Mondays, a daily entry every day. Without AUDIT_DOC_ID and the service-account secret it
+  # still writes the entry to this run's summary, so the log is never lost for want of a credential.
+  # It cannot fail the lane, and an entry already in the document is not appended twice.
+  audit-log:
+    name: append the day's audit to the logbook
+    runs-on: ubuntu-latest
+    needs: decide
+    if: always()
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      - name: Write and append the day's audit
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AUDIT_DOC_ID: ${{ vars.AUDIT_DOC_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          set +e
+          out="$(python tools/audit_log.py --append 2>&1)"
+          echo "$out"
+          {
+            echo "## Audit log"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
