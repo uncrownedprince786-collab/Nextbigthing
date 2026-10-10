@@ -7881,6 +7881,26 @@ class TheMirrorTranslatesProductsToo(unittest.TestCase):
         self.assertEqual((out["assetId"], out["productId"]), ("A", "P"))
 
 
+class TheLearningLoopRunsItself(unittest.TestCase):
+    """The scorecard reads every logged decision against what followed. It now runs nightly inside the
+    decision workflow, so the loop needs nobody to start it -- and it still only reports."""
+
+    def test_the_scorecard_runs_every_night_and_cannot_stop_the_decisions(self):
+        import yaml
+
+        wf = yaml.safe_load((ROOT / ".github" / "workflows" / "cron-decision.yml").read_text(encoding="utf-8"))
+        steps = wf["jobs"]["derive"]["steps"]
+        score = [s for s in steps if "scorecard.py" in s.get("run", "")]
+        self.assertEqual(len(score), 1)
+        self.assertTrue(score[0].get("continue-on-error"))
+        self.assertTrue(score[0]["run"].rstrip().endswith("exit 0"))
+
+    def test_the_scorecard_reports_and_never_rewrites_a_rule(self):
+        text = code_only((ROOT / "tools" / "scorecard.py").read_text(encoding="utf-8"))
+        for write in ("INSERT", "UPDATE", "DELETE", "open(", "write_text"):
+            self.assertNotIn(write, text, write)
+
+
 class ShortLevelsAreMirrored(unittest.TestCase):
     """A short's stop belongs above the price, not below it.
 

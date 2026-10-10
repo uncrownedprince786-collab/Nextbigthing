@@ -150,6 +150,33 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit $code
 
+      # The learning loop's report, every night and with nobody starting it. Every decision is logged
+      # and later measured against what the price did +1, +5 and +20 sessions on; this reads those
+      # measurements and says, per gate and per confirmation leg, whether the calls were right --
+      # with an interval over distinct names, and with no rate printed until enough have matured.
+      #
+      # It reports and never re-weights. A rule that rewrote its own thresholds from a few weeks of
+      # outcomes would be fitting the noise of those weeks, and would do it with nobody reviewing the
+      # change; the scorecard is the evidence a person changes a rule on. `continue-on-error`, because
+      # a report that cannot run must not stop the decisions it reports on.
+      - name: Score past decisions against what followed
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          set +e
+          out="$(python tools/scorecard.py 2>&1)"
+          echo "$out"
+          {
+            echo "## Scorecard"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+
   decide:
     name: write one decision row per asset
     runs-on: ubuntu-latest
