@@ -190,6 +190,49 @@ def daily_entry(day: date, completed: list[tuple[dict, dict]], shifts: list[dict
     return out
 
 
+def summarise(day: date, graded: list[tuple[dict, dict]], flips: list[dict], stars: list[tuple[dict, dict | None]]) -> dict:
+    """The one-screen summary /logbook leads with: totals and rates, the flips, the early catches.
+
+    `graded` is every directional decision whose five-session window has closed, with the scorecard's
+    verdict. A rate is None, never 0, when nothing has been graded. Lists are newest first and short.
+    """
+    scored = [o for _, o in graded if o["verdict"] in ("right", "wrong", "stopped", "flat")]
+    right = sum(1 for o in scored if o["verdict"] == "right")
+    failed = sum(1 for o in scored if o["verdict"] in ("wrong", "stopped"))
+    rate = lambda n: round(100 * n / len(scored)) if scored else None  # noqa: E731
+
+    def star_result(o: dict | None) -> str:
+        if o is None or o["verdict"] is None:
+            return "pending"
+        return {"right": "accurate", "flat": "flat"}.get(o["verdict"], "failed")
+
+    star_rows = [
+        {"day": r["periodEnd"].isoformat(), "symbol": r["symbol"], "name": r["name"],
+         "direction": "up" if r["action"] == "LONG" else "down", "result": star_result(o)}
+        for r, o in stars
+    ]
+    star_graded = [x for x in star_rows if x["result"] in ("accurate", "failed", "flat")]
+    star_right = sum(1 for x in star_graded if x["result"] == "accurate")
+    return {
+        "asOf": day.isoformat(),
+        "graded": len(scored),
+        "accurate": right,
+        "failed": failed,
+        "accuratePct": rate(right),
+        "failedPct": rate(failed),
+        "flips": [
+            {"day": f["periodEnd"].isoformat(), "symbol": f["symbol"], "name": f["name"], "from": f["prev"], "to": f["action"]}
+            for f in flips
+        ][:20],
+        "flipsTotal": len(flips),
+        "stars": star_rows[:20],
+        "starsTotal": len(star_rows),
+        "starsGraded": len(star_graded),
+        "starsAccurate": star_right,
+        "starsAccuratePct": round(100 * star_right / len(star_graded)) if star_graded else None,
+    }
+
+
 # --- data --------------------------------------------------------------------------------------
 
 
@@ -275,6 +318,47 @@ def load_week(cur, start: date):
     return rows, completed, flips
 
 
+def load_summary(cur, day: date) -> dict:
+    """Everything graded up to `day`, and the last 30 days of flips and stars, in four queries."""
+    cur.execute(
+        """SELECT d."assetId", a.symbol, a.name, d.action, d."periodEnd", d."baseClose", d.invalidation,
+                  d."move5Pct", d."measured5On", d.legs
+             FROM "DecisionLog" d JOIN "Asset" a ON a.id = d."assetId"
+            WHERE d.action IN ('LONG', 'SHORT') AND (d."measured5On" <= %s
+                  OR (d.legs LIKE '%%trigger%%' AND d."periodEnd" >= %s::date - 30))""",
+        (day, day),
+    )
+    rows = cur.fetchall()
+    series: dict[str, list] = {}
+    measured = [r for r in rows if r["measured5On"] is not None and r["measured5On"] <= day]
+    if measured:
+        cur.execute(
+            """SELECT "assetId", date, close FROM "PriceSnapshot"
+                WHERE "assetId" = ANY(%s) AND date > %s AND date <= %s""",
+            (list({r["assetId"] for r in measured}), min(r["periodEnd"] for r in measured), day),
+        )
+        for x in cur.fetchall():
+            series.setdefault(x["assetId"], []).append((x["date"], x["close"]))
+    graded = [(r, outcome(r, series.get(r["assetId"], []))) for r in measured]
+    by_id = {id(r): o for r, o in graded}
+    stars = sorted(
+        [(r, by_id.get(id(r))) for r in rows if "trigger" in legs_of(r) and r["periodEnd"] >= day - timedelta(days=30)],
+        key=lambda x: (x[0]["periodEnd"], x[0]["symbol"]),
+        reverse=True,
+    )
+    cur.execute(
+        """WITH h AS (
+             SELECT d."assetId", d."periodEnd", d.action, lag(d.action) OVER (PARTITION BY d."assetId" ORDER BY d."periodEnd") AS prev
+               FROM "DecisionLog" d WHERE d."periodEnd" >= %s::date - 31 AND d."periodEnd" <= %s AND d.action IN ('LONG','SHORT'))
+           SELECT h."periodEnd", h.action, h.prev, a.symbol, a.name FROM h JOIN "Asset" a ON a.id = h."assetId"
+            WHERE h."periodEnd" >= %s::date - 30 AND h.prev IN ('LONG','SHORT') AND h.action IN ('LONG','SHORT')
+              AND h.prev <> h.action
+            ORDER BY h."periodEnd" DESC, a.symbol""",
+        (day, day, day),
+    )
+    return summarise(day, graded, cur.fetchall(), stars)
+
+
 # --- the logbook --------------------------------------------------------------------------------
 
 UPSERT = """
@@ -310,7 +394,10 @@ def main(argv: list[str]) -> int:
 
         if "--write" in argv:
             # One statement for the day's one or two entries.
-            cur.executemany(UPSERT, [entry_params(when, kind, lines) for when, kind, lines in blocks])
+            params = [entry_params(when, kind, lines) for when, kind, lines in blocks]
+            # The summary /logbook leads with, as of this day: stored as its own row, kind "summary".
+            params.append((day, "summary", f"Summary as of {day_label(day)}", json.dumps(load_summary(cur, day))))
+            cur.executemany(UPSERT, params)
             conn.commit()
             print(f"audit log: saved {len(blocks)} entr{'y' if len(blocks) == 1 else 'ies'} for {day.isoformat()}")
     return 0

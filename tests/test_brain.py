@@ -8067,6 +8067,35 @@ class TheWeeklyAuditLog(unittest.TestCase):
         self.assertIsNone(al.classify("WAIT", "LONG", "long"))
         self.assertIsNone(al.classify("LONG", "LONG", "long"))
 
+    def test_the_summary_counts_and_rates_from_the_scorecards_verdicts(self):
+        from datetime import date
+
+        al = self.al()
+        day = date(2026, 10, 20)
+        right, wrong, stopped = {"verdict": "right"}, {"verdict": "wrong"}, {"verdict": "stopped"}
+        graded = [(self.call(), right), (self.call(), right), (self.call(), wrong), (self.call(), stopped)]
+        flips = [{"periodEnd": date(2026, 10, 14), "symbol": "VRTX", "name": "Vertex", "prev": "SHORT", "action": "LONG"}]
+        stars = [(self.call(), right), (self.call(action="SHORT"), None)]
+        s = al.summarise(day, graded, flips, stars)
+        self.assertEqual((s["graded"], s["accurate"], s["failed"]), (4, 2, 2), "a stop counts as a failure")
+        self.assertEqual((s["accuratePct"], s["failedPct"]), (50, 50))
+        self.assertEqual(s["flips"], [{"day": "2026-10-14", "symbol": "VRTX", "name": "Vertex", "from": "SHORT", "to": "LONG"}])
+        self.assertEqual([(x["direction"], x["result"]) for x in s["stars"]], [("up", "accurate"), ("down", "pending")])
+        self.assertEqual((s["starsGraded"], s["starsAccuratePct"]), (1, 100))
+        self.assertEqual((s["flipsTotal"], s["starsTotal"]), (1, 2))
+        json.dumps(s)  # stored as JSON, so it must serialise
+
+    def test_no_rate_from_nothing(self):
+        from datetime import date
+
+        s = self.al().summarise(date(2026, 10, 10), [], [], [])
+        self.assertEqual((s["graded"], s["accuratePct"], s["failedPct"], s["starsAccuratePct"]), (0, None, None, None))
+
+    def test_the_summary_is_saved_with_the_entries(self):
+        text = code_only((ROOT / "tools" / "audit_log.py").read_text(encoding="utf-8"))
+        self.assertIn('"summary"', text)
+        self.assertIn("load_summary(cur, day)", text)
+
     def test_one_entry_per_day_saved_as_written(self):
         from datetime import date
 

@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { toLines } from "../lib/logbook.ts";
+import { toLines, toSummary } from "../lib/logbook.ts";
 
 test("stored lines become rules, headings, bold lines and indented text", () => {
   const lines = toLines([
@@ -44,4 +44,38 @@ test("junk in the column is skipped, never a crash", () => {
 test("the logbook is in the navigation", () => {
   const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
   assert.match(layout, /\{ href: "\/logbook", label: "Logbook" \}/);
+});
+
+test("the summary is read back only when it is honest", () => {
+  const good = {
+    asOf: "2026-10-10",
+    graded: 4,
+    accurate: 3,
+    failed: 1,
+    accuratePct: 75,
+    failedPct: 25,
+    flips: [{ day: "2026-10-10", symbol: "VRTX", name: "Vertex", from: "SHORT", to: "LONG" }, { day: "x", symbol: "BAD" }],
+    stars: [{ day: "2026-10-09", symbol: "STX", name: "Stacks", direction: "up", result: "pending" }, { result: "maybe" }],
+    starsGraded: 0,
+    starsAccurate: 0,
+    starsAccuratePct: null,
+  };
+  const s = toSummary(good)!;
+  assert.equal(s.accuratePct, 75);
+  assert.deepEqual(s.flips.map((f) => f.symbol), ["VRTX"], "a malformed flip is dropped");
+  assert.deepEqual(s.stars.map((x) => x.symbol), ["STX"], "a malformed star is dropped");
+  // No rate from nothing: with nothing graded, a stored rate is ignored.
+  assert.equal(toSummary({ ...good, graded: 0, accurate: 0, failed: 0, accuratePct: 0 })!.accuratePct, null);
+  // Counts that do not add up, or junk, are no summary at all.
+  assert.equal(toSummary({ ...good, accurate: 5 }), null);
+  assert.equal(toSummary(null), null);
+  assert.equal(toSummary([["text", ""]]), null);
+  // A flip must change direction.
+  assert.equal(toSummary({ ...good, flips: [{ day: "2026-10-10", symbol: "A", from: "LONG", to: "LONG" }] })!.flips.length, 0);
+});
+
+test("the summary leads and the daily audits fold away", () => {
+  const page = readFileSync(new URL("../app/logbook/page.tsx", import.meta.url), "utf8");
+  assert.ok(page.indexOf("<Scorecard") < page.indexOf("<details"), "the verdicts come first");
+  assert.doesNotMatch(page, /<details[^>]*\bopen\b/, "the full audits start closed");
 });

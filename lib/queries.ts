@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { marketOf, pickAnalog } from "@/lib/decisionInput";
 import { latestWindow } from "@/lib/rankingWindow";
+import { toSummary } from "@/lib/logbook";
 
 // Re-exported so the pages keep a single import site for everything they read about rankings;
 // the rule itself lives in a database-free module so the test lane can import it.
@@ -955,12 +956,27 @@ async function getPriorDirections(assetId?: string): Promise<Map<string, { actio
 export async function getAuditLog() {
   try {
     return await prisma.auditLog.findMany({
+      where: { kind: { not: "summary" } },
       orderBy: [{ createdAt: "desc" }],
       take: 120,
       select: { day: true, kind: true, title: true, lines: true },
     });
   } catch {
     return [];
+  }
+}
+
+/// The newest stored logbook summary (kind "summary"), or null. Fails open like the entries.
+export async function getLogbookSummary() {
+  try {
+    const row = await prisma.auditLog.findFirst({
+      where: { kind: "summary" },
+      orderBy: [{ day: "desc" }],
+      select: { lines: true },
+    });
+    return row ? toSummary(row.lines) : null;
+  } catch {
+    return null;
   }
 }
 

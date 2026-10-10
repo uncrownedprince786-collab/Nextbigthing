@@ -32,3 +32,79 @@ export function toLines(stored: unknown): LogLine[] {
   // Two rules in a row (the review's double divider) draw as one.
   return out.filter((l, i) => !(l.kind === "rule" && out[i - 1]?.kind === "rule"));
 }
+
+/// The summary the logbook leads with, stored by the same job as one row of kind "summary".
+export type Flip = { day: string; symbol: string; name: string; from: "LONG" | "SHORT"; to: "LONG" | "SHORT" };
+export type Star = { day: string; symbol: string; name: string; direction: "up" | "down"; result: "accurate" | "failed" | "flat" | "pending" };
+export type Summary = {
+  asOf: string;
+  graded: number;
+  accurate: number;
+  failed: number;
+  accuratePct: number | null;
+  failedPct: number | null;
+  flips: Flip[];
+  /// How many flips and stars the 30 days held; the lists keep only the newest.
+  flipsTotal: number;
+  stars: Star[];
+  starsTotal: number;
+  starsGraded: number;
+  starsAccurate: number;
+  starsAccuratePct: number | null;
+};
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const count = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : null);
+const pct = (v: unknown) => (typeof v === "number" && v >= 0 && v <= 100 ? Math.round(v) : null);
+const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+const obj = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null);
+
+/// Reads the stored summary back, or null when it is missing or malformed. Bad list items are dropped,
+/// never guessed at; a rate is kept only when it is a real percentage.
+export function toSummary(stored: unknown): Summary | null {
+  const s = obj(stored);
+  const asOf = s && str(s.asOf);
+  if (!s || !asOf || !DAY.test(asOf)) return null;
+  const graded = count(s.graded);
+  const accurate = count(s.accurate);
+  const failed = count(s.failed);
+  if (graded === null || accurate === null || failed === null || accurate + failed > graded) return null;
+  const side = (v: unknown) => (v === "LONG" || v === "SHORT" ? v : null);
+  const flips: Flip[] = [];
+  for (const item of Array.isArray(s.flips) ? s.flips : []) {
+    const f = obj(item);
+    const day = f && str(f.day);
+    const symbol = f && str(f.symbol);
+    const from = f && side(f.from);
+    const to = f && side(f.to);
+    if (f && day && DAY.test(day) && symbol && from && to && from !== to) {
+      flips.push({ day, symbol, name: str(f.name) ?? symbol, from, to });
+    }
+  }
+  const stars: Star[] = [];
+  for (const item of Array.isArray(s.stars) ? s.stars : []) {
+    const x = obj(item);
+    const day = x && str(x.day);
+    const symbol = x && str(x.symbol);
+    const direction = x && (x.direction === "up" || x.direction === "down" ? x.direction : null);
+    const result = x && (["accurate", "failed", "flat", "pending"].includes(x.result as string) ? (x.result as Star["result"]) : null);
+    if (x && day && DAY.test(day) && symbol && direction && result) {
+      stars.push({ day, symbol, name: str(x.name) ?? symbol, direction, result });
+    }
+  }
+  return {
+    asOf,
+    graded,
+    accurate,
+    failed,
+    accuratePct: graded ? pct(s.accuratePct) : null,
+    failedPct: graded ? pct(s.failedPct) : null,
+    flips,
+    flipsTotal: Math.max(count(s.flipsTotal) ?? 0, flips.length),
+    stars,
+    starsTotal: Math.max(count(s.starsTotal) ?? 0, stars.length),
+    starsGraded: count(s.starsGraded) ?? 0,
+    starsAccurate: count(s.starsAccurate) ?? 0,
+    starsAccuratePct: count(s.starsGraded) ? pct(s.starsAccuratePct) : null,
+  };
+}
