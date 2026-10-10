@@ -865,6 +865,35 @@ export async function getHealthReadings() {
   };
 }
 
+/// The start of each asset's current run of identical verdicts in the decision log: which verdict,
+/// and the day it began. Read for the "valid from" of a call (see lib/validity.ts).
+///
+/// One query for every asset, over the last 90 days: the newest row whose verdict differs from the
+/// row before it is where the current run starts. Fails open: no log, or no table, is an empty map,
+/// and a call with no run is dated from the close it is read from.
+async function getCallRuns(): Promise<Map<string, { action: string; since: Date }>> {
+  const out = new Map<string, { action: string; since: Date }>();
+  try {
+    const rows = await prisma.$queryRaw<{ assetId: string; action: string; since: Date }[]>`
+      SELECT DISTINCT ON ("assetId") "assetId", action, "periodEnd" AS since
+        FROM (SELECT "assetId", action, "periodEnd",
+                     lag(action) OVER (PARTITION BY "assetId" ORDER BY "periodEnd") AS prev
+                FROM "DecisionLog"
+               WHERE "periodEnd" >= CURRENT_DATE - 90) t
+       WHERE prev IS DISTINCT FROM action
+       ORDER BY "assetId", "periodEnd" DESC`;
+    for (const r of rows) out.set(r.assetId, { action: r.action, since: r.since });
+  } catch {
+    out.clear();
+  }
+  return out;
+}
+
+/// One asset's current run, for the asset page. The same query as the lists, so the two agree.
+export async function getCallRunFor(assetId: string): Promise<{ action: string; since: Date } | null> {
+  return (await getCallRuns()).get(assetId) ?? null;
+}
+
 /// The newest stored macro-gatekeeper answer per name, kept only where it is a REJECT.
 ///
 /// **Fails open, in the way that matters most here.** A missing table (a standby that has not had the
@@ -1095,6 +1124,9 @@ export type DecisionQueryRow = {
   /// The newest stored last trade and when it was struck; see `getLiveQuotes`. Null on both when none.
   quotePrice: number | null;
   quoteAt: Date | null;
+  /// The current run of identical verdicts in the decision log, for the call's "valid from".
+  callAction: string | null;
+  callSince: Date | null;
   /// Stories, not items: twenty outlets carrying one wire report is one story. The reasoning is
   /// at `getStories` and on `HumanSignal.recentStories`.
   recentStories: number | null;
@@ -1205,6 +1237,7 @@ function distinctDays(maxes: (Date | null)[]): Date[] {
 export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   const vetoes = getMacroVetoes();
   const quotes = getLiveQuotes();
+  const runs = getCallRuns();
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
@@ -1428,6 +1461,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   // ones rather than as a job that has not run.
   const vetoByAsset = await vetoes;
   const quoteByAsset = await quotes;
+  const runByAsset = await runs;
   return assets.map((asset): DecisionQueryRow => {
     const price = priceByAsset.get(asset.id);
     const analog = analogByAsset.get(asset.id);
@@ -1467,6 +1501,8 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       entryTrigger: factor?.entryTrigger ?? null,
       triggerDirection: factor?.triggerDirection ?? null,
       quotePrice: quoteByAsset.get(asset.id)?.price ?? null,
+      callAction: runByAsset.get(asset.id)?.action ?? null,
+      callSince: runByAsset.get(asset.id)?.since ?? null,
       quoteAt: quoteByAsset.get(asset.id)?.quotedAt ?? null,
       macroVetoReason: vetoByAsset.get(asset.id)?.reason ?? null,
       macroVetoAsOf: vetoByAsset.get(asset.id)?.asOf ?? null,

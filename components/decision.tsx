@@ -1,5 +1,6 @@
 import * as React from "react";
 import { clockUtc } from "@/lib/liveQuote";
+import { shortDay, type Validity } from "@/lib/validity";
 import { targetMethodLabel, type TargetLike } from "@/lib/target";
 import { price, relativeTime } from "@/lib/format";
 import { CONFIDENCE_ORDER } from "@/lib/decision";
@@ -83,6 +84,26 @@ export interface TopNews {
   outlets?: number | null;
 }
 
+/// The trade horizon and the call's validity window. One component for the list row and the asset
+/// panel, so the two print the same badge, the same dates and the same status for one name.
+export function HorizonValidity({ v }: { v: Validity | null | undefined }) {
+  if (!v) {
+    return <span className="text-muted-foreground block text-sm">Not a call, so no window.</span>;
+  }
+  return (
+    <span className="block">
+      <Pill tone="default">{v.label}</Pill>
+      <span className="text-muted-foreground text-micro ml-1">{v.span}</span>
+      <span className="text-muted-foreground text-micro mt-0.5 block">
+        Valid {shortDay(v.from)} – {shortDay(v.until)} UTC
+      </span>
+      <span className={`text-micro block ${v.status === "Expired" ? "text-warn" : "text-muted-foreground"}`}>
+        {v.status === "Active" ? `Active, day ${v.day}` : "Expired: older than its horizon"}
+      </span>
+    </span>
+  );
+}
+
 export interface DecisionPanelProps {
   decision: Decision;
   symbol: string;
@@ -103,6 +124,8 @@ export interface DecisionPanelProps {
   news?: TopNews[];
   /// The measured exit, chosen by `pickTarget`. Null when the job stored none.
   target?: TargetLike | null;
+  /// The trade horizon and validity window, from the same function the list rows use.
+  validity?: Validity | null;
 }
 
 /// One labelled figure or sentence. Used for every field in the panel so that the label and the
@@ -327,6 +350,7 @@ export function DecisionPanel({
   priceNow = null,
   news = [],
   target = null,
+  validity = null,
 }: DecisionPanelProps) {
   const grade = decision.confidence.toLowerCase();
   const gap = gapLine(decision);
@@ -365,9 +389,16 @@ export function DecisionPanel({
           one the market last printed. Three columns from `sm` up; at 375px all of them stack,
           which is the point — nothing in this block may need a second column to be legible. */}
       <div className="border-border mt-4 grid gap-3 border-t pt-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Price now" hint="The newest stored close, not a live quote.">
+        <Field label="Last close & time" hint="The newest stored close, which the decision is read from.">
           {priceNow !== null ? (
-            <span className="num text-lg font-semibold">{price(priceNow, currency)}</span>
+            <span className="block">
+              <span className="num text-lg font-semibold">{price(priceNow, currency)}</span>
+              {asOf ? (
+                <span className="text-muted-foreground text-micro block">
+                  {shortDay(new Date(asOf).toISOString().slice(0, 10))} close
+                </span>
+              ) : null}
+            </span>
           ) : (
             <span className="text-muted-foreground">
               Nothing is stored, which is why the action is WAIT.
@@ -435,6 +466,35 @@ export function DecisionPanel({
             </span>
           ) : (
             <span className="text-muted-foreground">No clear target stored.</span>
+          )}
+        </Field>
+
+        {/* The same three columns the list prints, under the same names, so a name read on a market
+            page and on its own page is described by the same figures. */}
+        <Field label="Reward:risk" hint="Measured from the entry level. From today's price it is at least this.">
+          {target?.rewardRisk != null ? (
+            <span className="num">{target.rewardRisk.toFixed(1)}:1</span>
+          ) : (
+            <span className="text-muted-foreground">No target to weigh.</span>
+          )}
+        </Field>
+
+        <Field label="Horizon & validity">
+          <HorizonValidity v={decision.action === "WAIT" ? null : validity} />
+        </Field>
+
+        <Field label="Confirmations">
+          {decision.action === "WAIT" ? (
+            <span className="text-muted-foreground">No direction, so nothing to confirm.</span>
+          ) : (
+            <span className="block">
+              <span className="num">
+                {decision.legs.length} of {LEG_TOTAL}
+              </span>
+              <span className="text-muted-foreground text-micro block">
+                {decision.legs.length ? decision.legs.map((l) => LEG_WORDS[l] ?? l).join(", ") : "none"}
+              </span>
+            </span>
           )}
         </Field>
 
@@ -661,6 +721,10 @@ export interface DecisionRow {
   reason?: string[] | null;
   /// The last trade and when it was struck, when it adds something beside the close. Never replaces it.
   quote?: { price: number; quotedAt: string } | null;
+  /// The close's own day, ISO.
+  closeDate?: string | null;
+  /// Trade horizon and validity window; null on a WAIT.
+  validity?: Validity | null;
   /// Quoted currency for this row's levels. Defaults to USD, which is wrong for PSX names, so
   /// callers covering PSX must pass it.
   currency?: string;
@@ -880,7 +944,7 @@ export function SectorBoard({
 /// eight-column table starts at `lg`, where there is genuinely width for eight tracks -- at 640px
 /// a price track is about 70px and "Rs.1,201.22" does not fit in it.
 const DECISION_COLS =
-  "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.55fr)_minmax(0,0.75fr)_minmax(0,0.85fr)_minmax(0,1.15fr)_minmax(0,0.9fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1.3fr)] lg:items-baseline lg:gap-y-0";
+  "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.55fr)_minmax(0,0.95fr)_minmax(0,0.85fr)_minmax(0,1.15fr)_minmax(0,0.9fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(0,1.15fr)_minmax(0,1.3fr)] lg:items-baseline lg:gap-y-0";
 
 /// The column header, shown only where the table layout is.
 ///
@@ -907,7 +971,7 @@ function DecisionHeader({
       <span>Market</span>
       <span>Action</span>
       <span title="The newest stored close, which is what the decision is read from. A later last trade is printed under it with its time.">
-        Last close
+        Last close & time
       </span>
       <span>Entry zone</span>
       <span>Stop loss</span>
@@ -915,7 +979,7 @@ function DecisionHeader({
       <span title="Reward against risk, measured from the entry level. From today's price it is at least this.">
         Reward:risk
       </span>
-      <span>Confidence</span>
+      <span>Horizon & validity</span>
       <span title="How many of the five independent confirmations back this direction, and which.">
         Confirmations
       </span>
@@ -958,6 +1022,9 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                 <span className={ROW_LABEL}>Action</span>
                 <span className="mt-0.5 flex flex-wrap items-center gap-1 lg:mt-0">
                   <Pill tone={ACTION_TONE[r.action]}>{r.action}</Pill>
+                  {/* The grade rides with the action it grades. It had a column of its own, which the
+                      horizon now has; a WAIT carries none, because a grade grades a direction. */}
+                  {r.action === "WAIT" ? null : <ConfidenceBadge grade={r.confidence.toLowerCase()} />}
                   {/* A dated event is a hazard on a row that says LONG, and the rule table
                       already decided that by setting the time sense. Printed as its own word
                       rather than a colour, because colour is not a reason. */}
@@ -969,7 +1036,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
               </span>
 
               <span className="min-w-0">
-                <span className={ROW_LABEL}>Last close</span>
+                <span className={ROW_LABEL}>Last close & time</span>
                 <span
                   className={
                     r.priceNow !== null && r.priceNow !== undefined
@@ -982,6 +1049,9 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                     ? price(r.priceNow, currency)
                     : "no close yet"}
                 </span>
+                {r.closeDate ? (
+                  <span className="text-muted-foreground text-micro block">{shortDay(r.closeDate)} close</span>
+                ) : null}
                 {/* The last trade, when it says something the close does not. Its time is printed in
                     UTC beside it because this page is cached for an hour: a bare "now" would be a
                     claim the page cannot keep. */}
@@ -1074,9 +1144,9 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
               ) : (
                 <>
               <span className="min-w-0">
-                <span className={ROW_LABEL}>Confidence</span>
+                <span className={ROW_LABEL}>Horizon & validity</span>
                 <span className="mt-0.5 block lg:mt-0">
-                  <ConfidenceBadge grade={r.confidence.toLowerCase()} />
+                  <HorizonValidity v={r.validity} />
                 </span>
               </span>
 

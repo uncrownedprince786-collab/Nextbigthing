@@ -37,6 +37,7 @@ import {
   getAttribution,
   getDecisionBundle,
   getLiveQuoteFor,
+  getCallRunFor,
   getIntradayHealth,
   getRelevance,
   getSourceHealth,
@@ -48,6 +49,7 @@ import {
 } from "@/lib/queries";
 import { bundleFromQuery, marketOf, toDecisionInput, todayISO } from "@/lib/decisionInput";
 import { decide } from "@/lib/decision";
+import { validityOf } from "@/lib/validity";
 import { isoDate, longDate, money, pct, relativeTime, sizeAbsence, sizeBasisText, toneClass } from "@/lib/format";
 
 export const revalidate = 3600;
@@ -130,6 +132,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
     stories,
     topNews,
     liveQuote,
+    callRun,
   ] = await Promise.all([
     getDecisionBundle(asset.id),
     getSourceHealth(),
@@ -144,6 +147,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
     getStories(asset.id),
     getTopNews(asset.id),
     getLiveQuoteFor(asset.id),
+    getCallRunFor(asset.id),
   ]);
 
   // The horizons, analogs, news reading and investigation are taken off the bundle instead of
@@ -158,7 +162,19 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
   // One decision, from the rule table, with today injected once. The freshness gate lives in that
   // table: this page does not test the close date itself, because a second staleness rule is how
   // the panel and the page come to disagree about whether the number on screen is today's.
-  const decision = decide(toDecisionInput(bundleFromQuery(bundle, sourceHealth), todayISO()));
+  const today = todayISO();
+  const decisionInput = toDecisionInput(bundleFromQuery(bundle, sourceHealth), today);
+  const decision = decide(decisionInput);
+  // The same function the list rows use, fed the same three facts, so this page and the market page
+  // show one horizon and one window for this name.
+  const validity = validityOf({
+    action: decision.action,
+    setupHorizon: decisionInput.setup?.horizon ?? null,
+    runAction: callRun?.action ?? null,
+    runSince: callRun?.since ?? null,
+    asOf: bundle.newestCloseDate ?? null,
+    today,
+  });
 
   const note = asset.analysis[0];
   const market = marketOf(asset);
@@ -212,6 +228,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
           /* The measured exit, from the same rule the overview and the coming-week block use, so
              one name cannot be quoted two different levels on two pages. */
           target={pickTarget(horizons)}
+          validity={validity}
           /* Ranked here rather than in the panel: the panel renders what it is given, and a
              component that re-sorted its own input would be a second ordering rule for one
              idea. Three is the panel's own cap; passing a few more lets it stay the only place

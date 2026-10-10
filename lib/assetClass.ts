@@ -1,7 +1,8 @@
 import type { DecisionQueryRow } from "@/lib/queries";
 import { pickTarget } from "@/lib/target";
-import { bundleFromRow, toDecisionInput } from "@/lib/decisionInput";
+import { bundleFromRow, toDecisionInput, todayISO } from "@/lib/decisionInput";
 import { quoteBesideClose } from "@/lib/liveQuote";
+import { validityOf } from "@/lib/validity";
 import {
   CONFIDENCE_ORDER,
   decide,
@@ -28,6 +29,11 @@ export interface Scored {
   row: DecisionQueryRow;
   market: Market;
   decision: Decision;
+  /// Which stored setup decided ("swing" or "longer"), for the trade horizon. Optional so a caller
+  /// that builds a Scored by hand keeps compiling; absent is read as the default daily horizon.
+  setupHorizon?: string | null;
+  /// The `today` the row was decided against, so the validity window is measured on the same day.
+  today?: string;
 }
 
 /// Every row scored against one `today` and one source-health reading.
@@ -43,7 +49,7 @@ export function scoreRows(
 ): Scored[] {
   return rows.map((row) => {
     const input = toDecisionInput(bundleFromRow(row, health), today);
-    return { row, market: input.market, decision: decide(input) };
+    return { row, market: input.market, decision: decide(input), setupHorizon: input.setup?.horizon ?? null, today };
   });
 }
 
@@ -139,6 +145,18 @@ export function toListRow(s: Scored): DecisionRow {
     // Which confirmations backed it. The table prints how many and which, because a grade of
     // "Medium" says one thing was behind a call and not what it was.
     legs: s.decision.legs,
+    // The close's own day, printed under the price so "last close" is never read as "now".
+    closeDate: s.row.closeDate ? new Date(s.row.closeDate).toISOString().slice(0, 10) : null,
+    // How long the call is meant to run and how long it has been running. One function shared with
+    // the asset page, so the two cannot show different windows for one name.
+    validity: validityOf({
+      action: s.decision.action,
+      setupHorizon: s.setupHorizon,
+      runAction: s.row.callAction,
+      runSince: s.row.callSince,
+      asOf: s.row.closeDate,
+      today: s.today ?? todayISO(),
+    }),
     // The last trade, only where it adds something beside the close printed next to it.
     quote: quoteBesideClose(
       s.row.quotePrice !== null && s.row.quoteAt ? { price: s.row.quotePrice, quotedAt: s.row.quoteAt } : null,
