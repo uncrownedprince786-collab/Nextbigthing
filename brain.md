@@ -2399,6 +2399,7 @@ reads rows that already exist:
     being told to turn round (rule 80's `reversal-unconfirmed`).
 
 86. **Every priced name gets LONG or SHORT, at the owner's instruction; the refusal in rule 85 is withdrawn.**
+    (Narrowed by rule 92: a call that ended at its stop, and a name nothing measured leans on, stay WAIT.)
     The owner decided that the site makes a call on every name. `decide()` (the evidence table) is
     unchanged and still says WAIT where its evidence is missing; `lib/resolve.ts` runs after it, in one
     function (`decideCall`) used by the lists, the asset page and the nightly log, and gives every WAIT
@@ -2508,3 +2509,43 @@ reads rows that already exist:
     engine reads completed daily closes, and calling a daily call "scalping" would be the invented label
     rule 78 refuses. `/api/signals` publishes the same calls as data, and the logic audit holds the pages
     to it.
+
+92. **A stop ends a call; nothing is called from an assumption; a word list may withdraw evidence, never add or invert it.**
+    The owner's integrity directive of 2026-10-11, five defects found by an adversarial read of the brain,
+    each fixed by restricting a path rather than adding one.
+
+    - **Headline tone.** `jobs/human.py` matched tone terms as substrings, so "against" scored as
+      "gains", "MarketBeat" as "beat", "issues" as "sues": 13 of the 31 opinionated currency headlines in
+      the stored 30 days took their sign that way. Tone terms now count only as whole words
+      (`count_words`); the promotional list keeps substring matching, where an over-match only raises a
+      caution flag. Currency pairs were scored as if every headline described the pair, so "Rupee gains
+      against US dollar" read as USDPKR rising -- the opposite. A pair headline now takes a side only when
+      exactly one of the pair's currencies can be named (`orient`): the base keeps the sign, the quote
+      reverses it, and both, neither, a third currency, the pair written backwards, or a bare "won", "real"
+      or "rand" take no side. Re-scored over the stored window: 31 opinionated FX headlines became 5, each
+      signed the way the pair moved; no market gained a sign it had not already earned from a listed word.
+    - **Coverage never adds -- now true everywhere.** `jobs/setup.py` counted "the news reading supports
+      it" (a positive tone or a story spike) as one of the two confirmations a buy needed, and "the
+      headline wording is negative" for a short: coverage adding evidence, which rule 44 forbids. Removed;
+      a swing setup now needs volume and the industry gap both. No stored buy or short rested on it, so no
+      current setup changed. Its grade is capped at `medium`, because `high` was three of three and two of
+      two must not read as more than two of three did.
+    - **A stop ends a call.** A close through the stop used to be turned into the opposite call
+      (`forced-stop-crossed`): 223 names on 2026-10-10, none with a measured target on the new side. It now
+      stays WAIT with the table's own reason. So that the stopped call cannot come back by another route,
+      `getLastRuns` (and the same SQL in tools/decide.mjs) reads a `stop-crossed` WAIT as `ENDED`: the
+      reversal hold has no open call to keep and stays WAIT (its fallback to the table's last call is
+      gone), the whipsaw guard has no run to hold, and `openSince` cannot call a later direction the same
+      open position. The opposite side is called only when the evidence table produces it.
+    - **Nothing from an assumption.** With no measured vote at all, the momentum read returned LONG, "the
+      long-run drift of most markets", logged as `forced-nosignal`. It now returns nothing and the name
+      stays WAIT, saying "Nothing measured leans either way, so no direction is given."
+      `tools/ui_audit.py` accepts a held-back row only for these reasons or a name with no close.
+    - **Words.** The methodology promised "no target prices" beside a column headed "Take profit". The
+      label is now "Measured exit" everywhere it is printed, and the methodology says what it is: a level
+      the call's own stored setup measured, never a projection, and not a promise. `lib/decision.ts`
+      told readers that "the group is carrying it rather than the other way round" -- a causal claim --
+      and that "nothing published accounts for the move"; both now state co-occurrence only, as do the
+      "carries it" openings ("it rests on ..."). The causality scan never read lib/decision.ts; it now
+      reads the string literals of lib/decision.ts and lib/resolve.ts, matches whole words, and catches
+      the shipped sentence in a test.

@@ -295,7 +295,8 @@ async function readInputs(db, today) {
 
   // The current run of directional calls before today, whichever gate made them: the same query as
   // `getLastRuns` in lib/queries.ts, so the log and the page hold the same call and apply the same
-  // whipsaw guard (lib/resolve.ts). Fail-open like the reads above.
+  // whipsaw guard (lib/resolve.ts). A stop-crossed WAIT is read as ENDED there too: the call stopped.
+  // Fail-open like the reads above.
   let lastRun = [];
   try {
     lastRun = (
@@ -303,9 +304,11 @@ async function readInputs(db, today) {
         `SELECT DISTINCT ON ("assetId") "assetId", action, "periodEnd" AS since, prev
            FROM (SELECT "assetId", action, "periodEnd",
                         lag(action) OVER (PARTITION BY "assetId" ORDER BY "periodEnd") AS prev
-                   FROM "DecisionLog"
-                  WHERE action IN ('LONG', 'SHORT')
-                    AND "periodEnd" < $1::date AND "periodEnd" >= ($1::date - 30)) t
+                   FROM (SELECT "assetId", "periodEnd",
+                                CASE WHEN action IN ('LONG', 'SHORT') THEN action ELSE 'ENDED' END AS action
+                           FROM "DecisionLog"
+                          WHERE (action IN ('LONG', 'SHORT') OR (action = 'WAIT' AND gate = 'stop-crossed'))
+                            AND "periodEnd" < $1::date AND "periodEnd" >= ($1::date - 30)) d) t
           WHERE prev IS DISTINCT FROM action
           ORDER BY "assetId", "periodEnd" DESC`,
         [today],

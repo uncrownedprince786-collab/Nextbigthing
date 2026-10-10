@@ -1,12 +1,13 @@
-// Every priced name resolves to LONG or SHORT (brain.md rule 86). The evidence table is unchanged; this
-// pins the layer after it: which side each refusal becomes, where the stop comes from, and that every
-// caller goes through the one function.
+// A priced name resolves to LONG or SHORT (brain.md rule 86) except where rule 92 leaves it WAIT: a call
+// that ended at its stop, and a name nothing measured leans on. The evidence table is unchanged; this pins
+// the layer after it: which side each refusal becomes, where the stop comes from, and that every caller
+// goes through the one function.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { decide, type Decision, type DecisionInput } from "../lib/decision.ts";
-import { ATR_STOP_MULTIPLE, bufferStop, decideCall, momentumSide, resolveCall, STOP_BUFFER_ATR, whipsawHold, WHIPSAW_DAYS } from "../lib/resolve.ts";
+import { ATR_STOP_MULTIPLE, bufferStop, decideCall, momentumSide, NO_DIRECTION, resolveCall, STOP_BUFFER_ATR, whipsawHold, WHIPSAW_DAYS } from "../lib/resolve.ts";
 
 function input(over: Partial<DecisionInput> = {}): DecisionInput {
   return {
@@ -39,19 +40,19 @@ function wait(gate: string, intent: "up" | "down" | null = null): Decision {
   };
 }
 
-test("a close through a long's stop becomes SHORT, stopped 2 x ATR above the close", () => {
-  const d = resolveCall(wait("stop-crossed", "up"), input({ lastClose: 90, invalidation: 94 }));
-  assert.equal(d.action, "SHORT");
-  assert.equal(d.gate, "forced-stop-crossed");
-  assert.equal(d.invalidation, 90 + ATR_STOP_MULTIPLE * 2.5);
-  assert.deepEqual(d.entry, { low: 90, high: 90 });
-  // And a close up through a short's stop becomes LONG.
-  const up = resolveCall(
-    wait("stop-crossed", "down"),
-    input({ setup: { direction: "down", horizon: "swing" }, lastClose: 110, invalidation: 104 }),
-  );
-  assert.equal(up.action, "LONG");
-  assert.equal(up.invalidation, 110 - ATR_STOP_MULTIPLE * 2.5);
+test("a close through the stop ends the call: no opposite call, and not the old one either", () => {
+  // Rule 92. A long's stop crossed downward stays WAIT under the table's own reason; before 2026-10-11 it
+  // became a SHORT stopped 2 x ATR above the close, with no measured target on that side (0 of 223).
+  const ended = wait("stop-crossed", "up");
+  const d = resolveCall(ended, input({ lastClose: 90, invalidation: 94 }));
+  assert.equal(d, ended, "the table's WAIT, unchanged");
+  // The short mirror.
+  const up = wait("stop-crossed", "down");
+  assert.equal(resolveCall(up, input({ setup: { direction: "down", horizon: "swing" }, lastClose: 110, invalidation: 104 })), up);
+  // Through the whole path: a long setup whose stop is above the close is WAIT, gate stop-crossed.
+  const whole = decideCall(input({ invalidation: 104 }));
+  assert.equal(whole.action, "WAIT");
+  assert.equal(whole.gate, "stop-crossed");
 });
 
 test("an unconfirmed short is SHORT, keeping its own stop when that stop is above the close", () => {
@@ -61,15 +62,29 @@ test("an unconfirmed short is SHORT, keeping its own stop when that stop is abov
   assert.equal(d.invalidation, 106, "the setup's own stop is kept");
   // A stop on the wrong side for the side taken is replaced by the ATR stop.
   assert.equal(resolveCall(wait("short-unbacked", "down"), input({ setup: down, invalidation: 94 })).invalidation, 105);
-  // A broken long's stop is never reused for the short, even though it sits above the close.
-  assert.equal(resolveCall(wait("stop-crossed", "up"), input({ lastClose: 90, invalidation: 94 })).invalidation, 95);
+  assert.equal(ATR_STOP_MULTIPLE, 2);
 });
 
-test("an unconfirmed flip keeps the last call: the patient flip", () => {
+test("an unconfirmed flip keeps the call the reader holds: the patient flip", () => {
   const prior = { direction: "down" as const, asOf: "2026-10-09" };
-  const d = resolveCall(wait("reversal-unconfirmed", "up"), input({ priorDirection: prior, invalidation: 94 }));
+  const run = { direction: "down" as const, since: "2026-10-09", left: null };
+  const d = resolveCall(wait("reversal-unconfirmed", "up"), input({ priorDirection: prior, lastRun: run, invalidation: 94 }));
   assert.equal(d.action, "SHORT");
   assert.equal(d.gate, "forced-reversal-unconfirmed");
+});
+
+test("a call that ended at its stop is never held, guarded back or revived", () => {
+  // The run reads ENDED after a stop-crossed WAIT (lib/queries.ts), so `lastRun` is null; the table's last
+  // call is still in `priorDirection` for the reversal gate. An unconfirmed turn then stays WAIT: there is
+  // no fallback to the stopped call.
+  const prior = { direction: "down" as const, asOf: "2026-10-08" };
+  const held = wait("reversal-unconfirmed", "up");
+  assert.equal(resolveCall(held, input({ priorDirection: prior, lastRun: null, invalidation: 94 })), held);
+  // Both readers run the same SQL, and it reads a stop-crossed WAIT as the end of the run.
+  const read = (f: string) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
+  const ended = /CASE WHEN action IN \('LONG', 'SHORT'\) THEN action ELSE 'ENDED' END AS action\s+FROM "DecisionLog"\s+WHERE \(action IN \('LONG', 'SHORT'\) OR \(action = 'WAIT' AND gate = 'stop-crossed'\)\)/;
+  assert.match(read("lib/queries.ts"), ended);
+  assert.match(read("tools/decide.mjs"), ended);
 });
 
 test("a held flip keeps the call the reader holds, not the table's last call", () => {
@@ -145,8 +160,10 @@ test("the stop sits 1 ATR beyond the entry zone, never on its edge: the Askari B
 });
 
 test("the buffer leaves a 2 x ATR resolved stop alone, moves a nearer one, and invents no volatility", () => {
-  // A resolved call's zone is its close; a 2 x ATR stop is already past 1.5 ATR, so nothing changes.
-  const forced = resolveCall(wait("stop-crossed", "up"), input({ lastClose: 90, invalidation: 94 }));
+  // A resolved call's zone is its close; a 2 x ATR stop is already past 1 ATR, so nothing changes.
+  const down = { direction: "down" as const, horizon: "swing" };
+  const forced = resolveCall(wait("short-unbacked", "down"), input({ setup: down, lastClose: 90, invalidation: 80 }));
+  assert.equal(forced.invalidation, 90 + ATR_STOP_MULTIPLE * 2.5);
   assert.equal(bufferStop(forced, input({ lastClose: 90, atr: 2.5 })).invalidation, forced.invalidation);
   // The setup's own stop 1 below a close of 100 is nearer than 1 x 2.5: it moves to 97.5, and the
   // stop sentence says so.
@@ -176,19 +193,23 @@ test("a macro veto on one side gives the other side", () => {
   assert.equal(resolveCall(wait("macro-veto", "up"), input()).action, "SHORT");
 });
 
-test("no side at all: momentum decides, and nothing measured at all is LONG and logged as such", () => {
+test("no side at all: measured momentum decides, and with nothing measured there is no call", () => {
   const down = input({ setup: { direction: "flat", horizon: "swing", trend: "down", bias: "down" }, r20: -4 });
-  assert.deepEqual(momentumSide(down), { side: "down", measured: true });
+  assert.equal(momentumSide(down), "down");
   assert.equal(resolveCall(wait("incomplete"), down).action, "SHORT");
   // A fired entry rule counts double, so it can outvote one weak reading the other way.
-  assert.equal(momentumSide(input({ setup: null, r20: -1, entryTrigger: { rule: "x", direction: "up" } })).side, "up");
+  assert.equal(momentumSide(input({ setup: null, r20: -1, entryTrigger: { rule: "x", direction: "up" } })), "up");
+  // Rule 92: nothing measured is no direction. Before 2026-10-11 this was LONG, "the long-run drift".
   const blank = input({ setup: null, r20: null });
+  assert.equal(momentumSide(blank), null);
   const d = resolveCall(wait("incomplete"), blank);
-  assert.equal(d.action, "LONG");
-  assert.equal(d.gate, "forced-nosignal");
+  assert.equal(d.action, "WAIT");
+  assert.equal(d.gate, "incomplete");
+  assert.equal(d.why[1], NO_DIRECTION, "the held-back row says why there is no call");
+  assert.doesNotMatch(readFileSync(new URL("../lib/resolve.ts", import.meta.url), "utf8"), /nosignal|side: "up", measured: false/);
 });
 
-test("only a name with no close at all stays WAIT, and a call the table made is untouched", () => {
+test("a name with no close, a stopped call and an unmeasured name stay WAIT; a call the table made is untouched", () => {
   assert.equal(resolveCall(wait("no-prices"), input({ lastClose: null })).action, "WAIT");
   const real = decide(input({ volumeRatio: 1.8, relStrength: 1, analogs: { count: 12, lowPct: -3, highPct: 6, medianPct: 1.4, positive: 8 } }));
   assert.equal(resolveCall(real, input()), real);
@@ -202,16 +223,17 @@ test("a resolved call is never graded High, and no stop is invented without a ra
   assert.match(d.why.join(" "), /No stop could be measured/);
 });
 
-test("decideCall never returns WAIT for a priced name", () => {
+test("decideCall returns WAIT for a priced name only for a stopped call or nothing measured", () => {
   for (const over of [
-    { invalidation: 104 }, // a long setup whose stop sits above the close: stop-crossed
-    { setup: { direction: "flat" as const, horizon: "swing" }, horizon: null },
-    { invalidation: null },
+    { setup: { direction: "flat" as const, horizon: "swing" }, horizon: null, r20: 2 },
+    { invalidation: null, r20: 2 },
     { setup: { direction: "down" as const, horizon: "swing" }, horizon: { direction: "down" as const }, invalidation: 106 },
   ]) {
     const d = decideCall(input(over));
     assert.ok(d.action === "LONG" || d.action === "SHORT", JSON.stringify(over) + " gave " + d.action);
   }
+  assert.equal(decideCall(input({ invalidation: 104 })).action, "WAIT");
+  assert.equal(decideCall(input({ setup: null, horizon: null, r20: null })).action, "WAIT");
 });
 
 test("every caller goes through decideCall, and the reversal gate reads only calls the table made", () => {
@@ -224,7 +246,7 @@ test("every caller goes through decideCall, and the reversal gate reads only cal
   assert.match(job, /gate NOT LIKE 'forced-%'/);
   assert.match(read("lib/queries.ts"), /NOT: \{ gate: \{ startsWith: "forced-" \} \}/);
   // The run the whipsaw guard reads comes from one SQL text in both readers, and the guard runs last.
-  const runSql = /lag\(action\) OVER \(PARTITION BY "assetId" ORDER BY "periodEnd"\) AS prev\s+FROM "DecisionLog"\s+WHERE action IN \('LONG', 'SHORT'\)/;
+  const runSql = /lag\(action\) OVER \(PARTITION BY "assetId" ORDER BY "periodEnd"\) AS prev\s+FROM \(SELECT "assetId", "periodEnd",/;
   assert.match(job, runSql);
   assert.match(read("lib/queries.ts"), runSql);
   assert.match(read("lib/resolve.ts"), /return bufferStop\(whipsawHold\(resolveCall\(decide\(input\), input\), input\), input\);/);

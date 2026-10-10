@@ -23,7 +23,7 @@ const GATES = [
   { n: 5, gate: "Setup and longer view disagree, and the reward is not asymmetric", answer: "WAIT", told: "Which way each one points, and how far the reward fell short." },
   { n: 6, gate: "Setup up, longer view not down", answer: "LONG", told: "Setup is up, and what the longer view adds." },
   { n: 7, gate: "Setup down, longer view not up", answer: "SHORT", told: "Setup is down, and what the longer view adds." },
-  { n: 8, gate: "A measured direction whose conditions are incomplete — the withheld trend, or failing that the side the two moving averages sit on — carried by volume, by the peer gap or by an asymmetric reward, and not contradicted by the published coverage", answer: "LONG / SHORT", told: "Which reading it acted on, what is carrying it, and every condition still absent." },
+  { n: 8, gate: "A measured direction whose conditions are incomplete — the withheld trend, or failing that the side the two moving averages sit on — resting on volume, on the peer gap or on an asymmetric reward, and not contradicted by the published coverage", answer: "LONG / SHORT", told: "Which reading it acted on, which confirmation it rests on, and every condition still absent." },
   { n: 9, gate: "Anything left", answer: "WAIT", told: "Which part is absent — setup, longer view, or both." },
 ];
 
@@ -544,9 +544,9 @@ export default async function MethodologyPage() {
           The three are never averaged. Three methods that disagree are three answers, and their
           mean is a fourth number nothing measured &mdash; so one is chosen, by the order above, and
           shown with the method beside it. A setup whose stop could not be computed has no target
-          row written at all, and the block prints &ldquo;No clear target stored&rdquo; rather than
+          row written at all, and the block prints &ldquo;No measured exit stored&rdquo; rather than
           reaching for a number. A setup favours a direction while its stop holds. That is not a
-          statement that a price will move, no target is a promise, and no outcome is promised.
+          statement that a price will move, no measured exit is a promise, and no outcome is promised.
         </Note>
       </Section>
 
@@ -1019,7 +1019,11 @@ export default async function MethodologyPage() {
 
       <Section title="What this site will not do">
         <ul className="text-muted-foreground list-disc space-y-1 pl-5 text-sm leading-relaxed">
-          <li>No forecasts, no target prices, no probability of anything happening.</li>
+          <li>
+            No forecasts and no probability of anything happening. A published call&apos;s measured exit is
+            a level its own stored setup measured from past prices (a structure level, a range, or how far
+            similar past days went), never a projection, and it is not a promise that price gets there.
+          </li>
           <li>No paid data, no broker feed, no scraping behind a login, no fingerprint tricks.</li>
           <li>No filling a missing number from a related one. Crypto has no historical size because no free source publishes it.</li>
           <li>No X or Twitter data, because there is no free public source that can be used without a paid account.</li>

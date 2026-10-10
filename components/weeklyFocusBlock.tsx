@@ -96,13 +96,13 @@ function Row({ item }: { item: Scored }) {
           </dd>
         </div>
         <div className="min-w-0">
-          <dt className="text-muted-foreground">Take profit</dt>
+          <dt className="text-muted-foreground">Measured exit</dt>
           <dd className={target ? "num" : "text-muted-foreground"}>
             {target
               ? single
                 ? price(target.low, currency, market)
                 : `${price(target.low, currency, market)} to ${price(target.high, currency, market)}`
-              : "No clear target stored"}
+              : "No measured exit stored"}
           </dd>
         </div>
       </dl>
@@ -118,7 +118,7 @@ function Row({ item }: { item: Scored }) {
         </p>
       ) : (
         <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-          No target was measured for this setup, so none is shown. The stop above still applies.
+          No exit was measured for this setup, so none is shown. The stop above still applies.
         </p>
       )}
     </li>

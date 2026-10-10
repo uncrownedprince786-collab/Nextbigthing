@@ -8,7 +8,7 @@
 ///   * an entry range and a stop, as numbers;
 ///   * a stop at least `MIN_STOP_ATR` average true ranges beyond the entry zone (lib/resolve.ts
 ///     `bufferStop` puts it there; a name with no stored ATR cannot show it, so it is not published);
-///   * a measured take profit on the call's side -- never a projection, whose reward:risk would be the
+///   * a measured exit on the call's side -- never a projection, whose reward:risk would be the
 ///     multiple it was projected at and so could never fail the test below;
 ///   * a reward:risk of at least `MIN_REWARD_RISK`, measured from the entry level against that stop;
 ///   * at least `MIN_CONFIRMATIONS` of the five independent confirmations.
@@ -65,7 +65,7 @@ export function qualityGate(
     if (beyond < MIN_STOP_ATR * atr * (1 - 1e-4)) reasons.push(`stop within ${MIN_STOP_ATR} x ATR of the entry zone`);
   }
   if (!target) {
-    reasons.push("no measured target");
+    reasons.push("no measured exit");
   } else if (target.rewardRisk == null || !Number.isFinite(target.rewardRisk)) {
     reasons.push("no reward:risk");
   } else if (target.rewardRisk < MIN_REWARD_RISK) {

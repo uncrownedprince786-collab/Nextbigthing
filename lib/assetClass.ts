@@ -37,7 +37,7 @@ export interface Scored {
   setupHorizon?: string | null;
   /// The `today` the row was decided against, so the validity window is measured on the same day.
   today?: string;
-  /// The take profit the row shows and the quality gate's verdict on it (lib/quality.ts). Optional so a
+  /// The measured exit the row shows and the quality gate's verdict on it (lib/quality.ts). Optional so a
   /// hand-built Scored keeps compiling; `scoreRows` always sets both.
   target?: TargetLike | null;
   gate?: GateResult;

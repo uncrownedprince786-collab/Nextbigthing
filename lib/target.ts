@@ -173,16 +173,16 @@ export function targetMethodLabel(method: string): string {
   return method;
 }
 
-/// The sentence printed beside a take profit: what measured it.
+/// The sentence printed beside a measured exit: what measured it.
 export function targetSourceSentence(method: string): string {
   return `Measured from ${targetMethodLabel(method)} — a measured level, not a promise.`;
 }
 
-/// The take profit a call shows, and its reward:risk measured against the call's own stop.
+/// The measured exit a call shows, and its reward:risk measured against the call's own stop.
 ///
 /// A measured target is shown only on the profit side of the entry the call trades from: a setup's
 /// targets point the setup's way, and when a call goes the other way -- a close through a long's stop
-/// resolved to SHORT -- the long's target would print as a short's take profit. Its reward:risk is
+/// resolved to SHORT -- the long's target would print as a short's exit. Its reward:risk is
 /// re-measured against the stop the call actually carries (since 2026-10-11 that stop sits at least one
 /// ATR beyond the zone, lib/resolve.ts `bufferStop`), so the figure always agrees with the levels beside
 /// it. No measured target on that side is no target: a 2 x risk projection was tried on 2026-10-11 and

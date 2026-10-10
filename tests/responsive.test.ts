@@ -178,7 +178,7 @@ test("the header names every field a row prints", () => {
     "Price",
     "Entry zone",
     "Stop loss",
-    "Take profit",
+    "Measured exit",
     "Reward:risk",
     "Horizon & validity",
     "Confirmations",
@@ -187,7 +187,7 @@ test("the header names every field a row prints", () => {
   }
   // And each is also a row label, so a phone -- where the header is hidden -- names the same ten.
   const rows = decision.slice(decision.indexOf("function DecisionRows("));
-  for (const label of ["Name", "Market", "Action", "Price", "Entry zone", "Stop loss", "Take profit", "Reward:risk", "Horizon & validity", "Confirmations"]) {
+  for (const label of ["Name", "Market", "Action", "Price", "Entry zone", "Stop loss", "Measured exit", "Reward:risk", "Horizon & validity", "Confirmations"]) {
     assert.ok(rows.includes(`>${label}</span>`), `no row label for ${label}`);
   }
 });

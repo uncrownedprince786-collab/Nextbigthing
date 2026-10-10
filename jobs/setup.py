@@ -112,7 +112,9 @@ ANALOG_SHARE = 0.55     # share of similar past days that rose, before history c
 ANALOG_MIN = 8          # matches needed before that share is used at all
 EVENT_SOON_DAYS = 14    # a scheduled date inside this is context for a swing read
 
-# How many of the three confirmations a directional setup needs beside its trend.
+# How many confirmations a directional setup needs beside its trend: since 2026-10-11 that is both
+# of the two left (volume and the industry gap), because the news reading no longer counts as one
+# (rule 92). The history below is the measurement from when there were three.
 #
 # 2, measured rather than chosen. On 2026-10-06, across all 267 assets: requiring all three
 # produced 2 buy setups and 0 short; requiring two produced 39 and 11; requiring one produced 70
@@ -486,7 +488,6 @@ def main() -> None:
                         "recent level above it to measure against"
                     )
 
-            news_support = False
             if not signal:
                 missing.append("news reading (no stored coverage)")
             else:
@@ -495,7 +496,6 @@ def main() -> None:
                     f"{'yes' if signal['catalyst'] else 'no'}, {signal['recentStories']} "
                     "recent stories"
                 )
-                news_support = bool(signal["catalyst"]) or signal["tone"] == "positive"
                 if signal["tone"] == "negative" and up_trend:
                     against.append(
                         "the headline wording is net negative while the price is rising"
@@ -553,15 +553,20 @@ def main() -> None:
             # unblocks a whole asset class by accident of being correct -- a currency pair has no
             # published volume at all, so under the old conjunction no FX pair could ever have
             # produced a swing setup.
+            # The news reading is not a confirmation, on either side (brain.md rule 92). It used to
+            # be the third of these, so a positive word count or a story spike could supply one of
+            # the two confirmations a buy needs -- coverage adding evidence, which rule 44 forbids
+            # everywhere else, and from a word list that was scoring "against" as "gains". Coverage
+            # still withdraws: lib/decision.ts drops the history leg, and gate 8 refuses, when the
+            # reading is worded against the direction. Measured 2026-10-11: no stored buy or short
+            # rested on it, so this removes a path and changes no current setup.
             up_confirms = [
                 ("trading is unusually active", vol_ratio is not None and vol_ratio >= VOL_ACTIVE),
                 ("it is ahead of its own industry", rel is not None and rel >= REL_EDGE),
-                ("the news reading supports it", news_support),
             ]
             down_confirms = [
                 ("trading is unusually active", vol_ratio is not None and vol_ratio >= VOL_ACTIVE),
                 ("it is behind its own industry", rel is not None and rel <= -REL_EDGE),
-                ("the headline wording is negative", bool(signal and signal["tone"] == "negative")),
             ]
             up_met = [label for label, ok in up_confirms if ok]
             down_met = [label for label, ok in down_confirms if ok]
@@ -586,8 +591,6 @@ def main() -> None:
                     failed.append("trading is not unusually active")
                 if rel is not None and abs(rel) < REL_EDGE:
                     failed.append("it is moving with its industry rather than apart from it")
-                if not news_support and up_trend:
-                    failed.append("no catalyst or positive wording in the news")
                 head = (
                     "The direction is clear but the conditions are not all present: "
                     + (", ".join(failed) if failed else "some inputs are unavailable")
@@ -680,12 +683,11 @@ def main() -> None:
 
             grade = "none"
             if state in ("buy", "short"):
-                # Three of three and nothing arguing the other way is the only `high`. Two of
-                # three is a real setup with a named gap in it, which is what `medium` has always
-                # meant on this site, so the count is carried into the grade rather than left for
-                # a reader to infer from the headline.
-                met = len(up_met) if state == "buy" else len(down_met)
-                grade = "high" if met == len(up_confirms) and not (missing or against) else "medium"
+                # `high` was three of three with nothing arguing the other way, and the third was
+                # the news reading, which can no longer confirm (rule 92). Two readings are what
+                # `medium` has always meant on this site, so no setup from this job is graded
+                # `high`: grading two of two as `high` would raise a grade by removing evidence.
+                grade = "medium"
             elif state == "wait":
                 grade = "low"
             note_bits = []

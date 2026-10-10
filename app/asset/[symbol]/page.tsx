@@ -172,7 +172,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
   const today = todayISO();
   const decisionInput = toDecisionInput(bundleFromQuery(bundle, sourceHealth), today);
   const decision = decideCall(decisionInput);
-  // The take profit and the quality gate's verdict, by the same functions the lists use, so a name
+  // The measured exit and the quality gate's verdict, by the same functions the lists use, so a name
   // withheld from the lists says so here, and why.
   const target = targetForCall(pickTarget(horizons), decision);
   // The same function the list rows use, fed the same three facts, so this page and the market page

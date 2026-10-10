@@ -21,8 +21,8 @@ test("a complete, measured call with reward:risk of at least 1.2 and a confirmat
 
 test("every missing or weak part withholds the call, and each is named", () => {
   const why = (call: Call, target: typeof TARGET | null, atr: number | null) => qualityGate(call, target, atr).reasons;
-  // APL's case: no measured target.
-  assert.deepEqual(why(LONG, null, 2), ["no measured target"]);
+  // APL's case: no measured exit.
+  assert.deepEqual(why(LONG, null, 2), ["no measured exit"]);
   // PRL and NRL's case: a measured target, but reward:risk under the floor.
   assert.deepEqual(why(LONG, { ...TARGET, rewardRisk: 0.8 }, 2), ["reward:risk 0.80, under 1.2"]);
   assert.deepEqual(why(LONG, { ...TARGET, rewardRisk: 1.19 }, 2), ["reward:risk 1.19, under 1.2"]);
@@ -82,9 +82,9 @@ test("an open published call is held to its stop, not dropped, and a call cannot
   const drift = withOpenPosition({ published: false, reasons: ["reward:risk 1.05, under 1.2", "no confirmation"] }, "2026-10-12");
   assert.deepEqual(drift, { published: true, reasons: [], held: { since: "2026-10-12", todays: ["reward:risk 1.05, under 1.2", "no confirmation"] } });
   // Can no longer be acted on as printed: withheld, saying it had been published -- never silently gone.
-  assert.deepEqual(withOpenPosition({ published: false, reasons: ["no measured target"] }, "2026-10-12"), {
+  assert.deepEqual(withOpenPosition({ published: false, reasons: ["no measured exit"] }, "2026-10-12"), {
     published: false,
-    reasons: ["published 2026-10-12, now no measured target"],
+    reasons: ["published 2026-10-12, now no measured exit"],
   });
   // Not open, or already published: unchanged.
   assert.deepEqual(withOpenPosition({ published: false, reasons: ["no confirmation"] }, null), { published: false, reasons: ["no confirmation"] });

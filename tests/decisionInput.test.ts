@@ -786,7 +786,7 @@ test("a database with no targets decides without one, and names the gap", () => 
   assert.equal(d.action, "LONG");
   assert.equal(d.plan?.rewardRisk, null);
   assert.ok(
-    d.missing.some((m) => /No measured target stored/.test(m)),
+    d.missing.some((m) => /No measured exit stored/.test(m)),
     d.missing.join(" | "),
   );
 });

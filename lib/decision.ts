@@ -815,7 +815,7 @@ function confirmMissing(input: DecisionInput, direction: "up" | "down"): string[
   // there is no reward figure, so there is no reward against risk and no expectancy -- three
   // numbers the reader can see are not there, from one row that was not written.
   if (!input.target) {
-    out.push("No measured target stored, so there is nothing to size the reward against.");
+    out.push("No measured exit stored, so there is nothing to size the reward against.");
   } else if (input.target.rewardRisk === null) {
     out.push(
       `A target is stored by the ${input.target.method} method but its reward against risk was not computed, so the trade cannot be sized.`,
@@ -1055,10 +1055,10 @@ function notesFor(input: DecisionInput, direction: "up" | "down"): string[] {
   if (input.unusualMove && (input.newsCount === null || input.newsCount < THIN_NEWS_BELOW)) {
     out.push(
       input.newsCount === null
-        ? "It moved unusually and no news has been collected for this name, so nothing published accounts for the move."
-        : `It moved unusually on ${input.newsCount} recent ${
+        ? "It moved unusually, and no news has been collected for this name to set beside the move."
+        : `It moved unusually, with only ${input.newsCount} recent ${
             input.newsCount === 1 ? "story" : "stories"
-          }, so nothing published accounts for the move yet.`,
+          } stored beside the move.`,
     );
   }
 
@@ -1069,7 +1069,7 @@ function notesFor(input: DecisionInput, direction: "up" | "down"): string[] {
   if (rel !== null && rel !== undefined) {
     if (direction === "up" && rel <= -relBandFor(input)) {
       out.push(
-        `It is ${Math.abs(rel).toFixed(1)} points behind its peers over 20 sessions, so the group is carrying it rather than the other way round.`,
+        `It is ${Math.abs(rel).toFixed(1)} points behind its peers over 20 sessions: the trend reads up while it trails the group it trades with.`,
       );
     }
     if (direction === "down" && rel >= relBandFor(input)) {
@@ -1642,12 +1642,12 @@ export function decide(input: DecisionInput): Decision {
         : "unconfirmed-short";
     const opening = fromTrend
       ? carriers
-        ? `The trend is ${trend} and not all of its conditions are present; ${carriedBy(trend)} carries it.`
+        ? `The trend is ${trend} and not all of its conditions are present; it rests on ${carriedBy(trend)}.`
         : `The trend is ${trend} and none of its other conditions are present.`
       : carriers
         ? `Price is between its own averages, with the 20 day ${
             trend === "up" ? "above" : "below"
-          } the 50 day; ${carriedBy(trend)} carries it.`
+          } the 50 day; it rests on ${carriedBy(trend)}.`
         : `Price is between its own averages, with the 20 day ${
             trend === "up" ? "above" : "below"
           } the 50 day, and nothing else confirms it.`;

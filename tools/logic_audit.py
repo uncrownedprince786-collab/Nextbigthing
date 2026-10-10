@@ -18,7 +18,7 @@ How the entry zone is built, because the stop checks depend on it: `AssetSetup` 
 the entry level and the invalidation level, and the zone is the range they span (lib/decisionInput.ts).
 Until 2026-10-11 the stop sat on the zone's far edge; since then (brain.md rule 91, lib/resolve.ts
 `bufferStop`) it sits at least 1.0 x atr14 beyond the zone, so a stop on the edge is a fault. The lists
-publish only calls that pass the quality gate (lib/quality.ts): a measured take profit, reward:risk of
+publish only calls that pass the quality gate (lib/quality.ts): a measured exit, reward:risk of
 at least 1.2 and one confirmation, so a published row without them is a fault too. Withheld calls are
 named in a folded list on each page and counted here.
 Reward:risk is measured from the entry level the call trades from: the top of the zone for a LONG,
@@ -283,12 +283,12 @@ def parse_rows(page_html: str) -> list[dict]:
             "action": action,
             "entry": prices_in(cells.get("Entry zone", "")),
             "stop": prices_in(cells.get("Stop loss", "")),
-            "target": prices_in(cells.get("Take profit", "")),
+            "target": prices_in(cells.get("Measured exit", "")),
             "rr": float(rr.group(1)) if rr else None,
             "confirmations": (lambda m: int(m.group(1)) if m else None)(re.search(r"(\d+) of 5", re.sub(r"<[^>]+>", "", cells.get("Confirmations", "")))),
             # The rounding of every printed level, so a reward:risk can be checked against what the
             # printed figures allow rather than against a guessed tolerance.
-            "half": {v: h for cell in ("Entry zone", "Stop loss", "Take profit") for v, h in prices_with_rounding(cells.get(cell, ""))},
+            "half": {v: h for cell in ("Entry zone", "Stop loss", "Measured exit") for v, h in prices_with_rounding(cells.get(cell, ""))},
         })
     return rows
 
@@ -376,7 +376,7 @@ def audit_pages() -> dict:
             out["t_none"] += 1
             if r["rr"] is not None:
                 out["rr_bad"].append(f"{sym} prints R:R {r['rr']} with no target")
-            out["t_missing"].append(f"{sym} {r['action']} zone {lo}..{hi} stop {stop}: published with no take profit")
+            out["t_missing"].append(f"{sym} {r['action']} zone {lo}..{hi} stop {stop}: published with no measured exit")
             continue
         if r["held"]:
             out["held"] += 1
@@ -481,7 +481,7 @@ def main() -> int:
         "engine output (API) and pages disagree": len(pg["api_mismatch"]),
         "stop on the zone's edge (rule 91)": db["dir_edge"] + pg["s_edge"],
         "stop nearer the zone than 1.0 x atr14": len(db["buffer_short"]),
-        "published call without a take profit": len(pg["t_missing"]),
+        "published call without a measured exit": len(pg["t_missing"]),
         f"published call under {MIN_REWARD_RISK}:1": len(pg["rr_low"]),
         "published call without a confirmation": len(pg["unconfirmed"]),
     }

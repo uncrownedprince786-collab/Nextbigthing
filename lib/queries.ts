@@ -933,7 +933,10 @@ export async function getDecisionHistory(assetId: string) {
 /// with the day it began and the direction before it. Read by lib/resolve.ts: a held flip keeps this
 /// call, and a call may not return unconfirmed to the side it left within `WHIPSAW_DAYS`. Before today
 /// for the reason `getPriorDirections` gives. WAIT rows are skipped, so a direction is compared with the
-/// last direction. Thirty days is far past the three the guard reads. Fails open to no runs.
+/// last direction -- except a `stop-crossed` WAIT, which is read as `ENDED`: the call stopped there
+/// (brain.md rule 92), so a direction after it is a new run and the ended call is not held, guarded or
+/// kept open (lib/resolve.ts, `openSince` in lib/quality.ts). Thirty days is far past the three the guard
+/// reads. Fails open to no runs. `tools/decide.mjs` runs the same statement.
 export interface LastRun {
   action: string;
   since: Date;
@@ -947,9 +950,11 @@ async function getLastRuns(assetId?: string): Promise<Map<string, LastRun>> {
       SELECT DISTINCT ON ("assetId") "assetId", action, "periodEnd" AS since, prev
         FROM (SELECT "assetId", action, "periodEnd",
                      lag(action) OVER (PARTITION BY "assetId" ORDER BY "periodEnd") AS prev
-                FROM "DecisionLog"
-               WHERE action IN ('LONG', 'SHORT')
-                 AND "periodEnd" < CURRENT_DATE AND "periodEnd" >= CURRENT_DATE - 30) t
+                FROM (SELECT "assetId", "periodEnd",
+                             CASE WHEN action IN ('LONG', 'SHORT') THEN action ELSE 'ENDED' END AS action
+                        FROM "DecisionLog"
+                       WHERE (action IN ('LONG', 'SHORT') OR (action = 'WAIT' AND gate = 'stop-crossed'))
+                         AND "periodEnd" < CURRENT_DATE AND "periodEnd" >= CURRENT_DATE - 30) d) t
        WHERE prev IS DISTINCT FROM action
        ORDER BY "assetId", "periodEnd" DESC`;
     for (const r of rows) if (!assetId || r.assetId === assetId) out.set(r.assetId, { action: r.action, since: r.since, prev: r.prev });

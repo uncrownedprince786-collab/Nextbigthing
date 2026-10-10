@@ -88,6 +88,73 @@ class HeadlineTone(unittest.TestCase):
     def test_a_repeated_word_counts_once(self):
         # One headline saying a word twice is still one headline saying it.
         self.assertEqual(human.count_terms("surges and surges", ("surges",)), 1)
+        self.assertEqual(human.count_words("surges and surges", ("surges",)), 1)
+
+    def test_a_term_inside_another_word_is_not_the_term(self):
+        # Every one of these was scored by substring before 2026-10-11, measured in stored headlines.
+        for title in (
+            "Rupee trades in narrow range against US dollar in early trade",  # "gains" in "against"
+            "Parker-Hannifin Stock Holdings Raised by CX Institutional - MarketBeat",  # "beat"
+            "Burshane LPG issues 20% bonus shares",  # "sues" in "issues"
+            "Anna Sui Spring 2027: Mischief and Wonder",  # "won" in "Wonder"
+            "Supplier says it won't renew",  # "won" in "won't"
+        ):
+            self.assertEqual(human.classify(title), "neutral", title)
+        # A listed word on its own still counts, and a cancelled sign comes back.
+        self.assertEqual(human.classify("AI pricing lawsuit against McDonald's"), "negative")
+        self.assertEqual(human.classify("Shares jumped after the deal"), "positive")
+
+
+class CurrencyPairTone(unittest.TestCase):
+    """A pair headline takes a side only when exactly one of the pair's currencies is named."""
+
+    def test_a_headline_about_the_quote_currency_reverses(self):
+        # The rupiah gaining is USDIDR falling; the krona falling is USDSEK rising.
+        self.assertEqual(human.classify("Rupiah gains to Rp17,887 as reserves stay strong", ("USD", "IDR")), "negative")
+        self.assertEqual(human.classify("Swedish krona on the verge of deeper losses", ("USD", "SEK")), "positive")
+        self.assertEqual(human.classify("Dollar gains as yields climb", ("EUR", "USD")), "negative")
+
+    def test_the_base_or_the_pair_in_its_own_order_keeps_the_sign(self):
+        self.assertEqual(human.classify("Euro gains on strong data", ("EUR", "USD")), "positive")
+        self.assertEqual(human.classify("NZD/USD drops on weak dairy prices", ("NZD", "USD")), "negative")
+        self.assertEqual(human.classify("usdinr jumped overnight", ("USD", "INR")), "positive")
+
+    def test_no_side_when_the_subject_cannot_be_named(self):
+        cases = [
+            # Both currencies: which one gained is grammar. Was positive for USDPKR -- the opposite.
+            ("Rupee gains against US dollar - Business Recorder", ("USD", "PKR")),
+            # The pair written backwards.
+            ("INR/USD falls", ("USD", "INR")),
+            # A third currency.
+            ("Taka gains ground against Indian rupee", ("USD", "BDT")),
+            ("Hong Kong dollar slides", ("USD", "INR")),
+            # A currency word that is also a word, on the pair it would name.
+            ("Won Strengthens Even as U.S. 10-Year Yield Tops 5.3%", ("USD", "KRW")),
+            ("Real rates rose again", ("USD", "BRL")),
+            # The pair and one of its currencies together.
+            ("Mexican Peso Weakens as USD/MXN Climbs", ("USD", "MXN")),
+            # Two dollars in one pair: a bare "dollar" names neither.
+            ("Dollar gains", ("USD", "SGD")),
+            # An unparseable symbol: nothing can be oriented.
+            ("Dollar gains", ("", "")),
+        ]
+        for title, pair in cases:
+            self.assertEqual(human.classify(title, pair), "neutral", (title, pair))
+
+    def test_names_are_matched_as_named(self):
+        # "Korean won" names the won, and the word is not then read as "won" (a positive term).
+        self.assertEqual(human.classify("Korean won slumps", ("USD", "KRW")), "positive")
+        # "TRY" in capitals is the lira; "try" is a verb and names nothing.
+        self.assertEqual(human.classify("TRY slumps", ("USD", "TRY")), "positive")
+        self.assertEqual(human.classify("Traders try to buy as lira slumps", ("USD", "TRY")), "positive")
+        # The euro zone is not the euro.
+        self.assertEqual(human.classify("Euro zone growth surges", ("EUR", "USD")), "neutral")
+        self.assertEqual(human.fx_pair("USDPKR"), ("USD", "PKR"))
+
+    def test_the_job_signs_a_pair_headline_for_the_pair(self):
+        src = (ROOT / "jobs" / "human.py").read_text(encoding="utf-8")
+        self.assertIn("kind = classify(title, pair)", src)
+        self.assertIn('pair = fx_pair(t["symbol"]) if t.get("assetType") == "forex" else None', src)
 
 
 class ToneDenominator(unittest.TestCase):
@@ -4192,8 +4259,15 @@ class NoFakeConfidence(unittest.TestCase):
     ]
 
     # Causality, which rules 10 and 16 ban in generated prose and which is no more acceptable
-    # hand-written on a page.
-    CAUSAL = ["caused the move", "because of the news", "driven by the", "in response to the"]
+    # hand-written on a page. Matched as whole words. "carrying it" and "the other way round" are
+    # here since 2026-10-11: lib/decision.ts told readers "the group is carrying it rather than the
+    # other way round" for months, because this scan never read that file.
+    CAUSAL = [
+        "caused the move", "because of the news", "driven by", "in response to", "due to the news",
+        "carrying it", "carries it", "accounts for the move", "on the back of", "thanks to",
+        "weighed on", "lifted by", "pushed by", "pulled by", "dragged", "fuelled by", "fueled by",
+        "sparked by", "the other way round", "behind the move",
+    ]
 
     def visible_files(self):
         out = []
@@ -4201,6 +4275,32 @@ class NoFakeConfidence(unittest.TestCase):
             out.extend(ROOT.glob(pattern))
         out.append(ROOT / "lib" / "plain.ts")
         return out
+
+    # The files whose sentences reach the decision panel and the list rows -- every `why`, note and
+    # reason. Their string literals are scanned, not their comments: a comment is for the next
+    # developer, and the rationale in these files has to be able to name the claim it refuses.
+    DECISION_FILES = ("lib/decision.ts", "lib/resolve.ts")
+
+    @staticmethod
+    def literals(src: str) -> str:
+        src = re.sub(r"/\*.*?\*/", " ", src, flags=re.S)
+        src = re.sub(r"^\s*//.*$", " ", src, flags=re.M)
+        lit = re.compile(r"`(?:[^`\\]|\\.)*`|\"(?:[^\"\\\n]|\\.)*\"|'(?:[^'\\\n]|\\.)*'")
+        return " ".join(m.group(0) for m in lit.finditer(src))
+
+    def scanned_texts(self):
+        out = [(f.name, f.read_text(encoding="utf-8").lower()) for f in self.visible_files()]
+        for rel in self.DECISION_FILES:
+            out.append((rel, self.literals((ROOT / rel).read_text(encoding="utf-8")).lower()))
+        return out
+
+    def causal_hits(self, name: str, low: str) -> list[str]:
+        hits = []
+        for phrase in self.CAUSAL:
+            for m in re.finditer(r"(?<![a-z])" + re.escape(phrase) + r"(?![a-z])", low):
+                if not self.negated(low, m.start()):
+                    hits.append(f"{name}: {phrase}")
+        return hits
 
     def test_no_page_promises_a_price_move(self):
         hits = []
@@ -4229,15 +4329,22 @@ class NoFakeConfidence(unittest.TestCase):
 
     def test_no_page_asserts_causality(self):
         hits = []
-        for f in self.visible_files():
-            low = f.read_text(encoding="utf-8").lower()
-            for phrase in self.CAUSAL:
-                start = 0
-                while (at := low.find(phrase, start)) != -1:
-                    if not self.negated(low, at):
-                        hits.append(f"{f.name}: {phrase}")
-                    start = at + len(phrase)
+        for name, low in self.scanned_texts():
+            hits.extend(self.causal_hits(name, low))
         self.assertEqual(hits, [], "; ".join(hits))
+
+    def test_the_causality_scan_reads_the_decision_sentences(self):
+        # The decision files are in the scan, and what is read from them is their sentences.
+        texts = dict(self.scanned_texts())
+        self.assertIn("points behind its peers over 20 sessions", texts["lib/decision.ts"])
+        self.assertIn("nothing measured leans either way", texts["lib/resolve.ts"])
+        self.assertNotIn("hard rule 4 forbids", texts["lib/decision.ts"], "comments are not scanned")
+        # The sentence that shipped until 2026-10-11 is caught, and its replacement is not.
+        old = "`it is ${x} points behind its peers over 20 sessions, so the group is carrying it rather than the other way round.`"
+        self.assertTrue(self.causal_hits("planted", old))
+        self.assertFalse(self.causal_hits("planted", "`the trend reads up while it trails the group it trades with.`"))
+        # Whole words: "carries its own count" is not "carries it".
+        self.assertFalse(self.causal_hits("planted", "each one carries its reason"))
 
     def test_the_causality_scanner_tells_a_denial_from_a_claim(self):
         # Both halves asserted, because a scanner that passed everything would also be green.
@@ -8065,6 +8172,10 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
             self.row("LONG", self.GOOD_PRICE, "<span>★ RISING STAR ↑</span>" + self.SWITCHED),
             self.row("SHORT", "<span>Rs.105.24</span>", "<span>★ FALLING STAR ↓</span>"),
             self.row("LONG", "<span>no close yet</span>"),
+            # Rule 92's held-back reasons, in the words the rows print.
+            self.row("Held back", "<span>$3.00</span>", "<span>The trend reads up, but price has already moved through the level that would prove it wrong.</span>"),
+            self.row("Held back", "<span>$3.00</span>", "<span>Its setup takes no side. Nothing measured leans either way, so no direction is given.</span>"),
+            self.row("Held back", "<span>$3.00</span>", "<span>A turn this recent prints only once something independent confirms it: volume.</span>"),
         ]))
         self.assertEqual(failures, [])
         self.assertEqual(counts["changes"], 1 * len(self.ua().PAGES))

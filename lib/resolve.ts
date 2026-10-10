@@ -1,16 +1,26 @@
-/// Every name gets a direction: the owner's binary rule on top of the evidence table.
+/// The owner's binary rule on top of the evidence table, with the two exceptions rule 92 makes.
 ///
 /// `decide()` in lib/decision.ts is the evidence table and is unchanged: it still says WAIT where the
 /// evidence it requires is not there, and its tests still pin that. This layer runs after it and turns
-/// every WAIT into LONG or SHORT, by the reason the table gave (brain.md rule 86, which replaces the
+/// a WAIT into LONG or SHORT, by the reason the table gave (brain.md rule 86, which replaces the
 /// refusal in rule 85 at the owner's instruction):
 ///
-///   * `stop-crossed`         the close went through the setup's stop, so the call follows the break;
 ///   * `short-unbacked`       the setup reads down and nothing independent confirms it: SHORT anyway;
 ///   * `reversal-unconfirmed` the flip is not confirmed yet, so the call the reader holds is kept --
 ///                            the patient flip; it lifts when a confirmation arrives or after a week;
 ///   * `macro-veto`           the gatekeeper refused one side on breaking news: the other side;
-///   * anything else          the side the table was leaning toward when it has one, else momentum.
+///   * anything else          the side the table was leaning toward when it has one, else the
+///                            measured momentum read.
+///
+/// And it leaves two WAITs as they are (rule 92, 2026-10-11):
+///
+///   * `stop-crossed`         the close went through the stop, so the call has **ended**. It is not
+///                            turned into the opposite call: the break measures where the old call was
+///                            wrong, not where a new one is right, and none of the 223 resolved this
+///                            way on 2026-10-10 had a measured target on the new side. A direction on
+///                            the other side has to come from the evidence table itself.
+///   * nothing measured       no stored reading leans either way. There used to be a fallback to LONG,
+///                            "the long-run drift of most markets" -- an assumption, not a measurement.
 ///
 /// A stop is kept when the call goes the setup's way and its stop sits on the right side of the close for
 /// the direction taken; otherwise it is the close plus or minus `ATR_STOP_MULTIPLE` times the 14-session average
@@ -21,9 +31,9 @@
 /// After that, one guard on every call, the evidence table's included (`whipsawHold`): a call may not return
 /// to the direction it left within `WHIPSAW_DAYS` unless the return is confirmed.
 ///
-/// The one case that cannot be resolved is a name with no stored close at all: there is no price to
-/// put a stop against. None of the 576 has that today; if one appears it stays WAIT and the page
-/// checker's held-back count says so.
+/// A name with no stored close at all cannot be resolved either: there is no price to put a stop against.
+/// Each of the three stays WAIT, in the held-back list with its reason, and `tools/ui_audit.py` accepts a
+/// held-back row only for those reasons.
 
 import {
   confirmingLegs,
@@ -64,9 +74,9 @@ const sign = (v: number | null | undefined): number => (v == null || !Number.isF
 /// The momentum read for a name whose setup takes no side: one vote each from the trend (close
 /// against its 20- and 50-day averages), the longer-timeframe bias, the 20-session return, the gap to
 /// its peers and the similar past days; two from an entry rule that fired on this session on volume.
-/// A tie goes to the 20-session return, then the trend, then the last call; with nothing at all it is
-/// LONG, the long-run drift of most markets, and logged as `forced-nosignal`.
-export function momentumSide(input: DecisionInput): { side: Side; measured: boolean } {
+/// A tie goes to the 20-session return, then the trend, then the last call. With nothing at all it is
+/// null: no direction is assumed (rule 92).
+export function momentumSide(input: DecisionInput): Side | null {
   const t = (d: string | null | undefined) => (d === "up" ? 1 : d === "down" ? -1 : 0);
   const votes =
     t(input.setup?.trend) +
@@ -75,34 +85,33 @@ export function momentumSide(input: DecisionInput): { side: Side; measured: bool
     sign(input.relStrength) +
     sign(input.analogs?.medianPct) +
     2 * t(input.entryTrigger?.direction);
-  if (votes !== 0) return { side: votes > 0 ? "up" : "down", measured: true };
+  if (votes !== 0) return votes > 0 ? "up" : "down";
   const tie = sign(input.r20) || t(input.setup?.trend) || t(input.priorDirection?.direction);
-  if (tie !== 0) return { side: tie > 0 ? "up" : "down", measured: true };
-  return { side: "up", measured: false };
+  if (tie !== 0) return tie > 0 ? "up" : "down";
+  return null;
 }
 
-/// Which way a WAIT resolves, and the gate it is logged under.
+/// Which way a WAIT resolves, and the gate it is logged under; null when it stays WAIT.
 export function resolvedSide(d: Decision, input: DecisionInput): { side: Side; gate: string } | null {
   const close = input.lastClose;
   if (close === null || !Number.isFinite(close)) return null;
-  if (d.gate === "stop-crossed") {
-    // The close is through the stop: below it breaks down, above it breaks up.
-    const stop = input.invalidation;
-    if (stop !== null && Number.isFinite(stop) && stop !== close) {
-      return { side: close < stop ? "down" : "up", gate: FORCED + d.gate };
-    }
-    if (d.intent) return { side: flip(d.intent), gate: FORCED + d.gate };
-  }
+  // The call ended at its stop. Neither side is resolved: not the opposite one, which the break does not
+  // measure, and not the old one under its intent, which the stop has just said is wrong.
+  if (d.gate === "stop-crossed") return null;
   if (d.gate === "short-unbacked") return { side: "down", gate: FORCED + d.gate };
-  if (d.gate === "reversal-unconfirmed" && input.priorDirection) {
+  if (d.gate === "reversal-unconfirmed") {
     // The call the reader holds, which after a forced flip is not the table's last call: keeping the
-    // table's SHORT after a forced LONG printed SHORT, LONG, SHORT and said "the last call holds".
-    return { side: input.lastRun?.direction ?? input.priorDirection.direction, gate: FORCED + d.gate };
+    // table's SHORT after a forced LONG printed SHORT, LONG, SHORT and said "the last call holds". Only a
+    // run that is still open is held: one that ended at its stop reads ENDED (lib/queries.ts
+    // `getLastRuns`), there is nothing left to hold, and the unconfirmed turn stays WAIT. There is no
+    // fallback to the table's last call either: that is how a stopped call would come back.
+    const held = input.lastRun?.direction;
+    return held ? { side: held, gate: FORCED + d.gate } : null;
   }
   if (d.gate === "macro-veto" && d.intent) return { side: flip(d.intent), gate: FORCED + d.gate };
   if (d.intent) return { side: d.intent, gate: FORCED + d.gate };
   const m = momentumSide(input);
-  return { side: m.side, gate: FORCED + (m.measured ? d.gate : "nosignal") };
+  return m ? { side: m, gate: FORCED + d.gate } : null;
 }
 
 /// The stop for a resolved call: the setup's own when the call goes the setup's way and the stop is on
@@ -123,20 +132,26 @@ export function resolvedStop(side: Side, input: DecisionInput): number | null {
 }
 
 const WORDS: Record<string, string> = {
-  "stop-crossed": "The close went through the old stop, so the call follows the break.",
   "short-unbacked": "The setup reads down; no independent confirmation yet.",
   "reversal-unconfirmed": "The setup turned, but the turn is not confirmed yet, so the last call holds.",
   "macro-veto": "Breaking news ruled out the other side.",
   "whipsaw-hold": `It would go back to the side it left under ${WHIPSAW_DAYS} days ago with nothing confirming the return, so the current call holds.`,
-  nosignal: "Nothing measured leans either way; the call follows the long-run drift.",
 };
 
-/// A WAIT turned into a direction, or the decision unchanged when it already has one.
+/// The line a name gets when nothing measured leans either way, so its WAIT says why it has no call.
+export const NO_DIRECTION = "Nothing measured leans either way, so no direction is given.";
+
+/// A WAIT turned into a direction, or the decision unchanged when it already has one or must stay WAIT.
 export function resolveCall(d: Decision, input: DecisionInput): Decision {
   if (d.action !== "WAIT") return d;
   const r = resolvedSide(d, input);
-  if (!r) return d;
-  return forcedCall(d, input, r);
+  if (r) return forcedCall(d, input, r);
+  // Still WAIT. A stopped call, a held turn with nothing open to hold, and a name with no close keep the
+  // table's own words; a name with nothing measured says so, second, where the held-back row shows it.
+  const close = input.lastClose;
+  const priced = close !== null && Number.isFinite(close);
+  const unmeasured = priced && d.gate !== "stop-crossed" && d.gate !== "reversal-unconfirmed" && !d.intent;
+  return unmeasured ? { ...d, why: [d.why[0], NO_DIRECTION, ...d.why.slice(1)] } : d;
 }
 
 function daysBetween(fromISO: string, toISO: string): number {

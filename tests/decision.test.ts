@@ -184,9 +184,9 @@ test("an unusual move with thin news is a note on the direction, not a refusal",
   assert.equal(d.action, "LONG");
   assert.equal(d.gate, "long");
   assert.equal(d.notes.length, 1);
-  assert.match(d.notes[0], /moved unusually on 1 recent story/i);
-  // Demoted, not deleted: the reader still sees it.
-  assert.match(d.notes[0], /nothing published accounts for the move/i);
+  // Demoted, not deleted: the reader still sees it, in co-occurrence words only.
+  assert.match(d.notes[0], /moved unusually, with only 1 recent story stored beside the move/i);
+  assert.match(decide(base({ unusualMove: true, newsCount: null })).notes[0], /no news has been collected for this name to set beside the move/i);
 });
 
 test("news never checked reads differently from news checked and thin", () => {
@@ -426,7 +426,7 @@ test("the peer reading is what a currency pair has instead of volume", () => {
   const confirmed = decide(base({ ...pair, relStrength: -4.5 }));
   assert.equal(confirmed.gate, "trend-short");
   assert.equal(confirmed.confidence, "Medium");
-  assert.match(confirmed.why[0], /4\.5 points behind its peers carries it/);
+  assert.match(confirmed.why[0], /rests on 4\.5 points behind its peers/);
 });
 
 test("the High bar stays at two things agreeing, not at half of what is available", () => {
@@ -507,7 +507,7 @@ test("every measured direction prints, and the grade carries how much backs it",
   assert.equal(carried.action, "LONG");
   assert.equal(carried.gate, "trend-long");
   assert.equal(carried.confidence, "Medium");
-  assert.match(carried.why[0], /2\.4x its 20-session average carries it/);
+  assert.match(carried.why[0], /rests on volume at 2\.4x its 20-session average/);
 });
 
 test("a falling trend with nothing behind it is gated where shorts measured negative", () => {
@@ -626,7 +626,7 @@ test("a price between its averages still has a side, and the sentence says which
   // findings, and promoting the weaker into the stronger one's word is the overclaim.
   assert.doesNotMatch(d.why[0], /The trend is/);
   assert.match(d.why[0], /Price is between its own averages, with the 20 day above the 50 day/);
-  assert.match(d.why[0], /2\.4x its 20-session average carries it/);
+  assert.match(d.why[0], /rests on volume at 2\.4x its 20-session average/);
 
   // Down is the mirror, and it was the commoner side: 64 of the 119 had the fast mean below.
   const falling = decide(
@@ -1165,7 +1165,7 @@ test("a withheld trend caught at the start is logged under its own gate and name
       entryTrigger: { rule: "squeeze_break", direction: "up" },
     }),
   );
-  assert.match(both.why[0], /quietest stretch in six months carries it/);
+  assert.match(both.why[0], /rests on .*quietest stretch in six months/);
 });
 
 test("the trigger clause sits last in the confirmation sentence", () => {

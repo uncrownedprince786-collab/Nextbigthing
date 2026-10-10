@@ -29,6 +29,7 @@ Writes: HumanSignal, and one SignalLog row per target so accuracy.py can come ba
 
 from __future__ import annotations
 
+import re
 import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -181,7 +182,11 @@ HYPE_TERMS = (
 
 
 def count_terms(text: str, terms: tuple[str, ...]) -> int:
-    """How many of the terms appear. Counted once per term, not once per occurrence.
+    """How many of the terms appear anywhere, inside other words included. Counted once per term.
+
+    Used for the promotional list only, where matching inside a longer word ("skyrocketing") is
+    the intent and an over-match can only raise a caution flag. Tone never uses this: see
+    `count_words`.
 
     A headline that repeats a word is still one headline saying it, and counting the
     repetition would let one loud headline outvote several quiet ones.
@@ -190,21 +195,205 @@ def count_terms(text: str, terms: tuple[str, ...]) -> int:
     return sum(1 for t in terms if t in low)
 
 
-def classify(title: str) -> str:
-    """positive, negative or neutral for one headline.
+# A tone term counts only as the whole word or phrase listed. Matching inside longer words gave
+# signs nothing in the headline said, measured 2026-10-11 over 30 days of stored headlines:
+# "against" contains "gains", which made 13 of the 31 opinionated currency headlines positive
+# ("Rupee trades in narrow range against US dollar"); "MarketBeat" contains "beat"; "issues"
+# contains "sues"; "Wonder" contains "won". The lists already spell out every form they mean
+# ("beats", "beat", "surges", "surged"), so an unlisted form is not counted, by design: a word
+# list may miss a sign, it may not invent one. An apostrophe is part of a word, so "won't" is not
+# "won".
+_WORD_EDGE_L = r"(?<![\w'\u2019])"
+_WORD_EDGE_R = r"(?![\w'\u2019])"
+_WORD_PATTERNS: dict[str, re.Pattern[str]] = {}
+
+
+def _word(term: str) -> re.Pattern[str]:
+    pat = _WORD_PATTERNS.get(term)
+    if pat is None:
+        pat = _WORD_PATTERNS[term] = re.compile(_WORD_EDGE_L + re.escape(term) + _WORD_EDGE_R)
+    return pat
+
+
+def count_words(text: str, terms: tuple[str, ...]) -> int:
+    """How many of the terms appear as whole words. Counted once per term, like `count_terms`."""
+    low = text.lower()
+    return sum(1 for t in terms if _word(t).search(low))
+
+
+# Currency pairs. A pair's price is one currency in units of another, and a headline is usually
+# about one of the two: "Rupiah gains" is USDIDR *falling*. The word list was scoring every
+# headline as if it described the pair, so a stronger rupee read as a rising USDPKR -- the
+# exact opposite. A headline now takes a side for a pair only when exactly one currency of that
+# pair can be named from its wording: the base keeps the headline's sign, the quote reverses it,
+# the pair written in its own order ("USD/INR") keeps it. Anything else takes no side: both
+# currencies named ("Rupee gains against US dollar" -- which one gained is grammar, not a word
+# list), a third currency named, the pair written backwards, or a currency word that is also an
+# ordinary word ("won", "real", "rand") without its country. Rule 44 still applies above this:
+# a reading can only ever withdraw evidence, so a headline left without a side can only cost a
+# withdrawal, never invent one.
+#
+# code: (names that identify it on their own, bare names). Qualified names are matched first and
+# taken out, so "Singapore dollar" is never read as the US dollar's bare "dollar". Every traded
+# dollar answers to a bare "dollar", so on USDSGD or AUDUSD the word names neither side.
+CURRENCIES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
+    "USD": (("us dollar", "u.s. dollar", "american dollar", "greenback"), ("dollar",)),
+    "EUR": ((), ("euro",)),
+    "GBP": (("british pound", "pound sterling"), ("sterling", "pound")),
+    "JPY": (("japanese yen",), ("yen",)),
+    "CHF": (("swiss franc",), ("franc",)),
+    "CAD": (("canadian dollar", "loonie"), ("dollar",)),
+    "AUD": (("australian dollar", "aussie dollar", "aussie"), ("dollar",)),
+    "NZD": (("new zealand dollar", "kiwi dollar", "kiwi"), ("dollar",)),
+    "SEK": (("swedish krona",), ("krona",)),
+    "NOK": (("norwegian krone",), ("krone",)),
+    "PLN": (("polish zloty",), ("zloty",)),
+    "TRY": (("turkish lira",), ("lira",)),
+    "ZAR": (("south african rand",), ("rand",)),
+    "BRL": (("brazilian real",), ("real",)),
+    "MXN": (("mexican peso",), ("peso",)),
+    "INR": (("indian rupee",), ("rupee",)),
+    "PKR": (("pakistani rupee", "pakistan rupee"), ("rupee",)),
+    "KRW": (("south korean won", "korean won"), ("won",)),
+    "IDR": (("indonesian rupiah",), ("rupiah",)),
+    "CNY": (("chinese yuan", "offshore yuan"), ("yuan", "renminbi")),
+    "THB": (("thai baht",), ("baht",)),
+    "SGD": (("singapore dollar",), ("dollar",)),
+    "MYR": (("malaysian ringgit",), ("ringgit",)),
+    "PHP": (("philippine peso",), ("peso",)),
+    "BDT": (("bangladeshi taka",), ("taka",)),
+    # Not traded here. Listed so a headline about one is recognised as a third currency rather
+    # than read as one of the pair's ("Hong Kong dollar" is not the US dollar).
+    "HKD": (("hong kong dollar",), ()),
+    "TWD": (("new taiwan dollar", "taiwan dollar", "taiwanese dollar"), ()),
+    "DKK": (("danish krone",), ()),
+    "LKR": (("sri lankan rupee", "sri lanka rupee"), ()),
+    "EGP": (("egyptian pound",), ()),
+    "ARS": (("argentine peso", "argentinian peso"), ()),
+    "CLP": (("chilean peso",), ()),
+    "COP": (("colombian peso",), ()),
+    "RUB": ((), ("rouble", "ruble")),
+}
+
+# Bare currency names that are also ordinary words or names. On a headline for a pair that
+# contains the currency they would name, they make the headline take no side ("Won strengthens"
+# and "Samsung won the contract" cannot be told apart by a word list); elsewhere they are words.
+AMBIGUOUS_BARE = frozenset({"won", "real", "rand"})
+
+# Phrases that start with a currency name and are not about the currency.
+NOT_A_CURRENCY = ("euro zone", "euro area")
+
+_PAIR_TOKEN = re.compile(r"(?<![A-Za-z])([A-Za-z]{3})[/-]?([A-Za-z]{3})(?![A-Za-z])")
+
+
+def fx_pair(symbol: str) -> tuple[str, str]:
+    """The two currency codes of a stored pair symbol, e.g. "USDPKR" -> ("USD", "PKR")."""
+    s = (symbol or "").upper().replace("/", "").replace("=X", "")
+    return (s[:3], s[3:6]) if len(s) == 6 else ("", "")
+
+
+def orient(title: str, pair: tuple[str, str]) -> tuple[str, int] | None:
+    """The headline's wording with every currency name taken out, and +1 or -1 for which way its
+    sign applies to the pair; None when it cannot be said which currency the headline is about.
+    """
+    base, quote = pair
+    if base not in CURRENCIES or quote not in CURRENCIES or base == quote:
+        return None
+    named: set[str] = set()
+    own = False
+
+    # Pair tokens first ("USD/INR", "usdinr", "EUR-USD"), on the original wording, since a code
+    # inside a token has no word boundary of its own.
+    def token(m: re.Match[str]) -> str:
+        nonlocal own
+        a, b = m.group(1).upper(), m.group(2).upper()
+        if a in CURRENCIES and b in CURRENCIES and a != b:
+            if (a, b) == (base, quote):
+                own = True
+            else:
+                named.update(("BACKWARDS",) if (a, b) == (quote, base) else (a, b))
+            return " | "
+        return m.group(0)
+
+    text = _PAIR_TOKEN.sub(token, title)
+    # Codes on their own, in capitals only: "TRY" is the lira, "try" is a verb.
+    for code in CURRENCIES:
+        pat = re.compile(r"(?<![A-Za-z])" + code + r"(?![A-Za-z])")
+        if pat.search(text):
+            named.add(code)
+            text = pat.sub(" | ", text)
+    text = text.lower()
+    for phrase in NOT_A_CURRENCY:
+        text = _word(phrase).sub(" | ", text)
+    # Qualified names, longest first, so "south korean won" is taken before "korean won".
+    qualified = sorted(
+        ((q, code) for code, (quals, _) in CURRENCIES.items() for q in quals),
+        key=lambda x: -len(x[0]),
+    )
+    for q, code in qualified:
+        pat = re.compile(_WORD_EDGE_L + re.escape(q) + r"s?" + _WORD_EDGE_R)
+        if pat.search(text):
+            named.add(code)
+            text = pat.sub(" | ", text)
+    # Bare names. One shared by two currencies ("rupee", "peso") names the pair's own when only
+    # one side of the pair has it, and a third currency when neither does.
+    bare: dict[str, set[str]] = {}
+    for code, (_, names) in CURRENCIES.items():
+        for b in names:
+            bare.setdefault(b, set()).add(code)
+    for b, codes in bare.items():
+        pat = re.compile(_WORD_EDGE_L + re.escape(b) + r"s?" + _WORD_EDGE_R)
+        if not pat.search(text):
+            continue
+        mine = codes & {base, quote}
+        if b in AMBIGUOUS_BARE:
+            if mine:
+                return None
+            continue
+        if len(mine) == 1:
+            named.update(mine)
+        elif not mine:
+            named.add("THIRD")
+        else:
+            return None
+        text = pat.sub(" | ", text)
+
+    if named - {base, quote}:
+        return None
+    if own:
+        return (text, 1) if not named else None
+    if named == {base}:
+        return text, 1
+    if named == {quote}:
+        return text, -1
+    return None
+
+
+def classify(title: str, pair: tuple[str, str] | None = None) -> str:
+    """positive, negative or neutral for one headline, for the asset it was stored against.
 
     A headline carrying both directions is neutral rather than assigned to whichever side
     has more matches. "Revenue beats but guidance misses" is genuinely both, and picking a
     winner on match count would be inventing a judgement the wording does not support.
+
+    `pair` is set for a currency pair, and the sign is then the pair's, by `orient`: a
+    headline about the quote currency reverses, and one whose currency cannot be named takes
+    no side.
     """
-    up = count_terms(title, POSITIVE_TERMS)
-    down = count_terms(title, NEGATIVE_TERMS)
+    text, sign = title, 1
+    if pair is not None:
+        oriented = orient(title, pair)
+        if oriented is None:
+            return "neutral"
+        text, sign = oriented
+    up = count_words(text, POSITIVE_TERMS)
+    down = count_words(text, NEGATIVE_TERMS)
     if up and down:
         return "neutral"
     if up:
-        return "positive"
+        return "positive" if sign > 0 else "negative"
     if down:
-        return "negative"
+        return "negative" if sign > 0 else "positive"
     return "neutral"
 
 
@@ -331,11 +520,13 @@ def grade(items: int, publishers: int, top_share: float | None) -> tuple[str, li
 
 
 def read_target(cur, column: str, target_id: str, name: str, end: date,
-                recent: dict, earlier: dict):
+                recent: dict, earlier: dict, pair: tuple[str, str] | None = None):
     """Compute one target's reading. Returns None when the target has no coverage at all.
 
     `recent` and `earlier` are the two windows, read once for every target by `news_windows`
-    and handed in. Everything below is the arithmetic it always was.
+    and handed in. Everything below is the arithmetic it always was. `pair` is the two
+    currency codes when the target is a currency pair, so each headline is signed for the pair
+    (`classify`).
     """
     end_dt = datetime.combine(end, datetime.min.time())
     items = recent.get(target_id, [])
@@ -355,7 +546,7 @@ def read_target(cur, column: str, target_id: str, name: str, end: date,
     publishers: dict[str, int] = {}
     for r in items:
         title = r["title"] or ""
-        kind = classify(title)
+        kind = classify(title, pair)
         if kind == "positive":
             positive += 1
         elif kind == "negative":
@@ -694,7 +885,9 @@ def main() -> None:
             ("productId", "Product", "products"),
         ):
             step(f"human signal for {label}")
-            targets = rows(cur, f'SELECT id, name FROM "{table}" ORDER BY name')
+            # A currency pair's headlines are signed for the pair, so its symbol is read with it.
+            extra = ', symbol, "assetType"::text AS "assetType"' if table == "Asset" else ""
+            targets = rows(cur, f'SELECT id, name{extra} FROM "{table}" ORDER BY name')
             # Three statements for the whole group, taken before the loop: the two news
             # windows every target is read over, and the base closes the log is anchored to.
             end_dt = datetime.combine(end, datetime.min.time())
@@ -709,7 +902,8 @@ def main() -> None:
             signal_payload: list[tuple] = []
             log_payload: list[tuple] = []
             for t in targets:
-                r = read_target(cur, column, t["id"], t["name"], end, recent, earlier)
+                pair = fx_pair(t["symbol"]) if t.get("assetType") == "forex" else None
+                r = read_target(cur, column, t["id"], t["name"], end, recent, earlier, pair)
                 if r is None:
                     skipped += 1
                     continue

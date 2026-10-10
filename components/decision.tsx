@@ -309,7 +309,7 @@ function Sizing({ plan }: { plan: NonNullable<Decision["plan"]> }) {
         label="Reward against risk"
         hint={
           plan.rewardRisk !== null
-            ? "The measured target against the stop above, from the entry level. Measured, not chosen."
+            ? "The measured exit against the stop above, from the entry level. Measured, not chosen."
             : undefined
         }
       >
@@ -323,7 +323,7 @@ function Sizing({ plan }: { plan: NonNullable<Decision["plan"]> }) {
           </span>
         ) : (
           <span className="text-muted-foreground">
-            No measured target is stored, so the reward cannot be sized.
+            No measured exit is stored, so the reward cannot be sized.
           </span>
         )}
       </Field>
@@ -564,7 +564,7 @@ export function DecisionPanel({
             there is no stop to measure reward against, and that absence is printed rather than
             filled. */}
         <Field
-          label="Take profit"
+          label="Measured exit"
           hint={
             target
               ? targetSourceSentence(target.method)
@@ -578,7 +578,7 @@ export function DecisionPanel({
                 : `${price(target.low, currency, market)} to ${price(target.high, currency, market)}`}
             </span>
           ) : (
-            <span className="text-muted-foreground">No clear target stored.</span>
+            <span className="text-muted-foreground">No measured exit stored.</span>
           )}
         </Field>
 
@@ -588,7 +588,7 @@ export function DecisionPanel({
           {target?.rewardRisk != null ? (
             <span className="num">{target.rewardRisk.toFixed(1)}:1</span>
           ) : (
-            <span className="text-muted-foreground">No target to weigh.</span>
+            <span className="text-muted-foreground">No measured exit to weigh.</span>
           )}
         </Field>
 
@@ -1167,7 +1167,7 @@ function DecisionHeader({
       <span title="The newest trade when one is stored, else the close. Hover a price for its time.">Price</span>
       <span>Entry zone</span>
       <span>Stop loss</span>
-      <span>Take profit</span>
+      <span>Measured exit</span>
       <span title="Reward against risk, measured from the entry level. From today's price it is at least this.">
         Reward:risk
       </span>
@@ -1286,7 +1286,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                   asks second. One measured method, never an average; a name whose job
                   stored no target says so rather than being given one. */}
               <span className="min-w-0">
-                <span className={ROW_LABEL}>Take profit</span>
+                <span className={ROW_LABEL}>Measured exit</span>
                 <span
                   className={r.target ? "num block text-sm" : "text-muted-foreground block text-sm"}
                   title={
@@ -1295,7 +1295,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                       : undefined
                   }
                 >
-                  {r.target ? <PxRange low={r.target.low} high={r.target.high} currency={currency} market={r.market} /> : "no target measured"}
+                  {r.target ? <PxRange low={r.target.low} high={r.target.high} currency={currency} market={r.market} /> : "no exit measured"}
                 </span>
               </span>
 
@@ -1312,7 +1312,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                   }
                   title="Measured from the entry level. From today's price it is at least this."
                 >
-                  {r.target?.rewardRisk != null && Number.isFinite(r.target.rewardRisk) ? `${r.target.rewardRisk.toFixed(1)}:1` : "no target to weigh"}
+                  {r.target?.rewardRisk != null && Number.isFinite(r.target.rewardRisk) ? `${r.target.rewardRisk.toFixed(1)}:1` : "no exit to weigh"}
                 </span>
               </span>
 
