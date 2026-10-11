@@ -1834,3 +1834,108 @@ model AuditLog {
   @@unique([day, kind])
 }
 
+/// One pass of the decision job (tools/decide.mjs), recorded once and never rewritten (brain.md rule 95).
+///
+/// `DecisionLog` keeps the current call per asset per day and is rewritten by every pass; this is the
+/// history it cannot keep. A database trigger lets a run change only while `status` is "running" (to record
+/// how it finished) and refuses every delete. `id` names the run (GitHub run id, attempt and pass, or a local
+/// stamp), so a replay of the same run writes nothing twice.
+model DecisionRun {
+  id           String    @id
+  periodEnd    DateTime  @db.Date
+  /// "decide" or "macro" (the second pass that applies the macro gate).
+  pass         String
+  /// "running", then "complete", "partial" (some batches failed) or "failed".
+  status       String    @default("running")
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+  commit       String?
+  trigger      String?
+  /// The database tier the inputs were read from; no call is published from a standby read (rule 94).
+  servedFrom   String?
+  /// sha256 of every input row the run decided from, in asset order: two runs with the same fingerprint
+  /// read the same data.
+  fingerprint  String?
+  /// The newest stored session per market among the inputs.
+  sessions     Json?
+  /// The price-source health the run read (Coverage).
+  sourceHealth Json?
+  assets       Int       @default(0)
+  written      Int       @default(0)
+  published    Int       @default(0)
+  note         String?
+
+  calls DecisionCall[]
+
+  @@index([periodEnd, startedAt])
+}
+
+/// One asset's call in one run, exactly as the run made it. Never updated or removed (a trigger refuses
+/// both). Outcomes bind to this row's id, so a later run cannot change what an earlier call is graded on.
+model DecisionCall {
+  id          String    @id @default(dbgenerated("gen_random_uuid()::text"))
+  runId       String
+  run         DecisionRun @relation(fields: [runId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  assetId     String
+  symbol      String
+  market      String
+  periodEnd   DateTime  @db.Date
+  /// The session of the close the call was read from, and that close.
+  baseSession DateTime? @db.Date
+  baseClose   Float?
+  action      String
+  gate        String
+  confidence  String
+  entryLow    Float?
+  entryHigh   Float?
+  stop        Float?
+  /// The measured exit the reward:risk was computed to (the near edge of the measured range).
+  target      Float?
+  rewardRisk  Float?
+  atr14       Float?
+  /// The quality gate's verdict when the call was made (lib/quality.ts), and its reasons when withheld.
+  published   Boolean   @default(false)
+  gateReasons String?
+  /// checked / unverified / blocked (lib/execution.ts).
+  execution   String?
+  /// The setup window that decided ("swing" or "longer") and the call's validity window (lib/validity.ts).
+  horizon     String?
+  validFrom   DateTime? @db.Date
+  validUntil  DateTime? @db.Date
+  legs        String?
+  intent      String?
+  createdAt   DateTime  @default(now())
+
+  outcome CallOutcome?
+
+  @@unique([runId, assetId])
+  @@index([assetId, periodEnd])
+  @@index([periodEnd, published])
+}
+
+/// The evaluation of one exact call (tools/trade_sim.py): the directional verdict and the simulated trade as
+/// separate fields. Written while pending and frozen once `final` (a trigger refuses later changes).
+model CallOutcome {
+  callId      String       @id
+  call        DecisionCall @relation(fields: [callId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  evaluatedAt DateTime     @default(now())
+  final       Boolean      @default(false)
+  /// right / wrong / flat / stopped / pending / unavailable: stop first, then the sign of the five-session move.
+  direction   String
+  move5Pct    Float?
+  /// NOT_FILLED / INVALIDATED_BEFORE_FILL / WITHDRAWN / STOP_FIRST / TARGET_FIRST / EXPIRED / AMBIGUOUS /
+  /// UNAVAILABLE / PENDING.
+  trade       String
+  fillOn      DateTime?    @db.Date
+  fillPrice   Float?
+  exitOn      DateTime?    @db.Date
+  exitPrice   Float?
+  /// Gross R: the result over the planned risk (entry to stop). No costs are modelled; none can be grounded.
+  grossR      Float?
+  gapThrough  Boolean      @default(false)
+  sessions    Int          @default(0)
+  note        String?
+
+  @@index([trade])
+}
+
