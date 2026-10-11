@@ -3,9 +3,10 @@ import { Empty, Section } from "@/components/ui";
 import { WithheldList, DecisionList, SectorBoard } from "@/components/decision";
 import { cachedDecisionRows, cachedSourceHealth } from "@/lib/cached";
 import { loadOrDefer } from "@/lib/buildSafe";
-import { todayISO } from "@/lib/decisionInput";
-import { isoDate } from "@/lib/format";
+import { coverageLabelFor, todayISO } from "@/lib/decisionInput";
 import {
+  marketStatus,
+  marketStatusLines,
   byCloseness,
   byConfidence,
   scoreRows,
@@ -55,25 +56,19 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
   const forming = allWaits.filter((s) => s.decision.developing !== null).sort(byCloseness);
   const waits = allWaits.filter((s) => s.decision.developing === null).sort(byConfidence);
 
-  // Newest stored close across this class, compared as text: `yyyy-mm-dd` sorts correctly as text,
-  // and anything that came back through the cache is a string now whatever its type says.
-  const asOf = mine.reduce<string | null>((newest, s) => {
-    const d = s.row.closeDate ? isoDate(s.row.closeDate) : null;
-    if (!d || d === "no date") return newest;
-    return newest === null || d > newest ? d : newest;
-  }, null);
+  // The market's own state, counted from the rows below it (rule 93): newest close, newest run, source,
+  // and where every name went. It replaced a header that called every held-back name "with no stored
+  // price" -- 123 of them on /stocks had ended at their stop.
+  const market = mine[0]?.market ?? null;
+  const status = marketStatus(mine, all, health, market ? coverageLabelFor(market) : null);
 
   return (
     <div className="space-y-2">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{cls.title}</h1>
         <p className="mt-2 max-w-2xl text-sm">{cls.lead}</p>
-        <p className="text-muted-foreground mt-2 text-sm">
-          {mine.length} {mine.length === 1 ? "name" : "names"}, priced to{" "}
-          {asOf ?? "no stored close"}. {longs.length} long, {shorts.length} short published
-          {withheld.length ? `, ${withheld.length} withheld by the quality gate` : ""}
-          {forming.length ? `, ${forming.length} forming` : ""}
-          {waits.length ? `, ${waits.length} with no stored price` : ""}. Readings, not advice.
+        <p className="text-muted-foreground mt-2 text-sm" data-market-status data-snapshot={rows[0]?.dataStamp ?? ""}>
+          {marketStatusLines(status).join(" ")} Readings, not advice.
         </p>
       </div>
 

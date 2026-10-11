@@ -4,6 +4,7 @@ import { openSince, qualityGate, withOpenPosition, type GateResult } from "@/lib
 import { bundleFromRow, toDecisionInput, todayISO } from "@/lib/decisionInput";
 import { decideCall } from "@/lib/resolve";
 import { quoteBesideClose } from "@/lib/liveQuote";
+import { executionOf, type Execution } from "@/lib/execution";
 import { validityOf } from "@/lib/validity";
 import { earlySignalOf } from "@/lib/earlySignal";
 import { latestChange } from "@/lib/stateChange";
@@ -43,6 +44,8 @@ export interface Scored {
   gate?: GateResult;
   /// "SWING" or "POSITION": the trading style of the setup that decided; null on a WAIT.
   style?: string | null;
+  /// Whether the direction can be acted on, apart from whether it is right (lib/execution.ts).
+  execution?: Execution | null;
 }
 
 export { isPublished } from "@/lib/quality";
@@ -103,6 +106,7 @@ export function scoreRows(
       target,
       style,
       gate: withOpenPosition(qualityGate(decision, target, input.atr ?? null, style), since),
+      execution: executionOf({ action: decision.action, closeVolume: row.closeVolume }),
     };
   });
 }
@@ -185,13 +189,16 @@ export function toListRow(s: Scored): DecisionRow {
     // is -- it groups by two fields it was handed.
     sector: s.row.sector,
     sectorSort: s.row.sectorSort,
-    entry: s.decision.entry,
-    invalidation: s.decision.invalidation,
+    // A held-back row prints no levels (rule 93): an entry zone, a stop and an exit beside "Held back"
+    // read as a trade the rule table did not make. Its reason is in the row.
+    entry: s.decision.action === "WAIT" ? null : s.decision.entry,
+    invalidation: s.decision.action === "WAIT" ? null : s.decision.invalidation,
     // A call that ended at its stop (rule 92): its cells say so rather than "not measured".
     ended: s.decision.action === "WAIT" && s.decision.gate === "stop-crossed",
     // The measured exit if it works, from the one rule every surface shares. A row that names
     // only the level it is wrong at answers half the question a reader has.
-    target: s.target !== undefined ? s.target : rowTarget(s.row, s.decision),
+    target: s.decision.action === "WAIT" ? null : s.target !== undefined ? s.target : rowTarget(s.row, s.decision),
+    execution: s.execution ?? null,
     // An open call published only because it is open: the line under the verdict says so.
     held: s.gate?.held ?? null,
     confidence: s.decision.confidence,
@@ -310,6 +317,97 @@ export const ASSET_CLASSES: AssetClass[] = [
     holds: (s) => s.market === "Commodity",
   },
 ];
+
+/// What one market's page can say about its own state (rule 93): the newest stored close, the newest
+/// decision run it was part of, and where every name went -- so "no call today" can be told apart from
+/// "the run never reached this market", "the source failed" and "no price is stored". Counted from the
+/// same scored rows the page lists, so the sentence cannot disagree with the rows under it.
+export interface MarketStatus {
+  names: number;
+  latestClose: string | null;
+  /// The newest decision run that logged a row for this market, and the newest run of any market.
+  decidedOn: string | null;
+  latestRun: string | null;
+  processed: boolean;
+  longs: number;
+  shorts: number;
+  withheld: number;
+  forming: number;
+  heldBack: { ended: number; noPrice: number; stale: number; silent: number; other: number };
+  /// The price source for this market and its last coverage status, when one is recorded.
+  source: { label: string; status: string } | null;
+}
+
+const dayText = (d: Date | string | null | undefined): string | null => {
+  if (!d) return null;
+  const t = d instanceof Date ? d.getTime() : Date.parse(String(d).slice(0, 10) + "T00:00:00Z");
+  return Number.isFinite(t) ? new Date(t).toISOString().slice(0, 10) : null;
+};
+
+export function marketStatus(
+  mine: Scored[],
+  all: Scored[],
+  health: { source: string; status: string }[],
+  sourceLabel: string | null,
+): MarketStatus {
+  const newest = (xs: (string | null)[]) => xs.reduce<string | null>((m, d) => (d && (!m || d > m) ? d : m), null);
+  const waits = mine.filter((s) => s.decision.action === "WAIT");
+  const decidedOn = newest(mine.map((s) => dayText(s.row.callLatest)));
+  const latestRun = newest(all.map((s) => dayText(s.row.callLatest)));
+  const src = sourceLabel ? health.find((h) => h.source === sourceLabel) : undefined;
+  const gateOf = (s: Scored) => s.decision.gate;
+  return {
+    names: mine.length,
+    latestClose: newest(mine.map((s) => dayText(s.row.closeDate))),
+    decidedOn,
+    latestRun,
+    processed: decidedOn !== null && decidedOn === latestRun,
+    longs: mine.filter((s) => s.decision.action === "LONG" && isPublishedRow(s)).length,
+    shorts: mine.filter((s) => s.decision.action === "SHORT" && isPublishedRow(s)).length,
+    withheld: mine.filter((s) => s.decision.action !== "WAIT" && !isPublishedRow(s)).length,
+    forming: waits.filter((s) => s.decision.developing !== null).length,
+    heldBack: {
+      ended: waits.filter((s) => gateOf(s) === "stop-crossed").length,
+      noPrice: waits.filter((s) => gateOf(s) === "no-prices").length,
+      stale: waits.filter((s) => gateOf(s) === "stale" || gateOf(s) === "bad-date").length,
+      silent: waits.filter((s) => gateOf(s) === "source-silent").length,
+      other: waits.filter(
+        (s) => s.decision.developing === null && !["stop-crossed", "no-prices", "stale", "bad-date", "source-silent"].includes(gateOf(s)),
+      ).length,
+    },
+    source: src && sourceLabel ? { label: sourceLabel, status: src.status } : null,
+  };
+}
+
+function isPublishedRow(s: Scored): boolean {
+  return s.gate ? s.gate.published : true;
+}
+
+/// The status as the sentences a page prints, in the order a reader needs them.
+export function marketStatusLines(m: MarketStatus): string[] {
+  const lines: string[] = [];
+  lines.push(`${m.names} ${m.names === 1 ? "name" : "names"}, newest close stored ${m.latestClose ?? "none"}.`);
+  if (!m.decidedOn) lines.push("No decision run has logged this market yet.");
+  else if (!m.processed) lines.push(`Not processed in the latest run (${m.latestRun}): its newest decision is from ${m.decidedOn}.`);
+  else lines.push(`Decision run of ${m.decidedOn} completed for this market.`);
+  if (m.source && m.source.status !== "healthy") lines.push(`Price source ${m.source.label}: ${m.source.status}.`);
+  const published = m.longs + m.shorts;
+  lines.push(
+    published
+      ? `${m.longs} long, ${m.shorts} short published.`
+      : "No call passed the quality gate today.",
+  );
+  const rest: string[] = [];
+  if (m.withheld) rest.push(`${m.withheld} withheld by the quality gate`);
+  if (m.forming) rest.push(`${m.forming} forming`);
+  if (m.heldBack.ended) rest.push(`${m.heldBack.ended} ended at their stop`);
+  if (m.heldBack.noPrice) rest.push(`${m.heldBack.noPrice} with no stored price`);
+  if (m.heldBack.stale) rest.push(`${m.heldBack.stale} with a stale price`);
+  if (m.heldBack.silent) rest.push(`${m.heldBack.silent} whose source answered nothing`);
+  if (m.heldBack.other) rest.push(`${m.heldBack.other} held back by the rule table`);
+  if (rest.length) lines.push(rest.join(", ") + ".");
+  return lines;
+}
 
 export function classBySlug(slug: string): AssetClass | null {
   return ASSET_CLASSES.find((c) => c.slug === slug) ?? null;

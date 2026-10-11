@@ -294,6 +294,16 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit $code
 
+      # Bring every page onto this run's snapshot at once (brain.md rule 93). The site's data cache has no
+      # timer: it refreshes only through /api/revalidate, which acts when the database is ahead of the
+      # cache. Without this the pages would wait for the hourly watchdog to see the run.
+      - name: Bring the site onto this run's snapshot
+        if: always()
+        continue-on-error: true
+        run: |
+          site="${{ vars.SITE_URL || 'https://nextbigthing-nu.vercel.app' }}"
+          curl -s -X POST --max-time 60 "$site/api/revalidate" || echo "revalidate call failed; the watchdog will align within the hour"
+
   # The day's audit, saved to the logbook (/logbook) after the decisions are written: a review of the
   # week on Mondays, a daily entry every day. One entry per day, rewritten by a re-run, never doubled.
   # It cannot fail the lane.

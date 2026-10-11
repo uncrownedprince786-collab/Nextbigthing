@@ -137,3 +137,19 @@ jobs:
           since="$(date -u -d '40 days ago' +%Y-%m-%d)"
           python jobs/mirror.py --from-env DATABASE_URL --to-env "${{ steps.targets.outputs.names }}" \
             --tables DecisionLog,SignalLog,AssetThesis,MacroGate --since "$since"
+
+      # News coverage (brain.md rule 93). `always()` for the reason above: the rule table reads coverage
+      # only to withdraw evidence, so a standby without it would print calls the primary refused. Sixty-one
+      # days, the two thirty-day windows `jobs/human.py` reads, so a standby that has to recompute the
+      # readings itself has the same headlines to read.
+      - name: News headlines and readings, a trailing 61 days
+        if: always() && steps.targets.outputs.any == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          since="$(date -u -d '61 days ago' +%Y-%m-%d)"
+          python jobs/mirror.py --from-env DATABASE_URL --to-env "${{ steps.targets.outputs.names }}" \
+            --tables News,HumanSignal --since "$since"

@@ -62,6 +62,9 @@ function base(over: Partial<DecisionInput> = {}): DecisionInput {
   };
 }
 
+/// A stored reward past `ASYMMETRY_CLEARS`: it carries a check 8 trend and confirms nothing (rule 93).
+const ASYM = { method: "structure", low: 80, high: 84, rewardRisk: 3 };
+
 test("the healthy case is LONG, NOW, High", () => {
   const d = decide(base());
   assert.equal(d.action, "LONG");
@@ -146,33 +149,28 @@ test("no invalidation level is WAIT however good the setup looks", () => {
 
 // --- Gate 5: disagreement ---------------------------------------------------------------------
 
-test("opposite timeframes print the nearer read and note the disagreement", () => {
-  // This was a WAIT until 2026-10-09. A swing read and a quarterly read measure different
-  // windows and answer different questions -- which is the sentence the horizons block on every
-  // asset page has always carried -- so refusing both because they differ withheld the nearer
-  // one on the strength of the further one.
+test("opposite timeframes are WAIT unless the reward is asymmetric, as the methodology says", () => {
+  // Check 5 on the methodology page has always read "setup and longer view disagree, and the reward is
+  // not asymmetric -> WAIT", and from 2026-10-09 the code printed the nearer read with a note instead.
+  // Rule 93 restores the refusal: two timeframes reading opposite ways are contradictory evidence.
   const d = decide(base({ horizon: { direction: "down" } }));
-  assert.equal(d.action, "LONG");
-  assert.equal(d.gate, "long");
-  assert.ok(
-    d.notes.some((n) => /longer view reads down where this reads up/.test(n)),
-    d.notes.join(" | "),
-  );
-  // It still costs a grade: `confidenceFor` counts an agreeing second timeframe and there is
-  // none to count. The base case is High on three legs; this has two.
-  assert.equal(d.confidence, "High");
-  assert.match(d.why[1], /Longer view does not disagree|does not disagree/);
+  assert.equal(d.action, "WAIT");
+  assert.equal(d.gate, "mixed-horizons");
+  assert.equal(d.intent, "up");
+  assert.match(d.why[0], /reads up and the longer view reads down/);
+  assert.match(d.why[1], /1\.5x is short of the 2\.75x/);
+  // An asymmetric reward carries it, exactly as the page says.
+  const carried = decide(base({ horizon: { direction: "down" }, target: { method: "structure", low: 120, high: 130, rewardRisk: 3 } }));
+  assert.equal(carried.action, "LONG");
 });
 
-test("the mirror case prints too", () => {
+test("the mirror case is WAIT too", () => {
   const d = decide(
     base({ setup: { direction: "down", horizon: "swing" }, horizon: { direction: "up" } }),
   );
-  assert.equal(d.action, "SHORT");
-  assert.ok(
-    d.notes.some((n) => /longer view reads up where this reads down/.test(n)),
-    d.notes.join(" | "),
-  );
+  assert.equal(d.action, "WAIT");
+  assert.equal(d.gate, "mixed-horizons");
+  assert.equal(d.intent, "down");
 });
 
 test("an unusual move with thin news is a note on the direction, not a refusal", () => {
@@ -415,12 +413,11 @@ test("the peer reading is what a currency pair has instead of volume", () => {
     analogs: null,
     target: null,
   };
-  // Without it the direction still prints -- nothing is withheld any more -- but nothing
-  // confirms it either, and both facts are recorded.
+  // Without it nothing carries the trend, so it falls through to check 9 (rule 93) and is recorded as
+  // a developing read rather than printed.
   const bare = decide(base({ ...pair, relStrength: 0 }));
-  assert.equal(bare.action, "SHORT");
-  assert.equal(bare.gate, "unconfirmed-short");
-  assert.equal(bare.confidence, "Low");
+  assert.equal(bare.action, "WAIT");
+  assert.equal(bare.gate, "incomplete");
 
   // With it the gate and the grade both move, which is the whole difference the leg makes.
   const confirmed = decide(base({ ...pair, relStrength: -4.5 }));
@@ -477,7 +474,7 @@ test("the peer cap takes one step and never two", () => {
 // The two places a stored `rewardRisk` is allowed to change the answer. Both are bypasses of a
 // refusal and neither can produce a direction on its own, which is what these tests pin down.
 
-test("every measured direction prints, and the grade carries how much backs it", () => {
+test("a check 8 direction nothing carries falls through to check 9; a carried one prints", () => {
   // The last gate to go. It asked for one of three stored figures to carry a direction whose own
   // conditions were incomplete -- volume, a peer gap, or a reward at ASYMMETRY_CLEARS. Measured
   // 2026-10-09: 176 of the 187 refused names had a direction, an entry and a stop, and were held
@@ -494,11 +491,12 @@ test("every measured direction prints, and the grade carries how much backs it",
     analogs: null,
     target: null,
   };
+  // Rule 93 restored the carrier: the methodology always said such a name falls through to check 9,
+  // and for months it printed LONG as `unconfirmed-long` instead.
   const d = decide(base(bare));
-  assert.equal(d.action, "LONG");
-  assert.equal(d.gate, "unconfirmed-long", "recorded apart so the outcome log can judge it");
-  assert.equal(d.confidence, "Low", "nothing confirms it, and the grade is where that is said");
-  assert.match(d.why[0], /none of its other conditions are present/);
+  assert.equal(d.action, "WAIT");
+  assert.equal(d.gate, "incomplete");
+  assert.ok(d.developing, "it is still named as a developing read");
   assert.ok(d.missing.length, "and every absent confirmation is still listed");
 
   // With a carrier it is the same action under a different gate and a better grade, so the two
@@ -514,14 +512,15 @@ test("a falling trend with nothing behind it is gated where shorts measured nega
   // The short gate. 171,010 shorts over eight years: pooled they lose, and split by market the
   // whole of the loss is the 105,705 US observations while crypto, PSX and FX are positive. A
   // US short with none of the four confirmations is a position whose own history argues against
-  // it, so it is refused rather than printed and graded Low.
+  // it, so it is refused rather than printed and graded Low. Carried by a reward figure, which is
+  // not a confirmation, so the trend reaches the short gate at all (rule 93).
   const bare = {
     setup: { direction: "flat", horizon: "swing", trend: "down" } as const,
     horizon: null,
     volumeRatio: 0.5,
     relStrength: 0,
     analogs: null,
-    target: null,
+    target: ASYM,
   };
   const gated = decide(base({ ...bare, market: "US" }));
   assert.equal(gated.action, "WAIT");
@@ -533,7 +532,7 @@ test("a falling trend with nothing behind it is gated where shorts measured nega
   for (const market of ["Crypto", "PSX", "FX"] as const) {
     const through = decide(base({ ...bare, market }));
     assert.equal(through.action, "SHORT", market);
-    assert.equal(through.gate, "unconfirmed-short", market);
+    assert.equal(through.gate, "trend-short", market);
   }
 });
 
@@ -563,7 +562,7 @@ test("a late short is gated in every market, including the ones that measured po
     volumeRatio: 0.5,
     relStrength: 0,
     analogs: null,
-    target: null,
+    target: ASYM,
   };
   assert.equal(decide(base({ ...late, r20: -4 })).action, "SHORT", "not late, prints");
   const gated = decide(base({ ...late, r20: -18 }));
@@ -584,16 +583,17 @@ test("longs are not gated, because longs measured positive everywhere", () => {
     volumeRatio: 0.5,
     relStrength: 0,
     analogs: null,
-    target: null,
+    target: ASYM,
     r20: -18,
   };
   assert.equal(decide(base(bare)).action, "LONG");
-  assert.equal(decide(base(bare)).gate, "unconfirmed-long");
+  assert.equal(decide(base(bare)).gate, "trend-long");
 });
 
-test("contradicting coverage no longer refuses a thin direction, it notes it", () => {
-  // The last soft veto inside gate 7. It still withdraws the analog leg and still prints, which
-  // is rule 44's substance; what it stopped doing is deleting the direction.
+test("coverage worded against a check 8 direction refuses it, as the methodology says", () => {
+  // Rule 44's gate-8 refusal, restored by rule 93: the methodology row for check 8 has always said "not
+  // contradicted by the published coverage", and the live table had stopped asking. A thin case
+  // pointing against published coverage falls through to check 9 with the coverage named first.
   const d = decide(
     base({
       setup: { direction: "flat", horizon: "swing", trend: "up" },
@@ -602,11 +602,13 @@ test("contradicting coverage no longer refuses a thin direction, it notes it", (
       news: { tone: "down", catalyst: true },
     }),
   );
-  assert.equal(d.action, "LONG");
-  assert.ok(
-    d.notes.some((n) => /worded negatively/.test(n)),
-    d.notes.join(" | "),
-  );
+  assert.equal(d.action, "WAIT");
+  assert.equal(d.gate, "incomplete");
+  assert.match(d.developing?.waitingOn[0] ?? "", /worded negatively/);
+  // Coverage that could not be read refuses it too: no contradiction can be ruled out.
+  const blind = decide(base({ setup: { direction: "flat", horizon: "swing", trend: "up" }, horizon: null, volumeRatio: 2.4, newsCoverage: "unavailable" }));
+  assert.equal(blind.action, "WAIT");
+  assert.match(blind.developing?.waitingOn.join(" ") ?? "", /could not be read/);
 });
 
 test("a price between its averages still has a side, and the sentence says which reading it is", () => {
@@ -644,17 +646,20 @@ test("a bias is still named as a bias, whatever carries it", () => {
     horizon: null,
     target: null,
   };
-  for (const over of [{ volumeRatio: 0.5, relStrength: 0 }, { volumeRatio: 2.4 }]) {
+  for (const over of [{ volumeRatio: 0.5, relStrength: 0, target: ASYM }, { volumeRatio: 2.4 }]) {
     const d = decide(base({ ...between, ...over }));
     assert.equal(d.action, "LONG");
     assert.doesNotMatch(d.why[0], /The trend is/);
     assert.match(d.why[0], /Price is between its own averages, with the 20 day above the 50 day/);
   }
+  // Carried by nothing, it is not acted on (rule 93).
+  assert.equal(decide(base({ ...between, volumeRatio: 0.5, relStrength: 0 })).action, "WAIT");
 
-  // A disagreeing longer view no longer refuses it either; it is a note and a lost grade.
+  // A disagreeing longer view refuses a thin trend unless the reward is asymmetric (rule 93, gate 5's terms).
   const opposed = decide(base({ ...between, volumeRatio: 2.4, horizon: { direction: "down" } }));
-  assert.equal(opposed.action, "LONG");
-  assert.ok(opposed.notes.some((n) => /longer view reads down/.test(n)), opposed.notes.join(" | "));
+  assert.equal(opposed.action, "WAIT");
+  const asym = decide(base({ ...between, volumeRatio: 2.4, horizon: { direction: "down" }, target: { method: "structure", low: 120, high: 130, rewardRisk: 3 } }));
+  assert.equal(asym.action, "LONG");
 });
 
 test("a trend beats a bias and the two never compete", () => {
@@ -773,7 +778,7 @@ test("a neutral reading and no reading at all both change nothing", () => {
   assert.deepEqual(neutral.notes, []);
 });
 
-test("coverage withdraws the history leg on a thin direction too, and prints", () => {
+test("coverage worded against a thin direction refuses it, and only lowers a carried grade elsewhere", () => {
   // Rule 44 made contradicting coverage a veto at this gate, on the argument that a thin case
   // pointing one way against published coverage pointing the other is the blind trap. The veto
   // is gone with every other veto; what remains is the substance of the rule -- the matched past
@@ -786,15 +791,11 @@ test("coverage withdraws the history leg on a thin direction too, and prints", (
   const clean = decide(base(carried));
   const against = decide(base({ ...carried, news: { tone: "down", catalyst: true } }));
 
-  assert.equal(against.action, "LONG");
-  assert.ok(
-    against.notes.some((n) => /spike against its own baseline/.test(n)),
-    against.notes.join(" | "),
-  );
-  assert.ok(
-    CONFIDENCE_ORDER[against.confidence] >= CONFIDENCE_ORDER[clean.confidence],
-    "a withdrawn confirmation can only lower the grade, never raise it",
-  );
+  assert.equal(clean.action, "LONG");
+  // Rule 44's refusal at check 8, restored by rule 93: the thin case does not print against coverage.
+  assert.equal(against.action, "WAIT");
+  assert.match(against.developing?.waitingOn[0] ?? "", /spike against its own baseline/);
+  assert.ok(CONFIDENCE_ORDER[against.confidence] >= CONFIDENCE_ORDER[clean.confidence]);
 });
 
 test("a confirmed setup is not vetoed by coverage, only graded down", () => {
@@ -1093,7 +1094,8 @@ test("a silent entry rule is never reported as missing evidence", () => {
 test("a trigger backs a short the gate would otherwise refuse", () => {
   // The gate asks for one of the five, not one of the four. A US short with nothing behind it is
   // refused; the same row with a squeeze that broke downwards this session has one independent
-  // thing behind it and prints, graded Medium on that one leg.
+  // thing behind it and prints, graded Medium on that one leg. Carried by a reward figure so the bare
+  // case reaches the short gate (rule 93).
   const bare = {
     market: "US" as const,
     setup: { direction: "flat", horizon: "swing", trend: "down" } as const,
@@ -1101,7 +1103,7 @@ test("a trigger backs a short the gate would otherwise refuse", () => {
     volumeRatio: 0.5,
     relStrength: 0,
     analogs: null,
-    target: null,
+    target: ASYM,
   };
   assert.equal(decide(base(bare)).gate, "short-unbacked");
   const backed = decide(
@@ -1128,7 +1130,7 @@ test("a late short is still gated, and a trigger is what releases it", () => {
     volumeRatio: 0.5,
     relStrength: 0,
     analogs: null,
-    target: null,
+    target: ASYM,
     r20: -18,
   };
   assert.equal(decide(base(late)).gate, "short-unbacked");
@@ -1139,9 +1141,8 @@ test("a late short is still gated, and a trigger is what releases it", () => {
 });
 
 test("a withheld trend caught at the start is logged under its own gate and named first", () => {
-  // Gate 8 prints either way; what the carrier decides is which gate name reaches DecisionLog,
-  // and that is the point -- a withheld trend whose compression broke this session is a
-  // different row from one carried by nothing, and only the gate name can say so.
+  // Since rule 93 the carrier decides whether gate 8 prints at all: carried by nothing, the trend
+  // falls through to check 9; carried by a squeeze that broke this session, it prints.
   const withheld = {
     setup: { direction: "flat", horizon: "swing", trend: "up" } as const,
     horizon: null,
@@ -1150,7 +1151,7 @@ test("a withheld trend caught at the start is logged under its own gate and name
     analogs: null,
     target: null,
   };
-  assert.equal(decide(base(withheld)).gate, "unconfirmed-long");
+  assert.equal(decide(base(withheld)).gate, "incomplete");
   const caught = decide(
     base({ ...withheld, entryTrigger: { rule: "squeeze_break", direction: "up" } }),
   );
@@ -1228,7 +1229,7 @@ test("the stop check runs before the short gate and before any confirmation coun
     volumeRatio: 0.5,
     relStrength: 0,
     analogs: null,
-    target: null,
+    target: ASYM,
     lastClose: 100,
     invalidation: 96,
   };
@@ -1323,7 +1324,7 @@ test("a refusal carries the side it refused, and a direction or a plain WAIT car
       volumeRatio: 0.5,
       relStrength: 0,
       analogs: null,
-      target: null,
+      target: ASYM,
     }),
   );
   assert.equal(unbacked.gate, "short-unbacked");

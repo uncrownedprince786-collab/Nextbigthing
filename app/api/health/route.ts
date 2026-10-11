@@ -17,9 +17,11 @@ export async function GET() {
     // the fallback when the cached list cannot be read.
     const [readings, rows] = await Promise.all([getHealthReadings(), cachedDecisionRows().catch(() => null)]);
     const health = assess(rows ? { ...readings, pool: rows.length } : readings, new Date());
-    return Response.json(health, {
+    // The snapshot the pool was counted from, so a checker can tell a real parity fault from two
+    // surfaces serving different snapshots (rule 93): the market pages print the same stamp.
+    return Response.json({ ...health, snapshot: rows?.[0]?.dataStamp ?? null }, {
       status: 200,
-      headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60" },
+      headers: { "Cache-Control": "no-store" },
     });
   } catch {
     return Response.json(

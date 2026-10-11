@@ -29,7 +29,7 @@ import {
 } from "@/components/ui";
 import { DecisionPanel } from "@/components/decision";
 import { pickTarget, targetForCall } from "@/lib/target";
-import { openSince, qualityGate, withOpenPosition } from "@/lib/quality";
+import { qualityGate } from "@/lib/quality";
 import { rankHeadlines } from "@/lib/newsRank";
 import {
   getAccuracy,
@@ -49,8 +49,10 @@ import {
   getThesis,
   getUpcoming,
 } from "@/lib/queries";
-import { bundleFromQuery, marketOf, toDecisionInput, todayISO } from "@/lib/decisionInput";
+import { bundleFromQuery, bundleFromRow, marketOf, toDecisionInput, todayISO } from "@/lib/decisionInput";
 import { decideCall } from "@/lib/resolve";
+import { cachedDecisionRows, cachedSourceHealth } from "@/lib/cached";
+import { scoreRows } from "@/lib/assetClass";
 import { validityOf } from "@/lib/validity";
 import { earlySignalOf } from "@/lib/earlySignal";
 import { changeTimeline, latestChange } from "@/lib/stateChange";
@@ -170,34 +172,41 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
   // table: this page does not test the close date itself, because a second staleness rule is how
   // the panel and the page come to disagree about whether the number on screen is today's.
   const today = todayISO();
-  const decisionInput = toDecisionInput(bundleFromQuery(bundle, sourceHealth), today);
-  const decision = decideCall(decisionInput);
+  // **The decision is the lists' own** (rule 93): the same cached row, through the same `scoreRows`, that
+  // the market pages and `/api/signals` read, so one name cannot be LONG here and withheld there because
+  // two reads of the database were taken at different moments. The page's own bundle is still read for
+  // everything that is not the decision.
+  const [cachedRows, cachedHealth] = await Promise.all([
+    cachedDecisionRows().catch(() => null),
+    cachedSourceHealth().catch(() => null),
+  ]);
+  const cachedRow = cachedRows?.find((r) => r.assetId === asset.id) ?? null;
+  const scored = cachedRow && cachedHealth ? scoreRows([cachedRow], cachedHealth, today)[0] : null;
+  const decisionInput = scored && cachedRow && cachedHealth
+    ? toDecisionInput(bundleFromRow(cachedRow, cachedHealth), today)
+    : toDecisionInput(bundleFromQuery(bundle, sourceHealth), today);
+  const decision = scored ? scored.decision : decideCall(decisionInput);
   // The measured exit and the quality gate's verdict, by the same functions the lists use, so a name
   // withheld from the lists says so here, and why.
-  const target = targetForCall(pickTarget(horizons), decision);
+  const target = scored ? (scored.target ?? null) : targetForCall(pickTarget(horizons), decision);
   // The same function the list rows use, fed the same three facts, so this page and the market page
   // show one horizon and one window for this name.
   const validity = validityOf({
     action: decision.action,
     setupHorizon: decisionInput.setup?.horizon ?? null,
-    runAction: callRun?.action ?? null,
-    runSince: callRun?.since ?? null,
-    asOf: bundle.newestCloseDate ?? null,
+    runAction: cachedRow ? cachedRow.callAction : (callRun?.action ?? null),
+    runSince: cachedRow ? cachedRow.callSince : (callRun?.since ?? null),
+    asOf: cachedRow ? cachedRow.closeDate : (bundle.newestCloseDate ?? null),
     today,
   });
-  // The quality gate, with the trading style and open-position protection, as scoreRows applies them.
+  // The quality gate, with the trading style and open-position protection, exactly as scoreRows applied
+  // it. A name outside the active pool is on no list, so it is no call here either: withheld, saying why.
   const style = validity ? validity.label.toUpperCase() : null;
-  const gate = withOpenPosition(
-    qualityGate(decision, target, decisionInput.atr ?? null, style),
-    openSince({
-      action: decision.action,
-      publishedAction: bundle.published?.action ?? null,
-      publishedOn: bundle.published?.on ?? null,
-      lastRunAction: decisionInput.lastRun ? (decisionInput.lastRun.direction === "up" ? "LONG" : "SHORT") : null,
-      lastRunSince: decisionInput.lastRun?.since ?? null,
-      validityStatus: validity?.status ?? null,
-    }),
-  );
+  const gate = scored?.gate
+    ?? (decision.action === "WAIT"
+      ? qualityGate(decision, target, decisionInput.atr ?? null, style)
+      : { published: false, reasons: ["not in the active pool: under its market's liquidity floor, or no current close"] });
+  const execution = scored?.execution ?? null;
   // The verdict change in the newest cycle (same function as the rows) and the timeline for the banner.
   const change = latestChange({
     action: decision.action,
@@ -266,6 +275,7 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
           target={target}
           withheld={gate.published ? null : gate.reasons}
           held={gate.held ?? null}
+          execution={execution}
           validity={validity}
           early={early}
           change={change}

@@ -15,7 +15,14 @@ import { getDecisionRows, getSourceHealth } from "@/lib/queries";
 /// `'use cache'` would be the Next 16 way to say this and does not work here: `cacheComponents` is
 /// not enabled in next.config.ts, so the directive and `cacheLife` are unavailable and
 /// `unstable_cache` is the correct API in this configuration.
-const HOUR = { revalidate: 3600 } as const;
+///
+/// **No timer** (rule 93). Both entries refresh only when `/api/revalidate` finds the database ahead of
+/// them, and the pages are revalidated in the same call. They used to expire on an hourly timer of their
+/// own while each page's HTML expired on another, so after a run the market pages and `/api/health` could
+/// each be serving a different snapshot -- the pool-parity failure of 2026-10-10 and 10-11 (553 listed,
+/// 547 counted). One trigger, one snapshot, every surface.
+export const DATA_TAG = "decision-data";
+const ON_DEMAND: { revalidate: false; tags: string[] } = { revalidate: false, tags: [DATA_TAG] };
 
-export const cachedDecisionRows = unstable_cache(getDecisionRows, ["decision-rows"], HOUR);
-export const cachedSourceHealth = unstable_cache(getSourceHealth, ["source-health"], HOUR);
+export const cachedDecisionRows = unstable_cache(getDecisionRows, ["decision-rows"], ON_DEMAND);
+export const cachedSourceHealth = unstable_cache(getSourceHealth, ["source-health"], ON_DEMAND);

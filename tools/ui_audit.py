@@ -12,15 +12,17 @@ rendered HTML of the home page and every market page and checks, row by row:
   2. nothing contradicts its call: no Falling Star on a LONG, no Rising Star on a SHORT, and a
      change sentence ("Switched from Short to Long on Oct 10: ...") always ends in the row's verdict;
   3. no badges: no WAIT pill, and no change badge ("REVERSED: SHORT ➔ LONG") anywhere in a row;
-     and a "Held back" row only for one of brain.md rule 92's reasons -- a call that ended at its
-     stop, a turn with no open call to hold, nothing measured leaning either way, or no stored
-     close at all. Any other held-back row fails (rule 86: a priced name resolves to LONG or SHORT);
+     and a "Held back" row prints its reason and no levels -- no entry zone, stop, exit or reward
+     beside a name the rule table made no call on (brain.md rule 93, which withdrew rule 86's
+     "every priced name resolves to LONG or SHORT");
   4. no placeholder cell: "none stored", "not stored", "not applicable", "N/A", "N waiting";
   5. the held-back list is folded away on every page that has one;
-  6. pool parity: every asset the database holds is listed on one of the market pages.
+  6. pool parity: every asset the database holds is listed on one of the market pages;
+  7. one snapshot: every market page and `/api/health` report the same data stamp (rule 93).
 
-Exit 0 when every check passes, 1 when any fails (with the row that failed), 2 when the site cannot be
-read. Read-only: it fetches pages and changes nothing.
+Before reading, it asks `/api/revalidate` to bring the caches onto the database's current snapshot --
+a call that does nothing when they are already there. It changes no data. Exit 0 when every check
+passes, 1 when any fails (with the row that failed), 2 when the site cannot be read.
 """
 
 from __future__ import annotations
@@ -36,12 +38,10 @@ CLASS_PAGES = ["/stocks", "/crypto", "/psx", "/forex", "/commodities"]
 PRICE = r"[$€£¥]?(?:Rs\.?)?\s?-?[\d,]+\.\d+(?:[₀-₉]+\d+)?"
 BANNED = re.compile(r"(?i)none stored|not stored|not applicable|\bN/A\b|\b\d+ waiting\b")
 TAG = re.compile(r"<[^>]+>")
-# The reasons rule 92 leaves a priced name WAIT for, in the words the row prints (lib/decision.ts stop and
-# reversal gates, `NO_DIRECTION` in lib/resolve.ts).
-HELD_BACK_FOR = re.compile(
-    r"already moved through the level that would prove it wrong"
-    r"|A turn this recent prints only once something independent confirms it"
-    r"|Nothing measured leans either way, so no direction is given"
+# The level cells of a held-back row: each must say there is no call, never print a price (rule 93).
+HELD_BACK_LEVELS = re.compile(
+    r"\bEntry zone (?:no call|none: the call ended) Stop loss (?:no call|none: the call ended) "
+    r"Measured exit (?:no call|none: the call ended) Reward:risk (?:no call|none: the call ended)\b"
 )
 
 
@@ -79,8 +79,10 @@ def check_badges(row: str) -> str | None:
     action = action_of(row)
     if action == "WAIT":
         return "a WAIT pill in the action cell"
-    if action == "Held back" and not HELD_BACK_FOR.search(row) and "no close yet" not in row:
-        return "a held-back row without one of rule 92's reasons: a priced name resolves to LONG or SHORT"
+    if action == "Held back" and "Why no call" not in row:
+        return "a held-back row with no reason"
+    if action == "Held back" and not HELD_BACK_LEVELS.search(row):
+        return "a held-back row printing levels: an entry, stop or exit beside a name with no call"
     if re.search(r"\b(?:REVERSED|INVALIDATED|OVERRIDDEN|WITHDRAWN|NEW CALL):|➔", row):
         return "a change badge in the row"
     if action == "LONG" and "FALLING STAR" in row:
@@ -101,15 +103,31 @@ def folded(html: str, summary_start: str) -> bool | None:
     return None
 
 
+def align(site: str) -> str:
+    """Ask the site to bring its caches onto the database's snapshot; the reply, for the log."""
+    req = urllib.request.Request(site + "/api/revalidate", data=b"", method="POST", headers={"User-Agent": "nbt-ui-audit"})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return r.read().decode("utf-8", "replace")[:200]
+    except Exception as e:  # noqa: BLE001 - the audit still runs; a skew it then finds is reported
+        return f"could not align ({type(e).__name__})"
+
+
 def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
+    if fetch is None:
+        align(site)
     fetch = fetch or (lambda url: urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "nbt-ui-audit"}), timeout=60).read().decode("utf-8", "replace"))
     failures: list[str] = []
     counts = {"rows": 0, "stars": 0, "changes": 0, "listed": 0, "pool": 0}
     listed: set[str] = set()
+    stamps: dict[str, str] = {}
     for page in PAGES:
         html = fetch(site + page)
         if page in CLASS_PAGES:
             listed.update(re.findall(r'href="/asset/([^"#?]+)"', html))
+            m = re.search(r'data-snapshot="([^"]*)"', html)
+            if m:
+                stamps[page] = m.group(1)
         for row in rows_of(html):
             counts["rows"] += 1
             counts["stars"] += len(re.findall(r"(RISING|FALLING) STAR", row))
@@ -128,10 +146,17 @@ def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
     # Pool parity: every asset the database holds appears on one of the market pages.
     import json
 
-    pool = json.loads(fetch(site + "/api/health")).get("pool")
+    health = json.loads(fetch(site + "/api/health"))
+    pool = health.get("pool")
     counts["listed"], counts["pool"] = len(listed), pool or 0
     if isinstance(pool, int) and len(listed) != pool:
         failures.append(f"pool parity: the market pages list {len(listed)} assets, the database holds {pool}")
+    # One snapshot: every market page and the health endpoint read the same cached rows (rule 93).
+    snap = health.get("snapshot")
+    if snap is not None or stamps:
+        differing = sorted({v for v in stamps.values()} | ({snap} if snap is not None else set()))
+        if len(differing) > 1:
+            failures.append(f"snapshot skew: the pages and /api/health serve {len(differing)} different snapshots: {differing[:3]}")
     return failures, counts
 
 

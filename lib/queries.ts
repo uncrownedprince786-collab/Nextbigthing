@@ -1108,7 +1108,21 @@ async function getMacroVetoes(assetId?: string): Promise<Map<string, { reason: s
 /// name against its peer group — and a panel that fetched its confirmations in a second round trip
 /// would be free to render the direction before they arrived, which is exactly the selective reading
 /// argued against above.
+/// The newest day any asset's news reading was computed for on this database, or null when it holds
+/// none (brain.md rule 93). One aggregate. **Fails closed**: a read that fails is null, which the rule
+/// table takes as coverage it cannot read -- never as coverage that found nothing.
+export async function getNewsReadOn(): Promise<Date | null> {
+  try {
+    const rows = await prisma.$queryRaw<{ d: Date | null }[]>`
+      SELECT max("periodEnd") AS d FROM "HumanSignal" WHERE "assetId" IS NOT NULL`;
+    return rows[0]?.d ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getDecisionBundle(assetId: string) {
+  const newsRead = getNewsReadOn();
   const vetoes = getMacroVetoes(assetId);
   const priors = getPriorDirections(assetId);
   const lastRuns = getLastRuns(assetId);
@@ -1186,6 +1200,7 @@ export async function getDecisionBundle(assetId: string) {
     /// How many peers the relative reading was taken over. Carried so a panel can say *why*
     /// `relStrength` is null — a group of four names rather than a measurement that came out even.
     macroVeto: (await vetoes).get(assetId) ?? null,
+    newsReadOn: await newsRead,
     prior: (await priors).get(assetId) ?? null,
     lastRun: (await lastRuns).get(assetId) ?? null,
     published: (await publishedRuns).get(assetId) ?? null,
@@ -1238,6 +1253,10 @@ export type DecisionTarget = {
 /// in `lib/decision.ts` is the only thing allowed to turn the first into the second. Sharing a
 /// name would invite a page to pass one where the other was expected and have it very nearly work.
 export type DecisionQueryRow = {
+  /// The newest news reading on this database, the same on every row (see `getNewsReadOn`).
+  newsReadOn: Date | null;
+  /// What these rows were read from (see `getDataStamp`), the same on every row.
+  dataStamp: string | null;
   assetId: string;
   symbol: string;
   name: string;
@@ -1256,6 +1275,8 @@ export type DecisionQueryRow = {
   sectorSort: number;
   close: number | null;
   closeDate: Date | null;
+  /// The volume of the newest close's session; null where the market publishes none.
+  closeVolume: number | null;
   priceSource: string | null;
   /// Only the two horizons the home page sorts on. Intraday is deliberately absent: a front
   /// page that re-ordered itself through the trading day would be a different page every time
@@ -1449,7 +1470,36 @@ export async function getLateColumns(): Promise<{ atr: Map<string, number>; inac
   return { atr, inactive };
 }
 
+/// What the decision rows were read from, as one comparable string (brain.md rule 93): the pool size,
+/// the newest decision and setup writes, the newest close, the newest quote and the newest news reading.
+/// `getDecisionRows` stamps every row with it, and `/api/revalidate` compares a fresh one against the
+/// cached rows' to decide whether the caches are behind the database. Cheap: five aggregates over small
+/// tables and the same per-asset index probe the rows use for their closes. Null when it cannot be read.
+export async function getDataStamp(): Promise<string | null> {
+  try {
+    const rows = await prisma.$queryRaw<
+      { pool: bigint | number; decided: Date | null; setups: Date | null; quotes: Date | null; closes: Date | null; news: Date | null }[]
+    >`
+      SELECT
+        (SELECT count(*) FROM "Asset" a WHERE COALESCE(a.active, true)) AS pool,
+        (SELECT max("computedAt") FROM "DecisionLog") AS decided,
+        (SELECT max("computedAt") FROM "AssetSetup") AS setups,
+        (SELECT max("updatedAt") FROM "LiveQuote") AS quotes,
+        (SELECT max(p.date) FROM "Asset" a CROSS JOIN LATERAL (
+           SELECT s.date FROM "PriceSnapshot" s WHERE s."assetId" = a.id ORDER BY s.date DESC LIMIT 1) p) AS closes,
+        (SELECT max("computedAt") FROM "HumanSignal") AS news`;
+    const r = rows[0];
+    if (!r) return null;
+    const t = (d: Date | null) => (d ? new Date(d).toISOString() : "-");
+    return [Number(r.pool), t(r.decided), t(r.setups), t(r.quotes), t(r.closes), t(r.news)].join("|");
+  } catch {
+    return null;
+  }
+}
+
 export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
+  const stampRead = getDataStamp();
+  const newsRead = getNewsReadOn();
   const vetoes = getMacroVetoes();
   const priors = getPriorDirections();
   const lastRuns = getLastRuns();
@@ -1510,12 +1560,12 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       // site going from reading the whole price history to reading an index -- which on a
       // metered endpoint is compute time on every request, not merely a slow page.
       prisma.$queryRaw<
-        { assetId: string; date: Date | null; close: number | null; source: string | null }[]
+        { assetId: string; date: Date | null; close: number | null; source: string | null; volume: number | null }[]
       >`
-        SELECT a.id AS "assetId", p.date, p.close, p.source
+        SELECT a.id AS "assetId", p.date, p.close, p.source, p.volume
           FROM "Asset" a
           LEFT JOIN LATERAL (
-            SELECT s.date, s.close, s.source
+            SELECT s.date, s.close, s.source, s.volume
               FROM "PriceSnapshot" s
              WHERE s."assetId" = a.id
              ORDER BY s.date DESC
@@ -1692,6 +1742,8 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   const publishedByAsset = await publishedRuns;
   const runByAsset = await runs;
   const late = await lateRead;
+  const newsReadOn = await newsRead;
+  const dataStamp = await stampRead;
   // The active pool only (jobs/pool.py): a name under its market's liquidity floor, or with no
   // current close, is out of the lists and the calls. Fail-open: no column, everyone is in.
   return assets.filter((a) => !late.inactive.has(a.id)).map((asset): DecisionQueryRow => {
@@ -1713,6 +1765,9 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       sectorSort: asset.industry.sort,
       close: price?.close ?? null,
       closeDate: price?.date ?? null,
+      // The volume printed on that session: execution readiness reads it (lib/execution.ts). Null where
+      // the market publishes none.
+      closeVolume: price?.volume ?? null,
       priceSource: price?.source ?? null,
       swing: setupOf(asset.id, "swing"),
       longer: setupOf(asset.id, "longer"),
@@ -1741,6 +1796,8 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       callLatest: runByAsset.get(asset.id)?.latest ?? null,
       quoteAt: quoteByAsset.get(asset.id)?.quotedAt ?? null,
       macroVetoReason: vetoByAsset.get(asset.id)?.reason ?? null,
+      newsReadOn,
+      dataStamp,
       priorAction: priorByAsset.get(asset.id)?.action ?? null,
       priorAsOf: priorByAsset.get(asset.id)?.asOf ?? null,
       lastRunAction: lastRunByAsset.get(asset.id)?.action ?? null,

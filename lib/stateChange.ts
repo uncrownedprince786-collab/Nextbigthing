@@ -44,9 +44,19 @@ const GATE_WORDS: Record<string, string> = {
   "trend-short": "the trend turned down",
   "unconfirmed-long": "the setup turned up, with nothing yet confirming it",
   "unconfirmed-short": "the setup turned down, with nothing yet confirming it",
+  "no-confirmation": "no confirmation backs the setup any more",
+  "mixed-horizons": "the setup and the longer view disagree",
+  "reversal-unconfirmed": "the setup turned and nothing confirms the turn yet",
+  "bad-date": "the stored date could not be read",
 };
 
+/// The gate in words. A `forced-` gate is a direction the rule table had refused and a layer since
+/// removed printed anyway (rules 86 to 93); the log still holds such rows from 2026-10-10, and they are
+/// said for what they were rather than credited to "the rule table's reading".
 export function gateWords(gate: string | null | undefined): string {
+  if (gate && gate.startsWith("forced-")) {
+    return "the rule table had refused it, and a layer since removed printed it anyway";
+  }
   return (gate && GATE_WORDS[gate]) || "the rule table's reading changed";
 }
 
@@ -61,17 +71,37 @@ const WORD: Record<string, string> = { LONG: "Long", SHORT: "Short" };
 /// A change said as one plain sentence: what it was, the day, and the rule table's own reason. This is
 /// what a row prints under its action and what heads the asset page's history -- in place of a badge.
 /// The reason is `gateWords`, never a description written after the fact.
-export function changeSentence(c: StateChange): string {
+///
+/// `published` is false when the verdict the change led to is not a published call (rule 93): then the
+/// sentence says the rule table's *reading* changed, never "New Short call", which on a page that also
+/// says "not a published call" made the page argue with itself.
+export function changeSentence(c: StateChange, published = true): string {
   const t = Date.parse(c.on + "T00:00:00Z");
   const day = Number.isFinite(t)
     ? new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
     : c.on;
   const from = WORD[c.from] ?? c.from;
   const to = WORD[c.to] ?? c.to;
+  const toDirection = DIRECTIONS.has(c.to);
+  if (!published && toDirection) {
+    return c.kind === "REVERSED"
+      ? `The rule table's reading switched from ${from} to ${to} on ${day}: ${c.reason}. It is not a published call.`
+      : `The rule table's reading turned ${to} on ${day}: ${c.reason}. It is not a published call.`;
+  }
   if (c.kind === "REVERSED") return `Switched from ${from} to ${to} on ${day}: ${c.reason}.`;
   if (c.kind === "NEW CALL") return `New ${to} call on ${day}: ${c.reason}.`;
   return `The ${from} call ended on ${day}: ${c.reason}.`;
 }
+
+/// The kind of a past change in words, for the timeline. "new call" is said as "new direction": the log
+/// records the rule table's verdict, and whether that verdict was published is a separate fact.
+export const KIND_WORDS: Record<ChangeKind, string> = {
+  REVERSED: "reversed",
+  "NEW CALL": "new direction",
+  INVALIDATED: "ended at its stop",
+  OVERRIDDEN: "refused by the macro gate",
+  WITHDRAWN: "withdrawn",
+};
 
 /// One change, from the verdict before it, the verdict after it and the gate that decided the after.
 /// Null when nothing changed or there is nothing before to compare with.

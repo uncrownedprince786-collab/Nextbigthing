@@ -369,23 +369,80 @@ def orient(title: str, pair: tuple[str, str]) -> tuple[str, int] | None:
     return None
 
 
-def classify(title: str, pair: tuple[str, str] | None = None) -> str:
-    """positive, negative or neutral for one headline, for the asset it was stored against.
+# Subjects (brain.md rule 93). A headline's verb belongs to the noun that opens its clause, and the word
+# list was reading every directional word as if it described the asset the headline was stored against:
+# "Fauji Fertilizer jumps after Engro plant shutdown" scored positive for Engro, "Solana tumbles as
+# traders rotate into Bitcoin" negative for Bitcoin, "Consumer optimism slides" negative for the
+# Optimism token. A headline now takes a side for an asset only through a clause that **opens with
+# the asset** -- its name or its ticker -- and only the directional words in that clause count. For a
+# currency pair the clause must open with one of the pair's currencies (or the pair), and `orient`
+# then signs it. Everything else takes no side: a word list cannot tell which noun a verb in another
+# clause belongs to, and no side costs less than the wrong one.
+#
+# Clauses split on the joining words that start a second subject ("as", "after", "while", "amid" ...)
+# and on clause punctuation. A comma splits only when followed by a space, so "36,000" stays a number.
+_CLAUSE_SPLIT = re.compile(
+    r"\s+(?:as|after|while|but|amid|despite|though|although|when|because|since|following|whereas|"
+    r"before|until|unless|if|even as|vs\.?|versus)\s+|,\s+|[;:|?!]|\s[-\u2013\u2014]\s",
+    re.I,
+)
+# What may stand before the subject at the start of a clause without being a subject of its own.
+_LEAD = re.compile(r"^[\s\"'\u2018\u2019\u201c\u201d]*(?:(?:the|and|shares of|stock of|stocks of)\s+)?", re.I)
 
-    A headline carrying both directions is neutral rather than assigned to whichever side
-    has more matches. "Revenue beats but guidance misses" is genuinely both, and picking a
-    winner on match count would be inventing a judgement the wording does not support.
 
-    `pair` is set for a currency pair, and the sign is then the pair's, by `orient`: a
-    headline about the quote currency reverses, and one whose currency cannot be named takes
-    no side.
-    """
-    text, sign = title, 1
-    if pair is not None:
-        oriented = orient(title, pair)
-        if oriented is None:
-            return "neutral"
-        text, sign = oriented
+def clauses(title: str) -> list[str]:
+    """The headline's clauses, each with its leading article or conjunction removed."""
+    return [_LEAD.sub("", c).strip() for c in _CLAUSE_SPLIT.split(title or "") if c and c.strip()]
+
+
+# Corporate suffixes dropped from a stored name before it is matched: headlines say "Engro", not
+# "Engro Corporation Limited".
+_SUFFIX = re.compile(
+    r"(?:[,.]?\s+(?:inc|incorporated|corp|corporation|co|company|ltd|limited|plc|llc|lp|holdings?|group|"
+    r"sa|ag|nv|se|adr|etf|trust|class\s+[a-c]|common\s+stock|ordinary\s+shares|shares))+\.?$",
+    re.I,
+)
+# First words too common to stand for one company at the start of a headline.
+_GENERIC_FIRST = frozenset({
+    "bank", "first", "national", "united", "american", "general", "international", "global", "pakistan",
+    "new", "state", "china", "standard", "capital", "energy", "power", "digital", "world", "south",
+    "north", "east", "west", "us", "the", "gold", "silver", "oil", "natural", "crude", "royal", "federal",
+})
+
+
+def subject_names(name: str, symbol: str, asset_type: str, unique_first: set[str] | None = None) -> list[re.Pattern[str]]:
+    """The patterns that name this asset at the start of a clause: its stored name, the name without
+    corporate suffixes, its first word when no other asset's name starts with it, and its ticker in
+    capitals (three letters at least for a coin, two for a listed share)."""
+    pats: list[re.Pattern[str]] = []
+    names = {n for n in {(name or "").strip(), _SUFFIX.sub("", (name or "").strip()).strip()} if len(n) >= 3}
+    first = (_SUFFIX.sub("", (name or "").strip()).split() or [""])[0]
+    if unique_first is not None and len(first) >= 4 and first.lower() not in _GENERIC_FIRST and first.lower() in unique_first:
+        names.add(first)
+    for n in sorted(names, key=len, reverse=True):
+        pats.append(re.compile(re.escape(n) + r"(?:'s|\u2019s)?" + _WORD_EDGE_R, re.I))
+    raw = (symbol or "").strip()
+    ticker = raw.split("-")[0].upper() if asset_type == "crypto" else raw.upper()
+    if re.fullmatch(r"[A-Z][A-Z0-9.]{1,9}", ticker) and len(ticker) >= (3 if asset_type == "crypto" else 2):
+        pats.append(re.compile(re.escape(ticker) + r"(?![A-Za-z0-9])"))
+    return pats
+
+
+def _starts_with_currency(clause: str) -> bool:
+    """Whether a clause opens with a currency: a pair token, a code in capitals, or a currency name."""
+    if re.match(r"[A-Za-z]{3}[/-]?[A-Za-z]{3}(?![A-Za-z])", clause) and clause[:3].upper() in CURRENCIES:
+        return True
+    if re.match(r"(?:" + "|".join(CURRENCIES) + r")(?![A-Za-z])", clause):
+        return True
+    low = clause.lower()
+    for code, (quals, bares) in CURRENCIES.items():
+        for n in (*quals, *bares):
+            if re.match(re.escape(n) + r"s?" + _WORD_EDGE_R, low):
+                return True
+    return False
+
+
+def _kind(text: str, sign: int) -> str:
     up = count_words(text, POSITIVE_TERMS)
     down = count_words(text, NEGATIVE_TERMS)
     if up and down:
@@ -395,6 +452,41 @@ def classify(title: str, pair: tuple[str, str] | None = None) -> str:
     if down:
         return "negative" if sign > 0 else "positive"
     return "neutral"
+
+
+def classify(title: str, pair: tuple[str, str] | None = None,
+             subject: list[re.Pattern[str]] | None = None) -> str:
+    """positive, negative or neutral for one headline, for the asset it was stored against.
+
+    A headline carrying both directions is neutral rather than assigned to whichever side
+    has more matches. "Revenue beats but guidance misses" is genuinely both, and picking a
+    winner on match count would be inventing a judgement the wording does not support.
+
+    `pair` is set for a currency pair and `subject` for any other asset: then only clauses that
+    open with the pair's currencies (signed by `orient`) or with the asset (`subject_names`) count,
+    and clauses that disagree cancel. With neither, the whole headline is read, as it always was --
+    for the products this job also reads, which no decision uses.
+    """
+    if pair is None and subject is None:
+        return _kind(title, 1)
+    kinds: set[str] = set()
+    for clause in clauses(title):
+        if pair is not None:
+            if not _starts_with_currency(clause):
+                continue
+            oriented = orient(clause, pair)
+            if oriented is None:
+                continue
+            text, sign = oriented
+        else:
+            m = next((m for m in (pat.match(clause) for pat in subject or []) if m), None)
+            if not m:
+                continue
+            text, sign = clause[m.end():], 1
+        k = _kind(text, sign)
+        if k != "neutral":
+            kinds.add(k)
+    return kinds.pop() if len(kinds) == 1 else "neutral"
 
 
 def news_windows(cur, column: str, start: datetime, end: datetime) -> dict[str, list[dict]]:
@@ -520,7 +612,8 @@ def grade(items: int, publishers: int, top_share: float | None) -> tuple[str, li
 
 
 def read_target(cur, column: str, target_id: str, name: str, end: date,
-                recent: dict, earlier: dict, pair: tuple[str, str] | None = None):
+                recent: dict, earlier: dict, pair: tuple[str, str] | None = None,
+                subject: list[re.Pattern[str]] | None = None):
     """Compute one target's reading. Returns None when the target has no coverage at all.
 
     `recent` and `earlier` are the two windows, read once for every target by `news_windows`
@@ -546,7 +639,7 @@ def read_target(cur, column: str, target_id: str, name: str, end: date,
     publishers: dict[str, int] = {}
     for r in items:
         title = r["title"] or ""
-        kind = classify(title, pair)
+        kind = classify(title, pair, subject)
         if kind == "positive":
             positive += 1
         elif kind == "negative":
@@ -901,9 +994,21 @@ def main() -> None:
             signal_sql = log_sql = None
             signal_payload: list[tuple] = []
             log_payload: list[tuple] = []
+            # A first word stands for an asset only when no other asset's name starts with it.
+            firsts: dict[str, int] = {}
             for t in targets:
-                pair = fx_pair(t["symbol"]) if t.get("assetType") == "forex" else None
-                r = read_target(cur, column, t["id"], t["name"], end, recent, earlier, pair)
+                f = (_SUFFIX.sub("", (t["name"] or "").strip()).split() or [""])[0].lower()
+                firsts[f] = firsts.get(f, 0) + 1
+            unique_first = {f for f, n in firsts.items() if n == 1}
+            for t in targets:
+                forex = t.get("assetType") == "forex"
+                pair = fx_pair(t["symbol"]) if forex else None
+                subject = (
+                    subject_names(t["name"], t["symbol"], t["assetType"], unique_first)
+                    if column == "assetId" and not forex
+                    else None
+                )
+                r = read_target(cur, column, t["id"], t["name"], end, recent, earlier, pair, subject)
                 if r is None:
                     skipped += 1
                     continue

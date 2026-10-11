@@ -2,7 +2,7 @@ import * as React from "react";
 import { clockUtc } from "@/lib/liveQuote";
 import { shortDay, type Validity } from "@/lib/validity";
 import type { EarlySignal } from "@/lib/earlySignal";
-import { changeSentence, type StateChange, type Transition } from "@/lib/stateChange";
+import { changeSentence, KIND_WORDS, type StateChange, type Transition } from "@/lib/stateChange";
 import { targetSourceSentence, type TargetLike } from "@/lib/target";
 import { compactPrice, plainPrice, price, relativeTime } from "@/lib/format";
 import { CONFIDENCE_ORDER } from "@/lib/decision";
@@ -14,6 +14,7 @@ import {
 import { gapLine } from "@/lib/reconcile";
 import { MIN_CONFIRMATIONS, MIN_REWARD_RISK, MIN_STOP_ATR } from "@/lib/quality";
 import { headlineOf } from "@/lib/newsRank";
+import type { Execution } from "@/lib/execution";
 
 // The decision panel, and nothing else.
 //
@@ -121,29 +122,33 @@ export function ChangeBanner({
   changes,
   latest,
   market = null,
+  published = true,
 }: {
   changes: Transition[];
   latest: StateChange | null;
   /// For the closes' precision: FX prints in pips (`plainPrice`).
   market?: string | null;
+  /// False when today's verdict is not a published call: the headline then speaks of the rule table's
+  /// reading, and is never an alert (rule 93).
+  published?: boolean;
 }) {
   if (!changes.length) return null;
   const recent = [...changes].reverse().slice(0, 4);
-  const alert = latest?.warn ?? false;
+  const alert = published && (latest?.warn ?? false);
   return (
     <div
       role={alert ? "alert" : undefined}
       className={`mb-3 rounded-lg border px-3 py-2 text-sm ${alert ? "border-down bg-down/10" : "border-border bg-muted/40"}`}
     >
       <p className={`font-semibold ${alert ? "text-down" : ""}`}>
-        {latest ? changeSentence(latest) : "Verdict history"}
+        {latest ? changeSentence(latest, published) : "Verdict history"}
       </p>
       <ol className="text-muted-foreground mt-1 space-y-0.5 text-xs">
         {recent.map((t) => (
           <li key={t.on}>
             {shortDay(t.fromOn)}: {t.from}
             {t.fromClose != null ? ` (${plainPrice(t.fromClose, market)})` : ""} ➔ {shortDay(t.on)}: {t.to}
-            {t.toClose != null ? ` (${plainPrice(t.toClose, market)})` : ""} — {t.kind.toLowerCase()}, because {t.reason}.
+            {t.toClose != null ? ` (${plainPrice(t.toClose, market)})` : ""} — {KIND_WORDS[t.kind] ?? t.kind.toLowerCase()}: {t.reason}.
           </li>
         ))}
       </ol>
@@ -206,6 +211,8 @@ export interface DecisionPanelProps {
   withheld?: string[] | null;
   /// Set when the call is listed only because it is open (lib/quality.ts `withOpenPosition`).
   held?: { since: string; todays: string[] } | null;
+  /// Whether the direction can be acted on (lib/execution.ts); null on a WAIT.
+  execution?: Execution | null;
 }
 
 /// One labelled figure or sentence. Used for every field in the panel so that the label and the
@@ -438,9 +445,19 @@ export function DecisionPanel({
   quote = null,
   withheld = null,
   held = null,
+  execution = null,
 }: DecisionPanelProps) {
   // A call that ended at its stop (brain.md rule 92): its entry, exit and reward fields say so.
   const ended = decision.action === "WAIT" && decision.gate === "stop-crossed";
+  // Not a published call (rule 93): a WAIT, or a direction the quality gate withheld. Such a panel prints
+  // no verdict word in a call's colours, no entry, stop, exit, reward, timing or validity -- only the
+  // rule table's reading, said as a reading, and why it is not a call.
+  const withheldCall = decision.action !== "WAIT" && Boolean(withheld && withheld.length);
+  const notCall = decision.action === "WAIT" || withheldCall;
+  // "NOW" only when the price is in the zone *and* execution is checked; otherwise the zone is said
+  // without the instruction, with the reason execution is not confirmed.
+  const when: TimeSense =
+    decision.timeSense === "NOW" && execution && execution.status !== "checked" ? "WAIT FOR LEVEL" : decision.timeSense;
   const grade = decision.confidence.toLowerCase();
   const gap = gapLine(decision);
 
@@ -448,11 +465,14 @@ export function DecisionPanel({
     <Card className="border-primary/30">
       {/* The verdict's history first: a reader holding yesterday's call needs to know it changed
           before reading today's. Nothing renders when the log holds no change for this name. */}
-      <ChangeBanner changes={changes} latest={change} market={market} />
-      {withheld && withheld.length ? (
-        <div role="note" className="border-warn bg-warn-bg text-warn mb-3 rounded-lg border px-3 py-2 text-sm">
-          <p className="font-semibold">Not on the signal lists today: this call did not pass the quality gate.</p>
-          <p className="mt-0.5 text-xs">{withheld.join("; ")}. What follows is the analysis, not a published call.</p>
+      <ChangeBanner changes={changes} latest={change} market={market} published={!notCall} />
+      {withheldCall ? (
+        <div role="alert" className="border-warn bg-warn-bg text-warn mb-4 rounded-lg border-2 px-4 py-3">
+          <p className="text-lg font-bold">Not a published call</p>
+          <p className="mt-1 text-sm">
+            The rule table reads {decision.action}, but it did not pass the quality gate ({withheld!.join("; ")}). It is
+            not on the signal lists, and no entry, stop or exit is given for it.
+          </p>
         </div>
       ) : null}
       {held ? (
@@ -467,9 +487,15 @@ export function DecisionPanel({
       {/* The word, and then everything that qualifies it. `wrap-hard` is not needed — the three
           words are short — but the row wraps because the pills beside it will not fit at 375px. */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <p className={`text-4xl leading-none font-bold tracking-tight sm:text-5xl ${ACTION_TEXT[decision.action]}`}>
-          {decision.action}
-        </p>
+        {withheldCall ? (
+          <p className="text-muted-foreground text-2xl leading-none font-bold tracking-tight sm:text-3xl">
+            Not published
+          </p>
+        ) : (
+          <p className={`text-4xl leading-none font-bold tracking-tight sm:text-5xl ${ACTION_TEXT[decision.action]}`}>
+            {decision.action}
+          </p>
+        )}
         <span className="flex flex-wrap items-center gap-2">
           <Pill tone="default">{symbol}</Pill>
           {/* Beside the grade, because the grade alone cannot carry it: "Low" reads as a weak
@@ -477,7 +503,8 @@ export function DecisionPanel({
           <WaitBasisChip basis={decision.basis} />
           {/* A grade grades a direction. On a WAIT there is none, and a Low badge there reads as a weak
               judgement where nothing was judged; the basis chip beside it already says why. */}
-          {decision.action === "WAIT" ? null : <ConfidenceBadge grade={grade} />}
+          {withheldCall ? <Pill tone="default">Reading: {decision.action}</Pill> : null}
+          {notCall ? null : <ConfidenceBadge grade={grade} />}
           {early ? <EarlySignalBadge s={early} /> : null}
           <AsOf date={asOf} />
         </span>
@@ -519,6 +546,16 @@ export function DecisionPanel({
           )}
         </Field>
 
+        {notCall ? (
+          <Field label="Levels">
+            <span className="text-muted-foreground">
+              {ended && decision.invalidation !== null
+                ? `None: the call ended at its stop, ${price(decision.invalidation, currency, market)}.`
+                : "None: this is not a published call, so no entry, stop or exit is given."}
+            </span>
+          </Field>
+        ) : (
+          <>
         <Field
           label="Entry zone"
           hint={
@@ -595,6 +632,8 @@ export function DecisionPanel({
             <span className="text-muted-foreground">{ended ? "None: the call ended." : "No measured exit to weigh."}</span>
           )}
         </Field>
+          </>
+        )}
 
         <Field label="Early signal">
           {early ? (
@@ -607,9 +646,11 @@ export function DecisionPanel({
           )}
         </Field>
 
-        <Field label="Horizon & validity">
-          <HorizonValidity v={decision.action === "WAIT" ? null : validity} />
-        </Field>
+        {notCall ? null : (
+          <Field label="Horizon & validity">
+            <HorizonValidity v={validity} />
+          </Field>
+        )}
 
         <Field label="Confirmations">
           {decision.action === "WAIT" ? (
@@ -626,16 +667,26 @@ export function DecisionPanel({
           )}
         </Field>
 
-        <Field label="When" hint={TIME_SENSE_COPY[decision.timeSense]}>
-          <Pill tone={TIME_SENSE_TONE[decision.timeSense]}>{decision.timeSense}</Pill>
-        </Field>
+        {notCall ? null : (
+          <Field label="When" hint={TIME_SENSE_COPY[when]}>
+            <Pill tone={TIME_SENSE_TONE[when]}>{when}</Pill>
+          </Field>
+        )}
+        {notCall || !execution ? null : (
+          <Field label="Execution">
+            <span className={execution.status === "checked" ? "block" : "text-warn block"}>
+              {execution.status === "checked" ? "Checked" : execution.status === "blocked" ? "Blocked" : "Unverified"}
+              <span className="text-muted-foreground text-micro block">{execution.reasons.join("; ")}.</span>
+            </span>
+          </Field>
+        )}
       </div>
 
       {/* Directly under the levels, because it is the question the levels raise. A reader who has
           just been shown an entry, a stop and a target asks whether the three are worth each
           other, and the answer is three stored numbers rather than a judgement. Null on every
           WAIT, so a refusal never carries a sizing block it could be read as a trade through. */}
-      {decision.plan ? <Sizing plan={decision.plan} /> : null}
+      {decision.plan && !notCall ? <Sizing plan={decision.plan} /> : null}
 
       {/* Why, after the numbers rather than before them. Three at most: the rules routinely
           record five or six true sentences, and a reader who has to read six to find the
@@ -840,6 +891,8 @@ export interface DecisionRow {
   invalidation: number | null;
   /// A call that ended at its stop: no entry, exit or reward is printed for it (brain.md rule 92).
   ended?: boolean;
+  /// Whether a published direction can be acted on (lib/execution.ts); null on a WAIT.
+  execution?: Execution | null;
   /// The measured exit if the setup works, chosen by `pickTarget` and never averaged. Null when
   /// `jobs/horizons.py` stored no target row, which it does not when there is no stop to measure
   /// reward against. Optional so a caller that has not fetched targets renders exactly as before.
@@ -1238,6 +1291,12 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                     Open since {shortDay(r.held.since)}: held to its stop, not a new entry ({r.held.todays.join("; ")}).
                   </span>
                 ) : null}
+                {/* Execution apart from direction (rule 93): said whenever it is not checked. */}
+                {r.execution && r.execution.status !== "checked" ? (
+                  <span className="text-warn text-micro mt-0.5 block leading-snug">
+                    Execution {r.execution.status}: {r.execution.reasons.join("; ")}.
+                  </span>
+                ) : null}
                 {shownChange(r.change) ? (
                   <span className="text-down text-micro mt-0.5 block leading-snug">{changeSentence(shownChange(r.change)!)}</span>
                 ) : null}
@@ -1276,14 +1335,14 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
               <span className="min-w-0">
                 <span className={ROW_LABEL}>Entry zone</span>
                 <span className="num block text-sm">
-                  {r.entry ? <PxRange low={r.entry.low} high={r.entry.high} currency={currency} market={r.market} /> : r.ended ? "none: the call ended" : "no entry band measured"}
+                  {r.entry ? <PxRange low={r.entry.low} high={r.entry.high} currency={currency} market={r.market} /> : r.ended ? "none: the call ended" : r.action === "WAIT" ? "no call" : "no entry band measured"}
                 </span>
               </span>
 
               <span className="min-w-0">
                 <span className={ROW_LABEL}>Stop loss</span>
                 <span className="num block text-sm">
-                  {r.invalidation !== null ? <Px v={r.invalidation} currency={currency} market={r.market} /> : "no stop level set"}
+                  {r.invalidation !== null ? <Px v={r.invalidation} currency={currency} market={r.market} /> : r.action === "WAIT" ? "no call" : "no stop level set"}
                 </span>
               </span>
 
@@ -1301,7 +1360,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                       : undefined
                   }
                 >
-                  {r.target ? <PxRange low={r.target.low} high={r.target.high} currency={currency} market={r.market} /> : r.ended ? "none: the call ended" : "no exit measured"}
+                  {r.target ? <PxRange low={r.target.low} high={r.target.high} currency={currency} market={r.market} /> : r.ended ? "none: the call ended" : r.action === "WAIT" ? "no call" : "no exit measured"}
                 </span>
               </span>
 
@@ -1318,7 +1377,7 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                   }
                   title="Measured from the entry level. From today's price it is at least this."
                 >
-                  {r.target?.rewardRisk != null && Number.isFinite(r.target.rewardRisk) ? `${r.target.rewardRisk.toFixed(1)}:1` : r.ended ? "none: the call ended" : "no exit to weigh"}
+                  {r.target?.rewardRisk != null && Number.isFinite(r.target.rewardRisk) ? `${r.target.rewardRisk.toFixed(1)}:1` : r.ended ? "none: the call ended" : r.action === "WAIT" ? "no call" : "no exit to weigh"}
                 </span>
               </span>
 

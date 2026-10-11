@@ -313,6 +313,10 @@ export interface DecisionBundle {
   lastRun?: { action: string | null; since: Date | string | null; prev: string | null } | null;
   /// From `getSourceHealth()`; only the newest row per source is expected.
   sourceHealth: { source: string; status: string }[];
+  /// The newest day any asset's news reading (`HumanSignal`) was computed for, on the database this was
+  /// read from; null when it holds none. Undefined only for hand-built bundles that predate it, which
+  /// are read as available. See `newsCoverageOf`.
+  newsReadOn?: Date | string | null;
 }
 
 /// A logged verdict read into the direction the rules take, or null when it is not a direction.
@@ -373,6 +377,27 @@ function entryTriggerOf(
   return { rule, direction };
 }
 
+/// Days a news reading may be old before coverage counts as unreadable (rule 93). The reading is computed
+/// by every decision run, daily; three days allows a weekend and one failed run.
+export const NEWS_READING_STALE_DAYS = 3;
+
+/// Whether news coverage can be read at all for this decision (rule 93): "unavailable" when the database
+/// holds no reading at all, or none newer than `NEWS_READING_STALE_DAYS`, or the headline source is
+/// silent. A failover standby with no news rows reads "unavailable", never neutral: absent coverage
+/// caused by a failure is not evidence that nothing contradicts the call.
+export function newsCoverageOf(
+  readOn: Date | string | null | undefined,
+  sourceHealth: { source: string; status: string }[],
+  today: string,
+): "available" | "unavailable" {
+  if (sourceHealth.some((h) => h.source === "Google News RSS" && h.status === "silent")) return "unavailable";
+  if (readOn === undefined) return "available";
+  const day = iso(readOn ?? null);
+  if (!day) return "unavailable";
+  const age = (Date.parse(today + "T00:00:00Z") - Date.parse(day + "T00:00:00Z")) / 86_400_000;
+  return Number.isFinite(age) && age <= NEWS_READING_STALE_DAYS ? "available" : "unavailable";
+}
+
 /// Today in UTC, as the rule table wants it. Call this once per request and pass it down, so two
 /// panels on one page cannot straddle midnight and disagree.
 export function todayISO(now: Date = new Date()): string {
@@ -401,9 +426,12 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
       ? label
       : null;
 
+  const newsCoverage = newsCoverageOf(bundle.newsReadOn, bundle.sourceHealth, today);
+
   return {
     symbol: bundle.asset.symbol,
     market,
+    newsCoverage,
     asOf: iso(bundle.freshness.newest),
     today,
     lastClose: bundle.freshness.close,
@@ -514,6 +542,8 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
 /// The parts of `getDecisionBundle(assetId)` a decision needs. Nullable where that function is:
 /// its asset fields come from a left-ish read and are typed optional.
 export interface QueryBundle {
+  /// See `DecisionBundle.newsReadOn`.
+  newsReadOn?: Date | string | null;
   symbol: string | null;
   assetType: string | null;
   /// "US" or "PK", from the industry. Never a symbol.
@@ -636,6 +666,7 @@ export function bundleFromQuery(
     prior: row.prior ?? null,
     lastRun: row.lastRun ?? null,
     sourceHealth,
+    newsReadOn: row.newsReadOn,
   };
 }
 
@@ -645,6 +676,8 @@ export function bundleFromQuery(
 /// page deliberately leaves intraday out — a front page that re-ordered itself through the trading
 /// day would be a different page on every visit.
 export interface QueryRow {
+  /// See `DecisionBundle.newsReadOn`. The same value on every row of one read.
+  newsReadOn?: Date | string | null;
   symbol: string;
   assetType: string;
   market: string;
@@ -723,6 +756,7 @@ export function bundleFromRow(
 
   return bundleFromQuery(
     {
+      newsReadOn: row.newsReadOn,
       symbol: row.symbol,
       assetType: row.assetType,
       market: row.market,

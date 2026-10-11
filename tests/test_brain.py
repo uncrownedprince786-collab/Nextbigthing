@@ -105,6 +105,50 @@ class HeadlineTone(unittest.TestCase):
         self.assertEqual(human.classify("Shares jumped after the deal"), "positive")
 
 
+class HeadlineSubjects(unittest.TestCase):
+    """A headline takes a side for an asset only through a clause that opens with the asset (rule 93)."""
+
+    def subj(self, name, symbol, asset_type="stock"):
+        return human.subject_names(name, symbol, asset_type, {name.split()[0].lower()})
+
+    def test_every_recorded_inversion_now_takes_no_side(self):
+        # Each was scored by the live job on 2026-10-11 with a sign a reader would reverse or drop.
+        cases = [
+            ("Yen weakens as Nikkei jumps", ("USD", "JPY"), None),
+            ("Rupee recovers after it fell to a record low", ("USD", "PKR"), None),
+            ("Fauji Fertilizer jumps after Engro plant shutdown", None, self.subj("Engro Corporation Limited", "ENGRO")),
+            ("Solana tumbles as traders rotate into Bitcoin", None, self.subj("Bitcoin", "btc-bitcoin", "crypto")),
+            ("Consumer optimism slides to lowest since 2014", None, self.subj("Optimism", "op-optimism", "crypto")),
+            ("Celestia Theater draws 36,000 guests, boosts Wadsworth economy", None, self.subj("Celestia", "tia-celestia", "crypto")),
+            ("Pakistan Refinery Limited Sign the Upgrade Agreement Through Inter State Gas Systems Limited", None, self.subj("Systems Limited", "SYS")),
+            ("An Analyst Says Dogecoin Falls to $0.05 in 2027", None, self.subj("Dogecoin", "doge-dogecoin", "crypto")),
+            ("How quant funds beat the market", None, self.subj("Quant", "qnt-quant", "crypto")),
+        ]
+        for title, pair, subject in cases:
+            self.assertEqual(human.classify(title, pair, subject), "neutral", title)
+
+    def test_the_subject_of_a_clause_keeps_its_sign(self):
+        self.assertEqual(human.classify("Fauji Fertilizer jumps after Engro plant shutdown", None,
+                                        self.subj("Fauji Fertilizer Company Limited", "FFC")), "positive")
+        self.assertEqual(human.classify("Nvidia beats estimates as revenue surges", None,
+                                        self.subj("NVIDIA Corporation", "NVDA")), "positive")
+        self.assertEqual(human.classify("Curve DAO Token (CRV) rises 5.49% amid selling pressure", None,
+                                        self.subj("Curve DAO Token", "crv-curve-dao-token", "crypto")), "positive")
+        self.assertEqual(human.classify("Bitcoin Jumps Above $86,000 to 8-Month High - WSJ", None,
+                                        self.subj("Bitcoin", "btc-bitcoin", "crypto")), "positive")
+        # The pair in its own clause carries the pair's sign; a currency clause with no word adds nothing.
+        self.assertEqual(human.classify("Mexican Peso Weakens as USD/MXN Climbs", ("USD", "MXN")), "positive")
+
+    def test_clauses_and_names(self):
+        self.assertEqual(human.clauses("Bitcoin, XRP, and Ethereum Drop as Cryptos Face a Storm"),
+                         ["Bitcoin", "XRP", "Ethereum Drop", "Cryptos Face a Storm"])
+        self.assertEqual(human.clauses("Draws 36,000 guests"), ["Draws 36,000 guests"])
+        # A coin's ticker needs three letters; a share's two. Lower case is not a ticker.
+        names = [p.pattern for p in human.subject_names("Optimism", "op-optimism", "crypto", set())]
+        self.assertFalse(any("OP" in n and "Optimism" not in n for n in names))
+        self.assertTrue(human.subject_names("Hecla Mining Company", "HL", "stock", set())[-1].match("HL rises"))
+
+
 class CurrencyPairTone(unittest.TestCase):
     """A pair headline takes a side only when exactly one of the pair's currencies is named."""
 
@@ -131,8 +175,6 @@ class CurrencyPairTone(unittest.TestCase):
             # A currency word that is also a word, on the pair it would name.
             ("Won Strengthens Even as U.S. 10-Year Yield Tops 5.3%", ("USD", "KRW")),
             ("Real rates rose again", ("USD", "BRL")),
-            # The pair and one of its currencies together.
-            ("Mexican Peso Weakens as USD/MXN Climbs", ("USD", "MXN")),
             # Two dollars in one pair: a bare "dollar" names neither.
             ("Dollar gains", ("USD", "SGD")),
             # An unparseable symbol: nothing can be oriented.
@@ -153,8 +195,9 @@ class CurrencyPairTone(unittest.TestCase):
 
     def test_the_job_signs_a_pair_headline_for_the_pair(self):
         src = (ROOT / "jobs" / "human.py").read_text(encoding="utf-8")
-        self.assertIn("kind = classify(title, pair)", src)
-        self.assertIn('pair = fx_pair(t["symbol"]) if t.get("assetType") == "forex" else None', src)
+        self.assertIn("kind = classify(title, pair, subject)", src)
+        self.assertIn('pair = fx_pair(t["symbol"]) if forex else None', src)
+        self.assertIn('subject_names(t["name"], t["symbol"], t["assetType"], unique_first)', src)
 
 
 class ToneDenominator(unittest.TestCase):
@@ -4337,7 +4380,7 @@ class NoFakeConfidence(unittest.TestCase):
         # The decision files are in the scan, and what is read from them is their sentences.
         texts = dict(self.scanned_texts())
         self.assertIn("points behind its peers over 20 sessions", texts["lib/decision.ts"])
-        self.assertIn("nothing measured leans either way", texts["lib/resolve.ts"])
+        self.assertIn("none of the five confirmations backs it", texts["lib/resolve.ts"])
         self.assertNotIn("hard rule 4 forbids", texts["lib/decision.ts"], "comments are not scanned")
         # The sentence that shipped until 2026-10-11 is caught, and its replacement is not.
         old = "`it is ${x} points behind its peers over 20 sessions, so the group is carrying it rather than the other way round.`"
@@ -7147,13 +7190,30 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
         m = self.mirror()
         # `MacroGate` joined the four when the macro gatekeeper did: its refusals are inputs to `decide`,
         # so a standby that took over without them would print verdicts the primary had refused.
+        # News and its readings joined them on 2026-10-11 (rule 93): coverage can only withdraw evidence,
+        # so a standby without it would print calls the primary refused.
         self.assertEqual(
-            set(m.TABLES), {"DecisionLog", "PriceSnapshot", "SignalLog", "AssetThesis", "MacroGate"}
+            set(m.TABLES),
+            {"DecisionLog", "PriceSnapshot", "SignalLog", "AssetThesis", "MacroGate", "News", "HumanSignal"},
         )
         # Each is keyed on something a person would call the row's identity, never on the UUID.
         for table, key in m.TABLES.items():
             self.assertNotIn("id", key, table)
         self.assertEqual(set(m.DATE_COLUMN), set(m.TABLES))
+
+    def test_news_rows_are_copied_for_assets_only_with_their_ids_translated(self):
+        m = self.mirror()
+        sql = m.upsert_sql("News", ["assetId", "url", "title"], m.TABLES["News"], m.CONFLICT_WHERE["News"])
+        self.assertIn('ON CONFLICT ("assetId", "url") WHERE "assetId" IS NOT NULL', sql)
+        reading = m.remap_row({"assetId": "a1", "targetRef": "a1", "periodEnd": "d", "windowDays": 30, "productId": None},
+                              m.TABLES["HumanSignal"], {"a1": "b9"}, set(), {}, "HumanSignal")
+        self.assertEqual((reading["assetId"], reading["targetRef"]), ("b9", "b9"))
+        headline = m.remap_row({"assetId": "a1", "url": "u", "industryId": "i1", "productId": None},
+                               m.TABLES["News"], {"a1": "b9"}, set(), {}, "News")
+        self.assertIsNone(headline["industryId"])
+        self.assertEqual(m.ASSET_ROWS_ONLY, {"News", "HumanSignal"})
+        wf = (ROOT / ".github" / "workflows" / "cron-mirror.yml").read_text(encoding="utf-8")
+        self.assertIn("--tables News,HumanSignal --since", wf)
 
     def test_the_learning_corpus_is_one_of_them(self):
         """`DecisionLog`'s +1, +5 and +20 session maturations cannot be recomputed, and are what the
@@ -7174,7 +7234,7 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
 
     def test_main_refuses_an_unknown_table_and_missing_arguments(self):
         m = self.mirror()
-        self.assertEqual(m.main(["--from", "postgresql://a@x.invalid/d", "--to", "postgresql://a@y.invalid/d", "--tables", "News"]), 2)
+        self.assertEqual(m.main(["--from", "postgresql://a@x.invalid/d", "--to", "postgresql://a@y.invalid/d", "--tables", "Nonsense"]), 2)
         self.assertEqual(m.main([]), 2)
         self.assertEqual(m.main(["--from", "postgresql://a@x.invalid/d"]), 2)
 
@@ -7600,7 +7660,8 @@ class NoPlaceholdersInTheRenderedLayer(unittest.TestCase):
 
     def test_no_grade_is_printed_for_a_decision_that_made_no_call(self):
         decision = code_only((ROOT / "components" / "decision.tsx").read_text(encoding="utf-8"))
-        self.assertIn('decision.action === "WAIT" ? null : <ConfidenceBadge grade={grade} />', decision)
+        self.assertIn("{notCall ? null : <ConfidenceBadge grade={grade} />}", decision)
+        self.assertIn('const notCall = decision.action === "WAIT" || withheldCall;', decision)
         # The overview's held-back list is the same row component as every sector page now, so the rule
         # is the row's: a held-back row prints no WAIT pill and no grade.
         overview = code_only((ROOT / "app" / "page.tsx").read_text(encoding="utf-8"))
@@ -8140,6 +8201,15 @@ class TheLearningLoopRunsItself(unittest.TestCase):
             self.assertNotIn(write, text, write)
 
 
+class CoverageNeverConfirmsASetup(unittest.TestCase):
+    def test_the_setup_job_counts_only_volume_and_the_industry_gap(self):
+        src = (ROOT / "jobs" / "setup.py").read_text(encoding="utf-8")
+        confirms = src[src.index("up_confirms = ["):src.index("up_met = [")]
+        self.assertNotIn("news", confirms.lower())
+        self.assertNotIn("headline", confirms.lower())
+        self.assertIn('grade = "medium"', src)
+
+
 class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
     """`tools/ui_audit.py` checks the rendered pages, hourly, for the rules a reader relies on. These
     feed it pages with each violation planted, because a checker that passes a clean site proves
@@ -8159,6 +8229,14 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
             f"<span>Price</span>{price_cell}<span>Entry zone</span>$1 to $2</li>"
         )
 
+    @staticmethod
+    def held(reason, level):
+        return (
+            f"<li><span>Name</span>Merck<span>Action</span><span>Held back</span>"
+            f"<span>Price</span><span>$3.00</span><span>Entry zone</span>{level}<span>Stop loss</span>no call"
+            f"<span>Measured exit</span>{level}<span>Reward:risk</span>{level}<span>Why no call</span>{reason}</li>"
+        )
+
     def site(self, rows, details="<details><summary>Held back: 3 names</summary></details>", pool=None):
         page = "<html><body><ul>" + "".join(rows) + "</ul>" + details + "</body></html>"
         page = page.replace("&amp;", "&")
@@ -8172,10 +8250,9 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
             self.row("LONG", self.GOOD_PRICE, "<span>★ RISING STAR ↑</span>" + self.SWITCHED),
             self.row("SHORT", "<span>Rs.105.24</span>", "<span>★ FALLING STAR ↓</span>"),
             self.row("LONG", "<span>no close yet</span>"),
-            # Rule 92's held-back reasons, in the words the rows print.
-            self.row("Held back", "<span>$3.00</span>", "<span>The trend reads up, but price has already moved through the level that would prove it wrong.</span>"),
-            self.row("Held back", "<span>$3.00</span>", "<span>Its setup takes no side. Nothing measured leans either way, so no direction is given.</span>"),
-            self.row("Held back", "<span>$3.00</span>", "<span>A turn this recent prints only once something independent confirms it: volume.</span>"),
+            # Rule 93: a held-back row carries its reason and prints no levels.
+            self.held("The trend reads up, but price has already moved through the level that would prove it wrong.", "none: the call ended"),
+            self.held("The rule table reads a rising setup, and none of the five confirmations backs it.", "no call"),
         ]))
         self.assertEqual(failures, [])
         self.assertEqual(counts["changes"], 1 * len(self.ua().PAGES))
@@ -8187,7 +8264,8 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
             "a time printed under the price": self.row("LONG", "<span>$5.25</span><span>Last trade · Oct 10 10:56 UTC</span>"),
             "a close day printed under the price": self.row("LONG", "<span>$5.25</span><span>Oct 9 close</span>"),
             "a WAIT pill": self.row("WAIT", self.GOOD_PRICE),
-            "a held-back row": self.row("Held back", "<span>$3.00</span>"),
+            "a held-back row with no reason": self.row("Held back", "<span>$3.00</span>"),
+            "a held-back row printing levels": self.row("Held back", "<span>$3.00</span>", "<span>Why no call</span>stale"),
             "a change badge": self.row("LONG", self.GOOD_PRICE, "<span>REVERSED: SHORT ➔ LONG</span>"),
             "a change badge through WAIT": self.row("LONG", self.GOOD_PRICE, "<span>NEW CALL: WAIT ➔ LONG</span>"),
             "a Falling Star on a LONG": self.row("LONG", self.GOOD_PRICE, "<span>★ FALLING STAR ↓</span>"),
@@ -8206,6 +8284,18 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
         self.assertTrue(any("pool parity" in f for f in failures), failures)
         failures, counts = ua.audit("x", self.site([listed], pool=1))
         self.assertEqual(failures, [])
+
+    def test_two_snapshots_are_caught(self):
+        # Rule 93: every market page and /api/health read one cached snapshot. A page rendered from an
+        # older one than health is the pool-parity failure of 2026-10-10/11, and is now named for what it is.
+        ua = self.ua()
+        page = '<html><body><p data-snapshot="547|a"></p><ul></ul></body></html>'
+        fetch = lambda url: '{"pool": 0, "snapshot": "553|b"}' if url.endswith("/api/health") else page
+        failures, _ = ua.audit("x", fetch)
+        self.assertTrue(any("snapshot skew" in f for f in failures), failures)
+        same = lambda url: '{"pool": 0, "snapshot": "547|a"}' if url.endswith("/api/health") else page
+        failures, _ = ua.audit("x", same)
+        self.assertFalse(any("snapshot skew" in f for f in failures), failures)
 
     def test_a_link_tag_in_the_head_is_not_read_as_a_row(self):
         # Its first live run read `<link ...>` as `<li ...>` and every market page as one giant row.

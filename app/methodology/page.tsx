@@ -23,8 +23,28 @@ const GATES = [
   { n: 5, gate: "Setup and longer view disagree, and the reward is not asymmetric", answer: "WAIT", told: "Which way each one points, and how far the reward fell short." },
   { n: 6, gate: "Setup up, longer view not down", answer: "LONG", told: "Setup is up, and what the longer view adds." },
   { n: 7, gate: "Setup down, longer view not up", answer: "SHORT", told: "Setup is down, and what the longer view adds." },
-  { n: 8, gate: "A measured direction whose conditions are incomplete — the withheld trend, or failing that the side the two moving averages sit on — resting on volume, on the peer gap or on an asymmetric reward, and not contradicted by the published coverage", answer: "LONG / SHORT", told: "Which reading it acted on, which confirmation it rests on, and every condition still absent." },
-  { n: 9, gate: "Anything left", answer: "WAIT", told: "Which part is absent — setup, longer view, or both." },
+  { n: 8, gate: "A measured direction whose conditions are incomplete — the withheld trend, or failing that the side the two moving averages sit on — resting on volume, on the peer gap, on an entry event or on an asymmetric reward, with news coverage readable and not worded against it", answer: "LONG / SHORT", told: "Which reading it acted on, which confirmation it rests on, and every condition still absent." },
+  { n: 9, gate: "Anything left, including a check 8 direction nothing carries", answer: "WAIT", told: "Which part is absent — setup, longer view, or both." },
+];
+
+// The four refusals every direction from checks 5 to 8 must pass before it prints, in the order
+// `direction()` in lib/decision.ts runs them. Each is a refusal and nothing else: none of them turns a
+// direction into the opposite one (brain.md rule 93).
+const REFUSALS = [
+  { n: "a", gate: "The close is already through the stop", answer: "WAIT", told: "The call ended at its stop. The level it ended at; no entry, exit or opposite call." },
+  { n: "b", gate: "A stored macro veto, a day old at most", answer: "WAIT", told: "That the gatekeeper refused it. Never the other side." },
+  { n: "c", gate: "It turns against a call of the last week with nothing confirming the turn", answer: "WAIT", told: "Which call it turns against, and what would confirm the turn." },
+  { n: "d", gate: "A short where shorts measured a loss (US, commodities) or after a fall of 10% or more, with no confirmation", answer: "WAIT", told: "Why a short needs backing here." },
+];
+
+// What runs after the table, on every list, every asset page, /api/signals and the nightly log (one
+// function, `decideCall` in lib/resolve.ts). Each step can only take a direction away or lower a grade.
+const AFTER = [
+  { n: "A", gate: "None of the five confirmations backs the direction", answer: "WAIT", told: "Every confirmation that is absent." },
+  { n: "B", gate: "The stop is nearer the entry zone than one average true range", answer: "the stop moves", told: "The stop, one average true range beyond the zone." },
+  { n: "C", gate: "Two or more confirmations, while no outcome has matured", answer: "Medium, not High", told: "That High waits for a measured record." },
+  { n: "D", gate: "The data check, again, last: no close, an unreadable date, a close too old, a silent source", answer: "WAIT", told: "The data reason. Nothing earlier can carry a direction past it." },
+  { n: "E", gate: "To be published: a trading style, an entry range, a stop at least 1 x ATR beyond it, a measured exit, reward:risk of at least 1.2, a confirmation", answer: "published, or withheld", told: "A withheld direction is on no list; its own page says “Not a published call” and gives no levels." },
 ];
 
 // What stopped being a gate on 2026-10-09, and what happened to it instead.
@@ -203,7 +223,7 @@ export default async function MethodologyPage() {
           so the next person can check it rather than trust this page. */}
       <Section
         title="The decision rule"
-        lead="Nine checks in a fixed order. The first one that matches decides, and you are told that one reason rather than all nine."
+        lead="Nine checks in a fixed order, four refusals every direction must pass, and five steps after them that can only take a direction away. The first check that matches decides, and you are told that one reason rather than all of them."
       >
         <Table
           minWidth="760px"
@@ -216,7 +236,7 @@ export default async function MethodologyPage() {
             </>
           }
         >
-          {GATES.map((g) => (
+          {[...GATES, ...REFUSALS, ...AFTER].map((g) => (
             <tr key={g.n}>
               <td className="num text-muted-foreground px-3 py-2">{g.n}</td>
               <td className="px-3 py-2">{g.gate}</td>
@@ -225,6 +245,14 @@ export default async function MethodologyPage() {
             </tr>
           ))}
         </Table>
+        <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
+          Rows a to d are the refusals checks 5 to 8 run before a direction prints; rows A to E run after
+          the table, everywhere a call appears. Until 2026-10-11 a layer after the table turned refusals
+          into calls — a crossed stop into the opposite side, an unconfirmed short into SHORT anyway, a
+          macro veto into the other side, a stale or silent name into whatever its momentum leaned, and
+          a name with nothing measured into LONG. It is gone: a refusal stays a refusal, and a name the
+          table refuses is held back with its reason.
+        </p>
         <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
           Checks 1 to 4 are faults in the data and name the missing thing. Check 5 is real
           disagreement in the data and is not a fault. Check 9 is WAIT rather than a direction
@@ -236,11 +264,12 @@ export default async function MethodologyPage() {
           is deliberately narrow. The direction is one already measured and stored, never one
           computed here: either the trend reading the condition job withheld, or — where even that
           came back mixed — which side of the 50 day average the 20 day average sits on. It is
-          only carried when one of three stored figures backs it: volume at or above its own
+          only carried when one of four stored figures backs it: volume at or above its own
           20-session average, a gap against its peer group wide enough for the market it trades
-          in, or a measured reward of at least twice the risk. With none of the three, the name
-          falls through to check 9 exactly as it did before, and every missing confirmation is
-          still listed on the page.
+          in, an entry event on this session, or a measured reward of at least twice the risk —
+          and only when news coverage could be read and is not worded against it. With none of the
+          four, the name falls through to check 9, and every missing confirmation is still listed
+          on the page.
         </p>
         <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
           The two readings are never given the same words. Three things lining up — the close, the

@@ -72,6 +72,10 @@ function base(over: Partial<DecisionInput> = {}): DecisionInput {
   };
 }
 
+/// A stored reward past `ASYMMETRY_CLEARS`: it carries a check 8 trend and confirms nothing, so a thin
+/// trend reaches the refusals inside `direction()` (rule 93).
+const ASYM = { method: "structure", low: 80, high: 84, rewardRisk: 3 };
+
 // A thin row: nothing confirms, nothing contradicts, so one changed field decides the grade on
 // its own and a boundary test measures the boundary rather than the rest of the fixture.
 const THIN = {
@@ -90,6 +94,7 @@ test("a fall of exactly SHORT_LATE_AT is late, and a hair under it is not", () =
   // for a rounded figure to take, and which way it falls is the whole of the rule for that name.
   const late = {
     ...THIN,
+    target: ASYM,
     market: "Crypto" as const,
     setup: { direction: "flat", horizon: "swing", trend: "down" } as const,
   };
@@ -104,6 +109,7 @@ test("the fall is reported with the sign the reader expects at the boundary", ()
   const d = decide(
     base({
       ...THIN,
+      target: ASYM,
       market: "Crypto",
       setup: { direction: "flat", horizon: "swing", trend: "down" },
       r20: -SHORT_LATE_AT,
@@ -140,6 +146,7 @@ test("an industry the seed does not recognise classifies as Other and is gated, 
   const d = decide(
     base({
       ...THIN,
+      target: ASYM,
       market: "Other",
       setup: { direction: "flat", horizon: "swing", trend: "down" },
     }),
@@ -213,7 +220,8 @@ test("the asymmetry bypass fires exactly at ASYMMETRY_CLEARS", () => {
       target: { method: "structure", low: 120, high: 130, rewardRisk: ASYMMETRY_CLEARS - 0.0001 },
     }),
   );
-  assert.equal(under.gate, "unconfirmed-long");
+  // Under it nothing carries the trend, and it falls through to check 9 (rule 93).
+  assert.equal(under.gate, "incomplete");
 });
 
 test("staleness is measured against the market's own limit, at the day it turns", () => {

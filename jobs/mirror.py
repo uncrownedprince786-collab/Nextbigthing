@@ -68,7 +68,27 @@ TABLES: dict[str, tuple[str, ...]] = {
     # The macro gatekeeper's stored answers. Mirrored so a standby that takes over serves the same vetoes
     # as the primary; absent on a target the migration has not reached, in which case `copy_table` skips it.
     "MacroGate": ("assetId", "periodEnd"),
+    # News coverage (brain.md rule 93). The standby held none, so a failover read every name as having no
+    # coverage at all -- and the rule table, which can only *withdraw* evidence on coverage, would have
+    # printed calls the primary qualified. Asset headlines only (the decision reads no other), keyed on
+    # the partial unique index `("assetId", url) WHERE "assetId" IS NOT NULL`; and the readings computed
+    # from them, keyed on `(targetRef, periodEnd, windowDays)`, with `targetRef` translated with the asset.
+    "News": ("assetId", "url"),
+    "HumanSignal": ("targetRef", "periodEnd", "windowDays"),
 }
+
+# Tables copied for asset rows only: a product's or an industry's row names a per-database id this job
+# does not translate, and no decision reads it.
+ASSET_ROWS_ONLY = {"News", "HumanSignal"}
+
+# The predicate of a partial unique index, which `ON CONFLICT` must repeat to use it.
+CONFLICT_WHERE = {"News": '"assetId" IS NOT NULL'}
+
+# Columns written as null on the target: per-database ids of rows this job does not copy.
+NULLED = {"News": ("industryId", "productId"), "HumanSignal": ("productId",)}
+
+# Tables whose `targetRef` is the asset id itself, translated with it.
+REF_IS_ASSET = {"HumanSignal"}
 
 # The date column each table is keyed on, for `--since`. A nightly mirror copies a trailing window
 # and not the whole history: six hundred thousand price rows rewritten every night would be the
@@ -81,6 +101,8 @@ DATE_COLUMN = {
     "SignalLog": "issuedOn",
     "AssetThesis": "openedOn",
     "MacroGate": "periodEnd",
+    "News": "publishedAt",
+    "HumanSignal": "periodEnd",
 }
 
 # Rows per statement and per commit. Small enough that a dropped pooler connection costs one batch,
@@ -135,7 +157,8 @@ def same_database(a: str, b: str) -> bool:
 
 
 def remap_row(
-    row: dict, key_cols: tuple[str, ...], asset_map: dict, unmatched: set, product_map: dict | None = None
+    row: dict, key_cols: tuple[str, ...], asset_map: dict, unmatched: set, product_map: dict | None = None,
+    table: str | None = None,
 ) -> dict | None:
     """The row with `assetId` translated to the target's id, or None when it cannot be.
 
@@ -161,6 +184,11 @@ def remap_row(
             unmatched.add("product:" + str(out["productId"]))
             return None
         out["productId"] = mapped
+    for col in NULLED.get(table or "", ()):
+        if col in out:
+            out[col] = None
+    if table in REF_IS_ASSET and row.get("assetId") is not None and out.get("targetRef") == row.get("assetId"):
+        out["targetRef"] = out["assetId"]
     return out
 
 
@@ -180,7 +208,7 @@ def shared_columns(source_cols: list[str], target_cols: list[str], key: tuple[st
     return shared
 
 
-def upsert_sql(table: str, columns: list[str], key: tuple[str, ...]) -> str:
+def upsert_sql(table: str, columns: list[str], key: tuple[str, ...], conflict_where: str | None = None) -> str:
     """INSERT ... ON CONFLICT (key) DO UPDATE ... WHERE changed, as text with psycopg placeholders.
 
     The WHERE is `IS DISTINCT FROM` for the reason the factor and decision upserts use it: a rerun
@@ -192,14 +220,15 @@ def upsert_sql(table: str, columns: list[str], key: tuple[str, ...]) -> str:
     cols = ", ".join(q(c) for c in columns)
     marks = ", ".join(f"%({c})s" for c in columns)
     changing = [c for c in columns if c not in key]
+    target = f'({", ".join(q(k) for k in key)})' + (f" WHERE {conflict_where}" if conflict_where else "")
     if not changing:
-        return f'INSERT INTO {q(table)} ({cols}) VALUES ({marks}) ON CONFLICT ({", ".join(q(k) for k in key)}) DO NOTHING'
+        return f"INSERT INTO {q(table)} ({cols}) VALUES ({marks}) ON CONFLICT {target} DO NOTHING"
     sets = ", ".join(f"{q(c)} = EXCLUDED.{q(c)}" for c in changing)
     old = ", ".join(f"{q(table)}.{q(c)}" for c in changing)
     new = ", ".join(f"EXCLUDED.{q(c)}" for c in changing)
     return (
         f"INSERT INTO {q(table)} ({cols}) VALUES ({marks}) "
-        f'ON CONFLICT ({", ".join(q(k) for k in key)}) DO UPDATE SET {sets} '
+        f"ON CONFLICT {target} DO UPDATE SET {sets} "
         f"WHERE ({old}) IS DISTINCT FROM ({new})"
     )
 
@@ -256,8 +285,9 @@ def copy_table(
             print(f"  {table:14} absent on one side, skipped")
             return tally
         cols = shared_columns(scols, tcols, key)
-        sql = upsert_sql(table, cols, key)
-        where = f' WHERE "{DATE_COLUMN[table]}" >= %s' if since else ""
+        sql = upsert_sql(table, cols, key, CONFLICT_WHERE.get(table))
+        conds = ([f'"{DATE_COLUMN[table]}" >= %s'] if since else []) + (['"assetId" IS NOT NULL'] if table in ASSET_ROWS_ONLY else [])
+        where = (" WHERE " + " AND ".join(conds)) if conds else ""
         select = (
             "SELECT " + ", ".join('"' + c + '"' for c in cols) + f' FROM "{table}"' + where + " ORDER BY "
             + ", ".join('"' + k + '"' for k in key)
@@ -278,7 +308,7 @@ def copy_table(
                 tally.read += len(batch)
                 out = []
                 for row in batch:
-                    mapped = remap_row(dict(zip(cols, row)) if not isinstance(row, dict) else row, key, asset_map, tally.unmatched_assets, product_map)
+                    mapped = remap_row(dict(zip(cols, row)) if not isinstance(row, dict) else row, key, asset_map, tally.unmatched_assets, product_map, table)
                     if mapped is None:
                         tally.unmatched += 1
                     else:

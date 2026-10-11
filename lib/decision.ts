@@ -509,6 +509,13 @@ export interface DecisionInput {
     tone: "up" | "down" | null;
     catalyst: boolean;
   } | null;
+  /// Whether news coverage could be read at all on the database this was decided from (brain.md rule
+  /// 93). "unavailable" when the coverage lane is silent or the serving database holds no recent
+  /// reading -- a failover standby without news rows, for one. It is never turned into a tone: an
+  /// unreadable coverage is not neutral coverage. What it costs is the one thing coverage can do, the
+  /// check for a contradiction: similar past days are not counted, and gate 8 does not carry a trend,
+  /// because no contradiction can be ruled out. Absent means available, as every caller before it.
+  newsCoverage?: "available" | "unavailable";
   /// null means news was never checked, which is different from checked and found none.
   newsCount: number | null;
   /// Days until the next dated event, or null when none is stored.
@@ -720,11 +727,14 @@ export const LEGS = ["timeframe", "volume", "history", "peers", "trigger"] as co
 export type Leg = (typeof LEGS)[number];
 
 export function confirmingLegs(input: DecisionInput, direction: "up" | "down"): Leg[] {
+  // The longer view confirms a direction only when both timeframes read *that* direction. It used to
+  // count whenever the two agreed with each other, whichever way, so two readings sharing one premise
+  // -- both up -- were counted as independent confirmation of a SHORT the layer after the table had
+  // flipped to (rule 93).
   const agrees = Boolean(
-    input.setup && input.horizon && input.setup.direction === input.horizon.direction,
+    input.setup && input.horizon && input.setup.direction === direction && input.horizon.direction === direction,
   );
-  const historyConfirms =
-    analogConfirms(input, direction) === true && !newsContradicts(input, direction);
+  const historyConfirms = analogConfirms(input, direction) === true && historyWithdrawnBy(input, direction) === null;
   const present: Record<Leg, boolean> = {
     timeframe: agrees,
     volume: volumeConfirms(input) === true,
@@ -766,7 +776,7 @@ function confirmLine(input: DecisionInput, direction: "up" | "down"): string {
   // not print as confirmation while the published coverage points the other way; printing it
   // and quietly not counting it would be the worse of the two halves.
   const withdrawn =
-    analogConfirms(input, direction) === true && newsContradicts(input, direction);
+    analogConfirms(input, direction) === true && historyWithdrawnBy(input, direction) !== null;
   const analog = withdrawn ? false : analogConfirms(input, direction);
   const parts: string[] = [];
   if (vol === true && input.volumeRatio) {
@@ -993,6 +1003,14 @@ function asymmetric(input: DecisionInput): boolean {
 /// Null when no reading exists or the reading was neutral. Rule 21 again: "no row" and "read,
 /// and it took no side" are not the same as "read, and it disagrees", and only the third one
 /// is allowed to change anything.
+/// Why a set of similar past days that leans this way is not counted, or null when it is: published
+/// coverage worded the other way (rule 44), or coverage that could not be read, which cannot rule a
+/// contradiction out (rule 93).
+function historyWithdrawnBy(input: DecisionInput, direction: "up" | "down"): "coverage" | "unavailable" | null {
+  if (input.newsCoverage === "unavailable") return "unavailable";
+  return newsContradicts(input, direction) ? "coverage" : null;
+}
+
 function newsContradicts(input: DecisionInput, direction: "up" | "down"): boolean {
   const tone = input.news?.tone ?? null;
   if (tone === null) return false;
@@ -1107,6 +1125,14 @@ function notesFor(input: DecisionInput, direction: "up" | "down"): string[] {
         `${same} of ${a.count} similar past days went this way, and they are not counted as confirmation: none of them had this coverage in it.`,
       );
     }
+  }
+  if (input.newsCoverage === "unavailable") {
+    const a = input.analogs;
+    out.push(
+      analogConfirms(input, direction) === true && a
+        ? `News coverage could not be read, so the ${a.count} similar past days are not counted as confirmation: whether coverage contradicts them is unknown.`
+        : "News coverage could not be read, so whether it contradicts this direction is unknown.",
+    );
   }
 
   // Never a gate, and it was never meant to be one: a calendar row is a risk to size, not a
@@ -1245,6 +1271,8 @@ function developingRead(input: DecisionInput): Developing | null {
         input.news?.catalyst ? ", and arrived as a spike against its own baseline" : ""
       }.`,
     );
+  } else if (input.newsCoverage === "unavailable") {
+    waitingOn.push("News coverage could not be read, so a contradiction cannot be ruled out.");
   }
 
   const analog = analogConfirms(input, trend);
@@ -1532,6 +1560,24 @@ export function decide(input: DecisionInput): Decision {
   // It costs a confidence step through `confidenceFor`, where the agreeing-timeframe leg simply
   // does not count, and it prints under "What argues against it". One name sat here on
   // 2026-10-09; the demotion is written for the shape rather than for the count.
+  // **Rule 93 restores the refusal**, because the methodology has always stated it (check 5: "setup and
+  // longer view disagree, and the reward is not asymmetric -> WAIT") while the code above stopped
+  // asking. Two timeframes reading opposite ways are contradictory evidence about the same name, and a
+  // justified WAIT is better than printing the nearer one. An asymmetric reward still carries it, as
+  // the page says.
+  const opposed = (setup === "up" && horizon === "down") || (setup === "down" && horizon === "up");
+  if (opposed && !asymmetric(input)) {
+    const rr = rewardRisk(input);
+    return {
+      ...wait(input, "mixed-horizons", "evidence", [
+        `The ${input.setup?.horizon ?? "setup"} view reads ${setup} and the longer view reads ${horizon}.`,
+        rr === null
+          ? `They disagree, and no measured reward is stored to carry one of them; ${ASYMMETRY_CLEARS}x is needed.`
+          : `They disagree, and the reward of ${rr.toFixed(1)}x is short of the ${ASYMMETRY_CLEARS}x that would carry one of them.`,
+      ], []),
+      intent: setup,
+    };
+  }
   // 6 and 7. A direction, with a level to be wrong at, and whatever confirms it.
   if (setup === "up") {
     return direction(
@@ -1598,7 +1644,10 @@ export function decide(input: DecisionInput): Decision {
       ? biasRead
       : null;
   if (trend === "up" || trend === "down") {
-    // **No carrier is required any more, and this is the last filter to go.**
+    // **Superseded by rule 93: the carrier is required again (below).** The history of the argument
+    // is kept because the measurement in it is still true -- most refused names had a direction, an
+    // entry and a stop -- and because the conclusion drawn from it was the wrong one: a grade does
+    // not make a direction carried by nothing into a call, it only labels it.
     //
     // It asked for one of three stored figures -- volume at or above its own average, a peer gap
     // wide enough for the market, or a reward at `ASYMMETRY_CLEARS`. Measured 2026-10-09 after
@@ -1633,25 +1682,23 @@ export function decide(input: DecisionInput): Decision {
       peersConfirm(input, trend) ||
       asymmetric(input) ||
       triggerConfirms(input, trend);
-    const gate = carriers
-      ? trend === "up"
-        ? "trend-long"
-        : "trend-short"
-      : trend === "up"
-        ? "unconfirmed-long"
-        : "unconfirmed-short";
-    const opening = fromTrend
-      ? carriers
+    // Rule 93: the carrier is required again, and so is coverage that neither contradicts the trend nor
+    // could not be read. A direction carried by nothing printed as `unconfirmed-long`/`-short` -- 47
+    // names on 2026-10-11, 11 of them graded High on timeframe and history alone -- while the
+    // methodology told readers that such a name falls through to check 9. Now it does.
+    const coverageBlocks = newsContradicts(input, trend) || input.newsCoverage === "unavailable";
+    // The longer view's veto, on gate 5's terms: a thin trend pointing into a disagreeing longer view is
+    // carried only on an asymmetric reward.
+    const longerOpposes = (horizon === "up" || horizon === "down") && horizon !== trend && !asymmetric(input);
+    if (carriers && !coverageBlocks && !longerOpposes) {
+      const gate = trend === "up" ? "trend-long" : "trend-short";
+      const opening = fromTrend
         ? `The trend is ${trend} and not all of its conditions are present; it rests on ${carriedBy(trend)}.`
-        : `The trend is ${trend} and none of its other conditions are present.`
-      : carriers
-        ? `Price is between its own averages, with the 20 day ${
-            trend === "up" ? "above" : "below"
-          } the 50 day; it rests on ${carriedBy(trend)}.`
         : `Price is between its own averages, with the 20 day ${
             trend === "up" ? "above" : "below"
-          } the 50 day, and nothing else confirms it.`;
-    return direction(trend, gate, opening);
+          } the 50 day; it rests on ${carriedBy(trend)}.`;
+      return direction(trend, gate, opening);
+    }
   }
 
   // 9. Nothing fired. Falling through to a direction here is how a panel recommends a trade it has

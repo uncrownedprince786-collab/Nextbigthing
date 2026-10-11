@@ -2399,7 +2399,7 @@ reads rows that already exist:
     being told to turn round (rule 80's `reversal-unconfirmed`).
 
 86. **Every priced name gets LONG or SHORT, at the owner's instruction; the refusal in rule 85 is withdrawn.**
-    (Narrowed by rule 92: a call that ended at its stop, and a name nothing measured leans on, stay WAIT.)
+    (Narrowed by rule 92, and withdrawn by rule 93: a refusal of the rule table now stays a refusal.)
     The owner decided that the site makes a call on every name. `decide()` (the evidence table) is
     unchanged and still says WAIT where its evidence is missing; `lib/resolve.ts` runs after it, in one
     function (`decideCall`) used by the lists, the asset page and the nightly log, and gives every WAIT
@@ -2552,3 +2552,60 @@ reads rows that already exist:
       "carries it" openings ("it rests on ..."). The causality scan never read lib/decision.ts; it now
       reads the string literals of lib/decision.ts and lib/resolve.ts, matches whole words, and catches
       the shipped sentence in a test.
+
+93. **A refusal stays a refusal; no direction without a confirmation; faulty data and unreadable coverage
+    carry nothing; one snapshot for every surface.** The owner's "remaining core fixes" directive of
+    2026-10-11. Each item is a root cause, and each fix only removes a direction or weakens a claim.
+
+    - **The forced layer is gone (rule 86 withdrawn).** `lib/resolve.ts` turned the table's refusals into
+      calls: a macro veto into the opposite side, an unconfirmed short into SHORT anyway, an incomplete or
+      stop-less read into its intent, a stale or silent name into whatever its momentum leaned, an
+      unconfirmed turn or return into the call it replaced. All of it is deleted, not switched off. What
+      remains after `decide()` can only take away: a stopped call loses its entry and plan; a direction
+      no confirmation backs becomes WAIT `no-confirmation` naming the five that are absent (96 names
+      printed LONG or SHORT that way on 2026-10-11); the stop buffer; no High while the live edge is
+      unmeasured (`HIGH_AWAITS_MEASURED_EDGE` -- the grade counts confirmations, and not one +5-session
+      outcome had matured); and **last, a hard data gate** that re-runs gates 1 to 3 on the output so no
+      step can carry a direction past a missing, unreadable, stale or silent close.
+    - **Two readings with one premise are not two confirmations.** The timeframe leg counted whenever the
+      setup and the longer view agreed with *each other*, so both reading up confirmed a SHORT the forced
+      layer had flipped. It now counts only for the side both read.
+    - **The table matches its methodology.** Check 8 again needs a carrier (volume, peers, an entry event or
+      an asymmetric reward) and coverage that is neither worded against it nor unreadable; carried by
+      nothing it falls through to check 9, as the page always said -- 47 `unconfirmed-*` names had been
+      printed instead, 11 of them graded High. Check 5 again refuses opposite timeframes unless the reward
+      is asymmetric, as the page always said; the longer view vetoes a thin check 8 trend on the same terms.
+      The methodology table now lists the four refusals inside `direction()` and the five steps after the
+      table.
+    - **Unreadable coverage is not neutral.** `newsCoverageOf` reads "unavailable" when the serving database
+      holds no news reading newer than three days or the headline source is silent. Then similar past days
+      do not count and check 8 carries nothing, because no contradiction can be ruled out, and the panel
+      says so. The Supabase standby held no `News` or `HumanSignal` rows at all; `jobs/mirror.py` now copies
+      both (asset rows, 61 days, ids and `targetRef` translated), so a failover keeps the evidence class.
+    - **A headline's sign belongs to its clause's subject.** `jobs/human.py` reads a headline for an asset
+      only through a clause that opens with the asset's name or ticker (or, for a pair, one of its
+      currencies), and only that clause's words count. "Yen weakens as Nikkei jumps", "Rupee recovers after
+      it fell", "Fauji Fertilizer jumps after Engro plant shutdown", "Solana tumbles as traders rotate into
+      Bitcoin" and "Consumer optimism slides" (the Optimism token) all scored a sign a reader would reverse
+      or drop; all now take no side. Signed headlines over the stored 30 days: US 200 to 141, crypto 78 to
+      65, PSX 16 to 8, commodities 2 to 0. A namesake whose name opens a clause about something else can
+      still be read as the asset; no side would be the cost of fixing that, and it is recorded, not hidden.
+    - **Execution is not direction.** `lib/execution.ts`: blocked when the last session printed no trade,
+      unverified for every SHORT (no market's short-sale eligibility is stored) and wherever no volume is
+      published, checked only for a LONG that traded inside the turnover-floored pool -- and no bid or ask
+      is stored anywhere, which the reason says. "NOW" is shown only for a checked call.
+    - **A call that is not published does not look like one.** The asset panel for a withheld direction says
+      "Not a published call" first and large, prints the reading as a reading, and gives no entry, stop,
+      exit, reward, timing or validity; a held-back row prints "no call" in every level cell; the change
+      banner says the rule table's *reading* changed, never "New Short call", and credits a historical
+      `forced-` row to the layer that printed it rather than to the rule table.
+    - **One snapshot.** The data cache had an hourly timer and every page's HTML another, so after a run the
+      market pages and `/api/health` served different snapshots (553 listed against 547 counted). The cache
+      now refreshes only through `/api/revalidate`, with every page under the root layout in the same call,
+      and the route acts only when a fresh `getDataStamp` differs from the one the cached rows were read
+      with -- no secret is needed, because a caller can cause work at most once per change in the data. The
+      decision workflow calls it when it finishes and `tools/ui_audit.py` before it reads; the pages and
+      health print the stamp and the audit fails on a skew. The asset page decides from the lists' own
+      cached row, so a name cannot be LONG on its page and withheld on its list. Each market page states its
+      newest close, its newest decision run, its source status and where every name went -- it used to call
+      every held-back name "with no stored price".

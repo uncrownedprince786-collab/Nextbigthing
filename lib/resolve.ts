@@ -1,160 +1,102 @@
-/// The owner's binary rule on top of the evidence table, with the two exceptions rule 92 makes.
+/// The layer after the evidence table: what every caller prints, logs and publishes (brain.md rule 93).
 ///
-/// `decide()` in lib/decision.ts is the evidence table and is unchanged: it still says WAIT where the
-/// evidence it requires is not there, and its tests still pin that. This layer runs after it and turns
-/// a WAIT into LONG or SHORT, by the reason the table gave (brain.md rule 86, which replaces the
-/// refusal in rule 85 at the owner's instruction):
+/// `decide()` in lib/decision.ts is the evidence table. This layer used to turn its refusals into calls
+/// (rule 86, the "binary rule"): a stopped call into the opposite side, an unconfirmed short into SHORT
+/// anyway, a macro veto into the other side, a stale or silent name into whatever its momentum leaned,
+/// an unconfirmed turn or return into the call it replaced. Rule 92 removed the first two; rule 93
+/// removes the rest. **A refusal of the table stays a refusal.** Nothing here can produce a direction
+/// the table did not, and three steps can only take one away:
 ///
-///   * `short-unbacked`       the setup reads down and nothing independent confirms it: SHORT anyway;
-///   * `reversal-unconfirmed` the flip is not confirmed yet, so the call the reader holds is kept --
-///                            the patient flip; it lifts when a confirmation arrives or after a week;
-///   * `macro-veto`           the gatekeeper refused one side on breaking news: the other side;
-///   * anything else          the side the table was leaning toward when it has one, else the
-///                            measured momentum read.
+///   1. `endStoppedCall` -- a call that ended at its stop keeps the stop it ended at and loses its entry
+///      band and plan, so no surface prints a zone to enter for a finished plan (rule 92);
+///   2. `requireConfirmation` -- a direction no confirmation backs is WAIT, naming the five that are
+///      absent. Rule 93: no name shows LONG or SHORT anywhere on a setup alone;
+///   3. `bufferStop` -- the stop at least `STOP_BUFFER_ATR` beyond the entry zone (rule 91);
+///   4. `capUnmeasured` -- no High while the live edge is unmeasured (`HIGH_AWAITS_MEASURED_EDGE`);
+///   5. `dataGate` -- last, after everything: a stale, silent, missing or unreadable close is WAIT
+///      whatever came before it, with the data reason.
 ///
-/// And it leaves two WAITs as they are (rule 92, 2026-10-11):
-///
-///   * `stop-crossed`         the close went through the stop, so the call has **ended**. It is not
-///                            turned into the opposite call: the break measures where the old call was
-///                            wrong, not where a new one is right, and none of the 223 resolved this
-///                            way on 2026-10-10 had a measured target on the new side. A direction on
-///                            the other side has to come from the evidence table itself.
-///   * nothing measured       no stored reading leans either way. There used to be a fallback to LONG,
-///                            "the long-run drift of most markets" -- an assumption, not a measurement.
-///
-/// A stop is kept when the call goes the setup's way and its stop sits on the right side of the close for
-/// the direction taken; otherwise it is the close plus or minus `ATR_STOP_MULTIPLE` times the 14-session average
-/// true range. Every resolved call is logged with its gate as `forced-<reason>`, so the logbook can
-/// grade these calls apart from the ones the evidence table made itself. Confidence is capped at
-/// Medium: a call the table refused is never printed as its strongest grade.
-///
-/// After that, one guard on every call, the evidence table's included (`whipsawHold`): a call may not return
-/// to the direction it left within `WHIPSAW_DAYS` unless the return is confirmed.
-///
-/// A name with no stored close at all cannot be resolved either: there is no price to put a stop against.
-/// Each of the three stays WAIT, in the held-back list with its reason, and `tools/ui_audit.py` accepts a
-/// held-back row only for those reasons.
+/// One function (`decideCall`) is used by the lists, the asset page, `/api/signals` and the nightly log,
+/// so they cannot resolve the same name two ways.
 
 import {
   confirmingLegs,
   decide,
-  EVENT_SOON_DAYS,
-  type Confidence,
+  LEGS,
+  STALE_AFTER_DAYS,
   type Decision,
   type DecisionInput,
   type TradePlan,
 } from "./decision.ts";
 
-/// Stop distance in average true ranges, as the owner specified.
-export const ATR_STOP_MULTIPLE = 2;
-
-/// The gate prefix every resolved call is logged under.
-export const FORCED = "forced-";
-
-/// Calendar days, counted from the day the current direction began, inside which a call may not go back
-/// to the direction it replaced without a confirmation. The final audit (2026-10-10) found SHORT, then a
-/// forced LONG on a stop-cross, then SHORT again on an unconfirmed turn: two reversals in three days, the
-/// whipsaw rule 80 exists to prevent, reachable because the reversal gate reads only calls the evidence
-/// table made (rightly: a forced call is logged daily and would keep a turn "recent" for ever). This guard
-/// reads the run's *start*, which a daily re-log does not move, so it cannot hold a call for ever either.
-export const WHIPSAW_DAYS = 3;
-
 /// The stop's least distance beyond the entry zone, in 14-session average true ranges (the owner's rule,
 /// 2026-10-11, first given as 1.5 and settled at 1.0). The zone runs from the setup's stop to its entry
 /// level, so the stop sat exactly on the zone's edge -- Askari Bank's band Rs.102.50 to Rs.106.19 with its
 /// stop at Rs.102.50 -- and a reader buying at the bottom of the band was buying at the stop. Now the stop
-/// is `min(zone low - 1.0 x ATR, the structural stop)` for a LONG, mirrored for a SHORT.
+/// is `min(zone low - 1.0 x ATR, the structural stop)` for a LONG, mirrored for a SHORT. Chosen, not
+/// measured: no outcome had matured when it was set.
 export const STOP_BUFFER_ATR = 1.0;
 
-type Side = "up" | "down";
+/// No call is graded High until the live record says what High is worth (rule 93). The grade counts
+/// confirmations, which is a statement about evidence, not about outcomes; printed as "High" before a
+/// single +5-session outcome has matured, it reads as a measured edge that nothing has measured. Lifted
+/// only by a deliberate change, once `tools/scorecard.py` reports at least its `MIN_SAMPLE` matured calls
+/// with two or more confirmations and they moved the called way more often than not.
+export const HIGH_AWAITS_MEASURED_EDGE = true;
 
-const flip = (d: Side): Side => (d === "up" ? "down" : "up");
-const sign = (v: number | null | undefined): number => (v == null || !Number.isFinite(v) || v === 0 ? 0 : v > 0 ? 1 : -1);
-
-/// The momentum read for a name whose setup takes no side: one vote each from the trend (close
-/// against its 20- and 50-day averages), the longer-timeframe bias, the 20-session return, the gap to
-/// its peers and the similar past days; two from an entry rule that fired on this session on volume.
-/// A tie goes to the 20-session return, then the trend, then the last call. With nothing at all it is
-/// null: no direction is assumed (rule 92).
-export function momentumSide(input: DecisionInput): Side | null {
-  const t = (d: string | null | undefined) => (d === "up" ? 1 : d === "down" ? -1 : 0);
-  const votes =
-    t(input.setup?.trend) +
-    t(input.setup?.bias) +
-    sign(input.r20) +
-    sign(input.relStrength) +
-    sign(input.analogs?.medianPct) +
-    2 * t(input.entryTrigger?.direction);
-  if (votes !== 0) return votes > 0 ? "up" : "down";
-  const tie = sign(input.r20) || t(input.setup?.trend) || t(input.priorDirection?.direction);
-  if (tie !== 0) return tie > 0 ? "up" : "down";
-  return null;
-}
-
-/// Which way a WAIT resolves, and the gate it is logged under; null when it stays WAIT.
-export function resolvedSide(d: Decision, input: DecisionInput): { side: Side; gate: string } | null {
-  const close = input.lastClose;
-  if (close === null || !Number.isFinite(close)) return null;
-  // The call ended at its stop. Neither side is resolved: not the opposite one, which the break does not
-  // measure, and not the old one under its intent, which the stop has just said is wrong.
-  if (d.gate === "stop-crossed") return null;
-  if (d.gate === "short-unbacked") return { side: "down", gate: FORCED + d.gate };
-  if (d.gate === "reversal-unconfirmed") {
-    // The call the reader holds, which after a forced flip is not the table's last call: keeping the
-    // table's SHORT after a forced LONG printed SHORT, LONG, SHORT and said "the last call holds". Only a
-    // run that is still open is held: one that ended at its stop reads ENDED (lib/queries.ts
-    // `getLastRuns`), there is nothing left to hold, and the unconfirmed turn stays WAIT. There is no
-    // fallback to the table's last call either: that is how a stopped call would come back.
-    const held = input.lastRun?.direction;
-    return held ? { side: held, gate: FORCED + d.gate } : null;
-  }
-  if (d.gate === "macro-veto" && d.intent) return { side: flip(d.intent), gate: FORCED + d.gate };
-  if (d.intent) return { side: d.intent, gate: FORCED + d.gate };
-  const m = momentumSide(input);
-  return m ? { side: m, gate: FORCED + d.gate } : null;
-}
-
-/// The stop for a resolved call: the setup's own when the call goes the setup's way and the stop is on
-/// the right side of the close, else 2 x ATR. A stop that belongs to the other direction is never
-/// reused, even when it happens to sit on the right side: after a break it is the level that just
-/// failed, not a measurement of where the new call is wrong.
-export function resolvedStop(side: Side, input: DecisionInput): number | null {
-  const close = input.lastClose;
-  if (close === null) return null;
-  const own = input.invalidation;
-  const sameWay = input.setup?.direction === side;
-  if (sameWay && own !== null && Number.isFinite(own) && (side === "up" ? own < close : own > close)) return own;
-  const atr = input.atr;
-  if (atr == null || !Number.isFinite(atr) || atr <= 0) return null;
-  const stop = side === "up" ? close - ATR_STOP_MULTIPLE * atr : close + ATR_STOP_MULTIPLE * atr;
-  // Eight significant digits, not a fixed number of decimals: a fixed six would flatten a sub-cent coin.
-  return stop > 0 ? Number(stop.toPrecision(8)) : null;
-}
-
-const WORDS: Record<string, string> = {
-  "short-unbacked": "The setup reads down; no independent confirmation yet.",
-  "reversal-unconfirmed": "The setup turned, but the turn is not confirmed yet, so the last call holds.",
-  "macro-veto": "Breaking news ruled out the other side.",
-  "whipsaw-hold": `It would go back to the side it left under ${WHIPSAW_DAYS} days ago with nothing confirming the return, so the current call holds.`,
+const LEG_WORDS: Record<(typeof LEGS)[number], string> = {
+  timeframe: "the longer view reading the same way",
+  volume: "volume at or above its average",
+  history: "similar past days leaning this way",
+  peers: "a gap against its peers",
+  trigger: "an entry event on this session",
 };
 
-/// The line a name gets when nothing measured leans either way, so its WAIT says why it has no call.
-export const NO_DIRECTION = "Nothing measured leans either way, so no direction is given.";
+/// A call that ended at its stop keeps the level it ended at -- which its reason quotes -- and loses its
+/// entry band and plan: an ended call printing a zone to enter and a reward to weigh reads as a live trade.
+export function endStoppedCall(d: Decision): Decision {
+  return d.action === "WAIT" && d.gate === "stop-crossed" ? { ...d, entry: null, plan: null } : d;
+}
 
-/// A WAIT turned into a direction, or the decision unchanged when it already has one or must stay WAIT.
-export function resolveCall(d: Decision, input: DecisionInput): Decision {
-  if (d.action !== "WAIT") return d;
-  const r = resolvedSide(d, input);
-  if (r) return forcedCall(d, input, r);
-  // A stopped call keeps its stop -- the level it ended at, which its reason quotes -- and loses its entry
-  // band and plan: an ended call printing a zone to enter and a reward to weigh reads as a live trade.
-  if (d.gate === "stop-crossed") return { ...d, entry: null, plan: null };
-  // Still WAIT. A held turn with nothing open to hold and a name with no close keep the table's own words;
-  // a name with nothing measured says so, second, where the held-back row shows it.
-  const close = input.lastClose;
-  const priced = close !== null && Number.isFinite(close);
-  const unmeasured = priced && d.gate !== "reversal-unconfirmed" && !d.intent;
-  return unmeasured ? { ...d, why: [d.why[0], NO_DIRECTION, ...d.why.slice(1)] } : d;
+/// A direction no confirmation backs is not printed as one (rule 93). The table can still read a side --
+/// a setup in state `buy` or `short`, a trend gate 8 carried on a reward figure -- and the five
+/// confirmations can all be absent; before this, 96 names on 2026-10-11 showed LONG or SHORT that way.
+/// It becomes WAIT, keeps the side it read as `intent`, and names every absent confirmation.
+export function requireConfirmation(d: Decision, input: DecisionInput): Decision {
+  if (d.action !== "LONG" && d.action !== "SHORT") return d;
+  const side = d.action === "LONG" ? "up" : "down";
+  if (confirmingLegs(input, side).length > 0) return d;
+  const read = side === "up" ? "rising" : "falling";
+  return {
+    ...d,
+    action: "WAIT",
+    why: [
+      `The rule table reads a ${read} setup, and none of the five confirmations backs it.`,
+      `Absent: ${LEGS.map((l) => LEG_WORDS[l]).join(", ")}.`,
+    ],
+    timeSense: "WAIT FOR LEVEL",
+    confidence: "Low",
+    notes: [],
+    gate: "no-confirmation",
+    basis: "evidence",
+    plan: null,
+    legs: [],
+    intent: side,
+    developing: null,
+  };
+}
+
+/// High shown as Medium while the live edge is unmeasured, saying so (see `HIGH_AWAITS_MEASURED_EDGE`).
+export function capUnmeasured(d: Decision): Decision {
+  if (!HIGH_AWAITS_MEASURED_EDGE || d.confidence !== "High") return d;
+  return {
+    ...d,
+    confidence: "Medium",
+    notes: [
+      ...d.notes,
+      "Graded Medium, not High: two or more confirmations back it, but no outcome has matured yet, so a High grade would claim an edge nothing has measured.",
+    ],
+  };
 }
 
 function daysBetween(fromISO: string, toISO: string): number {
@@ -163,61 +105,49 @@ function daysBetween(fromISO: string, toISO: string): number {
   return Number.isNaN(a) || Number.isNaN(b) ? Number.NaN : Math.round((b - a) / 86_400_000);
 }
 
-/// The whipsaw guard: a call that would go back, unconfirmed, to the direction the reader's current call
-/// replaced under `WHIPSAW_DAYS` ago keeps the current call instead. A confirmed return is a real turn and
-/// passes; so does any return once the current direction is older than the window.
-export function whipsawHold(d: Decision, input: DecisionInput): Decision {
-  const run = input.lastRun;
-  if (!run || !run.left || run.left === run.direction) return d;
-  if (d.action !== "LONG" && d.action !== "SHORT") return d;
-  const side: Side = d.action === "LONG" ? "up" : "down";
-  if (side !== run.left) return d;
-  const age = daysBetween(run.since, input.today);
-  if (!Number.isFinite(age) || age < 1 || age > WHIPSAW_DAYS) return d;
-  if (confirmingLegs(input, side).length > 0) return d;
+/// The data reason a direction must not be printed under, or null when the data holds (rule 93). The same
+/// tests as the table's gates 1 to 3, run again on the final output, so no step between them and here can
+/// carry a direction past them: no close, an unreadable date, a close older than its market allows, or a
+/// price source that answered nothing.
+export function dataFault(input: DecisionInput): { gate: string; why: string } | null {
   const close = input.lastClose;
-  if (close === null || !Number.isFinite(close)) return d;
-  return forcedCall(d, input, { side: run.direction, gate: FORCED + "whipsaw-hold" });
+  if (input.asOf === null || close === null || !Number.isFinite(close)) {
+    return { gate: "no-prices", why: `No stored close for ${input.symbol}.` };
+  }
+  const age = daysBetween(input.asOf, input.today);
+  if (Number.isNaN(age)) return { gate: "bad-date", why: "Stored date cannot be read." };
+  const limit = STALE_AFTER_DAYS[input.market];
+  if (age > limit) {
+    return { gate: "stale", why: `Data stale: newest close ${input.asOf}, ${age} days old; this market allows ${limit}.` };
+  }
+  if (input.sourceSilent) return { gate: "source-silent", why: `${input.sourceSilent} answered nothing.` };
+  return null;
 }
 
-/// A call on the given side, with its stop, legs, confidence cap and reason: what every resolution and
-/// the whipsaw guard produce.
-function forcedCall(d: Decision, input: DecisionInput, r: { side: Side; gate: string }): Decision {
-  const action = r.side === "up" ? "LONG" : "SHORT";
-  const stop = resolvedStop(r.side, input);
-  const legs = confirmingLegs(input, r.side);
-  const confidence: Confidence = legs.length >= 1 ? "Medium" : "Low";
-  const reason = r.gate.slice(FORCED.length);
-  const why = [
-    WORDS[reason] ?? "The momentum read decides the side.",
-    stop === null
-      ? "No stop could be measured: no stored stop on this side and no range to measure one from."
-      : stop === input.invalidation
-        ? "The stop is the setup's own."
-        : `The stop is ${ATR_STOP_MULTIPLE} x the 14-session average true range from the close.`,
-  ];
-  const close = input.lastClose as number;
+/// The final hard gate: a direction on faulty data is WAIT with the data reason, whatever produced it.
+export function dataGate(d: Decision, input: DecisionInput): Decision {
+  if (d.action !== "LONG" && d.action !== "SHORT") return d;
+  const fault = dataFault(input);
+  if (!fault) return d;
   return {
     ...d,
-    action,
-    why,
-    entry: { low: close, high: close },
-    invalidation: stop,
-    timeSense: input.eventInDays !== null && input.eventInDays <= EVENT_SOON_DAYS ? "CARE" : "NOW",
-    confidence,
-    gate: r.gate,
-    basis: null,
+    action: "WAIT",
+    why: [fault.why, "No call is made on data that fails its own freshness rule."],
+    timeSense: "WAIT FOR LEVEL",
+    confidence: "Low",
+    notes: [],
+    gate: fault.gate,
+    basis: "file",
     plan: null,
-    legs,
-    intent: r.side,
+    legs: [],
+    intent: null,
     developing: null,
   };
 }
 
-/// What every caller uses: the evidence table, then the binary rule. One function, so the lists, the
-/// asset page and the nightly log cannot resolve the same name two ways.
+/// What every caller uses. Each step after `decide` can only remove a direction or weaken a grade.
 export function decideCall(input: DecisionInput): Decision {
-  return bufferStop(whipsawHold(resolveCall(decide(input), input), input), input);
+  return dataGate(capUnmeasured(bufferStop(requireConfirmation(endStoppedCall(decide(input)), input), input)), input);
 }
 
 /// The stop moved to at least `STOP_BUFFER_ATR` average true ranges beyond the entry zone, never nearer
@@ -236,17 +166,13 @@ export function bufferStop(d: Decision, input: DecisionInput): Decision {
   // min(buffered, structural) for a LONG, max for a SHORT: a structural stop already at least the buffer
   // away is the answer as it stands -- untouched, unrounded, and with no sentence claiming otherwise.
   if (own !== null && Number.isFinite(own) && (long ? own <= buffered : own >= buffered)) return d;
-  // Eight significant digits, as resolvedStop rounds: a fixed number of decimals would flatten a coin.
+  // Eight significant digits, not a fixed number of decimals: a fixed six would flatten a sub-cent coin.
   const stop = Number(buffered.toPrecision(8));
   const sentence = `The stop is ${STOP_BUFFER_ATR} x the 14-session average true range beyond the entry zone, so it never sits on the zone's edge.`;
-  const forced = d.gate.startsWith(FORCED);
   return {
     ...d,
     invalidation: stop,
-    // A resolved call's second line is its stop sentence; a call the table made keeps its reasons and
-    // gains the sentence as a note.
-    why: forced ? [d.why[0], sentence, ...d.why.slice(2)] : d.why,
-    notes: forced ? d.notes : [...d.notes, sentence],
+    notes: [...d.notes, sentence],
     plan: d.plan ? replan(d.plan, d.entry, stop, long) : null,
   };
 }

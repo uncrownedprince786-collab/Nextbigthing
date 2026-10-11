@@ -113,7 +113,7 @@ test("the fall-through with a stored setup is evidence, and keeps its wording", 
   assert.match(measured.why.join(" "), /between its own averages/);
 });
 
-test("a withheld direction no longer reaches a basis at all, because it acts", () => {
+test("a withheld direction nothing carries is a WAIT on evidence, not an action", () => {
   // `setup.py` writes `wait` when the trend is clear and the conditions behind it are not all
   // present. That used to be the row most likely to be mislabelled, because the reader saw the
   // same grey WAIT as a dead feed. It is not a WAIT any more: the direction prints, `basis` is
@@ -121,10 +121,11 @@ test("a withheld direction no longer reaches a basis at all, because it acts", (
   const withheld = decide(
     input({ setup: { direction: "flat", horizon: "swing", trend: "up" }, volumeRatio: 0.4 }),
   );
-  assert.equal(withheld.action, "LONG");
-  assert.equal(withheld.gate, "unconfirmed-long");
-  assert.equal(withheld.basis, null);
-  assert.equal(withheld.confidence, "Low");
+  // Rule 93: carried by nothing, it falls through to check 9 -- a WAIT whose basis is evidence: the job
+  // looked, found a direction, and found nothing behind it.
+  assert.equal(withheld.action, "WAIT");
+  assert.equal(withheld.gate, "incomplete");
+  assert.equal(withheld.basis, "evidence");
 });
 
 test("a direction carries no basis at all", () => {

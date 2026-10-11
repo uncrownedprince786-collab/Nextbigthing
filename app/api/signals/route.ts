@@ -1,5 +1,6 @@
 import { cachedDecisionRows, cachedSourceHealth } from "@/lib/cached";
-import { scoreRows } from "@/lib/assetClass";
+import { ASSET_CLASSES, marketStatus, marketStatusLines, scoreRows } from "@/lib/assetClass";
+import { coverageLabelFor } from "@/lib/decisionInput";
 import { todayISO } from "@/lib/decisionInput";
 import { validityOf } from "@/lib/validity";
 import { MIN_CONFIRMATIONS, MIN_REWARD_RISK, MIN_STOP_ATR } from "@/lib/quality";
@@ -47,21 +48,42 @@ export async function GET() {
           validFrom: v?.from ?? null,
           validUntil: v?.until ?? null,
           open: s.gate?.held ? { since: s.gate.held.since, todays: s.gate.held.todays } : null,
+          // Execution apart from direction (lib/execution.ts): checked, unverified or blocked, and why.
+          execution: s.execution ?? null,
+          closeDate: s.row.closeDate ? new Date(s.row.closeDate).toISOString().slice(0, 10) : null,
         };
       });
     const withheld = scored
       .filter((s) => !s.gate?.published && s.decision.action !== "WAIT")
       .map((s) => ({ symbol: s.row.symbol, reasons: s.gate?.reasons ?? [] }));
+    // Every market's own state, by the function its page prints (rule 93): newest close, newest run,
+    // source status, and where every name went.
+    const markets = ASSET_CLASSES.map((cls) => {
+      const mine = scored.filter(cls.holds);
+      const status = marketStatus(mine, scored, health, mine[0] ? coverageLabelFor(mine[0].market) : null);
+      return { market: cls.slug, ...status, summary: marketStatusLines(status).join(" ") };
+    });
+    const latestRun = markets.reduce<string | null>((m, x) => (x.latestRun && (!m || x.latestRun > m) ? x.latestRun : m), null);
     return Response.json(
       {
         asOf: today,
-        rules: { minRewardRisk: MIN_REWARD_RISK, minStopAtr: MIN_STOP_ATR, minConfirmations: MIN_CONFIRMATIONS, measuredTargetOnly: true },
+        rules: { minRewardRisk: MIN_REWARD_RISK, minStopAtr: MIN_STOP_ATR, minConfirmations: MIN_CONFIRMATIONS, measuredExitOnly: true, highShown: false },
         styles: { SWING: "1-7 days", POSITION: "1-4 weeks", SCALPING: "not produced", INTRADAY: "not produced" },
-        counts: { published: published.length, open: published.filter((p) => p.open).length, withheld: withheld.length },
+        // The snapshot these figures come from: the newest decision run and the pool size the pages share.
+        snapshot: { latestRun, pool: scored.length },
+        counts: {
+          published: published.length,
+          open: published.filter((p) => p.open).length,
+          withheld: withheld.length,
+          heldBack: scored.filter((s) => s.decision.action === "WAIT").length,
+        },
+        markets,
         published,
         withheld,
       },
-      { status: 200, headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60" } },
+      // No edge cache: the data cache is the cache, revalidated with the pages (rule 93), so the API can
+      // never be a minute behind the pages it is audited against.
+      { status: 200, headers: { "Cache-Control": "no-store" } },
     );
   } catch {
     return Response.json({ error: "the calls could not be read" }, { status: 503, headers: { "Cache-Control": "no-store" } });

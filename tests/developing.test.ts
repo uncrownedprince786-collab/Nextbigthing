@@ -59,10 +59,11 @@ function input(over: Partial<DecisionInput> = {}): DecisionInput {
   };
 }
 
-test("a measured direction is an action now, never a developing read", () => {
+test("a carried direction is an action and an uncarried one a developing read, never both", () => {
+  // Rule 93: a check 8 trend nothing carries falls through to check 9 and is a developing read.
   const up = decide(input({ setup: { direction: "flat", horizon: "swing", trend: "up" } }));
-  assert.equal(up.action, "LONG");
-  assert.equal(up.developing, null);
+  assert.equal(up.action, "WAIT");
+  assert.ok(up.developing);
 
   // The short side is the one place a direction can still be refused, and the fixture's market
   // is US -- where shorts measured -0.11R with nothing behind them. One confirmation is all the
@@ -79,14 +80,14 @@ test("a measured direction is an action now, never a developing read", () => {
   assert.equal(down.action, "SHORT");
   assert.equal(down.developing, null);
 
-  // Without it, the gate holds it and still produces no developing read: the contract this file
-  // pins is that a direction and a forming read are never both set, whichever way it goes.
+  // Without it nothing carries the trend, so it is a developing read: the contract this file pins is
+  // that a direction and a forming read are never both set, whichever way it goes.
   const gated = decide(
     input({ setup: { direction: "flat", horizon: "swing", trend: "down" }, invalidation: 126 }),
   );
   assert.equal(gated.action, "WAIT");
-  assert.equal(gated.gate, "short-unbacked");
-  assert.equal(gated.developing, null);
+  assert.equal(gated.gate, "incomplete");
+  assert.ok(gated.developing);
 });
 
 test("with nothing confirming it, the gate says so and the grade says so", () => {
@@ -100,16 +101,17 @@ test("with nothing confirming it, the gate says so and the grade says so", () =>
       analogs: null,
     }),
   );
-  assert.equal(d.action, "LONG");
-  assert.equal(d.gate, "unconfirmed-long");
-  assert.equal(d.confidence, "Low");
+  // Rule 93: not printed, and every absent confirmation still named, in the developing read.
+  assert.equal(d.action, "WAIT");
+  assert.equal(d.gate, "incomplete");
+  const waiting = d.developing?.waitingOn ?? [];
   assert.ok(
-    d.missing.some((m) => /similar past days/.test(m)),
-    d.missing.join(" | "),
+    waiting.some((m) => /similar past days/.test(m)),
+    waiting.join(" | "),
   );
 });
 
-test("one stored figure moves the gate and the grade, not the action", () => {
+test("one stored figure decides whether a check 8 trend prints at all", () => {
   const base = {
     setup: { direction: "flat", horizon: "swing", trend: "up" } as const,
     relStrength: 0,
@@ -118,10 +120,10 @@ test("one stored figure moves the gate and the grade, not the action", () => {
   const bare = decide(input({ ...base, volumeRatio: 0.93 }));
   const carried = decide(input({ ...base, volumeRatio: VOLUME_CONFIRMS_AT + 0.5 }));
 
-  assert.equal(bare.action, carried.action);
-  assert.equal(bare.gate, "unconfirmed-long");
+  assert.equal(bare.action, "WAIT");
+  assert.equal(bare.gate, "incomplete");
+  assert.equal(carried.action, "LONG");
   assert.equal(carried.gate, "trend-long");
-  assert.equal(bare.confidence, "Low");
   assert.equal(carried.confidence, "Medium");
 });
 
@@ -162,6 +164,8 @@ test("ANALOGS_CONFIRM_MIN is still the floor the analog leg will not grade under
   const thin = decide(
     input({
       setup: { direction: "flat", horizon: "swing", trend: "up" },
+      // Carried, so it is a direction with a plan whose base rate can be inspected (rule 93).
+      volumeRatio: VOLUME_CONFIRMS_AT + 0.5,
       analogs: { count: ANALOGS_CONFIRM_MIN - 1, lowPct: -2, highPct: 3, medianPct: 1, positive: 5 },
     }),
   );

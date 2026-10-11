@@ -219,7 +219,7 @@ async function readInputs(db, today) {
         // longer confirms a direction the published coverage points away from, and a withheld
         // trend is not carried into one -- so a job that fetched only the count would write a
         // different verdict from the page for any name whose coverage disagrees with it.
-        `SELECT DISTINCT ON ("assetId") "assetId", "recentStories", tone::text AS tone, catalyst
+        `SELECT DISTINCT ON ("assetId") "assetId", "recentStories", tone::text AS tone, catalyst, "periodEnd"
            FROM "HumanSignal" WHERE "assetId" IS NOT NULL
           ORDER BY "assetId", "periodEnd" DESC`,
       ),
@@ -328,6 +328,12 @@ async function readInputs(db, today) {
     targetsBySetup: groupPerKey(targets.rows, (r) => r.setupId),
     analogByAsset: firstPerKey(analogs.rows, (r) => r.assetId),
     signalByAsset: firstPerKey(signals.rows, (r) => r.assetId),
+    // The newest news reading on this database, as `getNewsReadOn` in lib/queries.ts reads it: null when
+    // it holds none, which the rule table takes as coverage it cannot read (brain.md rule 93).
+    newsReadOn: signals.rows.reduce((max, r) => {
+      const d = dayOf(r.periodEnd);
+      return d && (!max || d > max) ? d : max;
+    }, null),
     investigationByAsset: firstPerKey(investigations.rows, (r) => r.assetId),
     factorByAsset: firstPerKey(factors.rows, (r) => r.assetId),
     eventByAsset: firstPerKey(events.rows, (r) => r.assetId),
@@ -376,6 +382,7 @@ function rowsForDecisions(input) {
       assetId: asset.id,
       analogId: analog?.id ?? null,
       row: {
+        newsReadOn: input.newsReadOn,
         symbol: asset.symbol,
         assetType: asset.assetType,
         market: asset.market,
