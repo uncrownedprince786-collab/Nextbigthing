@@ -7915,6 +7915,37 @@ class TheLiveLane(unittest.TestCase):
         self.assertIn("ACTIVE_YAHOO", src)
         self.assertIn("ALL_YAHOO", src)
 
+    def test_the_rotation_advances_even_when_no_price_moved(self):
+        """Ordering by `updatedAt` only rotates if `updatedAt` moves.
+
+        The upsert writes a row only when its quote is strictly newer, so against a shut market
+        nothing is newer and the column never advances. Two ticks in a row then pick the same 60
+        names -- `wrote 0 of 60` twice -- and the other 28 are never polled again, which is the
+        same starvation the clock-rotated slice caused with a different cause. Caught by running
+        it, not by reading it. So every name asked about is marked polled, whether or not its
+        price had moved.
+        """
+        src = (ROOT / "jobs" / "live.py").read_text(encoding="utf-8")
+        self.assertIn('UPDATE "LiveQuote" SET "updatedAt"', src)
+        self.assertIn("touch(cur, [a[\"id\"] for a in polled], now)", src)
+        # Crypto and the Yahoo slice both count as polled, or crypto would never rotate either.
+        body = src[src.index("def main("):]
+        self.assertIn("polled += assets", body)
+        self.assertIn("polled += chosen", body)
+
+    def test_the_cache_stamp_follows_the_price_and_not_the_poll(self):
+        """`getDataStamp` decides whether every cached page is rebuilt.
+
+        Once `updatedAt` moves on every poll, reading it there would change the stamp every few
+        minutes and rebuild the whole site for nothing. The stamp reads `quotedAt`, which moves
+        when a price actually moves.
+        """
+        q = (ROOT / "lib" / "queries.ts").read_text(encoding="utf-8")
+        stamp = q[q.index("export async function getDataStamp("):]
+        stamp = stamp[: stamp.index("export ", 10)] if "export " in stamp[10:] else stamp
+        self.assertIn('(SELECT max("quotedAt") FROM "LiveQuote") AS quotes', stamp)
+        self.assertNotIn('(SELECT max("updatedAt") FROM "LiveQuote")', stamp)
+
     def test_a_shut_exchange_is_never_asked_twice_and_a_stale_currency_always_is(self):
         """The top-up exists for FX and must not spend a request on a closed share market.
 

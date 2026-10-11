@@ -3059,3 +3059,24 @@ reads rows that already exist:
     one connection. The real fix is not in this repository: Supabase's **transaction** pooler (port
     6543, with `pgbouncer=true` for Prisma) admits far more clients and is what serverless is meant
     to use. That is a change to a secret, so it needs the owner.
+
+107. **The staleness rotation only rotates if staleness moves, and against a shut market it did not.**
+    Found 2026-10-12 by running two ticks in a row rather than by reading the code: both printed
+    `wrote 0 of 60` over the *same* 60 names. The upsert writes a row only when its quote is strictly
+    newer, so on a closed market nothing is newer, `updatedAt` never advanced, and the other 28 names
+    -- the FX pairs among them -- would never have been polled again. The same starvation rule 104
+    fixed, rebuilt with a different cause, by the fix for it.
+    - `jobs/live.py` now **touches every name it asked about**, whether or not the price moved. So
+      `updatedAt` means "when this row was last refreshed" and `quotedAt` alone means "when the price
+      was struck". The schema comment says so.
+    - `getDataStamp` in lib/queries.ts therefore reads `max("quotedAt")` and not `max("updatedAt")`.
+      That stamp is what `/api/revalidate` compares to decide whether every cached page is behind the
+      database; left on `updatedAt` it would have changed every few minutes and rebuilt the whole
+      site for nothing. A cache stamp must move when the data moves, not when someone looked.
+    - **Measured after the change**, two consecutive ticks against the same closed market: the first
+      picked 60 names and wrote none, the second picked a *different* 60, reached the FX pairs, fired
+      the quote-endpoint top-up and wrote 5. FX newest market time **2026-10-09 21:30 (about 48 hours
+      old) -> 2026-10-11 22:52:31, seconds old**; the row count 1 -> 6.
+    - Worth keeping as a habit: both of this phase's live-lane bugs were invisible to reading and
+      obvious on the second run. A rotation is a claim about what happens over several ticks, and one
+      tick cannot test it.

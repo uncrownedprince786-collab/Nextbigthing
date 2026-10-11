@@ -1809,7 +1809,9 @@ model LiveQuote {
   quotedAt  DateTime
   /// coinpaprika or yahoo.
   source    String
-  /// When this row last changed. Not the quote's age: that is `quotedAt`.
+  /// When the lane last refreshed this row, whether or not the price had moved. Not the quote's age:
+  /// that is `quotedAt`. `jobs/live.py` orders its next slice by this, so it has to advance on every
+  /// poll or a shut market freezes the rotation.
   updatedAt DateTime @default(now())
 }
 

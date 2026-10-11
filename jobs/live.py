@@ -251,6 +251,30 @@ UPSERT = """
 """
 
 
+# Touch every row this tick asked about, whether or not the price moved.
+#
+# `updatedAt` is what `stalest_yahoo` orders by, and the upsert above only writes a row whose quote is
+# strictly newer. On a shut market nothing is newer, so without this the column never advances, the
+# same 60 names are the stalest for ever and the other 28 are never polled again -- which is the exact
+# starvation the clock-rotated slice caused, rebuilt with a different cause. Found by running two ticks
+# in a row against a closed market and watching `wrote 0 of 60` twice with the same 60 names.
+#
+# So the column means "when this row was last refreshed", and `quotedAt` alone means "when the price
+# was struck". `getDataStamp` in lib/queries.ts reads `quotedAt` for exactly that reason: a cache stamp
+# must move when the data moves, not when someone looked.
+TOUCH = """
+    UPDATE "LiveQuote" SET "updatedAt" = %s WHERE "assetId" = ANY(%s)
+"""
+
+
+def touch(cur, asset_ids: list[str], now: datetime) -> int:
+    """Record that these names were polled just now. See TOUCH."""
+    if not asset_ids:
+        return 0
+    cur.execute(TOUCH, (now, asset_ids))
+    return cur.rowcount
+
+
 def write(cur, quotes: list[dict], now: datetime) -> int:
     """Upsert in one round trip. Only a strictly newer quote overwrites, so nothing moves backward."""
     if not quotes:
@@ -347,6 +371,7 @@ def main(argv: list[str]) -> int:
         say(f"no database connection ({type(error).__name__}); nothing written")
         return 0
     quotes: list[dict] = []
+    polled: list[dict] = []
     try:
         with conn, conn.cursor() as cur:
             present = rows(cur, "SELECT to_regclass('public.\"LiveQuote\"') AS t")[0]["t"]
@@ -357,6 +382,7 @@ def main(argv: list[str]) -> int:
             if only in (None, "crypto"):
                 t = time.perf_counter()
                 assets = rows(cur, """SELECT id, "sourceRef" FROM "Asset" WHERE source = 'coinpaprika'""")
+                polled += assets
                 tickers = with_backoff(lambda: get_json(PAPRIKA, cache_key=None, ttl=0, timeout=10))
                 got = parse_paprika(tickers or [], assets, now)
                 quotes += got
@@ -365,6 +391,7 @@ def main(argv: list[str]) -> int:
             if only in (None, "yahoo"):
                 t = time.perf_counter()
                 chosen = stalest_yahoo(cur, YAHOO_SLICE)
+                polled += chosen
                 if chosen:
                     total = active_count(cur)
                     frame = with_backoff(lambda: yahoo_frame([a["sourceRef"] for a in chosen]))
@@ -386,7 +413,12 @@ def main(argv: list[str]) -> int:
                 return 0
             t = time.perf_counter()
             changed = write(cur, quotes, now)
-            say(f"wrote {changed} of {len(quotes)} (the rest were not newer) in {time.perf_counter() - t:.2f}s")
+            # Every name asked about this tick, so the rotation advances even when no price moved.
+            touched = touch(cur, [a["id"] for a in polled], now)
+            say(
+                f"wrote {changed} of {len(quotes)} (the rest were not newer), "
+                f"{touched} marked polled in {time.perf_counter() - t:.2f}s"
+            )
     except Exception as error:  # noqa: BLE001 - name only: a driver error can echo the connection string
         say(f"stopped early ({type(error).__name__}); the next tick asks again")
         return 0

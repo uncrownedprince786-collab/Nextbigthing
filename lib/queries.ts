@@ -1589,7 +1589,11 @@ export async function getDataStamp(): Promise<string | null> {
         (SELECT count(*) FROM "Asset" a WHERE COALESCE(a.active, true)) AS pool,
         (SELECT max("computedAt") FROM "DecisionLog") AS decided,
         (SELECT max("computedAt") FROM "AssetSetup") AS setups,
-        (SELECT max("updatedAt") FROM "LiveQuote") AS quotes,
+        -- quotedAt, not updatedAt: the stamp must change when a price changes, not when the lane
+        -- last looked. jobs/live.py touches updatedAt on every poll so its rotation advances
+        -- through a shut market, and reading that here would change the stamp every few minutes
+        -- and rebuild every cached page for nothing.
+        (SELECT max("quotedAt") FROM "LiveQuote") AS quotes,
         (SELECT max(p.date) FROM "Asset" a CROSS JOIN LATERAL (
            SELECT s.date FROM "PriceSnapshot" s
             WHERE s."assetId" = a.id AND (a."assetType" = 'crypto' OR EXTRACT(ISODOW FROM s.date) < 6)
