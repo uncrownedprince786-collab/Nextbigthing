@@ -114,8 +114,6 @@ def align(site: str) -> str:
 
 
 def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
-    if fetch is None:
-        align(site)
     fetch = fetch or (lambda url: urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "nbt-ui-audit"}), timeout=60).read().decode("utf-8", "replace"))
     failures: list[str] = []
     counts = {"rows": 0, "stars": 0, "changes": 0, "listed": 0, "pool": 0}
@@ -160,10 +158,42 @@ def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
     return failures, counts
 
 
+# After a revalidation the first visit to each page still receives its old HTML while the new one is
+# rendered -- on-demand revalidation in this Next version is stale-while-revalidate for pages. Two red
+# watchdog runs on 2026-10-11 were exactly that: the schema lane rewrote setups, the audit revalidated, and
+# read the pages before they had re-rendered. So a revalidation is followed by one warming pass over the
+# pages, and a skew is re-read a bounded number of times before it is reported. A skew that persists is
+# still a failure; one that is a page mid-render is not a fault in the site.
+SKEW_RETRIES = 3
+SKEW_WAIT_S = 20
+
+
+def warm(site: str) -> None:
+    for page in PAGES:
+        try:
+            urllib.request.urlopen(urllib.request.Request(site + page, headers={"User-Agent": "nbt-ui-audit"}), timeout=60).read()
+        except Exception:  # noqa: BLE001 - the audit proper reports an unreadable page
+            pass
+
+
 def main() -> int:
+    import time
+
     site = (os.environ.get("SITE_URL") or "https://nextbigthing-nu.vercel.app").rstrip("/")
     try:
+        reply = align(site)
+        if '"revalidated":true' in reply:
+            warm(site)
+            time.sleep(SKEW_WAIT_S)
         failures, counts = audit(site)
+        tries = 0
+        while tries < SKEW_RETRIES and failures and all("snapshot skew" in f for f in failures):
+            tries += 1
+            warm(site)
+            time.sleep(SKEW_WAIT_S)
+            failures, counts = audit(site)
+        if tries:
+            print(f"ui audit: re-read {tries} time(s) while pages finished re-rendering after a revalidation")
     except Exception as e:  # noqa: BLE001 - an unreadable site is its own answer
         print(f"ui audit: could not read {site} ({type(e).__name__})")
         return 2

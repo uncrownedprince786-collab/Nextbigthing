@@ -299,3 +299,13 @@ jobs:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: python jobs/stats.py
+
+      # This lane rewrites setups, readings and written lines on every push, so the site's cache is behind
+      # the database when it ends. Bring every page onto the new snapshot at once (brain.md rules 93, 94),
+      # as the decision lane does; the route acts only when the stamp changed.
+      - name: Bring the site onto this run's snapshot
+        if: always()
+        continue-on-error: true
+        run: |
+          site="${{ vars.SITE_URL || 'https://nextbigthing-nu.vercel.app' }}"
+          curl -s -X POST --max-time 60 "$site/api/revalidate" || echo "revalidate call failed; the watchdog will align within the hour"

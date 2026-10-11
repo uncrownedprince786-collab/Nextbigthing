@@ -8430,6 +8430,13 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
         same = lambda url: '{"pool": 0, "snapshot": "547|a"}' if url.endswith("/api/health") else page
         failures, _ = ua.audit("x", same)
         self.assertFalse(any("snapshot skew" in f for f in failures), failures)
+        # A page still re-rendering after a revalidation is re-read a bounded number of times; a skew
+        # that outlasts the retries is still reported (rule 94).
+        self.assertGreaterEqual(ua.SKEW_RETRIES, 1)
+        self.assertLessEqual(ua.SKEW_RETRIES * ua.SKEW_WAIT_S, 120)
+        src = (ROOT / "tools" / "ui_audit.py").read_text(encoding="utf-8")
+        self.assertIn('all("snapshot skew" in f for f in failures)', src)
+        self.assertIn("Bring the site onto this run's snapshot", (ROOT / ".github" / "workflows" / "schema.yml").read_text(encoding="utf-8"))
 
     def test_a_link_tag_in_the_head_is_not_read_as_a_row(self):
         # Its first live run read `<link ...>` as `<li ...>` and every market page as one giant row.

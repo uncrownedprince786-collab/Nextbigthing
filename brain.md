@@ -2666,3 +2666,15 @@ reads rows that already exist:
     - **Baseline parameters, fixed for now:** the 1 x ATR stop buffer beyond the entry zone and the 1.2
       reward:risk floor, both chosen rather than measured. The 2 x ATR stop belonged to the forced layer and
       is no longer applied anywhere; structural stops are the setup job's 1.5 sigma.
+    - **Deployed and verified.** Commit `bc7316d`, Vercel production deployment `6989272588`; mirror
+      `38101296073`, coverage audit `38101297801`, decision `38101299192` and schema `38101192732` runs all
+      green. Live: health ok, served from the primary; `/api/signals` 18 published, all with a confirmation;
+      the logic audit's new cross-surface check found 0 disagreements in grade, timing or execution across
+      the API, the asset pages and the coming week; the UI audit passed with 553 of 553 listed; the standby
+      held 553 of 553 active assets and every news reading; every coverage row healthy. CHBL reads SHORT,
+      High, IN ZONE (close Rs.8.82, Oct 9), execution unverified, outcome untested, on every surface.
+    - **And a skew the new check caught.** Two watchdog runs went red at 01:17: the schema lane, which runs on
+      every push, rewrote setups and readings, the audit revalidated, and read the pages before their first
+      re-render -- on-demand revalidation serves the old HTML to the first visit. The schema lane now calls
+      `/api/revalidate` when it ends, and the UI audit warms the pages after a revalidation and re-reads a
+      skew up to three times, 20 seconds apart, before reporting it; a skew that persists still fails.
