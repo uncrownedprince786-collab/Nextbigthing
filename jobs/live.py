@@ -55,6 +55,7 @@ import math
 import random
 import sys
 import time
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -72,6 +73,21 @@ except Exception:  # noqa: BLE001
 # five-minute tick while keeping the active set refreshed every few ticks.
 YAHOO_SLICE = 60
 PAPRIKA = "https://api.coinpaprika.com/v1/tickers?quotes=USD"
+# Yahoo's own chart endpoint, whose `meta` carries the last trade and the time it was struck.
+#
+# **Why a second Yahoo call exists at all.** The batched 1-minute download is the cheap way to quote
+# 60 names at once, and for a share it is also the current one. For a currency pair it is not:
+# measured 2026-10-12 at 22:23 UTC, an hour and twenty minutes after FX reopened for the week, the
+# 1-minute series for `EURUSD=X` still ended at Friday 21:29 while this endpoint reported 1.1201
+# struck at 22:22:27 -- thirty seconds old. The same call for `AAPL` returned Friday's close, which
+# is the right answer for a shut market, so the fallback cannot invent a price for a closed one.
+#
+# It is one request per symbol, so it is used only where it is needed: a name whose downloaded bar is
+# missing or older than META_STALE_MINUTES, at most META_MAX_PER_TICK of them a tick, stalest first.
+# That is five requests on a weekend FX open and usually none at all.
+META_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{sym}?range=1d&interval=1m"
+META_STALE_MINUTES = 30
+META_MAX_PER_TICK = 8
 # A quote this far ahead of the clock is a bad timestamp, not a fast market.
 FUTURE_SLACK = timedelta(minutes=5)
 RETRIES = 3
@@ -167,6 +183,64 @@ def parse_download(frame, assets: list[dict], now: datetime) -> list[dict]:
     return out
 
 
+def parse_meta(payload, asset: dict, now: datetime) -> dict | None:
+    """The last trade from one chart response, or None when it is unusable.
+
+    The same three guards the downloaded bar gets: a finite positive price, a timestamp, and nothing
+    dated into the future. A closed market answers with its own last close, which is correct and
+    simply does not move the stored quote forward.
+    """
+    try:
+        meta = payload["chart"]["result"][0]["meta"]
+    except (KeyError, IndexError, TypeError):
+        return None
+    price, stamp = meta.get("regularMarketPrice"), meta.get("regularMarketTime")
+    if not is_price(price) or not stamp:
+        return None
+    try:
+        at = datetime.fromtimestamp(int(stamp), timezone.utc).replace(tzinfo=None)
+    except (TypeError, ValueError, OSError):
+        return None
+    if at > now + FUTURE_SLACK:
+        return None
+    return {"assetId": asset["id"], "price": float(price), "quotedAt": at, "source": "yahoo"}
+
+
+# Asset types whose market runs continuously enough that a stale bar is a gap rather than a closed
+# exchange. FX is open from Sunday 21:00 UTC to Friday 21:00 UTC without a daily break, so a
+# currency pair whose newest bar is hours old during the week is missing data. A share with the same
+# gap is simply a shut exchange, and asking a second endpoint about it would spend a request to be
+# told the close we already have -- which is exactly what the first version of this did, because
+# every US bar sorts older than every FX bar while the US market is shut.
+CONTINUOUS_TYPES = ("forex",)
+
+
+def top_up_stale(chosen: list[dict], got: list[dict], now: datetime) -> list[dict]:
+    """Quotes for continuously-traded names the download left stale, from Yahoo's chart meta.
+
+    See META_URL for the measurement this rests on, and CONTINUOUS_TYPES for why a share is not
+    asked about.
+    """
+    fresh = {q["assetId"]: q["quotedAt"] for q in got}
+    behind = [
+        a for a in chosen
+        if a.get("assetType") in CONTINUOUS_TYPES
+        and (a["id"] not in fresh or (now - fresh[a["id"]]) > timedelta(minutes=META_STALE_MINUTES))
+    ]
+    behind.sort(key=lambda a: fresh.get(a["id"], datetime.min))
+    out = []
+    for a in behind[:META_MAX_PER_TICK]:
+        payload = with_backoff(
+            lambda a=a: get_json(META_URL.format(sym=urllib.parse.quote(a["sourceRef"])), cache_key=None, ttl=0, timeout=10)
+        )
+        quote = parse_meta(payload, a, now) if payload else None
+        # Only when it is actually newer than what the download gave: a shut market answers with its
+        # own last close, and that must not count as a fresh reading.
+        if quote and quote["quotedAt"] > fresh.get(a["id"], datetime.min):
+            out.append(quote)
+    return out
+
+
 UPSERT = """
     INSERT INTO "LiveQuote" ("assetId", price, "quotedAt", source, "updatedAt")
     SELECT * FROM unnest(%s::text[], %s::float8[], %s::timestamp[], %s::text[], %s::timestamp[])
@@ -200,7 +274,7 @@ def write(cur, quotes: list[dict], now: datetime) -> int:
 # The names this lane is responsible for: Yahoo-sourced, newest decision a direction. Written once
 # because both the pick and the count below need it, and two copies would drift.
 ACTIVE_YAHOO = """
-    SELECT a.id, a."sourceRef" FROM "Asset" a
+    SELECT a.id, a."sourceRef", a."assetType"::text AS "assetType" FROM "Asset" a
      WHERE a.source = 'yahoo' AND EXISTS (
            SELECT 1 FROM "DecisionLog" d
             WHERE d."assetId" = a.id AND d.action IN ('LONG', 'SHORT')
@@ -208,10 +282,10 @@ ACTIVE_YAHOO = """
 """
 # No decision logged at all -- the state right after a reset -- so every Yahoo name is a candidate
 # rather than none.
-ALL_YAHOO = """SELECT id, "sourceRef" FROM "Asset" WHERE source = 'yahoo'"""
+ALL_YAHOO = """SELECT id, "sourceRef", "assetType"::text AS "assetType" FROM "Asset" WHERE source = 'yahoo'"""
 
 _PICK = """
-    SELECT a.id, a."sourceRef"
+    SELECT a.id, a."sourceRef", a."assetType"
       FROM ({set_sql}) a
       LEFT JOIN "LiveQuote" q ON q."assetId" = a.id
      ORDER BY q."updatedAt" ASC NULLS FIRST, a."sourceRef" ASC
@@ -295,11 +369,13 @@ def main(argv: list[str]) -> int:
                     total = active_count(cur)
                     frame = with_backoff(lambda: yahoo_frame([a["sourceRef"] for a in chosen]))
                     got = parse_download(frame, chosen, now) if frame is not None else []
-                    quotes += got
+                    topped = top_up_stale(chosen, got, now)
+                    quotes += got + topped
                     missed = len(chosen) - len(got)
                     say(
                         f"yahoo {len(got)} of {len(chosen)} stalest (of {total} active) in "
                         f"{time.perf_counter() - t:.2f}s"
+                        + (f"; {len(topped)} topped up from the quote endpoint" if topped else "")
                         + (f"; {missed} unanswered, first in line next tick" if missed else "")
                     )
                 else:

@@ -33,6 +33,10 @@ on:
       - "cron audit"
       - "cron products"
       - "cron mirror"
+      # Listed so the watchdog reads the heartbeat after a backup too. It cannot restart this one:
+      # `LANES` in tools/watchdog.py is the set it may dispatch, and a backup is not a data lane --
+      # a failed one needs a person, not another 30 MB dump an hour later.
+      - "cron backup"
     types: [completed]
   workflow_dispatch:
 

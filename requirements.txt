@@ -11,3 +11,10 @@ pytrends==4.9.2
 # a secret). Missing from this list, those tests passed on a machine that had it installed globally and
 # failed on every CI run from 2026-10-10 01:04 UTC until it was added.
 PyYAML==6.0.3
+
+# tools/cloud_backup.py only, and only when Drive/Sheets are configured: the imports sit inside the
+# functions that need them, so a run with no credentials never loads either. Declared here because
+# tests/test_brain.py requires every third-party import in the tree to be named, and an undeclared one
+# passes on a laptop that has it globally and fails on every CI run (the same way PyYAML did).
+google-auth==2.55.0
+google-api-python-client==2.197.0

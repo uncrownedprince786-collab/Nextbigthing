@@ -4173,6 +4173,10 @@ class QueryBudget(unittest.TestCase):
         # standby_parity.py reads each database once -- its loop is over the configured standbys, at
         # most two, never over assets or rows (rule 94).
         "standby_parity.py": 2,
+        # cloud_backup.py loops over the tables in the schema -- a COPY out of each, and in `plan` a
+        # count and a column count each. Bounded by the number of tables, never by assets or rows,
+        # which is the same reason retention.py has a budget at all.
+        "cloud_backup.py": 4,
     }
 
     # A query reached through a helper costs the same round trip as one written inline. The
@@ -7911,6 +7915,49 @@ class TheLiveLane(unittest.TestCase):
         self.assertIn("ACTIVE_YAHOO", src)
         self.assertIn("ALL_YAHOO", src)
 
+    def test_a_shut_exchange_is_never_asked_twice_and_a_stale_currency_always_is(self):
+        """The top-up exists for FX and must not spend a request on a closed share market.
+
+        Measured 2026-10-12 at 22:23 UTC, an hour and twenty minutes after FX reopened: the batched
+        1-minute series for `EURUSD=X` still ended at Friday 21:29 while Yahoo's own chart meta gave
+        1.1201 struck thirty seconds earlier. The same call for `AAPL` returned Friday's close, which
+        is right for a shut market -- so asking about shares would spend a request to be told what we
+        already had. The first version of this did exactly that: every US bar sorts older than every
+        FX bar while the US market is shut, so the cap was filled with shares and FX got nothing.
+        """
+        m = self.live()
+        now = datetime(2026, 10, 11, 22, 30)
+        fx = [{"id": "a", "sourceRef": "EURUSD=X", "assetType": "forex"}]
+        eq = [{"id": "b", "sourceRef": "AAPL", "assetType": "stock"}]
+        self.assertEqual(m.top_up_stale(eq, [], now), [], "a share is never asked")
+        # A currency with a fresh bar already is not asked either.
+        fresh = [{"assetId": "a", "price": 1.1, "quotedAt": now, "source": "yahoo"}]
+        self.assertEqual(m.top_up_stale(fx, fresh, now), [], "a fresh bar needs no second call")
+
+    def test_the_quote_endpoint_answer_is_held_to_the_same_guards_as_a_bar(self):
+        m = self.live()
+        now = datetime(2026, 10, 11, 22, 30)
+        a = {"id": "a", "sourceRef": "EURUSD=X", "assetType": "forex"}
+        good = {"chart": {"result": [{"meta": {"regularMarketPrice": 1.12, "regularMarketTime": 1791325800}}]}}
+        self.assertIsNotNone(m.parse_meta(good, a, datetime(2026, 10, 12)))
+        for bad in (
+            {},
+            {"chart": {"result": []}},
+            {"chart": {"result": [{"meta": {"regularMarketPrice": 0, "regularMarketTime": 1791325800}}]}},
+            {"chart": {"result": [{"meta": {"regularMarketPrice": float("nan"), "regularMarketTime": 1791325800}}]}},
+            {"chart": {"result": [{"meta": {"regularMarketPrice": 1.1}}]}},
+        ):
+            self.assertIsNone(m.parse_meta(bad, a, datetime(2026, 10, 12)), bad)
+        # Never dated into the future beyond the slack the bars get.
+        future = {"chart": {"result": [{"meta": {"regularMarketPrice": 1.12, "regularMarketTime": 4102444800}}]}}
+        self.assertIsNone(m.parse_meta(future, a, now))
+
+    def test_the_second_endpoint_is_bounded(self):
+        m = self.live()
+        self.assertLessEqual(m.META_MAX_PER_TICK, 10)
+        self.assertGreaterEqual(m.META_STALE_MINUTES, 15)
+        self.assertEqual(m.CONTINUOUS_TYPES, ("forex",))
+
     def test_only_a_finite_positive_number_is_a_price(self):
         m = self.live()
         for good in (1, 0.0001, "3.5"):
@@ -8221,7 +8268,12 @@ class EveryImportIsDeclared(unittest.TestCase):
     not with what happens to be installed, so it fails on the machine that has the package too."""
 
     # Import name -> the distribution that provides it, where the two differ.
-    DISTRIBUTION = {"yaml": "pyyaml", "dotenv": "python-dotenv", "psycopg": "psycopg"}
+    # import name -> the distribution that provides it, where the two differ.
+    DISTRIBUTION = {
+        "yaml": "pyyaml", "dotenv": "python-dotenv", "psycopg": "psycopg",
+        # tools/cloud_backup.py, both imported inside the functions that need them.
+        "google": "google-auth", "googleapiclient": "google-api-python-client",
+    }
 
     def test_every_third_party_import_is_in_requirements(self):
         import ast

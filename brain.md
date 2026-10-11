@@ -2982,3 +2982,80 @@ reads rows that already exist:
     - The general point, worth more than this file: a duplicate definition in Python is not a style
       problem, it is a silent-edit trap. Grep for a name and getting two top-level `def`s back is
       enough reason to stop and check which one the interpreter keeps.
+
+104. **The FX quotes were never fetched, and the clock was why.** Investigated 2026-10-12 after the
+    health endpoint reported FX 48 hours behind. The provider was never at fault.
+    - **What was actually happening.** `jobs/live.py` polled a slice of the active set chosen by
+      `floor(now / 300) % pages` -- the alphabet, rotated by the wall clock. That covers every name
+      only if the ticks arrive, and they do not: the schedule asks for about 96 runs a day and GitHub
+      delivered **8 on 2026-10-10 and 12 on 2026-10-11**. With two pages and a dozen arrivals at
+      arbitrary minutes, which page runs is a coin toss. Slice 60-88 of the 88-name set had not run
+      once since the set took that shape, so **28 names had no stored quote at all** -- and every FX
+      pair sorts to the back (`USDBRL=X` .. `USDTRY=X`), so all five FX names in the active set were
+      among them. What health was reading was a single frozen `AUDUSD` row left from when that name
+      last had a direction. A direct request for the five symbols returned all five.
+    - **The pick is now `ORDER BY "updatedAt" ASC NULLS FIRST, LIMIT 60`.** A dropped run can delay a
+      name but cannot skip it, because the name it skipped is the first one the next run takes.
+      `updatedAt` and not `quotedAt`: a closed market's quote time does not move and would pin the
+      same names at the front for ever. Measured after one tick: FX quotes **1 -> 6**, the five
+      polled names written 8 minutes ago instead of 383; US stock quotes 100 -> 123.
+    - **Nothing is deleted.** The first attempt pruned the frozen leftovers, and
+      tests/test_brain.py's "this job writes one table and never deletes" caught it. The test was
+      right: `max(quotedAt)` takes the newest row in a market, so once the polled names are fresh the
+      frozen one stops mattering by itself. The fix for a market nobody is polling is to poll it.
+    - **A second Yahoo endpoint, for currencies only.** The batched 1-minute download is current for
+      a share and not for a pair: measured at 22:23 UTC, an hour and twenty minutes after FX reopened
+      for the week, the 1-minute series for `EURUSD=X` still ended Friday 21:29 while Yahoo's own
+      chart `meta` gave 1.1201 struck thirty seconds earlier. `top_up_stale` asks that endpoint for a
+      stale name, at most 8 a tick, stalest first -- and only for `CONTINUOUS_TYPES`, which is
+      `("forex",)`. The first version had no such filter and spent its whole cap on shares, because
+      every US bar sorts older than every FX bar while the US market is shut; the same call for
+      `AAPL` returns Friday's close, which is correct and simply never moves the quote forward.
+      Measured: six FX pairs, every one **under a minute old**, and zero requests spent on shares.
+
+105. **A backup that is somewhere else, and refuses to call itself good until it has read itself back.**
+    `tools/cloud_backup.py`, with `.github/workflows/cron-backup.yml` at 04:40 UTC.
+    - **Why now:** rule 101. Both Neon projects answer `exceeded the quota`, so there is no live
+      second copy and the only other one was a folder on the owner's laptop.
+    - **It is useful before anyone configures Google.** With no credentials the dump still runs, still
+      verifies, and is kept as a workflow artifact for seven days -- GitHub's storage, independent of
+      both Supabase and the laptop. That is a real recovery point today. Seven days because the dump
+      is ~30 MB and a free account has 500 MB of artifact storage in all.
+    - **`verified` is earned, never assumed.** One `REPEATABLE READ, READ ONLY` snapshot; every table
+      counted; every file re-read **from disk** after writing and checksummed; the manifest's row
+      count compared with the row count the file actually holds; and, where configured, the uploaded
+      size compared with the local size. Any failure anywhere writes `failed`. **The
+      `latest-verified` pointer only moves on a clean run**, so a broken backup leaves yesterday's
+      good one exactly where it was. Proven by removing two rows from `Asset.csv.gz` in a copy: the
+      verify reported `checksum differs`, exited 1, and the pointer did not move.
+    - **The Sheets arithmetic, done before anything was written there.** A spreadsheet holds
+      10,000,000 cells. `PriceSnapshot` is 791,033 x 9 = **7,119,306 cells, 71% of the cap on its
+      own**; `IntradayBar` another 897,315; all 44 tables together 8,601,778 = **86%**. So the whole
+      database fits one spreadsheet exactly once and then breaks. Drive takes every table's gzip CSV
+      and is the recovery path; Sheets takes the register, the verification metadata and the 42
+      tables under `SHEET_CELL_BUDGET` (100,000 cells). Nothing is ever truncated to fit -- a table
+      over the budget is listed as excluded, with its cell count, in the register.
+    - **Sheets is explicitly not the recovery path**, and the file says why: a Postgres CSV
+      distinguishes SQL NULL from an empty string and a spreadsheet cell does not, so restoring from
+      Sheets would silently turn one into the other. Writes use `valueInputOption=RAW` so an id is
+      not reinterpreted as a number, batched at 2,000 rows, with bounded retries.
+    - **Verified end to end locally, 2026-10-12**: 44 tables, 867,839 rows, 29.9 MB, status
+      `verified`; `nbt-private/restore_db.py rehearse` then loaded all 44 of them into TEMP tables
+      and rolled back. `restore_db.py` now reads both manifest shapes (`taken` from `backup_db.py`,
+      `started`/`finished` from this one) and warns when a manifest's own status is not `verified` --
+      a recovery is not the moment to find out the tool only understands one of the two backups.
+    - **Still needed to turn the cloud half on**, and nothing here pretends otherwise: three
+      secrets, `GOOGLE_SERVICE_ACCOUNT_JSON`, `BACKUP_DRIVE_FOLDER_ID`, `BACKUP_SHEET_ID`. No Drive
+      or Sheets call has ever been made from this machine, so none is reported as having succeeded.
+
+106. **The Supabase session pooler's fifteen clients are a real ceiling, and the site has nowhere to
+    fall back to when they are gone.** Observed 2026-10-12 while two dispatched lanes, the website and
+    a probe were live at once: `(EMAXCONNSESSION) max clients reached in session mode - max clients
+    are limited to pool_size: 15`, for about two minutes, during which `/api/health` returned **503**
+    once before recovering on its own. `max_connections` on the database is 60; the pooler's 15 is
+    the limit that actually binds. With Neon over quota there is no standby to serve a read while the
+    pooler is full, so a saturated pooler is a user-visible outage rather than a degraded page.
+    `tools/cloud_backup.py` retries that exact refusal rather than treating it as a fault, and takes
+    one connection. The real fix is not in this repository: Supabase's **transaction** pooler (port
+    6543, with `pgbouncer=true` for Prisma) admits far more clients and is what serverless is meant
+    to use. That is a change to a secret, so it needs the owner.

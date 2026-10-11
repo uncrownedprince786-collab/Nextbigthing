@@ -1,0 +1,120 @@
+name: cron backup
+
+# A second copy of the database, off this database's machine, every day.
+#
+# brain.md rule 101: both Neon projects are over quota, so the standby cannot be read or written and
+# the only other copy of this data is a folder on the owner's laptop. This lane makes one that is not
+# on the laptop and not in Supabase.
+#
+# **It is useful before anyone configures Google.** With no credentials the dump still runs, still
+# verifies itself, and is kept as a workflow artifact -- GitHub's storage, which is independent of
+# both the primary and the laptop. That is a real recovery point today. When the three secrets below
+# are set the same run also uploads to Drive and appends to the Sheets register, and the artifact
+# becomes the belt beside the braces.
+#
+# Retention is seven days on purpose: the dump is about 30 MB, a free account has 500 MB of artifact
+# storage in total, and seven days of this is 210 MB of it. Drive is where a longer history belongs.
+#
+# Read-only against the database: one `REPEATABLE READ, READ ONLY` snapshot and `COPY ... TO STDOUT`.
+# It writes no table, drops nothing, and holds one connection -- which matters, because the Supabase
+# session pooler admits fifteen clients in total and this lane must never be the one that fills it.
+
+on:
+  schedule:
+    # 04:40 UTC: audit is at 03:35, products at 03:10, calendar at 03:40, us-prices at 01:50 and
+    # 07:50. Nothing else is scheduled in hour 4, so the snapshot is taken against a quiet database
+    # and the pooler has its slots free.
+    - cron: "40 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nbt-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: dump, verify, keep
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      - name: Dump, verify, and upload where configured
+        id: run
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PRIMARY: ${{ vars.PRIMARY }}
+          # Absent until someone sets them. `cloud_backup.py` skips the upload and says so rather
+          # than failing, because a local-and-artifact backup is still a backup.
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          BACKUP_DRIVE_FOLDER_ID: ${{ secrets.BACKUP_DRIVE_FOLDER_ID }}
+          BACKUP_SHEET_ID: ${{ secrets.BACKUP_SHEET_ID }}
+        run: |
+          set -o pipefail
+          python tools/cloud_backup.py backup --out "backup-out" --upload --sheet-data 2>&1 | tee run.log
+        continue-on-error: true
+
+      - name: Keep the dump as an artifact
+        # `always()` on purpose: a run that failed verification is still worth looking at, and the
+        # step below is what decides whether it counts as a recovery point.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nbt-backup-${{ github.run_id }}
+          path: backup-out/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Say what happened, and fail if this is not a recovery point
+        if: always()
+        run: |
+          {
+            echo "## Backup"
+            echo
+            if [ -f backup-out/manifest.json ]; then
+              python - <<'PY'
+          import json
+          m = json.load(open("backup-out/manifest.json"))
+          print(f"- status: **{m['status']}**")
+          print(f"- schema: `{m.get('schema_version','unknown')}`")
+          print(f"- {len(m['tables'])} of {m.get('table_count','?')} tables, "
+                f"{m.get('row_count',0):,} rows, {m.get('gz_bytes',0)/1e6:.1f} MB")
+          for e in m.get("errors", [])[:10]:
+              print(f"- error: {e}")
+          PY
+            else
+              echo "- no manifest was written; the dump did not get that far"
+            fi
+            echo
+            echo '```'
+            tail -n 25 run.log 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          # The job is red unless this run is a verified recovery point. A backup nobody checked is
+          # not a backup, and a green tick on an unverified one is worse than no tick at all.
+          python - <<'PY'
+          import json, sys
+          try:
+              m = json.load(open("backup-out/manifest.json"))
+          except Exception:
+              print("::error title=Backup failed::no manifest was written")
+              sys.exit(1)
+          if m["status"] != "verified":
+              print(f"::error title=Backup not verified::{' | '.join(m.get('errors', []))[:400]}")
+              sys.exit(1)
+          print(f"::notice title=Backup verified::{m['run_id']}: {m['row_count']:,} rows, "
+                f"{m['gz_bytes']/1e6:.1f} MB, schema {m.get('schema_version')}")
+          PY
