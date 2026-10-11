@@ -9,16 +9,15 @@ import { readFileSync } from "node:fs";
 import { confirmingLegs, decide, type Decision, type DecisionInput } from "../lib/decision.ts";
 import {
   bufferStop,
-  capUnmeasured,
   dataGate,
   decideCall,
   endStoppedCall,
-  HIGH_AWAITS_MEASURED_EDGE,
   requireConfirmation,
   STOP_BUFFER_ATR,
 } from "../lib/resolve.ts";
 import { targetForCall } from "../lib/target.ts";
-import { executionOf } from "../lib/execution.ts";
+import { executionOf, timingOf } from "../lib/execution.ts";
+import { OUTCOME_MIN_SAMPLE, outcomeCounts, outcomeStatusOf, wilson } from "../lib/outcome.ts";
 import { newsCoverageOf, NEWS_READING_STALE_DAYS } from "../lib/decisionInput.ts";
 
 function input(over: Partial<DecisionInput> = {}): DecisionInput {
@@ -40,6 +39,7 @@ function input(over: Partial<DecisionInput> = {}): DecisionInput {
     eventInDays: null,
     sourceSilent: null,
     atr: 2.5,
+    r1: 1,
     ...over,
   };
 }
@@ -69,14 +69,14 @@ test("a macro veto on a LONG is WAIT, never SHORT", () => {
 });
 
 test("a macro veto on a SHORT is WAIT, never LONG", () => {
-  const d = decideCall(input({ setup: DOWN, horizon: { direction: "down" }, invalidation: 106, macroVeto: veto, volumeRatio: 2 }));
+  const d = decideCall(input({ setup: DOWN, horizon: { direction: "down" }, invalidation: 106, macroVeto: veto, volumeRatio: 2, r1: -1 }));
   assert.equal(d.action, "WAIT");
   assert.equal(d.gate, "macro-veto");
   assert.equal(d.intent, "down");
 });
 
 test("the veto never changes the sign: with it and without it, the only difference is WAIT", () => {
-  for (const over of [{}, { setup: DOWN, horizon: { direction: "down" as const }, invalidation: 106 }]) {
+  for (const over of [{}, { setup: DOWN, horizon: { direction: "down" as const }, invalidation: 106, r1: -1 }]) {
     const clean = decideCall(input({ ...over, volumeRatio: 2 }));
     const vetoed = decideCall(input({ ...over, volumeRatio: 2, macroVeto: veto }));
     assert.ok(clean.action === "LONG" || clean.action === "SHORT");
@@ -181,14 +181,41 @@ test("a call that ended at its stop keeps its stop and loses its entry and plan,
 
 // --- confidence: no High while the edge is unmeasured -------------------------------------------
 
-test("High is shown as Medium while the live edge is unmeasured, and says so", () => {
-  assert.equal(HIGH_AWAITS_MEASURED_EDGE, true);
+test("the grade is the evidence for the reading, and outcome status is a separate label", () => {
+  // Rule 94 withdrew rule 93's cap: the grade counts confirmations and is shown as counted, on every
+  // surface; whether calls have been right is outcome status, printed beside it.
   const healthy = input({ volumeRatio: 2, relStrength: 9, analogs: { count: 30, lowPct: -2, highPct: 6, medianPct: 2, positive: 22 } });
-  assert.equal(decide(healthy).confidence, "High", "the table's own count");
-  const shown = decideCall(healthy);
-  assert.equal(shown.confidence, "Medium");
-  assert.ok(shown.notes.some((n) => /no outcome has matured yet/.test(n)));
-  assert.equal(capUnmeasured(call("LONG", { confidence: "Low" })).confidence, "Low");
+  assert.equal(decide(healthy).confidence, "High");
+  assert.equal(decideCall(healthy).confidence, "High", "the call shows the table's evidence grade unchanged");
+  assert.doesNotMatch(readFileSync(new URL("../lib/resolve.ts", import.meta.url), "utf8"), /capUnmeasured\(|HIGH_AWAITS_MEASURED_EDGE =/);
+  // Outcome status from the logbook's graded counts.
+  assert.equal(outcomeStatusOf(null).status, "untested");
+  assert.equal(outcomeStatusOf({ graded: 0, accurate: 0 }).status, "untested");
+  assert.match(outcomeStatusOf({ graded: 0, accurate: 0 }).sentence, /no edge is claimed/);
+  assert.equal(outcomeStatusOf({ graded: 12, accurate: 9 }).status, "pending", "under the sample, no rate is reported");
+  assert.equal(outcomeStatusOf({ graded: 12, accurate: 9 }).rate, null);
+  assert.equal(outcomeStatusOf({ graded: 40, accurate: 30 }).status, "validated", "75% of 40: the interval clears 50%");
+  assert.equal(outcomeStatusOf({ graded: 40, accurate: 22 }).status, "not validated", "55% of 40: the interval does not");
+  const [lo, hi] = wilson(30, 40);
+  assert.ok(lo > 0.59 && lo < 0.61 && hi > 0.85 && hi < 0.87, `${lo} ${hi}`);
+  // The published calls are what readers were shown, and what the status reports when counted.
+  assert.deepEqual(outcomeCounts({ graded: 50, accurate: 30, publishedGraded: 12, publishedAccurate: 7 }), { graded: 12, accurate: 7 });
+  assert.deepEqual(outcomeCounts({ graded: 50, accurate: 30, publishedGraded: null, publishedAccurate: null }), { graded: 50, accurate: 30 });
+  assert.equal(outcomeCounts(null), null);
+  // The sample equals the scorecard's own.
+  const scorecard = readFileSync(new URL("../tools/scorecard.py", import.meta.url), "utf8");
+  assert.match(scorecard, new RegExp(`^MIN_SAMPLE = ${OUTCOME_MIN_SAMPLE}\\b`, "m"));
+});
+
+test("every surface prints the same outcome sentence from the logbook's counts", () => {
+  const read = (f: string) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
+  assert.match(read("app/api/signals/route.ts"), /outcome: outcomeStatusOf\(rows\[0\]\?\.outcome \?\? null\)/);
+  assert.match(read("app/asset/[symbol]/page.tsx"), /outcome=\{outcomeStatusOf\(cachedRow\?\.outcome \?\? null\)\}/);
+  assert.match(read("components/weeklyFocusBlock.tsx"), /outcomeStatusOf\(rows\[0\]\?\.row\.outcome \?\? null\)\.sentence/);
+  assert.match(read("components/classIndex.tsx"), /outcomeStatusOf\(rows\[0\]\?\.outcome \?\? null\)\.sentence/);
+  assert.match(read("app/logbook/page.tsx"), /outcomeStatusOf\(outcomeCounts\(summary\)\)\.sentence/);
+  assert.match(read("lib/queries.ts"), /const outcome = outcomeCounts\(logSummary\);/);
+  assert.match(read("lib/queries.ts"), /const logRead = getLogbookSummary\(\)/);
 });
 
 // --- the stop buffer (rule 91) --------------------------------------------------------------------
@@ -230,9 +257,34 @@ test("a SHORT is never an executable call on data that cannot confirm it", () =>
   assert.equal(executionOf({ action: "LONG", closeVolume: null })?.status, "unverified", "no volume published: liquidity unmeasured");
   assert.equal(executionOf({ action: "LONG", closeVolume: 12000 })?.status, "checked");
   assert.equal(executionOf({ action: "WAIT", closeVolume: 12000 }), null);
-  // The panel says NOW only for a checked call.
-  const ui = readFileSync(new URL("../components/decision.tsx", import.meta.url), "utf8");
-  assert.match(ui, /decision\.timeSense === "NOW" && execution && execution\.status !== "checked" \? "WAIT FOR LEVEL"/);
+});
+
+test("timing names the close it read; in the zone is never 'WAIT FOR LEVEL'", () => {
+  // CHBL, 2026-10-11: close Rs.8.82 inside Rs.8.80-9.17, execution unverified, printed as WAIT FOR LEVEL.
+  const unverified = { status: "unverified" as const, reasons: ["x"] };
+  const checked = { status: "checked" as const, reasons: ["x"] };
+  const at = (close: number, execution: typeof checked | typeof unverified | null, timeSense = "NOW") =>
+    timingOf({ action: "SHORT", timeSense, entry: { low: 8.8, high: 9.17 }, close, closeDate: "2026-10-09", execution });
+  assert.deepEqual(at(8.82, unverified), { label: "IN ZONE", price: 8.82, on: "2026-10-09", inZone: true });
+  assert.equal(at(8.82, checked)?.label, "NOW");
+  assert.equal(at(8.82, null)?.label, "NOW");
+  // Boundaries are inclusive, both ends; a hair outside is outside.
+  assert.equal(at(8.8, checked)?.inZone, true);
+  assert.equal(at(9.17, checked)?.inZone, true);
+  assert.equal(at(8.7999999, checked, "WAIT FOR LEVEL")?.inZone, false);
+  assert.equal(at(9.1700001, checked, "WAIT FOR LEVEL")?.inZone, false);
+  // Display rounding: Rs.8.80 printed for 8.7999999 must still say outside, which is why the raw
+  // close is carried and said under the pill.
+  assert.equal(at(8.7999999, unverified, "WAIT FOR LEVEL")?.label, "WAIT FOR LEVEL");
+  // The rule table and the zone agree at both edges.
+  for (const close of [98, 102]) assert.equal(decideCall(input({ volumeRatio: 2, lastClose: close })).timeSense, "NOW");
+  assert.equal(decideCall(input({ volumeRatio: 2, lastClose: 102.0001 })).timeSense, "WAIT FOR LEVEL");
+  // Every surface reads the shared function: the panel, the scored row (lists, coming week, API).
+  const read = (f: string) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
+  assert.match(read("components/decision.tsx"), /const timing = timingOf\(/);
+  assert.match(read("lib/assetClass.ts"), /timing: timingOf\(/);
+  assert.match(read("lib/assetClass.ts"), /timing: s\.timing \?\? null/, "the API record (toSignal) carries it");
+  assert.doesNotMatch(read("components/decision.tsx"), /"WAIT FOR LEVEL" : decision\.timeSense/);
 });
 
 // --- P0-4: coverage that cannot be read is never neutral ------------------------------------------
@@ -264,7 +316,7 @@ test("every caller goes through decideCall, and the pipeline only removes", () =
   const job = read("tools/decide.mjs");
   assert.match(job, /const decision = decideCall\(decisionInput\)/);
   assert.doesNotMatch(job, /[^.\w]decide\(decisionInput\)/);
-  assert.match(read("lib/resolve.ts"), /return dataGate\(capUnmeasured\(bufferStop\(requireConfirmation\(endStoppedCall\(decide\(input\)\), input\), input\)\), input\);/);
+  assert.match(read("lib/resolve.ts"), /return dataGate\(bufferStop\(requireConfirmation\(endStoppedCall\(decide\(input\)\), input\), input\), input\);/);
   // Both readers run the same run SQL, which reads a stop-crossed WAIT as the end of the run.
   const ended = /CASE WHEN action IN \('LONG', 'SHORT'\) THEN action ELSE 'ENDED' END AS action\s+FROM "DecisionLog"\s+WHERE \(action IN \('LONG', 'SHORT'\) OR \(action = 'WAIT' AND gate = 'stop-crossed'\)\)/;
   assert.match(read("lib/queries.ts"), ended);

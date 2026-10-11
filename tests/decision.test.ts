@@ -53,6 +53,8 @@ function base(over: Partial<DecisionInput> = {}): DecisionInput {
     target: { method: "structure", low: 108, high: 112, rewardRisk: 1.5 },
     analogs: { count: 12, lowPct: -3.2, highPct: 6.4, medianPct: 1.4, positive: 8 },
     volumeRatio: 1.8,
+    // The session the volume was measured on rose, so volume backs an up reading (rule 94).
+    r1: 1,
     relStrength: 1.0,
     unusualMove: false,
     newsCount: 12,
@@ -76,9 +78,26 @@ test("the healthy case is LONG, NOW, High", () => {
 });
 
 test("a down setup with a down longer view is SHORT", () => {
-  const d = decide(base({ setup: { direction: "down", horizon: "swing" }, horizon: { direction: "down" } }));
+  // A falling session, so the fixture's heavy volume backs the short (rule 94).
+  const d = decide(base({ setup: { direction: "down", horizon: "swing" }, horizon: { direction: "down" }, r1: -1 }));
   assert.equal(d.action, "SHORT");
   assert.equal(d.confidence, "High");
+});
+
+test("volume backs only the side its session moved: heavy trading on a down day is not a LONG confirmation", () => {
+  // Rule 94, mirrored. The same 1.8x volume confirms a LONG on an up session and a SHORT on a down one,
+  // and neither on the other side or on a session with no stored return.
+  const up = (r1: number | null) => confirmingLegs(base({ r1 }), "up");
+  const down = (r1: number | null) => confirmingLegs(base({ setup: { direction: "down", horizon: "swing" }, horizon: { direction: "down" }, r1 }), "down");
+  assert.ok(up(1).includes("volume"));
+  assert.ok(!up(-1).includes("volume"), "a heavy down day does not back a LONG");
+  assert.ok(!up(null).includes("volume"), "no stored return: participation only");
+  assert.ok(down(-1).includes("volume"));
+  assert.ok(!down(1).includes("volume"), "a heavy up day does not back a SHORT");
+  assert.ok(!down(0).includes("volume"), "a flat session backs neither");
+  // And the page says why it was not counted, among what the call is missing.
+  const d = decide(base({ r1: -2 }));
+  assert.ok(d.missing.some((n) => /activity, not support/.test(n)), d.missing.join(" | "));
 });
 
 // --- Gate 1: nothing stored -------------------------------------------------------------------
@@ -548,7 +567,9 @@ test("one confirmation is all the short gate asks for", () => {
     target: null,
   };
   assert.equal(decide(base({ ...bare, volumeRatio: 0.5 })).action, "WAIT");
-  assert.equal(decide(base({ ...bare, volumeRatio: 2.4 })).action, "SHORT");
+  assert.equal(decide(base({ ...bare, volumeRatio: 2.4, r1: -1 })).action, "SHORT");
+  // Heavy volume on an up session is not a short's confirmation (rule 94).
+  assert.equal(decide(base({ ...bare, volumeRatio: 2.4, r1: 1 })).action, "WAIT");
 });
 
 test("a late short is gated in every market, including the ones that measured positive", () => {
@@ -632,7 +653,7 @@ test("a price between its averages still has a side, and the sentence says which
 
   // Down is the mirror, and it was the commoner side: 64 of the 119 had the fast mean below.
   const falling = decide(
-    base({ ...between, setup: { direction: "unknown", horizon: "swing", trend: "mixed", bias: "down" } }),
+    base({ ...between, setup: { direction: "unknown", horizon: "swing", trend: "mixed", bias: "down" }, r1: -1 }),
   );
   assert.equal(falling.action, "SHORT");
   assert.match(falling.why[0], /20 day below the 50 day/);
@@ -670,6 +691,7 @@ test("a trend beats a bias and the two never compete", () => {
       setup: { direction: "flat", horizon: "swing", trend: "down", bias: "up" },
       horizon: null,
       volumeRatio: 2.4,
+      r1: -1,
     }),
   );
   assert.equal(d.action, "SHORT");

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ConfidenceBadge, Pill } from "@/components/ui";
 import { price } from "@/lib/format";
+import { outcomeStatusOf } from "@/lib/outcome";
 import type { Scored } from "@/lib/assetClass";
 import type { Market } from "@/lib/decision";
 import {
@@ -56,11 +57,19 @@ function Row({ item }: { item: Scored }) {
           <span className="text-muted-foreground">{row.name}</span>
         </Link>
         <span className="flex shrink-0 items-baseline gap-x-2">
-          {decision.timeSense === "CARE" ? <Pill tone="warn">CARE</Pill> : null}
+          {item.timing && item.timing.label !== "WAIT FOR LEVEL" ? (
+            <Pill tone={item.timing.label === "NOW" ? "up" : "warn"}>{item.timing.label}</Pill>
+          ) : null}
           <Pill tone={long ? "up" : "down"}>{decision.action}</Pill>
           <ConfidenceBadge grade={decision.confidence.toLowerCase()} />
         </span>
       </div>
+      {/* Execution apart from direction (rule 94): said whenever it is not checked, as everywhere else. */}
+      {item.execution && item.execution.status !== "checked" ? (
+        <p className="text-warn mt-1 text-xs leading-relaxed">
+          Execution {item.execution.status}: {item.execution.reasons.join("; ")}.
+        </p>
+      ) : null}
 
       <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
         {MARKET_LABEL[market] ?? market}
@@ -194,6 +203,7 @@ function Coverage({ rows }: { rows: Scored[] }) {
 }
 
 export function WeeklyFocusBlock({ rows }: { rows: Scored[] }) {
+  // Outcome status is the logbook's, the same sentence every surface prints (lib/outcome.ts).
   const focus = weeklyFocus(rows);
   const nothing = focus.long.length === 0 && focus.short.length === 0;
 
@@ -207,6 +217,10 @@ export function WeeklyFocusBlock({ rows }: { rows: Scored[] }) {
         course. Nothing here is a new verdict &mdash; it is the same readings as the lists below,
         best evidenced first, capped at {WEEKLY_MAX_PER_SIDE} a side. Readings, not advice, and no
         outcome is promised.
+      </p>
+      <p className="text-muted-foreground mb-3 max-w-2xl text-sm" data-outcome-status>
+        {outcomeStatusOf(rows[0]?.row.outcome ?? null).sentence} The grade on each name is the evidence for that
+        reading, not a record of results.
       </p>
 
       {nothing ? (

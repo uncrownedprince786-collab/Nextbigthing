@@ -19,7 +19,7 @@ export async function GET() {
     const health = assess(rows ? { ...readings, pool: rows.length } : readings, new Date());
     // The snapshot the pool was counted from, so a checker can tell a real parity fault from two
     // surfaces serving different snapshots (rule 93): the market pages print the same stamp.
-    return Response.json({ ...health, snapshot: rows?.[0]?.dataStamp ?? null }, {
+    return Response.json({ ...health, snapshot: rows?.[0]?.dataStamp ?? null, servedFrom: rows?.[0]?.servedFrom ?? null }, {
       status: 200,
       headers: { "Cache-Control": "no-store" },
     });

@@ -53,7 +53,9 @@ test("a hand-built row with no gate is published, and every list reads the gate"
   // The coming-week block lists new ideas: a call held open past its entry rules is not one.
   assert.match(read("lib/weeklyFocus.ts"), /s\.gate \? s\.gate\.published && !s\.gate\.held : true/);
   assert.match(read("components/topByClass.tsx"), /s\.gate \? s\.gate\.published : true/);
-  assert.match(read("lib/assetClass.ts"), /gate: withOpenPosition\(qualityGate\(decision, target, input\.atr \?\? null, style\), since\)/);
+  assert.match(read("lib/assetClass.ts"), /const gated = withOpenPosition\(qualityGate\(decision, target, input\.atr \?\? null, style\), since\);/);
+  // A standby read publishes nothing (rule 94).
+  assert.match(read("lib/assetClass.ts"), /fromStandby && decision\.action !== "WAIT"/);
   assert.match(read("app/asset/[symbol]/page.tsx"), /withheld=\{gate\.published \? null : gate\.reasons\}/);
 });
 

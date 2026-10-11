@@ -234,7 +234,7 @@ async function readInputs(db, today) {
       // venue publishes no volume and `relStrength` is null where `jobs/factors.py` found too few
       // peers to take a median over, and both are absences of a measurement rather than a flat one.
       db.query(
-        `SELECT DISTINCT ON ("assetId") "assetId", "volumeRatio", "relStrength", "r20", "atr14",
+        `SELECT DISTINCT ON ("assetId") "assetId", "volumeRatio", "relStrength", "r20", "r1", "atr14",
                 "entryTrigger", "triggerDirection"
            FROM "AssetFactor" ORDER BY "assetId", "periodEnd" DESC`,
       ),
@@ -418,6 +418,8 @@ function rowsForDecisions(input) {
         // -- which is the one disagreement this file cannot have, because the log is what the
         // refusal will eventually be judged by.
         r20: factor?.r20 ?? null,
+        // The session's return, so volume backs only the side the session moved (rule 94).
+        r1: factor?.r1 ?? null,
         atr14: factor?.atr14 ?? null,
         // The fifth confirmation, on the same terms and in the same place, so the two cannot
         // drift apart again in the same way.

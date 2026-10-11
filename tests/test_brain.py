@@ -149,6 +149,133 @@ class HeadlineSubjects(unittest.TestCase):
         self.assertTrue(human.subject_names("Hecla Mining Company", "HL", "stock", set())[-1].match("HL rises"))
 
 
+class NamesakesAndNegation(unittest.TestCase):
+    """Rule 94: identity stays conservative. A name followed by another proper noun is a namesake; a clause
+    that negates or hedges takes no side; mixed tone cancels."""
+
+    def subj(self, name, symbol, asset_type="stock", unique=True):
+        return human.subject_names(name, symbol, asset_type, {name.split()[0].lower()} if unique else set())
+
+    def test_exact_ticker_full_name_and_alias(self):
+        self.assertEqual(human.classify("HL rises on silver", None, self.subj("Hecla Mining Company", "HL")), "positive")
+        self.assertEqual(human.classify("Hecla Mining Company falls", None, self.subj("Hecla Mining Company", "HL")), "negative")
+        # The first word is an alias only when no other asset's name starts with it.
+        lulu = human.subject_names("Lululemon Athletica Inc.", "LULU", "stock", {"lululemon"})
+        self.assertEqual(human.classify("Lululemon shares fell after guidance", None, lulu), "negative")
+        self.assertEqual(human.classify("Lululemon shares fell after guidance", None,
+                                        human.subject_names("Lululemon Athletica Inc.", "LULU", "stock", set())), "neutral")
+        # A lower-case ticker is a word, not the ticker.
+        self.assertEqual(human.classify("hl rises", None, self.subj("Hecla Mining Company", "HL")), "neutral")
+
+    def test_common_words_and_namesakes_take_no_side(self):
+        for title, name, sym, kind in (
+            ("Consumer optimism slides to lowest since 2014", "Optimism", "op-optimism", "crypto"),
+            ("Celestia Theater jumps to record attendance", "Celestia", "tia-celestia", "crypto"),
+            ("Anna Sui Spring 2027 surges", "Sui", "sui-sui", "crypto"),
+            ("How quant funds beat the market", "Quant", "qnt-quant", "crypto"),
+        ):
+            self.assertEqual(human.classify(title, None, self.subj(name, sym, kind)), "neutral", title)
+        # The asset's own descriptors keep it the subject.
+        self.assertEqual(human.classify("Hedera Price Jumps 27 Percent", None, self.subj("Hedera", "hbar-hedera-hashgraph", "crypto")), "positive")
+        self.assertEqual(human.classify("Celestia (TIA) Drops 7% Amid Market Deleveraging", None, self.subj("Celestia", "tia-celestia", "crypto")), "negative")
+
+    def test_negation_hedges_and_mixed_tone_take_no_side(self):
+        btc = self.subj("Bitcoin", "btc-bitcoin", "crypto")
+        for title in (
+            "Bitcoin not expected to surge this week",
+            "Bitcoin could tumble, analysts say",
+            "Bitcoin fails to rally past resistance",
+            "Bitcoin surges then tumbles",
+        ):
+            self.assertEqual(human.classify(title, None, btc), "neutral", title)
+        self.assertEqual(human.classify("Rupee not expected to fall further, says SBP", ("USD", "PKR")), "neutral")
+
+    def test_pairs_both_ways(self):
+        self.assertEqual(human.classify("Rupiah gains to Rp17,887 as reserves stay strong", ("USD", "IDR")), "negative")
+        self.assertEqual(human.classify("INR/USD falls", ("USD", "INR")), "neutral", "the pair written backwards")
+        self.assertEqual(human.classify("USD/INR jumped overnight", ("USD", "INR")), "positive")
+
+
+class TheStandbyIsBounded(unittest.TestCase):
+    def test_parity_names_missing_assets_and_readings(self):
+        sys.path.insert(0, str(ROOT / "tools"))
+        import standby_parity as sp
+
+        gap = sp.parity({("us-movers", "HL"), ("crypto", "btc")}, {("crypto", "btc")},
+                        {("crypto", "btc"), ("us-movers", "HL")}, set())
+        self.assertEqual(gap["missing_assets"], [("us-movers", "HL")])
+        self.assertEqual(gap["missing_readings"], [("crypto", "btc")])
+        self.assertEqual((gap["held"], gap["active"]), (1, 2))
+
+    def test_the_mirror_copies_asset_rows_first_and_the_site_publishes_nothing_from_a_standby(self):
+        m = __import__("mirror")
+        self.assertIn("active", m.ASSET_COLUMNS)
+        self.assertEqual(m.main(["--from", "postgresql://a@x.invalid/d", "--to", "postgresql://a@x.invalid/d", "--tables", "Asset"]), 2,
+                         "Asset is a known table (the copy onto itself is refused before connecting)")
+        wf = (ROOT / ".github" / "workflows" / "cron-mirror.yml").read_text(encoding="utf-8")
+        self.assertIn("--tables Asset,PriceSnapshot", wf)
+        self.assertIn("python tools/standby_parity.py", wf)
+        ac = (ROOT / "lib" / "assetClass.ts").read_text(encoding="utf-8")
+        self.assertIn('fromStandby && decision.action !== "WAIT"', ac)
+        self.assertIn("servingFrom", (ROOT / "lib" / "failover.ts").read_text(encoding="utf-8"))
+
+
+class SourceHealthKeepsCalendars(unittest.TestCase):
+    def test_a_weekend_is_never_a_thin_session(self):
+        audit = __import__("audit")
+        # Sessions newest first, weekdays only: a complete Friday is not thin whatever the weekend held.
+        self.assertEqual(audit.partial_verdict([280, 280, 280, 280, 280]), (False, 280, 280))
+        self.assertTrue(audit.partial_verdict([100, 280, 280, 280, 280])[0], "a real thin session still is")
+        self.assertIsNone(audit.partial_verdict([5, 280]), "too little history to judge")
+        for label in ("Yahoo Finance daily closes (US)", "Yahoo Finance daily closes (Commodity)",
+                      "Yahoo Finance daily closes (FX)", "PSX daily closing files"):
+            self.assertIn(label, audit.WEEKDAY_SESSIONS)
+        self.assertNotIn("crypto daily closes", audit.WEEKDAY_SESSIONS, "crypto trades every day")
+        src = (ROOT / "jobs" / "audit.py").read_text(encoding="utf-8")
+        self.assertIn("EXTRACT(ISODOW FROM", src)
+
+    def test_one_market_thin_does_not_mark_the_others(self):
+        audit = __import__("audit")
+        status, note = audit.yahoo_summary({"US": ("healthy", None), "Commodity": ("healthy", None), "FX": ("partial", "x")})
+        self.assertEqual(status, "partial")
+        self.assertIn("FX: partial", note)
+        self.assertNotIn("US", note)
+        # Each market reads its own row on the site.
+        di = (ROOT / "lib" / "decisionInput.ts").read_text(encoding="utf-8")
+        self.assertIn('return "Yahoo Finance daily closes (US)";', di)
+        self.assertIn('return "Yahoo Finance daily closes (FX)";', di)
+        self.assertIn("export function coverageFor(", di)
+
+
+class TheEvaluatorIsConservative(unittest.TestCase):
+    """Rule 94: before any outcome is graded, the stop test reads session lows and highs, and the
+    published calls are counted on their own."""
+
+    def test_an_intraday_breach_that_recovered_is_a_stop(self):
+        sys.path.insert(0, str(ROOT / "tools"))
+        import scorecard as sc
+
+        # A LONG stopped at 95: every close held above it, one session's low went through it.
+        series = [(date(2026, 10, 13), 100.0, 94.5, 101.0), (date(2026, 10, 14), 99.0, 98.0, 100.0)]
+        lo, hi = sc.band_in(series, date(2026, 10, 12), date(2026, 10, 19))
+        self.assertEqual((lo, hi), (94.5, 101.0))
+        self.assertTrue(sc.stop_was_hit("LONG", 95.0, lo, hi))
+        # Closes only (no low or high stored) is the old reading, kept as the fallback.
+        self.assertFalse(sc.stop_was_hit("LONG", 95.0, *sc.band_in([(date(2026, 10, 13), 100.0)], date(2026, 10, 12), date(2026, 10, 19))))
+
+    def test_published_calls_are_graded_on_their_own(self):
+        sys.path.insert(0, str(ROOT / "tools"))
+        import audit_log as al
+
+        base = {"periodEnd": date(2026, 10, 11), "action": "SHORT", "rewardRisk": 1.26, "legs": "history,peers",
+                "entryLow": 8.8, "entryHigh": 9.17, "invalidation": 9.8}
+        self.assertTrue(al.was_published(base))
+        for change in ({"rewardRisk": 1.19}, {"legs": ""}, {"periodEnd": date(2026, 10, 9)}, {"action": "WAIT"}, {"entryLow": None}):
+            self.assertFalse(al.was_published({**base, **change}), change)
+        q = (ROOT / "lib" / "queries.ts").read_text(encoding="utf-8")
+        self.assertIn('AND action IN (\'LONG\', \'SHORT\') AND "rewardRisk" >= 1.2', q, "the same criterion as the site")
+
+
 class CurrencyPairTone(unittest.TestCase):
     """A pair headline takes a side only when exactly one of the pair's currencies is named."""
 
@@ -3794,6 +3921,10 @@ class NoLookAhead(unittest.TestCase):
                 "records what a slice of a job did; its only date is the newest row that slice "
                 "stored, which is a fact about the fetch and not a claim about an asset"
             ),
+            "mirror.py": (
+                "copies rows exactly as the primary stored them; the asset rows it inserts carry no "
+                "date and make no claim about a past moment"
+            ),
         }
         writers = set()
         for path in sorted((ROOT / "jobs").glob("*.py")):
@@ -4004,6 +4135,9 @@ class QueryBudget(unittest.TestCase):
         # mattered: it runs over a log that grows every day, and it was rewritten.
         "future_rows.py": 2, "intraday_chain.py": 6, "rederive.py": 4, "row_counts.py": 1,
         "scorecard.py": 0, "acceptance.py": 0, "candidates.py": 0, "price_freshness.py": 0,
+        # standby_parity.py reads each database once -- its loop is over the configured standbys, at
+        # most two, never over assets or rows (rule 94).
+        "standby_parity.py": 2,
     }
 
     # A query reached through a helper costs the same round trip as one written inline. The
@@ -7379,7 +7513,7 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
         self.assertIn("::notice::no standby is configured", text)
         # Every step that runs the mirror carries the guard, not merely one of them: a second step
         # left unguarded would run with no target and exit 2 on exactly the deployment this protects.
-        runs = text.count("python jobs/mirror.py") + text.count("python jobs/reconcile.py")
+        runs = text.count("python jobs/mirror.py") + text.count("python jobs/reconcile.py") + text.count("python tools/standby_parity.py")
         guards = len(re.findall(r"if: (?:always\(\) && )?steps\.targets\.outputs\.any == 'true'", text))
         self.assertGreaterEqual(runs, 3)
         self.assertEqual(runs, guards, "a step that reaches a standby runs without checking that one exists")

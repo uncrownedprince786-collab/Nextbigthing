@@ -4,6 +4,7 @@ import { WithheldList, DecisionList, SectorBoard } from "@/components/decision";
 import { cachedDecisionRows, cachedSourceHealth } from "@/lib/cached";
 import { loadOrDefer } from "@/lib/buildSafe";
 import { coverageLabelFor, todayISO } from "@/lib/decisionInput";
+import { outcomeStatusOf } from "@/lib/outcome";
 import {
   marketStatus,
   marketStatusLines,
@@ -68,7 +69,7 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{cls.title}</h1>
         <p className="mt-2 max-w-2xl text-sm">{cls.lead}</p>
         <p className="text-muted-foreground mt-2 text-sm" data-market-status data-snapshot={rows[0]?.dataStamp ?? ""}>
-          {marketStatusLines(status).join(" ")} Readings, not advice.
+          {marketStatusLines(status).join(" ")} {outcomeStatusOf(rows[0]?.outcome ?? null).sentence} Readings, not advice.
         </p>
       </div>
 

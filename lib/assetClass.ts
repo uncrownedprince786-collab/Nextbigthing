@@ -4,7 +4,7 @@ import { openSince, qualityGate, withOpenPosition, type GateResult } from "@/lib
 import { bundleFromRow, toDecisionInput, todayISO } from "@/lib/decisionInput";
 import { decideCall } from "@/lib/resolve";
 import { quoteBesideClose } from "@/lib/liveQuote";
-import { executionOf, type Execution } from "@/lib/execution";
+import { executionOf, timingOf, type Execution, type Timing } from "@/lib/execution";
 import { validityOf } from "@/lib/validity";
 import { earlySignalOf } from "@/lib/earlySignal";
 import { latestChange } from "@/lib/stateChange";
@@ -46,6 +46,8 @@ export interface Scored {
   style?: string | null;
   /// Whether the direction can be acted on, apart from whether it is right (lib/execution.ts).
   execution?: Execution | null;
+  /// The timing shown, and the close it was read from (lib/execution.ts `timingOf`).
+  timing?: Timing | null;
 }
 
 export { isPublished } from "@/lib/quality";
@@ -89,6 +91,7 @@ export function scoreRows(
       today,
     });
     const style = validity ? validity.label.toUpperCase() : null;
+    const execution = executionOf({ action: decision.action, closeVolume: row.closeVolume, market: input.market });
     const since = openSince({
       action: decision.action,
       publishedAction: row.publishedAction,
@@ -97,6 +100,11 @@ export function scoreRows(
       lastRunSince: row.lastRunSince,
       validityStatus: validity?.status ?? null,
     });
+    // A standby read publishes nothing (rule 94): it holds mirrored prices, decisions and news, but the
+    // setups, factors and analogs a call is built from are not mirrored and lag the primary by a day or
+    // more. The reading is still shown, withheld, with the reason.
+    const fromStandby = row.servedFrom !== undefined && row.servedFrom !== "the primary";
+    const gated = withOpenPosition(qualityGate(decision, target, input.atr ?? null, style), since);
     return {
       row,
       market: input.market,
@@ -105,8 +113,19 @@ export function scoreRows(
       today,
       target,
       style,
-      gate: withOpenPosition(qualityGate(decision, target, input.atr ?? null, style), since),
-      execution: executionOf({ action: decision.action, closeVolume: row.closeVolume, market: input.market }),
+      gate:
+        fromStandby && decision.action !== "WAIT"
+          ? { published: false, reasons: [`read from ${row.servedFrom}, a standby copy whose setups and factors are not mirrored`] }
+          : gated,
+      execution,
+      timing: timingOf({
+        action: decision.action,
+        timeSense: decision.timeSense,
+        entry: decision.entry,
+        close: row.close,
+        closeDate: row.closeDate,
+        execution,
+      }),
     };
   });
 }
@@ -171,6 +190,41 @@ export function eventLabel(row: DecisionQueryRow): string | null {
   const name = row.nextEventName ?? "a dated event";
   if (days <= 0) return `Event today: ${name}.`;
   return `Event in ${days} ${days === 1 ? "day" : "days"}: ${name}.`;
+}
+
+/// A published call as `/api/signals` prints it: the canonical record every surface is tested against
+/// (rule 94) -- direction, style, levels, the evidence grade, the confirmations, timing with the close it
+/// read, and execution.
+export function toSignal(s: Scored, today: string) {
+  const v = validityOf({
+    action: s.decision.action,
+    setupHorizon: s.setupHorizon,
+    runAction: s.row.callAction,
+    runSince: s.row.callSince,
+    asOf: s.row.closeDate,
+    today,
+  });
+  return {
+    symbol: s.row.symbol,
+    name: s.row.name,
+    market: s.market,
+    direction: s.decision.action,
+    style: s.style,
+    entry: s.decision.entry,
+    stop: s.decision.invalidation,
+    target: s.target ? { low: s.target.low, high: s.target.high, method: s.target.method } : null,
+    rewardRisk: s.target?.rewardRisk ?? null,
+    confirmations: s.decision.legs,
+    confidence: s.decision.confidence,
+    validFrom: v?.from ?? null,
+    validUntil: v?.until ?? null,
+    open: s.gate?.held ? { since: s.gate.held.since, todays: s.gate.held.todays } : null,
+    // Execution apart from direction (lib/execution.ts): checked, unverified or blocked, and why.
+    execution: s.execution ?? null,
+    // The timing shown and the close it was read from (lib/execution.ts `timingOf`).
+    timing: s.timing ?? null,
+    closeDate: s.row.closeDate ? new Date(s.row.closeDate).toISOString().slice(0, 10) : null,
+  };
 }
 
 /// A scored row as `DecisionList` wants it.
@@ -354,7 +408,7 @@ export function marketStatus(
   const waits = mine.filter((s) => s.decision.action === "WAIT");
   const decidedOn = newest(mine.map((s) => dayText(s.row.callLatest)));
   const latestRun = newest(all.map((s) => dayText(s.row.callLatest)));
-  const src = sourceLabel ? health.find((h) => h.source === sourceLabel) : undefined;
+  const src = sourceLabel ? health.find((h) => h.source === sourceLabel) ?? (sourceLabel.startsWith("Yahoo Finance daily closes (") ? health.find((h) => h.source === "Yahoo Finance daily closes") : undefined) : undefined;
   const gateOf = (s: Scored) => s.decision.gate;
   return {
     names: mine.length,
@@ -375,7 +429,7 @@ export function marketStatus(
         (s) => s.decision.developing === null && !["stop-crossed", "no-prices", "stale", "bad-date", "source-silent"].includes(gateOf(s)),
       ).length,
     },
-    source: src && sourceLabel ? { label: sourceLabel, status: src.status } : null,
+    source: src && sourceLabel ? { label: src.source, status: src.status } : null,
   };
 }
 

@@ -112,9 +112,26 @@ WATCHED = (
         "News", "source IS NOT NULL", "Google News RSS",
         36.0, 0.9,
     ),
+    # One row per market behind the Yahoo fetch (brain.md rule 94). It was one row for US shares, funds,
+    # commodities and currency pairs together, so a weekend's handful of FX bars was the "newest day":
+    # on 2026-10-11 it held 5 records against a weekday median of 315 and the stocks and commodities
+    # pages printed "partial" over a complete Friday. Split, each market is judged on its own rows and
+    # its own calendar, and a silence in one does not mark the others silent. The combined row is still
+    # written, as the worst of the three, naming which market it is (`yahoo_summary`).
     (
-        "PriceSnapshot", "source = 'Yahoo Finance'", "Yahoo Finance daily closes",
-        96.0, 1.0,
+        "PriceSnapshot",
+        "source = 'Yahoo Finance' AND \"assetId\" IN (SELECT id FROM \"Asset\" WHERE \"assetType\" IN ('stock', 'etf'))",
+        "Yahoo Finance daily closes (US)", 96.0, 1.0,
+    ),
+    (
+        "PriceSnapshot",
+        "source = 'Yahoo Finance' AND \"assetId\" IN (SELECT id FROM \"Asset\" WHERE \"assetType\" = 'commodity')",
+        "Yahoo Finance daily closes (Commodity)", 96.0, 1.0,
+    ),
+    (
+        "PriceSnapshot",
+        "source = 'Yahoo Finance' AND \"assetId\" IN (SELECT id FROM \"Asset\" WHERE \"assetType\" = 'forex')",
+        "Yahoo Finance daily closes (FX)", 96.0, 0.8,
     ),
     (
         "PriceSnapshot", "source = 'Pakistan Stock Exchange daily closing file'",
@@ -173,6 +190,42 @@ DATE_COLUMN = {
 STALE_AT = 1.5
 SILENT_AT = 3.0
 
+# Sources whose market keeps a weekday calendar (rule 94). Their partial test counts only Monday to Friday:
+# a Saturday or Sunday is an expected non-session, never a thin day, and a weekday holiday holds no rows
+# for the market at all, so the newest session it compares is the last real one. Crypto trades every day
+# and is not here.
+WEEKDAY_SESSIONS = frozenset({
+    "Yahoo Finance daily closes (US)",
+    "Yahoo Finance daily closes (Commodity)",
+    "Yahoo Finance daily closes (FX)",
+    "PSX daily closing files",
+})
+YAHOO_MARKETS = ("US", "Commodity", "FX")
+STATUS_ORDER = ("healthy", "partial", "stale", "silent")
+
+
+def partial_verdict(counts: list[int]) -> tuple[bool, int, float] | None:
+    """Whether the newest session is thin against the median of the ones before it: (thin, newest, median),
+    or None when there is too little history to judge. `counts` are per session, newest first, and hold only
+    days that are sessions for the market -- which is what makes a weekend never thin."""
+    if len(counts) < 4:
+        return None
+    latest_n, prior = counts[0], sorted(counts[1:])
+    mid = len(prior) // 2
+    med = prior[mid] if len(prior) % 2 else (prior[mid - 1] + prior[mid]) / 2
+    if med < PARTIAL_MIN_MEDIAN:
+        return None
+    return latest_n < PARTIAL_AT * med, latest_n, med
+
+
+def yahoo_summary(per_market: dict[str, tuple[str, str | None]]) -> tuple[str, str | None]:
+    """The combined Yahoo row: the worst market's status, and a note naming every market not healthy."""
+    if not per_market:
+        return "silent", "no Yahoo market was checked"
+    worst = max((s for s, _ in per_market.values()), key=STATUS_ORDER.index)
+    hurt = [f"{m}: {s}" + (f" ({n})" if n else "") for m, (s, n) in per_market.items() if s != "healthy"]
+    return worst, ("; ".join(hurt) if hurt else None)
+
 # Partial detection. A source that answers with a fraction of what it normally carries is
 # the failure mode that looks healthiest: rows arrive, nothing errors, and the numbers quietly
 # describe a smaller world. So the newest day's record count is compared with the median of
@@ -199,6 +252,7 @@ CAL_HORIZONS = (1, 5, 30)
 
 def coverage(cur, today: date) -> None:
     step("coverage: what the system cannot currently see")
+    yahoo: dict[str, tuple[str, str | None]] = {}
     for table, where, label, expected, criticality in WATCHED:
         col = DATE_COLUMN[table]
         got = one(
@@ -228,33 +282,32 @@ def coverage(cur, today: date) -> None:
             )
 
         # Partial beats healthy. A day that arrived on time with half its usual content is
-        # not a healthy day, and calling it one is how a shrinking feed goes unnoticed.
+        # not a healthy day, and calling it one is how a shrinking feed goes unnoticed. For a market
+        # with a weekday calendar only its weekdays are counted (rule 94): a weekend is not a session.
         if status == "healthy" and got["n"] and newest is not None:
+            sessions = " AND EXTRACT(ISODOW FROM " + col + "::timestamp) < 6" if label in WEEKDAY_SESSIONS else ""
             daily = rows(
                 cur,
                 f"""
                 SELECT count(*) AS n
-                FROM "{table}" WHERE {where}
+                FROM "{table}" WHERE {where}{sessions}
                   AND {col} > (%s::timestamp - (%s * interval '1 day'))
                 GROUP BY date_trunc('day', {col}::timestamp)
                 ORDER BY date_trunc('day', {col}::timestamp) DESC
                 """,
-                (newest, PARTIAL_LOOKBACK + 1),
+                (newest, PARTIAL_LOOKBACK + 3),
             )
-            counts = [int(d["n"]) for d in daily]
-            if len(counts) >= 4:
-                latest_n, prior = counts[0], sorted(counts[1:])
-                mid = len(prior) // 2
-                med = (
-                    prior[mid] if len(prior) % 2 else (prior[mid - 1] + prior[mid]) / 2
+            verdict = partial_verdict([int(d["n"]) for d in daily])
+            if verdict and verdict[0]:
+                _, latest_n, med = verdict
+                status = "partial"
+                note = (
+                    f"the newest session holds {latest_n} records against a recent median of "
+                    f"{med:.0f}. The source answered, so nothing failed, but it carried "
+                    "well under its usual amount and anything missing from it is not here"
                 )
-                if med >= PARTIAL_MIN_MEDIAN and latest_n < PARTIAL_AT * med:
-                    status = "partial"
-                    note = (
-                        f"the newest day holds {latest_n} records against a recent median of "
-                        f"{med:.0f}. The source answered, so nothing failed, but it carried "
-                        "well under its usual amount and anything missing from it is not here"
-                    )
+        if label.startswith("Yahoo Finance daily closes ("):
+            yahoo[label[len("Yahoo Finance daily closes ("):-1]] = (status, note)
 
         cur.execute(
             """
@@ -272,6 +325,19 @@ def coverage(cur, today: date) -> None:
             f"  {label:34} {status:8} gap {gap_hours:7.1f}h  ratio {ratio:5.2f}  "
             f"miss risk {miss:5.1%}  rows {got['n']:,}"
         )
+    # The combined Yahoo row, kept for every reader of the old label: the worst market, named.
+    status, note = yahoo_summary(yahoo)
+    got = one(cur, 'SELECT count(*) AS n, max(date) AS newest FROM "PriceSnapshot" WHERE source = %s', ("Yahoo Finance",))
+    cur.execute(
+        """
+        INSERT INTO "Coverage" (source, "expectedIntervalHours", "actualGapHours",
+            "gapRatio", criticality, "missRisk", status, rows, newest, note,
+            "computedAt")
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, now())
+        """,
+        ("Yahoo Finance daily closes", 96.0, 0.0, 0.0, 1.0, 0.0, status, got["n"], got["newest"], note),
+    )
+    print(f"  {'Yahoo Finance daily closes':34} {status:8} (worst of {', '.join(YAHOO_MARKETS)})")
 
 
 def calibration(cur) -> None:

@@ -50,6 +50,8 @@ function input(over: Partial<DecisionInput> = {}): DecisionInput {
     invalidation: 110,
     analogs: null,
     volumeRatio: 0.93,
+    // The session the volume was measured on rose, so volume backs an up reading (rule 94).
+    r1: 1,
     relStrength: 1.4,
     unusualMove: false,
     newsCount: 11,

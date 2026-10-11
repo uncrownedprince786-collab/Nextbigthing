@@ -83,10 +83,17 @@ def outcome(row: dict, series: list) -> dict:
     exit_price = entry * (1 + move / 100) if entry is not None and move is not None else None
     stop_day = None
     if stopped:
+        # The first session whose low (LONG) or high (SHORT) reached the stop, else its close (rule 94).
+        def reach(item, side):
+            c = item[1]
+            v = item[2 if side == "LONG" else 3] if len(item) > 3 else None
+            return v if v is not None else c
+
         crossing = sorted(
-            d for d, c in series
-            if c is not None and row["periodEnd"] < d <= row["measured5On"]
-            and ((row["action"] == "LONG" and c <= row["invalidation"]) or (row["action"] == "SHORT" and c >= row["invalidation"]))
+            item[0] for item in series
+            if reach(item, row["action"]) is not None and row["periodEnd"] < item[0] <= row["measured5On"]
+            and ((row["action"] == "LONG" and reach(item, "LONG") <= row["invalidation"])
+                 or (row["action"] == "SHORT" and reach(item, "SHORT") >= row["invalidation"]))
         )
         stop_day = crossing[0] if crossing else None
     return {"verdict": verdict, "entry": entry, "exit": exit_price, "move": move, "stop_day": stop_day}
@@ -190,6 +197,25 @@ def daily_entry(day: date, completed: list[tuple[dict, dict]], shifts: list[dict
     return out
 
 
+# The day the quality gate began; no call logged before it was published (lib/queries.ts getPublishedRuns).
+GATE_START = date(2026, 10, 10)
+
+
+def was_published(row: dict) -> bool:
+    """Whether a logged call passed the quality gate on its own stored fields: the criterion
+    `getPublishedRuns` in lib/queries.ts applies, so the logbook and the site name the same calls."""
+    pe = row.get("periodEnd")
+    rr = row.get("rewardRisk")
+    return (
+        pe is not None and pe >= GATE_START
+        and row.get("action") in ("LONG", "SHORT")
+        and rr is not None and rr >= 1.2
+        and bool((row.get("legs") or "").strip())
+        and row.get("entryLow") is not None and row.get("entryHigh") is not None
+        and row.get("invalidation") is not None
+    )
+
+
 def summarise(day: date, graded: list[tuple[dict, dict]], flips: list[dict], stars: list[tuple[dict, dict | None]]) -> dict:
     """The one-screen summary /logbook leads with: totals and rates, the flips, the early catches.
 
@@ -220,6 +246,9 @@ def summarise(day: date, graded: list[tuple[dict, dict]], flips: list[dict], sta
     return {
         "asOf": day.isoformat(),
         "graded": len(scored),
+        # The published calls alone: what readers were shown, which is what outcome status reports.
+        "publishedGraded": len([o for r, o in graded if was_published(r) and o["verdict"] in ("right", "wrong", "stopped", "flat")]),
+        "publishedAccurate": len([o for r, o in graded if was_published(r) and o["verdict"] == "right"]),
         "accurate": right,
         "failed": failed,
         "accuratePct": rate(right),
@@ -256,12 +285,12 @@ def load(cur, day: date):
     series: dict[str, list] = {}
     if matured:
         cur.execute(
-            """SELECT "assetId", date, close FROM "PriceSnapshot"
+            """SELECT "assetId", date, close, low, high FROM "PriceSnapshot"
                 WHERE "assetId" = ANY(%s) AND date > %s AND date <= %s""",
             ([m["assetId"] for m in matured], min(m["periodEnd"] for m in matured), day),
         )
         for r in cur.fetchall():
-            series.setdefault(r["assetId"], []).append((r["date"], r["close"]))
+            series.setdefault(r["assetId"], []).append((r["date"], r["close"], r["low"], r["high"]))
     completed = [(m, outcome(m, series.get(m["assetId"], []))) for m in matured]
 
     cur.execute(
@@ -329,7 +358,7 @@ def load_summary(cur, day: date) -> dict:
     """Everything graded up to `day`, and the last 30 days of flips and stars, in four queries."""
     cur.execute(
         """SELECT d."assetId", a.symbol, a.name, d.action, d."periodEnd", d."baseClose", d.invalidation,
-                  d."move5Pct", d."measured5On", d.legs, d.gate
+                  d."move5Pct", d."measured5On", d.legs, d.gate, d."rewardRisk", d."entryLow", d."entryHigh"
              FROM "DecisionLog" d JOIN "Asset" a ON a.id = d."assetId"
             WHERE d.action IN ('LONG', 'SHORT') AND (d."measured5On" <= %s
                   OR (d.legs LIKE '%%trigger%%' AND d."periodEnd" >= %s::date - 30))""",
@@ -340,12 +369,12 @@ def load_summary(cur, day: date) -> dict:
     measured = [r for r in rows if r["measured5On"] is not None and r["measured5On"] <= day]
     if measured:
         cur.execute(
-            """SELECT "assetId", date, close FROM "PriceSnapshot"
+            """SELECT "assetId", date, close, low, high FROM "PriceSnapshot"
                 WHERE "assetId" = ANY(%s) AND date > %s AND date <= %s""",
             (list({r["assetId"] for r in measured}), min(r["periodEnd"] for r in measured), day),
         )
         for x in cur.fetchall():
-            series.setdefault(x["assetId"], []).append((x["date"], x["close"]))
+            series.setdefault(x["assetId"], []).append((x["date"], x["close"], x["low"], x["high"]))
     graded = [(r, outcome(r, series.get(r["assetId"], []))) for r in measured]
     by_id = {id(r): o for r, o in graded}
     stars = sorted(

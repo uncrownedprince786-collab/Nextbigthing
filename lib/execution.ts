@@ -48,3 +48,42 @@ export function executionOf(o: {
     reasons: ["traded on the last session, inside a pool that clears a turnover floor; no bid or ask is stored"],
   };
 }
+
+/// The timing a call is shown with, and the price it was read from (rule 94). The rule table's "NOW"
+/// means the decision's close sits inside the inclusive entry zone; that is a fact about price and is
+/// never hidden. When execution is not checked it is shown as "IN ZONE" instead of "NOW" -- the price is in
+/// the zone, the trade is not confirmed executable -- and never as "WAIT FOR LEVEL", which would say the
+/// price is outside the zone when it is not (CHBL, 2026-10-11: close Rs.8.82 in Rs.8.80-9.17, printed as
+/// "not in the zone yet"). Null on a WAIT.
+export interface Timing {
+  label: "NOW" | "IN ZONE" | "WAIT FOR LEVEL" | "CARE";
+  /// The close the timing rule read, and its session day.
+  price: number | null;
+  on: string | null;
+  inZone: boolean | null;
+}
+
+export function timingOf(o: {
+  action: string;
+  timeSense: string;
+  entry: { low: number; high: number } | null;
+  close: number | null;
+  closeDate: Date | string | null;
+  execution: Execution | null;
+}): Timing | null {
+  if (o.action !== "LONG" && o.action !== "SHORT") return null;
+  const day = o.closeDate
+    ? (o.closeDate instanceof Date ? o.closeDate.toISOString() : String(o.closeDate)).slice(0, 10)
+    : null;
+  const inZone =
+    o.close !== null && Number.isFinite(o.close) && o.entry ? o.close >= o.entry.low && o.close <= o.entry.high : null;
+  const label: Timing["label"] =
+    o.timeSense === "CARE"
+      ? "CARE"
+      : o.timeSense === "NOW"
+        ? o.execution && o.execution.status !== "checked"
+          ? "IN ZONE"
+          : "NOW"
+        : "WAIT FOR LEVEL";
+  return { label, price: o.close, on: day, inZone };
+}

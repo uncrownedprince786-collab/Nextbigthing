@@ -69,18 +69,28 @@ WINDOWS = {1: ("move1Pct", "measured1On"), 5: ("move5Pct", "measured5On"),
 
 
 def band_in(series, after, through):
-    """Lowest and highest close strictly after `after` and up to `through`. `(None, None)` for none.
+    """Lowest and highest price traded strictly after `after` and up to `through`. `(None, None)` for none.
 
-    `series` is `(date, close)` pairs for one asset in any order. The window is half open on
-    purpose: the decision was taken on `after`'s close, so that close is the entry and cannot
-    also be the thing that stopped it out.
+    `series` is `(date, close)` or `(date, close, low, high)` tuples for one asset in any order. A session's
+    low and high are used where stored, else its close (brain.md rule 94): the stop test was reading closes
+    only, so an intraday breach that recovered by the close scored as a survived stop -- the generous
+    direction. Daily lows and highs are stored, so the test is now the conservative one. The window is half
+    open on purpose: the decision was taken on `after`'s close, so that session cannot also stop it out.
     """
     if after is None or through is None:
         return None, None
-    inside = [c for d, c in series if c is not None and after < d <= through]
-    if not inside:
+    lows, highs = [], []
+    for item in series:
+        d, c = item[0], item[1]
+        lo = item[2] if len(item) > 2 and item[2] is not None else c
+        hi = item[3] if len(item) > 3 and item[3] is not None else c
+        if lo is None or hi is None or not (after < d <= through):
+            continue
+        lows.append(lo)
+        highs.append(hi)
+    if not lows:
         return None, None
-    return min(inside), max(inside)
+    return min(lows), max(highs)
 
 
 def stop_was_hit(action, invalidation, lo, hi):
@@ -351,7 +361,7 @@ def main() -> int:
     if windowed:
         cur.execute(
             """
-            SELECT "assetId", date, close FROM "PriceSnapshot"
+            SELECT "assetId", date, close, low, high FROM "PriceSnapshot"
              WHERE "assetId" = ANY(%s) AND close IS NOT NULL
                AND date > %s AND date <= %s
             """,
@@ -362,7 +372,7 @@ def main() -> int:
             ),
         )
         for p in cur.fetchall():
-            series.setdefault(p["assetId"], []).append((p["date"], p["close"]))
+            series.setdefault(p["assetId"], []).append((p["date"], p["close"], p.get("low"), p.get("high")))
 
     stopped: set[str] = set()
     for r in windowed:

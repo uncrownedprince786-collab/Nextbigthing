@@ -1,8 +1,9 @@
-import { prisma } from "@/lib/db";
+import { prisma, servingTier } from "@/lib/db";
 import { isConnectionFailure } from "@/lib/failover";
 import { marketOf, pickAnalog } from "@/lib/decisionInput";
 import { latestWindow } from "@/lib/rankingWindow";
 import { toSummary } from "@/lib/logbook";
+import { outcomeCounts } from "@/lib/outcome";
 import { listConditions } from "@/lib/setupConditions";
 
 // Re-exported so the pages keep a single import site for everything they read about rankings;
@@ -297,6 +298,7 @@ export async function getFactor(assetId: string) {
       relStrength: true,
       peers: true,
       r20: true,
+      r1: true,
       entryTrigger: true,
       triggerDirection: true,
     },
@@ -1191,6 +1193,7 @@ export async function getDecisionBundle(assetId: string) {
           volumeRatio: factor.volumeRatio,
           relStrength: factor.relStrength,
           r20: factor.r20,
+          r1: factor.r1,
           atr14: late.atr.get(assetId) ?? null,
           entryTrigger: factor.entryTrigger,
           triggerDirection: factor.triggerDirection,
@@ -1257,6 +1260,11 @@ export type DecisionQueryRow = {
   newsReadOn: Date | null;
   /// What these rows were read from (see `getDataStamp`), the same on every row.
   dataStamp: string | null;
+  /// The logbook's graded counts, the same on every row; outcome status is read from them (lib/outcome.ts).
+  outcome: { graded: number; accurate: number } | null;
+  /// The database tier these rows were read from ("the primary" or a standby's name); no call is published
+  /// from a standby read (rule 94).
+  servedFrom: string;
   assetId: string;
   symbol: string;
   name: string;
@@ -1306,6 +1314,9 @@ export type DecisionQueryRow = {
   relStrength: number | null;
   /// This asset's own 20-session return, read by the short gate in lib/decision.ts.
   r20: number | null;
+  /// The return of the session `volumeRatio` was measured on; volume backs a side only on a session that
+  /// moved that way (lib/decision.ts `volumeBacks`).
+  r1: number | null;
   /// The 14-session average true range, for a resolved call's stop (lib/resolve.ts).
   atr14: number | null;
   /// The entry rule that fired on this session and which way, for the fifth confirmation.
@@ -1499,6 +1510,9 @@ export async function getDataStamp(): Promise<string | null> {
 
 export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   const stampRead = getDataStamp();
+  // The logbook's own graded counts (rule 94): outcome status is printed beside every call from these, so
+  // the logbook and the lists cannot disagree. A failed read is no summary, which reads "untested".
+  const logRead = getLogbookSummary().catch(() => null);
   const newsRead = getNewsReadOn();
   const vetoes = getMacroVetoes();
   const priors = getPriorDirections();
@@ -1691,6 +1705,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
             volumeRatio: true,
             relStrength: true,
             r20: true,
+            r1: true,
             entryTrigger: true,
             triggerDirection: true,
           },
@@ -1744,6 +1759,10 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
   const late = await lateRead;
   const newsReadOn = await newsRead;
   const dataStamp = await stampRead;
+  // Read after every query above has run, so it names the tier these rows actually came from.
+  const servedFrom = servingTier();
+  const logSummary = await logRead;
+  const outcome = outcomeCounts(logSummary);
   // The active pool only (jobs/pool.py): a name under its market's liquidity floor, or with no
   // current close, is out of the lists and the calls. Fail-open: no column, everyone is in.
   return assets.filter((a) => !late.inactive.has(a.id)).map((asset): DecisionQueryRow => {
@@ -1785,6 +1804,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       volumeRatio: factor?.volumeRatio ?? null,
       relStrength: factor?.relStrength ?? null,
       r20: factor?.r20 ?? null,
+      r1: factor?.r1 ?? null,
       atr14: late.atr.get(asset.id) ?? null,
       entryTrigger: factor?.entryTrigger ?? null,
       triggerDirection: factor?.triggerDirection ?? null,
@@ -1798,6 +1818,8 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       macroVetoReason: vetoByAsset.get(asset.id)?.reason ?? null,
       newsReadOn,
       dataStamp,
+      outcome,
+      servedFrom,
       priorAction: priorByAsset.get(asset.id)?.action ?? null,
       priorAsOf: priorByAsset.get(asset.id)?.asOf ?? null,
       lastRunAction: lastRunByAsset.get(asset.id)?.action ?? null,

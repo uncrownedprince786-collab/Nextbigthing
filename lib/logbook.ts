@@ -55,6 +55,9 @@ export type Summary = {
   forcedGraded: number;
   forcedAccurate: number;
   forcedAccuratePct: number | null;
+  /// The published calls alone (rule 94): null in a summary written before the logbook counted them.
+  publishedGraded: number | null;
+  publishedAccurate: number | null;
 };
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -98,6 +101,8 @@ export function toSummary(stored: unknown): Summary | null {
   }
   return {
     asOf,
+    publishedGraded: count(s.publishedGraded),
+    publishedAccurate: count(s.publishedAccurate),
     graded,
     accurate,
     failed,

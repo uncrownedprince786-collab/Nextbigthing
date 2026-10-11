@@ -32,6 +32,7 @@ import math
 import os
 import re
 import sys
+import urllib.parse
 import urllib.request
 from collections import Counter
 from pathlib import Path
@@ -293,12 +294,54 @@ def parse_rows(page_html: str) -> list[dict]:
     return rows
 
 
+def page_text(path: str) -> str:
+    req = urllib.request.Request(SITE + path, headers={"User-Agent": "nbt-logic-audit"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        raw = r.read().decode("utf-8", "replace")
+    raw = re.sub(r"<script.*?</script>", " ", raw, flags=re.S)
+    return re.sub(r"\s+", " ", _html.unescape(re.sub(r"<[^>]+>", " ", raw)))
+
+
+def cross_surface(calls: list[dict]) -> list[str]:
+    """Each published call's grade, timing and execution, on its own page and in the overview's coming-week
+    block, against `/api/signals` (rule 94). CHBL read SHORT · High in the coming week and Medium on its page."""
+    bad: list[str] = []
+    try:
+        home = page_text("/")
+    except Exception as e:  # noqa: BLE001
+        return [f"the overview could not be read: {type(e).__name__}"]
+    week = home[home.find("For the coming week"):home.find("For the coming week") + 20000] if "For the coming week" in home else ""
+    for c in calls:
+        sym, grade = c["symbol"], c["confidence"]
+        try:
+            page = page_text("/asset/" + urllib.parse.quote(sym))
+        except Exception as e:  # noqa: BLE001
+            bad.append(f"{sym}: its page could not be read ({type(e).__name__})")
+            continue
+        if f"{grade} confidence" not in page:
+            bad.append(f"{sym}: the API grades it {grade}, its page does not")
+        timing = (c.get("timing") or {}).get("label")
+        if timing and f"When {timing}" not in page:
+            bad.append(f"{sym}: the API's timing is {timing}, its page does not say so")
+        ex = (c.get("execution") or {}).get("status")
+        if ex and ex != "checked" and f"Execution {ex.capitalize()}" not in page:
+            bad.append(f"{sym}: execution {ex} in the API, not on its page")
+        m = re.search(re.escape(sym) + r" .{0,120}?(LONG|SHORT) (High|Medium|Low) confidence", week)
+        if m and (m.group(1) != c["direction"] or m.group(2) != grade):
+            bad.append(f"{sym}: the coming week shows {m.group(1)} {m.group(2)}, the API {c['direction']} {grade}")
+        if m and ex and ex != "checked":
+            tail = week[m.end():m.end() + 300]
+            if f"Execution {ex}" not in tail:
+                bad.append(f"{sym}: the coming week shows it without its {ex} execution")
+    return bad
+
+
 def audit_pages() -> dict:
     seen: dict[str, dict] = {}
     out = {"rows": 0, "names": 0, "actions": Counter(), "inconsistent": [], "t_wrong": [], "t_none": 0,
            "s_wrong": [], "s_inside": [], "s_edge": 0, "s_beyond": 0, "zero_risk": [], "rr_bad": [],
            "rr_mismatch": [], "rr_checked": 0, "subcent_rows": 0, "subcent_bad": [], "t_missing": [],
-           "rr_low": [], "unconfirmed": [], "withheld": 0, "unparsed": 0, "held": 0, "api_mismatch": [],
+           "rr_low": [], "unconfirmed": [], "withheld": 0, "unparsed": 0, "held": 0, "api_mismatch": [], "surface_mismatch": [],
            "api_published": None}
     for path in PAGES:
         req = urllib.request.Request(SITE + path, headers={"User-Agent": "nbt-logic-audit"})
@@ -345,6 +388,7 @@ def audit_pages() -> dict:
                 out["api_mismatch"].append(f"{sym} R:R {c['rewardRisk']:.2f} vs page {p['rr']}")
             if c.get("style") not in ("SWING", "POSITION"):
                 out["api_mismatch"].append(f"{sym} style {c.get('style')}")
+        out["surface_mismatch"] = cross_surface(api.get("published", []))
     except Exception as e:  # noqa: BLE001
         out["api_mismatch"].append(f"/api/signals could not be read: {type(e).__name__}")
     for sym, r in seen.items():
@@ -460,6 +504,8 @@ def main() -> int:
     print(f"  published calls {pg['names'] - held_back} ({pg['held']} held open past their entry rules), held back with no call {held_back} (rule 92), withheld by the quality gate {pg['withheld']} (named, folded, on the market pages)")
     print(f"  /api/signals: {pg['api_published']} published; disagreements with the pages {len(pg['api_mismatch'])}")
     show("API AND PAGES DISAGREE", pg["api_mismatch"])
+    print(f"  grade, timing and execution across API, asset pages and the coming week: disagreements {len(pg['surface_mismatch'])}")
+    show("SURFACES DISAGREE", pg["surface_mismatch"])
     print(f"  targets: shown {pg['names'] - pg['t_none'] - pg['actions'].get('WAIT', 0)}, none {pg['t_none']}, on the wrong side {len(pg['t_wrong'])}")
     show("PUBLISHED WITHOUT A TAKE PROFIT", pg["t_missing"])
     show(f"PUBLISHED UNDER {MIN_REWARD_RISK}:1", pg["rr_low"])
@@ -480,6 +526,7 @@ def main() -> int:
         "page disagreement": len(pg["inconsistent"]),
         "rows whose cells could not be read": pg["unparsed"],
         "engine output (API) and pages disagree": len(pg["api_mismatch"]),
+        "grade/timing/execution differ across surfaces": len(pg["surface_mismatch"]),
         "stop on the zone's edge (rule 91)": db["dir_edge"] + pg["s_edge"],
         "stop nearer the zone than 1.0 x atr14": len(db["buffer_short"]),
         "published call without a measured exit": len(pg["t_missing"]),

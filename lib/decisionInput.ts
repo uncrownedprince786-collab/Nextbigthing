@@ -89,21 +89,37 @@ export function marketOf(asset: {
 /// produced a close.
 export function coverageLabelFor(market: Market): string | null {
   switch (market) {
+    // One watch per market behind the shared Yahoo fetch (rule 94): `jobs/audit.py` judges US shares and
+    // funds, commodities and currency pairs each on their own rows and calendar, so a weekend's FX bars
+    // never read as a thin day for stocks, and a silence in one market does not mark the others silent.
     case "US":
-      return "Yahoo Finance daily closes";
+      return "Yahoo Finance daily closes (US)";
+    case "Commodity":
+      return "Yahoo Finance daily closes (Commodity)";
+    case "FX":
+      return "Yahoo Finance daily closes (FX)";
     case "PSX":
       return "PSX daily closing files";
     case "Crypto":
       return "crypto daily closes";
-    // Same label as US, because it is the same fetch: `jobs/prices.py` asks Yahoo for every
-    // `source = 'yahoo'` asset in one lane, futures included. A separate label here would
-    // claim a separate watch that `jobs/audit.py` does not keep, and a reader sent to look for
-    // it would find nothing -- which is worse than the honest answer that the lane is shared.
-    case "Commodity":
-      return "Yahoo Finance daily closes";
     default:
       return null;
   }
+}
+
+/// The coverage row that speaks for a market: its own, or -- until the audit has written per-market rows
+/// -- the combined Yahoo row it used to share.
+export function coverageFor(
+  market: Market,
+  health: { source: string; status: string }[],
+): { source: string; status: string } | null {
+  const label = coverageLabelFor(market);
+  if (!label) return null;
+  const own = health.find((h) => h.source === label);
+  if (own) return own;
+  return label.startsWith("Yahoo Finance daily closes (")
+    ? (health.find((h) => h.source === "Yahoo Finance daily closes") ?? null)
+    : null;
 }
 
 /// A `@db.Date` column comes back from `pg` as a `Date` at **local** midnight, and both the rule
@@ -289,6 +305,7 @@ export interface DecisionBundle {
     volumeRatio: number | null;
     relStrength: number | null;
     r20?: number | null;
+    r1?: number | null;
     atr14?: number | null;
     /// The entry rule that fired on this session and which way, as two stored columns.
     ///
@@ -420,11 +437,8 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
 
   // A source counts as silent only when the label that feeds *this* market is the silent one. A
   // dead Amazon feed says nothing about whether a US close arrived.
-  const label = coverageLabelFor(market);
-  const silent =
-    label && bundle.sourceHealth.some((s) => s.source === label && s.status === "silent")
-      ? label
-      : null;
+  const cover = coverageFor(market, bundle.sourceHealth);
+  const silent = cover && cover.status === "silent" ? cover.source : null;
 
   const newsCoverage = newsCoverageOf(bundle.newsReadOn, bundle.sourceHealth, today);
 
@@ -493,6 +507,7 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
     // the fifth to get a test for it: an optional field that is never named here is dropped
     // silently, which has now happened four times.
     r20: bundle.factors?.r20 ?? null,
+    r1: bundle.factors?.r1 ?? null,
     // Seventh across this seam: the range a resolved call's stop is measured from (lib/resolve.ts).
     atr: bundle.factors?.atr14 ?? null,
     // Sixth field across this seam, and the count in the comment above is the reason it has its
@@ -589,6 +604,7 @@ export interface QueryBundle {
     volumeRatio: number | null;
     relStrength: number | null;
     r20?: number | null;
+    r1?: number | null;
     atr14?: number | null;
     entryTrigger?: string | null;
     triggerDirection?: string | null;
@@ -657,6 +673,7 @@ export function bundleFromQuery(
           volumeRatio: row.factor.volumeRatio,
           relStrength: row.factor.relStrength,
           r20: row.factor.r20 ?? null,
+          r1: row.factor.r1 ?? null,
           atr14: row.factor.atr14 ?? null,
           entryTrigger: row.factor.entryTrigger ?? null,
           triggerDirection: row.factor.triggerDirection ?? null,
@@ -725,6 +742,7 @@ export interface QueryRow {
   relStrength?: number | null;
   /// This asset's own 20-session return, for the short gate.
   r20?: number | null;
+  r1?: number | null;
   /// The 14-session average true range, for a resolved call's stop.
   atr14?: number | null;
   /// The entry rule that fired this session, for the fifth confirmation. Named `entryTrigger`
@@ -795,6 +813,7 @@ export function bundleFromRow(
               volumeRatio: row.volumeRatio ?? null,
               relStrength: row.relStrength ?? null,
               r20: row.r20 ?? null,
+              r1: row.r1 ?? null,
               atr14: row.atr14 ?? null,
               entryTrigger: row.entryTrigger ?? null,
               triggerDirection: row.triggerDirection ?? null,

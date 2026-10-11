@@ -3,6 +3,8 @@ import { PrismaClient } from "@/prisma/generated/prisma/client";
 import { makeFailoverPool, withEncryption, type StandbyConfig } from "@/lib/failover";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+/// The failover pool behind `prisma`, kept for `servingTier`. Null with no standby configured.
+let servingPool: { servingFrom?: () => string } | null = null;
 
 /// The standbys, in the order they are tried after the primary.
 ///
@@ -57,12 +59,20 @@ function create() {
     );
   }
   const pool = makeFailoverPool({ connectionString: url, ...primaryLimits(url) }, standbys(url));
+  servingPool = pool as unknown as { servingFrom?: () => string };
   return new PrismaClient({ adapter: new PrismaPg(pool) });
 }
 
 /// One client per process. Next.js reloads modules in development, so the client is
 /// kept on globalThis to avoid exhausting the Neon connection pool.
 export const prisma = globalForPrisma.prisma ?? create();
+
+/// Which database tier the last read came from: "the primary", or a standby's name (brain.md rule 94).
+/// A standby holds mirrored prices, decisions and news but not the setups, factors and analogs a call is
+/// built from, which lag by a day or more; the lists publish no call from a standby read.
+export function servingTier(): string {
+  return servingPool?.servingFrom ? servingPool.servingFrom() : "the primary";
+}
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

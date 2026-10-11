@@ -53,6 +53,7 @@ import { bundleFromQuery, bundleFromRow, marketOf, toDecisionInput, todayISO } f
 import { decideCall } from "@/lib/resolve";
 import { cachedDecisionRows, cachedSourceHealth } from "@/lib/cached";
 import { scoreRows } from "@/lib/assetClass";
+import { outcomeStatusOf } from "@/lib/outcome";
 import { validityOf } from "@/lib/validity";
 import { earlySignalOf } from "@/lib/earlySignal";
 import { changeTimeline, latestChange } from "@/lib/stateChange";
@@ -265,17 +266,18 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
           symbol={asset.symbol}
           currency={asset.currency}
           market={bundle.market}
-          asOf={bundle.newestCloseDate}
+          asOf={cachedRow ? cachedRow.closeDate : bundle.newestCloseDate}
           /* The close the panel prints is the one the bundle decided on, not `latestPrice`.
              They are the same row today, and taking it from the bundle is what keeps them the
              same row on the day a price arrives between the two reads. */
-          priceNow={bundle.newestClose ?? latestPrice?.close ?? null}
+          priceNow={cachedRow ? cachedRow.close : (bundle.newestClose ?? latestPrice?.close ?? null)}
           /* The measured exit, from the same rule the overview and the coming-week block use, so
              one name cannot be quoted two different levels on two pages. */
           target={target}
           withheld={gate.published ? null : gate.reasons}
           held={gate.held ?? null}
           execution={execution}
+          outcome={outcomeStatusOf(cachedRow?.outcome ?? null)}
           validity={validity}
           early={early}
           change={change}

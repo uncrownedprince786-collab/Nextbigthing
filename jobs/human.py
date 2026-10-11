@@ -442,6 +442,42 @@ def _starts_with_currency(clause: str) -> bool:
     return False
 
 
+# What may follow an asset's name and still leave the asset as the clause's subject (rule 94): a ticker or
+# acronym, a parenthetical, and the words that describe the asset rather than name something else.
+_CONTINUE = re.compile(
+    r"^(?:\([^)]*\)\s*|(?-i:[A-Z0-9]{2,})\b\s*|(?:price|prices|shares|stock|stocks|token|coin|crypto|network|"
+    r"protocol|inc|corp|ltd|group)\b\.?\s*)+",
+    re.I,
+)
+# Words that, after the name, keep it the subject: a verb of state or reporting, or a joining word.
+_FUNCTION = frozenset({
+    "is", "was", "are", "were", "has", "have", "had", "to", "will", "may", "could", "would", "sees", "gets",
+    "hits", "posts", "reports", "reported", "says", "said", "and", "on", "in", "at", "for", "with", "by",
+    "from", "up", "down", "extends", "holds", "leads", "led", "trades", "slips", "edges", "nears",
+})
+_TERM_FIRST = frozenset(t.split()[0] for t in (*POSITIVE_TERMS, *NEGATIVE_TERMS))
+# A clause that negates or hedges takes no side: a word list cannot read "not", "fails to" or "unlikely to"
+# and would score the word they deny (rule 94). No side costs less than the reversed one.
+_NEGATION = re.compile(
+    r"\b(?:not|no|never|without|fails?|failed|unlikely|cannot|can't|won't|isn't|aren't|wasn't|didn't|doesn't|"
+    r"may|might|could|should|would|if|whether|forecast|prediction|predicts?)\b",
+    re.I,
+)
+
+
+def _still_subject(rest: str) -> bool:
+    """Whether the words after an asset's name keep the asset as the subject. A capitalised word that is
+    neither a verb from the list nor a function word names something else -- "Celestia Theater", "Anna
+    Sui Spring" -- and the asset is then a namesake: no side (rule 94)."""
+    rest = _CONTINUE.sub("", rest.lstrip())
+    m = re.match(r"[A-Za-z'’]+", rest)
+    if not m:
+        return True
+    word = m.group(0)
+    low = word.lower()
+    return word[0].islower() or low in _TERM_FIRST or low in _FUNCTION
+
+
 def _kind(text: str, sign: int) -> str:
     up = count_words(text, POSITIVE_TERMS)
     down = count_words(text, NEGATIVE_TERMS)
@@ -471,6 +507,8 @@ def classify(title: str, pair: tuple[str, str] | None = None,
         return _kind(title, 1)
     kinds: set[str] = set()
     for clause in clauses(title):
+        if _NEGATION.search(clause):
+            continue
         if pair is not None:
             if not _starts_with_currency(clause):
                 continue
@@ -480,7 +518,7 @@ def classify(title: str, pair: tuple[str, str] | None = None,
             text, sign = oriented
         else:
             m = next((m for m in (pat.match(clause) for pat in subject or []) if m), None)
-            if not m:
+            if not m or not _still_subject(clause[m.end():]):
                 continue
             text, sign = clause[m.end():], 1
         k = _kind(text, sign)

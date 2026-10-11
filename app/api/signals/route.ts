@@ -1,8 +1,8 @@
 import { cachedDecisionRows, cachedSourceHealth } from "@/lib/cached";
-import { ASSET_CLASSES, marketStatus, marketStatusLines, scoreRows } from "@/lib/assetClass";
+import { ASSET_CLASSES, marketStatus, marketStatusLines, scoreRows, toSignal } from "@/lib/assetClass";
 import { coverageLabelFor } from "@/lib/decisionInput";
+import { outcomeStatusOf } from "@/lib/outcome";
 import { todayISO } from "@/lib/decisionInput";
-import { validityOf } from "@/lib/validity";
 import { MIN_CONFIRMATIONS, MIN_REWARD_RISK, MIN_STOP_ATR } from "@/lib/quality";
 
 /// The published calls as data: the same rows, by the same functions, as the market pages.
@@ -24,35 +24,8 @@ export async function GET() {
     const scored = scoreRows(rows, health, today);
     const published = scored
       .filter((s) => s.gate?.published && (s.decision.action === "LONG" || s.decision.action === "SHORT"))
-      .map((s) => {
-        const v = validityOf({
-          action: s.decision.action,
-          setupHorizon: s.setupHorizon,
-          runAction: s.row.callAction,
-          runSince: s.row.callSince,
-          asOf: s.row.closeDate,
-          today,
-        });
-        return {
-          symbol: s.row.symbol,
-          name: s.row.name,
-          market: s.market,
-          direction: s.decision.action,
-          style: s.style,
-          entry: s.decision.entry,
-          stop: s.decision.invalidation,
-          target: s.target ? { low: s.target.low, high: s.target.high, method: s.target.method } : null,
-          rewardRisk: s.target?.rewardRisk ?? null,
-          confirmations: s.decision.legs,
-          confidence: s.decision.confidence,
-          validFrom: v?.from ?? null,
-          validUntil: v?.until ?? null,
-          open: s.gate?.held ? { since: s.gate.held.since, todays: s.gate.held.todays } : null,
-          // Execution apart from direction (lib/execution.ts): checked, unverified or blocked, and why.
-          execution: s.execution ?? null,
-          closeDate: s.row.closeDate ? new Date(s.row.closeDate).toISOString().slice(0, 10) : null,
-        };
-      });
+      // One record per call, by the function the cross-surface test holds every list to (lib/assetClass.ts).
+      .map((s) => toSignal(s, today));
     const withheld = scored
       .filter((s) => !s.gate?.published && s.decision.action !== "WAIT")
       .map((s) => ({ symbol: s.row.symbol, reasons: s.gate?.reasons ?? [] }));
@@ -67,10 +40,13 @@ export async function GET() {
     return Response.json(
       {
         asOf: today,
-        rules: { minRewardRisk: MIN_REWARD_RISK, minStopAtr: MIN_STOP_ATR, minConfirmations: MIN_CONFIRMATIONS, measuredExitOnly: true, highShown: false },
+        rules: { minRewardRisk: MIN_REWARD_RISK, minStopAtr: MIN_STOP_ATR, minConfirmations: MIN_CONFIRMATIONS, measuredExitOnly: true, confidenceIs: "evidence grade" },
         styles: { SWING: "1-7 days", POSITION: "1-4 weeks", SCALPING: "not produced", INTRADAY: "not produced" },
         // The snapshot these figures come from: the newest decision run and the pool size the pages share.
         snapshot: { latestRun, pool: scored.length },
+        // Whether the calls have been right in matured results -- a separate question from each call's
+        // `confidence`, which is its evidence grade (lib/outcome.ts).
+        outcome: outcomeStatusOf(rows[0]?.outcome ?? null),
         counts: {
           published: published.length,
           open: published.filter((p) => p.open).length,

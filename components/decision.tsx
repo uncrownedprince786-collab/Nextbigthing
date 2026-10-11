@@ -14,7 +14,8 @@ import {
 import { gapLine } from "@/lib/reconcile";
 import { MIN_CONFIRMATIONS, MIN_REWARD_RISK, MIN_STOP_ATR } from "@/lib/quality";
 import { headlineOf } from "@/lib/newsRank";
-import type { Execution } from "@/lib/execution";
+import { timingOf, type Execution, type Timing } from "@/lib/execution";
+import type { OutcomeStatus } from "@/lib/outcome";
 
 // The decision panel, and nothing else.
 //
@@ -60,15 +61,10 @@ const ACTION_TEXT: Record<Action, string> = {
 /// than the price.
 const TIME_SENSE_COPY: Record<TimeSense, string> = {
   NOW: "The last stored close is inside the entry zone.",
-  "WAIT FOR LEVEL": "The price is not in the zone yet. Nothing to do until it is.",
+  "WAIT FOR LEVEL": "The close the timing reads is outside the entry zone. Nothing to do until it is inside.",
   CARE: "A dated event is near, so a position opened today meets it.",
 };
 
-const TIME_SENSE_TONE: Record<TimeSense, "default" | "up" | "warn"> = {
-  NOW: "up",
-  "WAIT FOR LEVEL": "default",
-  CARE: "warn",
-};
 
 /// One stored news row, reduced to what a link in the top block needs.
 ///
@@ -118,6 +114,32 @@ export function shownChange(c: StateChange | null | undefined): StateChange | nu
 
 /// The change timeline at the top of an asset page: every change the log holds for the last 60 days,
 /// newest first, and an alert treatment when the newest cycle carried one a holder must not miss.
+/// The timing labels, including "IN ZONE": the close is in the zone, execution is not checked (rule 94).
+const TIMING_COPY: Record<Timing["label"], string> = {
+  NOW: TIME_SENSE_COPY.NOW,
+  "WAIT FOR LEVEL": TIME_SENSE_COPY["WAIT FOR LEVEL"],
+  CARE: TIME_SENSE_COPY.CARE,
+  "IN ZONE": "The close is inside the entry zone, but execution is not checked, so it is not shown as NOW.",
+};
+const TIMING_TONE: Record<Timing["label"], "up" | "warn" | "default"> = {
+  NOW: "up",
+  "WAIT FOR LEVEL": "default",
+  CARE: "warn",
+  "IN ZONE": "warn",
+};
+
+/// The close a timing was read from, said under it, so a live trade printed under Price is never taken
+/// for the price the timing used.
+export function TimingSource({ t, currency, market }: { t: Timing; currency?: string; market?: string | null }) {
+  if (t.price === null) return null;
+  return (
+    <span className="text-muted-foreground text-micro mt-1 block">
+      Read from the close of {t.on ? shortDay(t.on) : "its session"}, {price(t.price, currency, market)}
+      {t.inZone === null ? "" : t.inZone ? ", inside the zone" : ", outside the zone"}.
+    </span>
+  );
+}
+
 export function ChangeBanner({
   changes,
   latest,
@@ -213,6 +235,8 @@ export interface DecisionPanelProps {
   held?: { since: string; todays: string[] } | null;
   /// Whether the direction can be acted on (lib/execution.ts); null on a WAIT.
   execution?: Execution | null;
+  /// Whether calls like it have been right in matured results (lib/outcome.ts) -- not the grade.
+  outcome?: OutcomeStatus | null;
 }
 
 /// One labelled figure or sentence. Used for every field in the panel so that the label and the
@@ -446,6 +470,7 @@ export function DecisionPanel({
   withheld = null,
   held = null,
   execution = null,
+  outcome = null,
 }: DecisionPanelProps) {
   // A call that ended at its stop (brain.md rule 92): its entry, exit and reward fields say so.
   const ended = decision.action === "WAIT" && decision.gate === "stop-crossed";
@@ -454,10 +479,16 @@ export function DecisionPanel({
   // rule table's reading, said as a reading, and why it is not a call.
   const withheldCall = decision.action !== "WAIT" && Boolean(withheld && withheld.length);
   const notCall = decision.action === "WAIT" || withheldCall;
-  // "NOW" only when the price is in the zone *and* execution is checked; otherwise the zone is said
-  // without the instruction, with the reason execution is not confirmed.
-  const when: TimeSense =
-    decision.timeSense === "NOW" && execution && execution.status !== "checked" ? "WAIT FOR LEVEL" : decision.timeSense;
+  // The timing, read from the decision's own close and named with it (rule 94): "IN ZONE" when the close
+  // is in the zone but execution is not checked, never "WAIT FOR LEVEL" for a price inside the zone.
+  const timing = timingOf({
+    action: decision.action,
+    timeSense: decision.timeSense,
+    entry: decision.entry,
+    close: priceNow,
+    closeDate: asOf ?? null,
+    execution,
+  });
   const grade = decision.confidence.toLowerCase();
   const gap = gapLine(decision);
 
@@ -667,9 +698,15 @@ export function DecisionPanel({
           )}
         </Field>
 
-        {notCall ? null : (
-          <Field label="When" hint={TIME_SENSE_COPY[when]}>
-            <Pill tone={TIME_SENSE_TONE[when]}>{when}</Pill>
+        {notCall || !timing ? null : (
+          <Field label="When" hint={TIMING_COPY[timing.label]}>
+            <Pill tone={TIMING_TONE[timing.label]}>{timing.label}</Pill>
+            <TimingSource t={timing} currency={currency} market={market} />
+          </Field>
+        )}
+        {decision.action === "WAIT" || !outcome ? null : (
+          <Field label="Outcome status" hint="Whether calls like this have been right in matured results. A separate question from the grade, which is the evidence for this reading.">
+            <span className="block">{outcome.sentence.replace(/^Outcome: /, "")}</span>
           </Field>
         )}
         {notCall || !execution ? null : (

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Card, Pill, Table } from "@/components/ui";
 import { getAuditLog, getLogbookSummary } from "@/lib/queries";
+import { outcomeCounts, outcomeStatusOf } from "@/lib/outcome";
 import { loadOrDefer } from "@/lib/buildSafe";
 import { toLines, type Summary } from "@/lib/logbook";
 
@@ -237,6 +238,10 @@ export default async function LogbookPage() {
           The engine&apos;s own record, updated after every daily decision run.
           {summary && <> As of {dayLabel(summary.asOf)}.</>} Nothing here is
           advice.
+        </p>
+        {/* The sentence every call's page prints beside its grade, from these same counts (rule 94). */}
+        <p className="text-muted-foreground mt-2 max-w-2xl text-sm" data-outcome-status>
+          {outcomeStatusOf(outcomeCounts(summary)).sentence}
         </p>
       </div>
 

@@ -67,6 +67,12 @@ function ClassCard({ cls, rows }: { cls: AssetClass; rows: Scored[] }) {
                 <span className="text-muted-foreground text-micro w-12 text-right">
                   {s.decision.confidence}
                 </span>
+                {/* Execution when it is not checked (rule 94), so this list never reads as a verified shortlist. */}
+                {s.execution && s.execution.status !== "checked" ? (
+                  <span className="text-warn text-micro" title={s.execution.reasons.join("; ")}>
+                    {s.execution.status}
+                  </span>
+                ) : null}
               </span>
             </li>
           ))}

@@ -486,6 +486,10 @@ export interface DecisionInput {
   /// not reached the name, which the gate treats as "not late" rather than as late — an
   /// unmeasured move is not a large one.
   r20?: number | null;
+  /// The return of the session the volume ratio was measured on (`AssetFactor.r1`). Read by one rule:
+  /// volume backs a side only on a session that moved that side's way (rule 94). Null when not stored,
+  /// and then volume backs neither side.
+  r1?: number | null;
   unusualMove: boolean;
   /// What the stored coverage reading says, when it says anything.
   ///
@@ -737,7 +741,7 @@ export function confirmingLegs(input: DecisionInput, direction: "up" | "down"): 
   const historyConfirms = analogConfirms(input, direction) === true && historyWithdrawnBy(input, direction) === null;
   const present: Record<Leg, boolean> = {
     timeframe: agrees,
-    volume: volumeConfirms(input) === true,
+    volume: volumeBacks(input, direction),
     history: historyConfirms,
     peers: peersConfirm(input, direction),
     trigger: triggerConfirms(input, direction),
@@ -770,7 +774,7 @@ function confidenceFor(input: DecisionInput, action: Action): Confidence {
 /// behind it is still the best reading of what is stored, and a reader is entitled to know it is
 /// resting on the setup alone rather than discovering that later.
 function confirmLine(input: DecisionInput, direction: "up" | "down"): string {
-  const vol = volumeConfirms(input);
+  const vol = volumeBacks(input, direction);
   // Withdrawn here on exactly the same test `confidenceFor` applies, so the sentence and the
   // grade cannot disagree. The whole point of this pass is that a set of matched past days must
   // not print as confirmation while the published coverage points the other way; printing it
@@ -832,6 +836,11 @@ function confirmMissing(input: DecisionInput, direction: "up" | "down"): string[
     );
   }
   if (volumeConfirms(input) === null) out.push("No volume published, so the move is unconfirmed by activity.");
+  else if (volumeConfirms(input) === true && !volumeBacks(input, direction) && input.volumeRatio) {
+    out.push(
+      `Volume was ${input.volumeRatio.toFixed(1)}x its average, on a session that did not move ${direction === "up" ? "up" : "down"}: activity, not support, so it is not counted.`,
+    );
+  }
   if (analogConfirms(input, direction) === null) {
     // Three different absences, and they were all being reported as the first one. A name with
     // 375 matched days whose lean was not stored printed "Only 375 similar past days stored; 8
@@ -941,10 +950,21 @@ function figure(n: number | null | undefined): number | null {
   return n === null || n === undefined || !Number.isFinite(n) ? null : n;
 }
 
-/// Does volume back the move? A null ratio is "not published", which is not the same as "no".
+/// Was trading unusually active? A null ratio is "not published", which is not the same as "no". This is
+/// participation and says nothing about which way; `volumeBacks` is the directional question.
 function volumeConfirms(input: DecisionInput): boolean | null {
   const v = figure(input.volumeRatio);
   return v === null ? null : v >= VOLUME_CONFIRMS_AT;
+}
+
+/// Does volume back *this side*? Rule 94: heavy trading is participation, not direction, and a heavy
+/// down day counted as confirmation of a LONG (and a heavy up day of a SHORT) because the leg asked only
+/// whether volume was high. It counts for a side only when the same session's return has that side's
+/// sign; with no stored return it counts for neither.
+function volumeBacks(input: DecisionInput, direction: "up" | "down"): boolean {
+  if (volumeConfirms(input) !== true) return false;
+  const r1 = figure(input.r1);
+  return r1 !== null && (direction === "up" ? r1 > 0 : r1 < 0);
 }
 
 /// Does the analog set lean the way the setup points?
@@ -1537,7 +1557,7 @@ export function decide(input: DecisionInput): Decision {
       return triggerWords(input.entryTrigger.rule);
     }
     const ratio = figure(input.volumeRatio);
-    if (volumeConfirms(input) === true && ratio) {
+    if (volumeBacks(input, dir) && ratio) {
       return `volume at ${ratio.toFixed(1)}x its 20-session average`;
     }
     const peerGap = figure(input.relStrength);
@@ -1678,7 +1698,7 @@ export function decide(input: DecisionInput): Decision {
     // trend whose compression broke this session is a different row from one carried by nothing,
     // and `DecisionLog` can only tell them apart if the gate name does.
     const carriers =
-      volumeConfirms(input) === true ||
+      volumeBacks(input, trend) ||
       peersConfirm(input, trend) ||
       asymmetric(input) ||
       triggerConfirms(input, trend);

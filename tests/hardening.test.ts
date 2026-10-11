@@ -63,6 +63,8 @@ function base(over: Partial<DecisionInput> = {}): DecisionInput {
     target: { method: "structure", low: 108, high: 112, rewardRisk: 1.5 },
     analogs: { count: 12, lowPct: -3.2, highPct: 6.4, medianPct: 1.4, positive: 8 },
     volumeRatio: 1.8,
+    // The session the volume was measured on rose, so volume backs an up reading (rule 94).
+    r1: 1,
     relStrength: 1.0,
     unusualMove: false,
     newsCount: 12,

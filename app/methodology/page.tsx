@@ -42,9 +42,8 @@ const REFUSALS = [
 const AFTER = [
   { n: "A", gate: "None of the five confirmations backs the direction", answer: "WAIT", told: "Every confirmation that is absent." },
   { n: "B", gate: "The stop is nearer the entry zone than one average true range", answer: "the stop moves", told: "The stop, one average true range beyond the zone." },
-  { n: "C", gate: "Two or more confirmations, while no outcome has matured", answer: "Medium, not High", told: "That High waits for a measured record." },
-  { n: "D", gate: "The data check, again, last: no close, an unreadable date, a close too old, a silent source", answer: "WAIT", told: "The data reason. Nothing earlier can carry a direction past it." },
-  { n: "E", gate: "To be published: a trading style, an entry range, a stop at least 1 x ATR beyond it, a measured exit, reward:risk of at least 1.2, a confirmation", answer: "published, or withheld", told: "A withheld direction is on no list; its own page says “Not a published call” and gives no levels." },
+  { n: "C", gate: "The data check, again, last: no close, an unreadable date, a close too old, a silent source", answer: "WAIT", told: "The data reason. Nothing earlier can carry a direction past it." },
+  { n: "D", gate: "To be published: a trading style, an entry range, a stop at least 1 x ATR beyond it, a measured exit, reward:risk of at least 1.2, a confirmation", answer: "published, or withheld", told: "A withheld direction is on no list; its own page says “Not a published call” and gives no levels." },
 ];
 
 // What stopped being a gate on 2026-10-09, and what happened to it instead.
@@ -223,7 +222,7 @@ export default async function MethodologyPage() {
           so the next person can check it rather than trust this page. */}
       <Section
         title="The decision rule"
-        lead="Nine checks in a fixed order, four refusals every direction must pass, and five steps after them that can only take a direction away. The first check that matches decides, and you are told that one reason rather than all of them."
+        lead="Nine checks in a fixed order, four refusals every direction must pass, and four steps after them that can only take a direction away. The first check that matches decides, and you are told that one reason rather than all of them."
       >
         <Table
           minWidth="760px"
@@ -246,7 +245,7 @@ export default async function MethodologyPage() {
           ))}
         </Table>
         <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
-          Rows a to d are the refusals checks 5 to 8 run before a direction prints; rows A to E run after
+          Rows a to d are the refusals checks 5 to 8 run before a direction prints; rows A to D run after
           the table, everywhere a call appears. Until 2026-10-11 a layer after the table turned refusals
           into calls — a crossed stop into the opposite side, an unconfirmed short into SHORT anyway, a
           macro veto into the other side, a stale or silent name into whatever its momentum leaned, and
@@ -265,11 +264,29 @@ export default async function MethodologyPage() {
           computed here: either the trend reading the condition job withheld, or — where even that
           came back mixed — which side of the 50 day average the 20 day average sits on. It is
           only carried when one of four stored figures backs it: volume at or above its own
-          20-session average, a gap against its peer group wide enough for the market it trades
+          20-session average on a session that moved the trend&rsquo;s way, a gap against its peer group wide enough for the market it trades
           in, an entry event on this session, or a measured reward of at least twice the risk —
           and only when news coverage could be read and is not worded against it. With none of the
           four, the name falls through to check 9, and every missing confirmation is still listed
           on the page.
+        </p>
+        <h3 className="mt-6 font-medium">The grade, and whether calls have been right</h3>
+        <p className="text-muted-foreground mt-2 max-w-3xl text-sm leading-relaxed">
+          Two different questions get two different labels. The <strong className="text-foreground">grade</strong>{" "}
+          (High, Medium, Low) is the evidence for this one reading: two or more of the five
+          confirmations is High, one is Medium. It says nothing about results. <strong className="text-foreground">Outcome
+          status</strong> says whether calls have been right, measured on calls whose five-session window has
+          closed, graded the way the logbook grades them: untested while none has matured, pending until
+          30 have, then the share that were accurate with its 95% interval, called validated only if the
+          whole interval is above 50%. Every call&rsquo;s page, the lists, the coming-week block, the logbook
+          and /api/signals print the same outcome sentence from the same counts.
+        </p>
+        <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
+          Volume is participation, not direction. It counts as a confirmation only on a session that
+          moved the call&rsquo;s way: heavy trading on a day the price fell is not evidence for a LONG. When
+          it does not count, the page says so. Execution is a third question again &mdash; checked,
+          unverified or blocked &mdash; and a call whose execution is not checked is shown &ldquo;IN
+          ZONE&rdquo;, never &ldquo;NOW&rdquo;, even with its close inside the entry zone.
         </p>
         <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
           The two readings are never given the same words. Three things lining up — the close, the

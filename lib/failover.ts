@@ -323,5 +323,8 @@ export function makeFailoverPool(primary: pg.PoolConfig, standbys: StandbyConfig
   }
   // Cast: the override returns `undefined` on the callback path, exactly as `pg`'s own does, which
   // the declared overloads cannot express.
-  return new FailoverPool(withTimeout(primary)) as unknown as pg.Pool;
+  const pool = new FailoverPool(withTimeout(primary)) as unknown as pg.Pool & { servingFrom?: () => string };
+  // Which tier the last connection came from, for the rule that publishes no call from a standby read.
+  pool.servingFrom = () => router.current?.servingFrom ?? "the primary";
+  return pool;
 }

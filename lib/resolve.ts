@@ -12,9 +12,12 @@
 ///   2. `requireConfirmation` -- a direction no confirmation backs is WAIT, naming the five that are
 ///      absent. Rule 93: no name shows LONG or SHORT anywhere on a setup alone;
 ///   3. `bufferStop` -- the stop at least `STOP_BUFFER_ATR` beyond the entry zone (rule 91);
-///   4. `capUnmeasured` -- no High while the live edge is unmeasured (`HIGH_AWAITS_MEASURED_EDGE`);
-///   5. `dataGate` -- last, after everything: a stale, silent, missing or unreadable close is WAIT
+///   4. `dataGate` -- last, after everything: a stale, silent, missing or unreadable close is WAIT
 ///      whatever came before it, with the data reason.
+///
+/// Rule 93 also capped the grade at Medium until outcomes matured; rule 94 withdrew the cap. The grade is
+/// the evidence for this reading and outcome validation is a separate question with its own label
+/// (lib/outcome.ts), shown beside the grade wherever a call is.
 ///
 /// One function (`decideCall`) is used by the lists, the asset page, `/api/signals` and the nightly log,
 /// so they cannot resolve the same name two ways.
@@ -36,13 +39,6 @@ import {
 /// is `min(zone low - 1.0 x ATR, the structural stop)` for a LONG, mirrored for a SHORT. Chosen, not
 /// measured: no outcome had matured when it was set.
 export const STOP_BUFFER_ATR = 1.0;
-
-/// No call is graded High until the live record says what High is worth (rule 93). The grade counts
-/// confirmations, which is a statement about evidence, not about outcomes; printed as "High" before a
-/// single +5-session outcome has matured, it reads as a measured edge that nothing has measured. Lifted
-/// only by a deliberate change, once `tools/scorecard.py` reports at least its `MIN_SAMPLE` matured calls
-/// with two or more confirmations and they moved the called way more often than not.
-export const HIGH_AWAITS_MEASURED_EDGE = true;
 
 const LEG_WORDS: Record<(typeof LEGS)[number], string> = {
   timeframe: "the longer view reading the same way",
@@ -83,19 +79,6 @@ export function requireConfirmation(d: Decision, input: DecisionInput): Decision
     legs: [],
     intent: side,
     developing: null,
-  };
-}
-
-/// High shown as Medium while the live edge is unmeasured, saying so (see `HIGH_AWAITS_MEASURED_EDGE`).
-export function capUnmeasured(d: Decision): Decision {
-  if (!HIGH_AWAITS_MEASURED_EDGE || d.confidence !== "High") return d;
-  return {
-    ...d,
-    confidence: "Medium",
-    notes: [
-      ...d.notes,
-      "Graded Medium, not High: two or more confirmations back it, but no outcome has matured yet, so a High grade would claim an edge nothing has measured.",
-    ],
   };
 }
 
@@ -147,7 +130,7 @@ export function dataGate(d: Decision, input: DecisionInput): Decision {
 
 /// What every caller uses. Each step after `decide` can only remove a direction or weaken a grade.
 export function decideCall(input: DecisionInput): Decision {
-  return dataGate(capUnmeasured(bufferStop(requireConfirmation(endStoppedCall(decide(input)), input), input)), input);
+  return dataGate(bufferStop(requireConfirmation(endStoppedCall(decide(input)), input), input), input);
 }
 
 /// The stop moved to at least `STOP_BUFFER_ATR` average true ranges beyond the entry zone, never nearer

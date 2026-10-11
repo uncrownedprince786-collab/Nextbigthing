@@ -342,7 +342,8 @@ test("a writer reaches a standby only through the write failover, never through 
   // has no copy back, and any other job naming a standby on its own.
   const root = new URL("../", import.meta.url);
   // schemacheck.py names SUPABASE_DATABASE_URL only in the message telling the owner which .env line to use.
-  const allowed = new Set(["mirror.py", "schema_parity.py", "nbt.py", "reconcile.py", "writer.mjs", "logic_audit.py", "schemacheck.py"]);
+  // standby_parity.py reads each standby to report what a failover would serve; it writes nothing.
+  const allowed = new Set(["mirror.py", "schema_parity.py", "standby_parity.py", "nbt.py", "reconcile.py", "writer.mjs", "logic_audit.py", "schemacheck.py"]);
   for (const dir of ["jobs", "tools"]) {
     for (const name of readdirSync(new URL(`${dir}/`, root))) {
       if (!/\.(py|mjs|ts)$/.test(name)) continue;

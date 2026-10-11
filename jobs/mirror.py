@@ -77,6 +77,59 @@ TABLES: dict[str, tuple[str, ...]] = {
     "HumanSignal": ("targetRef", "periodEnd", "windowDays"),
 }
 
+# The asset rows themselves (brain.md rule 94). The pool job adds names to the primary (26 discovered US
+# movers and a coin on 2026-10-11) that no standby held, so on a failover they vanished. Copied before
+# every other table, keyed on (industry slug, symbol) with the industry translated, and the pool flags
+# with them so the standby's active pool is the primary's. Insert or update only: never a delete.
+ASSET_COLUMNS = (
+    "symbol", "name", "assetType", "capBasis", "source", "sourceRef", "description", "note", "currency",
+    "active", "poolNote",
+)
+
+
+def copy_assets(src, dst, dry_run: bool) -> Tally:
+    """Insert the primary's assets a target lacks, and carry the pool flags of the ones it has."""
+    tally = Tally()
+    with src.cursor() as sc, dst.cursor() as dc:
+        tcols = set(columns_of(dc, "Asset"))
+        scols = set(columns_of(sc, "Asset"))
+        cols = [c for c in ASSET_COLUMNS if c in tcols and c in scols]
+        dc.execute('SELECT id, slug FROM "Industry"')
+        industry = {r["slug"]: r["id"] for r in dc.fetchall()}
+        sc.execute(
+            'SELECT i.slug, ' + ", ".join('a."' + c + '"' for c in cols)
+            + ' FROM "Asset" a JOIN "Industry" i ON i.id = a."industryId"'
+        )
+        rows = sc.fetchall()
+        tally.read = len(rows)
+        q = lambda c: '"' + c + '"'  # noqa: E731
+        sets = ", ".join(f"{q(c)} = EXCLUDED.{q(c)}" for c in cols if c not in ("symbol",))
+        old = ", ".join(f'"Asset".{q(c)}' for c in cols if c != "symbol")
+        new = ", ".join(f"EXCLUDED.{q(c)}" for c in cols if c != "symbol")
+        sql = (
+            f'INSERT INTO "Asset" ("industryId", {", ".join(q(c) for c in cols)}) '
+            f'VALUES (%(industryId)s, {", ".join("%(" + c + ")s" for c in cols)}) '
+            f'ON CONFLICT ("industryId", "symbol") DO UPDATE SET {sets} WHERE ({old}) IS DISTINCT FROM ({new})'
+        )
+        out = []
+        for r in rows:
+            target = industry.get(r["slug"])
+            if target is None:
+                tally.unmatched += 1
+                tally.unmatched_assets.add("industry:" + str(r["slug"]))
+                continue
+            out.append({"industryId": target, **{c: r[c] for c in cols}})
+        if out and not dry_run:
+            dc.execute(STATEMENT_CEILING)
+            dc.executemany(sql, out)
+            tally.copied = max(dc.rowcount, 0)
+            dst.commit()
+        elif out:
+            tally.copied = len(out)
+        tally.unchanged = tally.read - tally.unmatched - tally.copied
+    return tally
+
+
 # Tables copied for asset rows only: a product's or an industry's row names a per-database id this job
 # does not translate, and no decision reads it.
 ASSET_ROWS_ONLY = {"News", "HumanSignal"}
@@ -362,12 +415,19 @@ def mirror_one(src_url: str, label: str, dst_url: str, chosen: list[str], dry: b
         return False
     current = "the asset map"
     try:
+        if "Asset" in chosen:
+            current = "Asset"
+            t = copy_assets(src, dst, dry)
+            print(f"  {'Asset':14} {t.read:>9} {t.copied:>9} {t.unchanged:>10} {t.unmatched:>10}")
+            if t.unmatched_assets:
+                print(f"      no matching industry on this side for {sorted(t.unmatched_assets)[:3]}")
+            current = "the asset map"
         with src.cursor() as sc, dst.cursor() as dc:
             amap = build_asset_map(asset_identity(sc), asset_identity(dc))
             pmap = build_product_map(product_identity(sc), product_identity(dc))
         print(f"  assets matched by (industry, symbol): {len(amap)}")
         print(("  DRY RUN, nothing written\n" if dry else "") + f"  {'table':14} {'read':>9} {'written':>9} {'unchanged':>10} {'unmatched':>10}")
-        for table in chosen:
+        for table in [t for t in chosen if t != "Asset"]:
             current = table
             t = copy_table(src, dst, table, amap, dry, since, pmap)
             print(f"  {table:14} {t.read:>9} {t.copied:>9} {t.unchanged:>10} {t.unmatched:>10}")
@@ -412,7 +472,7 @@ def main(argv: list[str]) -> int:
     dry = "--dry-run" in argv
     since = single("--since")
     chosen = (single("--tables") or ",".join(TABLES)).split(",")
-    unknown = [t for t in chosen if t not in TABLES]
+    unknown = [t for t in chosen if t not in TABLES and t != "Asset"]
     if unknown:
         print(f"unknown table(s) {unknown}; choose from {', '.join(TABLES)}")
         return 2

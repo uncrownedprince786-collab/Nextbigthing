@@ -47,7 +47,10 @@ test("market comes from the industry, never from the symbol", () => {
 });
 
 test("every market whose feed is watched can be named when it goes silent", () => {
-  assert.equal(coverageLabelFor("US"), "Yahoo Finance daily closes");
+  // One watch per market behind the Yahoo fetch (rule 94).
+  assert.equal(coverageLabelFor("US"), "Yahoo Finance daily closes (US)");
+  assert.equal(coverageLabelFor("Commodity"), "Yahoo Finance daily closes (Commodity)");
+  assert.equal(coverageLabelFor("FX"), "Yahoo Finance daily closes (FX)");
   assert.equal(coverageLabelFor("PSX"), "PSX daily closing files");
   // Crypto returned null until jobs/audit.py started watching the venue chain. The label is the
   // chain rather than a venue: Binance has been dead for ~347 days while every coin has a current

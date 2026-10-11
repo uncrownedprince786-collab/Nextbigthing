@@ -2590,7 +2590,7 @@ reads rows that already exist:
       or drop; all now take no side. Signed headlines over the stored 30 days: US 200 to 141, crypto 78 to
       65, PSX 16 to 8, commodities 2 to 0. A namesake whose name opens a clause about something else can
       still be read as the asset; no side would be the cost of fixing that, and it is recorded, not hidden.
-    - **Execution is not direction.** `lib/execution.ts`: blocked when the last session printed no trade,
+    - **Execution is not direction.** (Its "NOW" handling, and the High cap above, were corrected by rule 94.) `lib/execution.ts`: blocked when the last session printed no trade,
       unverified for a SHORT on a share or a coin (no short-sale eligibility data is held) and wherever
       no volume is published, checked only for a LONG that traded inside the turnover-floored pool -- and no bid or ask
       is stored anywhere, which the reason says. "NOW" is shown only for a checked call.
@@ -2609,3 +2609,60 @@ reads rows that already exist:
       cached row, so a name cannot be LONG on its page and withheld on its list. Each market page states its
       newest close, its newest decision run, its source status and where every name went -- it used to call
       every held-back name "with no stored price".
+
+94. **One record per call on every surface; the grade is evidence and outcome status is separate; volume
+    backs only the side its session moved; identity, failover and calendars stay conservative.** The
+    owner's post-deployment correctness pass of 2026-10-11. Each item was reproduced from stored rows and
+    rendered pages before it was changed.
+
+    - **Timing named its price wrongly (CHBL).** Close Rs.8.82 on Oct 9, inside the inclusive zone
+      Rs.8.80-9.17; the rule table said NOW and the panel printed "WAIT FOR LEVEL -- the price is not in the
+      zone yet", because rule 93's panel code turned NOW into WAIT FOR LEVEL whenever execution was not
+      checked. Root cause: timing and execution conflated. `timingOf` (lib/execution.ts) now gives NOW,
+      "IN ZONE" (in the zone, execution not checked), WAIT FOR LEVEL or CARE, and every surface prints the
+      close and day it read ("Read from the close of Oct 9, Rs.8.82, inside the zone"). The asset page takes
+      that close from the same cached row as its decision. Boundary tests: both ends inclusive, a hair
+      outside, display rounding.
+    - **One grade, two meanings, untangled.** CHBL read "SHORT · High" in the coming week and Medium on its
+      page: the 2026-10-10 log row predates rule 93's cap. The cap itself answered "has this been right?"
+      with the label for "how much evidence backs this?", so it is withdrawn. The grade (High two or more
+      confirmations, Medium one) is the evidence for the reading, shown as counted everywhere; **outcome
+      status** (lib/outcome.ts) -- untested, pending, validated or not validated, with a 95% Wilson interval
+      from 30 matured calls -- is printed beside it on the asset panel, the coming week, the market pages,
+      the logbook and `/api/signals`, from the logbook's own graded counts, for published calls. Today:
+      untested. A longer-term setup's own grade stays on its card, labelled as that timeframe's.
+    - **Execution travels with the call.** The coming-week block and the overview's top lists showed entry,
+      stop and exit with no execution state; they now print it whenever it is not checked, as the rows and
+      the panel do. Short-sale eligibility is asked only of shares and coins.
+    - **Volume is participation, not direction.** A heavy down day counted as a LONG's confirmation. The
+      volume leg (and gate 8's volume carrier) now count only when the same session's return (`AssetFactor.r1`)
+      has the call's sign; with no stored return, neither side. The page says when volume was "activity, not
+      support". Mirrored tests for both sides.
+    - **Namesakes and hedges take no side.** A name followed by another proper noun ("Celestia Theater",
+      "Anna Sui Spring") is a namesake; a clause with a negation or hedge ("not", "fails", "could", "if") is
+      not read; mixed tone cancels. Tests cover ticker, full name, alias, common words, namesakes, pairs both
+      ways, negation and mixed clauses.
+    - **The standby is bounded, measured, and holds the pool.** 27 active assets (26 discovered US movers and
+      a coin) were absent from Supabase and would have vanished on failover; `jobs/mirror.py` now copies asset
+      rows first, keyed on (industry slug, symbol), with the pool flags. The standby's setups, factors and
+      analogs are not mirrored and lag one to two days, so **no call is published from a standby read**
+      (`servingTier` in lib/db.ts; the reading is shown, withheld, saying so). `tools/standby_parity.py`
+      reports missing assets, missing readings and each input's lag, nightly in the mirror workflow.
+    - **Source health keeps calendars.** "Yahoo Finance daily closes: partial" sat on the stocks and
+      commodities pages over a complete Friday: one source row covered four markets, and a Sunday's five FX
+      bars were its newest day against a weekday median of 315. `jobs/audit.py` now writes one row per
+      market behind the fetch and judges each on its own weekday sessions -- a weekend or a holiday is an
+      expected non-session, never thin -- and the combined row is the worst of them, naming which market.
+      Each market page and the silent-source gate read their own row, so one market's fault cannot mark
+      another silent.
+    - **The evaluator, before any grade.** Verified: outcomes are counted in each asset's own stored sessions
+      (+1, +5, +20); the stop is checked before the move; WAITs are never graded as misses; the scorecard
+      refuses rates under 30 and reports intervals. Fixed: the stop test read daily closes only -- an intraday
+      breach that recovered scored as survived -- and now uses each session's low or high where stored; the
+      published calls are counted on their own (the criterion `getPublishedRuns` uses), so outcome status
+      describes what readers were shown. Not fixed, and recorded: a same-day re-run overwrites that day's
+      logged call (the log is immutable across days, not within one); the verdict is directional only, with
+      no execution return and no measured-exit touch.
+    - **Baseline parameters, fixed for now:** the 1 x ATR stop buffer beyond the entry zone and the 1.2
+      reward:risk floor, both chosen rather than measured. The 2 x ATR stop belonged to the forced layer and
+      is no longer applied anywhere; structural stops are the setup job's 1.5 sigma.
