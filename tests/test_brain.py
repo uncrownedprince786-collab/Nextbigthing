@@ -1784,6 +1784,18 @@ class WorkflowLanes(unittest.TestCase):
         for name in ("refresh.yml", "backfill.yml"):
             self.assertIn("jobs/schemacheck.py", self._text(name), f"{name} does not check")
 
+    def test_a_push_runs_the_schema_lane_only_when_the_schema_changes(self):
+        # Rule 96: every push ran the migration and a 15-job derive pass against the primary; nine commits
+        # on 2026-10-11 were nine derive passes, and the free-tier primary went over quota that afternoon.
+        import yaml
+
+        on = yaml.safe_load(self._text("schema.yml"))[True]
+        self.assertEqual(on["push"]["branches"], ["main"])
+        self.assertIn("prisma/**", on["push"]["paths"])
+        self.assertIn(".github/workflows/schema.yml", on["push"]["paths"])
+        self.assertNotIn("**", on["push"]["paths"])
+        self.assertIn("workflow_dispatch", on)
+
     def test_the_schema_lane_keeps_its_own_concurrency_group(self):
         # A hung enrichment fetch once held the shared group for 90+ minutes while the
         # migration the deployed site needed sat queued behind it. P3 must never block P0.

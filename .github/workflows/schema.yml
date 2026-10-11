@@ -21,6 +21,15 @@ name: schema
 on:
   push:
     branches: [main]
+    # Only a push that changes the schema or the reference lists (brain.md rule 96). Every push used to run
+    # this whole lane -- the migration and a 15-job derive pass against the primary -- so on 2026-10-11 nine
+    # commits made nine full derive passes and the free-tier primary ran out of quota the same afternoon.
+    # Every job below also runs on its own schedule through jobs/run.py, and a manual dispatch still runs
+    # all of it.
+    paths:
+      - "prisma/**"
+      - "jobs/seed.py"
+      - ".github/workflows/schema.yml"
   workflow_dispatch:
 
 # Its own lane, and that is the point.

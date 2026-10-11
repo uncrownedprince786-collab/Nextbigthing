@@ -2785,3 +2785,28 @@ reads rows that already exist:
       313 crypto rows and 66 of 1,179 US rows, losing 18 and 17 genuine ones (coined names with no crypto
       word, short forms like "SpaceX"). Stored rows are not deleted and still show on asset pages until
       they age out; title-case common words ("Alleged Visa Fraud") still pass.
+
+96. **A clean reset waits for a writable, backed-up primary; it is never done on a standby instead.** The
+    owner's clean reset, full resync and final audit mandate of 2026-10-11. Phase 1 (read-only) ran at
+    14:00-14:20 UTC; its stop condition was met, so nothing was deleted, reset or switched.
+    - **Blocker.** The Neon primary refuses every connection with "exceeded the quota" (53000) since about
+      12:45 UTC; production serves the Supabase standby, publishes nothing (rule 94) and health reads
+      `ok: false`. Primary schema parity cannot be read (last known 30 migrations, without
+      `20261011130000_decision_history`); the standby has 31. No verified backup of the primary can be taken.
+      Restoring it -- waiting for the quota reset, upgrading, or deliberately making Supabase the primary --
+      is the owner's decision; nothing here changes a plan or spends.
+    - **Baseline** (standby, estimated rows): PriceSnapshot 791,033; IntradayBar 59,820; News 4,173;
+      DecisionLog 1,742; DecisionRun 4 / DecisionCall 2,216 / CallOutcome 0; 32 weekday-market weekend bars;
+      613 assets, 554 active. The full inventory, the lane list and the dependency-ordered reset plan are in a
+      private report outside the repository (`nbt-private/baseline-2026-10-11.md` beside the checkout).
+    - **The reset plan, when unblocked:** pause every schedule and confirm nothing runs; back up each table
+      to be cleared with `COPY ... TO STDOUT` into gzip files outside the repository and verify by re-reading
+      counts (the local `pg_dump` does not run); keep migrations, schema, triggers and the universe (Industry,
+      Asset, Product, ProductAssetLink and the empty config tables); clear the fetched, derived, decision,
+      history and log tables in one `TRUNCATE` that names them all, without CASCADE; verify; resync once in
+      order (schema -> full price history -> daily prices -> quotes -> news -> calendar/products -> decision ->
+      mirror -> coverage audit); audit with writers paused; restore staggered schedules.
+    - **What was spending the quota.** `schema.yml` ran on every push and is not only a migration: it runs a
+      15-job derive pass against the primary. It ran 9 times on 2026-10-11, once per commit. Its push trigger
+      now fires only for `prisma/**`, `jobs/seed.py` and the workflow itself; every job in it also runs on
+      its own schedule through `jobs/run.py`, and a manual dispatch still runs it all.
