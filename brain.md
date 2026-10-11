@@ -2936,3 +2936,26 @@ reads rows that already exist:
     `.env`, `DATABASE_URL` and `SUPABASE_DATABASE_URL` select the same Supabase database (same host, port,
     database and pooler user), so locally the only candidate standby is the Neon one that is over quota.
     Production secrets were not read and may differ; this needs checking against them, not against `.env`.
+
+102. **The news lane had been dying on a url too long to index, and losing the rest of its run each
+    time.** Found 2026-10-12 in the production logs of runs 38172778541 and 38174842722, both on
+    94a1ac1, both after the resync of rule 98 -- so it is current, not history.
+    - `psycopg.errors.ProgramLimitExceeded: index row size 3376 exceeds btree version 4 maximum 2704
+      for index "News_asset_url_key"`. The four unique indexes on `News` each lead with a target id
+      and then `url`; a Google News RSS redirect is a base64 blob with no upper bound, so past about
+      2.6 kB it cannot be indexed at all.
+    - What it cost: the insert aborted the transaction, every headline collected after that point in
+      the run was lost, the lane exited 1, and `cron watchdog` dispatched it again to fail the same
+      way -- free-tier minutes spent on a run that could not finish. The longest url actually stored
+      is 1,040 bytes, which is not the real ceiling of the feed but the point past which nothing was
+      ever written.
+    - **`NEWS_URL_MAX = 2000`**, checked before the insert in `ingest` and counted beside the stale,
+      off-target and junk drops. 2,000 rather than the 2,704 the index allows, because the index
+      tuple also carries the target id and its overhead. Truncating was the other option and is
+      worse: a shortened Google News redirect is a dead link, and storing one as though it were the
+      story is a quiet wrongness. One headline is dropped and said so; the run survives.
+    - Not a schema change: no migration, no index rebuilt, the uniqueness guarantee unchanged.
+    - Also seen in the same sweep and **not** fixed here, because it is a data-freshness fault rather
+      than a database one: `cron watchdog` reports "FX is trading and its newest live quote is 2854
+      minutes old; the lane runs every 15". The FX live-quote lane has not produced a fresh quote in
+      roughly two days. It needs its own look.

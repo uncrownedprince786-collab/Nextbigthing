@@ -3339,6 +3339,26 @@ class NewsRecency(unittest.TestCase):
         body = text[text.index("def ingest("):text.index("news_sql = ")]
         self.assertIn("if is_junk_headline(title):", body)
 
+    def test_a_url_too_long_to_index_drops_the_item_and_not_the_run(self):
+        """The news lane died on one of these in production on 2026-10-11.
+
+        `index row size 3376 exceeds btree version 4 maximum 2704 for index
+        "News_asset_url_key"`: a Google News RSS redirect whose base64 path has no upper
+        bound. The insert aborted the transaction, every headline collected after that point
+        in the run was lost, the lane exited 1, and the watchdog dispatched it to fail again.
+        The guard belongs before the insert, because the database's own answer to this is to
+        take the run down with the row.
+        """
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = text[text.index("def ingest("):text.index("news_sql = ")]
+        self.assertIn("NEWS_URL_MAX", body)
+        # Before the write, not after it.
+        self.assertLess(body.index("NEWS_URL_MAX"), body.index("affected = wire.execute("))
+        # Under the 2,704 the index allows, because the tuple also carries the target id.
+        self.assertLessEqual(prices.NEWS_URL_MAX, 2_704 - 128)
+        # Counted as a drop, so a feed that loses items says so rather than going quiet.
+        self.assertIn("unindexable", body)
+
     def test_a_generic_company_name_still_collides_and_this_records_it(self):
         # Not a wish: a statement of what the matcher cannot do, so a later change can measure
         # it. "Systems Limited" is a legal name made of two generic words, and it matches two

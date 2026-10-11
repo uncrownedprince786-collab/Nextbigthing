@@ -82,6 +82,23 @@ NEWS_PER_ASSET = 6
 # slack exists because `when:30d` is Google's arithmetic on its own index and a few items land a
 # day or two outside it; a stored item is allowed to be slightly older than the window, never
 # months older.
+# A url longer than this is not stored, and the item is dropped rather than inserted.
+#
+# Measured in production on 2026-10-11: the news lane died with `index row size 3376 exceeds
+# btree version 4 maximum 2704 for index "News_asset_url_key"` and took the rest of the run with
+# it -- every headline collected after that point was lost, the lane exited 1, and the watchdog
+# dispatched it again to fail the same way. The offender is a Google News RSS redirect, whose
+# path is a base64 blob with no upper bound; the four unique indexes on `News` all lead with a
+# target id and then the url, so a long one cannot be indexed at all.
+#
+# 2,000 bytes rather than the 2,704 the index allows, because the index tuple also carries the
+# target id and its own overhead, and because a url past 2,000 bytes is beyond what browsers and
+# CDNs reliably accept anyway. Truncating instead of dropping was the other option and is worse:
+# a shortened Google News redirect is a dead link, and storing one as though it were the story is
+# the kind of quiet wrongness this project exists not to produce. One headline is dropped and
+# counted; the run survives.
+NEWS_URL_MAX = 2_000
+
 NEWS_WINDOW_DAYS = 30
 NEWS_WINDOW_SLACK_DAYS = 3
 
@@ -2137,6 +2154,7 @@ def fetch_news(cur, chunk: tuple[int, int] | None = None) -> int:
         stale = 0
         off_target = 0
         junk = 0
+        unindexable = 0
         for item in root.iter():
             if not item.tag.endswith("item") or kept_here >= cap:
                 continue
@@ -2171,6 +2189,11 @@ def fetch_news(cur, chunk: tuple[int, int] | None = None) -> int:
             if matcher is not None and not matcher.search(title):
                 off_target += 1
                 continue
+            # See NEWS_URL_MAX. Checked here rather than left to the database, because the
+            # database's answer is to abort the transaction and lose the whole run with it.
+            if len(link.encode("utf-8")) > NEWS_URL_MAX:
+                unindexable += 1
+                continue
             affected = wire.execute(
                 insert_sql,
                 params_fn(when, title, link, publisher, source),
@@ -2178,8 +2201,12 @@ def fetch_news(cur, chunk: tuple[int, int] | None = None) -> int:
             written += affected if affected and affected > 0 else 0
             kept_here += 1
         dropped = ""
-        if stale or off_target or junk:
-            dropped = f" (dropped {stale} stale, {off_target} off-target, {junk} junk)"
+        if stale or off_target or junk or unindexable:
+            dropped = (
+                f" (dropped {stale} stale, {off_target} off-target, {junk} junk"
+                + (f", {unindexable} over {NEWS_URL_MAX}-byte url" if unindexable else "")
+                + ")"
+            )
         print(f"  {kept_here} from {cache_key}{dropped}")
         return kept_here
 
