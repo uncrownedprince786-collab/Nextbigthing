@@ -163,7 +163,9 @@ def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
 # watchdog runs on 2026-10-11 were exactly that: the schema lane rewrote setups, the audit revalidated, and
 # read the pages before they had re-rendered. So a revalidation is followed by one warming pass over the
 # pages, and a skew is re-read a bounded number of times before it is reported. A skew that persists is
-# still a failure; one that is a page mid-render is not a fault in the site.
+# still a failure; one that is a page mid-render is not a fault in the site. A third run, live the same
+# day, found the five market pages re-rendered from a read taken mid-write while the cache kept a later
+# one, so the route answered "aligned"; it now reads the pages too, and each re-read asks it again.
 SKEW_RETRIES = 3
 SKEW_WAIT_S = 20
 
@@ -189,6 +191,9 @@ def main() -> int:
         tries = 0
         while tries < SKEW_RETRIES and failures and all("snapshot skew" in f for f in failures):
             tries += 1
+            # Ask again: a page re-rendered from an earlier read than the one the cache kept is behind
+            # even when the cache is not, and the route now re-renders such pages (lib/alignment.ts).
+            align(site)
             warm(site)
             time.sleep(SKEW_WAIT_S)
             failures, counts = audit(site)

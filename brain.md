@@ -2678,3 +2678,13 @@ reads rows that already exist:
       re-render -- on-demand revalidation serves the old HTML to the first visit. The schema lane now calls
       `/api/revalidate` when it ends, and the UI audit warms the pages after a revalidation and re-reads a
       skew up to three times, 20 seconds apart, before reporting it; a skew that persists still fails.
+    - **And a skew the route itself could not see.** Verifying that fix (commit `253506f`, deployment
+      `6994580320`) found all five market pages on setups of 01:21 while the data cache and `/api/health` held
+      setups of 11:02:59, and `/api/revalidate` answering `revalidated: false`. After a revalidation each page
+      re-renders on its next visit, and a re-render that finds the data entry empty reads the database for
+      itself; the schema lane wrote between those reads, so the pages came from one read and the stored entry
+      from a later one. The route compared the cache alone, so it would have kept saying "aligned" until the
+      next write. It now also reads the stamps the market pages print (`lib/alignment.ts`) when the cache is
+      current, and re-renders the pages -- from the cached entry, with no database read -- when one served as
+      current carries another snapshot. A page already marked STALE is re-rendering and is not judged, so the
+      route cannot loop on it. The UI audit asks the route again on each re-read.

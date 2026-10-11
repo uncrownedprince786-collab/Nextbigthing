@@ -8436,6 +8436,9 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
         self.assertLessEqual(ua.SKEW_RETRIES * ua.SKEW_WAIT_S, 120)
         src = (ROOT / "tools" / "ui_audit.py").read_text(encoding="utf-8")
         self.assertIn('all("snapshot skew" in f for f in failures)', src)
+        # Each re-read asks the route again, which now re-renders a page left behind the cache.
+        retry = src[src.index("while tries < SKEW_RETRIES"):src.index('print(f"ui audit: re-read')]
+        self.assertIn("align(site)", retry)
         self.assertIn("Bring the site onto this run's snapshot", (ROOT / ".github" / "workflows" / "schema.yml").read_text(encoding="utf-8"))
 
     def test_a_link_tag_in_the_head_is_not_read_as_a_row(self):
