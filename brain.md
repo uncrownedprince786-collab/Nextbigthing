@@ -2687,4 +2687,9 @@ reads rows that already exist:
       next write. It now also reads the stamps the market pages print (`lib/alignment.ts`) when the cache is
       current, and re-renders the pages -- from the cached entry, with no database read -- when one served as
       current carries another snapshot. A page already marked STALE is re-rendering and is not judged, so the
-      route cannot loop on it. The UI audit asks the route again on each re-read.
+      route cannot loop on it. The UI audit asks the route again on each re-read. Commit `f0e7338`,
+      deployment `6994732963`: the schema run `38134911097` ended with `revalidated: true` onto the new
+      snapshot; then the UI audit passed (438 rows, 553 of 553 listed, all five pages on one stamp), the logic
+      audit PASSED MATHEMATICALLY with 0 cross-surface disagreements over 18 published calls, and watchdog
+      `38136905827` was green -- it also restarted the live-quote lane, whose schedule had slipped to 90
+      minutes, after which health read ok. Web 446 of 446, Python 711 OK, tsc, eslint and build clean.
