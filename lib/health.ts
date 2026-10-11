@@ -11,6 +11,7 @@
 /// while every decision on it read "stale" -- or the reverse -- would be two answers to one question.
 
 import { STALE_AFTER_DAYS, type Market } from "./decision.ts";
+import { freshnessOf, marketOpen, sessionFault, type FreshnessState } from "./sessions.ts";
 
 /// The workflow file that refreshes each kind of reading. A problem names one so the watchdog can start
 /// it; a problem with no lane is one only a person can fix.
@@ -41,13 +42,19 @@ export const QUOTES_STALE_AFTER_MINUTES = 60;
 export const QUOTES_OFF_AFTER_HOURS = 72;
 
 export interface HealthReadings {
-  /// The newest stored close per market, as an ISO day, or null when the market has none at all.
-  closes: { market: Market; newest: string | null }[];
+  /// The newest stored close per market, as an ISO day, or null when the market has none at all; and, when
+  /// read, each active asset's newest close day (to count the names behind the market's newest session).
+  closes: { market: Market; newest: string | null; assetDays?: string[] }[];
   newestDecision: string | null;
   newestNews: Date | string | null;
   /// Opt-in (`LIVE_QUOTES`): none at all, or none for days, is a lane that is off and not a fault; a
   /// lane that is on and has stopped is (see QUOTES_STALE_AFTER_MINUTES).
   newestQuote: Date | string | null;
+  /// The newest live quote per market (rule 95): one market's ticks must not hide another's silence, as
+  /// crypto's did while FX, US and commodity quotes sat frozen from Friday.
+  quotesByMarket?: { market: Market; newest: Date | string | null }[];
+  /// The last run and the last successful run of each lane that records its runs (ChunkRun).
+  lanes?: { job: string; lastRun: Date | string | null; lastOk: Date | string | null }[];
   /// How many assets the universe holds, so a page that lists fewer can be caught (tools/ui_audit.py).
   pool?: number;
 }
@@ -62,10 +69,29 @@ export interface Health {
   ok: boolean;
   checkedAt: string;
   problems: Problem[];
-  closes: { market: Market; newest: string | null; ageDays: number | null; limitDays: number }[];
+  closes: {
+    market: Market;
+    newest: string | null;
+    ageDays: number | null;
+    limitDays: number;
+    /// The calendar (rule 95): the newest session whose bar should be stored by now, how many expected
+    /// sessions the newest close is behind, and whether a quiet market is closed or failing.
+    expected: string;
+    sessionsBehind: number | null;
+    state: FreshnessState;
+    nextSession: string;
+    /// Active names whose own newest close is older than the market's expected session.
+    namesBehind: number | null;
+    sentence: string;
+  }[];
   decisions: { newest: string | null; ageDays: number | null };
   news: { newest: string | null; ageHours: number | null };
-  quotes: { newest: string | null; ageMinutes: number | null };
+  quotes: {
+    newest: string | null;
+    ageMinutes: number | null;
+    markets: { market: Market; newest: string | null; ageMinutes: number | null; state: "current" | "late" | "closed" | "off" }[];
+  };
+  lanes: { job: string; lastRun: string | null; lastOk: string | null; minutesSinceOk: number | null }[];
   pool: number | null;
 }
 
@@ -89,6 +115,7 @@ export function assess(r: HealthReadings, now: Date): Health {
   const closes = r.closes.map((c) => {
     const ageDays = dayAge(c.newest, now);
     const limitDays = STALE_AFTER_DAYS[c.market];
+    const f = freshnessOf(c.market, c.newest, now);
     if (ageDays === null) {
       problems.push({ check: `closes:${c.market}`, lane: LANE_FOR[c.market], detail: `no close stored for ${c.market}` });
     } else if (ageDays > limitDays) {
@@ -97,8 +124,29 @@ export function assess(r: HealthReadings, now: Date): Health {
         lane: LANE_FOR[c.market],
         detail: `newest ${c.market} close is ${c.newest}, ${ageDays} days old; the rule table refuses after ${limitDays}`,
       });
+    } else if (c.newest && sessionFault(c.market, c.newest, now.toISOString().slice(0, 10))) {
+      // The rule table's own calendar check (lib/sessions.ts `sessionFault`), so a close is a problem here
+      // exactly when every decision on it would be refused: two expected sessions without a bar, or a bar
+      // dated on a day the market does not trade.
+      problems.push({
+        check: `closes:${c.market}`,
+        lane: LANE_FOR[c.market],
+        detail: sessionFault(c.market, c.newest, now.toISOString().slice(0, 10))!.why,
+      });
     }
-    return { market: c.market, newest: c.newest, ageDays, limitDays };
+    const namesBehind = c.assetDays ? c.assetDays.filter((d) => d < f.expected).length : null;
+    return {
+      market: c.market,
+      newest: c.newest,
+      ageDays,
+      limitDays,
+      expected: f.expected,
+      sessionsBehind: f.sessionsBehind,
+      state: f.state,
+      nextSession: f.nextSession,
+      namesBehind,
+      sentence: namesBehind ? `${f.sentence} ${namesBehind} active ${namesBehind === 1 ? "name is" : "names are"} older than ${f.expected}.` : f.sentence,
+    };
   });
 
   const decisionAge = dayAge(r.newestDecision, now);
@@ -122,14 +170,42 @@ export function assess(r: HealthReadings, now: Date): Health {
     });
   }
 
+  // Quotes, per market and by its hours (rule 95): a market that is trading must have a quote under an hour
+  // old; a closed market's last quote is expected to sit still and is not a fault. Without per-market
+  // readings (an older caller) the newest quote of any kind is judged, as before.
   const quoteMs = msAge(r.newestQuote, now);
-  if (quoteMs !== null && quoteMs > QUOTES_STALE_AFTER_MINUTES * 60_000 && quoteMs <= QUOTES_OFF_AFTER_HOURS * 3_600_000) {
+  const markets = (r.quotesByMarket ?? []).map((q) => {
+    const ms = msAge(q.newest, now);
+    const ageMinutes = ms === null ? null : Math.round(ms / 60_000);
+    let state: "current" | "late" | "closed" | "off";
+    if (ms === null || ms > QUOTES_OFF_AFTER_HOURS * 3_600_000) state = "off";
+    else if (!marketOpen(q.market, now)) state = "closed";
+    else state = ms > QUOTES_STALE_AFTER_MINUTES * 60_000 ? "late" : "current";
+    if (state === "late") {
+      problems.push({
+        check: `quotes:${q.market}`,
+        lane: LANE_FOR.quotes,
+        detail: `${q.market} is trading and its newest live quote is ${ageMinutes} minutes old; the lane runs every 15`,
+      });
+    }
+    return { market: q.market, newest: q.newest ? new Date(q.newest).toISOString() : null, ageMinutes, state };
+  });
+  if (!r.quotesByMarket && quoteMs !== null && quoteMs > QUOTES_STALE_AFTER_MINUTES * 60_000 && quoteMs <= QUOTES_OFF_AFTER_HOURS * 3_600_000) {
     problems.push({
       check: "quotes",
       lane: LANE_FOR.quotes,
       detail: `newest live quote is ${Math.round(quoteMs / 60_000)} minutes old; the lane runs every 15`,
     });
   }
+  const lanes = (r.lanes ?? []).map((l) => {
+    const ok = msAge(l.lastOk, now);
+    return {
+      job: l.job,
+      lastRun: l.lastRun ? new Date(l.lastRun).toISOString() : null,
+      lastOk: l.lastOk ? new Date(l.lastOk).toISOString() : null,
+      minutesSinceOk: ok === null ? null : Math.round(ok / 60_000),
+    };
+  });
   return {
     ok: problems.length === 0,
     checkedAt: now.toISOString(),
@@ -140,7 +216,9 @@ export function assess(r: HealthReadings, now: Date): Health {
     quotes: {
       newest: r.newestQuote ? new Date(r.newestQuote).toISOString() : null,
       ageMinutes: quoteMs === null ? null : Math.round(quoteMs / 60_000),
+      markets,
     },
+    lanes,
     pool: r.pool ?? null,
   };
 }

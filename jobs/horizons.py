@@ -62,6 +62,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from nbt import db, median, one, rows, step  # noqa: E402
 from thesis import verdicts  # noqa: E402
+from sessions import session_bar  # noqa: E402
 
 try:
     from dotenv import load_dotenv
@@ -182,11 +183,11 @@ def daily_bars(cur, limit: int) -> dict[str, list[dict]]:
     out: dict[str, list[dict]] = {}
     for r in rows(
         cur,
-        """
+        f"""
         SELECT "assetId", date, open, high, low, close, volume FROM (
             SELECT "assetId", date, open, high, low, close, volume,
                    row_number() OVER (PARTITION BY "assetId" ORDER BY date DESC) AS rn
-            FROM "PriceSnapshot" WHERE close IS NOT NULL
+            FROM "PriceSnapshot" WHERE close IS NOT NULL AND {session_bar()}
         ) ranked
         WHERE rn <= %s
         ORDER BY "assetId", date ASC
@@ -290,11 +291,11 @@ def daily_bars(cur, limit: int) -> dict[str, list[dict]]:
     out: dict[str, list[dict]] = {}
     for r in rows(
         cur,
-        """
+        f"""
         SELECT "assetId", date, open, high, low, close, volume FROM (
             SELECT "assetId", date, open, high, low, close, volume,
                    row_number() OVER (PARTITION BY "assetId" ORDER BY date DESC) AS rn
-            FROM "PriceSnapshot" WHERE close IS NOT NULL
+            FROM "PriceSnapshot" WHERE close IS NOT NULL AND {session_bar()}
         ) ranked
         WHERE rn <= %s
         ORDER BY "assetId", date ASC
@@ -989,11 +990,11 @@ def daily_bars_for(cur, asset_ids: list[str], limit: int) -> dict[str, list[dict
     out: dict[str, list[dict]] = {}
     for r in rows(
         cur,
-        """
+        f"""
         SELECT "assetId", high, low, close FROM (
             SELECT "assetId", date, high, low, close,
                    row_number() OVER (PARTITION BY "assetId" ORDER BY date DESC) AS rn
-            FROM "PriceSnapshot" WHERE close IS NOT NULL AND "assetId" = ANY(%s)
+            FROM "PriceSnapshot" WHERE close IS NOT NULL AND {session_bar()} AND "assetId" = ANY(%s)
         ) ranked
         WHERE rn <= %s
         ORDER BY "assetId", date ASC

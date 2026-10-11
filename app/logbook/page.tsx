@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Card, Pill, Table } from "@/components/ui";
-import { getAuditLog, getLogbookSummary } from "@/lib/queries";
+import { getAuditLog, getDecisionRuns, getLogbookSummary, getTradeSummary } from "@/lib/queries";
+import { expectancyText, rateText, type RunRow, type TradeBucket, type TradeSummary } from "@/lib/history";
 import { outcomeCounts, outcomeStatusOf } from "@/lib/outcome";
 import { loadOrDefer } from "@/lib/buildSafe";
 import { toLines, type Summary } from "@/lib/logbook";
@@ -226,8 +227,144 @@ function Stars({ s }: { s: Summary }) {
   );
 }
 
+/// Directional accuracy and the simulated trade, side by side and never merged (rule 95). Directional
+/// accuracy says whether the price went the way a call pointed; the trade says whether the call's own plan
+/// -- its entry, stop and measured exit -- would have filled and where it would have closed.
+function Trades({ t }: { t: TradeSummary | null }) {
+  const a = t?.all ?? null;
+  const SPLITS: [string, keyof Pick<TradeSummary, "byMarket" | "bySide" | "byHorizon" | "byConfidence">][] = [
+    ["Market", "byMarket"],
+    ["Side", "bySide"],
+    ["Horizon", "byHorizon"],
+    ["Confidence", "byConfidence"],
+  ];
+  return (
+    <section className="space-y-3" data-trade-summary>
+      <h2 className="text-lg font-semibold tracking-tight">Direction and trade, apart</h2>
+      <p className="text-muted-foreground max-w-2xl text-sm">
+        A call can point the right way and never reach its entry, or fill and reach its stop before its exit. So
+        each published call is graded twice: by direction, and as a trade simulated on the daily bars from its
+        own recorded entry, stop and measured exit. One trade per position, however many runs re-issued it. No
+        rate here is a win probability or an edge until {t?.minSample ?? 30} trades have closed.
+      </p>
+      {!a || a.calls === 0 ? (
+        <Card>
+          <p className="text-muted-foreground text-sm">
+            No simulated trade yet. Trades are graded from the calls the decision runs record, which began with
+            this change; a swing call&apos;s window closes seven days after it is made.
+          </p>
+        </Card>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <Stat label="Positions graded" value={String(a.evaluable)} note={`${a.pending} still inside their window`} />
+            <Stat label="Filled" value={rateText(a.fillRate)} note="reached the entry within the window" />
+            <Stat label="Exit first" value={rateText(a.targetFirst)} note="of filled trades" />
+            <Stat label="Stop first" value={rateText(a.stopFirst)} note={`of filled trades; ${a.gapThrough} gapped through`} />
+            <Stat label="Expired open" value={rateText(a.expired)} note="closed at the window's last close" />
+            <Stat label="Ambiguous" value={rateText(a.ambiguous)} note="one bar reached both; booked at the stop" />
+            <Stat
+              label="Not filled / withdrawn"
+              value={`${a.trades.NOT_FILLED ?? 0} / ${a.trades.WITHDRAWN ?? 0}`}
+              note={`${a.trades.INVALIDATED_BEFORE_FILL ?? 0} invalidated before entry, ${a.trades.UNAVAILABLE ?? 0} without usable bars`}
+            />
+            <Stat label="Gross R per closed trade" value={a.grossRExpectancy.mean === null ? "—" : `${a.grossRExpectancy.mean.toFixed(2)}R`} note={expectancyText(a.grossRExpectancy, t!.minSample)} />
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Direction, on the same positions: {rateText(a.direction.accurate)} accurate after five sessions (
+            {a.direction.stopped} stopped, {a.direction.flat} flat, {a.direction.pending} not yet five sessions old).
+          </p>
+          <Table
+            head={
+              <tr>
+                <th className="px-3 py-2">Split</th>
+                <th className="px-3 py-2">Positions</th>
+                <th className="px-3 py-2">Filled</th>
+                <th className="px-3 py-2">Exit first</th>
+                <th className="px-3 py-2">Stop first</th>
+                <th className="px-3 py-2">Gross R</th>
+                <th className="px-3 py-2">Direction right</th>
+              </tr>
+            }
+          >
+            {SPLITS.flatMap(([label, key]) =>
+              Object.entries(t![key]).map(([name, b]: [string, TradeBucket]) => (
+                <tr key={`${key}-${name}`} className="border-border border-t">
+                  <td className="px-3 py-2">
+                    {label}: {name}
+                  </td>
+                  <td className="px-3 py-2 tabular-nums">{b.evaluable}</td>
+                  <td className="px-3 py-2 tabular-nums">{rateText(b.fillRate)}</td>
+                  <td className="px-3 py-2 tabular-nums">{rateText(b.targetFirst)}</td>
+                  <td className="px-3 py-2 tabular-nums">{rateText(b.stopFirst)}</td>
+                  <td className="px-3 py-2 tabular-nums">{expectancyText(b.grossRExpectancy, t!.minSample)}</td>
+                  <td className="px-3 py-2 tabular-nums">{rateText(b.direction.accurate)}</td>
+                </tr>
+              )),
+            )}
+          </Table>
+        </>
+      )}
+      {t && t.assumptions.length > 0 && (
+        <p className="text-muted-foreground text-xs">Assumptions: {t.assumptions.join("; ")}.</p>
+      )}
+    </section>
+  );
+}
+
+/// Every decision run of the last week, kept as it was made, with each day's current run marked (rule 95).
+/// A second run on a day used to overwrite the first; now both are here and the site shows the newer one.
+function Runs({ runs }: { runs: (RunRow & { current: boolean })[] }) {
+  if (runs.length === 0) return null;
+  return (
+    <section className="space-y-3" data-decision-runs>
+      <h2 className="text-lg font-semibold tracking-tight">Decision runs</h2>
+      <p className="text-muted-foreground max-w-2xl text-sm">
+        Every pass of the decision job, recorded once and never rewritten: when it ran, the code it ran, a
+        fingerprint of the data it read, and the calls it made. The site shows each day&apos;s current run, the
+        newest that finished; earlier runs stay here, and each published call is graded on the run that first
+        made it.
+      </p>
+      <Table
+        head={
+          <tr>
+            <th className="px-3 py-2">Day</th>
+            <th className="px-3 py-2">Started (UTC)</th>
+            <th className="px-3 py-2">Pass</th>
+            <th className="px-3 py-2">Status</th>
+            <th className="px-3 py-2">Names</th>
+            <th className="px-3 py-2">Published</th>
+            <th className="px-3 py-2">Code</th>
+            <th className="px-3 py-2">Data</th>
+          </tr>
+        }
+      >
+        {runs.map((r) => (
+          <tr key={r.id} className="border-border border-t" data-run-id={r.id} data-current={r.current ? "true" : "false"}>
+            <td className="px-3 py-2">
+              {dayLabel(r.periodEnd)} {r.current ? <Pill tone="up">current</Pill> : null}
+            </td>
+            <td className="px-3 py-2 tabular-nums">{r.startedAt.slice(11, 16)}</td>
+            <td className="px-3 py-2">{r.pass}</td>
+            <td className="px-3 py-2">{r.status}</td>
+            <td className="px-3 py-2 tabular-nums">{r.written}</td>
+            <td className="px-3 py-2 tabular-nums">{r.published}</td>
+            <td className="px-3 py-2 font-mono text-xs">{r.commit ? r.commit.slice(0, 7) : "—"}</td>
+            <td className="px-3 py-2 font-mono text-xs" title={r.fingerprint ?? undefined}>
+              {r.fingerprint ? r.fingerprint.slice(0, 8) : "—"}
+              {r.servedFrom && r.servedFrom !== "primary" ? ` (${r.servedFrom})` : ""}
+            </td>
+          </tr>
+        ))}
+      </Table>
+    </section>
+  );
+}
+
 export default async function LogbookPage() {
-  const [summary, entries] = await loadOrDefer(() => Promise.all([getLogbookSummary(), getAuditLog()]));
+  const [summary, entries, trades, runs] = await loadOrDefer(() =>
+    Promise.all([getLogbookSummary(), getAuditLog(), getTradeSummary(), getDecisionRuns()]),
+  );
   return (
     <div className="max-w-4xl space-y-8">
       <div>
@@ -248,6 +385,7 @@ export default async function LogbookPage() {
       {summary ? (
         <>
           <Scorecard s={summary} />
+          <Trades t={trades} />
           <Flips s={summary} />
           <Stars s={summary} />
         </>
@@ -258,6 +396,8 @@ export default async function LogbookPage() {
           </p>
         </Card>
       )}
+
+      <Runs runs={runs} />
 
       {entries.length > 0 && (
         <details className="border-border rounded-lg border">

@@ -267,7 +267,8 @@ test("timing names the close it read; in the zone is never 'WAIT FOR LEVEL'", ()
     timingOf({ action: "SHORT", timeSense, entry: { low: 8.8, high: 9.17 }, close, closeDate: "2026-10-09", execution });
   assert.deepEqual(at(8.82, unverified), { label: "IN ZONE", price: 8.82, on: "2026-10-09", inZone: true });
   assert.equal(at(8.82, checked)?.label, "NOW");
-  assert.equal(at(8.82, null)?.label, "NOW");
+  // An execution never assessed is not checked (rule 95): it reads IN ZONE, never NOW.
+  assert.equal(at(8.82, null)?.label, "IN ZONE");
   // Boundaries are inclusive, both ends; a hair outside is outside.
   assert.equal(at(8.8, checked)?.inZone, true);
   assert.equal(at(9.17, checked)?.inZone, true);

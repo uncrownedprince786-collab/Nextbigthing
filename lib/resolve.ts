@@ -31,6 +31,7 @@ import {
   type DecisionInput,
   type TradePlan,
 } from "./decision.ts";
+import { sessionFault } from "./sessions.ts";
 
 /// The stop's least distance beyond the entry zone, in 14-session average true ranges (the owner's rule,
 /// 2026-10-11, first given as 1.5 and settled at 1.0). The zone runs from the setup's stop to its entry
@@ -103,6 +104,8 @@ export function dataFault(input: DecisionInput): { gate: string; why: string } |
   if (age > limit) {
     return { gate: "stale", why: `Data stale: newest close ${input.asOf}, ${age} days old; this market allows ${limit}.` };
   }
+  const calendar = sessionFault(input.market, input.asOf, input.today);
+  if (calendar) return calendar;
   if (input.sourceSilent) return { gate: "source-silent", why: `${input.sourceSilent} answered nothing.` };
   return null;
 }

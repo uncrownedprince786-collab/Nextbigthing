@@ -93,6 +93,7 @@
 // reward figure below a measurement rather than a hope.
 
 import type { TrendDirection } from "./setupConditions";
+import { sessionFault } from "./sessions.ts";
 
 export type Action = "LONG" | "SHORT" | "WAIT";
 export type TimeSense = "NOW" | "WAIT FOR LEVEL" | "CARE";
@@ -1424,6 +1425,12 @@ export function decide(input: DecisionInput): Decision {
       [`Data stale: newest close ${input.asOf}, ${age} days old.`],
       [`Close for ${input.symbol} is ${age} days old; this market allows ${limit}.`],
     );
+  }
+  // 2b. The calendar (rule 95): a weekday market's weekend bar is not a close, and two expected sessions
+  //     with no close is stale however few calendar days that is.
+  const calendar = sessionFault(input.market, input.asOf, input.today);
+  if (calendar) {
+    return wait(input, calendar.gate, "file", [calendar.why], [`${input.symbol}: ${calendar.why}`]);
   }
 
   // 3. A silent source. Named, because "no data" and "Binance answered nothing" send the reader to

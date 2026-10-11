@@ -406,7 +406,7 @@ export default async function Home({
           below must not empty the one block that says what the site acted on. */}
       <WeeklyFocusBlock rows={scored} />
 
-      <TopByClass classes={ASSET_CLASSES} rows={scored} />
+      <TopByClass classes={ASSET_CLASSES} rows={scored} health={health} />
 
       {/* Products are not assets and carry no entry, stop or market, so they get their own band
           under the asset classes rather than a sixth cell in that grid. */}

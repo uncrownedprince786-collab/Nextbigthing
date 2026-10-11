@@ -44,6 +44,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from nbt import db, one, rows, step  # noqa: E402
 from factors import volume_ratio  # noqa: E402
+from sessions import session_bar  # noqa: E402
 
 try:
     from dotenv import load_dotenv
@@ -140,11 +141,11 @@ def all_closes(cur) -> dict[str, list[dict]]:
     """
     got = rows(
         cur,
-        """
+        f"""
         SELECT "assetId", date, close, volume FROM (
             SELECT "assetId", date, close, volume,
                    row_number() OVER (PARTITION BY "assetId" ORDER BY date DESC) AS rn
-            FROM "PriceSnapshot" WHERE close IS NOT NULL
+            FROM "PriceSnapshot" WHERE close IS NOT NULL AND {session_bar()}
         ) ranked
         WHERE rn <= %s
         ORDER BY "assetId", date DESC

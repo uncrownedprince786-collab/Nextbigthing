@@ -18,7 +18,9 @@ rendered HTML of the home page and every market page and checks, row by row:
   4. no placeholder cell: "none stored", "not stored", "not applicable", "N/A", "N waiting";
   5. the held-back list is folded away on every page that has one;
   6. pool parity: every asset the database holds is listed on one of the market pages;
-  7. one snapshot: every market page and `/api/health` report the same data stamp (rule 93).
+  7. one snapshot: every market page and `/api/health` report the same data stamp (rule 93);
+  8. one run state: each overview card reports the same run state, name count and published count as
+     its market page, and no overview card says a market "has not been through a run" (rule 95).
 
 Before reading, it asks `/api/revalidate` to bring the caches onto the database's current snapshot --
 a call that does nothing when they are already there. It changes no data. Exit 0 when every check
@@ -43,6 +45,34 @@ HELD_BACK_LEVELS = re.compile(
     r"\bEntry zone (?:no call|none: the call ended) Stop loss (?:no call|none: the call ended) "
     r"Measured exit (?:no call|none: the call ended) Reward:risk (?:no call|none: the call ended)\b"
 )
+
+
+def run_states(html: str) -> list[dict[str, str | None]]:
+    """Every element that prints a run state (rule 95): the market page's status line, the overview cards."""
+    out: list[dict[str, str | None]] = []
+    for tag in re.findall(r"<[a-z]+\s[^>]*data-run-state=[^>]*>", html):
+        def attr(name: str, tag: str = tag) -> str | None:
+            m = re.search(name + r'="([^"]*)"', tag)
+            return m.group(1) if m else None
+
+        out.append({"market": attr("data-market"), "state": attr("data-run-state"), "names": attr("data-names"), "published": attr("data-published")})
+    return out
+
+
+def check_run_states(cards: dict[str, dict], pages: dict[str, dict]) -> list[str]:
+    """The overview card for each market against that market's own page."""
+    failures: list[str] = []
+    if not cards or not pages:
+        return failures
+    for slug, page in sorted(pages.items()):
+        card = cards.get(slug)
+        if card is None:
+            failures.append(f"run state: the overview has no card for {slug}")
+            continue
+        for key in ("state", "names", "published"):
+            if card.get(key) != page.get(key):
+                failures.append(f"run state: the overview says {key} {card.get(key)} for {slug}, /{slug} says {page.get(key)}")
+    return failures
 
 
 def text_of(html: str) -> str:
@@ -119,9 +149,18 @@ def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
     counts = {"rows": 0, "stars": 0, "changes": 0, "listed": 0, "pool": 0}
     listed: set[str] = set()
     stamps: dict[str, str] = {}
+    cards: dict[str, dict] = {}
+    states: dict[str, dict] = {}
     for page in PAGES:
         html = fetch(site + page)
+        if page == "/":
+            cards = {s["market"]: s for s in run_states(html) if s["market"]}
+            if re.search(r"not been through a run|No stored reading yet", text_of(html)):
+                failures.append("/: an overview card says a market has not been through a run")
         if page in CLASS_PAGES:
+            own = [s for s in run_states(html) if not s["market"]]
+            if own:
+                states[page.strip("/")] = own[0]
             listed.update(re.findall(r'href="/asset/([^"#?]+)"', html))
             m = re.search(r'data-snapshot="([^"]*)"', html)
             if m:
@@ -141,6 +180,7 @@ def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
             state = folded(html, summary)
             if state is False:
                 failures.append(f"{page}: the '{summary}' list is open on load")
+    failures.extend(check_run_states(cards, states))
     # Pool parity: every asset the database holds appears on one of the market pages.
     import json
 

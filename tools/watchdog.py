@@ -20,7 +20,17 @@ When it does not restart, and turns red instead
     secret, a provider that blocks the runner) only adds red runs. That is the case a person has to
     fix, and the run goes red so GitHub's own failure email reaches them;
   * the site or its database cannot be read at all, for the same reason.
-A red run here is the alert. A green one means everything stale was restarted or nothing was stale.
+A red run here is the alert. A green one means nothing was stale, or what was stale was restarted and is
+fresh again.
+
+Recovery is checked, not assumed (rule 95)
+------------------------------------------
+It used to dispatch a lane, print "dispatched" and exit green -- run 38136905827 did exactly that while the
+live quotes sat 90 minutes old, and a lane that cannot fail (cron-live always exits 0) could never reach a
+person. Now, for the quick lanes (`AWAIT`), it waits a bounded time for the run it started -- or the one
+already running -- to finish, reads the heartbeat again, and turns red if the problem is still there. A
+long lane (news, decisions) is not waited on; the next hour's run sees whether the restart worked, and a
+restart that finished without fixing the problem is red ("unrecovered") rather than another quiet wait.
 
 What it will never do
 ---------------------
@@ -35,6 +45,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -49,6 +60,10 @@ ACTIVE = frozenset({"queued", "in_progress", "waiting", "pending", "requested"})
 # that timed out every run was restarted for ever and never reached a person.
 FAILED = frozenset({"failure", "cancelled", "timed_out"})
 DISPATCH_COOLDOWN = timedelta(minutes=50)
+# How long to wait for a lane it started (or found running) before reading the heartbeat again, in seconds.
+# Only lanes that normally finish in a few minutes; the cap keeps the run inside its job timeout.
+AWAIT = {"cron-live.yml": 300, "cron-crypto.yml": 480, "cron-us-prices.yml": 480, "cron-psx.yml": 480}
+POLL_EVERY_S = 20
 FAILURE_WINDOW = timedelta(hours=3)
 FAILURES_TO_ESCALATE = 2
 DEFAULT_SITE = "https://nextbigthing-nu.vercel.app"
@@ -109,7 +124,12 @@ def plan(health: dict | None, runs: dict[str, list[dict]], now: datetime) -> lis
             and (t := parse_time(r.get("created_at"))) and now - t < DISPATCH_COOLDOWN
         ]
         if mine:
-            actions.append({"lane": lane, "action": "wait", "why": f"{detail}; dispatched within the last 50 minutes"})
+            # A restart within the hour that ran to the end and left the problem in place did not work, and
+            # starting it again will not either: that is for a person, not another quiet wait.
+            actions.append({
+                "lane": lane, "action": "unrecovered",
+                "why": f"{detail}; restarted within the last 50 minutes, the run finished, and this is still stale",
+            })
             continue
         actions.append({"lane": lane, "action": "dispatch", "why": detail})
     return actions
@@ -151,6 +171,51 @@ def github(method: str, path: str, token: str, body: dict | None = None):
         return json.loads(raw) if raw else None
 
 
+def await_lanes(repo: str, token: str, watched: dict[str, datetime | None], budget_s: int) -> dict[str, str]:
+    """Wait for each watched lane's run to finish: "done", or "running" when the budget ran out.
+
+    `watched` maps a lane to the moment it was dispatched (its run is the one created after that), or to
+    None for a lane that was already running (done when none of its recent runs is active).
+    """
+    state = {lane: "running" for lane in watched}
+    started = time.monotonic()
+    while True:
+        for lane, since in watched.items():
+            if state[lane] == "done":
+                continue
+            try:
+                got = github("GET", f"/repos/{repo}/actions/workflows/{lane}/runs?per_page=5", token) or {}
+            except Exception:  # noqa: BLE001 - a failed poll is retried until the budget runs out
+                continue
+            runs = got.get("workflow_runs") or []
+            if since is None:
+                if not any(r.get("status") in ACTIVE for r in runs):
+                    state[lane] = "done"
+            else:
+                mine = [r for r in runs if (t := parse_time(r.get("created_at"))) and t >= since - timedelta(seconds=15)]
+                if mine and all(r.get("status") == "completed" for r in mine):
+                    state[lane] = "done"
+        if all(v == "done" for v in state.values()) or time.monotonic() - started >= budget_s:
+            return state
+        time.sleep(POLL_EVERY_S)
+
+
+def verify(health: dict | None, state: dict[str, str]) -> list[str]:
+    """The problems still standing after the lanes ran, as lines for the log. Empty means recovered."""
+    if health is None:
+        return ["the health endpoint could not be read after the restart"]
+    out: list[str] = []
+    for p in health.get("problems") or []:
+        lane = p.get("lane")
+        if lane in state:
+            detail = str(p.get("detail") or p.get("check") or "")[:200]
+            if state[lane] == "done":
+                out.append(f"still stale after {lane} ran: {detail}")
+            else:
+                out.append(f"{lane} was still running after {AWAIT.get(lane, 0) // 60} minutes: {detail}")
+    return out
+
+
 def main(argv: list[str]) -> int:
     dry = "--dry-run" in argv
     site = (os.environ.get("SITE_URL") or DEFAULT_SITE).rstrip("/")
@@ -173,22 +238,44 @@ def main(argv: list[str]) -> int:
     if health is not None and not actions:
         print(f"watchdog: healthy at {now:%Y-%m-%d %H:%M} UTC; nothing to restart")
     escalated = False
+    watched: dict[str, datetime | None] = {}
     for a in actions:
         if a["action"] == "dispatch":
             if dry or not (repo and token):
                 print(f"watchdog: would dispatch {a['lane']} ({a['why']})")
                 continue
             try:
+                at = datetime.now(timezone.utc)
                 github("POST", f"/repos/{repo}/actions/workflows/{a['lane']}/dispatches", token, {"ref": "main"})
                 print(f"watchdog: dispatched {a['lane']} ({a['why']})")
+                if a["lane"] in AWAIT:
+                    watched[a["lane"]] = at
             except Exception as e:  # noqa: BLE001
                 escalated = True
                 print(f"watchdog: could not dispatch {a['lane']} ({type(e).__name__}); needs a person")
         elif a["action"] == "wait":
             print(f"watchdog: waiting on {a['lane']} ({a['why']})")
+            if a["lane"] in AWAIT and not dry:
+                watched[a["lane"]] = None
+        elif a["action"] == "unrecovered":
+            escalated = True
+            print(f"watchdog: NOT RECOVERED: {a['why']}")
         else:
             escalated = True
             print(f"watchdog: NEEDS A PERSON: {a['why']}")
+
+    # Recovery is checked, not assumed: wait for the quick lanes, read the heartbeat again, and stay red
+    # while what they were started for is still stale.
+    if watched and repo and token:
+        budget = max(AWAIT[lane] for lane in watched)
+        state = await_lanes(repo, token, watched, budget)
+        standing = verify(read_health(f"{site}/api/health"), state)
+        for line in standing:
+            print(f"watchdog: NOT RECOVERED: {line}")
+        if standing:
+            escalated = True
+        else:
+            print(f"watchdog: recovered: {', '.join(sorted(watched))} ran and the heartbeat is clear of what they were started for")
     return 1 if escalated else 0
 
 

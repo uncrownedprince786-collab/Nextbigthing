@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Pill } from "@/components/ui";
-import { byOpportunity, type AssetClass, type Scored } from "@/lib/assetClass";
+import { byOpportunity, marketStatus, marketStatusLines, type AssetClass, type MarketStatus, type Scored } from "@/lib/assetClass";
+import { coverageLabelFor } from "@/lib/decisionInput";
 
 /// How many names each class card carries.
 ///
@@ -17,10 +18,20 @@ const TONE = { LONG: "up", SHORT: "down", WAIT: "default" } as const;
 /// "Best evidenced" and not "best": the order is something-to-do before nothing-to-do, then
 /// strongest evidence, then alphabetical -- see `byOpportunity`. Nothing is weighted and no score
 /// is computed, because a score would be a new number the site would then have to source.
-function ClassCard({ cls, rows }: { cls: AssetClass; rows: Scored[] }) {
+/// What a card says when it has no published call to list (rule 95). It is the market page's own status
+/// sentence, from the same record, so "0 published" can no longer be printed as "never run": that card
+/// used to tell readers that every class with no published call had never been run at all.
+function emptyCardText(status: MarketStatus): string {
+  if (status.runState === "NO_READING") {
+    return "No decision run has logged this market yet, so this is a market with no reading rather than a reading with nothing in it.";
+  }
+  return marketStatusLines(status).slice(1).join(" ");
+}
+
+function ClassCard({ cls, rows, status }: { cls: AssetClass; rows: Scored[]; status: MarketStatus }) {
   // Published calls only (lib/quality.ts): a withheld call is not a signal on any list.
   const top = rows.filter((s) => s.decision.action !== "WAIT" && (s.gate ? s.gate.published : true)).sort(byOpportunity).slice(0, TOP_PER_CLASS);
-  const directional = rows.filter((s) => s.decision.action !== "WAIT" && (s.gate ? s.gate.published : true)).length;
+  const directional = status.longs + status.shorts;
 
   return (
     // `min-w-0` is load-bearing on a phone and does nothing anywhere else. A grid item defaults
@@ -31,7 +42,13 @@ function ClassCard({ cls, rows }: { cls: AssetClass; rows: Scored[] }) {
     // cut off. What sat in the cut was the right-hand end of each row: part of the pill and the
     // whole confidence column, which is to say the verdict itself on the one layout where the
     // reader has the least room to begin with.
-    <div className="border-border bg-card min-w-0 rounded-lg border p-4">
+    <div
+      className="border-border bg-card min-w-0 rounded-lg border p-4"
+      data-market={cls.slug}
+      data-run-state={status.runState}
+      data-names={status.names}
+      data-published={directional}
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <Link
           href={`/${cls.slug}`}
@@ -45,10 +62,12 @@ function ClassCard({ cls, rows }: { cls: AssetClass; rows: Scored[] }) {
         </span>
       </div>
 
+      {top.length > 0 && status.runState === "RUN_INCOMPLETE_OR_FAILED" ? (
+        <p className="text-warn mt-3 text-xs">{marketStatusLines(status)[1]}</p>
+      ) : null}
       {top.length === 0 ? (
-        <p className="text-muted-foreground mt-3 text-xs">
-          No stored reading yet. The pipeline writes one row per name per session, so this is a
-          class that has not been through a run rather than a class with nothing in it.
+        <p className="text-muted-foreground mt-3 text-xs" data-card-status>
+          {emptyCardText(status)}
         </p>
       ) : (
         <ul className="mt-3 space-y-1.5">
@@ -67,9 +86,13 @@ function ClassCard({ cls, rows }: { cls: AssetClass; rows: Scored[] }) {
                 <span className="text-muted-foreground text-micro w-12 text-right">
                   {s.decision.confidence}
                 </span>
-                {/* Execution when it is not checked (rule 94), so this list never reads as a verified shortlist. */}
-                {s.execution && s.execution.status !== "checked" ? (
-                  <span className="text-warn text-micro" title={s.execution.reasons.join("; ")}>
+                {/* Execution on every call (rules 94, 95), so this list never reads as a verified shortlist. */}
+                {s.execution ? (
+                  <span
+                    className={`${s.execution.status === "checked" ? "text-muted-foreground" : "text-warn"} text-micro`}
+                    title={s.execution.reasons.join("; ")}
+                    data-execution={s.execution.status}
+                  >
                     {s.execution.status}
                   </span>
                 ) : null}
@@ -95,7 +118,15 @@ function ClassCard({ cls, rows }: { cls: AssetClass; rows: Scored[] }) {
 /// three lists, and a browse block that emptied itself when a reader filtered the lists would be
 /// answering a question nobody asked -- the point of this block is that it is always the whole
 /// site, five rows at a time, whatever the lists are currently showing.
-export function TopByClass({ classes, rows }: { classes: AssetClass[]; rows: Scored[] }) {
+export function TopByClass({
+  classes,
+  rows,
+  health,
+}: {
+  classes: AssetClass[];
+  rows: Scored[];
+  health: { source: string; status: string }[];
+}) {
   return (
     <section className="mt-6">
       <h2 className="text-lg font-semibold tracking-tight">Best evidenced, by market</h2>
@@ -109,9 +140,13 @@ export function TopByClass({ classes, rows }: { classes: AssetClass[]; rows: Sco
           were separated out. The cards carry `min-w-0`, so a narrower track truncates a long
           name rather than overflowing the one before it. */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {classes.map((cls) => (
-          <ClassCard key={cls.slug} cls={cls} rows={rows.filter(cls.holds)} />
-        ))}
+        {classes.map((cls) => {
+          const mine = rows.filter(cls.holds);
+          const market = mine[0]?.market ?? null;
+          // The same call the market page makes (components/classIndex.tsx), over the same rows.
+          const status = marketStatus(mine, rows, health, market ? coverageLabelFor(market) : null);
+          return <ClassCard key={cls.slug} cls={cls} rows={mine} status={status} />;
+        })}
       </div>
     </section>
   );

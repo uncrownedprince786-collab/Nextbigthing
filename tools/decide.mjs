@@ -33,6 +33,8 @@ import process from "node:process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
+import crypto from "node:crypto";
+import { execSync } from "node:child_process";
 
 import { config as loadEnv } from "dotenv";
 
@@ -41,6 +43,9 @@ import { writerPool } from "./writer.mjs";
 import { decideCall } from "../lib/resolve.ts";
 import { bundleFromRow, toDecisionInput, todayISO } from "../lib/decisionInput.ts";
 import { pickTarget, targetForCall } from "../lib/target.ts";
+import { qualityGate } from "../lib/quality.ts";
+import { executionOf } from "../lib/execution.ts";
+import { validityOf } from "../lib/validity.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -49,6 +54,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 loadEnv({ path: path.join(ROOT, ".env"), quiet: true });
 
 const DRY_RUN = process.argv.includes("--dry-run");
+/// Which pass of the lane this is: "decide", or "macro" for the second pass that applies the macro gate's
+/// stored vetoes. Part of the run's id, so the two passes of one workflow run are two runs (rule 95).
+const PASS = (process.argv.find((a) => a.startsWith("--pass=")) ?? "--pass=decide").slice("--pass=".length);
 
 /// How many rows go into one INSERT, and how many statements go into one transaction.
 ///
@@ -157,8 +165,13 @@ async function readInputs(db, today) {
           ORDER BY a.symbol ASC`,
       ),
       db.query(
-        `SELECT DISTINCT ON ("assetId") "assetId", date, close
-           FROM "PriceSnapshot" ORDER BY "assetId", date DESC`,
+        // A session's bar only, and its volume for the execution status (rule 95): the same newest close
+        // the site reads (lib/queries.ts), so a weekday market's weekend stub is never the close decided on.
+        `SELECT DISTINCT ON (s."assetId") s."assetId", s.date, s.close, s.volume
+           FROM "PriceSnapshot" s
+           JOIN "Asset" a ON a.id = s."assetId"
+          WHERE a."assetType" = 'crypto' OR EXTRACT(ISODOW FROM s.date) < 6
+          ORDER BY s."assetId", s.date DESC`,
       ),
       // Newest row per (asset, horizon). intraday is deliberately absent: the lists and this log
       // read the same two horizons the home page does, because a verdict that re-decided itself
@@ -388,6 +401,7 @@ function rowsForDecisions(input) {
         market: asset.market,
         close: price?.close ?? null,
         closeDate: price?.date ?? null,
+        closeVolume: price?.volume ?? null,
         swing: setupOf(asset.id, "swing"),
         longer: setupOf(asset.id, "longer"),
         analogMinPct: analog?.minPct ?? null,
@@ -449,7 +463,8 @@ function rowsForDecisions(input) {
 
 // --- today's decisions --------------------------------------------------------------------------
 
-function decideAll(input, today) {
+/// `servedFrom` is the tier the inputs were read from: a standby read publishes nothing (rule 94).
+function decideAll(input, today, servedFrom = "primary") {
   const out = [];
   for (const { assetId, analogId, row } of rowsForDecisions(input)) {
     const bundle = bundleFromRow(row, input.sourceHealth);
@@ -462,7 +477,34 @@ function decideAll(input, today) {
       ),
       decision,
     );
+    // What the lists would print beside this call, by the site's own functions (lib/assetClass.ts
+    // `scoreRows`): the validity window, the execution status and the quality gate. Recorded with the call
+    // in the run history (rule 95), because none of them can be rebuilt later from rows that are rewritten
+    // every night. A position the site holds open past its entry rules (`withOpenPosition`) is the same
+    // trade as the call that first published it, which is the one an outcome is graded on.
+    const validity = validityOf({
+      action: decision.action,
+      setupHorizon: decisionInput.setup?.horizon ?? null,
+      runAction: row.lastRunAction,
+      runSince: row.lastRunSince,
+      asOf: row.closeDate,
+      today,
+    });
+    const execution = executionOf({ action: decision.action, closeVolume: row.closeVolume, market: decisionInput.market });
+    const gate =
+      servedFrom !== "primary" && decision.action !== "WAIT"
+        ? { published: false, reasons: [`read from ${servedFrom}, a standby copy`] }
+        : qualityGate(decision, shown, decisionInput.atr ?? null, validity ? validity.label.toUpperCase() : null);
     out.push({
+      baseSession: dayOf(row.closeDate),
+      atr14: decisionInput.atr ?? null,
+      target: shown ? (decision.action === "LONG" ? shown.low : shown.high) : null,
+      published: Boolean(gate.published),
+      gateReasons: gate.reasons?.length ? gate.reasons.join("; ") : null,
+      execution: execution?.status ?? null,
+      horizon: validity?.horizon ?? null,
+      validFrom: validity?.from ?? null,
+      validUntil: validity?.until ?? null,
       assetId,
       symbol: row.symbol,
       market: decisionInput.market,
@@ -634,6 +676,126 @@ WHERE (${changingColumns(extra).map((c) => `"DecisionLog"."${c}"`).join(", ")})
   return { written, failures };
 }
 
+// --- run history (rule 95) ---------------------------------------------------------------------
+
+/// The run's identity: the GitHub run, its attempt and the pass, or a local stamp. A re-run of a job is a
+/// new attempt and so a new run; a replay of the same attempt and pass is the same run and writes nothing
+/// twice.
+/**
+ * @param {Record<string, string | undefined>} [env]
+ * @param {string} [pass]
+ * @param {Date} [now]
+ */
+function runIdentity(env = process.env, pass = PASS, now = new Date()) {
+  const id = env.GITHUB_RUN_ID
+    ? `gh-${env.GITHUB_RUN_ID}-${env.GITHUB_RUN_ATTEMPT ?? "1"}-${pass}`
+    : `local-${now.toISOString()}-${pass}`;
+  let commit = env.GITHUB_SHA ?? null;
+  if (!commit) {
+    try {
+      commit = execSync("git rev-parse HEAD", { cwd: ROOT, stdio: ["ignore", "pipe", "ignore"] }).toString().trim() || null;
+    } catch {
+      commit = null;
+    }
+  }
+  return { id, pass, commit, trigger: env.GITHUB_EVENT_NAME ?? "local" };
+}
+
+/// sha256 over every input row the run decides from, in asset order, and the source health it read: two
+/// runs with one fingerprint decided from the same data.
+function inputFingerprint(input) {
+  const rows = rowsForDecisions(input).map(({ assetId, row }) => [assetId, row]);
+  return crypto.createHash("sha256").update(JSON.stringify([rows, input.sourceHealth])).digest("hex");
+}
+
+/// The newest stored session per market among the inputs.
+function newestSessions(decisions) {
+  const out = {};
+  for (const d of decisions) {
+    if (d.baseSession && (!out[d.market] || d.baseSession > out[d.market])) out[d.market] = d.baseSession;
+  }
+  return out;
+}
+
+const CALL_COLUMNS = [
+  "runId", "assetId", "symbol", "market", "periodEnd", "baseSession", "baseClose", "action", "gate", "confidence",
+  "entryLow", "entryHigh", "stop", "target", "rewardRisk", "atr14", "published", "gateReasons", "execution",
+  "horizon", "validFrom", "validUntil", "legs", "intent",
+];
+const DATE_COLUMNS = new Set(["periodEnd", "baseSession", "validFrom", "validUntil"]);
+
+/// One call as its history row, in `CALL_COLUMNS` order.
+function callRow(runId, d, today) {
+  const row = {
+    runId, assetId: d.assetId, symbol: d.symbol, market: d.market, periodEnd: today,
+    baseSession: d.baseSession, baseClose: d.baseClose, action: d.action, gate: d.gate, confidence: d.confidence,
+    entryLow: d.entryLow, entryHigh: d.entryHigh, stop: d.invalidation, target: d.target, rewardRisk: d.rewardRisk,
+    atr14: d.atr14, published: d.published, gateReasons: d.gateReasons, execution: d.execution,
+    horizon: d.horizon, validFrom: d.validFrom, validUntil: d.validUntil, legs: d.legs, intent: d.intent,
+  };
+  return CALL_COLUMNS.map((c) => row[c] ?? null);
+}
+
+/// Record this run and every call it made, once (rule 95).
+///
+/// "DecisionLog" holds the current call per asset per day and every pass rewrites it; this is the history.
+/// The run is opened as "running", its calls are inserted with ON CONFLICT DO NOTHING (a replay of the same
+/// run adds nothing), and it is closed by `finishRun` as "complete", "partial" or "failed". The database
+/// refuses to change a call, or a run that has finished (migration 20261011130000_decision_history). A run
+/// left "running" for six hours never finished, and the next run closes it as "failed".
+async function recordRun(client, run, decisions, today) {
+  const seen = await client.query(`SELECT status FROM "DecisionRun" WHERE id = $1`, [run.id]);
+  if (seen.rows[0] && seen.rows[0].status !== "running") {
+    return { replay: true, written: 0, failures: [] };
+  }
+  await client.query(
+    `UPDATE "DecisionRun" SET status = 'failed', "finishedAt" = now(), note = 'never finished: closed by the next run'
+      WHERE status = 'running' AND "startedAt" < now() - interval '6 hours' AND id <> $1`,
+    [run.id],
+  );
+  if (!seen.rows[0]) {
+    await client.query(
+      `INSERT INTO "DecisionRun" (id, "periodEnd", pass, status, commit, trigger, "servedFrom", fingerprint, sessions, "sourceHealth", assets)
+       VALUES ($1, $2::date, $3, 'running', $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10)`,
+      [run.id, today, run.pass, run.commit, run.trigger, run.servedFrom, run.fingerprint,
+        JSON.stringify(run.sessions ?? {}), JSON.stringify(run.sourceHealth ?? []), decisions.length],
+    );
+  }
+  let written = 0;
+  const failures = [];
+  for (let i = 0; i < decisions.length; i += BATCH_ROWS) {
+    const batch = decisions.slice(i, i + BATCH_ROWS);
+    const values = [];
+    const tuples = batch.map((d, n) => {
+      values.push(...callRow(run.id, d, today));
+      return `(${CALL_COLUMNS.map((c, k) => `$${n * CALL_COLUMNS.length + k + 1}${DATE_COLUMNS.has(c) ? "::date" : ""}`).join(", ")})`;
+    });
+    try {
+      await client.query("BEGIN");
+      const res = await client.query(
+        `INSERT INTO "DecisionCall" (${CALL_COLUMNS.map((c) => `"${c}"`).join(", ")}) VALUES ${tuples.join(", ")}
+         ON CONFLICT ("runId", "assetId") DO NOTHING`,
+        values,
+      );
+      await client.query("COMMIT");
+      written += res.rowCount ?? 0;
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => {});
+      failures.push(`history ${batch[0].symbol}..${batch[batch.length - 1].symbol}: ${error.message}`);
+    }
+  }
+  return { replay: false, written, failures };
+}
+
+/// Close the run with how it ended. Allowed exactly once: the database refuses a second change.
+async function finishRun(client, runId, { status, written, published, note }) {
+  await client.query(
+    `UPDATE "DecisionRun" SET status = $2, "finishedAt" = now(), written = $3, published = $4, note = $5
+      WHERE id = $1 AND status = 'running'`,
+    [runId, status, written, published, note ?? null],
+  );
+}
+
 // --- maturation ---------------------------------------------------------------------------------
 
 /// Fill the measured columns of past rows whose forward window has filled.
@@ -664,8 +826,11 @@ async function matureRows(client, today, dryRun) {
     .reduce((a, b) => (a < b ? a : b));
   const assetIds = [...new Set(candidates.map((r) => r.assetId))];
   const { rows: sessionRows } = await client.query(
+    // Sessions only (rule 95): the index below is the session count, so a weekday market's weekend stub
+    // would have moved every +1/+5/+20 window a day early.
     `SELECT "assetId", date, close FROM "PriceSnapshot"
       WHERE "assetId" = ANY($1::text[]) AND date >= $2::date
+        AND (EXTRACT(ISODOW FROM date) < 6 OR "assetId" IN (SELECT id FROM "Asset" WHERE "assetType" = 'crypto'))
       ORDER BY "assetId", date ASC`,
     [assetIds, oldest],
   );
@@ -882,20 +1047,24 @@ async function main() {
   // A small pool for the parallel reads; the writes take one connection out of it and keep it, so
   // every BEGIN and its COMMIT are certainly on the same connection. The primary, or the standby when the
   // primary cannot be reached (tools/writer.mjs), the same rule every Python job in the lane follows.
-  const { pool } = await writerPool(4);
+  const { pool, target } = await writerPool(4);
+  const servedFrom = target === "primary" ? "primary" : target;
+  const run = runIdentity();
 
   let decisions = [];
   let written = 0;
   let failures = [];
   let maturation = null;
   let tableMissing = false;
+  let history = null;
 
   try {
     const input = await readInputs(pool, today);
-    decisions = decideAll(input, today);
+    decisions = decideAll(input, today, servedFrom);
 
     const present = await tableExists(pool, "DecisionLog");
     tableMissing = !present;
+    const historyPresent = !DRY_RUN && (await tableExists(pool, "DecisionRun"));
 
     if (present) {
       const client = await pool.connect();
@@ -915,9 +1084,40 @@ async function main() {
                 "not logged this run. Everything else is written as usual.",
             );
           }
+          // The run and its calls first, as made; then the day's current row (rule 95).
+          let recorded = null;
+          if (historyPresent) {
+            try {
+              recorded = await recordRun(
+                client,
+                { ...run, servedFrom, fingerprint: inputFingerprint(input), sessions: newestSessions(decisions), sourceHealth: input.sourceHealth },
+                decisions,
+                today,
+              );
+              history = recorded.replay
+                ? `run ${run.id} was already recorded and finished; this replay added nothing`
+                : `run ${run.id}: ${recorded.written} of ${decisions.length} calls recorded`;
+            } catch (error) {
+              history = `run history not written: ${error.message}`;
+            }
+          } else {
+            history = 'no "DecisionRun" table yet (migration 20261011130000_decision_history); history not written';
+          }
           const result = await writeDecisions(client, decisions, today, extra);
           written = result.written;
-          failures = [...maturation.failures, ...result.failures];
+          failures = [...maturation.failures, ...(recorded?.failures ?? []), ...result.failures];
+          if (recorded && !recorded.replay) {
+            const published = decisions.filter((d) => d.published).length;
+            const status = failures.length === 0 ? "complete" : written > 0 ? "partial" : "failed";
+            await finishRun(client, run.id, {
+              status,
+              written: recorded.written,
+              published,
+              note: failures.length ? failures.slice(0, 3).join(" | ").slice(0, 500) : null,
+            }).catch((error) => {
+              history += `; could not close the run (${error.message})`;
+            });
+          }
         } else {
           failures = maturation.failures;
         }
@@ -933,8 +1133,9 @@ async function main() {
     today, decisions, written, failures, maturation, dryRun: DRY_RUN, tableMissing,
   });
   console.log(text);
+  if (history) console.log(`  history: ${history}`);
   if (process.env.GITHUB_STEP_SUMMARY) {
-    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${markdown}\n`);
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${markdown}\n${history ? `\nhistory: ${history}\n` : ""}`);
   }
 
   // Red when nothing at all landed; green when some rows landed and others were named as skipped,
@@ -961,4 +1162,7 @@ if (import.meta.main) {
   });
 }
 
-export { readInputs, decideAll, writeDecisions, matureRows, renderSummary, calendarBudget, BATCH_ROWS };
+export {
+  readInputs, decideAll, writeDecisions, matureRows, renderSummary, calendarBudget, BATCH_ROWS,
+  runIdentity, inputFingerprint, recordRun, finishRun, newestSessions, CALL_COLUMNS,
+};

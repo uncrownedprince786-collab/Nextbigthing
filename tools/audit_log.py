@@ -41,6 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "jobs"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from nbt import db  # noqa: E402
+from sessions import session_bar  # noqa: E402
 from scorecard import band_in, stop_was_hit, verdict_of  # noqa: E402
 
 LEG_WORDS = {
@@ -286,7 +287,7 @@ def load(cur, day: date):
     if matured:
         cur.execute(
             """SELECT "assetId", date, close, low, high FROM "PriceSnapshot"
-                WHERE "assetId" = ANY(%s) AND date > %s AND date <= %s""",
+                WHERE "assetId" = ANY(%s) AND date > %s AND date <= %s AND """ + session_bar(),
             ([m["assetId"] for m in matured], min(m["periodEnd"] for m in matured), day),
         )
         for r in cur.fetchall():
@@ -370,7 +371,7 @@ def load_summary(cur, day: date) -> dict:
     if measured:
         cur.execute(
             """SELECT "assetId", date, close, low, high FROM "PriceSnapshot"
-                WHERE "assetId" = ANY(%s) AND date > %s AND date <= %s""",
+                WHERE "assetId" = ANY(%s) AND date > %s AND date <= %s AND """ + session_bar(),
             (list({r["assetId"] for r in measured}), min(r["periodEnd"] for r in measured), day),
         )
         for x in cur.fetchall():

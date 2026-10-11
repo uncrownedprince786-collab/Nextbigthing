@@ -117,20 +117,21 @@ WATCHED = (
     # on 2026-10-11 it held 5 records against a weekday median of 315 and the stocks and commodities
     # pages printed "partial" over a complete Friday. Split, each market is judged on its own rows and
     # its own calendar, and a silence in one does not mark the others silent. The combined row is still
-    # written, as the worst of the three, naming which market it is (`yahoo_summary`).
+    # written, as the worst of the three, naming which market it is (`yahoo_summary`). Weekday bars only
+    # (rule 95): a Saturday or Sunday stub is not a session, and read as one it made a Sunday the newest day.
     (
         "PriceSnapshot",
-        "source = 'Yahoo Finance' AND \"assetId\" IN (SELECT id FROM \"Asset\" WHERE \"assetType\" IN ('stock', 'etf'))",
+        "source = 'Yahoo Finance' AND \"assetId\" IN (SELECT id FROM \"Asset\" WHERE \"assetType\" IN ('stock', 'etf')) AND EXTRACT(ISODOW FROM date) < 6",
         "Yahoo Finance daily closes (US)", 96.0, 1.0,
     ),
     (
         "PriceSnapshot",
-        "source = 'Yahoo Finance' AND \"assetId\" IN (SELECT id FROM \"Asset\" WHERE \"assetType\" = 'commodity')",
+        "source = 'Yahoo Finance' AND \"assetId\" IN (SELECT id FROM \"Asset\" WHERE \"assetType\" = 'commodity') AND EXTRACT(ISODOW FROM date) < 6",
         "Yahoo Finance daily closes (Commodity)", 96.0, 1.0,
     ),
     (
         "PriceSnapshot",
-        "source = 'Yahoo Finance' AND \"assetId\" IN (SELECT id FROM \"Asset\" WHERE \"assetType\" = 'forex')",
+        "source = 'Yahoo Finance' AND \"assetId\" IN (SELECT id FROM \"Asset\" WHERE \"assetType\" = 'forex') AND EXTRACT(ISODOW FROM date) < 6",
         "Yahoo Finance daily closes (FX)", 96.0, 0.8,
     ),
     (

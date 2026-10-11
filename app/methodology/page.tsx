@@ -285,8 +285,12 @@ export default async function MethodologyPage() {
           Volume is participation, not direction. It counts as a confirmation only on a session that
           moved the call&rsquo;s way: heavy trading on a day the price fell is not evidence for a LONG. When
           it does not count, the page says so. Execution is a third question again &mdash; checked,
-          unverified or blocked &mdash; and a call whose execution is not checked is shown &ldquo;IN
-          ZONE&rdquo;, never &ldquo;NOW&rdquo;, even with its close inside the entry zone.
+          unverified or blocked, printed beside every call &mdash; and a call whose execution is not
+          checked is shown &ldquo;IN ZONE&rdquo;, never &ldquo;NOW&rdquo;, even with its close inside the
+          entry zone. &ldquo;Checked&rdquo; means only that the last session traded inside a pool above a
+          turnover floor: no bid, ask or short-sale eligibility is stored for any market. Whether calls
+          made money is a fourth question, answered on the logbook: each published call is simulated as
+          a trade from its own entry, stop and measured exit, apart from its direction.
         </p>
         <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-relaxed">
           The two readings are never given the same words. Three things lining up — the close, the
@@ -415,11 +419,14 @@ export default async function MethodologyPage() {
           ))}
         </Table>
         <Note>
-          Staleness is counted in calendar days, not trading days, because the question is whether
-          the number on this page is today&apos;s number and a reader asks that on a Sunday too.
-          Crypto trades every day, so 2 days is already a fault. US equities allow a Friday close
-          to be read on the Monday. PSX gets one more day because it keeps more holidays, and a
-          holiday must not read as a dead feed.
+          Staleness is counted two ways, and a close is stale at whichever comes first. In calendar
+          days, because the question is whether the number on this page is today&apos;s number and a
+          reader asks that on a Sunday too: crypto trades every day, so 2 days is already a fault, and
+          US equities allow a Friday close to be read on the Monday. And in sessions: two expected
+          sessions with no close is stale however few calendar days that is, and a close dated on a day
+          its market does not trade &mdash; a currency pair&apos;s Saturday bar &mdash; is not a close
+          at all. No holiday calendar is stored, so one missing session reads as &ldquo;behind&rdquo; (a
+          holiday or a late feed) and is still acted on; two are not.
         </Note>
 
         <HowToRead

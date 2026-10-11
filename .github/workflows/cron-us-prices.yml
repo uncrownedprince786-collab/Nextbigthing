@@ -141,3 +141,13 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           exit $code
+
+      # New closes or quotes reach the pages now, not at the next hourly watchdog (brain.md rule 95). The route
+      # acts only when the database is ahead of the site (lib/alignment.ts), so a run that stored nothing new
+      # costs one stamp read and changes nothing.
+      - name: Bring the site onto this run's data
+        if: always()
+        continue-on-error: true
+        run: |
+          site="${{ vars.SITE_URL || 'https://nextbigthing-nu.vercel.app' }}"
+          curl -s -X POST --max-time 60 "$site/api/revalidate" || echo "revalidate call failed; the watchdog will align within the hour"

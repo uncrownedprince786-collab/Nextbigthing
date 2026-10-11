@@ -4,6 +4,7 @@ import { marketOf, pickAnalog } from "@/lib/decisionInput";
 import { latestWindow } from "@/lib/rankingWindow";
 import { toSummary } from "@/lib/logbook";
 import { outcomeCounts } from "@/lib/outcome";
+import { markCurrent, toTradeSummary } from "@/lib/history";
 import { listConditions } from "@/lib/setupConditions";
 
 // Re-exported so the pages keep a single import site for everything they read about rankings;
@@ -835,37 +836,75 @@ export async function getQuoteTarget(symbol: string) {
 /// a decision are the same judgement. The quote read fails open: quotes are optional.
 export async function getHealthReadings() {
   const [groups, decision, news, pool] = await Promise.all([
-    prisma.$queryRaw<{ assetType: string; market: string | null; newest: Date | null }[]>`
-      SELECT a."assetType"::text AS "assetType", i.market::text AS market, max(p.date) AS newest
+    // Grouped by each asset's own newest session too, so the names behind a market's newest bar can be
+    // counted (rule 95) without one row per asset crossing the wire.
+    prisma.$queryRaw<{ assetType: string; market: string | null; newest: Date | null; active: bigint | number }[]>`
+      SELECT a."assetType"::text AS "assetType", i.market::text AS market, p.date AS newest,
+             count(*) FILTER (WHERE COALESCE(a.active, true)) AS active
         FROM "Asset" a
         JOIN "Industry" i ON i.id = a."industryId"
         LEFT JOIN LATERAL (
               SELECT s.date FROM "PriceSnapshot" s
-               WHERE s."assetId" = a.id ORDER BY s.date DESC LIMIT 1) p ON true
-       GROUP BY 1, 2`,
+               WHERE s."assetId" = a.id AND (a."assetType" = 'crypto' OR EXTRACT(ISODOW FROM s.date) < 6)
+               ORDER BY s.date DESC LIMIT 1) p ON true
+       GROUP BY 1, 2, 3`,
     prisma.decisionLog.aggregate({ _max: { periodEnd: true } }),
     prisma.news.aggregate({ _max: { publishedAt: true } }),
     // The active pool (jobs/pool.py), which is what the market pages list and the page checker counts.
     Promise.all([prisma.asset.count(), getLateColumns()]).then(([n, late]) => n - late.inactive.size),
   ]);
   let newestQuote: Date | null = null;
+  let quoteGroups: { assetType: string; market: string | null; newest: Date | null }[] = [];
   try {
     newestQuote = (await prisma.liveQuote.aggregate({ _max: { quotedAt: true } }))._max.quotedAt ?? null;
+    quoteGroups = await prisma.$queryRaw<{ assetType: string; market: string | null; newest: Date | null }[]>`
+      SELECT a."assetType"::text AS "assetType", i.market::text AS market, max(q."quotedAt") AS newest
+        FROM "LiveQuote" q
+        JOIN "Asset" a ON a.id = q."assetId"
+        JOIN "Industry" i ON i.id = a."industryId"
+       GROUP BY 1, 2`;
   } catch {
     newestQuote = null;
+    quoteGroups = [];
   }
-  const byMarket = new Map<ReturnType<typeof marketOf>, string | null>();
+  // The lanes that record their runs (jobs/runlog.py): when each last ran and last succeeded.
+  let lanes: { job: string; lastRun: Date | null; lastOk: Date | null }[] = [];
+  try {
+    lanes = await prisma.$queryRaw<{ job: string; lastRun: Date | null; lastOk: Date | null }[]>`
+      SELECT job, max("startedAt") AS "lastRun", max("startedAt") FILTER (WHERE status IN ('ok', 'partial')) AS "lastOk"
+        FROM "ChunkRun" WHERE "startedAt" > now() - interval '7 days'
+       GROUP BY job ORDER BY job`;
+  } catch {
+    lanes = [];
+  }
+  const marketFor = (g: { assetType: string; market: string | null }) =>
+    marketOf({ assetType: g.assetType, industry: g.market ? { market: g.market } : null });
+  const byMarket = new Map<ReturnType<typeof marketOf>, { newest: string | null; assetDays: string[] }>();
   for (const g of groups) {
-    const market = marketOf({ assetType: g.assetType, industry: g.market ? { market: g.market } : null });
+    const market = marketFor(g);
     const day = g.newest ? g.newest.toISOString().slice(0, 10) : null;
-    const prev = byMarket.get(market);
-    if (prev === undefined || (day !== null && (prev === null || day > prev))) byMarket.set(market, day);
+    const prev = byMarket.get(market) ?? { newest: null, assetDays: [] };
+    if (day !== null && (prev.newest === null || day > prev.newest)) prev.newest = day;
+    for (let i = 0; i < Number(g.active); i++) prev.assetDays.push(day ?? "0000-00-00");
+    byMarket.set(market, prev);
+  }
+  const quotesByMarket = new Map<ReturnType<typeof marketOf>, Date | null>();
+  for (const q of quoteGroups) {
+    const market = marketFor(q);
+    const prev = quotesByMarket.get(market) ?? null;
+    if (q.newest && (!prev || q.newest > prev)) quotesByMarket.set(market, q.newest);
+    else if (!quotesByMarket.has(market)) quotesByMarket.set(market, prev);
   }
   return {
     closes: [...byMarket.entries()]
       .filter(([market]) => market !== "Other")
+      .map(([market, v]) => ({ market, newest: v.newest, assetDays: v.assetDays }))
+      .sort((a, b) => a.market.localeCompare(b.market)),
+    quotesByMarket: [...quotesByMarket.entries()]
+      .filter(([market]) => market !== "Other")
       .map(([market, newest]) => ({ market, newest }))
       .sort((a, b) => a.market.localeCompare(b.market)),
+    lanes,
     newestDecision: decision._max.periodEnd ? decision._max.periodEnd.toISOString().slice(0, 10) : null,
     newestNews: news._max.publishedAt ?? null,
     newestQuote,
@@ -1056,6 +1095,49 @@ export async function getLogbookSummary() {
   } catch (error) {
     if (isConnectionFailure(error)) throw error;
     return null;
+  }
+}
+
+/// The newest simulated-trade summary (tools/trade_sim.py, brain.md rule 95), or null before the first.
+export async function getTradeSummary() {
+  try {
+    const row = await prisma.auditLog.findFirst({
+      where: { kind: "trades" },
+      orderBy: [{ day: "desc" }],
+      select: { lines: true },
+    });
+    return row ? toTradeSummary(row.lines) : null;
+  } catch (error) {
+    if (isConnectionFailure(error)) throw error;
+    return null;
+  }
+}
+
+/// Every decision run of the last `days` days, newest first (rule 95), with each day's current run marked.
+/// Empty, not an error, on a database without the table.
+export async function getDecisionRuns(days = 7) {
+  try {
+    const since = new Date(Date.now() - days * 86_400_000);
+    const rows = await prisma.decisionRun.findMany({
+      where: { startedAt: { gte: since } },
+      orderBy: [{ startedAt: "desc" }],
+      take: 60,
+      select: {
+        id: true, periodEnd: true, pass: true, status: true, startedAt: true, finishedAt: true, commit: true,
+        trigger: true, servedFrom: true, fingerprint: true, assets: true, written: true, published: true,
+      },
+    });
+    return markCurrent(
+      rows.map((r) => ({
+        ...r,
+        periodEnd: r.periodEnd.toISOString().slice(0, 10),
+        startedAt: r.startedAt.toISOString(),
+        finishedAt: r.finishedAt ? r.finishedAt.toISOString() : null,
+      })),
+    );
+  } catch (error) {
+    if (isConnectionFailure(error)) throw error;
+    return [];
   }
 }
 
@@ -1497,7 +1579,9 @@ export async function getDataStamp(): Promise<string | null> {
         (SELECT max("computedAt") FROM "AssetSetup") AS setups,
         (SELECT max("updatedAt") FROM "LiveQuote") AS quotes,
         (SELECT max(p.date) FROM "Asset" a CROSS JOIN LATERAL (
-           SELECT s.date FROM "PriceSnapshot" s WHERE s."assetId" = a.id ORDER BY s.date DESC LIMIT 1) p) AS closes,
+           SELECT s.date FROM "PriceSnapshot" s
+            WHERE s."assetId" = a.id AND (a."assetType" = 'crypto' OR EXTRACT(ISODOW FROM s.date) < 6)
+            ORDER BY s.date DESC LIMIT 1) p) AS closes,
         (SELECT max("computedAt") FROM "HumanSignal") AS news`;
     const r = rows[0];
     if (!r) return null;
@@ -1579,9 +1663,11 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
         SELECT a.id AS "assetId", p.date, p.close, p.source, p.volume
           FROM "Asset" a
           LEFT JOIN LATERAL (
+            -- A session's bar only (lib/sessions.ts, rule 95): a weekday market's Saturday or Sunday row is
+            -- a provider's stub, and read as the newest close it made a Sunday look like a fresh session.
             SELECT s.date, s.close, s.source, s.volume
               FROM "PriceSnapshot" s
-             WHERE s."assetId" = a.id
+             WHERE s."assetId" = a.id AND (a."assetType" = 'crypto' OR EXTRACT(ISODOW FROM s.date) < 6)
              ORDER BY s.date DESC
              LIMIT 1
           ) p ON true

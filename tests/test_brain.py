@@ -7985,9 +7985,14 @@ class TheLiveLane(unittest.TestCase):
         self.assertEqual(job["if"], "${{ vars.LIVE_QUOTES == 'on' }}")
         self.assertLessEqual(job["timeout-minutes"], 5)
         self.assertFalse(wf["concurrency"]["cancel-in-progress"])
-        run = job["steps"][-1]["run"]
+        run = next(st for st in job["steps"] if st.get("name") == "One tick")["run"]
         self.assertIn('--only crypto', run)
         self.assertTrue(run.rstrip().endswith("exit 0"))
+        # Rule 95: new quotes reach the pages when the tick ends, through the idempotent realign route.
+        last = job["steps"][-1]
+        self.assertEqual(last["name"], "Bring the site onto this run's data")
+        self.assertTrue(last.get("continue-on-error"))
+        self.assertIn("/api/revalidate", last["run"])
 
 
 class TheWatchdogRestartsWhatStopped(unittest.TestCase):
@@ -8027,8 +8032,10 @@ class TheWatchdogRestartsWhatStopped(unittest.TestCase):
 
     def test_once_an_hour_at_most(self):
         w = self.wd()
+        # Rule 95: a restart within the hour that finished and left the problem standing is not waited on
+        # again; it is red, because restarting it a second time will not help either.
         recent = [{"status": "completed", "conclusion": "success", "event": "workflow_dispatch", "created_at": "2026-10-14T11:20:00Z"}]
-        self.assertEqual(w.plan({"problems": [self.problem("cron-psx.yml")]}, {"cron-psx.yml": recent}, self.now())[0]["action"], "wait")
+        self.assertEqual(w.plan({"problems": [self.problem("cron-psx.yml")]}, {"cron-psx.yml": recent}, self.now())[0]["action"], "unrecovered")
         older = [{"status": "completed", "conclusion": "success", "event": "workflow_dispatch", "created_at": "2026-10-14T11:05:00Z"}]
         self.assertEqual(w.plan({"problems": [self.problem("cron-psx.yml")]}, {"cron-psx.yml": older}, self.now())[0]["action"], "dispatch")
 
@@ -8059,6 +8066,24 @@ class TheWatchdogRestartsWhatStopped(unittest.TestCase):
         w = self.wd()
         died = [{"status": "completed", "conclusion": "cancelled", "event": "workflow_dispatch", "created_at": "2026-10-14T11:20:00Z"}]
         self.assertEqual(w.plan({"problems": [self.problem("cron-news.yml")]}, {"cron-news.yml": died}, self.now())[0]["action"], "dispatch")
+
+    def test_recovery_is_verified_not_assumed(self):
+        # Rule 95: run 38136905827 dispatched cron-live while quotes sat 90 minutes old and exited green.
+        w = self.wd()
+        still = {"problems": [self.problem("cron-live.yml", "US is trading and its newest live quote is 90 minutes old")]}
+        self.assertEqual(w.verify(still, {"cron-live.yml": "done"}), ["still stale after cron-live.yml ran: US is trading and its newest live quote is 90 minutes old"])
+        self.assertTrue(w.verify(still, {"cron-live.yml": "running"})[0].startswith("cron-live.yml was still running after 5 minutes"))
+        self.assertEqual(w.verify({"problems": []}, {"cron-live.yml": "done"}), [])
+        # A problem for a lane it did not start is the next run's business, not this one's verdict.
+        self.assertEqual(w.verify({"problems": [self.problem("cron-news.yml")]}, {"cron-live.yml": "done"}), [])
+        self.assertEqual(w.verify(None, {"cron-live.yml": "done"}), ["the health endpoint could not be read after the restart"])
+        # Bounded: the quick lanes only, and inside the job's timeout.
+        import yaml
+
+        wf = yaml.safe_load((ROOT / ".github" / "workflows" / "cron-watchdog.yml").read_text(encoding="utf-8"))
+        self.assertLess(max(w.AWAIT.values()) / 60 + 3, wf["jobs"]["watch"]["timeout-minutes"])
+        self.assertNotIn("cron-news.yml", w.AWAIT)
+        self.assertNotIn("cron-decision.yml", w.AWAIT)
 
     def test_the_live_quote_lane_can_be_restarted(self):
         acts = self.wd().plan({"problems": [self.problem("cron-live.yml")]}, {}, self.now())
@@ -8440,6 +8465,36 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
         retry = src[src.index("while tries < SKEW_RETRIES"):src.index('print(f"ui audit: re-read')]
         self.assertIn("align(site)", retry)
         self.assertIn("Bring the site onto this run's snapshot", (ROOT / ".github" / "workflows" / "schema.yml").read_text(encoding="utf-8"))
+
+    def test_an_overview_card_that_contradicts_its_market_page_is_caught(self):
+        # Rule 95: the overview told readers commodities had "not been through a run" while /commodities
+        # reported the run of 2026-10-11 complete (1 withheld, 5 forming, 2 held back, 0 published).
+        ua = self.ua()
+        market = '<p data-market-status data-snapshot="s" data-run-state="RUN_COMPLETE_NO_PUBLISHED_CALLS" data-names="8" data-published="0">'
+        card = lambda state, text="": f'<div class="c" data-market="commodities" data-run-state="{state}" data-names="8" data-published="0"><p>{text}</p></div>'
+
+        def site(home):
+            def fetch(url):
+                if url.endswith("/api/health"):
+                    return '{"pool": null, "snapshot": "s"}'
+                if url.endswith("/commodities"):
+                    return "<html><body>" + market + "<ul></ul></body></html>"
+                if url == "x/":
+                    return "<html><body>" + home + "</body></html>"
+                return "<html><body><ul></ul></body></html>"
+            return fetch
+
+        failures, _ = ua.audit("x", site(card("RUN_COMPLETE_NO_PUBLISHED_CALLS", "Decision run of 2026-10-11 completed for this market.")))
+        self.assertEqual(failures, [])
+        failures, _ = ua.audit("x", site(card("NO_READING")))
+        self.assertTrue(any("run state" in f and "commodities" in f for f in failures), failures)
+        old = card("RUN_COMPLETE_NO_PUBLISHED_CALLS", "No stored reading yet. ... a class that has not been through a run")
+        failures, _ = ua.audit("x", site(old))
+        self.assertTrue(any("not been through a run" in f for f in failures), failures)
+        # A market page with a state and no card on the overview is reported, not skipped.
+        other = '<div data-market="stocks" data-run-state="NO_READING" data-names="0" data-published="0"></div>'
+        failures, _ = ua.audit("x", site(other))
+        self.assertTrue(any("no card for commodities" in f for f in failures), failures)
 
     def test_a_link_tag_in_the_head_is_not_read_as_a_row(self):
         # Its first live run read `<link ...>` as `<li ...>` and every market page as one giant row.

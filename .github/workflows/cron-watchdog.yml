@@ -48,7 +48,9 @@ jobs:
   watch:
     name: read the heartbeat, restart what stopped
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Up to eight minutes waiting for a restarted price lane to finish (tools/watchdog.py AWAIT), then the
+    # page audit.
+    timeout-minutes: 14
     steps:
       - uses: actions/checkout@v4
         with:

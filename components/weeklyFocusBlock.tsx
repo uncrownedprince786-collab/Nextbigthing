@@ -64,9 +64,12 @@ function Row({ item }: { item: Scored }) {
           <ConfidenceBadge grade={decision.confidence.toLowerCase()} />
         </span>
       </div>
-      {/* Execution apart from direction (rule 94): said whenever it is not checked, as everywhere else. */}
-      {item.execution && item.execution.status !== "checked" ? (
-        <p className="text-warn mt-1 text-xs leading-relaxed">
+      {/* Execution apart from direction (rules 94, 95): said on every call, as everywhere else. */}
+      {item.execution ? (
+        <p
+          className={`${item.execution.status === "checked" ? "text-muted-foreground" : "text-warn"} mt-1 text-xs leading-relaxed`}
+          data-execution={item.execution.status}
+        >
           Execution {item.execution.status}: {item.execution.reasons.join("; ")}.
         </p>
       ) : null}

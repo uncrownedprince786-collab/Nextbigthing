@@ -47,6 +47,7 @@ except Exception:  # noqa: BLE001
     pass
 
 from nbt import db  # noqa: E402
+from sessions import session_bar  # noqa: E402
 
 # Below this many scored rows, no rate is published.
 #
@@ -363,7 +364,7 @@ def main() -> int:
             """
             SELECT "assetId", date, close, low, high FROM "PriceSnapshot"
              WHERE "assetId" = ANY(%s) AND close IS NOT NULL
-               AND date > %s AND date <= %s
+               AND date > %s AND date <= %s AND """ + session_bar() + """
             """,
             (
                 sorted({r["assetId"] for r in windowed}),

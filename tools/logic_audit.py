@@ -280,6 +280,8 @@ def parse_rows(page_html: str) -> list[dict]:
             "parsed": "Action" in cells and "Stop loss" in cells,
             # An open call listed past its entry rules says so under the verdict (lib/quality.ts).
             "held": "Open since" in re.sub(r"<[^>]+>", "", cells.get("Action", "")),
+            # The execution status printed under the verdict (rule 95: on every call, checked included).
+            "execution": (lambda m: m.group(1) if m else None)(re.search(r'data-execution="([a-z]+)"', action_html)),
             "symbol": _html.unescape(sym.group(1)),
             "action": action,
             "entry": prices_in(cells.get("Entry zone", "")),
@@ -324,12 +326,12 @@ def cross_surface(calls: list[dict]) -> list[str]:
         if timing and f"When {timing}" not in page:
             bad.append(f"{sym}: the API's timing is {timing}, its page does not say so")
         ex = (c.get("execution") or {}).get("status")
-        if ex and ex != "checked" and f"Execution {ex.capitalize()}" not in page:
+        if ex and f"Execution {ex.capitalize()}" not in page:
             bad.append(f"{sym}: execution {ex} in the API, not on its page")
         m = re.search(re.escape(sym) + r" .{0,120}?(LONG|SHORT) (High|Medium|Low) confidence", week)
         if m and (m.group(1) != c["direction"] or m.group(2) != grade):
             bad.append(f"{sym}: the coming week shows {m.group(1)} {m.group(2)}, the API {c['direction']} {grade}")
-        if m and ex and ex != "checked":
+        if m and ex:
             tail = week[m.end():m.end() + 300]
             if f"Execution {ex}" not in tail:
                 bad.append(f"{sym}: the coming week shows it without its {ex} execution")
@@ -388,7 +390,11 @@ def audit_pages() -> dict:
                 out["api_mismatch"].append(f"{sym} R:R {c['rewardRisk']:.2f} vs page {p['rr']}")
             if c.get("style") not in ("SWING", "POSITION"):
                 out["api_mismatch"].append(f"{sym} style {c.get('style')}")
-        out["surface_mismatch"] = cross_surface(api.get("published", []))
+            # The market page's row says the same execution status as the API, beside the direction (rule 95).
+            ex = (c.get("execution") or {}).get("status")
+            if ex and p.get("execution") != ex:
+                out["surface_mismatch"].append(f"{sym}: execution {ex} in the API, {p.get('execution') or 'none'} on its market page row")
+        out["surface_mismatch"] += cross_surface(api.get("published", []))
     except Exception as e:  # noqa: BLE001
         out["api_mismatch"].append(f"/api/signals could not be read: {type(e).__name__}")
     for sym, r in seen.items():

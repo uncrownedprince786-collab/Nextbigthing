@@ -126,7 +126,11 @@ jobs:
       # went over its quota, the site failed over to a standby two migrations behind, and every page
       # that read a new column failed. A standby that cannot be reached (over its own quota, pooler
       # full) is reported and skipped: it must not stop the primary's migration or the seed after it.
+      # And the other way round (rule 95): when the primary cannot be reached, the lanes write to a standby
+      # (tools/writer.mjs, jobs/nbt.py), so the standbys take the migrations whatever the primary's step did.
+      # On 2026-10-11 the primary was over its quota and this step was skipped with it.
       - name: Apply the same migrations to the standbys
+        if: always()
         continue-on-error: true
         env:
           DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}

@@ -54,6 +54,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from nbt import db, median, rows, step  # noqa: E402
+from sessions import session_bar  # noqa: E402
 
 try:
     from dotenv import load_dotenv
@@ -658,10 +659,10 @@ def read_history(cur, period_end: date) -> dict[str, list[dict]]:
     floor = date.fromordinal(period_end.toordinal() - HISTORY_DAYS)
     got = rows(
         cur,
-        """
+        f"""
         SELECT "assetId", date, close, volume, high, low
         FROM "PriceSnapshot"
-        WHERE close IS NOT NULL AND date <= %s AND date >= %s
+        WHERE close IS NOT NULL AND {session_bar()} AND date <= %s AND date >= %s
         ORDER BY "assetId", date ASC
         """,
         (period_end, floor),

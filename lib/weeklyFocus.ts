@@ -36,6 +36,9 @@ export const WEEKLY_MAX_PER_SIDE = 6;
 /// it — a reason to size smaller, not a reason to drop the name. WAIT FOR LEVEL last, because the
 /// price has to come to the reader before anything happens.
 const TIME_ORDER: Record<TimeSense, number> = { NOW: 0, CARE: 1, "WAIT FOR LEVEL": 2 };
+/// The order of the timing a reader is shown (rule 95): a checked NOW before an IN ZONE whose execution is
+/// unverified or blocked. Sorting on the rule table's raw time sense ranked them as one.
+const TIMING_ORDER: Record<string, number> = { NOW: 0, "IN ZONE": 1, CARE: 2, "WAIT FOR LEVEL": 3 };
 
 /// Whether a scored row may appear in the weekly block at all.
 ///
@@ -75,7 +78,9 @@ function freshness(value: Date | string | null | undefined): number {
 export function byWeeklyFocus(a: Scored, b: Scored): number {
   const c = CONFIDENCE_ORDER[a.decision.confidence] - CONFIDENCE_ORDER[b.decision.confidence];
   if (c !== 0) return c;
-  const t = TIME_ORDER[a.decision.timeSense] - TIME_ORDER[b.decision.timeSense];
+  const t = a.timing && b.timing
+    ? (TIMING_ORDER[a.timing.label] ?? 9) - (TIMING_ORDER[b.timing.label] ?? 9)
+    : TIME_ORDER[a.decision.timeSense] - TIME_ORDER[b.decision.timeSense];
   if (t !== 0) return t;
   const f = freshness(b.row.closeDate) - freshness(a.row.closeDate);
   if (f !== 0) return f;

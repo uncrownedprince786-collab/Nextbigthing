@@ -34,6 +34,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from nbt import SNAPSHOTS, Link, db, get_json, get, rows, step  # noqa: E402
 from runlog import chunk_label, chunk_run, parse_chunk, slice_of  # noqa: E402
 import breaker  # noqa: E402
+from sessions import trades_on  # noqa: E402
 
 try:
     from dotenv import load_dotenv
@@ -652,6 +653,9 @@ def parse_chart(payload) -> list[tuple]:
       which is the same adjustment applied to the same bar, and leaves the bar internally
       consistent — scaling the close alone could push it outside its own high and low.
     * The forming day is dropped, per `chart_forming_day`.
+    * A Saturday or Sunday bar is dropped (rule 95). Every symbol this endpoint is asked for -- shares,
+      funds, futures, currency pairs -- trades Monday to Friday, and since 2026-10-10 Yahoo has answered
+      weekend stub bars for currency pairs that were stored as sessions.
 
     Volume is left alone: Yahoo already reports split-adjusted volume and `auto_adjust` does not
     touch it, so scaling it here would disagree with every row yfinance wrote.
@@ -680,6 +684,8 @@ def parse_chart(payload) -> list[tuple]:
             continue
         day = datetime.fromtimestamp(int(ts), tz=timezone.utc).date()
         if forming is not None and day >= forming:
+            continue
+        if not trades_on("weekday", day):
             continue
         ratio = 1.0
         a = at(adj)
@@ -830,6 +836,11 @@ def _store_frame(
             # exist yet, and the asset keeps the close it already had until the bell.
             if open_session is not None and day >= open_session:
                 dropped_forming = True
+                continue
+            # A weekday market's Saturday or Sunday bar is a provider stub, not a session (rule 95).
+            # Yahoo began answering them for currency pairs after 2026-10-10 -- 22 dated Saturday the
+            # 10th, 17 Sunday copies of those -- and stored, each read as the newest close.
+            if not trades_on(a.get("assetType"), day):
                 continue
             closes.append((day, float(row["Close"])))
             vol = row.get("Volume")

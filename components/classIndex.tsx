@@ -68,7 +68,7 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{cls.title}</h1>
         <p className="mt-2 max-w-2xl text-sm">{cls.lead}</p>
-        <p className="text-muted-foreground mt-2 text-sm" data-market-status data-snapshot={rows[0]?.dataStamp ?? ""}>
+        <p className="text-muted-foreground mt-2 text-sm" data-market-status data-snapshot={rows[0]?.dataStamp ?? ""} data-run-state={status.runState} data-names={status.names} data-published={status.longs + status.shorts}>
           {marketStatusLines(status).join(" ")} {outcomeStatusOf(rows[0]?.outcome ?? null).sentence} Readings, not advice.
         </p>
       </div>

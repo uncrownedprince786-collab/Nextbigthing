@@ -280,7 +280,7 @@ jobs:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
           set +e
-          out="$(node tools/decide.mjs 2>&1)"
+          out="$(node tools/decide.mjs --pass=macro 2>&1)"
           code=$?
           echo "$out"
           {
@@ -326,6 +326,27 @@ jobs:
 
       - name: Install job dependencies
         run: pip install -r requirements.txt
+
+      # Each published call graded as a trade from its own recorded levels, apart from its direction
+      # (tools/trade_sim.py, brain.md rule 95). Before the audit, so the logbook reads today's outcomes.
+      - name: Grade each published call as a trade
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          set +e
+          out="$(python tools/trade_sim.py --write 2>&1)"
+          echo "$out"
+          {
+            echo "## Simulated trades"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
 
       - name: Write the day's audit to the logbook
         continue-on-error: true

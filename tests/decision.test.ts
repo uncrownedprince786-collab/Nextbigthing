@@ -124,9 +124,10 @@ test("a close past the market's own limit is WAIT with the age in the reason", (
 });
 
 test("the staleness limit differs per market, and crypto is the strict one", () => {
-  // Three days old: fine for a US equity over a weekend, already a fault for a coin.
-  const asOf = "2026-09-30";
-  const today = "2026-10-03";
+  // Three days old across a real weekend (Friday's close read on Monday): fine for a US equity, already a
+  // fault for a coin. It used Wednesday to Saturday until rule 95, which is two missed US sessions.
+  const asOf = "2026-10-02";
+  const today = "2026-10-05";
   assert.equal(decide(base({ market: "US", asOf, today })).action, "LONG");
   assert.equal(decide(base({ market: "Crypto", asOf, today })).gate, "stale");
   assert.equal(decide(base({ market: "PSX", asOf, today })).action, "LONG");
@@ -134,11 +135,26 @@ test("the staleness limit differs per market, and crypto is the strict one", () 
   assert.ok(STALE_AFTER_DAYS.US < STALE_AFTER_DAYS.PSX);
 });
 
-test("exactly at the limit is still actionable, one day past it is not", () => {
-  const today = "2026-10-03";
-  // US allows 5 calendar days.
-  assert.equal(decide(base({ market: "US", asOf: "2026-09-28", today })).action, "LONG");
-  assert.equal(decide(base({ market: "US", asOf: "2026-09-27", today })).gate, "stale");
+test("one missed session is still actionable, two are stale, whatever the calendar-day count (rule 95)", () => {
+  // Friday's close: Tuesday has missed Monday only (a holiday or a late feed); Wednesday has missed two.
+  assert.equal(decide(base({ market: "US", asOf: "2026-10-02", today: "2026-10-06" })).action, "LONG");
+  const wed = decide(base({ market: "US", asOf: "2026-10-02", today: "2026-10-07" }));
+  assert.equal(wed.gate, "stale");
+  assert.match(wed.why[0], /2 expected sessions since have no close/);
+  // FX allows 4 calendar days, and Friday to Tuesday is 4 with one session missed: still actionable.
+  assert.equal(decide(base({ market: "FX", asOf: "2026-10-02", today: "2026-10-06" })).action, "LONG");
+});
+
+test("a weekday market's weekend bar is not a close; a coin's is (rule 95)", () => {
+  // The live case: Yahoo's Saturday stub for a currency pair, read on Sunday.
+  const fx = decide(base({ market: "FX", asOf: "2026-10-10", today: "2026-10-11" }));
+  assert.equal(fx.action, "WAIT");
+  assert.equal(fx.gate, "bad-date");
+  assert.match(fx.why[0], /Saturday 2026-10-10, a day FX does not trade/);
+  for (const market of ["US", "Commodity", "PSX"] as const) {
+    assert.equal(decide(base({ market, asOf: "2026-10-11", today: "2026-10-12" })).gate, "bad-date", market);
+  }
+  assert.equal(decide(base({ market: "Crypto", asOf: "2026-10-10", today: "2026-10-11" })).action, "LONG");
 });
 
 test("an unreadable stored date is WAIT, not a crash and not a trade", () => {

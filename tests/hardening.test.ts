@@ -17,6 +17,7 @@
 // Nothing here needs a database, a network or a clock, for the same reason nothing else in
 // tests/ does.
 
+import { sessionsSince, STALE_AFTER_SESSIONS } from "../lib/sessions.ts";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -226,18 +227,18 @@ test("the asymmetry bypass fires exactly at ASYMMETRY_CLEARS", () => {
   assert.equal(under.gate, "incomplete");
 });
 
-test("staleness is measured against the market's own limit, at the day it turns", () => {
+test("staleness turns at whichever comes first: the market's calendar limit or two missed sessions (rule 95)", () => {
+  // Thursday 2026-10-01, a session day in every market.
+  const asOf = "2026-10-01";
   for (const market of Object.keys(STALE_AFTER_DAYS) as Market[]) {
     const limit = STALE_AFTER_DAYS[market];
-    const asOf = "2026-10-01";
-    const onLimit = new Date(Date.UTC(2026, 9, 1) + limit * 86400000)
-      .toISOString()
-      .slice(0, 10);
-    const pastLimit = new Date(Date.UTC(2026, 9, 1) + (limit + 1) * 86400000)
-      .toISOString()
-      .slice(0, 10);
-    assert.notEqual(decide(base({ market, asOf, today: onLimit })).gate, "stale", market);
-    assert.equal(decide(base({ market, asOf, today: pastLimit })).gate, "stale", market);
+    for (let days = 1; days <= limit + 2; days++) {
+      const today = new Date(Date.UTC(2026, 9, 1) + days * 86400000).toISOString().slice(0, 10);
+      const stale = days > limit || sessionsSince(market, asOf, today) >= STALE_AFTER_SESSIONS;
+      const gate = decide(base({ market, asOf, today })).gate;
+      if (stale) assert.equal(gate, "stale", `${market} ${today}`);
+      else assert.notEqual(gate, "stale", `${market} ${today}`);
+    }
   }
 });
 

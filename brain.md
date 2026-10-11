@@ -2693,3 +2693,71 @@ reads rows that already exist:
       audit PASSED MATHEMATICALLY with 0 cross-surface disagreements over 18 published calls, and watchdog
       `38136905827` was green -- it also restarted the live-quote lane, whose schedule had slipped to 90
       minutes, after which health read ok. Web 446 of 446, Python 711 OK, tsc, eslint and build clean.
+
+95. **One continuous, auditable chain: every run kept, every published call graded as a trade apart from
+    its direction, a closed market never fresh, and the overview speaking from the market page's record.**
+    The owner's post-run integrity and trading-edge pass of 2026-10-11. Each item was reproduced from stored
+    rows, the API and the rendered pages before any change.
+    - **The overview said a completed market was never run.** Its card printed "No stored reading yet ... a
+      class that has not been through a run" whenever a market had no published call -- the commodities
+      card said so while /commodities reported the run of 2026-10-11 complete (8 names, 1 withheld, 5
+      forming, 2 held back). The market status record (`lib/marketStatus.ts`, split out of
+      `lib/assetClass.ts` so its tests run it) now carries one run state --
+      RUN_COMPLETE_WITH_CALLS, RUN_COMPLETE_NO_PUBLISHED_CALLS, RUN_INCOMPLETE_OR_FAILED (missing from the
+      newest run, or only some names logged), NO_READING -- and the card prints the market page's own
+      sentence from it. Both print `data-run-state`, `data-names` and `data-published`; the UI audit fails
+      when an overview card disagrees with its market page or says "not been through a run".
+    - **A rerun overwrote the day's call.** `DecisionLog` is unique on (asset, day) and every pass upserted
+      it: 2026-10-10 carries the computedAt of eight passes, and 55 LONG and 12 SHORT calls made at 20:15
+      survive nowhere after the 23:14 pass turned them into WAIT. `DecisionLog` stays the current call per
+      day; every pass is now also recorded once in `DecisionRun` (id = GitHub run, attempt and pass, or a
+      local stamp; commit; trigger; the tier read; a sha256 fingerprint of every input row; the newest
+      session per market; the source health read; status running -> complete / partial / failed) with each
+      call in `DecisionCall` -- its session and close, entry, stop, measured exit, reward:risk, ATR, the
+      quality gate's verdict and reasons, the execution status and the validity window, by the site's own
+      functions. Database triggers refuse any change to a call, any change to a finished run and every
+      delete; a replay of the same run inserts nothing (ON CONFLICT DO NOTHING); a run left running six hours
+      is closed as failed by the next. The macro pass is its own run (`--pass=macro`). The logbook lists the
+      week's runs and marks each day's current one: the newest that finished.
+    - **Outcomes were directional only.** `tools/trade_sim.py` grades each published position -- the first
+      published call per asset, side and validity start, so reruns and next-day re-issues cannot count one
+      trade twice -- into `CallOutcome`, bound to that call's id: the scorecard's directional verdict
+      unchanged, and a trade simulated on the daily bars from the call's own plan. Entry is a limit at the
+      zone edge the reward:risk is measured from, filled from the session after the call (at the open when
+      it opens better); opening beyond the stop first is INVALIDATED_BEFORE_FILL; after the fill the stop
+      and exit rest, a gap exits at the open (recorded, more than 1R lost), a bar reaching both is AMBIGUOUS
+      and booked at the stop, and on the fill bar an exit touch is not counted while a stop touch is. The
+      window is the call's validity (7 days swing, 28 position): an open trade EXPIRES at its last close, an
+      unfilled order is NOT_FILLED, a call a later run withdrew before filling is WITHDRAWN, and a bar that
+      contradicts itself or a closed window with no bars is UNAVAILABLE -- all in the denominator. R is
+      gross; no spread, commission, borrow or slippage is stored, so no net R is reported. An outcome is
+      final once both halves are, and a trigger then freezes it. The logbook prints direction and trade
+      apart, every rate with its count, splits by market, side, horizon and confidence, and "not measured"
+      until 30 trades have closed. Graded only from the first recorded run on: the earlier days exist only
+      as `DecisionLog`'s last write, and their reward:risk used another definition before `2fd7c51`.
+    - **Weekend stubs were stored as sessions.** Commit `3cb12e2` stopped dropping Friday's forming bar,
+      and with it Yahoo's Saturday and Sunday stubs for currency pairs were stored: 22 dated Saturday the
+      10th, 17 Sunday copies, one on the 4th. Health read "FX newest 2026-10-11, 0 days old"; 16 of the 18
+      FX calls logged for the 10th were read from a Saturday stub; factors took a one-day return from it.
+      The Yahoo writer now drops a weekday market's weekend bar (`jobs/sessions.py` `trades_on`); every
+      close reader on the decision path skips them (`(a."assetType" = 'crypto' OR EXTRACT(ISODOW FROM
+      s.date) < 6)` in `lib/queries.ts` and `tools/decide.mjs`, `session_bar()` in the factor, setup,
+      target, scorecard, audit-log and trade jobs and the coverage audit). The 40 stored rows were left in
+      place: moving them out was refused by the session's safety check, and the readers make them inert.
+    - **Freshness is counted in sessions too** (`lib/sessions.ts`). A close is stale at whichever comes
+      first, the calendar-day limit or two expected sessions without a close (gate 2b and `dataFault`); a
+      close dated on a day its market does not trade is "bad-date". No holiday calendar exists, so one
+      missing session is "behind" and still acted on. Health now gives each market its expected session,
+      sessions behind, state (current / closed as expected / behind / stale), next session and the names
+      behind it; judges live quotes per market and only while that market trades (crypto's ticks had kept
+      the single check green while FX, US and commodity quotes sat frozen from Friday); and lists each
+      recording lane's last run and last success.
+    - **Recovery is checked, not assumed.** The price lanes call `/api/revalidate` when they finish. The
+      watchdog waits (bounded, up to 8 minutes, quick lanes only) for the lane it restarts, reads health
+      again and goes red if the problem stands; a restart within the hour that finished and left it
+      standing is red ("unrecovered") instead of another quiet wait. Before, it dispatched and exited green
+      (run `38136905827`), and a lane that cannot fail could never reach a person.
+    - **Tradeability.** A future or currency pair at volume 0 is unverified, not blocked (palladium and
+      platinum print 0 on traded days); an execution never assessed is never NOW; the weekly block ranks a
+      checked NOW above an IN ZONE; and every list surface prints the execution status beside the direction,
+      checked included. Short eligibility is still never inferred; no bid, ask or eligibility data exists.

@@ -50,11 +50,14 @@ test("every surface reads grade, timing and execution from the scored record", (
   assert.match(asset, /priceNow=\{cachedRow \? cachedRow\.close/, "the timing's close is the decision's close");
   const week = read("components/weeklyFocusBlock.tsx");
   assert.match(week, /<ConfidenceBadge grade=\{decision\.confidence\.toLowerCase\(\)\} \/>/);
-  assert.match(week, /item\.execution && item\.execution\.status !== "checked"/);
+  // Every call says its execution status, checked included (rule 95).
+  assert.match(week, /\{item\.execution \? \(/);
+  assert.match(week, /data-execution=\{item\.execution\.status\}/);
   assert.match(week, /item\.timing && item\.timing\.label !== "WAIT FOR LEVEL"/);
   const top = read("components/topByClass.tsx");
   assert.match(top, /\{s\.decision\.confidence\}/);
-  assert.match(top, /s\.execution && s\.execution\.status !== "checked"/);
+  assert.match(top, /\{s\.execution \? \(/);
+  assert.match(top, /data-execution=\{s\.execution\.status\}/);
   // A longer-term setup's own grade is labelled as that timeframe's and is not the call's.
   assert.doesNotMatch(week, /setup\.confidence/);
 });

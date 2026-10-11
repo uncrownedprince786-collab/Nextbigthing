@@ -5,8 +5,10 @@
 /// no short-sale eligibility for any market, and no exchange compliance status, so the most it can say
 /// from what it holds is this:
 ///
-///   * **blocked** -- the last session printed no trade at all (volume 0 on a market that publishes
-///     volume): nothing traded at the price the levels are measured from;
+///   * **blocked** -- the last session printed no trade at all (volume 0 on a share or a coin, whose
+///     venues publish volume): nothing traded at the price the levels are measured from. A future or a
+///     currency pair at volume 0 is **unverified**, not blocked (rule 95): the source prints 0 for contracts
+///     that traded -- palladium and platinum on 26 of 30 sessions -- so 0 there is "not published";
 ///   * **unverified** -- a SHORT on a share or a coin (the site holds no short-sale eligibility data: PSX
 ///     allows it only in designated securities, a US borrow is not public data, and a coin needs margin or
 ///     a derivative), or a market that publishes no volume, where liquidity cannot be measured at all. A
@@ -32,14 +34,18 @@ export function executionOf(o: {
 }): Execution | null {
   if (o.action !== "LONG" && o.action !== "SHORT") return null;
   const volume = o.closeVolume;
-  if (volume !== null && volume !== undefined && Number.isFinite(volume) && volume <= 0) {
+  const contract = o.market === "FX" || o.market === "Commodity";
+  const zero = volume !== null && volume !== undefined && Number.isFinite(volume) && volume <= 0;
+  if (zero && !contract) {
     return { status: "blocked", reasons: ["no trade was printed on the last session"] };
   }
   const reasons: string[] = [];
-  if (o.action === "SHORT" && o.market !== "FX" && o.market !== "Commodity") {
+  if (o.action === "SHORT" && !contract) {
     reasons.push("the site holds no short-sale eligibility data for this security");
   }
-  if (volume === null || volume === undefined || !Number.isFinite(volume)) {
+  if (zero) {
+    reasons.push("the source printed no volume for this contract's last session, so liquidity cannot be measured");
+  } else if (volume === null || volume === undefined || !Number.isFinite(volume)) {
     reasons.push("this market publishes no volume, so liquidity cannot be measured");
   }
   if (reasons.length) return { status: "unverified", reasons };
@@ -77,13 +83,15 @@ export function timingOf(o: {
     : null;
   const inZone =
     o.close !== null && Number.isFinite(o.close) && o.entry ? o.close >= o.entry.low && o.close <= o.entry.high : null;
+  // NOW only for a checked call (rule 95): an execution that was never assessed (null) is not checked,
+  // and reads IN ZONE like an unverified or blocked one.
   const label: Timing["label"] =
     o.timeSense === "CARE"
       ? "CARE"
       : o.timeSense === "NOW"
-        ? o.execution && o.execution.status !== "checked"
-          ? "IN ZONE"
-          : "NOW"
+        ? o.execution?.status === "checked"
+          ? "NOW"
+          : "IN ZONE"
         : "WAIT FOR LEVEL";
   return { label, price: o.close, on: day, inZone };
 }

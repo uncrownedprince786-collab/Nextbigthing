@@ -1328,9 +1328,13 @@ function DecisionRows({ rows }: { rows: DecisionRow[] }) {
                     Open since {shortDay(r.held.since)}: held to its stop, not a new entry ({r.held.todays.join("; ")}).
                   </span>
                 ) : null}
-                {/* Execution apart from direction (rule 93): said whenever it is not checked. */}
-                {r.execution && r.execution.status !== "checked" ? (
-                  <span className="text-warn text-micro mt-0.5 block leading-snug">
+                {/* Execution apart from direction (rules 93, 95): said on every call, checked or not, so the
+                    direction is never read as an executable trade. */}
+                {r.execution ? (
+                  <span
+                    className={`${r.execution.status === "checked" ? "text-muted-foreground" : "text-warn"} text-micro mt-0.5 block leading-snug`}
+                    data-execution={r.execution.status}
+                  >
                     Execution {r.execution.status}: {r.execution.reasons.join("; ")}.
                   </span>
                 ) : null}
