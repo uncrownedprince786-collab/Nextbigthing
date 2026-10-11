@@ -110,11 +110,89 @@ NEVER_PRUNED = (
 )
 
 
+# An index page that is half empty costs the tier exactly as much as a full one.
+#
+# `PriceSnapshot` is never pruned and never should be, but it is rewritten: a full refetch of an
+# asset deletes its rows and COPYs them back, and 141,310 deletes had passed through it by
+# 2026-10-12. B-tree pages do not re-pack themselves after that. Measured that day,
+# `PriceSnapshot_pkey` held 93.7 MB at an average leaf density of 51.65% -- about 45 MB of a 500 MB
+# tier spent on empty space, and a third of everything the database was using.
+#
+# `REINDEX ... CONCURRENTLY` is the one form of this that is safe beside running lanes: it builds
+# the replacement alongside the live index and takes no lock that blocks reads or writes, unlike
+# the `VACUUM FULL` above, which is why that one is kept behind `--reclaim` and this is not. It
+# cannot run inside a transaction, so this is called after the commit the vacuum needs anyway.
+#
+# Only indexes that are both large and loose are touched. A small index rebuilt nightly would cost
+# more in churn than the pages it returns.
+REINDEX_MIN_BYTES = 8 * 1024 * 1024
+REINDEX_MAX_DENSITY = 75.0
+
+
+def reindex_bloated(cur) -> None:
+    """Rebuild the indexes that have gone loose enough to be worth the write."""
+    try:
+        cur.execute("CREATE EXTENSION IF NOT EXISTS pgstattuple")
+    except Exception as e:  # noqa: BLE001
+        # Without it there is no way to tell a loose index from a tight one, and rebuilding
+        # every index on a schedule to find out is the cost this is meant to avoid.
+        print(f"  index density unavailable ({str(e).splitlines()[0][:80]}), nothing rebuilt")
+        return
+    looked = rows(
+        cur,
+        """
+        SELECT i.relname AS name, pg_relation_size(i.oid) AS bytes
+        FROM pg_index x
+        JOIN pg_class i ON i.oid = x.indexrelid
+        JOIN pg_class t ON t.oid = x.indrelid
+        WHERE t.relnamespace = 'public'::regnamespace
+          AND x.indisvalid AND i.relam = (SELECT oid FROM pg_am WHERE amname = 'btree')
+          AND pg_relation_size(i.oid) >= %s
+        ORDER BY pg_relation_size(i.oid) DESC
+        """,
+        (REINDEX_MIN_BYTES,),
+    )
+    print(f"\n  {len(looked)} indexes over {REINDEX_MIN_BYTES // 1024 // 1024} MB")
+    for r in looked:
+        # Quoted, because these names are mixed case: `pgstatindex('PriceSnapshot_pkey')`
+        # resolves through regclass, which folds an unquoted name to lower case and then
+        # cannot find it.
+        quoted = '"' + r["name"].replace('"', '""') + '"'
+        density = one(cur, "SELECT avg_leaf_density AS d FROM pgstatindex(%s)", (quoted,))["d"]
+        if density is None or float(density) >= REINDEX_MAX_DENSITY:
+            print(f"  {r['name']:<34}{r['bytes'] / 1024 / 1024:>7.1f} MB  {float(density or 0):.1f}% full, left alone")
+            continue
+        before = r["bytes"]
+        cur.execute(f'REINDEX INDEX CONCURRENTLY "{r["name"]}"')
+        now = one(cur, "SELECT pg_relation_size(%s) AS b", (quoted,))["b"]
+        print(
+            f"  {r['name']:<34}{before / 1024 / 1024:>7.1f} MB  {float(density):.1f}% full, "
+            f"rebuilt to {now / 1024 / 1024:.1f} MB"
+        )
+
+
 def main() -> int:
     dry = "--dry-run" in sys.argv
     conn = db()
     cur = conn.cursor()
     try:
+        # --indexes-only is the half of this job that deletes nothing: it rebuilds loose
+        # indexes and returns their empty pages to the tier. Separate because the sweep above
+        # is a data change that wants a person's intent behind it, and this is not.
+        if "--indexes-only" in sys.argv:
+            step("rebuild the loose indexes")
+            before = one(cur, "SELECT pg_database_size(current_database()) AS b")["b"]
+            conn.commit()
+            conn.autocommit = True
+            reindex_bloated(cur)
+            conn.autocommit = False
+            after = one(cur, "SELECT pg_database_size(current_database()) AS b")["b"]
+            print(
+                f"\n  database {before / 1024 / 1024:.0f} MB -> {after / 1024 / 1024:.0f} MB "
+                f"({(before - after) / 1024 / 1024:+.0f} MB). No row was deleted."
+            )
+            return 0
+
         step("cap the per-session working set" + (" (dry run)" if dry else ""))
         before = one(cur, "SELECT pg_database_size(current_database()) AS b")["b"]
         total = 0
@@ -169,6 +247,9 @@ def main() -> int:
         conn.autocommit = True
         for table in KEEP:
             cur.execute(f'VACUUM ({"FULL, " if reclaim else ""}ANALYZE) "{table}"')
+        # Still outside a transaction, which REINDEX CONCURRENTLY needs for the same reason
+        # VACUUM does.
+        reindex_bloated(cur)
         conn.autocommit = False
 
         after = one(cur, "SELECT pg_database_size(current_database()) AS b")["b"]

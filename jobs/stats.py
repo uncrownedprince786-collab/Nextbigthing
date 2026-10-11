@@ -74,12 +74,19 @@ def main() -> None:
         for got in rows(
             cur,
             """
-            SELECT i.market, count(DISTINCT a.id) AS assets,
-                   count(DISTINCT p."assetId") AS priced,
-                   max(p.date) AS newest
+            -- One index probe per asset for its newest stored day, not a join across every
+            -- priced row to count the distinct names in it: measured 2026-10-12 at 19.1
+            -- seconds against 1.1, the same three rows. `count(l.date)` counts the assets
+            -- that matched, which is what `count(DISTINCT p."assetId")` counted.
+            SELECT i.market, count(*) AS assets,
+                   count(l.date) AS priced,
+                   max(l.date) AS newest
             FROM "Industry" i
             JOIN "Asset" a ON a."industryId" = i.id
-            LEFT JOIN "PriceSnapshot" p ON p."assetId" = a.id
+            LEFT JOIN LATERAL (
+                SELECT s.date FROM "PriceSnapshot" s
+                WHERE s."assetId" = a.id ORDER BY s.date DESC LIMIT 1
+            ) l ON true
             GROUP BY i.market ORDER BY i.market
             """,
         ):

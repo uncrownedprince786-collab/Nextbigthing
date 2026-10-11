@@ -4136,8 +4136,11 @@ class QueryBudget(unittest.TestCase):
         "graph.py": 1, "horizons.py": 1, "human.py": 0, "intraday.py": 7,
         "investigate.py": 3, "lifecycle.py": 7, "lineage.py": 3, "marketplace.py": 3,
         # retention.py reads a count per table, not per asset, so its five are bounded by the
-        # number of tables in the sweep and not by the size of the pool.
-        "prices.py": 7, "psx.py": 2, "rank.py": 3, "retention.py": 5, "seed.py": 5,
+        # number of tables in the sweep and not by the size of the pool. Eight since
+        # 2026-10-12: `reindex_bloated` reads a density and rebuilds, per index over 8 MB --
+        # one index today, and bounded by the schema rather than by the pool for the same
+        # reason the other five are. REINDEX cannot be batched into one statement.
+        "prices.py": 7, "psx.py": 2, "rank.py": 3, "retention.py": 8, "seed.py": 5,
         "setup.py": 0,
         "signals.py": 12, "stats.py": 2, "thesis.py": 0, "upcoming.py": 3,
         # tools/, measured 2026-10-10 when the scan was widened to cover it. These are one-off

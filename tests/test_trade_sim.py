@@ -234,15 +234,51 @@ class SessionsOnly(unittest.TestCase):
             '(EXTRACT(ISODOW FROM s."date") < 6 OR s."assetId" IN (SELECT id FROM "Asset" WHERE "assetType" = \'crypto\'))',
         )
 
+    def test_the_newest_bars_helper_selects_the_key_every_caller_reads_by(self):
+        """`assetId` comes out of the lateral whether or not a caller names it.
+
+        It did not, once: every caller keys its result by `r["assetId"]`, the outer select
+        asked for `b."assetId"`, and the subquery did not carry it -- three jobs that would
+        have raised `column b.assetId does not exist` on their first real statement, with
+        nothing in this file to catch it because the SQL is only built here, never run.
+        """
+        from sessions import newest_session_bars
+
+        for columns in (["date", "close"], ["assetId", "date"], ["date", "high", "low"]):
+            sql = newest_session_bars(columns)
+            self.assertIn('SELECT s."assetId"', sql, columns)
+            self.assertIn('b."assetId"', sql, columns)
+            # Selected once, not twice, when a caller names it as well.
+            self.assertEqual(sql.count('s."assetId",'), 1, columns)
+
+    def test_the_newest_bars_helper_keeps_the_session_rule_and_the_placeholders(self):
+        from sessions import newest_session_bars
+
+        plain = newest_session_bars(["date", "close"])
+        self.assertIn("EXTRACT(ISODOW FROM s.\"date\") < 6 OR a.\"assetType\" = 'crypto'", plain)
+        self.assertIn("ORDER BY b.\"assetId\", b.date ASC", plain)
+        self.assertEqual(plain.count("%s"), 1, "the row limit only")
+        self.assertIn("ORDER BY b.\"assetId\", b.date DESC", newest_session_bars(["date"], oldest_first=False))
+        scoped = newest_session_bars(["date", "close"], assets=True)
+        # The limit is bound before the asset ids, because it comes first in the statement.
+        self.assertLess(scoped.index("LIMIT %s"), scoped.index("ANY(%s)"))
+
     def test_every_close_reader_on_the_decision_path_skips_weekend_stubs(self):
         inline = "(a.\"assetType\" = 'crypto' OR EXTRACT(ISODOW FROM s.date) < 6)"
         queries = (ROOT / "lib" / "queries.ts").read_text(encoding="utf-8")
         self.assertEqual(queries.count(inline), 3, "decision rows, health and the data stamp")
         decide = (ROOT / "tools" / "decide.mjs").read_text(encoding="utf-8")
-        self.assertIn("WHERE a.\"assetType\" = 'crypto' OR EXTRACT(ISODOW FROM s.date) < 6", decide)
+        self.assertIn(inline, decide)
         self.assertIn("AND (EXTRACT(ISODOW FROM date) < 6 OR \"assetId\" IN (SELECT id FROM \"Asset\" WHERE \"assetType\" = 'crypto'))", decide)
-        for job in ("factors.py", "setup.py", "horizons.py"):
-            self.assertIn("{session_bar()}", (ROOT / "jobs" / job).read_text(encoding="utf-8"), job)
+        self.assertIn("{session_bar()}", (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8"))
+        # setup.py and horizons.py ask through `newest_session_bars`, which carries the same
+        # predicate once instead of four times (see jobs/sessions.py). The guarantee is
+        # unchanged and is checked in both places: that they go through the helper, and that
+        # the helper skips the stubs.
+        helper = (ROOT / "jobs" / "sessions.py").read_text(encoding="utf-8")
+        self.assertIn("EXTRACT(ISODOW FROM s.\"date\") < 6 OR a.\"assetType\" = 'crypto'", helper)
+        for job in ("setup.py", "horizons.py"):
+            self.assertIn("newest_session_bars(", (ROOT / "jobs" / job).read_text(encoding="utf-8"), job)
         for tool in ("scorecard.py", "audit_log.py", "trade_sim.py"):
             self.assertIn("session_bar()", (ROOT / "tools" / tool).read_text(encoding="utf-8"), tool)
 

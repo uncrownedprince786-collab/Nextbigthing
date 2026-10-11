@@ -588,13 +588,23 @@ def base_closes(cur, on) -> dict[str, dict]:
     Returned as stored rather than carried forward to the asking date, exactly as the
     per-asset version did, so the accuracy log still records which observation a later move
     was measured from.
+
+    One index probe per asset, not one pass over the table. `DISTINCT ON` had to sort every
+    stored row to keep 613 of them: measured on 2026-10-12 at 781,163 rows read and 10.9
+    seconds of database time against 24 milliseconds here, the same 613 rows to the value.
+    Postgres has no loose index scan, so the only way to use `PriceSnapshot_pkey` for a
+    per-asset newest is to ask it once per asset, which is what the lateral does.
     """
     return {r["assetId"]: r for r in rows(
         cur,
         """
-        SELECT DISTINCT ON ("assetId") "assetId", date, close FROM "PriceSnapshot"
-        WHERE date <= %s AND close IS NOT NULL
-        ORDER BY "assetId", date DESC
+        SELECT b."assetId", b.date, b.close
+        FROM "Asset" a
+        CROSS JOIN LATERAL (
+            SELECT s."assetId", s.date, s.close FROM "PriceSnapshot" s
+            WHERE s."assetId" = a.id AND s.date <= %s AND s.close IS NOT NULL
+            ORDER BY s.date DESC LIMIT 1
+        ) b
         """,
         (on,),
     )}

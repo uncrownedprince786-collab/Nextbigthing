@@ -121,18 +121,24 @@ def latest_caps(cur, industry_id: str, target: date) -> dict[str, dict]:
 
     Absent where the asset has published no size at all -- which is the state the page describes
     in words. Nothing is backfilled here and nothing is ranked on a missing figure.
+
+    One index probe per asset in the industry rather than a `DISTINCT ON` that sorted every
+    priced row to keep one per name. Over the 42 industries this is asked for, measured
+    2026-10-12 at 30.9 seconds against 8.9, the same rows in every industry.
     """
     got = rows(
         cur,
         """
-        SELECT DISTINCT ON (ps."assetId")
-               ps."assetId" AS aid, ps.date, ps."marketCap" AS cap
-        FROM "PriceSnapshot" ps
-        JOIN "Asset" a ON a.id = ps."assetId"
-        WHERE a."industryId" = %s AND ps.date <= %s AND ps."marketCap" IS NOT NULL
-        ORDER BY ps."assetId", ps.date DESC
+        SELECT b."assetId" AS aid, b.date, b."marketCap" AS cap
+        FROM "Asset" a
+        CROSS JOIN LATERAL (
+            SELECT ps."assetId", ps.date, ps."marketCap" FROM "PriceSnapshot" ps
+            WHERE ps."assetId" = a.id AND ps.date <= %s AND ps."marketCap" IS NOT NULL
+            ORDER BY ps.date DESC LIMIT 1
+        ) b
+        WHERE a."industryId" = %s
         """,
-        (industry_id, target),
+        (target, industry_id),
     )
     return {g["aid"]: g for g in got}
 

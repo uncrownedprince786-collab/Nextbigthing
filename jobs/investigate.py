@@ -67,6 +67,10 @@ INVESTIGATION = "Targeted read of stored evidence around a measured move"
 # What counts as worth investigating. Robust rather than a fixed percentage, because a 3% day
 # is ordinary for one of these names and extraordinary for another.
 RETURN_HISTORY = 60
+# Rows read per asset. The history array needs RETURN_HISTORY returns before the latest day, each
+# of which needs the day behind it for its own lag, and the volume average needs 20 -- so 62 is the
+# floor and this is that with margin. Anything beyond it would be read and thrown away.
+READ_BACK = RETURN_HISTORY + 22
 ROBUST_Z = 2.5
 MOVE_FLOOR = 2.0        # below this the move is not material whatever its z score says
 VOLUME_RATIO = 2.0
@@ -118,13 +122,26 @@ def candidates(cur, today: date) -> list[dict]:
     got = rows(
         cur,
         """
-        WITH rets AS (
+        WITH recent AS (
+            -- Each asset's own newest rows, not the whole table. The window functions below
+            -- reach at most RETURN_HISTORY rows back plus one for the lag behind the oldest of
+            -- them, and the volume average reaches 20; READ_BACK covers both with room. Taking
+            -- the tail per asset through the primary key is what makes this affordable --
+            -- measured 2026-10-12 at 116 seconds over 781,163 rows against 10.5 seconds, the
+            -- same 613 rows with the same figures and the same history arrays.
+            SELECT b.* FROM "Asset" a
+            CROSS JOIN LATERAL (
+                SELECT s."assetId", s.date, s.close, s.volume FROM "PriceSnapshot" s
+                WHERE s."assetId" = a.id AND s.close IS NOT NULL
+                ORDER BY s.date DESC LIMIT %s
+            ) b
+        ),
+        rets AS (
             SELECT p."assetId", p.date, p.close, p.volume,
                    (p.close / nullif(lag(p.close) OVER w, 0) - 1) * 100 AS pct,
                    avg(p.volume) OVER (PARTITION BY p."assetId" ORDER BY p.date
                                        ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) AS avgvol
-            FROM "PriceSnapshot" p
-            WHERE p.close IS NOT NULL
+            FROM recent p
             WINDOW w AS (PARTITION BY p."assetId" ORDER BY p.date)
         ),
         latest AS (
@@ -140,7 +157,7 @@ def candidates(cur, today: date) -> list[dict]:
         JOIN rets r ON r."assetId" = l."assetId" AND r.date = l.d
         JOIN "Asset" a ON a.id = l."assetId"
         """,
-        (RETURN_HISTORY,),
+        (READ_BACK, RETURN_HISTORY),
     )
 
     flagged = {

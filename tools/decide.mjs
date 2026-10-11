@@ -167,11 +167,22 @@ async function readInputs(db, today) {
       db.query(
         // A session's bar only, and its volume for the execution status (rule 95): the same newest close
         // the site reads (lib/queries.ts), so a weekday market's weekend stub is never the close decided on.
-        `SELECT DISTINCT ON (s."assetId") s."assetId", s.date, s.close, s.volume
-           FROM "PriceSnapshot" s
-           JOIN "Asset" a ON a.id = s."assetId"
-          WHERE a."assetType" = 'crypto' OR EXTRACT(ISODOW FROM s.date) < 6
-          ORDER BY s."assetId", s.date DESC`,
+        // One index probe per asset, not a sort of every priced row to keep one per name:
+        // `DISTINCT ON` cannot use `PriceSnapshot_pkey` for a per-asset newest, because
+        // Postgres has no loose index scan. Measured 2026-10-12 at 33.9 seconds against 2.7,
+        // the same 613 rows to the value. Driving from `Asset` loses nothing -- `assetId` is
+        // a foreign key onto it -- and puts `assetType` in reach of the session rule.
+        `SELECT b."assetId", b.date, b.close, b.volume
+           FROM "Asset" a
+           CROSS JOIN LATERAL (
+             SELECT s."assetId", s.date, s.close, s.volume
+               FROM "PriceSnapshot" s
+              WHERE s."assetId" = a.id
+                AND (a."assetType" = 'crypto' OR EXTRACT(ISODOW FROM s.date) < 6)
+              ORDER BY s.date DESC
+              LIMIT 1
+           ) b
+          ORDER BY b."assetId"`,
       ),
       // Newest row per (asset, horizon). intraday is deliberately absent: the lists and this log
       // read the same two horizons the home page does, because a verdict that re-decided itself

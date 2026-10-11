@@ -2854,3 +2854,85 @@ reads rows that already exist:
     - **After**: schedules re-enabled; live health served from the primary, every market current or closed as
       expected; /api/signals 17 published; the UI audit passed (554 of 554 listed, one snapshot). The full
       audit is the owner's next step; no outcome has matured, so no performance exists to report.
+
+99. **The tier was being spent on reading history nobody asked for, and on empty index pages.** Measured
+    2026-10-12 against the live primary, after the reset of rule 98. No table was pruned, no row was
+    deleted and no lane was re-run: the whole of this is how the same answers are fetched.
+    - **The pattern.** Nine readers wanted one row, or the newest few, *per asset*, and every one of them
+      asked for it by reading the whole of `PriceSnapshot` -- `DISTINCT ON ("assetId")`, `row_number()
+      OVER (PARTITION BY "assetId")`, or a window function over every stored row. Postgres has no loose
+      index scan, so none of those can use `PriceSnapshot_pkey ("assetId", date)`: each one seq-scanned or
+      index-scanned all 781,163 rows and sorted them to keep 613. `pg_stat_statements` had it plainly --
+      611 sequential scans over `PriceSnapshot` had read 57.8 million rows, and the ten costliest
+      statements in the database were all this shape, about 1,225 seconds of database time between them.
+    - **The fix is a lateral join, one index probe per asset.** `FROM "Asset" a CROSS JOIN LATERAL (SELECT
+      ... WHERE s."assetId" = a.id ORDER BY s.date DESC LIMIT n) b`. Driving from `Asset` loses nothing:
+      `PriceSnapshot.assetId` is a foreign key onto it with `ON DELETE CASCADE`, so a priced row without
+      an asset cannot exist (checked: 0). It also puts `assetType` in reach, which answers the crypto half
+      of the session rule without `session_bar`'s `IN (SELECT ...)` subquery.
+    - **Measured, each rewrite against the one it replaced, on the live data, row for row identical:**
+
+      | reader | pages before | pages after | before | after |
+      |---|---|---|---|---|
+      | `jobs/human.py` `base_closes` | 339,900 | 7,794 | 7,694 ms | 74 ms |
+      | `tools/decide.mjs` prices | 462,288 | 9,901 | 1,386 ms | 15 ms |
+      | `jobs/horizons.py` `daily_bars` | 566,686 | 154,805 | 1,478 ms | 228 ms |
+      | `jobs/setup.py` `all_closes` | 453,355 | 174,733 | 2,929 ms | 312 ms |
+      | `lib/queries.ts` `getPricedAssetsByIndustry` | 70,874 | 5,697 | 545 ms | 19 ms |
+      | `jobs/stats.py` market coverage | 71,056 | 8,416 | 4,189 ms | 22 ms |
+
+      1,964,159 pages to 361,346 for one pass of those six, which is 13.1 GB of I/O a pass that is no
+      longer read. Two more measured by wall clock rather than pages: `jobs/investigate.py` `candidates`
+      115.8 s to 10.5 s, and `jobs/rank.py` `caps_at` over all 42 industries 30.9 s to 8.9 s.
+    - **`jobs/sessions.py` `newest_session_bars`** is the one definition of "the newest n session bars per
+      asset", because four call sites were saying it in `row_number()` and would have drifted apart. It
+      carries the session rule (rule 95) that `session_bar` carries for everyone else, and
+      tests/test_trade_sim.py pins both that they go through it and that it skips the weekend stubs.
+    - **`investigate.py` reads a bounded tail**, `RETURN_HISTORY + 22` rows an asset, because its window
+      functions reach 60 returns back plus one for the lag behind the oldest and 20 for the volume
+      average. The whole-table version computed a window over every row ever stored to return 613.
+    - **Index bloat was a third of the database.** `PriceSnapshot` is never pruned and never should be,
+      but it is rewritten -- a full refetch deletes an asset's rows and COPYs them back, 141,310 deletes
+      by 2026-10-12 -- and b-tree pages do not re-pack after that. `PriceSnapshot_pkey` held 89.4 MB at
+      52.5% average leaf density. `jobs/retention.py --indexes-only` rebuilt it to **50.6 MB**, and the
+      database went **271 MB -> 232 MB of the 500 MB tier**, with no row deleted. `reindex_bloated` now
+      runs at the end of the retention sweep: `REINDEX INDEX CONCURRENTLY`, which takes no lock that
+      blocks a reader or a writer, unlike the `VACUUM FULL` that is still behind `--reclaim`. Only
+      indexes over 8 MB and under 75% full are touched, measured with `pgstattuple` rather than guessed.
+    - **Two defects in the new helper, both caught before they shipped.** It did not carry `assetId` out
+      of the lateral, which would have raised `column b.assetId does not exist` in three jobs on their
+      first real statement; and it would have selected `assetId` twice for a caller that named it. The
+      unit tests in tests/test_trade_sim.py exist because neither was visible to a test that only builds
+      SQL without running it -- the first was found by running every rewrite against the live database
+      and comparing row for row, which is the check worth keeping.
+
+100. **The backup restores, and now there is a script that proves it.** `nbt-private/backup_db.py` had
+    written and verified a backup since rule 98 and described the restore in its docstring; prose is not a
+    tested restoration path, and the three things that actually break one -- a column added after the dump,
+    a parent loaded after its child, a CSV whose NULL or quoting convention the reader disagrees with --
+    are all invisible to a checksum.
+    - **Verified independently, 2026-10-12**: all 44 files of `backup-reset-2026-10-11T1930Z` re-read,
+      every sha256 and row count equal to the manifest, 887,861 rows, 31.1 MB, and every file's header
+      still equal to its table's live column list. No public table is missing from the backup.
+    - **`nbt-private/restore_db.py rehearse`** does the real `COPY` with the real types into `TEMP` tables,
+      in an order taken from the live foreign keys rather than written down, inside a transaction that is
+      rolled back. All 44 tables loaded clean. It is safe against production because it writes nothing.
+      `restore <dir> --i-mean-it` is the same path without the rollback, and it does not empty anything
+      first: it is for a database that is already empty.
+    - **The one limitation, stated rather than papered over**: `PriceSnapshot` is rehearsed on its first
+      100,000 rows of 791,033, because a `TEMP` copy of all 213 MB would take the database to within a few
+      MB of the 500 MB cap -- a worse risk than the one being checked for. That proves the column list, the
+      types, the NULL encoding and the quoting, which are properties of the file and not of its length. It
+      does not prove that no single row further down the file is malformed. `--full` lifts the cap on a
+      database with room, and is the thing to run on a restore target before trusting it.
+
+101. **There is no live second copy right now, and that is the open risk.** Neon (`DATABASE_URL_FALLBACK`)
+    answers `Your account or project has exceeded the quota` on every connection, checked 2026-10-12, which
+    is the same thing that failed the mirror in rule 98 and is not a transient. So: the primary is Supabase,
+    the standby cannot be written or read, and the only other copy of the data is the file backup above.
+    The write failover of rule 97 and the read failover of lib/failover.ts are both correct and both
+    currently have nowhere to fail over to. Until Neon's quota returns or a second database is configured,
+    the recovery plan *is* `restore_db.py`, which is why it was worth building. Also noted: in the local
+    `.env`, `DATABASE_URL` and `SUPABASE_DATABASE_URL` select the same Supabase database (same host, port,
+    database and pooler user), so locally the only candidate standby is the Neon one that is over quota.
+    Production secrets were not read and may differ; this needs checking against them, not against `.env`.

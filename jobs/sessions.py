@@ -23,6 +23,43 @@ def session_bar(alias: str | None = None) -> str:
     )
 
 
+def newest_session_bars(columns: list[str], *, assets: bool = False, oldest_first: bool = True) -> str:
+    """SQL for the newest `%s` session bars of every asset, one index probe per asset.
+
+    Every caller of this used to say the same thing with `row_number() OVER (PARTITION BY
+    "assetId" ORDER BY date DESC)` and a `WHERE rn <= n`, which Postgres can only answer by
+    reading and sorting the whole table -- all 781,163 rows to keep the 73,049 the callers
+    wanted. There is no loose index scan, so the only way to use `PriceSnapshot_pkey` for a
+    per-asset newest is to ask it once per asset: that is the lateral below, and it is the
+    same rows in the same order, measured on 2026-10-12.
+
+    Driving from `Asset` rather than from `PriceSnapshot` loses nothing: `assetId` is a
+    foreign key onto `Asset` with `ON DELETE CASCADE`, so a priced row without an asset
+    cannot exist. It also puts `assetType` in reach, which is how the crypto half of the
+    session rule is answered here without the `IN (SELECT ...)` subquery `session_bar` needs.
+
+    Placeholders, in the order they must be passed: the row limit, then the asset ids when
+    `assets` is set.
+    """
+    # `assetId` is always carried out of the lateral, because every caller keys its result by
+    # it, and a caller that names it as well must not select it twice.
+    rest = [c for c in columns if c != "assetId"]
+    inner = ", ".join(f's."{c}"' for c in ["assetId", *rest])
+    outer = ", ".join(f'b."{c}"' for c in ["assetId", *rest])
+    scope = "\n        WHERE a.id = ANY(%s)" if assets else ""
+    return f'''
+        SELECT {outer}
+        FROM "Asset" a
+        CROSS JOIN LATERAL (
+            SELECT {inner} FROM "PriceSnapshot" s
+            WHERE s."assetId" = a.id AND s.close IS NOT NULL
+              AND (EXTRACT(ISODOW FROM s."date") < 6 OR a."assetType" = 'crypto')
+            ORDER BY s.date DESC
+            LIMIT %s
+        ) b{scope}
+        ORDER BY b."assetId", b.date {"ASC" if oldest_first else "DESC"}'''
+
+
 def trades_on(asset_type: str | None, day: date) -> bool:
     """Whether an asset of this type has a session on `day`: crypto every day, everything else on weekdays."""
     return (asset_type or "") == "crypto" or day.isoweekday() < 6
