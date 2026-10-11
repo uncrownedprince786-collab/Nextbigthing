@@ -385,7 +385,6 @@ export default async function LogbookPage() {
       {summary ? (
         <>
           <Scorecard s={summary} />
-          <Trades t={trades} />
           <Flips s={summary} />
           <Stars s={summary} />
         </>
@@ -397,6 +396,8 @@ export default async function LogbookPage() {
         </Card>
       )}
 
+      {/* Apart from the summary, so direction and trade are always shown as two questions (rule 95). */}
+      <Trades t={trades} />
       <Runs runs={runs} />
 
       {entries.length > 0 && (
