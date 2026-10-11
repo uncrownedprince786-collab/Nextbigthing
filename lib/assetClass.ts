@@ -106,7 +106,7 @@ export function scoreRows(
       target,
       style,
       gate: withOpenPosition(qualityGate(decision, target, input.atr ?? null, style), since),
-      execution: executionOf({ action: decision.action, closeVolume: row.closeVolume }),
+      execution: executionOf({ action: decision.action, closeVolume: row.closeVolume, market: input.market }),
     };
   });
 }

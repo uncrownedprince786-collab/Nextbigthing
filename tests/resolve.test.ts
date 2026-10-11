@@ -220,8 +220,11 @@ test("the plan's reward:risk is re-measured against the moved stop, from the ent
 // --- P0-9: execution readiness is separate from direction ---------------------------------------
 
 test("a SHORT is never an executable call on data that cannot confirm it", () => {
-  assert.equal(executionOf({ action: "SHORT", closeVolume: 5000 })?.status, "unverified");
-  assert.match(executionOf({ action: "SHORT", closeVolume: 5000 })!.reasons.join(" "), /short-sale eligibility is not stored/);
+  assert.equal(executionOf({ action: "SHORT", closeVolume: 5000, market: "US" })?.status, "unverified");
+  assert.match(executionOf({ action: "SHORT", closeVolume: 5000, market: "PSX" })!.reasons.join(" "), /no short-sale eligibility data/);
+  // A pair or a future is sold as easily as bought: no eligibility question, only the volume one.
+  assert.equal(executionOf({ action: "SHORT", closeVolume: 5000, market: "Commodity" })?.status, "checked");
+  assert.deepEqual(executionOf({ action: "SHORT", closeVolume: null, market: "FX" })?.reasons, ["this market publishes no volume, so liquidity cannot be measured"]);
   assert.equal(executionOf({ action: "LONG", closeVolume: 0 })?.status, "blocked");
   assert.equal(executionOf({ action: "SHORT", closeVolume: 0 })?.status, "blocked");
   assert.equal(executionOf({ action: "LONG", closeVolume: null })?.status, "unverified", "no volume published: liquidity unmeasured");

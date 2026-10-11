@@ -2591,8 +2591,8 @@ reads rows that already exist:
       65, PSX 16 to 8, commodities 2 to 0. A namesake whose name opens a clause about something else can
       still be read as the asset; no side would be the cost of fixing that, and it is recorded, not hidden.
     - **Execution is not direction.** `lib/execution.ts`: blocked when the last session printed no trade,
-      unverified for every SHORT (no market's short-sale eligibility is stored) and wherever no volume is
-      published, checked only for a LONG that traded inside the turnover-floored pool -- and no bid or ask
+      unverified for a SHORT on a share or a coin (no short-sale eligibility data is held) and wherever
+      no volume is published, checked only for a LONG that traded inside the turnover-floored pool -- and no bid or ask
       is stored anywhere, which the reason says. "NOW" is shown only for a checked call.
     - **A call that is not published does not look like one.** The asset panel for a withheld direction says
       "Not a published call" first and large, prints the reading as a reading, and gives no entry, stop,

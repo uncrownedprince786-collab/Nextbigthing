@@ -7,9 +7,11 @@
 ///
 ///   * **blocked** -- the last session printed no trade at all (volume 0 on a market that publishes
 ///     volume): nothing traded at the price the levels are measured from;
-///   * **unverified** -- a SHORT anywhere (short-sale eligibility is not stored: PSX allows it only in
-///     designated securities and a US borrow is not public data), or a market that publishes no volume,
-///     where liquidity cannot be measured at all;
+///   * **unverified** -- a SHORT on a share or a coin (the site holds no short-sale eligibility data: PSX
+///     allows it only in designated securities, a US borrow is not public data, and a coin needs margin or
+///     a derivative), or a market that publishes no volume, where liquidity cannot be measured at all. A
+///     currency pair or a future is sold as easily as it is bought, so its SHORT carries no eligibility
+///     question;
 ///   * **checked** -- a LONG whose last session traded, in a pool whose names already clear a turnover
 ///     floor (jobs/pool.py). Bid and ask are still not stored, and the reason says so.
 ///
@@ -22,6 +24,9 @@ export interface Execution {
 
 export function executionOf(o: {
   action: string;
+  /// "US", "PSX", "Crypto", "FX", "Commodity" or "Other". Short-sale eligibility is a question only for
+  /// shares and coins.
+  market?: string | null;
   /// The volume printed on the session the decision read; null when the market publishes none.
   closeVolume: number | null | undefined;
 }): Execution | null {
@@ -31,7 +36,9 @@ export function executionOf(o: {
     return { status: "blocked", reasons: ["no trade was printed on the last session"] };
   }
   const reasons: string[] = [];
-  if (o.action === "SHORT") reasons.push("short-sale eligibility is not stored for this security");
+  if (o.action === "SHORT" && o.market !== "FX" && o.market !== "Commodity") {
+    reasons.push("the site holds no short-sale eligibility data for this security");
+  }
   if (volume === null || volume === undefined || !Number.isFinite(volume)) {
     reasons.push("this market publishes no volume, so liquidity cannot be measured");
   }
