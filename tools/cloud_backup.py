@@ -81,6 +81,13 @@ from pathlib import Path
 import psycopg
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "jobs"))
+# The primary is chosen in one place for the whole project (brain.md rule 97) and this is not it.
+# Naming either standby variable here would be a second definition of which database is in front, and
+# tests/failover.test.ts fails any job or tool that does -- correctly: two copies of that rule is how
+# a backup ends up dumping the standby while everything else writes the primary.
+from nbt import primary_choice  # noqa: E402
+
 try:
     from dotenv import load_dotenv
 
@@ -118,11 +125,8 @@ def say(line: str) -> None:
 
 
 def primary_url() -> str:
-    """The primary, by the one rule the whole project uses (brain.md rule 97)."""
-    supa = (os.environ.get("SUPABASE_DATABASE_URL") or "").strip()
-    if (os.environ.get("PRIMARY") or "supabase").strip().lower() == "supabase" and supa:
-        return supa
-    url = (os.environ.get("DATABASE_URL") or "").strip()
+    """The primary, as `jobs/nbt.py` picks it for every other lane."""
+    _, url = primary_choice()
     if not url:
         raise SystemExit("refusing: no database url is configured")
     return url
