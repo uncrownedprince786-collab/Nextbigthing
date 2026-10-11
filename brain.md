@@ -2826,3 +2826,31 @@ reads rows that already exist:
       schema lane migrates the chosen primary first and every other database after.
     - Publishing follows the tier: a read from Supabase is a primary read, so calls publish; a read from Neon is
       a standby read and publishes nothing (rule 94).
+
+98. **Clean reset and one full resync, on the free tier (maintenance run `reset-2026-10-11T1930Z`).** With the
+    owner's go-ahead and Supabase as the primary (rule 97). Neon stays over its quota and is not used.
+    - **Writers paused**: the 14 scheduled workflows were disabled through the API, nothing was running, and each
+      lane was enabled only for its own single run during the resync.
+    - **Backup**: every public table, from one REPEATABLE READ snapshot, to gzip CSV outside the repository
+      (`nbt-private/backup-reset-2026-10-11T1930Z`, 44 tables, 887,861 rows, 30 MB), verified by re-reading
+      every file against its manifest's row count and checksum: 44 of 44.
+    - **Reset**: one transaction, one TRUNCATE of exactly 36 runtime tables without CASCADE (prices, intraday,
+      quotes, news, events, every derived table, decisions, runs, calls, outcomes, logs); kept the migrations
+      (31), Industry 42, Asset 613, Product 30, ProductAssetLink 36 and the empty configuration tables; the
+      history triggers survived (3 of 3). Run by the owner, because the session's safety check refused the
+      delete; verified empty and committed (313 MB -> 15 MB).
+    - **Resync, once each, in order, validated in the database after each**:
+      us-prices `38147889016` (US 280/280, Commodity 8/8, FX 27/27 active assets, from 2019 to 2026-10-09,
+      0 weekend bars) -> backfill `38148313503` (PSX 176/176, 82,515 bars; events 364) -> crypto `38150437165`
+      (63/63, 96,144 bars, Coinbase and Kraken) -> news `38150832188` (2,277 headlines, 276 assets) -> live
+      `38151823101` (crypto 71/72, a Yahoo slice 58/60) -> products `38151911462` (202 signals) -> decision
+      `38154560405` (388 WAIT / 94 LONG / 72 SHORT readings, 17 published; runs gh-38154560405-1-decide and
+      -macro, 554 calls each, fingerprint 9c60c433, code 65a590f; 17 outcomes pending, bound to the first
+      run's calls) -> audit `38156051539` (every source healthy but Google News RSS, partial on a Sunday) ->
+      mirror `38156146692` (Supabase -> Neon, failed: Neon unreachable). No lane was retried.
+    - **Data notes**: Yahoo sends 4,140 FX bars whose close sits outside their own range (median 0.01-0.2%,
+      worst USD/PKR 12.8%) and the PSX files 339; stored as sent, read by the trade grader as unavailable.
+      The PSX file for Saturday 2022-10-01 is the exchange's own (171 rows); every decision reader skips it.
+    - **After**: schedules re-enabled; live health served from the primary, every market current or closed as
+      expected; /api/signals 17 published; the UI audit passed (554 of 554 listed, one snapshot). The full
+      audit is the owner's next step; no outcome has matured, so no performance exists to report.
