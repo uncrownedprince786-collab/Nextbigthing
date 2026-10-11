@@ -1,6 +1,7 @@
 import { getHealthReadings } from "@/lib/queries";
 import { cachedDecisionRows } from "@/lib/cached";
 import { assess } from "@/lib/health";
+import { servingTier } from "@/lib/db";
 
 /// The site's heartbeat: how fresh every stored reading is, and which lane would fix what is not.
 ///
@@ -16,10 +17,12 @@ export async function GET() {
     // reported a parity failure that fixed itself (2026-10-10, 523 of 528). The table count stays
     // the fallback when the cached list cannot be read.
     const [readings, rows] = await Promise.all([getHealthReadings(), cachedDecisionRows().catch(() => null)]);
-    const health = assess(rows ? { ...readings, pool: rows.length } : readings, new Date());
+    // The tier this request read from, after every read above (lib/db.ts): a standby is a problem (rule 95).
+    const servedFrom = servingTier();
+    const health = assess({ ...(rows ? { ...readings, pool: rows.length } : readings), servedFrom }, new Date());
     // The snapshot the pool was counted from, so a checker can tell a real parity fault from two
     // surfaces serving different snapshots (rule 93): the market pages print the same stamp.
-    return Response.json({ ...health, snapshot: rows?.[0]?.dataStamp ?? null, servedFrom: rows?.[0]?.servedFrom ?? null }, {
+    return Response.json({ ...health, snapshot: rows?.[0]?.dataStamp ?? null, servedFrom }, {
       status: 200,
       headers: { "Cache-Control": "no-store" },
     });

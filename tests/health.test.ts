@@ -80,6 +80,14 @@ test("a closed market reads as closed, one missing session as behind, two as sta
   assert.equal(us.closes[0].sessionsBehind, 2);
 });
 
+test("serving from a standby is a problem for a person, whatever the freshness (rule 95)", () => {
+  const h = assess(healthy({ servedFrom: "Supabase" }), NOW);
+  assert.equal(h.ok, false);
+  assert.deepEqual(h.problems.map((p) => [p.check, p.lane]), [["database", null]]);
+  assert.match(h.problems[0].detail, /served from Supabase because the primary cannot be used, so no call is published/);
+  assert.equal(assess(healthy({ servedFrom: "the primary" }), NOW).ok, true);
+});
+
 test("a market that is trading needs a fresh quote; a closed market's quote may sit still (rule 95)", () => {
   // Sunday noon: crypto ticks, FX and US are closed. Their Friday quotes are not a fault.
   const sunday = new Date("2026-10-11T12:00:00Z");

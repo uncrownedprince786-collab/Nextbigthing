@@ -57,6 +57,8 @@ export interface HealthReadings {
   lanes?: { job: string; lastRun: Date | string | null; lastOk: Date | string | null }[];
   /// How many assets the universe holds, so a page that lists fewer can be caught (tools/ui_audit.py).
   pool?: number;
+  /// The tier this request read from: "the primary" or a standby's name (lib/db.ts `servingTier`).
+  servedFrom?: string | null;
 }
 
 export interface Problem {
@@ -195,6 +197,17 @@ export function assess(r: HealthReadings, now: Date): Health {
       check: "quotes",
       lane: LANE_FOR.quotes,
       detail: `newest live quote is ${Math.round(quoteMs / 60_000)} minutes old; the lane runs every 15`,
+    });
+  }
+  // A standby read publishes nothing (rule 94), so a site serving from one is not healthy whatever its
+  // freshness says. No lane fixes it -- the primary is down or over its quota -- so it names none, and
+  // the watchdog hands it to a person. On 2026-10-11 health read green for hours while the primary was
+  // over quota and every list was empty (rule 95).
+  if (r.servedFrom && r.servedFrom !== "the primary") {
+    problems.push({
+      check: "database",
+      lane: null,
+      detail: `reads are served from ${r.servedFrom} because the primary cannot be used, so no call is published`,
     });
   }
   const lanes = (r.lanes ?? []).map((l) => {

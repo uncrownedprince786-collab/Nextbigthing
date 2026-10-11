@@ -2766,3 +2766,22 @@ reads rows that already exist:
       platinum print 0 on traded days); an execution never assessed is never NOW; the weekly block ranks a
       checked NOW above an IN ZONE; and every list surface prints the execution status beside the direction,
       checked included. Short eligibility is still never inferred; no bid, ask or eligibility data exists.
+    - **Deployed into an outage.** The Neon primary went over its compute quota during this pass (error
+      53000, "Your account or project has exceeded the quota"); the schema runs `38140697236` and
+      `38141007641` could not reach it (P1001). The site failed over to the Supabase standby, which
+      publishes nothing (rule 94), and whose pooler times out under the overview's parallel reads, so `/`
+      answered 500 about half the time. The standby step now runs even when the primary's migration fails
+      (`if: always()`), and run `38141007641` migrated Supabase; the primary takes the migration on the
+      first schema run after it is reachable again. Restoring it -- an upgrade or the quota reset -- is the
+      owner's decision. Health had read green through all of it, because nothing in it asked which tier it
+      read from; a standby read is now a problem with no lane ("reads are served from Supabase because the
+      primary cannot be used, so no call is published"), which the watchdog hands to a person. Commits `8bdfd35` (schema), `bd28bba` (this pass), `414b1f9` (namesakes),
+      `342dd7b` (unknown run state), `76485e7` (logbook); production deployment `6996020494`.
+    - **Namesakes** (P2). One matcher (`HeadlineMatcher` in `jobs/prices.py`) decides whether a headline
+      names an asset, at ingestion and when `jobs/human.py` counts stored rows: the " - Publisher" suffix
+      is cut first; a company is matched on its name as printed, whole, capitalised and not inside a longer
+      proper noun (Dow Jones, Port Vale, SAP Center, King Lear), or on its ticker only where it can only be
+      the ticker; a coin needs crypto context beside its name. On 14 days of stored rows it set aside 77 of
+      313 crypto rows and 66 of 1,179 US rows, losing 18 and 17 genuine ones (coined names with no crypto
+      word, short forms like "SpaceX"). Stored rows are not deleted and still show on asset pages until
+      they age out; title-case common words ("Alleged Visa Fraud") still pass.
