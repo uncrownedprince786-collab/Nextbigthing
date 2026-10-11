@@ -928,8 +928,11 @@ export interface CallRun {
   latest: Date;
 }
 
-async function getCallRuns(): Promise<Map<string, CallRun>> {
-  const out = new Map<string, CallRun>();
+/// Every asset's current run, and whether the decision log could be read at all. An unreadable log used
+/// to come back as an empty map, which every page then printed as "no decision run has logged this
+/// market" -- live on 2026-10-11, read from the standby, while the run of that day existed (rule 95).
+async function getCallRuns(): Promise<Map<string, CallRun> & { readable: boolean }> {
+  const out = Object.assign(new Map<string, CallRun>(), { readable: true });
   try {
     const rows = await prisma.$queryRaw<
       { assetId: string; action: string; since: Date; prev: string | null; gate: string | null; latest: Date }[]
@@ -947,6 +950,7 @@ async function getCallRuns(): Promise<Map<string, CallRun>> {
     }
   } catch {
     out.clear();
+    out.readable = false;
   }
   return out;
 }
@@ -1429,6 +1433,9 @@ export type DecisionQueryRow = {
   callPrev: string | null;
   callGate: string | null;
   callLatest: Date | null;
+  /// False when the decision log could not be read, the same on every row: a null `callLatest` is then
+  /// "not known", never "no run logged" (rule 95).
+  callsReadable: boolean;
   /// Stories, not items: twenty outlets carrying one wire report is one story. The reasoning is
   /// at `getStories` and on `HumanSignal.recentStories`.
   recentStories: number | null;
@@ -1900,6 +1907,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       callPrev: runByAsset.get(asset.id)?.prev ?? null,
       callGate: runByAsset.get(asset.id)?.gate ?? null,
       callLatest: runByAsset.get(asset.id)?.latest ?? null,
+      callsReadable: runByAsset.readable,
       quoteAt: quoteByAsset.get(asset.id)?.quotedAt ?? null,
       macroVetoReason: vetoByAsset.get(asset.id)?.reason ?? null,
       newsReadOn,

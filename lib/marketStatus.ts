@@ -12,7 +12,13 @@ import type { Scored } from "@/lib/assetClass";
 ///   RUN_COMPLETE_NO_PUBLISHED_CALLS   the newest run logged every name here, and none passed the quality gate
 ///   RUN_INCOMPLETE_OR_FAILED          this market is missing from the newest run, or only some names were logged
 ///   NO_READING                        no decision run has logged this market at all
-export type RunState = "RUN_COMPLETE_WITH_CALLS" | "RUN_COMPLETE_NO_PUBLISHED_CALLS" | "RUN_INCOMPLETE_OR_FAILED" | "NO_READING";
+///   RUN_STATE_UNKNOWN                 the decision log could not be read, so none of the above can be said
+export type RunState =
+  | "RUN_COMPLETE_WITH_CALLS"
+  | "RUN_COMPLETE_NO_PUBLISHED_CALLS"
+  | "RUN_INCOMPLETE_OR_FAILED"
+  | "NO_READING"
+  | "RUN_STATE_UNKNOWN";
 
 /// What one market's page can say about its own state (rule 93): the newest stored close, the newest
 /// decision run it was part of, and where every name went -- so "no call today" can be told apart from
@@ -22,6 +28,8 @@ export interface MarketStatus {
   runState: RunState;
   /// Names with a row in the newest run that logged this market.
   logged: number;
+  /// Whether the decision log could be read; when it could not, `decidedOn` is unknown, not absent.
+  logReadable: boolean;
   names: number;
   latestClose: string | null;
   /// The newest decision run that logged a row for this market, and the newest run of any market.
@@ -59,9 +67,11 @@ export function marketStatus(
   const logged = decidedOn ? mine.filter((s) => dayText(s.row.callLatest) === decidedOn).length : 0;
   const longs = mine.filter((s) => s.decision.action === "LONG" && isPublishedRow(s)).length;
   const shorts = mine.filter((s) => s.decision.action === "SHORT" && isPublishedRow(s)).length;
+  const logReadable = !all.some((s) => s.row.callsReadable === false);
   return {
-    runState: runStateOf({ names: mine.length, decidedOn, processed, logged, published: longs + shorts }),
+    runState: runStateOf({ names: mine.length, decidedOn, processed, logged, published: longs + shorts, logReadable }),
     logged,
+    logReadable,
     names: mine.length,
     latestClose: newest(mine.map((s) => dayText(s.row.closeDate))),
     decidedOn,
@@ -84,7 +94,15 @@ export function marketStatus(
   };
 }
 
-export function runStateOf(m: { names: number; decidedOn: string | null; processed: boolean; logged: number; published: number }): RunState {
+export function runStateOf(m: {
+  names: number;
+  decidedOn: string | null;
+  processed: boolean;
+  logged: number;
+  published: number;
+  logReadable?: boolean;
+}): RunState {
+  if (m.logReadable === false) return "RUN_STATE_UNKNOWN";
   if (m.names === 0 || m.decidedOn === null) return "NO_READING";
   if (!m.processed || m.logged < m.names) return "RUN_INCOMPLETE_OR_FAILED";
   return m.published > 0 ? "RUN_COMPLETE_WITH_CALLS" : "RUN_COMPLETE_NO_PUBLISHED_CALLS";
@@ -98,7 +116,8 @@ function isPublishedRow(s: Scored): boolean {
 export function marketStatusLines(m: MarketStatus): string[] {
   const lines: string[] = [];
   lines.push(`${m.names} ${m.names === 1 ? "name" : "names"}, newest close stored ${m.latestClose ?? "none"}.`);
-  if (!m.decidedOn) lines.push("No decision run has logged this market yet.");
+  if (!m.logReadable) lines.push("The decision log could not be read from this database, so whether this market was run is not known.");
+  else if (!m.decidedOn) lines.push("No decision run has logged this market yet.");
   else if (!m.processed) lines.push(`Not processed in the latest run (${m.latestRun}): its newest decision is from ${m.decidedOn}.`);
   else if (m.logged < m.names) lines.push(`Decision run of ${m.decidedOn} reached ${m.logged} of these ${m.names} names; the rest have no row in it.`);
   else lines.push(`Decision run of ${m.decidedOn} completed for this market.`);

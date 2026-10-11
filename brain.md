@@ -2706,7 +2706,12 @@ reads rows that already exist:
       RUN_COMPLETE_WITH_CALLS, RUN_COMPLETE_NO_PUBLISHED_CALLS, RUN_INCOMPLETE_OR_FAILED (missing from the
       newest run, or only some names logged), NO_READING -- and the card prints the market page's own
       sentence from it. Both print `data-run-state`, `data-names` and `data-published`; the UI audit fails
-      when an overview card disagrees with its market page or says "not been through a run".
+      when an overview card disagrees with its market page or says "not been through a run". Verifying it
+      live found the same false claim by another road: read from the standby, the decision-log query
+      failed, `getCallRuns` returned an empty map, and every page said "No decision run has logged this
+      market yet" while the run of 2026-10-11 existed. The read now reports whether it succeeded, an
+      unreadable log is a fifth state, RUN_STATE_UNKNOWN ("whether this market was run is not known"), and
+      the UI audit fails any market with names reading NO_READING while health shows a decision run.
     - **A rerun overwrote the day's call.** `DecisionLog` is unique on (asset, day) and every pass upserted
       it: 2026-10-10 carries the computedAt of eight passes, and 55 LONG and 12 SHORT calls made at 20:15
       survive nowhere after the 23:14 pass turned them into WAIT. `DecisionLog` stays the current call per

@@ -8491,6 +8491,22 @@ class TheLiveSiteKeepsItsDisplayRules(unittest.TestCase):
         old = card("RUN_COMPLETE_NO_PUBLISHED_CALLS", "No stored reading yet. ... a class that has not been through a run")
         failures, _ = ua.audit("x", site(old))
         self.assertTrue(any("not been through a run" in f for f in failures), failures)
+        # Never "never run" while a decision run exists, even when the card and the page agree on it.
+        both = '<p data-market-status data-snapshot="s" data-run-state="NO_READING" data-names="8" data-published="0">'
+
+        def site2(home):
+            def fetch(url):
+                if url.endswith("/api/health"):
+                    return '{"pool": null, "snapshot": "s", "decisions": {"newest": "2026-10-11"}}'
+                if url.endswith("/commodities"):
+                    return "<html><body>" + both + "<ul></ul></body></html>"
+                if url == "x/":
+                    return "<html><body>" + home + "</body></html>"
+                return "<html><body><ul></ul></body></html>"
+            return fetch
+
+        failures, _ = ua.audit("x", site2(card("NO_READING")))
+        self.assertTrue(any("has never been run, and health shows a decision run of 2026-10-11" in f for f in failures), failures)
         # A market page with a state and no card on the overview is reported, not skipped.
         other = '<div data-market="stocks" data-run-state="NO_READING" data-names="0" data-published="0"></div>'
         failures, _ = ua.audit("x", site(other))

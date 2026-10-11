@@ -59,6 +59,18 @@ test("a market missing from the newest run, or only partly logged, says so", () 
   assert.match(marketStatusLines(p).join(" "), /reached 6 of these 8 names/);
 });
 
+test("a decision log that could not be read is RUN_STATE_UNKNOWN, never 'no run logged'", () => {
+  // Live on 2026-10-11, read from the standby: the log query failed, every callLatest came back null, and
+  // every page said "No decision run has logged this market yet" while the run of that day existed.
+  const unread = COMMODITIES.map((s) => ({ ...s, row: { ...s.row, callLatest: null, callsReadable: false } }) as unknown as Scored);
+  const s = marketStatus(unread, unread, [], null);
+  assert.equal(s.runState, "RUN_STATE_UNKNOWN");
+  const text = marketStatusLines(s).join(" ");
+  assert.match(text, /could not be read from this database, so whether this market was run is not known/);
+  assert.doesNotMatch(text, /No decision run has logged/);
+  assert.equal(runStateOf({ names: 8, decidedOn: null, processed: false, logged: 0, published: 0, logReadable: false }), "RUN_STATE_UNKNOWN");
+});
+
 test("a published call makes the run RUN_COMPLETE_WITH_CALLS", () => {
   const rows = [row({ action: "SHORT", published: true }), ...COMMODITIES.slice(1)];
   assert.equal(marketStatus(rows, rows, [], null).runState, "RUN_COMPLETE_WITH_CALLS");

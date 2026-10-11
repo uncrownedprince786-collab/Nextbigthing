@@ -185,6 +185,13 @@ def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
     import json
 
     health = json.loads(fetch(site + "/api/health"))
+    # No market with names may read "never run" while a decision run exists (rule 95): live on 2026-10-11
+    # an unreadable log was printed as "No decision run has logged this market yet" on every page.
+    ran = (health.get("decisions") or {}).get("newest")
+    if ran:
+        for where, s in [*(("/", c) for c in cards.values()), *((f"/{k}", v) for k, v in states.items())]:
+            if s.get("state") == "NO_READING" and (s.get("names") or "0") != "0":
+                failures.append(f"run state: {where} says {s.get('market') or where.strip('/')} has never been run, and health shows a decision run of {ran}")
     pool = health.get("pool")
     counts["listed"], counts["pool"] = len(listed), pool or 0
     if isinstance(pool, int) and len(listed) != pool:
