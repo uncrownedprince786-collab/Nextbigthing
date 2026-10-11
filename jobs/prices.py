@@ -1397,7 +1397,12 @@ def asset_news_term(a: dict) -> str:
         # The ticker is what financial news prints, so lead with that.
         base = f'"{a["symbol"]}"'
     elif kind == "crypto":
-        base = a["name"]
+        # The coin's name and the word that says which meaning is asked for. The bare name was a
+        # search for an English word: measured 2026-10-11 on the live feed, "Dash" returned 100
+        # items of which 0 named the coin (diet studies, sports, DoorDash), "Sky" 2 and "Cosmos"
+        # 9; with "crypto" added the same names returned 22, 31 and 74. A coined name loses
+        # nothing by it ("Polkadot" 89 of 100, "Polkadot crypto" 83), and the cap is six.
+        base = f"{a['name']} crypto"
     elif kind == "commodity":
         # A futures contract is named by its underlying in every headline, never by symbol.
         return hint or a["name"]
@@ -1523,45 +1528,468 @@ def is_junk_headline(title: str) -> bool:
     return any(low.startswith(p) for p in JUNK_TITLE_PREFIXES)
 
 
-def news_matcher(a: dict) -> re.Pattern[str]:
+# Does a headline name this asset? The rules below replaced a check that was measured wrong.
+#
+# Measured on 2026-10-11 over the rows stored in the 14 days before: 77 of 313 crypto rows and 41
+# of 1,179 US-share rows were about something else -- "DASH diet found safe", "Chicago Sky",
+# "October's night sky", "Best Time to Plant Grass Seed", "Render Unto Caesar" under coins; "Port
+# Vale 2-0 Mansfield" under VALE, "King Lear" under LEA, "H-1B visa workers" under V, "Dow Jones
+# Futures" under DOW, "SAP Center" under SAP -- and 25 more US rows named the company only in the
+# publisher. Four faults produced them, and each rule below answers one:
+#
+#   * the check ran on the whole title, publisher included, so "... - S&P Global" named SPGI and
+#     "... - Polygon.com" named Polygon. The publisher is cut off first (`headline_body`).
+#   * a US share was matched on the first word of its name as a substring with no word edge, so
+#     "on" (ON Semiconductor) and "ge" (GE Aerospace) matched almost every headline. Names are now
+#     matched whole, at word edges, and must be written as a name: capitalised ("visa workers" is
+#     a word, "Visa" is a company), and not cased against the stored name ("DoW" is not "Dow").
+#   * a name that is part of a longer proper noun -- "Dow Jones", "Port Vale", "SAP Center",
+#     "Vale High School" -- is that other thing, not the asset (`_LONGER_NAME_AFTER/BEFORE`).
+#   * a coin's name is very often an English word, and the query for it was the bare word. A coin
+#     is matched only when the headline also says it is about crypto (`_CRYPTO_CONTEXT`).
+#
+# A headline whose identity is ambiguous is left unmatched. That costs a page a story; matching it
+# costs a tone reading and an attention count built from someone else's news, and news here can
+# only ever weaken a call, never make one.
+
+# Legal forms trimmed off a listed company's name, one word at a time from the end, so "Nu Holdings
+# Ltd." is matched as "Nu Holdings" and "Hecla Mining Company" as "Hecla Mining".
+_LEGAL_WORDS = frozenset({
+    "inc", "incorporated", "corp", "corporation", "co", "company", "companies", "ltd", "limited",
+    "plc", "llc", "lp", "holdings", "holding", "group", "sa", "s.a", "nv", "n.v", "ag", "se", "oyj",
+})
+# Words after a company's name that say what it does rather than which company it is. The press
+# writes "Micron", "Ford" and "Thermo Fisher", not "Micron Technology", "Ford Motor" and "Thermo
+# Fisher Scientific". Trimmed one at a time from the end, so every shorter form is a token.
+_DESCRIPTOR_WORDS = frozenset({
+    "technologies", "technology", "systems", "platforms", "motor", "motors", "pharmaceuticals",
+    "biotherapeutics", "therapeutics", "sciences", "scientific", "energy", "power", "petroleum",
+    "interactive", "automotive", "automation", "resources", "restaurants", "stores", "solutions",
+    "semiconductor", "semiconductors", "laboratories", "electric", "networks", "brands",
+    "healthcare", "health", "financial", "services", "mining", "mines", "computer", "industries",
+    "devices", "international", "us",
+})
+# A one-word short form has to be a name and not a word. These start a listed company's name in
+# this universe and are, on their own, an ordinary word, a place or a given name: "Waste" alone is
+# not Waste Management, "Duke" alone is a university, "Constellation" alone is another company.
+# Extends the list `jobs/human.py` keeps for the same purpose (`_GENERIC_FIRST`). The full name
+# always stays a token, so a word here only loses the short form.
+_COMMON_SHORT_FORMS = frozenset({
+    "bank", "first", "national", "united", "american", "general", "international", "global",
+    "pakistan", "new", "state", "china", "standard", "capital", "energy", "power", "digital",
+    "world", "south", "north", "east", "west", "us", "the", "gold", "silver", "oil", "natural",
+    "crude", "royal", "federal",
+    "abbott", "advanced", "air", "analog", "applied", "arm", "ast", "baker", "booking", "boston",
+    "cadence", "kraft", "petroleo", "prudential", "rockwell",
+    "charles", "commercial", "constellation", "crown", "devon", "dollar", "duke", "eli", "emerson",
+    "harmony", "home", "illinois", "intuitive", "johnson", "kinder", "magna", "marathon",
+    "microchip", "monolithic", "morgan", "norfolk", "palo", "parker", "penguin", "philip",
+    "phillips", "progressive", "realty", "republic", "rocket", "ross", "s&p", "simon", "southern",
+    "space", "steel", "super", "texas", "union", "vertex", "walt", "waste", "wells", "wheaton",
+    "williams",
+})
+# A word right after a name that makes it part of a longer proper noun: "Dow Jones", "SAP Center",
+# "Vale High School", "Solid Waste Management District", "Eaton Funeral Home", "DASH diet".
+_LONGER_NAME_AFTER = re.compile(
+    r"\s+(?:jones|center|centre|arena|stadium|district|high\s+school|school|college|university|"
+    r"academy|county|beach|valley|theater|theatre|hall|festival|museum|funeral|diet)(?![\w])",
+    re.I,
+)
+# Capitalised only, because the lowercase word is a company's own news: "Kroger Field" is a
+# stadium, "a Shell field" is an oil field.
+_LONGER_NAME_AFTER_CASED = re.compile(r"\s+Field(?![\w])")
+# "Dow Futures" is the index. Not applied to a coin, where "Bitcoin futures" is the coin.
+_INDEX_AFTER = re.compile(r"\s+futures(?![\w])", re.I)
+# A capitalised word right before a name that makes it a place or a title: "Port Vale", "King
+# Lear". Not the lowercase surname particles ("von der Linde"): "de" and "der" are also French
+# and German, and "L'auditeur de Dewan Farooque Spinning Mills" is about the company.
+_LONGER_NAME_BEFORE = re.compile(r"(?:^|[^\w])(?:Port|King|Lake|Mount|Mt\.?|Fort|Saint|St\.?)\s+$")
+
+# Words that say a headline is about crypto. A coin's name is matched only next to one of these
+# (or its ticker, or a crypto publisher), because "Dash", "Sky", "Grass", "Cosmos", "Stellar",
+# "Optimism", "Render", "Quant", "Stacks" and "Aster" are words before they are coins.
+_CRYPTO_CONTEXT = re.compile(
+    r"(?<![\w$])(?:crypto(?:s|currency|currencies)?|tokens?|tokeni[sz]ed|tokenomics|coins?|"
+    r"memecoins?|meme\s+coins?|altcoins?|stablecoins?|blockchains?|defi|dex|staking|staked|"
+    r"airdrops?|nfts?|web3|mainnet|testnet|onchain|on-chain|layer[\s-]?[12]|l[12]|validators?|dao|"
+    r"bitcoin|btc|ethereum|ether|eth|solana|xrp|binance|coinbase|usdc|usdt|tether|satoshi|"
+    r"hashrate)(?![\w])",
+    re.I,
+)
+# Weaker: enough next to a coin's name, not enough next to a bare ticker, because "SPX price" is
+# the S&P 500 and "ETF" is every fund.
+_CRYPTO_WEAK_CONTEXT = re.compile(r"(?<![\w$])(?:price|etfs?|protocol)(?![\w])", re.I)
+# A publisher that covers nothing but crypto is context too. Read from the publisher only as
+# context, never as a name: the publisher is not part of the headline.
+_CRYPTO_PUBLISHER = re.compile(
+    r"crypto|coin|bitcoin|token|chain|block|defi|decrypt|binance|bybit|phemex|bitget|kraken|messari",
+    re.I,
+)
+# A coin whose own name says it is a coin: "Dogecoin", "Venice Token", "Uniswap", "Chainlink",
+# "NEAR Protocol", "Bitcoin Cash". Its full name is enough on its own.
+_SELF_EVIDENT_PARTS = ("coin", "token", "swap", "chain", "protocol", "bitcoin", "ethereum")
+_SELF_EVIDENT_WORDS = frozenset({"xrp", "btc", "eth", "dao"})
+# Trailing words a coin's name is often printed without: "Flare", "Pyth", "Venice", "Curve".
+_COIN_DESCRIPTORS = ("token", "protocol", "network", "finance", "coin", "dao")
+
+
+def headline_body(title: str) -> str:
+    """The headline as written, without the publisher the feed appends.
+
+    Google News titles end " - Publisher", and a check run over the whole title matched the
+    publisher: "Most US bank stocks trade lower in September - S&P Global" was stored against
+    SPGI, and two Polygon.com game reviews against the Polygon coin. The cut is the same one
+    `ingest` uses to read `publisher`, so the two can never disagree about where the headline
+    ends. A title with no " - " but a short " | Site" tail has that tail cut instead; a " | "
+    *inside* a Google title is part of the headline ("CDE News | COEUR MINING INC (NYSE:CDE)").
+    """
+    body = (title or "").strip()
+    if " - " in body:
+        body = body.rsplit(" - ", 1)[0]
+    elif " | " in body:
+        head, tail = body.rsplit(" | ", 1)
+        if len(tail.split()) <= 4:
+            body = head
+    return body.strip()
+
+
+def _fold(text: str) -> str:
+    """Accents and curly apostrophes folded, so "Itaú" is "Itau" and "Lowe’s" is "Lowe's"."""
+    import unicodedata
+
+    text = (text or "").replace("\u2019", "'").replace("\u2018", "'")
+    return "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
+
+
+def _name_pattern(form: str) -> re.Pattern[str]:
+    """A name matched whole: at word edges, with an optional possessive, and with its words joined
+    by a space, a hyphen or nothing ("Parker-Hannifin", "Take Two", "JPMorganChase")."""
+    words = ["[\\s-]?".join(re.escape(p) for p in w.split("-")) for w in form.split()]
+    core = r"[\s-]*".join(words)
+    return re.compile(r"(?<![\w@#])(" + core + r")(?:'s|')?(?![\w&])", re.I)
+
+
+def _written_as_a_name(span: str, form: str) -> bool:
+    """Whether the matched text is the name and not the same letters used as a word.
+
+    A name in a headline carries a capital: "H-1B visa workers" and "Solid waste management" are
+    words, "Visa" and "Waste Management" are companies. And it is not cased against the stored
+    name: "DoW" (the Department of War) is not "Dow". Capitals the stored name has and the
+    headline drops ("Nvidia" for "NVIDIA") are fine; capitals the headline adds mid-word are not.
+    """
+    if not any(c.isupper() for c in span):
+        return False
+    if span.isupper() or len(span) != len(form):
+        return True
+    for i, (s, f) in enumerate(zip(span, form)):
+        if i and s.isupper() and f.islower() and span[i - 1].isalpha():
+            return False
+    return True
+
+
+def _shouting(body: str) -> bool:
+    """An all-capitals headline, where a ticker-shaped word is just a word in capitals."""
+    letters = [c for c in body if c.isalpha()]
+    return bool(letters) and not any(c.islower() for c in letters)
+
+
+def _company_forms(name: str) -> list[str]:
+    """The forms a listed company is printed under, longest first.
+
+    The full name; the name without its legal form; each shorter form left by trimming what the
+    company does off the end; and its first word -- each one-word form only when it is a name
+    rather than a word (`_COMMON_SHORT_FORMS`). "Exxon Mobil" is printed "Exxon", "Uber
+    Technologies" is "Uber", "Philip Morris International" is "Philip Morris", and "Waste
+    Management" is never "Waste".
+    """
+    out: list[str] = []
+
+    def add(form: str, *, short: bool) -> None:
+        # A trailing full stop is punctuation, not part of the name: "XP Inc Options" names XP Inc.
+        form = form.strip(" ,").rstrip(".")
+        if not form or form in out:
+            return
+        if short and " " not in form:
+            word = form
+            acronym = re.fullmatch(r"[A-Z0-9&]{3,}", word) is not None
+            named = len(word) >= 4 and word[0].isupper()
+            if not (acronym or named) or word.lower() in _COMMON_SHORT_FORMS:
+                return
+        out.append(form)
+
+    for part in [p.strip() for p in _fold(name).split(" - ") if p.strip()]:
+        add(part, short=False)
+        words = re.sub(r"^the\s+", "", part, flags=re.I).split()
+        while len(words) > 1 and words[-1].lower().strip(".,") in _LEGAL_WORDS:
+            words = words[:-1]
+            add(" ".join(words), short=True)
+        trimmed = words[:]
+        while len(trimmed) > 1 and trimmed[-1].lower().strip(".,") in _DESCRIPTOR_WORDS:
+            trimmed = trimmed[:-1]
+            add(" ".join(trimmed), short=True)
+        if len(words) > 1:
+            add(words[0], short=True)
+        elif words != part.split():
+            add(words[0], short=True)
+    return sorted(out, key=len, reverse=True)
+
+
+def _coin_forms(name: str) -> list[str]:
+    """A coin's name, and the shorter forms it is printed under: "Flare" for "Flare Network",
+    "World Liberty Financial" for "Official World Liberty Financial". Never down to one word by
+    dropping "Official": "OFFICIAL TRUMP" trimmed to "Trump" would be every political headline."""
+    name = _fold(name).strip()
+    out = [name]
+    words = name.split()
+    if len(words) > 2 and words[0].lower() == "official":
+        out.append(" ".join(words[1:]))
+    trimmed = words[:]
+    while len(trimmed) > 1 and trimmed[-1].lower() in _COIN_DESCRIPTORS:
+        trimmed = trimmed[:-1]
+        if len(" ".join(trimmed)) >= 3:
+            out.append(" ".join(trimmed))
+    return sorted(dict.fromkeys(out), key=len, reverse=True)
+
+
+def _self_evident_coin(name: str) -> bool:
+    """Whether a coin's own name says it is a coin. See `_SELF_EVIDENT_PARTS`."""
+    low = name.lower()
+    return any(p in low for p in _SELF_EVIDENT_PARTS) or any(
+        w in _SELF_EVIDENT_WORDS for w in re.findall(r"[a-z0-9]+", low)
+    )
+
+
+def _coin_ticker(symbol: str) -> str:
+    """"dash-dash" -> "DASH". A trailing number is the source's own disambiguator, not the
+    ticker: "drv7-derive" is DRV."""
+    t = (symbol or "").split("-")[0].upper()
+    bare = re.sub(r"\d+$", "", t)
+    return bare if len(bare) >= 3 else t
+
+
+class HeadlineMatcher:
+    """Whether a headline names one asset. Built once per asset by `news_matcher`.
+
+    `search(title)` takes the title as the feed gave it, publisher included, and returns True or
+    False -- the same call `ingest` and `jobs/human.py` make, so a stored row and a new one are
+    judged by one rule.
+    """
+
+    def __init__(self, a: dict):
+        self.kind = a["assetType"]
+        self.psx = a.get("source") == PSX
+        self.symbol = (a["symbol"] or "").strip()
+        self.name = (a["name"] or "").strip()
+        self.tokens = news_match_tokens(a)
+        self.legacy = None
+        if self.kind in ("forex", "commodity"):
+            # Unchanged: a pair or a contract is named by currency or underlying words, which the
+            # measured faults never touched. Only the publisher is cut off first.
+            phrases = [re.escape(t) for t in self.tokens if t]
+            parts = ["(?i:" + "|".join(phrases) + ")"] if phrases else []
+            if self.symbol:
+                parts.append(r"\b" + re.escape(self.symbol) + r"\b")
+            self.legacy = re.compile("|".join(parts) if parts else r"(?!)")
+            return
+        if self.kind == "crypto":
+            self.forms = [(f, _name_pattern(f)) for f in _coin_forms(self.name)]
+            self.ticker = _coin_ticker(self.symbol)
+        elif self.kind == "etf":
+            self.forms = []
+            self.ticker = self.symbol
+        else:
+            forms = self.tokens_as_written()
+            self.forms = [(f, _name_pattern(f)) for f in forms]
+            self.ticker = self.symbol
+        # The underlying words a fund is named by ("silver", "gold"), whole words, plural allowed.
+        self.underlying = None
+        if self.kind == "etf" and self.tokens:
+            alts = "|".join(re.escape(t) for t in self.tokens)
+            self.underlying = re.compile(r"(?<![\w])(?:" + alts + r")(?:'s|s)?(?![\w])", re.I)
+
+    def tokens_as_written(self) -> list[str]:
+        """The company forms with their stored capitals, for the case check."""
+        if self.psx:
+            folded = _fold(self.name)
+            forms = [folded]
+            trimmed = _psx_trim(folded)
+            if trimmed:
+                forms.append(trimmed)
+            return forms
+        forms = _company_forms(self.name)
+        hint = ASSET_NEWS_HINTS.get(self.symbol) or ""
+        # A hint is a name only when it is written as one: "Google", "iPhone", "AWS". "bank",
+        # "oil" and "cloud" are search words, and as tokens they filed every bank story under C.
+        if hint and any(c.isupper() for c in hint) and hint not in forms:
+            forms.append(hint)
+        return forms
+
+    # -- the pieces ------------------------------------------------------------------------
+
+    def _names(self, body: str, *, coin: bool) -> list[re.Match[str]]:
+        """Where the headline writes this asset's name, longest form first.
+
+        A name that is part of a longer proper noun anywhere in the headline makes the whole
+        headline about that other thing: "King Lear review -- ... makes a moving Lear" is a play
+        both times, and "Dow Jones Futures ... Dow" is the index both times.
+        """
+        found: list[re.Match[str]] = []
+        for form, pat in self.forms:
+            for m in pat.finditer(body):
+                if any(f.start() < m.end() and m.start() < f.end() for f in found):
+                    continue  # inside a longer form already found: "Cisco" in "Cisco Systems"
+                span = m.group(1)
+                if not _written_as_a_name(span, form):
+                    continue
+                # "SEI.V" is a Canadian share and "Polygon.com" a website, not the coin; and
+                # "DOW-UAP-PR112" is a document code, not the company.
+                if coin and re.match(r"\.\w", body[m.end():]):
+                    continue
+                if span.isupper() and re.match(r"-[A-Z]", body[m.end():]):
+                    continue
+                if (
+                    _LONGER_NAME_AFTER.match(body, m.end())
+                    or _LONGER_NAME_AFTER_CASED.match(body, m.end())
+                    or (not coin and _INDEX_AFTER.match(body, m.end()))
+                    or _LONGER_NAME_BEFORE.search(body[: m.start()])
+                ):
+                    return []
+                found.append(m)
+        return found
+
+    def _ticker_listed(self, body: str) -> list[re.Match[str]]:
+        """A share's ticker where it can only be the ticker: "$DOW", "(DOW)", "NYSE: DOW", "DOW
+        stock". A bare ticker is a word too often -- ON, GE, ALL, NOW, COST, V -- so it counts
+        bare only when it is the initials of the company's name ("AIG", "UPS", "AMD")."""
+        t = self.ticker
+        if not t:
+            return []
+        e = re.escape(t)
+        pats = [
+            r"(?<![\w$])\$" + e + r"(?![\w])",
+            r"\(\s*[A-Za-z]+\s*:\s*" + e + r"\s*\)",
+            r"\(\s*" + e + r"\s*:\s*[A-Za-z]+\s*\)",
+            r"(?<![\w])(?:NYSE|NASDAQ|Nasdaq|AMEX|NYSEARCA|NYSEArca|NYSE\s+Arca|NYSE\s+American|OTC)"
+            r"\s*:\s*" + e + r"(?![\w])",
+        ]
+        if len(t) >= 2:
+            pats.append(r"\(\s*" + e + r"\s*\)")
+            pats.append(r"(?<![\w$])" + e + r"(?:'s)?\s+(?i:stocks?|shares?|etf|options)(?![\w])")
+        words = [w for w in re.split(r"[\s-]+", _fold(self.name)) if w and w[0].isalpha()
+                 and w.lower() not in ("of", "and", "the")]
+        initials = "".join(w[0].upper() for w in words)
+        bare_ok = len(t) >= 3 and (initials == t or self.kind == "etf") and not _shouting(body)
+        if bare_ok:
+            pats.append(r"(?<![\w$:.])" + e + r"(?:'s)?(?![\w]|\.\w)")
+        return [m for p in pats for m in re.finditer(p, body)]
+
+    def _coin_ticker_hits(self, body: str) -> list[re.Match[str]]:
+        t = self.ticker
+        if not t or not re.fullmatch(r"[A-Z0-9]{2,}", t):
+            return []
+        e = re.escape(t)
+        pats = [r"(?<![\w$])\$" + e + r"(?![\w])", r"\(\s*\$?" + e + r"\s*\)"]
+        if len(t) >= 3 and not _shouting(body):
+            # Not after "NYSE:" or before ".V": "(NYSE:SEI)" and "SEI.V" are shares.
+            pats.append(r"(?<![\w$:.])" + e + r"(?:'s)?(?![\w]|\.\w)")
+        return [m for p in pats for m in re.finditer(p, body)]
+
+    # -- the decision ------------------------------------------------------------------------
+
+    def search(self, title: str) -> bool:
+        body = _fold(headline_body(title))
+        if self.legacy is not None:
+            return bool(self.legacy.search(body))
+        if self.kind == "crypto":
+            return self._coin(body, _fold(title))
+        if self.kind == "etf":
+            if self.underlying is not None and self.underlying.search(body):
+                return True
+            return bool(self._ticker_listed(body))
+        if self._names(body, coin=False):
+            return True
+        if self.psx:
+            # Unchanged for a Karachi listing: its ticker in capitals, as a whole word ("SYS
+            # Insider Buy"), because that is how the local press prints it. Not in a headline
+            # that is all capitals, where "POWER" and "SELECT" are words.
+            return bool(self.symbol) and not _shouting(body) and re.search(
+                r"\b" + re.escape(self.symbol) + r"\b", body) is not None
+        return bool(self._ticker_listed(body))
+
+    __call__ = search
+
+    def _coin(self, body: str, title: str) -> bool:
+        names = self._names(body, coin=True)
+        tickers = self._coin_ticker_hits(body)
+        if not names and not tickers:
+            return False
+        # What the identity matched is not evidence for itself: "Dash" cannot vouch for "Dash".
+        masked = body
+        for m in names + tickers:
+            masked = masked[: m.start()] + " " * (m.end() - m.start()) + masked[m.end():]
+        publisher = title.rsplit(" - ", 1)[-1] if " - " in title else ""
+        strong = bool(_CRYPTO_CONTEXT.search(masked) or _CRYPTO_PUBLISHER.search(publisher))
+        if not names:
+            # A bare ticker needs the strong kind. "ETH" and "BTC" are their own context.
+            return strong or self.ticker.lower() in _SELF_EVIDENT_WORDS
+        full = _fold(self.name).lower()
+        flat = re.sub(r"[\s-]", "", full)
+        if _self_evident_coin(full) and any(
+            re.sub(r"[\s-]", "", m.group(1).lower()) == flat for m in names
+        ):
+            return True
+        if strong or _CRYPTO_WEAK_CONTEXT.search(masked):
+            return True
+        # Its own ticker beside it, "Avalanche (AVAX)", or elsewhere when the ticker is not the
+        # name itself: "AVAX" next to "Avalanche" says crypto, "DASH" next to "Dash" says nothing,
+        # and "PYTH" inside "PYTH Network" is the name again.
+        apart = [t for t in tickers if not any(n.start() <= t.start() < n.end() for n in names)]
+        if apart and self.ticker.lower() != full:
+            return True
+        t = re.escape(self.ticker)
+        return any(re.match(r"\s*\(\s*\$?" + t + r"\s*\)", body[m.end():]) for m in names)
+
+
+def _psx_trim(n: str) -> str:
+    """"Indus Motor Company" -> "Indus Motor". Empty when there is nothing safe to trim.
+
+    **Two words have to survive.** Trimming to a single word turns a company name into an
+    English one: "Systems Limited" becomes "systems", which matched "Organic Recycling Systems"
+    and "Micro Irrigation System Market" -- the same class of false match the ticker rule exists
+    to stop, arriving by the other door. A one-word remainder is not a name, so the trim is
+    refused and the full name stays the only phrase token.
+    """
+    words = n.split()
+    while len(words) > 2 and words[-1].lower() in CORPORATE_SUFFIXES:
+        words.pop()
+    trimmed = " ".join(words)
+    return trimmed if trimmed != n else ""
+
+
+def news_matcher(a: dict) -> HeadlineMatcher:
     """Does a headline name this asset? One matcher, so the rule is stated once.
 
-    Two kinds of token, matched by two different rules, because a company name and a ticker
-    fail in opposite directions:
+    Returns an object whose `search(title)` answers it, for the title exactly as a feed gave it.
+    The rules, per kind, are in `HeadlineMatcher` and the notes above `headline_body`:
 
-    * **A name or an underlying word** is matched case-insensitively anywhere in the title.
-      "Hub Power Company Reports PKR 33M Loss" names the company in plain words.
-    * **A ticker** is matched as a whole word and **case-sensitively**, which a substring test
-      got badly wrong. `SYS` as a lowercase substring matched "Micro Irrigation **Sys**tem
-      Market", "Organic Recycling **Sys**tems" and "Indias Biogas **Sys**tem" — five of the six
-      items it would have stored for Systems Limited were about other companies entirely.
-      Tickers are printed in capitals ("SYS Insider Buy"), and nothing else in a headline is, so
-      the case is the signal that separates a ticker from an English word that contains it.
+    * **A listed company** is matched on its name as it is printed -- whole, capitalised, not part
+      of a longer proper noun -- or on its ticker where it can only be the ticker ("(DOW)", "$DOW",
+      "NYSE: DOW", "DOW stock"). A Karachi listing keeps its capitalised ticker as a whole word,
+      which a substring test got badly wrong: `SYS` matched "Micro Irrigation **Sys**tem Market".
+    * **A coin** is matched on its name or ticker *and* something that says the headline is about
+      crypto, because the name is so often an English word.
+    * **A fund** is matched on its underlying ("silver") or its ticker; a pair or a contract on its
+      currency or underlying words, as before.
     """
-    phrases = [re.escape(t) for t in news_match_tokens(a) if t]
-    symbol = (a["symbol"] or "").strip()
-    parts = []
-    if phrases:
-        parts.append("(?i:" + "|".join(phrases) + ")")
-    if symbol:
-        parts.append(r"\b" + re.escape(symbol) + r"\b")
-    # An asset with neither is impossible from the seed, and a pattern matching everything would
-    # be the worst of the three outcomes, so it matches nothing instead.
-    return re.compile("|".join(parts) if parts else r"(?!)")
+    return HeadlineMatcher(a)
 
 
 def news_match_tokens(a: dict) -> tuple[str, ...]:
-    """Lowercase phrases, any one of which means a headline is about this asset.
+    """Lowercase phrases, any one of which can mean a headline is about this asset.
 
     The ticker is deliberately **not** here: it is matched by a different rule, stated in
-    `news_matcher`, which is the only thing that should be reading these.
-
-    This is the other half of narrowing the window, and it is needed *because* of the
-    narrowing. Relevance ranking over a month rather than over the index promotes weaker
-    matches to the top: `"Systems Limited" Pakistan when:14d` returns an Indian biogas story
-    and a Lockheed Martin procurement piece in its first six. Stored against SYS those become
-    input to a tone word-list and an attention count, so they are not noise on a page — they
-    are a reading of a company built out of articles about someone else.
+    `news_matcher`. For a company or a coin a phrase is necessary rather than sufficient -- it
+    has to be written as a name, and a coin's has to sit next to crypto context.
 
     **Any token, not all.** A headline names a company one way, not every way: "Hub Power
     Company Reports PKR 33M Loss" carries the name and not the ticker, "SYS Insider Buy"
@@ -1576,21 +2004,6 @@ def news_match_tokens(a: dict) -> tuple[str, ...]:
     symbol = (a["symbol"] or "").lower()
     name = (a["name"] or "").lower()
     hint = (ASSET_NEWS_HINTS.get(a["symbol"]) or "").lower()
-
-    def without_corporate_form(n: str) -> str:
-        """"Indus Motor Company" -> "indus motor". Empty when there is nothing safe to trim.
-
-        **Two words have to survive.** Trimming to a single word turns a company name into an
-        English one: "Systems Limited" becomes "systems", which matched "Organic Recycling
-        Systems" and "Micro Irrigation System Market" -- the same class of false match the
-        ticker rule exists to stop, arriving by the other door. A one-word remainder is not a
-        name, so the trim is refused and the full name stays the only phrase token.
-        """
-        words = n.split()
-        while len(words) > 2 and words[-1] in CORPORATE_SUFFIXES:
-            words.pop()
-        trimmed = " ".join(words)
-        return trimmed if trimmed != n else ""
 
     if kind == "forex":
         # The stored name is "US Dollar / Pakistani Rupee". The press writes the pair either as
@@ -1621,22 +2034,21 @@ def news_match_tokens(a: dict) -> tuple[str, ...]:
         # trim is what finds it. The ticker is matched separately and by case, because a Karachi
         # ticker is three to six letters that mean other things in English -- "PSO", "MARI",
         # "ILP", and "SYS" inside "System".
-        return tuple(t for t in (name, without_corporate_form(name)) if t)
+        return tuple(t for t in (name, _psx_trim(name)) if t)
 
     if kind == "crypto":
         # The stored name is the coin ("Bitcoin"), and the ticker is how a price story names it.
-        return tuple(t for t in (name,) if t)
+        return tuple(dict.fromkeys(f.lower() for f in _coin_forms(a["name"] or "")))
 
-    # A listed company. The first significant word of the name is what a headline carries --
-    # "Apple" for "Apple Inc.", "Lockheed" for "Lockheed Martin Corp" -- and the quoted search
-    # has already decided which company is being asked about, so this only has to establish that
-    # the company is named at all.
-    #
-    # The hint is a token here and not only a search word, because for several names it *is* how
-    # the press writes the company: Alphabet is "Google" in every headline, and a guard holding
-    # only "alphabet" would drop the coverage the hint was added to find.
-    head = name.split()[0] if name else ""
-    return tuple(t for t in (head, hint) if t)
+    # A listed company: the forms it is printed under (`_company_forms`), plus the hint when the
+    # hint is itself a name. For several companies it *is* how the press writes them: Alphabet is
+    # "Google" in every headline, and a guard holding only "alphabet" would drop the coverage the
+    # hint was added to find.
+    forms = [f.lower() for f in _company_forms(a["name"] or "")]
+    raw_hint = ASSET_NEWS_HINTS.get(a["symbol"]) or ""
+    if raw_hint and any(c.isupper() for c in raw_hint):
+        forms.append(hint)
+    return tuple(dict.fromkeys(t for t in forms if t))
 
 
 def fetch_news(cur, chunk: tuple[int, int] | None = None) -> int:
@@ -1829,7 +2241,7 @@ def fetch_news(cur, chunk: tuple[int, int] | None = None) -> int:
             gnews_url(asset_news_term(a)),
             # Versioned: the feed is cached by key, so a term that changes has to change
             # the key too or a stale response is reused for the rest of the hour.
-            f"gnews-as-v3-{a['symbol']}",
+            f"gnews-as-v4-{a['symbol']}",
             asset_sql,
             lambda w, t, l, p, s, x=a: (x["id"], t, l, p, w, s),
             cap=NEWS_PER_ASSET,

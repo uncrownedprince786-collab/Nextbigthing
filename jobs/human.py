@@ -548,6 +548,40 @@ def news_windows(cur, column: str, start: datetime, end: datetime) -> dict[str, 
     return out
 
 
+def on_target(targets: list[dict], *windows: dict[str, list[dict]]):
+    """Each window with the stored headlines that do not name their asset set aside.
+
+    A row is judged by the rule the news lane now applies before storing one (`news_matcher` in
+    jobs/prices.py), so rows stored under the older, looser rule -- "DASH diet found safe" under
+    Dash, "Port Vale 2-0 Mansfield" under Vale, "H-1B visa workers" under Visa -- stop counting
+    as coverage without being deleted. No row is ever added: every count can only fall. A ratio
+    of two counts (the catalyst spike) can move either way, and that is the correction -- a
+    baseline of diet stories was never this coin's baseline.
+
+    Returns (the windows, in order, filtered; how many rows were set aside). A target with no
+    matcher -- not an asset -- keeps every row.
+    """
+    # Imported here and not at the top: prices.py brings pandas and yfinance with it, and the
+    # rest of this module does not need them.
+    from prices import news_matcher
+
+    matchers = {t["id"]: news_matcher(t) for t in targets}
+    out: list[dict[str, list[dict]]] = []
+    aside = 0
+    for window in windows:
+        kept_window: dict[str, list[dict]] = {}
+        for target, items in window.items():
+            matcher = matchers.get(target)
+            if matcher is None:
+                kept_window[target] = items
+                continue
+            kept = [it for it in items if matcher.search(it.get("title") or "")]
+            aside += len(items) - len(kept)
+            kept_window[target] = kept
+        out.append(kept_window)
+    return out, aside
+
+
 def base_closes(cur, on) -> dict[str, dict]:
     """{assetId: the newest stored close at or before `on`}, in one statement.
 
@@ -1016,8 +1050,11 @@ def main() -> None:
             ("productId", "Product", "products"),
         ):
             step(f"human signal for {label}")
-            # A currency pair's headlines are signed for the pair, so its symbol is read with it.
-            extra = ', symbol, "assetType"::text AS "assetType"' if table == "Asset" else ""
+            # A currency pair's headlines are signed for the pair, so its symbol is read with it,
+            # and the source says which rule decides whether a headline names the asset at all.
+            extra = (
+                ', symbol, "assetType"::text AS "assetType", source' if table == "Asset" else ""
+            )
             targets = rows(cur, f'SELECT id, name{extra} FROM "{table}" ORDER BY name')
             # Three statements for the whole group, taken before the loop: the two news
             # windows every target is read over, and the base closes the log is anchored to.
@@ -1027,6 +1064,10 @@ def main() -> None:
             recent = news_windows(cur, column, start_dt, end_dt)
             earlier = news_windows(cur, column, prior_dt, start_dt)
             bases = base_closes(cur, end) if column == "assetId" else {}
+            if column == "assetId":
+                (recent, earlier), aside = on_target(targets, recent, earlier)
+                if aside:
+                    print(f"  {label}: {aside} stored headlines set aside as naming something else")
 
             written = skipped = flagged = sparked = thin = 0
             signal_sql = log_sql = None
