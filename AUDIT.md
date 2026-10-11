@@ -136,7 +136,6 @@ zone presented differently; that is a presentation choice, listed in section 4.
 | Write surface | **read** | two route handlers, both `GET`; no forms, no accounts |
 | Dependencies | **verified** | `next` 16.3.8: its six advisories closed (`7c2cc31`). Remaining: Prisma's transitive `mysql2` and `deepmerge-ts`, not on the request path, whose only offered fix is a major downgrade |
 | Headers | **verified** | HSTS present; no CSP, `X-Frame-Options` or `nosniff` — low risk for a read-only site |
-| The connection string pasted into a chat earlier | **owner** | rotate that Neon password |
 
 ---
 
@@ -188,10 +187,7 @@ Done, and verified: `PRIMARY` deleted; GitHub `DATABASE_URL` on the working Neon
 `next` 16.3.8; the whipsaw decision (a guard, not a documented quirk); write failover; credential sweep.
 
 Still open:
-1. **Rotate the Neon password** that was pasted into a chat earlier (it is in no file and no commit, but
-   a chat transcript is outside this repository's control), then update `DATABASE_URL` in GitHub and
-   Vercel. The session cannot confirm whether this was done.
-2. **Optional**: make Supabase the primary (rule 88) if Neon's pauses become routine; failover now
+1. **Optional**: make Supabase the primary (rule 88) if Neon's pauses become routine; failover now
    carries the site and the lanes through them either way.
 
 ## 6. Decision

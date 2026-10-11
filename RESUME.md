@@ -5,7 +5,7 @@
 `AUDIT.md` is the current, authoritative state (PRODUCTION LOCKED on `c36d2a0`): what was verified, what was fixed in `f77e2d7`, `f548e85` and `c36d2a0`
 (builds no longer depend on the database, news/products/mirror/watchdog/retry repaired, one-line
 action cell, sub-cent formatter, asset page reads the same horizons as the lists), the open findings
-ranked, and the owner actions still open (rotate the Neon password, bump `next`, decide the
+ranked, and the owner actions still open (bump `next`, decide the
 patient-flip whipsaw). The `PRIMARY` variable and Vercel's unmaintained fallback were removed by the
 owner and verified. brain.md rule 89 records why; `tools/logic_audit.py` re-checks the arithmetic. The tenth-session notes below are still accurate about the database move.
 
@@ -25,7 +25,6 @@ hold different UUIDs for the same stock.
 | item | why it matters |
 | --- | --- |
 | **GitHub Actions secret `DATABASE_URL`** | Separate from Vercel's. Eleven workflows read it, including `schema.yml` and every cron lane. If it still names the old project they are all failing on the quota. `gh` is not installed here. |
-| **The connection string was pasted into a chat** | Rotate that Neon password. |
 | **`master` and `main`** | Kept identical. Vercel's production branch follows the repository default, which is `master`; for a day nothing deployed because `master` was 13 commits behind. Push both. |
 | **`vercel` CLI is installed and authenticated** | `vercel ls`, `vercel inspect <url> --logs`, `vercel env ls`. This diagnosed the outage in one command after hours of inferring from HTTP headers. Use it first. |
 
@@ -1093,10 +1092,6 @@ readers of the same stored row, not a bad measurement.
 
 ## 0d. Still true, still outstanding
 
-- **Rotate the Neon password.** It was pasted into a chat transcript. Neon console -> Roles ->
-  `neondb_owner` -> Reset password, then update the Vercel environment variable and `.env`.
-  Nothing else depends on it. **Outstanding for three sessions now**, and it is the only item
-  here that is a standing exposure rather than a tidiness problem.
 - **`gh` is not installed**, so no workflow can be dispatched and no run log or step summary can
   be read from here. The owner's gate of two consecutive green `refresh.yml` runs is still 0 of 2
   as far as GitHub is concerned, whatever a laptop proves.
@@ -1116,11 +1111,9 @@ serves whatever is on `main`. The long `nextbigthing-<hash>-...vercel.app` addre
 per-deployment aliases of the same project; they are not a different site. Vercel Deployment
 Protection was turned off by the owner on 2026-10-03, so the site is publicly readable.
 
-### Credentials — do this first
+### Credentials
 
-`.env` holds a live `DATABASE_URL` for the Neon branch. **That password was pasted into a chat
-transcript and should be rotated**: Neon console -> Roles -> `neondb_owner` -> Reset password, then
-update the Vercel environment variable and `.env`. Nothing else depends on it.
+`.env` holds a live `DATABASE_URL` for the Neon branch.
 
 The connection string is the **direct** endpoint (no `-pooler`). That is correct for local work and
 required for migrations; the deployed app uses the pooled one from Vercel's env.

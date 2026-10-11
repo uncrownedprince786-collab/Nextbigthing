@@ -1903,7 +1903,7 @@ reads rows that already exist:
     IPv6-only on the free tier, which neither a Windows machine on IPv4 nor GitHub's runners reach --
     so the **Session pooler** is the only usable address, and its region (ap-northeast-2) was found
     by probing, because a wrong region answers "Tenant or user not found" rather than refusing the
-    login. The password was pasted into a chat and should be rotated.
+    login.
 
     **Schema parity was compared, not inferred.** "Both ran the same migrations" is a claim about a
     table of names. `tools/schema_parity.py` compares every column's type, nullability and default and
