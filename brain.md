@@ -2959,3 +2959,26 @@ reads rows that already exist:
       than a database one: `cron watchdog` reports "FX is trading and its newest live quote is 2854
       minutes old; the lane runs every 15". The FX live-quote lane has not produced a fresh quote in
       roughly two days. It needs its own look.
+
+103. **`jobs/horizons.py` carried a hundred-line paste of itself, and the half that was edited was
+    not the half that ran.** Found 2026-10-12: lines 176-275 were byte-for-byte identical to
+    276-375, so `daily_bars`, `all_relative_long`, `SETUP_SQL` and `setup_row` were each defined
+    twice. Python keeps the last binding, so the first copy had never executed since the paste; it
+    was a hundred lines of code that looked live, was reachable by grep, and could be changed with
+    no effect whatsoever.
+    - What it had already cost: during the read-side work both copies of `daily_bars` had to be
+      edited in lockstep to keep them agreeing. That is the whole failure mode -- the file was
+      honest only for as long as someone remembered it was lying.
+    - **The first copy is deleted and nothing else is touched.** Verified before and after by
+      parsing both versions: every surviving top-level definition is byte-identical to the one that
+      was already winning, the order of top-level names is unchanged, and no other statement
+      differs. Nothing imports this module -- `schema.yml` and `jobs/run.py` invoke it as a script
+      -- so no caller could have been depending on definition order, and every in-file use of
+      the four names (lines 641, 654, 784, 785, 810 and 835 before the cut) sat below both copies
+      and so already resolved to the survivors.
+    - Checks: `python -m compileall -q jobs` clean, `python -m unittest discover -s tests` 764 OK,
+      `npm run test:web` 466 passing. No behaviour change is claimed and none is expected; the
+      tests are evidence that the deletion took nothing with it, not evidence of a fix.
+    - The general point, worth more than this file: a duplicate definition in Python is not a style
+      problem, it is a silent-edit trap. Grep for a name and getting two top-level `def`s back is
+      enough reason to stop and check which one the interpreter keeps.
