@@ -33,9 +33,11 @@ Where the numbers come from, and what was measured
                free provider and the job does not pretend otherwise; it prints what each stage took.
   * PSX        no free quote endpoint exists; PSX names keep the closes `jobs/psx.py` stores.
 
-Only the **active set** is polled for Yahoo -- names whose latest decision is a LONG or a SHORT -- in
-rotating slices, so 150 names refresh every three ticks rather than 150 requests a minute against a
-free endpoint, which is both a ban and a bill (the same argument `jobs/intraday.py` makes).
+Only the **active set** is polled for Yahoo -- names whose latest decision is a LONG or a SHORT -- and
+only the stalest `YAHOO_SLICE` of them per tick, so 150 names refresh over a few ticks rather than 150
+requests a minute against a free endpoint, which is both a ban and a bill (the same argument
+`jobs/intraday.py` makes). Which names those are is decided by whose stored quote is oldest, never by
+the clock: see `stalest_yahoo` for what the clock version cost.
 
 What it will not do
 -------------------
@@ -66,7 +68,6 @@ try:  # a local run reads the project .env, exactly as the other jobs do; CI set
 except Exception:  # noqa: BLE001
     pass
 
-TICK_SECONDS = 300
 # Symbols per Yahoo download. Measured at about 4 s for 20 from a home connection; 60 stays far inside a
 # five-minute tick while keeping the active set refreshed every few ticks.
 YAHOO_SLICE = 60
@@ -87,19 +88,6 @@ def is_price(value) -> bool:
     except (TypeError, ValueError):
         return False
     return math.isfinite(x) and x > 0
-
-
-def slice_for_tick(n: int, limit: int, now_ts: float, tick: int = TICK_SECONDS) -> tuple[int, int]:
-    """The half-open range of an ordered list of `n` to poll on this tick.
-
-    Rotates with the clock, so over `ceil(n / limit)` consecutive ticks every item is covered exactly
-    once and no two slices overlap. Pure: the clock is a parameter.
-    """
-    if n <= 0 or limit <= 0:
-        return (0, 0)
-    pages = math.ceil(n / limit)
-    page = int(now_ts // tick) % pages
-    return (page * limit, min(n, (page + 1) * limit))
 
 
 def with_backoff(fn, tries: int = RETRIES, base: float = BACKOFF_BASE_SECONDS, sleep=time.sleep, rand=random.random):
@@ -209,21 +197,56 @@ def write(cur, quotes: list[dict], now: datetime) -> int:
 # --- the tick -----------------------------------------------------------------------------------
 
 
-def active_yahoo(cur) -> list[dict]:
-    """Yahoo-sourced names whose newest decision is a direction, in a stable order."""
-    got = rows(
-        cur,
-        """SELECT a.id, a."sourceRef" FROM "Asset" a
-            WHERE a.source = 'yahoo' AND EXISTS (
-                  SELECT 1 FROM "DecisionLog" d
-                   WHERE d."assetId" = a.id AND d.action IN ('LONG', 'SHORT')
-                     AND d."periodEnd" = (SELECT max("periodEnd") FROM "DecisionLog"))
-            ORDER BY a."sourceRef" """,
-    )
-    if got:
-        return got
-    # No decisions yet: every Yahoo name is a candidate, rather than none.
-    return rows(cur, """SELECT id, "sourceRef" FROM "Asset" WHERE source = 'yahoo' ORDER BY "sourceRef" """)
+# The names this lane is responsible for: Yahoo-sourced, newest decision a direction. Written once
+# because both the pick and the count below need it, and two copies would drift.
+ACTIVE_YAHOO = """
+    SELECT a.id, a."sourceRef" FROM "Asset" a
+     WHERE a.source = 'yahoo' AND EXISTS (
+           SELECT 1 FROM "DecisionLog" d
+            WHERE d."assetId" = a.id AND d.action IN ('LONG', 'SHORT')
+              AND d."periodEnd" = (SELECT max("periodEnd") FROM "DecisionLog"))
+"""
+# No decision logged at all -- the state right after a reset -- so every Yahoo name is a candidate
+# rather than none.
+ALL_YAHOO = """SELECT id, "sourceRef" FROM "Asset" WHERE source = 'yahoo'"""
+
+_PICK = """
+    SELECT a.id, a."sourceRef"
+      FROM ({set_sql}) a
+      LEFT JOIN "LiveQuote" q ON q."assetId" = a.id
+     ORDER BY q."updatedAt" ASC NULLS FIRST, a."sourceRef" ASC
+     LIMIT %s
+"""
+
+
+def active_count(cur) -> int:
+    """How many names the lane is responsible for, for the line the tick prints."""
+    n = rows(cur, f'SELECT count(*) AS n FROM ({ACTIVE_YAHOO}) a')[0]["n"]
+    return n or rows(cur, f'SELECT count(*) AS n FROM ({ALL_YAHOO}) a')[0]["n"]
+
+
+def stalest_yahoo(cur, limit: int) -> list[dict]:
+    """The `limit` names of the active set whose stored quote is oldest, never-quoted first.
+
+    **Why staleness and not the clock.** This used to poll a slice of the alphabet chosen by
+    `floor(now / 300) % pages`, which covers every name only if the ticks actually arrive. They do
+    not. Measured 2026-10-12: the schedule asks for about 96 runs a day and GitHub delivered 8 on
+    2026-10-10 and 12 on 2026-10-11. With two pages and a dozen arrivals at arbitrary minutes, which
+    page runs is a coin toss, and a name at the back of the alphabet can wait a day or more. Every FX
+    pair in this universe sorts to the back -- `USDBRL=X` through `USDTRY=X` -- so FX is what
+    starved: five FX names in the active set with no stored quote at all, while the health endpoint
+    read the one frozen `AUDUSD` row left over from when that name had a direction, and reported the
+    market 48 hours behind. The provider was never the problem; a direct request for those five
+    symbols returned all five.
+
+    Ordering by what is actually oldest is self-correcting: a dropped run can delay a name but
+    cannot skip it, because the name it skipped is the first one the next run takes. `updatedAt` and
+    not `quotedAt`, because a closed market's `quotedAt` does not move and would pin the same names
+    at the front for ever. Never-quoted names sort first, so a name entering the set is picked up on
+    the next tick. The request is still one download of at most `limit` symbols.
+    """
+    got = rows(cur, _PICK.format(set_sql=ACTIVE_YAHOO), (limit,))
+    return got or rows(cur, _PICK.format(set_sql=ALL_YAHOO), (limit,))
 
 
 def yahoo_frame(symbols: list[str]):
@@ -267,14 +290,18 @@ def main(argv: list[str]) -> int:
 
             if only in (None, "yahoo"):
                 t = time.perf_counter()
-                active = active_yahoo(cur)
-                lo, hi = slice_for_tick(len(active), YAHOO_SLICE, time.time())
-                chosen = active[lo:hi]
+                chosen = stalest_yahoo(cur, YAHOO_SLICE)
                 if chosen:
+                    total = active_count(cur)
                     frame = with_backoff(lambda: yahoo_frame([a["sourceRef"] for a in chosen]))
                     got = parse_download(frame, chosen, now) if frame is not None else []
                     quotes += got
-                    say(f"yahoo {len(got)} of {len(chosen)} (slice {lo}-{hi} of {len(active)} active) in {time.perf_counter() - t:.2f}s")
+                    missed = len(chosen) - len(got)
+                    say(
+                        f"yahoo {len(got)} of {len(chosen)} stalest (of {total} active) in "
+                        f"{time.perf_counter() - t:.2f}s"
+                        + (f"; {missed} unanswered, first in line next tick" if missed else "")
+                    )
                 else:
                     say("yahoo: no active names")
 

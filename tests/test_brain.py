@@ -7880,16 +7880,36 @@ class TheLiveLane(unittest.TestCase):
 
     # --- the job's pure parts ---------------------------------------------------------------------
 
-    def test_rotating_slices_cover_every_name_once_and_never_overlap(self):
+    def test_the_yahoo_slice_is_chosen_by_staleness_and_not_by_the_clock(self):
+        """A dropped tick may delay a name; it must not be able to skip it.
+
+        The slice used to be `floor(now / 300) % pages` of the alphabet, which covers everything
+        only if the ticks arrive. Measured 2026-10-12: the schedule asks for about 96 runs a day
+        and GitHub delivered 8 on 2026-10-10 and 12 on 2026-10-11, so which page ran was a coin
+        toss. Every FX pair sorts to the back of this universe, so FX is what starved -- five FX
+        names in the active set with no stored quote at all.
+        """
         m = self.live()
-        for n, limit in ((125, 60), (60, 60), (1, 60), (301, 50)):
-            seen = []
-            pages = -(-n // limit)
-            for k in range(pages):
-                lo, hi = m.slice_for_tick(n, limit, now_ts=k * m.TICK_SECONDS)
-                seen.extend(range(lo, hi))
-            self.assertEqual(sorted(seen), list(range(n)), (n, limit))
-        self.assertEqual(m.slice_for_tick(0, 60, 123.0), (0, 0))
+        self.assertFalse(hasattr(m, "slice_for_tick"), "the clock-rotated slice is gone")
+        src = (ROOT / "jobs" / "live.py").read_text(encoding="utf-8")
+        # Never-quoted names first, then the oldest write, and a bounded request either way.
+        self.assertIn('ORDER BY q."updatedAt" ASC NULLS FIRST', src)
+        self.assertIn("LIMIT %s", src)
+        self.assertIn("stalest_yahoo(cur, YAHOO_SLICE)", src)
+        # `updatedAt`, not `quotedAt`: a closed market's quote time does not move, and ordering on
+        # it would pin the same names at the front of the queue for ever.
+        self.assertNotIn('ORDER BY q."quotedAt"', src)
+        # The pick must not consult the wall clock at all.
+        pick = src[src.index("def stalest_yahoo("):src.index("def yahoo_frame(")]
+        for clock in ("time.time()", "datetime.now", "TICK_SECONDS"):
+            self.assertNotIn(clock, pick, clock)
+
+    def test_the_active_set_is_defined_once_and_both_readers_use_it(self):
+        """Two copies of "which names this lane owns" would drift, and the count would lie."""
+        src = (ROOT / "jobs" / "live.py").read_text(encoding="utf-8")
+        self.assertEqual(src.count("d.action IN ('LONG', 'SHORT')"), 1)
+        self.assertIn("ACTIVE_YAHOO", src)
+        self.assertIn("ALL_YAHOO", src)
 
     def test_only_a_finite_positive_number_is_a_price(self):
         m = self.live()
