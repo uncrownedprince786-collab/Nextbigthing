@@ -2810,3 +2810,19 @@ reads rows that already exist:
       15-job derive pass against the primary. It ran 9 times on 2026-10-11, once per commit. Its push trigger
       now fires only for `prisma/**`, `jobs/seed.py` and the workflow itself; every job in it also runs on
       its own schedule through `jobs/run.py`, and a manual dispatch still runs it all.
+
+97. **Supabase is the primary; Neon is the standby.** The owner's decision of 2026-10-11, delegated ("you are the
+    decision maker ... we will go with free tier"). Neon's free tier caps compute hours, and the derive passes
+    used them up on 2026-10-10 and again on 2026-10-11; Supabase's free tier caps size (500 MB; 312 MB used) and
+    connections (60; the site holds 2 per instance through `primaryLimits`), which this workload fits.
+    - One rule, everywhere: the primary is `SUPABASE_DATABASE_URL` unless `PRIMARY=neon`, else `DATABASE_URL`
+      -- `primary_choice` in jobs/nbt.py, `primaryChoice` in tools/writer.mjs, `primaryUrl` in lib/db.ts, the
+      same inline in tools/standby_parity.py and tools/logic_audit.py, and in the schema and mirror workflows.
+      Neon (`DATABASE_URL`) is the standby the writers and the site fail over to. No secret was changed: the
+      switch is code, and `PRIMARY=neon` (a repository variable or env var) reverts it.
+    - Everything that moves rows between the two now follows it: `jobs/reconcile.py` copies standby rows back
+      into the chosen primary; the mirror copies Supabase -> Neon (it was hard-wired Neon -> Supabase and, after
+      the reset, would have poured Neon's old rows over the new data the night Neon's quota returned); the
+      schema lane migrates the chosen primary first and every other database after.
+    - Publishing follows the tier: a read from Supabase is a primary read, so calls publish; a read from Neon is
+      a standby read and publishes nothing (rule 94).

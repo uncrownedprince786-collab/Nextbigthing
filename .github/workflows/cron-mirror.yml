@@ -69,22 +69,40 @@ jobs:
 
       # Names which standbys are configured, by name only. The values never leave the environment: the
       # job below reads them there, and the mirror redacts a connection string from anything it prints.
+      # The primary is Supabase unless PRIMARY=neon (brain.md rule 97, jobs/nbt.py `primary_choice`), so the
+      # copy now runs Supabase -> Neon. It was hard-wired Neon -> Supabase, which after the reset of
+      # 2026-10-11 would have copied Neon's old rows over the new data the night Neon's quota returned.
       - name: Check which standbys are configured
         id: targets
         env:
+          NEON: ${{ secrets.DATABASE_URL }}
           NEON2: ${{ secrets.DATABASE_URL_FALLBACK }}
           SUPA: ${{ secrets.SUPABASE_DATABASE_URL }}
-          PRIMARY_URL: ${{ secrets.DATABASE_URL }}
+          PRIMARY_VAR: ${{ vars.PRIMARY }}
         run: |
-          # A standby that is the primary itself is not a target: Supabase can be made the primary
-          # (brain.md rule 88), and mirror.py refuses the whole run when a target is its source.
+          # A standby that is the primary itself is not a target, and one database is named once:
+          # mirror.py refuses the whole run when a target is its source.
           trim() { printf '%s' "$1" | tr -d '[:space:]'; }
-          primary="$(trim "$PRIMARY_URL")"
-          names=""
-          [ -n "$NEON2" ] && [ "$(trim "$NEON2")" != "$primary" ] && names="DATABASE_URL_FALLBACK"
-          if [ -n "$SUPA" ] && [ "$(trim "$SUPA")" != "$primary" ]; then
-            names="${names:+$names,}SUPABASE_DATABASE_URL"
+          choice="$(printf '%s' "${PRIMARY_VAR:-supabase}" | tr '[:upper:]' '[:lower:]')"
+          if [ "$choice" = "supabase" ] && [ -n "$(trim "$SUPA")" ]; then
+            from="SUPABASE_DATABASE_URL"; primary="$(trim "$SUPA")"
+          else
+            from="DATABASE_URL"; primary="$(trim "$NEON")"
           fi
+          echo "from=$from" >> "$GITHUB_OUTPUT"
+          echo "the primary is $from"
+          names=""; seen="$primary"
+          for name in DATABASE_URL_FALLBACK SUPABASE_DATABASE_URL DATABASE_URL; do
+            case "$name" in
+              DATABASE_URL_FALLBACK) url="$(trim "$NEON2")" ;;
+              SUPABASE_DATABASE_URL) url="$(trim "$SUPA")" ;;
+              *) url="$(trim "$NEON")" ;;
+            esac
+            [ -z "$url" ] && continue
+            printf '%s\n' "$seen" | grep -Fxq -- "$url" && continue
+            seen="$(printf '%s\n%s' "$seen" "$url")"
+            names="${names:+$names,}$name"
+          done
           if [ -z "$names" ]; then
             echo "::notice::no standby is configured (DATABASE_URL_FALLBACK and SUPABASE_DATABASE_URL are both empty), so there is nothing to mirror into"
             echo "any=false" >> "$GITHUB_OUTPUT"
@@ -118,7 +136,7 @@ jobs:
         run: |
           # A dispatched start day (validated, never pasted into the script) or the trailing week.
           if [[ "$SINCE_INPUT" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then since="$SINCE_INPUT"; else since="$(date -u -d '7 days ago' +%Y-%m-%d)"; fi
-          python jobs/mirror.py --from-env DATABASE_URL --to-env "${{ steps.targets.outputs.names }}" \
+          python jobs/mirror.py --from-env "${{ steps.targets.outputs.from }}" --to-env "${{ steps.targets.outputs.names }}" \
             --tables Asset,PriceSnapshot --since "$since"
 
       # `always()`: a failed price copy must not skip the decisions. On 2026-10-10 the prices step timed
@@ -135,7 +153,7 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: |
           since="$(date -u -d '40 days ago' +%Y-%m-%d)"
-          python jobs/mirror.py --from-env DATABASE_URL --to-env "${{ steps.targets.outputs.names }}" \
+          python jobs/mirror.py --from-env "${{ steps.targets.outputs.from }}" --to-env "${{ steps.targets.outputs.names }}" \
             --tables DecisionLog,SignalLog,AssetThesis,MacroGate --since "$since"
 
       # News coverage (brain.md rule 93). `always()` for the reason above: the rule table reads coverage
@@ -151,7 +169,7 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: |
           since="$(date -u -d '61 days ago' +%Y-%m-%d)"
-          python jobs/mirror.py --from-env DATABASE_URL --to-env "${{ steps.targets.outputs.names }}" \
+          python jobs/mirror.py --from-env "${{ steps.targets.outputs.from }}" --to-env "${{ steps.targets.outputs.names }}" \
             --tables News,HumanSignal --since "$since"
 
       # What a failover would serve, reported every night (brain.md rule 94): active assets a standby

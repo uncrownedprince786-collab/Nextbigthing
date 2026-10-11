@@ -30,7 +30,8 @@ export function databaseKey(url) {
  */
 export function standbyFor(primary, env = process.env) {
   if ((env.WRITE_FAILOVER ?? "").trim().toLowerCase() === "off") return null;
-  for (const name of ["SUPABASE_DATABASE_URL", "DATABASE_URL_FALLBACK"]) {
+  // Neon (`DATABASE_URL`) is a standby too when Supabase is the primary (rule 97).
+  for (const name of ["SUPABASE_DATABASE_URL", "DATABASE_URL_FALLBACK", "DATABASE_URL"]) {
     const url = env[name]?.trim();
     if (url && databaseKey(url) !== databaseKey(primary)) return { name, url };
   }
@@ -39,6 +40,21 @@ export function standbyFor(primary, env = process.env) {
 
 /// A pool on the primary, proven with one query; or on the standby when the primary cannot be reached.
 /// Resolves to { pool, target }, target being "primary" or the standby's variable name.
+/**
+ * The primary database (brain.md rule 97), as jobs/nbt.py `primary_choice` picks it: Supabase unless
+ * PRIMARY=neon, by the owner's decision to stay on free tiers -- Neon's free tier caps compute hours, which
+ * the derive passes used up twice in two days. Without a Supabase URL it is DATABASE_URL, as before.
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {{ name: string, url: string }}
+ */
+export function primaryChoice(env = process.env) {
+  const supabase = (env.SUPABASE_DATABASE_URL ?? "").trim();
+  if ((env.PRIMARY ?? "supabase").trim().toLowerCase() === "supabase" && supabase) {
+    return { name: "SUPABASE_DATABASE_URL", url: supabase };
+  }
+  return { name: "DATABASE_URL", url: (env.DATABASE_URL ?? "").trim() };
+}
+
 /**
  * @param {number} max
  * @param {{ env?: Record<string, string | undefined>, log?: (m: string) => void, make?: (url: string) => import("pg").Pool }} [options]
@@ -53,7 +69,7 @@ export async function writerPool(
   } = {},
 ) {
   // Trimmed: a secret pasted with its trailing line break names a database that does not exist.
-  const primary = (env.DATABASE_URL ?? "").trim();
+  const primary = primaryChoice(env).url;
   const first = make(primary);
   try {
     await first.query("SELECT 1");

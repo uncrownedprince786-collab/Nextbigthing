@@ -28,7 +28,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from nbt import is_unreachable, standby_url  # noqa: E402
+from nbt import is_unreachable, primary_choice, standby_url  # noqa: E402
 
 TABLES_BACK = "PriceSnapshot,DecisionLog,SignalLog,AssetThesis,MacroGate"
 DECISION_WINDOW_DAYS = 40  # the mirror's own window: DecisionLog outcomes mature for a month
@@ -61,7 +61,7 @@ def main() -> int:
     import psycopg
     from psycopg.rows import dict_row
 
-    primary_url = (os.environ.get("DATABASE_URL") or "").strip()
+    primary_name, primary_url = primary_choice()
     standby = standby_url(primary_url) if primary_url else None
     if not standby:
         print("  reconcile: no standby configured (or WRITE_FAILOVER=off); nothing to copy back")
@@ -93,8 +93,8 @@ def main() -> int:
     )
     import mirror
 
-    ok = mirror.main(["--from-env", name, "--to-env", "DATABASE_URL", "--tables", "PriceSnapshot", "--since", price_since]) == 0
-    ok = mirror.main(["--from-env", name, "--to-env", "DATABASE_URL", "--tables", TABLES_BACK.split(",", 1)[1], "--since", decision_since]) == 0 and ok
+    ok = mirror.main(["--from-env", name, "--to-env", primary_name, "--tables", "PriceSnapshot", "--since", price_since]) == 0
+    ok = mirror.main(["--from-env", name, "--to-env", primary_name, "--tables", TABLES_BACK.split(",", 1)[1], "--since", decision_since]) == 0 and ok
     print(f"  reconcile: copy back {'complete' if ok else 'INCOMPLETE -- the next lane will try again'}")
     return 0
 

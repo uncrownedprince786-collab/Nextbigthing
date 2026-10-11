@@ -104,13 +104,20 @@ jobs:
       #
       # Only the migration needs this. The data jobs keep the pooled endpoint, because nothing
       # they do holds a session-level lock across a disconnect.
+      # The primary first: Supabase unless PRIMARY=neon (brain.md rule 97, jobs/nbt.py `primary_choice`).
       - name: Apply pending schema migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PRIMARY_VAR: ${{ vars.PRIMARY }}
         run: |
           set +e
-          if [ -n "$DIRECT_DATABASE_URL" ]; then
+          choice="$(printf '%s' "${PRIMARY_VAR:-supabase}" | tr '[:upper:]' '[:lower:]')"
+          if [ "$choice" = "supabase" ] && [ -n "$SUPABASE_DATABASE_URL" ]; then
+            direct="${SUPABASE_DATABASE_URL/-pooler./.}"
+            via="SUPABASE_DATABASE_URL, the primary"
+          elif [ -n "$DIRECT_DATABASE_URL" ]; then
             direct="$DIRECT_DATABASE_URL"
             via="DIRECT_DATABASE_URL"
           else
@@ -142,8 +149,10 @@ jobs:
         if: always()
         continue-on-error: true
         env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PRIMARY_VAR: ${{ vars.PRIMARY }}
         # `set +e`, as in the primary's step: under the default `bash -e` the first standby that failed
         # ended the step on the spot, silently, so the standby after it was never migrated and the
         # summary line was never written. Each standby is now tried, each result is written down, and
@@ -151,7 +160,10 @@ jobs:
         run: |
           set +e
           failed=""
-          for name in DATABASE_URL_FALLBACK SUPABASE_DATABASE_URL; do
+          choice="$(printf '%s' "${PRIMARY_VAR:-supabase}" | tr '[:upper:]' '[:lower:]')"
+          if [ "$choice" = "supabase" ] && [ -n "$SUPABASE_DATABASE_URL" ]; then primary="SUPABASE_DATABASE_URL"; else primary="DATABASE_URL"; fi
+          for name in DATABASE_URL_FALLBACK SUPABASE_DATABASE_URL DATABASE_URL; do
+            [ "$name" = "$primary" ] && continue
             url="${!name}"
             [ -z "$url" ] && { echo "$name is not set, skipped"; continue; }
             out="$(DATABASE_URL="${url/-pooler./.}" npx prisma migrate deploy 2>&1)"

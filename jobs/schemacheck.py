@@ -113,14 +113,19 @@ def main() -> None:
     # mistake (both lines of .env contain "DATABASE_URL="): every lane went green while writing to a
     # copy the website does not read, the news lane timed out against a database with no news in it,
     # and nothing said which database it was. Now it is said, and the standby is refused.
+    # Rule 97: Supabase is the primary unless PRIMARY=neon (nbt.primary_choice), by the owner's decision to
+    # stay on free tiers. The checks below are for the PRIMARY=neon arrangement, where a pasted Supabase
+    # string in DATABASE_URL is still the mistake of 2026-10-10.
+    chosen, chosen_url = nbt.primary_choice()
+    print(f"  the primary is {provider_of(chosen_url)} ({chosen})")
     provider = provider_of(os.environ.get("DATABASE_URL", ""))
     print(f"  DATABASE_URL points at: {provider}")
-    # Unless Supabase was made the primary on purpose: the repository variable PRIMARY=supabase says so
-    # (brain.md rule 88). A pasted wrong secret cannot set a variable, so the mistake above stays refused.
-    declared = os.environ.get("PRIMARY", "").strip().lower()
-    if provider == "Supabase" and declared == "supabase":
+    declared = os.environ.get("PRIMARY", "").strip().lower() or "supabase"
+    if chosen == "SUPABASE_DATABASE_URL":
+        pass
+    elif provider == "Supabase" and declared == "supabase":
         print("  Supabase is the primary by the PRIMARY=supabase repository variable.")
-    elif declared == "supabase":
+    elif declared == "supabase" and os.environ.get("PRIMARY"):
         # The reverse half-switch, seen in production on 2026-10-10: the variable says Supabase, the
         # secret still names Neon, so every lane writes Neon while anything reading the variable believes
         # otherwise. Not refused -- the secret is the one the owner set last, and refusing would stop

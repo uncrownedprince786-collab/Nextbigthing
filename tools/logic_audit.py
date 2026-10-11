@@ -48,14 +48,20 @@ EXAMPLES = 8
 
 
 def database_url() -> str:
-    url = os.environ.get("DATABASE_URL", "").strip()
-    if not url:
-        try:
-            from dotenv import dotenv_values
+    # The primary by rule 97 (jobs/nbt.py `primary_choice`): Supabase unless PRIMARY=neon.
+    env = dict(os.environ)
+    try:
+        from dotenv import dotenv_values
 
-            url = (dotenv_values(ROOT / ".env").get("DATABASE_URL") or "").strip()
-        except Exception:  # noqa: BLE001
-            url = ""
+        for k, v in dotenv_values(ROOT / ".env").items():
+            env.setdefault(k, v or "")
+    except Exception:  # noqa: BLE001
+        pass
+    supabase = (env.get("SUPABASE_DATABASE_URL") or "").strip()
+    if (env.get("PRIMARY") or "supabase").strip().lower() == "supabase" and supabase:
+        url = supabase
+    else:
+        url = (env.get("DATABASE_URL") or "").strip()
     if not url:
         raise SystemExit("DATABASE_URL is not set")
     return url

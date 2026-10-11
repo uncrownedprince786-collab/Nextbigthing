@@ -38,21 +38,35 @@ export function primaryLimits(url: string): { max?: number; idleTimeoutMillis?: 
   return {};
 }
 
+/// The primary database (brain.md rule 97), as jobs/nbt.py `primary_choice` and tools/writer.mjs pick it:
+/// Supabase unless PRIMARY=neon. The owner keeps the project on free tiers, and Neon's free tier caps
+/// compute hours -- the derive passes used them up twice in two days -- where Supabase's caps size and
+/// connections, which `primaryLimits` already keeps small. Without a Supabase URL it is DATABASE_URL.
+export function primaryUrl(env: Record<string, string | undefined> = process.env): string | undefined {
+  const supabase = env.SUPABASE_DATABASE_URL?.trim();
+  if ((env.PRIMARY ?? "supabase").trim().toLowerCase() === "supabase" && supabase) return supabase;
+  return env.DATABASE_URL?.trim();
+}
+
 function standbys(primary: string): StandbyConfig[] {
   const candidates: { name: string; url: string | undefined }[] = [
     // Trimmed: a value pasted with its trailing line break names a database that does not exist.
     { name: "the second Neon project", url: process.env.DATABASE_URL_FALLBACK?.trim() },
     { name: "Supabase", url: process.env.SUPABASE_DATABASE_URL?.trim() },
+    // Neon, when Supabase is the primary (rule 97).
+    { name: "Neon", url: process.env.DATABASE_URL?.trim() },
   ];
   return candidates
     .filter((c): c is { name: string; url: string } => Boolean(c.url))
     // A standby that is the primary itself (Supabase promoted to primary) is not a second chance.
     .filter((c) => databaseKey(c.url) !== databaseKey(primary))
+    // One entry per database: the second Neon project and Neon can be the same one.
+    .filter((c, i, all) => all.findIndex((x) => databaseKey(x.url) === databaseKey(c.url)) === i)
     .map((c) => ({ name: c.name, config: { connectionString: withEncryption(c.url) } }));
 }
 
 function create() {
-  const url = process.env.DATABASE_URL?.trim();
+  const url = primaryUrl();
   if (!url) {
     throw new Error(
       "DATABASE_URL is not set. Copy .env.example to .env and paste the Neon connection string.",

@@ -81,9 +81,15 @@ def read(url: str) -> tuple[set, set, set, dict]:
 
 
 def main() -> int:
-    primary = (os.environ.get("DATABASE_URL") or "").strip()
-    standbys = [(n, (os.environ.get(n) or "").strip()) for n in ("SUPABASE_DATABASE_URL", "DATABASE_URL_FALLBACK")]
-    standbys = [(n, u) for n, u in standbys if u and u != primary]
+    # The primary by rule 97 (jobs/nbt.py `primary_choice`): Supabase unless PRIMARY=neon.
+    supabase = (os.environ.get("SUPABASE_DATABASE_URL") or "").strip()
+    if (os.environ.get("PRIMARY") or "supabase").strip().lower() == "supabase" and supabase:
+        primary = supabase
+    else:
+        primary = (os.environ.get("DATABASE_URL") or "").strip()
+    standbys = [(n, (os.environ.get(n) or "").strip()) for n in ("SUPABASE_DATABASE_URL", "DATABASE_URL_FALLBACK", "DATABASE_URL")]
+    seen: set[str] = {primary}
+    standbys = [(n, u) for n, u in standbys if u and not (u in seen or seen.add(u))]
     if not primary or not standbys:
         print("standby parity: DATABASE_URL and at least one standby are needed")
         return 2

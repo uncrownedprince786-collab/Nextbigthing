@@ -8243,7 +8243,9 @@ class TheLanesWriteToThePrimary(unittest.TestCase):
         sc = self.sc()
         url = "postgresql://postgres.abc:secretpw@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres"
         out = _io.StringIO()
-        with mock.patch.dict(os.environ, {"DATABASE_URL": url}), mock.patch.object(sc, "db") as connect, \
+        # Under PRIMARY=neon a Supabase string in DATABASE_URL is still the pasted-secret mistake (rule 97 made
+        # Supabase the primary by default, through SUPABASE_DATABASE_URL, not through this secret).
+        with mock.patch.dict(os.environ, {"DATABASE_URL": url, "PRIMARY": "neon"}), mock.patch.object(sc, "db") as connect, \
                 contextlib.redirect_stdout(out):
             with self.assertRaises(SystemExit) as stop:
                 sc.main()
@@ -8568,7 +8570,9 @@ class SupabaseAsPrimary(unittest.TestCase):
         self.assertEqual(j, i + 1)
         standby = steps[j]
         self.assertTrue(standby.get("continue-on-error"), "an unreachable standby must not stop the primary's run")
-        self.assertEqual(set(standby["env"]), {"DATABASE_URL_FALLBACK", "SUPABASE_DATABASE_URL"})
+        # Rule 97: Supabase is the primary unless PRIMARY=neon, so Neon (DATABASE_URL) is a standby here too.
+        self.assertEqual(set(standby["env"]), {"DATABASE_URL", "DATABASE_URL_FALLBACK", "SUPABASE_DATABASE_URL", "PRIMARY_VAR"})
+        self.assertIn('[ "$name" = "$primary" ] && continue', standby["run"])
 
 
 class TheWeeklyAuditLog(unittest.TestCase):
@@ -8904,6 +8908,8 @@ class WritesFailOverAndComeBack(unittest.TestCase):
         env = {
             "DATABASE_URL": "postgresql://u:p@ep-a.aws.neon.tech/neondb",
             "SUPABASE_DATABASE_URL": "postgresql://postgres.x:p@aws-0.pooler.supabase.com:5432/postgres",
+            # The Neon-primary arrangement; the default since rule 97 (Supabase first) is tests/test_primary.py.
+            "PRIMARY": "neon",
         }
 
         def down(url):

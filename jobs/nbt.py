@@ -304,11 +304,26 @@ def database_key(url: str) -> tuple:
     return (host, u.port or 5432, u.path.lstrip("/"), user)
 
 
+def primary_choice(env=os.environ) -> tuple[str, str]:
+    """(variable name, url) of the primary database (brain.md rule 97).
+
+    Supabase, by the owner's decision of 2026-10-11: the project stays on free tiers, and Neon's free tier
+    caps compute hours -- the derive passes used them up twice in two days -- where Supabase's caps size and
+    connections, which this workload fits. `PRIMARY=neon` puts the `DATABASE_URL` database back in front.
+    Without a Supabase URL the primary is `DATABASE_URL`, as it always was.
+    """
+    supabase = (env.get("SUPABASE_DATABASE_URL") or "").strip()
+    if (env.get("PRIMARY") or "supabase").strip().lower() == "supabase" and supabase:
+        return "SUPABASE_DATABASE_URL", supabase
+    return "DATABASE_URL", (env.get("DATABASE_URL") or "").strip()
+
+
 def standby_url(primary: str, env=os.environ) -> tuple[str, str] | None:
-    """(variable name, url) of the standby a lane may write when the primary is down, or None."""
+    """(variable name, url) of the standby a lane may write when the primary is down, or None: the first
+    configured database that is not the primary -- Neon (`DATABASE_URL`) when Supabase is the primary."""
     if (env.get("WRITE_FAILOVER") or "").strip().lower() == "off":
         return None
-    for name in ("SUPABASE_DATABASE_URL", "DATABASE_URL_FALLBACK"):
+    for name in ("SUPABASE_DATABASE_URL", "DATABASE_URL_FALLBACK", "DATABASE_URL"):
         url = (env.get(name) or "").strip()
         if url and database_key(url) != database_key(primary):
             return name, url
@@ -339,7 +354,9 @@ def _connect(url: str):
 def db():
     """A connection to the primary, or to the standby when the primary cannot be reached (see above)."""
     global WRITING_TO, _announced
-    primary = os.environ["DATABASE_URL"].strip()
+    _, primary = primary_choice()
+    if not primary:
+        raise KeyError("DATABASE_URL")
     try:
         conn = _connect(primary)
         WRITING_TO = "primary"
