@@ -4,9 +4,12 @@
     "another investigation. Every entry says what is wrong, whether it can be recovered, from where,",
     "by which operation, and the check that proves the repair worked.",
     "",
-    "Written 2026-10-12 from measurements against the live primary. Figures are stated as measured",
-    "rather than estimated; where a count moves with the data, the query that produced it is given so",
-    "Phase 4 can re-measure rather than trust this file.",
+    "Reconciled 2026-10-12 against the live primary. Every figure below was re-measured, not carried",
+    "forward; where a count moves with the data the query that produced it is given, so Phase 4 can",
+    "re-measure rather than trust this file. Three entries changed classification on this pass and the",
+    "reasons are recorded in each: the PK OHLC anomaly is the exchange's own closing convention and not",
+    "a defect, the US one is floating-point noise, and a genuinely independent second provider for PSX",
+    "was found, which the previous revision stated did not exist.",
     "",
     "Classification, and the distinction matters more than the counts:",
     "  real_observation  - the data is correct and must never be 'repaired'",
@@ -16,8 +19,8 @@
     "  recoverable_gap   - genuinely missing and obtainable from a source we already use",
     "  blocked           - cannot be resolved inside this repository"
   ],
-  "measured_at": "2026-10-12T01:25:00Z",
-  "measured_against": "Supabase primary, PriceSnapshot 830,487 rows / 613 assets",
+  "measured_at": "2026-10-12T12:30:00Z",
+  "measured_against": "Supabase primary, PriceSnapshot 831,027 rows / 614 assets / 317 MB database",
   "entries": [
     {
       "id": "psx-pre-2024-monthly-grid",
@@ -28,7 +31,8 @@
       "timeframe": "daily",
       "measured": {
         "stored_sessions_per_year": {"2019": 13, "2020": 12, "2021": 13, "2022": 12, "2023": 12, "2024": 118, "2025": 250, "2026": 191},
-        "comparison": "US 251-253/yr and FX 257-262/yr over the same span"
+        "comparison": "US 251-253/yr and FX 257-262/yr over the same span",
+        "re_measured_2026_10_12": "identical to the previous revision; the shape has not moved"
       },
       "why": [
         "jobs/psx.py DEEP_DAYS = 820 fetches a dense daily stretch of about 2.25 years, sized to",
@@ -36,28 +40,141 @@
         "of RISING_MONTHS = 24 anchors, which is the 12-13 rows a year seen for 2019-2023.",
         "So this is the collector's designed shape, not a failed fetch."
       ],
+      "what_the_sparse_grid_actually_supports": {
+        "$note": "Required by the Phase 1 brief: say which computations the grid serves and which need dense daily history. Measured 2026-10-12 over the 176 active PK names.",
+        "served_by_the_monthly_grid": [
+          "The 24-month relative return (nbt.RISING_MONTHS = 24), which reads monthly anchors by construction.",
+          "The price history chart, which plots anchors over the long span."
+        ],
+        "served_by_the_dense_2024-onward_stretch_and_not_by_the_grid": [
+          "jobs/horizons.py's longer read in full: LONG_SLOW = 200, LONG_RANGE = 500, MIN_LONG = 220.",
+          "155 of 176 active names clear 540 sessions from 2024-01-01 alone; 158 clear it over all stored history and 167 clear the 220 minimum.",
+          "The deepest name holds 559 dense sessions against the 540 target, so the margin is 19 sessions and DEEP_DAYS has no slack to lose."
+        ],
+        "would_require_dense_pre_2024_daily": [
+          "Any historical evaluation or backtest spanning more than about 2.25 years. That consumer does not exist yet; it is Phase 3's 'historical evaluation'.",
+          "Until it does, nothing downstream reads a pre-2024 PK daily close, and nothing silently substitutes a monthly anchor for one."
+        ],
+        "conclusion": "Not complete, and not to be marked complete. The gap is real but binds only on work Phase 3 has yet to build, which is why it stays a Phase 4 item rather than a current-phase blocker."
+      },
       "impact": "Long-horizon PSX historical evaluation before 2024 rests on monthly anchors, not daily closes. Current verdicts are unaffected: they read recent windows that fall inside the dense stretch.",
       "recoverable": true,
-      "proposed_source": "The exchange's own archive, which jobs/psx.py already knows: ARCHIVE_FROM = 2013-11-04.",
-      "recovery_operation": "Raise DEEP_DAYS, or run a dated backfill over 2019-01-01..2024-06-30 through the existing psx.py path, which is idempotent and never deletes. Respect the measured request ceiling: the host began refusing at roughly 600 requests in one session.",
-      "integrity_check": "Stored distinct PK session dates per year reaches 240+ for each of 2019-2023, and no existing row's close changes.",
+      "proposed_source": "Either of two, and they are independent of each other.",
+      "proposed_sources": [
+        {
+          "source": "The exchange's own archive, which jobs/psx.py already knows: ARCHIVE_FROM = 2013-11-04.",
+          "pros": "Raw as-traded closes in exactly the shape already stored. No semantic conversion.",
+          "cons": "Same restricted upstream as psx-redistribution-licence below. Host began refusing at roughly 600 requests in one session."
+        },
+        {
+          "source": "Yahoo Finance, symbol + '.KA' (exchange KAR, currency PKR). Reached through the same yfinance path jobs/prices.py already uses for US, FX and commodities.",
+          "verified_2026_10_12": {
+            "coverage": "156 of the 176 active PSX names resolve; 20 return HTTP 404 (BBFL, BFBIO, BML, ENGROH, GAL, GCWL, GDL, ITANZ, LSEVL, QTECH, SELECT, SOYASUP, SPAC1, SPSL, STL, TISL, WAFI, WAHDAT, ZAL, ZUMA), most of them recent listings.",
+            "depth": "firstTradeDate 2008-01-01; bars present from 2018-01-01, which covers the whole 2019-2023 gap.",
+            "density_after_filtering": "245/251/246/248/244 real sessions for 2019-2023 against the 12-13 stored now, and against PSX's true ~248.",
+            "agreement": "4,524 overlapping bars compared against the stored exchange file: 96.1% of closes identical to within 0.01% and 99.5% of volumes exact. The session calendar agrees exactly - no session in one and absent from the other.",
+            "fidelity_conclusion": "This is the same market data, not an approximation."
+          },
+          "two_defects_that_must_be_handled_and_both_are_detectable": [
+            {
+              "defect": "Synthetic flat bars. Yahoo fills a session it does not have with open=high=low=close and volume 0 rather than omitting it. Measured: 16/11/15/12/16 such bars per year for 2019-2023, and they fall on Pakistan's public holidays (Eid al-Fitr, Eid al-Adha, Ashura, Kashmir Day, Pakistan Day, Independence Day). The same mechanism produced a fabricated bar on 2026-10-08, a real trading session Yahoo missed, for all 156 names - 86 of those closes were more than 1% from the true close.",
+              "filter": "Reject any bar where volume = 0 AND open = high = low = close. This removes holiday padding and missed-session padding together, and no real PSX session is lost by it: a genuine zero-volume session does not also have four equal prices that differ from the previous close."
+            },
+            {
+              "defect": "Corporate-action semantics differ. Yahoo returns a split/bonus-adjusted series; the exchange file stores raw as-traded prices. Measured on three names whose ratio is constant backwards from the event date: BPL 0.8333 (5/6, a 20% bonus), CLOV 0.8696 (20/23), BAPL 0.6094. Every other name agreed exactly, so this is confined to names with a corporate action inside the window.",
+              "filter": "Never mix the two series for one asset. Either store Yahoo bars under their own source and keep them separate, or re-base them onto the stored raw series at the latest common date. Appending adjusted history to raw history would create a price jump that never happened."
+            }
+          ],
+          "pros": "A genuinely independent upstream - not a scraper of dps.psx.com.pk - reached through a provider path and a licence posture this project has already accepted for every other asset class.",
+          "cons": "88.6% coverage, not 100%. Adjusted rather than raw. Fabricates bars it does not have. See psx-redistribution-licence: this changes which provider's terms apply, it does not grant redistribution rights."
+        }
+      ],
+      "recovery_operation": "Raise DEEP_DAYS, or run a dated backfill over 2019-01-01..2024-06-30 through the existing psx.py path, which is idempotent and never deletes. If the Yahoo route is used instead, apply both filters above and store under a distinct source so the two series can always be told apart. Respect the measured request ceiling on the exchange host: refusals began at roughly 600 requests in one session.",
+      "integrity_check": "Stored distinct PK session dates per year reaches 240+ for each of 2019-2023; no existing row's close changes; and no stored bar has volume = 0 with four equal prices.",
       "blocked_by": "psx-redistribution-licence - recovering more PSX history does not change the permission question below."
     },
     {
-      "id": "ohlc-close-outside-own-range",
-      "classification": "source_defect",
+      "id": "pk-close-outside-own-range",
+      "classification": "real_observation",
+      "$reclassified": "Was part of 'ohlc-close-outside-own-range' and classified source_defect. Re-measured 2026-10-12 and it is not a defect. Split out because the three markets in that entry turned out to have three unrelated causes.",
+      "market": "PK",
       "measured": {
-        "Yahoo Finance / FX": {"rows": 4142, "assets": 27, "range": "2019-01-01..2026-10-09"},
-        "Pakistan Stock Exchange daily closing file / PK": {"rows": 1232, "assets": 70, "range": "2019-02-01..2026-10-08"},
-        "Yahoo Finance / US": {"rows": 49, "assets": 29, "range": "2019-01-10..2025-01-21"}
+        "rows": 1232,
+        "assets": 70,
+        "range": "2019-02-01..2026-10-08",
+        "close_equals_previous_session_close": "1133 of the 1231 rows that have a previous session (92.0%)",
+        "volume_at_or_below_1000": "1193 of 1232 (96.8%)",
+        "rows_with_zero_volume": 0
       },
-      "why": "The provider sends a close above its own high or below its own low. Stored exactly as sent (brain.md rule 98); the trade grader already reads these bars as unavailable rather than trusting them.",
-      "impact": "No verdict is computed from a bar whose own range contradicts it. The PK share has grown from 339 to 1,232 since rule 98 was written and is worth watching.",
+      "why": [
+        "PSX sets a scrip's official closing price from the closing window, and where a name did not",
+        "trade enough in that window the exchange carries the previous close forward. The high and low",
+        "are the day's actual traded extremes, so a carried-forward close can sit outside them.",
+        "That is the exchange's published closing-price convention, not a corrupt value: 92% of these",
+        "rows have a close exactly equal to the previous session's close, and 97% are thin-volume names.",
+        "Query that shows it: compare close against lag(close) OVER (PARTITION BY assetId ORDER BY date)."
+      ],
+      "correction_to_the_previous_revision": [
+        "That revision said 'the trade grader already reads these bars as unavailable rather than",
+        "trusting them'. No code does that. Nothing in jobs/, lib/ or tools/ tests close against high",
+        "and low; tools/trade_sim.py loads open, high, low and close unfiltered. The claim described a",
+        "mitigation that does not exist.",
+        "It does not need to exist. High and low are the real traded extremes, so target and stop",
+        "detection is correct as it stands, and the close is the exchange's official close. Discarding",
+        "these 1,232 bars as 'unavailable' would have thrown away valid observations."
+      ],
+      "impact": "None. These are correct records of what the exchange published.",
+      "recoverable": false,
+      "recovery_operation": "NONE. Do not 'repair' these rows and do not add a validator that rejects a close outside its own high/low for PK - it would discard 1,232 valid exchange closes.",
+      "integrity_check": "The 1,133 rows whose close equals the previous session's close still read that way after any Phase 4 pass.",
+      "residue": "98 rows do not match the previous close and have no explanation yet. Small enough to inspect one by one rather than reason about in aggregate; left for Phase 4 to look at directly.",
+      "query": "SELECT count(*) FROM \"PriceSnapshot\" s JOIN \"Asset\" a ON a.id=s.\"assetId\" JOIN \"Industry\" i ON i.id=a.\"industryId\" WHERE i.market='PK' AND (s.close > s.high OR s.close < s.low)"
+    },
+    {
+      "id": "fx-close-outside-own-range",
+      "classification": "source_defect",
+      "$reclassified": "Was part of 'ohlc-close-outside-own-range'. Kept as a defect - it is the only one of the three that is one - and separated because its cause is specific to FX and is worth stating.",
+      "market": "FX",
+      "source": "Yahoo Finance",
+      "measured": {
+        "rows": 4142,
+        "assets": 27,
+        "range": "2019-01-01..2026-10-09",
+        "close_equals_previous_session_close": "137 of 4142 (3.3%), so the PK explanation does not apply here",
+        "average_excess_beyond_the_nearer_bound": "0.44%",
+        "worked_example": "USDPKR 2026-10-09: high 268.235, low 267.412, close 276.75 - the close is 3.2% above the day's high, and the same 276.75 appears on 2026-10-07 and a near-identical 276.70 on 2026-10-08."
+      },
+      "why": [
+        "The close is not drawn from the same venue as the OHLC. The OHLC sits around the interbank",
+        "rate while the close sits around a different quote - for USDPKR, roughly the open-market rate.",
+        "A repeated, flat close against a moving intraday range is what that looks like.",
+        "This is a genuine provider inconsistency, and unlike the PK case there is no convention that",
+        "makes it correct."
+      ],
+      "impact": "27 FX names, USDPKR among them. Any calculation that mixes the close with the same bar's high or low is comparing two venues. The PKR rate matters to PSX-facing analysis, so this is the FX row to look at first.",
       "recoverable": "partially",
-      "proposed_source": "Re-fetch the affected dates from the same provider and keep the new bar only when it is internally consistent. There is no second provider for these instruments.",
+      "proposed_source": "Re-fetch the affected dates from the same provider and keep the new bar only when it is internally consistent. No independent second FX provider has been evaluated - unlike the PK case, where one now exists.",
       "recovery_operation": "Per affected (assetId, date), re-fetch and upsert only if high >= low AND low <= close <= high. Never edit a stored value in place.",
-      "integrity_check": "Count of rows where close > high OR close < low falls, and no row count decreases.",
-      "query": "SELECT s.source, i.market, count(*) FROM \"PriceSnapshot\" s JOIN \"Asset\" a ON a.id=s.\"assetId\" JOIN \"Industry\" i ON i.id=a.\"industryId\" WHERE s.close > s.high OR s.close < s.low GROUP BY 1,2"
+      "integrity_check": "Count of FX rows where close > high OR close < low falls, and no row count decreases.",
+      "query": "SELECT count(*) FROM \"PriceSnapshot\" s JOIN \"Asset\" a ON a.id=s.\"assetId\" JOIN \"Industry\" i ON i.id=a.\"industryId\" WHERE i.market='FX' AND (s.close > s.high OR s.close < s.low)"
+    },
+    {
+      "id": "us-close-outside-own-range",
+      "classification": "real_observation",
+      "$reclassified": "Was part of 'ohlc-close-outside-own-range'. It is floating-point noise, not a defect, and recording it as one invited a repair that would have been a no-op at best.",
+      "market": "US",
+      "source": "Yahoo Finance",
+      "measured": {
+        "rows": 49,
+        "assets": 29,
+        "range": "2019-01-10..2025-01-21",
+        "example": "AGNC 2023-03-20: low 5.71911239624024, close 5.71911239624023 - a difference of 1 in the 15th significant digit."
+      },
+      "why": "The close equals the high or the low to within one unit in the last place of a double. The comparison is true; the discrepancy is not. These bars are correct.",
+      "impact": "None at any precision anyone trades or displays at.",
+      "recoverable": false,
+      "recovery_operation": "NONE. If a future validator flags these, give it a tolerance of one ULP rather than re-fetching 49 correct bars.",
+      "integrity_check": "n/a"
     },
     {
       "id": "cl-f-negative-settlement-2020-04-20",
@@ -87,7 +204,7 @@
       "classification": "listing_limit",
       "measured": {
         "assets_starting_after_2019-02-01": 76,
-        "examples": [
+        "re_measured_2026-10-12": [
           {"symbol": "SOYASUP", "market": "PK", "bars": 19, "first": "2026-09-15"},
           {"symbol": "TISL", "market": "PK", "bars": 34, "first": "2026-08-24"},
           {"symbol": "SPCX", "market": "US", "bars": 83, "first": "2026-06-12"},
@@ -99,7 +216,14 @@
       "recoverable": false,
       "recovery_operation": "NONE. Do not pad a history that never existed.",
       "integrity_check": "Each asset's first stored date equals the provider's earliest available date for it.",
-      "note": "COF was in this list on 2026-10-12 at 22 bars and is no longer: a lane recovered it to 1,954 bars from 2019-01-02, which equals the provider's full count for that range. Verified with tools/recover_asset.py COF."
+      "cof_verified_2026-10-12": {
+        "bars": 1954,
+        "first": "2019-01-02",
+        "last": "2026-10-09",
+        "verdict": "Still recovered, unchanged since the previous revision. COF is not a late listing and is not in this entry's scope.",
+        "tool": "tools/recover_asset.py - one asset, upsert only, never is_full, and it re-reads every pre-existing bar afterwards and fails the run if one was lost or altered. Idempotent and safe to re-run."
+      },
+      "note": "17 of the 20 PSX names Yahoo does not carry are in or near this group, which is consistent: a provider that has not listed a symbol and an exchange that listed it last quarter are the same fact seen twice."
     },
     {
       "id": "psx-intraspan-missing-sessions",
@@ -115,9 +239,10 @@
         "measured_against": "distinct stored PK weekday session dates, which are themselves sparse before 2024 - see psx-pre-2024-monthly-grid"
       },
       "why": "A name absent from a daily closing file it should appear in: either it did not trade that session, or the file was not fetched. The two are not distinguishable from stored data alone.",
+      "new_2026-10-12": "They are now distinguishable from outside it. Yahoo .KA covers 156 of the 176 names independently, and over the 29-session window measured on 2026-09-01..2026-10-09 the two sources' session calendars agreed exactly. Checking a suspected missing session against Yahoo separates 'did not trade' from 'was not fetched' without another investigation.",
       "impact": "PSX per-asset windows are shorter than the session count suggests. Bounded by the same pre-2024 sparsity above.",
       "recoverable": true,
-      "proposed_source": "The same PSX daily closing files, re-fetched for the specific missing dates.",
+      "proposed_source": "The same PSX daily closing files, re-fetched for the specific missing dates; Yahoo .KA as the cross-check that says which dates are worth re-fetching.",
       "recovery_operation": "Resolve psx-pre-2024-monthly-grid first; re-measure afterwards, because most of these gaps are that entry seen per asset.",
       "integrity_check": "Re-run the span query; missing_sessions_inside_span falls for each named symbol and no bar is lost."
     },
@@ -129,13 +254,65 @@
         "PSX's own legal notice prohibits 'any dissemination, transmission, sale, and commercial use",
         "of Market Data feed' without a licence from PSX, including on a delayed basis. Its terms of",
         "use permit 'a single, unaltered, permanent copy' for 'personal, non-commercial use only'.",
-        "Five free routes were evaluated on 2026-10-12 and none grants redistribution rights:",
-        "every one of them is the same dps.psx.com.pk upstream, and a library's MIT licence covers",
-        "its code and not the exchange's data."
+        "This product republishes PSX closes publicly on /psx for 176 names."
       ],
+      "evaluation_2026-10-12": {
+        "$note": "A second, bounded evaluation. The previous one concluded every route was the same dps.psx.com.pk upstream. That conclusion was right about the routes it checked and wrong to stop there: one independent provider does carry PSX.",
+        "candidates": [
+          {
+            "candidate": "dps.psx.com.pk daily closing file (incumbent)",
+            "result": "Works. HTTP 200, 22,561 bytes for 2026-10-09. Raw as-traded OHLCV, archive back to 2013-11-04.",
+            "qualifies": false,
+            "reason": "It is the restricted feed itself. Nothing about continuing to use it changes the permission question."
+          },
+          {
+            "candidate": "investors.psx.com.pk",
+            "result": "Does not resolve. Connection fails at the network level (curl exit, HTTP 000). Re-checked 2026-10-12, same as the previous evaluation.",
+            "qualifies": false
+          },
+          {
+            "candidate": "dps.psx.com.pk /timeseries/ (the 'Lens' endpoint)",
+            "result": "CORRECTION to the previous evaluation, which recorded this as a 404. It is not dead: it answers 200 when called with browser headers from the company page that uses it, and 404 to a bare request. Confirmed by loading dps.psx.com.pk/company/OGDC in a browser and reading its network traffic.",
+            "qualifies": false,
+            "reason": "What it returns is intraday tick data for the current session - [timestamp, price, size] triples - not EOD OHLCV and no history. And it is the same restricted upstream, so even complete data from it would not change the permission question."
+          },
+          {
+            "candidate": "Yahoo Finance, symbol + '.KA'",
+            "result": "Qualifies as an independent source. 156/176 names, dense daily from 2018-01-01, 96.1% of closes and 99.5% of volumes identical to the stored exchange file over 4,524 compared bars, session calendars in exact agreement. Full detail and its two defects are under psx-pre-2024-monthly-grid.",
+            "qualifies": "as a secondary and as a recovery source, not as a replacement",
+            "reason": "88.6% coverage, adjusted rather than raw prices, and it fabricates flat zero-volume bars for sessions it is missing. A replacement has to be complete and raw; a cross-check and a history source do not."
+          },
+          {
+            "candidate": "Twelve Data (exchange PSX, MIC XKAR)",
+            "result": "Lists the full PSX symbol universe - the free /stocks?country=Pakistan endpoint returns it without a key. Time series needs an API key, which needs an account.",
+            "qualifies": "unevaluated",
+            "reason": "No account was created, so whether the free tier actually serves PSX time series is unverified. Left for the owner to decide; it is the one remaining candidate that could be checked cheaply."
+          },
+          {
+            "candidate": "Stooq",
+            "result": "Disqualified on access policy, not capability. robots.txt is 'User-agent: * / Disallow: /' with allowances only for Bingbot and Googlebot, and the site serves an active proof-of-work browser challenge.",
+            "qualifies": false,
+            "reason": "Collecting from it would mean defeating a bot check against an explicit disallow. Out of bounds regardless of what the data looks like."
+          }
+        ],
+        "what_this_changes_and_what_it_does_not": [
+          "CHANGES: the previous revision said of the malformed-bar entry that 'there is no second",
+          "provider for these instruments'. For PK that is now false. An independent provider exists,",
+          "it agrees with the exchange file to 96.1%, and it reaches back to 2018 - which makes the",
+          "pre-2024 history recoverable without the exchange archive, and makes missing PSX sessions",
+          "checkable against something.",
+          "",
+          "DOES NOT CHANGE: the redistribution question. Yahoo's own terms restrict redistribution too.",
+          "Switching provider does not obtain a licence; it changes whose terms govern the PK surface,",
+          "from an exchange whose notice names delayed redistribution explicitly to a provider this",
+          "project already relies on, and already republishes, for US, FX and commodity data.",
+          "That is a real difference in the owner's risk posture and it is not a legal opinion.",
+          "Nobody in this repository can give one."
+        ]
+      },
       "impact": "The public PSX surface republishes this data. Collection and private use are unaffected.",
       "recoverable": false,
-      "recovery_operation": "Not a data operation. The owner chooses: restrict the PSX surface to non-public use, obtain a licence, or accept the risk explicitly.",
+      "recovery_operation": "Not a data operation. The owner chooses: restrict the PSX surface to non-public use, obtain a licence, move the public PK surface onto the Yahoo series and accept that provider's terms instead, or accept the current risk explicitly.",
       "integrity_check": "n/a"
     }
   ]

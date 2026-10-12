@@ -55,6 +55,12 @@ try:
 except Exception:  # noqa: BLE001
     pass
 
+# The `News.source` prefix every macro row carries, restated from `jobs/prices.py`'s
+# MACRO_SOURCE_PREFIX rather than imported: importing it would make this job load the whole price
+# fetcher and every network client under it to read one string. A test pins the two together so
+# the copy cannot drift, exactly as jobs/psx.py does with horizons.py's MIN_LONG.
+MACRO_PREFIX = "Macro: "
+
 # Jaccard overlap at which two headlines are the same story. Measured against real stored
 # feeds: rewrites of one report share most of their distinctive tokens once the company name
 # and stopwords are removed, while two genuinely different stories about one company rarely
@@ -77,10 +83,18 @@ WINDOW_HOURS = 72
 #          industry-level items are never clustered at all
 #     439  published more than LOOKBACK_DAYS ago, which this window deliberately skips
 #
+# The first group has since been split. Macro rows are also untargeted, and on 2026-10-12 all 82
+# of them sat in it: never clustered, so `isOriginal` kept its `false` default while
+# `lib/queries.ts getMacroNews` published that field to `/api/signals` as a syndication claim.
+# A false provenance claim is worse than a missing one, so macro is now a target kind of its own,
+# grouped by the topic in `source`. Industry-linked rows remain unclustered and unread -- that one
+# is Phase 3's, and it is recorded in brain.md rule 112 rather than fixed here.
+#
 # So "un-lineaged rows exist" is not a signal that this job needs running again. The number to
-# check is rows that are un-lineaged AND targeted AND inside the window; when that is zero, this
-# job has done everything it can. It costs nothing downstream: `jobs/human.py` counts stories over
-# a 30-day window, which sits inside this 45-day one, so every row it reads is clustered.
+# check is rows that are un-lineaged AND clusterable (targeted or macro) AND inside the window;
+# when that is zero, this job has done everything it can. It costs nothing downstream:
+# `jobs/human.py` counts stories over a 30-day window, which sits inside this 45-day one, so every
+# row it reads is clustered.
 LOOKBACK_DAYS = 45
 
 STOPWORDS = {
@@ -191,7 +205,13 @@ def main() -> None:
             UNION ALL
             SELECT "productId" AS id, 'product' AS kind FROM "News"
             WHERE "productId" IS NOT NULL GROUP BY "productId"
+            UNION ALL
+            SELECT source AS id, 'macro' AS kind FROM "News"
+            WHERE source LIKE %s AND "assetId" IS NULL
+              AND "industryId" IS NULL AND "productId" IS NULL
+            GROUP BY source
             """,
+            (MACRO_PREFIX + "%",),
         )
         if not targets:
             print("  no targeted news stored, nothing to cluster")
@@ -202,8 +222,15 @@ def main() -> None:
             names[t["id"]] = f"{t['name']} {t['symbol']}"
         for t in rows(cur, 'SELECT id, name FROM "Product"'):
             names[t["id"]] = t["name"]
+        # A macro target has no row in Asset or Product: its id *is* the topic label. The words
+        # of the topic are dropped from the similarity test for the same reason a company's name
+        # is -- every headline the feed returned contains them, so they carry no information
+        # about whether two of those headlines are the same story.
+        for t in targets:
+            if t["kind"] == "macro":
+                names[t["id"]] = t["id"][len(MACRO_PREFIX):]
 
-        # Every item in the window, for every target, in two statements. It was one per
+        # Every item in the window, for every target, in three statements. It was one per
         # target: 356 network waits to read 7,750 rows that fit in a single result.
         items_by_target: dict[str, list[dict]] = {}
         for column in ("assetId", "productId"):
@@ -218,6 +245,25 @@ def main() -> None:
                 """,
             ):
                 items_by_target.setdefault(r["target"], []).append(r)
+        # Macro items are untargeted by design -- a policy-rate decision belongs to no single
+        # name -- so they are grouped by the topic they were collected under, which is what
+        # `source` holds. Without this they were never clustered at all, and because
+        # `News.isOriginal` defaults to false that left every macro row reading as a syndicated
+        # copy of something: `getMacroNews` publishes that field, so the claim was not merely
+        # absent, it was wrong on all of them.
+        for r in rows(
+            cur,
+            f"""
+            SELECT source AS target, id, title, publisher, "publishedAt"
+            FROM "News"
+            WHERE source LIKE %s AND "assetId" IS NULL
+              AND "industryId" IS NULL AND "productId" IS NULL
+              AND "publishedAt" > now() - interval '{LOOKBACK_DAYS} days'
+            ORDER BY source, "publishedAt" ASC
+            """,
+            (MACRO_PREFIX + "%",),
+        ):
+            items_by_target.setdefault(r["target"], []).append(r)
 
         total_items = total_stories = 0
         all_groups: list[tuple[str, list[dict]]] = []
@@ -319,6 +365,20 @@ def main() -> None:
             "  a ratio near 1 means little syndication; a high ratio means the item count "
             "was mostly copies"
         )
+        # Reported on its own line rather than folded into the totals above. Macro is a twelfth
+        # of the targets and a fraction of a percent of the items, so a run that clustered every
+        # asset and no macro row at all would still print a healthy ratio -- which is how the
+        # unclustered macro rows went unnoticed in the first place.
+        macro_groups = [g for ref, g in all_groups if ref.startswith(MACRO_PREFIX)]
+        macro_items = sum(len(g) for g in macro_groups)
+        macro_topics = len({ref for ref, _ in all_groups if ref.startswith(MACRO_PREFIX)})
+        if macro_items:
+            print(
+                f"  of those, {macro_items} macro items across {macro_topics} topics in "
+                f"{len(macro_groups)} stories"
+            )
+        else:
+            print("  no macro items were clustered: either none are stored or the topic prefix moved")
     finally:
         cur.close()
         conn.close()

@@ -3298,3 +3298,165 @@ reads rows that already exist:
       and rewrites every crypto asset's entire history every two hours (insert-to-live 2.2x on
       `PriceSnapshot`, 237,559 deletes), and `jobs/intraday.py` still carries a whole-table window
       scan. Both are measured in rule 111 and neither was touched.
+
+115. **Phase 1 closed for the second and last time: the PSX source question answered with an
+    independent provider, the macro provenance claim corrected, the manifest reconciled.**
+    2026-10-12. The previous closure (rule 113) was sound on everything it measured and stopped one
+    step early on the one question that mattered most. This entry is what that step found.
+
+    - **State verified rather than assumed.** HEAD `6146c72` on `main`, identical to `origin/main`
+      and `origin/master`, tree clean. `tests` on push green for that exact commit (run at
+      2026-10-12T01:54:45Z against a commit timestamped 01:54:40 UTC). `/api/health` returns
+      `ok: true` with an empty `problems` array, served from the primary. Local `master` is 11
+      behind and is stale local state only; the remote is current.
+
+    - **PSX has an independent second provider, and the previous evaluation was wrong to conclude
+      otherwise.** Yahoo Finance carries PSX under the `.KA` suffix (exchange KAR, currency PKR),
+      reachable through the same yfinance path `jobs/prices.py` already uses for US, FX and
+      commodities. Measured, not assumed: **156 of the 176 active names** resolve, history runs
+      **dense daily from 2018-01-01**, and over 4,524 overlapping bars **96.1% of closes are
+      identical to within 0.01% and 99.5% of volumes are exact**. The session calendars agree
+      *exactly* -- not one session present in one source and absent from the other. This is the
+      same market data, not an approximation of it.
+
+      It has two defects and both are detectable, which is what makes it usable:
+      **(a) it fabricates bars.** A session Yahoo does not have comes back as open=high=low=close
+      with volume 0 rather than being omitted. That is 11-16 bars a year for 2019-2023, and they
+      land on Pakistan's public holidays -- Eid al-Fitr, Eid al-Adha, Ashura, Kashmir Day, Pakistan
+      Day. The same mechanism invented a bar for **2026-10-08**, a real session it missed, across
+      all 156 names, and 86 of those closes were more than 1% wrong. Filtering
+      `volume = 0 AND open = high = low = close` removes holiday padding and missed-session padding
+      together. After the filter the year counts are 245/251/246/248/244 for 2019-2023, against
+      PSX's true ~248 -- so the density is real once the padding is gone.
+      **(b) it is adjusted, not raw.** Yahoo back-adjusts for corporate actions; the exchange file
+      stores as-traded. Three names disagreed by a constant ratio -- BPL 0.8333 (5/6, a 20% bonus),
+      CLOV 0.8696 (20/23), BAPL 0.6094 -- and every other name agreed exactly. **Nothing in this
+      repository adjusts for a corporate action**, so the stored PSX series carries raw bonus-issue
+      jumps. Appending adjusted history to it would invent a price move that never happened.
+
+      So Yahoo qualifies **as a secondary and as a recovery source, not as a replacement**: 88.6%
+      coverage and fabricated bars disqualify it from being the one source of record, and nothing
+      was swapped in. The existing data was not touched.
+
+    - **What that does and does not settle.** It makes the pre-2024 history recoverable without the
+      exchange archive, and it makes a suspected missing PSX session checkable against something
+      instead of being unresolvable from stored data alone. It does **not** obtain a licence.
+      Yahoo's terms restrict redistribution too. What changes is *whose* terms govern the public PK
+      surface: an exchange whose notice names delayed redistribution explicitly, or a provider this
+      project already republishes for every other asset class. That is a real difference in the
+      owner's risk posture and it is not a legal opinion -- nothing here can give one.
+
+    - **Two corrections to the previous evaluation, both from rechecking rather than reasoning.**
+      `investors.psx.com.pk` still does not resolve (connection fails at the network layer).
+      But the Lens timeseries endpoint **does not 404** -- it answers 200 when called with the
+      headers the company page sends, and 404 to a bare request. Confirmed by loading
+      `dps.psx.com.pk/company/OGDC` in a browser and reading its own network traffic. It serves
+      intraday `[timestamp, price, size]` ticks for the current session, no EOD history, and it is
+      the same restricted upstream -- so it changes nothing, but "it 404s" was the wrong reason.
+      Stooq was disqualified on access policy, not capability: `robots.txt` is `Disallow: /` for
+      everything but Bingbot and Googlebot, behind a proof-of-work challenge. Twelve Data lists the
+      whole PSX universe (MIC XKAR) on a keyless endpoint but needs an account for time series; no
+      account was created, so its free tier remains unverified and it is the one cheap check left.
+
+    - **The macro lane published a false provenance claim on every row, and that is now fixed.**
+      All 82 macro rows had `lineageId` null and `isOriginal` false. `jobs/lineage.py` selected
+      targets by `assetId` or `productId` only; macro rows are untargeted *by design*, so lineage
+      never saw them, and `News.isOriginal` defaults to false. `getMacroNews` publishes that field
+      to `/api/signals`, where false means "this is a syndicated copy". So the system was asserting,
+      about all 82, that each was a copy of something else. **A wrong provenance claim is worse than
+      a missing one**, and no row count would ever have shown it -- every row was present, stored
+      correctly and readable. This is rule 112's mistake in a new place: there the collector had no
+      reader, here it had a reader and told it the wrong thing.
+
+      Macro is now a target kind of its own in `lineage.py`, grouped by the topic in `source`.
+      Verified by running it: **82 of 82 clustered, 82 marked original, 0 falsely marked
+      syndicated**, with the 3,943 targeted rows in the window unaffected. Production confirms it --
+      `/api/signals` returns 43 items in its 14-day window, 43 of 43 now carrying a lineage id and
+      `isOriginal: true`, where every one read false before. The run summary prints a macro line of
+      its own, because macro is a twelfth of the targets and a fraction of a percent of the items:
+      a run that clustered every asset and no macro row would otherwise still print a healthy ratio,
+      which is exactly how this went unnoticed.
+
+    - **The rest of the macro lane verified and left alone.** All twelve topics are populated (82
+      rows, up from 69), every row has a url, a publisher and a publication time, every url is
+      distinct, and not one is targeted -- the untargeted unique index is doing its job. SBP went
+      0 -> 2 and IMF 1 -> 11. Two honest limitations recorded rather than papered over: **"Ministry
+      of Finance" still appears in no stored headline** although its topic returns rows, so that
+      feed is returning Pakistan fiscal news that does not name the ministry; and **stored urls are
+      Google News wrapper links, not the publisher's own** -- which is not a macro defect, it is how
+      all 4,036 Google-sourced rows are stored and has been all along.
+
+    - **The manifest was reconciled against the live database, and three entries changed
+      classification.** Every figure was re-measured. The per-year PSX session counts are unchanged
+      to the row. COF still holds 1,954 bars from 2019-01-02. The one lumped "5,423 malformed bars"
+      entry turned out to be **three unrelated things**:
+      **PK (1,232 rows) is not a defect.** 1,133 of the 1,231 rows that have a predecessor have a
+      close *exactly equal to the previous session's close*, and 1,193 of 1,232 are thin-volume.
+      That is PSX carrying the previous close forward when a scrip did not trade enough in the
+      closing window, while high and low stay the day's real traded extremes. The exchange's own
+      convention. The previous revision also claimed "the trade grader already reads these bars as
+      unavailable" -- **no code does that**; nothing in `jobs/`, `lib/` or `tools/` compares close
+      against high and low. It does not need to, and a validator that rejected these would have
+      discarded 1,232 valid exchange closes.
+      **FX (4,142 rows) is the only real defect of the three.** Only 137 match the previous close.
+      USDPKR on 2026-10-09 has high 268.24, low 267.41 and close 276.75 -- the close comes from a
+      different venue than the OHLC, roughly open-market against interbank, and repeats flat across
+      days. This is the one to look at first, because the PKR rate feeds PSX-facing analysis.
+      **US (49 rows) is floating-point noise.** AGNC 2023-03-20 has low 5.71911239624024 and close
+      5.71911239624023: one unit in the last place of a double. Correct bars.
+
+    - **What the sparse pre-2024 grid actually supports, stated because the brief refused to let it
+      be called complete.** Measured over the 176 active names: **155 clear the 540-session long
+      window from the 2024-onward dense stretch alone**, 158 clear it over all stored history, 167
+      clear the 220 minimum. So `jobs/horizons.py`'s longer read -- LONG_SLOW 200, LONG_RANGE 500,
+      MIN_LONG 220 -- is served entirely by the dense stretch and the monthly grid contributes
+      nothing to it. The grid serves the 24-month relative return and the history chart, which is
+      what it was built for. What would need dense pre-2024 daily data is **any evaluation spanning
+      more than ~2.25 years, and that consumer does not exist yet** -- it is Phase 3's historical
+      evaluation. The deepest name holds 559 dense sessions against a 540 target, so `DEEP_DAYS` has
+      **19 sessions of margin and no slack to lose**.
+
+    - **Freshness, measured from run history rather than re-run.** Over the last 100 runs of each
+      lane: live quotes 40/41 with 0 failures, crypto 36/39, us prices 31/34, psx 15/17, news 36/50,
+      **mirror 5/10**, watchdog 58/100. The watchdog's 42 failures are it doing its job -- the one
+      read in full was a genuine 247-minute commodity quote staleness -- not false alarms. Its
+      `workflow_run` trigger is carrying the lane: 90 of 100 runs came that way against 8 from
+      schedule, which is rule 114's GitHub delivery limitation visible in the numbers.
+      **PSX showing "one session behind" at 11:50 UTC was correct and not a fault**: `cron-psx` runs
+      at 12:40/16:40/20:40 UTC, after the 10:30 UTC close, so the Monday session had not been
+      collected yet. The health sentence cannot currently distinguish "the lane has not run yet"
+      from "the lane ran and found nothing", which is a UI distinction and belongs to Phase 6.
+
+    - **`cron mirror` fails half its runs, and the cause is IPv6.** The log reads
+      `connection to server at "2600:1f16:4bf:..." port 5432 failed: Network is unreachable` --
+      GitHub Actions runners have no IPv6, and the direct Supabase endpoint is IPv6-only, while the
+      session pooler is IPv4. So **the standby is not being refreshed** and the failover copy is
+      stale. It fails loudly rather than silently and production reads the primary, so it is not a
+      Phase 1 blocker; it is a **Phase 2 blocker**, and the fix is a connection string the owner
+      controls, not code.
+
+    - **Sync baseline for Phase 2, measured today.** Database **317 MB of the 500 MB free tier, 183
+      MB of headroom** -- up from 301.5 MB at rule 111 and still climbing. `PriceSnapshot` is 221 MB
+      of it: 831,027 live rows against 2,052,530 inserts and **430,470 deletes**, an insert-to-live
+      ratio of **2.47** (it was 2.2 with 237,559 deletes at rule 111 -- the crypto full-replace is
+      not just continuing, it is compounding). Worse ratios sit on smaller tables: Analysis 6.93,
+      Ranking 6.80, NewsLineage 5.06, EventImpact 3.71. Prioritised backlog, unchanged in order by
+      this task: incremental crypto fetch first (it is the largest absolute waste), then
+      `jobs/intraday.py`'s whole-table window scan, then the mirror's IPv4 connection string, then
+      resumable batches and integrity verification. Nothing here was optimised, by instruction.
+
+    - **Verification.** 797 Python tests, 466 TypeScript tests, `tsc --noEmit` clean, `eslint`
+      clean, production build clean. Two tests added: one pins `lineage.MACRO_PREFIX` to
+      `prices.MACRO_SOURCE_PREFIX` so the restated constant cannot drift (the psx.py/horizons.py
+      idiom), and one asserts that *something sets* the provenance the reader publishes -- the
+      existing test checked only that `getMacroNews` returned the fields, which is precisely why it
+      passed throughout the period the claim was false on every row.
+
+    - **Phase 1 is closed.** The data-source requirements are defined and verified, every material
+      acquisition gap has either a real recovery path or an evidence-backed limitation, macro data
+      is collected *and* retrievable *and* truthfully labelled, the manifest is deterministic enough
+      to execute without another investigation, and no known critical failure silently produces
+      misleading current data. **Phase 2 is next and needs its own approved task.** The two owner
+      decisions from rule 114 stand, with the PSX one now better informed: restrict the public PK
+      surface, licence it, move it onto the Yahoo series and accept that provider's terms instead,
+      or accept the current risk explicitly.

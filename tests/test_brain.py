@@ -5106,6 +5106,14 @@ class PsxHistoryDepth(unittest.TestCase):
         # number — and reporting success at exactly the depth that produces nothing.
         self.assertEqual(psx.LONGER_MIN_CLOSES, horizons.MIN_LONG)
 
+    def test_the_restated_macro_prefix_cannot_drift_from_the_real_one(self):
+        # lineage.py finds macro rows by the `source` prefix prices.py writes, restated rather
+        # than imported for the same reason as above. If the two drift apart lineage silently
+        # selects nothing, every macro row keeps `isOriginal` false, and getMacroNews goes back
+        # to publishing "syndicated copy" about all of them — a wrong provenance claim that no
+        # row count would reveal, because the rows are all still there.
+        self.assertEqual(lineage.MACRO_PREFIX, prices.MACRO_SOURCE_PREFIX)
+
     def test_the_daily_window_is_deep_enough_for_a_longer_read_with_margin(self):
         # The window is in calendar days and the requirement is in sessions, so the conversion
         # is where an off-by-a-season hides. What a symbol ends up holding is the whole span —
@@ -8539,6 +8547,29 @@ class MacroAndGeopoliticalIngestion(unittest.TestCase):
         body = body[: body.index("export async function", 10)]
         self.assertIn("isOriginal", body)
         self.assertIn("lineageId", body)
+
+    def test_something_actually_sets_the_provenance_the_reader_publishes(self):
+        """The reader returning a field is not the same as the field being true.
+
+        This test exists because the one above passed while the claim was wrong on every row.
+        `News.isOriginal` defaults to false and jobs/lineage.py only ever clustered rows with an
+        `assetId` or a `productId`. Macro rows have neither by design, so all 82 of them kept the
+        default, and `getMacroNews` published `isOriginal: false` -- "this is a syndicated copy" --
+        about every macro item on /api/signals. A wrong provenance claim is worse than a missing
+        one, and no row count would have shown it: the rows were all present and all readable.
+        """
+        src = (ROOT / "jobs" / "lineage.py").read_text(encoding="utf-8")
+        # Macro is a target kind of its own, selected by the prefix prices.py writes.
+        self.assertIn("'macro' AS kind", src)
+        self.assertIn("MACRO_PREFIX", src)
+        # Selected by source, and only for rows that carry no target -- a macro row is untargeted.
+        targets = src[src.index("targets = rows("):src.index("if not targets:")]
+        self.assertIn("SELECT source AS id", targets)
+        self.assertIn('"assetId" IS NULL', targets)
+        self.assertIn('"productId" IS NULL', targets)
+        # And the items themselves are gathered, not just the target list: selecting the topics
+        # without reading their rows would cluster nothing and still print a healthy ratio.
+        self.assertIn('SELECT source AS target', src)
 
 
 class Phase4RecoveryManifest(unittest.TestCase):
