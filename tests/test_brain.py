@@ -8572,6 +8572,142 @@ class MacroAndGeopoliticalIngestion(unittest.TestCase):
         self.assertIn('SELECT source AS target', src)
 
 
+class MinistryOfFinanceDirectSource(unittest.TestCase):
+    """The ministry's own press releases, parsed from the ministry's own page.
+
+    The Google topic for this subject returned rows and not one of them named the ministry, so
+    the topic read as alive while carrying none of what it was added for. This source answers
+    that, and these tests run against saved markup rather than the live page: a parser that is
+    only ever exercised against whatever was published this morning is not tested.
+    """
+
+    # The real shape, trimmed. Two releases, exactly as finance.gov.pk nests them.
+    PAGE = """
+      <table>
+        <tr><td class="boldtext2">&nbsp;</td></tr>
+        <tr><td class="boldtext2">October 10, 2026
+          (PR No. 655)</td></tr>
+        <tr><td><p class="style2">Finance Minister Departs for Annual Meetings<br>
+          <br></td></tr>
+        <tr><td valign="top" class="bodytext"><p>The Finance Minister left today.</p></td></tr>
+        <tr><td class="boldtext2">October 9, 2026
+          (PR No. 654)</td></tr>
+        <tr><td><p class="style2">Finance Minister Hosts Dutch Business Delegation<br></td></tr>
+        <tr><td valign="top" class="bodytext"><p>A delegation called.</p></td></tr>
+      </table>
+    """
+
+    def test_a_release_parses_into_date_number_and_headline(self):
+        rows = prices.mof_releases(self.PAGE)
+        self.assertEqual(len(rows), 2)
+        first = rows[0]
+        self.assertEqual(first["number"], "655")
+        self.assertEqual(first["publishedAt"].date(), date(2026, 10, 10))
+        self.assertEqual(first["title"], "Finance Minister Departs for Annual Meetings")
+        # Newest first, so a bounded run takes the most recent and not an arbitrary slice.
+        self.assertGreater(rows[0]["publishedAt"], rows[1]["publishedAt"])
+
+    def test_the_published_date_is_the_ministrys_and_not_the_collection_time(self):
+        """"Published" is the ministry's fact; "collected" is ours. getMacroNews returns both."""
+        row = prices.mof_releases(self.PAGE)[0]
+        self.assertEqual(row["publishedAt"], datetime(2026, 10, 10, 0, 0))
+        self.assertNotEqual(row["publishedAt"].date(), datetime.now().date(),
+                            "a stored date that tracks today is the collector's clock, not the source")
+
+    def test_provenance_points_at_the_item_and_names_the_real_publisher(self):
+        row = prices.mof_releases(self.PAGE)[0]
+        self.assertTrue(row["url"].startswith(prices.MOF_URL + "#"))
+        self.assertIn("pr-655-2026-10-10", row["url"])
+        # The publisher is the ministry itself, not a search engine that surfaced it.
+        self.assertIn("Ministry of Finance", prices.MOF_PUBLISHER)
+
+    def test_two_releases_sharing_a_number_and_a_date_are_still_two_rows(self):
+        """The url is the dedup key, so a key that collides drops a real release as a duplicate.
+
+        Measured on the live page 2026-10-12: PR 614, 585 and 562 each name two different
+        releases, and 562's pair share a date as well. Number alone gives 293 keys for 296
+        releases; number and date give 295; adding the headline digest gives 296.
+        """
+        page = """
+          <tr><td class="boldtext2">March 16, 2026 (PR No. 562)</td></tr>
+          <tr><td><p class="style2">Roshan Digital Account Scheme Expanded<br></td></tr>
+          <tr><td class="boldtext2">March 16, 2026 (PR No. 562)</td></tr>
+          <tr><td><p class="style2">Cabinet Committee Briefed on Fuel Stocks<br></td></tr>
+        """
+        rows = prices.mof_releases(page)
+        self.assertEqual(len(rows), 2)
+        self.assertNotEqual(rows[0]["url"], rows[1]["url"], "same number and date, different release")
+        self.assertEqual(len({r["url"] for r in rows}), 2)
+
+    def test_the_same_release_parsed_twice_keeps_one_identity(self):
+        """Idempotence: re-reading an unchanged page must not invent a second row for a release."""
+        a = prices.mof_releases(self.PAGE)
+        b = prices.mof_releases(self.PAGE)
+        self.assertEqual([r["url"] for r in a], [r["url"] for r in b])
+
+    def test_a_release_with_no_headline_is_skipped_and_steals_nobodys(self):
+        """The failure that would be invisible: a wrong row rather than a missing one.
+
+        An unbounded gap between the date cell and the headline paragraph would let a release
+        with no headline attach the *next* release's headline to its own date.
+        """
+        page = """
+          <tr><td class="boldtext2">October 10, 2026 (PR No. 655)</td></tr>
+          <tr><td><p class="style2"><br></td></tr>
+          <tr><td class="boldtext2">October 9, 2026 (PR No. 654)</td></tr>
+          <tr><td><p class="style2">The only real headline here<br></td></tr>
+        """
+        rows = prices.mof_releases(page)
+        self.assertEqual([r["number"] for r in rows], ["654"])
+        self.assertEqual(rows[0]["title"], "The only real headline here")
+
+    def test_an_unreadable_date_is_dropped_rather_than_guessed(self):
+        page = """
+          <tr><td class="boldtext2">Octobre 10, 2026 (PR No. 655)</td></tr>
+          <tr><td><p class="style2">A headline under a date in no known shape<br></td></tr>
+        """
+        self.assertEqual(prices.mof_releases(page), [])
+
+    def test_a_page_that_changed_shape_yields_nothing_rather_than_nonsense(self):
+        for page in ("", "<html><body>Service unavailable</body></html>",
+                     '<td class="boldtext2">October 10, 2026</td>'):
+            self.assertEqual(prices.mof_releases(page), [], repr(page[:40]))
+
+    def test_it_is_read_by_the_existing_macro_reader_without_a_change(self):
+        """A second source, not a second subsystem.
+
+        getMacroNews selects on `source startsWith "Macro: "`. If this label did not carry the
+        prefix the rows would be stored and unreadable, which is rule 112's mistake again.
+        """
+        self.assertTrue(prices.MOF_SOURCE.startswith(prices.MACRO_SOURCE_PREFIX))
+        # And it is its own label, so a dead ministry page cannot hide behind a live Google feed.
+        self.assertNotIn(prices.MOF_SOURCE, [prices.MACRO_SOURCE_PREFIX + t
+                                             for t, _ in prices.MACRO_FEEDS])
+
+    def test_the_collector_is_a_plain_get_with_no_browser(self):
+        """Puppeteer is a dependency; this page is server-rendered and does not need one."""
+        src = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = src[src.index("def ingest_mof("):src.index("    ingest_mof()")]
+        self.assertIn("get(MOF_URL", body)
+        # Checked against what the module *imports*, not against its prose: the comment above
+        # ingest_mof explains why Puppeteer is not needed, and a substring search over the file
+        # fails on that sentence while a module that actually drove a browser would pass.
+        import ast
+
+        imported = set()
+        for node in ast.walk(ast.parse(src)):
+            if isinstance(node, ast.Import):
+                imported.update(a.name.split(".")[0] for a in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                imported.add(node.module.split(".")[0])
+        for absent in ("playwright", "pyppeteer", "selenium", "requests_html"):
+            self.assertNotIn(absent, imported, absent)
+        # A failure to fetch and a failure to parse are both recorded as "did not answer",
+        # and neither may read as a quiet week.
+        self.assertEqual(body.count("answered=False"), 2)
+        self.assertIn("answered=True", body)
+
+
 class Phase4RecoveryManifest(unittest.TestCase):
     """One manifest, specific enough to execute without another investigation."""
 

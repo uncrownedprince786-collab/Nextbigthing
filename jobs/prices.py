@@ -18,6 +18,8 @@ Run: python jobs/prices.py
 from __future__ import annotations
 
 import contextlib
+import hashlib
+import html
 import os
 import re
 import sys
@@ -137,6 +139,46 @@ MACRO_FEEDS = (
 # The `News.source` prefix every macro row carries, so one `LIKE` finds them all and no asset feed
 # can be mistaken for one.
 MACRO_SOURCE_PREFIX = "Macro: "
+
+# The Ministry of Finance, read from the ministry itself rather than from a search engine.
+#
+# Why this exists at all: the "Ministry of Finance Pakistan" Google feed above returns rows, but on
+# 2026-10-12 **not one stored headline contained the words "Ministry of Finance"**. The feed was
+# answering with Pakistani fiscal news that never named the ministry, so the topic looked alive and
+# carried none of what it was added for. A search engine's idea of the subject is not the subject.
+#
+# This page is the ministry's own press release archive: server-rendered HTML, no JavaScript, no
+# key and no cookie, so a plain GET is the whole of it and Puppeteer would be a dependency bought
+# for nothing. Verified 2026-10-12 -- 296 releases parse, PR 356 to 655, 2025-08-01 to 2026-10-10.
+#
+# It is a *second source under its own label*, not a replacement for the Google topic. Folding both
+# into one `source` would let a live search feed hide a dead ministry page, which is the failure
+# mode rule 113 wrote the per-topic label to prevent.
+MOF_URL = "https://www.finance.gov.pk/press_releases.html"
+MOF_SOURCE = MACRO_SOURCE_PREFIX + "Ministry of Finance (finance.gov.pk)"
+MOF_PUBLISHER = "Ministry of Finance, Government of Pakistan"
+# The page declares `charset=iso-8859-1`. It held no byte above 127 on 2026-10-12 -- the dashes and
+# quotes are HTML entities -- but it is decoded as declared rather than as hoped, because the day it
+# does carry one, decoding it as UTF-8 would raise and lose the whole run.
+MOF_ENCODING = "iso-8859-1"
+
+# One release: the date cell, then the headline paragraph that follows it.
+#
+#     <td class="boldtext2">September 14, 2026 (PR No. 636)</td>
+#     <tr><td><p class="style2">Finance Minister Chairs ECC Meeting ...<br>
+#
+# The gap between the two is bounded rather than left to `.*?`: an unbounded match would run past a
+# release that happens to have no headline and silently attach the *next* release's headline to this
+# one's date, which is a wrong row rather than a missing one.
+MOF_ITEM_RE = re.compile(
+    r'<td[^>]*class="boldtext2"[^>]*>\s*'
+    r"([A-Z][a-z]+\s+\d{1,2},\s*\d{4})\s*"
+    r"\(\s*PR\s*No\.\s*(\d+)\s*\)"
+    r"\s*</td>"
+    r"(?:.{0,400}?)"
+    r'<p[^>]*class="style2"[^>]*>(.{0,400}?)(?:<br|</p>|</td>)',
+    re.S | re.I,
+)
 
 NEWS_WINDOW_DAYS = 30
 NEWS_WINDOW_SLACK_DAYS = 3
@@ -1584,6 +1626,57 @@ def is_junk_headline(title: str) -> bool:
     return any(low.startswith(p) for p in JUNK_TITLE_PREFIXES)
 
 
+def _plain(fragment: str) -> str:
+    """Tags out, entities resolved, whitespace collapsed. The headline as a reader sees it."""
+    return " ".join(html.unescape(re.sub(r"<[^>]+>", " ", fragment)).split())
+
+
+def mof_releases(raw: str) -> list[dict]:
+    """Every press release on the ministry's archive page, newest first.
+
+    Pure: takes the page, returns rows. No network and no database, so the parser is tested
+    against a saved page rather than against whatever the ministry published this morning.
+
+    Each row carries the ministry's own publication date and PR number, and a `url` that points
+    at the item inside the page. The fragment is the identity of the release, and it is built
+    from three parts because two are not enough:
+
+      * the PR number alone collides. Measured over the 296 releases on the page on 2026-10-12,
+        **PR 614, 585 and 562 each name two different releases** with different headlines.
+      * date and PR number together still collide once -- PR 562 twice on 2026-03-16.
+      * adding a short digest of the headline makes all 296 distinct.
+
+    That matters because the url is the deduplication key: `News_untargeted_url_key` is what stops
+    one release being stored twice, and a key that collides would silently drop a genuine release
+    as though it were a duplicate. A headline that is later edited reads as a new item, which is
+    the right way round -- a missed edit is worse than a repeat.
+
+    The published date has no time on it, because the ministry publishes a date. It is stored at
+    midnight UTC rather than at the collection time, so "published" stays the ministry's fact and
+    "collected" stays ours; `getMacroNews` returns the two separately.
+    """
+    out: list[dict] = []
+    for when, number, headline in MOF_ITEM_RE.findall(raw):
+        title = _plain(headline)
+        if not title:
+            continue
+        try:
+            published = datetime.strptime(" ".join(when.split()), "%B %d, %Y")
+        except ValueError:
+            # A date the ministry wrote in a shape this does not know. Skipped rather than
+            # guessed: a release filed under the wrong day is worse than one not filed.
+            continue
+        slug = hashlib.sha1(title.encode("utf-8")).hexdigest()[:8]  # noqa: S324 - an id, not a secret
+        out.append({
+            "title": title,
+            "number": number,
+            "publishedAt": published,
+            "url": f"{MOF_URL}#pr-{number}-{published.date().isoformat()}-{slug}",
+        })
+    out.sort(key=lambda r: (r["publishedAt"], r["number"]), reverse=True)
+    return out
+
+
 # Does a headline name this asset? The rules below replaced a check that was measured wrong.
 #
 # Measured on 2026-10-11 over the rows stored in the 14 days before: 77 of 313 crypto rows and 41
@@ -2290,6 +2383,69 @@ def fetch_news(cur, chunk: tuple[int, int] | None = None) -> int:
             # industry feeds are. The junk filter and the window still apply.
             source=label,
         )
+
+    def ingest_mof(cap: int = NEWS_PER_ASSET) -> int:
+        """The ministry's own press releases, through the same storage the macro feeds use.
+
+        Not a second subsystem: same `macro_sql`, same untargeted unique index, same window, same
+        junk filter, same url ceiling, same `note` tally, and `getMacroNews` reads it without a
+        line changing, because the label starts with MACRO_SOURCE_PREFIX like every other topic.
+        The only thing that differs is the parsing, because the ministry publishes HTML and Google
+        publishes RSS -- which is why `ingest` could not simply be pointed at it.
+
+        Bounded the same way the other macro feeds are: one request, newest `cap` releases.
+        """
+        nonlocal written
+        raw = get(MOF_URL, cache_key="mof-press-releases-v1", ttl=3600)
+        if not raw:
+            # The ministry page did not answer. Recorded as a source that did not answer, which is
+            # a different fact from "answered and had nothing", and the tally keeps them apart.
+            note(MOF_SOURCE, answered=False)
+            print(f"  0 from {MOF_SOURCE}: the page did not answer")
+            return 0
+        try:
+            items = mof_releases(raw.decode(MOF_ENCODING, errors="replace"))
+        except Exception as exc:  # noqa: BLE001 - a parse failure must not take the lane down
+            note(MOF_SOURCE, answered=False)
+            print(f"  0 from {MOF_SOURCE}: the page did not parse ({type(exc).__name__})")
+            return 0
+        note(MOF_SOURCE, answered=True)
+        if not items:
+            # The page answered and nothing matched. That is the shape changing under us, and it
+            # must not read as a quiet week: a page with no parseable release is a broken parser
+            # far more often than it is a ministry that has published nothing since 2025.
+            print(f"  0 from {MOF_SOURCE}: the page answered but no release parsed -- check the layout")
+            return 0
+        oldest_allowed = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+            days=NEWS_WINDOW_DAYS + NEWS_WINDOW_SLACK_DAYS
+        )
+        kept = stale = junk = unindexable = 0
+        for item in items:
+            if kept >= cap:
+                break
+            if item["publishedAt"] < oldest_allowed:
+                # Sorted newest first, so the first stale one means the rest are too.
+                stale += 1
+                break
+            if is_junk_headline(item["title"]):
+                junk += 1
+                continue
+            if len(item["url"].encode("utf-8")) > NEWS_URL_MAX:
+                unindexable += 1
+                continue
+            affected = wire.execute(
+                macro_sql,
+                (item["title"], item["url"], MOF_PUBLISHER, item["publishedAt"], MOF_SOURCE),
+            )
+            written += affected if affected and affected > 0 else 0
+            kept += 1
+        extra = ""
+        if stale or junk or unindexable:
+            extra = f" ({stale} older than the window, {junk} junk, {unindexable} over the url limit)"
+        print(f"  {kept} from {MOF_SOURCE}, newest {items[0]['publishedAt'].date()}{extra}")
+        return kept
+
+    ingest_mof()
 
     for ind in industries:
         term = NEWS_TERMS.get(ind["slug"], ind["slug"])

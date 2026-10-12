@@ -124,6 +124,11 @@ HOST_DELAY = {
     # hundred small files, but it is a national exchange rather than a CDN, so it gets
     # the same courtesy as the rest.
     "dps.psx.com.pk": 1.5,
+    # The Ministry of Finance press release archive. One request per news run for a single
+    # 2.3 MB page, so the delay almost never applies -- it is declared because a government
+    # department's web server is the last place to discover a rate by hitting one, and
+    # because an undeclared host silently takes the 1.0s default that nobody chose.
+    "www.finance.gov.pk": 3.0,
     "www.amazon.com": 4.0,
     # The quote API jobs/intraday.py reads. Measured: it tolerates roughly a request a second
     # for small volumes and starts answering 429 above that. 1.5s with a per-run request

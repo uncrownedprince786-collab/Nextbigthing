@@ -3460,3 +3460,99 @@ reads rows that already exist:
       decisions from rule 114 stand, with the PSX one now better informed: restrict the public PK
       surface, licence it, move it onto the Yahoo series and accept that provider's terms instead,
       or accept the current risk explicitly.
+
+116. **The Ministry of Finance is read from the ministry, not from a search engine. Phase 1 closed.**
+    2026-10-12. Rule 115 left one coverage hole and one open question about news urls. This closes
+    both, and it is the last Phase 1 entry.
+
+    - **The hole: a topic that looked alive and carried none of its subject.** The
+      "Ministry of Finance Pakistan" Google feed returns six rows a run and on 2026-10-12 **not one
+      stored headline contained the words "Ministry of Finance"**. The feed was answering with
+      Pakistani fiscal news that never named the ministry. A search engine's idea of a subject is
+      not the subject, and a per-topic row count cannot tell the two apart -- which is why rule 113
+      recorded the topic as working.
+
+    - **The fix is the ministry's own press release archive**, `finance.gov.pk/press_releases.html`.
+      Server-rendered HTML, no JavaScript, no key, no cookie: a plain GET is the whole of it, so
+      **Puppeteer was not used** -- it would have been a dependency bought for nothing. Verified by
+      parsing the live page: **296 releases, PR 356 to 655, 2025-08-01 to 2026-10-10**.
+
+    - **It is a second source under its own label, not a replacement.**
+      `Macro: Ministry of Finance (finance.gov.pk)` sits beside the Google topic rather than
+      replacing it. Folding both into one `source` would let a live search feed hide a dead ministry
+      page, which is the exact failure the per-topic label exists to prevent. The label still starts
+      with `MACRO_SOURCE_PREFIX`, so `getMacroNews` and `/api/signals` read it **without a line
+      changing** -- same `macro_sql`, same untargeted unique index, same 33-day window, same junk
+      filter, same url ceiling, same `note` tally. The only thing that differs is the parsing,
+      because the ministry publishes HTML and Google publishes RSS.
+
+    - **The PR number is not a usable key, which is the finding that mattered.** The obvious
+      identity for a release is its PR number, and it is wrong. Measured over the 296 releases on
+      the page: **PR 614, 585 and 562 each name two different releases**, and 562's pair share a
+      date as well. The number alone yields 293 distinct keys for 296 releases; number and date
+      yield 295. Since the url *is* the deduplication key -- `News_untargeted_url_key` is what stops
+      a release being stored twice -- a colliding key would have **silently dropped genuine releases
+      as duplicates**. The fragment therefore carries number, date and a short digest of the
+      headline, which gives 296 of 296. A later-edited headline reads as a new item, which is the
+      right way round: a missed edit is worse than a repeat.
+
+    - **Verified by running it, not by asserting it.** The news lane stored **6 releases, newest
+      2026-10-10**, each with the ministry as publisher, the ministry's own publication date, and a
+      direct `finance.gov.pk` url -- no wrapper. `jobs/lineage.py` then clustered them: **93 macro
+      rows across 13 sources, 93 clustered, 93 original, 93 distinct urls, 0 falsely syndicated.**
+      The lane as a whole exited 143 at 28.3 minutes -- its own watchdog stopping the per-asset
+      feeds, long after the macro section had committed. Recorded because the exit code is alarming
+      and the macro result is not affected by it.
+
+    - **An honest correction to rule 115's own metric.** "Ministry of Finance appears in no stored
+      headline" is **still true, and it no longer means what it meant**. The ministry titles its
+      releases "Finance Minister ..." rather than "Ministry of Finance ...", so the keyword count
+      stays 0 while the substance -- six announcements straight from the department, with the
+      department named as publisher -- is now there. The keyword was a poor proxy and is not worth
+      keeping as one. What to check instead is whether the source answered and what it stored.
+
+    - **The Google News wrapper url cannot be resolved to the publisher's article, and this was
+      tested rather than assumed.** Of the three places an original url could come from: the
+      `link` token **does not decode** -- base64 of the article id contains no http url at all;
+      the `description` only repeats the same wrapper link; and `<source url="...">` gives the
+      publisher's **home page**, not the article. The wrapper does answer HTTP 200 for a reader,
+      but its last hop is JavaScript, so a server-side fetch lands on Google rather than the
+      outlet. **No extractor was written**: an unreliable one would put a wrong url on a real story,
+      and nothing historical was migrated. Publisher attribution is unaffected -- it is already
+      stored per row and matches the feed's own `<source>` name. The ministry collector sidesteps
+      the problem entirely by having a real url, which is the better answer where it is available.
+
+    - **Tests: 11 added, all against saved markup rather than this morning's page.** Parsing
+      (date, PR number, headline); provenance (the url points at the item, `publishedAt` is the
+      ministry's date and not the collector's clock, the publisher is the ministry); deduplication
+      (the real PR 562 collision still yields two rows, and re-parsing an unchanged page yields the
+      same identities); partial failure (a release with no headline is skipped and **does not steal
+      the next release's headline** -- the bounded gap in `MOF_ITEM_RE` is what prevents a wrong row
+      rather than a missing one; an unreadable date is dropped rather than guessed; an empty or
+      reshaped page yields nothing rather than nonsense); and retrieval (the label carries the macro
+      prefix, so the existing reader finds it, and it is distinct from every Google topic).
+
+    - **One gate caught a real omission.** `finance.gov.pk` had no entry in `nbt.HOST_DELAY`, so it
+      would have taken the 1.0s default that nobody chose. Declared at 3.0s: it is one request per
+      run for a single 2.3 MB page, and a government department's web server is the last place to
+      discover a rate limit by hitting one.
+
+    - **Release.** 807 Python tests, 466 TypeScript tests, `tsc --noEmit` clean, `eslint` clean,
+      production build clean (58 static pages). `main` and `master` pushed together.
+
+    - **PSX, settled and not reopened.** The bounded evaluation in rule 115 stands and no further
+      source discovery was done. No provider was switched, no scraper library was added for the same
+      upstream, and the existing dataset is untouched. **The accepted limitation, stated once:**
+      the public `/psx` surface republishes Pakistan Stock Exchange data, PSX's own terms forbid
+      redistributing its market data feed without a licence -- delayed included -- and **nothing in
+      this repository has cleared that right**. Yahoo `.KA` was measured as an independent provider
+      and is not a way out: it is incomplete at 156 of 176 names, adjusted rather than raw, and it
+      fabricates flat bars for sessions it is missing, so it is a cross-check and a recovery source
+      and not a source of record. Collection and private use are unaffected; the exposure is the
+      public surface. It is recorded in `recovery-manifest.json` under `psx-redistribution-licence`
+      as an accepted, unresolved external risk, and it stays the owner's decision.
+
+    - **Phase 1 is closed.** Sources are defined and verified, every material gap has a recovery
+      path or a stated limitation, macro data is collected from the institution itself, retrievable,
+      and truthfully labelled, and no known failure silently produces misleading current data.
+      **Phase 2 is next and needs its own approved task.**
