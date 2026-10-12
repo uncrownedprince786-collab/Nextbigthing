@@ -1,0 +1,142 @@
+{
+  "$comment": [
+    "The Phase 4 recovery manifest. One file, machine-readable, so Phase 4 can execute it without",
+    "another investigation. Every entry says what is wrong, whether it can be recovered, from where,",
+    "by which operation, and the check that proves the repair worked.",
+    "",
+    "Written 2026-10-12 from measurements against the live primary. Figures are stated as measured",
+    "rather than estimated; where a count moves with the data, the query that produced it is given so",
+    "Phase 4 can re-measure rather than trust this file.",
+    "",
+    "Classification, and the distinction matters more than the counts:",
+    "  real_observation  - the data is correct and must never be 'repaired'",
+    "  by_design         - a deliberate limit of the collector, documented, not a fault",
+    "  listing_limit     - the instrument did not exist earlier; nothing is missing",
+    "  source_defect     - the provider sent it this way; recovery depends on the provider",
+    "  recoverable_gap   - genuinely missing and obtainable from a source we already use",
+    "  blocked           - cannot be resolved inside this repository"
+  ],
+  "measured_at": "2026-10-12T01:25:00Z",
+  "measured_against": "Supabase primary, PriceSnapshot 830,487 rows / 613 assets",
+  "entries": [
+    {
+      "id": "psx-pre-2024-monthly-grid",
+      "classification": "by_design",
+      "market": "PK",
+      "assets": "all 176 active PSX names",
+      "source": "Pakistan Stock Exchange daily closing file",
+      "timeframe": "daily",
+      "measured": {
+        "stored_sessions_per_year": {"2019": 13, "2020": 12, "2021": 13, "2022": 12, "2023": 12, "2024": 118, "2025": 250, "2026": 191},
+        "comparison": "US 251-253/yr and FX 257-262/yr over the same span"
+      },
+      "why": [
+        "jobs/psx.py DEEP_DAYS = 820 fetches a dense daily stretch of about 2.25 years, sized to",
+        "jobs/horizons.py's LONG_RANGE + 40 = 540 sessions. Behind it the job stores a monthly grid",
+        "of RISING_MONTHS = 24 anchors, which is the 12-13 rows a year seen for 2019-2023.",
+        "So this is the collector's designed shape, not a failed fetch."
+      ],
+      "impact": "Long-horizon PSX historical evaluation before 2024 rests on monthly anchors, not daily closes. Current verdicts are unaffected: they read recent windows that fall inside the dense stretch.",
+      "recoverable": true,
+      "proposed_source": "The exchange's own archive, which jobs/psx.py already knows: ARCHIVE_FROM = 2013-11-04.",
+      "recovery_operation": "Raise DEEP_DAYS, or run a dated backfill over 2019-01-01..2024-06-30 through the existing psx.py path, which is idempotent and never deletes. Respect the measured request ceiling: the host began refusing at roughly 600 requests in one session.",
+      "integrity_check": "Stored distinct PK session dates per year reaches 240+ for each of 2019-2023, and no existing row's close changes.",
+      "blocked_by": "psx-redistribution-licence - recovering more PSX history does not change the permission question below."
+    },
+    {
+      "id": "ohlc-close-outside-own-range",
+      "classification": "source_defect",
+      "measured": {
+        "Yahoo Finance / FX": {"rows": 4142, "assets": 27, "range": "2019-01-01..2026-10-09"},
+        "Pakistan Stock Exchange daily closing file / PK": {"rows": 1232, "assets": 70, "range": "2019-02-01..2026-10-08"},
+        "Yahoo Finance / US": {"rows": 49, "assets": 29, "range": "2019-01-10..2025-01-21"}
+      },
+      "why": "The provider sends a close above its own high or below its own low. Stored exactly as sent (brain.md rule 98); the trade grader already reads these bars as unavailable rather than trusting them.",
+      "impact": "No verdict is computed from a bar whose own range contradicts it. The PK share has grown from 339 to 1,232 since rule 98 was written and is worth watching.",
+      "recoverable": "partially",
+      "proposed_source": "Re-fetch the affected dates from the same provider and keep the new bar only when it is internally consistent. There is no second provider for these instruments.",
+      "recovery_operation": "Per affected (assetId, date), re-fetch and upsert only if high >= low AND low <= close <= high. Never edit a stored value in place.",
+      "integrity_check": "Count of rows where close > high OR close < low falls, and no row count decreases.",
+      "query": "SELECT s.source, i.market, count(*) FROM \"PriceSnapshot\" s JOIN \"Asset\" a ON a.id=s.\"assetId\" JOIN \"Industry\" i ON i.id=a.\"industryId\" WHERE s.close > s.high OR s.close < s.low GROUP BY 1,2"
+    },
+    {
+      "id": "cl-f-negative-settlement-2020-04-20",
+      "classification": "real_observation",
+      "asset": "CL=F",
+      "date": "2020-04-20",
+      "measured": {"close": -37.63, "low": -40.32, "source": "Yahoo Finance"},
+      "why": "The WTI front-month settled below zero on 20 April 2020. A futures close under zero is an observation.",
+      "impact": "None. Any validator that treats close <= 0 as malformed is wrong for futures.",
+      "recoverable": false,
+      "recovery_operation": "NONE. Do not change this value. Do not let a cleanup pass 'fix' it.",
+      "integrity_check": "The row still reads -37.63 after any Phase 4 pass."
+    },
+    {
+      "id": "psx-weekend-file-2022-10-01",
+      "classification": "source_defect",
+      "market": "PK",
+      "measured": {"rows": 171, "date": "2022-10-01", "weekday": "Saturday"},
+      "why": "The exchange published its own Saturday file. Stored as received; every decision reader skips weekend rows for a weekday market (jobs/sessions.py session_bar, rule 95).",
+      "impact": "None on verdicts. It inflates PK row counts by 171.",
+      "recoverable": true,
+      "recovery_operation": "Optional. Leaving it is honest - it is what the exchange published. Removing it would delete a real record of a real file.",
+      "integrity_check": "If removed, PK rows fall by exactly 171 and no other date is touched."
+    },
+    {
+      "id": "late-listing-histories",
+      "classification": "listing_limit",
+      "measured": {
+        "assets_starting_after_2019-02-01": 76,
+        "examples": [
+          {"symbol": "SOYASUP", "market": "PK", "bars": 19, "first": "2026-09-15"},
+          {"symbol": "TISL", "market": "PK", "bars": 34, "first": "2026-08-24"},
+          {"symbol": "SPCX", "market": "US", "bars": 83, "first": "2026-06-12"},
+          {"symbol": "SELECT", "market": "PK", "bars": 63, "first": "2026-07-13"}
+        ]
+      },
+      "why": "These instruments were listed after the universe floor. Nothing is missing; the history does not exist.",
+      "impact": "Rules needing a long window decline to read them, which is correct behaviour and already reported as 'incomplete' rather than guessed.",
+      "recoverable": false,
+      "recovery_operation": "NONE. Do not pad a history that never existed.",
+      "integrity_check": "Each asset's first stored date equals the provider's earliest available date for it.",
+      "note": "COF was in this list on 2026-10-12 at 22 bars and is no longer: a lane recovered it to 1,954 bars from 2019-01-02, which equals the provider's full count for that range. Verified with tools/recover_asset.py COF."
+    },
+    {
+      "id": "psx-intraspan-missing-sessions",
+      "classification": "recoverable_gap",
+      "market": "PK",
+      "measured": {
+        "worst": [
+          {"symbol": "TSBL", "bars": 475, "missing_sessions_inside_span": 144},
+          {"symbol": "SARC", "bars": 523, "missing_sessions_inside_span": 96},
+          {"symbol": "MEHT", "bars": 546, "missing_sessions_inside_span": 68},
+          {"symbol": "MSOT", "bars": 558, "missing_sessions_inside_span": 62}
+        ],
+        "measured_against": "distinct stored PK weekday session dates, which are themselves sparse before 2024 - see psx-pre-2024-monthly-grid"
+      },
+      "why": "A name absent from a daily closing file it should appear in: either it did not trade that session, or the file was not fetched. The two are not distinguishable from stored data alone.",
+      "impact": "PSX per-asset windows are shorter than the session count suggests. Bounded by the same pre-2024 sparsity above.",
+      "recoverable": true,
+      "proposed_source": "The same PSX daily closing files, re-fetched for the specific missing dates.",
+      "recovery_operation": "Resolve psx-pre-2024-monthly-grid first; re-measure afterwards, because most of these gaps are that entry seen per asset.",
+      "integrity_check": "Re-run the span query; missing_sessions_inside_span falls for each named symbol and no bar is lost."
+    },
+    {
+      "id": "psx-redistribution-licence",
+      "classification": "blocked",
+      "scope": "PK market data distribution only. No other asset class is affected.",
+      "why": [
+        "PSX's own legal notice prohibits 'any dissemination, transmission, sale, and commercial use",
+        "of Market Data feed' without a licence from PSX, including on a delayed basis. Its terms of",
+        "use permit 'a single, unaltered, permanent copy' for 'personal, non-commercial use only'.",
+        "Five free routes were evaluated on 2026-10-12 and none grants redistribution rights:",
+        "every one of them is the same dps.psx.com.pk upstream, and a library's MIT licence covers",
+        "its code and not the exchange's data."
+      ],
+      "impact": "The public PSX surface republishes this data. Collection and private use are unaffected.",
+      "recoverable": false,
+      "recovery_operation": "Not a data operation. The owner chooses: restrict the PSX surface to non-public use, obtain a licence, or accept the risk explicitly.",
+      "integrity_check": "n/a"
+    }
+  ]
+}

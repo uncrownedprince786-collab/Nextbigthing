@@ -8461,6 +8461,118 @@ class Phase1SourceVisibility(unittest.TestCase):
         self.assertIn("i.market = 'FX'", text)
 
 
+class MacroAndGeopoliticalIngestion(unittest.TestCase):
+    """Collected, stored with provenance, and read by something. All three, or it is not collected."""
+
+    def prices(self):
+        sys.path.insert(0, str(ROOT / "jobs"))
+        import prices
+
+        return prices
+
+    def test_the_feed_list_is_bounded_and_covers_the_named_priorities(self):
+        m = self.prices()
+        self.assertLessEqual(len(m.MACRO_FEEDS), 20, "a fixed list, not a firehose")
+        topics = " ".join(t for t, _ in m.MACRO_FEEDS).lower()
+        for must in ("sbp", "ministry of finance", "imf", "pbs"):
+            self.assertIn(must, topics, must)
+        for must in ("conflict", "sanctions", "shipping", "energy", "commodity", "central bank"):
+            self.assertIn(must, topics, must)
+        # Every topic distinct, or two feeds would write under one source label and the panel
+        # could not tell a dead one from a live one.
+        self.assertEqual(len(set(t for t, _ in m.MACRO_FEEDS)), len(m.MACRO_FEEDS))
+
+    def test_a_macro_row_is_untargeted_and_carries_its_topic(self):
+        """A policy-rate decision belongs to no single asset, so it is stored against none."""
+        m = self.prices()
+        self.assertTrue(m.MACRO_SOURCE_PREFIX.startswith("Macro"))
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        sql = text[text.index("macro_sql = "):text.index("for topic, query in MACRO_FEEDS")]
+        # No target column named at all.
+        for col in ('"assetId"', '"industryId"', '"productId"'):
+            self.assertNotIn(col + ",", sql, f"a macro row must not be filed under {col}")
+        # The untargeted unique index is what deduplicates one story arriving under two topics.
+        self.assertIn('ON CONFLICT (url)', sql)
+        self.assertIn('"assetId" IS NULL AND "productId" IS NULL AND "industryId" IS NULL', sql)
+
+    def test_provenance_is_preserved(self):
+        """Outlet, link, publication time and collection time are different facts."""
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        sql = text[text.index("macro_sql = "):text.index("for topic, query in MACRO_FEEDS")]
+        for col in ("title", "url", "publisher", '"publishedAt"', "source", '"createdAt"'):
+            self.assertIn(col, sql, col)
+
+    def test_something_actually_reads_them(self):
+        """A source that writes into a table nobody reads is not collected.
+
+        543 industry-linked rows sat unread for exactly this reason: getRecentMarketNews filters
+        `assetId IS NOT NULL`, getTopNews takes an asset id, and jobs/human.py derives only for
+        assets and products.
+        """
+        q = (ROOT / "lib" / "queries.ts").read_text(encoding="utf-8")
+        self.assertIn("export async function getMacroNews", q)
+        body = q[q.index("export async function getMacroNews"):]
+        body = body[: body.index("export async function", 10)]
+        # Untargeted, topic-filtered, bounded, and both timestamps returned.
+        self.assertIn("assetId: null", body)
+        self.assertIn('startsWith: "Macro: "', body)
+        self.assertIn("take,", body)
+        self.assertIn("publishedAt:", body)
+        self.assertIn("collectedAt:", body)
+        # And it is reachable through an existing route.
+        route = (ROOT / "app" / "api" / "signals" / "route.ts").read_text(encoding="utf-8")
+        self.assertIn("getMacroNews", route)
+        self.assertIn("macro,", route)
+
+    def test_the_existing_signals_contract_is_unchanged(self):
+        """Additive only: a consumer that never heard of `macro` reads what it read before."""
+        route = (ROOT / "app" / "api" / "signals" / "route.ts").read_text(encoding="utf-8")
+        for field in ("asOf:", "rules:", "styles:", "snapshot:", "outcome:", "counts:",
+                      "markets,", "published,", "withheld,"):
+            self.assertIn(field, route, field)
+        # And the macro read must not be able to fail the route.
+        self.assertIn("getMacroNews().catch(() => [])", route)
+
+    def test_a_syndicated_copy_is_not_a_second_report(self):
+        q = (ROOT / "lib" / "queries.ts").read_text(encoding="utf-8")
+        body = q[q.index("export async function getMacroNews"):]
+        body = body[: body.index("export async function", 10)]
+        self.assertIn("isOriginal", body)
+        self.assertIn("lineageId", body)
+
+
+class Phase4RecoveryManifest(unittest.TestCase):
+    """One manifest, specific enough to execute without another investigation."""
+
+    def manifest(self):
+        import json
+
+        return json.loads((ROOT / "recovery-manifest.json").read_text(encoding="utf-8"))
+
+    def test_every_entry_is_classified_and_actionable(self):
+        allowed = {"real_observation", "by_design", "listing_limit", "source_defect",
+                   "recoverable_gap", "blocked"}
+        m = self.manifest()
+        self.assertTrue(m["entries"], "an empty manifest is not a manifest")
+        for e in m["entries"]:
+            self.assertIn(e["classification"], allowed, e["id"])
+            for key in ("id", "why", "impact", "recovery_operation"):
+                self.assertIn(key, e, f"{e['id']} is missing {key}")
+            self.assertTrue(str(e["recovery_operation"]).strip(), e["id"])
+
+    def test_the_real_observation_is_marked_never_to_be_repaired(self):
+        """A futures close below zero is data. Nothing may 'fix' it."""
+        e = next(x for x in self.manifest()["entries"] if x["id"] == "cl-f-negative-settlement-2020-04-20")
+        self.assertEqual(e["classification"], "real_observation")
+        self.assertEqual(e["measured"]["close"], -37.63)
+        self.assertIn("NONE", e["recovery_operation"])
+
+    def test_the_psx_restriction_is_isolated_to_psx(self):
+        e = next(x for x in self.manifest()["entries"] if x["id"] == "psx-redistribution-licence")
+        self.assertEqual(e["classification"], "blocked")
+        self.assertIn("No other asset class", e["scope"])
+
+
 class EveryImportIsDeclared(unittest.TestCase):
     """A module that is installed on one machine is not a dependency.
 

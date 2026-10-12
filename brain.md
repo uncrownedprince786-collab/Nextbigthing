@@ -3220,3 +3220,48 @@ reads rows that already exist:
       nothing reads. Closing this properly needs a reader and a derivation path, which is Phase 3's
       territory, so it is **accepted here with its impact stated**: PSX verdicts carry no macro
       context, and the site does not claim they do.
+
+113. **Phase 1 closed. Macro ingestion built, the PSX route evaluated and rejected on terms, the
+    recovery manifest written.** 2026-10-12.
+    - **Pakistan macro and global geopolitics now reach storage *and* a reader.** `MACRO_FEEDS` in
+      jobs/prices.py is a fixed list of twelve topics -- SBP policy, SBP reserves and remittances,
+      Ministry of Finance, IMF Pakistan, PBS statistics, Pakistan market policy, conflict, sanctions,
+      shipping, energy, commodities, central banks -- each a Google News query through the same
+      `ingest` path the asset feeds use, so the junk filter, the window, the lineage clustering and
+      the url guard all apply unchanged. Rows are stored **untargeted** (no asset, no industry, no
+      product), because a policy-rate decision belongs to no single name; `News_untargeted_url_key`
+      already existed and is what makes one story arriving under two topics a single row. The topic
+      lives in `source`, so a dead SBP feed cannot hide behind a live sanctions one -- the lesson of
+      the product-demand aggregate.
+    - **The reader is the half that makes it real.** `getMacroNews` in lib/queries.ts, surfaced
+      additively on `/api/signals` as `macro`. Without it this would have repeated the existing
+      mistake: 543 industry-linked rows have sat unread because `getRecentMarketNews` filters
+      `assetId IS NOT NULL`, `getTopNews` takes an asset id and jobs/human.py derives only for assets
+      and products. Publication time and collection time are returned separately -- "published two
+      days ago" and "we found it two days late" are different facts. Context only; whether any of it
+      moves a decision is Phase 3's question.
+    - **Verified by running it**: all twelve feeds answered, **69 rows stored**, every topic present,
+      publisher, url, publication time and collection time preserved. IMF headlines went 1 -> 10.
+    - **PSX: five routes evaluated, none qualifies, and the reason is the data and not the endpoint.**
+      `investors.psx.com.pk` does not resolve; the Lens timeseries endpoint answers 404; `psxdata`,
+      `pypsx`, `psx-feed` and `psx-data-reader` are all scrapers of the same `dps.psx.com.pk` -- the
+      same upstream, so not redundancy -- and an MIT licence covers a library's code, never the
+      exchange's data. Capital Stake is the authorised vendor and is paid. PSX's own terms allow "a
+      single, unaltered, permanent copy" for "personal, non-commercial use only" and forbid
+      dissemination of the market data feed without a licence, delayed included. Routing around that
+      through a scraper would be circumventing the restriction rather than satisfying it, so nothing
+      was swapped in and the existing history was left untouched. **The restriction is isolated to
+      PSX**; every other asset class is unaffected and keeps working.
+    - **`recovery-manifest.json`** is the single Phase 4 artifact: seven entries, each classified
+      (`real_observation`, `by_design`, `listing_limit`, `source_defect`, `recoverable_gap`,
+      `blocked`), with measured figures, the source to recover from, the operation and the integrity
+      check that proves it worked. The headline correction it records: **PSX's pre-2024 sparsity is
+      by design, not a gap** -- `DEEP_DAYS = 820` is a dense daily stretch of about 2.25 years sized
+      to `horizons.py`'s 540-session window, with a 24-month monthly grid behind it, which is exactly
+      the 12-13 rows a year stored for 2019-2023 against 251-253 for US. It is recoverable from the
+      exchange's own archive (`ARCHIVE_FROM = 2013-11-04`) if Phase 4 wants the depth.
+    - **COF needed no repair.** It held 22 bars when the audit found it and holds **1,954 from
+      2019-01-02** now, which equals the provider's own count for that range: a lane recovered it in
+      the interval. `tools/recover_asset.py` exists for the next one -- one asset, upsert only,
+      never `is_full`, and it re-reads every pre-existing bar afterwards and fails the run if one was
+      lost or altered.

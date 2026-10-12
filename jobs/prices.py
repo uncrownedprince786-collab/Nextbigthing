@@ -99,6 +99,45 @@ NEWS_PER_ASSET = 6
 # counted; the run survives.
 NEWS_URL_MAX = 2_000
 
+# Macro and geopolitical feeds: a fixed, bounded list of topics, not a news firehose.
+#
+# **Why this exists.** Measured 2026-10-12 against every stored headline: the State Bank of Pakistan
+# appeared 0 times, the Ministry of Finance 0, the IMF once. The collector searches per *asset*, so a
+# policy-rate decision that moves every PSX name at once belonged to no asset and was never asked
+# for. Global developments were the same: conflict, sanctions and shipping appeared only where a
+# company headline happened to mention them.
+#
+# Each entry is (topic, query). The topic is stored in `News.source`, so the freshness panel and the
+# run log can report each one separately -- a dead SBP feed must not hide behind a live sanctions
+# one, which is the lesson of the product-demand aggregate. The query is a Google News search, the
+# same provider and the same `ingest` path the asset feeds use, so dedupe, the junk filter, the
+# lineage clustering and the url-length guard all apply unchanged.
+#
+# Primary announcements are named first in each query so the official source outranks commentary
+# about it. These are discovery feeds, not an attempt to replace the institutions' own pages: where
+# the official body publishes the story, the query is written so its own release is what matches.
+#
+# Bounded on purpose: fourteen feeds at `NEWS_PER_ASSET` items each, once per news run.
+MACRO_FEEDS = (
+    # Pakistan, in the order the market reacts to them.
+    ("SBP monetary policy", '"State Bank of Pakistan" (policy rate OR monetary policy OR reserves)'),
+    ("SBP reserves and remittances", '"State Bank of Pakistan" (foreign exchange reserves OR remittances)'),
+    ("Ministry of Finance Pakistan", '"Ministry of Finance" Pakistan (debt OR financing OR fiscal OR budget)'),
+    ("IMF Pakistan", 'IMF Pakistan (review OR tranche OR disbursement OR programme OR bailout)'),
+    ("PBS statistics", '"Pakistan Bureau of Statistics" (inflation OR CPI OR trade deficit OR exports)'),
+    ("Pakistan market policy", 'Pakistan (tariff OR import duty OR energy tariff OR circular debt)'),
+    # Global, the classes that move commodities, shipping and risk appetite.
+    ("Conflict escalation", '(ceasefire OR escalation OR airstrike OR invasion) (oil OR markets OR shipping)'),
+    ("Sanctions and export controls", '(sanctions OR "export controls" OR embargo) (announced OR imposed OR lifted)'),
+    ("Shipping disruption", '(Red Sea OR Suez OR Panama Canal OR port strike) (shipping OR freight OR delays)'),
+    ("Energy supply shock", '(OPEC OR "oil output" OR "gas supply" OR pipeline) (cut OR halt OR disruption)'),
+    ("Commodity supply shock", '(wheat OR rice OR fertiliser OR copper) (export ban OR shortage OR supply)'),
+    ("Central bank decisions", '("Federal Reserve" OR ECB OR "Bank of England") (rate decision OR cut OR hike)'),
+)
+# The `News.source` prefix every macro row carries, so one `LIKE` finds them all and no asset feed
+# can be mistaken for one.
+MACRO_SOURCE_PREFIX = "Macro: "
+
 NEWS_WINDOW_DAYS = 30
 NEWS_WINDOW_SLACK_DAYS = 3
 
@@ -2228,6 +2267,29 @@ def fetch_news(cur, chunk: tuple[int, int] | None = None) -> int:
         VALUES (%s,%s,%s,%s,%s,%s, now())
         ON CONFLICT ("assetId", url) WHERE "assetId" IS NOT NULL DO NOTHING
     """
+
+    # Untargeted rows: no asset, no industry, no product. The schema already allows them --
+    # `News_untargeted_url_key` is a unique index on `url` where all three are null -- and that index
+    # is what makes the same story arriving under two topics a single row rather than a duplicate.
+    macro_sql = """
+        INSERT INTO "News" (title, url, publisher, "publishedAt", source, "createdAt")
+        VALUES (%s,%s,%s,%s,%s, now())
+        ON CONFLICT (url)
+        WHERE "assetId" IS NULL AND "productId" IS NULL AND "industryId" IS NULL DO NOTHING
+    """
+    for topic, query in MACRO_FEEDS:
+        label = MACRO_SOURCE_PREFIX + topic
+        ingest(
+            gnews_url(query),
+            f"gnews-macro-v1-{topic.lower().replace(' ', '-')}",
+            macro_sql,
+            # No target id: the row carries the topic in `source` and nothing else.
+            lambda w, t, l, p, s, lbl=label: (t, l, p, w, lbl),
+            cap=NEWS_PER_ASSET,
+            # No matcher: a macro feed is a search for a subject, not for a name, exactly as the
+            # industry feeds are. The junk filter and the window still apply.
+            source=label,
+        )
 
     for ind in industries:
         term = NEWS_TERMS.get(ind["slug"], ind["slug"])

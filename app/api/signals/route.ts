@@ -1,4 +1,5 @@
 import { cachedDecisionRows, cachedSourceHealth } from "@/lib/cached";
+import { getMacroNews } from "@/lib/queries";
 import { ASSET_CLASSES, marketStatus, marketStatusLines, scoreRows, toSignal } from "@/lib/assetClass";
 import { coverageLabelFor } from "@/lib/decisionInput";
 import { outcomeStatusOf } from "@/lib/outcome";
@@ -20,7 +21,11 @@ import { MIN_CONFIRMATIONS, MIN_REWARD_RISK, MIN_STOP_ATR } from "@/lib/quality"
 export async function GET() {
   try {
     const today = todayISO();
-    const [rows, health] = await Promise.all([cachedDecisionRows(), cachedSourceHealth()]);
+    // The macro read fails open and is additive: every existing field of this response is unchanged,
+    // so a consumer that has never heard of `macro` reads exactly what it read before.
+    const [rows, health, macro] = await Promise.all([
+      cachedDecisionRows(), cachedSourceHealth(), getMacroNews().catch(() => []),
+    ]);
     const scored = scoreRows(rows, health, today);
     const published = scored
       .filter((s) => s.gate?.published && (s.decision.action === "LONG" || s.decision.action === "SHORT"))
@@ -56,6 +61,11 @@ export async function GET() {
         markets,
         published,
         withheld,
+        // Pakistan macro and global geopolitical context (jobs/prices.py MACRO_FEEDS). Context only:
+        // nothing here enters a decision, and Phase 3 is where that question belongs. Each item
+        // carries the outlet's publication time and our own collection time separately, because
+        // "published two days ago" and "we found it two days late" are different facts.
+        macro,
       },
       // No edge cache: the data cache is the cache, revalidated with the pages (rule 93), so the API can
       // never be a minute behind the pages it is audited against.

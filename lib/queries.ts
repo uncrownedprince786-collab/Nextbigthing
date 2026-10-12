@@ -788,6 +788,59 @@ export async function getAssetFreshness(assetId: string): Promise<{
   return { newest: row.date, close: row.close, priceSource: row.source };
 }
 
+/// Macro and geopolitical headlines: the untargeted rows `jobs/prices.py` MACRO_FEEDS writes.
+///
+/// **This reader is the half that makes the collection real.** Until 2026-10-12 the news lane could
+/// store a row against an industry and nothing would ever read it: `getRecentMarketNews` filters
+/// `assetId IS NOT NULL`, `getTopNews` takes an asset id, and `jobs/human.py` derives only for assets
+/// and products. 543 industry rows sat unread. A source that writes into a table nobody reads is not
+/// collected, so the macro feeds got a reader in the same change that gave them a writer.
+///
+/// Untargeted by design: a policy-rate decision belongs to no single asset. The topic lives in
+/// `source` (MACRO_SOURCE_PREFIX), which is also what the freshness panel and the run log group by,
+/// so a dead SBP feed cannot hide behind a live sanctions one.
+///
+/// Bounded and read-only. `publishedAt` is the provider's publication time and `createdAt` is when we
+/// collected it; both are returned, because "published two days ago" and "we found it two days late"
+/// are different facts and a reader is owed the difference.
+export async function getMacroNews(days = 14, take = 60) {
+  const since = new Date(Date.now() - days * 86_400_000);
+  try {
+    const rows = await prisma.news.findMany({
+      where: {
+        assetId: null, industryId: null, productId: null,
+        source: { startsWith: "Macro: " },
+        publishedAt: { gte: since },
+      },
+      orderBy: { publishedAt: "desc" },
+      take,
+      select: {
+        id: true, title: true, url: true, publisher: true,
+        publishedAt: true, createdAt: true, source: true, lineageId: true, isOriginal: true,
+      },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      topic: r.source.replace(/^Macro: /, ""),
+      title: r.title,
+      url: r.url,
+      publisher: r.publisher,
+      /// When the outlet published it.
+      publishedAt: r.publishedAt,
+      /// When this system collected it. Never presented as the event's own time.
+      collectedAt: r.createdAt,
+      /// Null until jobs/lineage.py has clustered it; `isOriginal` false marks a syndicated copy,
+      /// which must not be counted as a second, independent report of the same development.
+      lineageId: r.lineageId,
+      isOriginal: r.isOriginal,
+    }));
+  } catch {
+    // Fails open, like every other news read here: a missing table on a standby must not take a
+    // route down over a context panel.
+    return [];
+  }
+}
+
 /// The newest stored quote per asset (`LiveQuote`, written by `jobs/live.py`), or one asset's.
 ///
 /// **Fails open, and is never an input to a decision.** A missing table (a standby the migration has not
