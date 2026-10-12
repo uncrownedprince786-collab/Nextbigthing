@@ -7922,6 +7922,43 @@ class TheLiveLane(unittest.TestCase):
         self.assertIn("ACTIVE_YAHOO", src)
         self.assertIn("ALL_YAHOO", src)
 
+    def test_one_asset_can_only_appear_once_in_a_tick(self):
+        """Two rows for one asset lose the whole write, not just that row.
+
+        `ON CONFLICT ("assetId") DO UPDATE` refuses to touch the same row twice in one statement,
+        and the tick is one statement, so Postgres raises CardinalityViolation and crypto is lost
+        with the duplicate. Seen in production 2026-10-12 at 00:42: 59 bars and 2 top-ups fetched,
+        nothing stored, workflow green. `top_up_stale` is the source -- it answers for a pair the
+        1-minute download had already answered for, more recently.
+        """
+        m = self.live()
+        from datetime import datetime as _dt
+
+        older = {"assetId": "a", "price": 1.0, "quotedAt": _dt(2026, 10, 11, 22, 0), "source": "yahoo"}
+        newer = {"assetId": "a", "price": 1.1, "quotedAt": _dt(2026, 10, 11, 23, 0), "source": "yahoo"}
+        other = {"assetId": "b", "price": 2.0, "quotedAt": _dt(2026, 10, 11, 22, 0), "source": "yahoo"}
+        out = m.newest_per_asset([older, newer, other])
+        self.assertEqual(len(out), 2)
+        self.assertEqual(next(q["price"] for q in out if q["assetId"] == "a"), 1.1)
+        # Order must not matter: the newest wins either way.
+        self.assertEqual(
+            next(q["price"] for q in m.newest_per_asset([newer, older]) if q["assetId"] == "a"), 1.1
+        )
+        self.assertEqual(m.newest_per_asset([]), [])
+        # And the guard sits in `write`, so every caller is covered, not just the tick.
+        src = (ROOT / "jobs" / "live.py").read_text(encoding="utf-8")
+        start = src.index("def write(cur, quotes")
+        body = src[start:start + 500]
+        self.assertIn("newest_per_asset(quotes)", body, "the guard belongs in write, so every caller is covered")
+
+    def test_a_tick_that_stored_nothing_is_not_reported_as_healthy(self):
+        """A green lane with no data is the freshness lie this phase exists to remove."""
+        src = (ROOT / "jobs" / "live.py").read_text(encoding="utf-8")
+        self.assertIn("STOPPED_EARLY", src)
+        tail = src[src.index("def main("):]
+        self.assertIn('run.status = "failed"', tail)
+        self.assertIn("nothing was stored this tick", tail)
+
     def test_the_rotation_advances_even_when_no_price_moved(self):
         """Ordering by `updatedAt` only rotates if `updatedAt` moves.
 

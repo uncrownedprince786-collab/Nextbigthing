@@ -275,8 +275,27 @@ def touch(cur, asset_ids: list[str], now: datetime) -> int:
     return cur.rowcount
 
 
+def newest_per_asset(quotes: list[dict]) -> list[dict]:
+    """One quote per asset, the newest kept. Required by the upsert, not a nicety.
+
+    `ON CONFLICT ("assetId") DO UPDATE` refuses to touch the same row twice in one statement --
+    Postgres raises `CardinalityViolation`, and because the whole tick is one statement the entire
+    write is lost, crypto included. Seen in production on 2026-10-12 at 00:42: the lane fetched 59
+    bars and 2 top-ups, hit this, logged `stopped early` and stored nothing, while the workflow
+    went green. `top_up_stale` is the source of the duplicate: it returns a currency pair that the
+    1-minute download had already answered for, more recently, so both rows carry the same asset.
+    """
+    best: dict[str, dict] = {}
+    for q in quotes:
+        held = best.get(q["assetId"])
+        if held is None or q["quotedAt"] > held["quotedAt"]:
+            best[q["assetId"]] = q
+    return list(best.values())
+
+
 def write(cur, quotes: list[dict], now: datetime) -> int:
     """Upsert in one round trip. Only a strictly newer quote overwrites, so nothing moves backward."""
+    quotes = newest_per_asset(quotes)
     if not quotes:
         return 0
     cur.execute(
@@ -363,6 +382,10 @@ def say(line: str) -> None:
 # value, because `main`'s return value is the process exit code and a count there would fail the
 # workflow on a busy tick.
 LAST_WRITTEN = 0
+# The exception name when a tick stopped before writing, so the status row can say `failed`
+# instead of `ok`. A lane that reports a healthy run while storing nothing is the exact shape of
+# the freshness lie this phase exists to remove.
+STOPPED_EARLY: str | None = None
 
 
 def _run(argv: list[str]) -> int:
@@ -428,7 +451,9 @@ def _run(argv: list[str]) -> int:
                 f"{touched} marked polled in {time.perf_counter() - t:.2f}s"
             )
     except Exception as error:  # noqa: BLE001 - name only: a driver error can echo the connection string
-        say(f"stopped early ({type(error).__name__}); the next tick asks again")
+        global STOPPED_EARLY
+        STOPPED_EARLY = type(error).__name__
+        say(f"stopped early ({STOPPED_EARLY}); the next tick asks again")
         return 0
     finally:
         say(f"tick took {time.perf_counter() - t0:.2f}s")
@@ -456,7 +481,11 @@ def main(argv: list[str]) -> int:
         # and a before/after count would always read zero. What the row should carry is how many
         # quotes actually moved forward.
         run.rows_written = LAST_WRITTEN
-        run.note = f"{LAST_WRITTEN} quotes moved forward; the table holds one row per asset"
+        if STOPPED_EARLY:
+            run.status = "failed"
+            run.note = f"stopped before writing ({STOPPED_EARLY}); nothing was stored this tick"
+        else:
+            run.note = f"{LAST_WRITTEN} quotes moved forward; the table holds one row per asset"
         return code
 
 
