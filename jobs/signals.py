@@ -32,7 +32,8 @@ from pathlib import Path
 warnings.filterwarnings("ignore")
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from nbt import db, get, get_json, mean, pct, rows, step  # noqa: E402
+from nbt import db, get, get_json, mean, pct, rows, step, throttled_since  # noqa: E402
+import runlog  # noqa: E402
 
 try:
     from dotenv import load_dotenv
@@ -604,21 +605,95 @@ RUNNERS = {
     "reddit": reddit_signals,
 }
 
+# The provider each runner actually talks to, for the status row. One row per *sub-source* and
+# not one per lane: until 2026-10-12 all five were reported together as "product demand signals",
+# and `jobs/audit.py` read that one aggregate as `healthy` while Reddit was answering for 3 of 30
+# products. Three live sources hid two degraded ones, which is the whole reason this exists.
+SOURCE_OF = {
+    "trends": TRENDS,
+    "wiki": WIKI_NAME,
+    "hn": HN,
+    "news": GNEWS,
+    "reddit": REDDIT,
+}
+# Products are the unit of work for every one of these, so `asked` is the product count and the
+# row reads "n of 30" rather than "n rows", which is the number a person can judge.
+PRODUCT_COUNT_SQL = 'SELECT count(*) AS n FROM "Product"'
+# The `SignalSource` enum value each runner writes under (prisma/schema.prisma).
+SIGNAL_SOURCE = {
+    "trends": "googleTrends",
+    "wiki": "wikipedia",
+    "hn": "hackerNews",
+    "news": "googleNews",
+    "reddit": "reddit",
+}
+
+
+def covered_products(cur, source: str, period_end) -> int:
+    """Distinct products this sub-source wrote a signal for in its newest period.
+
+    Coverage, not row count: one product can produce several metrics, so rows say nothing about
+    how much of the catalogue a source actually answered for.
+    """
+    if period_end is None:
+        return 0
+    got = rows(
+        cur,
+        'SELECT count(DISTINCT "productId") AS n FROM "ProductSignal" '
+        'WHERE source = %s::"SignalSource" AND "periodEnd" = %s',
+        (source, period_end),
+    )
+    return got[0]["n"] or 0
+
+
+def stored_rows(cur, source: str) -> tuple[int, date | None]:
+    """How many signal rows this sub-source holds and the newest period it covers."""
+    got = rows(
+        cur,
+        'SELECT count(*) AS n, max("periodEnd") AS newest FROM "ProductSignal" WHERE source = %s::"SignalSource"',
+        (source,),
+    )
+    return (got[0]["n"] or 0), got[0]["newest"]
+
 
 def main() -> None:
     todo = sys.argv[1:] or ["wiki", "hn", "news"]
     conn = db()
     try:
         with conn.cursor() as cur:
+            products = rows(cur, PRODUCT_COUNT_SQL)[0]["n"] or 0
             for name in todo:
-                if name in RUNNERS:
+                if name not in RUNNERS:
+                    print(f"unknown source {name}, choose from {', '.join(RUNNERS)}")
+                    continue
+                label = SOURCE_OF[name]
+                before, _ = stored_rows(cur, SIGNAL_SOURCE[name])
+                mark = throttled_since()
+                with runlog.chunk_run(job="cron products", source=label, asked=products) as run:
                     RUNNERS[name](cur)
                     # Kept as soon as each source finishes. The whole run was one transaction, so a
                     # lane cut off at its time limit during the fifth source threw away the four
                     # finished before it -- which is how eight runs in a row stored nothing.
                     conn.commit()
-                else:
-                    print(f"unknown source {name}, choose from {', '.join(RUNNERS)}")
+                    after, newest = stored_rows(cur, SIGNAL_SOURCE[name])
+                    blocks = throttled_since(mark)
+                    run.rows_written = max(after - before, 0)
+                    run.newest = newest
+                    # Products whose rows this run actually touched, not rows: a product can
+                    # produce several metrics, so rows say nothing about coverage.
+                    run.answered = covered_products(cur, SIGNAL_SOURCE[name], newest)
+                    if blocks:
+                        # Asked and was refused for asking too fast. Never `empty`: a throttle
+                        # says nothing about whether the data exists, and filing it as empty is
+                        # what made Reddit look like a quiet source rather than a blocked one.
+                        run.status = "blocked"
+                        worst = max(blocks.items(), key=lambda kv: kv[1])
+                        run.note = (
+                            f"{label}: throttled {sum(blocks.values())} times "
+                            f"({worst[0]} x{worst[1]}); {run.answered} of {products} products covered"
+                        )
+                    else:
+                        run.note = f"{label}: {run.answered} of {products} products covered, {run.rows_written} new rows"
     finally:
         conn.close()
 

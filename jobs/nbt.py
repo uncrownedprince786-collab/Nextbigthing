@@ -70,9 +70,27 @@ SCORED_SIGNALS = (
     ("googleTrends", "trends_8w_vs_8w_pct", "Google Trends search interest, 8 weeks against the 8 before"),
     ("wikipedia", "wiki_views_8w_vs_8w_pct", "Wikipedia pageviews, 8 weeks against the 8 before"),
     ("hackerNews", "hn_stories_90d_change_pct", "Hacker News stories, 90 days against the 90 before"),
-    ("reddit", "reddit_posts_30d_change_pct", "Reddit posts, the last 30 days against the rate over the 90 days before"),
     ("googleNews", "gnews_articles_30d_change_pct", "Google News articles, 30 days against the 30 before"),
 )
+
+# Reddit, stored and shown but not counted, by the owner's decision of 2026-10-12.
+#
+# Measured that day: Reddit answered for **3 of 30 products**, and the run log reads
+# `reddit stopped: the 8 minute budget was spent; 19 products not asked`. It answers 429 to
+# GitHub's runner addresses for nearly every request, which is a property of where this runs and
+# not of the product being asked about.
+#
+# A confirming source that is present for a tenth of the catalogue does not confirm anything: it
+# adds agreement for three products and silence for twenty-seven, and a score that counts silence
+# as a missing signal would rank those three above the rest for a reason that is about Reddit's
+# rate limiter. So it is excluded from the score and kept everywhere else -- the rows are still
+# collected, still stored, still displayed on the product page with their own reading, and the
+# status row says `blocked` rather than `empty` so nobody reads the gap as "Reddit found nothing".
+#
+# This is reversible in one line if Reddit ever answers this host reliably.
+DEGRADED_SIGNALS = {
+    "reddit": "Reddit answers this host 429 for most requests, so it covers too few products to confirm anything",
+}
 
 # A source whose name is used in a sentence with a verb needs to agree with that verb.
 SOURCE_LABEL = {
@@ -132,6 +150,22 @@ def _host_delay(url: str) -> float:
 # Transient codes worth asking again for. 403 is not here: a block is an answer, and asking
 # again just spends the lane's time confirming it.
 RETRY_ON = (429, 500, 502, 503, 504)
+
+# How many times each host has refused us for being too fast, this process.
+#
+# Counted here because this is the one place a throttle is actually seen. A collector further up
+# cannot tell "the provider said not now" from "the provider has nothing", and that is exactly
+# the distinction `ChunkRun.status = 'blocked'` exists to record: Reddit answered 429 for 27 of
+# 30 products and was filed as a quiet source. Read it with `throttled_since()` around a block of
+# work; nothing is ever reset, so a reading is always a difference between two points.
+THROTTLED: dict[str, int] = {}
+
+
+def throttled_since(mark: dict[str, int] | None = None) -> dict[str, int]:
+    """Throttle counts per host since `mark`, or the running totals when `mark` is None."""
+    if mark is None:
+        return dict(THROTTLED)
+    return {h: n - mark.get(h, 0) for h, n in THROTTLED.items() if n - mark.get(h, 0) > 0}
 RETRIES = 2                    # three attempts in all
 RETRY_BACKOFF = (3, 12)        # seconds before the second and third attempt
 
@@ -214,6 +248,7 @@ def get(
             # 429 means back off hard for this host for the rest of the run.
             if e.code in (429, 403, 503):
                 _last_hit[host] = time.time() + 30
+                THROTTLED[host] = THROTTLED.get(host, 0) + 1
                 print(f"  blocked {host} {e.code}, backing off 30s")
             if e.code in RETRY_ON and may_retry(host, attempt):
                 print(f"  retry {attempt + 1} of {RETRIES} after {e.code} {url[:80]}")

@@ -359,7 +359,13 @@ def say(line: str) -> None:
     print(f"live: {line}", flush=True)
 
 
-def main(argv: list[str]) -> int:
+# How many quotes the last tick actually moved forward. A module attribute and not a return
+# value, because `main`'s return value is the process exit code and a count there would fail the
+# workflow on a busy tick.
+LAST_WRITTEN = 0
+
+
+def _run(argv: list[str]) -> int:
     only = argv[argv.index("--only") + 1] if "--only" in argv and argv.index("--only") + 1 < len(argv) else None
     dry = "--dry-run" in argv
     t0 = time.perf_counter()
@@ -412,7 +418,9 @@ def main(argv: list[str]) -> int:
                 say(f"dry run: {len(quotes)} quotes fetched, nothing written")
                 return 0
             t = time.perf_counter()
+            global LAST_WRITTEN
             changed = write(cur, quotes, now)
+            LAST_WRITTEN = changed
             # Every name asked about this tick, so the rotation advances even when no price moved.
             touched = touch(cur, [a["id"] for a in polled], now)
             say(
@@ -425,6 +433,31 @@ def main(argv: list[str]) -> int:
     finally:
         say(f"tick took {time.perf_counter() - t0:.2f}s")
     return 0
+
+
+def main(argv: list[str]) -> int:
+    """`_run` with one status row around it (jobs/runlog.py `lane_run`).
+
+    The lane's own work is untouched; this records that it ran, what it wrote and whether a
+    provider throttled it, so `lib/health.ts` can see this lane at all.
+    """
+    import runlog  # noqa: PLC0415 - imported here so the job still runs with no logger present
+
+    # A dry run fetches and writes nothing, so recording it as a lane run would put a row in the
+    # status table for work that never happened.
+    if "--dry-run" in argv:
+        return _run(argv)
+    with runlog.lane_run(
+        job="cron live quotes", source="CoinPaprika + Yahoo Finance quotes",
+        table="LiveQuote", date_col='"updatedAt"',
+    ) as run:
+        code = _run(argv)
+        # `LiveQuote` holds one row per asset and overwrites in place, so the table never grows
+        # and a before/after count would always read zero. What the row should carry is how many
+        # quotes actually moved forward.
+        run.rows_written = LAST_WRITTEN
+        run.note = f"{LAST_WRITTEN} quotes moved forward; the table holds one row per asset"
+        return code
 
 
 if __name__ == "__main__":

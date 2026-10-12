@@ -60,6 +60,27 @@ except Exception:  # noqa: BLE001
 # short enough to bound the table and long enough that a lane which fails for a week does not
 # come back to an empty history.
 KEEP = {
+    # Operational status, not analytical history. These two are what the pipeline says about
+    # itself: `ChunkRun` one row per lane slice per run, `Coverage` one row per source per audit.
+    # Both are append-only and both grow with the schedule rather than with the universe --
+    # `Coverage` was already 30 rows for 10 sources on 2026-10-12 after a day, and every lane
+    # writing a run row (which is the change that made this necessary) multiplies `ChunkRun`.
+    #
+    # Thirty days because that is longer than any question anyone asks of them: "did this lane run
+    # last night", "has this source been throttled all week", "when did this start". Nothing
+    # derived is computed from either table, and nothing in the accuracy loop reads them, so
+    # pruning them removes no evidence -- which is exactly why they can be pruned and
+    # `PriceSnapshot` cannot.
+    "ChunkRun": (
+        '"startedAt"', 30,
+        "the lane run log. Read to answer 'did it run and what did it say', which is a question "
+        "about the last few days. No derivation reads it",
+    ),
+    "Coverage": (
+        '"computedAt"', 30,
+        "one source-health verdict per audit run. The newest row per source is what every reader "
+        "takes; the older ones are there to show a trend, and a month is more than enough of one",
+    ),
     "AssetSetup": (
         '"periodEnd"', 14,
         "jobs/thesis.py walks the run of these rows to find the session a state first "

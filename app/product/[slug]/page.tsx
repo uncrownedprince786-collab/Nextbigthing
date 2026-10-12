@@ -65,9 +65,19 @@ const SCORED = [
   { source: "googleTrends", metric: "trends_8w_vs_8w_pct" },
   { source: "wikipedia", metric: "wiki_views_8w_vs_8w_pct" },
   { source: "hackerNews", metric: "hn_stories_90d_change_pct" },
-  { source: "reddit", metric: "reddit_posts_30d_change_pct" },
   { source: "googleNews", metric: "gnews_articles_30d_change_pct" },
 ] as const;
+
+/// Collected and shown, but not counted towards the score, with the reason the reader is owed.
+///
+/// Kept identical to DEGRADED_SIGNALS in jobs/nbt.py. Reddit answered for 3 of 30 products on
+/// 2026-10-12 because it returns 429 to this host for nearly every request; counting a source
+/// that is present for a tenth of the catalogue would rank those three products above the rest
+/// for a reason that is about a rate limiter. The rows are still stored and still printed here,
+/// so the reading is not hidden -- it is simply not treated as corroboration.
+const DEGRADED: Record<string, string> = {
+  reddit: "collected but not counted: this source rate-limits our collector, so it covers too few products to corroborate",
+};
 const SCORED_METRICS = new Set<string>(SCORED.map((s) => s.metric));
 
 const SOURCE_NAME: Record<string, string> = {
@@ -345,7 +355,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                     <span className="wrap-hard block max-w-[30ch]">
                       {METRIC_TEXT[s.metric] ?? s.metric}
                       {SCORED_METRICS.has(s.metric) ? null : (
-                        <span className="text-muted-foreground/70"> (not scored)</span>
+                        <span className="text-muted-foreground/70">
+                          {" "}
+                          {DEGRADED[s.source] ? `(${DEGRADED[s.source]})` : "(not scored)"}
+                        </span>
                       )}
                     </span>
                   </td>

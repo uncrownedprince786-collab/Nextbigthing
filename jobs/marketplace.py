@@ -149,7 +149,7 @@ def previous_period(cur, category: str, today: date):
     return got[0]["d"] if got and got[0]["d"] else None
 
 
-def main() -> None:
+def _run() -> None:
     today = date.today()
     conn = db()
     with conn, conn.cursor() as cur:
@@ -255,6 +255,18 @@ def main() -> None:
             "incomplete, and the missing categories are not absent from Amazon, only from here. "
             "Re-verify the slugs and whether Amazon is rate limiting this host."
         )
+
+
+def main() -> None:
+    """`_run` with one status row around it (jobs/runlog.py `lane_run`).
+
+    The lane's own work is untouched; this records that it ran, what it wrote and whether a
+    provider throttled it, so `lib/health.ts` can see this lane at all.
+    """
+    import runlog  # noqa: PLC0415 - imported here so the job still runs with no logger present
+
+    with runlog.lane_run(job="cron products", source="Amazon Best Sellers", table="MarketplaceItem", date_col='"periodEnd"'):
+        return _run()
 
 
 if __name__ == "__main__":

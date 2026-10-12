@@ -218,6 +218,34 @@ def active_set(cur, today: date) -> list[dict]:
         "a recorded thesis on it is still live",
     )
 
+    # A currency pair the decision log has a direction on.
+    #
+    # FX had no intraday bars at all -- 0 of 27 pairs on 2026-10-12 -- not because the provider
+    # refuses them (`supported()` excludes only PSX, and the chart API answers `EURUSD=X` at one
+    # minute) but because no pair ever collected a reason to be in this set. The reasons above are
+    # written around equities: a currency pair has no `AssetSetup` state of its own in practice and
+    # no thesis, so it never qualified.
+    #
+    # Bounded on purpose, and bounded by the same rule `jobs/live.py` uses for its own FX scope:
+    # only pairs carrying a LONG or SHORT today, which was five names on 2026-10-12. FX is also the
+    # one class here that trades continuously, so an intraday series for it is the only one that
+    # says anything between daily closes. No backfill: these pairs start collecting from the next
+    # run, exactly as a newly listed equity does.
+    add(
+        rows(
+            cur,
+            """
+            SELECT DISTINCT a.id FROM "Asset" a
+            JOIN "Industry" i ON i.id = a."industryId"
+            WHERE i.market = 'FX' AND EXISTS (
+                  SELECT 1 FROM "DecisionLog" d
+                   WHERE d."assetId" = a.id AND d.action IN ('LONG', 'SHORT')
+                     AND d."periodEnd" = (SELECT max("periodEnd") FROM "DecisionLog"))
+            """,
+        ),
+        "a currency pair carrying a direction today",
+    )
+
     # Doing something unusual. Measured against the asset's own history, not a fixed
     # percentage: a 3% day is ordinary for one of these names and extraordinary for another.
     add(
@@ -714,7 +742,7 @@ def derive_for(cur, asset_id: str) -> int:
     return written
 
 
-def main() -> None:
+def _run() -> None:
     mode = sys.argv[1] if len(sys.argv) > 1 else "active"
     today = date.today()
     now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -877,6 +905,18 @@ def main() -> None:
     finally:
         cur.close()
         conn.close()
+
+
+def main() -> None:
+    """`_run` with one status row around it (jobs/runlog.py `lane_run`).
+
+    The lane's own work is untouched; this records that it ran, what it wrote and whether a
+    provider throttled it, so `lib/health.ts` can see this lane at all.
+    """
+    import runlog  # noqa: PLC0415 - imported here so the job still runs with no logger present
+
+    with runlog.lane_run(job="cron decision", source="Yahoo Finance chart API (intraday)", table="IntradayBar", date_col='ts'):
+        return _run()
 
 
 if __name__ == "__main__":

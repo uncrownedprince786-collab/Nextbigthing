@@ -22,10 +22,30 @@ name: cron live quotes
 #
 # Public repository: Actions minutes are not billed. A private one would pay for roughly 200 short runs
 # a day and should raise the interval instead of keeping this one.
+# **Measured 2026-10-12: the schedules above are not what arrives.** Over the Actions API window this
+# workflow asked for roughly 96 runs a day and GitHub delivered **8 scheduled runs**, and not one of
+# them at a configured minute -- they landed at :13 :16 :20 :25 :27 :38 :41 :57 against a schedule of
+# 7, 22, 37, 52. Median gap between runs 65 minutes, worst 300, against a 15 minute ask. Low-frequency
+# lanes fare far better (`cron audit`, `cron crypto` and `cron news`, all every two hours, got 13 each),
+# so this is GitHub deprioritising frequent schedules on a free repository, not a fault in this file.
+#
+# `workflow_run` is an event, and events are not dropped. The watchdog already proves it in this
+# repository: over the same window it got **7** scheduled runs and **74** from `workflow_run`. So this
+# lane now also runs when a data lane finishes. Those runs are happening anyway; this spends one extra
+# short tick on each, inside the same concurrency group, so at most one tick waits behind the one
+# running and a burst cannot build a backlog. It adds no new schedule and no new scheduler.
 on:
   schedule:
     - cron: "*/5 13-21 * * 1-5"
     - cron: "7,22,37,52 * * * *"
+  workflow_run:
+    workflows:
+      - "cron crypto"
+      - "cron us prices"
+      - "cron psx"
+      - "cron news"
+      - "cron decision"
+    types: [completed]
   workflow_dispatch:
 
 # Its own queue, and a running tick is never cancelled by another. GitHub keeps one pending run per

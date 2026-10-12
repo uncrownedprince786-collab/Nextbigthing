@@ -347,7 +347,7 @@ def insert(cur, buffer: list[tuple]) -> int:
     return len(buffer)
 
 
-def main() -> None:
+def _run() -> None:
     mode = sys.argv[1] if len(sys.argv) > 1 else "recent"
     if mode not in ("recent", "full"):
         print(f"unknown mode {mode}, choose recent or full")
@@ -570,6 +570,19 @@ def main() -> None:
     finally:
         cur.close()
         conn.close()
+
+
+def main() -> None:
+    """`_run` with one status row around it (jobs/runlog.py `lane_run`).
+
+    The lane's own work is untouched; this records that it ran, what it wrote and whether a
+    provider throttled it, so `lib/health.ts` can see this lane at all.
+    """
+    import runlog  # noqa: PLC0415 - imported here so the job still runs with no logger present
+
+    with runlog.lane_run(job="cron psx", source="Pakistan Stock Exchange daily closing file", table="PriceSnapshot", date_col='date',
+                            where="source = 'psx'"):
+        return _run()
 
 
 if __name__ == "__main__":

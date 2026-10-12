@@ -46,7 +46,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Callable, Iterable, Sequence, TypeVar
 
-from nbt import db, now
+from nbt import db, now, primary_choice, throttled_since
 
 T = TypeVar("T")
 
@@ -60,7 +60,16 @@ T = TypeVar("T")
 # is exactly what the breaker counts. Filing a skip as empty would let the breaker read its own
 # skips as further evidence and extend its own cooldown forever -- a gate that feeds itself, and
 # one that would quietly delete a venue that had recovered hours earlier.
-STATUSES = ("ok", "partial", "empty", "failed", "skipped")
+# `blocked` is the sixth, and it is the one the product-demand sources needed.
+#
+# A provider that answers HTTP 429 has told us something quite different from a provider that
+# answered with nothing: the first says "not now, you are asking too fast", the second says
+# "there is nothing there". `empty` conflated them, and that is how Reddit came to look like a
+# quiet source rather than a throttled one -- 7 rows across 3 of 30 products, filed as though
+# the other 27 simply had no posts. A throttle is also the one state where the right response is
+# to ask again later rather than to investigate the data, so it has to be distinguishable from
+# the outside.
+STATUSES = ("ok", "partial", "empty", "failed", "skipped", "blocked")
 
 # A note is one line for a human to read without opening a log. An exception's message is not
 # bounded by anything — a psycopg error can carry a whole statement, and a requests error can
@@ -234,10 +243,14 @@ def write(
         raise ValueError("ChunkRun.note is required; a row with no note is the bug this prevents")
     if status not in STATUSES:
         raise ValueError(f"status {status!r} is not one of {', '.join(STATUSES)}")
-    if not os.environ.get("DATABASE_URL"):
+    # The primary as every other lane picks it (brain.md rule 97), not `DATABASE_URL` alone:
+    # since Supabase became the primary a deployment can legitimately have no `DATABASE_URL` at
+    # all, and this gate would then silently log nothing while every lane ran normally -- an
+    # empty status table that looks exactly like a stopped pipeline.
+    if not primary_choice()[1]:
         # A local run with no database still runs the job; it just cannot log. Said out loud so
         # an empty table is never mistaken for a pipeline that stopped running.
-        print(f"  [runlog] no DATABASE_URL, not logging {job} {source} {chunk} ({status})")
+        print(f"  [runlog] no database configured, not logging {job} {source} {chunk} ({status})")
         return False
 
     conn = None
@@ -262,6 +275,71 @@ def write(
                 conn.close()
             except Exception:  # noqa: BLE001
                 pass
+
+
+@contextmanager
+def lane_run(*, job: str, source: str, table: str, date_col: str | None = None, asked: int = 0,
+             where: str | None = None):
+    """Wrap a whole lane and record one honest row for it, without touching its internals.
+
+    Written for the eight lanes that had no stored run record at all -- psx, intraday, live,
+    marketplace, geo, upcoming and the rest -- where `prices.py` was the only job calling this
+    module. A missing row is indistinguishable from a lane that never ran, so `lib/health.ts`
+    could not see most of the pipeline.
+
+    It measures the lane from the outside: the row count of the table the lane writes, before
+    and after, and the newest value of `date_col` when the lane dates its rows. That needs no
+    change inside the lane, which is the point -- these files open and close their own
+    connections at times chosen around long network phases, and threading a logger through them
+    would be a large edit for a diagnostic.
+
+    **Two brief connections, never one held open.** The "before" count is taken and the
+    connection closed; the lane runs with no connection of ours open; the "after" count and the
+    row itself go on a second one. Holding a session open across a lane's network phase is the
+    exact fault these jobs are built to avoid, and a logger must not reintroduce it.
+
+    `where` narrows the count to the lane's own rows when a table has several writers --
+    `PriceSnapshot` takes US, PSX and crypto closes from three different lanes, and counting the
+    whole table would credit one lane with another's work whenever two overlap.
+
+    A throttled provider is recorded as `blocked` rather than `empty`: see STATUSES.
+    """
+    def count() -> tuple[int, object]:
+        try:
+            conn = db()
+            try:
+                with conn.cursor() as cur:
+                    col = f', max({date_col}) AS newest' if date_col else ", NULL AS newest"
+                    clause = f" WHERE {where}" if where else ""
+                    cur.execute(f'SELECT count(*) AS n{col} FROM "{table}"{clause}')
+                    # `nbt.db()` hands back dict rows, so these are keys and not positions.
+                    row = cur.fetchone()
+                    return (row["n"] or 0), row["newest"]
+            finally:
+                conn.close()
+        except Exception as e:  # noqa: BLE001 - a diagnostic must never fail the lane
+            print(f"  [runlog] could not count {table}: {type(e).__name__}")
+            return 0, None
+
+    before, _ = count()
+    mark = throttled_since()
+    with chunk_run(job=job, source=source, asked=asked) as run:
+        yield run
+        after, newest = count()
+        blocks = throttled_since(mark)
+        if run.rows_written == 0:
+            run.rows_written = max(after - before, 0)
+        if run.newest is None:
+            run.newest = newest
+        if blocks and run.status is None:
+            run.status = "blocked"
+            worst = max(blocks.items(), key=lambda kv: kv[1])
+            run.note = run.note or (
+                f"{source}: throttled {sum(blocks.values())} times ({worst[0]} x{worst[1]}); "
+                f"{run.rows_written} rows written"
+            )
+        if not run.note:
+            run.note = f"{source}: {run.rows_written} rows written into {table}"
 
 
 @contextmanager

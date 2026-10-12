@@ -283,7 +283,7 @@ def summarise(end: date) -> None:
         conn.close()
 
 
-def main() -> None:
+def _run() -> None:
     end = date.today()
 
     # Ask what to fetch, then hang up. Same rule psx.py follows: this job spends minutes on the
@@ -432,6 +432,18 @@ def main() -> None:
             "This says nothing at all about Trends. Something before this job in the lane took "
             "the time, or the budget is set below what one product costs."
         )
+
+
+def main() -> None:
+    """`_run` with one status row around it (jobs/runlog.py `lane_run`).
+
+    The lane's own work is untouched; this records that it ran, what it wrote and whether a
+    provider throttled it, so `lib/health.ts` can see this lane at all.
+    """
+    import runlog  # noqa: PLC0415 - imported here so the job still runs with no logger present
+
+    with runlog.lane_run(job="cron products", source="Google Trends regional breakdown", table="ProductRegion", date_col='"periodEnd"'):
+        return _run()
 
 
 if __name__ == "__main__":

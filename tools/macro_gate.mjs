@@ -47,7 +47,17 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const PRINT_PROMPT = process.argv.includes("--print-prompt");
 
 /// Which engine decides. Anything but "model" is the local one, so a typo costs nothing and calls nothing.
-const ENGINE = process.env.MACRO_GATE_ENGINE === "model" ? "model" : "local";
+const ENGINE_ASKED = process.env.MACRO_GATE_ENGINE === "model" ? "model" : "local";
+/// The paid engine needs a second, explicit authorization and not just a key lying around.
+///
+/// `MACRO_GATE_ENGINE=model` plus an `ANTHROPIC_API_KEY` used to be the whole of it, which means one
+/// repository variable -- set by anyone with write access, or by a copied workflow -- silently moved
+/// this lane from free to billed, every night, at `claude-opus-5-5` by default. A key being present is
+/// not consent to spend it. So the paid path is fail-closed: without this exact value the run falls
+/// back to the local rule table, says so in the step summary, and costs nothing. The local engine is
+/// unaffected and needs nothing.
+const PAID_AUTHORIZED = process.env.MACRO_GATE_PAID === "i-authorize-model-spend";
+const ENGINE = ENGINE_ASKED === "model" && PAID_AUTHORIZED ? "model" : "local";
 /// The model engine's default is the most capable model; `MACRO_GATE_MODEL=claude-haiku-5-5` is the cheap switch.
 const MODEL = process.env.MACRO_GATE_MODEL || "claude-opus-5-5";
 /// Thinking is always on for this model, so `max_tokens` has to cover it as well as the reply.
@@ -177,6 +187,17 @@ async function store(db, row, today, result, engineLabel) {
 
 async function main() {
   if (process.env.MACRO_GATE !== "on") return say("off (set MACRO_GATE=on to enable). Nothing asked, nothing stored.");
+  if (ENGINE_ASKED === "model" && !PAID_AUTHORIZED) {
+    // Loud, and then it carries on with the free engine: refusing to run at all would take the
+    // whole veto layer down over a configuration mistake, and a missing veto is worse than a
+    // free one. The run is still honest -- every stored row records `local-rules-v1` as the
+    // engine, so nothing later can mistake these verdicts for the model's.
+    console.log(
+      "::warning title=Macro gate fell back to the free engine::MACRO_GATE_ENGINE=model was asked for " +
+        "but MACRO_GATE_PAID is not set to the authorizing value, so no paid call was made. " +
+        "This run used the local rule table.",
+    );
+  }
   if (ENGINE === "model" && !process.env.ANTHROPIC_API_KEY && !PRINT_PROMPT) {
     return say("off (the model engine needs ANTHROPIC_API_KEY; the default local engine needs none). Nothing asked, nothing stored.");
   }

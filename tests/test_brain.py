@@ -4152,7 +4152,10 @@ class QueryBudget(unittest.TestCase):
     # written down here in the same commit that earned it.
     BASELINE = {
         "accuracy.py": 3, "analogs.py": 1, "analysis.py": 3, "attribution.py": 0,
-        "audit.py": 9, "confidence.py": 2, "events.py": 7, "factors.py": 1, "geo.py": 2,
+        # audit.py is 10 since 2026-10-12: the demand sources are judged on breadth as well as
+        # recency, which is one extra read per watched source. Bounded by the source list, never
+        # by assets or rows.
+        "audit.py": 10, "confidence.py": 2, "events.py": 7, "factors.py": 1, "geo.py": 2,
         "graph.py": 1, "horizons.py": 1, "human.py": 0, "intraday.py": 7,
         "investigate.py": 3, "lifecycle.py": 7, "lineage.py": 3, "marketplace.py": 3,
         # retention.py reads a count per table, not per asset, so its five are bounded by the
@@ -4162,7 +4165,11 @@ class QueryBudget(unittest.TestCase):
         # reason the other five are. REINDEX cannot be batched into one statement.
         "prices.py": 7, "psx.py": 2, "rank.py": 3, "retention.py": 8, "seed.py": 5,
         "setup.py": 0,
-        "signals.py": 12, "stats.py": 2, "thesis.py": 0, "upcoming.py": 3,
+        # signals.py is 15 since 2026-10-12: the per-sub-source status rows read each source's
+        # stored count before and after and its product coverage. That loop is over the five
+        # sources, never over products or assets, so it cannot grow with the universe -- which is
+        # the property this ratchet exists to protect.
+        "signals.py": 15, "stats.py": 2, "thesis.py": 0, "upcoming.py": 3,
         # tools/, measured 2026-10-10 when the scan was widened to cover it. These are one-off
         # reports run by hand rather than lanes on a schedule, so a per-row read costs a person
         # waiting rather than a nightly budget -- which is why they are recorded at what they do
@@ -7929,7 +7936,8 @@ class TheLiveLane(unittest.TestCase):
         self.assertIn('UPDATE "LiveQuote" SET "updatedAt"', src)
         self.assertIn("touch(cur, [a[\"id\"] for a in polled], now)", src)
         # Crypto and the Yahoo slice both count as polled, or crypto would never rotate either.
-        body = src[src.index("def main("):]
+        # `_run` and not `main`: the lane's body moved behind a status-row wrapper (runlog.lane_run).
+        body = src[src.index("def _run("):]
         self.assertIn("polled += assets", body)
         self.assertIn("polled += chosen", body)
 
@@ -8284,6 +8292,121 @@ class TheWatchdogRestartsWhatStopped(unittest.TestCase):
         # Imported, never redefined: a second copy of the limits is how a health page and a decision come
         # to disagree about one close. Whole identifier only (DECISIONS_STALE_AFTER_DAYS is a different one).
         self.assertIsNone(re.search(r"(?<![A-Z_])STALE_AFTER_DAYS\s*[:=]", code_only(health)))
+
+
+class Phase1SourceVisibility(unittest.TestCase):
+    """Every lane says what it did, and a throttle is never filed as an absence."""
+
+    def test_blocked_is_its_own_state_and_not_empty(self):
+        """A 429 says "not now"; an empty answer says "nothing there". Different facts.
+
+        Reddit answered 429 for 27 of 30 products and was recorded as `empty`, which reads as a
+        quiet source. The distinction matters because the response differs: a block is retried
+        later, an empty result is investigated.
+        """
+        import runlog
+
+        for state in ("blocked", "empty", "skipped", "ok", "partial", "failed"):
+            self.assertIn(state, runlog.STATUSES, state)
+        # `blocked` is never the default judgement: the counts alone cannot tell the two apart,
+        # so only a caller that actually saw a throttle may set it.
+        self.assertEqual(runlog.default_status(asked=30, rows_written=0), "empty")
+
+    def test_every_lane_records_a_run(self):
+        """A missing row is indistinguishable from a lane that never ran."""
+        for job in ("psx", "marketplace", "geo", "upcoming", "intraday", "live", "signals"):
+            text = (ROOT / "jobs" / f"{job}.py").read_text(encoding="utf-8")
+            self.assertIn("runlog", text, f"{job}.py records no run")
+
+    def test_the_lane_wrapper_never_holds_a_connection_across_the_lane(self):
+        """Holding a session open across a network phase is the fault these jobs are built to avoid."""
+        text = (ROOT / "jobs" / "runlog.py").read_text(encoding="utf-8")
+        body = text[text.index("def lane_run("):text.index("def chunk_run(")]
+        self.assertIn("conn.close()", body)
+        # Opened inside count() and closed in its finally, so nothing is held while the lane runs.
+        self.assertIn("finally:", body)
+        self.assertLess(body.index("conn = db()"), body.index("conn.close()"))
+        self.assertIn("could not count", body, "a failed count is swallowed, never raised")
+
+    def test_the_logger_asks_for_the_primary_and_not_one_named_variable(self):
+        """Supabase is the primary, so a deployment can have no DATABASE_URL and still be healthy."""
+        text = (ROOT / "jobs" / "runlog.py").read_text(encoding="utf-8")
+        self.assertIn("primary_choice()[1]", text)
+
+    def test_a_throttle_is_counted_where_it_is_actually_seen(self):
+        import nbt
+
+        self.assertTrue(hasattr(nbt, "THROTTLED"))
+        before = nbt.throttled_since()
+        nbt.THROTTLED["example.test"] = nbt.THROTTLED.get("example.test", 0) + 2
+        self.assertEqual(nbt.throttled_since(before).get("example.test"), 2)
+
+    def test_each_demand_sub_source_is_watched_on_its_own(self):
+        """One aggregate row reported the best of five sources, not any of them."""
+        text = (ROOT / "jobs" / "audit.py").read_text(encoding="utf-8")
+        self.assertNotIn('"source IS NOT NULL", "product demand signals"', text)
+        for src in ("googleTrends", "wikipedia", "hackerNews", "googleNews", "reddit"):
+            self.assertIn(f"source = '{src}'", text, src)
+
+    def test_a_demand_source_is_judged_on_breadth_as_well_as_recency(self):
+        """Reddit was `healthy` with 3 of 30 products, because its three arrived on time."""
+        text = (ROOT / "jobs" / "audit.py").read_text(encoding="utf-8")
+        body = text[text.index("# Breadth, for the demand sources"):text.index("# Partial beats healthy")]
+        self.assertIn('count(DISTINCT "productId")', body)
+        self.assertIn("share < 0.5", body)
+
+    def test_a_weekend_is_compared_with_weekends(self):
+        """Google News carries 204-307 on a weekday and 34-106 at a weekend.
+
+        One median across both made every Saturday and Sunday report `partial` with nothing
+        wrong, which is how a panel teaches people to ignore it.
+        """
+        text = (ROOT / "jobs" / "audit.py").read_text(encoding="utf-8")
+        self.assertIn("newest.isoweekday() >= 6", text)
+
+    def test_reddit_is_collected_and_shown_but_not_counted(self):
+        import nbt
+
+        self.assertNotIn("reddit", [s[0] for s in nbt.SCORED_SIGNALS])
+        self.assertIn("reddit", nbt.DEGRADED_SIGNALS)
+        # The site's list must agree, or page and score disagree about the denominator.
+        page = (ROOT / "app" / "product" / "[slug]" / "page.tsx").read_text(encoding="utf-8")
+        block = page[page.index("const SCORED = ["):page.index("] as const;")]
+        self.assertNotIn("reddit", block)
+        self.assertIn("const DEGRADED", page)
+        # Still collected and still rendered: uncounted, not hidden.
+        self.assertIn("reddit", (ROOT / "jobs" / "signals.py").read_text(encoding="utf-8"))
+
+    def test_the_paid_macro_engine_is_fail_closed(self):
+        """A key lying around is not consent to spend it."""
+        text = (ROOT / "tools" / "macro_gate.mjs").read_text(encoding="utf-8")
+        self.assertIn("MACRO_GATE_PAID", text)
+        self.assertIn("ENGINE_ASKED === \"model\" && PAID_AUTHORIZED", text)
+        # Falls back to the free engine rather than taking the veto layer down.
+        self.assertIn("fell back to the free engine", text)
+
+    def test_operational_status_is_bounded_and_evidence_is_not(self):
+        text = (ROOT / "jobs" / "retention.py").read_text(encoding="utf-8")
+        keep = text[text.index("KEEP = {"):text.index("NEVER_PRUNED")]
+        for operational in ("ChunkRun", "Coverage"):
+            self.assertIn(f'"{operational}": (', keep, operational)
+        for evidence in ("PriceSnapshot", "DecisionLog", "SignalLog", "AssetThesis"):
+            self.assertNotIn(f'"{evidence}": (', keep, evidence)
+
+    def test_the_live_lane_also_runs_on_an_event(self):
+        """Measured: 8 scheduled runs delivered against ~96 asked; the watchdog gets 74 from events."""
+        import yaml
+
+        wf = yaml.safe_load((ROOT / ".github" / "workflows" / "cron-live.yml").read_text(encoding="utf-8"))
+        self.assertIn("workflow_run", wf[True], "the schedule alone is not delivered")
+        self.assertEqual(wf[True]["workflow_run"]["types"], ["completed"])
+        # Same group, so events cannot build a backlog.
+        self.assertEqual(wf["concurrency"]["cancel-in-progress"], False)
+
+    def test_fx_can_reach_the_intraday_set(self):
+        text = (ROOT / "jobs" / "intraday.py").read_text(encoding="utf-8")
+        self.assertIn("a currency pair carrying a direction today", text)
+        self.assertIn("i.market = 'FX'", text)
 
 
 class EveryImportIsDeclared(unittest.TestCase):

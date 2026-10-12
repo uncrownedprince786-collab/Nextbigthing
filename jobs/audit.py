@@ -146,9 +146,32 @@ WATCHED = (
         "PriceSnapshot", CRYPTO_VENUE_SQL, "crypto daily closes",
         CRYPTO_INTERVAL_HOURS, 1.0,
     ),
+    # One row per sub-source, not one for the five together.
+    #
+    # This was a single `source IS NOT NULL` row called "product demand signals", and it read
+    # `healthy` on 2026-10-12 while Reddit was answering for 3 of 30 products: three live sources
+    # carried the aggregate and two degraded ones disappeared into it. An aggregate over
+    # independent providers cannot report any of them -- it reports the best one. Each now stands
+    # on its own and is late or silent on its own.
+    #
+    # The windows differ because the cadences do: Trends and Wikipedia are weekly series read by a
+    # weekly lane, Hacker News, Google News and Reddit are counted over rolling day windows and
+    # move every run. Criticality is shared at 0.6: no single demand source decides anything, but
+    # the set of them is the whole product section.
     (
-        "ProductSignal", "source IS NOT NULL", "product demand signals",
-        240.0, 0.6,
+        "ProductSignal", "source = 'googleTrends'", "Google Trends product interest", 240.0, 0.6,
+    ),
+    (
+        "ProductSignal", "source = 'wikipedia'", "Wikipedia product pageviews", 240.0, 0.6,
+    ),
+    (
+        "ProductSignal", "source = 'hackerNews'", "Hacker News product mentions", 240.0, 0.6,
+    ),
+    (
+        "ProductSignal", "source = 'googleNews'", "Google News product mentions", 240.0, 0.6,
+    ),
+    (
+        "ProductSignal", "source = 'reddit'", "Reddit product mentions", 240.0, 0.6,
     ),
     # The regional breakdown `jobs/geo.py` writes. It passes the same honesty test as the rest,
     # but for a different reason: the *table* was empty on 2026-10-03 while the *source* is
@@ -282,11 +305,50 @@ def coverage(cur, today: date) -> None:
                 "old, so anything arriving in between has not been collected"
             )
 
+        # Breadth, for the demand sources, because recency alone cannot see them.
+        #
+        # Everything else here is judged on when the newest row arrived, which is the right
+        # question for a price feed: it covers one universe and either answered or did not. A
+        # product-demand source covers thirty products independently, so it can be perfectly
+        # fresh and still almost absent -- Reddit was `healthy` on 2026-10-12 with rows for 3 of
+        # 30 products, because the three it managed arrived on time. "Arrived on time" is not
+        # "answered", and a panel that cannot tell them apart is not reporting source health.
+        if where.startswith("source = '") and table == "ProductSignal" and newest is not None:
+            breadth = one(
+                cur,
+                'SELECT (SELECT count(*) FROM "Product") AS products, '
+                'count(DISTINCT "productId") AS covered FROM "ProductSignal" '
+                f"WHERE {where} AND \"periodEnd\" = %s",
+                (newest,),
+            )
+            covered, products = breadth["covered"] or 0, breadth["products"] or 0
+            if products and covered < products:
+                share = covered / products
+                reach = f"covers {covered} of {products} products in its newest period"
+                note = f"{note}; {reach}" if note else reach
+                # Under half the catalogue is a degraded source however fresh it is.
+                if share < 0.5 and status == "healthy":
+                    status = "stale"
+
         # Partial beats healthy. A day that arrived on time with half its usual content is
         # not a healthy day, and calling it one is how a shrinking feed goes unnoticed. For a market
         # with a weekday calendar only its weekdays are counted (rule 94): a weekend is not a session.
         if status == "healthy" and got["n"] and newest is not None:
-            sessions = " AND EXTRACT(ISODOW FROM " + col + "::timestamp) < 6" if label in WEEKDAY_SESSIONS else ""
+            if label in WEEKDAY_SESSIONS:
+                # A market with a weekday calendar: the weekend is not a session at all (rule 94).
+                sessions = " AND EXTRACT(ISODOW FROM " + col + "::timestamp) < 6"
+            else:
+                # Everything else runs every day but not at the same rate, so the median has to be
+                # taken over days of the same kind as the one being judged.
+                #
+                # Measured 2026-10-12 on Google News RSS: weekdays carry 204-307 headlines a day
+                # and weekends 34-106. The median was taken across both, so every Saturday and
+                # Sunday the newest session was compared against a weekday number and the source
+                # was reported `partial` -- 53 against a median of 204, with nothing wrong. A panel
+                # that cries partial every weekend is a panel people stop reading, which is the
+                # same failure as the FX quote alarm that could never clear.
+                weekend = " >= 6" if newest.isoweekday() >= 6 else " < 6"
+                sessions = " AND EXTRACT(ISODOW FROM " + col + "::timestamp)" + weekend
             daily = rows(
                 cur,
                 f"""

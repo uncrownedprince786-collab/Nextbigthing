@@ -3080,3 +3080,83 @@ reads rows that already exist:
     - Worth keeping as a habit: both of this phase's live-lane bugs were invisible to reading and
       obvious on the second run. A rotation is a claim about what happens over several ticks, and one
       tick cannot test it.
+
+108. **Phase 1: every lane now says what it did, and a throttle is no longer filed as an absence.**
+    Implemented 2026-10-12 under the owner's approved Phase 1 scope. Nothing was deleted, no
+    historical backfill was run, and no new market-data source was added.
+    - **`blocked` is a sixth `ChunkRun` status.** A provider answering 429 has said "not now"; an
+      empty answer has said "nothing there". `empty` conflated them, and that is how Reddit came to
+      look like a quiet source rather than a throttled one -- 7 rows across 3 of 30 products. The
+      throttle is counted in `jobs/nbt.py` `THROTTLED`, at the one place a 429 is actually seen, and
+      read with `throttled_since()` around a block of work; a collector further up cannot tell the
+      two apart.
+    - **Eight lanes had no stored run record at all.** `prices.py` was the only caller of
+      `jobs/runlog.py`, so `ChunkRun` held three jobs and `lib/health.ts` could not see the rest of
+      the pipeline. `runlog.lane_run` wraps a whole lane from the outside -- counting the table it
+      writes before and after -- so psx, intraday, live, marketplace, geo and upcoming record one
+      honest row each without a line changing inside them. **Two brief connections, never one held
+      open**: a session open across a lane's network phase is the exact fault these jobs are built
+      to avoid, and a logger must not reintroduce it. `LiveQuote` is upsert-in-place and never
+      grows, so that lane reports what it moved forward instead of a row delta.
+    - **`signals.py` writes one row per sub-source**, not one per lane, with `blocked` when the
+      provider throttled and "n of 30 products covered" as the measure. `jobs/audit.py`'s single
+      `product demand signals` Coverage row became five. An aggregate over independent providers
+      cannot report any of them: it reports the best one, which is how three live sources hid two
+      degraded ones while the panel read `healthy`.
+    - **A demand source is now judged on breadth as well as recency.** Recency is the right question
+      for a price feed -- one universe, answered or not. A demand source covers thirty products
+      independently and can be perfectly fresh and almost absent. Reddit now reads **`stale`** at
+      3 of 30; Trends (30/30), Wikipedia (27/30), Hacker News and Google News stay `healthy`.
+    - **The weekend was being compared with weekdays.** Google News RSS carries 204-307 headlines on
+      a weekday and 34-106 at a weekend (measured over 12 days), and the partial-volume median was
+      taken across both -- so every Saturday and Sunday the source was reported `partial` with
+      nothing wrong: 53 against a median of 204. The median is now taken over days of the same kind.
+      This was the whole of the "recent news-volume reduction": **not a defect**. After the change
+      Google News RSS reads `healthy`.
+    - **Reddit: collected and shown, not counted.** Removed from `SCORED_SIGNALS` in jobs/nbt.py and
+      from `SCORED` on the product page, recorded in `DEGRADED_SIGNALS` with the reason, and still
+      rendered beside its own reading. A confirming source present for a tenth of the catalogue adds
+      agreement for three products and silence for twenty-seven; a score counting that would rank
+      those three above the rest for a reason about a rate limiter. Reversible in one line.
+    - **The paid macro engine is fail-closed.** `MACRO_GATE_ENGINE=model` plus a key lying around was
+      the whole authorization, which meant one repository variable silently moved this lane from
+      free to billed at `claude-opus-5-5`, nightly. It now also needs `MACRO_GATE_PAID` set to an
+      explicit authorizing value; without it the run warns loudly and uses the free local rule table
+      rather than refusing, because a missing veto is worse than a free one. Verified in production
+      before the change: `MACRO_GATE_ENGINE:` empty, `engine local-rules-v1`, no API call, no cost.
+    - **FX can reach the intraday set.** `supported()` excluded only PSX and the chart API answers
+      `EURUSD=X` at one minute, but no pair ever collected a reason to be selected -- the reasons are
+      written around equities. A pair carrying a direction today is now one, bounded by the same rule
+      `jobs/live.py` uses and by the existing 60-request ceiling. No backfill: pairs start collecting
+      from the next run, as a newly listed equity does.
+    - **Operational status is bounded; evidence is not.** `ChunkRun` and `Coverage` joined
+      `jobs/retention.py`'s `KEEP` at 30 days. Both are append-only and grow with the schedule rather
+      than the universe, and nothing derived reads either -- which is exactly why they can be pruned
+      and `PriceSnapshot` cannot.
+
+109. **The live lane's schedule is not what arrives, and the fix was already in this repository.**
+    Measured 2026-10-12 over the Actions API window: `cron live quotes` asks for about 96 runs a day
+    and GitHub delivered **8 scheduled runs**, none of them at a configured minute -- they landed at
+    :13 :16 :20 :25 :27 :38 :41 :57 against a schedule of 7, 22, 37, 52. Median gap 65 minutes,
+    worst 300, against a 15 minute ask. Every-two-hour lanes fared fine over the same window (`cron
+    audit`, `cron crypto`, `cron news`: 13 each), so this is GitHub deprioritising frequent schedules
+    on a free repository, not a fault in the file.
+    - `workflow_run` is an event, and events are not dropped. The watchdog already proved it here:
+      **7** scheduled runs against **74** from `workflow_run` in the same window. `cron-live.yml` now
+      also runs when a data lane completes -- runs that happen anyway, one short tick each, inside
+      the existing `nbt-live` concurrency group so a burst cannot build a backlog. No new schedule
+      and no new scheduler.
+    - What remains external and is not claimed to be fixed: GitHub will still drop most of the
+      `*/5` and 15-minute slots. The event trigger raises the floor; it does not make the schedule
+      arrive.
+
+110. **No Redis, no external cache, and no staleness defect found.** Checked 2026-10-12 across
+    package.json, lib, app, jobs, tools and the workflows: nothing imports or configures Redis,
+    Memcached, Upstash or `@vercel/kv`. The caching that exists is Next.js's own: two
+    `unstable_cache` entries in lib/cached.ts pinned with `revalidate: false` and a shared tag, route
+    ISR, and a one-minute per-symbol memo plus a 60-second CDN header on `/api/quote`. The data cache
+    has **no timer** -- it refreshes only when `/api/revalidate` finds the database ahead of it, and
+    that endpoint is called by the crypto, decision, live, psx, us-prices and schema lanes and by the
+    hourly watchdog. It acts only on a changed stamp, so a caller can make it do work at most once
+    per change. Nothing here needs a cache service, and adding one would be new infrastructure
+    solving a problem that was not found.
