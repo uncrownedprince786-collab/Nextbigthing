@@ -3160,3 +3160,63 @@ reads rows that already exist:
     hourly watchdog. It acts only on a changed stamp, so a caller can make it do work at most once
     per change. Nothing here needs a cache service, and adding one would be new infrastructure
     solving a problem that was not found.
+
+111. **Phase 1 closure, 2026-10-12. Closed for data reliability; the PSX permission question is open
+    and is the owner's.**
+    - **The top-up could lose a whole tick.** Found on the first event-triggered run at 00:42:
+      `top_up_stale` answered for a pair the 1-minute download had already answered for, so two rows
+      carried one `assetId`; `ON CONFLICT ("assetId") DO UPDATE` refuses to touch a row twice in one
+      statement, the tick is one statement, and Postgres raised `CardinalityViolation`. The entire
+      write was lost -- crypto with it -- and the workflow went green. That is the freshness lie this
+      phase exists to remove, and it is why FX had not refreshed in two hours while runs succeeded.
+      `write()` now keeps the newest quote per asset, so every caller is covered; a tick that stopped
+      before writing records `failed` with the reason. Verified on the same shape that failed: 59
+      bars + 2 top-ups write cleanly, FX **112 minutes old -> 1 minute**.
+    - **The `workflow_run` trigger works.** One bounded validation: `cron psx` dispatched on the
+      default branch, completed 00:42, and `cron live quotes` fired from it with `event=workflow_run`
+      and succeeded. Scheduled and event-triggered runs are distinguishable in the Actions record by
+      `event`. The external limitation stands: GitHub still delivered 8 scheduled runs against ~96
+      asked for, none at a configured minute, median gap 65 minutes.
+    - **Coverage: 100% of active assets priced in every class** -- FX 27/27, PK 176/176, US stock
+      272/272, ETF 8/8, commodity 8/8, crypto 63/63 -- from 2019-01-01/02 (2018-11-02 for crypto).
+      Zero active US stocks miss any of the last 20 sessions. The 288 US names "behind" crypto's
+      10-10 are a weekday calendar against a continuous one, not a gap.
+    - **What looked like bad data and is not.** The one non-positive close is `CL=F` on 2020-04-20 at
+      **-37.63**: the real negative WTI settlement, with a low of -40.32. A futures close below zero
+      is an observation, not a defect, and nothing should "fix" it. The 5,423 closes outside their own
+      high/low are the known provider defect of rule 98 (Yahoo FX 4,142, PSX 1,232, Yahoo US 49),
+      stored as sent and read by the grader as unavailable; the PSX share has grown from 339 and is
+      worth watching. The 171 PSX weekend rows are the exchange's own Saturday file, skipped by every
+      decision reader.
+    - **Database 274.5 -> 301.5 MB is explained and is mostly recovered history.** `PriceSnapshot`
+      781,163 -> 830,487 rows, of which **PSX 82,515 -> 129,907 (+47,392)**: the `backfill` lane,
+      triggered by this phase's own commit touching `jobs/psx.py`, ran `psx.py full` and filled
+      PSX history that was missing. Not churn. `PriceSnapshot_pkey` regrew 50.6 -> 68.7 MB with it.
+      199 MB of headroom remain.
+    - **Sync baseline for Phase 2** (measured, not fixed here): insert-to-live ratios of 2.2x on
+      `PriceSnapshot` with 237,559 deletes (the crypto full-replace of rule 108's note), 5.9x on
+      `NewsLineage`, 5.8x on `Ranking`, 3.3x on `EventImpact`. The crypto lane still refetches every
+      coin's whole history every two hours. These belong to Phase 2 and were deliberately not touched.
+
+112. **Phase 1's two open items, both needing the owner rather than more code.**
+    - **PSX data may not be redistributed without a licence.** PSX's own legal notice prohibits "any
+      dissemination, transmission, sale, and commercial use of Market Data feed" without a licence
+      from PSX, *including on a delayed basis*, and its terms of use permit "a single, unaltered,
+      permanent copy" for "personal, non-commercial use only". This product republishes PSX closes
+      publicly on `/psx` for 176 names. Technical access is not permission, and nothing in this
+      repository can grant it. **The public PSX distribution path is therefore not declared
+      production-ready.** The decision is the owner's: obtain a licence (marketdatarequest@psx.com.pk),
+      restrict PSX data to non-public use, or accept the risk explicitly. No substitute provider was
+      swapped in, because none would carry the same instrument and history.
+    - **Pakistan institutional and global macro coverage barely reaches storage, and what does reach
+      it is unreadable.** Measured against the stored headlines: **SBP 0, Ministry of Finance 0,
+      IMF 1**; inflation/PBS 10, policy rate 10, reserves/remittances 6. Global geopolitical terms
+      appear only incidentally inside company-targeted headlines (conflict 17, sanctions 9, shipping
+      5). The cause is structural: the news collector searches per asset, and there is no macro or
+      institutional feed at all. Worse, the 543 industry-linked rows it does store reach **no
+      reader** -- `getRecentMarketNews` filters `assetId IS NOT NULL`, `getTopNews` takes an
+      `assetId`, and `jobs/human.py` runs only for `("assetId", ...)` and `("productId", ...)`;
+      `HumanSignal` has no industry column. Collecting macro news today would be writing into a table
+      nothing reads. Closing this properly needs a reader and a derivation path, which is Phase 3's
+      territory, so it is **accepted here with its impact stated**: PSX verdicts carry no macro
+      context, and the site does not claim they do.
