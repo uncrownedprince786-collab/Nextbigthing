@@ -3265,3 +3265,36 @@ reads rows that already exist:
       the interval. `tools/recover_asset.py` exists for the next one -- one asset, upsert only,
       never `is_full`, and it re-reads every pre-existing bar afterwards and fails the run if one was
       lost or altered.
+
+114. **Where this stands, and what the next session needs to know.** Written 2026-10-12 as the
+    handover point. Everything above is history; this is the state.
+    - **Phase 1 is closed** at commit `5b392a8` (`main` and `master` identical, tree clean, CI green,
+      `/api/health` ok). The closure itself is rule 113; the Phase 4 work it identified is in
+      `recovery-manifest.json` at the repository root, which is the single artifact for that phase.
+    - **The agreed phase order, which does not get reordered because a new issue appears:**
+      1 data sources and requirements (**done**) · 2 database, free-tier, backups, sync performance ·
+      3 the brain, multi-timeframe decisions, historical evaluation · 4 one controlled clean sync ·
+      5 reconcile the post-sync dataset and pipeline · 6 UI and actionability · 7 production
+      acceptance, monitoring, lock. **Phase 2 is next** and needs its own approved task.
+    - **Standing constraints from the owner**, which shaped most of the decisions above: free tier
+      only, no paid APIs or subscriptions, no contacting providers for licences, no new scheduler or
+      cache service. Google Drive/Sheets is built (`tools/cloud_backup.py`) but **not activated** --
+      it needs `GOOGLE_SERVICE_ACCOUNT_JSON`, `BACKUP_DRIVE_FOLDER_ID` and `BACKUP_SHEET_ID`, and
+      until then the daily `cron backup` keeps a verified 30 MB artifact on GitHub for seven days,
+      which is a real off-machine recovery point.
+    - **Two decisions are the owner's and nothing in the repository can settle them.** (a) PSX
+      forbids redistributing its market data without a licence; five free routes were evaluated and
+      all are the same restricted upstream, so the public PSX surface is not declared production
+      ready -- restrict it, licence it, or accept the risk. (b) Whether the macro and geopolitical
+      context now collected should influence a verdict at all is Phase 3's question; today it is
+      context on `/api/signals` and enters no decision.
+    - **Working rules that were learned the hard way and should not be rediscovered:** the Supabase
+      session pooler admits **15 clients in total**, and saturating it returned a production 503, so
+      one database connection at a time and no overlapping production jobs; GitHub delivers roughly
+      a tenth of a frequent schedule, so `workflow_run` is how a lane actually runs often; never
+      leave a background watcher running; and a lane that reports success while storing nothing is
+      the failure mode this project keeps producing -- check what landed, not that the job exited 0.
+    - **The biggest known inefficiency, deliberately left for Phase 2:** `jobs/prices.py` refetches
+      and rewrites every crypto asset's entire history every two hours (insert-to-live 2.2x on
+      `PriceSnapshot`, 237,559 deletes), and `jobs/intraday.py` still carries a whole-table window
+      scan. Both are measured in rule 111 and neither was touched.
