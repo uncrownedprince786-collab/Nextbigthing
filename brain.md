@@ -3537,8 +3537,22 @@ reads rows that already exist:
       run for a single 2.3 MB page, and a government department's web server is the last place to
       discover a rate limit by hitting one.
 
-    - **Release.** 807 Python tests, 466 TypeScript tests, `tsc --noEmit` clean, `eslint` clean,
-      production build clean (58 static pages). `main` and `master` pushed together.
+    - **Release, verified after the push rather than predicted before it.** 807 Python tests, 466
+      TypeScript tests, `tsc --noEmit` clean, `eslint` clean, production build clean (58 static
+      pages). Pushed as `1955d7a`, with `main` and `master` both at that commit. **CI run
+      38256117784 (`tests`, push) completed `success`** against it. Vercel served the change:
+      `/api/signals` returns 54 macro items, **54 of 54 carrying a lineage id and `isOriginal`
+      true**, including the six ministry releases with `finance.gov.pk` urls and the ministry named
+      as publisher.
+      `/api/health` reads `ok: false` at the time of release, and **not because of this change**.
+      All four problems are live-quote staleness on `cron-live.yml`, which runs `jobs/live.py` --
+      a file no commit here touches. The staleness predates the push: the watchdog recorded it at
+      11:17, 11:22 and 12:25 UTC. The cause is rule 114's GitHub delivery limitation, visible twice
+      over on this day -- `cron live quotes` has not been triggered since 12:25 and `cron psx` has
+      not run since 00:39, so its 12:40 slot never fired and PSX reads one session behind. Both
+      recover when the watchdog next dispatches. **No lane was dispatched by hand to turn the
+      endpoint green**: a dispatched recovery would have proved nothing about the schedule, and
+      manufacturing a passing log is the failure this project keeps writing rules against.
 
     - **PSX, settled and not reopened.** The bounded evaluation in rule 115 stands and no further
       source discovery was done. No provider was switched, no scraper library was added for the same
