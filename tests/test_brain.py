@@ -6458,7 +6458,7 @@ class SourceBreaker(unittest.TestCase):
         class Blocked(Exception):
             pass
 
-        with unittest.mock.patch.dict(os.environ, {"DATABASE_URL": ""}, clear=False):
+        with unittest.mock.patch.dict(os.environ, {"DATABASE_URL": "", "SUPABASE_DATABASE_URL": ""}, clear=False):
             with self.assertRaises(Blocked):
                 with prices.lane(Cur(), "test", "Binance", "1/1") as run:
                     self.assertIsNotNone(run, "a closed breaker must still fetch")
@@ -6489,7 +6489,7 @@ class SourceBreaker(unittest.TestCase):
             def fetchall(self): return dead
 
         ran = False
-        with unittest.mock.patch.dict(os.environ, {"DATABASE_URL": ""}, clear=False):
+        with unittest.mock.patch.dict(os.environ, {"DATABASE_URL": "", "SUPABASE_DATABASE_URL": ""}, clear=False):
             with prices.lane(Cur(), "test", "Binance", "1/1") as run:
                 if run is not None:
                     ran = True
@@ -8296,6 +8296,21 @@ class TheWatchdogRestartsWhatStopped(unittest.TestCase):
 
 class Phase1SourceVisibility(unittest.TestCase):
     """Every lane says what it did, and a throttle is never filed as an absence."""
+
+    def test_a_test_never_writes_into_the_real_status_table(self):
+        """Isolation that names one variable lapses the day the primary changes.
+
+        Two tests cleared `DATABASE_URL` to push `runlog.write` down its no-database path. When
+        the writer started asking `primary_choice()` which database is in front -- correct, since
+        Supabase is the primary -- clearing that one variable stopped disabling anything, and the
+        tests wrote twenty `job='test'` rows into production before anyone looked.
+        """
+        text = (ROOT / "tests" / "test_brain.py").read_text(encoding="utf-8")
+        # Only the sites that *clear* it. A test that sets a url on purpose (PRIMARY=neon, say)
+        # is choosing a database, not disabling the writer, and must be left alone.
+        for site in re.findall(r"patch\.dict\(os\.environ, \{[^}]*\}", text):
+            if '"DATABASE_URL": ""' in site:
+                self.assertIn('"SUPABASE_DATABASE_URL": ""', site, site)
 
     def test_blocked_is_its_own_state_and_not_empty(self):
         """A 429 says "not now"; an empty answer says "nothing there". Different facts.
