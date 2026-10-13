@@ -4347,6 +4347,11 @@ class QueryBudget(unittest.TestCase):
         # by assets or rows.
         "audit.py": 10, "confidence.py": 2, "events.py": 7, "factors.py": 1, "geo.py": 2,
         "graph.py": 1, "horizons.py": 1, "human.py": 0, "intraday.py": 7,
+        # make_dataset.py's two reads sit in a loop over *replayed sessions*, not over assets:
+        # one forward-bars read and one base-close read per date, each already returning every
+        # asset at once. The count is bounded by how many dates were replayed -- eight today --
+        # and does not move when the pool grows, which is the property this budget protects.
+        "make_dataset.py": 2,
         "investigate.py": 3, "lifecycle.py": 7, "lineage.py": 3, "marketplace.py": 3,
         # retention.py reads a count per table, not per asset, so its five are bounded by the
         # number of tables in the sweep and not by the size of the pool. Eight since
