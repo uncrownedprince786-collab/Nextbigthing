@@ -1051,6 +1051,32 @@ def crypto_rows(asset_id, bars, cap_by_day, source) -> list[tuple]:
     ]
 
 
+def crypto_write_plan(stored: int, bars: list[tuple]) -> tuple[bool, list[tuple]]:
+    """`(replace, the bars to write)` for one coin, given how many rows it already has.
+
+    A replace rewrites the coin's entire series. That is about 1,311 rows deleted and written
+    back to persist the one bar a day actually adds, and this lane runs every even hour:
+    measured 2026-10-13, 98,303 rows rewritten twelve times a day across 75 coins -- roughly
+    2.4 million row writes to store 75 of them. It is the compute that exhausted Neon's free
+    tier twice, and the dead tuples autovacuum then has to walk on every copy.
+
+    The series only needs rewriting when its depth actually changed: a new day closed, or a
+    deeper venue answered. That happens once a day, not twelve times, and it keeps the daily
+    authoritative restatement the replace was there to provide. When the depth is unchanged
+    there is nothing to restate except a late correction to a recent close, so only the
+    trailing `CRYPTO_CORRECTION_DAYS` are upserted.
+
+    Never shrink the stored series (the invariant `_store_frame` states for the Yahoo lane):
+    a shallower venue upserts what it has and deletes nothing, so six years of history is
+    never traded for a venue that pages back 720 days.
+    """
+    if stored == 0 or len(bars) > stored:
+        return True, bars
+    if len(bars) == stored:
+        return False, bars[-CRYPTO_CORRECTION_DAYS:]
+    return False, bars
+
+
 def insert_snapshots(cur, buffer: list[tuple], replace: bool = True) -> None:
     if not buffer:
         return
@@ -1259,6 +1285,10 @@ CRYPTO_CHAIN = "Binance, Coinbase, Kraken or Bitstamp"
 # coin read "data stale" is not treated as having answered.
 CRYPTO_FRESH_DAYS = 2
 
+# How many trailing days a run that found no new bar still writes, so a venue's late correction
+# to a recent close is picked up without rewriting six years to find it.
+CRYPTO_CORRECTION_DAYS = 5
+
 
 def crypto_closes(sym: str, today: date | None = None) -> tuple[str | None, list[tuple]]:
     """The first venue with a *current* series, and its bars.
@@ -1379,16 +1409,20 @@ def fetch_crypto(cur) -> int:
         # fetch is at least as deep as what is stored; otherwise the new days are upserted on
         # top. This is the same invariant `_store_frame` states for the Yahoo lane.
         stored = depth.get(a["id"], 0)
-        replace = len(bars) >= stored
+        replace, outgoing = crypto_write_plan(stored, bars)
         if replace:
             cur.execute('DELETE FROM "PriceSnapshot" WHERE "assetId" = %s', (a["id"],))
 
-        buffer = crypto_rows(a["id"], bars, cap_by_day, source)
+        buffer = crypto_rows(a["id"], outgoing, cap_by_day, source)
         insert_snapshots(cur, buffer, replace=replace)
         written += len(buffer)
         answered += 1
         used[source] = used.get(source, 0) + 1
-        how = "replaced" if replace else f"kept {stored} stored, upserted"
+        how = (
+            "replaced"
+            if replace
+            else f"kept {stored} stored, upserted {len(outgoing)}"
+        )
         print(f"  {sym:6} {len(bars):5} days from {source:9} ({how}), {len(cap_by_day)} size point")
 
     if used:

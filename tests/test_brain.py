@@ -3024,6 +3024,55 @@ class SourceFailure(unittest.TestCase):
         self.assertIsNone(prices.require_answer(3, 10, source="Binance"))
 
 
+class CryptoRewriteBudget(unittest.TestCase):
+    """How much of a coin's series each run rewrites.
+
+    The lane replaced the whole series whenever the fetch was at least as deep as what was
+    stored, which in the steady state is every run: measured 2026-10-13, 98,303 rows rewritten
+    twelve times a day across 75 coins to persist the 75 bars a day actually adds. These pin
+    the cheaper rule and, more importantly, the two invariants it must not break -- a new day
+    still restates the series, and a shallow venue still never deletes history.
+    """
+
+    @staticmethod
+    def series(n, start=1):
+        from datetime import date, timedelta
+        d0 = date(2020, 1, 1)
+        return [(d0 + timedelta(days=i), 1.0, 2.0, 0.5, 1.5, 10.0) for i in range(start, start + n)]
+
+    def test_a_new_day_still_replaces_the_whole_series(self):
+        bars = self.series(1312)
+        replace, out = prices.crypto_write_plan(1311, bars)
+        self.assertTrue(replace)
+        self.assertEqual(out, bars)
+
+    def test_a_first_fetch_replaces(self):
+        bars = self.series(100)
+        replace, out = prices.crypto_write_plan(0, bars)
+        self.assertTrue(replace)
+        self.assertEqual(out, bars)
+
+    def test_an_unchanged_depth_writes_only_the_correction_window(self):
+        bars = self.series(1311)
+        replace, out = prices.crypto_write_plan(1311, bars)
+        self.assertFalse(replace)
+        self.assertEqual(len(out), prices.CRYPTO_CORRECTION_DAYS)
+        # the newest bars, so a late correction to a recent close is still picked up
+        self.assertEqual(out, bars[-prices.CRYPTO_CORRECTION_DAYS:])
+
+    def test_a_shallow_venue_never_deletes_and_keeps_upserting_all_it_has(self):
+        bars = self.series(720)
+        replace, out = prices.crypto_write_plan(1311, bars)
+        self.assertFalse(replace)
+        self.assertEqual(out, bars)
+
+    def test_the_steady_state_is_orders_of_magnitude_cheaper(self):
+        bars = self.series(1311)
+        _, out = prices.crypto_write_plan(1311, bars)
+        # eleven of the twelve daily runs find no new bar
+        self.assertLess(len(out) * 11, len(bars))
+
+
 class CryptoVenueChain(unittest.TestCase):
     """Daily crypto closes come from whichever venue answers, and the row says which.
 
@@ -3143,9 +3192,12 @@ class CryptoVenueChain(unittest.TestCase):
     def test_a_shallow_venue_never_replaces_a_deep_stored_series(self):
         # Kraken holds about 720 days; the stored series is about 2,829. Deleting and rewriting
         # from Kraken would destroy six years of history and look like a successful run.
+        # The decision moved into `crypto_write_plan` when the rewrite budget was cut, so this
+        # asserts the invariant where it now lives, and behaviourally rather than by its text.
+        self.assertEqual(prices.crypto_write_plan(2829, [("bar",)] * 720), (False, [("bar",)] * 720))
         text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
         body = text[text.index("def fetch_crypto"):text.index("def today_utc")]
-        self.assertIn("replace = len(bars) >= stored", body)
+        self.assertIn("replace, outgoing = crypto_write_plan(stored, bars)", body)
         self.assertIn("insert_snapshots(cur, buffer, replace=replace)", body)
         # And the delete only happens on the replace path.
         self.assertLess(body.index("if replace:"), body.index('DELETE FROM "PriceSnapshot"'))

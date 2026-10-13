@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import socket
 import ssl
 import time
 import urllib.error
@@ -370,6 +371,25 @@ def standby_url(primary: str, env=os.environ) -> tuple[str, str] | None:
     return None
 
 
+# An address this runner cannot route to, as opposed to a server that answered and said no. Only
+# these move on to the next address; a quota refusal or a bad password is the answer, not a miss.
+_UNROUTABLE = (
+    "network is unreachable",
+    "no route to host",
+    "cannot assign requested address",
+    "address family not supported",
+)
+
+
+def ipv4_addrs(host: str) -> list[str]:
+    """The host's IPv4 addresses, in resolution order, or [] when it has none."""
+    try:
+        found = socket.getaddrinfo(host, None, socket.AF_INET, socket.SOCK_STREAM)
+    except OSError:
+        return []
+    return list(dict.fromkeys(a[4][0] for a in found))
+
+
 def _connect(url: str):
     # libpq does not know Prisma's channel_binding parameter. Keepalives matter because
     # these jobs sit idle between statements while a source answers slowly, and Neon's
@@ -383,12 +403,35 @@ def _connect(url: str):
         ("keepalives_interval", "5"),
         ("keepalives_count", "3"),
     ]
-    url = urllib.parse.urlunsplit(
-        (q.scheme, q.netloc, q.path, urllib.parse.urlencode(params), q.fragment)
-    )
-    conn = psycopg.connect(url, row_factory=dict_row, connect_timeout=20)
-    conn.execute("SET TIME ZONE 'UTC'")
-    return conn
+
+    def built(extra: list[tuple[str, str]]) -> str:
+        return urllib.parse.urlunsplit(
+            (q.scheme, q.netloc, q.path, urllib.parse.urlencode(params + extra), q.fragment)
+        )
+
+    def opened(target: str):
+        conn = psycopg.connect(target, row_factory=dict_row, connect_timeout=20)
+        conn.execute("SET TIME ZONE 'UTC'")
+        return conn
+
+    # Neon's pooler publishes AAAA as well as A, and GitHub's runners have no IPv6 route, so a
+    # resolver that answers AAAA first strands the mirror and the write failover on
+    # "Network is unreachable" -- a reachability failure that reads like the database is down.
+    # `hostaddr` pins the address libpq dials while `host` still carries the name, so SNI routing
+    # and certificate verification are unchanged. Hosts with no A record are dialled as before.
+    addrs = ipv4_addrs(q.hostname) if q.hostname else []
+    if not addrs:
+        return opened(built([]))
+
+    unroutable = None
+    for ip in addrs:
+        try:
+            return opened(built([("hostaddr", ip)]))
+        except psycopg.OperationalError as e:
+            if not any(s in str(e).lower() for s in _UNROUTABLE):
+                raise
+            unroutable = e
+    raise unroutable
 
 
 def db():
