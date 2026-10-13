@@ -91,6 +91,19 @@ jobs:
       - name: Install job dependencies
         run: pip install -r requirements.txt
 
+      # `tools/decide.mjs` imports `lib/decision.ts` directly rather than a compiled copy, so it
+      # needs the Node that runs TypeScript. Without this the runner's default Node fails in the
+      # ESM loader and every session dies at the replay stage -- which is exactly how run
+      # 38487057088 failed. `cron-decision.yml` pins the same version for the same reason.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      # --ignore-scripts skips the postinstall `prisma generate`: the replay reaches Postgres
+      # through `pg` directly and never loads the generated client.
+      - name: Install the Node dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+
       # The previous slice's checkpoint, if there is one. `continue-on-error` because the first
       # run has nothing to resume from and that is not a failure.
       - name: Fetch the last checkpoint

@@ -51,6 +51,20 @@ def arg(name: str, default: str | None = None) -> str | None:
     return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else default
 
 
+def first_error(stderr: str) -> str:
+    """The head of a traceback, not its tail.
+
+    Taking the last 300 characters of a Node stack left `dules/esm/loader:747:20)` in the log of
+    run 38487057088 -- the line numbers survived and the message that named the fault did not.
+    The first line that looks like an error, plus a little context, is what a reader needs.
+    """
+    lines = [l for l in stderr.strip().splitlines() if l.strip()]
+    for i, l in enumerate(lines):
+        if any(k in l for k in ("Error", "error:", "Traceback", "raise ", "Exception")):
+            return " | ".join(lines[i:i + 3])[:400]
+    return " | ".join(lines[:3])[:400]
+
+
 def write_atomic(path: Path, payload: str) -> None:
     """Write via a temporary file and rename, so a reader never sees a partial checkpoint."""
     tmp = path.with_suffix(path.suffix + ".tmp")
@@ -86,7 +100,7 @@ def replay_one(day: date, out_dir: Path) -> dict:
         cwd=ROOT, capture_output=True, text=True, timeout=PER_SESSION_TIMEOUT,
     )
     if setup.returncode != 0:
-        return {"ok": False, "stage": "setup", "error": setup.stderr.strip()[-300:]}
+        return {"ok": False, "stage": "setup", "error": first_error(setup.stderr)}
     rows = [l for l in setup.stdout.splitlines() if l.strip().startswith("{")]
     # Written before the replay reads it, and the session is not recorded until the result file
     # below is closed, so a crash here leaves the date to be replayed rather than skipped.
@@ -99,7 +113,7 @@ def replay_one(day: date, out_dir: Path) -> dict:
     )
     if decide.returncode != 0:
         return {"ok": False, "stage": "decide", "setups": len(rows),
-                "error": decide.stderr.strip()[-300:]}
+                "error": first_error(decide.stderr)}
 
     actions: dict[str, int] = {}
     section = None
