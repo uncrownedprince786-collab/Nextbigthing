@@ -50,6 +50,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "jobs"))
+
+import costs as cost_model  # noqa: E402  (after the sys.path line above)
 sys.path.insert(0, str(ROOT / "tools"))
 from scorecard import MIN_SAMPLE, band_in, stop_was_hit, verdict_of  # noqa: E402
 
@@ -90,7 +92,9 @@ def simulate(call: dict, bars: list[tuple], today: date, verdicts: list[tuple[da
     action = call.get("action")
     long = action == "LONG"
     out = {"trade": "PENDING", "fillOn": None, "fillPrice": None, "exitOn": None, "exitPrice": None,
-           "grossR": None, "gapThrough": False, "sessions": 0, "final": False, "note": None}
+           "grossR": None, "gapThrough": False, "sessions": 0, "final": False, "note": None,
+           # Carried for the cost model only. Nothing writes it: the INSERT names its columns.
+           "risk": None}
     if action not in ("LONG", "SHORT"):
         return {**out, "trade": "UNAVAILABLE", "final": True, "note": "not a directional call"}
     lo_z, hi_z = _num(call.get("entryLow")), _num(call.get("entryHigh"))
@@ -139,6 +143,7 @@ def simulate(call: dict, bars: list[tuple], today: date, verdicts: list[tuple[da
             filled_inside = not at_open
             out["fillOn"], out["fillPrice"] = day, fill
             risk = (fill - stop) if long else (stop - fill)
+            out["risk"] = round(risk, 6) if risk > 0 else None
             if risk <= 0:
                 return {**out, "trade": "UNAVAILABLE", "final": True, "note": "the fill sat at or beyond the stop"}
             # The fill session itself: the stop counts, the exit only when the order filled at the open.
@@ -154,6 +159,7 @@ def simulate(call: dict, bars: list[tuple], today: date, verdicts: list[tuple[da
                         "grossR": round(((target - fill) if long else (fill - target)) / risk, 4)}
             continue
         risk = (fill - stop) if long else (stop - fill)
+        out["risk"] = round(risk, 6) if risk > 0 else None
         gap_stop = o <= stop if long else o >= stop
         gap_target = o >= target if long else o <= target
         if gap_stop:
@@ -244,6 +250,40 @@ def _rate(k: int, n: int) -> dict:
     return {"k": k, "n": n, "rate": (round(k / n, 4) if n else None)}
 
 
+# `Asset.assetType` is not on the call row, but the market is, and the cost bands differ by venue
+# rather than by instrument class. PSX and US are both cash equity; everything else maps straight.
+MARKET_COST_TYPE = {"US": "stock", "PSX": "stock", "Crypto": "crypto", "FX": "forex", "Commodity": "commodity"}
+
+
+def net_band(rows: list[dict]) -> dict:
+    """Mean net R under each cost scenario, over the trades that actually closed.
+
+    Separate from the gross mean beside it and never a replacement for it: every number here
+    rests on `tools/costs.py`, which is a stated band of assumptions and not a measurement. A
+    trade the model will not price -- a short where retail cannot short -- is left out rather
+    than counted at its gross result, and `n` says how many survived for that reason.
+    """
+    out: dict[str, object] = {"assumed": True, "basis": "tools/costs.py bands, not measured"}
+    for scenario in cost_model.SCENARIOS:
+        vals = []
+        for r in rows:
+            if r["trade"] not in ("STOP_FIRST", "TARGET_FIRST", "EXPIRED"):
+                continue
+            kind = MARKET_COST_TYPE.get(r.get("market") or "")
+            if kind is None or r.get("risk") in (None, 0) or r.get("fillPrice") in (None, 0):
+                continue
+            v = cost_model.net_r(
+                r["grossR"], fill=r["fillPrice"], risk=r["risk"], asset_type=kind,
+                short=(r.get("side") or "").upper() == "SHORT",
+                sessions=int(r.get("sessions") or 0), scenario=scenario, market=r.get("market"),
+            )
+            if v is not None:
+                vals.append(v)
+        out[scenario] = {"n": len(vals),
+                         "meanR": (round(sum(vals) / len(vals), 4) if vals else None)}
+    return out
+
+
 def bucket(rows: list[dict]) -> dict:
     """Counts and rates for one group of graded calls. Every rate carries its count; none is an edge yet."""
     trades = Counter(r["trade"] for r in rows)
@@ -252,10 +292,12 @@ def bucket(rows: list[dict]) -> dict:
     closed_r = [r["grossR"] for r in rows if r["trade"] in ("STOP_FIRST", "TARGET_FIRST", "EXPIRED") and r["grossR"] is not None]
     # Conservative: an ambiguous bar is booked at the stop.
     conservative = closed_r + [-1.0] * trades["AMBIGUOUS"]
+    net = net_band(rows)
     directions = Counter(r["direction"] for r in rows)
     judged = directions["right"] + directions["wrong"] + directions["stopped"] + directions["flat"]
     return {
         "calls": len(rows),
+        "net": net,
         "evaluable": evaluable,
         "pending": trades["PENDING"],
         "trades": {k: trades[k] for k in TRADE_STATES},
@@ -366,6 +408,14 @@ def main(argv: list[str]) -> int:
         print(f"trade sim: {a['calls']} published positions from {len(calls)} recorded calls since {summary['since']}")
         print(f"  trades: {json.dumps(a['trades'])}")
         print(f"  fill rate {a['fillRate']}, gross R expectancy {a['grossRExpectancy']}")
+        net = a.get("net") or {}
+        band = ", ".join(
+            f"{k} {(net.get(k) or {}).get('meanR')} (n={(net.get(k) or {}).get('n')})"
+            for k in cost_model.SCENARIOS
+        )
+        # Printed apart from the gross line and labelled, because these rest on assumed costs.
+        print(f"  net R by assumed cost scenario: {band}")
+        print("    costs are assumptions from tools/costs.py, not measured; gross above is unchanged")
         print(f"  direction {a['direction']}")
         if "--write" in argv:
             cur.executemany(UPSERT_OUTCOME, [
