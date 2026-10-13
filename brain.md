@@ -3693,6 +3693,8 @@ reads rows that already exist:
       deleted or suspended at the network edge; every attempt is refused at the connection stage,
       *before a database is selected*, with `Your account or project has exceeded the quota`. A
       per-project storage limit would not refuse two projects of different sizes in the same breath.
+      **The inference drawn from that is corrected by rule 120: the limits are per project, so two
+      projects failing together means two exhausted budgets, not one shared one.**
       **The stored credentials are not stale, and there is a clean test for it:** the same endpoints
       answer `password authentication failed for user 'neondb_owner'` when dialled with a wrong
       password, and `exceeded the quota` when dialled with the configured one. Authentication
@@ -3746,8 +3748,81 @@ reads rows that already exist:
 
     - **So three-database resilience is still one database, and this is what it would take.** The
       repository's half is done: the mirror can now reach an IPv4 standby, and the lane that was
-      burning the compute no longer does. The half that is not here is the Neon account -- its
-      compute-hour budget has to reset or be raised, and a replacement free project **on the same
-      account would inherit the same ceiling**, so a genuinely independent second home means a
-      different account or a different provider. **Nothing here claims a working standby**, and
-      `standby_parity.py` will keep saying so until one answers.
+      burning the compute no longer does. The half that is not here is the Neon side.
+      **What this rule said next -- that a replacement project on the same account would inherit the
+      same ceiling, so a second home needs a different account or provider -- is wrong, and rule 120
+      replaces it.** **Nothing here claims a working standby**, and `standby_parity.py` will keep
+      saying so until one answers.
+
+120. **Correction to rule 119: Neon's free limits are per project, not per account, so the recovery
+    is cheaper and nearer than that rule claimed.** 2026-10-13, checked against Neon's own FAQ rather
+    than against this repository's memory of it.
+
+    - **The published Free plan**, from `neon.com/faqs/free-plan-limits-and-quotas`: **100 projects**,
+      **1 GB Postgres storage per project** (raised from 0.5 GB on 2026-10-01, which is why older
+      notes and third-party pages still say 0.5), **20 GB across all projects**, **100 CU-hours of
+      compute per project per month**, and 5 GB of network transfer per project per month.
+      **Compute and transfer reset at the start of each monthly billing period. Storage does not.**
+
+    - **What rule 119 got wrong.** It read `primary_choice`'s note -- "Neon's free tier caps compute
+      hours ... the derive passes used them up twice in two days" -- as an account-wide ceiling, and
+      concluded that a replacement free project would inherit it, so a real second home needed a
+      different account or provider. That does not follow from a per-project budget. Two projects
+      refusing together is **two exhausted budgets**, not one shared one, which is exactly what two
+      projects that both ran derive passes would produce.
+
+    - **What follows instead, and it is better news.** A **new** free project on the same account
+      starts with its own 100 CU-hours and its own 1 GB, and the account is nowhere near the 100
+      project or 20 GB caps -- so a replacement standby costs nothing and needs no new account. And
+      because compute resets each billing period, **the two existing projects should return on their
+      own at the next reset** without being touched. Neither path requires spending money, and
+      neither was visible while the limit was believed to be account-wide.
+
+    - **Which of the two limits actually tripped is still unmeasured, and the error message will not
+      say.** `Your account or project has exceeded the quota` is the same sentence for storage and
+      for compute. Storage is the cheaper hypothesis to rule out -- the mirror only ever copied
+      trailing windows, so a 1 GB cap should be far away -- but *should be* is not a measurement.
+      It needs the console or a `NEON_API_KEY`, and **neither exists on this machine**: no `.env`
+      holds one, Vercel has only the two database URLs, and the GitHub token is refused on
+      `actions/variables` and `actions/secrets`. The exact readings needed are in the handoff.
+
+    - **The rule this leaves behind:** a published limit is a fact about a vendor's current page, not
+      about what this project remembers, and it moved under us once already on 2026-10-01. Check it
+      at the source before building a recovery plan on top of it.
+
+121. **The mirror is proven to work, against a real standby that was not Supabase.** 2026-10-13.
+    Rule 119 fixed the IPv4 fault by reading a log; this is the end-to-end run, because "Supabase
+    answered" is not evidence that a mirror into a second database writes anything.
+
+    - **How the standby was built, which is also how a real one would be.** A disposable PostgreSQL
+      **15.18** cluster on a loopback port, the 31 migrations applied, then the genuine production
+      artifact `nbt-backup-38395055013` restored into it -- 44 tables. That is a standby created the
+      way the runbook says to create one, and it is deliberately a *different major version* from the
+      17.11 source, so schema compatibility is exercised rather than assumed.
+
+    - **Then it was made to fall behind on purpose**, because a mirror into an already-equal copy
+      proves nothing: the last five days of `PriceSnapshot` and the whole of `DecisionLog` were
+      deleted from the copy. Newest price fell to 2026-10-08 against the source's 2026-10-13, and
+      `DecisionLog` went to 0 against 1,666.
+
+    - **`jobs/mirror.py` then ran for real**, Supabase to that standby. It matched **616 assets by
+      `(industry, symbol)`**, which is the natural-key translation working across two separately
+      seeded databases, and wrote `DecisionLog` 1,666, `PriceSnapshot` 1,749, `News` 159, with
+      **0 unmatched** on every table. Afterwards the two agree exactly: **833,413 snapshots,
+      newest 2026-10-13, 1,666 decisions, newest `computedAt` 2026-10-13 03:18:41.415** on both.
+      The source gained 253 rows from the live daily lane while this ran and the standby took those
+      too, so freshness propagates rather than merely a backlog draining.
+
+    - **The project's own instrument agrees.** `tools/standby_parity.py` against that standby exits
+      **0**: 557 of 557 active assets held, 0 missing news readings, and every decision input --
+      prices, setups, factors, analogs, decisions, human signals -- level with the primary. Note the
+      derived tables are level because the standby was built from a full backup, not because the
+      mirror copies them; the mirror copies the four irreplaceable ones and the lanes recompute the
+      rest, exactly as its docstring says.
+
+    - **What this does and does not prove.** It proves the mirror's logic, natural-key translation,
+      schema compatibility across major versions, writes, row counts and freshness. It does **not**
+      prove the Neon leg: the IPv4 `hostaddr` fix is tested by unit tests and by a live Supabase
+      connection, and the thing it was written for -- a GitHub runner dialling a Neon pooler that
+      publishes AAAA -- cannot be exercised until Neon answers and the commit runs in Actions.
+      That is the one part of the standby story still taken on reasoning rather than observation.
