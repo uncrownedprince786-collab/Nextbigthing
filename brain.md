@@ -4075,3 +4075,56 @@ reads rows that already exist:
       Neon, Aiven, Prisma and Supabase key shapes, zero hits. The local `.env` is ignored and
       untracked. The five connection strings pasted into the chat transcript are still in that
       transcript; nothing here erases them, and two of them are live.
+
+128. **Phase 1 and Phase 2 are closed. The criterion rule 127 left open was met by a real workflow
+    run, and this records what that proves and what it does not.** 2026-10-13, final closeout.
+    No database, code, workflow or infrastructure was changed to write it.
+
+    - **Phase 1: PASS**, on the evidence rule 127 set out and no more than that. Nine representative
+      closes reconcile **exactly** against a live Yahoo fetch; coverage is **616 assets and 833,413
+      snapshots** with daily price history from 2019-01-01; integrity passes on the real uniqueness
+      keys (0 duplicates, 0 null closes, 0 orphans); freshness and provenance are printed honestly
+      per market rather than as one green light; every public page serves from the primary; **849
+      Python and 466 Node tests** pass. The documented limitations stand unchanged: `IntradayBar`
+      holds about eight session days because the venues serve a short lookback, and markets differ
+      in how far behind they may legitimately be, which is why each carries its own `state`.
+
+    - **Phase 2: PASS.** The one criterion rule 127 blocked on -- that a real authorised run, not a
+      manual one, mirrors into the intended targets -- is met by run **38474617007** on `e00711f`,
+      **success**. It chose `configured: DATABASE_URL_FALLBACK,DATABASE_URL` and reported
+      `summary: DATABASE_URL_FALLBACK ok, DATABASE_URL ok`. Each target matched **616 assets by
+      `(industry, symbol)`** and read `PriceSnapshot` 3,456, `DecisionLog` 1,666 and `News` 4,770
+      with **0 written, 0 unmatched** -- zero writes being the correct result for standbys already
+      current, and the point of the run being which providers it reached, not how much it moved.
+      The workflow's own parity step then passed against **both**: 557 of 557 active assets held,
+      0 missing news readings, every decision input level.
+
+    - **What the log cannot show, and how identity was established instead.** The mirror never
+      prints a connection string, which is a property worth keeping, so the log names variables and
+      not hosts. Provider identity rests on three things together: the secrets were copied from a
+      `.env` whose three entries were each verified by `system_identifier` first; both targets
+      matched 3,456 price rows as *unchanged*, which only a database holding this exact dataset can
+      do; and the Neon project those secrets used to name would have refused on quota rather than
+      succeeding. After the run all three clusters confirm separately -- Supabase
+      **7692131729119822239**, Aiven **7696266274017226891**, Prisma **7695850978935533599** -- each
+      holding 833,413 prices, 1,666 decisions, 6,211 news, newest 2026-10-13.
+
+    - **Five things stay open, and closing the phases does not close them.**
+      (1) Aiven's and Prisma's **monthly compute and network-transfer consumption are unmeasured**;
+      only storage was read, from the databases themselves. Nothing here says the free-tier
+      architecture is future-proof.
+      (2) **Cron scheduling reliability is unaudited** and is a separate task; this project has
+      measured GitHub delivering roughly a tenth of a frequent schedule, so mirroring is now
+      correctly *configured* without being guaranteed *frequent*.
+      (3) **No credential was rotated.** Five connection strings were pasted into the chat
+      transcript and remain there; three are dead Neon, two are live. Nothing in this repository
+      erases a transcript, and this rule does not pretend otherwise.
+      (4) **`nbt_phase2_reader_20261013`** is still a login role with SELECT on all 44 tables and
+      **no `VALID UNTIL`**, awaiting an owner decision.
+      (5) **`supabase_admin`'s default ACLs** remain unchangeable from `postgres`. Objects created
+      by the migration path inherit the corrected `postgres` defaults, which is every table today;
+      that is not the same as proving every future creation path is covered.
+
+    - **Phase 3 has not started.** No brain training, no historical-event ingestion, no cron audit.
+      The optimization that is live is the crypto write path of rules 122 to 124, measured in
+      production at 0 inserts and 0 deletes for a run that previously wrote 196,606 rows.
