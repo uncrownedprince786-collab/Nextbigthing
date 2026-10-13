@@ -3681,3 +3681,67 @@ reads rows that already exist:
       SELECT on all 44 tables, is not a superuser, does not bypass RLS, and **has no expiry**. It is
       outside the Data API path and outside this fix's scope, so it was not touched. A standing
       read credential with no `VALID UNTIL` is worth a decision, not a silent revoke.
+
+119. **The standbys: what is actually wrong with them, which half this repository can fix, and the
+    rewrite budget that was burning the quota in the first place.** 2026-10-13. Rule 117 recorded
+    both Neon endpoints as over quota and left it there. That was the measurement and not the
+    diagnosis, and the diagnosis turns out to be two faults stacked on one path.
+
+    - **The quota is account-level, not a full disk, and the evidence is that both projects fail
+      identically.** Each endpoint was probed as configured, with `dbname=postgres`, and on its
+      direct non-pooler host. DNS resolves and TCP 5432 opens on all of them, so neither project is
+      deleted or suspended at the network edge; every attempt is refused at the connection stage,
+      *before a database is selected*, with `Your account or project has exceeded the quota`. A
+      per-project storage limit would not refuse two projects of different sizes in the same breath.
+      The project's own note in `primary_choice` says what this is: Neon's free tier caps **compute
+      hours**, "the derive passes used them up twice in two days", and compute hours are counted
+      per account. **No `NEON_API_KEY` is configured anywhere**, so the console figure that would
+      turn this from a strong inference into a reading cannot be taken from here.
+
+    - **The mirror's failure is not the quota at all, and that is why it matters.** Last success
+      `2026-10-11T02:09:38Z`; every run since has failed all three copy steps. The log does not say
+      quota -- it says `connection to server at "2600:1f16:4bf:1627:d0d0:afd5:5c59:8d55", port 5432
+      failed: Network is unreachable`. Public DNS resolves Neon's pooler to **exactly those two
+      IPv6 addresses**, and GitHub's runners have no IPv6 route. This machine never saw it because
+      its resolver returns no AAAA, which is why the same endpoint answers "quota" here and
+      "unreachable" there. **Two independent faults**: fix the quota and the mirror would still
+      fail. `_connect` now pins an IPv4 address with `hostaddr` while `host` keeps carrying the
+      name, so SNI routing and certificate verification are unchanged; it moves to the next address
+      only for errors that mean unroutable, because a quota refusal is an answer and retrying it
+      three times just makes a slower failure. Verified against the live Supabase pooler, which
+      routes by username and was unaffected.
+
+    - **`DATABASE_URL_FALLBACK` is empty in Actions.** The mirror prints its environment and the
+      variable is blank, so the second standby role has never existed in CI -- the lane has always
+      had exactly one target. The three failing "copy steps" are three table groups against that one
+      target, not three databases.
+
+    - **The rewrite budget, which is the sustainability finding.** `fetch_crypto` replaced a coin's
+      entire series whenever the fetch was at least as deep as what was stored, and in the steady
+      state that is every run. Measured against the real stored depths: **75 coins, 98,303 rows,
+      rewritten twelve times a day** -- about **2.4 million row writes to persist the 75 bars a day
+      actually adds**, and 1.2 million dead tuples a day for autovacuum to walk. On Supabase this is
+      invisible because the tier is priced by size; on Neon it is the bill. The series only needs
+      rewriting when its depth changed -- a new day, or a deeper venue -- which is once a day, so
+      the daily authoritative restatement is kept and the other eleven runs upsert a five-day
+      correction window. **91.5% fewer row writes, 200,731 against 2,359,272**, measured not
+      estimated. The invariant that a shallow venue never deletes a deep series is unchanged and is
+      now tested behaviourally instead of by matching the text of one line.
+
+    - **Size is not the problem and no cleanup is justified.** 324.3 MB of 500. `PriceSnapshot` is
+      216 MB of it and its primary key *is* the natural key `(assetId, date)` -- already the cheap
+      shape, 2.5 million scans in eleven days. `IntradayBar` is **bounded**, not runaway: it holds
+      about eight session days because `jobs/intraday.py` sweeps it, so the "+59% in two days" in
+      the earlier handoff was a table filling to its window. At 557 rows a session and 272 bytes a
+      row all-in, the permanent record grows about **55 MB a year**, which is roughly three years of
+      headroom in the 176 MB that is left. The only indexes with zero scans are two primary keys
+      Prisma requires (`IntradayBar_pkey` 5.5 MB, `EventImpact_pkey` 1.1 MB); dropping a required
+      primary key to save 6.6 MB of a 500 MB tier is not a trade worth making.
+
+    - **So three-database resilience is still one database, and this is what it would take.** The
+      repository's half is done: the mirror can now reach an IPv4 standby, and the lane that was
+      burning the compute no longer does. The half that is not here is the Neon account -- its
+      compute-hour budget has to reset or be raised, and a replacement free project **on the same
+      account would inherit the same ceiling**, so a genuinely independent second home means a
+      different account or a different provider. **Nothing here claims a working standby**, and
+      `standby_parity.py` will keep saying so until one answers.
