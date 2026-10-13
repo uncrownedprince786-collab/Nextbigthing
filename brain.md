@@ -3952,3 +3952,38 @@ reads rows that already exist:
       would make an unchanged upsert a no-op. It was **not done**: 375 rows against the 98,303 this
       rule just removed is noise, and a change to the write path earns its risk only when the
       measurement says it matters.
+
+125. **A brand new Neon project in this account is refused too, which settles the question rule 120
+    got wrong: the restriction is account-level, and creating more projects cannot fix it.**
+    2026-10-13, tested directly rather than reasoned about.
+
+    - **The test.** A third Neon project, `ep-nameless-glade-b4q0k41g`, created in the same account
+      and with no usage of its own, was dialled with fresh credentials. It answers
+      `Your account or project has exceeded the quota` -- **the same sentence as the two exhausted
+      projects**. The endpoint is real and the credential is right: the same host with a deliberately
+      wrong password answers `password authentication failed for user 'neondb_owner'`, so
+      authentication succeeds and the refusal lands after it, exactly as on the other two.
+
+    - **What that falsifies.** Rule 120 read Neon's published Free plan -- 1 GB and 100 CU-hours
+      *per project*, 100 projects, 20 GB in total -- and concluded that a replacement project would
+      start with its own budget, so a standby could be rebuilt on this account for nothing. **A new
+      project with zero consumption is refused, so that conclusion is wrong.** Rule 119's original
+      instinct that something account-wide was in play was closer, even though its stated reason
+      (one shared compute ceiling) was not the published rule.
+
+    - **What it does not tell us, and the error message never will.** Whether the account tripped
+      the 20 GB aggregate storage cap, an account-level allowance, a payment or verification hold,
+      or something else. All three projects print the same sentence for every cause. This is now the
+      **third** attempt to name the cause from outside, and the answer has not changed: it takes the
+      console or a `NEON_API_KEY`, and no amount of connection testing substitutes for it.
+
+    - **The practical consequence, which is the useful part.** **Provisioning more projects is
+      futile** -- that path is closed by measurement, not by argument, so nobody needs to spend
+      another cycle on it. Until the account itself is cleared, there is no Neon standby to build,
+      and `DATABASE_URL_FALLBACK` has nothing to point at. The mirror, the restore procedure and
+      the IPv4 dial are all proven and waiting; what is missing is one account, not any code.
+
+    - **The rule this leaves behind, and it is the third correction in one session:** published
+      limits describe a plan, not an account's current state. Rule 120 was right about the documented
+      policy and wrong about this account, and only a test against a fresh project could tell the
+      two apart.
