@@ -198,6 +198,49 @@ def missing_config() -> list[str]:
 # --- the dump -----------------------------------------------------------------------------------
 
 
+def read_back(path: Path) -> tuple[list[str], int, str]:
+    """(header columns, data rows, sha256 of the CSV) read in chunks, never held whole.
+
+    Decompressing a table into one bytes and decoding it to one str cost 546 MB of resident memory
+    on `PriceSnapshot` alone -- 24 MB on disk, 102 MB decompressed, measured 2026-10-13 -- which is
+    the peak of both the backup lane and any restore that verifies first, and it grows with the
+    table. Chunked it is flat.
+
+    Rows are counted the way `csv.reader` counted them: a newline inside quotes does not end a
+    record, because `COPY ... TO STDOUT (FORMAT csv)` writes an embedded newline raw.
+    """
+    digest = hashlib.sha256()
+    header_bytes = bytearray()
+    have_header = False
+    in_quotes = False
+    newlines = 0
+    with gzip.open(path, "rb") as fh:
+        while chunk := fh.read(1 << 20):
+            digest.update(chunk)
+            if not have_header:
+                for i, byte in enumerate(chunk):
+                    if byte == 0x22:
+                        in_quotes = not in_quotes
+                    elif byte == 0x0A and not in_quotes:
+                        have_header = True
+                        newlines += 1
+                        chunk = chunk[i + 1 :]
+                        break
+                    header_bytes.append(byte)
+                else:
+                    continue
+            # split on the quote character so the newline counting stays inside C: the parity of
+            # the segment decides whether its newlines end records or sit inside a field.
+            parts = chunk.split(b'"')
+            for i, part in enumerate(parts):
+                if not in_quotes:
+                    newlines += part.count(b"\n")
+                if i < len(parts) - 1:
+                    in_quotes = not in_quotes
+    header = next(csv.reader(io.StringIO(bytes(header_bytes).decode("utf-8").rstrip("\r"))), [])
+    return header, max(newlines - 1, 0), digest.hexdigest()
+
+
 def table_list(cur) -> list[str]:
     cur.execute(
         """SELECT table_name FROM information_schema.tables
@@ -257,15 +300,12 @@ def dump(out: Path) -> dict:
                 continue
             # Read back from disk. A write that succeeded is not evidence the bytes are right.
             try:
-                raw = gzip.decompress(path.read_bytes())
-                reader = csv.reader(io.StringIO(raw.decode("utf-8")))
-                header = next(reader, [])
-                n = sum(1 for _ in reader)
+                header, n, sha = read_back(path)
                 manifest["tables"][t] = {
                     "rows": n,
                     "cols": len(header),
                     "columns": header,
-                    "sha256_csv": hashlib.sha256(raw).hexdigest(),
+                    "sha256_csv": sha,
                     "gz_bytes": path.stat().st_size,
                     "cells": (n + 1) * len(header),
                 }
@@ -306,14 +346,11 @@ def verify(directory: Path) -> tuple[int, int, list[str]]:
         # the failure is recorded against the table rather than ending the check for every table
         # after it. Verifying a backup must never be the thing that crashes on a bad backup.
         try:
-            raw = gzip.decompress(path.read_bytes())
-            reader = csv.reader(io.StringIO(raw.decode("utf-8")))
-            next(reader, [])
-            n = sum(1 for _ in reader)
+            _, n, sha = read_back(path)
         except Exception as e:  # noqa: BLE001
             problems.append(f"{t}: unreadable: {type(e).__name__}: {str(e).splitlines()[0][:80]}")
             continue
-        if hashlib.sha256(raw).hexdigest() != meta["sha256_csv"]:
+        if sha != meta["sha256_csv"]:
             problems.append(f"{t}: checksum differs")
         elif n != meta["rows"]:
             problems.append(f"{t}: {n} rows, manifest says {meta['rows']}")

@@ -75,19 +75,37 @@ because the second attempt would otherwise find the first one's rows and refuse.
 
 ### What has actually been exercised
 
-On 2026-10-13, against PostgreSQL 16.15 in a disposable container: the full 43-model schema from
-`prisma/migrations`, seeded by `jobs/seed.py` (576 assets, 30 products) plus rows holding an SQL
-NULL, an empty string, commas, double quotes, embedded newlines, tabs, backslashes and non-ASCII
-text. Backup written by `cloud_backup.py` (44 tables, 719 rows, `verified`), restored into a
-separate database: 43 tables and 688 rows — the difference is `_prisma_migrations`, which is not
-restored — with every content digest equal, the NULL and empty-string counts identical on both
-sides, and 45 of 45 foreign keys still validated. Refusals exercised: unset target, target equal to
-the source, remote target, non-empty target, truncated gzip, one flipped byte, a missing table file,
-a missing manifest, a wrong row count in the manifest, a table the backup does not cover, and a
-column the target does not have. Each wrote nothing.
+**A real backup, on 2026-10-13.** The artifact `cloud/from-artifact`
+(`backup-2026-10-11T224424Z`, status `verified`, schema `20261011130000_decision_history`) is a
+genuine dump of the primary, 44 tables and 867,839 rows, 29.9 MB compressed and 128.8 MB
+decompressed. Copied to a scratch directory and left untouched where it lives, it was restored into
+disposable containers twice:
 
-**No production artifact has been restored**, because none has been obtained. The rehearsal shows
-the tool reads this format correctly; it is not evidence that a production recovery has succeeded.
+| target | wall | peak RSS | result |
+| --- | --- | --- | --- |
+| PostgreSQL 16.15 | 184 s | 42.8 MB | 43 tables, 867,808 rows, every content digest equal |
+| PostgreSQL 17.11 | 396 s | 43.7 MB | identical |
+
+867,839 less 867,808 is the 31 rows of `_prisma_migrations`, which the migration writes and the
+restore does not. Constraints after both: 45 foreign keys and 44 primary keys present, 138 indexes,
+0 sequences — nothing was disabled to make the load fit. **42.8 MB of resident memory against a
+128.8 MB dataset is the evidence that the path streams**: the whole artifact is never held.
+
+A synthetic rehearsal on the same schema, reported separately from the above, covered the value
+cases a real dump is unlikely to contain: a seeded database (576 assets, 30 products) plus rows
+holding an SQL NULL, an empty string, commas, double quotes, embedded newlines, tabs, backslashes
+and non-ASCII text, backed up and restored with the NULL and empty-string counts identical on both
+sides.
+
+Refusals exercised, each writing nothing and leaving the target at 0 rows: unset target, target
+equal to the source, remote target, non-empty target, truncated gzip, one flipped byte, a missing
+table file, a missing manifest, a wrong row count in the manifest, a table the backup does not
+cover, and a column the target does not have.
+
+**What this is not.** It is not evidence that the primary can be recovered *today*: the artifact is
+from 2026-10-11, and no restore has been run against production, which is the only place a recovery
+actually counts. It also does not establish the source server's version, because the manifest does
+not record one — what the two rows above show is that the format restores into 16 and 17 alike.
 
 ## Running them
 
