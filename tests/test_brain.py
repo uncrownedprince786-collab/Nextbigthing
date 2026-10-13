@@ -4411,7 +4411,11 @@ class QueryBudget(unittest.TestCase):
         import re
         text = path.read_text(encoding="utf-8")
         helpers = QueryBudget.querying_helpers(text)
-        direct = r"(cur\.execute|cur\.executemany|rows\(|one\()"
+        # `\b` on the bare helpers, because `one\(` unanchored also matches `run_one(` and any
+        # other name ending in those letters. It still matches a real call: `one(`, `= one(` and
+        # `.one(` all have a word boundary before the name, and `_` is a word character, so only
+        # the false positives drop out.
+        direct = r"(cur\.execute|cur\.executemany|\brows\(|\bone\()"
         indirect = (
             "|".join(rf"\b{h}\s*\(" for h in sorted(helpers)) if helpers else r"(?!)"
         )
