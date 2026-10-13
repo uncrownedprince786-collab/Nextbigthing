@@ -3024,6 +3024,54 @@ class SourceFailure(unittest.TestCase):
         self.assertIsNone(prices.require_answer(3, 10, source="Binance"))
 
 
+class HistoricalReplay(unittest.TestCase):
+    """`tools/decide.mjs --as-of` replays the rule table at a past date.
+
+    The point of the flag is to turn stored price history into decisions that can be graded, so
+    the two things that must hold are that it cannot write and that it cannot see the future.
+    Both are asserted against the source, because the alternative needs a database.
+    """
+
+    SRC = (ROOT / "tools" / "decide.mjs").read_text(encoding="utf-8")
+
+    def test_a_replay_can_never_write(self):
+        # DRY_RUN is what every write branch checks, so forcing it is the whole guard.
+        self.assertIn("const DRY_RUN = DRY_RUN_FLAG || REPLAY !== null;", self.SRC)
+        # and the guard has to come after REPLAY is known, or it reads undefined
+        self.assertLess(self.SRC.index("const REPLAY ="), self.SRC.index("const DRY_RUN ="))
+
+    def test_the_date_is_validated_before_it_reaches_sql(self):
+        # It is the one value interpolated into these queries, so the shape is checked and the
+        # value has to round-trip through Date -- "2024-02-31" parses and must not pass.
+        self.assertIn(r"/^\d{4}-\d{2}-\d{2}$/.test(raw)", self.SRC)
+        self.assertIn("d.toISOString().slice(0, 10) !== raw", self.SRC)
+        self.assertIn("is in the future", self.SRC)
+
+    def test_every_input_is_bounded_to_the_replay_date(self):
+        body = self.SRC[self.SRC.index("async function readInputs"):self.SRC.index("function rowsForDecisions")]
+        # the price bar itself
+        self.assertIn("AND s.date <= '${asOf}'::date", body)
+        # the per-asset newest row of each derived table
+        self.assertIn(chr(39).join(['AND "periodEnd" <= ', '${asOf}', '::date']), body)
+        for table in ('"AssetSetup"', '"HumanSignal"', '"Investigation"', '"AssetFactor"', '"MacroGate"'):
+            self.assertIn(table, body, table)
+        # an event is only known once it was discovered
+        self.assertIn(chr(39).join(['e."discoveredAt" <= ', '${asOf}', '::date']), body)
+
+    def test_the_live_run_is_unchanged_when_no_date_is_given(self):
+        # asOf defaults to null and every bound is a conditional that collapses to "".
+        self.assertIn("async function readInputs(db, today, asOf = null)", self.SRC)
+        self.assertIn("const atPeriodEnd = asOf ?", self.SRC)
+        self.assertIn(chr(39).join(['AND "periodEnd" <= ', '${asOf}', '::date`']), self.SRC)
+        self.assertIn("readInputs(pool, today, REPLAY)", self.SRC)
+
+    def test_the_replay_date_becomes_the_rules_today(self):
+        # Not just the bound: the staleness gates have to judge against the replayed day too.
+        self.assertIn("const today = REPLAY ?? TODAY;", self.SRC)
+        # and the clock is still read once for the whole process
+        self.assertEqual(self.SRC.count("todayISO()"), 1)
+
+
 class CryptoRewriteBudget(unittest.TestCase):
     """How much of a coin's series each run rewrites.
 

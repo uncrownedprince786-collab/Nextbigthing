@@ -53,7 +53,41 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // other scripts in this directory read it. Never a credential path outside the repo.
 loadEnv({ path: path.join(ROOT, ".env"), quiet: true });
 
-const DRY_RUN = process.argv.includes("--dry-run");
+const DRY_RUN_FLAG = process.argv.includes("--dry-run");
+
+/// The clock, read exactly once for the whole process. `--as-of` needs it to refuse a future
+/// date and `main` needs it to date the rows, and a pass that read it twice could straddle
+/// midnight between the two -- which is the fault `DecisionLaneConcurrency` exists to catch.
+const TODAY = todayISO();
+
+/// `--as-of YYYY-MM-DD` replays the rule table at a past date instead of running it for today.
+///
+/// It is read-only by construction, not by convention: `REPLAY` forces `DRY_RUN`, so the one
+/// branch that writes `DecisionLog`, `DecisionCall` and `DecisionRun` cannot be reached. A replay
+/// that could write would put reduced-input historical verdicts in the same table the accuracy
+/// loop grades, which is the one mistake this flag must not make possible.
+///
+/// The date is also the only value interpolated into SQL in this file, so it is validated to a
+/// literal `YYYY-MM-DD` that `Date` round-trips, and nothing else is accepted.
+function parseAsOf(argv) {
+  const arg = argv.find((a) => a.startsWith("--as-of"));
+  if (!arg) return null;
+  const raw = arg.includes("=") ? arg.slice(arg.indexOf("=") + 1) : argv[argv.indexOf(arg) + 1];
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    throw new Error(`--as-of needs a date like 2024-03-15, not ${JSON.stringify(raw ?? null)}`);
+  }
+  const d = new Date(`${raw}T00:00:00Z`);
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== raw) {
+    throw new Error(`--as-of ${raw} is not a real date`);
+  }
+  if (raw > TODAY) throw new Error(`--as-of ${raw} is in the future`);
+  return raw;
+}
+
+const REPLAY = parseAsOf(process.argv);
+
+/// A replay never writes. This is the guard, and it is one line on purpose.
+const DRY_RUN = DRY_RUN_FLAG || REPLAY !== null;
 /// Which pass of the lane this is: "decide", or "macro" for the second pass that applies the macro gate's
 /// stored vetoes. Part of the run's id, so the two passes of one workflow run are two runs (rule 95).
 const PASS = (process.argv.find((a) => a.startsWith("--pass=")) ?? "--pass=decide").slice("--pass=".length);
@@ -153,7 +187,16 @@ async function tableExists(db, name) {
 ///
 /// `db` is the pool rather than one connection: nine queries issued in parallel on a single
 /// client are serialised by `pg` anyway (and warned about), while a small pool really overlaps them.
-async function readInputs(db, today) {
+/// `asOf` turns this into a historical read: every query below is bounded to rows that already
+/// existed on that date, so a replay cannot see a bar, a setup, a factor or an event that was
+/// written later. `null` is the live run and leaves every query exactly as it was.
+///
+/// The date is interpolated rather than parameterised because these ten queries run in one
+/// `Promise.all` with different parameter lists, and threading a conditional `$n` through each
+/// would renumber the ones that already have parameters. `parseAsOf` is the guard: nothing
+/// reaches here that is not a literal `YYYY-MM-DD` which `Date` agrees round-trips.
+async function readInputs(db, today, asOf = null) {
+  const atPeriodEnd = asOf ? `AND "periodEnd" <= '${asOf}'::date` : "";
   const [assets, prices, setups, targets, analogs, signals, investigations, factors, events, coverage] =
     await Promise.all([
       db.query(
@@ -179,6 +222,7 @@ async function readInputs(db, today) {
                FROM "PriceSnapshot" s
               WHERE s."assetId" = a.id
                 AND (a."assetType" = 'crypto' OR EXTRACT(ISODOW FROM s.date) < 6)
+                ${asOf ? `AND s.date <= '${asOf}'::date` : ""}
               ORDER BY s.date DESC
               LIMIT 1
            ) b
@@ -193,7 +237,7 @@ async function readInputs(db, today) {
         // reason. Two readers of one table must not each decide what a `wait` row knows.
         `SELECT DISTINCT ON ("assetId", horizon)
                 id, "assetId", horizon, state, "entryLevel", "invalidateLevel", conditions
-           FROM "AssetSetup" WHERE horizon IN ('swing', 'longer')
+           FROM "AssetSetup" WHERE horizon IN ('swing', 'longer') ${atPeriodEnd}
           ORDER BY "assetId", horizon, "periodEnd" DESC`,
       ),
       // The measured target ranges, for the setups the query above just picked.
@@ -213,7 +257,7 @@ async function readInputs(db, today) {
         `SELECT t."setupId", t.method, t.low, t.high, t."rewardRisk"
            FROM "SetupTarget" t
            JOIN (SELECT DISTINCT ON ("assetId", horizon) id
-                   FROM "AssetSetup" WHERE horizon IN ('swing', 'longer')
+                   FROM "AssetSetup" WHERE horizon IN ('swing', 'longer') ${atPeriodEnd}
                   ORDER BY "assetId", horizon, "periodEnd" DESC) s ON s.id = t."setupId"
           ORDER BY t.method ASC`,
       ),
@@ -244,12 +288,13 @@ async function readInputs(db, today) {
         // trend is not carried into one -- so a job that fetched only the count would write a
         // different verdict from the page for any name whose coverage disagrees with it.
         `SELECT DISTINCT ON ("assetId") "assetId", "recentStories", tone::text AS tone, catalyst, "periodEnd"
-           FROM "HumanSignal" WHERE "assetId" IS NOT NULL
+           FROM "HumanSignal" WHERE "assetId" IS NOT NULL ${atPeriodEnd}
           ORDER BY "assetId", "periodEnd" DESC`,
       ),
       db.query(
         `SELECT DISTINCT ON ("assetId") "assetId", "robustZ", trigger
-           FROM "Investigation" ORDER BY "assetId", "periodEnd" DESC`,
+           FROM "Investigation" ${asOf ? `WHERE "periodEnd" <= '${asOf}'::date` : ""}
+          ORDER BY "assetId", "periodEnd" DESC`,
       ),
       // The newest factor row per asset. `ORDER BY "assetId", "periodEnd" DESC` is the same rule
       // `getDecisionRows()` applies to this table in `lib/queries.ts` — deliberately, so that on a
@@ -260,7 +305,8 @@ async function readInputs(db, today) {
       db.query(
         `SELECT DISTINCT ON ("assetId") "assetId", "volumeRatio", "relStrength", "r20", "r1", "atr14",
                 "entryTrigger", "triggerDirection"
-           FROM "AssetFactor" ORDER BY "assetId", "periodEnd" DESC`,
+           FROM "AssetFactor" ${asOf ? `WHERE "periodEnd" <= '${asOf}'::date` : ""}
+          ORDER BY "assetId", "periodEnd" DESC`,
       ),
       // The *soonest* future scheduled event per asset. A diary has one order and it is not
       // "newest written".
@@ -268,13 +314,15 @@ async function readInputs(db, today) {
         `SELECT DISTINCT ON (l."assetId") l."assetId", e.date
            FROM "EventLink" l JOIN "Event" e ON e.id = l."eventId"
           WHERE l."assetId" IS NOT NULL AND e.scheduled = true AND e.date >= $1::date
+            ${asOf ? `AND (e."discoveredAt" IS NULL OR e."discoveredAt" <= '${asOf}'::date + 1)` : ""}
           ORDER BY l."assetId", e.date ASC`,
         [today],
       ),
       // One site-wide read, shared by every asset. Per-asset it would be 160 copies of one answer.
       db.query(
         `SELECT DISTINCT ON (source) source, status
-           FROM "Coverage" ORDER BY source, "computedAt" DESC`,
+           FROM "Coverage" ${asOf ? `WHERE "computedAt" <= '${asOf}'::date + 1` : ""}
+          ORDER BY source, "computedAt" DESC`,
       ),
     ]);
 
@@ -289,7 +337,7 @@ async function readInputs(db, today) {
       await db.query(
         `SELECT DISTINCT ON ("assetId") "assetId", verdict, reason, "periodEnd"
            FROM "MacroGate"
-          WHERE valid AND "periodEnd" >= ($1::date - 4)
+          WHERE valid AND "periodEnd" >= ($1::date - 4) ${atPeriodEnd}
           ORDER BY "assetId", "periodEnd" DESC, "createdAt" DESC`,
         [today],
       )
@@ -1053,7 +1101,7 @@ async function main() {
   // ONE `today` for the whole run, read once and passed everywhere: into the rules, into
   // `periodEnd`, and into the maturation window. A run that read the clock twice could straddle
   // midnight and write two different days in one pass.
-  const today = todayISO();
+  const today = REPLAY ?? TODAY;
 
   // A small pool for the parallel reads; the writes take one connection out of it and keep it, so
   // every BEGIN and its COMMIT are certainly on the same connection. The primary, or the standby when the
@@ -1070,7 +1118,7 @@ async function main() {
   let history = null;
 
   try {
-    const input = await readInputs(pool, today);
+    const input = await readInputs(pool, today, REPLAY);
     decisions = decideAll(input, today, servedFrom);
 
     const present = await tableExists(pool, "DecisionLog");
