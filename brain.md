@@ -3826,3 +3826,56 @@ reads rows that already exist:
       connection, and the thing it was written for -- a GitHub runner dialling a Neon pooler that
       publishes AAAA -- cannot be exercised until Neon answers and the commit runs in Actions.
       That is the one part of the standby story still taken on reasoning rather than observation.
+
+122. **A closed daily bar does not change, measured; and a classification of what a reset would
+    actually destroy.** 2026-10-13. Rule 119 cut the crypto rewrite to once a day on the reasoning
+    that a replace restates history. This is the measurement of whether that restatement corrects
+    anything, and the answer changes the design again.
+
+    - **The experiment has to hold the venue still, and the first attempt did not.** Refetching the
+      stored series through the normal chain and diffing gave **12,011 of 12,809 bars "different"**,
+      which looks like catastrophic drift and is nothing of the kind: the stored rows are
+      **Coinbase** and the chain now answers **Binance** first, so that figure measures two
+      exchanges disagreeing about a close. It is the reason a row carries the venue that produced
+      it. Refetching **Coinbase against Coinbase-sourced rows** for BTC, ETH, SOL and ADA gives
+      **9,779 overlapping bars back to 2018 and not one difference**.
+
+    - **So the scheduled replace corrects nothing, and it is gone.** `crypto_write_plan` now rewrites
+      only on a first fill, on a **materially deeper** venue (`len(bars) > stored + 3` -- the real
+      case is Binance paging SOL back to 2255 bars where the stored Coinbase series holds 1944), or
+      on an explicit `--restate`, which is how a controlled re-ingestion or a recovery asks for it.
+      Everything else upserts the five-day window, and the new day's bar is inside it.
+      **2,359,272 scheduled writes a day become 4,500, with no deletes at all** -- 99.81%, against
+      the real stored depths. A second effect matters as much: the series stops churning between
+      venues, because whichever exchange answers first on a given runner no longer rewrites six
+      years of provenance.
+
+    - **What a full reset would destroy, classified rather than assumed.** Of 44 tables, the ones
+      with an upstream to refetch from are prices, the seeded lists, and the calendar; the derived
+      tables are rebuilt by the existing chain. **106,562 rows have no upstream at all**:
+      `IntradayBar` 94,544 (eight session days; the venues serve a short lookback),
+      `News` 6,211 (back to 2026-09-08 -- RSS windows are days, not five weeks),
+      `HumanSignal` 1,681, `SignalLog` 1,681, `DecisionLog` 1,666, `LiveQuote` 225,
+      `MacroGate` 201, `Coverage` 156, `ChunkRun` 120, `CallOutcome` 58, `AuditLog` 10,
+      `DecisionRun` 6, `Calibration` 2, `SourceReliability` 1.
+
+    - **The learning corpus is two days old, and this would be the second time it was reset to
+      zero.** `DecisionLog` and `SignalLog` both begin **2026-10-11**, because the quota event of
+      2026-10-09 already destroyed 10-01 to 10-09 and rule 114 records that it was never recovered.
+      Maturation now: **63 of 1,666 decisions measured at +1, none at +5, none at +20**; 1,050 of
+      1,681 signals at +1, none at +5, +30 or +60. The out-of-sample loop that rule 66 exists to
+      produce has not yet returned a single matured five-session result. Wiping it restarts a clock
+      that takes **twenty trading sessions -- about four weeks** -- to reach +20, and no re-ingestion
+      brings it back, because it is a record of what the system said before it knew the outcome.
+      Nothing in a market-data resync can reconstruct that.
+
+    - **The reset did not happen, on the mandate's own gate.** It requires all three targets
+      identified *and* a fresh recoverable backup for each, and says in terms that if either Neon
+      database is still unreachable the three are not ready. Both are still refused on quota, so
+      **two of three cannot be backed up and cannot be reset**. What was done instead is everything
+      the gate asks for on the reachable one: a fresh backup `2026-10-13T200907Z` (44 tables,
+      978,393 rows, 35.2 MB, verified 44/44 by checksum), restored into an isolated PostgreSQL
+      15.18 database and reconciled against production -- **43 tables, 978,362 rows, digests equal**,
+      and prices, decisions, signals, news and intraday bars identical on both sides. Production
+      integrity alongside it: 0 duplicates on every real uniqueness constraint, 0 null closes,
+      0 orphans, 45 foreign keys and 44 primary keys intact.
