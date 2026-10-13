@@ -36,6 +36,7 @@ Writes: AssetSetup
 
 from __future__ import annotations
 
+import json
 import sys
 from datetime import date
 from pathlib import Path
@@ -127,7 +128,7 @@ CONFIRMS_NEEDED = 2
 HORIZON = "swing"       # the only horizon these windows support; see the note above
 
 
-def all_closes(cur) -> dict[str, list[dict]]:
+def all_closes(cur, as_of=None) -> dict[str, list[dict]]:
     """{assetId: the newest RANGE_WINDOW + SLOW closes, newest first} for every asset.
 
     One statement for the universe instead of one per asset. The window and the ordering are
@@ -141,8 +142,8 @@ def all_closes(cur) -> dict[str, list[dict]]:
     """
     got = rows(
         cur,
-        newest_session_bars(["date", "close", "volume"], oldest_first=False),
-        (RANGE_WINDOW + SLOW,),
+        newest_session_bars(["date", "close", "volume"], oldest_first=False, as_of=as_of is not None),
+        ((as_of, RANGE_WINDOW + SLOW) if as_of is not None else (RANGE_WINDOW + SLOW,)),
     )
     out: dict[str, list[dict]] = {}
     for r in got:
@@ -150,20 +151,22 @@ def all_closes(cur) -> dict[str, list[dict]]:
     return out
 
 
-def all_signals(cur) -> dict[str, dict]:
-    """The newest HumanSignal per asset."""
+def all_signals(cur, as_of=None) -> dict[str, dict]:
+    """The newest HumanSignal per asset, or the newest one that existed on `as_of`."""
     return {r["assetId"]: r for r in rows(
         cur,
         """
         SELECT DISTINCT ON ("assetId") "assetId", tone::text AS tone, catalyst,
                "changeKind", "recentStories"
         FROM "HumanSignal" WHERE "assetId" IS NOT NULL
+          AND (%s::date IS NULL OR "periodEnd" <= %s::date)
         ORDER BY "assetId", "periodEnd" DESC
         """,
+        (as_of, as_of),
     )}
 
 
-def all_analogs(cur) -> dict[str, dict]:
+def all_analogs(cur, as_of=None) -> dict[str, dict]:
     """The newest five day analog set per asset. Horizon 5 is the one a swing read is
     answerable on, which is the rule `tools/decide.mjs` and `lib/decisionInput.ts` both use."""
     return {r["assetId"]: r for r in rows(
@@ -172,12 +175,14 @@ def all_analogs(cur) -> dict[str, dict]:
         SELECT DISTINCT ON ("assetId") "assetId", matches, positive, "medianPct",
                "minPct", "maxPct"
         FROM "AssetAnalog" WHERE "horizonDays" = 5
+          AND (%s::date IS NULL OR "periodEnd" <= %s::date)
         ORDER BY "assetId", "periodEnd" DESC
         """,
+        (as_of, as_of),
     )}
 
 
-def all_next_events(cur, today) -> dict[str, dict]:
+def all_next_events(cur, today, as_of=None) -> dict[str, dict]:
     """The soonest scheduled event per asset at or after `today`. A diary has one order and
     it is not "newest written"."""
     return {r["assetId"]: r for r in rows(
@@ -186,9 +191,10 @@ def all_next_events(cur, today) -> dict[str, dict]:
         SELECT DISTINCT ON (l."assetId") l."assetId", e.name, e.date
         FROM "EventLink" l JOIN "Event" e ON e.id = l."eventId"
         WHERE l."assetId" IS NOT NULL AND e.scheduled = true AND e.date >= %s
+          AND (%s::date IS NULL OR e."discoveredAt" IS NULL OR e."discoveredAt" <= %s::date + 1)
         ORDER BY l."assetId", e.date ASC
         """,
-        (today,),
+        (today, as_of, as_of),
     )}
 
 
@@ -319,6 +325,33 @@ def stop_level(
     )
 
 
+def parse_as_of(argv: list[str]):
+    """`--as-of YYYY-MM-DD` or None. A date that is not a real one is an error, not today."""
+    if "--as-of" not in argv:
+        return None
+    at = argv.index("--as-of")
+    if at + 1 >= len(argv):
+        raise SystemExit("--as-of needs a date like 2024-03-15")
+    try:
+        return date.fromisoformat(argv[at + 1])
+    except ValueError as e:
+        raise SystemExit(f"--as-of: {e}") from e
+
+
+def emit_setups(payload: list[tuple]) -> None:
+    """The reconstructed rows as JSONL on stdout, in the INSERT's own column order.
+
+    Printed rather than stored so a replay can read them without the production tables ever
+    holding a historical setup, which is the whole point of the as-of path.
+    """
+    cols = ["assetId", "periodEnd", "horizon", "state", "headline", "conditions", "missing",
+            "against", "entryLevel", "entryNote", "invalidateLevel", "invalidateNote",
+            "rangeNote", "confidence", "confidenceNote", "source"]
+    for row in payload:
+        rec = {c: (v.isoformat() if isinstance(v, date) else v) for c, v in zip(cols, row)}
+        print(json.dumps(rec, default=str))
+
+
 def main() -> None:
     # Two different dates, and conflating them is how a row comes to describe a day that never
     # traded. `today` is the calendar, and only the event lookups below may use it: "what is
@@ -334,7 +367,13 @@ def main() -> None:
     # read 10-08, because this job ran from a UTC+5 host after 19:00 UTC and `date.today()` had
     # already rolled. The rows described 10-07 closes under tomorrow's date. On a UTC runner it
     # goes wrong less often and in the same way -- every weekend and every holiday.
-    today = date.today()
+    # `--as-of YYYY-MM-DD` reconstructs the setups as they would have stood on a past session,
+    # for `tools/decide.mjs --as-of` to replay against. It is read-only: the rows are printed as
+    # JSONL and the INSERT below is skipped, because persisting them would mean about 2,600 rows
+    # a session across roughly 1,700 trading days -- some 4.5 million rows against the primary's
+    # remaining free-tier headroom, for data that is reproducible from this code and the bars.
+    as_of = parse_as_of(sys.argv)
+    today = as_of or date.today()
     conn = db()
     cur = conn.cursor()
     try:
@@ -353,10 +392,10 @@ def main() -> None:
         # inside it. Nothing about the rules changed; what changed is that the job stopped
         # waiting on the network 1,655 times to answer questions whose answers are the same
         # for every member of an industry.
-        series_by_asset = all_closes(cur)
-        signal_by_asset = all_signals(cur)
-        analog_by_asset = all_analogs(cur)
-        event_by_asset = all_next_events(cur, today)
+        series_by_asset = all_closes(cur, as_of)
+        signal_by_asset = all_signals(cur, as_of)
+        analog_by_asset = all_analogs(cur, as_of)
+        event_by_asset = all_next_events(cur, today, as_of)
         relative_by_asset = all_industry_relative(cur)
         step(f"measured conditions for {len(assets)} assets")
         payload: list[tuple] = []
@@ -707,6 +746,10 @@ def main() -> None:
         # asset, which is two network waits each; psycopg pipelines an executemany into one.
         # The conflict clause is unchanged, so a rerun on the same session is still an update
         # rather than a second row.
+        if as_of is not None:
+            emit_setups(payload)
+            print(f"setup: {len(payload)} rows reconstructed for {as_of}, nothing written")
+            return
         cur.executemany(
                 """
                 INSERT INTO "AssetSetup" ("assetId", "periodEnd", horizon, state, headline,

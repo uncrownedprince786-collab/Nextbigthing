@@ -443,15 +443,19 @@ class PeriodAnchors(unittest.TestCase):
         # scheduled from here on" is a question about now. Dating an event lookup to the last
         # close would hide an event that falls between that close and today.
         src = (ROOT / "jobs" / "setup.py").read_text(encoding="utf-8")
-        self.assertIn("today = date.today()", src)
+        # `--as-of` made this a fallback rather than the only source, so the assertion is that
+        # a live run (no as-of) still reads the calendar, not that the line is spelled one way.
+        self.assertIn("today = as_of or date.today()", src)
         self.assertIn("e.date >= %s", src)
         # The lookup is taken for every asset in one statement now; the date it is bounded by
         # is still the calendar and that is the half this test exists to hold.
         self.assertIn(
-            "all_next_events(cur, today)", src,
+            "all_next_events(cur, today, as_of)", src,
             "the event lookup should still be bounded by the calendar",
         )
-        self.assertIn("(today,)", src)
+        # `today` is still the first parameter the event lookup binds; `--as-of` added two more
+        # after it to bound discovery, which does not change what the live run asks for.
+        self.assertIn("(today, as_of, as_of)", src)
 
 
 class VolumeBaseline(unittest.TestCase):
@@ -3022,6 +3026,64 @@ class SourceFailure(unittest.TestCase):
         with self.assertRaises(prices.SourceSilent):
             prices.require_answer(0, 10, source="Binance")
         self.assertIsNone(prices.require_answer(3, 10, source="Binance"))
+
+
+class HistoricalSetupReconstruction(unittest.TestCase):
+    """`jobs/setup.py --as-of` rebuilds the setups as they stood on a past session.
+
+    The replay in `tools/decide.mjs --as-of` returns WAIT for every name before the derived
+    tables begin, because a direction needs an `AssetSetup` row and none exists for 2024. This
+    is the path that supplies them without storing 4.5 million rows in the primary.
+    """
+
+    SRC = (ROOT / "jobs" / "setup.py").read_text(encoding="utf-8")
+    SESSIONS = (ROOT / "jobs" / "sessions.py").read_text(encoding="utf-8")
+
+    def test_the_price_window_can_be_bounded(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("sessions", ROOT / "jobs" / "sessions.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        plain = mod.newest_session_bars(["date", "close"])
+        bounded = mod.newest_session_bars(["date", "close"], as_of=True)
+        self.assertNotIn("s.date <= %s", plain)
+        self.assertIn("s.date <= %s", bounded)
+        # the live SQL is otherwise untouched, which is what keeps the live job's plan the same
+        self.assertEqual(plain, bounded.replace(chr(10) + "              AND s.date <= %s", ""))
+
+    def test_every_reader_takes_the_bound(self):
+        for fn in ("def all_closes(cur, as_of=None)", "def all_signals(cur, as_of=None)",
+                   "def all_analogs(cur, as_of=None)", "def all_next_events(cur, today, as_of=None)"):
+            self.assertIn(fn, self.SRC, fn)
+        # and main passes it to each
+        for call in ("all_closes(cur, as_of)", "all_signals(cur, as_of)",
+                     "all_analogs(cur, as_of)", "all_next_events(cur, today, as_of)"):
+            self.assertIn(call, self.SRC, call)
+
+    def test_a_reconstruction_never_writes(self):
+        # The emit path returns before the INSERT, so a historical setup cannot reach the table
+        # the live decision reads.
+        self.assertIn("if as_of is not None:", self.SRC)
+        self.assertLess(self.SRC.index("emit_setups(payload)"),
+                        self.SRC.index('INSERT INTO "AssetSetup"'))
+        self.assertIn("nothing written", self.SRC)
+
+    def test_the_as_of_date_is_validated(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("setup_mod", ROOT / "jobs" / "setup.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        from datetime import date as _date
+        self.assertIsNone(mod.parse_as_of(["setup.py"]))
+        self.assertEqual(mod.parse_as_of(["setup.py", "--as-of", "2024-06-14"]), _date(2024, 6, 14))
+        for bad in (["setup.py", "--as-of"], ["setup.py", "--as-of", "2024-02-31"],
+                    ["setup.py", "--as-of", "not-a-date"]):
+            with self.assertRaises(SystemExit, msg=str(bad)):
+                mod.parse_as_of(bad)
+
+    def test_the_as_of_date_becomes_the_period_end(self):
+        # A reconstructed row dated to today would be indistinguishable from a live one.
+        self.assertIn("today = as_of or date.today()", self.SRC)
 
 
 class HistoricalReplay(unittest.TestCase):
