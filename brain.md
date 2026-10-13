@@ -3921,3 +3921,34 @@ reads rows that already exist:
     - **The rule this leaves behind, and it is the second time this session:** a number taken from
       configuration is a claim about intent, and a number taken from `pg_stat` is a claim about the
       world. Only the second one belongs in a report about savings.
+
+124. **The optimization is live, and this is the first measurement of it rather than a projection.**
+    2026-10-13 20:51 UTC. `main` and `master` moved `46ec556` -> `3686178` (fast forward, 12
+    commits, 11 files: the restore tooling, the IPv4 dial, the crypto write plan, their tests and
+    this file). No workflow file changed, so nothing about scheduling moved. CI's `tests` workflow
+    ran on the push and passed.
+
+    - **One `cron crypto` run was dispatched against the new code** and the counters were read
+      either side of it. **All 75 coins took the cheap path -- "kept N stored, upserted 5" -- and
+      none was replaced.** `PriceSnapshot` moved **0 inserts and 0 deletes**. The same run on the
+      old code would have deleted 98,303 rows and written them back: **196,606 row writes, measured
+      against 375 upserts.**
+
+    - **So the three numbers finally separate cleanly.** Per run, 196,606 -> 375, and that is now
+      **measured in production**, not computed. On the measured cadence of 0.75 crypto passes a day
+      (rule 123) this removes about **147,000 row writes a day, roughly half of everything
+      `PriceSnapshot` does**. What a CU-hour costs is still unmeasured and will stay so until a Neon
+      endpoint answers -- row writes are not compute, and this rule does not pretend otherwise.
+
+    - **The run also confirmed the design handles the case it was built for.** It ran at 20:51 UTC,
+      mid crypto day, so no new bar had closed and the five-day window was pure correction cover.
+      When a bar does close, the window still contains it, so the new day lands without a replace --
+      which is what `test_a_new_day_no_longer_rewrites_the_whole_series` asserts, now with a
+      production run agreeing.
+
+    - **What is left on the table, and it is small.** Those 375 upserts write values identical to
+      what is already stored, and PostgreSQL still versions a row on an UPDATE, so they cost 375
+      dead tuples a run. `ON CONFLICT ... DO UPDATE ... WHERE t.close IS DISTINCT FROM excluded.close`
+      would make an unchanged upsert a no-op. It was **not done**: 375 rows against the 98,303 this
+      rule just removed is noise, and a change to the write path earns its risk only when the
+      measurement says it matters.
