@@ -1,0 +1,208 @@
+name: data worker
+
+# The historical replay, run on GitHub's runners instead of a laptop that goes to sleep.
+#
+# Measured 2026-10-14, not assumed: `jobs/setup.py --as-of` is 6-7s a session and
+# `tools/decide.mjs --as-of` another 5-7s, so a session costs about 13s end to end and the
+# 2,072 stored sessions are roughly 7.5 hours. That is over the six hour job limit, so this
+# processes a bounded slice per run and dispatches itself for the next one, resuming from the
+# checkpoint rather than from the beginning.
+#
+# Dispatch only. There is deliberately no `schedule:` here -- the cadence of the existing lanes
+# is not this file's business, and a worker that started itself on a timer would be a scheduling
+# change rather than a worker.
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: "First session to replay (YYYY-MM-DD). Ignored when a checkpoint exists."
+        required: false
+        default: "2019-01-02"
+      to:
+        description: "Last session to replay (YYYY-MM-DD)."
+        required: false
+        default: "2026-09-01"
+      batch:
+        description: "Sessions to process in this run. 900 is about 3.3 hours at 13s each."
+        required: false
+        default: "900"
+      continue:
+        description: "Dispatch the next slice automatically when this one finishes."
+        required: false
+        default: "true"
+
+# One worker at a time. A second dispatch while one is running would replay the same sessions
+# twice and race on the checkpoint; `cancel-in-progress: false` keeps the running one alive and
+# queues the new one behind it rather than killing work mid-write.
+concurrency:
+  group: nbt-data-worker
+  cancel-in-progress: false
+
+# Least privilege. The worker reads the repository and writes nothing back to it: its output is
+# an encrypted artifact, so it needs no `contents: write` and no package or deployment scope.
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    name: replay historical sessions
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      # The worker carries database credentials, so it must only ever run from trusted code on
+      # the intended branch. `workflow_dispatch` cannot be triggered by a fork pull request, and
+      # the checkout above pins `main` rather than taking the dispatch ref, so a branch pushed by
+      # someone else cannot borrow these secrets.
+      - name: Prove this run is executing main
+        run: |
+          head="$(git rev-parse HEAD)"
+          git fetch origin main --quiet
+          if [ "$head" != "$(git rev-parse origin/main)" ]; then
+            echo "this run is NOT executing main, refusing to continue"
+            exit 1
+          fi
+          echo "confirmed: this run is executing main"
+
+      # The artifact key, checked for presence and never printed. The run fails here rather than
+      # part way through, because a worker that discovers at upload time that it cannot encrypt
+      # has already done hours of work it must then throw away.
+      - name: Refuse to run without an artifact key
+        env:
+          KEY: ${{ secrets.WORKER_ARTIFACT_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error title=No artifact key::WORKER_ARTIFACT_KEY is not set. This repository is"
+            echo "public, so plaintext artifacts are readable by any authenticated user and the"
+            echo "worker will not write one. Add the secret and dispatch again."
+            exit 1
+          fi
+          echo "artifact key present (${#KEY} characters), outputs will be encrypted"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      # The previous slice's checkpoint, if there is one. `continue-on-error` because the first
+      # run has nothing to resume from and that is not a failure.
+      - name: Fetch the last checkpoint
+        id: resume
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The checkpoint belongs to the PREVIOUS slice, so this cannot use
+          # actions/download-artifact, which only reads the current run. `gh run download -n`
+          # takes the artifact by name from the most recent run that produced one, which is
+          # exactly "where the last slice got to".
+          mkdir -p checkpoint
+          last="$(gh run list --workflow=data-worker.yml --status=success \
+                    --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)"
+          if [ -n "$last" ]; then
+            gh run download "$last" -n nbt-worker-checkpoint -D checkpoint || true
+          fi
+          ls -la checkpoint || true
+
+      - name: Decrypt the checkpoint if one was found
+        env:
+          KEY: ${{ secrets.WORKER_ARTIFACT_KEY }}
+        run: |
+          mkdir -p state
+          if [ -f checkpoint/checkpoint.json.enc ]; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+              -pass env:KEY -in checkpoint/checkpoint.json.enc -out state/checkpoint.json
+            echo "resumed from checkpoint:"
+            python -c "import json;d=json.load(open('state/checkpoint.json'));print('  last done:',d.get('lastSession'),'| sessions done:',d.get('sessionsDone'))"
+          else
+            echo "no checkpoint found; starting from the requested --from date"
+          fi
+
+      - name: Replay a bounded slice
+        env:
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          python tools/worker.py \
+            --from "${{ inputs.from }}" \
+            --to "${{ inputs.to }}" \
+            --batch "${{ inputs.batch }}" \
+            --state state \
+            --out out
+
+      # Everything the worker produced, encrypted before it leaves the runner. This repository is
+      # public: an artifact's metadata is listable anonymously and its contents are readable by
+      # any authenticated user, so the replay output and the checkpoint are both sealed with a
+      # key only the owner holds.
+      - name: Encrypt the outputs
+        if: always()
+        env:
+          KEY: ${{ secrets.WORKER_ARTIFACT_KEY }}
+        run: |
+          mkdir -p sealed
+          if [ -f state/checkpoint.json ]; then
+            openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+              -pass env:KEY -in state/checkpoint.json -out sealed/checkpoint.json.enc
+          fi
+          if [ -d out ] && [ -n "$(ls -A out 2>/dev/null)" ]; then
+            tar -czf - -C out . | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+              -pass env:KEY -out sealed/output.tar.gz.enc
+          fi
+          ls -la sealed
+
+      - name: Upload the sealed checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nbt-worker-checkpoint
+          path: sealed/checkpoint.json.enc
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload the sealed output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nbt-worker-output-${{ github.run_id }}
+          path: sealed/output.tar.gz.enc
+          retention-days: 30
+          if-no-files-found: warn
+
+      # The progress summary is the one thing written in the clear, and it carries counts only:
+      # how far the replay reached and what it cost. No row contents, no credentials, no paths.
+      - name: Report progress
+        if: always()
+        run: |
+          if [ -f state/progress.json ]; then
+            python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          d = json.load(open("state/progress.json"))
+          print("## data worker\n")
+          for k, v in d.items():
+              print(f"- **{k}**: {v}")
+          PY
+          fi
+
+      # The next slice, only when this one actually finished its batch and more remains.
+      - name: Dispatch the next slice
+        if: success() && inputs.continue == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          remaining="$(python -c "import json;print(json.load(open('state/progress.json')).get('remaining',0))" 2>/dev/null || echo 0)"
+          if [ "$remaining" -gt 0 ]; then
+            echo "$remaining sessions remain; dispatching the next slice"
+            gh workflow run data-worker.yml -f from='${{ inputs.from }}' -f to='${{ inputs.to }}' \
+              -f batch='${{ inputs.batch }}' -f continue=true
+          else
+            echo "nothing remains; the replay is complete"
+          fi
