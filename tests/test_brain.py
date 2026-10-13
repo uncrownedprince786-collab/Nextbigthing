@@ -3040,11 +3040,36 @@ class CryptoRewriteBudget(unittest.TestCase):
         d0 = date(2020, 1, 1)
         return [(d0 + timedelta(days=i), 1.0, 2.0, 0.5, 1.5, 10.0) for i in range(start, start + n)]
 
-    def test_a_new_day_still_replaces_the_whole_series(self):
+    def test_a_new_day_no_longer_rewrites_the_whole_series(self):
+        # Measured 2026-10-13: refetching the stored Coinbase series from Coinbase gave 9,779
+        # overlapping bars and none of them differed, so the daily rewrite corrected nothing.
         bars = self.series(1312)
         replace, out = prices.crypto_write_plan(1311, bars)
+        self.assertFalse(replace)
+        # the new day is inside the window, so it still lands
+        self.assertEqual(out, bars[-prices.CRYPTO_CORRECTION_DAYS:])
+        self.assertIn(bars[-1], out)
+
+    def test_a_materially_deeper_venue_still_replaces(self):
+        # The real case: Binance pages SOL back to 2255 bars where the stored Coinbase series
+        # holds 1944, and that extra history is worth the rewrite.
+        bars = self.series(2255)
+        replace, out = prices.crypto_write_plan(1944, bars)
         self.assertTrue(replace)
         self.assertEqual(out, bars)
+
+    def test_an_explicit_restatement_rewrites_everything(self):
+        bars = self.series(1311)
+        replace, out = prices.crypto_write_plan(1311, bars, restate=True)
+        self.assertTrue(replace)
+        self.assertEqual(out, bars)
+
+    def test_restate_is_a_flag_the_scheduled_lanes_do_not_pass(self):
+        src = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        self.assertIn('restate = "--restate" in argv', src)
+        for wf in ("cron-crypto.yml", "cron-us-prices.yml"):
+            text = (ROOT / ".github" / "workflows" / wf).read_text(encoding="utf-8")
+            self.assertNotIn("--restate", text, wf)
 
     def test_a_first_fetch_replaces(self):
         bars = self.series(100)
@@ -3066,11 +3091,14 @@ class CryptoRewriteBudget(unittest.TestCase):
         self.assertFalse(replace)
         self.assertEqual(out, bars)
 
-    def test_the_steady_state_is_orders_of_magnitude_cheaper(self):
-        bars = self.series(1311)
-        _, out = prices.crypto_write_plan(1311, bars)
-        # eleven of the twelve daily runs find no new bar
-        self.assertLess(len(out) * 11, len(bars))
+    def test_every_scheduled_run_is_now_orders_of_magnitude_cheaper(self):
+        # No scheduled run rewrites the series any more: the new day lands in the window too.
+        for stored, fetched in ((1311, 1311), (1311, 1312), (1311, 1313)):
+            replace, out = prices.crypto_write_plan(stored, self.series(fetched))
+            self.assertFalse(replace, (stored, fetched))
+            self.assertEqual(len(out), prices.CRYPTO_CORRECTION_DAYS)
+        # twelve runs a day against a 1,311-bar series
+        self.assertLess(prices.CRYPTO_CORRECTION_DAYS * 12, 1311 * 2 * 12 / 100)
 
 
 class CryptoVenueChain(unittest.TestCase):
@@ -3197,7 +3225,7 @@ class CryptoVenueChain(unittest.TestCase):
         self.assertEqual(prices.crypto_write_plan(2829, [("bar",)] * 720), (False, [("bar",)] * 720))
         text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
         body = text[text.index("def fetch_crypto"):text.index("def today_utc")]
-        self.assertIn("replace, outgoing = crypto_write_plan(stored, bars)", body)
+        self.assertIn("replace, outgoing = crypto_write_plan(stored, bars, restate)", body)
         self.assertIn("insert_snapshots(cur, buffer, replace=replace)", body)
         # And the delete only happens on the replace path.
         self.assertLess(body.index("if replace:"), body.index('DELETE FROM "PriceSnapshot"'))

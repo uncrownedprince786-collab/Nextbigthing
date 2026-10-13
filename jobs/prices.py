@@ -1051,7 +1051,9 @@ def crypto_rows(asset_id, bars, cap_by_day, source) -> list[tuple]:
     ]
 
 
-def crypto_write_plan(stored: int, bars: list[tuple]) -> tuple[bool, list[tuple]]:
+def crypto_write_plan(
+    stored: int, bars: list[tuple], restate: bool = False
+) -> tuple[bool, list[tuple]]:
     """`(replace, the bars to write)` for one coin, given how many rows it already has.
 
     A replace rewrites the coin's entire series. That is about 1,311 rows deleted and written
@@ -1060,19 +1062,39 @@ def crypto_write_plan(stored: int, bars: list[tuple]) -> tuple[bool, list[tuple]
     2.4 million row writes to store 75 of them. It is the compute that exhausted Neon's free
     tier twice, and the dead tuples autovacuum then has to walk on every copy.
 
-    The series only needs rewriting when its depth actually changed: a new day closed, or a
-    deeper venue answered. That happens once a day, not twelve times, and it keeps the daily
-    authoritative restatement the replace was there to provide. When the depth is unchanged
-    there is nothing to restate except a late correction to a recent close, so only the
-    trailing `CRYPTO_CORRECTION_DAYS` are upserted.
+    **A closed daily bar does not change, and that was measured rather than assumed.** On
+    2026-10-13 the stored Coinbase series for BTC, ETH, SOL and ADA was refetched from Coinbase
+    -- the same venue, so venue disagreement could not be mistaken for a correction -- and
+    compared bar for bar: **9,779 overlapping bars back to 2018, none of them different.** A
+    cross-venue comparison looks alarming by contrast (12,011 of 12,809 "differ" against
+    Binance) and means only that two exchanges print different closes, which is why the row
+    carries the venue that produced it.
+
+    So the replace is not earning its cost as a correction mechanism. It is kept for the two
+    things it genuinely does:
+
+      * `stored == 0` -- the first fill of a coin.
+      * a **materially deeper** venue, `len(bars) > stored + CRYPTO_DEPTH_SLACK`. SOL is the
+        real case: Binance pages back to 2255 bars where the stored Coinbase series holds
+        1944, and that extra history is worth the rewrite. The slack is what stops an ordinary
+        new day (`stored + 1`) from being read as a deeper venue and triggering a full rewrite
+        for one bar.
+      * `restate=True` -- asked for explicitly, which is how a controlled re-ingestion or a
+        recovery restates the series on purpose.
+
+    Everything else upserts the trailing `CRYPTO_CORRECTION_DAYS` only. The new day's bar is
+    inside that window, so it still lands; a late correction inside the window still lands;
+    and a correction older than the window is picked up by the next explicit restatement.
 
     Never shrink the stored series (the invariant `_store_frame` states for the Yahoo lane):
     a shallower venue upserts what it has and deletes nothing, so six years of history is
-    never traded for a venue that pages back 720 days.
+    never traded for a venue that pages back 720 days. Note this also stops the series
+    churning between venues: with a stable depth the stored provenance now stays put instead
+    of being rewritten by whichever exchange answered first on that runner.
     """
-    if stored == 0 or len(bars) > stored:
+    if stored == 0 or restate or len(bars) > stored + CRYPTO_DEPTH_SLACK:
         return True, bars
-    if len(bars) == stored:
+    if len(bars) >= stored:
         return False, bars[-CRYPTO_CORRECTION_DAYS:]
     return False, bars
 
@@ -1289,6 +1311,10 @@ CRYPTO_FRESH_DAYS = 2
 # to a recent close is picked up without rewriting six years to find it.
 CRYPTO_CORRECTION_DAYS = 5
 
+# How much deeper a fetch must be before it counts as a deeper venue rather than a new day or two.
+# A new day is +1; a venue that genuinely pages further back is +300 in the measured SOL case.
+CRYPTO_DEPTH_SLACK = 3
+
 
 def crypto_closes(sym: str, today: date | None = None) -> tuple[str | None, list[tuple]]:
     """The first venue with a *current* series, and its bars.
@@ -1325,7 +1351,7 @@ def crypto_closes(sym: str, today: date | None = None) -> tuple[str | None, list
     return fallback if fallback else (None, [])
 
 
-def fetch_crypto(cur) -> int:
+def fetch_crypto(cur, restate: bool = False) -> int:
     step("crypto history")
     assets = crypto_assets(cur)
     tickers = get_json(
@@ -1405,11 +1431,10 @@ def fetch_crypto(cur) -> int:
         # Never shrink the stored series. Binance and Coinbase page back to 2019; Kraken holds
         # about 720 days and Bitstamp less. Deleting six years of history and rewriting it from
         # a shallow venue would lose the rows every analog and horizon in the brain is measured
-        # over — and it would look like a successful run. So a replace only happens when the
-        # fetch is at least as deep as what is stored; otherwise the new days are upserted on
-        # top. This is the same invariant `_store_frame` states for the Yahoo lane.
+        # over, and it would look like a successful run. `crypto_write_plan` holds that invariant
+        # and the rest of the replace-versus-upsert decision, with the measurements behind it.
         stored = depth.get(a["id"], 0)
-        replace, outgoing = crypto_write_plan(stored, bars)
+        replace, outgoing = crypto_write_plan(stored, bars, restate)
         if replace:
             cur.execute('DELETE FROM "PriceSnapshot" WHERE "assetId" = %s', (a["id"],))
 
@@ -2707,6 +2732,13 @@ def main() -> None:
             raise SystemExit(2) from e
         del argv[at:at + 2]
 
+    # A controlled restatement, not something a scheduled run does. Ordinary crypto runs upsert a
+    # trailing window because a closed daily bar was measured not to change (9,779 bars, none
+    # different); this is how a recovery or an initialisation rewrites the series on purpose.
+    restate = "--restate" in argv
+    if restate:
+        argv.remove("--restate")
+
     todo = set(argv) or {"yahoo", "crypto", "news"}
     # The workflow's own name when there is one, so a `ChunkRun` row says which lane wrote it:
     # the same source is fetched by `cron-us-prices`, `refresh` and a local run, and "which lane
@@ -2747,7 +2779,7 @@ def main() -> None:
             try:
                 with lane(cur, job, BINANCE, label) as run:
                     if run is not None:
-                        n2 = fetch_crypto(cur)
+                        n2 = fetch_crypto(cur, restate)
                         run.rows_written = n2
                         run.note = f"{n2} crypto price rows from the venue chain"
                         print(f"  {n2} crypto price rows")
