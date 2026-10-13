@@ -302,10 +302,17 @@ def verify(directory: Path) -> tuple[int, int, list[str]]:
         if not path.exists():
             problems.append(f"{t}: file missing")
             continue
-        raw = gzip.decompress(path.read_bytes())
-        reader = csv.reader(io.StringIO(raw.decode("utf-8")))
-        next(reader, [])
-        n = sum(1 for _ in reader)
+        # A truncated or flipped file raises here, and this function exists to *find* that, so
+        # the failure is recorded against the table rather than ending the check for every table
+        # after it. Verifying a backup must never be the thing that crashes on a bad backup.
+        try:
+            raw = gzip.decompress(path.read_bytes())
+            reader = csv.reader(io.StringIO(raw.decode("utf-8")))
+            next(reader, [])
+            n = sum(1 for _ in reader)
+        except Exception as e:  # noqa: BLE001
+            problems.append(f"{t}: unreadable: {type(e).__name__}: {str(e).splitlines()[0][:80]}")
+            continue
         if hashlib.sha256(raw).hexdigest() != meta["sha256_csv"]:
             problems.append(f"{t}: checksum differs")
         elif n != meta["rows"]:
