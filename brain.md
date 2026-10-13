@@ -3693,6 +3693,12 @@ reads rows that already exist:
       deleted or suspended at the network edge; every attempt is refused at the connection stage,
       *before a database is selected*, with `Your account or project has exceeded the quota`. A
       per-project storage limit would not refuse two projects of different sizes in the same breath.
+      **The stored credentials are not stale, and there is a clean test for it:** the same endpoints
+      answer `password authentication failed for user 'neondb_owner'` when dialled with a wrong
+      password, and `exceeded the quota` when dialled with the configured one. Authentication
+      therefore succeeds and the refusal comes *after* it, which rules out the cheap explanation
+      that the standby is merely holding an old password. Checking this needs no secret: the wrong
+      password can be any string.
       The project's own note in `primary_choice` says what this is: Neon's free tier caps **compute
       hours**, "the derive passes used them up twice in two days", and compute hours are counted
       per account. **No `NEON_API_KEY` is configured anywhere**, so the console figure that would
