@@ -86,6 +86,19 @@ function parseAsOf(argv) {
 
 const REPLAY = parseAsOf(process.argv);
 
+/// `--setups-file <path>` replaces the AssetSetup read with rows reconstructed by
+/// `jobs/setup.py --as-of`, which prints them as JSONL rather than storing them. It is only
+/// meaningful with `--as-of`: a replay of 2024 needs 2024's setups, and the table holds none.
+/// Requiring the pair is what stops reconstructed rows being fed into a live run.
+const SETUPS_FILE = (() => {
+  const i = process.argv.indexOf("--setups-file");
+  if (i === -1) return null;
+  const v = process.argv[i + 1];
+  if (!v) throw new Error("--setups-file needs a path");
+  return v;
+})();
+if (SETUPS_FILE && !REPLAY) throw new Error("--setups-file only makes sense with --as-of");
+
 /// A replay never writes. This is the guard, and it is one line on purpose.
 const DRY_RUN = DRY_RUN_FLAG || REPLAY !== null;
 /// Which pass of the lane this is: "decide", or "macro" for the second pass that applies the macro gate's
@@ -390,10 +403,30 @@ async function readInputs(db, today, asOf = null) {
     lastRun = [];
   }
 
+  // Reconstructed setups stand in for the stored ones, keyed identically. `id` is synthesised
+  // because nothing persisted these rows, and `targetsBySetup` is keyed on it: a reconstructed
+  // setup therefore carries no measured targets, which `pickTarget` already handles as "none
+  // stored" rather than as an error.
+  const setupRows = SETUPS_FILE
+    ? fs.readFileSync(SETUPS_FILE, "utf8")
+        .split(/\r?\n/)
+        .filter((l) => l.trim().startsWith("{"))
+        .map((l) => JSON.parse(l))
+        .map((r, n) => ({
+          id: `replay-${n}`,
+          assetId: r.assetId,
+          horizon: r.horizon,
+          state: r.state,
+          entryLevel: r.entryLevel,
+          invalidateLevel: r.invalidateLevel,
+          conditions: r.conditions,
+        }))
+    : setups.rows;
+
   return {
     assets: assets.rows,
     priceByAsset: firstPerKey(prices.rows, (r) => r.assetId),
-    setupByKey: firstPerKey(setups.rows, (r) => `${r.assetId}|${r.horizon}`),
+    setupByKey: firstPerKey(setupRows, (r) => `${r.assetId}|${r.horizon}`),
     // Every method's row, grouped by the setup it belongs to. Not reduced to one here: rule 24
     // forbids averaging the three, and which one is preferred is `lib/target.ts`'s decision, made
     // once `pickSetup` has chosen which horizon decided.
