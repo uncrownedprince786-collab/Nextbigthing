@@ -75,8 +75,8 @@ jobs:
       - name: Check which standbys are configured
         id: targets
         env:
-          NEON: ${{ secrets.DATABASE_URL }}
-          NEON2: ${{ secrets.DATABASE_URL_FALLBACK }}
+          DB_URL: ${{ secrets.DATABASE_URL }}
+          DB_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
           SUPA: ${{ secrets.SUPABASE_DATABASE_URL }}
           PRIMARY_VAR: ${{ vars.PRIMARY }}
         run: |
@@ -87,16 +87,16 @@ jobs:
           if [ "$choice" = "supabase" ] && [ -n "$(trim "$SUPA")" ]; then
             from="SUPABASE_DATABASE_URL"; primary="$(trim "$SUPA")"
           else
-            from="DATABASE_URL"; primary="$(trim "$NEON")"
+            from="DATABASE_URL"; primary="$(trim "$DB_URL")"
           fi
           echo "from=$from" >> "$GITHUB_OUTPUT"
           echo "the primary is $from"
           names=""; seen="$primary"
           for name in DATABASE_URL_FALLBACK SUPABASE_DATABASE_URL DATABASE_URL; do
             case "$name" in
-              DATABASE_URL_FALLBACK) url="$(trim "$NEON2")" ;;
+              DATABASE_URL_FALLBACK) url="$(trim "$DB_URL_FALLBACK")" ;;
               SUPABASE_DATABASE_URL) url="$(trim "$SUPA")" ;;
-              *) url="$(trim "$NEON")" ;;
+              *) url="$(trim "$DB_URL")" ;;
             esac
             [ -z "$url" ] && continue
             printf '%s\n' "$seen" | grep -Fxq -- "$url" && continue
@@ -104,7 +104,7 @@ jobs:
             names="${names:+$names,}$name"
           done
           if [ -z "$names" ]; then
-            echo "::notice::no standby is configured (DATABASE_URL_FALLBACK and SUPABASE_DATABASE_URL are both empty), so there is nothing to mirror into"
+            echo "::notice::no standby is configured (DATABASE_URL_FALLBACK, SUPABASE_DATABASE_URL and DATABASE_URL hold nothing that is not the primary), so there is nothing to mirror into"
             echo "any=false" >> "$GITHUB_OUTPUT"
           else
             echo "configured: $names"

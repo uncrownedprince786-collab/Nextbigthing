@@ -7655,7 +7655,7 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
         self.assertIn("if: always() && steps.targets.outputs.any == 'true'", text)
         # Only secrets, only through env, and never echoed.
         self.assertNotRegex(text, r"echo[^\n]*\$\{\{\s*secrets\.")
-        self.assertNotRegex(text, r"echo[^\n]*(\$NEON2|\$SUPA)\b")
+        self.assertNotRegex(text, r"echo[^\n]*(\$DB_URL_FALLBACK|\$DB_URL|\$SUPA)\b")
         # Its own concurrency group, never cancelled, and not in the retry lane's watch list.
         self.assertIn("group: nbt-mirror", text)
         self.assertIn("cancel-in-progress: false", text)
