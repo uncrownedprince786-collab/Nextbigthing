@@ -4034,3 +4034,44 @@ reads rows that already exist:
       `actions/secrets` (403), so `DATABASE_URL_FALLBACK` and `DATABASE_URL` are correct locally and
       in this file, and **not yet correct in CI** -- until they are set there, the scheduled mirror
       still points at a dead Neon project and the standbys stay current only by hand.
+
+127. **Phase 1 closes. Phase 2 does not, and the single reason is a secret this session cannot
+    write.** 2026-10-13, final verification pass. Measurements repeated rather than carried forward.
+
+    - **Phase 1: PASS.** Nine representative closes across AAPL, MSFT and NVDA reconcile **exactly**
+      against a live Yahoo fetch. Coverage is 616 assets and 833,413 snapshots from 2019-01-01
+      (crypto 2018-11-04). Freshness is reported honestly rather than flattered: `/api/health` puts
+      every market at 0 sessions behind except US at 1, and prints `state` per market instead of a
+      single green light. Every page serves -- `/`, `/stocks`, `/crypto`, `/forex`, `/logbook`,
+      `/api/signals` all 200, from the primary, pool 557. Tests 849 Python and 466 Node.
+
+    - **Phase 2: BLOCKED on one criterion, and everything else in it passes.** The three roles are
+      distinct clusters (rule 126), all three hold **833,413 prices, newest 2026-10-13, 31
+      migrations and the same 138 indexes**, both standbys restored with digests equal and both
+      pass `standby_parity.py`. What is missing is that **no authorised workflow run has mirrored
+      into them**, because this token is refused on `actions/secrets` and the Actions secrets still
+      name the dead Neon project. A manual mirror is not proof that a scheduled one will target the
+      right provider, so Phase 2 stays open on exactly that.
+
+    - **The standby indexes are 35 MB larger than the primary's, and it is not a defect.**
+      `PriceSnapshot_pkey` is 62.1 MB on Supabase and **95.0 MB** on both standbys, with the same
+      138 indexes and identical content digests either side. The primary's rows arrived per asset in
+      date order, which B-tree deduplication packs tightly; a restore COPYs in dump order and packs
+      worse. It costs 3.5% of Aiven's 1 GB and buys nothing to reindex, so it was measured and left.
+
+    - **A label that had started lying.** `cron-mirror.yml` routes by secret name, but the shell
+      locals carrying them were still `NEON` and `NEON2` -- pointing at Aiven and Prisma. That is the
+      same class of confusion that once had `schemacheck` printing "DATABASE_URL points at: Neon"
+      while the truth was elsewhere, so they are now `DB_URL` and `DB_URL_FALLBACK`. The test
+      asserting the workflow never echoes a credential keyed on the old names and would have gone
+      **silently vacuous**; it now covers all three, which is stronger than before. Renaming a
+      variable is cosmetic; letting a guard quietly stop guarding is not.
+
+    - **Security, re-verified rather than assumed.** `anon` and `authenticated` hold **0 of 44** on
+      SELECT, INSERT and TRUNCATE; an unauthenticated Data API request returns **401**;
+      `nbt_phase2_reader_20261013` still holds SELECT only and remains undecided by the owner;
+      `supabase_admin`'s default ACLs remain unchangeable from `postgres` and remain not a live gap.
+      **No credential appears in any tracked file or anywhere in pushed history** -- scanned for the
+      Neon, Aiven, Prisma and Supabase key shapes, zero hits. The local `.env` is ignored and
+      untracked. The five connection strings pasted into the chat transcript are still in that
+      transcript; nothing here erases them, and two of them are live.
