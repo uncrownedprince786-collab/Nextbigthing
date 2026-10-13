@@ -3635,3 +3635,49 @@ reads rows that already exist:
       privileges, and it was written and ready in this session but **not executed**: it is a
       permission change on the production database and the owner has not approved it. **Phase 2 does
       not pass while this stands, and Phase 3 does not begin.**
+
+118. **The Data API is shut, and the thing that would have re-opened it is shut too.** 2026-10-13,
+    applied with the owner's approval in one transaction against the live primary. This closes the
+    item rule 117 left open; 117's last bullet is superseded on the question of whether it was
+    executed, and stands on everything it measured.
+
+    - **What was checked before touching anything**, because a revoke that misses a second path is
+      worse than none: **no grants to `PUBLIC`** on any of the 44 tables, so there is no backdoor a
+      role-specific revoke would leave open; **`anon` and `authenticated` are members of no other
+      role**, so nothing is inherited; and **all 44 tables are owned by `postgres`**, which is the
+      role Prisma connects as, so `ALTER DEFAULT PRIVILEGES FOR ROLE postgres` is aimed at the role
+      that actually creates production objects rather than at a plausible-looking one.
+    - **The column grants were a false alarm, and proving it mattered.** `information_schema.column_privileges`
+      showed 605 columns each for both roles on SELECT, INSERT, UPDATE and REFERENCES, which reads
+      like a second set of grants that a table-level revoke would leave behind. It is not:
+      `pg_attribute.attacl` is **null on every column**, 605 is **exactly** the number of columns in
+      the schema, and the four privileges listed are precisely the four that exist at column level in
+      PostgreSQL. They were the table grants reflected, and they went when the table grants went.
+    - **Applied:** `REVOKE ALL` on all tables, sequences and functions in `public` from both roles,
+      and `ALTER DEFAULT PRIVILEGES FOR ROLE postgres ... REVOKE ALL` on tables, sequences and
+      functions from both roles, in a single transaction. Nothing else was altered: no data, no
+      `service_role`, no `postgres`, no schema `USAGE`.
+    - **Verified by effective privilege rather than by the absence of a grant row.**
+      `has_table_privilege` across all 44 tables: `anon` **0/44** and `authenticated` **0/44** on
+      SELECT, INSERT, UPDATE, DELETE and TRUNCATE; `postgres` and `service_role` unchanged at
+      **44/44**. Residual grant rows 0, residual column privileges 0. No mutating request was made
+      against production to test this, and none was needed -- PostgREST executes as `anon`, and
+      `anon` can no longer do anything.
+    - **The application never noticed.** It reaches Postgres directly as `postgres` through
+      `@prisma/adapter-pg`: `/`, `/stocks`, `/crypto`, `/forex`, `/logbook` and `/api/signals` all
+      200, `/api/signals` still serving `pool: 557` and a real `asOf`, the front page still priced to
+      2026-10-12, `/api/health` still served from the primary, and every row count and the database
+      size unchanged at 324.3 MB. **The rollback was not needed** -- an exact 88-statement restore
+      was generated from the 616-row snapshot first, and `postgres` owns every table, so re-granting
+      is always available.
+    - **One residual, and it is not a live gap.** `supabase_admin` still carries default ACLs
+      granting both roles everything on new objects, and `postgres` is not a member of
+      `supabase_admin`, so this session could not alter them. It only bites for objects
+      `supabase_admin` itself creates in `public`, and the migration path creates them as `postgres`
+      -- every one of the 44 is `postgres`-owned. It needs an account that can alter that role's
+      defaults, and removing `public` from Exposed schemas in the dashboard remains worth doing as a
+      second layer. Neither is load-bearing today.
+    - **Separately, and left alone deliberately:** a login role `nbt_phase2_reader_20261013` holds
+      SELECT on all 44 tables, is not a superuser, does not bypass RLS, and **has no expiry**. It is
+      outside the Data API path and outside this fix's scope, so it was not touched. A standing
+      read credential with no `VALID UNTIL` is worth a decision, not a silent revoke.
