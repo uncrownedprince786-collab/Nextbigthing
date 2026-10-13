@@ -3879,3 +3879,45 @@ reads rows that already exist:
       and prices, decisions, signals, news and intraday bars identical on both sides. Production
       integrity alongside it: 0 duplicates on every real uniqueness constraint, 0 null closes,
       0 orphans, 45 foreign keys and 44 primary keys intact.
+
+123. **Correction to rules 119 and 122: "2.36 million writes a day" was the nominal schedule, not
+    what the database actually saw. The per-run saving stands; the daily one was overstated by an
+    order of magnitude.** 2026-10-13, from `pg_stat_user_tables` against the live primary rather
+    than from the cron expression.
+
+    - **What the counters say.** Over an 11.11-day window `PriceSnapshot` took **2,445,141 inserts
+      and 820,695 deletes -- 293,955 row writes a day**, not 2,359,272. The deletes are the crypto
+      replace, and dividing them by the 98,303 stored crypto rows gives **0.75 full passes a day,
+      not twelve.** Rules 119 and 122 multiplied the series by the lane's *scheduled* cadence; this
+      project already knew better, because rule 114 records that **GitHub delivers roughly a tenth
+      of a frequent schedule**, and this session watched two multi-hour gaps where nothing ran at
+      all. The arithmetic was right and the input was the timetable instead of the clock.
+
+    - **The honest three numbers, which are not interchangeable.**
+      **Per crypto run: 196,606 writes to 375, a 99.81% cut.** That one is solid, is what the code
+      changes, and does not depend on how often anything runs.
+      **At the nominal twelve runs a day: 2,359,272 to 4,500** -- a projection, true only if the
+      schedule were ever delivered in full, which it is not.
+      **On the measured cadence: 293,955 to about 146,500 row writes a day, a 50.2% cut of all
+      `PriceSnapshot` writes** -- because the crypto rewrite is **50.3%** of everything that table
+      does, and removing it halves the table's write volume. That is the figure to quote for what
+      the database will actually experience, and it is still the single largest saving available.
+
+    - **And none of the three is a compute measurement.** They are row writes. What a CU-hour costs
+      is a function of wall time on a running endpoint, not of rows, and it cannot be known until
+      the commits run in CI against a reachable Neon. Rule 122 said this and it stays true.
+
+    - **What the same counters say about the other half, which is not yet explained.** The 146,215
+      writes a day that are *not* crypto are far more than the roughly 557 rows a session the pool
+      actually adds. The Yahoo lane is genuinely incremental -- measured today, **602 of 616 assets
+      take the incremental path and 14 take the full backfill** -- but it upserts a
+      `CORRECTION_DAYS = 14` window for every asset on every run, which is 8,428 rows a pass before
+      anything new is stored. Unlike crypto, that window has a defensible reason: Yahoo
+      back-adjusts for corporate actions (rule 115), so an equity's *whole* history can legitimately
+      restate, and a 14-day window is a partial answer to that rather than an unnecessary one.
+      **It was measured and left alone**, because shrinking it without first measuring how often an
+      adjusted bar actually changes would be the same mistake this rule is correcting.
+
+    - **The rule this leaves behind, and it is the second time this session:** a number taken from
+      configuration is a claim about intent, and a number taken from `pg_stat` is a claim about the
+      world. Only the second one belongs in a report about savings.
