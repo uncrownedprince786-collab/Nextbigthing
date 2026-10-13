@@ -3570,3 +3570,68 @@ reads rows that already exist:
       path or a stated limitation, macro data is collected from the institution itself, retrievable,
       and truthfully labelled, and no known failure silently produces misleading current data.
       **Phase 2 is next and needs its own approved task.**
+
+117. **Phase 2 measured rather than inferred: the database, the backup, the ingestion gap and the
+    Data API. One item is left open, and it is the one that matters most.** 2026-10-13, against the
+    live primary with an authorised `psql` session. Everything below was re-measured in this pass;
+    nothing is carried forward from an earlier report.
+
+    - **The database is 324.3 MB of the 500 MB tier (64.9%)**, not the 339 MB of 2026-10-08 that
+      several documents still quote. It went *down*. `PriceSnapshot` is 216 MB of it (146 MB heap,
+      69 MB index, 32% index), `IntradayBar` 44 MB, and nothing else reaches 11 MB. **There is no
+      bloat to reclaim:** dead tuples are 0 on both large tables, autovacuum last touched
+      `PriceSnapshot` at 17:30 UTC the same day, and `jobs/retention.py --dry-run` would remove
+      **0 rows**. The growth is the data the project exists to accumulate, so **no cleanup is
+      justified and none was done** -- which is the same conclusion as 2026-10-11, now with the
+      bytes behind it rather than an estimate.
+
+    - **The ingestion gap closed itself, and the watchdog behaved exactly as designed.** No workflow
+      of any kind ran between `2026-10-13T12:10:39Z` and `17:10:19Z`. The run that ended it was an
+      ordinary `schedule` event, not a dispatch, so this was GitHub's scheduler and not a defect in
+      the repository; **no manual recovery was needed and none was performed.** Through the outage
+      `cron watchdog` failed three times on purpose: it found a lane stale, dispatched `cron-live.yml`,
+      and reported `NOT RECOVERED: still stale after cron-live.yml ran` before going red to email the
+      owner. Every watchdog run after 17:31 is green, `/api/health` returns `ok: true` with an empty
+      `problems` array served from the primary, and `ChunkRun` and `LiveQuote` were 18 minutes old
+      when measured. **A lane that reports success while storing nothing is this project's recurring
+      failure mode, so freshness was taken from the rows, not from the run conclusions.**
+
+    - **The `cron calendar` failure was exit 2, not exit 1, and the log says so in those words.**
+      `jobs/schemacheck.py` printed `could not connect: OperationalError` and
+      `this says nothing about the schema, so it exits 2 rather than 1`. **No migration is pending**
+      -- the question that had been open since the lane went red. The same log records something
+      worth keeping: inside Actions, `DATABASE_URL` points at **Neon** while `SUPABASE_DATABASE_URL`
+      is the primary, so when the primary blinks the lanes fall back to a database that is itself
+      over quota.
+
+    - **The real artifact restores.** `nbt-backup-38395055013` (34,984,918 bytes, run
+      `backup-2026-10-13T120816Z`, schema `20261011130000_decision_history`) was downloaded whole,
+      `tools/restore_db.py verify` passed **44 of 44** files on checksum, and it was restored into a
+      disposable PostgreSQL **15.18** cluster built with `initdb` on a loopback port -- the 31
+      migrations applied to it cleanly first, which is itself the migration test. Result:
+      **43 tables, 977,772 rows, content digests equal, 45 foreign keys and 138 indexes**. The 43
+      against the artifact's 44, and the 31-row shortfall, are `_prisma_migrations`, which a restore
+      deliberately never writes. Production was read back afterwards and is unchanged. This is the
+      *latest* artifact, which matters: the 10-11 rehearsal proved the tooling, not this backup.
+
+    - **Resilience is one database, measured.** Both Neon endpoints answered
+      `Your account or project has exceeded the quota` on this pass. Read and write failover are
+      implemented and their tests pass, and they have **nowhere to fail over to**. The only other
+      copy of the data is a GitHub artifact that expires seven days after it is written -- now
+      proven restorable, which is the one thing that makes that acceptable at all.
+
+    - **The Data API exposure is worse than "every table is readable", and it is still open.**
+      `anon` and `authenticated` each hold **SELECT, INSERT, UPDATE, DELETE and TRUNCATE on all 44
+      tables**, RLS is disabled on all 44, and there are **zero policies**. The repository is public.
+      The publishable key was **not** committed -- only the string `sb_publishable_` appears, in
+      prose -- and an unauthenticated REST call returns 401, so this is not a live breach; but that
+      key is designed to be publishable, and the day it is shared anywhere, a stranger can empty the
+      database. Worse than the grants themselves: `pg_default_acl` grants `arwdDxtm` to both roles
+      on **every new table**, from both the `postgres` and `supabase_admin` grantors, so revoking
+      today's grants alone would be undone by the next migration. **Nothing legitimate uses this
+      path** -- there is no `@supabase/supabase-js` dependency, no `createClient`, no
+      `NEXT_PUBLIC_SUPABASE*` anywhere; the application reaches Postgres directly through
+      `@prisma/adapter-pg`. The fix is therefore a revoke of both roles *and* of the default
+      privileges, and it was written and ready in this session but **not executed**: it is a
+      permission change on the production database and the owner has not approved it. **Phase 2 does
+      not pass while this stands, and Phase 3 does not begin.**
