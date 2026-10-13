@@ -3987,3 +3987,50 @@ reads rows that already exist:
       limits describe a plan, not an account's current state. Rule 120 was right about the documented
       policy and wrong about this account, and only a test against a fresh project could tell the
       two apart.
+
+126. **Three database roles, and for the first time the sentence is backed by a connection, a
+    restore, a mirror and a parity run on each.** 2026-10-13. Neon is out of the architecture --
+    not fixed, replaced -- and the replacements are on two other providers, which is the point.
+
+    - **Why not more Neon.** Rule 125 established that a brand new project in that account is
+      refused with the same quota error as the two exhausted ones, so the restriction is the
+      account. A third project there would have been a fourth refusal. Neon is left configured
+      nowhere and referenced by nothing.
+
+    - **The three roles, each a separate cluster by `system_identifier`** -- which is the check that
+      distinguishes three databases from three names for one:
+
+      | role | provider | version | `system_identifier` |
+      | --- | --- | --- | --- |
+      | primary `SUPABASE_DATABASE_URL` | Supabase | 17.11 | 7692131729119822239 |
+      | standby 1 `DATABASE_URL_FALLBACK` | Aiven | **18.6** | 7696266274017226891 |
+      | standby 2 `DATABASE_URL` | Prisma Postgres | **17.2** | 7695850978935533599 |
+
+      Three providers, three accounts. The failure that took Neon out was account-level, and this
+      is the shape that survives it: no single account action can now remove more than one role.
+      A second Supabase project was considered and rejected for exactly that reason -- it would
+      have shared the primary's account and counted as resilience without being any.
+
+    - **Built the supported way, not by hand.** Each standby took the 31 migrations, then the
+      verified backup `2026-10-13T200907Z` through `tools/restore_db.py --allow-remote`, then
+      `jobs/mirror.py` to catch up what had landed since. Both restores reported **43 tables,
+      978,362 rows, content digests equal, 45 foreign keys, 138 indexes**; both mirrors matched
+      **616 assets by `(industry, symbol)` with 0 unmatched** and wrote the same 74 rows;
+      `tools/standby_parity.py` exits **0** against both -- 557 of 557 active assets, no missing
+      news readings, every decision input level with the primary. Row counts on all three:
+      833,413 / 1,666 / 1,681 / 6,211 / 616, newest 2026-10-13.
+
+    - **And they can actually serve the role**, which row counts alone do not prove. The same
+      app-shaped query -- newest close per asset with its provenance -- returns identical values
+      from all three, `AAPL 340.97 Yahoo Finance` and `btc-bitcoin 81742.50 Coinbase` included.
+
+    - **Two version artefacts worth knowing before someone reads them as drift.** Aiven is
+      PostgreSQL **18**, a major ahead of the source, and the restore reported `n=406` NOT NULL
+      constraints there that 17 does not name -- the same thing rule 71 hit when comparing schema
+      parity. Prisma's endpoint is **pooled**, and `prisma migrate deploy` ran through it without
+      trouble, which was not a given. Neither is a defect; both would look like one in a diff.
+
+    - **What is still owner-only.** The GitHub Actions secrets. The token here is refused on
+      `actions/secrets` (403), so `DATABASE_URL_FALLBACK` and `DATABASE_URL` are correct locally and
+      in this file, and **not yet correct in CI** -- until they are set there, the scheduled mirror
+      still points at a dead Neon project and the standbys stay current only by hand.
