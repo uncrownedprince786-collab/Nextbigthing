@@ -1,6 +1,6 @@
 {
- "generatedAt": "2026-10-14T23:29:44+00:00",
- "version": "acquisition-manifest-v5",
+ "generatedAt": "2026-10-14T23:41:31+00:00",
+ "version": "acquisition-manifest-v6",
  "scope": "the frozen target only; no instrument or asset class was added beyond it",
  "sweepDateReconciliation": {
   "datesSettled": 2294,
@@ -202,8 +202,16 @@
    "psxCoverageAgainstSessionsAPriceWasPublished": 1.0,
    "seriesWithNoReachableHistory": [],
    "partiallyAcquired": {
-    "KSE-100": "2018-01-01 .. 2021-10-15"
+    "KSE-100": {
+     "acquiredAndCleared": "2021-10-15..2026-10-14 (1,239 observations)",
+     "availableButLicenceUnverified": "2018-01-01..2021-02-23 (Open Data Pakistan, 3,206 observations, No License Provided)",
+     "coveredByNoCompliantSource": "2021-02-24..2021-10-14"
+    }
    },
+   "durableArtifactProblems": [
+    "DCOILWTICO: one non-positive value, 2020-04-20 at -36.98, the day WTI settled negative - real history, not a defect",
+    "psx_delisted: 369 rows where the exchange published open=high=low on a thin session against a differently computed close; preserved verbatim and documented"
+   ],
    "kse100SourcesTestedAndFailed": [
     "SBP EasyData portal search for 'KSE': No Data Found (the portal carries SBP and PBS data, not exchange index levels)",
     "dps.psx.com.pk /timeseries/eod/KSE100, /timeseries/int/KSE100, /timeseries/INDEX/KSE100: HTTP 404 from the exchange's own origin",
@@ -665,6 +673,27 @@
    "sha256": "619b0a03cada47854039182652edb5194563cf48c2385dca96214dcbcd1cee58"
   },
   {
+   "series": "KSE-100 index, pre-2021 candidate",
+   "category": "frozen target, unverified licence",
+   "source": "https://opendata.com.pk/dataset/572570b3-2d4f-46f4-83e0-4d860bf71bff/resource/12071eb8-c3ee-4686-a3d3-f7b49fab502d/download/stock-exchange-kse-100pakistan.csv",
+   "basis": "index level with real high and low, unlike the exchange endpoint",
+   "expectedObservations": null,
+   "acquiredObservations": 3206,
+   "validInDurableStaging": 0,
+   "integratedInPrimaryStore": 0,
+   "invalidProviderRecordsRejected": 15,
+   "withheldOnBasisOrIdentity": 3206,
+   "firstObservation": "2008-02-22",
+   "lastObservation": "2021-02-23",
+   "denominator": "n/a - held as a candidate, not counted toward coverage",
+   "disposition": "ACQUIRED BUT NOT CLEARED: the resource page states \"No License Provided\", so the raw file is kept out of Git and out of every production table pending the owner's decision",
+   "overlapWithExchangeEndpoint": 0,
+   "gapBetweenSources": "2021-02-23 .. 2021-10-15",
+   "crossCheck": 9,
+   "sha256Raw": "a3221e1d6e1095083597d8fed13fb3e64e74f6c5f4ae3c3b0af6c39802f19c3d",
+   "rawHeldAt": ".cache/acquire/opendata/kse100_opendata.csv"
+  },
+  {
    "series": "KSE-100 index",
    "category": "frozen target",
    "source": "https://dps.psx.com.pk/timeseries/eod/KSE100",
@@ -685,6 +714,11 @@
    ],
    "file": "KSE100.csv",
    "sha256": "7d0fd3d3389f4f6a1bb9bfdc91186bb17c8c39c038b72871f4f235154c8a1af0",
+   "segments": {
+    "2018-01-01..2021-02-23": "available from Open Data Pakistan, licence unverified, QUARANTINED - not cleared for use",
+    "2021-02-24..2021-10-14": "covered by no compliant source reached",
+    "2021-10-15..2026-10-14": "acquired from the exchange endpoint, 1,239 observations"
+   },
    "licensing": "PSX's terms forbid redistributing its market data feed without a licence, delayed included; recovery-manifest.json carries this as psx-redistribution-licence, an accepted unresolved risk. Acquisition and private use are unaffected; publishing these levels is not cleared.",
    "duplicateDatesCollapsed": 1,
    "missingAgainstFrozenTarget": "2018-01-01 .. 2021-10-15"

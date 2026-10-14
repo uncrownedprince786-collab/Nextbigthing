@@ -4627,3 +4627,57 @@ reads rows that already exist:
     - **Readiness is still the owner's call.** Thirteen of fourteen frozen targets are acquired and
       the fourteenth is partial, so the frozen scope is **not** complete. Milestone B stays blocked
       pending an explicit confirmation, which this entry does not grant itself.
+
+136. **The KSE-100 gap has three parts, and only one of them is closed.** 2026-10-15. Open Data
+    Pakistan's file was fetched, parsed and cross-checked; it covers the frozen start and carries a
+    real high and low, and it is **quarantined**, because its own resource page says **"License: No
+    License Provided"**. No database change: 387 MB, 1,097,458 rows.
+
+    - **The file is real and it is good.** One ordinary request returned HTTP 200, `text/csv`,
+      250,903 bytes, `Last-Modified: 2021-04-03`. **3,206 valid observations, 2008-02-22 to
+      2021-02-23**, zero duplicate dates, zero unparseable dates, 15 rows rejected (one
+      non-positive, fourteen with the close outside its own range). It has `Open, High, Low, Close,
+      Change, Volume` -- **a real high and low**, which the exchange endpoint does not provide.
+
+    - **The seam nobody covers.** The file ends **2021-02-23**; the exchange endpoint begins
+      **2021-10-15**. So the two sources have **zero overlapping sessions** -- they cannot be
+      compared against each other at all -- and roughly eight months, **2021-02-24 to 2021-10-14**,
+      is covered by neither. Karandaaz spans the whole period and its terms forbid systematic
+      retrieval and database creation, so it is not a route this project may take. That interval
+      stands unresolved and the search stops there.
+
+    - **Cross-checked against something else instead.** With no overlap available, the file was
+      tested against the stored PSX constituents, which come from the exchange's own closing files:
+      across twelve sampled sessions its daily direction agrees with the median constituent return
+      on **nine**. The three disagreements are the shape a capitalisation-weighted index has
+      against a median -- 2020-10-01, index +0.08% against a median of -0.22%.
+
+    - **Downloadable is not licensed.** The resource page states no licence. The raw file is
+      therefore kept in `.cache/acquire/opendata/` and in the PC backup, **not committed to Git and
+      not written to any table**; only the manifest -- counts, ranges, checksums, the licence
+      finding -- is in the repository. Committing the file would itself be a redistribution of data
+      nobody has granted rights to.
+
+    - **So KSE-100 reads in three segments, and the manifest says so in those words.**
+      2018-01-01 to 2021-02-23: available, licence unverified, quarantined. 2021-02-24 to
+      2021-10-14: no compliant source. 2021-10-15 to 2026-10-14: acquired, 1,239 observations,
+      private use only.
+
+    - **Two durable-file findings worth keeping.** `DCOILWTICO` carries one non-positive value,
+      **-36.98 on 2020-04-20**, which is the day WTI settled negative -- real history. The delisted
+      archive carries **369 rows where the exchange published open=high=low on a thin session**
+      against a differently computed close (BHAT 2022-09-23: 1150/1150/1150 on twenty shares, close
+      1112.32), concentrated in BHAT, STML, PHDL and PMPK. They are the exchange's own values and
+      are preserved verbatim; a consumer computing a range must drop the range and keep the close,
+      which is what `acquire.py` already does for thin futures sessions.
+
+    - **A verifier that reads one file shape will invent problems in another.** The first run of
+      `verify_durable` reported the delisted archive as having "24,592 duplicate dates" and a range
+      of "BHAT .. WHALE", because it read column zero as the date and that file is keyed
+      (symbol, date). It also called KSE-100's counts a mismatch because that manifest keeps them
+      under `validation`. Both were the checker's fault, not the data's, and a problem list that
+      cries wolf is worse than none.
+
+    - **Verdict: Milestone B stays blocked.** Seventeen durable artifacts verify, 17 of 17
+      checksums match, 971 tests pass, the backup is current. The unmet criterion is one:
+      **KSE-100 is not acquired to 2018-01-01 under a licence this project can rely on.**

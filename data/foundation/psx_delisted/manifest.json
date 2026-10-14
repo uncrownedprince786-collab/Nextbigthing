@@ -113,5 +113,15 @@
    "first": "2022-08-03",
    "last": "2023-12-27"
   }
+ },
+ "observations": 24613,
+ "first": "2018-01-01",
+ "last": "2026-10-14",
+ "distinctDates": 2160,
+ "dataQuality": {
+  "ohlcInconsistentRows": 369,
+  "blankOpenHighLowRows": 489,
+  "explanation": "the exchange publishes a single indicative trade as open=high=low on thin sessions -- BHAT 2022-09-23 prints 1150/1150/1150 on 20 shares against a 1112.32 close -- so the close sits outside its own range. These are the exchange own published values and are preserved verbatim rather than altered; a consumer computing a range must drop the range and keep the close, as tools/foundation/acquire.py does for thin futures sessions. A blank open/high/low is the exchange did-not-trade marker, already nulled by jobs/psx.read_day.",
+  "concentration": "BHAT 128, STML 116, PHDL 49, PMPK 34, MODAM 9, DAWH 4"
  }
 }

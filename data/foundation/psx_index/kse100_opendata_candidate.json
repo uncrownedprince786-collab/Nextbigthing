@@ -1,0 +1,133 @@
+{
+ "fetchedAt": "2026-10-14T23:39:03+00:00",
+ "sourceUrl": "https://opendata.com.pk/dataset/572570b3-2d4f-46f4-83e0-4d860bf71bff/resource/12071eb8-c3ee-4686-a3d3-f7b49fab502d/download/stock-exchange-kse-100pakistan.csv",
+ "resourcePage": "https://opendata.com.pk/dataset/572570b3-2d4f-46f4-83e0-4d860bf71bff/resource/12071eb8-c3ee-4686-a3d3-f7b49fab502d",
+ "httpStatus": 200,
+ "contentType": "text/csv",
+ "lastModified": "Sat, 03 Apr 2021 01:06:22 GMT",
+ "bytes": 250903,
+ "sha256Raw": "a3221e1d6e1095083597d8fed13fb3e64e74f6c5f4ae3c3b0af6c39802f19c3d",
+ "fields": [
+  "Date",
+  "Open",
+  "High",
+  "Low",
+  "Close",
+  "Change",
+  "Volume"
+ ],
+ "hasRealHighLow": true,
+ "observations": 3206,
+ "distinctDates": 3206,
+ "rejected": {
+  "unparseableDate": 0,
+  "missingField": 0,
+  "nonPositive": 1,
+  "ohlcInconsistent": 14,
+  "duplicateDate": 0
+ },
+ "first": "2008-02-22",
+ "last": "2021-02-23",
+ "psxEndpointRange": [
+  "2021-10-15",
+  "2026-10-14"
+ ],
+ "overlappingSessionsWithPsxEndpoint": 0,
+ "gapBetweenSources": "2021-02-23 .. 2021-10-15",
+ "coversFrozenStart": true,
+ "licence": {
+  "statedOnResourcePage": "No License Provided",
+  "consequence": "publicly downloadable, no grant of reuse. Held as an unverified candidate: the raw file is not committed and nothing is written to a production table. Clearing it is the owner's decision."
+ },
+ "crossCheckAgainstStoredConstituents": {
+  "method": "index daily direction against the median return of stored PSX constituents, which come from the exchange's closing files",
+  "sampled": 12,
+  "agreed": 9,
+  "detail": [
+   {
+    "date": "2019-01-01",
+    "indexPct": 2.09,
+    "marketMedianPct": 2.12,
+    "sameSign": true,
+    "constituents": 145
+   },
+   {
+    "date": "2019-03-04",
+    "indexPct": 0.45,
+    "marketMedianPct": 0.59,
+    "sameSign": true,
+    "constituents": 156
+   },
+   {
+    "date": "2019-05-03",
+    "indexPct": -1.08,
+    "marketMedianPct": -1.29,
+    "sameSign": true,
+    "constituents": 142
+   },
+   {
+    "date": "2019-07-10",
+    "indexPct": -0.04,
+    "marketMedianPct": 0.0,
+    "sameSign": false,
+    "constituents": 137
+   },
+   {
+    "date": "2019-09-17",
+    "indexPct": -0.08,
+    "marketMedianPct": 0.0,
+    "sameSign": false,
+    "constituents": 145
+   },
+   {
+    "date": "2019-11-18",
+    "indexPct": 2.0,
+    "marketMedianPct": 2.27,
+    "sameSign": true,
+    "constituents": 169
+   },
+   {
+    "date": "2020-01-17",
+    "indexPct": 0.28,
+    "marketMedianPct": 0.0,
+    "sameSign": true,
+    "constituents": 158
+   },
+   {
+    "date": "2020-03-19",
+    "indexPct": -1.29,
+    "marketMedianPct": -3.14,
+    "sameSign": true,
+    "constituents": 153
+   },
+   {
+    "date": "2020-05-29",
+    "indexPct": 0.53,
+    "marketMedianPct": 0.56,
+    "sameSign": true,
+    "constituents": 150
+   },
+   {
+    "date": "2020-07-30",
+    "indexPct": 0.81,
+    "marketMedianPct": 0.81,
+    "sameSign": true,
+    "constituents": 170
+   },
+   {
+    "date": "2020-10-01",
+    "indexPct": 0.08,
+    "marketMedianPct": -0.22,
+    "sameSign": false,
+    "constituents": 168
+   },
+   {
+    "date": "2020-12-07",
+    "indexPct": -0.23,
+    "marketMedianPct": -0.29,
+    "sameSign": true,
+    "constituents": 174
+   }
+  ]
+ }
+}

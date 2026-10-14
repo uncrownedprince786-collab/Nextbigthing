@@ -25,7 +25,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-DIRS = [ROOT / "data" / "foundation" / "benchmarks", ROOT / "data" / "foundation" / "sbp"]
+DIRS = [ROOT / "data" / "foundation" / "benchmarks",
+        ROOT / "data" / "foundation" / "sbp",
+        ROOT / "data" / "foundation" / "psx_index",
+        ROOT / "data" / "foundation" / "psx_delisted"]
 
 
 def read_csv_any(path: Path) -> tuple[list[str], list[list[str]]]:
@@ -37,6 +40,12 @@ def read_csv_any(path: Path) -> tuple[list[str], list[list[str]]]:
 
 
 def check(path: Path, claim: dict) -> dict:
+    # A single-series manifest keeps its counts under "validation"; a multi-series one keeps them
+    # at the top level. Read whichever this file uses before comparing anything.
+    v = claim.get("validation")
+    if isinstance(v, dict):
+        claim = {**claim, "observations": v.get("distinctDates", claim.get("observations")),
+                 "first": v.get("first"), "last": v.get("last")}
     raw = path.read_bytes()
     got = {"file": path.name, "exists": True, "bytes": len(raw),
            "sha256Matches": hashlib.sha256(raw).hexdigest() == claim.get("sha256")}
@@ -44,12 +53,17 @@ def check(path: Path, claim: dict) -> dict:
     got["header"] = header
     got["rows"] = len(rows)
     got["rowsMatchManifest"] = len(rows) == claim.get("observations")
-    dates = [r[0] for r in rows]
+    # The date is not always the first column: the delisted file is keyed (symbol, date), so
+    # reading column 0 as a date turns 24,613 bars into "24,592 duplicate dates" and a range of
+    # "BHAT .. WHALE". Find the column by name.
+    di = header.index("date") if "date" in header else 0
+    dates = [r[di] for r in rows]
     got["distinctDates"] = len(set(dates))
     # A multi-series file repeats a date once per series; a single-series file must not.
-    series_col = 1 if "series_key" in header else None
+    series_col = (header.index("series_key") if "series_key" in header else
+                  (header.index("symbol") if "symbol" in header else None))
     if series_col is not None:
-        pairs = Counter((r[0], r[series_col]) for r in rows)
+        pairs = Counter((r[di], r[series_col]) for r in rows)
         got["duplicateDateSeriesPairs"] = sum(1 for v in pairs.values() if v > 1)
         got["seriesInFile"] = len({r[series_col] for r in rows})
     else:
@@ -104,9 +118,13 @@ def main() -> None:
             report["problems"].append(f"{d.name}: no manifest")
             continue
         man = json.loads(mpath.read_text("utf-8"))
-        report["manifests"][d.name] = {"series": len(man["series"]),
+        # Two shapes in use: a manifest of many series, and a manifest that *is* one series.
+        series = man.get("series") if isinstance(man.get("series"), dict) else None
+        if series is None:
+            series = {man.get("series") or d.name: man}
+        report["manifests"][d.name] = {"series": len(series),
                                        "generatedAt": man.get("generatedAt")}
-        for key, claim in man["series"].items():
+        for key, claim in series.items():
             p = d / claim["file"]
             if not p.exists():
                 report["problems"].append(f"{key}: {claim['file']} missing")

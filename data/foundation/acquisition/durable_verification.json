@@ -1,5 +1,5 @@
 {
- "verifiedAt": "2026-10-14T23:10:24+00:00",
+ "verifiedAt": "2026-10-14T23:41:00+00:00",
  "files": {
   "^GSPC": {
    "file": "GSPC.csv.gz",
@@ -435,6 +435,67 @@
    ],
    "claimedName": "Structure of Interest Rates: KIBORs and KIBIDs",
    "basis": "interbank bid and offer rates by tenor; not the policy rate"
+  },
+  "KSE100": {
+   "file": "KSE100.csv",
+   "exists": true,
+   "bytes": 52930,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "open",
+    "close",
+    "volume"
+   ],
+   "rows": 1239,
+   "rowsMatchManifest": true,
+   "distinctDates": 1239,
+   "duplicateDates": 0,
+   "first": "2021-10-15",
+   "last": "2026-10-14",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    38342.21,
+    189166.82
+   ],
+   "claimedName": "KSE-100 index, daily close",
+   "basis": "index level as published by the exchange; not a total-return index"
+  },
+  "psx_delisted": {
+   "file": "psx_delisted_history.csv.gz",
+   "exists": true,
+   "bytes": 287782,
+   "sha256Matches": true,
+   "header": [
+    "symbol",
+    "date",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume"
+   ],
+   "rows": 24613,
+   "rowsMatchManifest": true,
+   "distinctDates": 2160,
+   "duplicateDateSeriesPairs": 0,
+   "seriesInFile": 21,
+   "first": "2018-01-01",
+   "last": "2026-10-14",
+   "rangeMatchesManifest": true,
+   "datesSorted": false,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    0.4,
+    4004.44
+   ],
+   "ohlcViolations": 370,
+   "claimedName": null,
+   "basis": "raw as-traded OHLCV, the same basis as the stored PSX series"
   }
  },
  "manifests": {
@@ -445,10 +506,19 @@
   "sbp": {
    "series": 2,
    "generatedAt": "2026-10-14T22:57:48+00:00"
+  },
+  "psx_index": {
+   "series": 1,
+   "generatedAt": "2026-10-14T23:28:43+00:00"
+  },
+  "psx_delisted": {
+   "series": 1,
+   "generatedAt": "2026-10-14T23:15:39+00:00"
   }
  },
  "problems": [
-  "DCOILWTICO: 1 non-positive values"
+  "DCOILWTICO: 1 non-positive values",
+  "psx_delisted: 370 OHLC violations"
  ],
  "distinctInstrumentCheck": {
   "method": "sha256 of the first 400 (date, first value) pairs of each file",
