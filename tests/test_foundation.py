@@ -466,6 +466,49 @@ class Assembly(unittest.TestCase):
         import assemble
         self.assertEqual(assemble.setups_for_year(None, {}, 2020), {})
 
+    def test_the_setup_join_is_reconciled_like_the_feature_join(self):
+        """A bare coverage ratio is not a reconciliation. Every eligible session without a setup
+        must carry a named reason, and setupUnexplained must be zero or the run fails."""
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            self.make(root)
+            rc, m = self.run_main(root)
+            self.assertEqual(rc, 0)
+            self.assertEqual(m["withoutSetup"], m["eligibleAssetSessions"] - m["withReplayedSetup"])
+            self.assertEqual(sum(m["withoutSetupByReason"].values()), m["withoutSetup"])
+            self.assertEqual(m["setupUnexplained"], 0)
+
+    def test_the_leakage_block_reports_a_scan_not_a_literal(self):
+        """futureNamedFields used to be a hardcoded 0, which is not evidence of anything."""
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            self.make(root)
+            _, m = self.run_main(root)
+            self.assertNotIn("futureNamedFields", m["leakage"])
+            self.assertGreater(m["leakage"]["futureNamedFieldScan"]["rowsChecked"], 0)
+
+    def test_an_action_poisons_every_later_session_not_just_a_window(self):
+        """The analog pool is the asset's whole history, so a window-sized flag misses sessions
+        years after the action whose match pool still contains it."""
+        import assemble
+        from datetime import date as _d
+        stats = __import__("collections").Counter()
+        days = sessions(900, _d(2020, 1, 1))
+        rows = [{"asOf": d, "assetId": "id1", "symbol": "AAA", "assetType": "stock",
+                 "market": "US", "outcome": {"fwd20": 1.0}} for d in days]
+        actions = {"AAA": [days[100]]}
+        out = list(assemble.assemble_year(2020, rows, None, {}, stats, actions, set()))
+        flagged = {r["asOf"] for r in out if r["dataQuality"]["unadjustedActionInWindow"]}
+        # Every session from the action onward: its analog pool can contain the fabricated move.
+        for d in days[100:]:
+            self.assertIn(d, flagged, f"{d} is after the action and was not flagged")
+        # Plus sessions shortly BEFORE it, whose 20-session outcome window crosses it. That is the
+        # window rule still doing its own job, so the total is larger than the tail alone.
+        self.assertGreater(len(flagged), len(days) - 100)
+        self.assertNotIn(days[0], flagged, "a session long before the action is not affected")
+        self.assertTrue(out[-1]["dataQuality"]["unadjustedActionInWindow"],
+                        "a session two years after the action still draws on a poisoned pool")
+
     def test_missingness_is_reported_per_factor(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t)

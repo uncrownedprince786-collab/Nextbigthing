@@ -122,7 +122,7 @@ def setups_for_year(replay: Path | None, runs: dict, year: int) -> dict[tuple, d
 
 
 def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setups: dict, stats: dict,
-                  actions: dict[str, list[str]] | None = None):
+                  actions: dict[str, list[str]] | None = None, replayed_dates: set | None = None):
     pit: dict[tuple, dict] = {}
     if pit_path and pit_path.exists():
         for r in read_gz(pit_path):
@@ -146,7 +146,21 @@ def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setup
         cls = r["assetType"]
         stats["eligible"] += 1
         stats[f"eligible:{cls}"] += 1
-        suspect = False
+        # Two different reaches, because two different things read the prices.
+        #
+        # Every windowed factor is computed from bars[t-259 .. t], so an action outside that window
+        # cannot touch it -- the calendar bound below is correct and conservative for those.
+        #
+        # The analog block is not windowed. AnalogSeries.at draws its match pool from the asset's
+        # ENTIRE stored history and computes each forward move on raw closes, so a session years
+        # after an action still matches against candidate days whose forward move is the
+        # fabricated one. Those rows were unflagged, passed the evaluator's filter, and fed the
+        # analog rule. Any session at or after an asset's first action is therefore suspect too.
+        first_action = (actions or {}).get(r["symbol"], ())
+        if first_action and r["asOf"] >= min(first_action):
+            stats["rowsWithAPoisonedAnalogPool"] += 1
+            stats[f"analogpool:{cls}"] += 1
+        suspect = bool(first_action) and r["asOf"] >= min(first_action)
         for ad in (actions or {}).get(r["symbol"], ()):
             # Calendar days as a safe over-estimate of the session window: 260 sessions is about
             # 378 calendar days, 20 is about 29. Over-flagging is the right direction here.
@@ -199,19 +213,29 @@ def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setup
             stats["withSetup"] += 1
             if s.get("periodEnd") and s["periodEnd"] > r["asOf"]:
                 stats["leakSetupAfterSession"] += 1
+        else:
+            # The setup join gets the same accounting as the feature join. Without this the
+            # manifest reported a bare setupCoverage ratio and the exit gate could not see a
+            # missing setup at all -- the pipeline's own standard applied to one join and
+            # silently dropped for the other.
+            if replayed_dates is not None and r["asOf"] not in replayed_dates:
+                stats["noSetup:session is outside the replayed range"] += 1
+            else:
+                stats["noSetup:the replay produced no setup for this asset on this session"] += 1
+            stats["noSetup"] += 1
         if p is not None and s is not None:
             stats["withBoth"] += 1
         yield row
     stats["pitRowsNotInFull"] += len(set(pit) - seen)
 
 
-def build_year(year, full_rows, pit_path, setups, out_dir: Path | None, actions=None):
+def build_year(year, full_rows, pit_path, setups, out_dir: Path | None, actions=None, replayed_dates=None):
     stats = Counter()
     h = hashlib.sha256()
     n = 0
     fh = gzip.open(out_dir / f"examples-v3-{year}.jsonl.gz", "wt", encoding="utf-8", compresslevel=6) if out_dir else None
     batch = []
-    for row in assemble_year(year, full_rows, pit_path, setups, stats, actions):
+    for row in assemble_year(year, full_rows, pit_path, setups, stats, actions, replayed_dates):
         line = json.dumps(row, separators=(",", ":"), default=str)
         h.update(line.encode())
         n += 1
@@ -222,6 +246,7 @@ def build_year(year, full_rows, pit_path, setups, out_dir: Path | None, actions=
     if fh:
         fh.close()
     assert_features_are_past_only(batch)
+    stats["futureNameChecked"] += len(batch)
     return stats, h.hexdigest(), n
 
 
@@ -246,11 +271,14 @@ def main() -> int:
 
     total, digests, counts = Counter(), {}, {}
     first_year = min(by_year)
+    replayed_dates = set()
+    for y in sorted(by_year):
+        replayed_dates |= {d for (_a, d) in setups_for_year(replay, runs, y)}
     actions = unadjusted_windows(Path(arg("--actions")) if arg("--actions") else
                                  ROOT / "data" / "foundation" / "price_verification" / "unadjusted_actions.json")
     for y in sorted(by_year):
         stats, digest, n = build_year(y, by_year[y], pit_dir / f"pit-{y}.jsonl.gz",
-                                      setups_for_year(replay, runs, y), out, actions)
+                                      setups_for_year(replay, runs, y), out, actions, replayed_dates)
         total.update(stats)
         digests[y], counts[y] = digest, n
         print(f"  {y}: {n:,} rows, features on {stats['withPit']:,}, setups on {stats['withSetup']:,}", flush=True)
@@ -259,7 +287,7 @@ def main() -> int:
     # Reproducibility: the first year again, digests must match byte for byte.
     again_rows = [need(r) for r in read_gz(full_file) if int(r["asOf"][:4]) == first_year]
     _, d2, _ = build_year(first_year, again_rows, pit_dir / f"pit-{first_year}.jsonl.gz",
-                          setups_for_year(replay, runs, first_year), None, actions)
+                          setups_for_year(replay, runs, first_year), None, actions, replayed_dates)
 
     no_feature_reasons = {k.split(":", 1)[1]: v for k, v in total.items() if k.startswith("noPit:")}
     explained = total["withPit"] + total["noPit"] - no_feature_reasons.get("other", 0)
@@ -272,6 +300,9 @@ def main() -> int:
         "withPointInTimeFeatures": total["withPit"], "withoutFeatures": total["noPit"],
         "withoutFeaturesByReason": no_feature_reasons,
         "withReplayedSetup": total["withSetup"], "withBoth": total["withBoth"],
+        "withoutSetup": total["noSetup"],
+        "withoutSetupByReason": {k.split(":", 1)[1]: v for k, v in total.items() if k.startswith("noSetup:")},
+        "setupUnexplained": total["noSetup"] - sum(v for k, v in total.items() if k.startswith("noSetup:")),
         "withAnalog": total["withAnalog"],
         "unexplained": total["eligible"] - explained,
         "featureCoverage": round(total["withPit"] / max(1, total["eligible"]), 4),
@@ -279,14 +310,25 @@ def main() -> int:
         "byAssetClass": {c: {"eligible": total[f"eligible:{c}"], "withFeatures": total[f"pit:{c}"]} for c in cls_names},
         "featureRowsNotInOutcomes": total["pitRowsNotInFull"],
         "duplicates": {"outcomes": total["fullDuplicates"], "features": total["pitDuplicates"]},
+        # futureNamedFields was a hardcoded 0 and therefore not evidence of anything. The real
+        # guard is assert_features_are_past_only, which raises rather than counting, and it is run
+        # over a bounded sample per year -- so what is reported is the sample size, not a zero.
         "leakage": {"featureDatedAfterSession": total["leakPitAfterSession"],
-                    "setupDatedAfterSession": total["leakSetupAfterSession"], "futureNamedFields": 0},
+                    "setupDatedAfterSession": total["leakSetupAfterSession"],
+                    "futureNamedFieldScan": {"rowsChecked": total["futureNameChecked"],
+                                             "raises": "assert_features_are_past_only",
+                                             "note": "the scan raises on a hit; a clean run means no hit in the rows checked"}},
         "missingnessByAssetClass": null_share,
         "dataQuality": {
             "unadjustedActionsKnown": sum(len(v) for v in actions.values()),
             "symbolsWithAnUnadjustedAction": len(actions),
             "rowsTouchingOne": total["rowsTouchingAnUnadjustedAction"],
             "rowsTouchingOneByClass": {c: total[f"suspect:{c}"] for c in cls_names},
+            "rowsWithAPoisonedAnalogPool": total["rowsWithAPoisonedAnalogPool"],
+            "rowsWithAPoisonedAnalogPoolByClass": {c: total[f"analogpool:{c}"] for c in cls_names},
+            "analogPoolNote": ("the analog match pool is the asset's whole history, not a window, "
+                               "so every session at or after an asset's first unadjusted action is "
+                               "flagged -- a window-sized flag would miss them"),
             "rowsWithANonDailyWindow": total["rowsWithANonDailyWindow"],
             "rowsWithANonDailyWindowByClass": {c: total[f"sparse:{c}"] for c in cls_names},
             "nonDailyNote": ("the stored PSX history holds about 12 dates a year before 2024 and "
@@ -298,7 +340,15 @@ def main() -> int:
         },
         "rowsByYear": counts, "sha256ByYear": digests,
         "reproducible": {"year": first_year, "match": digests[first_year] == d2},
-        "inputs": {"full": full_file.name, "pitFiles": sorted(p.name for p in pit_dir.glob("pit-*.jsonl.gz")),
+        # The feature build's own manifest, carried through rather than a list of bare filenames.
+        # With 30-day artifact retention and nothing committed, a name alone does not let a later
+        # reader get back to the build the dataset was made from.
+        "inputs": {"full": full_file.name,
+                   "pitManifest": (json.loads((pit_dir / "manifest.json").read_text(encoding="utf-8"))
+                                   if (pit_dir / "manifest.json").exists() else "absent"),
+                   "fullHistoryManifest": next((json.loads(q.read_text(encoding="utf-8"))
+                                                for q in sorted(full_dir.glob("manifest-full-v*.json"))), "absent"),
+                   "pitFiles": sorted(p.name for p in pit_dir.glob("pit-*.jsonl.gz")),
                    "replayRuns": sorted(k for k, v in runs.items() if v.get("trusted")) if replay else []},
         "resources": {"seconds": round(time.time() - t0, 1),
                       "peakRssMB": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1) if resource else None},
@@ -310,8 +360,10 @@ def main() -> int:
     }
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
     print(f"::notice title=dataset assembly::{json.dumps({k: v for k, v in manifest.items() if k not in ('sha256ByYear', 'missingnessByAssetClass', 'inputs', 'limitations')})}")
-    ok = (manifest["unexplained"] == 0 and manifest["reproducible"]["match"]
-          and not manifest["leakage"]["featureDatedAfterSession"] and not manifest["leakage"]["setupDatedAfterSession"])
+    ok = (manifest["unexplained"] == 0 and manifest["setupUnexplained"] == 0
+          and manifest["reproducible"]["match"]
+          and not manifest["leakage"]["featureDatedAfterSession"]
+          and not manifest["leakage"]["setupDatedAfterSession"])
     return 0 if ok else 1
 
 

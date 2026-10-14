@@ -52,6 +52,10 @@ jobs:
           # newest point-in-time features
           pit="$(awk -F'\t' '$2 ~ /^nbt-pit-features-/' list.tsv | sort -t"$(printf '\t')" -k3 | tail -1 | cut -f1)"
           [ -n "$pit" ] || { echo "no nbt-pit-features artifact: run data-pit-features first"; exit 1; }
+          # Which feature artifact this dataset was built from, named in the clear. The step used
+          # to print only a file count, so the dataset could not be traced back to its input.
+          echo "feature artifact id $pit"
+          echo "::notice title=assembly inputs::{\"pitArtifactId\": \"$pit\"}"
           gh api "repos/${{ github.repository }}/actions/artifacts/$pit/zip" > sealed/pit.zip
           # every replay output
           awk -F'\t' '$2 ~ /^nbt-worker-output-/ {print $1" "$2}' list.tsv | while read id name; do
@@ -176,6 +180,9 @@ jobs:
           # These two write into the checkout rather than an output directory, so they would
           # otherwise survive only as the summary in their annotation.
           cp data/foundation/price_verification/unadjusted_actions.json bundle/reports/ 2>/dev/null || true
+          # The two input manifests, so the sealed dataset carries its own provenance.
+          cp pit/manifest.json bundle/reports/pit-manifest.json 2>/dev/null || true
+          cp full/manifest-full-v*.json bundle/reports/ 2>/dev/null || true
           cp data/foundation/survivorship/report.json bundle/reports/survivorship.json 2>/dev/null || true
           [ -n "$(ls -A bundle 2>/dev/null)" ] && tar -czf - -C bundle . | openssl enc -aes-256-cbc \
             -pbkdf2 -iter 200000 -salt -pass env:KEY -out sealed-out/dataset.tar.gz.enc || true
