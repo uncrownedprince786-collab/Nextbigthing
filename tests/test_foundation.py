@@ -402,6 +402,43 @@ class Assembly(unittest.TestCase):
             self.assertEqual(rc, 1)
             self.assertTrue(m["duplicates"]["features"] or m["unexplained"], "a misdated feature row must surface as a duplicate or an unexplained session")
 
+    def test_the_setup_join_prefers_the_newest_trusted_run(self):
+        """Two runs replayed the same session. Only output from code matching the current replay
+        may be used, and of those the newest wins."""
+        import assemble
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            for run, state in (("100", "buy"), ("200", "short"), ("300", "wait")):
+                d = root / f"nbt-worker-output-{run}"
+                d.mkdir()
+                (d / "setups-2020-03-16.jsonl").write_text(
+                    json.dumps({"assetId": "id1", "periodEnd": "2020-03-16", "state": state}),
+                    encoding="utf-8")
+            runs = {"100": {"trusted": True}, "200": {"trusted": True}, "300": {"trusted": False}}
+            got = assemble.setups_for_year(root, runs, 2020)
+            self.assertEqual(got[("id1", "2020-03-16")]["state"], "short")   # 200, not the untrusted 300
+
+    def test_a_setup_carried_from_an_earlier_session_is_not_joined(self):
+        """A file named for one session can hold a row whose periodEnd is an earlier close, when
+        that asset did not trade. Joining it to this session's outcome would date it wrongly."""
+        import assemble
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            d = root / "nbt-worker-output-100"
+            d.mkdir()
+            (d / "setups-2020-03-16.jsonl").write_text(
+                json.dumps({"assetId": "fresh", "periodEnd": "2020-03-16", "state": "buy"}) + chr(10)
+                + json.dumps({"assetId": "stale", "periodEnd": "2020-03-13", "state": "short"}),
+                encoding="utf-8")
+            got = assemble.setups_for_year(root, {"100": {"trusted": True}}, 2020)
+            self.assertIn(("fresh", "2020-03-16"), got)
+            self.assertNotIn(("stale", "2020-03-16"), got)
+            self.assertNotIn(("stale", "2020-03-13"), got)
+
+    def test_no_replay_directory_means_no_setups_rather_than_an_error(self):
+        import assemble
+        self.assertEqual(assemble.setups_for_year(None, {}, 2020), {})
+
     def test_missingness_is_reported_per_factor(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t)
