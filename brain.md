@@ -4452,3 +4452,75 @@ reads rows that already exist:
       Coinbase's own floor of 2015-07-20 was confirmed by the venue returning nothing earlier.
       The manifest is `data/foundation/acquisition/manifest.json`, version
       `acquisition-manifest-v2`.
+
+133. **KIBOR and the SBP policy rate were never unavailable — they were behind a form submit, and
+    two earlier entries said otherwise.** 2026-10-15, Phase 3 data foundation. No production
+    database change: this entry adds 138,588 benchmark observations and 93,339 SBP observations to
+    the project's data files, and `PriceSnapshot` ends where it started at 1,097,458 rows and
+    387 MB.
+
+    - **The correction.** Rules 130 and 132 recorded KIBOR, the SBP policy rate and KSE-100 as
+      having no reachable history. For two of the three that was wrong, and the reason is worth
+      keeping: the search stopped at pages that render data, and the data is published through
+      SBP's EasyData portal, an Oracle APEX application whose series page carries a **"Download
+      Available Series"** button. That button is an ordinary page submit, not an API, so nothing
+      that reads HTML could ever find it.
+
+    - **What it took, and the three mistakes on the way.** The submit posts the page's own form to
+      `wwv_flow.accept`. APEX 19.2 protects page items with per-item checksums, and the three
+      fields that decide acceptance -- `pPageItemsProtected`, `pSalt`, `pPageItemsRowVersion` --
+      carry an `id` and **no** `name`, so looking them up by name found none and the portal replied
+      "Page protection violation". Past that, the submit answers 302 to the file, and gives that
+      Location as `http://`: following it as issued is a protocol downgrade the site's edge answers
+      403 to. Following it by hand through a *second* opener then produced "Your session has
+      expired", because a second opener means a second cookie jar. One opener, redirect captured
+      only at the submit, forced to https: `application/excel`, `data_series.csv`.
+
+    - **What came back.** **KIBOR: 93,300 observations across 18 series** -- bid and offer at 1W,
+      2W, 1M, 3M, 6M, 9M and 12M -- **from 2005-06-09 to 2026-10-14**, which is a fortnight later
+      than the range this task quoted, so the source had moved on rather than stopped. **The SBP
+      policy rate: 39 effective-dated observations from 2015-05-25 to 2026-04-28**, which is the
+      whole series: it prints only when the rate changes. Zero unparseable rows in either. A
+      dataset downloads through page 213 and a single series through page 222 -- the same submit,
+      a different page.
+
+    - **KSE-100 is still not published anywhere permitted, and the list is now specific.** EasyData's
+      own search for "KSE" returns **No Data Found** -- the portal carries SBP and PBS statistics,
+      not exchange index levels. From the exchange's own origin, `/timeseries/eod/KSE100`,
+      `/timeseries/int/KSE100` and `/timeseries/INDEX/KSE100` all answer **404**, while
+      `/indices/KSE100` answers 200 with the **constituent list** and no history. Add the seven
+      Yahoo spellings, every closing file from 2018 to 2026 (KSE30 *futures* rows, never an index
+      level) and stooq's JavaScript wall. The current level is captured; the history is not
+      published free.
+
+    - **The four dates the sweep could not classify, settled.** 2,171 published plus 119 silent is
+      2,290, not 2,294. Two dates -- **2018-07-19 and 2021-02-09** -- are served as **HTTP 200 with
+      a zero-byte body**, confirmed by a direct re-request; two -- **2023-05-17 and 2023-05-18** --
+      unpack to an archive with no rows. Against the independent provider, 2018-07-19 was not a
+      trading day anywhere, while the other three were **real sessions the exchange's own archive
+      does not carry**, which is why those dates hold partial coverage from the Karachi listing and
+      no exchange bars at all.
+
+    - **The staged series are not in a cache any more.** `.cache` is gitignored and disposable, so
+      thirteen benchmark and macro series (138,588 observations, 1.3 MB) now live in
+      `data/foundation/benchmarks/` and the two SBP series in `data/foundation/sbp/`, each a CSV --
+      gzipped above 3,000 rows -- beside a manifest carrying the count, the range and a sha256.
+      That is the convention `data/foundation/macro/` already uses. **No `Asset` row was created for
+      any of them**: an index level is not a tradable instrument, and `PriceSnapshot` is what every
+      ranking, peer median and relative-strength figure in this project is computed over.
+
+    - **Coverage, with the denominator named.** Frozen target series **12 of 14**; historical
+      observation coverage **96.74%**; raw acquisition including staging **99.43%** (1,367,592 of
+      1,375,442); primary-store integrated **79.79%**, the gap being series that deliberately do
+      not belong in `PriceSnapshot`. The SBP policy rate is excluded from both sides of the ratio:
+      an irregular event series has no expected count to divide by, and including it would have
+      flattered the figure. An earlier build of this manifest read **107%** for exactly that
+      mistake.
+
+    - **Still ahead, and not to be dropped.** This closes frozen market and macro data collection.
+      Milestone B is the cleaning and point-in-time integrity pass. After it, still required as
+      training data and not yet begun: **historical news and original documents, the major crash
+      and bull-run timelines, pre-event information, catalysts, and post-event market reactions.**
+      The dataset rebuild (`data-pit-features.yml`, `data-assemble.yml`) also still needs an
+      authenticated runner, and the 38,246 basis-conflicting Karachi bars remain staged, largely
+      superseded by raw exchange bars for the same dates.

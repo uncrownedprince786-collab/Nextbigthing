@@ -1,0 +1,184 @@
+{
+ "generatedAt": "2026-10-14T23:01:08+00:00",
+ "note": "index levels and macro rates, kept out of PriceSnapshot on purpose: they are not tradable instruments and an Asset row would change what that table means",
+ "series": {
+  "^GSPC": {
+   "name": "S&P 500 index",
+   "basis": "price index (not total return)",
+   "source": "Yahoo Finance chart API",
+   "currency": "USD",
+   "instrumentType": "INDEX",
+   "rejectedBySource": {},
+   "file": "GSPC.csv.gz",
+   "observations": 24814,
+   "first": "1927-12-30",
+   "last": "2026-10-14",
+   "bytesOnDisk": 357600,
+   "sha256": "5cb3f6abcf487e6910b7c8ec5496276b32f63a0199734557d133df6f4f5321e9"
+  },
+  "^SP500TR": {
+   "name": "S&P 500 total return index",
+   "basis": "total return (dividends reinvested) -- a different series from ^GSPC, kept separate and never substituted for it",
+   "source": "Yahoo Finance chart API",
+   "currency": "USD",
+   "instrumentType": "INDEX",
+   "rejectedBySource": {},
+   "file": "SP500TR.csv.gz",
+   "observations": 9769,
+   "first": "1988-01-04",
+   "last": "2026-10-14",
+   "bytesOnDisk": 128241,
+   "sha256": "244a8f31e4d03e2e0007d6cbbd197a7955dec43591f53e34530eb1bbb6a52c48"
+  },
+  "^VIX": {
+   "name": "CBOE volatility index",
+   "basis": "calculated index level, volume always 0",
+   "source": "Yahoo Finance chart API",
+   "currency": "USD",
+   "instrumentType": "INDEX",
+   "rejectedBySource": {
+    "noClose": 331
+   },
+   "file": "VIX.csv.gz",
+   "observations": 9266,
+   "first": "1990-01-02",
+   "last": "2026-10-14",
+   "bytesOnDisk": 124988,
+   "sha256": "655e71a9edd13204294606178777bcfd3acb99d33a5c4951cb1f78841aff7bee"
+  },
+  "DX-Y.NYB": {
+   "name": "ICE US Dollar Index (DXY)",
+   "basis": "price index against six currencies; NOT the Federal Reserve's broad trade-weighted index (DTWEXBGS), which is held separately",
+   "source": "Yahoo Finance chart API",
+   "currency": "USD",
+   "instrumentType": "INDEX",
+   "rejectedBySource": {
+    "noClose": 3122
+   },
+   "file": "DX-Y.NYB.csv.gz",
+   "observations": 14164,
+   "first": "1971-01-04",
+   "last": "2026-10-14",
+   "bytesOnDisk": 164206,
+   "sha256": "88c009c7aef79cbadaab80876f910d864f37219740df44795c44bf02cb09d56c"
+  },
+  "GC=F": {
+   "name": "Gold continuous future",
+   "basis": "continuous front-month future, not spot",
+   "source": "Yahoo Finance chart API",
+   "currency": "USD",
+   "instrumentType": "FUTURE",
+   "rejectedBySource": {
+    "noClose": 83,
+    "ohlcInconsistentWithCloseKeptCloseOnly": 441
+   },
+   "file": "GC_F.csv.gz",
+   "observations": 6556,
+   "first": "2000-08-30",
+   "last": "2026-10-14",
+   "bytesOnDisk": 94353,
+   "sha256": "b9d15d7eba886af1ed3d06eedb52f64de3e21059a40bb753578c779160482beb"
+  },
+  "BZ=F": {
+   "name": "Brent crude continuous future",
+   "basis": "continuous front-month future, not spot",
+   "source": "Yahoo Finance chart API",
+   "currency": "USD",
+   "instrumentType": "FUTURE",
+   "rejectedBySource": {
+    "ohlcInconsistentWithCloseKeptCloseOnly": 69,
+    "noClose": 58
+   },
+   "file": "BZ_F.csv.gz",
+   "observations": 4782,
+   "first": "2007-07-30",
+   "last": "2026-10-14",
+   "bytesOnDisk": 82375,
+   "sha256": "d8b4a03b3ad0fcce2e7c994201cf34fc5d674f76dfec360c1984f89042d8146b"
+  },
+  "DGS10": {
+   "name": "10-year Treasury yield",
+   "basis": "published macro observation",
+   "source": "FRED",
+   "sourceUrl": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10&cosd=1900-01-01",
+   "file": "DGS10.csv.gz",
+   "observations": 16180,
+   "first": "1962-01-02",
+   "last": "2026-10-13",
+   "bytesOnDisk": 59757,
+   "sha256": "5faa3f0033ef716a3a022ecd7b4517da75cc348d8f1a74f0c15abdb022251ab6"
+  },
+  "VIXCLS": {
+   "name": "CBOE volatility index",
+   "basis": "published macro observation",
+   "source": "FRED",
+   "sourceUrl": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS&cosd=1900-01-01",
+   "file": "VIXCLS.csv.gz",
+   "observations": 9294,
+   "first": "1990-01-02",
+   "last": "2026-10-13",
+   "bytesOnDisk": 42427,
+   "sha256": "cef5e4f236e3ee99198b4f3301237dd154c79f6653669a09e6f4346b06b43400"
+  },
+  "DTWEXBGS": {
+   "name": "Broad trade-weighted US dollar index (NOT DXY)",
+   "basis": "published macro observation",
+   "source": "FRED",
+   "sourceUrl": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DTWEXBGS&cosd=1900-01-01",
+   "file": "DTWEXBGS.csv.gz",
+   "observations": 5208,
+   "first": "2006-01-02",
+   "last": "2026-10-09",
+   "bytesOnDisk": 30059,
+   "sha256": "9069e95a62a8c9bddcac22fee68758c3559f3899cc3750382e18f67502d0b8e2"
+  },
+  "DFF": {
+   "name": "Effective federal funds rate",
+   "basis": "published macro observation",
+   "source": "FRED",
+   "sourceUrl": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFF&cosd=1900-01-01",
+   "file": "DFF.csv.gz",
+   "observations": 26403,
+   "first": "1954-07-01",
+   "last": "2026-10-13",
+   "bytesOnDisk": 76370,
+   "sha256": "d61a8fbb48c6882f47bf38a2b5e12967c8527036e3b24d4f2cc3db4371e8bc85"
+  },
+  "DCOILWTICO": {
+   "name": "WTI crude oil spot",
+   "basis": "published macro observation",
+   "source": "FRED",
+   "sourceUrl": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DCOILWTICO&cosd=1900-01-01",
+   "file": "DCOILWTICO.csv.gz",
+   "observations": 9517,
+   "first": "1986-01-02",
+   "last": "2026-10-06",
+   "bytesOnDisk": 45220,
+   "sha256": "d7d689fbcd2ede78ff09443f1236b3dada897e6a6e67ca0a0b32a32da118ddc4"
+  },
+  "BTC-USD.coinbase": {
+   "name": "Bitcoin daily, venue history before the stored series",
+   "basis": "exchange traded spot pair, raw",
+   "source": "Coinbase Exchange API",
+   "note": "kept per venue; two venues' prints of one day are two observations",
+   "file": "BTC-USD_coinbase.csv",
+   "observations": 1203,
+   "first": "2015-07-20",
+   "last": "2018-11-03",
+   "bytesOnDisk": 63592,
+   "sha256": "d0fda4a77cdaae386cd3878c3d05b2f6163fd40c605631ce80dd175e98f056fa"
+  },
+  "BTC-USD.bitstamp": {
+   "name": "Bitcoin daily, venue history before the stored series",
+   "basis": "exchange traded spot pair, raw",
+   "source": "Bitstamp API v2",
+   "note": "kept per venue; two venues' prints of one day are two observations",
+   "file": "BTC-USD_bitstamp.csv",
+   "observations": 1432,
+   "first": "2011-08-18",
+   "last": "2015-07-19",
+   "bytesOnDisk": 69600,
+   "sha256": "2fd658109eac5f683a8ea2a8f18b66e3bed836e6730580ce907b951854af3b06"
+  }
+ }
+}

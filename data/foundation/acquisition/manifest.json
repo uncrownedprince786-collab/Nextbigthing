@@ -1,7 +1,21 @@
 {
- "generatedAt": "2026-10-14T22:26:13+00:00",
- "version": "acquisition-manifest-v2",
+ "generatedAt": "2026-10-14T23:02:27+00:00",
+ "version": "acquisition-manifest-v3",
  "scope": "the frozen target only; no instrument or asset class was added beyond it",
+ "sweepDateReconciliation": {
+  "datesSettled": 2294,
+  "published": 2171,
+  "noAnswer": 119,
+  "notAnArchive": [
+   "2018-07-19",
+   "2021-02-09"
+  ],
+  "publishedButEmpty": [
+   "2023-05-17",
+   "2023-05-18"
+  ],
+  "explanation": "2,171 published + 119 silent = 2,290; the remaining four are two dates the exchange serves as HTTP 200 with a zero-byte body (2018-07-19, 2021-02-09, both re-requested directly and confirmed) and two whose archive unpacks to no rows (2023-05-17, 2023-05-18). Checked against the independent provider: 2018-07-19 was not a trading day anywhere, while the other three were real sessions the exchange's own archive does not carry."
+ },
  "sweep": {
   "datesSettled": 2294,
   "published": 2171,
@@ -92,9 +106,9 @@
  },
  "metrics": {
   "1_frozenTargetSeriesCoverage": {
-   "acquired": 10,
+   "acquired": 12,
    "targets": 14,
-   "pct": 71.4,
+   "pct": 85.7,
    "detail": {
     "S&P 500 price index": "acquired",
     "S&P 500 total return": "acquired",
@@ -107,9 +121,9 @@
     "Bitcoin earliest daily": "acquired",
     "PSX individual stocks": "acquired",
     "PSX renamed/delisted": "candidates identified",
-    "KSE-100": "unavailable",
-    "KIBOR history": "unavailable",
-    "SBP policy rate history": "unavailable"
+    "KIBOR history": "acquired",
+    "SBP policy rate history": "acquired",
+    "KSE-100": "unavailable"
    },
    "denominator": "the 14 frozen target items named in the brief"
   },
@@ -120,16 +134,19 @@
    "denominator": "market session dates inside each asset's own stored range, from gaps.json market calendars"
   },
   "3_rawAcquisitionCoverageIncludingStaged": {
-   "acquired": 1274292,
-   "expected": 1275182,
-   "pct": 99.93,
-   "denominator": "price sessions + benchmark/macro expected observations"
+   "acquired": 1367592,
+   "expected": 1375442,
+   "pct": 99.43,
+   "denominator": "price sessions + benchmark/macro expected observations + KIBOR business days x 18 series. The SBP policy rate is excluded from both sides: an irregular event series has no expected count to divide by",
+   "excludedAsUnmeasurable": {
+    "SBP_POLICY_RATE": 39
+   }
   },
   "4_primaryStoreIntegratedCoverage": {
    "integrated": 1097458,
-   "expected": 1275182,
-   "pct": 86.06,
-   "note": "benchmark and macro series are staged, not written; they have no Asset row"
+   "expected": 1375442,
+   "pct": 79.79,
+   "note": "benchmark, macro and SBP series are persisted as project data files rather than written to PriceSnapshot: an index level or a policy rate is not a tradable instrument and an Asset row would change what that table means"
   },
   "5_remainingUnresolved": {
    "psxInRangeGapsRemaining": 36762,
@@ -137,9 +154,16 @@
    "ofWhichSessionsTheSymbolDidNotTrade": 36762,
    "psxCoverageAgainstSessionsAPriceWasPublished": 1.0,
    "seriesWithNoReachableHistory": [
-    "KSE-100",
-    "KIBOR",
-    "SBP policy rate"
+    "KSE-100"
+   ],
+   "kse100SourcesTestedAndFailed": [
+    "SBP EasyData portal search for 'KSE': No Data Found (the portal carries SBP and PBS data, not exchange index levels)",
+    "dps.psx.com.pk /timeseries/eod/KSE100, /timeseries/int/KSE100, /timeseries/INDEX/KSE100: HTTP 404 from the exchange's own origin",
+    "dps.psx.com.pk/indices/KSE100: HTTP 200 but serves the constituent list, not history",
+    "dps.psx.com.pk/indices: current level only (165,417.50 captured)",
+    "Yahoo chart API: ^KSE, ^KSE100, KSE100.KA, ^KS100, KSE.KA, ^PSX, ^KSE11 all 404",
+    "PSX daily closing file, every session 2018-2026: KSE30 futures rows, no index level",
+    "stooq CSV: JavaScript challenge, re-verified"
    ],
    "psxWithheldStillStaged": 38246,
    "note": "a remaining gap is a market session on which that symbol published no traded price. Measured against sessions where a price actually exists, PSX acquisition is complete; gaps.json's denominator counts every market session for every in-range asset, which a thinly traded listing does not meet"
@@ -268,7 +292,7 @@
    "firstObservation": "1927-12-30",
    "lastObservation": "2026-10-14",
    "denominator": "US session calendar from 272 unrelated equities; weekdays x 251/261 before 2019",
-   "disposition": "ACQUIRED AND STAGED (no Asset row; integration is a Milestone B decision)",
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/benchmarks (no Asset row: an index level is not a tradable instrument)",
    "name": "S&P 500 index",
    "closeOnlyKept": 0
   },
@@ -286,7 +310,7 @@
    "firstObservation": "1988-01-04",
    "lastObservation": "2026-10-14",
    "denominator": "US session calendar from 272 unrelated equities; weekdays x 251/261 before 2019",
-   "disposition": "ACQUIRED AND STAGED (no Asset row; integration is a Milestone B decision)",
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/benchmarks (no Asset row: an index level is not a tradable instrument)",
    "name": "S&P 500 total return index",
    "closeOnlyKept": 0
   },
@@ -304,7 +328,7 @@
    "firstObservation": "1990-01-02",
    "lastObservation": "2026-10-14",
    "denominator": "US session calendar from 272 unrelated equities; weekdays x 251/261 before 2019",
-   "disposition": "ACQUIRED AND STAGED (no Asset row; integration is a Milestone B decision)",
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/benchmarks (no Asset row: an index level is not a tradable instrument)",
    "name": "CBOE volatility index",
    "closeOnlyKept": 0
   },
@@ -322,7 +346,7 @@
    "firstObservation": "1971-01-04",
    "lastObservation": "2026-10-14",
    "denominator": "US session calendar from 272 unrelated equities; weekdays x 251/261 before 2019",
-   "disposition": "ACQUIRED AND STAGED (no Asset row; integration is a Milestone B decision)",
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/benchmarks (no Asset row: an index level is not a tradable instrument)",
    "name": "ICE US Dollar Index (DXY)",
    "closeOnlyKept": 0
   },
@@ -340,7 +364,7 @@
    "firstObservation": "2000-08-30",
    "lastObservation": "2026-10-14",
    "denominator": "US session calendar from 272 unrelated equities; weekdays x 251/261 before 2019",
-   "disposition": "ACQUIRED AND STAGED (no Asset row; integration is a Milestone B decision)",
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/benchmarks (no Asset row: an index level is not a tradable instrument)",
    "name": "Gold continuous future",
    "closeOnlyKept": 441
   },
@@ -358,7 +382,7 @@
    "firstObservation": "2007-07-30",
    "lastObservation": "2026-10-14",
    "denominator": "US session calendar from 272 unrelated equities; weekdays x 251/261 before 2019",
-   "disposition": "ACQUIRED AND STAGED (no Asset row; integration is a Milestone B decision)",
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/benchmarks (no Asset row: an index level is not a tradable instrument)",
    "name": "Brent crude continuous future",
    "closeOnlyKept": 69
   },
@@ -376,7 +400,7 @@
    "firstObservation": "1962-01-02",
    "lastObservation": "2026-10-13",
    "denominator": "weekdays between first and last observation; US holidays carry no publication",
-   "disposition": "ACQUIRED AND STAGED at the series' own first observation",
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/benchmarks",
    "sourceUrl": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10&cosd=1900-01-01"
   },
   {
@@ -393,7 +417,7 @@
    "firstObservation": "1990-01-02",
    "lastObservation": "2026-10-13",
    "denominator": "weekdays between first and last observation; US holidays carry no publication",
-   "disposition": "ACQUIRED AND STAGED at the series' own first observation",
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/benchmarks",
    "sourceUrl": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS&cosd=1900-01-01"
   },
   {
@@ -410,7 +434,7 @@
    "firstObservation": "2006-01-02",
    "lastObservation": "2026-10-09",
    "denominator": "weekdays between first and last observation; US holidays carry no publication",
-   "disposition": "ACQUIRED AND STAGED at the series' own first observation",
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/benchmarks",
    "sourceUrl": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DTWEXBGS&cosd=1900-01-01"
   },
   {
@@ -427,7 +451,7 @@
    "firstObservation": "1954-07-01",
    "lastObservation": "2026-10-13",
    "denominator": "calendar days; this series publishes daily",
-   "disposition": "ACQUIRED AND STAGED at the series' own first observation",
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/benchmarks",
    "sourceUrl": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFF&cosd=1900-01-01"
   },
   {
@@ -444,7 +468,7 @@
    "firstObservation": "1986-01-02",
    "lastObservation": "2026-10-06",
    "denominator": "weekdays between first and last observation; US holidays carry no publication",
-   "disposition": "ACQUIRED AND STAGED at the series' own first observation",
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/benchmarks",
    "sourceUrl": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DCOILWTICO&cosd=1900-01-01"
   },
   {
@@ -477,7 +501,7 @@
    "firstObservation": "2015-07-20",
    "lastObservation": "2018-11-03",
    "denominator": "calendar days; the venue trades every day",
-   "disposition": "ACQUIRED AND STAGED"
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/benchmarks"
   },
   {
    "series": "BTC/USD 2011-08-18..2015-07-19",
@@ -493,7 +517,7 @@
    "firstObservation": "2011-08-18",
    "lastObservation": "2015-07-19",
    "denominator": "calendar days",
-   "disposition": "ACQUIRED AND STAGED; Bitstamp serves nothing earlier"
+   "disposition": "ACQUIRED AND PERSISTED; Bitstamp serves nothing earlier"
   },
   {
    "series": "PSX bars the exchange published and the database lacked",
@@ -536,6 +560,44 @@
    "outsideAStoredRange": 629
   },
   {
+   "series": "SBP_POLICY_RATE",
+   "category": "frozen macro",
+   "source": "State Bank of Pakistan EasyData portal (easydata.sbp.org.pk)",
+   "basis": "policy rate per annum, effective-dated; not an interbank rate",
+   "expectedObservations": null,
+   "acquiredObservations": 39,
+   "validInDurableStaging": 39,
+   "integratedInPrimaryStore": 0,
+   "invalidProviderRecordsRejected": 0,
+   "withheldOnBasisOrIdentity": 0,
+   "firstObservation": "2015-05-25",
+   "lastObservation": "2026-04-28",
+   "denominator": "one observation per policy decision that changed the rate",
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/sbp",
+   "seriesCount": null,
+   "file": "sbp_policy_rate.csv",
+   "sha256": "8454a934a668387e96ca0a685a0cb44e2801f42c8dce1f24bef62a9dd420f2d9"
+  },
+  {
+   "series": "KIBOR",
+   "category": "frozen macro",
+   "source": "State Bank of Pakistan EasyData portal (easydata.sbp.org.pk)",
+   "basis": "interbank bid and offer rates by tenor; not the policy rate",
+   "expectedObservations": null,
+   "acquiredObservations": 93300,
+   "validInDurableStaging": 93300,
+   "integratedInPrimaryStore": 0,
+   "invalidProviderRecordsRejected": 0,
+   "withheldOnBasisOrIdentity": 0,
+   "firstObservation": "2005-06-09",
+   "lastObservation": "2026-10-14",
+   "denominator": "business days on which the interbank fixing was published",
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/sbp",
+   "seriesCount": 18,
+   "file": "sbp_kibor.csv.gz",
+   "sha256": "619b0a03cada47854039182652edb5194563cf48c2385dca96214dcbcd1cee58"
+  },
+  {
    "series": "KSE-100 index",
    "category": "frozen target, history unavailable",
    "source": "Pakistan Stock Exchange, dps.psx.com.pk/indices",
@@ -556,58 +618,6 @@
     "dps.psx.com.pk/indices: current level only (165,417.50 captured)",
     "dps.psx.com.pk/historical, /daily-downloads: JavaScript shells",
     "stooq CSV: JavaScript challenge, re-verified"
-   ]
-  },
-  {
-   "series": "SBP policy rate",
-   "category": "frozen target, history unavailable",
-   "source": "State Bank of Pakistan, /our-operations/monetary-policy",
-   "basis": "policy rate, not an interbank rate",
-   "expectedObservations": null,
-   "acquiredObservations": 1,
-   "validInDurableStaging": 1,
-   "integratedInPrimaryStore": 0,
-   "invalidProviderRecordsRejected": 0,
-   "withheldOnBasisOrIdentity": 0,
-   "firstObservation": "2026-10-14",
-   "lastObservation": "2026-10-14",
-   "denominator": "UNMEASURABLE - no source reached publishes a dated history to count against",
-   "disposition": "UNRESOLVED for history; one dated observation captured",
-   "sourcesExhausted": [
-    "Yahoo chart API: 7 KSE symbol spellings return HTTP 404",
-    "PSX daily closing file 2018 and 2026: carries KSE30 futures, no index level",
-    "dps.psx.com.pk/indices: current level only",
-    "dps.psx.com.pk/historical and /daily-downloads: JavaScript shells",
-    "stooq CSV: JavaScript challenge, re-verified",
-    "sbp.org.pk kibor_index.asp / kibor_archive.asp / economic-data pages: JavaScript document search, per-day PDFs only",
-    "SBP EasyData: Oracle APEX 19.2, session-stateful URLs with checksums",
-    "sbp.org.pk IR-Corridor-Hist.xls: overnight repo amounts, not rates"
-   ]
-  },
-  {
-   "series": "KIBOR interbank rates",
-   "category": "frozen target, history unavailable",
-   "source": "State Bank of Pakistan, /ecodata/kibor_index.asp",
-   "basis": "interbank offered rate, not the policy rate",
-   "expectedObservations": null,
-   "acquiredObservations": 1,
-   "validInDurableStaging": 1,
-   "integratedInPrimaryStore": 0,
-   "invalidProviderRecordsRejected": 0,
-   "withheldOnBasisOrIdentity": 0,
-   "firstObservation": "2026-10-14",
-   "lastObservation": "2026-10-14",
-   "denominator": "UNMEASURABLE - no source reached publishes a dated history to count against",
-   "disposition": "UNRESOLVED for history; one dated observation captured",
-   "sourcesExhausted": [
-    "Yahoo chart API: 7 KSE symbol spellings return HTTP 404",
-    "PSX daily closing file 2018 and 2026: carries KSE30 futures, no index level",
-    "dps.psx.com.pk/indices: current level only",
-    "dps.psx.com.pk/historical and /daily-downloads: JavaScript shells",
-    "stooq CSV: JavaScript challenge, re-verified",
-    "sbp.org.pk kibor_index.asp / kibor_archive.asp / economic-data pages: JavaScript document search, per-day PDFs only",
-    "SBP EasyData: Oracle APEX 19.2, session-stateful URLs with checksums",
-    "sbp.org.pk IR-Corridor-Hist.xls: overnight repo amounts, not rates"
    ]
   }
  ]
