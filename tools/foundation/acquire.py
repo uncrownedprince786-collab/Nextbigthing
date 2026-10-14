@@ -33,7 +33,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -53,12 +53,25 @@ BROWSER = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 BENCHMARKS = {
     "^GSPC": {"name": "S&P 500 index", "basis": "price index (not total return)",
               "source": "Yahoo Finance chart API", "exchange": "SNP"},
+    "^SP500TR": {"name": "S&P 500 total return index",
+                 "basis": "total return (dividends reinvested) -- a different series from ^GSPC, "
+                          "kept separate and never substituted for it",
+                 "source": "Yahoo Finance chart API", "exchange": "SNP"},
     "^VIX": {"name": "CBOE volatility index", "basis": "calculated index level, volume always 0",
              "source": "Yahoo Finance chart API", "exchange": "CXI"},
-    "DX-Y.NYB": {"name": "ICE US Dollar Index (DXY)", "basis": "price index, ICE futures-based",
+    "DX-Y.NYB": {"name": "ICE US Dollar Index (DXY)",
+                 "basis": "price index against six currencies; NOT the Federal Reserve's broad "
+                          "trade-weighted index (DTWEXBGS), which is held separately",
                  "source": "Yahoo Finance chart API", "exchange": "NYB"},
+    "GC=F": {"name": "Gold continuous future", "basis": "continuous front-month future, not spot",
+             "source": "Yahoo Finance chart API", "exchange": "CMX"},
+    "BZ=F": {"name": "Brent crude continuous future",
+             "basis": "continuous front-month future, not spot",
+             "source": "Yahoo Finance chart API", "exchange": "NYM"},
 }
-FROM = date(2008, 1, 1)
+# The provider's own floor, not the project's: ask from before any of these series began and let
+# the first bar returned be the evidence of where the history actually starts.
+FROM = date(1900, 1, 1)
 
 
 def arg(name, default=None):
@@ -113,8 +126,14 @@ def validate_index(bars: list[dict]) -> tuple[list[dict], dict]:
         if None not in (o, h, l):
             o, h, l = float(o), float(h), float(l)
             if h < l or h < max(o, c) - 1e-6 or l > min(o, c) + 1e-6:
-                why["ohlcOutOfOrder"] += 1
-                continue
+                # Not corruption, and not a reason to lose the day. On thin early futures
+                # sessions Yahoo reports open=high=low as an indicative snapshot while the close
+                # is the exchange's settlement, so the close sits outside its own range: GC=F
+                # 2003-04-29 prints 333/333/333 against a 333.70 settlement. The close is a real
+                # price and the range is not, so the close is kept and the impossible range is
+                # dropped rather than stored or used to throw the observation away.
+                why["ohlcInconsistentWithCloseKeptCloseOnly"] += 1
+                o = h = l = None
         else:
             why["closeOnlyBarKept"] += 1
         if not (FROM.isoformat() <= b["d"] <= today):
@@ -135,11 +154,15 @@ def cmd_benchmarks() -> None:
     from nbt import get_json
     report = {}
     for sym, meta in BENCHMARKS.items():
-        p1 = int(datetime(FROM.year, FROM.month, FROM.day, tzinfo=timezone.utc).timestamp())
+        # Computed rather than taken from datetime.timestamp(): a pre-1970 instant is a negative
+        # epoch and Windows raises on it, which would have silently capped every series at 1970.
+        p1 = (FROM - date(1970, 1, 1)).days * 86400
         url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(sym)}"
                f"?period1={p1}&period2={int(time.time())}&interval=1d")
+        # The range belongs in the cache key. Without it, widening `FROM` returns the narrower
+        # payload a previous run cached and the series looks as though the provider starts there.
         j = get_json(url, ttl=24 * 3600, headers={"User-Agent": BROWSER}, timeout=40,
-                     cache_key=f"acquire:{sym}")
+                     cache_key=f"acquire:{sym}:{FROM.isoformat()}")
         res = (j or {}).get("chart", {}).get("result")
         if not res:
             report[sym] = {**meta, "acquired": False, "reason": "the provider returned no result"}
@@ -154,7 +177,10 @@ def cmd_benchmarks() -> None:
             seq = q.get(key) or []
             return seq[i] if i < len(seq) else None
 
-        bars = [{"d": datetime.fromtimestamp(t + off, timezone.utc).date().isoformat(),
+        # Arithmetic, not fromtimestamp: ^GSPC reaches back to 1927 and a pre-1970 epoch is
+        # negative, which raises OSError on Windows rather than returning the date.
+        epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+        bars = [{"d": (epoch + timedelta(seconds=t + off)).date().isoformat(),
                  "o": at("open", i), "h": at("high", i), "l": at("low", i),
                  "c": at("close", i), "v": at("volume", i)}
                 for i, t in enumerate(r.get("timestamp") or [])]
@@ -384,7 +410,176 @@ def cmd_observations() -> None:
     print(json.dumps(got, indent=1)[:1400])
 
 
-COMMANDS = {"benchmarks": cmd_benchmarks, "btc": cmd_btc, "psx-archive": cmd_psx_archive,
+def cmd_btc_early() -> None:
+    """Bitcoin daily before Coinbase's floor, from Bitstamp -- a venue this project already uses.
+
+    Coinbase's own earliest BTC-USD daily candle is 2015-07-20: the walk backwards returned 24
+    candles on its fifth page and nothing on its sixth, so that is the venue's floor and not a
+    budget's. Bitstamp has quoted the pair since 2011 and is already declared in `nbt.HOST_DELAY`,
+    which makes it the one permitted place to ask for the earlier history.
+
+    Kept in its own file under its own source. Two venues' prints for the same day are two
+    observations, not one, and merging them is a cleaning decision for the next milestone.
+    """
+    from nbt import get_json
+    floor = date(2015, 7, 20)
+    got: dict[str, dict] = {}
+    end = floor
+    for page in range(1, 20):
+        start = end - timedelta(days=950)
+        url = ("https://www.bitstamp.net/api/v2/ohlc/btcusd/?step=86400&limit=1000"
+               f"&start={(start - date(1970, 1, 1)).days * 86400}")
+        j = get_json(url, ttl=7 * 24 * 3600, timeout=40, cache_key=f"acquire:btcstamp:{start}")
+        rows = ((j or {}).get("data") or {}).get("ohlc") or []
+        if not rows:
+            print(f"  page {page}: no answer for {start} .. {end}")
+            break
+        kept = 0
+        for r in rows:
+            d = (datetime(1970, 1, 1, tzinfo=timezone.utc)
+                 + timedelta(seconds=int(r["timestamp"]))).date()
+            if d >= floor:
+                continue
+            if float(r["close"]) <= 0:
+                continue
+            got[d.isoformat()] = {"d": d.isoformat(), "o": float(r["open"]), "h": float(r["high"]),
+                                  "l": float(r["low"]), "c": float(r["close"]),
+                                  "v": float(r["volume"])}
+            kept += 1
+        print(f"  page {page}: {start} .. {end} -> {len(rows)} candles, {kept} before the floor",
+              flush=True)
+        if kept == 0:
+            break
+        end = start
+    bars = [got[k] for k in sorted(got)]
+    dump(STAGE / "btc_pre_2015_bitstamp.json",
+         {"product": "BTC/USD", "source": "Bitstamp API v2 ohlc",
+          "basis": "exchange traded spot pair, raw",
+          "coinbaseFloor": floor.isoformat(),
+          "fetchedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"), "bars": bars})
+    print(f"btc-early: {len(bars)} daily bars before {floor}"
+          + (f", {bars[0]['d']} .. {bars[-1]['d']}" if bars else ""))
+
+
+def cmd_fred() -> None:
+    """Re-pull the named FRED benchmarks from the series' own first observation, not from 2010.
+
+    The macro files were collected with `cosd=2010-01-01`, which is a choice the project made and
+    not the series' extent. The frozen target names the 10-year yield, so it is pulled from FRED's
+    own floor and staged beside -- not over -- the existing file.
+    """
+    from nbt import get
+    wanted = {"DGS10": "10-year Treasury yield", "VIXCLS": "CBOE volatility index",
+              "DTWEXBGS": "Broad trade-weighted US dollar index (NOT DXY)",
+              "DFF": "Effective federal funds rate", "DCOILWTICO": "WTI crude oil spot"}
+    out = {}
+    for sid, title in wanted.items():
+        url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}&cosd=1900-01-01"
+        raw = get(url, ttl=24 * 3600, timeout=60, cache_key=f"acquire:fred:{sid}")
+        if not raw:
+            out[sid] = {"title": title, "acquired": False, "reason": "no answer from FRED"}
+            print(f"  {sid:12} NO ANSWER")
+            continue
+        lines = raw.decode("utf-8", "replace").splitlines()
+        rows = []
+        for line in lines[1:]:
+            parts = line.split(",")
+            if len(parts) < 2 or parts[1].strip() in ("", "."):
+                continue
+            try:
+                rows.append({"d": parts[0].strip(), "v": float(parts[1])})
+            except ValueError:
+                continue
+        dump(STAGE / "fred" / f"{sid}.json",
+             {"series": sid, "title": title, "source": url,
+              "fetchedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+              "observations": rows})
+        out[sid] = {"title": title, "acquired": True, "observations": len(rows),
+                    "first": rows[0]["d"] if rows else None,
+                    "last": rows[-1]["d"] if rows else None, "source": url}
+        print(f"  {sid:12} {len(rows):6} observations  {rows[0]['d']} .. {rows[-1]['d']}")
+    dump(STAGE / "fred" / "_report.json", out)
+
+
+def cmd_psx_sweep() -> None:
+    """Every PSX session since 2018, from the exchange's own archive, with a durable per-date status.
+
+    The targeted run before this read 272 dates chosen for 23 symbols. That was the wrong shape for
+    the question: the exchange's file carries the whole market on every date, so one pass over the
+    calendar answers the Yahoo-404 names, the pad-rejected gaps, the 2018 history that predates the
+    stored series, the delisted names and the basis-divergent dates at once -- and at the raw basis
+    the stored series already uses, which is the one basis that needs no adjudication.
+
+    Nothing is parsed into a second copy here. `nbt.get` caches each archive on disk for a year and
+    `psx.read_day` reads through that same cache key, so the download is the persistence and every
+    later pass over it is free. What this writes is the ledger: for each date, whether the exchange
+    published a file, how many symbols traded, or why no answer came back.
+
+    A holiday and a refusal both arrive as "no answer". They are told apart by how many come in a
+    row: a closed market gives a short run, a rate limit gives an unbroken one, and after
+    `STOP_AFTER` consecutive silences the run makes one direct status request and stops if the host
+    is refusing -- leaving the checkpoint exactly where the next run should resume.
+    """
+    import psx
+    from nbt import get
+    STOP_AFTER = 20
+    start = date.fromisoformat(arg("--from") or "2018-01-01")
+    end = date.fromisoformat(arg("--to")) if arg("--to") else date.today()
+    limit = int(arg("--limit") or 0) or None
+
+    path = STAGE / "psx_sweep_ledger.json"
+    ledger = load(path, {"dates": {}, "startedAt": None})
+    ledger["startedAt"] = ledger["startedAt"] or datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    days = []
+    d = start
+    while d <= end:
+        if d.weekday() < 5 and ledger["dates"].get(d.isoformat(), {}).get("status") not in (
+                "published", "notPublished"):
+            days.append(d)
+        d += timedelta(days=1)
+    if limit:
+        days = days[:limit]
+    print(f"psx-sweep: {start} .. {end}, {len(days)} dates to read "
+          f"({len(ledger['dates'])} already settled)", flush=True)
+
+    silent = 0
+    for i, day in enumerate(days, 1):
+        key = day.isoformat()
+        raw = get(psx.file_url(day), cache_key=f"psx-{key}", ttl=psx.ttl_for(day, date.today()))
+        if raw is None:
+            silent += 1
+            ledger["dates"][key] = {"status": "noAnswer", "consecutive": silent}
+            if silent >= STOP_AFTER:
+                code = status(psx.file_url(day))
+                if code != 404:
+                    ledger["stoppedAt"] = {"date": key, "httpStatus": code,
+                                           "reason": "the host stopped answering; resume from here"}
+                    dump(path, ledger)
+                    print(f"  STOPPED at {key}: {STOP_AFTER} silent dates and a direct request "
+                          f"returned {code}. Checkpoint saved.", flush=True)
+                    return
+                silent = 0          # a long closure, confirmed by a real 404
+            continue
+        silent = 0
+        text = psx.unpack(raw)
+        if text is None:
+            ledger["dates"][key] = {"status": "notAnArchive", "bytes": len(raw)}
+            continue
+        rows = psx.read_day(day, date.today(), keep=None) or {}
+        ledger["dates"][key] = {"status": "published" if rows else "publishedButEmpty",
+                                "symbols": len(rows)}
+        if i % 25 == 0 or i == len(days):
+            dump(path, ledger)
+            done = sum(1 for v in ledger["dates"].values() if v["status"] == "published")
+            print(f"  {i}/{len(days)} read, {done} published days in the ledger", flush=True)
+    dump(path, ledger)
+    by = Counter(v["status"] for v in ledger["dates"].values())
+    print(f"psx-sweep done: {dict(by)}")
+
+
+COMMANDS = {"benchmarks": cmd_benchmarks, "btc": cmd_btc, "btc-early": cmd_btc_early,
+            "fred": cmd_fred, "psx-archive": cmd_psx_archive, "psx-sweep": cmd_psx_sweep,
             "withheld": cmd_withheld, "observations": cmd_observations}
 
 if __name__ == "__main__":
