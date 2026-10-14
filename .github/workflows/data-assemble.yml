@@ -97,14 +97,49 @@ jobs:
           python tools/full_history.py --out full
           python tools/foundation/assemble.py --full full --pit pit --replay replay --runs runs.json --out dataset
 
+      # The remaining database-reading reports, run here rather than from a laptop: the Supabase
+      # session pooler allows 15 clients, and a local job competing with a running replay slice
+      # exhausted it once already. One runner, one connection, after the heavy step.
+      - name: Coverage gaps, and whether the source can still serve them
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          python tools/foundation/coverage_gaps.py --probe 120 --out coverage
+          python - <<'PY'
+          import json
+          d = json.load(open("coverage/gaps.json"))
+          print("::notice title=coverage gaps::" + json.dumps(
+              {k: v for k, v in d.items() if k not in ("worstRuns", "notes", "probeExamples")}))
+          PY
+
+      # The pre-registered rules through the purged walk-forward evaluator. Counts and verdicts
+      # only in the clear; the dataset it reads stays sealed.
+      - name: Evaluate the testable principles
+        run: |
+          python tools/foundation/evaluate_principles.py --dataset dataset --out evaluation
+          python - <<'PY'
+          import json
+          d = json.load(open("evaluation/principles_evaluation.json"))
+          slim = {k: v for k, v in d.items() if k != "results"}
+          slim["results"] = {k: {x: v.get(x) for x in
+                                 ("trades", "meanNetPct", "meanNetBaseCI95", "verdict", "why",
+                                  "deflatedSharpeProbability", "effectiveIndependentTrades")}
+                             for k, v in d["results"].items()}
+          print("::notice title=principles evaluation::" + json.dumps(slim)[:60000])
+          PY
+
       - name: Seal the dataset
         if: always()
         env:
           KEY: ${{ secrets.WORKER_ARTIFACT_KEY }}
         run: |
-          mkdir -p sealed-out
-          [ -d dataset ] && tar -czf - -C dataset . | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
-            -pass env:KEY -out sealed-out/dataset.tar.gz.enc || true
+          mkdir -p sealed-out bundle
+          for d in dataset coverage evaluation; do [ -d "$d" ] && cp -r "$d" bundle/; done
+          [ -n "$(ls -A bundle 2>/dev/null)" ] && tar -czf - -C bundle . | openssl enc -aes-256-cbc \
+            -pbkdf2 -iter 200000 -salt -pass env:KEY -out sealed-out/dataset.tar.gz.enc || true
           [ -f sealed-out/dataset.tar.gz.enc ] && sha256sum sealed-out/dataset.tar.gz.enc || true
 
       - uses: actions/upload-artifact@v4
