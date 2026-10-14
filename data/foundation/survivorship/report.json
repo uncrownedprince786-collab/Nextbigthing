@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-14T10:30:27+00:00",
+ "generatedAt": "2026-10-14T15:57:04+00:00",
  "range": [
   "2019-01-02",
   "2026-09-01"
@@ -102,10 +102,103 @@
  },
  "absentWithAtLeastOneYearOfRecoverableBars": 61,
  "absentWithNoRecoverableHistory": 63,
+ "survivorshipBiasLowerBound": {
+  "pairs": 61,
+  "removedMinusSurvivorsPct": {
+   "mean": -145.39,
+   "median": -182.13,
+   "p10": -237.23,
+   "p90": -64.93
+  },
+  "removedUnderperformedShare": 0.902,
+  "interpretation": "Each removed name is compared with the stored US universe over that name's own window. A negative median is the amount by which leaving these names out flatters the universe's measured return, and it is a LOWER bound: the 63 removals whose history is gone contribute nothing and were mostly acquisitions and failures.",
+  "examples": [
+   {
+    "symbol": "NKTR",
+    "kind": "market-cap-drift",
+    "from": "2019-01-02",
+    "to": "2026-10-14",
+    "removedPct": -92.7,
+    "survivorsMeanPct": 345.99,
+    "survivorsMedianPct": 163.23,
+    "survivors": 272
+   },
+   {
+    "symbol": "FMC",
+    "kind": "market-cap-drift",
+    "from": "2019-01-02",
+    "to": "2026-10-14",
+    "removedPct": -87.5,
+    "survivorsMeanPct": 345.99,
+    "survivorsMedianPct": 163.23,
+    "survivors": 272
+   },
+   {
+    "symbol": "XRX",
+    "kind": "market-cap-drift",
+    "from": "2019-01-02",
+    "to": "2026-10-14",
+    "removedPct": -86.5,
+    "survivorsMeanPct": 345.99,
+    "survivorsMedianPct": 163.23,
+    "survivors": 272
+   },
+   {
+    "symbol": "TRIP",
+    "kind": "market-cap-drift",
+    "from": "2019-01-02",
+    "to": "2026-10-14",
+    "removedPct": -83.7,
+    "survivorsMeanPct": 345.99,
+    "survivorsMedianPct": 163.23,
+    "survivors": 272
+   },
+   {
+    "symbol": "GT",
+    "kind": "acquired-or-merged",
+    "from": "2019-01-02",
+    "to": "2026-10-14",
+    "removedPct": -78.7,
+    "survivorsMeanPct": 345.99,
+    "survivorsMedianPct": 163.23,
+    "survivors": 272
+   },
+   {
+    "symbol": "WHR",
+    "kind": "market-cap-drift",
+    "from": "2019-01-02",
+    "to": "2026-10-14",
+    "removedPct": -74.2,
+    "survivorsMeanPct": 345.99,
+    "survivorsMedianPct": 163.23,
+    "survivors": 272
+   },
+   {
+    "symbol": "AAP",
+    "kind": "spin-off",
+    "from": "2019-01-02",
+    "to": "2026-10-14",
+    "removedPct": -74.0,
+    "survivorsMeanPct": 345.99,
+    "survivorsMedianPct": 163.23,
+    "survivors": 272
+   },
+   {
+    "symbol": "UAA",
+    "kind": "market-cap-drift",
+    "from": "2019-01-02",
+    "to": "2026-10-14",
+    "removedPct": -72.8,
+    "survivorsMeanPct": 345.99,
+    "survivorsMedianPct": 163.23,
+    "survivors": 272
+   }
+  ]
+ },
  "recoverableTotalReturnPct": {
   "n": 61,
-  "median": -22.3,
-  "mean": 7.7
+  "median": -23.7,
+  "mean": 6.0
  },
  "caveats": [
   "Removal reasons are classified from Wikipedia's free text and are approximate.",
@@ -153,10 +246,10 @@
    "kind": "market-cap-drift",
    "inUniverse": false,
    "probe": {
-    "bars": 1956,
+    "bars": 1957,
     "first": "2019-01-02",
-    "last": "2026-10-13",
-    "totalReturnPct": 10.1
+    "last": "2026-10-14",
+    "totalReturnPct": 6.8
    }
   },
   {
@@ -168,10 +261,10 @@
    "kind": "market-cap-drift",
    "inUniverse": false,
    "probe": {
-    "bars": 1956,
+    "bars": 1957,
     "first": "2019-01-02",
-    "last": "2026-10-13",
-    "totalReturnPct": -41.3
+    "last": "2026-10-14",
+    "totalReturnPct": -41.2
    }
   },
   {
@@ -209,10 +302,10 @@
    "kind": "market-cap-drift",
    "inUniverse": false,
    "probe": {
-    "bars": 1956,
+    "bars": 1957,
     "first": "2019-01-02",
-    "last": "2026-10-13",
-    "totalReturnPct": -0.0
+    "last": "2026-10-14",
+    "totalReturnPct": 0.4
    }
   },
   {
@@ -224,10 +317,10 @@
    "kind": "market-cap-drift",
    "inUniverse": false,
    "probe": {
-    "bars": 1956,
+    "bars": 1957,
     "first": "2019-01-02",
-    "last": "2026-10-13",
-    "totalReturnPct": 85.6
+    "last": "2026-10-14",
+    "totalReturnPct": 86.6
    }
   },
   {
@@ -239,10 +332,10 @@
    "kind": "market-cap-drift",
    "inUniverse": false,
    "probe": {
-    "bars": 1956,
+    "bars": 1957,
     "first": "2019-01-02",
-    "last": "2026-10-13",
-    "totalReturnPct": -29.5
+    "last": "2026-10-14",
+    "totalReturnPct": -29.3
    }
   },
   {
@@ -254,10 +347,10 @@
    "kind": "market-cap-drift",
    "inUniverse": false,
    "probe": {
-    "bars": 1956,
+    "bars": 1957,
     "first": "2019-01-02",
-    "last": "2026-10-13",
-    "totalReturnPct": 97.7
+    "last": "2026-10-14",
+    "totalReturnPct": 98.3
    }
   },
   {
@@ -282,10 +375,10 @@
    "kind": "market-cap-drift",
    "inUniverse": false,
    "probe": {
-    "bars": 1956,
+    "bars": 1957,
     "first": "2019-01-02",
-    "last": "2026-10-13",
-    "totalReturnPct": -6.4
+    "last": "2026-10-14",
+    "totalReturnPct": -7.7
    }
   },
   {
@@ -297,10 +390,10 @@
    "kind": "market-cap-drift",
    "inUniverse": false,
    "probe": {
-    "bars": 247,
+    "bars": 248,
     "first": "2025-10-20",
-    "last": "2026-10-13",
-    "totalReturnPct": 25.8
+    "last": "2026-10-14",
+    "totalReturnPct": 23.7
    }
   },
   {
@@ -312,10 +405,10 @@
    "kind": "market-cap-drift",
    "inUniverse": false,
    "probe": {
-    "bars": 1956,
+    "bars": 1957,
     "first": "2019-01-02",
-    "last": "2026-10-13",
-    "totalReturnPct": 0.7
+    "last": "2026-10-14",
+    "totalReturnPct": -0.1
    }
   },
   {
