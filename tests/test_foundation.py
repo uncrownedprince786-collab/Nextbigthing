@@ -284,6 +284,63 @@ class PointInTime(unittest.TestCase):
         self.assertEqual(base, pit.AnalogSeries(future).at(t, 5))
 
 
+class Assembly(unittest.TestCase):
+    """The assembly joins on (symbol, session) and accounts for every row it cannot join."""
+
+    @staticmethod
+    def write_gz(path: Path, rows: list[dict]):
+        import gzip
+        with gzip.open(path, "wt", encoding="utf-8") as f:
+            for r in rows:
+                f.write(json.dumps(r) + chr(10))
+
+    def make(self, root: Path, pit_after=False):
+        days = sessions(120)
+        full = [{"asOf": d, "assetId": "id1", "symbol": "AAA", "assetType": "stock", "market": "US",
+                 "outcome": {"fwd20": 1.0}} for d in days]
+        pit = [{"a": "AAA", "t": "stock", "d": (days[i + 1] if pit_after and i == 70 else d), "n": i + 1,
+                "f": {"r1": 0.1, "volumeRatio": None}} for i, d in enumerate(days) if i >= 50]
+        (root / "full").mkdir()
+        (root / "pit").mkdir()
+        self.write_gz(root / "full" / "full-history-v2.jsonl.gz", full)
+        self.write_gz(root / "pit" / "pit-2020.jsonl.gz", pit)
+        return days
+
+    def run_main(self, root: Path):
+        import assemble
+        sys.argv = ["assemble", "--full", str(root / "full"), "--pit", str(root / "pit"), "--out", str(root / "out")]
+        rc = assemble.main()
+        return rc, json.loads((root / "out" / "manifest.json").read_text(encoding="utf-8"))
+
+    def test_every_session_is_joined_or_has_a_named_reason(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            self.make(root)
+            rc, m = self.run_main(root)
+            self.assertEqual(rc, 0)
+            self.assertEqual(m["eligibleAssetSessions"], 120)
+            self.assertEqual(m["withPointInTimeFeatures"], 70)
+            self.assertEqual(m["withoutFeaturesByReason"], {"history shorter than the feature threshold": 50})
+            self.assertEqual(m["unexplained"], 0)
+            self.assertTrue(m["reproducible"]["match"])
+
+    def test_a_feature_dated_after_its_session_fails_the_run(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            self.make(root, pit_after=True)
+            rc, m = self.run_main(root)
+            self.assertEqual(rc, 1)
+            self.assertTrue(m["duplicates"]["features"] or m["unexplained"], "a misdated feature row must surface as a duplicate or an unexplained session")
+
+    def test_missingness_is_reported_per_factor(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            self.make(root)
+            _, m = self.run_main(root)
+            self.assertEqual(m["missingnessByAssetClass"]["stock"]["volumeRatio"], 1.0)
+            self.assertEqual(m["missingnessByAssetClass"]["stock"]["r1"], 0.0)
+
+
 # ------------------------------------------------------------------ acceptance gates
 
 

@@ -1,0 +1,116 @@
+name: data assemble dataset
+
+# Joins forward outcomes (tools/full_history.py), point-in-time features (the newest sealed
+# nbt-pit-features artifact) and the canonical replay setups into one dataset, and writes the
+# coverage, leakage, missingness and reproducibility reconciliation (tools/foundation/assemble.py).
+# Reads the database, writes nothing to it, and seals everything it produces.
+#
+# Starts on dispatch or on a push that changes `ops/assemble.json`.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["ops/assemble.json"]
+
+concurrency:
+  group: nbt-assemble
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prove this run is executing main
+        run: |
+          git fetch origin main --quiet
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "not main"; exit 1; }
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+
+      - name: Download the sealed inputs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p sealed
+          gh api --paginate "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.expired==false) | [.id,.name,.created_at] | @tsv' > list.tsv
+          # newest point-in-time features
+          pit="$(awk -F'\t' '$2 ~ /^nbt-pit-features-/' list.tsv | sort -t"$(printf '\t')" -k3 | tail -1 | cut -f1)"
+          [ -n "$pit" ] || { echo "no nbt-pit-features artifact: run data-pit-features first"; exit 1; }
+          gh api "repos/${{ github.repository }}/actions/artifacts/$pit/zip" > sealed/pit.zip
+          # every replay output
+          awk -F'\t' '$2 ~ /^nbt-worker-output-/ {print $1" "$2}' list.tsv | while read id name; do
+            gh api "repos/${{ github.repository }}/actions/artifacts/$id/zip" > "sealed/$name.zip"
+          done
+          ls sealed | wc -l
+
+      - name: Which runs executed the current replay code
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPLAY_CODE="lib jobs/setup.py jobs/sessions.py jobs/nbt.py tools/decide.mjs prisma/schema.prisma requirements.txt"
+          echo "{" > runs.json
+          first=1
+          for z in sealed/nbt-worker-output-*.zip; do
+            run="$(basename "$z" .zip)"; run="${run#nbt-worker-output-}"
+            sha="$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .head_sha)"
+            if git diff --quiet "$sha" HEAD -- $REPLAY_CODE; then t=true; else t=false; fi
+            [ $first = 1 ] || echo "," >> runs.json; first=0
+            echo "\"$run\": {\"sha\": \"$sha\", \"trusted\": $t}" >> runs.json
+          done
+          echo "}" >> runs.json
+
+      - name: Decrypt, build outcomes, assemble
+        env:
+          KEY: ${{ secrets.WORKER_ARTIFACT_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          [ -n "$KEY" ] || { echo "WORKER_ARTIFACT_KEY not set"; exit 1; }
+          mkdir -p pit replay full dataset
+          unzip -q sealed/pit.zip -d sealed/pitenc
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:KEY \
+            -in sealed/pitenc/pit.tar.gz.enc | tar -xzf - -C pit
+          for z in sealed/nbt-worker-output-*.zip; do
+            n="$(basename "$z" .zip)"; mkdir -p "sealed/e/$n" "replay/$n"
+            unzip -q "$z" -d "sealed/e/$n"
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:KEY \
+              -in "sealed/e/$n/output.tar.gz.enc" | tar -xzf - -C "replay/$n"
+          done
+          python tools/full_history.py --out full
+          python tools/foundation/assemble.py --full full --pit pit --replay replay --runs runs.json --out dataset
+
+      - name: Seal the dataset
+        if: always()
+        env:
+          KEY: ${{ secrets.WORKER_ARTIFACT_KEY }}
+        run: |
+          mkdir -p sealed-out
+          [ -d dataset ] && tar -czf - -C dataset . | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+            -pass env:KEY -out sealed-out/dataset.tar.gz.enc || true
+          [ -f sealed-out/dataset.tar.gz.enc ] && sha256sum sealed-out/dataset.tar.gz.enc || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nbt-dataset-${{ github.run_id }}
+          path: sealed-out/dataset.tar.gz.enc
+          retention-days: 30
+          if-no-files-found: warn
