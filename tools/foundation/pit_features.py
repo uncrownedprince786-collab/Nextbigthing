@@ -31,6 +31,11 @@ Provenance and limits, stated so they are not rediscovered later:
   (tools/foundation/survivorship.py), so every row is a survivor's.
 * `barsAvailable` is the count of stored sessions up to and including the date, not the window the
   live job reads.
+* `spanDays` is how many calendar days the window actually covers. It exists because a window is
+  only a "50-session" window if the sessions are daily, and for PSX they are not: the stored
+  exchange history holds about 12 dates a year before 2024 and becomes daily only in 2025. A
+  20-session average over monthly-spaced bars is a 20-MONTH average wearing a daily name, and
+  nothing else in the row would reveal it. The consumer compares `spanDays` with `n` and decides.
 
 Writes `pit-<year>.jsonl.gz` and `manifest.json`. The data derive from a third-party feed, so the
 output belongs in a sealed artifact or a private directory, never in the repository.
@@ -196,7 +201,10 @@ def build(assets: list[dict], series: dict[str, list[dict]], *, first_year: int 
                 continue
             f = fc.compute(bars[max(0, t - WINDOW + 1): t + 1], d,
                            peer_r20(closes_by, dates_by, r20_by, peers, d))
+            lo = max(0, t - WINDOW + 1)
             row = {"a": a["symbol"], "t": a["assetType"], "d": d.isoformat(), "n": t + 1,
+                   # Calendar days spanned by the bars the factors were computed from.
+                   "spanDays": (d - bars[lo]["date"]).days,
                    "f": {k: f.get(k) for k in FACTOR_KEYS}}
             if analog is not None:
                 row["an"] = {str(h): analog.at(t, h) for h in an.HORIZONS}

@@ -158,11 +158,22 @@ def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setup
         if suspect:
             stats["rowsTouchingAnUnadjustedAction"] += 1
             stats[f"suspect:{cls}"] += 1
+        # A window is only a daily window if its bars are daily. Sessions are roughly 5 per 7
+        # calendar days, so a window of n bars should span about 1.5n days; three times that is
+        # generously beyond any holiday run and means the bars are not daily at all.
+        sparse = False
+        if p is not None and p.get("spanDays") is not None and p["n"] > 5:
+            expected = min(p["n"], LOOKBACK_SESSIONS) * 1.5
+            sparse = p["spanDays"] > 3 * expected
+            if sparse:
+                stats["rowsWithANonDailyWindow"] += 1
+                stats[f"sparse:{cls}"] += 1
         row = {
             "asOf": r["asOf"], "symbol": r["symbol"], "assetType": cls, "market": r["market"],
-            "dataQuality": {"unadjustedActionInWindow": suspect},
+            "dataQuality": {"unadjustedActionInWindow": suspect, "windowIsNotDaily": sparse},
             "outcome": r["outcome"],
-            "pit": None if p is None else {"n": p["n"], "f": p["f"], "an": p.get("an")},
+            "pit": None if p is None else {"n": p["n"], "spanDays": p.get("spanDays"),
+                                           "f": p["f"], "an": p.get("an")},
             "candidate": None if s is None else {k: s.get(k) for k in SETUP_KEYS},
             "coverage": {"pit": p is not None, "setup": s is not None},
         }
@@ -276,6 +287,11 @@ def main() -> int:
             "symbolsWithAnUnadjustedAction": len(actions),
             "rowsTouchingOne": total["rowsTouchingAnUnadjustedAction"],
             "rowsTouchingOneByClass": {c: total[f"suspect:{c}"] for c in cls_names},
+            "rowsWithANonDailyWindow": total["rowsWithANonDailyWindow"],
+            "rowsWithANonDailyWindowByClass": {c: total[f"sparse:{c}"] for c in cls_names},
+            "nonDailyNote": ("the stored PSX history holds about 12 dates a year before 2024 and "
+                             "becomes daily in 2025, so a 20-session average there is a 20-month "
+                             "average under a daily name"),
             "note": ("flagged, not dropped: a row is still correct about everything that does not "
                      "cross the action, and the consumer decides. See "
                      "price_verification/unadjusted_actions.json"),

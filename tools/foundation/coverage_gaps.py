@@ -153,6 +153,31 @@ def main() -> None:
             if d is not None:
                 run.append(d)
 
+    # How complete each market's calendar is, year by year, measured against the weekdays in that
+    # year rather than against the dates the data happens to hold. The per-asset figures above
+    # cannot show this: they compare each asset with a calendar derived from the same data, so a
+    # market that was fetched monthly looks fully covered.
+    from datetime import timedelta
+    years: dict[str, dict[int, int]] = defaultdict(lambda: defaultdict(int))
+    for m, dates in per_market_dates.items():
+        for d in dates:
+            years[m][d.year] += 1
+    weekdays: dict[int, int] = defaultdict(int)
+    allv = [d for ds in per_market_dates.values() for d in ds]
+    lo_y, hi_y = min(allv).year, max(allv).year
+    for y in range(lo_y, hi_y + 1):
+        d = date(y, 1, 1)
+        while d.year == y:
+            if d.weekday() < 5:
+                weekdays[y] += 1
+            d += timedelta(days=1)
+    calendar = {m: {str(y): {"sessionDates": years[m][y],
+                             "weekdaysInYear": weekdays[y],
+                             "share": round(years[m][y] / weekdays[y], 3)}
+                    for y in sorted(years[m])} for m in sorted(years)}
+    thin_years = sorted((m, y) for m in calendar for y, v in calendar[m].items()
+                        if v["share"] < 0.5 and m != "crypto")
+
     worst = sorted(gaps, key=lambda g: -g["sessions"])[:25]
     by_symbol = Counter(g["symbol"] for g in gaps)
 
@@ -193,12 +218,17 @@ def main() -> None:
         "byMarket": {m: {**v, "coverage": round(1 - v["gaps"] / v["sessions"], 5) if v["sessions"] else None}
                      for m, v in sorted(per_market.items())},
         "assetsWithAnyGap": len(by_symbol),
+        "calendarCompleteness": calendar,
+        "marketYearsBelowHalfTheWeekdays": [f"{m} {y}" for m, y in thin_years],
         "worstRuns": worst,
         "probe": probed if probe_n else "not run",
         "probeExamples": examples,
         "calendarRule": f"a date is a session for a market when any of its assets has a bar; "
                         f"thin when fewer than {QUORUM:.0%} of that market's then-live assets do",
         "notes": [
+            "A market fetched monthly looks fully covered by the per-asset figures above, because "
+            "they compare each asset with a calendar built from the same data. calendarCompleteness "
+            "is the check that catches it, and PSX before 2024 is what it catches.",
             "Sessions outside an asset's own stored range are not gaps here; a short history is a "
             "survivorship and seeding question, covered by survivorship/report.json.",
             "Nothing is written to any database: this measures whether a repair is possible and "
