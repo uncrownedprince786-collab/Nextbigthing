@@ -44,7 +44,7 @@ import json
 import sys
 import time
 from collections import Counter, defaultdict
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 try:
@@ -59,6 +59,11 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from walkforward import assert_features_are_past_only  # noqa: E402
 
+# How far back a feature window reaches (tools/foundation/pit_features.WINDOW) and how far forward
+# an outcome does. A row is suspect when an unadjusted corporate action falls in either.
+LOOKBACK_SESSIONS = 260
+LOOKFORWARD_SESSIONS = 20
+
 SETUP_KEYS = ("state", "headline", "conditions", "missing", "against", "entryLevel", "invalidateLevel",
               "rangeNote", "confidence", "confidenceNote")
 
@@ -72,6 +77,23 @@ def read_gz(path: Path):
         for line in f:
             if line.strip():
                 yield json.loads(line)
+
+
+def unadjusted_windows(path: Path | None) -> dict[str, list[str]]:
+    """{symbol: [action dates]} from the split scan, or {} when it has not been run.
+
+    A stored series that was never adjusted for a split carries a one-day "return" that no holder
+    experienced. Every factor measured across that date is wrong, so the rows are flagged rather
+    than silently learned from. Flagging and not dropping is deliberate: the rows are still correct
+    about everything that does not cross the action, and a consumer should decide.
+    """
+    if not path or not path.exists():
+        return {}
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    out: dict[str, list[str]] = {}
+    for c in doc.get("candidatesList", []):
+        out.setdefault(c["symbol"], []).append(c["date"])
+    return {k: sorted(v) for k, v in out.items()}
 
 
 def setups_for_year(replay: Path | None, runs: dict, year: int) -> dict[tuple, dict]:
@@ -99,7 +121,8 @@ def setups_for_year(replay: Path | None, runs: dict, year: int) -> dict[tuple, d
     return out
 
 
-def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setups: dict, stats: dict):
+def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setups: dict, stats: dict,
+                  actions: dict[str, list[str]] | None = None):
     pit: dict[tuple, dict] = {}
     if pit_path and pit_path.exists():
         for r in read_gz(pit_path):
@@ -123,8 +146,21 @@ def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setup
         cls = r["assetType"]
         stats["eligible"] += 1
         stats[f"eligible:{cls}"] += 1
+        suspect = False
+        for ad in (actions or {}).get(r["symbol"], ()):
+            # Calendar days as a safe over-estimate of the session window: 260 sessions is about
+            # 378 calendar days, 20 is about 29. Over-flagging is the right direction here.
+            lo = (date.fromisoformat(r["asOf"]) - timedelta(days=378)).isoformat()
+            hi = (date.fromisoformat(r["asOf"]) + timedelta(days=29)).isoformat()
+            if lo <= ad <= hi:
+                suspect = True
+                break
+        if suspect:
+            stats["rowsTouchingAnUnadjustedAction"] += 1
+            stats[f"suspect:{cls}"] += 1
         row = {
             "asOf": r["asOf"], "symbol": r["symbol"], "assetType": cls, "market": r["market"],
+            "dataQuality": {"unadjustedActionInWindow": suspect},
             "outcome": r["outcome"],
             "pit": None if p is None else {"n": p["n"], "f": p["f"], "an": p.get("an")},
             "candidate": None if s is None else {k: s.get(k) for k in SETUP_KEYS},
@@ -158,13 +194,13 @@ def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setup
     stats["pitRowsNotInFull"] += len(set(pit) - seen)
 
 
-def build_year(year, full_rows, pit_path, setups, out_dir: Path | None):
+def build_year(year, full_rows, pit_path, setups, out_dir: Path | None, actions=None):
     stats = Counter()
     h = hashlib.sha256()
     n = 0
     fh = gzip.open(out_dir / f"examples-v3-{year}.jsonl.gz", "wt", encoding="utf-8", compresslevel=6) if out_dir else None
     batch = []
-    for row in assemble_year(year, full_rows, pit_path, setups, stats):
+    for row in assemble_year(year, full_rows, pit_path, setups, stats, actions):
         line = json.dumps(row, separators=(",", ":"), default=str)
         h.update(line.encode())
         n += 1
@@ -192,9 +228,11 @@ def main() -> int:
 
     total, digests, counts = Counter(), {}, {}
     first_year = min(by_year)
+    actions = unadjusted_windows(Path(arg("--actions")) if arg("--actions") else
+                                 ROOT / "data" / "foundation" / "price_verification" / "unadjusted_actions.json")
     for y in sorted(by_year):
         stats, digest, n = build_year(y, by_year[y], pit_dir / f"pit-{y}.jsonl.gz",
-                                      setups_for_year(replay, runs, y), out)
+                                      setups_for_year(replay, runs, y), out, actions)
         total.update(stats)
         digests[y], counts[y] = digest, n
         print(f"  {y}: {n:,} rows, features on {stats['withPit']:,}, setups on {stats['withSetup']:,}", flush=True)
@@ -203,7 +241,7 @@ def main() -> int:
     # Reproducibility: the first year again, digests must match byte for byte.
     again_rows = [r for r in read_gz(full_file) if int(r["asOf"][:4]) == first_year]
     _, d2, _ = build_year(first_year, again_rows, pit_dir / f"pit-{first_year}.jsonl.gz",
-                          setups_for_year(replay, runs, first_year), None)
+                          setups_for_year(replay, runs, first_year), None, actions)
 
     no_feature_reasons = {k.split(":", 1)[1]: v for k, v in total.items() if k.startswith("noPit:")}
     explained = total["withPit"] + total["noPit"] - no_feature_reasons.get("other", 0)
@@ -226,6 +264,15 @@ def main() -> int:
         "leakage": {"featureDatedAfterSession": total["leakPitAfterSession"],
                     "setupDatedAfterSession": total["leakSetupAfterSession"], "futureNamedFields": 0},
         "missingnessByAssetClass": null_share,
+        "dataQuality": {
+            "unadjustedActionsKnown": sum(len(v) for v in actions.values()),
+            "symbolsWithAnUnadjustedAction": len(actions),
+            "rowsTouchingOne": total["rowsTouchingAnUnadjustedAction"],
+            "rowsTouchingOneByClass": {c: total[f"suspect:{c}"] for c in cls_names},
+            "note": ("flagged, not dropped: a row is still correct about everything that does not "
+                     "cross the action, and the consumer decides. See "
+                     "price_verification/unadjusted_actions.json"),
+        },
         "rowsByYear": counts, "sha256ByYear": digests,
         "reproducible": {"year": first_year, "match": digests[first_year] == d2},
         "inputs": {"full": full_file.name, "pitFiles": sorted(p.name for p in pit_dir.glob("pit-*.jsonl.gz")),

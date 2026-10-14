@@ -95,6 +95,16 @@ jobs:
               -in "sealed/e/$n/output.tar.gz.enc" | tar -xzf - -C "replay/$n"
           done
           python tools/full_history.py --out full
+          # Unadjusted corporate actions, before the assembly: a stored series that was never
+          # rescaled for a split carries a one-day move no holder experienced, and the assembly
+          # reads this file to flag every row whose window crosses one.
+          python tools/foundation/split_check.py --confirm 60
+          python - <<'PY'
+          import json
+          d = json.load(open("data/foundation/price_verification/unadjusted_actions.json"))
+          print("::notice title=unadjusted corporate actions::" + json.dumps(
+              {k: v for k, v in d.items() if k != "candidatesList"}))
+          PY
           python tools/foundation/assemble.py --full full --pit pit --replay replay --runs runs.json --out dataset
           # The macro state per session, joined on availability rather than on observation date.
           # One row per date, not per asset-session: it is identical across the 616 assets.
