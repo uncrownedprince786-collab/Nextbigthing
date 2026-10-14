@@ -131,6 +131,70 @@ def probe(sym: str) -> dict:
         return {"bars": 0, "error": type(e).__name__}
 
 
+def matched_window_returns(cur, removed: list[dict]) -> dict:
+    """How much the universe's measured return owes to the names that are not in it.
+
+    For every removed name whose history can still be fetched, take its return over its own
+    recoverable window, and compare with what the stored universe's US stocks returned over the
+    SAME window. Comparing like with like matters: a 2019 removal and a 2025 one lived through
+    different markets, and averaging their raw returns against a single survivor figure would
+    measure the calendar rather than the bias.
+
+    The result is a lower bound on survivorship bias for this universe, not an estimate of it:
+    the 63 removals whose history is gone entirely are, on the evidence of why they left, the
+    worst of them, and they contribute nothing here.
+    """
+    rows = [r for r in removed if r["probe"].get("bars", 0) >= 250 and "totalReturnPct" in r["probe"]]
+    if not rows:
+        return {"pairs": 0}
+    pairs = []
+    for r in rows:
+        cur.execute(
+            '''WITH w AS (
+                 SELECT a.id, min(p.close) FILTER (WHERE p.date = b.lo) AS first,
+                        min(p.close) FILTER (WHERE p.date = b.hi) AS last
+                 FROM "Asset" a
+                 JOIN "Industry" i ON i.id = a."industryId"
+                 JOIN LATERAL (SELECT (SELECT min(date) FROM "PriceSnapshot"
+                                        WHERE "assetId" = a.id AND date >= %s) AS lo,
+                                      (SELECT max(date) FROM "PriceSnapshot"
+                                        WHERE "assetId" = a.id AND date <= %s) AS hi) b ON true
+                 JOIN "PriceSnapshot" p ON p."assetId" = a.id AND p.date IN (b.lo, b.hi)
+                 WHERE a."assetType"::text = 'stock' AND i.market = 'US'
+                 GROUP BY a.id)
+               SELECT count(*) n, avg((last / first - 1) * 100) mean,
+                      percentile_cont(0.5) WITHIN GROUP (ORDER BY (last / first - 1) * 100) median
+               FROM w WHERE first > 0 AND last IS NOT NULL''',
+            (r["probe"]["first"], r["probe"]["last"]))
+        g = cur.fetchone()
+        if g and g["n"] and g["mean"] is not None:
+            pairs.append({"symbol": r["removed"], "kind": r["kind"],
+                          "from": r["probe"]["first"], "to": r["probe"]["last"],
+                          "removedPct": r["probe"]["totalReturnPct"],
+                          "survivorsMeanPct": round(float(g["mean"]), 2),
+                          "survivorsMedianPct": round(float(g["median"]), 2),
+                          "survivors": int(g["n"])})
+    if not pairs:
+        return {"pairs": 0}
+    diffs = sorted(p["removedPct"] - p["survivorsMedianPct"] for p in pairs)
+    worse = sum(d < 0 for d in diffs)
+    return {
+        "pairs": len(pairs),
+        "removedMinusSurvivorsPct": {
+            "mean": round(sum(diffs) / len(diffs), 2),
+            "median": round(diffs[len(diffs) // 2], 2),
+            "p10": round(diffs[int(0.1 * len(diffs))], 2),
+            "p90": round(diffs[int(0.9 * len(diffs)) - 1], 2)},
+        "removedUnderperformedShare": round(worse / len(diffs), 3),
+        "interpretation": (
+            "Each removed name is compared with the stored US universe over that name's own "
+            "window. A negative median is the amount by which leaving these names out flatters "
+            "the universe's measured return, and it is a LOWER bound: the 63 removals whose "
+            "history is gone contribute nothing and were mostly acquisitions and failures."),
+        "examples": sorted(pairs, key=lambda p: p["removedPct"] - p["survivorsMedianPct"])[:8],
+    }
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     u = universe()
@@ -155,6 +219,8 @@ def main() -> None:
             kinds[r["kind"]]["recoverable"] += 1
     recov = [r for r in absent if r["probe"].get("bars", 0) >= 250]
     rets = [r["probe"]["totalReturnPct"] for r in recov if "totalReturnPct" in r["probe"]]
+    from nbt import db
+    bias = matched_window_returns(db().cursor(), absent)
     report = {
         "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "range": [FROM.isoformat(), TO.isoformat()],
@@ -167,6 +233,7 @@ def main() -> None:
         "byReason": kinds,
         "absentWithAtLeastOneYearOfRecoverableBars": len(recov),
         "absentWithNoRecoverableHistory": len(absent) - len(recov),
+        "survivorshipBiasLowerBound": bias,
         "recoverableTotalReturnPct": {
             "n": len(rets), "median": sorted(rets)[len(rets) // 2] if rets else None,
             "mean": round(sum(rets) / len(rets), 1) if rets else None},

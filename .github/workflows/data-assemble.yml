@@ -115,6 +115,22 @@ jobs:
               {k: v for k, v in d.items() if k not in ("worstRuns", "notes", "probeExamples")}))
           PY
 
+      # Survivorship, including the matched-window comparison that needs the database.
+      - name: Survivorship bias, measured against the removed names
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          python tools/foundation/survivorship.py
+          python - <<'PY'
+          import json
+          d = json.load(open("data/foundation/survivorship/report.json"))
+          print("::notice title=survivorship::" + json.dumps(
+              {k: v for k, v in d.items() if k not in ("sample", "caveats")})[:50000])
+          PY
+
       # The pre-registered rules through the purged walk-forward evaluator. Counts and verdicts
       # only in the clear; the dataset it reads stays sealed.
       - name: Evaluate the testable principles

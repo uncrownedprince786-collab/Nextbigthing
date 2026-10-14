@@ -10,6 +10,7 @@ provider that is not the one that supplied the stored value:
     Crypto               stored Coinbase   vs  Binance USDT (fallback Bitstamp USD)
     Crypto (Kraken)      stored Kraken     vs  same
     Forex                stored Yahoo      vs  ECB euro reference rates, crossed through EUR
+    PSX shares           stored PSX file   vs  Yahoo's Karachi listing (SYMBOL.KA, quoted in PKR)
 
 Why returns for stocks and ETFs: the stored `close` for these is Yahoo's dividend-ADJUSTED close
 (measured: it equals Yahoo's `adjclose`, not its `close`), while Nasdaq's is adjusted for splits
@@ -20,9 +21,12 @@ days, where the adjusted return is higher by about the dividend yield; those are
 mismatch. The level gap itself is reported as a finding, because it means stored stock closes are
 not the prices that traded and are rewritten whenever a new dividend is paid.
 
-Not verifiable independently, and said so rather than skipped silently: PSX shares (the stored
-source is the exchange's own file and no free second source exists), commodity futures (Yahoo
-`=F` contracts have no free keyless counterpart; spot series are a different instrument), and
+PSX is compared as returns for the same reason as US stocks: the exchange file carries the raw
+close and Yahoo's Karachi series is adjusted, so the levels differ by the cumulative adjustment
+while the daily returns should not.
+
+Not verifiable independently, and said so rather than skipped silently: commodity futures (Yahoo
+`=F` contracts have no free keyless counterpart, and a spot series is a different instrument), and
 anything Stooq would cover (its pages sit behind a JavaScript challenge this tool does not bypass).
 
 A difference is classified, never just counted: `within` the class tolerance, `split` when the
@@ -53,7 +57,8 @@ BROWSER = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
            "Chrome/120.0 Safari/537.36")
 
 # Relative tolerance per class: what two honest providers can disagree by.
-TOL = {"stock": 0.001, "etf": 0.001, "crypto-coinbase": 0.005, "crypto-kraken": 0.005, "forex": 0.01}
+TOL = {"stock": 0.001, "etf": 0.001, "crypto-coinbase": 0.005, "crypto-kraken": 0.005,
+       "forex": 0.01, "psx": 0.001}
 SPLITS = [2, 3, 4, 5, 6, 8, 10, 15, 20, 1 / 2, 1 / 3, 1 / 4, 1 / 5, 1 / 8, 1 / 10, 1 / 20]
 
 
@@ -90,6 +95,22 @@ def nasdaq(symbol: str, klass: str) -> dict[date, float]:
         except (ValueError, KeyError):
             continue
     return out
+
+
+def yahoo_karachi(symbol: str) -> dict[date, float]:
+    """Yahoo's Karachi listing for a PSX symbol. A different provider from the exchange file."""
+    p1 = int(datetime(2019, 1, 1, tzinfo=timezone.utc).timestamp())
+    j = get(f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(symbol)}.KA"
+            f"?period1={p1}&period2={int(time.time())}&interval=1d")
+    try:
+        r = j["chart"]["result"][0]
+        if r["meta"].get("currency") != "PKR":
+            return {}
+        return {datetime.fromtimestamp(t, timezone.utc).date(): float(c)
+                for t, c in zip(r.get("timestamp") or [],
+                                r["indicators"]["quote"][0].get("close") or []) if c is not None}
+    except (TypeError, KeyError, IndexError):
+        return {}
 
 
 def binance(ticker: str) -> dict[date, float]:
@@ -169,7 +190,7 @@ def sample(cur, klass: str, where: str, n: int, seed: int) -> list[dict]:
                     JOIN "Asset" a ON a.id = p."assetId" WHERE {where}
                     ORDER BY md5(a.symbol || p.date::text || '{seed}') LIMIT {int(n)}''')
     rows = [dict(r, klass=klass) for r in cur.fetchall()]
-    if klass in ("stock", "etf"):
+    if klass in ("stock", "etf", "psx"):
         for r in rows:
             cur.execute('SELECT date, close FROM "PriceSnapshot" WHERE "assetId" = %s AND date < %s '
                         'ORDER BY date DESC LIMIT 1', (r["id"], r["date"]))
@@ -189,6 +210,7 @@ def main() -> None:
         + sample(cur, "crypto-coinbase", "p.source='Coinbase'", 300, seed)
         + sample(cur, "crypto-kraken", "p.source='Kraken'", 60, seed)
         + sample(cur, "forex", "a.\"assetType\"::text='forex' AND p.source='Yahoo Finance'", 200, seed)
+        + sample(cur, "psx", "p.source ILIKE 'Pakistan%'", 300, seed)
     )
     by_sym: dict[tuple, list[dict]] = defaultdict(list)
     for r in picks:
@@ -204,6 +226,11 @@ def main() -> None:
             cache[key] = cache.get(key) or nasdaq(sym, klass)
             other, src = cache[key], "nasdaq"
             time.sleep(0.25)
+        elif klass == "psx":
+            key = ("k", sym)
+            cache[key] = cache.get(key) or yahoo_karachi(sym)
+            other, src = cache[key], "yahoo .KA"
+            time.sleep(0.25)
         elif klass.startswith("crypto"):
             tick = sym.split("-")[0]
             key = ("c", tick)
@@ -216,7 +243,7 @@ def main() -> None:
             other, src = fx(sym), "ecb"
         for r in rows:
             o = other.get(r["date"]) if other else None
-            if klass in ("stock", "etf"):
+            if klass in ("stock", "etf", "psx"):
                 po = other.get(r["prevDate"]) if other and r.get("prevDate") else None
                 if not o or not po or not r.get("prevClose"):
                     res["noIndependentData"] += 1
@@ -249,7 +276,6 @@ def main() -> None:
                                         "relDiffPct": round(rel * 100, 3), "versus": src})
     report = {"generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"), "seed": seed,
               "tolerances": TOL, "classes": {}, "notIndependentlyVerifiable": {
-                  "PSX shares": "stored source is the exchange's own file; no free second source",
                   "commodity futures (=F)": "no free keyless counterpart for the same contract",
                   "Stooq": "behind a JavaScript challenge; not bypassed"}}
     for k, v in results.items():
@@ -257,7 +283,7 @@ def main() -> None:
         if lv:
             v["levelDiff"] = {"medianPct": round(statistics.median(lv) * 100, 3),
                               "shareAbove0.1pct": round(sum(x > 0.001 for x in lv) / len(lv), 3),
-                              "note": "stored close is dividend-adjusted, Nasdaq's is split-adjusted only"}
+                              "note": "compared as returns: the two providers use different adjustment bases"}
         rel = sorted(v.pop("rel"))
         q = lambda p: round(rel[min(len(rel) - 1, int(len(rel) * p))] * 100, 4) if rel else None  # noqa: E731
         v.update({"medianAbsDiffPct": round(statistics.median(rel) * 100, 4) if rel else None,

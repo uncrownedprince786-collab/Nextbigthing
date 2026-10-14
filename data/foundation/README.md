@@ -17,10 +17,21 @@ A dataset whose file is absent is skipped by the test, never passed.
 | Independent price verification | `price_verification/report.json` | `verify_prices.py` | `python tools/foundation/verify_prices.py` |
 | Point-in-time features (sealed) | artifact `nbt-pit-features-*` | `pit_features.py`, `data-pit-features.yml` | push `ops/pit.json` |
 | Joined dataset (sealed) | artifact `nbt-dataset-*` | `assemble.py`, `data-assemble.yml` | push `ops/assemble.json` |
+| Coverage gaps | check-run annotation, sealed `coverage/` | `coverage_gaps.py` (in `data-assemble.yml`) | push `ops/assemble.json` |
+| Principle evaluation | check-run annotation, sealed `evaluation/` | `evaluate_principles.py` (in `data-assemble.yml`) | push `ops/assemble.json` |
 | Replay reconciliation (sealed) | artifact `nbt-canonical-checkpoint` | `reconcile_replay.py`, `data-worker-reconcile.yml` | push `ops/reconcile.json` |
 | Determinism re-check | check-run annotation | `determinism_check.py`, `data-worker-determinism.yml` | push `ops/determinism.json` |
 
 Walk-forward evaluation infrastructure is `tools/foundation/walkforward.py`. It trains nothing.
+
+## Where these jobs run, and why
+
+Anything that reads the database runs inside GitHub Actions, not from a laptop. The measured
+reason: the Supabase session pooler allows 15 clients, and one local analysis started while a
+replay slice was in flight exhausted it (`EMAXCONNSESSION`, 2026-10-14 12:19 UTC), after which the
+standby connection timed out too. A single runner holding a single connection, scheduled after the
+heavy step, is the shape that fits the free tier. The replay worker's own lane is serialised by its
+concurrency group for the same reason.
 
 ## Macro
 
@@ -68,3 +79,21 @@ Stored stock and ETF closes are Yahoo's dividend-adjusted close, not the price t
 paid. Every feature built here is scale-free over its window, so the adjustment does not change a
 feature; absolute levels are not traded prices. See `price_verification/report.json` for the
 second-source comparison and for what could not be verified independently.
+
+Each class is checked against a provider that did not supply the stored value: US stocks and ETFs
+against Nasdaq, crypto against Binance (falling back to Bitstamp), FX against the ECB's euro
+reference rates crossed through EUR, and PSX shares against Yahoo's Karachi listing (`SYMBOL.KA`,
+quoted in PKR), which is a different provider from the exchange's own daily file. Classes whose
+adjustment bases differ are compared as daily returns rather than levels. Commodity futures remain
+unverified: the stored `=F` contracts have no free keyless counterpart, and a spot series is a
+different instrument.
+
+## Principle evaluation
+
+`evaluate_principles.py` runs pre-registered rules — each mapped from a principle's stated signal
+to the stored point-in-time features, written before any result was seen — through the purged
+walk-forward evaluator, against buy-and-hold and a reproducible coin flip, net of the low, base
+and high cost assumptions. A rule is PASS only when it beats both controls, makes money at the
+base cost, has an interval above zero, and clears a 0.95 deflated Sharpe probability against the
+running trial count. Most will fail; a corpus of honest failures is the deliverable. Nothing here
+is model training and no result promotes a rule into the live engine.
