@@ -1,0 +1,1300 @@
+{
+ "generatedAt": "2026-10-14T19:51:43+00:00",
+ "psxCandidates": 173,
+ "symbolsTheProviderLists": 169,
+ "confirmedByAProviderSplit": 10,
+ "providerListsTheSymbolButNoSplitOnThatDate": 158,
+ "providerDoesNotListTheSymbol": 4,
+ "disagreedOnFactor": 1,
+ "rule": "a provider split within five days of the candidate date whose price factor reproduces the observed one-day ratio to within 5%",
+ "candidates": [
+  {
+   "symbol": "ICIBL",
+   "date": "2026-07-13",
+   "observedRatio": 5.9558,
+   "nearestSimpleFactor": 6,
+   "providerListed": true,
+   "providerSplit": {
+    "date": "2026-07-10",
+    "ratio": "84.88663:100",
+    "dayGap": 3
+   },
+   "providerPriceFactor": 1.1780418188353101,
+   "agreesWithObserved": false
+  },
+  {
+   "symbol": "AMTEX",
+   "date": "2024-07-01",
+   "observedRatio": 4.0,
+   "nearestSimpleFactor": 4,
+   "providerListed": true
+  },
+  {
+   "symbol": "COLG",
+   "date": "2020-09-01",
+   "observedRatio": 1.5011,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "LCI",
+   "date": "2025-07-21",
+   "observedRatio": 0.205,
+   "nearestSimpleFactor": 0.2,
+   "providerListed": true,
+   "providerSplit": {
+    "date": "2025-07-21",
+    "ratio": "5:1",
+    "dayGap": 0
+   },
+   "providerPriceFactor": 0.2,
+   "agreesWithObserved": true
+  },
+  {
+   "symbol": "KSBP",
+   "date": "2020-10-01",
+   "observedRatio": 2.0038,
+   "nearestSimpleFactor": 2,
+   "providerListed": true
+  },
+  {
+   "symbol": "DLL",
+   "date": "2026-06-08",
+   "observedRatio": 0.0967,
+   "nearestSimpleFactor": 0.1,
+   "providerListed": true,
+   "providerSplit": {
+    "date": "2026-06-08",
+    "ratio": "10:1",
+    "dayGap": 0
+   },
+   "providerPriceFactor": 0.1,
+   "agreesWithObserved": true
+  },
+  {
+   "symbol": "CLOV",
+   "date": "2019-11-29",
+   "observedRatio": 2.0386,
+   "nearestSimpleFactor": 2,
+   "providerListed": true
+  },
+  {
+   "symbol": "KAPCO",
+   "date": "2021-02-01",
+   "observedRatio": 1.4682,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "CLOV",
+   "date": "2026-04-20",
+   "observedRatio": 0.0984,
+   "nearestSimpleFactor": 0.1,
+   "providerListed": true,
+   "providerSplit": {
+    "date": "2026-04-20",
+    "ratio": "10:1",
+    "dayGap": 0
+   },
+   "providerPriceFactor": 0.1,
+   "agreesWithObserved": true
+  },
+  {
+   "symbol": "LUCK",
+   "date": "2025-04-28",
+   "observedRatio": 0.2049,
+   "nearestSimpleFactor": 0.2,
+   "providerListed": true
+  },
+  {
+   "symbol": "DFML",
+   "date": "2022-11-01",
+   "observedRatio": 2.0689,
+   "nearestSimpleFactor": 2,
+   "providerListed": true
+  },
+  {
+   "symbol": "MTL",
+   "date": "2026-06-22",
+   "observedRatio": 0.5144,
+   "nearestSimpleFactor": 0.5,
+   "providerListed": true,
+   "providerSplit": {
+    "date": "2026-06-22",
+    "ratio": "2:1",
+    "dayGap": 0
+   },
+   "providerPriceFactor": 0.5,
+   "agreesWithObserved": true
+  },
+  {
+   "symbol": "DFML",
+   "date": "2024-04-30",
+   "observedRatio": 2.003,
+   "nearestSimpleFactor": 2,
+   "providerListed": true
+  },
+  {
+   "symbol": "NRL",
+   "date": "2021-01-01",
+   "observedRatio": 1.9699,
+   "nearestSimpleFactor": 2,
+   "providerListed": true
+  },
+  {
+   "symbol": "FNEL",
+   "date": "2020-06-01",
+   "observedRatio": 1.9455,
+   "nearestSimpleFactor": 2,
+   "providerListed": true
+  },
+  {
+   "symbol": "KOHC",
+   "date": "2025-08-25",
+   "observedRatio": 0.1967,
+   "nearestSimpleFactor": 0.2,
+   "providerListed": true,
+   "providerSplit": {
+    "date": "2025-08-25",
+    "ratio": "5:1",
+    "dayGap": 0
+   },
+   "providerPriceFactor": 0.2,
+   "agreesWithObserved": true
+  },
+  {
+   "symbol": "DOL",
+   "date": "2020-04-30",
+   "observedRatio": 1.5301,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "MEHT",
+   "date": "2022-02-01",
+   "observedRatio": 1.5449,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "KML",
+   "date": "2025-10-06",
+   "observedRatio": 0.0991,
+   "nearestSimpleFactor": 0.1,
+   "providerListed": true,
+   "providerSplit": {
+    "date": "2025-10-06",
+    "ratio": "10:1",
+    "dayGap": 0
+   },
+   "providerPriceFactor": 0.1,
+   "agreesWithObserved": true
+  },
+  {
+   "symbol": "MEBL",
+   "date": "2023-08-01",
+   "observedRatio": 1.5202,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "DOL",
+   "date": "2022-09-01",
+   "observedRatio": 1.4977,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "ABOT",
+   "date": "2019-11-29",
+   "observedRatio": 1.4561,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "BAHL",
+   "date": "2023-11-01",
+   "observedRatio": 1.5201,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "ABOT",
+   "date": "2020-04-30",
+   "observedRatio": 1.448,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "KOSM",
+   "date": "2023-12-01",
+   "observedRatio": 2.0051,
+   "nearestSimpleFactor": 2,
+   "providerListed": true
+  },
+  {
+   "symbol": "LOTCHEM",
+   "date": "2022-04-28",
+   "observedRatio": 1.5243,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "AGTL",
+   "date": "2019-11-29",
+   "observedRatio": 1.465,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "BAPL",
+   "date": "2024-05-31",
+   "observedRatio": 2.0076,
+   "nearestSimpleFactor": 2,
+   "providerListed": true
+  },
+  {
+   "symbol": "UBL",
+   "date": "2025-06-23",
+   "observedRatio": 0.4995,
+   "nearestSimpleFactor": 0.5,
+   "providerListed": true,
+   "providerSplit": {
+    "date": "2025-06-24",
+    "ratio": "2:1",
+    "dayGap": 1
+   },
+   "providerPriceFactor": 0.5,
+   "agreesWithObserved": true
+  },
+  {
+   "symbol": "HCAR",
+   "date": "2023-11-01",
+   "observedRatio": 1.5247,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "KSBP",
+   "date": "2022-07-01",
+   "observedRatio": 1.5405,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "HCAR",
+   "date": "2020-07-30",
+   "observedRatio": 1.5191,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "BAFL",
+   "date": "2026-04-20",
+   "observedRatio": 0.5161,
+   "nearestSimpleFactor": 0.5,
+   "providerListed": true,
+   "providerSplit": {
+    "date": "2026-04-20",
+    "ratio": "2:1",
+    "dayGap": 0
+   },
+   "providerPriceFactor": 0.5,
+   "agreesWithObserved": true
+  },
+  {
+   "symbol": "KOIL",
+   "date": "2020-10-29",
+   "observedRatio": 2.0024,
+   "nearestSimpleFactor": 2,
+   "providerListed": true
+  },
+  {
+   "symbol": "OCTOPUS",
+   "date": "2024-04-30",
+   "observedRatio": 1.4464,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "IMS",
+   "date": "2025-06-16",
+   "observedRatio": 0.1016,
+   "nearestSimpleFactor": 0.1,
+   "providerListed": false
+  },
+  {
+   "symbol": "KSBP",
+   "date": "2021-04-01",
+   "observedRatio": 0.4953,
+   "nearestSimpleFactor": 0.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "JATM",
+   "date": "2023-04-28",
+   "observedRatio": 2.0157,
+   "nearestSimpleFactor": 2,
+   "providerListed": true
+  },
+  {
+   "symbol": "THCCL",
+   "date": "2025-07-14",
+   "observedRatio": 0.2046,
+   "nearestSimpleFactor": 0.2,
+   "providerListed": true,
+   "providerSplit": {
+    "date": "2025-07-14",
+    "ratio": "5:1",
+    "dayGap": 0
+   },
+   "providerPriceFactor": 0.2,
+   "agreesWithObserved": true
+  },
+  {
+   "symbol": "SCBPL",
+   "date": "2022-07-01",
+   "observedRatio": 0.6602,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "MFFL",
+   "date": "2023-12-29",
+   "observedRatio": 0.4823,
+   "nearestSimpleFactor": 0.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "SAZEW",
+   "date": "2023-08-01",
+   "observedRatio": 1.481,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "ACPL",
+   "date": "2020-04-30",
+   "observedRatio": 1.4451,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "UNITY",
+   "date": "2021-06-01",
+   "observedRatio": 1.4943,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "HUMNL",
+   "date": "2019-11-29",
+   "observedRatio": 1.5083,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "TOWL",
+   "date": "2022-12-01",
+   "observedRatio": 1.468,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "KTML",
+   "date": "2025-09-15",
+   "observedRatio": 0.1936,
+   "nearestSimpleFactor": 0.2,
+   "providerListed": true,
+   "providerSplit": {
+    "date": "2025-09-15",
+    "ratio": "5:1",
+    "dayGap": 0
+   },
+   "providerPriceFactor": 0.2,
+   "agreesWithObserved": true
+  },
+  {
+   "symbol": "ADMM",
+   "date": "2021-01-01",
+   "observedRatio": 1.5265,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "TOMCL",
+   "date": "2024-04-01",
+   "observedRatio": 1.475,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "AGHA",
+   "date": "2023-11-01",
+   "observedRatio": 1.5258,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "DSL",
+   "date": "2019-11-01",
+   "observedRatio": 1.5441,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "GAL",
+   "date": "2024-07-25",
+   "observedRatio": 1.5422,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": false
+  },
+  {
+   "symbol": "ATRL",
+   "date": "2020-07-30",
+   "observedRatio": 1.4661,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "WTL",
+   "date": "2019-10-01",
+   "observedRatio": 1.5467,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "ALTN",
+   "date": "2025-02-27",
+   "observedRatio": 0.6422,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "ISL",
+   "date": "2020-04-30",
+   "observedRatio": 1.4933,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "PRL",
+   "date": "2020-09-01",
+   "observedRatio": 1.5399,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "GHNI",
+   "date": "2023-08-01",
+   "observedRatio": 1.5114,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "BERG",
+   "date": "2020-07-30",
+   "observedRatio": 1.4688,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "ANL",
+   "date": "2021-01-01",
+   "observedRatio": 1.4665,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "AGL",
+   "date": "2023-08-01",
+   "observedRatio": 1.5576,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "IBLHL",
+   "date": "2019-11-01",
+   "observedRatio": 1.5152,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "ITTEFAQ",
+   "date": "2019-11-29",
+   "observedRatio": 1.5171,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "JSCL",
+   "date": "2020-10-01",
+   "observedRatio": 1.4875,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "FEROZ",
+   "date": "2020-04-30",
+   "observedRatio": 1.4679,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "FEROZ",
+   "date": "2019-10-01",
+   "observedRatio": 1.4639,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "CSAP",
+   "date": "2020-09-01",
+   "observedRatio": 1.4942,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "GGL",
+   "date": "2021-04-30",
+   "observedRatio": 1.5234,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "IBLHL",
+   "date": "2019-11-29",
+   "observedRatio": 1.4904,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "AGL",
+   "date": "2021-06-01",
+   "observedRatio": 1.5291,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "MQTM",
+   "date": "2024-05-31",
+   "observedRatio": 0.4927,
+   "nearestSimpleFactor": 0.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "NRL",
+   "date": "2023-08-01",
+   "observedRatio": 1.5225,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "SHEZ",
+   "date": "2020-10-01",
+   "observedRatio": 1.4457,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "PKGP",
+   "date": "2020-09-01",
+   "observedRatio": 1.487,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "DGKC",
+   "date": "2020-04-30",
+   "observedRatio": 1.4754,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "OGDC",
+   "date": "2020-04-01",
+   "observedRatio": 0.6487,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "PECO",
+   "date": "2021-09-01",
+   "observedRatio": 1.4938,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "BUXL",
+   "date": "2021-07-30",
+   "observedRatio": 1.5136,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "DFML",
+   "date": "2021-06-01",
+   "observedRatio": 1.5117,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "MUGHAL",
+   "date": "2021-03-01",
+   "observedRatio": 1.4473,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "DFML",
+   "date": "2022-12-01",
+   "observedRatio": 1.5016,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "TRG",
+   "date": "2020-12-01",
+   "observedRatio": 1.4633,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "KSBP",
+   "date": "2023-02-01",
+   "observedRatio": 0.6499,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "AGL",
+   "date": "2019-11-29",
+   "observedRatio": 1.5017,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "HBL",
+   "date": "2020-04-01",
+   "observedRatio": 0.6551,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "PKGP",
+   "date": "2021-02-01",
+   "observedRatio": 1.4667,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "FECTC",
+   "date": "2023-12-01",
+   "observedRatio": 1.5407,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "PKGP",
+   "date": "2022-12-01",
+   "observedRatio": 1.4643,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "ASTL",
+   "date": "2023-08-01",
+   "observedRatio": 1.4469,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "BAFL",
+   "date": "2020-04-01",
+   "observedRatio": 0.6814,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "DCL",
+   "date": "2023-11-01",
+   "observedRatio": 1.5285,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "NRSL",
+   "date": "2024-07-25",
+   "observedRatio": 1.4529,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "FNEL",
+   "date": "2019-11-01",
+   "observedRatio": 1.4718,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "BPL",
+   "date": "2024-04-01",
+   "observedRatio": 1.4914,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "AGL",
+   "date": "2022-03-01",
+   "observedRatio": 1.4755,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "THCCL",
+   "date": "2024-07-25",
+   "observedRatio": 1.5329,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "ITTEFAQ",
+   "date": "2023-08-01",
+   "observedRatio": 1.442,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "KSBP",
+   "date": "2022-06-01",
+   "observedRatio": 0.673,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "PTC",
+   "date": "2024-04-01",
+   "observedRatio": 1.4873,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "ACPL",
+   "date": "2022-06-01",
+   "observedRatio": 0.6863,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "NETSOL",
+   "date": "2021-04-01",
+   "observedRatio": 0.6622,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "MFL",
+   "date": "2022-09-01",
+   "observedRatio": 1.4977,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "FECTC",
+   "date": "2019-11-29",
+   "observedRatio": 1.4919,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "MFFL",
+   "date": "2020-04-01",
+   "observedRatio": 0.6572,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "PAKOXY",
+   "date": "2019-08-01",
+   "observedRatio": 0.6921,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "LSEVL",
+   "date": "2025-09-01",
+   "observedRatio": 0.5113,
+   "nearestSimpleFactor": 0.5,
+   "providerListed": false
+  },
+  {
+   "symbol": "MSCL",
+   "date": "2023-03-31",
+   "observedRatio": 1.4956,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "MFFL",
+   "date": "2022-04-01",
+   "observedRatio": 0.6667,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "DCL",
+   "date": "2024-05-31",
+   "observedRatio": 1.4784,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "BAPL",
+   "date": "2022-02-01",
+   "observedRatio": 1.5531,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "PPL",
+   "date": "2020-04-01",
+   "observedRatio": 0.6558,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "UNITY",
+   "date": "2019-04-01",
+   "observedRatio": 0.6783,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "MFL",
+   "date": "2021-07-01",
+   "observedRatio": 1.4627,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "FFL",
+   "date": "2019-08-01",
+   "observedRatio": 0.6885,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "THCCL",
+   "date": "2021-09-01",
+   "observedRatio": 1.4671,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "TPLT",
+   "date": "2021-07-01",
+   "observedRatio": 1.4489,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "TSPL",
+   "date": "2023-11-01",
+   "observedRatio": 1.5573,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "MACTER",
+   "date": "2019-08-01",
+   "observedRatio": 0.6708,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "GHNI",
+   "date": "2019-08-01",
+   "observedRatio": 0.6401,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "KOHP",
+   "date": "2021-03-01",
+   "observedRatio": 1.5544,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "TRG",
+   "date": "2020-04-01",
+   "observedRatio": 0.6423,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "PASL",
+   "date": "2025-06-13",
+   "observedRatio": 1.5181,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "TATM",
+   "date": "2020-12-01",
+   "observedRatio": 1.5205,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "TSPL",
+   "date": "2022-12-30",
+   "observedRatio": 1.5306,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "GHNI",
+   "date": "2020-04-01",
+   "observedRatio": 0.6558,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "DEL",
+   "date": "2019-11-29",
+   "observedRatio": 1.5,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "HIRAT",
+   "date": "2021-06-01",
+   "observedRatio": 1.4689,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "MACTER",
+   "date": "2020-10-01",
+   "observedRatio": 0.6891,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "PASL",
+   "date": "2024-09-13",
+   "observedRatio": 1.5037,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "HIRAT",
+   "date": "2023-12-01",
+   "observedRatio": 1.4648,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "JSCL",
+   "date": "2019-08-01",
+   "observedRatio": 0.6709,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "GADT",
+   "date": "2020-04-01",
+   "observedRatio": 0.6912,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "JATM",
+   "date": "2024-05-31",
+   "observedRatio": 1.5063,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "MDTL",
+   "date": "2024-09-13",
+   "observedRatio": 1.4785,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "MDTL",
+   "date": "2019-11-29",
+   "observedRatio": 1.4783,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "KTML",
+   "date": "2020-04-30",
+   "observedRatio": 1.4531,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "PASL",
+   "date": "2020-09-01",
+   "observedRatio": 1.4744,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "OTSU",
+   "date": "2022-11-01",
+   "observedRatio": 0.6876,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "ASTL",
+   "date": "2019-08-01",
+   "observedRatio": 0.6868,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "SARC",
+   "date": "2023-11-01",
+   "observedRatio": 1.5037,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "FCSC",
+   "date": "2020-06-01",
+   "observedRatio": 1.4937,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "GCIL",
+   "date": "2022-12-30",
+   "observedRatio": 0.6828,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "DFML",
+   "date": "2021-10-01",
+   "observedRatio": 0.6629,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "JATM",
+   "date": "2023-02-01",
+   "observedRatio": 1.4736,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "HASCOL",
+   "date": "2019-08-01",
+   "observedRatio": 0.6701,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "JATM",
+   "date": "2020-01-31",
+   "observedRatio": 1.4667,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "DSIL",
+   "date": "2021-01-01",
+   "observedRatio": 1.48,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "DFML",
+   "date": "2020-04-01",
+   "observedRatio": 0.6765,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "GGL",
+   "date": "2020-04-01",
+   "observedRatio": 0.6849,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "FNEL",
+   "date": "2021-04-30",
+   "observedRatio": 0.6841,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "FNEL",
+   "date": "2020-01-31",
+   "observedRatio": 0.6877,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "MSOT",
+   "date": "2020-04-01",
+   "observedRatio": 0.6432,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "FECTC",
+   "date": "2024-04-01",
+   "observedRatio": 0.656,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "DSIL",
+   "date": "2024-07-01",
+   "observedRatio": 1.4563,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "FCSC",
+   "date": "2025-06-13",
+   "observedRatio": 1.4434,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "SERT",
+   "date": "2019-08-01",
+   "observedRatio": 0.507,
+   "nearestSimpleFactor": 0.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "FECTC",
+   "date": "2019-05-30",
+   "observedRatio": 0.6716,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "ASTM",
+   "date": "2022-02-01",
+   "observedRatio": 1.5337,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "SHDT",
+   "date": "2020-04-01",
+   "observedRatio": 0.6917,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "ITANZ",
+   "date": "2026-02-06",
+   "observedRatio": 1.5275,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": false
+  },
+  {
+   "symbol": "SGPL",
+   "date": "2021-12-31",
+   "observedRatio": 1.5322,
+   "nearestSimpleFactor": 1.5,
+   "providerListed": true
+  },
+  {
+   "symbol": "TPL",
+   "date": "2019-08-01",
+   "observedRatio": 0.6826,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "HIRAT",
+   "date": "2020-01-31",
+   "observedRatio": 0.6782,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "PASL",
+   "date": "2019-03-01",
+   "observedRatio": 0.6594,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "BAPL",
+   "date": "2020-01-31",
+   "observedRatio": 0.6813,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "KTML",
+   "date": "2020-04-01",
+   "observedRatio": 0.6875,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "SARC",
+   "date": "2023-08-01",
+   "observedRatio": 0.6483,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "PASL",
+   "date": "2019-04-01",
+   "observedRatio": 0.6813,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "DEL",
+   "date": "2022-02-01",
+   "observedRatio": 0.6883,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "TSPL",
+   "date": "2023-03-31",
+   "observedRatio": 0.6877,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "KOHP",
+   "date": "2021-04-30",
+   "observedRatio": 0.6895,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "SERT",
+   "date": "2020-04-01",
+   "observedRatio": 0.6812,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  },
+  {
+   "symbol": "SERT",
+   "date": "2021-11-01",
+   "observedRatio": 0.6907,
+   "nearestSimpleFactor": 0.6667,
+   "providerListed": true
+  }
+ ]
+}

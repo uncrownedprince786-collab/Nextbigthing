@@ -1,0 +1,120 @@
+{
+ "verifiedAt": "2026-10-14T19:55:40+00:00",
+ "sourceCounts": [
+  {
+   "source": "Yahoo Finance",
+   "n": 604841,
+   "lo": "2019-01-01",
+   "hi": "2026-10-13"
+  },
+  {
+   "source": "Yahoo Finance Karachi listing",
+   "n": 183267,
+   "lo": "2019-01-01",
+   "hi": "2024-10-10"
+  },
+  {
+   "source": "Pakistan Stock Exchange daily closing file",
+   "n": 130585,
+   "lo": "2019-01-01",
+   "hi": "2026-10-14"
+  },
+  {
+   "source": "Coinbase",
+   "n": 95977,
+   "lo": "2018-11-04",
+   "hi": "2026-10-13"
+  },
+  {
+   "source": "Kraken",
+   "n": 2401,
+   "lo": "2024-10-23",
+   "hi": "2026-10-13"
+  },
+  {
+   "source": "Yahoo Finance chart API",
+   "n": 225,
+   "lo": "2026-09-14",
+   "hi": "2026-09-24"
+  }
+ ],
+ "databaseSize": "371 MB",
+ "exchangeBarsBefore": 130585,
+ "exchangeBarsNow": 130585,
+ "exchangeBarsLost": 0,
+ "exchangeClosesChanged": 0,
+ "examplesLost": [],
+ "examplesChanged": [],
+ "psxSymbolBarsByYearAndSource": [
+  {
+   "y": 2019,
+   "source": "Pakistan Stock Exchange daily closing file",
+   "n": 1981
+  },
+  {
+   "y": 2019,
+   "source": "Yahoo Finance Karachi listing",
+   "n": 24837
+  },
+  {
+   "y": 2020,
+   "source": "Pakistan Stock Exchange daily closing file",
+   "n": 1968
+  },
+  {
+   "y": 2020,
+   "source": "Yahoo Finance Karachi listing",
+   "n": 29639
+  },
+  {
+   "y": 2021,
+   "source": "Pakistan Stock Exchange daily closing file",
+   "n": 2242
+  },
+  {
+   "y": 2021,
+   "source": "Yahoo Finance Karachi listing",
+   "n": 31806
+  },
+  {
+   "y": 2022,
+   "source": "Pakistan Stock Exchange daily closing file",
+   "n": 2072
+  },
+  {
+   "y": 2022,
+   "source": "Yahoo Finance Karachi listing",
+   "n": 35349
+  },
+  {
+   "y": 2023,
+   "source": "Pakistan Stock Exchange daily closing file",
+   "n": 2115
+  },
+  {
+   "y": 2023,
+   "source": "Yahoo Finance Karachi listing",
+   "n": 38532
+  },
+  {
+   "y": 2024,
+   "source": "Pakistan Stock Exchange daily closing file",
+   "n": 23847
+  },
+  {
+   "y": 2024,
+   "source": "Yahoo Finance Karachi listing",
+   "n": 23104
+  },
+  {
+   "y": 2025,
+   "source": "Pakistan Stock Exchange daily closing file",
+   "n": 53365
+  },
+  {
+   "y": 2026,
+   "source": "Pakistan Stock Exchange daily closing file",
+   "n": 42995
+  }
+ ]
+}
