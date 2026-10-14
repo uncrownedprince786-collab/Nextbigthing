@@ -1,0 +1,36 @@
+{
+ "generatedAt": "2026-10-14T23:28:43+00:00",
+ "series": "KSE100",
+ "name": "KSE-100 index, daily close",
+ "sourceUrl": "https://dps.psx.com.pk/timeseries/eod/KSE100",
+ "sourceNote": "requires X-Req-Id (the page's own token) and X-Requested-With together; either alone returns 404 or 403",
+ "fields": [
+  "date",
+  "open",
+  "close",
+  "volume"
+ ],
+ "fieldsNotProvided": [
+  "high",
+  "low"
+ ],
+ "basis": "index level as published by the exchange; not a total-return index",
+ "file": "KSE100.csv",
+ "sha256": "7d0fd3d3389f4f6a1bb9bfdc91186bb17c8c39c038b72871f4f235154c8a1af0",
+ "validation": {
+  "rowsReturned": 1240,
+  "malformedRows": 0,
+  "rowsWithNulls": 0,
+  "nonPositiveOrNegativeVolume": 0,
+  "duplicateDatesCollapsed": 1,
+  "distinctDates": 1239,
+  "first": "2021-10-15",
+  "last": "2026-10-14",
+  "weekdaysInRange": 1304,
+  "weekdayCoverage": 0.9502
+ },
+ "frozenTargetRequiredFrom": "2018-01-01",
+ "coverageAgainstFrozenTarget": "PARTIAL",
+ "missingAgainstFrozenTarget": "2018-01-01 .. 2021-10-15",
+ "licensing": "PSX's terms forbid redistributing its market data feed without a licence, delayed included; recovery-manifest.json carries this as psx-redistribution-licence, an accepted unresolved risk. Acquisition and private use are unaffected; publishing these levels is not cleared."
+}

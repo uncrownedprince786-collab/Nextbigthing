@@ -1,6 +1,6 @@
 {
- "generatedAt": "2026-10-14T23:16:54+00:00",
- "version": "acquisition-manifest-v4",
+ "generatedAt": "2026-10-14T23:29:44+00:00",
+ "version": "acquisition-manifest-v5",
  "scope": "the frozen target only; no instrument or asset class was added beyond it",
  "sweepDateReconciliation": {
   "datesSettled": 2294,
@@ -158,7 +158,7 @@
     "PSX renamed/delisted": "acquired",
     "KIBOR history": "acquired",
     "SBP policy rate history": "acquired",
-    "KSE-100": "unavailable"
+    "KSE-100": "partially acquired (2021-10-15 onward; the frozen cutoff is 2018-01-01)"
    },
    "denominator": "the 14 frozen target items named in the brief"
   },
@@ -200,9 +200,10 @@
    "category4RecoverableElsewhere": 0,
    "note2": "the earlier report called these non-trading sessions. They are not: 36,762 are published sessions on which that one security did not trade, and 158 fall on the four dates whose exchange archive is empty or absent, 69 of which another provider does serve",
    "psxCoverageAgainstSessionsAPriceWasPublished": 1.0,
-   "seriesWithNoReachableHistory": [
-    "KSE-100"
-   ],
+   "seriesWithNoReachableHistory": [],
+   "partiallyAcquired": {
+    "KSE-100": "2018-01-01 .. 2021-10-15"
+   },
    "kse100SourcesTestedAndFailed": [
     "SBP EasyData portal search for 'KSE': No Data Found (the portal carries SBP and PBS data, not exchange index levels)",
     "dps.psx.com.pk /timeseries/eod/KSE100, /timeseries/int/KSE100, /timeseries/INDEX/KSE100: HTTP 404 from the exchange's own origin",
@@ -665,26 +666,28 @@
   },
   {
    "series": "KSE-100 index",
-   "category": "frozen target, history unavailable",
-   "source": "Pakistan Stock Exchange, dps.psx.com.pk/indices",
-   "basis": "index level, current session",
-   "expectedObservations": null,
-   "acquiredObservations": 1,
-   "validInDurableStaging": 1,
+   "category": "frozen target",
+   "source": "https://dps.psx.com.pk/timeseries/eod/KSE100",
+   "basis": "index level as published by the exchange; not a total-return index",
+   "expectedObservations": 1304,
+   "acquiredObservations": 1240,
+   "validInDurableStaging": 1239,
    "integratedInPrimaryStore": 0,
    "invalidProviderRecordsRejected": 0,
    "withheldOnBasisOrIdentity": 0,
-   "firstObservation": "2026-10-14",
+   "firstObservation": "2021-10-15",
    "lastObservation": "2026-10-14",
-   "denominator": "UNMEASURABLE - no source reached publishes a dated history to count against",
-   "disposition": "UNRESOLVED for history; one dated observation captured",
-   "sourcesExhausted": [
-    "Yahoo chart API: ^KSE, ^KSE100, KSE100.KA, ^KS100, KSE.KA, ^PSX, ^KSE11 all 404",
-    "PSX daily closing file, 2018-01-01 and 2026-10-13: KSE30 futures rows only",
-    "dps.psx.com.pk/indices: current level only (165,417.50 captured)",
-    "dps.psx.com.pk/historical, /daily-downloads: JavaScript shells",
-    "stooq CSV: JavaScript challenge, re-verified"
-   ]
+   "denominator": "weekdays between the first and last observation; PSX publishes no holiday calendar file",
+   "disposition": "PARTIALLY ACQUIRED AND PERSISTED to data/foundation/psx_index -- the endpoint's own depth stops at 2021-10-15 and the frozen cutoff is 2018-01-01",
+   "fieldsNotProvided": [
+    "high",
+    "low"
+   ],
+   "file": "KSE100.csv",
+   "sha256": "7d0fd3d3389f4f6a1bb9bfdc91186bb17c8c39c038b72871f4f235154c8a1af0",
+   "licensing": "PSX's terms forbid redistributing its market data feed without a licence, delayed included; recovery-manifest.json carries this as psx-redistribution-licence, an accepted unresolved risk. Acquisition and private use are unaffected; publishing these levels is not cleared.",
+   "duplicateDatesCollapsed": 1,
+   "missingAgainstFrozenTarget": "2018-01-01 .. 2021-10-15"
   }
  ]
 }

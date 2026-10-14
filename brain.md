@@ -4577,3 +4577,53 @@ reads rows that already exist:
       files byte-identical to the repository, metrics with stated denominators, 971 tests green,
       no unexplained counts. KSE-100 historical levels are not acquired, and the acceptance gate
       says the frozen scope is not complete while that is true.
+
+135. **KSE-100 was never unpublished. Three entries said it was, and all three were describing the
+    request I sent rather than the endpoint.** 2026-10-15. 1,239 daily index observations acquired,
+    2021-10-15 to 2026-10-14, persisted to `data/foundation/psx_index/`. No database change.
+
+    - **The correction, plainly.** Rules 132, 133 and 134 recorded `dps.psx.com.pk/timeseries/eod/
+      KSE100` as a 404 and the series as unavailable from permitted free sources. It answers **HTTP
+      200 with `application/json`**. What was missing was a header pair: the endpoint needs
+      **`X-Req-Id`** -- the per-page token the site attaches to its own AJAX, set in its own
+      `static/script.js` as `$.ajaxSetup({headers:{"X-Req-Id": window.__ps._k}})` -- **and**
+      `X-Requested-With: XMLHttpRequest` together. Sent alone, the first returns 404 and the second
+      403, which is exactly the pair of readings the earlier entries recorded and mistook for a
+      verdict about the data.
+
+    - **What finally separated the two.** Reading the browser's own network log while a company
+      page loaded: that page's request to `/timeseries/int/OGDC` returned **200** in the same
+      session where my fetch of the identical URL returned 404. A path cannot be both absent and
+      present, so the difference had to be in the request -- and the site's own script named it.
+      **A 404 from this host is not evidence that a path does not exist.**
+
+    - **What the endpoint gives, and what it withholds.** `[unixSeconds, close, volume, open]`,
+      newest first. **There is no high and no low**, so this series cannot carry a true range, an
+      ATR or a candle, and nothing was derived to pretend otherwise. 1,240 rows arrived: 0
+      malformed, 0 null, 0 non-positive, **one duplicate date collapsed**, leaving 1,239 distinct
+      dates. Weekday coverage is **0.9502**, which sits inside the 0.939-0.958 the PSX calendar
+      reads elsewhere in this project -- the shortfall is exchange holidays.
+
+    - **Checked against something that is not itself.** The newest close, **165,417.50**, is
+      identical to the level captured from `dps.psx.com.pk/indices` on the same day through a
+      different page. Across ten sampled sessions the index's daily direction agrees with the
+      median return of the stored PSX constituents -- computed from the exchange's closing files,
+      a different source -- on **nine of ten**, and the magnitudes track (2025-10-28: index
+      -1.27%, market median -1.27%). The single disagreement is the shape a capitalisation
+      weighted index has: it rose 0.67% on a day the median stock did not move.
+
+    - **Partial, and the word is load bearing.** The endpoint's own depth stops at **2021-10-15**
+      and the frozen cutoff for PSX instruments is **2018-01-01**, so **2018-01-01 to 2021-10-14 is
+      not acquired**. The reference implementation that documented this endpoint measured its depth
+      on OGDC and found about five years, which is the same limit from the other side. This is a
+      partially acquired series and the manifest says so in the field a reader would check.
+
+    - **Licensing is unchanged by availability.** PSX's terms forbid redistributing its market data
+      feed without a licence, delayed included. `recovery-manifest.json` carries this as
+      `psx-redistribution-licence`, an accepted unresolved risk. Acquisition and private use are
+      unaffected; publishing these levels is not cleared, and the index manifest repeats that where
+      it will be seen.
+
+    - **Readiness is still the owner's call.** Thirteen of fourteen frozen targets are acquired and
+      the fourteenth is partial, so the frozen scope is **not** complete. Milestone B stays blocked
+      pending an explicit confirmation, which this entry does not grant itself.
