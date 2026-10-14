@@ -210,17 +210,30 @@ def deflated_sharpe(sr: float, n_obs: int, skew: float, kurt: float, n_trials: i
 
 
 def block_bootstrap_mean(by_date: dict[str, list[float]], *, reps: int = 2000, seed: int = 7) -> tuple[float, float]:
-    """95% interval of the mean trade return, resampling whole dates with replacement."""
+    """95% interval of the mean trade return, resampling whole dates with replacement.
+
+    Only each date's sum and count are resampled, never its individual trades: the pooled mean of a
+    resample is the sum of the chosen dates' sums over the sum of their counts, which is the same
+    number the naive version computes. It matters at scale -- materialising the values made this
+    O(reps x trades), about 1.4 billion operations per rule on the full dataset and hours of a
+    runner's budget, against O(reps x dates) here.
+    """
     keys = sorted(by_date)
     if len(keys) < 2:
         return float("nan"), float("nan")
+    sums = [sum(by_date[k]) for k in keys]
+    counts = [len(by_date[k]) for k in keys]
+    n = len(keys)
     rng = random.Random(seed)
     means = []
     for _ in range(reps):
-        pick = [by_date[keys[rng.randrange(len(keys))]] for _ in keys]
-        flat = [x for g in pick for x in g]
-        if flat:
-            means.append(sum(flat) / len(flat))
+        tot = cnt = 0.0
+        for _ in range(n):
+            j = rng.randrange(n)
+            tot += sums[j]
+            cnt += counts[j]
+        if cnt:
+            means.append(tot / cnt)
     means.sort()
     return means[int(0.025 * len(means))], means[int(0.975 * len(means)) - 1]
 

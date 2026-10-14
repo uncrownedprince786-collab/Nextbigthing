@@ -200,6 +200,30 @@ class Evaluation(unittest.TestCase):
         got = wf.evaluate(synthetic(), lambda r: r["candidate"]["signal"], name="n")
         self.assertLessEqual(got["effectiveIndependentTrades"], got["trades"] / 20 + 1)
 
+    def test_the_fast_bootstrap_matches_the_definition_it_replaces(self):
+        """Resampling each date's sum and count must give the pooled mean of resampling its trades.
+        Identical to floating-point accumulation order, which is the only thing that may differ."""
+        import random as _r
+
+        def naive(by_date, reps=400, seed=7):
+            keys = sorted(by_date)
+            rng = _r.Random(seed)
+            means = []
+            for _ in range(reps):
+                pick = [by_date[keys[rng.randrange(len(keys))]] for _ in keys]
+                flat = [x for g in pick for x in g]
+                if flat:
+                    means.append(sum(flat) / len(flat))
+            means.sort()
+            return means[int(0.025 * len(means))], means[int(0.975 * len(means)) - 1]
+
+        rng = _r.Random(11)
+        by = {f"d{i}": [rng.gauss(0.4, 2.5) for _ in range(rng.randint(1, 15))] for i in range(200)}
+        a = naive(by)
+        b = wf.block_bootstrap_mean(by, reps=400)
+        for x, y in zip(a, b):
+            self.assertAlmostEqual(x, y, places=12)
+
     def test_the_interval_is_over_dates_not_rows(self):
         by = {f"d{i}": [1.0, 1.0, 1.0] for i in range(20)}
         lo, hi = wf.block_bootstrap_mean(by)
