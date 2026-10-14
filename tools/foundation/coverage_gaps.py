@@ -18,9 +18,11 @@ Each gap is classified, and the classification is the point:
   calendar itself is uncertain there and the gap may be an artefact of a partial fetch.
 
 `--probe N` then asks the asset's own source whether the missing bar can still be fetched, for N
-randomly chosen gaps, and reports how many came back. Nothing is written to the database: this
-measures whether a repair is possible, and the repair itself belongs to the ingest lanes that own
-those tables.
+randomly chosen gaps, and reports how many came back. Nothing is written to the database. Where a
+gap is recoverable the report prints the exact `tools/recover_asset.py ... --write` command that
+would fill it: that tool already upserts without deleting, never invents a bar the provider did not
+serve, and re-reads the untouched rows afterwards to prove nothing else moved. Running it is a
+production write and therefore a deliberate decision for the owner, not a side effect of an audit.
 """
 
 from __future__ import annotations
@@ -173,8 +175,12 @@ def main() -> None:
                 probed["probeFailed"] += 1
             elif got:
                 probed["recoverable"] += 1
-                if len(examples) < 10:
-                    examples.append({"symbol": sym, "date": g["from"], "sessions": g["sessions"]})
+                if len(examples) < 25:
+                    examples.append({
+                        "symbol": assets[g["assetId"]]["symbol"], "from": g["from"], "to": g["to"],
+                        "sessions": g["sessions"],
+                        "repair": f"python tools/recover_asset.py {assets[g['assetId']]['symbol']} "
+                                  f"--since {g['from']} --write"})
             else:
                 probed["absentAtSource"] += 1
             time.sleep(0.3)
@@ -195,12 +201,20 @@ def main() -> None:
         "notes": [
             "Sessions outside an asset's own stored range are not gaps here; a short history is a "
             "survivorship and seeding question, covered by survivorship/report.json.",
-            "Nothing is written to any database: this measures whether a repair is possible.",
+            "Nothing is written to any database: this measures whether a repair is possible and "
+            "prints the command that would do it. tools/recover_asset.py upserts without deleting, "
+            "never invents a bar, and verifies the rows it did not touch -- but it is still a "
+            "production write and is left for the owner to run.",
         ],
     }
     out.mkdir(parents=True, exist_ok=True)
     (out / "gaps.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
     print(json.dumps({k: v for k, v in report.items() if k not in ("worstRuns", "notes", "probeExamples")}, indent=1))
+    if examples:
+        print("\nrecoverable gaps, with the command that would fill each (not run here):")
+        for e in examples:
+            print(f"  {e['symbol']:8} {e['from']} .. {e['to']} ({e['sessions']} sessions)")
+            print(f"    {e['repair']}")
 
 
 if __name__ == "__main__":
