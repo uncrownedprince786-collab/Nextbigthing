@@ -58,6 +58,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "tools"))
 
 from walkforward import assert_features_are_past_only  # noqa: E402
+from actions import unadjusted_windows  # noqa: E402
 
 # How far back a feature window reaches (tools/foundation/pit_features.WINDOW) and how far forward
 # an outcome does. A row is suspect when an unadjusted corporate action falls in either.
@@ -79,21 +80,23 @@ def read_gz(path: Path):
                 yield json.loads(line)
 
 
-def unadjusted_windows(path: Path | None) -> dict[str, list[str]]:
-    """{symbol: [action dates]} from the split scan, or {} when it has not been run.
+def pit_pool_is_clean(pit_dir: Path) -> bool:
+    """Whether the feature build kept unadjusted actions out of the analog match pool.
 
-    A stored series that was never adjusted for a split carries a one-day "return" that no holder
-    experienced. Every factor measured across that date is wrong, so the rows are flagged rather
-    than silently learned from. Flagging and not dropping is deliberate: the rows are still correct
-    about everything that does not cross the action, and a consumer should decide.
+    Read rather than assumed, because the answer changes what this file has to flag. When the pool
+    was cleaned candidate by candidate (tools/foundation/pit_features.AnalogSeries), a session
+    years after an action is no longer contaminated by it and only the window rule below applies.
+    When it was not -- an older dataset, or a build run without the actions file -- the pool is the
+    asset's whole history and every session at or after its first action is suspect.
     """
-    if not path or not path.exists():
-        return {}
-    doc = json.loads(path.read_text(encoding="utf-8"))
-    out: dict[str, list[str]] = {}
-    for c in doc.get("candidatesList", []):
-        out.setdefault(c["symbol"], []).append(c["date"])
-    return {k: sorted(v) for k, v in out.items()}
+    manifest = pit_dir / "manifest.json"
+    if not manifest.exists():
+        return False
+    try:
+        return bool(json.loads(manifest.read_text(encoding="utf-8"))
+                    .get("analogPoolExcludesUnadjustedActions"))
+    except (ValueError, OSError):
+        return False
 
 
 def setups_for_year(replay: Path | None, runs: dict, year: int) -> dict[tuple, dict]:
@@ -122,7 +125,8 @@ def setups_for_year(replay: Path | None, runs: dict, year: int) -> dict[tuple, d
 
 
 def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setups: dict, stats: dict,
-                  actions: dict[str, list[str]] | None = None, replayed_dates: set | None = None):
+                  actions: dict[str, list[str]] | None = None, replayed_dates: set | None = None,
+                  pool_clean: bool = False):
     pit: dict[tuple, dict] = {}
     if pit_path and pit_path.exists():
         for r in read_gz(pit_path):
@@ -152,15 +156,17 @@ def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setup
         # cannot touch it -- the calendar bound below is correct and conservative for those.
         #
         # The analog block is not windowed. AnalogSeries.at draws its match pool from the asset's
-        # ENTIRE stored history and computes each forward move on raw closes, so a session years
-        # after an action still matches against candidate days whose forward move is the
-        # fabricated one. Those rows were unflagged, passed the evaluator's filter, and fed the
-        # analog rule. Any session at or after an asset's first action is therefore suspect too.
+        # ENTIRE stored history, so where that pool was not cleaned a session years after an action
+        # still matches against candidate days whose forward move is the fabricated one, and any
+        # session at or after an asset's first action is suspect too. Where it WAS cleaned -- the
+        # candidate, its forward window and the session's own factors each excluded by date -- that
+        # is no longer true, and flagging those rows would quarantine history the fix just saved.
         first_action = (actions or {}).get(r["symbol"], ())
-        if first_action and r["asOf"] >= min(first_action):
+        suspect = False
+        if not pool_clean and first_action and r["asOf"] >= min(first_action):
             stats["rowsWithAPoisonedAnalogPool"] += 1
             stats[f"analogpool:{cls}"] += 1
-        suspect = bool(first_action) and r["asOf"] >= min(first_action)
+            suspect = True
         for ad in (actions or {}).get(r["symbol"], ()):
             # Calendar days as a safe over-estimate of the session window: 260 sessions is about
             # 378 calendar days, 20 is about 29. Over-flagging is the right direction here.
@@ -229,13 +235,14 @@ def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setup
     stats["pitRowsNotInFull"] += len(set(pit) - seen)
 
 
-def build_year(year, full_rows, pit_path, setups, out_dir: Path | None, actions=None, replayed_dates=None):
+def build_year(year, full_rows, pit_path, setups, out_dir: Path | None, actions=None, replayed_dates=None,
+               pool_clean: bool = False):
     stats = Counter()
     h = hashlib.sha256()
     n = 0
     fh = gzip.open(out_dir / f"examples-v3-{year}.jsonl.gz", "wt", encoding="utf-8", compresslevel=6) if out_dir else None
     batch = []
-    for row in assemble_year(year, full_rows, pit_path, setups, stats, actions, replayed_dates):
+    for row in assemble_year(year, full_rows, pit_path, setups, stats, actions, replayed_dates, pool_clean):
         line = json.dumps(row, separators=(",", ":"), default=str)
         h.update(line.encode())
         n += 1
@@ -276,9 +283,12 @@ def main() -> int:
         replayed_dates |= {d for (_a, d) in setups_for_year(replay, runs, y)}
     actions = unadjusted_windows(Path(arg("--actions")) if arg("--actions") else
                                  ROOT / "data" / "foundation" / "price_verification" / "unadjusted_actions.json")
+    pool_clean = pit_pool_is_clean(pit_dir)
+    print(f"  analog pool cleaned in the feature build: {pool_clean}", flush=True)
     for y in sorted(by_year):
         stats, digest, n = build_year(y, by_year[y], pit_dir / f"pit-{y}.jsonl.gz",
-                                      setups_for_year(replay, runs, y), out, actions, replayed_dates)
+                                      setups_for_year(replay, runs, y), out, actions, replayed_dates,
+                                      pool_clean)
         total.update(stats)
         digests[y], counts[y] = digest, n
         print(f"  {y}: {n:,} rows, features on {stats['withPit']:,}, setups on {stats['withSetup']:,}", flush=True)
@@ -287,7 +297,8 @@ def main() -> int:
     # Reproducibility: the first year again, digests must match byte for byte.
     again_rows = [need(r) for r in read_gz(full_file) if int(r["asOf"][:4]) == first_year]
     _, d2, _ = build_year(first_year, again_rows, pit_dir / f"pit-{first_year}.jsonl.gz",
-                          setups_for_year(replay, runs, first_year), None, actions, replayed_dates)
+                          setups_for_year(replay, runs, first_year), None, actions, replayed_dates,
+                          pool_clean)
 
     no_feature_reasons = {k.split(":", 1)[1]: v for k, v in total.items() if k.startswith("noPit:")}
     explained = total["withPit"] + total["noPit"] - no_feature_reasons.get("other", 0)
@@ -326,9 +337,13 @@ def main() -> int:
             "rowsTouchingOneByClass": {c: total[f"suspect:{c}"] for c in cls_names},
             "rowsWithAPoisonedAnalogPool": total["rowsWithAPoisonedAnalogPool"],
             "rowsWithAPoisonedAnalogPoolByClass": {c: total[f"analogpool:{c}"] for c in cls_names},
-            "analogPoolNote": ("the analog match pool is the asset's whole history, not a window, "
-                               "so every session at or after an asset's first unadjusted action is "
-                               "flagged -- a window-sized flag would miss them"),
+            "analogPoolCleanedInFeatureBuild": pool_clean,
+            "analogPoolNote": ("the analog match pool is the asset's whole history, not a window. "
+                               "Cleaned in the feature build, the contaminated candidates, their "
+                               "forward windows and the sessions whose own factors cross an action "
+                               "are excluded there and this flag is 0. Uncleaned, every session at "
+                               "or after an asset's first action is flagged instead, because a "
+                               "window-sized flag would miss them"),
             "rowsWithANonDailyWindow": total["rowsWithANonDailyWindow"],
             "rowsWithANonDailyWindowByClass": {c: total[f"sparse:{c}"] for c in cls_names},
             "nonDailyNote": ("the stored PSX history holds about 12 dates a year before 2024 and "
