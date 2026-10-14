@@ -110,6 +110,24 @@ adjustment bases differ are compared as daily returns rather than levels. Commod
 unverified: the stored `=F` contracts have no free keyless counterpart, and a spot series is a
 different instrument.
 
+## Unadjusted corporate actions
+
+`price_verification/unadjusted_actions.json`. A stored series that was never rescaled for a split
+carries a one-day move no holder experienced, and every factor measured across that date — the
+return, the robust z, the analog match — is wrong for that asset in any window containing it.
+
+239 candidates across 152 of the 616 assets. Of 60 checked against a second provider, 52 showed an
+ordinary day there while the stored series showed a collapse, 2 were real moves both providers saw,
+and 6 had no second source. Mostly PSX (173), where the exchange's daily file is not back-adjusted,
+but 22 US names too: the lane fetches incrementally, so a bar stored before a split keeps the old
+scale while the provider silently rescales its own history behind it.
+
+The dataset flags these rather than dropping them — `dataQuality.unadjustedActionInWindow` per row,
+counted in the manifest — because a row is still correct about everything that does not cross the
+action. Repair means re-fetching an asset's full history at the current scale, which
+`tools/recover_asset.py SYMBOL --since ... --write` does for the Yahoo-sourced names; it is a
+production write and is left for the owner.
+
 ## Principle evaluation
 
 `evaluate_principles.py` runs pre-registered rules — each mapped from a principle's stated signal

@@ -1,12 +1,13 @@
 {
- "generatedAt": "2026-10-14T11:03:44+00:00",
+ "generatedAt": "2026-10-14T12:35:45+00:00",
  "seed": 20261014,
  "tolerances": {
   "stock": 0.001,
   "etf": 0.001,
   "crypto-coinbase": 0.005,
   "crypto-kraken": 0.005,
-  "forex": 0.01
+  "forex": 0.01,
+  "psx": 0.001
  },
  "classes": {
   "crypto-coinbase": {
@@ -128,7 +129,7 @@
    "levelDiff": {
     "medianPct": 0.0,
     "shareAbove0.1pct": 0.163,
-    "note": "stored close is dividend-adjusted, Nasdaq's is split-adjusted only"
+    "note": "compared as returns: the two providers use different adjustment bases"
    },
    "medianAbsDiffPct": 0.0,
    "p95AbsDiffPct": 0.0077,
@@ -192,36 +193,75 @@
    "p99AbsDiffPct": 1.6347,
    "withinShare": 0.9636
   },
-  "stock": {
-   "sampled": 400,
-   "compared": 399,
-   "within": 390,
+  "psx": {
+   "sampled": 300,
+   "compared": 280,
+   "within": 267,
    "split": 0,
-   "mismatch": 1,
-   "dividend": 8,
-   "noIndependentData": 1,
+   "mismatch": 4,
+   "dividend": 9,
+   "noIndependentData": 20,
    "outliers": [
     {
-     "symbol": "HL",
-     "date": "2019-11-29",
+     "symbol": "ASTL",
+     "date": "2026-08-18",
      "kind": "mismatch",
-     "returnGapPct": -0.431,
-     "versus": "nasdaq"
+     "returnGapPct": -1.403,
+     "versus": "yahoo .KA"
+    },
+    {
+     "symbol": "BECO",
+     "date": "2025-11-17",
+     "kind": "mismatch",
+     "returnGapPct": -88.601,
+     "versus": "yahoo .KA"
+    },
+    {
+     "symbol": "DFML",
+     "date": "2023-09-28",
+     "kind": "mismatch",
+     "returnGapPct": -1.404,
+     "versus": "yahoo .KA"
+    },
+    {
+     "symbol": "KOHC",
+     "date": "2026-04-30",
+     "kind": "mismatch",
+     "returnGapPct": -0.538,
+     "versus": "yahoo .KA"
     }
    ],
    "levelDiff": {
-    "medianPct": 4.94,
-    "shareAbove0.1pct": 0.787,
-    "note": "stored close is dividend-adjusted, Nasdaq's is split-adjusted only"
+    "medianPct": 0.0,
+    "shareAbove0.1pct": 0.046,
+    "note": "compared as returns: the two providers use different adjustment bases"
    },
    "medianAbsDiffPct": 0.0,
-   "p95AbsDiffPct": 0.0001,
-   "p99AbsDiffPct": 0.5128,
-   "withinShare": 0.9774
+   "p95AbsDiffPct": 0.0,
+   "p99AbsDiffPct": 2.2336,
+   "withinShare": 0.9536
+  },
+  "stock": {
+   "sampled": 120,
+   "compared": 120,
+   "within": 119,
+   "split": 0,
+   "mismatch": 0,
+   "dividend": 1,
+   "noIndependentData": 0,
+   "outliers": [],
+   "levelDiff": {
+    "medianPct": 4.821,
+    "shareAbove0.1pct": 0.792,
+    "note": "compared as returns: the two providers use different adjustment bases"
+   },
+   "medianAbsDiffPct": 0.0,
+   "p95AbsDiffPct": 0.0,
+   "p99AbsDiffPct": 0.0012,
+   "withinShare": 0.9917
   }
  },
  "notIndependentlyVerifiable": {
-  "PSX shares": "stored source is the exchange's own file; no free second source",
   "commodity futures (=F)": "no free keyless counterpart for the same contract",
   "Stooq": "behind a JavaScript challenge; not bypassed"
  }
