@@ -143,6 +143,8 @@ jobs:
       # from `nbt-canonical-checkpoint` and nothing else.
       - name: Resume the missing sessions
         if: env.rc != '0' && steps.req.outputs.recover == 'true'
+        # rc is non-zero only when sessions are missing or invalid; divergent copies of a session
+        # that does exist are a finding, not a reason to replay anything.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

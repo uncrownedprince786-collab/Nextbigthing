@@ -65,6 +65,33 @@ def check_pair(dec: Path, setups: Path | None, day: str) -> str | None:
     return None
 
 
+def diff_copies(a: dict, b: dict) -> dict:
+    """What differs between two verified copies of one session, without printing any value."""
+    out: dict = {"decisionsDiffer": a["decisions"] != b["decisions"],
+                 "setupsDiffer": a["setups"] != b["setups"]}
+    if out["setupsDiffer"]:
+        ra = [json.loads(l) for l in Path(a["setupsPath"]).read_text(encoding="utf-8").splitlines() if l.strip()]
+        rb = [json.loads(l) for l in Path(b["setupsPath"]).read_text(encoding="utf-8").splitlines() if l.strip()]
+        out["rowCountsEqual"] = len(ra) == len(rb)
+        keys: dict[str, int] = {}
+        # Rows are keyed by position: the reconstruction emits assets in a fixed order. When the
+        # counts differ the comparison is on the asset id where one exists.
+        ka = {str(r.get("assetId", i)): r for i, r in enumerate(ra)} if ra and isinstance(ra[0], dict) else {}
+        kb = {str(r.get("assetId", i)): r for i, r in enumerate(rb)} if rb and isinstance(rb[0], dict) else {}
+        out["assetsOnlyInFirst"] = len(set(ka) - set(kb))
+        out["assetsOnlyInSecond"] = len(set(kb) - set(ka))
+        rows_differ = 0
+        for k in set(ka) & set(kb):
+            d = [f for f in set(ka[k]) | set(kb[k]) if ka[k].get(f) != kb[k].get(f)]
+            if d:
+                rows_differ += 1
+            for f in d:
+                keys[f] = keys.get(f, 0) + 1
+        out["rowsDiffering"] = rows_differ
+        out["fieldsDiffering"] = dict(sorted(keys.items(), key=lambda kv: -kv[1])[:12])
+    return out
+
+
 def main() -> int:
     outputs = Path(arg("--outputs"))
     runs = json.loads(Path(arg("--runs")).read_text(encoding="utf-8")) if arg("--runs") else {}
@@ -86,6 +113,8 @@ def main() -> int:
             reason = check_pair(dec, dec.parent / f"setups-{day}.jsonl", day)
             occurrences.setdefault(day, []).append({
                 "run": run_id, "trusted": trusted, "reason": reason,
+                "decisionsPath": str(dec),
+                "setupsPath": str(dec.parent / f"setups-{day}.jsonl"),
                 "decisions": sha(dec),
                 "setups": sha(dec.parent / f"setups-{day}.jsonl")
                 if (dec.parent / f"setups-{day}.jsonl").exists() else None,
@@ -112,6 +141,27 @@ def main() -> int:
     missing = sorted(expected_set - set(done))
     outside = sorted(set(occurrences) - expected_set)
 
+    # Why the copies differ, summarised over all divergent dates: which files, which fields, and
+    # which pair of runs. A deterministic as-of replay should never differ from itself, so a
+    # difference is either non-determinism or a read of something dated after the session.
+    explain: dict = {"decisionsOnly": 0, "setupsOnly": 0, "both": 0, "fields": {}, "pairs": {},
+                     "rowCountDiffers": 0, "examples": {}}
+    for day in divergent:
+        good = [o for o in occurrences[day] if o["reason"] is None and o["trusted"]]
+        a, b = good[0], good[-1]
+        d = diff_copies(a, b)
+        explain["both" if d["decisionsDiffer"] and d["setupsDiffer"]
+                else "decisionsOnly" if d["decisionsDiffer"] else "setupsOnly"] += 1
+        if d.get("rowCountsEqual") is False:
+            explain["rowCountDiffers"] += 1
+        for f, n in d.get("fieldsDiffering", {}).items():
+            explain["fields"][f] = explain["fields"].get(f, 0) + n
+        pair = f"{a['run']} vs {b['run']}"
+        explain["pairs"][pair] = explain["pairs"].get(pair, 0) + 1
+        if len(explain["examples"]) < 3:
+            explain["examples"][day] = d
+    explain["fields"] = dict(sorted(explain["fields"].items(), key=lambda kv: -kv[1])[:15])
+
     ckpt = {
         "lastSession": max(done) if done else None,
         "sessionsDone": len(done),
@@ -137,14 +187,20 @@ def main() -> int:
                         "last": c.get("lastSession")}
 
     report = {
-        "verdict": "PASS" if expected and not missing and not divergent else "NOT COMPLETE",
+        # Completeness and determinism are separate claims and are reported separately.
+        "verdict": ("PASS" if expected and not missing and not divergent
+                    else "COMPLETE-WITH-DIVERGENT-COPIES" if expected and not missing
+                    else "NOT COMPLETE"),
+        "divergentCount": len(divergent),
+        "divergenceExplained": explain,
         "range": [frm.isoformat(), to.isoformat()],
         "eligible": len(expected),
         "verifiedComplete": len(done),
         "missingOrInvalid": len(missing),
         "invalidReasons": {r: sum(1 for v in invalid.values() if v == r) for r in set(invalid.values())},
         "datesWithNoOutputAtAll": len([d for d in missing if d not in occurrences]),
-        "divergentDates": divergent,
+        "divergentFirst": divergent[0] if divergent else None,
+        "divergentLast": divergent[-1] if divergent else None,
         "completeOnlyFromUntrustedRun": len(untrusted_only),
         "outputsOutsideRange": len(outside),
         "duplicateOutputDates": sum(1 for d in expected if len(occurrences.get(d, [])) > 1),
@@ -162,8 +218,8 @@ def main() -> int:
     for i in range(0, len(missing), 60):
         print(f"::notice title=replay missing dates {i // 60 + 1}::{' '.join(missing[i:i + 60])}")
     if divergent:
-        print(f"::warning title=replay divergent dates::{' '.join(divergent[:100])}")
-    return 0 if report["verdict"] == "PASS" else 1
+        print(f"::warning title=replay divergence::{json.dumps(explain)}"[:60000])
+    return 0 if not missing and expected else 1
 
 
 if __name__ == "__main__":
