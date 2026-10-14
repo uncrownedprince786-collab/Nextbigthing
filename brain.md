@@ -4320,3 +4320,72 @@ reads rows that already exist:
       surface now publishes considerably more PSX history than it did; the licence question under
       `psx-redistribution-licence` is unchanged by that, but the volume behind it is not, and it
       remains the owner's decision.
+
+131. **The frozen target's missing series were acquired, and three of them do not have a history
+    to acquire.** 2026-10-15, Phase 3 data foundation. Acquisition and staging only: **nothing was
+    written to the database**, which ends this work at 374 MB and 1,017,296 rows, exactly where it
+    started.
+
+    - **What came back.** `^GSPC` 4,726 sessions, `^VIX` 4,728 and `DX-Y.NYB` 4,727, all from
+      2008-01-02 and all from Yahoo's chart API. Bitcoin went back from 2018-11-04 to **2015-07-20**,
+      1,203 daily bars, which is Coinbase's own earliest: page five of the walk returned 24 candles
+      and page six returned nothing, so the floor is the venue's and not a budget's.
+
+    - **DXY and the broad dollar index are two different series and both are held now.**
+      `DX-Y.NYB` is ICE's dollar index against six currencies; `DTWEXBGS`, already in the macro
+      files, is the Federal Reserve's broad trade-weighted index against twenty-six. Neither
+      substitutes for the other and the manifest records which is which. The same distinction is
+      kept for `^GSPC` against `^SP500TR`, which exists and was deliberately not acquired: a price
+      index is not a total-return index and the frozen target names the price index.
+
+    - **The padding rule does not transfer to an index, and nearly cost the whole series.**
+      `psx_backfill.validate` rejects a bar whose OHLC are equal with zero volume, because that is
+      how Yahoo pads a session Karachi did not hold. `^VIX` publishes **zero volume on every
+      session** -- it is calculated, not traded -- so that rule would have thrown away all 4,728
+      bars. Index validation keeps the checks that mean something (a positive close, high not below
+      low, no repeated date) and drops the one that does not.
+
+    - **Three series publish a number today and no history anywhere this task could reach.**
+      KSE-100: Yahoo 404s seven symbol spellings, the exchange's own closing file carries KSE30
+      *futures* and no index level, `dps.psx.com.pk/indices` publishes the current level only, and
+      stooq is still behind the JavaScript wall rule 46 recorded. KIBOR: the SBP page is
+      server-rendered and parses, but history lives in per-day PDFs behind a JavaScript document
+      search. SBP policy rate: the monetary policy page states 11.50% and no series. All three were
+      captured as **one dated observation each** -- KSE-100 165,417.50, policy rate 11.50% with its
+      12.50/10.50 corridor, KIBOR 3M/6M/12M at 11.72/11.97, 12.17/12.42, 12.24/12.74 as on
+      14-Oct-26 -- and recorded as unresolved for history rather than smoothed over. **SBP answers
+      403 to this project's user agent and 200 to a browser's**, which is why the earlier evaluation
+      recorded it as unreachable.
+
+    - **The two PSX numbers reconcile exactly, and neither was wrong.** 38,246 bars were withheld on
+      basis grounds; 37,617 of them fall inside a symbol's stored range and **629 do not**. A gap is
+      counted against the range an asset actually has, so the 629 -- which would extend a history
+      rather than fill a hole in one -- were never in the 70,824. Both figures are now derived from
+      the same staged file.
+
+    - **8.1% of the "rejected padding" gaps were not absences at all.** The attribution put 32,519
+      PSX gaps under provider padding, which says what Yahoo did and not whether a price exists. The
+      exchange's own archives for 272 dates answer it: of 5,199 such gaps falling on those dates,
+      **4,778 have no traded price at the exchange either** -- the symbol did not trade, and that is
+      not a missing observation -- while **421 do**, and were staged from the cached archives at no
+      further cost. Extrapolated, about **2,633** of the 32,519 are still recoverable this way.
+      They were not all fetched because `recovery-manifest.json` records this host refusing at
+      roughly 600 requests in a session and 272 were already spent.
+
+    - **The 23 names Yahoo does not list were never short of a source.** The exchange's own closing
+      file carries them, at the raw basis the stored series already uses, so there is no basis
+      question: **637 of their 662 in-range gaps** came back. The remaining 25 are dates those
+      symbols did not trade.
+
+    - **Delisted and renamed, measured rather than assumed.** Comparing the first and last archive
+      day, 320 symbols traded early and not late -- and **277 of them are dated futures contracts
+      that simply expired**. Twenty-one are genuine delisting or rename candidates, including FFBL,
+      PSMC, PIAA, ENGRO and DAWH. A caution that belongs with them: `META` and `SHEL` appear in both
+      lists and are not the same companies, the registry's being the US ones.
+
+    - **Where the collection stands.** Raw acquisition including staging is **97.12%**
+      (1,130,829 of 1,164,354 expected observations); production-integrated is **87.37%**, and the
+      difference is deliberate -- index levels have no `Asset` row, and the 38,246 basis-conflicting
+      bars must not sit beside the exchange's own numbers until a sourced factor is adjudicated.
+      Nine of the thirteen frozen target items hold usable history. The manifest is
+      `data/foundation/acquisition/manifest.json`, version `acquisition-manifest-v1`.

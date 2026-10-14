@@ -1,0 +1,323 @@
+{
+ "generatedAt": "2026-10-14T21:08:11+00:00",
+ "version": "acquisition-manifest-v1",
+ "scope": "the frozen target only; nothing was added beyond it",
+ "integrationPolicy": "nothing in this task was written to PriceSnapshot: index levels have no Asset row, the withheld PSX bars are basis-conflicting by definition, and the storage budget is 126 MB",
+ "databaseAtEnd": {
+  "size": "374 MB",
+  "priceSnapshotRows": 1017296,
+  "rowsWritten": 0
+ },
+ "delistedRenamed": {
+  "method": "exchange closing file, first vs last archive day",
+  "window": [
+   "2023-06-02",
+   "2025-11-14"
+  ],
+  "candidates": [
+   "BHAT",
+   "BOPTFC2",
+   "BRR",
+   "DAWH",
+   "ENGRO",
+   "FDIBL",
+   "FFBL",
+   "JOPP",
+   "META",
+   "MODAM",
+   "MUGHALSC",
+   "PHDL",
+   "PIAA",
+   "PMI",
+   "PMPK",
+   "PSMC",
+   "SHEL",
+   "SILK",
+   "SMBL",
+   "STML",
+   "WHALE"
+  ],
+  "note": "META and SHEL in the registry are the US companies; the archive rows of those names are different PSX companies"
+ },
+ "metrics": {
+  "1_frozenTargetSeriesCoverage": {
+   "usableHistory": 9,
+   "targets": 13,
+   "pct": 69.2,
+   "denominator": "the 13 frozen target items in the task brief",
+   "detail": {
+    "S&P 500 index": "acquired",
+    "VIX": "acquired",
+    "US 10-year Treasury yield": "present",
+    "DXY (ICE)": "acquired",
+    "Broad USD index": "present",
+    "Gold continuous futures": "present",
+    "Brent continuous futures": "present",
+    "Bitcoin earliest daily": "extended",
+    "PSX individual stocks": "present",
+    "KSE-100": "current-only",
+    "KIBOR": "current-only",
+    "SBP policy rate": "current-only",
+    "PSX renamed/delisted": "candidates-identified"
+   }
+  },
+  "2_historicalObservationCoverage": {
+   "valid": 1017296,
+   "expected": 1088179,
+   "pct": 93.49,
+   "denominator": "market session dates inside each asset's own stored range"
+  },
+  "3_rawAcquisitionCoverageIncludingStaged": {
+   "acquired": 1130829,
+   "expected": 1164354,
+   "pct": 97.12,
+   "denominator": "price sessions + new benchmark sessions + macro periods"
+  },
+  "4_productionIntegratedCoverage": {
+   "integrated": 1017296,
+   "expected": 1164354,
+   "pct": 87.37,
+   "note": "nothing acquired in this task was written to the database"
+  },
+  "5_residualUnresolved": {
+   "psxGapsWithNoPriceAnywhere": null,
+   "psxPadRejectedSampled": 5199,
+   "psxPadRejectedWithARealExchangePrice": 421,
+   "psxPadRejectedShareRecoverable": 0.081,
+   "psxPadRejectedTotal": 32519,
+   "estimateStillRecoverableFromTheExchange": 2633,
+   "seriesWithNoHistoryAnywhereReached": [
+    "KSE-100",
+    "KIBOR",
+    "SBP policy rate"
+   ]
+  }
+ },
+ "series": [
+  {
+   "series": "commodity",
+   "category": "price asset",
+   "assets": 8,
+   "source": "Yahoo Finance",
+   "expected": 31344,
+   "integrated": 15667,
+   "staged": 0,
+   "first": "2019-01-02",
+   "last": "2026-10-13",
+   "denominator": "us-futures-and-etf session dates inside each asset's own stored range",
+   "sharedRow": "us-futures-and-etf"
+  },
+  {
+   "series": "crypto",
+   "category": "price asset",
+   "assets": 75,
+   "source": "Coinbase/Kraken",
+   "expected": 98382,
+   "integrated": 98378,
+   "staged": 0,
+   "first": "2018-11-04",
+   "last": "2026-10-13",
+   "denominator": "crypto session dates inside each asset's own stored range",
+   "sharedRow": null
+  },
+  {
+   "series": "etf",
+   "category": "price asset",
+   "assets": 8,
+   "source": "Yahoo Finance",
+   "expected": 31344,
+   "integrated": 15648,
+   "staged": 0,
+   "first": "2019-01-02",
+   "last": "2026-10-13",
+   "denominator": "us-futures-and-etf session dates inside each asset's own stored range",
+   "sharedRow": "us-futures-and-etf"
+  },
+  {
+   "series": "forex",
+   "category": "price asset",
+   "assets": 27,
+   "source": "Yahoo Finance",
+   "expected": 54702,
+   "integrated": 54676,
+   "staged": 0,
+   "first": "2019-01-01",
+   "last": "2026-10-13",
+   "denominator": "fx session dates inside each asset's own stored range",
+   "sharedRow": null
+  },
+  {
+   "series": "stock/PKR",
+   "category": "price asset",
+   "assets": 226,
+   "source": "PSX closing file + Yahoo Karachi listing",
+   "expected": 384676,
+   "integrated": 313852,
+   "staged": 39304,
+   "first": "2019-01-01",
+   "last": "2026-10-14",
+   "denominator": "PSX session dates inside each asset's own stored range",
+   "sharedRow": null
+  },
+  {
+   "series": "stock/USD",
+   "category": "price asset",
+   "assets": 272,
+   "source": "Yahoo Finance",
+   "expected": 519075,
+   "integrated": 519075,
+   "staged": 0,
+   "first": "2019-01-02",
+   "last": "2026-10-13",
+   "denominator": "US session dates inside each asset's own stored range",
+   "sharedRow": null
+  },
+  {
+   "series": "macro, 32 FRED series",
+   "category": "macro observation",
+   "source": "FRED CSV",
+   "expected": 60827,
+   "integrated": 0,
+   "staged": 58845,
+   "first": "2010-01-01",
+   "last": "2026-10-13",
+   "denominator": "per-series frequency; daily shortfall is US federal holidays",
+   "note": "complete against publication calendars"
+  },
+  {
+   "series": "^GSPC",
+   "name": "S&P 500 index",
+   "category": "benchmark index",
+   "source": "Yahoo Finance chart API",
+   "basis": "price index (not total return)",
+   "currency": "USD",
+   "expected": 4715,
+   "integrated": 0,
+   "staged": 4726,
+   "rejected": {},
+   "first": "2008-01-02",
+   "last": "2026-10-14",
+   "denominator": "US session calendar from 272 unrelated equities; weekdays x 251/261 before 2019"
+  },
+  {
+   "series": "^VIX",
+   "name": "CBOE volatility index",
+   "category": "benchmark index",
+   "source": "Yahoo Finance chart API",
+   "basis": "calculated index level, volume always 0",
+   "currency": "USD",
+   "expected": 4715,
+   "integrated": 0,
+   "staged": 4728,
+   "rejected": {
+    "noClose": 173
+   },
+   "first": "2008-01-02",
+   "last": "2026-10-14",
+   "denominator": "US session calendar from 272 unrelated equities; weekdays x 251/261 before 2019"
+  },
+  {
+   "series": "DX-Y.NYB",
+   "name": "ICE US Dollar Index (DXY)",
+   "category": "benchmark index",
+   "source": "Yahoo Finance chart API",
+   "basis": "price index, ICE futures-based",
+   "currency": "USD",
+   "expected": 4715,
+   "integrated": 0,
+   "staged": 4727,
+   "rejected": {
+    "noClose": 985
+   },
+   "first": "2008-01-02",
+   "last": "2026-10-14",
+   "denominator": "US session calendar from 272 unrelated equities; weekdays x 251/261 before 2019"
+  },
+  {
+   "series": "BTC-USD pre-2018-11-04",
+   "category": "history extension",
+   "source": "Coinbase Exchange API",
+   "basis": "exchange traded spot pair, raw",
+   "expected": 1203,
+   "integrated": 0,
+   "staged": 1203,
+   "first": "2015-07-20",
+   "last": "2018-11-03",
+   "denominator": "calendar days; the venue trades every day",
+   "note": "the provider serves nothing before 2015-07-20"
+  },
+  {
+   "series": "PSX basis-conflicting bars",
+   "category": "adjustment-sensitive staging",
+   "source": "Yahoo Finance Karachi listing",
+   "basis": "split-adjusted vs raw stored",
+   "expected": null,
+   "integrated": 0,
+   "staged": 38246,
+   "symbols": 69,
+   "byReason": {
+    "basisDivergedAtAnchor": 38221,
+    "splitBetweenAnchors": 25
+   },
+   "insideAStoredRange": 37617,
+   "outsideAStoredRange": 629,
+   "disposition": "STAGED, NOT USABLE until a sourced factor is adjudicated"
+  },
+  {
+   "series": "PSX names Yahoo 404s (23)",
+   "category": "alternative-source recovery",
+   "source": "PSX daily closing file",
+   "basis": "raw, same as stored",
+   "expected": 662,
+   "integrated": 0,
+   "staged": 637,
+   "daysRead": 272,
+   "disposition": "ACQUIRED where the exchange published a traded price"
+  },
+  {
+   "series": "PSX pad-rejected gaps with a real exchange price",
+   "category": "alternative-source recovery",
+   "source": "PSX daily closing file",
+   "basis": "raw, same as stored",
+   "expected": null,
+   "integrated": 0,
+   "staged": 421,
+   "symbols": 65,
+   "searchedDays": 272,
+   "disposition": "ACQUIRED for the 272 archive days read"
+  },
+  {
+   "series": "KSE100",
+   "category": "current observation only",
+   "source": "Pakistan Stock Exchange, dps.psx.com.pk/indices",
+   "basis": "index level, current session",
+   "expected": null,
+   "integrated": 0,
+   "staged": 1,
+   "last": "2026-10-14",
+   "disposition": "UNRESOLVED for history; one current observation captured"
+  },
+  {
+   "series": "SBP_POLICY_RATE",
+   "category": "current observation only",
+   "source": "State Bank of Pakistan, /our-operations/monetary-policy",
+   "basis": "policy rate, not an interbank rate",
+   "expected": null,
+   "integrated": 0,
+   "staged": 1,
+   "last": "2026-10-14",
+   "disposition": "UNRESOLVED for history; one current observation captured"
+  },
+  {
+   "series": "KIBOR",
+   "category": "current observation only",
+   "source": "State Bank of Pakistan, /ecodata/kibor_index.asp",
+   "basis": "interbank offered rate, not the policy rate",
+   "expected": null,
+   "integrated": 0,
+   "staged": 1,
+   "last": "2026-10-14",
+   "disposition": "UNRESOLVED for history; one current observation captured"
+  }
+ ]
+}
