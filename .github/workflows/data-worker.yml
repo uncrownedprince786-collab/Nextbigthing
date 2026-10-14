@@ -30,6 +30,13 @@ on:
         description: "Dispatch the next slice automatically when this one finishes."
         required: false
         default: "true"
+      checkpoint:
+        description: >-
+          Artifact name holding this replay's progress. A run resumes from the checkpoint of
+          this name and writes back to it, so a separate name is a separate replay: the
+          smoke test's eight sessions cannot be read as progress on the full history.
+        required: false
+        default: "nbt-worker-checkpoint"
 
 # One worker at a time. A second dispatch while one is running would replay the same sessions
 # twice and race on the checkpoint; `cancel-in-progress: false` keeps the running one alive and
@@ -117,6 +124,7 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CKPT: ${{ inputs.checkpoint }}
         run: |
           # The checkpoint belongs to the PREVIOUS slice, so this cannot use
           # actions/download-artifact, which only reads the current run. `gh run download -n`
@@ -182,7 +190,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nbt-worker-checkpoint
+          name: ${{ inputs.checkpoint }}
           path: sealed/checkpoint.json.enc
           retention-days: 30
           if-no-files-found: warn
