@@ -343,6 +343,33 @@ class PointInTime(unittest.TestCase):
         self.assertEqual(len(rows), sum(len(v) - pit.MIN_BARS + 1 for v in series.values()))
         self.assertEqual(len({(r["a"], r["d"]) for r in rows}), len(rows))
 
+    def test_a_window_reports_the_calendar_days_it_really_covers(self):
+        """Daily bars give a span of roughly 1.5 days per session. Monthly bars give about 30, and
+        nothing else in the row would say so -- which is exactly the PSX case before 2024."""
+        import pit_features as pit
+        assets, series = self.universe()
+        rows = [r for r in pit.build(assets, series) if r["a"] == "S0"]
+        self.assertTrue(all("spanDays" in r for r in rows))
+        deep = [r for r in rows if r["n"] >= 200][-1]
+        per_session = deep["spanDays"] / min(deep["n"], pit.WINDOW)
+        self.assertLess(per_session, 2.0, "daily bars should span about 1.5 calendar days each")
+
+        # the same asset with its bars thinned to one a month
+        monthly = {a["id"]: v[::21] for a, v in zip(assets, series.values())}
+        thin = [r for r in pit.build(assets, monthly) if r["a"] == "S0"]
+        if thin:
+            worst = thin[-1]
+            self.assertGreater(worst["spanDays"] / min(worst["n"], pit.WINDOW), 10.0,
+                               "monthly bars must not look like a daily window")
+
+    def test_the_span_counts_back_from_the_window_not_the_whole_series(self):
+        import pit_features as pit
+        assets, series = self.universe()
+        rows = [r for r in pit.build(assets, series) if r["a"] == "S0"]
+        for r in rows:
+            self.assertLessEqual(r["spanDays"], min(r["n"], pit.WINDOW) * 7,
+                                 "a window cannot span more than seven calendar days a session")
+
     def test_the_analog_never_uses_an_outcome_after_the_session(self):
         import pit_features as pit
         bars = self.bars(300, 4)
