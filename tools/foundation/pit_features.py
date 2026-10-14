@@ -302,8 +302,15 @@ def main() -> None:
             ours = AnalogSeries(bars)
             for h in an.HORIZONS:
                 got, want = ours.at(t, h), live_oracle(bars, t, h)
-                keep = lambda x: None if x is None else {k: x[k] for k in ("matches", "grade") if k in x} | (  # noqa: E731
-                    {k: round(x[k], 9) for k in ("positive", "mean", "median", "min", "max") if x.get(k) is not None})
+                def keep(x):
+                    """The fields that must agree. A zero-match row has no statistics to compare."""
+                    if x is None:
+                        return None
+                    out = {"matches": x["matches"], "grade": x["grade"]}
+                    if x["matches"]:
+                        out.update({k: round(x[k], 9) for k in ("positive", "mean", "median", "min", "max")})
+                    return out
+
                 if keep(got) != keep(want):
                     mismatches.append({"asset": a["symbol"], "index": t, "horizon": h,
                                        "ours": keep(got), "live": keep(want)})

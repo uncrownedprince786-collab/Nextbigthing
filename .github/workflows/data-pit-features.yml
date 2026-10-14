@@ -52,6 +52,7 @@ jobs:
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
           PYTHONIOENCODING: utf-8
         run: |
+          set -o pipefail
           check="$(python -c "import json;print(json.load(open('ops/pit.json')).get('check',60))")"
           /usr/bin/time -v python tools/foundation/pit_features.py --out out --check "$check" 2> time.txt | tee build.txt
           grep -E "Maximum resident|Elapsed" time.txt || true
