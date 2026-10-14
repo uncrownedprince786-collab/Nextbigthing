@@ -1,0 +1,82 @@
+name: data point-in-time features
+
+# Builds the point-in-time factors and analogs for every asset-session (tools/foundation/
+# pit_features.py), reads the database and writes nothing to it. The output derives from a
+# third-party price feed, so it is encrypted on the runner and uploaded sealed; the repository is
+# public and a plaintext artifact would be readable by any signed-in user.
+#
+# Starts on dispatch or on a push that changes `ops/pit.json`.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["ops/pit.json"]
+
+concurrency:
+  group: nbt-pit-features
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Prove this run is executing main
+        run: |
+          git fetch origin main --quiet
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "not main"; exit 1; }
+
+      - name: Refuse to run without an artifact key
+        env:
+          KEY: ${{ secrets.WORKER_ARTIFACT_KEY }}
+        run: '[ -n "$KEY" ] || { echo "WORKER_ARTIFACT_KEY is not set; refusing to write a plaintext artifact"; exit 1; }'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+
+      - name: Build every asset-session
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          check="$(python -c "import json;print(json.load(open('ops/pit.json')).get('check',60))")"
+          /usr/bin/time -v python tools/foundation/pit_features.py --out out --check "$check" 2> time.txt | tee build.txt
+          grep -E "Maximum resident|Elapsed" time.txt || true
+          python - <<'PY'
+          import json
+          m = json.load(open("out/manifest.json"))
+          keep = {k: m[k] for k in ("assets","expectedRows","producedRows","coverageReconciles","duplicateRows","rowsByYear","liveEquivalence","resources")}
+          print("::notice title=pit features::" + json.dumps(keep))
+          PY
+
+      - name: Seal the output
+        if: always()
+        env:
+          KEY: ${{ secrets.WORKER_ARTIFACT_KEY }}
+        run: |
+          mkdir -p sealed
+          [ -d out ] && tar -czf - -C out . | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+            -pass env:KEY -out sealed/pit.tar.gz.enc || true
+          ls -la sealed
+          [ -f sealed/pit.tar.gz.enc ] && sha256sum sealed/pit.tar.gz.enc
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nbt-pit-features-${{ github.run_id }}
+          path: sealed/pit.tar.gz.enc
+          retention-days: 30
+          if-no-files-found: warn

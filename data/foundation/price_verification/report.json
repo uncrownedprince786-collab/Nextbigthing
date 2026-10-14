@@ -1,0 +1,228 @@
+{
+ "generatedAt": "2026-10-14T11:03:44+00:00",
+ "seed": 20261014,
+ "tolerances": {
+  "stock": 0.001,
+  "etf": 0.001,
+  "crypto-coinbase": 0.005,
+  "crypto-kraken": 0.005,
+  "forex": 0.01
+ },
+ "classes": {
+  "crypto-coinbase": {
+   "sampled": 300,
+   "compared": 272,
+   "within": 266,
+   "split": 0,
+   "mismatch": 6,
+   "dividend": 0,
+   "noIndependentData": 28,
+   "outliers": [
+    {
+     "symbol": "btc-bitcoin",
+     "date": "2018-11-19",
+     "kind": "mismatch",
+     "relDiffPct": 3.595,
+     "versus": "binance/bitstamp"
+    },
+    {
+     "symbol": "etc-ethereum-classic",
+     "date": "2019-02-06",
+     "kind": "mismatch",
+     "relDiffPct": 1.202,
+     "versus": "binance/bitstamp"
+    },
+    {
+     "symbol": "op-optimism",
+     "date": "2026-07-01",
+     "kind": "mismatch",
+     "relDiffPct": 0.634,
+     "versus": "binance/bitstamp"
+    },
+    {
+     "symbol": "rndr-render-token",
+     "date": "2024-05-25",
+     "kind": "mismatch",
+     "relDiffPct": 1.052,
+     "versus": "binance/bitstamp"
+    },
+    {
+     "symbol": "rndr-render-token",
+     "date": "2024-05-13",
+     "kind": "mismatch",
+     "relDiffPct": 4.54,
+     "versus": "binance/bitstamp"
+    },
+    {
+     "symbol": "xlm-stellar",
+     "date": "2019-09-12",
+     "kind": "mismatch",
+     "relDiffPct": 0.633,
+     "versus": "binance/bitstamp"
+    }
+   ],
+   "medianAbsDiffPct": 0.058,
+   "p95AbsDiffPct": 0.2838,
+   "p99AbsDiffPct": 1.2016,
+   "withinShare": 0.9779
+  },
+  "crypto-kraken": {
+   "sampled": 60,
+   "compared": 26,
+   "within": 21,
+   "split": 0,
+   "mismatch": 5,
+   "dividend": 0,
+   "noIndependentData": 34,
+   "outliers": [
+    {
+     "symbol": "cfx-conflux-network",
+     "date": "2026-03-02",
+     "kind": "mismatch",
+     "relDiffPct": 1.047,
+     "versus": "binance/bitstamp"
+    },
+    {
+     "symbol": "cfx-conflux-network",
+     "date": "2026-06-11",
+     "kind": "mismatch",
+     "relDiffPct": 0.863,
+     "versus": "binance/bitstamp"
+    },
+    {
+     "symbol": "cfx-conflux-network",
+     "date": "2026-05-09",
+     "kind": "mismatch",
+     "relDiffPct": 0.674,
+     "versus": "binance/bitstamp"
+    },
+    {
+     "symbol": "cfx-conflux-network",
+     "date": "2026-03-04",
+     "kind": "mismatch",
+     "relDiffPct": 1.996,
+     "versus": "binance/bitstamp"
+    },
+    {
+     "symbol": "cfx-conflux-network",
+     "date": "2026-06-06",
+     "kind": "mismatch",
+     "relDiffPct": 1.324,
+     "versus": "binance/bitstamp"
+    }
+   ],
+   "medianAbsDiffPct": 0.0789,
+   "p95AbsDiffPct": 1.3239,
+   "p99AbsDiffPct": 1.996,
+   "withinShare": 0.8077
+  },
+  "etf": {
+   "sampled": 80,
+   "compared": 80,
+   "within": 80,
+   "split": 0,
+   "mismatch": 0,
+   "dividend": 0,
+   "noIndependentData": 0,
+   "outliers": [],
+   "levelDiff": {
+    "medianPct": 0.0,
+    "shareAbove0.1pct": 0.163,
+    "note": "stored close is dividend-adjusted, Nasdaq's is split-adjusted only"
+   },
+   "medianAbsDiffPct": 0.0,
+   "p95AbsDiffPct": 0.0077,
+   "p99AbsDiffPct": 0.0262,
+   "withinShare": 1.0
+  },
+  "forex": {
+   "sampled": 200,
+   "compared": 165,
+   "within": 159,
+   "split": 0,
+   "mismatch": 6,
+   "dividend": 0,
+   "noIndependentData": 35,
+   "outliers": [
+    {
+     "symbol": "NZDUSD",
+     "date": "2022-11-01",
+     "kind": "mismatch",
+     "relDiffPct": 1.17,
+     "versus": "ecb"
+    },
+    {
+     "symbol": "USDKRW",
+     "date": "2020-03-16",
+     "kind": "mismatch",
+     "relDiffPct": 1.635,
+     "versus": "ecb"
+    },
+    {
+     "symbol": "USDKRW",
+     "date": "2025-01-28",
+     "kind": "mismatch",
+     "relDiffPct": 1.938,
+     "versus": "ecb"
+    },
+    {
+     "symbol": "USDMXN",
+     "date": "2024-06-12",
+     "kind": "mismatch",
+     "relDiffPct": 1.343,
+     "versus": "ecb"
+    },
+    {
+     "symbol": "USDNOK",
+     "date": "2023-06-09",
+     "kind": "mismatch",
+     "relDiffPct": 1.185,
+     "versus": "ecb"
+    },
+    {
+     "symbol": "USDTRY",
+     "date": "2021-12-31",
+     "kind": "mismatch",
+     "relDiffPct": 1.186,
+     "versus": "ecb"
+    }
+   ],
+   "medianAbsDiffPct": 0.1794,
+   "p95AbsDiffPct": 0.8984,
+   "p99AbsDiffPct": 1.6347,
+   "withinShare": 0.9636
+  },
+  "stock": {
+   "sampled": 400,
+   "compared": 399,
+   "within": 390,
+   "split": 0,
+   "mismatch": 1,
+   "dividend": 8,
+   "noIndependentData": 1,
+   "outliers": [
+    {
+     "symbol": "HL",
+     "date": "2019-11-29",
+     "kind": "mismatch",
+     "returnGapPct": -0.431,
+     "versus": "nasdaq"
+    }
+   ],
+   "levelDiff": {
+    "medianPct": 4.94,
+    "shareAbove0.1pct": 0.787,
+    "note": "stored close is dividend-adjusted, Nasdaq's is split-adjusted only"
+   },
+   "medianAbsDiffPct": 0.0,
+   "p95AbsDiffPct": 0.0001,
+   "p99AbsDiffPct": 0.5128,
+   "withinShare": 0.9774
+  }
+ },
+ "notIndependentlyVerifiable": {
+  "PSX shares": "stored source is the exchange's own file; no free second source",
+  "commodity futures (=F)": "no free keyless counterpart for the same contract",
+  "Stooq": "behind a JavaScript challenge; not bypassed"
+ }
+}

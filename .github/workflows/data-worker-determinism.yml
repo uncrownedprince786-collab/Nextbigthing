@@ -1,0 +1,117 @@
+name: data worker determinism
+
+# Re-replays a seeded, year-stratified sample of sessions and requires output byte-identical to the
+# canonical replay. Run after the replay has finished and the database has moved on; a difference
+# means something the replay reads depends on data from after the session being replayed.
+#
+# Starts on dispatch or on a push that changes `ops/determinism.json`. Read-only against the
+# database; the only thing it writes is a sealed report artifact.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["ops/determinism.json"]
+
+concurrency:
+  group: nbt-data-worker-determinism
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  determinism:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prove this run is executing main
+        run: |
+          git fetch origin main --quiet
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "not main"; exit 1; }
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Read the request
+        id: req
+        run: |
+          echo "n=$(python -c "import json;print(json.load(open('ops/determinism.json')).get('n',40))")" >> "$GITHUB_OUTPUT"
+          echo "seed=$(python -c "import json;print(json.load(open('ops/determinism.json')).get('seed',20261014))")" >> "$GITHUB_OUTPUT"
+
+      - name: Download the sealed outputs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p sealed
+          gh api --paginate "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.expired==false) | select(.name|startswith("nbt-worker-output-")) | [.id,.name] | @tsv' > list.tsv
+          while IFS=$'\t' read -r id name; do
+            gh api "repos/${{ github.repository }}/actions/artifacts/$id/zip" > "sealed/$name.zip"
+          done < list.tsv
+          ls sealed | wc -l
+
+      - name: Which runs executed the current replay code
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPLAY_CODE="lib jobs/setup.py jobs/sessions.py jobs/nbt.py tools/decide.mjs prisma/schema.prisma requirements.txt"
+          echo "{" > runs.json
+          first=1
+          for z in sealed/nbt-worker-output-*.zip; do
+            run="$(basename "$z" .zip)"; run="${run#nbt-worker-output-}"
+            sha="$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .head_sha)"
+            if git diff --quiet "$sha" HEAD -- $REPLAY_CODE; then t=true; else t=false; fi
+            [ $first = 1 ] || echo "," >> runs.json; first=0
+            echo "\"$run\": {\"sha\": \"$sha\", \"trusted\": $t}" >> runs.json
+          done
+          echo "}" >> runs.json
+
+      - name: Decrypt and re-replay the sample
+        env:
+          KEY: ${{ secrets.WORKER_ARTIFACT_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          [ -n "$KEY" ] || { echo "WORKER_ARTIFACT_KEY not set"; exit 1; }
+          mkdir -p outputs
+          for z in sealed/nbt-worker-output-*.zip; do
+            n="$(basename "$z" .zip)"; mkdir -p "enc/$n" "outputs/$n"
+            unzip -q "$z" -d "enc/$n"
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:KEY \
+              -in "enc/$n/output.tar.gz.enc" | tar -xzf - -C "outputs/$n"
+          done
+          python tools/determinism_check.py --outputs outputs --runs runs.json \
+            --n "${{ steps.req.outputs.n }}" --seed "${{ steps.req.outputs.seed }}"
+
+      - name: Seal the report
+        if: always()
+        env:
+          KEY: ${{ secrets.WORKER_ARTIFACT_KEY }}
+        run: |
+          [ -f determinism.json ] && openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+            -pass env:KEY -in determinism.json -out determinism.json.enc || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nbt-determinism-${{ github.run_id }}
+          path: determinism.json.enc
+          retention-days: 30
+          if-no-files-found: warn

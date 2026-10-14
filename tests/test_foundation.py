@@ -21,6 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools" / "foundation"))
 sys.path.insert(0, str(ROOT / "tools"))
+sys.path.insert(0, str(ROOT / "jobs"))
 
 import walkforward as wf  # noqa: E402
 
@@ -173,6 +174,114 @@ class Evaluation(unittest.TestCase):
         by = {f"d{i}": [1.0, 1.0, 1.0] for i in range(20)}
         lo, hi = wf.block_bootstrap_mean(by)
         self.assertEqual((lo, hi), (1.0, 1.0))
+
+
+class Determinism(unittest.TestCase):
+    """The leakage re-check picks its sample and its reference copy deterministically."""
+
+    def setUp(self):
+        import determinism_check as dc
+        self.dc = dc
+
+    def test_sample_covers_every_year_and_both_ends_and_is_reproducible(self):
+        days = sessions(1900, date(2019, 1, 2))
+        a = self.dc.stratified(days, 40, 11)
+        self.assertEqual(a, self.dc.stratified(days, 40, 11))
+        self.assertIn(days[0], a)
+        self.assertIn(days[-1], a)
+        self.assertEqual({d[:4] for d in a}, {d[:4] for d in days})
+        self.assertNotEqual(a, self.dc.stratified(days, 40, 12))
+
+    def test_only_trusted_valid_outputs_are_a_reference(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            for run, trusted in (("100", True), ("200", True), ("300", False)):
+                d = root / f"nbt-worker-output-{run}"
+                d.mkdir()
+                (d / "setups-2020-01-02.jsonl").write_text('{"a":1}', encoding="utf-8")
+                (d / "decisions-2020-01-02.json").write_text(
+                    json.dumps({"asOf": "2020-01-02", "setups": 1, "byAction": {"WAIT": 1}}), encoding="utf-8")
+            runs = {"100": {"trusted": True}, "200": {"trusted": True}, "300": {"trusted": False}}
+            got = self.dc.canonical(root, runs)
+            self.assertEqual(got["2020-01-02"]["run"], "200")  # newest trusted, not the untrusted 300
+            (root / "nbt-worker-output-200" / "decisions-2020-01-02.json").write_text("junk", encoding="utf-8")
+            self.assertEqual(self.dc.canonical(root, runs)["2020-01-02"]["run"], "100")
+
+
+class PointInTime(unittest.TestCase):
+    """The point-in-time builder cannot see the future and matches the live analog loop."""
+
+    @staticmethod
+    def bars(n, seed, volume=True, start=date(2020, 1, 1)):
+        rng, price, out = random.Random(seed), 100.0, []
+        for ds in sessions(n, start):
+            price *= 1 + rng.gauss(0.0004, 0.015)
+            out.append({"date": date.fromisoformat(ds), "close": price,
+                        "volume": rng.uniform(1e5, 5e5) if volume else None,
+                        "high": price * 1.01, "low": price * 0.99})
+        return out
+
+    def universe(self, volume=True):
+        assets = [{"id": f"a{i}", "symbol": f"S{i}", "industryId": "ind", "assetType": "stock"} for i in range(3)]
+        return assets, {a["id"]: self.bars(420, i + 1, volume) for i, a in enumerate(assets)}
+
+    def test_rows_before_a_session_do_not_change_when_every_later_bar_does(self):
+        import pit_features as pit
+        for volume in (True, False):
+            assets, series = self.universe(volume)
+            base = {(r["a"], r["d"]): r for r in pit.build(assets, series)}
+            cut = 300
+            cut_date = series["a0"][cut]["date"]
+            rng = random.Random(9)
+            bent = {k: [dict(b) for b in v] for k, v in series.items()}
+            for k in bent:
+                for b in bent[k]:
+                    if b["date"] > cut_date:
+                        b["close"] *= rng.uniform(0.2, 5.0)
+                        b["volume"] = None if not volume else rng.uniform(1, 1e9)
+            after = {(r["a"], r["d"]): r for r in pit.build(assets, bent)}
+            checked = 0
+            for key, row in base.items():
+                if date.fromisoformat(key[1]) <= cut_date:
+                    self.assertEqual(row, after[key], f"{key} changed when only later bars did (volume={volume})")
+                    checked += 1
+            self.assertGreater(checked, 500)
+
+    def test_vectorised_analogs_equal_the_live_loop(self):
+        import pit_features as pit
+        for volume in (True, False):
+            bars = self.bars(420, 5, volume)
+            ours = pit.AnalogSeries(bars)
+            rng = random.Random(2)
+            for t in [rng.randrange(60, 420) for _ in range(14)] + [419]:
+                for h in (1, 5):
+                    a, b = ours.at(t, h), pit.live_oracle(bars, t, h)
+                    if b is None:
+                        self.assertIsNone(a, (t, h, volume))
+                        continue
+                    self.assertEqual(a["matches"], b["matches"], (t, h, volume))
+                    self.assertEqual(a["grade"], b["grade"], (t, h, volume))
+                    if b["matches"]:
+                        for k in ("positive", "mean", "median", "min", "max"):
+                            self.assertAlmostEqual(a[k], b[k], places=9, msg=(t, h, k, volume))
+
+    def test_a_row_exists_for_every_session_from_the_threshold_and_none_before(self):
+        import pit_features as pit
+        assets, series = self.universe()
+        rows = list(pit.build(assets, series))
+        self.assertEqual(len(rows), sum(len(v) - pit.MIN_BARS + 1 for v in series.values()))
+        self.assertEqual(len({(r["a"], r["d"]) for r in rows}), len(rows))
+
+    def test_the_analog_never_uses_an_outcome_after_the_session(self):
+        import pit_features as pit
+        bars = self.bars(300, 4)
+        t = 200
+        base = pit.AnalogSeries(bars).at(t, 5)
+        future = [dict(b) for b in bars]
+        for b in future[t + 1:]:
+            b["close"] *= 10
+        self.assertEqual(base, pit.AnalogSeries(future).at(t, 5))
 
 
 # ------------------------------------------------------------------ acceptance gates
