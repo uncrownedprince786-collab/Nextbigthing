@@ -122,6 +122,36 @@ class Statistics(unittest.TestCase):
         self.assertGreater(wf.deflated_sharpe(0.5, 400, 0.0, 3.0, 20, 0.002), 0.95)
         self.assertLess(wf.deflated_sharpe(0.02, 400, 0.0, 3.0, 200, 0.002), 0.5)
 
+    def test_one_trial_reduces_to_the_ordinary_significance_test(self):
+        """With a single trial there is nothing to deflate, so the expected maximum Sharpe is zero
+        and the result must collapse to Phi(SR * sqrt(T-1)) for a normal return distribution. If
+        this drifts, every verdict the evaluation prints is built on a different formula than the
+        one it cites."""
+        import math
+        for sr, n in ((0.05, 400), (0.1, 250), (0.02, 1000)):
+            want = wf._phi(sr * math.sqrt(n - 1) / math.sqrt(1 + 0.5 * sr * sr))
+            got = wf.deflated_sharpe(sr, n, 0.0, 3.0, 1)
+            self.assertAlmostEqual(got, want, places=9, msg=(sr, n))
+
+    def test_the_expected_maximum_grows_with_the_number_of_trials(self):
+        """The deflation term is the expected best-of-N Sharpe under the null; it must rise with N
+        and scale with the dispersion of the trials."""
+        import math
+        gamma = 0.5772156649015329
+        for n in (2, 10, 500):
+            var = 0.004
+            want = math.sqrt(var) * ((1 - gamma) * wf._phi_inv(1 - 1 / n)
+                                     + gamma * wf._phi_inv(1 - 1 / (n * math.e)))
+            # recover sr0 from the function: find the sr at which DSR is exactly one half
+            lo, hi = 0.0, 1.0
+            for _ in range(60):
+                mid = (lo + hi) / 2
+                if wf.deflated_sharpe(mid, 10_000, 0.0, 3.0, n, var) < 0.5:
+                    lo = mid
+                else:
+                    hi = mid
+            self.assertAlmostEqual((lo + hi) / 2, want, places=4, msg=n)
+
     def test_trial_log_persists_and_counts(self):
         with tempfile.TemporaryDirectory() as t:
             p = Path(t) / "trials.jsonl"
