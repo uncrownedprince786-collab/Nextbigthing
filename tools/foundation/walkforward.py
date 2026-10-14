@@ -113,6 +113,7 @@ def assert_features_are_past_only(records: Iterable[Record]) -> None:
             raise LeakageError(f"record carries future-looking top-level fields {extra}")
 
 
+
 # ---------------------------------------------------------------- returns and costs
 
 
@@ -273,13 +274,20 @@ class TrialLog:
 def evaluate(records: list[Record], rule: Rule, *, name: str, horizon: int = 20, train_min: int = 250,
              test_len: int = 60, embargo: int = 5, rolling: int | None = None,
              fit: Callable[[list[Record]], Rule] | None = None, log: TrialLog | None = None,
-             seed: int = 7) -> dict:
+             seed: int = 7, check_features: bool = True) -> dict:
     """Run `rule` through purged walk-forward folds and report it net of costs at three scenarios.
 
     If `fit` is given it is called once per fold with the training records only and must return the
     rule to use on that fold's test records; otherwise `rule` is used as is.
+
+    `check_features` scans every record for future-looking field names and defaults to on. A driver
+    that evaluates many rules over one unchanging list may check once itself and pass False for the
+    rest: the scan is 800,000 rows against eight forbidden prefixes, and repeating it per rule is
+    about a billion string comparisons for an answer that cannot have changed. Opting out is
+    explicit for that reason -- it is never inferred from the list.
     """
-    assert_features_are_past_only(records)
+    if check_features:
+        assert_features_are_past_only(records)
     dates = sorted({r["asOf"] for r in records})
     folds = make_folds(dates, train_min=train_min, test_len=test_len, horizon=horizon,
                        embargo=embargo, rolling=rolling)

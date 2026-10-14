@@ -83,6 +83,22 @@ class Folds(unittest.TestCase):
         with self.assertRaises(wf.LeakageError):
             wf.assert_features_are_past_only(recs)
 
+    def test_the_check_is_never_skipped_unless_a_caller_says_so(self):
+        """Opting out is explicit. An earlier version cached by list identity, and CPython reuses
+        the id of a collected list, so a poisoned dataset could inherit a clean verdict from one it
+        never had anything to do with."""
+        recs = synthetic(10)
+        recs[0]["label20"] = "UP"
+        for _ in range(3):
+            with self.assertRaises(wf.LeakageError):
+                wf.assert_features_are_past_only(recs)
+        big = synthetic(400)
+        big[0]["label20"] = "UP"
+        with self.assertRaises(wf.LeakageError):
+            wf.evaluate(big, lambda r: 1, name="poisoned")
+        got = wf.evaluate(big, lambda r: 1, name="opted-out", check_features=False)
+        self.assertIn("trades", got)
+
 
 class Costs(unittest.TestCase):
     rec = {"assetType": "stock", "market": "US", "outcome": {"fwd20": 3.0}}

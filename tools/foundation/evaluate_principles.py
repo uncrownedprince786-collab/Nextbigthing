@@ -373,12 +373,15 @@ def main() -> int:
     dates = sorted({r["asOf"] for r in rows})
     print(f"{len(rows):,} rows, {len(dates):,} sessions, {dates[0]} to {dates[-1]}", flush=True)
 
+    # Checked once here rather than inside every evaluate call below; see walkforward.evaluate.
+    wf.assert_features_are_past_only(rows)
     log = wf.TrialLog(out / "trials.jsonl")
     results = {}
     # Controls first, so every rule is discounted against a trial count that already includes them.
     for name, rule in (("buy-and-hold", wf.buy_and_hold), ("coin-flip", wf.random_sign(20261014))):
         try:
-            results[name] = wf.evaluate(rows, rule, name=name, horizon=horizon, log=log)
+            results[name] = wf.evaluate(rows, rule, name=name, horizon=horizon, log=log,
+                                        check_features=False)
         except ValueError as e:
             results[name] = {"name": name, "error": str(e)}
         print(f"  control {name}: net base {results[name].get('meanNetPct', {}).get('base')}", flush=True)
@@ -386,7 +389,7 @@ def main() -> int:
 
     for pid, desc, rule in RULES:
         try:
-            res = wf.evaluate(rows, rule, name=pid, horizon=horizon, log=log)
+            res = wf.evaluate(rows, rule, name=pid, horizon=horizon, log=log, check_features=False)
         except ValueError as e:
             results[pid] = {"name": pid, "error": str(e)}
             continue
