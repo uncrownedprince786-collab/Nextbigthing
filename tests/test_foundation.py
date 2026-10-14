@@ -812,6 +812,39 @@ class PrinciplesGate(unittest.TestCase):
                 self.assertFalse(r["testable_now"], r["id"])
 
 
+class SurvivorshipGate(unittest.TestCase):
+    """The third gate an adversarial review found was a report assertion with no enforcing code.
+
+    The suite's own contract (top of this file) is that a claim is something the tests enforce and
+    not something a report asserts. Coverage and corporate-action safety are enforced above; this
+    closes survivorship.
+    """
+
+    def doc(self):
+        return json.loads(need(DATA / "survivorship" / "report.json").read_text(encoding="utf-8"))
+
+    def test_the_universe_is_admitted_to_contain_only_survivors(self):
+        d = self.doc()
+        self.assertEqual(d["universe"]["assetsThatEndBeforeToday"], 0,
+                         "if an asset's series ever ends, this claim needs rewriting, not relaxing")
+
+    def test_the_bias_is_measured_and_present_in_the_repository(self):
+        """It was cited from a runner annotation once. A number a reader cannot open is not
+        evidence."""
+        b = self.doc().get("survivorshipBiasLowerBound")
+        self.assertIsInstance(b, dict, "the committed report must carry the measurement itself")
+        self.assertGreater(b["pairs"], 0)
+        self.assertIn("median", b["removedMinusSurvivorsPct"])
+        self.assertLess(b["removedMinusSurvivorsPct"]["median"], 0,
+                        "removed names underperforming is the direction that makes it a bias")
+
+    def test_it_is_stated_as_a_lower_bound_not_an_estimate(self):
+        d = self.doc()
+        self.assertIn("LOWER bound", d["survivorshipBiasLowerBound"]["interpretation"])
+        self.assertGreater(d["absentWithNoRecoverableHistory"], 0,
+                           "the names with no history left are why it can only be a lower bound")
+
+
 class EventsGate(unittest.TestCase):
     def doc(self):
         return json.loads(need(DATA / "events" / "events.json").read_text(encoding="utf-8"))
