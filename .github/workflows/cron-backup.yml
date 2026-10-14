@@ -67,14 +67,55 @@ jobs:
           python tools/cloud_backup.py backup --out "backup-out" --upload --sheet-data 2>&1 | tee run.log
         continue-on-error: true
 
-      - name: Keep the dump as an artifact
+      # The dump leaves this runner encrypted or not at all.
+      #
+      # This repository is public. An artifact's metadata lists anonymously and its contents are
+      # readable by anyone with read access to the repository, which on a public repository is
+      # every authenticated user. Until 2026-10-14 this step uploaded `backup-out/` in the clear:
+      # 44 tables and 978,393 rows, `DecisionLog` and `SignalLog` among them, published daily.
+      #
+      # The key lives only in Actions secrets. It is passed to openssl through the environment
+      # rather than on the command line, so it never reaches the process list or the log, and
+      # the step prints a length rather than a value.
+      - name: Seal the dump before it leaves the runner
+        if: always()
+        id: seal
+        env:
+          KEY: ${{ secrets.WORKER_ARTIFACT_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error title=No artifact key::WORKER_ARTIFACT_KEY is not set, so this backup"
+            echo "cannot be encrypted. Refusing to upload a plaintext database dump to a public"
+            echo "repository. The dump itself is still on the runner and the verification above"
+            echo "still ran; add the secret and the next run will publish a sealed copy."
+            exit 1
+          fi
+          mkdir -p sealed
+          if [ -d backup-out ] && [ -n "$(ls -A backup-out 2>/dev/null)" ]; then
+            tar -czf - -C backup-out . \
+              | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+                  -pass env:KEY -out sealed/backup.tar.gz.enc
+            echo "sealed $(du -h sealed/backup.tar.gz.enc | cut -f1) with a ${#KEY} character key"
+            # Proof the artifact is not readable as a dump: a plaintext tar starts with a known
+            # gzip magic, and this must not.
+            head -c 2 sealed/backup.tar.gz.enc | od -An -tx1 | tr -d ' \n' > magic.txt
+            if [ "$(cat magic.txt)" = "1f8b" ]; then
+              echo "::error::the sealed file still looks like gzip; refusing to upload"
+              exit 1
+            fi
+            echo "first bytes are not gzip magic, so the payload is encrypted"
+          else
+            echo "nothing in backup-out to seal"
+          fi
+
+      - name: Keep the sealed dump as an artifact
         # `always()` on purpose: a run that failed verification is still worth looking at, and the
         # step below is what decides whether it counts as a recovery point.
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nbt-backup-${{ github.run_id }}
-          path: backup-out/
+          path: sealed/backup.tar.gz.enc
           retention-days: 7
           if-no-files-found: warn
 
