@@ -740,6 +740,42 @@ class MacroPointInTime(unittest.TestCase):
             self.assertGreaterEqual(row["age"], 0, sid)
 
 
+class CoverageDenominator(unittest.TestCase):
+    """A completeness share is only meaningful if its denominator is the right calendar.
+
+    Two defects an adversarial review of the gate verdicts found: weekdays are the wrong
+    denominator for a market that trades every day, which made a complete crypto year read 1.398
+    and forced the thin-year check to exclude crypto entirely; and a full-year denominator is
+    wrong for the year in progress, which made every market read about 0.75 for 2026 when only
+    205 of 261 weekdays had happened.
+    """
+
+    @staticmethod
+    def denom(market, year, last_in_data):
+        from datetime import timedelta
+        d, n, last = date(year, 1, 1), 0, min(date(year, 12, 31), last_in_data)
+        while d <= last:
+            if market == "crypto" or d.weekday() < 5:
+                n += 1
+            d += timedelta(days=1)
+        return n
+
+    def test_a_complete_crypto_year_is_one_not_one_point_four(self):
+        self.assertEqual(self.denom("crypto", 2023, date(2026, 10, 13)), 365)
+        self.assertAlmostEqual(365 / self.denom("crypto", 2023, date(2026, 10, 13)), 1.0)
+
+    def test_the_year_in_progress_counts_only_elapsed_days(self):
+        last = date(2026, 10, 13)
+        self.assertLess(self.denom("US", 2026, last), self.denom("US", 2025, last))
+        self.assertAlmostEqual(196 / self.denom("US", 2026, last), 0.961, places=2)
+
+    def test_the_source_no_longer_special_cases_crypto(self):
+        src = (ROOT / "tools" / "foundation" / "coverage_gaps.py").read_text(encoding="utf-8")
+        self.assertNotIn('m != "crypto"', src,
+                         "excluding crypto from the thin-year check hid a whole market")
+        self.assertIn("daysElapsed", src)
+
+
 class PrinciplesGate(unittest.TestCase):
     def doc(self):
         return json.loads(need(DATA / "principles" / "principles.json").read_text(encoding="utf-8"))

@@ -162,21 +162,32 @@ def main() -> None:
     for m, dates in per_market_dates.items():
         for d in dates:
             years[m][d.year] += 1
-    weekdays: dict[int, int] = defaultdict(int)
-    allv = [d for ds in per_market_dates.values() for d in ds]
-    lo_y, hi_y = min(allv).year, max(allv).year
-    for y in range(lo_y, hi_y + 1):
-        d = date(y, 1, 1)
-        while d.year == y:
-            if d.weekday() < 5:
-                weekdays[y] += 1
+
+    # The denominator is per market and stops at today, and both halves of that matter.
+    #
+    # Weekdays are wrong for crypto, which trades every day: against a weekday count a complete
+    # crypto year reads 1.40, and an earlier version papered over that by excluding crypto from
+    # the thin-year check entirely -- so a crypto market fetched monthly would not have been
+    # flagged at all.
+    #
+    # A full year is wrong for the current one. Measured on 2026-10-14 only 205 of 261 weekdays
+    # had happened, so every market read about 0.75 for 2026 and the most recent year had no
+    # usable measurement. The denominator counts days that have actually elapsed.
+    def denominator(market: str, y: int) -> int:
+        d, n, last = date(y, 1, 1), 0, min(date(y, 12, 31), max(allv))
+        while d <= last:
+            if market == "crypto" or d.weekday() < 5:
+                n += 1
             d += timedelta(days=1)
+        return n
+
+    allv = [d for ds in per_market_dates.values() for d in ds]
     calendar = {m: {str(y): {"sessionDates": years[m][y],
-                             "weekdaysInYear": weekdays[y],
-                             "share": round(years[m][y] / weekdays[y], 3)}
+                             "daysElapsed": denominator(m, y),
+                             "share": round(years[m][y] / max(1, denominator(m, y)), 3)}
                     for y in sorted(years[m])} for m in sorted(years)}
     thin_years = sorted((m, y) for m in calendar for y, v in calendar[m].items()
-                        if v["share"] < 0.5 and m != "crypto")
+                        if v["share"] < 0.5)
 
     worst = sorted(gaps, key=lambda g: -g["sessions"])[:25]
     by_symbol = Counter(g["symbol"] for g in gaps)
@@ -225,6 +236,9 @@ def main() -> None:
         "probeExamples": examples,
         "calendarRule": f"a date is a session for a market when any of its assets has a bar; "
                         f"thin when fewer than {QUORUM:.0%} of that market's then-live assets do",
+        "completenessRule": ("sessionDates over daysElapsed, where the denominator counts weekdays "
+                             "for every market but calendar days for crypto, and stops at the last "
+                             "date in the data rather than at year end"),
         "notes": [
             "A market fetched monthly looks fully covered by the per-asset figures above, because "
             "they compare each asset with a calendar built from the same data. calendarCompleteness "
