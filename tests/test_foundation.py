@@ -463,6 +463,24 @@ class UnadjustedActionsInTheAnalogPool(unittest.TestCase):
                     for k in ("mean", "median", "min", "max"):
                         self.assertAlmostEqual(got[k], want[k], places=9, msg=(t, h, k))
 
+    def test_the_exclusion_reads_nothing_after_the_session(self):
+        """The action dates are an argument, not something read out of the bars, and every one the
+        rule consults lies at or before the session. So bending every later bar -- and adding an
+        action after the session -- cannot move the answer."""
+        import pit_features as pit
+        bars = self.ramp()
+        t = 300
+        acts = self.action_dates(bars)
+        base = pit.AnalogSeries(bars, acts).at(t, 5)
+
+        future = [dict(b) for b in bars]
+        for b in future[t + 1:]:
+            b["close"] *= 7.0
+            b["volume"] = 9e9
+        self.assertEqual(base, pit.AnalogSeries(future, acts).at(t, 5))
+        later = acts + [bars[t + 20]["date"].isoformat()]
+        self.assertEqual(base, pit.AnalogSeries(bars, later).at(t, 5))
+
     def test_a_move_both_providers_saw_is_not_treated_as_an_action(self):
         """The scan's second-provider check is the evidence. Where both independent providers
         report the same fall, it happened, and excluding that day would throw away a real one."""
