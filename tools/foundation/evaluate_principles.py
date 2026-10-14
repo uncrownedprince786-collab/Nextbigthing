@@ -51,6 +51,29 @@ def arg(name, default=None):
 # ---------------------------------------------------------------- feature access
 
 
+# The macro state per session, loaded once and looked up by date. Keeping it out of the rows
+# matters: it is identical across the 616 assets, so attaching it per row would store the same
+# 31 series 616 times a day. `age` and `chg` come with each value; see tools/foundation/macro_pit.py
+# for the availability rule that decides what a session is allowed to see.
+MACRO: dict[str, dict] = {}
+
+
+def load_macro(path: Path) -> int:
+    if not path.exists():
+        return 0
+    with gzip.open(path, "rt", encoding="utf-8") as fh:
+        for line in fh:
+            if line.strip():
+                r = json.loads(line)
+                MACRO[r["d"]] = r["m"]
+    return len(MACRO)
+
+
+def mv(rec, sid, field="v"):
+    """One macro figure as it stood at this row's session, or None when it was not yet knowable."""
+    return (MACRO.get(rec["asOf"], {}).get(sid) or {}).get(field)
+
+
 def f(rec, key):
     p = rec.get("pit")
     return None if not p else p["f"].get(key)
@@ -188,6 +211,66 @@ def r_setup_state(rec):
     return 1 if c.get("state") == "buy" else -1 if c.get("state") == "short" else 0
 
 
+def r_cal_halloween(rec):
+    """CAL-HALLOWEEN: long between November and April, out otherwise. Needs no feature at all."""
+    return 1 if int(rec["asOf"][5:7]) in (11, 12, 1, 2, 3, 4) else 0
+
+
+def r_cal_january(rec):
+    """CAL-JAN (partial): the January effect, without the size leg that needs a market cap."""
+    return 1 if rec["asOf"][5:7] == "01" else 0
+
+
+def r_macro_curve(rec):
+    """MACRO-CURVE: stand aside while the 10-year minus 3-month spread is inverted.
+
+    The spread is read at its availability, so a session only sees a figure that had been
+    published by its close.
+    """
+    sp = mv(rec, "T10Y3M")
+    if sp is None:
+        return 0
+    return 0 if sp < 0 else 1
+
+
+def r_macro_feargauge(rec):
+    """MACRO-FEARGAUGE: buy when implied volatility has spiked. The threshold is absolute rather
+    than a trailing percentile, because a percentile of VIX would need a window this lookup does
+    not carry; 30 is the level the paper's own discussion treats as elevated."""
+    v = mv(rec, "VIXCLS")
+    if v is None:
+        return 0
+    return 1 if v >= 30 else 0
+
+
+def r_macro_calm(rec):
+    """The complement of the above, as a control on it: long only while volatility is low. If both
+    sides of one indicator 'work', the indicator is not what is being measured."""
+    v = mv(rec, "VIXCLS")
+    if v is None:
+        return 0
+    return 1 if v < 20 else 0
+
+
+def r_mom_crash(rec):
+    """MOM-CRASH: momentum, switched off when the market is stressed. Stress here is VIX in its
+    elevated range, which is the stored stand-in for the paper's bear-market-and-high-volatility
+    state."""
+    v = mv(rec, "VIXCLS")
+    if v is None or v >= 30:
+        return 0
+    return sign(f(rec, "r20"))
+
+
+def r_macro_tightening(rec):
+    """MACRO-PREDICT, single-variable form: the direction of the policy rate's recent change, used
+    as the one-variable predictor the paper tests and mostly rejects."""
+    chg = mv(rec, "DFF", "chg")
+    if chg is None:
+        return 0
+    return -1 if chg > 0 else 1 if chg < 0 else 0
+
+
 RULES = [
     ("TREND-MA", "close above its 50-session mean", r_trend_ma),
     ("MOM-TS", "sign of the 20-session return", r_mom_ts),
@@ -204,6 +287,15 @@ RULES = [
     ("TECH-FOUND", "the stored entry trigger", r_squeeze),
     ("NBT-ANALOG", "the repository's own analog majority", r_analog_majority),
     ("NBT-SETUP", "the replayed setup's own direction", r_setup_state),
+    ("CAL-HALLOWEEN", "long November to April", r_cal_halloween),
+    ("CAL-JAN", "long in January", r_cal_january),
+    ("MACRO-CURVE", "stand aside while the curve is inverted", r_macro_curve),
+    ("MACRO-FEARGAUGE", "long when implied volatility is above 30", r_macro_feargauge),
+    ("MACRO-PREDICT", "fade the direction of the policy rate", r_macro_tightening),
+    ("MOM-CRASH", "momentum, switched off when volatility is elevated", r_mom_crash),
+    # Not a principle: the other side of the fear gauge, so a reader can see whether the indicator
+    # or merely the exposure is doing the work.
+    ("NBT-CALM", "long only when implied volatility is below 20", r_macro_calm),
 ]
 
 
@@ -272,6 +364,8 @@ def main() -> int:
     max_rows = int(arg("--max-rows") or 0) or None
     out.mkdir(parents=True, exist_ok=True)
 
+    n_macro = load_macro(dataset / "macro" / "macro-sessions.jsonl.gz")
+    print(f"macro sessions loaded: {n_macro:,}", flush=True)
     rows = load(dataset, max_rows, horizon)
     if not rows:
         print("::error title=evaluate::no mature rows in the dataset")
@@ -308,6 +402,7 @@ def main() -> int:
         "rows": len(rows), "sessions": len(dates), "range": [dates[0], dates[-1]],
         "horizonSessions": horizon, "trialsLogged": log.count,
         "rulesEvaluated": len(RULES), "passed": passed,
+        "macroSessionsLoaded": n_macro,
         "controls": {k: {"meanNetPct": v["meanNetPct"], "trades": v["trades"]} for k, v in controls.items()},
         "results": results,
         "whatThisIsNot": [

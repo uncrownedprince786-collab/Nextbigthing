@@ -405,6 +405,30 @@ class PrincipleRules(unittest.TestCase):
             self.assertIn(rule(empty), (-1, 0, 1), pid)
             self.assertEqual(rule(empty), 0, f"{pid} took a side with no features")
 
+    def test_a_macro_rule_sees_only_the_session_it_is_given(self):
+        """The macro lookup is keyed by the row's own session date. A rule that found a figure for
+        a date it was not given would be reading another session's state."""
+        self.ep.MACRO.clear()
+        self.ep.MACRO["2021-06-01"] = {"VIXCLS": {"v": 35.0, "age": 1},
+                                       "T10Y3M": {"v": -0.5, "age": 1},
+                                       "DFF": {"v": 0.08, "age": 1, "chg": 0.25}}
+        try:
+            here = self.rec()
+            self.assertEqual(self.ep.r_macro_feargauge(here), 1)
+            self.assertEqual(self.ep.r_macro_curve(here), 0)      # inverted: stand aside
+            self.assertEqual(self.ep.r_macro_tightening(here), -1)  # rate rose
+            elsewhere = {**here, "asOf": "2021-06-02"}
+            for rule in (self.ep.r_macro_feargauge, self.ep.r_macro_curve, self.ep.r_macro_tightening):
+                self.assertEqual(rule(elsewhere), 0, "a rule found macro state for another session")
+        finally:
+            self.ep.MACRO.clear()
+
+    def test_the_calendar_rules_need_no_features_at_all(self):
+        self.assertEqual(self.ep.r_cal_halloween({"asOf": "2021-12-15"}), 1)
+        self.assertEqual(self.ep.r_cal_halloween({"asOf": "2021-07-15"}), 0)
+        self.assertEqual(self.ep.r_cal_january({"asOf": "2022-01-04"}), 1)
+        self.assertEqual(self.ep.r_cal_january({"asOf": "2022-02-04"}), 0)
+
     def test_each_rule_names_a_principle_in_the_corpus(self):
         path = DATA / "principles" / "principles.json"
         if not path.exists():

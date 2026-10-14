@@ -19,8 +19,8 @@
    "discipline": 8,
    "fundamentals": 8
   },
-  "withRunnableRule": 13,
-  "testableWithoutARuleYet": 56
+  "withRunnableRule": 19,
+  "testableWithoutARuleYet": 50
  },
  "principles": [
   {
@@ -289,7 +289,7 @@
    },
    "testable_now": true,
    "status": "untested",
-   "hasRunnableRule": false
+   "hasRunnableRule": true
   },
   {
    "id": "MOM-VOLSCALE",
@@ -1682,7 +1682,7 @@
    },
    "testable_now": true,
    "status": "untested",
-   "hasRunnableRule": false
+   "hasRunnableRule": true
   },
   {
    "id": "MACRO-PREDICT",
@@ -1716,7 +1716,7 @@
    },
    "testable_now": true,
    "status": "untested",
-   "hasRunnableRule": false
+   "hasRunnableRule": true
   },
   {
    "id": "MACRO-CONSTRAINED",
@@ -1817,7 +1817,7 @@
    },
    "testable_now": true,
    "status": "untested",
-   "hasRunnableRule": false
+   "hasRunnableRule": true
   },
   {
    "id": "CAL-HALLOWEEN",
@@ -1850,7 +1850,7 @@
    },
    "testable_now": true,
    "status": "untested",
-   "hasRunnableRule": false
+   "hasRunnableRule": true
   },
   {
    "id": "CAL-SEASONAL",
@@ -1918,7 +1918,7 @@
    },
    "testable_now": true,
    "status": "untested",
-   "hasRunnableRule": false
+   "hasRunnableRule": true
   },
   {
    "id": "CAL-WEEKEND",
