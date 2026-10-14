@@ -4389,3 +4389,66 @@ reads rows that already exist:
       bars must not sit beside the exchange's own numbers until a sourced factor is adjudicated.
       Nine of the thirteen frozen target items hold usable history. The manifest is
       `data/foundation/acquisition/manifest.json`, version `acquisition-manifest-v1`.
+
+132. **The PSX history is complete to the limit of what the exchange ever published, and the proof
+    is that every remaining gap is a day the stock did not trade.** 2026-10-15, Phase 3 data
+    foundation. 80,162 rows added after a verified backup; 394,014 PSX bars now, none lost, the
+    database at 387 MB of 500.
+
+    - **The sweep that should have come first.** The earlier run read 272 archive dates chosen for
+      23 symbols. That was the wrong shape: the exchange's closing file carries the whole market on
+      every date, so one pass over the calendar answers every PSX question at once. 2,294 weekday
+      dates from 2018-01-01 were read, **2,171 published**, 119 silent (holidays, each confirmed by
+      a real 404), 2 not an archive, 2 published but empty. The download is the persistence --
+      `nbt.get` caches each archive for a year and `psx.read_day` reads through the same key -- so
+      every later pass over 2,171 files cost nothing.
+
+    - **The host did not refuse.** `recovery-manifest.json` records this server "refusing at
+      roughly 600 requests in one session", and that figure stopped the previous run early. 2,294
+      requests at the declared 1.5s spacing completed without a single refusal. The earlier limit
+      was real when it was measured; it is not a property of the host at this rate, and the
+      manifest's note should be read as "observed once" rather than a ceiling.
+
+    - **The basis problem dissolved rather than being solved.** 38,246 Yahoo bars were withheld
+      because Yahoo back-adjusts for splits while the stored series is raw. The exchange's own file
+      *is* the raw series, so for those same dates there was never anything to adjudicate -- only a
+      fetch nobody had done. Of the 80,162 bars recovered, **41,767 fall inside a stored range**
+      (the basis-divergent dates, the pad-rejected dates and the 23 unlisted names together) and
+      **38,395 fall before it**: 2018, a whole year that predates the universe's 2019 start. By
+      year: 38,095 in 2018, then 12,228, 10,616, 9,504, 6,078, 2,729 and 912 to 2024.
+
+    - **What the 36,762 remaining gaps are, measured and not assumed.** Every published archive was
+      re-read and every remaining in-range gap tested against it. **36,762 of 36,762 are sessions on
+      which the exchange published no traded price for that symbol**, and **none** is a date the
+      exchange priced and this database lacks. A thinly traded Karachi listing does not trade every
+      session; `gaps.json` counts every market session for every in-range asset, so its PSX figure
+      of 0.914 is measuring the market's liquidity and not this project's coverage. **Against
+      sessions where a price actually exists, PSX acquisition is complete.**
+
+    - **Coverage, with the denominator named each time.** PSX went 0.816 to **0.914** on the
+      per-asset measure, and the calendar gained a year: 2018 contributes 245 session dates where
+      it previously had none. Across everything: historical observation coverage **96.74%**
+      (1,097,458 of 1,134,465), raw acquisition including staging **99.93%** (1,274,292 of
+      1,275,182), primary-store integrated **86.06%** -- the difference being benchmark and macro
+      series that are staged because they have no `Asset` row, which is a Milestone B decision and
+      not an acquisition failure.
+
+    - **Three series publish a number and no history, and the search for one is now exhausted.**
+      KSE-100, KIBOR and the SBP policy rate were pursued through nine further paths this session:
+      seven Yahoo symbol spellings (404), the exchange's closing file at both 2018-01-01 and
+      2026-10-13 (KSE30 *futures* rows, never an index level), `/indices` (current level only),
+      `/historical` and `/daily-downloads` (JavaScript shells), stooq (JavaScript challenge,
+      re-verified), SBP's `kibor_index.asp`, `kibor_archive.asp` and `economic-data` pages
+      (JavaScript document search over per-day PDFs), and SBP EasyData (Oracle APEX 19.2, whose
+      URLs carry session checksums). `IR-Corridor-Hist.xls` turned out to hold overnight repo
+      *amounts*, not rates. One dated observation each was captured. **SBP answers 403 to this
+      project's user agent and 200 to a browser's**, which is why it was previously recorded as
+      unreachable.
+
+    - **Everything else reached its source's own floor.** `^GSPC` 24,814 sessions from 1927-12-30,
+      `^VIX` 9,266 from its 1990 inception, `DX-Y.NYB` 14,164 from 1971, `^SP500TR` 9,769 from 1988
+      kept deliberately distinct from the price index, `GC=F` 6,556 and `BZ=F` 4,782 in full, FRED's
+      `DGS10` to 1962 and `DFF` to 1954, and Bitcoin to **2011-08-18** through Bitstamp once
+      Coinbase's own floor of 2015-07-20 was confirmed by the venue returning nothing earlier.
+      The manifest is `data/foundation/acquisition/manifest.json`, version
+      `acquisition-manifest-v2`.

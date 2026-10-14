@@ -1,0 +1,47 @@
+{
+ "verifiedAt": "2026-10-14T22:23:27+00:00",
+ "psxBarsBefore": 313852,
+ "psxBarsNow": 394014,
+ "added": 80162,
+ "preExistingLost": 0,
+ "examplesLost": [],
+ "sourceCounts": [
+  {
+   "source": "Yahoo Finance",
+   "n": 604841,
+   "lo": "2019-01-01",
+   "hi": "2026-10-13"
+  },
+  {
+   "source": "Pakistan Stock Exchange daily closing file",
+   "n": 210747,
+   "lo": "2018-01-01",
+   "hi": "2026-10-14"
+  },
+  {
+   "source": "Yahoo Finance Karachi listing",
+   "n": 183267,
+   "lo": "2019-01-01",
+   "hi": "2024-10-10"
+  },
+  {
+   "source": "Coinbase",
+   "n": 95977,
+   "lo": "2018-11-04",
+   "hi": "2026-10-13"
+  },
+  {
+   "source": "Kraken",
+   "n": 2401,
+   "lo": "2024-10-23",
+   "hi": "2026-10-13"
+  },
+  {
+   "source": "Yahoo Finance chart API",
+   "n": 225,
+   "lo": "2026-09-14",
+   "hi": "2026-09-24"
+  }
+ ],
+ "databaseSize": "387 MB"
+}
