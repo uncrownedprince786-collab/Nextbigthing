@@ -14,10 +14,12 @@ on:
     branches: [main]
     paths: ["ops/reconcile.json"]
 
-# Shares the worker's group: a reconcile never reads artifacts while a slice is mid-write, and a
-# recovery slice never starts while a reconcile is running.
+# Its own group, like every other lane. Reconcile only reads artifacts that earlier slices
+# finished, and the worker resumes from whichever checkpoint artifact is newest, so the two cannot
+# corrupt each other; they can only race on which checkpoint is newest, and the next reconcile
+# repairs that from the outputs.
 concurrency:
-  group: nbt-data-worker
+  group: nbt-data-worker-reconcile
   cancel-in-progress: false
 
 # actions: write only so the final step can dispatch the recovery slice.
