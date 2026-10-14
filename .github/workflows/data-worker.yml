@@ -38,10 +38,16 @@ concurrency:
   group: nbt-data-worker
   cancel-in-progress: false
 
-# Least privilege. The worker reads the repository and writes nothing back to it: its output is
-# an encrypted artifact, so it needs no `contents: write` and no package or deployment scope.
+# Least privilege, and exactly two entries.
+#
+# `contents: read` to check out the rule table. `actions: write` because the last step dispatches
+# the next slice, and GitHub's workflow-dispatch API refuses a token without it -- which the
+# earlier tests never showed, because they all ran with continue=false. Everything else stays at
+# the default of none: the worker writes nothing back to the repository, publishes no package and
+# touches no deployment.
 permissions:
   contents: read
+  actions: write
 
 jobs:
   replay:
