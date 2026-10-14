@@ -314,7 +314,10 @@ def slim(r: dict, horizon: int) -> dict:
     p = r.get("pit")
     an = ((p or {}).get("an") or {}).get("5")
     c = r.get("candidate")
+    q = r.get("dataQuality") or {}
     return {
+        "dataQuality": {"unadjustedActionInWindow": bool(q.get("unadjustedActionInWindow")),
+                        "windowIsNotDaily": bool(q.get("windowIsNotDaily"))},
         "asOf": r["asOf"], "symbol": r["symbol"], "assetType": r["assetType"], "market": r["market"],
         "outcome": {f"fwd{horizon}": r["outcome"][f"fwd{horizon}"]},
         "pit": None if p is None else {
@@ -370,6 +373,27 @@ def main() -> int:
     if not rows:
         print("::error title=evaluate::no mature rows in the dataset")
         return 2
+
+    # Quarantine, and it is not optional. A row whose window crosses an unadjusted corporate action
+    # carries a one-day "return" no holder experienced; a row whose window is not daily was measured
+    # over monthly-spaced bars under daily names. Either would enter a rule's statistics as an
+    # ordinary price movement and change its verdict. They are excluded from every evaluation below
+    # and counted here, so the exclusion is visible rather than silent.
+    def usable(r):
+        q = r["dataQuality"]
+        return not q["unadjustedActionInWindow"] and not q["windowIsNotDaily"]
+
+    total_rows = len(rows)
+    excluded = {
+        "unadjustedActionInWindow": sum(r["dataQuality"]["unadjustedActionInWindow"] for r in rows),
+        "windowIsNotDaily": sum(r["dataQuality"]["windowIsNotDaily"] for r in rows),
+    }
+    rows = [r for r in rows if usable(r)]
+    print(f"quarantined {total_rows - len(rows):,} of {total_rows:,} rows "
+          f"({excluded}); evaluating on {len(rows):,}", flush=True)
+    if not rows:
+        print("::error title=evaluate::every row was quarantined")
+        return 2
     dates = sorted({r["asOf"] for r in rows})
     print(f"{len(rows):,} rows, {len(dates):,} sessions, {dates[0]} to {dates[-1]}", flush=True)
 
@@ -402,7 +426,12 @@ def main() -> int:
     passed = [k for k, v in results.items() if v.get("verdict") == "PASS"]
     report = {
         "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "rows": len(rows), "sessions": len(dates), "range": [dates[0], dates[-1]],
+        "rowsEvaluated": len(rows), "rowsBeforeQuarantine": total_rows,
+        "quarantined": excluded,
+        "quarantineRule": ("a row is excluded when its window crosses an unadjusted corporate "
+                           "action or is not daily; both would enter a rule's statistics as an "
+                           "ordinary price movement"),
+        "sessions": len(dates), "range": [dates[0], dates[-1]],
         "horizonSessions": horizon, "trialsLogged": log.count,
         "rulesEvaluated": len(RULES), "passed": passed,
         "macroSessionsLoaded": n_macro,

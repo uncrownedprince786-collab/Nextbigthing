@@ -542,6 +542,30 @@ class PrincipleRules(unittest.TestCase):
             if not pid.startswith("NBT-"):
                 self.assertIn(pid, known, f"{pid} is not a principle in the corpus")
 
+    def test_a_quarantined_row_never_reaches_a_rule(self):
+        """Flagging is not protection. A row whose window crosses an unadjusted corporate action,
+        or whose bars are not daily, must be excluded from the evaluation rather than entering a
+        rule's statistics as an ordinary price movement."""
+        src = (ROOT / "tools" / "foundation" / "evaluate_principles.py").read_text(encoding="utf-8")
+        self.assertIn("unadjustedActionInWindow", src)
+        self.assertIn("windowIsNotDaily", src)
+        self.assertIn("rows = [r for r in rows if usable(r)]", src)
+        # and the slimmed row must still carry the flags, or the filter has nothing to read
+        slim = self.ep.slim({"asOf": "2021-06-01", "symbol": "A", "assetType": "stock",
+                             "market": "US", "outcome": {"fwd20": 1.0}, "pit": None,
+                             "candidate": None,
+                             "dataQuality": {"unadjustedActionInWindow": True,
+                                             "windowIsNotDaily": False}}, 20)
+        self.assertTrue(slim["dataQuality"]["unadjustedActionInWindow"])
+        self.assertFalse(slim["dataQuality"]["windowIsNotDaily"])
+
+    def test_a_row_with_no_quality_block_is_treated_as_clean(self):
+        slim = self.ep.slim({"asOf": "2021-06-01", "symbol": "A", "assetType": "stock",
+                             "market": "US", "outcome": {"fwd20": 1.0}, "pit": None,
+                             "candidate": None}, 20)
+        self.assertFalse(slim["dataQuality"]["unadjustedActionInWindow"])
+        self.assertFalse(slim["dataQuality"]["windowIsNotDaily"])
+
     def test_the_verdict_requires_beating_both_controls(self):
         controls = {"buy-and-hold": {"meanNetPct": {"base": 1.0}},
                     "coin-flip": {"meanNetPct": {"base": -0.2}}}
