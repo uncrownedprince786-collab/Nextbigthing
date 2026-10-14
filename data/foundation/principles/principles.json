@@ -18,7 +18,9 @@
    "commodities": 2,
    "discipline": 8,
    "fundamentals": 8
-  }
+  },
+  "withRunnableRule": 13,
+  "testableWithoutARuleYet": 56
  },
  "principles": [
   {
@@ -51,7 +53,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": true
   },
   {
    "id": "MOM-TS",
@@ -84,7 +87,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": true
   },
   {
    "id": "MOM-VALMOM",
@@ -117,7 +121,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "TREND-MA",
@@ -150,7 +155,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": true
   },
   {
    "id": "TREND-FABER",
@@ -182,7 +188,8 @@
     "container": "The Journal of Wealth Management"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "MOM-52WH",
@@ -214,7 +221,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": true
   },
   {
    "id": "TREND-CENTURY",
@@ -247,7 +255,8 @@
     "container": "The Journal of Portfolio Management"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "MOM-CRASH",
@@ -279,7 +288,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "MOM-VOLSCALE",
@@ -311,7 +321,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "MOM-RECENT",
@@ -342,7 +353,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "MOM-INDUSTRY",
@@ -374,7 +386,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": true
   },
   {
    "id": "MOM-INTRADAY",
@@ -409,7 +422,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": false,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "TECH-FOUND",
@@ -442,7 +456,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": true
   },
   {
    "id": "TECH-PROFIT",
@@ -474,7 +489,8 @@
     "container": "Journal of Economic Surveys"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "MOM-FUND-ABN",
@@ -505,7 +521,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "REV-ST-1M",
@@ -536,7 +553,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": true
   },
   {
    "id": "REV-WEEKLY",
@@ -568,7 +586,8 @@
     "container": "The Quarterly Journal of Economics"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": true
   },
   {
    "id": "REV-LOMAC",
@@ -600,7 +619,8 @@
     "container": "Review of Financial Studies"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "REV-LTR",
@@ -632,7 +652,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": true
   },
   {
    "id": "REV-LIQ",
@@ -665,7 +686,8 @@
     "container": ""
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": true
   },
   {
    "id": "REV-VOLUME",
@@ -700,7 +722,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "REV-NEWS",
@@ -732,7 +755,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "REV-DA",
@@ -766,7 +790,8 @@
     "container": "Management Science"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "SHOCK-INFO",
@@ -799,7 +824,8 @@
     "container": "SSRN Electronic Journal"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "VOL-HIGH",
@@ -834,7 +860,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": true
   },
   {
    "id": "VOL-MOMVOL",
@@ -867,7 +894,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": true
   },
   {
    "id": "LIQ-AMIHUD",
@@ -899,7 +927,8 @@
     "container": "Journal of Financial Markets"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "LIQ-TURNOVER",
@@ -933,7 +962,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "COST-LESMOND",
@@ -966,7 +996,8 @@
     "container": "Review of Financial Studies"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "RISK-BAB",
@@ -998,7 +1029,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "RISK-IVOL",
@@ -1032,7 +1064,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": true
   },
   {
    "id": "RISK-VOLMGD",
@@ -1064,7 +1097,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "RISK-VOLTARGET",
@@ -1098,7 +1132,8 @@
     "container": "The Journal of Portfolio Management"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "RISK-STOP",
@@ -1131,7 +1166,8 @@
     "container": "Journal of Financial Markets"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "RISK-KELLY",
@@ -1162,7 +1198,8 @@
     "container": "Bell System Technical Journal"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "QUAL-PRICE",
@@ -1194,7 +1231,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "EVT-PEAD",
@@ -1227,7 +1265,8 @@
     "container": "Journal of Accounting Research"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "EVT-BALLBROWN",
@@ -1260,7 +1299,8 @@
     "container": "Journal of Accounting Research"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "EVT-FOMC-DRIFT",
@@ -1293,7 +1333,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "EVT-FED-SURPRISE",
@@ -1327,7 +1368,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "EVT-UNEMP",
@@ -1363,7 +1405,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "EVT-MACRO-JUMPS",
@@ -1399,7 +1442,8 @@
     "container": ""
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "NEWS-TONE",
@@ -1431,7 +1475,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "NEWS-UNDERREACT",
@@ -1464,7 +1509,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "LINK-CUSTOMER",
@@ -1497,7 +1543,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "LINK-INDUSTRY-LEAD",
@@ -1530,7 +1577,8 @@
     "container": "Review of Financial Studies"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "SENT-BW",
@@ -1564,7 +1612,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "ATTN-BARBER",
@@ -1598,7 +1647,8 @@
     "container": "Review of Financial Studies"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "MACRO-CURVE",
@@ -1631,7 +1681,8 @@
     "container": "Review of Economics and Statistics"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "MACRO-PREDICT",
@@ -1664,7 +1715,8 @@
     "container": "Review of Financial Studies"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "MACRO-CONSTRAINED",
@@ -1697,7 +1749,8 @@
     "container": "Review of Financial Studies"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "MACRO-VIXPREM",
@@ -1730,7 +1783,8 @@
     "container": "Journal of Econometrics"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "MACRO-FEARGAUGE",
@@ -1762,7 +1816,8 @@
     "container": "The Journal of Portfolio Management"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "CAL-HALLOWEEN",
@@ -1794,7 +1849,8 @@
     "container": "American Economic Review"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "CAL-SEASONAL",
@@ -1827,7 +1883,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "CAL-JAN",
@@ -1860,7 +1917,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "CAL-WEEKEND",
@@ -1891,7 +1949,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "CRYPTO-MOM",
@@ -1923,7 +1982,8 @@
     "container": "The Review of Financial Studies"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "CRYPTO-FACTORS",
@@ -1957,7 +2017,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "FX-MOM",
@@ -1992,7 +2053,8 @@
     "container": ""
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "FX-CARRY",
@@ -2026,7 +2088,8 @@
     "container": "Review of Financial Studies"
    },
    "testable_now": false,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "CARRY-GLOBAL",
@@ -2061,7 +2124,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": false,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "CMDTY-FACTS",
@@ -2094,7 +2158,8 @@
     "container": "Financial Analysts Journal"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "CMDTY-STRATEGIC",
@@ -2126,7 +2191,8 @@
     "container": "Financial Analysts Journal"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "DISC-DEFLATED",
@@ -2158,7 +2224,8 @@
     "container": "The Journal of Portfolio Management"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "DISC-TSTAT",
@@ -2191,7 +2258,8 @@
     "container": "Review of Financial Studies"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "DISC-BACKTEST",
@@ -2223,7 +2291,8 @@
     "container": "The Journal of Portfolio Management"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "DISC-DECAY",
@@ -2255,7 +2324,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "DISC-SNOOP",
@@ -2288,7 +2358,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "DISC-CHARLATAN",
@@ -2322,7 +2393,8 @@
     "container": "Notices of the American Mathematical Society"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "DISC-COSTS",
@@ -2354,7 +2426,8 @@
     "container": "Review of Financial Studies"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "DISC-ADAPTIVE",
@@ -2386,7 +2459,8 @@
     "container": "The Journal of Portfolio Management"
    },
    "testable_now": true,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "FUND-VALUE",
@@ -2418,7 +2492,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": false,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "FUND-FF3",
@@ -2451,7 +2526,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": false,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "FUND-PROFIT",
@@ -2483,7 +2559,8 @@
     "container": "Journal of Financial Economics"
    },
    "testable_now": false,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "FUND-QUALITY",
@@ -2517,7 +2594,8 @@
     "container": "Review of Accounting Studies"
    },
    "testable_now": false,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "FUND-FSCORE",
@@ -2549,7 +2627,8 @@
     "container": "Journal of Accounting Research"
    },
    "testable_now": false,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "FUND-ISSUE",
@@ -2582,7 +2661,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": false,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "FUND-ASSETGROWTH",
@@ -2616,7 +2696,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": false,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   },
   {
    "id": "FUND-CONTRARIAN",
@@ -2650,7 +2731,8 @@
     "container": "The Journal of Finance"
    },
    "testable_now": false,
-   "status": "untested"
+   "status": "untested",
+   "hasRunnableRule": false
   }
  ]
 }

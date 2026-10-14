@@ -26,6 +26,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from principles_src import P  # noqa: E402
 
+# Which principles have a rule written for them in the evaluator. Imported rather than restated,
+# so "testable" and "actually tested" cannot drift apart in the corpus.
+try:
+    from evaluate_principles import RULES as _RULES
+    WITH_RULE = {pid for pid, _, _ in _RULES}
+except Exception:  # noqa: BLE001
+    WITH_RULE = set()
+
 ROOT = Path(__file__).resolve().parent.parent.parent
 OUT = ROOT / "data" / "foundation" / "principles"
 UA = "NextBigThing-research/1.0 (mailto:claude.pro@thedg.group)"
@@ -142,6 +150,7 @@ def main() -> None:
         time.sleep(0.25)
         rows.append({**p, "doiUrl": "https://doi.org/" + p["doi"],
                      "citation": v, "testable_now": all(have(n) for n in p["needs"]),
+                     "hasRunnableRule": p["id"] in WITH_RULE,
                      "status": "untested"})
         print(f"{'ok ' if v['verified'] else 'BAD'} {p['id']:18} {v['reason'][:90]}", flush=True)
     summary = {
@@ -150,6 +159,8 @@ def main() -> None:
         "citationsVerified": sum(r["citation"]["verified"] for r in rows),
         "testableNow": sum(r["testable_now"] for r in rows),
         "verifiedAndTestableNow": sum(r["citation"]["verified"] and r["testable_now"] for r in rows),
+        "withRunnableRule": sum(r["hasRunnableRule"] for r in rows),
+        "testableWithoutARuleYet": sum(r["testable_now"] and not r["hasRunnableRule"] for r in rows),
         "byFamily": {},
     }
     for r in rows:

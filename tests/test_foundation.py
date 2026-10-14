@@ -493,6 +493,20 @@ class PrinciplesGate(unittest.TestCase):
                 self.assertTrue(r.get(k), f"{r['id']} lacks {k}")
             self.assertEqual(r["status"], "untested", "a principle is untested until a walk-forward result exists")
 
+    def test_the_corpus_says_which_principles_actually_have_a_rule(self):
+        """"Testable" and "tested" are different claims and the corpus must not blur them."""
+        import evaluate_principles as ep
+        doc = self.doc()
+        have = {pid for pid, _, _ in ep.RULES}
+        for r in doc["principles"]:
+            self.assertEqual(r["hasRunnableRule"], r["id"] in have, r["id"])
+            if r["hasRunnableRule"]:
+                self.assertTrue(r["testable_now"], f"{r['id']} has a rule but is marked untestable")
+        s = doc["summary"]
+        self.assertEqual(s["withRunnableRule"], sum(r["hasRunnableRule"] for r in doc["principles"]))
+        self.assertGreater(s["testableWithoutARuleYet"], 0,
+                           "if every testable principle has a rule, say so rather than hiding the field")
+
     def test_testable_means_every_input_is_stored(self):
         for r in self.doc()["principles"]:
             if "fundamentals" in r["needs"] or "term structure" in r["needs"] or "foreign short rates" in r["needs"]:

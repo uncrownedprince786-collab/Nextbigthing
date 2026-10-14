@@ -24,6 +24,28 @@ A dataset whose file is absent is skipped by the test, never passed.
 
 Walk-forward evaluation infrastructure is `tools/foundation/walkforward.py`. It trains nothing.
 
+## Run order
+
+The sealed pipeline has one order, because each step verifies the one before it. Each is started
+by committing a change to its request file on `main` (bump the `nonce`); `workflow_dispatch` is
+equivalent but needs the web UI.
+
+1. **Replay** — `data-worker.yml`, dispatched with `checkpoint=nbt-canonical-checkpoint`. It
+   chains its own slices until no sessions remain. Each slice's counts appear as a check-run
+   annotation.
+2. **Reconcile** — push `ops/reconcile.json`. Rebuilds the canonical checkpoint from the persisted
+   outputs, trusting only runs whose replay code matches the current tree, and re-dispatches the
+   worker for whatever is still missing. Repeat until it reports `missingOrInvalid: 0`.
+3. **Determinism** — push `ops/determinism.json`. Re-replays a seeded, year-stratified sample and
+   requires byte-identical output. This is the leakage test that time can run and a unit test
+   cannot.
+4. **Features** — push `ops/pit.json`. Rebuilds the point-in-time factors and analogs.
+5. **Assemble** — push `ops/assemble.json`. Joins outcomes, features and replayed setups, then
+   runs the coverage-gap, survivorship and principle-evaluation reports in the same job.
+
+Steps 1 to 3 must be green before step 5 is meaningful: assembling against an unreconciled replay
+would join setups whose provenance is unknown.
+
 ## Where these jobs run, and why
 
 Anything that reads the database runs inside GitHub Actions, not from a laptop. The measured
