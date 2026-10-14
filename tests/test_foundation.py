@@ -405,16 +405,39 @@ class EventsGate(unittest.TestCase):
     def doc(self):
         return json.loads(need(DATA / "events" / "events.json").read_text(encoding="utf-8"))
 
-    def test_verified_events_have_their_evidence(self):
+    @staticmethod
+    def has_primary_evidence(e):
+        wiki = bool(e.get("wikipedia") and e["wikipedia"].get("url"))
+        official = any(o.get("dateInDocument") or o.get("accession") for o in e.get("official", []))
+        return wiki or official
+
+    def test_at_least_100_distinct_verified_clusters(self):
+        s = self.doc()["summary"]
+        self.assertGreaterEqual(s["distinctVerifiedClusters"], 100)
+
+    def test_events_span_at_least_eight_categories(self):
+        by = self.doc()["summary"]["byCategory"]
+        self.assertGreaterEqual(sum(1 for v in by.values() if v["verified"] >= 4), 8)
+
+    def test_every_verified_event_has_primary_evidence(self):
         for e in self.doc()["events"]:
             if e["verified"]:
-                self.assertTrue(e["wikipedia"] and e["wikipedia"]["url"], e["name"])
+                self.assertTrue(self.has_primary_evidence(e), e["name"])
                 self.assertIn(e["tier"], ("A", "B"))
 
-    def test_an_unmatched_event_is_never_counted(self):
+    def test_an_event_with_no_article_and_no_official_record_is_never_counted(self):
         for e in self.doc()["events"]:
-            if not e["wikipedia"]:
+            if not self.has_primary_evidence(e):
                 self.assertFalse(e["verified"], e["name"])
+
+    def test_price_screened_events_do_not_count_the_screen_as_evidence(self):
+        for e in self.doc()["events"]:
+            if e.get("selection") == "price-screened":
+                self.assertNotIn("market-move", e["evidenceGroups"], e["name"])
+
+    def test_multi_source_count_is_reported_separately(self):
+        s = self.doc()["summary"]
+        self.assertLessEqual(s["distinctMultiSourceClusters"], s["distinctVerifiedClusters"])
 
 
 if __name__ == "__main__":

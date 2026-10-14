@@ -195,3 +195,33 @@ ev("Baltimore Key Bridge collapse", "disaster", "2024-03-26", "Francis Scott Key
 ev("Hurricane Helene", "disaster", "2024-09-26", "Hurricane Helene 26 September 2024 landfall")
 ev("Los Angeles wildfires", "disaster", "2025-01-07", "January 2025 Southern California wildfires 7 January 2025")
 ev("Pakistan floods", "disaster", "2022-08-25", "2022 Pakistan floods 25 August 2022 national emergency", "PSX")
+
+
+# ---- official primary documents, keyed by event date (only monetary and macro-data events) ----
+# The Federal Reserve and the Bureau of Labor Statistics publish each statement and release at a
+# stable URL that encodes its date. events.py fetches each one and requires the claimed date to
+# appear in the document itself; a 200 response alone is not accepted.
+FED = "https://www.federalreserve.gov/newsevents/"
+BLS = "https://www.bls.gov/news.release/archives/"
+OFFICIAL = {
+    "2019-01-04": [FED + "speech/powell20190104a.htm"],
+    "2019-07-31": [FED + "pressreleases/monetary20190731a.htm"],
+    "2020-03-03": [FED + "pressreleases/monetary20200303a.htm"],
+    "2020-03-15": [FED + "pressreleases/monetary20200315a.htm"],
+    "2020-03-23": [FED + "pressreleases/monetary20200323a.htm", FED + "pressreleases/monetary20200323b.htm"],
+    "2020-08-27": [FED + "speech/powell20200827a.htm"],
+    "2021-06-16": [FED + "pressreleases/monetary20210616a.htm"],
+    "2021-11-03": [FED + "pressreleases/monetary20211103a.htm"],
+    "2022-03-16": [FED + "pressreleases/monetary20220316a.htm"],
+    "2022-06-15": [FED + "pressreleases/monetary20220615a.htm"],
+    "2022-08-26": [FED + "speech/powell20220826a.htm"],
+    "2023-12-13": [FED + "pressreleases/monetary20231213a.htm"],
+    "2024-09-18": [FED + "pressreleases/monetary20240918a.htm"],
+    "2024-12-18": [FED + "pressreleases/monetary20241218a.htm"],
+    "2025-08-22": [FED + "speech/powell20250822a.htm"],
+    "2025-09-17": [FED + "pressreleases/monetary20250917a.htm"],
+    "2022-09-13": [BLS + "cpi_09132022.htm"],
+    "2022-11-10": [BLS + "cpi_11102022.htm"],
+    "2024-08-02": [BLS + "empsit_08022024.htm"],
+    "2025-08-01": [BLS + "empsit_08012025.htm"],
+}

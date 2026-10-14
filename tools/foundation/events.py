@@ -44,7 +44,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "jobs"))
-from events_src import E  # noqa: E402
+from events_src import E, OFFICIAL  # noqa: E402
 
 CACHE = ROOT / ".cache" / "foundation" / "events_verdicts.json"
 OUT = ROOT / "data" / "foundation" / "events"
@@ -72,9 +72,17 @@ def date_forms(d: date) -> list[str]:
 
 def wikipedia(ev: dict) -> dict | None:
     d = date.fromisoformat(ev["date"])
-    hits = (api(f"{WIKI}?action=query&list=search&format=json&srlimit=4&srsearch="
-                + urllib.parse.quote(ev["query"])) or {}).get("query", {}).get("search", [])
-    for h in hits:
+    seen, hits = set(), []
+    # The phrase with the date first; then the bare name, which finds articles the date words push
+    # out of the results (a Fed decision's article rarely mentions the day in its title).
+    for q in (ev["query"], ev["name"], f"{ev['name']} {d.year}"):
+        for h in (api(f"{WIKI}?action=query&list=search&format=json&srlimit=6&srsearch="
+                      + urllib.parse.quote(q)) or {}).get("query", {}).get("search", []):
+            if h["title"] not in seen:
+                seen.add(h["title"])
+                hits.append(h)
+        time.sleep(0.15)
+    for h in hits[:14]:
         j = api(f"{WIKI}?action=query&format=json&prop=extracts|pageprops|info&explaintext=1"
                 f"&inprop=url&ppprop=wikibase_item&titles=" + urllib.parse.quote(h["title"]))
         time.sleep(0.2)
@@ -88,6 +96,27 @@ def wikipedia(ev: dict) -> dict | None:
                     "dateInLead": min(pos) < 3000, "textSha256": hashlib.sha256(text.encode()).hexdigest()[:16],
                     "qid": (page.get("pageprops") or {}).get("wikibase_item")}
     return None
+
+
+def official(ev: dict) -> list[dict]:
+    """Fetch each official document for the date and require the date to be written in it."""
+    if ev["category"] not in ("monetary", "macro-data"):
+        return []
+    d = date.fromisoformat(ev["date"])
+    out = []
+    for url in OFFICIAL.get(ev["date"], []):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": UA})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                body = r.read().decode("utf-8", "replace")
+            out.append({"url": url, "http": 200, "dateInDocument": any(f in body for f in date_forms(d)),
+                        "sha256": hashlib.sha256(body.encode()).hexdigest()[:16]})
+        except urllib.error.HTTPError as e:
+            out.append({"url": url, "http": e.code, "dateInDocument": False})
+        except Exception as e:  # noqa: BLE001
+            out.append({"url": url, "http": None, "dateInDocument": False, "error": type(e).__name__})
+        time.sleep(0.3)
+    return out
 
 
 def wikidata(qid: str | None, d: date) -> dict:
@@ -172,14 +201,31 @@ def reaction(key: str, d: date) -> dict:
             "z": round(best[1], 2), "returnPct": round(best[2] * 100, 2), "moved": abs(best[1]) >= 2.0}
 
 
-def tier(wiki, wd, px) -> str:
-    if not wiki:
+def groups(wiki, wd, off, px) -> list[str]:
+    """Independent evidence groups. Wikipedia and Wikidata are one group, 'wikimedia'."""
+    g = []
+    if wiki or wd.get("match"):
+        g.append("wikimedia")
+    if any(o.get("dateInDocument") for o in off):
+        g.append("official-document")
+    if px.get("moved"):
+        g.append("market-move")
+    return g
+
+
+def tier(wiki, wd, off, px) -> str:
+    """A: documentary evidence plus a second kind; B: article or document plus Wikidata or a
+    market move; C: a single article or document; X: nothing."""
+    doc = bool(wiki) or any(o.get("dateInDocument") for o in off)
+    if not doc:
         return "X"
-    wd_ok = bool(wd.get("match"))
-    px_ok = bool(px.get("moved"))
-    if wd_ok and px_ok:
+    wd_ok, px_ok = bool(wd.get("match")), bool(px.get("moved"))
+    off_ok = any(o.get("dateInDocument") for o in off)
+    if (wd_ok and px_ok) or (off_ok and (wiki or px_ok)):
         return "A"
-    if wd_ok or px_ok:
+    # An official primary document that contains the date IS the record of the event for a central
+    # bank statement or a statistical release, so it is verified on its own.
+    if wd_ok or px_ok or off_ok:
         return "B"
     return "C"
 
@@ -190,20 +236,31 @@ def main() -> None:
     load_series()
     for n, ev in enumerate(E, 1):
         key = f"{ev['date']}|{ev['name']}"
-        if key in cache:
+        stale = ev["date"] in OFFICIAL and "official" not in cache.get(key, {})
+        retry = "--retry-unmatched" in sys.argv and cache.get(key, {}).get("tier") in ("X", "C")
+        if key in cache and not (retry or stale):
             continue
         d = date.fromisoformat(ev["date"])
         w = wikipedia(ev)
         wd = wikidata(w["qid"], d) if w else {"checked": False, "reason": "no article"}
+        off = official(ev)
         px = reaction(ev["instrument"], d)
-        cache[key] = {"wikipedia": w, "wikidata": wd, "market": px, "tier": tier(w, wd, px)}
+        cache[key] = {"wikipedia": w, "wikidata": wd, "official": off, "market": px,
+                      "evidenceGroups": groups(w, wd, off, px), "tier": tier(w, wd, off, px)}
         CACHE.write_text(json.dumps(cache), encoding="utf-8")
         print(f"{n:3} {cache[key]['tier']} {ev['date']} {ev['name'][:60]}", flush=True)
         time.sleep(0.2)
     rows = []
     for ev in E:
         v = cache[f"{ev['date']}|{ev['name']}"]
+        v.setdefault("official", [])
+        # Recomputed from the stored evidence, so a change to the rule never needs a re-fetch.
+        v["evidenceGroups"] = groups(v["wikipedia"], v["wikidata"], v["official"], v["market"])
+        v["tier"] = tier(v["wikipedia"], v["wikidata"], v["official"], v["market"])
         rows.append({**ev, **v, "verified": v["tier"] in ("A", "B")})
+    extra = HERE.parent.parent / "data" / "foundation" / "events" / "earnings.json"
+    if extra.exists():
+        rows.extend(json.loads(extra.read_text(encoding="utf-8"))["events"])
     ver = [r for r in rows if r["verified"]]
     cats = defaultdict(lambda: {"candidates": 0, "verified": 0})
     for r in rows:
@@ -213,6 +270,8 @@ def main() -> None:
         "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "candidates": len(rows), "verifiedEvents": len(ver),
         "distinctVerifiedClusters": len({r["cluster"] for r in ver}),
+        "multiSourceVerifiedEvents": sum(len(r["evidenceGroups"]) >= 2 for r in ver),
+        "distinctMultiSourceClusters": len({r["cluster"] for r in ver if len(r["evidenceGroups"]) >= 2}),
         "byTier": {t: sum(r["tier"] == t for r in rows) for t in "ABCX"},
         "byCategory": dict(cats),
         "unverified": [{"name": r["name"], "date": r["date"], "tier": r["tier"]} for r in rows if not r["verified"]],
