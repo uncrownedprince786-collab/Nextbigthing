@@ -286,6 +286,9 @@ async function readInputs(db, today, asOf = null) {
                 "assetId", id, "horizonDays", "minPct", "maxPct", matches,
                 "medianPct", positive
            FROM "AssetAnalog"
+          -- A replay must not read an analog set computed after the session it replays: every
+          -- other read in this function is bounded to the replay date, and this one was the exception.
+          ${asOf ? `WHERE "periodEnd" <= '${asOf}'::date` : ""}
           -- The 5-day row first, then the shortest. pickAnalog in lib/decisionInput.ts prefers
           -- horizon 5 because it is the one a swing read is answerable on, and this used to take
           -- the shortest unconditionally — so the nightly log and the asset page could quote

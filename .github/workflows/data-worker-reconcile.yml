@@ -80,12 +80,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # An output only counts when the code that produced it matches today's replay code.
+          # The files a replayed session actually executes. New jobs or tools beside them do not
+          # change what a session produces and must not discard hours of verified output.
+          REPLAY_CODE="lib jobs/setup.py jobs/sessions.py jobs/nbt.py tools/decide.mjs prisma/schema.prisma requirements.txt"
           echo "{" > runs.json
           first=1
           for z in sealed/nbt-worker-output-*.zip; do
             run="$(basename "$z" .zip)"; run="${run#nbt-worker-output-}"
             sha="$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .head_sha)"
-            if git diff --quiet "$sha" HEAD -- lib jobs tools/decide.mjs prisma/schema.prisma requirements.txt; then t=true; else t=false; fi
+            if git diff --quiet "$sha" HEAD -- $REPLAY_CODE; then t=true; else t=false; fi
             [ $first = 1 ] || echo "," >> runs.json; first=0
             echo "\"$run\": {\"sha\": \"$sha\", \"trusted\": $t}" >> runs.json
           done

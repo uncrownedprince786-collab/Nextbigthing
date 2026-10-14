@@ -3053,12 +3053,36 @@ class HistoricalSetupReconstruction(unittest.TestCase):
 
     def test_every_reader_takes_the_bound(self):
         for fn in ("def all_closes(cur, as_of=None)", "def all_signals(cur, as_of=None)",
-                   "def all_analogs(cur, as_of=None)", "def all_next_events(cur, today, as_of=None)"):
+                   "def all_analogs(cur, as_of=None)", "def all_next_events(cur, today, as_of=None)",
+                   "def all_industry_relative(cur, as_of=None)"):
             self.assertIn(fn, self.SRC, fn)
         # and main passes it to each
         for call in ("all_closes(cur, as_of)", "all_signals(cur, as_of)",
-                     "all_analogs(cur, as_of)", "all_next_events(cur, today, as_of)"):
+                     "all_analogs(cur, as_of)", "all_next_events(cur, today, as_of)",
+                     "all_industry_relative(cur, as_of)"):
             self.assertIn(call, self.SRC, call)
+
+    def test_industry_relative_cannot_see_closes_after_the_session(self):
+        """The reader that was left out of the list above, and leaked every replayed session.
+
+        It measured each asset's return from its newest close ever, so a 2019 session's
+        "outperforming its industry" was computed from 2026 prices. Pin the behaviour, not the
+        spelling: the bound reaches the statement as a parameter, twice (NULL check and
+        comparison), ahead of the window length.
+        """
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("setup_mod", ROOT / "jobs" / "setup.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        seen = []
+        mod.rows = lambda cur, sql, params=(): seen.append((sql, params)) or []
+        mod.all_industry_relative(None, date(2019, 3, 13))
+        mod.all_industry_relative(None)
+        (sql, bounded), (_, live) = seen
+        self.assertIn("p.date <= %s::date", sql)
+        self.assertEqual(bounded, (date(2019, 3, 13), date(2019, 3, 13), mod.FOR_DAYS))
+        # live path: the NULL branch keeps every close, so the production plan reads the same rows
+        self.assertEqual(live, (None, None, mod.FOR_DAYS))
 
     def test_a_reconstruction_never_writes(self):
         # The emit path returns before the INSERT, so a historical setup cannot reach the table
@@ -3119,6 +3143,21 @@ class HistoricalReplay(unittest.TestCase):
             self.assertIn(table, body, table)
         # an event is only known once it was discovered
         self.assertIn(chr(39).join(['e."discoveredAt" <= ', '${asOf}', '::date']), body)
+
+    def test_every_derived_table_read_carries_its_own_bound(self):
+        """Per table, because the test above only checks that a bound exists somewhere.
+
+        `AssetAnalog` was read with no bound at all while the aggregate check passed on the
+        strength of the other tables, so a replay confirmed 2019 directions against analog sets
+        computed in 2026. Each read below must show the replay date within its own statement.
+        """
+        body = self.SRC[self.SRC.index("async function readInputs"):self.SRC.index("function rowsForDecisions")]
+        for table in ('"AssetAnalog"', '"HumanSignal"', '"Investigation"', '"AssetFactor"',
+                      '"Coverage"', '"MacroGate"'):
+            at = body.index("FROM " + table)
+            statement = body[at: body.index("`", at)]
+            self.assertTrue("${asOf" in statement or "${atPeriodEnd}" in statement,
+                            f"the {table} read in readInputs has no replay bound")
 
     def test_the_live_run_is_unchanged_when_no_date_is_given(self):
         # asOf defaults to null and every bound is a conditional that collapses to "".

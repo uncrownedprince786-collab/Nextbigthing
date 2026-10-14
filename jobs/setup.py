@@ -198,7 +198,7 @@ def all_next_events(cur, today, as_of=None) -> dict[str, dict]:
     )}
 
 
-def all_industry_relative(cur) -> dict[str, float]:
+def all_industry_relative(cur, as_of=None) -> dict[str, float]:
     """{assetId: its FOR_DAYS return minus the mean of its own industry's}, in one statement.
 
     The per-asset version re-read an entire industry's returns for every member of it, so a
@@ -206,6 +206,12 @@ def all_industry_relative(cur) -> dict[str, float]:
     is unchanged: peers only, the asset's own industry only, and nothing returned where fewer
     than three names in the industry have the history -- the floor the per-asset version
     applied with `len(got) < 3`.
+
+    `as_of` bounds each asset's newest close. Without it the replay measured a 2019 session's
+    industry-relative return from closes through today -- a look-ahead that changed whenever a
+    new close landed (run 38488899752 vs 38499994484 diverged from the 51st session, after
+    `cron-us-prices` wrote at 00:37 UTC) and that every replayed session carried, not only the
+    ones two runs happened to disagree on.
     """
     got = rows(
         cur,
@@ -214,6 +220,7 @@ def all_industry_relative(cur) -> dict[str, float]:
             SELECT a.id, a."industryId", max(p.date) AS newest
             FROM "Asset" a
             JOIN "PriceSnapshot" p ON p."assetId" = a.id AND p.close IS NOT NULL
+              AND (%s::date IS NULL OR p.date <= %s::date)
             GROUP BY a.id, a."industryId"
         ),
         rets AS (
@@ -229,7 +236,7 @@ def all_industry_relative(cur) -> dict[str, float]:
         SELECT id, "industryId", (last / base - 1) * 100 AS pct
         FROM rets WHERE last IS NOT NULL AND base IS NOT NULL AND base > 0
         """,
-        (FOR_DAYS,),
+        (as_of, as_of, FOR_DAYS),
     )
     by_industry: dict[str, list[tuple[str, float]]] = {}
     for r in got:
@@ -396,7 +403,7 @@ def main() -> None:
         signal_by_asset = all_signals(cur, as_of)
         analog_by_asset = all_analogs(cur, as_of)
         event_by_asset = all_next_events(cur, today, as_of)
-        relative_by_asset = all_industry_relative(cur)
+        relative_by_asset = all_industry_relative(cur, as_of)
         step(f"measured conditions for {len(assets)} assets")
         payload: list[tuple] = []
         tally = {"buy": 0, "short": 0, "wait": 0, "none": 0}
