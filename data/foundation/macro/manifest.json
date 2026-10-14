@@ -1,0 +1,374 @@
+{
+ "retrievedAt": "2026-10-14T10:16:46+00:00",
+ "source": "https://fred.stlouisfed.org/graph/fredgraph.csv",
+ "series": {
+  "DGS10": {
+   "title": "10-year Treasury yield",
+   "frequency": "D",
+   "availability": "lag+1d",
+   "revisionTracked": false,
+   "rows": 4196,
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "sha256": "889c1e24b4ab6702480c780193d755d5d55fd99331ac1eb086f79a53e7bf69e8",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10&cosd=2010-01-01"
+  },
+  "DGS2": {
+   "title": "2-year Treasury yield",
+   "frequency": "D",
+   "availability": "lag+1d",
+   "revisionTracked": false,
+   "rows": 4196,
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "sha256": "6fe0842975f6ed5a252495701549a402f64bffd3b35be9dc2a405c09933fbf58",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS2&cosd=2010-01-01"
+  },
+  "DGS3MO": {
+   "title": "3-month Treasury yield",
+   "frequency": "D",
+   "availability": "lag+1d",
+   "revisionTracked": false,
+   "rows": 4196,
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "sha256": "d9982d84364bcfd4e3452ea382b7afb5322f64b9ef1fb542c079beb35f128db6",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS3MO&cosd=2010-01-01"
+  },
+  "T10Y2Y": {
+   "title": "10y minus 2y Treasury spread",
+   "frequency": "D",
+   "availability": "lag+1d",
+   "revisionTracked": false,
+   "rows": 4197,
+   "first": "2010-01-04",
+   "last": "2026-10-13",
+   "sha256": "8006329418af57f9fdb0acd6cd1191f2604deb5477ff893e882a5e987426d12e",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=T10Y2Y&cosd=2010-01-01"
+  },
+  "T10Y3M": {
+   "title": "10y minus 3m Treasury spread",
+   "frequency": "D",
+   "availability": "lag+1d",
+   "revisionTracked": false,
+   "rows": 4197,
+   "first": "2010-01-04",
+   "last": "2026-10-13",
+   "sha256": "e49ed04b57970d1da2dc8a561c278871432b03e2dbd70ac1e57e0ff22bbccee1",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=T10Y3M&cosd=2010-01-01"
+  },
+  "DFF": {
+   "title": "Effective federal funds rate",
+   "frequency": "D",
+   "availability": "lag+1d",
+   "revisionTracked": false,
+   "rows": 6129,
+   "first": "2010-01-01",
+   "last": "2026-10-12",
+   "sha256": "cd324ab1caa216794518a652d17ae92824bbfb31e4d2c0a431a645081aee4bf2",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFF&cosd=2010-01-01"
+  },
+  "T10YIE": {
+   "title": "10-year breakeven inflation",
+   "frequency": "D",
+   "availability": "lag+1d",
+   "revisionTracked": false,
+   "rows": 4197,
+   "first": "2010-01-04",
+   "last": "2026-10-13",
+   "sha256": "79c24e7567fd69660cb89b4c4d7ca00d927d0dbe0f180dbe5bb161ef7a19bd45",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=T10YIE&cosd=2010-01-01"
+  },
+  "VIXCLS": {
+   "title": "CBOE volatility index",
+   "frequency": "D",
+   "availability": "lag+1d",
+   "revisionTracked": false,
+   "rows": 4252,
+   "first": "2010-01-04",
+   "last": "2026-10-12",
+   "sha256": "72d91dee083d55af4725db695bd92241f9fa3f32083571348a3d50a57e274f2f",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS&cosd=2010-01-01"
+  },
+  "DCOILWTICO": {
+   "title": "WTI crude oil spot",
+   "frequency": "D",
+   "availability": "lag+8d",
+   "revisionTracked": false,
+   "rows": 4150,
+   "first": "2010-01-04",
+   "last": "2026-10-06",
+   "sha256": "94046b8dfbd57d83435297e8e33752b3366b060854688dd9f3b147fb3387da6b",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DCOILWTICO&cosd=2010-01-01"
+  },
+  "DTWEXBGS": {
+   "title": "Broad trade-weighted dollar index",
+   "frequency": "D",
+   "availability": "lag+7d",
+   "revisionTracked": false,
+   "rows": 4177,
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "sha256": "a3f116ade3faf7b4c78de620b2c2b70e0bc05599fb4da30584ce5f079e65f931",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DTWEXBGS&cosd=2010-01-01"
+  },
+  "DEXUSEU": {
+   "title": "USD per EUR",
+   "frequency": "D",
+   "availability": "lag+7d",
+   "revisionTracked": false,
+   "rows": 4196,
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "sha256": "ca2b5d94917bf9e8caff6b0e1cf880a6119065488915329e5c40cd5c5846371c",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXUSEU&cosd=2010-01-01"
+  },
+  "DEXJPUS": {
+   "title": "JPY per USD",
+   "frequency": "D",
+   "availability": "lag+7d",
+   "revisionTracked": false,
+   "rows": 4196,
+   "first": "2010-01-04",
+   "last": "2026-10-09",
+   "sha256": "24c1f49477e49111964a58afce883afdc759262783ae021d91c79ab098449854",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXJPUS&cosd=2010-01-01"
+  },
+  "MORTGAGE30US": {
+   "title": "30-year mortgage rate (Freddie Mac)",
+   "frequency": "W",
+   "availability": "lag+1d",
+   "revisionTracked": false,
+   "rows": 875,
+   "first": "2010-01-07",
+   "last": "2026-10-08",
+   "sha256": "9a6ca7c674237c0efa95a0b85dd5394915c670144bed547fa57367aab3a94f1a",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=MORTGAGE30US&cosd=2010-01-01"
+  },
+  "WALCL": {
+   "title": "Federal Reserve total assets",
+   "frequency": "W",
+   "availability": "lag+1d",
+   "revisionTracked": false,
+   "rows": 875,
+   "first": "2010-01-06",
+   "last": "2026-10-07",
+   "sha256": "0f02ad6e99d41254b9c4739837d5fd734ebaa77984bed9415ad8e0a4fd8e2fbe",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=WALCL&cosd=2010-01-01"
+  },
+  "ICSA": {
+   "title": "Initial jobless claims",
+   "frequency": "W",
+   "availability": "lag+5d",
+   "revisionTracked": false,
+   "rows": 875,
+   "first": "2010-01-02",
+   "last": "2026-10-03",
+   "sha256": "ec7d65d2990db72cafce793c847f5d97452b6b3c08eb445c20ea3a0aeebf2b12",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=ICSA&cosd=2010-01-01"
+  },
+  "NFCI": {
+   "title": "Chicago Fed financial conditions index",
+   "frequency": "W",
+   "availability": "lag+5d",
+   "revisionTracked": true,
+   "rows": 875,
+   "first": "2010-01-01",
+   "last": "2026-10-02",
+   "sha256": "4ba97f2a237dfae51952797a7b3dbe8b4b78bbbd6275ffe752cd93e4011ccabb",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=NFCI&cosd=2010-01-01"
+  },
+  "CPIAUCSL": {
+   "title": "CPI all items",
+   "frequency": "M",
+   "availability": "lag+16d",
+   "revisionTracked": true,
+   "rows": 199,
+   "first": "2010-01-01",
+   "last": "2026-08-01",
+   "sha256": "515b548cc66e4be5b52d07d486a348f37465960c0f6d30b73a28116cf63b0bad",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPIAUCSL&cosd=2010-01-01"
+  },
+  "CPILFESL": {
+   "title": "CPI ex food and energy",
+   "frequency": "M",
+   "availability": "lag+16d",
+   "revisionTracked": false,
+   "rows": 199,
+   "first": "2010-01-01",
+   "last": "2026-08-01",
+   "sha256": "bc85b9915e297fe46ef13ec200209cabfff010eb96c483850f88f0faa088ed94",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPILFESL&cosd=2010-01-01"
+  },
+  "PCEPILFE": {
+   "title": "PCE price index ex food and energy",
+   "frequency": "M",
+   "availability": "lag+31d",
+   "revisionTracked": true,
+   "rows": 200,
+   "first": "2010-01-01",
+   "last": "2026-08-01",
+   "sha256": "39c2aa629064034187af3e1bd32813b74edc2c3d7d36c22834b102e7cb64eba2",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=PCEPILFE&cosd=2010-01-01"
+  },
+  "PPIACO": {
+   "title": "PPI all commodities",
+   "frequency": "M",
+   "availability": "lag+16d",
+   "revisionTracked": false,
+   "rows": 200,
+   "first": "2010-01-01",
+   "last": "2026-08-01",
+   "sha256": "6c6727396461291a50131f590c09fda6dbcd151134e00c3a428d98e3967d2cc1",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=PPIACO&cosd=2010-01-01"
+  },
+  "UNRATE": {
+   "title": "Unemployment rate",
+   "frequency": "M",
+   "availability": "lag+10d",
+   "revisionTracked": true,
+   "rows": 200,
+   "first": "2010-01-01",
+   "last": "2026-09-01",
+   "sha256": "f434e1ac677b83ac43c7f94a7bbdcfff36bd2be904b7d4ac3c4f96dfe96bde4e",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=UNRATE&cosd=2010-01-01"
+  },
+  "PAYEMS": {
+   "title": "Nonfarm payrolls",
+   "frequency": "M",
+   "availability": "lag+10d",
+   "revisionTracked": true,
+   "rows": 201,
+   "first": "2010-01-01",
+   "last": "2026-09-01",
+   "sha256": "de4f3decf96af686aba737cef199b17501258a96d8b105f250ad5b346b5320b1",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=PAYEMS&cosd=2010-01-01"
+  },
+  "INDPRO": {
+   "title": "Industrial production",
+   "frequency": "M",
+   "availability": "lag+18d",
+   "revisionTracked": true,
+   "rows": 200,
+   "first": "2010-01-01",
+   "last": "2026-08-01",
+   "sha256": "7417eabfb8a44208aad6de2f471ae670862088a8ffbab41df93bc3e20edcfe84",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=INDPRO&cosd=2010-01-01"
+  },
+  "RSAFS": {
+   "title": "Advance retail sales",
+   "frequency": "M",
+   "availability": "lag+17d",
+   "revisionTracked": true,
+   "rows": 200,
+   "first": "2010-01-01",
+   "last": "2026-08-01",
+   "sha256": "ba9da0fbffdae0ec2d360e0f400f2c5ca98e552ad7918e32231ee08342d36c33",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=RSAFS&cosd=2010-01-01"
+  },
+  "HOUST": {
+   "title": "Housing starts",
+   "frequency": "M",
+   "availability": "lag+20d",
+   "revisionTracked": true,
+   "rows": 200,
+   "first": "2010-01-01",
+   "last": "2026-08-01",
+   "sha256": "7133942655232767bc7a1dca2788a958fc961cc71792884268aa7c4a4a53c15a",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=HOUST&cosd=2010-01-01"
+  },
+  "PERMIT": {
+   "title": "Building permits",
+   "frequency": "M",
+   "availability": "lag+20d",
+   "revisionTracked": false,
+   "rows": 200,
+   "first": "2010-01-01",
+   "last": "2026-08-01",
+   "sha256": "b852dfc197826e6f3b4fd08b6ee0f5ae4385554312ad5d80cb872a9de83a93ed",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=PERMIT&cosd=2010-01-01"
+  },
+  "UMCSENT": {
+   "title": "U Michigan consumer sentiment",
+   "frequency": "M",
+   "availability": "lag+31d",
+   "revisionTracked": false,
+   "rows": 200,
+   "first": "2010-01-01",
+   "last": "2026-08-01",
+   "sha256": "6cde4f62769eb4a80723dfb570490909522ba0ae987460bda9ad82771af1b208",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=UMCSENT&cosd=2010-01-01"
+  },
+  "M2SL": {
+   "title": "M2 money stock",
+   "frequency": "M",
+   "availability": "lag+25d",
+   "revisionTracked": true,
+   "rows": 200,
+   "first": "2010-01-01",
+   "last": "2026-08-01",
+   "sha256": "5eacb1fd5afb2d21d6ca3242ecc23204c601e56e6c7ceea1318eb0ed0a0116ad",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=M2SL&cosd=2010-01-01"
+  },
+  "CFNAI": {
+   "title": "Chicago Fed national activity index",
+   "frequency": "M",
+   "availability": "lag+30d",
+   "revisionTracked": false,
+   "rows": 200,
+   "first": "2010-01-01",
+   "last": "2026-08-01",
+   "sha256": "c3e2b989072307992cab1368d68a57b6285b34a6d7d80855cb92b63d6d4d07d1",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CFNAI&cosd=2010-01-01"
+  },
+  "TCU": {
+   "title": "Capacity utilisation",
+   "frequency": "M",
+   "availability": "lag+18d",
+   "revisionTracked": false,
+   "rows": 200,
+   "first": "2010-01-01",
+   "last": "2026-08-01",
+   "sha256": "3a781aceae80f04c5e06b746826d1f6a8ca0cfca70f0b69b04528d1459ca893e",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=TCU&cosd=2010-01-01"
+  },
+  "GDPC1": {
+   "title": "Real GDP",
+   "frequency": "Q",
+   "availability": "lag+30d",
+   "revisionTracked": true,
+   "rows": 66,
+   "first": "2010-01-01",
+   "last": "2026-04-01",
+   "sha256": "85365865ce1738ec96efaa165aeaf137690e052527bf235fecacd82fcdf0de18",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=GDPC1&cosd=2010-01-01"
+  },
+  "USREC": {
+   "title": "NBER recession indicator (ex-post label)",
+   "frequency": "M",
+   "availability": "none",
+   "revisionTracked": false,
+   "rows": 201,
+   "first": "2010-01-01",
+   "last": "2026-09-01",
+   "sha256": "0e168ea0206e81d24fea61691e5c7cf32729524d97da9ce7a8a9c56dabb5f31c",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=USREC&cosd=2010-01-01"
+  }
+ },
+ "shorterThan15Years": {
+  "BAMLH0A0HYM2": {
+   "title": "ICE BofA high-yield spread",
+   "rows": 784,
+   "first": "2023-10-16",
+   "last": "2026-10-12",
+   "reason": "ICE licensing limits FRED to a rolling three years"
+  },
+  "BAMLC0A0CM": {
+   "title": "ICE BofA investment-grade spread",
+   "rows": 783,
+   "first": "2023-10-16",
+   "last": "2026-10-12",
+   "reason": "ICE licensing limits FRED to a rolling three years"
+  }
+ }
+}

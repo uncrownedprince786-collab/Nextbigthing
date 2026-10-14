@@ -1,0 +1,2656 @@
+{
+ "summary": {
+  "generatedAt": "2026-10-14T10:23:23+00:00",
+  "principles": 80,
+  "citationsVerified": 80,
+  "testableNow": 69,
+  "verifiedAndTestableNow": 69,
+  "byFamily": {
+   "momentum": 15,
+   "reversal": 9,
+   "volume": 5,
+   "risk": 7,
+   "events": 12,
+   "macro": 5,
+   "calendar": 4,
+   "crypto": 2,
+   "fx": 3,
+   "commodities": 2,
+   "discipline": 8,
+   "fundamentals": 8
+  }
+ },
+ "principles": [
+  {
+   "id": "MOM-XS-12-1",
+   "name": "Cross-sectional 12-1 month momentum",
+   "family": "momentum",
+   "finding": "Stocks that did well over the prior 3-12 months continued to outperform over the next 3-12.",
+   "doi": "10.1111/j.1540-6261.1993.tb04702.x",
+   "author": "Jegadeesh",
+   "year": 1993,
+   "title": "Returns to Buying Winners and Selling Losers",
+   "signal": "return from t-252 to t-21 sessions, skipping the latest month",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.1993.tb04702.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Returns to Buying Winners and Selling Losers: Implications for Stock Market Efficiency",
+    "crossrefYear": 1993,
+    "crossrefAuthors": [
+     "JEGADEESH",
+     "TITMAN"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "MOM-TS",
+   "name": "Time-series momentum",
+   "family": "momentum",
+   "finding": "An asset's own past 1-12 month excess return predicts its next-month return across asset classes.",
+   "doi": "10.1016/j.jfineco.2011.11.003",
+   "author": "Moskowitz",
+   "year": 2012,
+   "title": "Time series momentum",
+   "signal": "sign of trailing 252-session return",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "position sign follows the signal; compare with buy-and-hold on the same asset, net of costs",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.1016/j.jfineco.2011.11.003",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Time series momentum",
+    "crossrefYear": 2012,
+    "crossrefAuthors": [
+     "Moskowitz",
+     "Ooi",
+     "Pedersen"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "MOM-VALMOM",
+   "name": "Momentum and value across markets",
+   "family": "momentum",
+   "finding": "Value and momentum premia exist across asset classes and are negatively correlated with each other.",
+   "doi": "10.1111/jofi.12021",
+   "author": "Asness",
+   "year": 2013,
+   "title": "Value and Momentum Everywhere",
+   "signal": "momentum leg only (value needs fundamentals): trailing 12-1 return rank within each asset class",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.1111/jofi.12021",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Value and Momentum Everywhere",
+    "crossrefYear": 2013,
+    "crossrefAuthors": [
+     "ASNESS",
+     "MOSKOWITZ",
+     "PEDERSEN"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "TREND-MA",
+   "name": "Moving-average timing rules",
+   "family": "momentum",
+   "finding": "Simple moving-average and trading-range-break rules on the Dow index earned returns a random walk would not.",
+   "doi": "10.1111/j.1540-6261.1992.tb04681.x",
+   "author": "Brock",
+   "year": 1992,
+   "title": "Simple Technical Trading Rules",
+   "signal": "close above its 200-session mean => long, else flat",
+   "horizon": "daily",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "position sign follows the signal; compare with buy-and-hold on the same asset, net of costs",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.1992.tb04681.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Simple Technical Trading Rules and the Stochastic Properties of Stock Returns",
+    "crossrefYear": 1992,
+    "crossrefAuthors": [
+     "BROCK",
+     "LAKONISHOK",
+     "LeBARON"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "TREND-FABER",
+   "name": "10-month trend filter for asset allocation",
+   "family": "momentum",
+   "finding": "Holding an asset only while it is above its 10-month average reduced drawdowns at similar return.",
+   "doi": "10.3905/jwm.2007.674809",
+   "author": "Faber",
+   "year": 2007,
+   "title": "Quantitative Approach to Tactical Asset Allocation",
+   "signal": "month-end close above its 10-month mean",
+   "horizon": "monthly",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "position sign follows the signal; compare with buy-and-hold on the same asset, net of costs",
+   "universe": "all",
+   "doi_original": "10.2139/ssrn.962461",
+   "doiUrl": "https://doi.org/10.3905/jwm.2007.674809",
+   "citation": {
+    "verified": true,
+    "reason": "DOI replaced after Crossref search (DOI not found at Crossref); title, first author and year match Crossref",
+    "crossrefTitle": "A Quantitative Approach to Tactical Asset Allocation",
+    "crossrefYear": 2007,
+    "crossrefAuthors": [
+     "Faber"
+    ],
+    "container": "The Journal of Wealth Management"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "MOM-52WH",
+   "name": "Nearness to the 52-week high",
+   "family": "momentum",
+   "finding": "A stock's closeness to its 52-week high predicts returns better than past return does.",
+   "doi": "10.1111/j.1540-6261.2004.00695.x",
+   "author": "George",
+   "year": 2004,
+   "title": "52-Week High and Momentum Investing",
+   "signal": "close divided by the trailing 252-session maximum close",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.2004.00695.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "The 52\u2010Week High and Momentum Investing",
+    "crossrefYear": 2004,
+    "crossrefAuthors": [
+     "GEORGE",
+     "HWANG"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "TREND-CENTURY",
+   "name": "Trend following over a century",
+   "family": "momentum",
+   "finding": "A diversified trend-following rule was profitable in every decade from 1880 to 2013.",
+   "doi": "10.3905/jpm.2017.44.1.015",
+   "author": "Hurst",
+   "year": 2017,
+   "title": "Century of Evidence on Trend-Following",
+   "signal": "sign of trailing 1, 3 and 12 month return, equal-weighted vote",
+   "horizon": "monthly",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "position sign follows the signal; compare with buy-and-hold on the same asset, net of costs",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.3905/jpm.2017.44.1.015",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "A Century of Evidence on Trend-Following Investing",
+    "crossrefYear": 2017,
+    "crossrefAuthors": [
+     "Hurst",
+     "Ooi",
+     "Pedersen"
+    ],
+    "container": "The Journal of Portfolio Management"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "MOM-CRASH",
+   "name": "Momentum crashes in rebounding bear markets",
+   "family": "momentum",
+   "finding": "Momentum loses heavily when a bear market turns and volatility is high.",
+   "doi": "10.1016/j.jfineco.2015.12.002",
+   "author": "Daniel",
+   "year": 2016,
+   "title": "Momentum crashes",
+   "signal": "momentum exposure scaled to zero when the market is below its 200-session mean and trailing volatility is in its top quintile",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "momentum return in those regimes versus the unconditional momentum return",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1016/j.jfineco.2015.12.002",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Momentum crashes",
+    "crossrefYear": 2016,
+    "crossrefAuthors": [
+     "Daniel",
+     "Moskowitz"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "MOM-VOLSCALE",
+   "name": "Volatility-scaled momentum",
+   "family": "momentum",
+   "finding": "Scaling momentum by its own trailing volatility raises Sharpe and reduces crash risk.",
+   "doi": "10.1016/j.jfineco.2014.11.010",
+   "author": "Barroso",
+   "year": 2015,
+   "title": "Momentum has its moments",
+   "signal": "weight = target volatility / trailing 126-session realised volatility of the momentum leg",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "scaled versus unscaled momentum, net of costs",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1016/j.jfineco.2014.11.010",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Momentum has its moments",
+    "crossrefYear": 2015,
+    "crossrefAuthors": [
+     "Barroso",
+     "Santa-Clara"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "MOM-RECENT",
+   "name": "Intermediate-horizon momentum",
+   "family": "momentum",
+   "finding": "Returns from 7-12 months ago predict future returns better than returns from the latest 6 months.",
+   "doi": "10.1016/j.jfineco.2011.05.003",
+   "author": "Novy-Marx",
+   "year": 2012,
+   "title": "Is momentum really momentum",
+   "signal": "trailing return from t-252 to t-126 versus t-126 to t-21",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1016/j.jfineco.2011.05.003",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Is momentum really momentum?",
+    "crossrefYear": 2012,
+    "crossrefAuthors": [
+     "Novy-Marx"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "MOM-INDUSTRY",
+   "name": "Industry momentum",
+   "family": "momentum",
+   "finding": "Much of stock momentum is explained by industry momentum.",
+   "doi": "10.1111/0022-1082.00146",
+   "author": "Moskowitz",
+   "year": 1999,
+   "title": "Do Industries Explain Momentum",
+   "signal": "trailing 6-month mean return of the asset's industry, in the stored industry map",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/0022-1082.00146",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Do Industries Explain Momentum?",
+    "crossrefYear": 1999,
+    "crossrefAuthors": [
+     "Moskowitz",
+     "Grinblatt"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "MOM-INTRADAY",
+   "name": "Market intraday momentum",
+   "family": "momentum",
+   "finding": "The first half-hour return predicts the last half-hour return on the same day.",
+   "doi": "10.1016/j.jfineco.2018.05.009",
+   "author": "Gao",
+   "year": 2018,
+   "title": "Market intraday momentum",
+   "signal": "sign of the first 30-minute return versus the last 30-minute return (IntradayBar)",
+   "horizon": "intraday",
+   "sign": "+",
+   "needs": [
+    "intraday bars"
+   ],
+   "test": "hit rate and mean return of the last 30 minutes conditional on the first; needs more than the ~8 stored session days",
+   "universe": "equity",
+   "doi_original": "10.1016/j.jfineco.2018.05.003",
+   "doiUrl": "https://doi.org/10.1016/j.jfineco.2018.05.009",
+   "citation": {
+    "verified": true,
+    "reason": "DOI replaced after Crossref search (title mismatch: Crossref says 'Loan prospecting and the loss); title, first author and year match Crossref",
+    "crossrefTitle": "Market intraday momentum",
+    "crossrefYear": 2018,
+    "crossrefAuthors": [
+     "Gao",
+     "Han",
+     "Zhengzi Li",
+     "Zhou"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": false,
+   "status": "untested"
+  },
+  {
+   "id": "TECH-FOUND",
+   "name": "Pattern recognition in prices",
+   "family": "momentum",
+   "finding": "Several technical patterns carry incremental information beyond unconditional returns when detected by kernel regression.",
+   "doi": "10.1111/0022-1082.00265",
+   "author": "Lo",
+   "year": 2000,
+   "title": "Foundations of Technical Analysis",
+   "signal": "kernel-smoothed price; count of head-and-shoulders and double-top detections",
+   "horizon": "5d",
+   "sign": "-",
+   "needs": [
+    "price"
+   ],
+   "test": "conditional return distribution against its unconditional distribution, goodness-of-fit test",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/0022-1082.00265",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Foundations of Technical Analysis: Computational Algorithms, Statistical Inference, and Empirical Implementation",
+    "crossrefYear": 2000,
+    "crossrefAuthors": [
+     "Lo",
+     "Mamaysky",
+     "Wang"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "TECH-PROFIT",
+   "name": "Profitability of technical analysis, survey",
+   "family": "momentum",
+   "finding": "Early studies find technical rules profitable; later ones find profits shrink after costs and data snooping.",
+   "doi": "10.1111/j.1467-6419.2007.00519.x",
+   "author": "Park",
+   "year": 2007,
+   "title": "profitability of technical analysis",
+   "signal": "moving-average crossover 20/50",
+   "horizon": "daily",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "position sign follows the signal; compare with buy-and-hold on the same asset, net of costs",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.1111/j.1467-6419.2007.00519.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "WHAT DO WE KNOW ABOUT THE PROFITABILITY OF TECHNICAL ANALYSIS?",
+    "crossrefYear": 2007,
+    "crossrefAuthors": [
+     "Park",
+     "Irwin"
+    ],
+    "container": "Journal of Economic Surveys"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "MOM-FUND-ABN",
+   "name": "Momentum and persistence",
+   "family": "momentum",
+   "finding": "A four-factor model with momentum explains much of fund performance persistence.",
+   "doi": "10.1111/j.1540-6261.1997.tb03808.x",
+   "author": "Carhart",
+   "year": 1997,
+   "title": "Persistence in Mutual Fund Performance",
+   "signal": "momentum factor loading of each asset on a long-short momentum portfolio",
+   "horizon": "63d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "alpha after the four factors is not distinguishable from zero",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.1997.tb03808.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "On Persistence in Mutual Fund Performance",
+    "crossrefYear": 1997,
+    "crossrefAuthors": [
+     "Carhart"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "REV-ST-1M",
+   "name": "One-month reversal",
+   "family": "reversal",
+   "finding": "Last month's losers outperform last month's winners the following month.",
+   "doi": "10.1111/j.1540-6261.1990.tb05110.x",
+   "author": "Jegadeesh",
+   "year": 1990,
+   "title": "Predictable Behavior of Security Returns",
+   "signal": "negative of the trailing 21-session return",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.1990.tb05110.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Evidence of Predictable Behavior of Security Returns",
+    "crossrefYear": 1990,
+    "crossrefAuthors": [
+     "JEGADEESH"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "REV-WEEKLY",
+   "name": "Weekly reversal",
+   "family": "reversal",
+   "finding": "Weekly returns of individual securities are negatively autocorrelated, profitably for contrarians.",
+   "doi": "10.2307/2937816",
+   "author": "Lehmann",
+   "year": 1990,
+   "title": "Fads, Martingales, and Market Efficiency",
+   "signal": "negative of the trailing 5-session return, weighted by deviation from the cross-sectional mean",
+   "horizon": "5d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doi_original": "10.2307/2937928",
+   "doiUrl": "https://doi.org/10.2307/2937816",
+   "citation": {
+    "verified": true,
+    "reason": "DOI replaced after Crossref search (title mismatch: Crossref says 'Forecasting Pre-World War I I); title, first author and year match Crossref",
+    "crossrefTitle": "Fads, Martingales, and Market Efficiency",
+    "crossrefYear": 1990,
+    "crossrefAuthors": [
+     "Lehmann"
+    ],
+    "container": "The Quarterly Journal of Economics"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "REV-LOMAC",
+   "name": "Contrarian profits and overreaction",
+   "family": "reversal",
+   "finding": "Contrarian profits arise partly from cross-autocorrelation, not only overreaction.",
+   "doi": "10.1093/rfs/3.2.175",
+   "author": "Lo",
+   "year": 1990,
+   "title": "contrarian profits due to stock market overreaction",
+   "signal": "own-lag versus cross-lag decomposition of weekly returns",
+   "horizon": "5d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "share of reversal profit from the own-asset component",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1093/rfs/3.2.175",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "When Are Contrarian Profits Due to Stock Market Overreaction?",
+    "crossrefYear": 1990,
+    "crossrefAuthors": [
+     "Lo",
+     "MacKinlay"
+    ],
+    "container": "Review of Financial Studies"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "REV-LTR",
+   "name": "Long-term overreaction",
+   "family": "reversal",
+   "finding": "Three-to-five-year losers outperform winners over the following three to five years.",
+   "doi": "10.1111/j.1540-6261.1985.tb05004.x",
+   "author": "De Bondt",
+   "year": 1985,
+   "title": "Does the Stock Market Overreact",
+   "signal": "trailing 36-month return, negated (needs >3y history per asset)",
+   "horizon": "36m",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.1985.tb05004.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Does the Stock Market Overreact?",
+    "crossrefYear": 1985,
+    "crossrefAuthors": [
+     "De BONDT",
+     "THALER"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "REV-LIQ",
+   "name": "Reversal as liquidity provision",
+   "family": "reversal",
+   "finding": "Short-term reversals are the compensation for supplying liquidity and are larger when VIX is high.",
+   "doi": "10.3386/w17653",
+   "author": "Nagel",
+   "year": 2012,
+   "title": "Evaporating Liquidity",
+   "signal": "one-month reversal conditioned on VIX above its trailing 252-session median (macro: VIXCLS)",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "macro:VIXCLS"
+   ],
+   "test": "reversal return in high-VIX versus low-VIX months",
+   "universe": "equity",
+   "doi_original": "10.1093/rfs/hhr144",
+   "doiUrl": "https://doi.org/10.3386/w17653",
+   "citation": {
+    "verified": true,
+    "reason": "DOI replaced after Crossref search (title mismatch: Crossref says 'Skewness in Stock Returns: Re); title, first author and year match Crossref",
+    "crossrefTitle": "Evaporating Liquidity",
+    "crossrefYear": 2011,
+    "crossrefAuthors": [
+     "Nagel"
+    ],
+    "container": ""
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "REV-VOLUME",
+   "name": "Reversal conditioned on volume",
+   "family": "reversal",
+   "finding": "Returns on high-volume days reverse less than on low-volume days.",
+   "doi": "10.1111/j.1540-6261.2006.01060.x",
+   "author": "Avramov",
+   "year": 2006,
+   "title": "Liquidity and Autocorrelations",
+   "signal": "one-week return interacted with turnover relative to its own 60-session mean",
+   "horizon": "5d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "volume"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doi_original": "10.1111/j.1540-6261.2006.01070.x",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.2006.01060.x",
+   "citation": {
+    "verified": true,
+    "reason": "DOI replaced after Crossref search (DOI not found at Crossref); title, first author and year match Crossref",
+    "crossrefTitle": "Liquidity and Autocorrelations in Individual Stock Returns",
+    "crossrefYear": 2006,
+    "crossrefAuthors": [
+     "AVRAMOV",
+     "CHORDIA",
+     "GOYAL"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "REV-NEWS",
+   "name": "Reversal separated by news",
+   "family": "reversal",
+   "finding": "Reversal is concentrated in moves with no accompanying news; moves with news drift.",
+   "doi": "10.1016/S0304-405X(03)00146-6",
+   "author": "Chan",
+   "year": 2003,
+   "title": "Stock price reaction to news and no-news",
+   "signal": "weekly return split by whether the News table has any story for the asset that week",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "news"
+   ],
+   "test": "reversal in no-news weeks versus drift in news weeks",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1016/S0304-405X(03)00146-6",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Stock price reaction to news and no-news: drift and reversal after headlines",
+    "crossrefYear": 2003,
+    "crossrefAuthors": [
+     "Chan"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "REV-DA",
+   "name": "Reversal and the information in a move",
+   "family": "reversal",
+   "finding": "Short-term reversal is stronger when the return is not backed by public news or volume.",
+   "doi": "10.1287/mnsc.2013.1766",
+   "author": "Da",
+   "year": 2014,
+   "title": "Closer Look at the Short-Term Return Reversal",
+   "signal": "one-month return divided into a news-driven and non-news-driven part using News counts",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "news"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1287/mnsc.2013.1766",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "A Closer Look at the Short-Term Return Reversal",
+    "crossrefYear": 2014,
+    "crossrefAuthors": [
+     "Da",
+     "Liu",
+     "Schaumburg"
+    ],
+    "container": "Management Science"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "SHOCK-INFO",
+   "name": "Returns after large price shocks",
+   "family": "reversal",
+   "finding": "After large one-day moves, drift follows when there was news and reversal when there was not.",
+   "doi": "10.2139/ssrn.1306233",
+   "author": "Savor",
+   "year": 2012,
+   "title": "Stock returns after major price shocks",
+   "signal": "a one-day move beyond 3 trailing standard deviations, split by presence of same-day news",
+   "horizon": "5d",
+   "sign": "mixed",
+   "needs": [
+    "price",
+    "news"
+   ],
+   "test": "mean 5-day return after shocks, with and without news",
+   "universe": "equity",
+   "doi_original": "10.1016/j.jfineco.2011.09.010",
+   "doiUrl": "https://doi.org/10.2139/ssrn.1306233",
+   "citation": {
+    "verified": true,
+    "reason": "DOI replaced after Crossref search (DOI not found at Crossref); title, first author and year match Crossref",
+    "crossrefTitle": "Stock Returns after Major Price Shocks: The Impact of Information",
+    "crossrefYear": 2011,
+    "crossrefAuthors": [
+     "Savor"
+    ],
+    "container": "SSRN Electronic Journal"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "VOL-HIGH",
+   "name": "High-volume return premium",
+   "family": "volume",
+   "finding": "Stocks with unusually high volume over a day or week earn higher returns the next month.",
+   "doi": "10.1111/0022-1082.00349",
+   "author": "Gervais",
+   "year": 2001,
+   "title": "High-Volume Return Premium",
+   "signal": "volume divided by its own trailing 50-session mean",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "volume"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doi_original": "10.1111/0022-1082.00338",
+   "doiUrl": "https://doi.org/10.1111/0022-1082.00349",
+   "citation": {
+    "verified": true,
+    "reason": "DOI replaced after Crossref search (title mismatch: Crossref says 'What Makes Investors Trade?';); title, first author and year match Crossref",
+    "crossrefTitle": "The High\u2010Volume Return Premium",
+    "crossrefYear": 2001,
+    "crossrefAuthors": [
+     "Gervais",
+     "Kaniel",
+     "Mingelgrin"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "VOL-MOMVOL",
+   "name": "Momentum and trading volume",
+   "family": "volume",
+   "finding": "Past winners with high volume continue; past losers with high volume continue to lose.",
+   "doi": "10.1111/0022-1082.00280",
+   "author": "Lee",
+   "year": 2000,
+   "title": "Price Momentum and Trading Volume",
+   "signal": "momentum quintile crossed with a volume-turnover tercile",
+   "horizon": "63d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "volume"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/0022-1082.00280",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Price Momentum and Trading Volume",
+    "crossrefYear": 2000,
+    "crossrefAuthors": [
+     "Lee",
+     "Swaminathan"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "LIQ-AMIHUD",
+   "name": "Illiquidity premium",
+   "family": "volume",
+   "finding": "Less liquid stocks earn higher expected returns, measured by absolute return per dollar of volume.",
+   "doi": "10.1016/S1386-4181(01)00024-6",
+   "author": "Amihud",
+   "year": 2002,
+   "title": "Illiquidity and stock returns",
+   "signal": "mean of |daily return| / (close x volume) over 63 sessions",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "volume"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1016/S1386-4181(01)00024-6",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Illiquidity and stock returns: cross-section and time-series effects",
+    "crossrefYear": 2002,
+    "crossrefAuthors": [
+     "Amihud"
+    ],
+    "container": "Journal of Financial Markets"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "LIQ-TURNOVER",
+   "name": "Trading activity and returns",
+   "family": "volume",
+   "finding": "Stocks with higher turnover have lower expected returns, the reverse of an illiquidity premium.",
+   "doi": "10.1016/S0304-405X(00)00080-5",
+   "author": "Chordia",
+   "year": 2001,
+   "title": "Trading activity and expected stock returns",
+   "signal": "mean daily share volume over 63 sessions divided by shares outstanding (shares outstanding not stored; use volume rank as the proxy)",
+   "horizon": "21d",
+   "sign": "-",
+   "needs": [
+    "price",
+    "volume"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1016/S0304-405X(00)00080-5",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Trading activity and expected stock returns",
+    "crossrefYear": 2001,
+    "crossrefAuthors": [
+     "Chordia",
+     "Subrahmanyam",
+     "Anshuman"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "COST-LESMOND",
+   "name": "Zero-return days as a cost proxy",
+   "family": "volume",
+   "finding": "The share of zero-return days estimates the trading cost of an asset.",
+   "doi": "10.1093/rfs/12.5.1113",
+   "author": "Lesmond",
+   "year": 1999,
+   "title": "New Estimate of Transaction Costs",
+   "signal": "share of sessions with an unchanged close over 126 sessions",
+   "horizon": "21d",
+   "sign": "-",
+   "needs": [
+    "price"
+   ],
+   "test": "use as a cost covariate: check that net returns fall as the proxy rises",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1093/rfs/12.5.1113",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "A New Estimate of Transaction Costs",
+    "crossrefYear": 1999,
+    "crossrefAuthors": [
+     "Lesmond",
+     "Ogden",
+     "Trzcinka"
+    ],
+    "container": "Review of Financial Studies"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "RISK-BAB",
+   "name": "Betting against beta",
+   "family": "risk",
+   "finding": "Low-beta assets earn higher risk-adjusted returns than high-beta assets.",
+   "doi": "10.1016/j.jfineco.2013.10.005",
+   "author": "Frazzini",
+   "year": 2014,
+   "title": "Betting against beta",
+   "signal": "trailing 252-session beta to the equal-weighted universe return",
+   "horizon": "21d",
+   "sign": "-",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1016/j.jfineco.2013.10.005",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Betting against beta",
+    "crossrefYear": 2014,
+    "crossrefAuthors": [
+     "Frazzini",
+     "Pedersen"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "RISK-IVOL",
+   "name": "Idiosyncratic volatility",
+   "family": "risk",
+   "finding": "Stocks with high idiosyncratic volatility earn low subsequent returns.",
+   "doi": "10.1111/j.1540-6261.2006.00836.x",
+   "author": "Ang",
+   "year": 2006,
+   "title": "Cross-Section of Volatility and Expected Returns",
+   "signal": "standard deviation of residuals from a one-factor market regression over 63 sessions",
+   "horizon": "21d",
+   "sign": "-",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.2006.00836.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "The Cross\u2010Section of Volatility and Expected Returns",
+    "crossrefYear": 2006,
+    "crossrefAuthors": [
+     "ANG",
+     "HODRICK",
+     "XING",
+     "ZHANG"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "RISK-VOLMGD",
+   "name": "Volatility-managed portfolios",
+   "family": "risk",
+   "finding": "Scaling exposure inversely to recent realised volatility improves Sharpe ratios.",
+   "doi": "10.1111/jofi.12513",
+   "author": "Moreira",
+   "year": 2017,
+   "title": "Volatility-Managed Portfolios",
+   "signal": "weight = target / realised variance of the previous month",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "scaled versus unscaled, net of the cost of the extra turnover",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/jofi.12513",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Volatility\u2010Managed Portfolios",
+    "crossrefYear": 2017,
+    "crossrefAuthors": [
+     "MOREIRA",
+     "MUIR"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "RISK-VOLTARGET",
+   "name": "Volatility targeting",
+   "family": "risk",
+   "finding": "Volatility targeting reduces tail risk for risk assets, with limited effect on Sharpe.",
+   "doi": "10.3905/jpm.2018.45.1.014",
+   "author": "Harvey",
+   "year": 2018,
+   "title": "Impact of Volatility Targeting",
+   "signal": "scale to 10% annualised volatility using a 60-session estimate",
+   "horizon": "daily",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "drawdown and tail loss of targeted versus untargeted series",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.3905/jpm.2018.45.1.014",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "The Impact of Volatility Targeting",
+    "crossrefYear": 2018,
+    "crossrefAuthors": [
+     "Harvey",
+     "Hoyle",
+     "Korgaonkar",
+     "Rattray"
+    ],
+    "container": "The Journal of Portfolio Management"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "RISK-STOP",
+   "name": "Stop-loss rules",
+   "family": "risk",
+   "finding": "A stop-loss helps in a momentum world and costs in a random walk; its value depends on the return process.",
+   "doi": "10.1016/j.finmar.2013.07.001",
+   "author": "Kaminski",
+   "year": 2014,
+   "title": "When do stop-loss rules stop losses",
+   "signal": "exit when the close falls a fixed multiple of trailing volatility below the entry; compare with stored invalidate levels",
+   "horizon": "setup",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "expectancy of the stop rule versus holding to the horizon, using the stored setup levels",
+   "universe": "equity",
+   "doi_original": "10.1016/j.finmar.2013.07.004",
+   "doiUrl": "https://doi.org/10.1016/j.finmar.2013.07.001",
+   "citation": {
+    "verified": true,
+    "reason": "DOI replaced after Crossref search (title mismatch: Crossref says 'How should individual investo); title, first author and year match Crossref",
+    "crossrefTitle": "When do stop-loss rules stop losses?",
+    "crossrefYear": 2014,
+    "crossrefAuthors": [
+     "Kaminski",
+     "Lo"
+    ],
+    "container": "Journal of Financial Markets"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "RISK-KELLY",
+   "name": "Growth-optimal sizing",
+   "family": "risk",
+   "finding": "Maximising expected log wealth gives the bet size that grows capital fastest and is ruinous when over-bet.",
+   "doi": "10.1002/j.1538-7305.1956.tb03809.x",
+   "author": "Kelly",
+   "year": 1956,
+   "title": "New Interpretation of Information Rate",
+   "signal": "fractional Kelly from the measured hit rate and payoff ratio of a rule, with a shrinkage floor",
+   "horizon": "setup",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "terminal wealth and drawdown for 0.25, 0.5 and 1.0 Kelly against fixed fractional sizing",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1002/j.1538-7305.1956.tb03809.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "A New Interpretation of Information Rate",
+    "crossrefYear": 1956,
+    "crossrefAuthors": [
+     "Kelly"
+    ],
+    "container": "Bell System Technical Journal"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "QUAL-PRICE",
+   "name": "Low-volatility anomaly (price proxy for quality)",
+   "family": "risk",
+   "finding": "Low-risk stocks have earned higher risk-adjusted returns than high-risk stocks.",
+   "doi": "10.1016/j.jfineco.2014.10.010",
+   "author": "Fama",
+   "year": 2015,
+   "title": "five-factor asset pricing model",
+   "signal": "trailing 252-session volatility, negated (the profitability and investment legs need fundamentals)",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1016/j.jfineco.2014.10.010",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "A five-factor asset pricing model",
+    "crossrefYear": 2015,
+    "crossrefAuthors": [
+     "Fama",
+     "French"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "EVT-PEAD",
+   "name": "Post-earnings-announcement drift",
+   "family": "events",
+   "finding": "After earnings surprises, prices keep moving in the surprise's direction for about 60 days.",
+   "doi": "10.2307/2491062",
+   "author": "Bernard",
+   "year": 1989,
+   "title": "Post-earnings-announcement drift",
+   "signal": "return from the earnings session to +60d, ranked by the day-0 abnormal return (a price-based surprise proxy; analyst estimates are not stored)",
+   "horizon": "60d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "event:earnings"
+   ],
+   "test": "drift after the top versus bottom decile of day-0 abnormal return",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.2307/2491062",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Post-Earnings-Announcement Drift: Delayed Price Response or Risk Premium?",
+    "crossrefYear": 1989,
+    "crossrefAuthors": [
+     "Bernard",
+     "Thomas"
+    ],
+    "container": "Journal of Accounting Research"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "EVT-BALLBROWN",
+   "name": "Earnings information is reflected in prices",
+   "family": "events",
+   "finding": "Most of the information in annual earnings is already in prices before the announcement.",
+   "doi": "10.2307/2490232",
+   "author": "Ball",
+   "year": 1968,
+   "title": "Empirical Evaluation of Accounting Income Numbers",
+   "signal": "pre-announcement drift over the 60 sessions before the event, by sign of the day-0 move",
+   "horizon": "60d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "event:earnings"
+   ],
+   "test": "share of the total move realised before the announcement",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.2307/2490232",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "An Empirical Evaluation of Accounting Income Numbers",
+    "crossrefYear": 1968,
+    "crossrefAuthors": [
+     "Ball",
+     "Brown"
+    ],
+    "container": "Journal of Accounting Research"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "EVT-FOMC-DRIFT",
+   "name": "Pre-FOMC announcement drift",
+   "family": "events",
+   "finding": "US equities earn most of their annual excess return in the 24 hours before scheduled FOMC announcements.",
+   "doi": "10.1111/jofi.12196",
+   "author": "Lucca",
+   "year": 2015,
+   "title": "Pre-FOMC Announcement Drift",
+   "signal": "long the index from the close before the announcement day to the announcement",
+   "horizon": "1d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "event:fomc"
+   ],
+   "test": "mean return on FOMC-eve sessions versus all other sessions",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/jofi.12196",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "The Pre\u2010FOMC Announcement Drift",
+    "crossrefYear": 2015,
+    "crossrefAuthors": [
+     "LUCCA",
+     "MOENCH"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "EVT-FED-SURPRISE",
+   "name": "Market reaction to policy surprises",
+   "family": "events",
+   "finding": "An unexpected 25 bp rate cut raises stock prices about 1%, working mainly through expected excess returns.",
+   "doi": "10.1111/j.1540-6261.2005.00760.x",
+   "author": "Bernanke",
+   "year": 2005,
+   "title": "Stock Market's Reaction to Federal Reserve Policy",
+   "signal": "index return on the decision day against the change in DFF over the following sessions as a surprise proxy",
+   "horizon": "1d",
+   "sign": "-",
+   "needs": [
+    "price",
+    "event:fomc",
+    "macro:DFF"
+   ],
+   "test": "slope of day-0 return on the rate change",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.2005.00760.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "What Explains the Stock Market's Reaction to Federal Reserve Policy?",
+    "crossrefYear": 2005,
+    "crossrefAuthors": [
+     "BERNANKE",
+     "KUTTNER"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "EVT-UNEMP",
+   "name": "Unemployment news and stocks",
+   "family": "events",
+   "finding": "Bad unemployment news lifts stocks in expansions and lowers them in recessions.",
+   "doi": "10.1111/j.1540-6261.2005.00742.x",
+   "author": "Boyd",
+   "year": 2005,
+   "title": "Stock Market's Reaction to Unemployment News",
+   "signal": "index return on payroll release days by sign of the UNRATE change and the regime from the 10y-3m spread",
+   "horizon": "1d",
+   "sign": "mixed",
+   "needs": [
+    "price",
+    "macro:UNRATE",
+    "macro:T10Y3M"
+   ],
+   "test": "regime-conditional mean reaction",
+   "universe": "equity",
+   "doi_original": "10.1111/j.1540-6261.2005.00741.x",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.2005.00742.x",
+   "citation": {
+    "verified": true,
+    "reason": "DOI replaced after Crossref search (title mismatch: Crossref says 'Liquidity Shortages and Banki); title, first author and year match Crossref",
+    "crossrefTitle": "The Stock Market's Reaction to Unemployment News: Why Bad News Is Usually Good for Stocks",
+    "crossrefYear": 2005,
+    "crossrefAuthors": [
+     "BOYD",
+     "HU",
+     "JAGANNATHAN"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "EVT-MACRO-JUMPS",
+   "name": "Macro announcements and returns",
+   "family": "events",
+   "finding": "Conditional means of FX, bond and equity returns jump on macro announcements, with bad news mattering more in good times.",
+   "doi": "10.3386/w8959",
+   "author": "Andersen",
+   "year": 2003,
+   "title": "Micro Effects of Macro Announcements",
+   "signal": "absolute return on release days relative to non-release days, per series in data/foundation/macro",
+   "horizon": "1d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "macro"
+   ],
+   "test": "ratio of mean absolute return on release days to other days, bootstrap interval",
+   "universe": "equity",
+   "doi_original": "10.1257/000282803322157151",
+   "doiUrl": "https://doi.org/10.3386/w8959",
+   "citation": {
+    "verified": true,
+    "reason": "DOI replaced after Crossref search (title mismatch: Crossref says 'Risk Sharing and Industrial S); title, first author and year match Crossref",
+    "crossrefTitle": "Micro Effects of Macro Announcements: Real-Time Price Discovery in Foreign Exchange",
+    "crossrefYear": 2002,
+    "crossrefAuthors": [
+     "Andersen",
+     "Bollerslev",
+     "Diebold",
+     "Vega"
+    ],
+    "container": ""
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "NEWS-TONE",
+   "name": "Media pessimism and returns",
+   "family": "events",
+   "finding": "High media pessimism predicts downward pressure on prices followed by reversion.",
+   "doi": "10.1111/j.1540-6261.2007.01232.x",
+   "author": "Tetlock",
+   "year": 2007,
+   "title": "Giving content to investor sentiment",
+   "signal": "daily share of negative tone across the stored News rows",
+   "horizon": "5d",
+   "sign": "-",
+   "needs": [
+    "price",
+    "news"
+   ],
+   "test": "next-5-day return by tone tercile, net of costs",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.2007.01232.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Giving Content to Investor Sentiment: The Role of Media in the Stock Market",
+    "crossrefYear": 2007,
+    "crossrefAuthors": [
+     "TETLOCK"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "NEWS-UNDERREACT",
+   "name": "Disposition effect and underreaction",
+   "family": "events",
+   "finding": "Prices underreact to news where holders are sitting on gains or losses.",
+   "doi": "10.1111/j.1540-6261.2006.00896.x",
+   "author": "Frazzini",
+   "year": 2006,
+   "title": "Disposition Effect and Underreaction to News",
+   "signal": "news-day return interacted with the capital-gains overhang proxy (price relative to the trailing 252-session volume-weighted close)",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "volume",
+    "news"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.2006.00896.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "The Disposition Effect and Underreaction to News",
+    "crossrefYear": 2006,
+    "crossrefAuthors": [
+     "FRAZZINI"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "LINK-CUSTOMER",
+   "name": "Economic links and predictable returns",
+   "family": "events",
+   "finding": "A firm's returns are predicted by those of its customers' stocks, which investors process slowly.",
+   "doi": "10.1111/j.1540-6261.2008.01379.x",
+   "author": "Cohen",
+   "year": 2008,
+   "title": "Economic Links and Predictable Returns",
+   "signal": "lagged return of linked assets; customer-supplier links are not stored, industry peers are the proxy",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "industry"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.2008.01379.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Economic Links and Predictable Returns",
+    "crossrefYear": 2008,
+    "crossrefAuthors": [
+     "COHEN",
+     "FRAZZINI"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "LINK-INDUSTRY-LEAD",
+   "name": "Industry lead-lag",
+   "family": "events",
+   "finding": "Returns of large industries lead returns of related smaller ones.",
+   "doi": "10.1093/revfin/hhm003",
+   "author": "Hou",
+   "year": 2007,
+   "title": "Industry Information Diffusion and the Lead-lag Effect",
+   "signal": "lagged industry mean return as a predictor of member returns, controlling for own-lag",
+   "horizon": "5d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "industry"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doi_original": "10.1093/rfs/hhm003",
+   "doiUrl": "https://doi.org/10.1093/revfin/hhm003",
+   "citation": {
+    "verified": true,
+    "reason": "DOI replaced after Crossref search (DOI not found at Crossref); title, first author and year match Crossref",
+    "crossrefTitle": "Industry Information Diffusion and the Lead-lag Effect in Stock Returns",
+    "crossrefYear": 2007,
+    "crossrefAuthors": [
+     "Hou"
+    ],
+    "container": "Review of Financial Studies"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "SENT-BW",
+   "name": "Investor sentiment",
+   "family": "events",
+   "finding": "Stocks that are hard to value and hard to arbitrage earn low returns after high-sentiment periods.",
+   "doi": "10.1111/j.1540-6261.2006.00885.x",
+   "author": "Baker",
+   "year": 2006,
+   "title": "Investor Sentiment and the Cross-Section",
+   "signal": "market sentiment proxy from VIXCLS and UMCSENT; interact with trailing volatility rank",
+   "horizon": "21d",
+   "sign": "mixed",
+   "needs": [
+    "price",
+    "macro:VIXCLS",
+    "macro:UMCSENT"
+   ],
+   "test": "long-short return in high versus low sentiment states",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.2006.00885.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Investor Sentiment and the Cross\u2010Section of Stock Returns",
+    "crossrefYear": 2006,
+    "crossrefAuthors": [
+     "BAKER",
+     "WURGLER"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "ATTN-BARBER",
+   "name": "Attention-driven buying",
+   "family": "events",
+   "finding": "Individual investors buy stocks that grab attention: high volume, extreme returns, news.",
+   "doi": "10.1093/rfs/hhm079",
+   "author": "Barber",
+   "year": 2008,
+   "title": "All That Glitters",
+   "signal": "abnormal volume x absolute return x news-day indicator",
+   "horizon": "5d",
+   "sign": "-",
+   "needs": [
+    "price",
+    "volume",
+    "news"
+   ],
+   "test": "next-week return by attention tercile",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1093/rfs/hhm079",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "All That Glitters: The Effect of Attention and News on the Buying Behavior of Individual and Institutional Investors",
+    "crossrefYear": 2007,
+    "crossrefAuthors": [
+     "Barber",
+     "Odean"
+    ],
+    "container": "Review of Financial Studies"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "MACRO-CURVE",
+   "name": "The yield curve and recessions",
+   "family": "macro",
+   "finding": "The slope of the yield curve predicts recessions and growth better than other financial variables.",
+   "doi": "10.1162/003465398557320",
+   "author": "Estrella",
+   "year": 1998,
+   "title": "Predicting U.S. Recessions",
+   "signal": "T10Y3M below zero (macro: T10Y3M, availableAt respected)",
+   "horizon": "12m",
+   "sign": "-",
+   "needs": [
+    "price",
+    "macro:T10Y3M"
+   ],
+   "test": "equity return over the next 12 months after inversion versus otherwise",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1162/003465398557320",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Predicting U.S. Recessions: Financial Variables as Leading Indicators",
+    "crossrefYear": 1998,
+    "crossrefAuthors": [
+     "Estrella",
+     "Mishkin"
+    ],
+    "container": "Review of Economics and Statistics"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "MACRO-PREDICT",
+   "name": "Equity premium prediction is hard",
+   "family": "macro",
+   "finding": "Most variables proposed to predict the equity premium fail out of sample.",
+   "doi": "10.1093/rfs/hhm014",
+   "author": "Welch",
+   "year": 2008,
+   "title": "Comprehensive Look at the Empirical Performance of Equity Premium Prediction",
+   "signal": "single-variable regressions of next-month index return on each macro series",
+   "horizon": "21d",
+   "sign": "mixed",
+   "needs": [
+    "price",
+    "macro"
+   ],
+   "test": "out-of-sample R squared against the historical mean, per series",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1093/rfs/hhm014",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "A Comprehensive Look at The Empirical Performance of Equity Premium Prediction",
+    "crossrefYear": 2007,
+    "crossrefAuthors": [
+     "Welch",
+     "Goyal"
+    ],
+    "container": "Review of Financial Studies"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "MACRO-CONSTRAINED",
+   "name": "Constrained predictors help out of sample",
+   "family": "macro",
+   "finding": "Imposing sign and non-negativity constraints makes equity-premium predictors usable out of sample.",
+   "doi": "10.1093/rfs/hhm055",
+   "author": "Campbell",
+   "year": 2008,
+   "title": "Predicting excess stock returns out of sample",
+   "signal": "constrained regression forecast of the next month's return from the macro set",
+   "horizon": "21d",
+   "sign": "mixed",
+   "needs": [
+    "price",
+    "macro"
+   ],
+   "test": "out-of-sample R squared and the certainty-equivalent gain",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1093/rfs/hhm055",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Predicting Excess Stock Returns Out of Sample: Can Anything Beat the Historical Average?",
+    "crossrefYear": 2007,
+    "crossrefAuthors": [
+     "Campbell",
+     "Thompson"
+    ],
+    "container": "Review of Financial Studies"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "MACRO-VIXPREM",
+   "name": "Variance premium predicts returns",
+   "family": "macro",
+   "finding": "The gap between implied and realised variance predicts equity returns at short horizons.",
+   "doi": "10.1016/j.jeconom.2014.05.008",
+   "author": "Bekaert",
+   "year": 2014,
+   "title": "VIX, the variance premium and stock market volatility",
+   "signal": "VIXCLS squared minus trailing 21-session realised variance of the index",
+   "horizon": "63d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "macro:VIXCLS"
+   ],
+   "test": "predictive regression with an out-of-sample split",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1016/j.jeconom.2014.05.008",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "The VIX, the variance premium and stock market volatility",
+    "crossrefYear": 2014,
+    "crossrefAuthors": [
+     "Bekaert",
+     "Hoerova"
+    ],
+    "container": "Journal of Econometrics"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "MACRO-FEARGAUGE",
+   "name": "VIX as fear gauge",
+   "family": "macro",
+   "finding": "Rising implied volatility coincides with falling equity prices, and spikes mark short-horizon turning points.",
+   "doi": "10.3905/jpm.2000.319728",
+   "author": "Whaley",
+   "year": 2000,
+   "title": "Investor Fear Gauge",
+   "signal": "VIXCLS above its trailing 252-session 90th percentile",
+   "horizon": "5d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "macro:VIXCLS"
+   ],
+   "test": "mean next-5-day return after VIX spikes versus other days",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.3905/jpm.2000.319728",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "The Investor Fear Gauge",
+    "crossrefYear": 2000,
+    "crossrefAuthors": [
+     "Whaley"
+    ],
+    "container": "The Journal of Portfolio Management"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "CAL-HALLOWEEN",
+   "name": "Halloween indicator",
+   "family": "calendar",
+   "finding": "Stock returns are higher from November to April than from May to October in most markets.",
+   "doi": "10.1257/000282802762024683",
+   "author": "Bouman",
+   "year": 2002,
+   "title": "Halloween Indicator",
+   "signal": "long only between 1 November and 30 April",
+   "horizon": "6m",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "position sign follows the signal; compare with buy-and-hold on the same asset, net of costs",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.1257/000282802762024683",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "The Halloween Indicator, \u201cSell in May and Go Away\u201d: Another Puzzle",
+    "crossrefYear": 2002,
+    "crossrefAuthors": [
+     "Bouman",
+     "Jacobsen"
+    ],
+    "container": "American Economic Review"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "CAL-SEASONAL",
+   "name": "Same-month return seasonality",
+   "family": "calendar",
+   "finding": "A stock's return in a given calendar month predicts its return in the same month in later years.",
+   "doi": "10.1016/j.jfineco.2007.02.003",
+   "author": "Heston",
+   "year": 2008,
+   "title": "Seasonality in the cross-section of stock returns",
+   "signal": "mean return of the asset in the same calendar month over prior years",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doi_original": "10.1016/j.jfineco.2007.07.002",
+   "doiUrl": "https://doi.org/10.1016/j.jfineco.2007.02.003",
+   "citation": {
+    "verified": true,
+    "reason": "DOI replaced after Crossref search (title mismatch: Crossref says 'Who makes acquisitions? CEO o); title, first author and year match Crossref",
+    "crossrefTitle": "Seasonality in the cross-section of stock returns\u2606",
+    "crossrefYear": 2008,
+    "crossrefAuthors": [
+     "HESTON",
+     "SADKA"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "CAL-JAN",
+   "name": "January and size",
+   "family": "calendar",
+   "finding": "Small-capitalisation stocks earn abnormal returns in January.",
+   "doi": "10.1016/0304-405x(83)90025-9",
+   "author": "Keim",
+   "year": 1983,
+   "title": "Size-related anomalies and stock return seasonality",
+   "signal": "January indicator interacted with volume-based size proxy (market cap is stored only for part of the universe)",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "volume"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doi_original": "10.1016/0304-405X(83)90020-6",
+   "doiUrl": "https://doi.org/10.1016/0304-405x(83)90025-9",
+   "citation": {
+    "verified": true,
+    "reason": "DOI replaced after Crossref search (DOI not found at Crossref); title, first author and year match Crossref",
+    "crossrefTitle": "Size-related anomalies and stock return seasonality",
+    "crossrefYear": 1983,
+    "crossrefAuthors": [
+     "Keim"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "CAL-WEEKEND",
+   "name": "Weekend effect",
+   "family": "calendar",
+   "finding": "Mean Monday returns are lower than other days'.",
+   "doi": "10.1016/0304-405X(80)90021-5",
+   "author": "French",
+   "year": 1980,
+   "title": "Stock returns and the weekend effect",
+   "signal": "day-of-week indicator on the index",
+   "horizon": "1d",
+   "sign": "-",
+   "needs": [
+    "price"
+   ],
+   "test": "mean return by weekday with a Newey-West interval over the full history",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1016/0304-405X(80)90021-5",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Stock returns and the weekend effect",
+    "crossrefYear": 1980,
+    "crossrefAuthors": [
+     "French"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "CRYPTO-MOM",
+   "name": "Cryptocurrency momentum and size",
+   "family": "crypto",
+   "finding": "Crypto returns are predicted by momentum and market-cap-related factors; the effect weakens with liquidity.",
+   "doi": "10.1093/rfs/hhaa113",
+   "author": "Liu",
+   "year": 2021,
+   "title": "Risks and Returns of Cryptocurrency",
+   "signal": "trailing 1-4 week return of each stored coin",
+   "horizon": "7d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "crypto",
+   "doiUrl": "https://doi.org/10.1093/rfs/hhaa113",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Risks and Returns of Cryptocurrency",
+    "crossrefYear": 2020,
+    "crossrefAuthors": [
+     "Liu",
+     "Tsyvinski"
+    ],
+    "container": "The Review of Financial Studies"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "CRYPTO-FACTORS",
+   "name": "Common risk factors in crypto",
+   "family": "crypto",
+   "finding": "A three-factor model with market, size and momentum prices the cross-section of cryptocurrency returns.",
+   "doi": "10.1111/jofi.13119",
+   "author": "Liu",
+   "year": 2022,
+   "title": "Common Risk Factors in Cryptocurrency",
+   "signal": "market, size (price-volume proxy) and momentum factors from the stored coins",
+   "horizon": "7d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "volume"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "crypto",
+   "doiUrl": "https://doi.org/10.1111/jofi.13119",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Common Risk Factors in Cryptocurrency",
+    "crossrefYear": 2022,
+    "crossrefAuthors": [
+     "LIU",
+     "TSYVINSKI",
+     "WU"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "FX-MOM",
+   "name": "Currency momentum",
+   "family": "fx",
+   "finding": "Past 1-12 month winners among currencies keep outperforming losers.",
+   "doi": "10.2139/ssrn.1971680",
+   "author": "Menkhoff",
+   "year": 2012,
+   "title": "Currency momentum strategies",
+   "signal": "trailing 6-month return of each stored pair, ranked",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "fx",
+   "doi_original": "10.1016/j.jfineco.2012.08.007",
+   "doiUrl": "https://doi.org/10.2139/ssrn.1971680",
+   "citation": {
+    "verified": true,
+    "reason": "DOI replaced after Crossref search (title mismatch: Crossref says 'The market for borrowing corp); title, first author and year match Crossref",
+    "crossrefTitle": "Currency Momentum Strategies",
+    "crossrefYear": 2011,
+    "crossrefAuthors": [
+     "Menkhoff",
+     "Sarno",
+     "Schmeling",
+     "Schrimpf"
+    ],
+    "container": ""
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "FX-CARRY",
+   "name": "Carry and global FX risk",
+   "family": "fx",
+   "finding": "High-interest currencies earn excess returns that compensate global risk.",
+   "doi": "10.1093/rfs/hhr068",
+   "author": "Lustig",
+   "year": 2011,
+   "title": "Common Risk Factors in Currency Markets",
+   "signal": "interest rate differential needs short rates per country (only US rates are stored); carry is not testable until they are",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "foreign short rates"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "fx",
+   "doiUrl": "https://doi.org/10.1093/rfs/hhr068",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Common Risk Factors in Currency Markets",
+    "crossrefYear": 2011,
+    "crossrefAuthors": [
+     "Lustig",
+     "Roussanov",
+     "Verdelhan"
+    ],
+    "container": "Review of Financial Studies"
+   },
+   "testable_now": false,
+   "status": "untested"
+  },
+  {
+   "id": "CARRY-GLOBAL",
+   "name": "Carry across asset classes",
+   "family": "fx",
+   "finding": "Carry predicts returns in every asset class, with a common global factor.",
+   "doi": "10.1016/j.jfineco.2017.11.002",
+   "author": "Koijen",
+   "year": 2018,
+   "title": "Carry",
+   "signal": "needs futures curves or yields per asset; not stored",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price",
+    "term structure"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.1016/j.jfineco.2017.11.002",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Carry",
+    "crossrefYear": 2018,
+    "crossrefAuthors": [
+     "Koijen",
+     "Moskowitz",
+     "Pedersen",
+     "Vrugt"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": false,
+   "status": "untested"
+  },
+  {
+   "id": "CMDTY-FACTS",
+   "name": "Commodity futures facts",
+   "family": "commodities",
+   "finding": "Commodity futures returns are positively correlated with inflation and negatively with stocks and bonds.",
+   "doi": "10.2469/faj.v62.n2.4083",
+   "author": "Gorton",
+   "year": 2006,
+   "title": "Facts and Fantasies about Commodity Futures",
+   "signal": "rolling correlation of each stored commodity with CPIAUCSL changes (macro, availableAt respected)",
+   "horizon": "12m",
+   "sign": "+",
+   "needs": [
+    "price",
+    "macro:CPIAUCSL"
+   ],
+   "test": "sign and stability of the correlation across subperiods",
+   "universe": "commodities",
+   "doiUrl": "https://doi.org/10.2469/faj.v62.n2.4083",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Facts and Fantasies about Commodity Futures",
+    "crossrefYear": 2006,
+    "crossrefAuthors": [
+     "Gorton",
+     "Rouwenhorst"
+    ],
+    "container": "Financial Analysts Journal"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "CMDTY-STRATEGIC",
+   "name": "Strategic and tactical value of commodities",
+   "family": "commodities",
+   "finding": "Commodity futures can diversify a portfolio and earn a risk premium tied to backwardation.",
+   "doi": "10.2469/faj.v62.n2.4084",
+   "author": "Erb",
+   "year": 2006,
+   "title": "Strategic and Tactical Value of Commodity Futures",
+   "signal": "trailing 12-month return as a tactical signal for each stored commodity",
+   "horizon": "21d",
+   "sign": "+",
+   "needs": [
+    "price"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "commodities",
+   "doiUrl": "https://doi.org/10.2469/faj.v62.n2.4084",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "The Strategic and Tactical Value of Commodity Futures",
+    "crossrefYear": 2006,
+    "crossrefAuthors": [
+     "Erb",
+     "Harvey"
+    ],
+    "container": "Financial Analysts Journal"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "DISC-DEFLATED",
+   "name": "Deflated Sharpe ratio",
+   "family": "discipline",
+   "finding": "A Sharpe ratio must be discounted for the number of trials and the non-normality of returns before it means anything.",
+   "doi": "10.3905/jpm.2014.40.5.094",
+   "author": "Bailey",
+   "year": 2014,
+   "title": "Deflated Sharpe Ratio",
+   "signal": "compute the deflated Sharpe for every rule evaluated, using the logged number of variants tried",
+   "horizon": "any",
+   "sign": "n/a",
+   "needs": [
+    "price"
+   ],
+   "test": "a rule is reported only if its deflated Sharpe probability exceeds 0.95",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.3905/jpm.2014.40.5.094",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "The Deflated Sharpe Ratio:\n                    <i>Correcting for Selection Bias, Backtest</i>\n                    <i>Overfitting, and Non-Normality</i>",
+    "crossrefYear": 2014,
+    "crossrefAuthors": [
+     "Bailey",
+     "L\u00f3pez de Prado"
+    ],
+    "container": "The Journal of Portfolio Management"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "DISC-TSTAT",
+   "name": "Higher t-statistic hurdle for new factors",
+   "family": "discipline",
+   "finding": "After hundreds of tested factors, a new factor needs t above about 3 to be credible.",
+   "doi": "10.1093/rfs/hhv059",
+   "author": "Harvey",
+   "year": 2016,
+   "title": "and the Cross-Section of Expected Returns",
+   "signal": "count every signal tested in this repository and apply the multiple-testing adjusted threshold",
+   "horizon": "any",
+   "sign": "n/a",
+   "needs": [
+    "price"
+   ],
+   "test": "no rule is promoted below the adjusted t-statistic",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.1093/rfs/hhv059",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "\u2026 and the Cross-Section of Expected Returns",
+    "crossrefYear": 2015,
+    "crossrefAuthors": [
+     "Harvey",
+     "Liu",
+     "Zhu"
+    ],
+    "container": "Review of Financial Studies"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "DISC-BACKTEST",
+   "name": "Backtesting protocol",
+   "family": "discipline",
+   "finding": "Backtest overfitting is the default outcome of searching; protocol must fix the rules and the evaluation in advance.",
+   "doi": "10.3905/jpm.2015.42.1.013",
+   "author": "Harvey",
+   "year": 2015,
+   "title": "Backtesting",
+   "signal": "pre-register the signal, horizon and cost band in this file before running the test",
+   "horizon": "any",
+   "sign": "n/a",
+   "needs": [
+    "price"
+   ],
+   "test": "reject any result whose specification was changed after seeing it",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.3905/jpm.2015.42.1.013",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Backtesting",
+    "crossrefYear": 2015,
+    "crossrefAuthors": [
+     "Harvey",
+     "Liu"
+    ],
+    "container": "The Journal of Portfolio Management"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "DISC-DECAY",
+   "name": "Anomalies decay after publication",
+   "family": "discipline",
+   "finding": "Predictability falls by about a third after a paper is published, and more for liquid stocks.",
+   "doi": "10.1111/jofi.12365",
+   "author": "McLean",
+   "year": 2016,
+   "title": "Does Academic Research Destroy Stock Return Predictability",
+   "signal": "split each tested effect at its publication year; compare in-sample and post-publication performance",
+   "horizon": "any",
+   "sign": "-",
+   "needs": [
+    "price"
+   ],
+   "test": "post-publication mean return as a share of the in-sample mean",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.1111/jofi.12365",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Does Academic Research Destroy Stock Return Predictability?",
+    "crossrefYear": 2016,
+    "crossrefAuthors": [
+     "MCLEAN",
+     "PONTIFF"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "DISC-SNOOP",
+   "name": "Data snooping in technical rules",
+   "family": "discipline",
+   "finding": "After accounting for the universe of rules searched, apparent technical-trading profits mostly disappear.",
+   "doi": "10.1111/0022-1082.00163",
+   "author": "Sullivan",
+   "year": 1999,
+   "title": "Data-Snooping, Technical Trading Rule Performance",
+   "signal": "bootstrap reality check over the full family of rules tested",
+   "horizon": "any",
+   "sign": "n/a",
+   "needs": [
+    "price"
+   ],
+   "test": "report the family-wise p-value, not the best rule's raw p-value",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.1111/0022-1082.00163",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Data\u2010Snooping, Technical Trading Rule Performance, and the Bootstrap",
+    "crossrefYear": 1999,
+    "crossrefAuthors": [
+     "Sullivan",
+     "Timmermann",
+     "White"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "DISC-CHARLATAN",
+   "name": "Pseudo-mathematics in backtests",
+   "family": "discipline",
+   "finding": "The minimum backtest length needed to avoid overfitting grows with the number of configurations tried.",
+   "doi": "10.1090/noti1105",
+   "author": "Bailey",
+   "year": 2014,
+   "title": "Pseudo-Mathematics and Financial Charlatanism",
+   "signal": "minimum backtest length given the number of variants tried and the target Sharpe",
+   "horizon": "any",
+   "sign": "n/a",
+   "needs": [
+    "price"
+   ],
+   "test": "reject results from histories shorter than the computed minimum",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.1090/noti1105",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Pseudo-Mathematics and Financial Charlatanism: The Effects of Backtest Overfitting on Out-of-Sample Performance",
+    "crossrefYear": 2014,
+    "crossrefAuthors": [
+     "Bailey",
+     "Borwein",
+     "L\u00f3pez de Prado",
+     "Zhu"
+    ],
+    "container": "Notices of the American Mathematical Society"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "DISC-COSTS",
+   "name": "Anomaly returns net of trading costs",
+   "family": "discipline",
+   "finding": "Many anomalies do not survive realistic trading costs once the portfolio is rebalanced as the signal demands.",
+   "doi": "10.1093/rfs/hhv063",
+   "author": "Novy-Marx",
+   "year": 2016,
+   "title": "Taxonomy of Anomalies and Their Trading Costs",
+   "signal": "net every rule at the low, central and high cost assumptions in tools/costs.py",
+   "horizon": "any",
+   "sign": "-",
+   "needs": [
+    "price"
+   ],
+   "test": "a rule must stay positive at the central cost",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.1093/rfs/hhv063",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "A Taxonomy of Anomalies and Their Trading Costs",
+    "crossrefYear": 2015,
+    "crossrefAuthors": [
+     "Novy-Marx",
+     "Velikov"
+    ],
+    "container": "Review of Financial Studies"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "DISC-ADAPTIVE",
+   "name": "Adaptive markets",
+   "family": "discipline",
+   "finding": "Strategy profitability varies with market conditions and competition rather than being constant.",
+   "doi": "10.3905/jpm.2004.442611",
+   "author": "Lo",
+   "year": 2004,
+   "title": "Adaptive Markets Hypothesis",
+   "signal": "rolling-window performance of each rule across regimes defined by VIXCLS and T10Y3M",
+   "horizon": "any",
+   "sign": "mixed",
+   "needs": [
+    "price",
+    "macro"
+   ],
+   "test": "performance dispersion across regimes; a rule needs a stated regime",
+   "universe": "all",
+   "doiUrl": "https://doi.org/10.3905/jpm.2004.442611",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "The Adaptive Markets Hypothesis",
+    "crossrefYear": 2004,
+    "crossrefAuthors": [
+     "Lo"
+    ],
+    "container": "The Journal of Portfolio Management"
+   },
+   "testable_now": true,
+   "status": "untested"
+  },
+  {
+   "id": "FUND-VALUE",
+   "name": "Value: earnings-to-price",
+   "family": "fundamentals",
+   "finding": "Stocks with low price-to-earnings ratios earned higher risk-adjusted returns.",
+   "doi": "10.1111/j.1540-6261.1977.tb01979.x",
+   "author": "Basu",
+   "year": 1977,
+   "title": "Investment performance of common stocks",
+   "signal": "earnings divided by price",
+   "horizon": "12m",
+   "sign": "+",
+   "needs": [
+    "price",
+    "fundamentals"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.1977.tb01979.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "INVESTMENT PERFORMANCE OF COMMON STOCKS IN RELATION TO THEIR PRICE\u2010EARNINGS RATIOS: A TEST OF THE EFFICIENT MARKET HYPOTHESIS",
+    "crossrefYear": 1977,
+    "crossrefAuthors": [
+     "Basu"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": false,
+   "status": "untested"
+  },
+  {
+   "id": "FUND-FF3",
+   "name": "Size and value factors",
+   "family": "fundamentals",
+   "finding": "Three factors, market, size and book-to-market, capture most of the cross-section of average returns.",
+   "doi": "10.1016/0304-405X(93)90023-5",
+   "author": "Fama",
+   "year": 1993,
+   "title": "Common risk factors in the returns on stocks and bonds",
+   "signal": "book-to-market and market cap",
+   "horizon": "12m",
+   "sign": "+",
+   "needs": [
+    "price",
+    "fundamentals"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1016/0304-405X(93)90023-5",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Common risk factors in the returns on stocks and bonds",
+    "crossrefYear": 1993,
+    "crossrefAuthors": [
+     "Fama",
+     "French"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": false,
+   "status": "untested"
+  },
+  {
+   "id": "FUND-PROFIT",
+   "name": "Gross profitability premium",
+   "family": "fundamentals",
+   "finding": "Gross profit scaled by assets predicts returns about as strongly as book-to-market.",
+   "doi": "10.1016/j.jfineco.2013.01.003",
+   "author": "Novy-Marx",
+   "year": 2013,
+   "title": "other side of value",
+   "signal": "(revenue - cost of goods sold) / total assets",
+   "horizon": "12m",
+   "sign": "+",
+   "needs": [
+    "price",
+    "fundamentals"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1016/j.jfineco.2013.01.003",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "The other side of value: The gross profitability premium",
+    "crossrefYear": 2013,
+    "crossrefAuthors": [
+     "Novy-Marx"
+    ],
+    "container": "Journal of Financial Economics"
+   },
+   "testable_now": false,
+   "status": "untested"
+  },
+  {
+   "id": "FUND-QUALITY",
+   "name": "Quality minus junk",
+   "family": "fundamentals",
+   "finding": "High-quality stocks, profitable, growing, safe and well-paid-out, outperform junk after adjusting for risk.",
+   "doi": "10.1007/s11142-018-9470-2",
+   "author": "Asness",
+   "year": 2019,
+   "title": "Quality minus junk",
+   "signal": "composite of profitability, growth, safety and payout",
+   "horizon": "12m",
+   "sign": "+",
+   "needs": [
+    "price",
+    "fundamentals"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1007/s11142-018-9470-2",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Quality minus junk",
+    "crossrefYear": 2018,
+    "crossrefAuthors": [
+     "Asness",
+     "Frazzini",
+     "Pedersen"
+    ],
+    "container": "Review of Accounting Studies"
+   },
+   "testable_now": false,
+   "status": "untested"
+  },
+  {
+   "id": "FUND-FSCORE",
+   "name": "Financial-statement scoring of value stocks",
+   "family": "fundamentals",
+   "finding": "A nine-signal score separates winners from losers among high book-to-market stocks.",
+   "doi": "10.2307/2672906",
+   "author": "Piotroski",
+   "year": 2000,
+   "title": "Value Investing: The Use of Historical Financial Statement",
+   "signal": "nine-point F-score",
+   "horizon": "12m",
+   "sign": "+",
+   "needs": [
+    "price",
+    "fundamentals"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.2307/2672906",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Value Investing: The Use of Historical Financial Statement Information to Separate Winners from Losers",
+    "crossrefYear": 2000,
+    "crossrefAuthors": [
+     "Piotroski"
+    ],
+    "container": "Journal of Accounting Research"
+   },
+   "testable_now": false,
+   "status": "untested"
+  },
+  {
+   "id": "FUND-ISSUE",
+   "name": "Net share issuance",
+   "family": "fundamentals",
+   "finding": "Firms that issue shares underperform; firms that repurchase outperform.",
+   "doi": "10.1111/j.1540-6261.2008.01335.x",
+   "author": "Pontiff",
+   "year": 2008,
+   "title": "Share Issuance and Cross-sectional Returns",
+   "signal": "change in shares outstanding over 12 months",
+   "horizon": "12m",
+   "sign": "-",
+   "needs": [
+    "price",
+    "fundamentals"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.2008.01335.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Share Issuance and Cross\u2010sectional Returns",
+    "crossrefYear": 2008,
+    "crossrefAuthors": [
+     "PONTIFF",
+     "WOODGATE"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": false,
+   "status": "untested"
+  },
+  {
+   "id": "FUND-ASSETGROWTH",
+   "name": "Asset growth",
+   "family": "fundamentals",
+   "finding": "Firms with high asset growth earn low subsequent returns.",
+   "doi": "10.1111/j.1540-6261.2008.01370.x",
+   "author": "Cooper",
+   "year": 2008,
+   "title": "Asset growth and the cross-section of stock returns",
+   "signal": "change in total assets over 12 months",
+   "horizon": "12m",
+   "sign": "-",
+   "needs": [
+    "price",
+    "fundamentals"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.2008.01370.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Asset Growth and the Cross\u2010Section of Stock Returns",
+    "crossrefYear": 2008,
+    "crossrefAuthors": [
+     "COOPER",
+     "GULEN",
+     "SCHILL"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": false,
+   "status": "untested"
+  },
+  {
+   "id": "FUND-CONTRARIAN",
+   "name": "Contrarian investment and extrapolation",
+   "family": "fundamentals",
+   "finding": "Value strategies beat glamour strategies because investors over-extrapolate past growth.",
+   "doi": "10.1111/j.1540-6261.1994.tb04772.x",
+   "author": "Lakonishok",
+   "year": 1994,
+   "title": "Contrarian investment, extrapolation, and risk",
+   "signal": "growth rate of sales and cash flow rank crossed with value rank",
+   "horizon": "12m",
+   "sign": "+",
+   "needs": [
+    "price",
+    "fundamentals"
+   ],
+   "test": "top-minus-bottom quintile of the signal, rebalanced at the horizon, net of the assumed cost band",
+   "universe": "equity",
+   "doiUrl": "https://doi.org/10.1111/j.1540-6261.1994.tb04772.x",
+   "citation": {
+    "verified": true,
+    "reason": "title, first author and year match Crossref",
+    "crossrefTitle": "Contrarian Investment, Extrapolation, and Risk",
+    "crossrefYear": 1994,
+    "crossrefAuthors": [
+     "LAKONISHOK",
+     "SHLEIFER",
+     "VISHNY"
+    ],
+    "container": "The Journal of Finance"
+   },
+   "testable_now": false,
+   "status": "untested"
+  }
+ ]
+}

@@ -53,3 +53,6 @@ __pycache__/
 
 .vercel
 .env*
+
+# resumable collector state, rebuilt from the sources
+data/foundation/**/*.state.json

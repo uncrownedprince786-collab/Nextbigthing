@@ -1,0 +1,335 @@
+{
+ "generatedAt": "2026-10-14T10:30:27+00:00",
+ "range": [
+  "2019-01-02",
+  "2026-09-01"
+ ],
+ "universe": {
+  "profile": [
+   {
+    "t": "commodity",
+    "active": 1,
+    "n": 8,
+    "ends_before_today": 0,
+    "starts_after_2019": 0
+   },
+   {
+    "t": "crypto",
+    "active": 0,
+    "n": 6,
+    "ends_before_today": 0,
+    "starts_after_2019": 6
+   },
+   {
+    "t": "crypto",
+    "active": 1,
+    "n": 69,
+    "ends_before_today": 0,
+    "starts_after_2019": 64
+   },
+   {
+    "t": "etf",
+    "active": 1,
+    "n": 8,
+    "ends_before_today": 0,
+    "starts_after_2019": 0
+   },
+   {
+    "t": "forex",
+    "active": 1,
+    "n": 27,
+    "ends_before_today": 0,
+    "starts_after_2019": 0
+   },
+   {
+    "t": "stock",
+    "active": 0,
+    "n": 53,
+    "ends_before_today": 0,
+    "starts_after_2019": 19
+   },
+   {
+    "t": "stock",
+    "active": 1,
+    "n": 445,
+    "ends_before_today": 0,
+    "starts_after_2019": 80
+   }
+  ],
+  "assetsWithDataByYear": {
+   "2018": 5,
+   "2019": 486,
+   "2020": 504,
+   "2021": 528,
+   "2022": 539,
+   "2023": 552,
+   "2024": 574,
+   "2025": 600,
+   "2026": 616
+  },
+  "assetsThatEndBeforeToday": 0,
+  "assets": 616
+ },
+ "sp500RemovalsInRange": 127,
+ "removalsAbsentFromUniverse": 124,
+ "removalsPresentInUniverse": 3,
+ "byReason": {
+  "acquired-or-merged": {
+   "removed": 49,
+   "absentFromUniverse": 49,
+   "recoverable": 6
+  },
+  "market-cap-drift": {
+   "removed": 61,
+   "absentFromUniverse": 59,
+   "recoverable": 48
+  },
+  "other": {
+   "removed": 9,
+   "absentFromUniverse": 9,
+   "recoverable": 1
+  },
+  "spin-off": {
+   "removed": 7,
+   "absentFromUniverse": 7,
+   "recoverable": 6
+  },
+  "bankruptcy": {
+   "removed": 1,
+   "absentFromUniverse": 0,
+   "recoverable": 0
+  }
+ },
+ "absentWithAtLeastOneYearOfRecoverableBars": 61,
+ "absentWithNoRecoverableHistory": 63,
+ "recoverableTotalReturnPct": {
+  "n": 61,
+  "median": -22.3,
+  "mean": 7.7
+ },
+ "caveats": [
+  "Removal reasons are classified from Wikipedia's free text and are approximate.",
+  "A symbol can be re-used by a different company; recoverable bars are not matched by identifier.",
+  "Total return is price-only, over only the bars Yahoo still serves, and is not a bias estimate.",
+  "S&P 500 removals are a sample of failures and takeovers, not the whole delisted population."
+ ],
+ "sample": [
+  {
+   "date": "2026-08-18",
+   "added": "RDDT",
+   "removed": "AVB",
+   "removedName": "AvalonBay Communities",
+   "reason": "Equity Residential (now Vivmark Residential) acquired AvalonBay Communities.",
+   "kind": "acquired-or-merged",
+   "inUniverse": false,
+   "probe": {
+    "bars": 1,
+    "first": "2026-08-14",
+    "last": "2026-08-14",
+    "totalReturnPct": 0.0
+   }
+  },
+  {
+   "date": "2026-08-05",
+   "added": "FERG",
+   "removed": "EA",
+   "removedName": "Electronic Arts",
+   "reason": "An investor consortium comprising Saudi Arabia's Public Investment Fund (PIF), Silver Lake, and Affinity Partners acquired Electronic Arts.",
+   "kind": "acquired-or-merged",
+   "inUniverse": false,
+   "probe": {
+    "bars": 1,
+    "first": "2026-08-04",
+    "last": "2026-08-04",
+    "totalReturnPct": 0.0
+   }
+  },
+  {
+   "date": "2026-06-22",
+   "added": "MRVL",
+   "removed": "POOL",
+   "removedName": "Pool Corporation",
+   "reason": "Market capitalization changes.",
+   "kind": "market-cap-drift",
+   "inUniverse": false,
+   "probe": {
+    "bars": 1956,
+    "first": "2019-01-02",
+    "last": "2026-10-13",
+    "totalReturnPct": 10.1
+   }
+  },
+  {
+   "date": "2026-06-22",
+   "added": "FLEX",
+   "removed": "CPB",
+   "removedName": "Campbell's",
+   "reason": "Market capitalization changes.",
+   "kind": "market-cap-drift",
+   "inUniverse": false,
+   "probe": {
+    "bars": 1956,
+    "first": "2019-01-02",
+    "last": "2026-10-13",
+    "totalReturnPct": -41.3
+   }
+  },
+  {
+   "date": "2026-05-07",
+   "added": "VEEV",
+   "removed": "CTRA",
+   "removedName": "Coterra Energy",
+   "reason": "Devon Energy acquired Coterra Energy.",
+   "kind": "acquired-or-merged",
+   "inUniverse": false,
+   "probe": {
+    "bars": 0,
+    "http": 404
+   }
+  },
+  {
+   "date": "2026-04-09",
+   "added": "CASY",
+   "removed": "HOLX",
+   "removedName": "Hologic",
+   "reason": "Blackstone Inc. and TPG Inc. acquired Hologic.",
+   "kind": "acquired-or-merged",
+   "inUniverse": false,
+   "probe": {
+    "bars": 0,
+    "http": 404
+   }
+  },
+  {
+   "date": "2026-03-23",
+   "added": "VRT",
+   "removed": "MTCH",
+   "removedName": "Match Group",
+   "reason": "Market capitalization changes.",
+   "kind": "market-cap-drift",
+   "inUniverse": false,
+   "probe": {
+    "bars": 1956,
+    "first": "2019-01-02",
+    "last": "2026-10-13",
+    "totalReturnPct": -0.0
+   }
+  },
+  {
+   "date": "2026-03-23",
+   "added": "LITE",
+   "removed": "MOH",
+   "removedName": "Molina Healthcare",
+   "reason": "Market capitalization changes.",
+   "kind": "market-cap-drift",
+   "inUniverse": false,
+   "probe": {
+    "bars": 1956,
+    "first": "2019-01-02",
+    "last": "2026-10-13",
+    "totalReturnPct": 85.6
+   }
+  },
+  {
+   "date": "2026-03-23",
+   "added": "COHR",
+   "removed": "LW",
+   "removedName": "Lamb Weston",
+   "reason": "Market capitalization changes.",
+   "kind": "market-cap-drift",
+   "inUniverse": false,
+   "probe": {
+    "bars": 1956,
+    "first": "2019-01-02",
+    "last": "2026-10-13",
+    "totalReturnPct": -29.5
+   }
+  },
+  {
+   "date": "2026-03-23",
+   "added": "SATS",
+   "removed": "PAYC",
+   "removedName": "Paycom",
+   "reason": "Market capitalization changes.",
+   "kind": "market-cap-drift",
+   "inUniverse": false,
+   "probe": {
+    "bars": 1956,
+    "first": "2019-01-02",
+    "last": "2026-10-13",
+    "totalReturnPct": 97.7
+   }
+  },
+  {
+   "date": "2026-02-09",
+   "added": "CIEN",
+   "removed": "DAY",
+   "removedName": "Dayforce",
+   "reason": "Thoma Bravo L.P. acquired Dayforce.",
+   "kind": "acquired-or-merged",
+   "inUniverse": false,
+   "probe": {
+    "bars": 0,
+    "http": 404
+   }
+  },
+  {
+   "date": "2025-12-22",
+   "added": "CRH",
+   "removed": "LKQ",
+   "removedName": "LKQ Corporation",
+   "reason": "Market capitalization changes.",
+   "kind": "market-cap-drift",
+   "inUniverse": false,
+   "probe": {
+    "bars": 1956,
+    "first": "2019-01-02",
+    "last": "2026-10-13",
+    "totalReturnPct": -6.4
+   }
+  },
+  {
+   "date": "2025-12-22",
+   "added": "CVNA",
+   "removed": "SOLS",
+   "removedName": "Solstice Advanced Materials",
+   "reason": "Market capitalization changes.",
+   "kind": "market-cap-drift",
+   "inUniverse": false,
+   "probe": {
+    "bars": 247,
+    "first": "2025-10-20",
+    "last": "2026-10-13",
+    "totalReturnPct": 25.8
+   }
+  },
+  {
+   "date": "2025-12-22",
+   "added": "FIX",
+   "removed": "MHK",
+   "removedName": "Mohawk Industries",
+   "reason": "Market capitalization changes.",
+   "kind": "market-cap-drift",
+   "inUniverse": false,
+   "probe": {
+    "bars": 1956,
+    "first": "2019-01-02",
+    "last": "2026-10-13",
+    "totalReturnPct": 0.7
+   }
+  },
+  {
+   "date": "2025-12-11",
+   "added": "ARES",
+   "removed": "K",
+   "removedName": "Kellanova",
+   "reason": "Mars Inc. acquired Kellanova.",
+   "kind": "acquired-or-merged",
+   "inUniverse": false,
+   "probe": {
+    "bars": 0,
+    "http": 404
+   }
+  }
+ ]
+}
