@@ -127,14 +127,23 @@ jobs:
           CKPT: ${{ inputs.checkpoint }}
         run: |
           # The checkpoint belongs to the PREVIOUS slice, so this cannot use
-          # actions/download-artifact, which only reads the current run. `gh run download -n`
-          # takes the artifact by name from the most recent run that produced one, which is
-          # exactly "where the last slice got to".
+          # actions/download-artifact, which only reads the current run. It takes the NEWEST
+          # unexpired artifact whose name is exactly this replay's checkpoint, whichever run
+          # produced it. Looking at "the last successful run" and asking it for a hardcoded name
+          # restarted a chain from scratch whenever that run had written a different namespace
+          # (run 38499994484 after 38488899752), and `|| true` hid it. A missing checkpoint is
+          # now only acceptable when no artifact of this name exists at all.
           mkdir -p checkpoint
-          last="$(gh run list --workflow=data-worker.yml --status=success \
-                    --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)"
-          if [ -n "$last" ]; then
-            gh run download "$last" -n nbt-worker-checkpoint -D checkpoint || true
+          id="$(gh api --paginate \
+                  "repos/${{ github.repository }}/actions/artifacts?name=$CKPT&per_page=100" \
+                  --jq '.artifacts[] | select(.expired==false) | [.created_at,.id] | @tsv' \
+                | sort | tail -1 | cut -f2)"
+          if [ -n "$id" ]; then
+            echo "resuming from artifact $id named $CKPT"
+            gh api "repos/${{ github.repository }}/actions/artifacts/$id/zip" > checkpoint/ckpt.zip
+            unzip -q -o checkpoint/ckpt.zip -d checkpoint
+          else
+            echo "no artifact named $CKPT exists; this is the first slice of this replay"
           fi
           ls -la checkpoint || true
 
@@ -229,7 +238,7 @@ jobs:
           if [ "$remaining" -gt 0 ]; then
             echo "$remaining sessions remain; dispatching the next slice"
             gh workflow run data-worker.yml -f from='${{ inputs.from }}' -f to='${{ inputs.to }}' \
-              -f batch='${{ inputs.batch }}' -f continue=true
+              -f batch='${{ inputs.batch }}' -f continue=true -f checkpoint='${{ inputs.checkpoint }}'
           else
             echo "nothing remains; the replay is complete"
           fi

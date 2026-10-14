@@ -27,6 +27,7 @@ always better than being killed with a stale one.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -148,6 +149,11 @@ def main() -> None:
     checkpoint = json.loads(cp_path.read_text(encoding="utf-8")) if cp_path.exists() else {}
     done = set(checkpoint.get("done", []))
     last = checkpoint.get("lastSession")
+    # Durable, not just printed: a session that failed stays listed until a later slice
+    # completes it, and every completed session carries the hash of the file it wrote, so
+    # "done" can be checked against the persisted output rather than taken on trust.
+    failed_log: dict[str, dict] = dict(checkpoint.get("failed", {}))
+    output_hashes: dict[str, str] = dict(checkpoint.get("outputs", {}))
 
     sessions = eligible_sessions(frm, to)
     todo = [d for d in sessions if d.isoformat() not in done]
@@ -164,14 +170,23 @@ def main() -> None:
         if time.time() - started > DEADLINE_SECONDS:
             print("  deadline reached; stopping this slice with a good checkpoint")
             break
-        r = replay_one(day, out_dir)
+        try:
+            r = replay_one(day, out_dir)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            # An output-write or timeout error is a failed session, recorded below, not a
+            # crash that loses the slice's checkpoint.
+            r = {"ok": False, "stage": "write-or-timeout", "error": f"{type(e).__name__}: {e}"[:300]}
         if r["ok"]:
             processed += 1
             done.add(day.isoformat())
             last = day.isoformat()
+            failed_log.pop(day.isoformat(), None)
+            output_hashes[day.isoformat()] = hashlib.sha256(
+                (out_dir / f"decisions-{day}.json").read_bytes()).hexdigest()
         else:
             failed += 1
             failures.append({"asOf": day.isoformat(), **r})
+            failed_log[day.isoformat()] = {k: r[k] for k in ("stage", "error") if k in r}
             print(f"  {day}: FAILED at {r['stage']}: {r.get('error', '')[:160]}")
         # After every session, not at the end: a slice killed between two sessions resumes from
         # the one it actually finished.
@@ -179,6 +194,8 @@ def main() -> None:
             "lastSession": last,
             "sessionsDone": len(done),
             "done": sorted(done),
+            "failed": failed_log,
+            "outputs": dict(sorted(output_hashes.items())),
             "updatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         }, indent=1))
         if processed and processed % 25 == 0:
