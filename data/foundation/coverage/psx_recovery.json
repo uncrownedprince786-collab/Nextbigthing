@@ -1,0 +1,195 @@
+{
+ "generatedAt": "2026-10-14T14:34:18+00:00",
+ "psxSymbolsStored": 226,
+ "servedByYahooKarachi": 203,
+ "notServed": 23,
+ "notServedSymbols": [
+  "BBFL",
+  "BFAGRO",
+  "BFBIO",
+  "BML",
+  "ENGROH",
+  "GAL",
+  "GCWL",
+  "GDL",
+  "IMS",
+  "ITANZ",
+  "LIVEN",
+  "LSEVL",
+  "QTECH",
+  "SELECT",
+  "SOYASUP",
+  "SPAC1",
+  "SPSL",
+  "STL",
+  "TISL",
+  "WAFI",
+  "WAHDAT",
+  "ZAL",
+  "ZUMA"
+ ],
+ "storedBarsTotal": 123073,
+ "availableBarsTotal": 398885,
+ "recoverableBars": 275812,
+ "byYear": {
+  "2019": {
+   "stored": 1981,
+   "availableAtYahoo": 50044
+  },
+  "2020": {
+   "stored": 1968,
+   "availableAtYahoo": 50560
+  },
+  "2021": {
+   "stored": 2242,
+   "availableAtYahoo": 51156
+  },
+  "2022": {
+   "stored": 2072,
+   "availableAtYahoo": 51622
+  },
+  "2023": {
+   "stored": 2099,
+   "availableAtYahoo": 52086
+  },
+  "2024": {
+   "stored": 23303,
+   "availableAtYahoo": 50626
+  },
+  "2025": {
+   "stored": 50293,
+   "availableAtYahoo": 51782
+  },
+  "2026": {
+   "stored": 39115,
+   "availableAtYahoo": 41009
+  }
+ },
+ "worstShortfalls": [
+  {
+   "symbol": "SZTM",
+   "stored": 393,
+   "availableAtYahoo": 2018,
+   "shortfall": 1625
+  },
+  {
+   "symbol": "MQTM",
+   "stored": 442,
+   "availableAtYahoo": 2016,
+   "shortfall": 1574
+  },
+  {
+   "symbol": "TSBL",
+   "stored": 477,
+   "availableAtYahoo": 2021,
+   "shortfall": 1544
+  },
+  {
+   "symbol": "PRET",
+   "stored": 506,
+   "availableAtYahoo": 2015,
+   "shortfall": 1509
+  },
+  {
+   "symbol": "IDRT",
+   "stored": 507,
+   "availableAtYahoo": 2015,
+   "shortfall": 1508
+  },
+  {
+   "symbol": "ZAHID",
+   "stored": 510,
+   "availableAtYahoo": 2015,
+   "shortfall": 1505
+  },
+  {
+   "symbol": "SURC",
+   "stored": 518,
+   "availableAtYahoo": 2014,
+   "shortfall": 1496
+  },
+  {
+   "symbol": "SARC",
+   "stored": 525,
+   "availableAtYahoo": 2014,
+   "shortfall": 1489
+  },
+  {
+   "symbol": "KML",
+   "stored": 548,
+   "availableAtYahoo": 2014,
+   "shortfall": 1466
+  },
+  {
+   "symbol": "MEHT",
+   "stored": 548,
+   "availableAtYahoo": 2013,
+   "shortfall": 1465
+  },
+  {
+   "symbol": "CHBL",
+   "stored": 555,
+   "availableAtYahoo": 2015,
+   "shortfall": 1460
+  },
+  {
+   "symbol": "DBCI",
+   "stored": 555,
+   "availableAtYahoo": 2015,
+   "shortfall": 1460
+  },
+  {
+   "symbol": "ARCTM",
+   "stored": 553,
+   "availableAtYahoo": 2011,
+   "shortfall": 1458
+  },
+  {
+   "symbol": "MSOT",
+   "stored": 560,
+   "availableAtYahoo": 2016,
+   "shortfall": 1456
+  },
+  {
+   "symbol": "PECO",
+   "stored": 561,
+   "availableAtYahoo": 2015,
+   "shortfall": 1454
+  },
+  {
+   "symbol": "FDPL",
+   "stored": 558,
+   "availableAtYahoo": 2009,
+   "shortfall": 1451
+  },
+  {
+   "symbol": "AMTEX",
+   "stored": 571,
+   "availableAtYahoo": 2015,
+   "shortfall": 1444
+  },
+  {
+   "symbol": "KOHTM",
+   "stored": 573,
+   "availableAtYahoo": 2011,
+   "shortfall": 1438
+  },
+  {
+   "symbol": "HALEON",
+   "stored": 572,
+   "availableAtYahoo": 2009,
+   "shortfall": 1437
+  },
+  {
+   "symbol": "JDMT",
+   "stored": 577,
+   "availableAtYahoo": 2013,
+   "shortfall": 1436
+  }
+ ],
+ "whatThisIsAndIsNot": [
+  "A measurement of what a second free provider would serve, not a repair.",
+  "Filling the gap writes to PriceSnapshot and belongs to the ingest lane that owns it.",
+  "Yahoo's Karachi close and the exchange file use different adjustment bases, which is why the independent verification compares them as returns rather than as levels."
+ ]
+}
