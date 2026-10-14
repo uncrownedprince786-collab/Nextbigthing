@@ -1,0 +1,540 @@
+{
+ "generatedAt": "2026-10-14T14:24:57+00:00",
+ "assets": 616,
+ "gapRuns": 1244,
+ "missingSessions": 2364,
+ "byKind": {
+  "isolated": 758,
+  "run-of-2to5": 397,
+  "run-of-6plus": 44,
+  "quorum-thin": 45
+ },
+ "byMarket": {
+  "PSX": {
+   "assets": 226,
+   "sessions": 132664,
+   "stored": 130359,
+   "gaps": 2305,
+   "thin": 0,
+   "coverage": 0.98263
+  },
+  "US": {
+   "assets": 272,
+   "sessions": 519075,
+   "stored": 519075,
+   "gaps": 0,
+   "thin": 0,
+   "coverage": 1.0
+  },
+  "crypto": {
+   "assets": 75,
+   "sessions": 98382,
+   "stored": 98378,
+   "gaps": 4,
+   "thin": 0,
+   "coverage": 0.99996
+  },
+  "fx": {
+   "assets": 27,
+   "sessions": 54702,
+   "stored": 54676,
+   "gaps": 26,
+   "thin": 24,
+   "coverage": 0.99952
+  },
+  "us-futures-and-etf": {
+   "assets": 16,
+   "sessions": 31344,
+   "stored": 31315,
+   "gaps": 29,
+   "thin": 21,
+   "coverage": 0.99907
+  }
+ },
+ "assetsWithAnyGap": 131,
+ "calendarCompleteness": {
+  "PSX": {
+   "2019": {
+    "sessionDates": 13,
+    "weekdaysInYear": 261,
+    "share": 0.05
+   },
+   "2020": {
+    "sessionDates": 12,
+    "weekdaysInYear": 262,
+    "share": 0.046
+   },
+   "2021": {
+    "sessionDates": 13,
+    "weekdaysInYear": 261,
+    "share": 0.05
+   },
+   "2022": {
+    "sessionDates": 12,
+    "weekdaysInYear": 260,
+    "share": 0.046
+   },
+   "2023": {
+    "sessionDates": 12,
+    "weekdaysInYear": 260,
+    "share": 0.046
+   },
+   "2024": {
+    "sessionDates": 118,
+    "weekdaysInYear": 262,
+    "share": 0.45
+   },
+   "2025": {
+    "sessionDates": 250,
+    "weekdaysInYear": 261,
+    "share": 0.958
+   },
+   "2026": {
+    "sessionDates": 193,
+    "weekdaysInYear": 261,
+    "share": 0.739
+   }
+  },
+  "US": {
+   "2019": {
+    "sessionDates": 252,
+    "weekdaysInYear": 261,
+    "share": 0.966
+   },
+   "2020": {
+    "sessionDates": 253,
+    "weekdaysInYear": 262,
+    "share": 0.966
+   },
+   "2021": {
+    "sessionDates": 252,
+    "weekdaysInYear": 261,
+    "share": 0.966
+   },
+   "2022": {
+    "sessionDates": 251,
+    "weekdaysInYear": 260,
+    "share": 0.965
+   },
+   "2023": {
+    "sessionDates": 250,
+    "weekdaysInYear": 260,
+    "share": 0.962
+   },
+   "2024": {
+    "sessionDates": 252,
+    "weekdaysInYear": 262,
+    "share": 0.962
+   },
+   "2025": {
+    "sessionDates": 250,
+    "weekdaysInYear": 261,
+    "share": 0.958
+   },
+   "2026": {
+    "sessionDates": 196,
+    "weekdaysInYear": 261,
+    "share": 0.751
+   }
+  },
+  "crypto": {
+   "2018": {
+    "sessionDates": 58,
+    "weekdaysInYear": 261,
+    "share": 0.222
+   },
+   "2019": {
+    "sessionDates": 365,
+    "weekdaysInYear": 261,
+    "share": 1.398
+   },
+   "2020": {
+    "sessionDates": 366,
+    "weekdaysInYear": 262,
+    "share": 1.397
+   },
+   "2021": {
+    "sessionDates": 365,
+    "weekdaysInYear": 261,
+    "share": 1.398
+   },
+   "2022": {
+    "sessionDates": 365,
+    "weekdaysInYear": 260,
+    "share": 1.404
+   },
+   "2023": {
+    "sessionDates": 365,
+    "weekdaysInYear": 260,
+    "share": 1.404
+   },
+   "2024": {
+    "sessionDates": 366,
+    "weekdaysInYear": 262,
+    "share": 1.397
+   },
+   "2025": {
+    "sessionDates": 365,
+    "weekdaysInYear": 261,
+    "share": 1.398
+   },
+   "2026": {
+    "sessionDates": 286,
+    "weekdaysInYear": 261,
+    "share": 1.096
+   }
+  },
+  "fx": {
+   "2019": {
+    "sessionDates": 261,
+    "weekdaysInYear": 261,
+    "share": 1.0
+   },
+   "2020": {
+    "sessionDates": 262,
+    "weekdaysInYear": 262,
+    "share": 1.0
+   },
+   "2021": {
+    "sessionDates": 261,
+    "weekdaysInYear": 261,
+    "share": 1.0
+   },
+   "2022": {
+    "sessionDates": 260,
+    "weekdaysInYear": 260,
+    "share": 1.0
+   },
+   "2023": {
+    "sessionDates": 260,
+    "weekdaysInYear": 260,
+    "share": 1.0
+   },
+   "2024": {
+    "sessionDates": 262,
+    "weekdaysInYear": 262,
+    "share": 1.0
+   },
+   "2025": {
+    "sessionDates": 257,
+    "weekdaysInYear": 261,
+    "share": 0.985
+   },
+   "2026": {
+    "sessionDates": 203,
+    "weekdaysInYear": 261,
+    "share": 0.778
+   }
+  },
+  "us-futures-and-etf": {
+   "2019": {
+    "sessionDates": 252,
+    "weekdaysInYear": 261,
+    "share": 0.966
+   },
+   "2020": {
+    "sessionDates": 253,
+    "weekdaysInYear": 262,
+    "share": 0.966
+   },
+   "2021": {
+    "sessionDates": 252,
+    "weekdaysInYear": 261,
+    "share": 0.966
+   },
+   "2022": {
+    "sessionDates": 251,
+    "weekdaysInYear": 260,
+    "share": 0.965
+   },
+   "2023": {
+    "sessionDates": 251,
+    "weekdaysInYear": 260,
+    "share": 0.965
+   },
+   "2024": {
+    "sessionDates": 252,
+    "weekdaysInYear": 262,
+    "share": 0.962
+   },
+   "2025": {
+    "sessionDates": 252,
+    "weekdaysInYear": 261,
+    "share": 0.966
+   },
+   "2026": {
+    "sessionDates": 196,
+    "weekdaysInYear": 261,
+    "share": 0.751
+   }
+  }
+ },
+ "marketYearsBelowHalfTheWeekdays": [
+  "PSX 2019",
+  "PSX 2020",
+  "PSX 2021",
+  "PSX 2022",
+  "PSX 2023",
+  "PSX 2024"
+ ],
+ "worstRuns": [
+  {
+   "assetId": "f4e6554a-2bd0-4a6c-bdd2-09aba971cf76",
+   "symbol": "SZTM",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2021-01-01",
+   "to": "2024-08-20",
+   "sessions": 62,
+   "kind": "run-of-62"
+  },
+  {
+   "assetId": "49876520-a662-4a5f-9e90-92fc7673d95c",
+   "symbol": "AMTEX",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2020-04-01",
+   "to": "2024-05-31",
+   "sessions": 52,
+   "kind": "run-of-52"
+  },
+  {
+   "assetId": "f4e6554a-2bd0-4a6c-bdd2-09aba971cf76",
+   "symbol": "SZTM",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2025-02-06",
+   "to": "2025-03-21",
+   "sessions": 32,
+   "kind": "run-of-32"
+  },
+  {
+   "assetId": "e965f343-c398-4ef3-9946-0c56827f046a",
+   "symbol": "MQTM",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2022-10-01",
+   "to": "2024-04-30",
+   "sessions": 21,
+   "kind": "run-of-21"
+  },
+  {
+   "assetId": "dc290f2a-d49c-438a-8e64-63b9dda19235",
+   "symbol": "IDRT",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2022-04-01",
+   "to": "2023-06-27",
+   "sessions": 16,
+   "kind": "run-of-16"
+  },
+  {
+   "assetId": "f4e6554a-2bd0-4a6c-bdd2-09aba971cf76",
+   "symbol": "SZTM",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2025-04-23",
+   "to": "2025-05-15",
+   "sessions": 16,
+   "kind": "run-of-16"
+  },
+  {
+   "assetId": "e87884d7-5349-4f27-a73d-057e1205a6cc",
+   "symbol": "TSBL",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2019-03-01",
+   "to": "2020-01-31",
+   "sessions": 13,
+   "kind": "run-of-13"
+  },
+  {
+   "assetId": "dc290f2a-d49c-438a-8e64-63b9dda19235",
+   "symbol": "IDRT",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2024-10-17",
+   "to": "2024-11-04",
+   "sessions": 13,
+   "kind": "run-of-13"
+  },
+  {
+   "assetId": "20ea6421-6a51-41b5-81d8-547eb4ca7ab6",
+   "symbol": "MSCL",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2022-04-01",
+   "to": "2023-03-01",
+   "sessions": 12,
+   "kind": "run-of-12"
+  },
+  {
+   "assetId": "e965f343-c398-4ef3-9946-0c56827f046a",
+   "symbol": "MQTM",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2019-07-01",
+   "to": "2020-04-01",
+   "sessions": 11,
+   "kind": "run-of-11"
+  },
+  {
+   "assetId": "f28532a4-43ea-4c02-953b-50cfc01742c7",
+   "symbol": "SERT",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2023-02-01",
+   "to": "2023-12-01",
+   "sessions": 11,
+   "kind": "run-of-11"
+  },
+  {
+   "assetId": "e965f343-c398-4ef3-9946-0c56827f046a",
+   "symbol": "MQTM",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2025-01-23",
+   "to": "2025-02-06",
+   "sessions": 10,
+   "kind": "run-of-10"
+  },
+  {
+   "assetId": "e965f343-c398-4ef3-9946-0c56827f046a",
+   "symbol": "MQTM",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2025-03-06",
+   "to": "2025-03-19",
+   "sessions": 10,
+   "kind": "run-of-10"
+  },
+  {
+   "assetId": "24b6466a-7031-406b-9a3f-b33b54cc0708",
+   "symbol": "MEHT",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2021-04-01",
+   "to": "2021-12-01",
+   "sessions": 9,
+   "kind": "run-of-9"
+  },
+  {
+   "assetId": "e965f343-c398-4ef3-9946-0c56827f046a",
+   "symbol": "MQTM",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2024-08-29",
+   "to": "2024-09-10",
+   "sessions": 9,
+   "kind": "run-of-9"
+  },
+  {
+   "assetId": "e87884d7-5349-4f27-a73d-057e1205a6cc",
+   "symbol": "TSBL",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2022-03-01",
+   "to": "2022-10-01",
+   "sessions": 8,
+   "kind": "run-of-8"
+  },
+  {
+   "assetId": "24b6466a-7031-406b-9a3f-b33b54cc0708",
+   "symbol": "MEHT",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2019-12-31",
+   "to": "2020-07-01",
+   "sessions": 8,
+   "kind": "run-of-8"
+  },
+  {
+   "assetId": "76413356-6fdc-4e39-b5d5-95661f558dcb",
+   "symbol": "PECO",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2021-01-01",
+   "to": "2021-07-30",
+   "sessions": 8,
+   "kind": "run-of-8"
+  },
+  {
+   "assetId": "dc290f2a-d49c-438a-8e64-63b9dda19235",
+   "symbol": "IDRT",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2021-07-01",
+   "to": "2022-02-01",
+   "sessions": 8,
+   "kind": "run-of-8"
+  },
+  {
+   "assetId": "387a6fa5-f11a-4e0b-a8f1-6708d80a19e9",
+   "symbol": "SHEZ",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2019-04-30",
+   "to": "2019-11-29",
+   "sessions": 8,
+   "kind": "run-of-8"
+  },
+  {
+   "assetId": "f4e6554a-2bd0-4a6c-bdd2-09aba971cf76",
+   "symbol": "SZTM",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2024-10-23",
+   "to": "2024-11-01",
+   "sessions": 8,
+   "kind": "run-of-8"
+  },
+  {
+   "assetId": "43ead34a-4436-4783-ab38-c36523eeaefb",
+   "symbol": "NICL",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2019-04-30",
+   "to": "2019-11-01",
+   "sessions": 7,
+   "kind": "run-of-7"
+  },
+  {
+   "assetId": "76413356-6fdc-4e39-b5d5-95661f558dcb",
+   "symbol": "PECO",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2023-04-28",
+   "to": "2023-11-01",
+   "sessions": 7,
+   "kind": "run-of-7"
+  },
+  {
+   "assetId": "e965f343-c398-4ef3-9946-0c56827f046a",
+   "symbol": "MQTM",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2024-09-23",
+   "to": "2024-10-01",
+   "sessions": 7,
+   "kind": "run-of-7"
+  },
+  {
+   "assetId": "e965f343-c398-4ef3-9946-0c56827f046a",
+   "symbol": "MQTM",
+   "market": "PSX",
+   "assetType": "stock",
+   "from": "2024-10-09",
+   "to": "2024-10-17",
+   "sessions": 7,
+   "kind": "run-of-7"
+  }
+ ],
+ "probe": "not run",
+ "probeExamples": [],
+ "calendarRule": "a date is a session for a market when any of its assets has a bar; thin when fewer than 50% of that market's then-live assets do",
+ "notes": [
+  "A market fetched monthly looks fully covered by the per-asset figures above, because they compare each asset with a calendar built from the same data. calendarCompleteness is the check that catches it, and PSX before 2024 is what it catches.",
+  "Sessions outside an asset's own stored range are not gaps here; a short history is a survivorship and seeding question, covered by survivorship/report.json.",
+  "Nothing is written to any database: this measures whether a repair is possible and prints the command that would do it. tools/recover_asset.py upserts without deleting, never invents a bar, and verifies the rows it did not touch -- but it is still a production write and is left for the owner to run."
+ ]
+}
