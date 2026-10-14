@@ -1,0 +1,156 @@
+name: data worker reconcile
+
+# Rebuilds the replay's canonical checkpoint from the persisted, hash-checked outputs, then (when
+# asked) resumes only the sessions that are still missing or invalid.
+#
+# Triggered by dispatch, or by a push that changes `ops/reconcile.json`. The push trigger exists
+# so the owner's own commit can start it without a personal token on a laptop; only code on
+# `main` runs, and the run is pinned to `main`.
+#
+# Read-only against the database. The one thing it writes is a sealed artifact.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["ops/reconcile.json"]
+
+# Shares the worker's group: a reconcile never reads artifacts while a slice is mid-write, and a
+# recovery slice never starts while a reconcile is running.
+concurrency:
+  group: nbt-data-worker
+  cancel-in-progress: false
+
+# actions: write only so the final step can dispatch the recovery slice.
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prove this run is executing main
+        run: |
+          git fetch origin main --quiet
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "not main"; exit 1; }
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - run: pip install -r requirements.txt
+
+      - name: Read the request
+        id: req
+        run: |
+          f=ops/reconcile.json
+          echo "from=$(python -c "import json;print(json.load(open('$f')).get('from','2019-01-02'))")" >> "$GITHUB_OUTPUT"
+          echo "to=$(python -c "import json;print(json.load(open('$f')).get('to','2026-09-01'))")" >> "$GITHUB_OUTPUT"
+          echo "recover=$(python -c "import json;print(str(json.load(open('$f')).get('recover',False)).lower())")" >> "$GITHUB_OUTPUT"
+          echo "batch=$(python -c "import json;print(json.load(open('$f')).get('batch',900))")" >> "$GITHUB_OUTPUT"
+
+      - name: Download every sealed artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p sealed
+          gh api --paginate "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.expired==false) | [.id,.name,.created_at] | @tsv' > list.tsv
+          # every checkpoint namespace, every generation, for the record
+          awk -F'\t' '$2 ~ /checkpoint$/ {print $1" "$2" "$3}' list.tsv | while read id name at; do
+            gh api "repos/${{ github.repository }}/actions/artifacts/$id/zip" > "sealed/ckpt~$name~$id.zip"
+          done
+          awk -F'\t' '$2 ~ /^nbt-worker-output-/ {print $1" "$2}' list.tsv | while read id name; do
+            gh api "repos/${{ github.repository }}/actions/artifacts/$id/zip" > "sealed/$name.zip"
+          done
+          ls sealed | wc -l
+
+      - name: Which runs executed the current replay code
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # An output only counts when the code that produced it matches today's replay code.
+          echo "{" > runs.json
+          first=1
+          for z in sealed/nbt-worker-output-*.zip; do
+            run="$(basename "$z" .zip)"; run="${run#nbt-worker-output-}"
+            sha="$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .head_sha)"
+            if git diff --quiet "$sha" HEAD -- lib jobs tools/decide.mjs prisma/schema.prisma requirements.txt; then t=true; else t=false; fi
+            [ $first = 1 ] || echo "," >> runs.json; first=0
+            echo "\"$run\": {\"sha\": \"$sha\", \"trusted\": $t}" >> runs.json
+          done
+          echo "}" >> runs.json
+          python -c "import json;d=json.load(open('runs.json'));print(len(d),'runs;',sum(v['trusted'] for v in d.values()),'trusted')"
+
+      - name: Decrypt and reconcile
+        env:
+          KEY: ${{ secrets.WORKER_ARTIFACT_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          [ -n "$KEY" ] || { echo "WORKER_ARTIFACT_KEY not set"; exit 1; }
+          mkdir -p ck outputs canonical
+          args=""
+          for z in sealed/ckpt~*.zip; do
+            [ -f "$z" ] || continue
+            b="$(basename "$z" .zip)"; d="ck/${b#ckpt~}"; mkdir -p "$d"
+            unzip -q "$z" -d "$d"
+            n="$(echo "$b" | cut -d'~' -f2)"
+            if openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:KEY \
+                 -in "$d/checkpoint.json.enc" -out "$d/checkpoint.json" 2>/dev/null; then
+              args="$args --checkpoint ${n}@$(echo "$b" | cut -d'~' -f3)=$d/checkpoint.json"
+            fi
+          done
+          for z in sealed/nbt-worker-output-*.zip; do
+            n="$(basename "$z" .zip)"; mkdir -p "enc/$n" "outputs/$n"
+            unzip -q "$z" -d "enc/$n"
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:KEY \
+              -in "enc/$n/output.tar.gz.enc" | tar -xzf - -C "outputs/$n"
+          done
+          set +e
+          python tools/reconcile_replay.py $args --outputs outputs --runs runs.json \
+            --from "${{ steps.req.outputs.from }}" --to "${{ steps.req.outputs.to }}" --out canonical
+          echo "rc=$?" >> "$GITHUB_ENV"
+          set -e
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:KEY \
+            -in canonical/checkpoint.json -out canonical/checkpoint.json.enc
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:KEY \
+            -in canonical/report.json -out canonical/report.json.enc
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nbt-canonical-checkpoint
+          path: canonical/checkpoint.json.enc
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nbt-reconcile-report-${{ github.run_id }}
+          path: canonical/report.json.enc
+          retention-days: 30
+
+      # Only the sessions the canonical checkpoint does not hold are replayed; the worker resumes
+      # from `nbt-canonical-checkpoint` and nothing else.
+      - name: Resume the missing sessions
+        if: env.rc != '0' && steps.req.outputs.recover == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run data-worker.yml --ref main \
+            -f from='${{ steps.req.outputs.from }}' -f to='${{ steps.req.outputs.to }}' \
+            -f batch='${{ steps.req.outputs.batch }}' -f continue=true \
+            -f checkpoint=nbt-canonical-checkpoint
+
+      # The run's own colour tells the truth: green only when every expected session is verified.
+      - name: Fail unless the replay is reconciled
+        run: 'exit "${rc:-1}"'
