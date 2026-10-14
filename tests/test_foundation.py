@@ -341,6 +341,63 @@ class Assembly(unittest.TestCase):
             self.assertEqual(m["missingnessByAssetClass"]["stock"]["r1"], 0.0)
 
 
+class PrincipleRules(unittest.TestCase):
+    """The evaluated rules are functions of the point-in-time features and nothing else."""
+
+    def setUp(self):
+        import evaluate_principles as ep
+        self.ep = ep
+
+    @staticmethod
+    def rec(**f):
+        return {"asOf": "2021-06-01", "symbol": "AAA", "assetType": "stock", "market": "US",
+                "pit": {"n": 300, "f": {"r1": None, "r5": None, "r20": None, "returnZ": None,
+                                        "volumeRatio": None, "entryTrigger": None,
+                                        "triggerDirection": None, "sma20": None, "sma50": None,
+                                        "rangePct": None, "drawdownPct": None, "atr14": None,
+                                        "peerMedianR20": None, "relStrength": None, "peers": 0} | f,
+                        "an": None},
+                "candidate": None, "outcome": {"fwd20": 5.0}, "coverage": {"pit": True, "setup": False}}
+
+    def test_no_rule_reads_the_outcome(self):
+        """Poison every outcome field; a rule that changes its mind was reading the future."""
+        base = self.rec(r1=1.0, r5=-2.0, r20=3.0, returnZ=2.5, volumeRatio=2.4, sma20=10.0,
+                        sma50=9.0, rangePct=95.0, drawdownPct=-30.0, atr14=0.1,
+                        relStrength=1.5, triggerDirection="up")
+        poisoned = {**base, "outcome": {"fwd1": -99, "fwd5": -99, "fwd20": -99, "mfe": -99,
+                                        "mae": -99, "label20": "DOWN"}}
+        for pid, _, rule in self.ep.RULES:
+            self.assertEqual(rule(base), rule(poisoned), pid)
+
+    def test_every_rule_returns_a_side_and_abstains_on_missing_features(self):
+        empty = self.rec()
+        for pid, _, rule in self.ep.RULES:
+            self.assertIn(rule(empty), (-1, 0, 1), pid)
+            self.assertEqual(rule(empty), 0, f"{pid} took a side with no features")
+
+    def test_each_rule_names_a_principle_in_the_corpus(self):
+        path = DATA / "principles" / "principles.json"
+        if not path.exists():
+            self.skipTest("principles corpus not present")
+        known = {r["id"] for r in json.loads(path.read_text(encoding="utf-8"))["principles"]}
+        for pid, _, _ in self.ep.RULES:
+            if not pid.startswith("NBT-"):
+                self.assertIn(pid, known, f"{pid} is not a principle in the corpus")
+
+    def test_the_verdict_requires_beating_both_controls(self):
+        controls = {"buy-and-hold": {"meanNetPct": {"base": 1.0}},
+                    "coin-flip": {"meanNetPct": {"base": -0.2}}}
+        strong = {"trades": 500, "meanNetPct": {"base": 2.0}, "meanNetBaseCI95": [0.5, 3.0],
+                  "deflatedSharpeProbability": 0.99}
+        self.assertEqual(self.ep.verdict(strong, controls)["verdict"], "PASS")
+        for broken in ({"meanNetPct": {"base": 0.5}},                      # loses to buy-and-hold
+                       {"meanNetBaseCI95": [-0.1, 3.0]},                   # interval includes zero
+                       {"deflatedSharpeProbability": 0.5},                 # not past the trials
+                       {"meanNetPct": {"base": -1.0}}):                    # loses money
+            self.assertEqual(self.ep.verdict({**strong, **broken}, controls)["verdict"], "FAIL", broken)
+        self.assertEqual(self.ep.verdict({**strong, "trades": 10}, controls)["verdict"], "INSUFFICIENT")
+
+
 # ------------------------------------------------------------------ acceptance gates
 
 
@@ -377,6 +434,47 @@ class MacroGate(unittest.TestCase):
         m = self.manifest()
         for sid in m.get("shorterThan15Years", {}):
             self.assertNotIn(sid, m["series"])
+
+
+class MacroVintageGate(unittest.TestCase):
+    """Revision history: what was first published, what it became, and where we cannot know."""
+
+    def files(self):
+        d = DATA / "macro" / "vintages"
+        if not d.exists() or not list(d.glob("*.jsonl")):
+            raise unittest.SkipTest("no vintage files present")
+        return sorted(d.glob("*.jsonl"))
+
+    def rows(self, p):
+        return [json.loads(l) for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
+
+    def test_at_least_ten_series_have_revision_history(self):
+        self.assertGreaterEqual(len(self.files()), 10)
+
+    def test_no_observation_is_first_seen_before_the_period_it_describes(self):
+        for p in self.files():
+            for r in self.rows(p):
+                self.assertGreaterEqual(r["firstSeen"], r["obs"], f"{p.stem} {r['obs']}")
+
+    def test_an_observation_older_than_the_first_snapshot_is_marked_left_censored(self):
+        """Its firstSeen is when we first looked, not when it was published, and saying otherwise
+        would turn a collection artefact into a release date."""
+        for p in self.files():
+            rows = self.rows(p)
+            earliest = min(r["firstSeen"] for r in rows)
+            for r in rows:
+                self.assertEqual(r["leftCensored"], r["firstSeen"] <= earliest, f"{p.stem} {r['obs']}")
+
+    def test_enough_observations_have_a_real_first_publication(self):
+        real = sum(1 for p in self.files() for r in self.rows(p) if not r["leftCensored"])
+        self.assertGreaterEqual(real, 1500, f"only {real} observations were first seen after collection began")
+
+    def test_revisions_match_the_stored_history(self):
+        for p in self.files():
+            for r in self.rows(p):
+                self.assertEqual(r["revisions"], len(r["history"]) - 1, f"{p.stem} {r['obs']}")
+                self.assertEqual(r["firstValue"], r["history"][0][1])
+                self.assertEqual(r["latestValue"], r["history"][-1][1])
 
 
 class PrinciplesGate(unittest.TestCase):

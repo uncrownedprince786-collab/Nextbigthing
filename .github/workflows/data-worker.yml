@@ -226,6 +226,16 @@ jobs:
           for k, v in d.items():
               print(f"- **{k}**: {v}")
           PY
+            # Also as a check-run annotation. The step summary needs a signed-in reader, so on a
+            # public repository this is the only form of the progress a reviewer can fetch without
+            # credentials. Counts and dates only -- the same figures the summary above carries.
+            python - <<'PY'
+          import json
+          d = json.load(open("state/progress.json"))
+          keep = {k: v for k, v in d.items() if k != "failures"}
+          keep["failureStages"] = sorted({f.get("stage") for f in d.get("failures", [])})
+          print("::notice title=data worker slice::" + json.dumps(keep))
+          PY
           fi
 
       # The next slice, only when this one actually finished its batch and more remains.

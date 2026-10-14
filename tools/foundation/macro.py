@@ -188,13 +188,42 @@ def vintages(only: str | None = None) -> None:
                 print(f"  {sid} {n}/{len(todo)} (to {d})", flush=True)
             time.sleep(0.5)
         state_path.write_text(json.dumps(state), encoding="utf-8")
-        with open(vdir / f"{sid}.jsonl", "w", encoding="utf-8") as f:
-            for od in sorted(state["obs"]):
-                h = state["obs"][od]
-                f.write(json.dumps({"obs": od, "firstSeen": h[0][0], "firstValue": h[0][1],
-                                    "latestValue": h[-1][1], "revisions": len(h) - 1,
-                                    "history": h}) + "\n")
+        write_vintage_file(sid, state, vdir)
         print(f"{sid}: wrote {len(state['obs'])} observations, {len(state['errors'])} failed snapshots", flush=True)
+
+
+def write_vintage_file(sid: str, state: dict, vdir: Path) -> None:
+    """One line per observation: the revisions seen, and whether its first sighting is a real one.
+
+    ALFRED returns a series' whole history in every snapshot, not only the part after `cosd`, so
+    most of these observations already existed when the first snapshot was taken. For those,
+    `firstSeen` is the date this collector first looked, NOT the date the figure was published,
+    and `firstValue` is that vintage's value rather than the original print. They are flagged
+    `leftCensored`, and a reader must take their `firstSeen` as "published on or before this" and
+    their `revisions` as a floor. Using a left-censored `firstSeen` as an availability date is
+    safe -- it is later than the truth, so it withholds data rather than leaking it -- but it is
+    not a release date and must never be reported as one.
+    """
+    if not state["done"]:
+        return
+    earliest = min(state["done"])
+    with open(vdir / f"{sid}.jsonl", "w", encoding="utf-8") as f:
+        for od in sorted(state["obs"]):
+            h = state["obs"][od]
+            f.write(json.dumps({"obs": od, "firstSeen": h[0][0], "firstValue": h[0][1],
+                                "latestValue": h[-1][1], "revisions": len(h) - 1,
+                                "leftCensored": h[0][0] <= earliest,
+                                "history": h}) + "\n")
+
+
+def rewrite() -> None:
+    """Regenerate every vintage file from the collector state, fetching nothing."""
+    vdir = OUT / "vintages"
+    for sp in sorted(vdir.glob("*.state.json")):
+        sid = sp.stem.replace(".state", "")
+        state = json.loads(sp.read_text(encoding="utf-8"))
+        write_vintage_file(sid, state, vdir)
+        print(f"{sid}: {len(state['obs'])} observations from {len(state['done'])} snapshots", flush=True)
 
 
 def report() -> None:
@@ -202,12 +231,18 @@ def report() -> None:
     full = {k: v for k, v in m["series"].items()}
     fifteen = [k for k, v in full.items()
                if (date.fromisoformat(v["last"]) - date.fromisoformat(v["first"])).days >= 15 * 365]
-    vint = {p.stem: sum(1 for _ in open(p, encoding="utf-8")) for p in (OUT / "vintages").glob("*.jsonl")}
     print(f"series with data: {len(full)}; with at least 15 years: {len(fifteen)}")
-    print(f"revision-tracked with vintage files: {sorted(vint)}")
+    print("revision-tracked (firstSeen is a real sighting only where not left-censored):")
+    for p in sorted((OUT / "vintages").glob("*.jsonl")):
+        rows = [json.loads(l) for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
+        live = [r for r in rows if not r["leftCensored"]]
+        print(f"  {p.stem:10} observations {len(rows):5}  firstSeenIsReal {len(live):4}  "
+              f"revisedAfterFirstSeen {sum(r['revisions'] > 0 for r in live):4}  "
+              f"maxRevisions {max((r['revisions'] for r in rows), default=0):4}")
     print("shorter than 15y:", m.get("shorterThan15Years", {}))
 
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "history"
-    {"history": history, "report": report}.get(cmd, lambda: vintages(sys.argv[2] if len(sys.argv) > 2 else None))()
+    {"history": history, "report": report, "rewrite": rewrite}.get(
+        cmd, lambda: vintages(sys.argv[2] if len(sys.argv) > 2 else None))()

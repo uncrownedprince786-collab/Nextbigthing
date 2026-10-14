@@ -1,0 +1,199 @@
+{"obs": "2010-01-01", "firstSeen": "2010-02-14", "firstValue": "9.7", "latestValue": "9.8", "revisions": 3, "leftCensored": true, "history": [["2010-02-14", "9.7"], ["2013-01-14", "9.8"], ["2014-01-14", "9.7"], ["2015-01-14", "9.8"]]}
+{"obs": "2010-02-01", "firstSeen": "2010-03-14", "firstValue": "9.7", "latestValue": "9.8", "revisions": 1, "leftCensored": false, "history": [["2010-03-14", "9.7"], ["2012-01-14", "9.8"]]}
+{"obs": "2010-03-01", "firstSeen": "2010-04-14", "firstValue": "9.7", "latestValue": "9.9", "revisions": 2, "leftCensored": false, "history": [["2010-04-14", "9.7"], ["2012-01-14", "9.8"], ["2013-01-14", "9.9"]]}
+{"obs": "2010-04-01", "firstSeen": "2010-05-14", "firstValue": "9.9", "latestValue": "9.9", "revisions": 2, "leftCensored": false, "history": [["2010-05-14", "9.9"], ["2011-01-14", "9.8"], ["2012-01-14", "9.9"]]}
+{"obs": "2010-05-01", "firstSeen": "2010-06-14", "firstValue": "9.7", "latestValue": "9.6", "revisions": 1, "leftCensored": false, "history": [["2010-06-14", "9.7"], ["2011-01-14", "9.6"]]}
+{"obs": "2010-06-01", "firstSeen": "2010-07-14", "firstValue": "9.5", "latestValue": "9.4", "revisions": 1, "leftCensored": false, "history": [["2010-07-14", "9.5"], ["2012-01-14", "9.4"]]}
+{"obs": "2010-07-01", "firstSeen": "2010-08-14", "firstValue": "9.5", "latestValue": "9.4", "revisions": 1, "leftCensored": false, "history": [["2010-08-14", "9.5"], ["2015-01-14", "9.4"]]}
+{"obs": "2010-08-01", "firstSeen": "2010-09-14", "firstValue": "9.6", "latestValue": "9.5", "revisions": 1, "leftCensored": false, "history": [["2010-09-14", "9.6"], ["2013-01-14", "9.5"]]}
+{"obs": "2010-09-01", "firstSeen": "2010-10-14", "firstValue": "9.6", "latestValue": "9.5", "revisions": 1, "leftCensored": false, "history": [["2010-10-14", "9.6"], ["2012-01-14", "9.5"]]}
+{"obs": "2010-10-01", "firstSeen": "2010-11-14", "firstValue": "9.6", "latestValue": "9.4", "revisions": 3, "leftCensored": false, "history": [["2010-11-14", "9.6"], ["2011-01-14", "9.7"], ["2012-01-14", "9.5"], ["2015-01-14", "9.4"]]}
+{"obs": "2010-11-01", "firstSeen": "2010-12-14", "firstValue": "9.8", "latestValue": "9.8", "revisions": 0, "leftCensored": false, "history": [["2010-12-14", "9.8"]]}
+{"obs": "2010-12-01", "firstSeen": "2011-01-14", "firstValue": "9.4", "latestValue": "9.3", "revisions": 3, "leftCensored": false, "history": [["2011-01-14", "9.4"], ["2013-01-14", "9.3"], ["2014-01-14", "9.4"], ["2015-01-14", "9.3"]]}
+{"obs": "2011-01-01", "firstSeen": "2011-02-14", "firstValue": "9.0", "latestValue": "9.1", "revisions": 3, "leftCensored": false, "history": [["2011-02-14", "9.0"], ["2012-01-14", "9.1"], ["2015-01-14", "9.2"], ["2016-01-14", "9.1"]]}
+{"obs": "2011-02-01", "firstSeen": "2011-03-14", "firstValue": "8.9", "latestValue": "9.0", "revisions": 1, "leftCensored": false, "history": [["2011-03-14", "8.9"], ["2012-01-14", "9.0"]]}
+{"obs": "2011-03-01", "firstSeen": "2011-04-14", "firstValue": "8.8", "latestValue": "9.0", "revisions": 2, "leftCensored": false, "history": [["2011-04-14", "8.8"], ["2012-01-14", "8.9"], ["2014-01-14", "9.0"]]}
+{"obs": "2011-04-01", "firstSeen": "2011-05-14", "firstValue": "9.0", "latestValue": "9.1", "revisions": 1, "leftCensored": false, "history": [["2011-05-14", "9.0"], ["2014-01-14", "9.1"]]}
+{"obs": "2011-05-01", "firstSeen": "2011-06-14", "firstValue": "9.1", "latestValue": "9.0", "revisions": 1, "leftCensored": false, "history": [["2011-06-14", "9.1"], ["2012-01-14", "9.0"]]}
+{"obs": "2011-06-01", "firstSeen": "2011-07-14", "firstValue": "9.2", "latestValue": "9.1", "revisions": 1, "leftCensored": false, "history": [["2011-07-14", "9.2"], ["2012-01-14", "9.1"]]}
+{"obs": "2011-07-01", "firstSeen": "2011-08-14", "firstValue": "9.1", "latestValue": "9.0", "revisions": 1, "leftCensored": false, "history": [["2011-08-14", "9.1"], ["2013-01-14", "9.0"]]}
+{"obs": "2011-08-01", "firstSeen": "2011-09-14", "firstValue": "9.1", "latestValue": "9.0", "revisions": 1, "leftCensored": false, "history": [["2011-09-14", "9.1"], ["2013-01-14", "9.0"]]}
+{"obs": "2011-09-01", "firstSeen": "2011-10-14", "firstValue": "9.1", "latestValue": "9.0", "revisions": 1, "leftCensored": false, "history": [["2011-10-14", "9.1"], ["2012-01-14", "9.0"]]}
+{"obs": "2011-10-01", "firstSeen": "2011-11-14", "firstValue": "9.0", "latestValue": "8.8", "revisions": 2, "leftCensored": false, "history": [["2011-11-14", "9.0"], ["2012-01-14", "8.9"], ["2014-01-14", "8.8"]]}
+{"obs": "2011-11-01", "firstSeen": "2011-12-14", "firstValue": "8.6", "latestValue": "8.6", "revisions": 2, "leftCensored": false, "history": [["2011-12-14", "8.6"], ["2012-01-14", "8.7"], ["2013-01-14", "8.6"]]}
+{"obs": "2011-12-01", "firstSeen": "2012-01-14", "firstValue": "8.5", "latestValue": "8.5", "revisions": 0, "leftCensored": false, "history": [["2012-01-14", "8.5"]]}
+{"obs": "2012-01-01", "firstSeen": "2012-02-14", "firstValue": "8.3", "latestValue": "8.3", "revisions": 2, "leftCensored": false, "history": [["2012-02-14", "8.3"], ["2014-01-14", "8.2"], ["2015-01-14", "8.3"]]}
+{"obs": "2012-02-01", "firstSeen": "2012-03-14", "firstValue": "8.3", "latestValue": "8.3", "revisions": 0, "leftCensored": false, "history": [["2012-03-14", "8.3"]]}
+{"obs": "2012-03-01", "firstSeen": "2012-04-14", "firstValue": "8.2", "latestValue": "8.2", "revisions": 0, "leftCensored": false, "history": [["2012-04-14", "8.2"]]}
+{"obs": "2012-04-01", "firstSeen": "2012-05-14", "firstValue": "8.1", "latestValue": "8.2", "revisions": 1, "leftCensored": false, "history": [["2012-05-14", "8.1"], ["2014-01-14", "8.2"]]}
+{"obs": "2012-05-01", "firstSeen": "2012-06-14", "firstValue": "8.2", "latestValue": "8.2", "revisions": 0, "leftCensored": false, "history": [["2012-06-14", "8.2"]]}
+{"obs": "2012-06-01", "firstSeen": "2012-07-14", "firstValue": "8.2", "latestValue": "8.2", "revisions": 0, "leftCensored": false, "history": [["2012-07-14", "8.2"]]}
+{"obs": "2012-07-01", "firstSeen": "2012-08-14", "firstValue": "8.3", "latestValue": "8.2", "revisions": 1, "leftCensored": false, "history": [["2012-08-14", "8.3"], ["2013-01-14", "8.2"]]}
+{"obs": "2012-08-01", "firstSeen": "2012-09-14", "firstValue": "8.1", "latestValue": "8.1", "revisions": 2, "leftCensored": false, "history": [["2012-09-14", "8.1"], ["2015-01-14", "8.0"], ["2016-01-14", "8.1"]]}
+{"obs": "2012-09-01", "firstSeen": "2012-10-14", "firstValue": "7.8", "latestValue": "7.8", "revisions": 0, "leftCensored": false, "history": [["2012-10-14", "7.8"]]}
+{"obs": "2012-10-01", "firstSeen": "2012-11-14", "firstValue": "7.9", "latestValue": "7.8", "revisions": 1, "leftCensored": false, "history": [["2012-11-14", "7.9"], ["2014-01-14", "7.8"]]}
+{"obs": "2012-11-01", "firstSeen": "2012-12-14", "firstValue": "7.7", "latestValue": "7.7", "revisions": 2, "leftCensored": false, "history": [["2012-12-14", "7.7"], ["2013-01-14", "7.8"], ["2015-01-14", "7.7"]]}
+{"obs": "2012-12-01", "firstSeen": "2013-01-14", "firstValue": "7.8", "latestValue": "7.9", "revisions": 1, "leftCensored": false, "history": [["2013-01-14", "7.8"], ["2014-01-14", "7.9"]]}
+{"obs": "2013-01-01", "firstSeen": "2013-02-14", "firstValue": "7.9", "latestValue": "8.0", "revisions": 1, "leftCensored": false, "history": [["2013-02-14", "7.9"], ["2015-01-14", "8.0"]]}
+{"obs": "2013-02-01", "firstSeen": "2013-03-14", "firstValue": "7.7", "latestValue": "7.7", "revisions": 0, "leftCensored": false, "history": [["2013-03-14", "7.7"]]}
+{"obs": "2013-03-01", "firstSeen": "2013-04-14", "firstValue": "7.6", "latestValue": "7.5", "revisions": 1, "leftCensored": false, "history": [["2013-04-14", "7.6"], ["2014-01-14", "7.5"]]}
+{"obs": "2013-04-01", "firstSeen": "2013-05-14", "firstValue": "7.5", "latestValue": "7.6", "revisions": 1, "leftCensored": false, "history": [["2013-05-14", "7.5"], ["2015-01-14", "7.6"]]}
+{"obs": "2013-05-01", "firstSeen": "2013-06-14", "firstValue": "7.6", "latestValue": "7.5", "revisions": 1, "leftCensored": false, "history": [["2013-06-14", "7.6"], ["2014-01-14", "7.5"]]}
+{"obs": "2013-06-01", "firstSeen": "2013-07-14", "firstValue": "7.6", "latestValue": "7.5", "revisions": 1, "leftCensored": false, "history": [["2013-07-14", "7.6"], ["2014-01-14", "7.5"]]}
+{"obs": "2013-07-01", "firstSeen": "2013-08-14", "firstValue": "7.4", "latestValue": "7.3", "revisions": 1, "leftCensored": false, "history": [["2013-08-14", "7.4"], ["2014-01-14", "7.3"]]}
+{"obs": "2013-08-01", "firstSeen": "2013-09-14", "firstValue": "7.3", "latestValue": "7.2", "revisions": 3, "leftCensored": false, "history": [["2013-09-14", "7.3"], ["2014-01-14", "7.2"], ["2016-01-14", "7.3"], ["2018-01-14", "7.2"]]}
+{"obs": "2013-09-01", "firstSeen": "2013-10-28", "firstValue": "7.2", "latestValue": "7.2", "revisions": 2, "leftCensored": false, "history": [["2013-10-28", "7.2"], ["2016-01-14", "7.3"], ["2017-01-14", "7.2"]]}
+{"obs": "2013-10-01", "firstSeen": "2013-11-14", "firstValue": "7.3", "latestValue": "7.2", "revisions": 1, "leftCensored": false, "history": [["2013-11-14", "7.3"], ["2014-01-14", "7.2"]]}
+{"obs": "2013-11-01", "firstSeen": "2013-12-14", "firstValue": "7.0", "latestValue": "6.9", "revisions": 1, "leftCensored": false, "history": [["2013-12-14", "7.0"], ["2016-01-14", "6.9"]]}
+{"obs": "2013-12-01", "firstSeen": "2014-01-14", "firstValue": "6.7", "latestValue": "6.7", "revisions": 0, "leftCensored": false, "history": [["2014-01-14", "6.7"]]}
+{"obs": "2014-01-01", "firstSeen": "2014-02-14", "firstValue": "6.6", "latestValue": "6.6", "revisions": 0, "leftCensored": false, "history": [["2014-02-14", "6.6"]]}
+{"obs": "2014-02-01", "firstSeen": "2014-03-14", "firstValue": "6.7", "latestValue": "6.7", "revisions": 0, "leftCensored": false, "history": [["2014-03-14", "6.7"]]}
+{"obs": "2014-03-01", "firstSeen": "2014-04-14", "firstValue": "6.7", "latestValue": "6.7", "revisions": 2, "leftCensored": false, "history": [["2014-04-14", "6.7"], ["2015-01-14", "6.6"], ["2016-01-14", "6.7"]]}
+{"obs": "2014-04-01", "firstSeen": "2014-05-14", "firstValue": "6.3", "latestValue": "6.2", "revisions": 3, "leftCensored": false, "history": [["2014-05-14", "6.3"], ["2015-01-14", "6.2"], ["2018-01-14", "6.3"], ["2019-01-14", "6.2"]]}
+{"obs": "2014-05-01", "firstSeen": "2014-06-14", "firstValue": "6.3", "latestValue": "6.3", "revisions": 2, "leftCensored": false, "history": [["2014-06-14", "6.3"], ["2016-01-14", "6.2"], ["2017-01-14", "6.3"]]}
+{"obs": "2014-06-01", "firstSeen": "2014-07-14", "firstValue": "6.1", "latestValue": "6.1", "revisions": 0, "leftCensored": false, "history": [["2014-07-14", "6.1"]]}
+{"obs": "2014-07-01", "firstSeen": "2014-08-14", "firstValue": "6.2", "latestValue": "6.2", "revisions": 0, "leftCensored": false, "history": [["2014-08-14", "6.2"]]}
+{"obs": "2014-08-01", "firstSeen": "2014-09-14", "firstValue": "6.1", "latestValue": "6.1", "revisions": 2, "leftCensored": false, "history": [["2014-09-14", "6.1"], ["2016-01-14", "6.2"], ["2019-01-14", "6.1"]]}
+{"obs": "2014-09-01", "firstSeen": "2014-10-14", "firstValue": "5.9", "latestValue": "5.9", "revisions": 2, "leftCensored": false, "history": [["2014-10-14", "5.9"], ["2016-01-14", "6.0"], ["2017-01-14", "5.9"]]}
+{"obs": "2014-10-01", "firstSeen": "2014-11-14", "firstValue": "5.8", "latestValue": "5.7", "revisions": 1, "leftCensored": false, "history": [["2014-11-14", "5.8"], ["2015-01-14", "5.7"]]}
+{"obs": "2014-11-01", "firstSeen": "2014-12-14", "firstValue": "5.8", "latestValue": "5.8", "revisions": 0, "leftCensored": false, "history": [["2014-12-14", "5.8"]]}
+{"obs": "2014-12-01", "firstSeen": "2015-01-14", "firstValue": "5.6", "latestValue": "5.6", "revisions": 0, "leftCensored": false, "history": [["2015-01-14", "5.6"]]}
+{"obs": "2015-01-01", "firstSeen": "2015-02-14", "firstValue": "5.7", "latestValue": "5.7", "revisions": 0, "leftCensored": false, "history": [["2015-02-14", "5.7"]]}
+{"obs": "2015-02-01", "firstSeen": "2015-03-14", "firstValue": "5.5", "latestValue": "5.5", "revisions": 0, "leftCensored": false, "history": [["2015-03-14", "5.5"]]}
+{"obs": "2015-03-01", "firstSeen": "2015-04-14", "firstValue": "5.5", "latestValue": "5.4", "revisions": 3, "leftCensored": false, "history": [["2015-04-14", "5.5"], ["2017-01-14", "5.4"], ["2018-01-14", "5.5"], ["2019-01-14", "5.4"]]}
+{"obs": "2015-04-01", "firstSeen": "2015-05-14", "firstValue": "5.4", "latestValue": "5.4", "revisions": 0, "leftCensored": false, "history": [["2015-05-14", "5.4"]]}
+{"obs": "2015-05-01", "firstSeen": "2015-06-14", "firstValue": "5.5", "latestValue": "5.6", "revisions": 1, "leftCensored": false, "history": [["2015-06-14", "5.5"], ["2019-01-14", "5.6"]]}
+{"obs": "2015-06-01", "firstSeen": "2015-07-14", "firstValue": "5.3", "latestValue": "5.3", "revisions": 0, "leftCensored": false, "history": [["2015-07-14", "5.3"]]}
+{"obs": "2015-07-01", "firstSeen": "2015-08-14", "firstValue": "5.3", "latestValue": "5.2", "revisions": 1, "leftCensored": false, "history": [["2015-08-14", "5.3"], ["2017-01-14", "5.2"]]}
+{"obs": "2015-08-01", "firstSeen": "2015-09-14", "firstValue": "5.1", "latestValue": "5.1", "revisions": 0, "leftCensored": false, "history": [["2015-09-14", "5.1"]]}
+{"obs": "2015-09-01", "firstSeen": "2015-10-14", "firstValue": "5.1", "latestValue": "5.0", "revisions": 1, "leftCensored": false, "history": [["2015-10-14", "5.1"], ["2017-01-14", "5.0"]]}
+{"obs": "2015-10-01", "firstSeen": "2015-11-14", "firstValue": "5.0", "latestValue": "5.0", "revisions": 0, "leftCensored": false, "history": [["2015-11-14", "5.0"]]}
+{"obs": "2015-11-01", "firstSeen": "2015-12-14", "firstValue": "5.0", "latestValue": "5.1", "revisions": 1, "leftCensored": false, "history": [["2015-12-14", "5.0"], ["2019-01-14", "5.1"]]}
+{"obs": "2015-12-01", "firstSeen": "2016-01-14", "firstValue": "5.0", "latestValue": "5.0", "revisions": 0, "leftCensored": false, "history": [["2016-01-14", "5.0"]]}
+{"obs": "2016-01-01", "firstSeen": "2016-02-14", "firstValue": "4.9", "latestValue": "4.8", "revisions": 1, "leftCensored": false, "history": [["2016-02-14", "4.9"], ["2021-01-14", "4.8"]]}
+{"obs": "2016-02-01", "firstSeen": "2016-03-14", "firstValue": "4.9", "latestValue": "4.9", "revisions": 0, "leftCensored": false, "history": [["2016-03-14", "4.9"]]}
+{"obs": "2016-03-01", "firstSeen": "2016-04-14", "firstValue": "5.0", "latestValue": "5.0", "revisions": 0, "leftCensored": false, "history": [["2016-04-14", "5.0"]]}
+{"obs": "2016-04-01", "firstSeen": "2016-05-14", "firstValue": "5.0", "latestValue": "5.1", "revisions": 1, "leftCensored": false, "history": [["2016-05-14", "5.0"], ["2021-01-14", "5.1"]]}
+{"obs": "2016-05-01", "firstSeen": "2016-06-14", "firstValue": "4.7", "latestValue": "4.8", "revisions": 1, "leftCensored": false, "history": [["2016-06-14", "4.7"], ["2019-01-14", "4.8"]]}
+{"obs": "2016-06-01", "firstSeen": "2016-07-14", "firstValue": "4.9", "latestValue": "4.9", "revisions": 0, "leftCensored": false, "history": [["2016-07-14", "4.9"]]}
+{"obs": "2016-07-01", "firstSeen": "2016-08-14", "firstValue": "4.9", "latestValue": "4.8", "revisions": 1, "leftCensored": false, "history": [["2016-08-14", "4.9"], ["2019-01-14", "4.8"]]}
+{"obs": "2016-08-01", "firstSeen": "2016-09-14", "firstValue": "4.9", "latestValue": "4.9", "revisions": 0, "leftCensored": false, "history": [["2016-09-14", "4.9"]]}
+{"obs": "2016-09-01", "firstSeen": "2016-10-14", "firstValue": "5.0", "latestValue": "5.0", "revisions": 2, "leftCensored": false, "history": [["2016-10-14", "5.0"], ["2017-01-14", "4.9"], ["2018-01-14", "5.0"]]}
+{"obs": "2016-10-01", "firstSeen": "2016-11-14", "firstValue": "4.9", "latestValue": "4.9", "revisions": 2, "leftCensored": false, "history": [["2016-11-14", "4.9"], ["2017-01-14", "4.8"], ["2018-01-14", "4.9"]]}
+{"obs": "2016-11-01", "firstSeen": "2016-12-14", "firstValue": "4.6", "latestValue": "4.7", "revisions": 1, "leftCensored": false, "history": [["2016-12-14", "4.6"], ["2019-01-14", "4.7"]]}
+{"obs": "2016-12-01", "firstSeen": "2017-01-14", "firstValue": "4.7", "latestValue": "4.7", "revisions": 0, "leftCensored": false, "history": [["2017-01-14", "4.7"]]}
+{"obs": "2017-01-01", "firstSeen": "2017-02-14", "firstValue": "4.8", "latestValue": "4.7", "revisions": 1, "leftCensored": false, "history": [["2017-02-14", "4.8"], ["2019-01-14", "4.7"]]}
+{"obs": "2017-02-01", "firstSeen": "2017-03-14", "firstValue": "4.7", "latestValue": "4.6", "revisions": 1, "leftCensored": false, "history": [["2017-03-14", "4.7"], ["2020-01-14", "4.6"]]}
+{"obs": "2017-03-01", "firstSeen": "2017-04-14", "firstValue": "4.5", "latestValue": "4.4", "revisions": 1, "leftCensored": false, "history": [["2017-04-14", "4.5"], ["2019-01-14", "4.4"]]}
+{"obs": "2017-04-01", "firstSeen": "2017-05-14", "firstValue": "4.4", "latestValue": "4.4", "revisions": 2, "leftCensored": false, "history": [["2017-05-14", "4.4"], ["2021-01-14", "4.5"], ["2022-01-14", "4.4"]]}
+{"obs": "2017-05-01", "firstSeen": "2017-06-14", "firstValue": "4.3", "latestValue": "4.4", "revisions": 1, "leftCensored": false, "history": [["2017-06-14", "4.3"], ["2019-01-14", "4.4"]]}
+{"obs": "2017-06-01", "firstSeen": "2017-07-14", "firstValue": "4.4", "latestValue": "4.3", "revisions": 1, "leftCensored": false, "history": [["2017-07-14", "4.4"], ["2018-01-14", "4.3"]]}
+{"obs": "2017-07-01", "firstSeen": "2017-08-14", "firstValue": "4.3", "latestValue": "4.3", "revisions": 0, "leftCensored": false, "history": [["2017-08-14", "4.3"]]}
+{"obs": "2017-08-01", "firstSeen": "2017-09-14", "firstValue": "4.4", "latestValue": "4.4", "revisions": 0, "leftCensored": false, "history": [["2017-09-14", "4.4"]]}
+{"obs": "2017-09-01", "firstSeen": "2017-10-14", "firstValue": "4.2", "latestValue": "4.3", "revisions": 1, "leftCensored": false, "history": [["2017-10-14", "4.2"], ["2022-01-14", "4.3"]]}
+{"obs": "2017-10-01", "firstSeen": "2017-11-14", "firstValue": "4.1", "latestValue": "4.2", "revisions": 1, "leftCensored": false, "history": [["2017-11-14", "4.1"], ["2022-01-14", "4.2"]]}
+{"obs": "2017-11-01", "firstSeen": "2017-12-14", "firstValue": "4.1", "latestValue": "4.2", "revisions": 1, "leftCensored": false, "history": [["2017-12-14", "4.1"], ["2019-01-14", "4.2"]]}
+{"obs": "2017-12-01", "firstSeen": "2018-01-14", "firstValue": "4.1", "latestValue": "4.1", "revisions": 0, "leftCensored": false, "history": [["2018-01-14", "4.1"]]}
+{"obs": "2018-01-01", "firstSeen": "2018-02-14", "firstValue": "4.1", "latestValue": "4.0", "revisions": 1, "leftCensored": false, "history": [["2018-02-14", "4.1"], ["2021-01-14", "4.0"]]}
+{"obs": "2018-02-01", "firstSeen": "2018-03-14", "firstValue": "4.1", "latestValue": "4.1", "revisions": 0, "leftCensored": false, "history": [["2018-03-14", "4.1"]]}
+{"obs": "2018-03-01", "firstSeen": "2018-04-14", "firstValue": "4.1", "latestValue": "4.0", "revisions": 1, "leftCensored": false, "history": [["2018-04-14", "4.1"], ["2019-01-14", "4.0"]]}
+{"obs": "2018-04-01", "firstSeen": "2018-05-14", "firstValue": "3.9", "latestValue": "4.0", "revisions": 1, "leftCensored": false, "history": [["2018-05-14", "3.9"], ["2020-01-14", "4.0"]]}
+{"obs": "2018-05-01", "firstSeen": "2018-06-14", "firstValue": "3.8", "latestValue": "3.8", "revisions": 0, "leftCensored": false, "history": [["2018-06-14", "3.8"]]}
+{"obs": "2018-06-01", "firstSeen": "2018-07-14", "firstValue": "4.0", "latestValue": "4.0", "revisions": 0, "leftCensored": false, "history": [["2018-07-14", "4.0"]]}
+{"obs": "2018-07-01", "firstSeen": "2018-08-14", "firstValue": "3.9", "latestValue": "3.8", "revisions": 1, "leftCensored": false, "history": [["2018-08-14", "3.9"], ["2020-01-14", "3.8"]]}
+{"obs": "2018-08-01", "firstSeen": "2018-09-14", "firstValue": "3.9", "latestValue": "3.8", "revisions": 1, "leftCensored": false, "history": [["2018-09-14", "3.9"], ["2019-01-14", "3.8"]]}
+{"obs": "2018-09-01", "firstSeen": "2018-10-14", "firstValue": "3.7", "latestValue": "3.7", "revisions": 0, "leftCensored": false, "history": [["2018-10-14", "3.7"]]}
+{"obs": "2018-10-01", "firstSeen": "2018-11-14", "firstValue": "3.7", "latestValue": "3.8", "revisions": 1, "leftCensored": false, "history": [["2018-11-14", "3.7"], ["2019-01-14", "3.8"]]}
+{"obs": "2018-11-01", "firstSeen": "2018-12-14", "firstValue": "3.7", "latestValue": "3.8", "revisions": 1, "leftCensored": false, "history": [["2018-12-14", "3.7"], ["2021-01-14", "3.8"]]}
+{"obs": "2018-12-01", "firstSeen": "2019-01-14", "firstValue": "3.9", "latestValue": "3.9", "revisions": 0, "leftCensored": false, "history": [["2019-01-14", "3.9"]]}
+{"obs": "2019-01-01", "firstSeen": "2019-02-14", "firstValue": "4.0", "latestValue": "4.0", "revisions": 0, "leftCensored": false, "history": [["2019-02-14", "4.0"]]}
+{"obs": "2019-02-01", "firstSeen": "2019-03-14", "firstValue": "3.8", "latestValue": "3.8", "revisions": 0, "leftCensored": false, "history": [["2019-03-14", "3.8"]]}
+{"obs": "2019-03-01", "firstSeen": "2019-04-14", "firstValue": "3.8", "latestValue": "3.8", "revisions": 0, "leftCensored": false, "history": [["2019-04-14", "3.8"]]}
+{"obs": "2019-04-01", "firstSeen": "2019-05-14", "firstValue": "3.6", "latestValue": "3.7", "revisions": 3, "leftCensored": false, "history": [["2019-05-14", "3.6"], ["2021-01-14", "3.7"], ["2022-01-14", "3.6"], ["2024-01-14", "3.7"]]}
+{"obs": "2019-05-01", "firstSeen": "2019-06-14", "firstValue": "3.6", "latestValue": "3.6", "revisions": 4, "leftCensored": false, "history": [["2019-06-14", "3.6"], ["2021-01-14", "3.7"], ["2022-01-14", "3.6"], ["2023-01-14", "3.7"], ["2024-01-14", "3.6"]]}
+{"obs": "2019-06-01", "firstSeen": "2019-07-14", "firstValue": "3.7", "latestValue": "3.6", "revisions": 1, "leftCensored": false, "history": [["2019-07-14", "3.7"], ["2021-01-14", "3.6"]]}
+{"obs": "2019-07-01", "firstSeen": "2019-08-14", "firstValue": "3.7", "latestValue": "3.7", "revisions": 2, "leftCensored": false, "history": [["2019-08-14", "3.7"], ["2021-01-14", "3.6"], ["2022-01-14", "3.7"]]}
+{"obs": "2019-08-01", "firstSeen": "2019-09-14", "firstValue": "3.7", "latestValue": "3.6", "revisions": 1, "leftCensored": false, "history": [["2019-09-14", "3.7"], ["2024-01-14", "3.6"]]}
+{"obs": "2019-09-01", "firstSeen": "2019-10-14", "firstValue": "3.5", "latestValue": "3.5", "revisions": 0, "leftCensored": false, "history": [["2019-10-14", "3.5"]]}
+{"obs": "2019-10-01", "firstSeen": "2019-11-14", "firstValue": "3.6", "latestValue": "3.6", "revisions": 0, "leftCensored": false, "history": [["2019-11-14", "3.6"]]}
+{"obs": "2019-11-01", "firstSeen": "2019-12-14", "firstValue": "3.5", "latestValue": "3.6", "revisions": 1, "leftCensored": false, "history": [["2019-12-14", "3.5"], ["2021-01-14", "3.6"]]}
+{"obs": "2019-12-01", "firstSeen": "2020-01-14", "firstValue": "3.5", "latestValue": "3.6", "revisions": 1, "leftCensored": false, "history": [["2020-01-14", "3.5"], ["2021-01-14", "3.6"]]}
+{"obs": "2020-01-01", "firstSeen": "2020-02-14", "firstValue": "3.6", "latestValue": "3.6", "revisions": 2, "leftCensored": false, "history": [["2020-02-14", "3.6"], ["2021-01-14", "3.5"], ["2024-01-14", "3.6"]]}
+{"obs": "2020-02-01", "firstSeen": "2020-03-14", "firstValue": "3.5", "latestValue": "3.5", "revisions": 0, "leftCensored": false, "history": [["2020-03-14", "3.5"]]}
+{"obs": "2020-03-01", "firstSeen": "2020-04-14", "firstValue": "4.4", "latestValue": "4.4", "revisions": 0, "leftCensored": false, "history": [["2020-04-14", "4.4"]]}
+{"obs": "2020-04-01", "firstSeen": "2020-05-14", "firstValue": "14.7", "latestValue": "14.8", "revisions": 3, "leftCensored": false, "history": [["2020-05-14", "14.7"], ["2021-01-14", "14.8"], ["2022-01-14", "14.7"], ["2024-01-14", "14.8"]]}
+{"obs": "2020-05-01", "firstSeen": "2020-06-14", "firstValue": "13.3", "latestValue": "13.2", "revisions": 1, "leftCensored": false, "history": [["2020-06-14", "13.3"], ["2022-01-14", "13.2"]]}
+{"obs": "2020-06-01", "firstSeen": "2020-07-14", "firstValue": "11.1", "latestValue": "11.0", "revisions": 1, "leftCensored": false, "history": [["2020-07-14", "11.1"], ["2022-01-14", "11.0"]]}
+{"obs": "2020-07-01", "firstSeen": "2020-08-14", "firstValue": "10.2", "latestValue": "10.2", "revisions": 0, "leftCensored": false, "history": [["2020-08-14", "10.2"]]}
+{"obs": "2020-08-01", "firstSeen": "2020-09-14", "firstValue": "8.4", "latestValue": "8.4", "revisions": 0, "leftCensored": false, "history": [["2020-09-14", "8.4"]]}
+{"obs": "2020-09-01", "firstSeen": "2020-10-14", "firstValue": "7.9", "latestValue": "7.8", "revisions": 3, "leftCensored": false, "history": [["2020-10-14", "7.9"], ["2021-01-14", "7.8"], ["2022-01-14", "7.9"], ["2024-01-14", "7.8"]]}
+{"obs": "2020-10-01", "firstSeen": "2020-11-14", "firstValue": "6.9", "latestValue": "6.9", "revisions": 2, "leftCensored": false, "history": [["2020-11-14", "6.9"], ["2024-01-14", "6.8"], ["2025-01-14", "6.9"]]}
+{"obs": "2020-11-01", "firstSeen": "2020-12-14", "firstValue": "6.7", "latestValue": "6.7", "revisions": 0, "leftCensored": false, "history": [["2020-12-14", "6.7"]]}
+{"obs": "2020-12-01", "firstSeen": "2021-01-14", "firstValue": "6.7", "latestValue": "6.7", "revisions": 0, "leftCensored": false, "history": [["2021-01-14", "6.7"]]}
+{"obs": "2021-01-01", "firstSeen": "2021-02-14", "firstValue": "6.3", "latestValue": "6.4", "revisions": 3, "leftCensored": false, "history": [["2021-02-14", "6.3"], ["2022-01-14", "6.4"], ["2023-01-14", "6.3"], ["2024-01-14", "6.4"]]}
+{"obs": "2021-02-01", "firstSeen": "2021-03-14", "firstValue": "6.2", "latestValue": "6.2", "revisions": 0, "leftCensored": false, "history": [["2021-03-14", "6.2"]]}
+{"obs": "2021-03-01", "firstSeen": "2021-04-14", "firstValue": "6.0", "latestValue": "6.1", "revisions": 1, "leftCensored": false, "history": [["2021-04-14", "6.0"], ["2023-01-14", "6.1"]]}
+{"obs": "2021-04-01", "firstSeen": "2021-05-14", "firstValue": "6.1", "latestValue": "6.1", "revisions": 2, "leftCensored": false, "history": [["2021-05-14", "6.1"], ["2022-01-14", "6.0"], ["2023-01-14", "6.1"]]}
+{"obs": "2021-05-01", "firstSeen": "2021-06-14", "firstValue": "5.8", "latestValue": "5.8", "revisions": 0, "leftCensored": false, "history": [["2021-06-14", "5.8"]]}
+{"obs": "2021-06-01", "firstSeen": "2021-07-14", "firstValue": "5.9", "latestValue": "5.9", "revisions": 0, "leftCensored": false, "history": [["2021-07-14", "5.9"]]}
+{"obs": "2021-07-01", "firstSeen": "2021-08-14", "firstValue": "5.4", "latestValue": "5.4", "revisions": 0, "leftCensored": false, "history": [["2021-08-14", "5.4"]]}
+{"obs": "2021-08-01", "firstSeen": "2021-09-14", "firstValue": "5.2", "latestValue": "5.1", "revisions": 1, "leftCensored": false, "history": [["2021-09-14", "5.2"], ["2024-01-14", "5.1"]]}
+{"obs": "2021-09-01", "firstSeen": "2021-10-14", "firstValue": "4.8", "latestValue": "4.7", "revisions": 3, "leftCensored": false, "history": [["2021-10-14", "4.8"], ["2022-01-14", "4.7"], ["2023-01-14", "4.8"], ["2024-01-14", "4.7"]]}
+{"obs": "2021-10-01", "firstSeen": "2021-11-14", "firstValue": "4.6", "latestValue": "4.5", "revisions": 1, "leftCensored": false, "history": [["2021-11-14", "4.6"], ["2023-01-14", "4.5"]]}
+{"obs": "2021-11-01", "firstSeen": "2021-12-14", "firstValue": "4.2", "latestValue": "4.1", "revisions": 3, "leftCensored": false, "history": [["2021-12-14", "4.2"], ["2024-01-14", "4.1"], ["2025-01-14", "4.2"], ["2026-01-14", "4.1"]]}
+{"obs": "2021-12-01", "firstSeen": "2022-01-14", "firstValue": "3.9", "latestValue": "3.9", "revisions": 0, "leftCensored": false, "history": [["2022-01-14", "3.9"]]}
+{"obs": "2022-01-01", "firstSeen": "2022-02-14", "firstValue": "4.0", "latestValue": "4.0", "revisions": 0, "leftCensored": false, "history": [["2022-02-14", "4.0"]]}
+{"obs": "2022-02-01", "firstSeen": "2022-03-14", "firstValue": "3.8", "latestValue": "3.9", "revisions": 1, "leftCensored": false, "history": [["2022-03-14", "3.8"], ["2026-01-14", "3.9"]]}
+{"obs": "2022-03-01", "firstSeen": "2022-04-14", "firstValue": "3.6", "latestValue": "3.7", "revisions": 1, "leftCensored": false, "history": [["2022-04-14", "3.6"], ["2025-01-14", "3.7"]]}
+{"obs": "2022-04-01", "firstSeen": "2022-05-14", "firstValue": "3.6", "latestValue": "3.7", "revisions": 1, "leftCensored": false, "history": [["2022-05-14", "3.6"], ["2024-01-14", "3.7"]]}
+{"obs": "2022-05-01", "firstSeen": "2022-06-14", "firstValue": "3.6", "latestValue": "3.6", "revisions": 0, "leftCensored": false, "history": [["2022-06-14", "3.6"]]}
+{"obs": "2022-06-01", "firstSeen": "2022-07-14", "firstValue": "3.6", "latestValue": "3.6", "revisions": 0, "leftCensored": false, "history": [["2022-07-14", "3.6"]]}
+{"obs": "2022-07-01", "firstSeen": "2022-08-14", "firstValue": "3.5", "latestValue": "3.5", "revisions": 0, "leftCensored": false, "history": [["2022-08-14", "3.5"]]}
+{"obs": "2022-08-01", "firstSeen": "2022-09-14", "firstValue": "3.7", "latestValue": "3.6", "revisions": 1, "leftCensored": false, "history": [["2022-09-14", "3.7"], ["2024-01-14", "3.6"]]}
+{"obs": "2022-09-01", "firstSeen": "2022-10-14", "firstValue": "3.5", "latestValue": "3.5", "revisions": 0, "leftCensored": false, "history": [["2022-10-14", "3.5"]]}
+{"obs": "2022-10-01", "firstSeen": "2022-11-14", "firstValue": "3.7", "latestValue": "3.6", "revisions": 1, "leftCensored": false, "history": [["2022-11-14", "3.7"], ["2024-01-14", "3.6"]]}
+{"obs": "2022-11-01", "firstSeen": "2022-12-14", "firstValue": "3.7", "latestValue": "3.6", "revisions": 1, "leftCensored": false, "history": [["2022-12-14", "3.7"], ["2023-01-14", "3.6"]]}
+{"obs": "2022-12-01", "firstSeen": "2023-01-14", "firstValue": "3.5", "latestValue": "3.5", "revisions": 0, "leftCensored": false, "history": [["2023-01-14", "3.5"]]}
+{"obs": "2023-01-01", "firstSeen": "2023-02-14", "firstValue": "3.4", "latestValue": "3.5", "revisions": 1, "leftCensored": false, "history": [["2023-02-14", "3.4"], ["2025-01-14", "3.5"]]}
+{"obs": "2023-02-01", "firstSeen": "2023-03-14", "firstValue": "3.6", "latestValue": "3.6", "revisions": 0, "leftCensored": false, "history": [["2023-03-14", "3.6"]]}
+{"obs": "2023-03-01", "firstSeen": "2023-04-14", "firstValue": "3.5", "latestValue": "3.5", "revisions": 0, "leftCensored": false, "history": [["2023-04-14", "3.5"]]}
+{"obs": "2023-04-01", "firstSeen": "2023-05-14", "firstValue": "3.4", "latestValue": "3.4", "revisions": 0, "leftCensored": false, "history": [["2023-05-14", "3.4"]]}
+{"obs": "2023-05-01", "firstSeen": "2023-06-14", "firstValue": "3.7", "latestValue": "3.6", "revisions": 1, "leftCensored": false, "history": [["2023-06-14", "3.7"], ["2025-01-14", "3.6"]]}
+{"obs": "2023-06-01", "firstSeen": "2023-07-14", "firstValue": "3.6", "latestValue": "3.6", "revisions": 0, "leftCensored": false, "history": [["2023-07-14", "3.6"]]}
+{"obs": "2023-07-01", "firstSeen": "2023-08-14", "firstValue": "3.5", "latestValue": "3.5", "revisions": 0, "leftCensored": false, "history": [["2023-08-14", "3.5"]]}
+{"obs": "2023-08-01", "firstSeen": "2023-09-14", "firstValue": "3.8", "latestValue": "3.7", "revisions": 1, "leftCensored": false, "history": [["2023-09-14", "3.8"], ["2025-01-14", "3.7"]]}
+{"obs": "2023-09-01", "firstSeen": "2023-10-14", "firstValue": "3.8", "latestValue": "3.7", "revisions": 1, "leftCensored": false, "history": [["2023-10-14", "3.8"], ["2026-01-14", "3.7"]]}
+{"obs": "2023-10-01", "firstSeen": "2023-11-14", "firstValue": "3.9", "latestValue": "3.9", "revisions": 2, "leftCensored": false, "history": [["2023-11-14", "3.9"], ["2024-01-14", "3.8"], ["2025-01-14", "3.9"]]}
+{"obs": "2023-11-01", "firstSeen": "2023-12-14", "firstValue": "3.7", "latestValue": "3.7", "revisions": 0, "leftCensored": false, "history": [["2023-12-14", "3.7"]]}
+{"obs": "2023-12-01", "firstSeen": "2024-01-14", "firstValue": "3.7", "latestValue": "3.8", "revisions": 1, "leftCensored": false, "history": [["2024-01-14", "3.7"], ["2025-01-14", "3.8"]]}
+{"obs": "2024-01-01", "firstSeen": "2024-02-14", "firstValue": "3.7", "latestValue": "3.7", "revisions": 0, "leftCensored": false, "history": [["2024-02-14", "3.7"]]}
+{"obs": "2024-02-01", "firstSeen": "2024-03-14", "firstValue": "3.9", "latestValue": "3.9", "revisions": 0, "leftCensored": false, "history": [["2024-03-14", "3.9"]]}
+{"obs": "2024-03-01", "firstSeen": "2024-04-14", "firstValue": "3.8", "latestValue": "3.9", "revisions": 1, "leftCensored": false, "history": [["2024-04-14", "3.8"], ["2025-01-14", "3.9"]]}
+{"obs": "2024-04-01", "firstSeen": "2024-05-14", "firstValue": "3.9", "latestValue": "3.9", "revisions": 0, "leftCensored": false, "history": [["2024-05-14", "3.9"]]}
+{"obs": "2024-05-01", "firstSeen": "2024-06-14", "firstValue": "4.0", "latestValue": "3.9", "revisions": 1, "leftCensored": false, "history": [["2024-06-14", "4.0"], ["2026-01-14", "3.9"]]}
+{"obs": "2024-06-01", "firstSeen": "2024-07-14", "firstValue": "4.1", "latestValue": "4.1", "revisions": 0, "leftCensored": false, "history": [["2024-07-14", "4.1"]]}
+{"obs": "2024-07-01", "firstSeen": "2024-08-14", "firstValue": "4.3", "latestValue": "4.2", "revisions": 1, "leftCensored": false, "history": [["2024-08-14", "4.3"], ["2025-01-14", "4.2"]]}
+{"obs": "2024-08-01", "firstSeen": "2024-09-14", "firstValue": "4.2", "latestValue": "4.2", "revisions": 0, "leftCensored": false, "history": [["2024-09-14", "4.2"]]}
+{"obs": "2024-09-01", "firstSeen": "2024-10-14", "firstValue": "4.1", "latestValue": "4.1", "revisions": 0, "leftCensored": false, "history": [["2024-10-14", "4.1"]]}
+{"obs": "2024-10-01", "firstSeen": "2024-11-14", "firstValue": "4.1", "latestValue": "4.1", "revisions": 0, "leftCensored": false, "history": [["2024-11-14", "4.1"]]}
+{"obs": "2024-11-01", "firstSeen": "2024-12-14", "firstValue": "4.2", "latestValue": "4.2", "revisions": 0, "leftCensored": false, "history": [["2024-12-14", "4.2"]]}
+{"obs": "2024-12-01", "firstSeen": "2025-01-14", "firstValue": "4.1", "latestValue": "4.1", "revisions": 0, "leftCensored": false, "history": [["2025-01-14", "4.1"]]}
+{"obs": "2025-01-01", "firstSeen": "2025-02-14", "firstValue": "4.0", "latestValue": "4.0", "revisions": 0, "leftCensored": false, "history": [["2025-02-14", "4.0"]]}
+{"obs": "2025-02-01", "firstSeen": "2025-03-14", "firstValue": "4.1", "latestValue": "4.2", "revisions": 1, "leftCensored": false, "history": [["2025-03-14", "4.1"], ["2026-01-14", "4.2"]]}
+{"obs": "2025-03-01", "firstSeen": "2025-04-14", "firstValue": "4.2", "latestValue": "4.2", "revisions": 0, "leftCensored": false, "history": [["2025-04-14", "4.2"]]}
+{"obs": "2025-04-01", "firstSeen": "2025-05-14", "firstValue": "4.2", "latestValue": "4.2", "revisions": 0, "leftCensored": false, "history": [["2025-05-14", "4.2"]]}
+{"obs": "2025-05-01", "firstSeen": "2025-06-14", "firstValue": "4.2", "latestValue": "4.3", "revisions": 1, "leftCensored": false, "history": [["2025-06-14", "4.2"], ["2026-01-14", "4.3"]]}
+{"obs": "2025-06-01", "firstSeen": "2025-07-14", "firstValue": "4.1", "latestValue": "4.1", "revisions": 0, "leftCensored": false, "history": [["2025-07-14", "4.1"]]}
+{"obs": "2025-07-01", "firstSeen": "2025-08-14", "firstValue": "4.2", "latestValue": "4.3", "revisions": 1, "leftCensored": false, "history": [["2025-08-14", "4.2"], ["2026-01-14", "4.3"]]}
+{"obs": "2025-08-01", "firstSeen": "2025-09-14", "firstValue": "4.3", "latestValue": "4.3", "revisions": 0, "leftCensored": false, "history": [["2025-09-14", "4.3"]]}
+{"obs": "2025-09-01", "firstSeen": "2025-11-28", "firstValue": "4.4", "latestValue": "4.4", "revisions": 0, "leftCensored": false, "history": [["2025-11-28", "4.4"]]}
+{"obs": "2025-11-01", "firstSeen": "2025-12-28", "firstValue": "4.6", "latestValue": "4.5", "revisions": 1, "leftCensored": false, "history": [["2025-12-28", "4.6"], ["2026-01-14", "4.5"]]}
+{"obs": "2025-12-01", "firstSeen": "2026-01-14", "firstValue": "4.4", "latestValue": "4.4", "revisions": 0, "leftCensored": false, "history": [["2026-01-14", "4.4"]]}
+{"obs": "2026-01-01", "firstSeen": "2026-02-14", "firstValue": "4.3", "latestValue": "4.3", "revisions": 0, "leftCensored": false, "history": [["2026-02-14", "4.3"]]}
+{"obs": "2026-02-01", "firstSeen": "2026-03-14", "firstValue": "4.4", "latestValue": "4.4", "revisions": 0, "leftCensored": false, "history": [["2026-03-14", "4.4"]]}
+{"obs": "2026-03-01", "firstSeen": "2026-04-14", "firstValue": "4.3", "latestValue": "4.3", "revisions": 0, "leftCensored": false, "history": [["2026-04-14", "4.3"]]}
+{"obs": "2026-04-01", "firstSeen": "2026-05-14", "firstValue": "4.3", "latestValue": "4.3", "revisions": 0, "leftCensored": false, "history": [["2026-05-14", "4.3"]]}
+{"obs": "2026-05-01", "firstSeen": "2026-06-14", "firstValue": "4.3", "latestValue": "4.3", "revisions": 0, "leftCensored": false, "history": [["2026-06-14", "4.3"]]}
+{"obs": "2026-06-01", "firstSeen": "2026-07-14", "firstValue": "4.2", "latestValue": "4.2", "revisions": 0, "leftCensored": false, "history": [["2026-07-14", "4.2"]]}
+{"obs": "2026-07-01", "firstSeen": "2026-08-14", "firstValue": "4.1", "latestValue": "4.1", "revisions": 0, "leftCensored": false, "history": [["2026-08-14", "4.1"]]}
+{"obs": "2026-08-01", "firstSeen": "2026-09-14", "firstValue": "4.1", "latestValue": "4.1", "revisions": 0, "leftCensored": false, "history": [["2026-09-14", "4.1"]]}
