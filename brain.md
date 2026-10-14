@@ -4128,3 +4128,95 @@ reads rows that already exist:
     - **Phase 3 has not started.** No brain training, no historical-event ingestion, no cron audit.
       The optimization that is live is the crypto write path of rules 122 to 124, measured in
       production at 0 inserts and 0 deletes for a run that previously wrote 196,606 rows.
+
+129. **The historical replay was complete and wrong, and what proved it was running it twice.**
+    2026-10-14, Phase 3 data foundation. No production data was changed by any of this; every
+    figure below comes from a read, a public API, or a workflow run.
+
+    - **Two reads ignored the replay date, and the reconcile found them.** Of the 799 sessions that
+      had been replayed twice, **413 produced different setups the second time**, beginning at the
+      51st session of run `38488899752` — the moment `cron-us-prices` wrote new closes mid-run. A
+      deterministic as-of replay cannot differ from itself, so the difference was the clock leaking
+      in. The fields that moved name the culprits: `conditions` on 11,012 rows, `against` on 1,871.
+      `jobs/setup.py all_industry_relative` measured each asset's return from its newest close
+      *ever*, so a 2019 session's "versus its industry" came from 2026 prices; and
+      `tools/decide.mjs` read the newest `AssetAnalog` row with no `periodEnd` bound, alone among
+      the derived tables in `readInputs`. Both are bounded now, both unchanged on the live path,
+      and `7cae2f6` carries the fix.
+
+    - **The tests that should have caught it were testing the wrong thing.** `test_every_reader_
+      takes_the_bound` enumerated four readers by name and `all_industry_relative` was not among
+      them; `test_every_input_is_bounded_to_the_replay_date` asserted only that a bound existed
+      *somewhere* in `readInputs`, which the other tables satisfied on `AssetAnalog`'s behalf. A
+      list of names is not a rule. Both are per-reader and per-statement now, and
+      `tools/determinism_check.py` with `data-worker-determinism.yml` re-replays a seeded,
+      year-stratified sample and demands byte-identical output — the leakage test that only time
+      can run.
+
+    - **Every earlier output came from the unbounded code, so all 2,000 sessions were replayed
+      again.** `data-worker-reconcile.yml` rebuilds the canonical checkpoint from the persisted
+      outputs rather than from any checkpoint, trusting a run only where `lib`, `jobs/setup.py`,
+      `jobs/sessions.py`, `jobs/nbt.py`, `tools/decide.mjs`, the schema and `requirements.txt`
+      match the current tree. That trust rule is also why the checkpoint namespaces disagreed at
+      all: the chain never passed `checkpoint` to the slice it dispatched, and the fetch step asked
+      the last successful run for a hardcoded `nbt-worker-checkpoint` with `|| true` hiding the
+      miss, so a chain restarted from zero whenever the previous slice had written another name.
+
+    - **239 unadjusted corporate actions, across 152 of the 616 assets.** Found by adding PSX to
+      the independent price check, which was only possible because Yahoo serves the Karachi listing
+      (`SYMBOL.KA`, PKR, exchange KAR) and that is a different provider from the exchange's own
+      daily file. BECO ran at ten times Yahoo's series until 2025-11-17 and then stepped down to
+      meet it: Yahoo back-adjusted its whole history for a one-for-ten action and the exchange file
+      did not, so the stored series carries a **-88.6% one-day move no holder experienced**. Of 60
+      candidates checked against a second provider, **52 showed an ordinary day there, 2 were real
+      moves both saw, and 6 had no second source**. Mostly PSX (173), but 22 US names too, and that
+      half is ours: the lane fetches incrementally, so a bar stored before a split keeps the old
+      scale while the provider silently rescales its own history behind it. Every factor measured
+      across such a date is wrong, so `tools/foundation/assemble.py` carries
+      `dataQuality.unadjustedActionInWindow` per row. Flagged rather than dropped — a row is still
+      correct about everything that does not cross the action.
+
+    - **The universe contains no failures.** Not one stored asset has a series that ends before
+      today, so every backtest on it is a backtest on survivors. The 59 inactive assets left the
+      pool for low turnover, not delisting. Measured against the S&P 500's own removal list since
+      2019: **127 removals, 124 absent from the universe, 63 with no free daily history left**. The
+      61 that can still be fetched are compared with the stored universe over each name's own
+      window, so the figure measures the bias and not the calendar. It is a lower bound by
+      construction: the 63 that vanished were mostly the acquisitions and the failures.
+
+    - **What the foundation holds, each with a test that enforces it.** 32 macro series at 16.8
+      years, every row carrying a conservative `availableAt`; 10 of them with revision history from
+      400 ALFRED snapshots each and 0 failed fetches. One subtlety had to be labelled: ALFRED
+      returns a series' whole history in every snapshot, so an observation older than the first
+      snapshot has a `firstSeen` that records when this collector first looked, not when the figure
+      was published — flagged `leftCensored`, and 2,459 have a real first sighting. 80 principles
+      with every citation checked at Crossref (14 DOIs written from memory were wrong, and were
+      replaced only by a search result passing the same test), 69 testable here, 19 with a runnable
+      rule. 168 verified events in 159 clusters, 46 of them with two independent evidence groups.
+      802,876 point-in-time asset-sessions, reconciled against an independently computed expected
+      count, with 240 live-code equivalence samples and 0 mismatches.
+
+    - **The macro availability rule has one test worth keeping.** On 16 March 2020 the join must
+      still report January's 3.5% unemployment, because March's did not exist yet. A join keyed on
+      observation date would show the spike, and would be look-ahead wearing a timestamp.
+
+    - **Two faults that would have failed the run rather than the review.** The block bootstrap
+      materialised every resampled trade: 244 seconds per rule at full scale, about 89 minutes
+      across 22 rules, against a 240 minute budget that also has to build the features. Resampling
+      each session's sum and count gives the same number in 4 seconds. And the leakage scan ran per
+      rule over 800,000 rows, about a billion string comparisons for an answer that cannot have
+      changed; the first attempt at fixing that memoised by list identity, which CPython reuses
+      after a collection, so a poisoned dataset inherited a clean verdict from an unrelated one. It
+      passed alone and failed in the suite, which is the only reason it was caught. Opting out is a
+      parameter now, never an inference.
+
+    - **The constraint that decides where these jobs run.** The Supabase session pooler allows 15
+      clients. One local analysis started while a replay slice was in flight exhausted it
+      (`EMAXCONNSESSION`, 12:19 UTC) and the standby then timed out. Everything that reads the
+      database runs on a runner, one connection, after the heavy step.
+
+    - **Open, and not this session's to close.** `cron-watchdog` has failed intermittently since
+      02:09 UTC, before any of this work, and it fails with **exit code 2** — an uncaught exception
+      rather than the 0 or 1 `main` returns — so the monitor goes red without saying why. A monitor
+      that cannot report its own fault is the shape of problem rule 75 was written about.
+      Diagnosing it needs the run log and `SITE_URL`, neither of which this session has.
