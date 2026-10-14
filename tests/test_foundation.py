@@ -477,6 +477,44 @@ class MacroVintageGate(unittest.TestCase):
                 self.assertEqual(r["latestValue"], r["history"][-1][1])
 
 
+class MacroPointInTime(unittest.TestCase):
+    """The macro state attached to a session is what had been published by that session."""
+
+    def setUp(self):
+        if not (DATA / "macro" / "manifest.json").exists():
+            self.skipTest("macro dataset not present")
+        import macro_pit
+        self.mp = macro_pit
+        self.series = macro_pit.load_series()
+
+    def test_the_recession_flag_is_excluded(self):
+        self.assertNotIn("USREC", self.series)
+
+    def test_nothing_in_a_session_state_was_published_after_that_session(self):
+        for day in ("2019-03-15", "2020-03-16", "2022-06-15", "2026-09-01"):
+            for sid in self.mp.state_at(self.series, day):
+                i = self.mp.bisect_right(self.series[sid]["avail"], day) - 1
+                self.assertLessEqual(self.series[sid]["avail"][i], day, f"{sid} on {day}")
+
+    def test_a_slow_series_still_shows_the_figure_from_before_a_shock(self):
+        """On 16 March 2020 the March unemployment rate did not exist yet. A join that showed the
+        spike would be the look-ahead this whole availability column exists to prevent."""
+        st = self.mp.state_at(self.series, "2020-03-16")
+        self.assertIn("UNRATE", st)
+        self.assertLess(st["UNRATE"]["v"], 5.0, "March 2020 unemployment leaked into a 16 March session")
+        self.assertGreater(st["UNRATE"]["age"], 30, "a monthly figure cannot be fresher than its lag")
+
+    def test_a_daily_series_is_fresh_and_a_quarterly_one_is_not(self):
+        st = self.mp.state_at(self.series, "2024-06-14")
+        self.assertLessEqual(st["DGS10"]["age"], 7)
+        self.assertGreaterEqual(st["GDPC1"]["age"], 60)
+
+    def test_every_state_value_carries_its_age(self):
+        for sid, row in self.mp.state_at(self.series, "2023-05-10").items():
+            self.assertIn("v", row)
+            self.assertGreaterEqual(row["age"], 0, sid)
+
+
 class PrinciplesGate(unittest.TestCase):
     def doc(self):
         return json.loads(need(DATA / "principles" / "principles.json").read_text(encoding="utf-8"))

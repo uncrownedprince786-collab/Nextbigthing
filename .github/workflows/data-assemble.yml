@@ -96,6 +96,15 @@ jobs:
           done
           python tools/full_history.py --out full
           python tools/foundation/assemble.py --full full --pit pit --replay replay --runs runs.json --out dataset
+          # The macro state per session, joined on availability rather than on observation date.
+          # One row per date, not per asset-session: it is identical across the 616 assets.
+          python tools/foundation/macro_pit.py --out dataset/macro
+          python - <<'PY'
+          import json
+          d = json.load(open("dataset/macro/manifest.json"))
+          print("::notice title=macro point-in-time::" + json.dumps(
+              {k: v for k, v in d.items() if k != "coveragePerSeries"}))
+          PY
 
       # The remaining database-reading reports, run here rather than from a laptop: the Supabase
       # session pooler allows 15 clients, and a local job competing with a running replay slice
