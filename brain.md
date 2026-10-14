@@ -4220,3 +4220,103 @@ reads rows that already exist:
       rather than the 0 or 1 `main` returns — so the monitor goes red without saying why. A monitor
       that cannot report its own fault is the shape of problem rule 75 was written about.
       Diagnosing it needs the run log and `SITE_URL`, neither of which this session has.
+
+130. **The PSX history was recovered rather than measured again, and the corporate-action
+    quarantine was narrowed from the asset to the defect.** 2026-10-15, Phase 3 data foundation.
+    This is the first entry here that changed production data: 183,267 rows were added to
+    `PriceSnapshot`, after a verified backup, and no existing row was altered.
+
+    - **The headline number was wrong in the safe direction, and the difference is the whole
+      point.** `psx_recovery.json` put the shortfall at 275,812 bars across 203 symbols. Of the
+      403,042 bars Yahoo's Karachi listing actually served, **62,399 are not bars**: 55,445 flat
+      zero-volume pads for sessions the exchange did not hold, 4,157 missing an OHLC field, 2,797
+      with prices out of order. Of what survived, **38,246 could not be written** because the two
+      providers quote that stretch of history on different bases. **183,267 were written.** The
+      gap between 275,812 and 183,267 is not a shortfall in the recovery; it is the part of the
+      headline that was never recoverable, counted for the first time.
+
+    - **Two providers, two bases, and an anchor rule instead of a judgement.** The exchange file is
+      raw; Yahoo back-adjusts for splits. `MTL` shows what that means: it has nine splits since
+      2019, and its 2019 Yahoo close is 189.48 where the exchange stored 820.48 -- a ratio of
+      4.3303, which is the nine factors multiplied together. Appending those bars would have
+      written a 77% fall that no holder lived through. So a missing date is written **only when the
+      nearest stored date on each side of it is one Yahoo also serves and prices within 0.5% of the
+      exchange**, and no split falls between them. An action inside the gap necessarily makes the
+      earlier anchor disagree, which is why the rule needs no opinion about where the actions are.
+      `recovery-manifest.json` had already demanded this under `psx-pre-2024-monthly-grid` ("never
+      mix the two series for one asset"); the anchor rule is how that demand was met per date
+      rather than per asset.
+
+    - **The join was measured, not argued.** 18,760 places in the stored PSX series now have one
+      provider's bar next to the other's. **At none of them do the two providers price the seam
+      date differently.** Three seams move more than 30% -- JATM +64.05%, HIRAT +59.06%,
+      PASL +35.42% -- and all three are real: each symbol makes six to twelve moves that size
+      *within a single source*, and both providers quote the same close on the seam date. HIRAT is
+      the clearest: Yahoo padded 2024-04-15 to 04-29 flat at 1.27 with zero volume, the filter
+      dropped every one of them, and both providers then quote 2.02 on the reopening session. 907
+      seams join to a date Yahoo serves no valid bar for; those are reported as unconfirmed rather
+      than counted as clean. **The first version of this check failed 341 seams and was wrong** --
+      it compared against the raw provider array, including the very pads the filter had rejected.
+      A bar thrown away as fabricated cannot then be quoted as the provider's opinion of that date.
+
+    - **PSX coverage fell from 0.983 to 0.816, and that is the first honest reading of it.** The
+      per-asset figure compares each asset with a calendar built from the same data, so twelve
+      dates a year looked like a complete year. The calendar is real now: **2019 went from 13
+      session dates to 246, 2023 from 12 to 245, 2024 from 118 to 245**, and the assets that are
+      still sparse have stopped being flattered by a sparse calendar. Nothing got worse; the
+      measurement stopped agreeing with itself.
+
+    - **The quarantine was costing 88 assets nearly their whole history for a defect that lasts
+      five sessions.** The analog pool is the asset's entire history, so the old rule flagged every
+      session at or after an asset's first unadjusted action. `AnalogSeries` now excludes the three
+      things an action actually spoils -- a candidate whose own factors are measured across it, a
+      forward window that crosses it, and a session whose own factors cross it -- and nothing else.
+      Measured over 1,017,125 eligible sessions: the old rule flagged **171,746**, the window rule
+      still excludes **53,571**, **4,614** sessions get no analog block because their own factors
+      cross an action, and **120,839 sessions across 138 assets are restored**. `assemble.py` reads
+      the feature build's manifest to decide which rule applies, so an older dataset built without
+      the exclusion is still flagged the old way rather than silently trusted.
+
+    - **Two of the 239 candidates are not actions at all.** Where the scan's second provider
+      reported the same large move, the move happened: Yahoo adjusts for splits, so a split cannot
+      still be a 32% one-day fall there. `DG` 2024-08-29 and `ALTN` 2025-02-27 are excluded from
+      the action list, which both consumers now read from one place (`tools/foundation/actions.py`)
+      so they cannot disagree about what the file says.
+
+    - **The provider's split calendar confirms ten of the 173 PSX candidates and is silent on the
+      rest.** Ten match a Yahoo split within five days whose factor reproduces the observed ratio
+      (LCI 5:1, DLL 10:1, CLOV 10:1, MTL 2:1, KOHC 5:1, KML 10:1, BAFL 2:1, THCCL 5:1, KTML 5:1,
+      UBL 2:1). One contradicts it: `ICIBL` moved 5.96x on 2026-07-13 while the nearest recorded
+      split is 84.9:100 three days earlier. 158 candidates belong to symbols Yahoo lists with no
+      split recorded on that date -- so Yahoo's split *events* for `.KA` are sparser than its own
+      price adjustments, and a candidate without a provider split stays a candidate. **No price was
+      de-adjusted and no factor was applied**: the evidence establishes which candidates are
+      actions, not what the raw series should have been.
+
+    - **What is still missing, exactly.** 38,246 bars across 69 symbols, all pre-2024, held because
+      the bases diverge -- worst are TREET (1,151, 2019-01-02 to 2023-11-30), IBLHL (1,106), SEARL
+      (1,093), GATM (1,054), AVN (1,053). 23 symbols are served HTTP 404 by Yahoo and keep the
+      7,309 bars they have (BBFL, BFAGRO, BFBIO, BML, ENGROH, GAL, GCWL, GDL, IMS, ITANZ, LIVEN,
+      LSEVL, QTECH, SELECT, SOYASUP, SPAC1, SPSL, STL, TISL, WAFI, WAHDAT, ZAL, ZUMA); 17 of them
+      were already recorded under `late-listing-histories` as recent listings, which is the same
+      fact from the other side. Recovering either group needs a provider that serves raw PSX prices
+      and is not the restricted feed, and no such provider is known.
+
+    - **A fetch that cannot tell a 404 from a dropped connection writes symbols off.** The first
+      pass reported 41 symbols unserved. Eighteen of them had simply failed mid-run -- `nbt.get`
+      returns None for a refusal and for a timeout alike -- and one of the eighteen, SZTM, had been
+      fetched by hand minutes earlier. The tool now asks for the status code once before deciding,
+      and the count settled at exactly the 203 and 23 measured on 2026-10-14.
+
+    - **Still open, and why.** The dataset itself was not rebuilt. `data-pit-features.yml` and
+      `data-assemble.yml` run on a runner, and the assembly also needs the sealed replay artifacts,
+      which need an authenticated GitHub API this session does not have; a local feature build was
+      measured at roughly an hour and could not be followed by an assembly in any case. What was
+      proven locally against the real database, on 25 assets: the exclusion is active, 237 actions
+      across 150 assets are loaded, and **10 of 10 live-equivalence samples match the plain loop**.
+      `tools/foundation/events.py:161` still selects the PSX market series with `source ILIKE
+      'Pakistan%'`, so it reads only the exchange's own bars and not the recovered ones -- correct
+      today, and the line to change when the events series is next rebuilt. And the public `/psx`
+      surface now publishes considerably more PSX history than it did; the licence question under
+      `psx-redistribution-licence` is unchanged by that, but the volume behind it is not, and it
+      remains the owner's decision.
