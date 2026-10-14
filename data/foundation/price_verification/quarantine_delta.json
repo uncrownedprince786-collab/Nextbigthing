@@ -1,0 +1,45 @@
+{
+ "generatedAt": "2026-10-14T20:01:55+00:00",
+ "eligibleSessions": 1017125,
+ "assetsWithAnUnadjustedAction": 150,
+ "actionDates": 237,
+ "flaggedByTheOldBroadRule": 171746,
+ "excludedByTheWindowRule": 53571,
+ "analogBlockSuppressed": 4614,
+ "restored": 120839,
+ "assetsWithRestoredSessions": 138,
+ "byAssetClass": {
+  "commodity": {
+   "eligible": 15667,
+   "excludedByTheWindowRule": 477,
+   "analogBlockSuppressed": 40,
+   "flaggedByTheOldBroadRule": 1362,
+   "restored": 924
+  },
+  "crypto": {
+   "eligible": 98378,
+   "excludedByTheWindowRule": 12716,
+   "analogBlockSuppressed": 766,
+   "flaggedByTheOldBroadRule": 33818,
+   "restored": 21801
+  },
+  "etf": {
+   "eligible": 15648
+  },
+  "forex": {
+   "eligible": 54676,
+   "excludedByTheWindowRule": 291,
+   "analogBlockSuppressed": 5,
+   "flaggedByTheOldBroadRule": 1707,
+   "restored": 1436
+  },
+  "stock": {
+   "eligible": 832756,
+   "excludedByTheWindowRule": 40087,
+   "analogBlockSuppressed": 3803,
+   "flaggedByTheOldBroadRule": 134859,
+   "restored": 96678
+  }
+ },
+ "note": "restored = flagged by the old rule and by no rule now. A suppressed session is not a loss against the old rule, which flagged it as well; it is the same session with the reason stated precisely."
+}
