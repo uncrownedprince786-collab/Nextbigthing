@@ -67,6 +67,26 @@ each month, so a first-seen date is an upper bound on the real release (at most 
 Shorter than 15 years, reported and not counted: the two ICE credit-spread series (FRED carries a
 rolling three years under ICE's licence). The LBMA gold series is no longer served.
 
+## Coverage, and the gap the per-asset figure hid
+
+`coverage/gaps.json` counts sessions where an asset's own market traded and the asset has no bar.
+By that measure the universe is 98.3% to 100% covered everywhere. That measure is not enough on its
+own: it compares each asset with a calendar built from the same data, so a market that was fetched
+monthly looks fully covered.
+
+`calendarCompleteness` is the check that catches it, and PSX is what it catches. Measured against
+the weekdays in each year, the stored PSX history holds **4.6% to 5.0% of them for 2019 through
+2023**, 45% in 2024, and reaches 95.8% only in 2025. US is above 96% throughout. So for 226 of the
+616 assets — 37% of the universe — the pre-2024 history is monthly, and a 20-session average over
+monthly-spaced bars is a 20-month average under a daily name. Nothing in a row revealed that, so
+`pit_features.py` now emits `spanDays` (the calendar days a window really covers) and the dataset
+carries `dataQuality.windowIsNotDaily`.
+
+`coverage/psx_recovery.json` measures the repair. Yahoo serves the Karachi listing (`SYMBOL.KA`)
+with full daily history from 2019 — about 261 bars a year where the exchange file holds 13 — so the
+gap is recoverable from a free source. Filling it writes to `PriceSnapshot` and belongs to the
+ingest lane that owns it; this is the measurement, not the repair.
+
 ## Principles
 
 Each principle names a published finding, the exact signal that would test it on data this
