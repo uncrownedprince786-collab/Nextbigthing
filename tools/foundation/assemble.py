@@ -222,9 +222,16 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
 
     full_file = next(iter(sorted(full_dir.glob("full-history-v*.jsonl.gz"))))
+    # Every outcome row is held at once, because full_history writes asset by asset and the years
+    # are interleaved. Keeping only the six fields used below matters at this size: whole rows cost
+    # about 4 GB at 800,000 of them, which is most of a runner.
+    def need(r: dict) -> dict:
+        return {"asOf": r["asOf"], "assetId": r["assetId"], "symbol": r["symbol"],
+                "assetType": r["assetType"], "market": r["market"], "outcome": r["outcome"]}
+
     by_year: dict[int, list[dict]] = defaultdict(list)
     for r in read_gz(full_file):
-        by_year[int(r["asOf"][:4])].append(r)
+        by_year[int(r["asOf"][:4])].append(need(r))
 
     total, digests, counts = Counter(), {}, {}
     first_year = min(by_year)
@@ -239,7 +246,7 @@ def main() -> int:
         by_year[y] = []                                  # release before the next year
 
     # Reproducibility: the first year again, digests must match byte for byte.
-    again_rows = [r for r in read_gz(full_file) if int(r["asOf"][:4]) == first_year]
+    again_rows = [need(r) for r in read_gz(full_file) if int(r["asOf"][:4]) == first_year]
     _, d2, _ = build_year(first_year, again_rows, pit_dir / f"pit-{first_year}.jsonl.gz",
                           setups_for_year(replay, runs, first_year), None, actions)
 
