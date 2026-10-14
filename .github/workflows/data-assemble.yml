@@ -171,8 +171,12 @@ jobs:
         env:
           KEY: ${{ secrets.WORKER_ARTIFACT_KEY }}
         run: |
-          mkdir -p sealed-out bundle
+          mkdir -p sealed-out bundle bundle/reports
           for d in dataset coverage evaluation; do [ -d "$d" ] && cp -r "$d" bundle/; done
+          # These two write into the checkout rather than an output directory, so they would
+          # otherwise survive only as the summary in their annotation.
+          cp data/foundation/price_verification/unadjusted_actions.json bundle/reports/ 2>/dev/null || true
+          cp data/foundation/survivorship/report.json bundle/reports/survivorship.json 2>/dev/null || true
           [ -n "$(ls -A bundle 2>/dev/null)" ] && tar -czf - -C bundle . | openssl enc -aes-256-cbc \
             -pbkdf2 -iter 200000 -salt -pass env:KEY -out sealed-out/dataset.tar.gz.enc || true
           [ -f sealed-out/dataset.tar.gz.enc ] && sha256sum sealed-out/dataset.tar.gz.enc || true
