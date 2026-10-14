@@ -210,6 +210,28 @@ RULES = [
 # ---------------------------------------------------------------- running
 
 
+# Only what a rule or the evaluator reads. Keeping whole rows costs 4.12 GB at 800,000 of them
+# (measured), most of it fields nothing here looks at, and an evaluation that dies of memory after
+# the dataset was built is an expensive way to learn that.
+KEEP_F = ("r1", "r5", "r20", "returnZ", "volumeRatio", "triggerDirection",
+          "sma20", "sma50", "rangePct", "drawdownPct", "atr14", "relStrength")
+KEEP_AN = ("matches", "positive", "median", "grade")
+
+
+def slim(r: dict, horizon: int) -> dict:
+    p = r.get("pit")
+    an = ((p or {}).get("an") or {}).get("5")
+    c = r.get("candidate")
+    return {
+        "asOf": r["asOf"], "symbol": r["symbol"], "assetType": r["assetType"], "market": r["market"],
+        "outcome": {f"fwd{horizon}": r["outcome"][f"fwd{horizon}"]},
+        "pit": None if p is None else {
+            "f": {k: p["f"].get(k) for k in KEEP_F},
+            "an": None if an is None else {"5": {k: an.get(k) for k in KEEP_AN}}},
+        "candidate": None if not c else {"state": c.get("state")},
+    }
+
+
 def load(dataset: Path, max_rows: int | None, horizon: int):
     rows = []
     for p in sorted(dataset.glob("examples-v3-*.jsonl.gz")):
@@ -220,7 +242,7 @@ def load(dataset: Path, max_rows: int | None, horizon: int):
                 r = json.loads(line)
                 if r["outcome"].get(f"fwd{horizon}") is None:
                     continue
-                rows.append(r)
+                rows.append(slim(r, horizon))
                 if max_rows and len(rows) >= max_rows:
                     return rows
     return rows
