@@ -1,6 +1,6 @@
 {
- "generatedAt": "2026-10-14T23:02:27+00:00",
- "version": "acquisition-manifest-v3",
+ "generatedAt": "2026-10-14T23:16:54+00:00",
+ "version": "acquisition-manifest-v4",
  "scope": "the frozen target only; no instrument or asset class was added beyond it",
  "sweepDateReconciliation": {
   "datesSettled": 2294,
@@ -78,6 +78,41 @@
   "examplesStillRecoverable": [],
   "conclusion": "every remaining in-range gap is a session on which the exchange published no traded price for that symbol"
  },
+ "residualClassification": {
+  "generatedAt": "2026-10-14T23:15:38+00:00",
+  "method": "every in-range calendar date without a stored bar, classified against the cached exchange archive and the staged provider data; no new requests",
+  "storedPsxBars": 394014,
+  "publishedSessionsRead": 2171,
+  "classification": {
+   "2_securityDidNotTrade": 36762,
+   "3_exchangeArchiveEmpty": 158,
+   "3a_ofWhichAnotherProviderHas": 69
+  },
+  "total": 36920,
+  "category4Detail": {
+   "symbols": 0,
+   "bars": 0,
+   "whatTheyAre": "dates the Karachi listing serves a validated bar for and this database does not hold, withheld because that provider quotes them split-adjusted while the stored series is raw. Staged, not lost: .cache/acquire/psx_withheld.json",
+   "worst": []
+  },
+  "emptyArchiveDates": [
+   "2018-07-19",
+   "2021-02-09",
+   "2023-05-17",
+   "2023-05-18"
+  ],
+  "examples": {}
+ },
+ "backup": {
+  "path": "C:/Users/NEW TECH/nbt-private/backup-2026-10-15T2305Z-post-acquisition",
+  "dumpTables": 44,
+  "totalBytesOnDisk": 218900000,
+  "stagedFilesCopied": 325,
+  "keyFilesChecksummed": 23,
+  "checksumMismatches": 0,
+  "containsLatestAcquisitions": true,
+  "olderBackupsPreserved": 4
+ },
  "delistedRenamed": {
   "candidates": [
    "BHAT",
@@ -106,9 +141,9 @@
  },
  "metrics": {
   "1_frozenTargetSeriesCoverage": {
-   "acquired": 12,
+   "acquired": 13,
    "targets": 14,
-   "pct": 85.7,
+   "pct": 92.9,
    "detail": {
     "S&P 500 price index": "acquired",
     "S&P 500 total return": "acquired",
@@ -120,7 +155,7 @@
     "Brent continuous futures": "acquired",
     "Bitcoin earliest daily": "acquired",
     "PSX individual stocks": "acquired",
-    "PSX renamed/delisted": "candidates identified",
+    "PSX renamed/delisted": "acquired",
     "KIBOR history": "acquired",
     "SBP policy rate history": "acquired",
     "KSE-100": "unavailable"
@@ -139,7 +174,14 @@
    "pct": 99.43,
    "denominator": "price sessions + benchmark/macro expected observations + KIBOR business days x 18 series. The SBP policy rate is excluded from both sides: an irregular event series has no expected count to divide by",
    "excludedAsUnmeasurable": {
-    "SBP_POLICY_RATE": 39
+    "SBP_POLICY_RATE": {
+     "observations": 39,
+     "why": "an irregular event series: it prints only when the rate changes, so there is no expected count to divide by"
+    },
+    "PSX_DELISTED_HISTORY": {
+     "observations": 24613,
+     "why": "the expected count would be the sessions those symbols traded, which is exactly what was acquired; dividing one by the other is circular"
+    }
    }
   },
   "4_primaryStoreIntegratedCoverage": {
@@ -149,9 +191,14 @@
    "note": "benchmark, macro and SBP series are persisted as project data files rather than written to PriceSnapshot: an index level or a policy rate is not a tradable instrument and an Asset row would change what that table means"
   },
   "5_remainingUnresolved": {
-   "psxInRangeGapsRemaining": 36762,
-   "ofWhichRecoverableFromTheExchange": 0,
-   "ofWhichSessionsTheSymbolDidNotTrade": 36762,
+   "psxGapClassification": {
+    "2_securityDidNotTrade": 36762,
+    "3_exchangeArchiveEmpty": 158,
+    "3a_ofWhichAnotherProviderHas": 69
+   },
+   "psxGapsTotal": 36920,
+   "category4RecoverableElsewhere": 0,
+   "note2": "the earlier report called these non-trading sessions. They are not: 36,762 are published sessions on which that one security did not trade, and 158 fall on the four dates whose exchange archive is empty or absent, 69 of which another provider does serve",
    "psxCoverageAgainstSessionsAPriceWasPublished": 1.0,
    "seriesWithNoReachableHistory": [
     "KSE-100"
@@ -558,6 +605,25 @@
    "disposition": "SUPERSEDED where the exchange supplied the same date at raw basis; the remainder stays staged",
    "insideAStoredRange": 37617,
    "outsideAStoredRange": 629
+  },
+  {
+   "series": "PSX renamed/delisted securities",
+   "category": "frozen target",
+   "source": "Pakistan Stock Exchange daily closing file, dps.psx.com.pk",
+   "basis": "raw as-traded OHLCV, the same basis as the stored PSX series",
+   "expectedObservations": null,
+   "acquiredObservations": 24613,
+   "validInDurableStaging": 24613,
+   "integratedInPrimaryStore": 0,
+   "invalidProviderRecordsRejected": 0,
+   "withheldOnBasisOrIdentity": 0,
+   "firstObservation": "2018-01-01",
+   "lastObservation": "2026-10-14",
+   "denominator": "sessions these symbols traded inside the swept archive window",
+   "disposition": "ACQUIRED AND PERSISTED to data/foundation/psx_delisted (no Asset row: outside the frozen 226-symbol registry)",
+   "symbols": 21,
+   "file": "psx_delisted_history.csv.gz",
+   "sha256": "304b67beb989d51acfe22b81bd742cf2eb8ee4f6a0c4a0306ba6a69690db2353"
   },
   {
    "series": "SBP_POLICY_RATE",

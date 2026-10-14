@@ -4524,3 +4524,56 @@ reads rows that already exist:
       The dataset rebuild (`data-pit-features.yml`, `data-assemble.yml`) also still needs an
       authenticated runner, and the 38,246 basis-conflicting Karachi bars remain staged, largely
       superseded by raw exchange bars for the same dates.
+
+134. **Two claims in the last two entries were looser than the evidence, and the delisted history
+    was sitting in files already on disk.** 2026-10-15, pre-Milestone-B closeout. No database
+    change: 387 MB, 1,097,458 rows, 44 tables, identical to the start of this pass.
+
+    - **"KSE-100 is the only remaining series" was wrong.** The frozen list has fourteen items and
+      rule 133 reported twelve acquired, which leaves two, not one. The second was **PSX renamed
+      and delisted securities**, carried as "candidates identified" -- twenty-one symbols named and
+      not a single bar of their history retrieved. The arithmetic was in the manifest the whole
+      time; the sentence next to it was not checked against it.
+
+    - **That one is now closed, from files already downloaded.** The twenty-one symbols trade in
+      the exchange's own archives, and all 2,171 of those were already cached by the sweep, so
+      **24,613 bars across 21 symbols** came back without a single new request -- FFBL, PSMC,
+      PIAA, ENGRO, DAWH and the rest, at the raw basis the stored series uses, in
+      `data/foundation/psx_delisted/`. Thirteen of fourteen targets are acquired.
+
+    - **"36,762 remaining gaps, all non-trading sessions" conflated three different facts.** A day
+      the exchange was shut, a day one security did not trade, and a session whose archive the
+      exchange never published are not the same claim. Classified against the cached archives:
+      **36,762 are published sessions on which that one security did not trade** -- category two,
+      not category one -- and a further **158 fall on the four dates whose archive is empty or
+      absent, 69 of which another provider does serve**. The total is 36,920, and the earlier
+      figure had silently dropped the 158.
+
+    - **The withheld Karachi bars are fully superseded, and that is now measured.** Of every
+      remaining in-range gap on a published session, **none** has a validated bar at the Karachi
+      listing. So the 38,246 bars withheld on basis grounds in rule 130 are not a residual: every
+      date that provider validly served has since been filled from the exchange's own file, at the
+      raw basis, with nothing left to adjudicate.
+
+    - **Checked rather than asserted.** All fifteen durable files re-read from disk: sha256 matches
+      the manifest in 15 of 15, row counts and date ranges match, no duplicate dates, and no two
+      files are numerically identical -- which is the check that would catch the price index being
+      served as the total-return series, or ICE's dollar index as the Federal Reserve's broad one.
+      One flagged value is real history: `DCOILWTICO` prints **-36.98 on 2020-04-20**, the day WTI
+      settled negative, the same event as `CL=F`. The two Bitcoin venue files share **zero dates**,
+      so nothing is double counted.
+
+    - **KSE-100 stays unresolved, and the search is now exhausted rather than abandoned.** New this
+      pass: every plausible exchange download path in the `mkt_summary` family --
+      `index_summary`, `indices`, `mkt_index`, `index`, `historical` -- answers **404**, while
+      `mkt_summary` answers 200, so the closing file is the only published download. The Internet
+      Archive does hold the indices page, but **69 captures across seven years**, about ten a year:
+      real observations, nowhere near a historical series, and the CDX API began answering 429, so
+      it was not pushed further. Added to the routes already recorded in rule 133, this is a
+      source-by-source negative and **not** a reason to relabel the series acquired.
+
+    - **Pre-Milestone-B readiness: BLOCKED, on one criterion.** Everything else passes --
+      backup verified at `backup-2026-10-15T2305Z-post-acquisition` with the SBP and benchmark
+      files byte-identical to the repository, metrics with stated denominators, 971 tests green,
+      no unexplained counts. KSE-100 historical levels are not acquired, and the acceptance gate
+      says the frozen scope is not complete while that is true.
