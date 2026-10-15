@@ -231,6 +231,7 @@ B added, which is exactly the "silently appears current" failure the brief forbi
 | | |
 |---|---|
 | Branch | `milestone-c-research-corpus` |
+| Commit | `3ab7f18a0a86419e9691712b8695279b703db255` |
 | Cut from | `ba06cd1a0702f20feed7d6f5e7e3cfd3663e0f62` (Milestone B, protected) |
 | Working tree | changes staged in this milestone; the two acquisition-phase notes remain untracked and unmixed |
 | Pushed | **not yet** — no remote state has been verified, so nothing here claims it was |

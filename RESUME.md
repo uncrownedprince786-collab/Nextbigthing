@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Branch | `milestone-c-research-corpus`, cut from Milestone B `ba06cd1` (protected, do not reopen) |
+| Branch | `milestone-c-research-corpus` at `3ab7f18`, cut from Milestone B `ba06cd1` (protected, do not reopen) |
 | Database | 1,097,638 rows, **385 MB** of 500 MB; no price row added or changed |
 | Tests | **1,019 Python** (21 new), **466 web**, 0 failures; `verify_durable.py` exit 0 |
 | Data-foundation gate | **PASS**, two documented source limitations |
