@@ -5249,3 +5249,50 @@ reads rows that already exist:
       days. Historical press evidence goes to a durable artifact with its own checksum and
       provenance; operational news stays short-lived on purpose. Conflating the two is how a
       cleanup job silently deletes a research corpus.
+
+148. **The archive was open the whole time the API was shut, and the first pass through it was
+    80% noise.** 2026-10-15, historical evidence closeout. Acquisition for the event corpus is
+    closed: **0 events pending**.
+
+    - **A rate limit is not an absence, and the two doors are not the same door.** The GDELT DOC
+      API answers `429 Please limit requests to one every 5 seconds`, and once a host trips it the
+      429s continue well past five seconds -- measured across spaced probes over ten minutes of
+      near-idle, logged with status and timestamp. The bulk archive at `data.gdeltproject.org` is
+      static files with no quota. Same publisher, same data, no limit to bypass. 158 named daily
+      files, **31.6 MB each measured before fetching**, streamed, filtered and deleted one at a
+      time so peak disk was one file rather than five gigabytes.
+
+    - **The first extraction scored 20% precision and looked fine from the summary.** 1,647
+      references, 619 publishers, 164 of 168 events covered -- and then a spot check of the
+      earnings events, which are half the corpus: `MU earnings release` had matched
+      `/july-2019-new-music-releases/`, because `mu` is inside `music` and `release` is inside
+      `releases`. Only **78 of 400** sampled earnings references named their own ticker. The
+      headline numbers were all good and the data was mostly noise.
+
+    - **Three rules fixed it, each from a specific failure.** Whole-word matching, so a ticker is
+      a word and not a substring. A *distinctive* term required -- "earnings" and "release" appear
+      in every earnings story ever filed, so `MU earnings release (2019-06-25)` is identified by
+      `mu` and nothing else in its name. And the distinctive term must appear in the URL's
+      **path**, not the host, because `.mu` is Mauritius and every Mauritian outlet was matching
+      Micron. Precision on earnings references went **20% to 100%** (312 of 312), and the corpus
+      honestly shrank: 1,647 references to **1,127**, events covered 164 to **148**, with 14
+      moving to `SEARCHED_NO_MATCH`. Fewer and true beats more and plausible.
+
+    - **Final dispositions, 168 of 168.** 148 `PRESS_EVIDENCE_FOUND`, 2 `OFFICIAL_SOURCE_ONLY`,
+      14 `SEARCHED_NO_MATCH`, 4 `SOURCE_LIMITED`, **0 `PENDING`**. 1,127 references from 616
+      distinct publishers, median 8 publishers per covered event. A zero-result search is stored
+      as a completed search with its scope, never as a claim about what the world published, and
+      no record says the article text was read because none was fetched.
+
+    - **The corpus is file-based on purpose and a test now says so.** `jobs/retention.py` prunes
+      `News` at 70 days; `Event`, `EventLink`, `EventImpact` and `EventState` are in
+      `NEVER_PRUNED`; and the new tests assert that retention references no foundation artifact
+      and that no collector writes into `News`. Operational news freshness and historical research
+      retention are different concerns, and the way they get confused is a cleanup job quietly
+      deleting a research corpus.
+
+    - **US delisted prices: three doors tried, all shut.** Yahoo's download endpoint 404s, Yahoo's
+      v8 chart API 404s (tested here), and stooq answers a bot challenge this project will not
+      work around. EDGAR has identity and lifecycle but never prices. So the survivorship figure
+      stays a measured lower bound, and that is a limitation with three named attempts behind it
+      rather than an assumption.

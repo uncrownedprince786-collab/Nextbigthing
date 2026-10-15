@@ -62,14 +62,42 @@ def arg(name: str, default=None):
     return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else default
 
 
-def terms(event: dict) -> list[str]:
-    """The words that make this event itself rather than its topic."""
+def terms(event: dict) -> tuple[list[str], list[str]]:
+    """`(all terms, the distinctive ones)`.
+
+    "earnings" and "release" appear in every earnings story ever filed, so an event named
+    `MU earnings release (2019-06-25)` is identified by `mu` and by nothing else in its name. The
+    distinctive list is what a reference must carry; the full list only ranks it.
+    """
     raw = re.split(r"[^A-Za-z0-9.]+", event.get("name", ""))
     out = [w.lower() for w in raw if len(w) > 2 and w.lower() not in STOP]
     ins = (event.get("instrument") or "").lower()
     if ins and ins not in ("mkt", "psx") and ins not in out:
         out.append(ins)
-    return out[:8]
+    generic = {"earnings", "release", "releases", "results", "quarter", "quarterly", "report",
+               "reports", "announces", "announcement"}
+    distinctive = [w for w in out if w not in generic and not w.isdigit()]
+    if ins and ins not in ("mkt", "psx"):
+        distinctive = [ins] + [w for w in distinctive if w != ins]
+    return out[:8], distinctive[:6]
+
+
+def url_path(url: str) -> str:
+    """The part of a URL a headline slug lives in: everything after the host."""
+    u = url.lower()
+    u = re.sub(r"^[a-z]+://", "", u)
+    cut = u.find("/")
+    return u[cut:] if cut >= 0 else ""
+
+
+def _hits(words: list[str], text: str) -> int:
+    """Count terms present as whole words, not as substrings.
+
+    `MU earnings release` once matched `/july-2019-new-music-releases/`, because `mu` is inside
+    `music` and `release` is inside `releases`. A ticker is a word or it is a coincidence.
+    """
+    return sum(1 for w in words if re.search(r"(?<![a-z0-9])" + re.escape(w) + r"(?![a-z0-9])",
+                                             text))
 
 
 def score(row: dict, words: list[str], url: str) -> tuple[int, int]:
@@ -84,7 +112,7 @@ def score(row: dict, words: list[str], url: str) -> tuple[int, int]:
     meta = " ".join((row.get(c) or "") for c in
                     ("THEMES", "LOCATIONS", "PERSONS", "ORGANIZATIONS")).lower()
     u = url.lower()
-    return sum(1 for w in words if w in u), sum(1 for w in words if w in u or w in meta)
+    return _hits(words, u), _hits(words, u + " " + meta)
 
 
 def fetch_day(ymd: str, keep: bool) -> Path | None:
@@ -141,7 +169,9 @@ def main() -> int:
                     rd = csv.DictReader(io.TextIOWrapper(fh, encoding="utf-8", errors="replace"),
                                         delimiter="\t")
                     best: dict[str, list[tuple]] = {e["name"]: [] for e in by_date[d]}
-                    words = {e["name"]: terms(e) for e in by_date[d]}
+                    pairs = {e["name"]: terms(e) for e in by_date[d]}
+                    words = {k: v[0] for k, v in pairs.items()}
+                    keyterms = {k: v[1] for k, v in pairs.items()}
                     for row in rd:
                         urls = [u for u in (row.get("SOURCEURLS") or "").split("<UDIV>") if u]
                         if not urls:
@@ -150,10 +180,16 @@ def main() -> int:
                             w = words[ev["name"]]
                             if len(w) < 2:
                                 continue
+                            kt = keyterms[ev["name"]]
+                            if not kt:
+                                continue
+                            # A distinctive term -- the ticker, the place, the company -- must
+                            # appear as a whole word in the URL's *path*. The path is where a
+                            # headline slug lives; the host is where `.mu` makes every Mauritian
+                            # outlet look like a Micron earnings report.
+                            if _hits(kt, url_path(urls[0])) < 1:
+                                continue
                             in_url, total = score(row, w, urls[0])
-                            # Two of the event's own words in the article URL, or most of them
-                            # across the row with at least one in the URL. Anything looser
-                            # collects stories that merely share a topic.
                             keep_it = in_url >= 2 or (in_url >= 1 and total >= max(3, len(w) - 1))
                             if not keep_it:
                                 continue

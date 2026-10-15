@@ -1,31 +1,3113 @@
 {
- "generatedAt": "2026-10-15T14:10:51+00:00",
- "version": "press-evidence-v1",
- "source": {
-  "name": "GDELT DOC 2.0",
-  "endpoint": "https://api.gdeltproject.org/api/v2/doc/doc",
-  "auth": "none",
-  "serves": "article metadata only, not article text"
+ "generatedAt": "2026-10-15T16:00:44+00:00",
+ "version": "press-evidence-v2",
+ "events": 168,
+ "dispositionCounts": {
+  "PRESS_EVIDENCE_FOUND": 148,
+  "SEARCHED_NO_MATCH": 14,
+  "SOURCE_LIMITED": 4,
+  "OFFICIAL_SOURCE_ONLY": 2
  },
- "whyNotInTheNewsTable": "jobs/retention.py prunes News at 70 days for its operational readers; a historical corpus kept there would be deleted",
- "eventsConsidered": 4,
- "eventsWithEvidence": 2,
- "eventsWithNone": 2,
- "uniqueRecords": 17,
- "deduplication": "sha256 over publisher + lowercased title + publication day",
- "window": {
-  "beforeDays": 1,
-  "afterDays": 3
+ "pressReferenceRecords": 1127,
+ "eventsWithPressEvidence": 148,
+ "distinctPublishers": 616,
+ "routes": {
+  "gdeltDocApi": {
+   "endpoint": "https://api.gdeltproject.org/api/v2/doc/doc",
+   "limit": "one request per 5 seconds, stated in its own 429 body",
+   "note": "host entered a persistent penalty window; see .cache/foundation/gdelt_requests.log"
+  },
+  "gdeltGkgArchive": {
+   "endpoint": "http://data.gdeltproject.org/gkg/YYYYMMDD.gkg.csv.zip",
+   "perFileBytes": 31639392,
+   "note": "static files, no rate limit; one file per corpus date, streamed, filtered and deleted"
+  }
  },
- "maxRecordsPerEvent": 15,
- "requestsThisRun": 0,
- "failures": [],
- "timeFields": {
-  "publishedAt": "GDELT seendate",
-  "firstSeenAt": "retrieval time by this collector",
-  "eventDate": "the corpus event date"
- },
+ "relevanceRule": "two of the event's own words in the article URL, or one in the URL and most across the row's themes, people, organisations and locations",
+ "whatAReferenceIs": "a dated link published by an outlet, recovered from an index. No article text was fetched, so no record asserts the page was read",
+ "zeroResultMeaning": "SEARCHED_NO_MATCH records that the listed searches completed and returned nothing relevant; it is not a claim about world coverage",
  "file": "press_evidence.jsonl",
- "bytes": 10040,
- "sha256": "7cf70650e1187bf6dc545fa7410c412792b53e0741027c7e66fcb4fa9b1a126e"
+ "bytes": 622753,
+ "sha256": "cada04b29fae7e60b14cd4f3b237401d80b7b44d479d56db421e055611c62ba6",
+ "dispositions": [
+  {
+   "eventId": "9c3729136c374924",
+   "name": "Pulwama attack",
+   "date": "2019-02-14",
+   "category": "geopolitical",
+   "instrument": "PSX",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 25,
+   "independentPublishers": 15,
+   "routes": {
+    "gdeltDocApi": "searched, 15 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2019_Pulwama_attack",
+    "revid": 1376412858,
+    "textSha256": "af42ec7797ed0289"
+   }
+  },
+  {
+   "eventId": "d5170fd3cdbc7413",
+   "name": "Balakot airstrike",
+   "date": "2019-02-26",
+   "category": "geopolitical",
+   "instrument": "PSX",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2019_Balakot_airstrike",
+    "revid": 1370351367,
+    "textSha256": "a7559c9758e7f9a4"
+   }
+  },
+  {
+   "eventId": "5bd774e800a9d1d7",
+   "name": "Boeing 737 MAX grounded in the US",
+   "date": "2019-03-13",
+   "category": "corporate",
+   "instrument": "BA",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 12,
+   "independentPublishers": 12,
+   "routes": {
+    "gdeltDocApi": "searched, 3 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Boeing_737_MAX",
+    "revid": 1379958964,
+    "textSha256": "b201f26bcb7392d4"
+   }
+  },
+  {
+   "eventId": "19017fc8691d7fa6",
+   "name": "GOOGL earnings release (2019-04-29)",
+   "date": "2019-04-29",
+   "category": "earnings",
+   "instrument": "GOOGL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 4,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 4 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "005c69f9b2e836af",
+   "name": "MU earnings release (2019-06-25)",
+   "date": "2019-06-25",
+   "category": "earnings",
+   "instrument": "MU",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 2,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 2 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "baff65615e39f89c",
+   "name": "KO earnings release (2019-07-23)",
+   "date": "2019-07-23",
+   "category": "earnings",
+   "instrument": "KO",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 2,
+   "independentPublishers": 2,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 2 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "a7f74f033def89c5",
+   "name": "TSLA earnings release (2019-07-24)",
+   "date": "2019-07-24",
+   "category": "earnings",
+   "instrument": "TSLA",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "140c5a0cd965876e",
+   "name": "GOOGL earnings release (2019-07-25)",
+   "date": "2019-07-25",
+   "category": "earnings",
+   "instrument": "GOOGL",
+   "tier": "B",
+   "disposition": "SEARCHED_NO_MATCH",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "bba4ae7c1b5f63b1",
+   "name": "PFE earnings release (2019-07-29)",
+   "date": "2019-07-29",
+   "category": "earnings",
+   "instrument": "PFE",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 2,
+   "independentPublishers": 2,
+   "routes": {
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 2 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "47942d741ac8f896",
+   "name": "Fed cuts rates for first time since 2008",
+   "date": "2019-07-31",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 13,
+   "independentPublishers": 11,
+   "routes": {
+    "gdeltDocApi": "searched, 3 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20190731a.htm",
+    "sha256": "42b7ba705d7e7755"
+   }
+  },
+  {
+   "eventId": "e5c0d8f79b4617e7",
+   "name": "Abqaiq-Khurais attack",
+   "date": "2019-09-14",
+   "category": "geopolitical",
+   "instrument": "OIL",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Abqaiq%E2%80%93Khurais_attack",
+    "revid": 1376652868,
+    "textSha256": "0ae15e9741f28353"
+   }
+  },
+  {
+   "eventId": "8e3b6610354332d1",
+   "name": "TSLA earnings release (2019-10-23)",
+   "date": "2019-10-23",
+   "category": "earnings",
+   "instrument": "TSLA",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 6,
+   "independentPublishers": 4,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 6 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "417435804ed9ff8f",
+   "name": "HD earnings release (2019-11-19)",
+   "date": "2019-11-19",
+   "category": "earnings",
+   "instrument": "HD",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 5,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 5 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "f3d6e9ed4da247d6",
+   "name": "UK general election",
+   "date": "2019-12-12",
+   "category": "political",
+   "instrument": "GBPUSD",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 25,
+   "independentPublishers": 22,
+   "routes": {
+    "gdeltDocApi": "searched, 15 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2019_United_Kingdom_general_election",
+    "revid": 1378298505,
+    "textSha256": "42ad89c04c84fc58"
+   }
+  },
+  {
+   "eventId": "30d55086b32d7825",
+   "name": "Wuhan lockdown begins",
+   "date": "2020-01-23",
+   "category": "health",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/COVID-19_lockdown_in_China",
+    "revid": 1377748731,
+    "textSha256": "acdf045aa6dfec34"
+   }
+  },
+  {
+   "eventId": "820124d2db4e0b88",
+   "name": "PFE earnings release (2020-01-28)",
+   "date": "2020-01-28",
+   "category": "earnings",
+   "instrument": "PFE",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "b7df15ce5da293d9",
+   "name": "AMZN earnings release (2020-01-30)",
+   "date": "2020-01-30",
+   "category": "earnings",
+   "instrument": "AMZN",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 2,
+   "independentPublishers": 2,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 2 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "039e8de49dc8d569",
+   "name": "Fed emergency 50bp cut",
+   "date": "2020-03-03",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 11,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "searched, 1 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20200303a.htm",
+    "sha256": "e6629ef92f1a75ab"
+   }
+  },
+  {
+   "eventId": "b208a5190adb9a75",
+   "name": "OPEC+ talks collapse",
+   "date": "2020-03-06",
+   "category": "energy",
+   "instrument": "OIL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 14,
+   "independentPublishers": 13,
+   "routes": {
+    "gdeltDocApi": "searched, 5 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2020_Russia%E2%80%93Saudi_Arabia_oil_price_war",
+    "revid": 1370723507,
+    "textSha256": "89a2dc19c0c075df"
+   }
+  },
+  {
+   "eventId": "47333343f7f6c6fb",
+   "name": "Italy national COVID lockdown",
+   "date": "2020-03-09",
+   "category": "health",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/COVID-19_lockdowns_in_Italy",
+    "revid": 1377135601,
+    "textSha256": "0d50fbff6d64bb2c"
+   }
+  },
+  {
+   "eventId": "cc8d041f4e59f481",
+   "name": "Oil price war sparks crash",
+   "date": "2020-03-09",
+   "category": "market-structure",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Stock_market_crash",
+    "revid": 1378465190,
+    "textSha256": "9e754f9cce888161"
+   }
+  },
+  {
+   "eventId": "e2a7435e8faa50fe",
+   "name": "WHO declares COVID-19 a pandemic",
+   "date": "2020-03-11",
+   "category": "health",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Responses_to_the_COVID-19_pandemic_in_March_2020",
+    "revid": 1376873681,
+    "textSha256": "2115270fe3bf5ded"
+   }
+  },
+  {
+   "eventId": "e97121d95627261b",
+   "name": "Fed cuts to zero and restarts QE",
+   "date": "2020-03-15",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20200315a.htm",
+    "sha256": "87dcd9d3f191e6a2"
+   }
+  },
+  {
+   "eventId": "fb1366c359418b11",
+   "name": "Worst day of the COVID crash",
+   "date": "2020-03-16",
+   "category": "market-structure",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Stock_market_crash",
+    "revid": 1378465190,
+    "textSha256": "9e754f9cce888161"
+   }
+  },
+  {
+   "eventId": "f05db8ff5301835f",
+   "name": "ECB launches PEPP",
+   "date": "2020-03-18",
+   "category": "monetary",
+   "instrument": "EURUSD",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 2,
+   "independentPublishers": 2,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 2 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Economic_impact_of_the_COVID-19_pandemic",
+    "revid": 1377133746,
+    "textSha256": "ad9f4f4ec480ffb2"
+   }
+  },
+  {
+   "eventId": "41630d5f5fcfaf9b",
+   "name": "Fed announces unlimited QE",
+   "date": "2020-03-23",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 15,
+   "independentPublishers": 15,
+   "routes": {
+    "gdeltDocApi": "searched, 5 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20200323a.htm",
+    "sha256": "21a734a3f2cec88c"
+   }
+  },
+  {
+   "eventId": "97275954b567afa4",
+   "name": "WTI crude settles negative",
+   "date": "2020-04-20",
+   "category": "energy",
+   "instrument": "OIL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Price_of_oil",
+    "revid": 1379779391,
+    "textSha256": "42ef669729eca4e6"
+   }
+  },
+  {
+   "eventId": "9e289e8080dabf7e",
+   "name": "INTC earnings release (2020-07-23)",
+   "date": "2020-07-23",
+   "category": "earnings",
+   "instrument": "INTC",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "ee125385fd2cd332",
+   "name": "AAPL earnings release (2020-07-30)",
+   "date": "2020-07-30",
+   "category": "earnings",
+   "instrument": "AAPL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "a53a2a26feae73a8",
+   "name": "CRM earnings release (2020-08-25)",
+   "date": "2020-08-25",
+   "category": "earnings",
+   "instrument": "CRM",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "1e1d0607026587b5",
+   "name": "Fed adopts average inflation targeting",
+   "date": "2020-08-27",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 6,
+   "routes": {
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/speech/powell20200827a.htm",
+    "sha256": "255d119fe528b407"
+   }
+  },
+  {
+   "eventId": "62dd7336aa7ab5dd",
+   "name": "PFE earnings release (2020-10-27)",
+   "date": "2020-10-27",
+   "category": "earnings",
+   "instrument": "PFE",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "a620db21b6461e98",
+   "name": "US presidential election day 2020",
+   "date": "2020-11-03",
+   "category": "political",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2020_United_States_presidential_election_in_Louisiana",
+    "revid": 1368702205,
+    "textSha256": "3517419013be294d"
+   }
+  },
+  {
+   "eventId": "56499285e8e5ed03",
+   "name": "Tesla added to S&P 500",
+   "date": "2020-12-21",
+   "category": "corporate",
+   "instrument": "TSLA",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Tesla,_Inc.",
+    "revid": 1379777246,
+    "textSha256": "932190f7acf5a5e9"
+   }
+  },
+  {
+   "eventId": "b3f13e597497a7d0",
+   "name": "Georgia Senate runoffs",
+   "date": "2021-01-05",
+   "category": "political",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 24,
+   "independentPublishers": 22,
+   "routes": {
+    "gdeltDocApi": "searched, 15 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2020%E2%80%9321_United_States_Senate_election_in_Georgia",
+    "revid": 1378919032,
+    "textSha256": "8790f1dc4ebd00d6"
+   }
+  },
+  {
+   "eventId": "088f58ac37588f72",
+   "name": "GameStop short squeeze peak",
+   "date": "2021-01-28",
+   "category": "market-structure",
+   "instrument": "GME",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/GameStop_short_squeeze",
+    "revid": 1370280423,
+    "textSha256": "ce09701d50a20bcd"
+   }
+  },
+  {
+   "eventId": "4bb3724409442fb0",
+   "name": "Tesla buys $1.5bn of Bitcoin",
+   "date": "2021-02-08",
+   "category": "crypto",
+   "instrument": "BTC",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/History_of_bitcoin",
+    "revid": 1379119650,
+    "textSha256": "54f80362aea39a27"
+   }
+  },
+  {
+   "eventId": "9c8401f86fc0b9c9",
+   "name": "NVDA earnings release (2021-02-24)",
+   "date": "2021-02-24",
+   "category": "earnings",
+   "instrument": "NVDA",
+   "tier": "B",
+   "disposition": "SOURCE_LIMITED",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "ea74c1ca7fd467ce",
+   "name": "Suez Canal blocked by Ever Given",
+   "date": "2021-03-23",
+   "category": "energy",
+   "instrument": "OIL",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 7,
+   "independentPublishers": 7,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 7 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2021_Suez_Canal_obstruction",
+    "revid": 1380034303,
+    "textSha256": "576a2abc04ac711a"
+   }
+  },
+  {
+   "eventId": "8de8b18c53bdabad",
+   "name": "Colonial Pipeline ransomware",
+   "date": "2021-05-07",
+   "category": "energy",
+   "instrument": "OIL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 12,
+   "independentPublishers": 11,
+   "routes": {
+    "gdeltDocApi": "searched, 9 returned",
+    "gdeltGkgArchive": "searched, 4 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Colonial_Pipeline_ransomware_attack",
+    "revid": 1377962528,
+    "textSha256": "4188de04bcf94315"
+   }
+  },
+  {
+   "eventId": "a63ee09a2bbde924",
+   "name": "Fed hawkish dot plot shift",
+   "date": "2021-06-16",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20210616a.htm",
+    "sha256": "84d7edf534f2fbf5"
+   }
+  },
+  {
+   "eventId": "b953325b59d2dccf",
+   "name": "NKE earnings release (2021-06-24)",
+   "date": "2021-06-24",
+   "category": "earnings",
+   "instrument": "NKE",
+   "tier": "B",
+   "disposition": "SEARCHED_NO_MATCH",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "3d8b4bd04cacf271",
+   "name": "Taliban take Kabul",
+   "date": "2021-08-15",
+   "category": "geopolitical",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 25,
+   "independentPublishers": 24,
+   "routes": {
+    "gdeltDocApi": "searched, 15 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Fall_of_Kabul_(2021)",
+    "revid": 1379490656,
+    "textSha256": "dfe12f881f8d8a0d"
+   }
+  },
+  {
+   "eventId": "5f06b632764afa4d",
+   "name": "INTC earnings release (2021-10-21)",
+   "date": "2021-10-21",
+   "category": "earnings",
+   "instrument": "INTC",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "18e94240870d7cca",
+   "name": "Fed announces taper of asset purchases",
+   "date": "2021-11-03",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20211103a.htm",
+    "sha256": "4a7966bdabb78be9"
+   }
+  },
+  {
+   "eventId": "d5870c348bca2417",
+   "name": "HD earnings release (2021-11-16)",
+   "date": "2021-11-16",
+   "category": "earnings",
+   "instrument": "HD",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 6,
+   "independentPublishers": 4,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 6 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "99693a164844b957",
+   "name": "Omicron variant designated of concern",
+   "date": "2021-11-26",
+   "category": "health",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/SARS-CoV-2_Omicron_variant",
+    "revid": 1374223939,
+    "textSha256": "ad249bf9290307c8"
+   }
+  },
+  {
+   "eventId": "ba9b417b7ab785db",
+   "name": "ORCL earnings release (2021-12-09)",
+   "date": "2021-12-09",
+   "category": "earnings",
+   "instrument": "ORCL",
+   "tier": "B",
+   "disposition": "SOURCE_LIMITED",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "187493e3d4a0d404",
+   "name": "COST earnings release (2021-12-09)",
+   "date": "2021-12-09",
+   "category": "earnings",
+   "instrument": "COST",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "5914a942051f418d",
+   "name": "MU earnings release (2021-12-20)",
+   "date": "2021-12-20",
+   "category": "earnings",
+   "instrument": "MU",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 3,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 3 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "ab37e94f1ff2b997",
+   "name": "JPM earnings release (2022-01-14)",
+   "date": "2022-01-14",
+   "category": "earnings",
+   "instrument": "JPM",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 2,
+   "independentPublishers": 2,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 2 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "94b337921435f551",
+   "name": "GS earnings release (2022-01-18)",
+   "date": "2022-01-18",
+   "category": "earnings",
+   "instrument": "GS",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "20b32ddf23bd6b9e",
+   "name": "NFLX earnings release (2022-01-20)",
+   "date": "2022-01-20",
+   "category": "earnings",
+   "instrument": "NFLX",
+   "tier": "B",
+   "disposition": "SEARCHED_NO_MATCH",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "15463efede02f84f",
+   "name": "PYPL earnings release (2022-02-01)",
+   "date": "2022-02-01",
+   "category": "earnings",
+   "instrument": "PYPL",
+   "tier": "B",
+   "disposition": "SEARCHED_NO_MATCH",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "b29784e47e3bfca8",
+   "name": "META earnings release (2022-02-02)",
+   "date": "2022-02-02",
+   "category": "earnings",
+   "instrument": "META",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "e47c21d3cb58af36",
+   "name": "AMZN earnings release (2022-02-03)",
+   "date": "2022-02-03",
+   "category": "earnings",
+   "instrument": "AMZN",
+   "tier": "B",
+   "disposition": "SEARCHED_NO_MATCH",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "f98f57c1586c1de0",
+   "name": "LME nickel squeeze",
+   "date": "2022-03-08",
+   "category": "energy",
+   "instrument": "OIL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/LME_Nickel",
+    "revid": 1359844380,
+    "textSha256": "e8fcee3ea8e592c8"
+   }
+  },
+  {
+   "eventId": "e00f6d3d8e63bd41",
+   "name": "Fed raises rates for first time in the cycle",
+   "date": "2022-03-16",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20220316a.htm",
+    "sha256": "87e5e972494bbcad"
+   }
+  },
+  {
+   "eventId": "f4b2770b3b7d5477",
+   "name": "NFLX earnings release (2022-04-19)",
+   "date": "2022-04-19",
+   "category": "earnings",
+   "instrument": "NFLX",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 3,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 3 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "37bafd7d42939657",
+   "name": "WMT earnings release (2022-05-17)",
+   "date": "2022-05-17",
+   "category": "earnings",
+   "instrument": "WMT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 3,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 3 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "4756693c677e0301",
+   "name": "Fed raises 75bp",
+   "date": "2022-06-15",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20220615a.htm",
+    "sha256": "38fdcf0b588c7976"
+   }
+  },
+  {
+   "eventId": "9446d5990d964474",
+   "name": "Pelosi visits Taiwan",
+   "date": "2022-08-02",
+   "category": "geopolitical",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2022_visit_by_Nancy_Pelosi_to_Taiwan",
+    "revid": 1377634752,
+    "textSha256": "f9d089b2fd07cdf5"
+   }
+  },
+  {
+   "eventId": "ccaa363ad991a60f",
+   "name": "UBER earnings release (2022-08-02)",
+   "date": "2022-08-02",
+   "category": "earnings",
+   "instrument": "UBER",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "747e16fa53d5c68a",
+   "name": "Powell Jackson Hole 'pain' speech",
+   "date": "2022-08-26",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 8,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/speech/powell20220826a.htm",
+    "sha256": "8ff4944bdade29af"
+   }
+  },
+  {
+   "eventId": "91fdeb64e569ca91",
+   "name": "Hot US CPI, September 2022",
+   "date": "2022-09-13",
+   "category": "macro-data",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.bls.gov/news.release/archives/cpi_09132022.htm",
+    "sha256": "0fe793a6526f424f"
+   }
+  },
+  {
+   "eventId": "d51e9398c63f7093",
+   "name": "Ethereum Merge",
+   "date": "2022-09-15",
+   "category": "crypto",
+   "instrument": "ETH",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 8,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Ethereum",
+    "revid": 1379840328,
+    "textSha256": "e6cc1d04d6166053"
+   }
+  },
+  {
+   "eventId": "636814b757cc9e6a",
+   "name": "ADBE earnings release (2022-09-15)",
+   "date": "2022-09-15",
+   "category": "earnings",
+   "instrument": "ADBE",
+   "tier": "B",
+   "disposition": "SEARCHED_NO_MATCH",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "5e650c1e7dac3ead",
+   "name": "UK mini-budget",
+   "date": "2022-09-23",
+   "category": "monetary",
+   "instrument": "GBPUSD",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/September_2022_United_Kingdom_mini-budget",
+    "revid": 1379066958,
+    "textSha256": "6c431c0ba40d303f"
+   }
+  },
+  {
+   "eventId": "f3ab4f1505bcef75",
+   "name": "Nord Stream pipelines sabotage",
+   "date": "2022-09-26",
+   "category": "geopolitical",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Nord_Stream_pipelines_sabotage",
+    "revid": 1380132609,
+    "textSha256": "86a471c09fe65363"
+   }
+  },
+  {
+   "eventId": "a75c598f71a94dbb",
+   "name": "Bank of England gilt intervention",
+   "date": "2022-09-28",
+   "category": "monetary",
+   "instrument": "GBPUSD",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Quantitative_easing",
+    "revid": 1378672951,
+    "textSha256": "911f57680ff96d91"
+   }
+  },
+  {
+   "eventId": "88e18db444f23a44",
+   "name": "Russia annexes four Ukrainian regions",
+   "date": "2022-09-30",
+   "category": "geopolitical",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Russian_annexation_of_Donetsk,_Kherson,_Luhansk_and_Zaporizhzhia_oblasts",
+    "revid": 1379207604,
+    "textSha256": "7270cbb1b5647176"
+   }
+  },
+  {
+   "eventId": "e8e80f0b96e4651f",
+   "name": "AMD earnings release (2022-10-06)",
+   "date": "2022-10-06",
+   "category": "earnings",
+   "instrument": "AMD",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 3,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 3 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "f07713c030cdf384",
+   "name": "FTX collapse",
+   "date": "2022-11-08",
+   "category": "crypto",
+   "instrument": "BTC",
+   "tier": "B",
+   "disposition": "OFFICIAL_SOURCE_ONLY",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Binance",
+    "revid": 1378648822,
+    "textSha256": "5a6677974b68ba28"
+   }
+  },
+  {
+   "eventId": "0a70b31472458022",
+   "name": "Cool US CPI, November 2022",
+   "date": "2022-11-10",
+   "category": "macro-data",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "SOURCE_LIMITED",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "unavailable: archive unavailable"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.bls.gov/news.release/archives/cpi_11102022.htm",
+    "sha256": "003a8366cdc1ba47"
+   }
+  },
+  {
+   "eventId": "61a88c928655a908",
+   "name": "ChatGPT released",
+   "date": "2022-11-30",
+   "category": "corporate",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "OFFICIAL_SOURCE_ONLY",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/ChatGPT",
+    "revid": 1380168820,
+    "textSha256": "9729863defae3a75"
+   }
+  },
+  {
+   "eventId": "26f17d4daf0d2667",
+   "name": "GS earnings release (2023-01-17)",
+   "date": "2023-01-17",
+   "category": "earnings",
+   "instrument": "GS",
+   "tier": "B",
+   "disposition": "SEARCHED_NO_MATCH",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "f71655df5c6c7018",
+   "name": "Turkey-Syria earthquake",
+   "date": "2023-02-06",
+   "category": "disaster",
+   "instrument": "USDTRY",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2023_Turkey%E2%80%93Syria_earthquakes",
+    "revid": 1377855842,
+    "textSha256": "fc0fc129ec3c2989"
+   }
+  },
+  {
+   "eventId": "533d7c7fa3cbeed6",
+   "name": "UBS agrees to buy Credit Suisse",
+   "date": "2023-03-19",
+   "category": "banking",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Acquisition_of_Credit_Suisse_by_UBS",
+    "revid": 1377012552,
+    "textSha256": "864781c354ed24e4"
+   }
+  },
+  {
+   "eventId": "8fab14bd4e8bc3c9",
+   "name": "JPM earnings release (2023-04-14)",
+   "date": "2023-04-14",
+   "category": "earnings",
+   "instrument": "JPM",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 6,
+   "independentPublishers": 4,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 6 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "52590fcd0f9f9f90",
+   "name": "UBER earnings release (2023-05-02)",
+   "date": "2023-05-02",
+   "category": "earnings",
+   "instrument": "UBER",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "9c4665f5b117aab6",
+   "name": "SBUX earnings release (2023-05-02)",
+   "date": "2023-05-02",
+   "category": "earnings",
+   "instrument": "SBUX",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 2,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 2 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "3fbda791fade0745",
+   "name": "WHO ends COVID-19 emergency",
+   "date": "2023-05-05",
+   "category": "health",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Public_health_emergency_of_international_concern",
+    "revid": 1379281610,
+    "textSha256": "d1e6e262853ee75e"
+   }
+  },
+  {
+   "eventId": "7693312e8c19bfdd",
+   "name": "NVDA earnings release (2023-05-24)",
+   "date": "2023-05-24",
+   "category": "earnings",
+   "instrument": "NVDA",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "213022d227857170",
+   "name": "Wagner mutiny",
+   "date": "2023-06-23",
+   "category": "geopolitical",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Wagner_Group_rebellion",
+    "revid": 1372812761,
+    "textSha256": "703962c3c70916d9"
+   }
+  },
+  {
+   "eventId": "07fff35e557f8a6c",
+   "name": "BA earnings release (2023-07-26)",
+   "date": "2023-07-26",
+   "category": "earnings",
+   "instrument": "BA",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "8ed3001031c167e6",
+   "name": "Fitch downgrades US credit rating",
+   "date": "2023-08-01",
+   "category": "banking",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/United_States_federal_government_credit-rating_downgrades",
+    "revid": 1377698229,
+    "textSha256": "3ccb446acf89eff7"
+   }
+  },
+  {
+   "eventId": "a80879b92aa921ab",
+   "name": "CAT earnings release (2023-08-01)",
+   "date": "2023-08-01",
+   "category": "earnings",
+   "instrument": "CAT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "432114a37fe44411",
+   "name": "AAPL earnings release (2023-08-03)",
+   "date": "2023-08-03",
+   "category": "earnings",
+   "instrument": "AAPL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 4,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 4 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "811e0abeb7c7d73e",
+   "name": "Hamas attack on Israel",
+   "date": "2023-10-07",
+   "category": "geopolitical",
+   "instrument": "OIL",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/October_7_attacks",
+    "revid": 1379834805,
+    "textSha256": "028a395b0780b723"
+   }
+  },
+  {
+   "eventId": "92882db6b820376d",
+   "name": "NFLX earnings release (2023-10-18)",
+   "date": "2023-10-18",
+   "category": "earnings",
+   "instrument": "NFLX",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 4,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 4 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "a91ac1318bb674e3",
+   "name": "GOOGL earnings release (2023-10-24)",
+   "date": "2023-10-24",
+   "category": "earnings",
+   "instrument": "GOOGL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "7322400d250c06a2",
+   "name": "SBUX earnings release (2023-11-02)",
+   "date": "2023-11-02",
+   "category": "earnings",
+   "instrument": "SBUX",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 4,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 4 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "e1bae01e645c0a3a",
+   "name": "WMT earnings release (2023-11-16)",
+   "date": "2023-11-16",
+   "category": "earnings",
+   "instrument": "WMT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 2,
+   "independentPublishers": 2,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 2 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "9993117cc4259f39",
+   "name": "Houthis seize Galaxy Leader",
+   "date": "2023-11-19",
+   "category": "geopolitical",
+   "instrument": "OIL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Hijacking_of_the_Galaxy_Leader",
+    "revid": 1370622758,
+    "textSha256": "31743d326d4ee3f1"
+   }
+  },
+  {
+   "eventId": "7ebbc2bd8b1acb40",
+   "name": "Binance pleads guilty, CZ resigns",
+   "date": "2023-11-21",
+   "category": "crypto",
+   "instrument": "BTC",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Binance",
+    "revid": 1378648822,
+    "textSha256": "5a6677974b68ba28"
+   }
+  },
+  {
+   "eventId": "6d0308b255fbe37b",
+   "name": "Fed pivot dot plot",
+   "date": "2023-12-13",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 6,
+   "independentPublishers": 6,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 6 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20231213a.htm",
+    "sha256": "acfae9e0f8d95ba7"
+   }
+  },
+  {
+   "eventId": "cde4bf53d20f2d2b",
+   "name": "Noto Peninsula earthquake",
+   "date": "2024-01-01",
+   "category": "disaster",
+   "instrument": "USDJPY",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 3,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 3 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2024_Noto_earthquake",
+    "revid": 1377830640,
+    "textSha256": "080b1a3a74766f67"
+   }
+  },
+  {
+   "eventId": "ed1c5a5c4d86cbfc",
+   "name": "Boeing 737 MAX 9 door plug blowout",
+   "date": "2024-01-05",
+   "category": "corporate",
+   "instrument": "BA",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Alaska_Airlines_Flight_1282",
+    "revid": 1380152345,
+    "textSha256": "e56eb496fdf8b4d7"
+   }
+  },
+  {
+   "eventId": "a2418449570371b1",
+   "name": "Spot Bitcoin ETFs approved",
+   "date": "2024-01-10",
+   "category": "crypto",
+   "instrument": "BTC",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Ark_Invest",
+    "revid": 1373102061,
+    "textSha256": "82c7c1799fae5ecd"
+   }
+  },
+  {
+   "eventId": "596a40e7e26df03d",
+   "name": "US and UK strike Houthi targets",
+   "date": "2024-01-12",
+   "category": "geopolitical",
+   "instrument": "OIL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/US%E2%80%93UK_airstrikes_on_Yemen",
+    "revid": 1379351019,
+    "textSha256": "b0dff09664094450"
+   }
+  },
+  {
+   "eventId": "ae60a97280306fad",
+   "name": "META earnings release (2024-02-01)",
+   "date": "2024-02-01",
+   "category": "earnings",
+   "instrument": "META",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "5ba327f41f654b9d",
+   "name": "DIS earnings release (2024-02-07)",
+   "date": "2024-02-07",
+   "category": "earnings",
+   "instrument": "DIS",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "c3fab085fd233ac0",
+   "name": "Pakistan general election",
+   "date": "2024-02-08",
+   "category": "political",
+   "instrument": "PSX",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2024_Pakistani_general_election",
+    "revid": 1378902229,
+    "textSha256": "11b671cd36518055"
+   }
+  },
+  {
+   "eventId": "88e841381c5e4f50",
+   "name": "NVDA earnings release (2024-02-21)",
+   "date": "2024-02-21",
+   "category": "earnings",
+   "instrument": "NVDA",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 7,
+   "independentPublishers": 5,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 7 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "a33aa8aa7acce4f2",
+   "name": "COST earnings release (2024-03-07)",
+   "date": "2024-03-07",
+   "category": "earnings",
+   "instrument": "COST",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "3e21f9f6308c5253",
+   "name": "MU earnings release (2024-03-20)",
+   "date": "2024-03-20",
+   "category": "earnings",
+   "instrument": "MU",
+   "tier": "B",
+   "disposition": "SEARCHED_NO_MATCH",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "24fb85c19d2ed328",
+   "name": "Baltimore Key Bridge collapse",
+   "date": "2024-03-26",
+   "category": "disaster",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Francis_Scott_Key_Bridge_collapse",
+    "revid": 1377459540,
+    "textSha256": "07886e3e8cf38fd5"
+   }
+  },
+  {
+   "eventId": "9e3a0aa38cecbd81",
+   "name": "JPM earnings release (2024-04-12)",
+   "date": "2024-04-12",
+   "category": "earnings",
+   "instrument": "JPM",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 3,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 3 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "92d62bc09166f8d7",
+   "name": "Iran attacks Israel with drones and missiles",
+   "date": "2024-04-13",
+   "category": "geopolitical",
+   "instrument": "OIL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/April_2024_Iranian_strikes_on_Israel",
+    "revid": 1373392805,
+    "textSha256": "0246cdfbf4fa61ca"
+   }
+  },
+  {
+   "eventId": "00ea5903b038b45d",
+   "name": "CAT earnings release (2024-04-25)",
+   "date": "2024-04-25",
+   "category": "earnings",
+   "instrument": "CAT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "08c266aabff317ca",
+   "name": "SBUX earnings release (2024-04-30)",
+   "date": "2024-04-30",
+   "category": "earnings",
+   "instrument": "SBUX",
+   "tier": "B",
+   "disposition": "SEARCHED_NO_MATCH",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "a9199b7106634eda",
+   "name": "AAPL earnings release (2024-05-02)",
+   "date": "2024-05-02",
+   "category": "earnings",
+   "instrument": "AAPL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 7,
+   "independentPublishers": 5,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 7 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "4ffc64e43bb4639e",
+   "name": "DIS earnings release (2024-05-07)",
+   "date": "2024-05-07",
+   "category": "earnings",
+   "instrument": "DIS",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 3,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 3 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "808d85d7b1d9eb99",
+   "name": "WMT earnings release (2024-05-16)",
+   "date": "2024-05-16",
+   "category": "earnings",
+   "instrument": "WMT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 5,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 5 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "b5ae174c1dcaa874",
+   "name": "CRM earnings release (2024-05-29)",
+   "date": "2024-05-29",
+   "category": "earnings",
+   "instrument": "CRM",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "86d73d9c1cd86817",
+   "name": "ORCL earnings release (2024-06-11)",
+   "date": "2024-06-11",
+   "category": "earnings",
+   "instrument": "ORCL",
+   "tier": "B",
+   "disposition": "SEARCHED_NO_MATCH",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "b5e72def89a9b105",
+   "name": "ADBE earnings release (2024-06-13)",
+   "date": "2024-06-13",
+   "category": "earnings",
+   "instrument": "ADBE",
+   "tier": "B",
+   "disposition": "SEARCHED_NO_MATCH",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "802029f9bd95caf1",
+   "name": "NKE earnings release (2024-06-27)",
+   "date": "2024-06-27",
+   "category": "earnings",
+   "instrument": "NKE",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "af4e7b29ce91a977",
+   "name": "BAC earnings release (2024-07-16)",
+   "date": "2024-07-16",
+   "category": "earnings",
+   "instrument": "BAC",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 6,
+   "independentPublishers": 4,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 6 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "4eabcf68bd44dda7",
+   "name": "CrowdStrike outage",
+   "date": "2024-07-19",
+   "category": "corporate",
+   "instrument": "CRWD",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2024_CrowdStrike-related_IT_outages",
+    "revid": 1376517477,
+    "textSha256": "d73c75bef80c13f6"
+   }
+  },
+  {
+   "eventId": "5fe09f7f21a3c705",
+   "name": "INTC earnings release (2024-08-01)",
+   "date": "2024-08-01",
+   "category": "earnings",
+   "instrument": "INTC",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 3,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 3 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "059806b623373b94",
+   "name": "Weak US payrolls trigger Sahm rule",
+   "date": "2024-08-02",
+   "category": "macro-data",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 5,
+   "independentPublishers": 5,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 5 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.bls.gov/news.release/archives/empsit_08022024.htm",
+    "sha256": "783294006c3db5aa"
+   }
+  },
+  {
+   "eventId": "555798a83bd5de9a",
+   "name": "UBER earnings release (2024-08-06)",
+   "date": "2024-08-06",
+   "category": "earnings",
+   "instrument": "UBER",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "664d6a0c77b00892",
+   "name": "Israel pager attacks in Lebanon",
+   "date": "2024-09-17",
+   "category": "geopolitical",
+   "instrument": "OIL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2024_Lebanon_electronic_device_attacks",
+    "revid": 1377694397,
+    "textSha256": "d57466e12eddb082"
+   }
+  },
+  {
+   "eventId": "9dac69f6edca40e1",
+   "name": "Fed first cut of the cycle, 50bp",
+   "date": "2024-09-18",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20240918a.htm",
+    "sha256": "d48541909ce07ec4"
+   }
+  },
+  {
+   "eventId": "9f4c47ad0a35d633",
+   "name": "Hurricane Helene",
+   "date": "2024-09-26",
+   "category": "disaster",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 5,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Hurricane_Helene",
+    "revid": 1379700598,
+    "textSha256": "d394db3038c87db5"
+   }
+  },
+  {
+   "eventId": "9b8c648cfe26eb9e",
+   "name": "Iran missile attack on Israel",
+   "date": "2024-10-01",
+   "category": "geopolitical",
+   "instrument": "OIL",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/October_2024_Iranian_strikes_on_Israel",
+    "revid": 1373392701,
+    "textSha256": "0a59bd9e29c6aa57"
+   }
+  },
+  {
+   "eventId": "2c01c6ea42573c7c",
+   "name": "TSLA earnings release (2024-10-23)",
+   "date": "2024-10-23",
+   "category": "earnings",
+   "instrument": "TSLA",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 8,
+   "independentPublishers": 4,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 8 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "e4b8fdb671a5214b",
+   "name": "MSFT earnings release (2024-10-30)",
+   "date": "2024-10-30",
+   "category": "earnings",
+   "instrument": "MSFT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 2,
+   "independentPublishers": 2,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 2 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "99fe010c126d72ef",
+   "name": "US presidential election day 2024",
+   "date": "2024-11-05",
+   "category": "political",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2024_United_States_presidential_election_in_Missouri",
+    "revid": 1378679201,
+    "textSha256": "da7f94a263f4f6c0"
+   }
+  },
+  {
+   "eventId": "389a925897e5dc14",
+   "name": "Assad regime falls",
+   "date": "2024-12-08",
+   "category": "geopolitical",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Fall_of_the_Assad_regime",
+    "revid": 1378748905,
+    "textSha256": "93dc7faca07f96de"
+   }
+  },
+  {
+   "eventId": "5769e0d3e67288d9",
+   "name": "ADBE earnings release (2024-12-11)",
+   "date": "2024-12-11",
+   "category": "earnings",
+   "instrument": "ADBE",
+   "tier": "B",
+   "disposition": "SEARCHED_NO_MATCH",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "06ea9e312a2903c1",
+   "name": "Fed hawkish cut",
+   "date": "2024-12-18",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20241218a.htm",
+    "sha256": "e002238e0a9b1e4a"
+   }
+  },
+  {
+   "eventId": "37897bce56027c98",
+   "name": "DeepSeek selloff",
+   "date": "2025-01-27",
+   "category": "market-structure",
+   "instrument": "NVDA",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/DeepSeek_(AI)",
+    "revid": 1378055203,
+    "textSha256": "dcd0c3824942cfc4"
+   }
+  },
+  {
+   "eventId": "133dfc6b684d4c5d",
+   "name": "PYPL earnings release (2025-02-04)",
+   "date": "2025-02-04",
+   "category": "earnings",
+   "instrument": "PYPL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 2,
+   "independentPublishers": 2,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 2 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "1e4898b2603fa9d4",
+   "name": "KO earnings release (2025-02-11)",
+   "date": "2025-02-11",
+   "category": "earnings",
+   "instrument": "KO",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 3,
+   "independentPublishers": 3,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 3 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "d9a832c67aea78b7",
+   "name": "Bybit hack",
+   "date": "2025-02-21",
+   "category": "crypto",
+   "instrument": "ETH",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 5,
+   "independentPublishers": 5,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 5 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Bybit",
+    "revid": 1377830137,
+    "textSha256": "8928fa72af822a39"
+   }
+  },
+  {
+   "eventId": "fb44e71c7815b333",
+   "name": "US Strategic Bitcoin Reserve order",
+   "date": "2025-03-06",
+   "category": "crypto",
+   "instrument": "BTC",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/U.S._Strategic_Bitcoin_Reserve",
+    "revid": 1364687261,
+    "textSha256": "71fb3aadc5b08e0d"
+   }
+  },
+  {
+   "eventId": "5de3f0479a0d0066",
+   "name": "COST earnings release (2025-03-06)",
+   "date": "2025-03-06",
+   "category": "earnings",
+   "instrument": "COST",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "3f0ca7df9a85c159",
+   "name": "Liberation Day tariffs announced",
+   "date": "2025-04-02",
+   "category": "market-structure",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Liberation_Day_tariffs",
+    "revid": 1376389652,
+    "textSha256": "3b82d4d499726de2"
+   }
+  },
+  {
+   "eventId": "f491ee554dfae81a",
+   "name": "US tariff pause rally",
+   "date": "2025-04-09",
+   "category": "market-structure",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 7,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2025_stock_market_crash",
+    "revid": 1378653060,
+    "textSha256": "e392c39eda05029e"
+   }
+  },
+  {
+   "eventId": "e3abf1bfae11ae9f",
+   "name": "India-Pakistan strikes (Operation Sindoor)",
+   "date": "2025-05-07",
+   "category": "geopolitical",
+   "instrument": "PSX",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 8,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2025_Pahalgam_attack",
+    "revid": 1380113332,
+    "textSha256": "79407b35230c59dd"
+   }
+  },
+  {
+   "eventId": "9a4b88c0d29bd3cc",
+   "name": "India-Pakistan ceasefire",
+   "date": "2025-05-10",
+   "category": "geopolitical",
+   "instrument": "PSX",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2025_India%E2%80%93Pakistan_conflict",
+    "revid": 1378343660,
+    "textSha256": "071d0da5dd9b7d78"
+   }
+  },
+  {
+   "eventId": "431bf8bedc3410a7",
+   "name": "Israel launches strikes on Iran",
+   "date": "2025-06-13",
+   "category": "geopolitical",
+   "instrument": "OIL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/List_of_attacks_during_the_Twelve-Day_War",
+    "revid": 1365905805,
+    "textSha256": "b5bddfb19e1d7a92"
+   }
+  },
+  {
+   "eventId": "e0d379872a39fa94",
+   "name": "US strikes Iranian nuclear sites",
+   "date": "2025-06-22",
+   "category": "geopolitical",
+   "instrument": "OIL",
+   "tier": "A",
+   "disposition": "SOURCE_LIMITED",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "unavailable: archive unavailable"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2025_United_States_strikes_on_Iranian_nuclear_sites",
+    "revid": 1378683806,
+    "textSha256": "00c3a5956c7fd0c4"
+   }
+  },
+  {
+   "eventId": "715be2c4cc4e7c22",
+   "name": "Payroll revisions shock",
+   "date": "2025-08-01",
+   "category": "macro-data",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.bls.gov/news.release/archives/empsit_08012025.htm",
+    "sha256": "3dd179efacf0239b"
+   }
+  },
+  {
+   "eventId": "80a1df095c3e9341",
+   "name": "Powell dovish Jackson Hole",
+   "date": "2025-08-22",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "A",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/speech/powell20250822a.htm",
+    "sha256": "a25d03564a2a55b9"
+   }
+  },
+  {
+   "eventId": "e9ace1f51cdb330d",
+   "name": "ORCL earnings release (2025-09-09)",
+   "date": "2025-09-09",
+   "category": "earnings",
+   "instrument": "ORCL",
+   "tier": "B",
+   "disposition": "SEARCHED_NO_MATCH",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "102f2f9fcbdf4f93",
+   "name": "Fed cuts rates (September 2025)",
+   "date": "2025-09-17",
+   "category": "monetary",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "official document",
+    "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20250917a.htm",
+    "sha256": "159e2ad10c4a8977"
+   }
+  },
+  {
+   "eventId": "e7edf510df9926b3",
+   "name": "Nvidia and OpenAI announce investment deal",
+   "date": "2025-09-22",
+   "category": "corporate",
+   "instrument": "NVDA",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 6,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/Nvidia",
+    "revid": 1380193071,
+    "textSha256": "747e1c75fd10b9bc"
+   }
+  },
+  {
+   "eventId": "2cb3472fcc158ad1",
+   "name": "US federal government shutdown",
+   "date": "2025-10-01",
+   "category": "political",
+   "instrument": "MKT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 10,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": {
+    "kind": "encyclopedia article with the date in its body",
+    "url": "https://en.wikipedia.org/wiki/2025_United_States_federal_government_shutdown",
+    "revid": 1378583135,
+    "textSha256": "c222ee3eae81381b"
+   }
+  },
+  {
+   "eventId": "bc6eacf555931a34",
+   "name": "BAC earnings release (2025-10-15)",
+   "date": "2025-10-15",
+   "category": "earnings",
+   "instrument": "BAC",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 6,
+   "independentPublishers": 4,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 6 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "39cf0e86b25bcb20",
+   "name": "KO earnings release (2025-10-21)",
+   "date": "2025-10-21",
+   "category": "earnings",
+   "instrument": "KO",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 2,
+   "independentPublishers": 2,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 2 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "cab3a57334794dcd",
+   "name": "META earnings release (2025-10-29)",
+   "date": "2025-10-29",
+   "category": "earnings",
+   "instrument": "META",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 8,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "c873f28d4dda8f22",
+   "name": "BA earnings release (2025-10-29)",
+   "date": "2025-10-29",
+   "category": "earnings",
+   "instrument": "BA",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 5,
+   "independentPublishers": 4,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 5 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "8b965e24d704bf60",
+   "name": "CAT earnings release (2025-10-29)",
+   "date": "2025-10-29",
+   "category": "earnings",
+   "instrument": "CAT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "b5b230d002c64cb9",
+   "name": "DIS earnings release (2025-11-13)",
+   "date": "2025-11-13",
+   "category": "earnings",
+   "instrument": "DIS",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 1,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 1 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "51367b8f53a929f3",
+   "name": "HD earnings release (2025-11-18)",
+   "date": "2025-11-18",
+   "category": "earnings",
+   "instrument": "HD",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 7,
+   "independentPublishers": 6,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 7 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "caa1a3e642682992",
+   "name": "BAC earnings release (2026-01-14)",
+   "date": "2026-01-14",
+   "category": "earnings",
+   "instrument": "BAC",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 7,
+   "independentPublishers": 4,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 7 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "f3da9fc1b8d78b05",
+   "name": "MSFT earnings release (2026-01-28)",
+   "date": "2026-01-28",
+   "category": "earnings",
+   "instrument": "MSFT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 4,
+   "independentPublishers": 4,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 4 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "150b88db1b9c8073",
+   "name": "AMD earnings release (2026-02-03)",
+   "date": "2026-02-03",
+   "category": "earnings",
+   "instrument": "AMD",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 10,
+   "independentPublishers": 9,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 10 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "1bb0428903eaef45",
+   "name": "PYPL earnings release (2026-02-03)",
+   "date": "2026-02-03",
+   "category": "earnings",
+   "instrument": "PYPL",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 4,
+   "independentPublishers": 4,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 4 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "1f37ab492142bf5a",
+   "name": "NKE earnings release (2026-03-31)",
+   "date": "2026-03-31",
+   "category": "earnings",
+   "instrument": "NKE",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 5,
+   "independentPublishers": 4,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 5 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "3d9d757e60e772b5",
+   "name": "AMD earnings release (2026-05-05)",
+   "date": "2026-05-05",
+   "category": "earnings",
+   "instrument": "AMD",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 7,
+   "independentPublishers": 6,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 7 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "78cd889eae31ecc3",
+   "name": "GS earnings release (2026-07-14)",
+   "date": "2026-07-14",
+   "category": "earnings",
+   "instrument": "GS",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 2,
+   "independentPublishers": 2,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 2 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "6a1b65a0ac610eb1",
+   "name": "MSFT earnings release (2026-07-29)",
+   "date": "2026-07-29",
+   "category": "earnings",
+   "instrument": "MSFT",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 2,
+   "independentPublishers": 2,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 2 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "afc02eb1c873fe91",
+   "name": "AMZN earnings release (2026-07-30)",
+   "date": "2026-07-30",
+   "category": "earnings",
+   "instrument": "AMZN",
+   "tier": "B",
+   "disposition": "PRESS_EVIDENCE_FOUND",
+   "pressReferences": 2,
+   "independentPublishers": 1,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 2 matched"
+   },
+   "officialEvidence": null
+  },
+  {
+   "eventId": "8f5205b4e9b550bc",
+   "name": "CRM earnings release (2026-08-26)",
+   "date": "2026-08-26",
+   "category": "earnings",
+   "instrument": "CRM",
+   "tier": "B",
+   "disposition": "SEARCHED_NO_MATCH",
+   "pressReferences": 0,
+   "independentPublishers": 0,
+   "routes": {
+    "gdeltDocApi": "not attempted",
+    "gdeltGkgArchive": "searched, 0 matched"
+   },
+   "officialEvidence": null
+  }
+ ]
 }

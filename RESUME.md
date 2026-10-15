@@ -27,6 +27,39 @@ Content digests: **9 of 9 years match** the manifest (hashed over the JSON lines
 **parallel** labelled dataset on main (`data/foundation/events/reactions.jsonl.gz`, 167 rows with
 zero measured leakage). Saying the event layer is "in the training set" would be false.
 
+### Historical evidence: acquisition CLOSED, 2026-10-15
+
+**0 events pending.** Every one of the 168 verified events has exactly one evidence disposition.
+
+| Disposition | Events | Meaning |
+|---|---|---|
+| `PRESS_EVIDENCE_FOUND` | **148** | one or more dated, relevant press references recovered and linked |
+| `SEARCHED_NO_MATCH` | 14 | the listed searches completed and returned nothing relevant |
+| `SOURCE_LIMITED` | 4 | the archive file for that date is not held by the server |
+| `OFFICIAL_SOURCE_ONLY` | 2 | primary-source evidence exists; no press reference recovered |
+| `PENDING` | **0** | — |
+
+**1,127 references from 616 distinct publishers**, median 8 independent publishers per covered
+event. Artifact `data/foundation/events/press_evidence.jsonl`, 622,753 bytes,
+sha256 `cada04b29fae7e60`. Durable copy with per-file checksums at
+`nbt-private/research-corpus-2026-10-15/` (163 files, 1.4 MB, including the per-date caches).
+
+**Route.** The DOC API answers `429 Please limit requests to one every 5 seconds` and keeps
+answering it well past five seconds once tripped — measured, logged in
+`.cache/foundation/gdelt_requests.log`. The bulk GKG archive has no quota: 158 named daily files,
+31.6 MB each measured before fetching, streamed and deleted one at a time. Nothing was bypassed;
+one door was shut and the other was open.
+
+**Precision was fixed before shipping.** The first pass returned 1,647 references and looked
+excellent until a spot check showed `MU earnings release` matching `/new-music-releases/` — only
+78 of 400 earnings references named their own ticker. Whole-word matching, a required distinctive
+term, and matching in the URL *path* rather than the host (`.mu` is Mauritius) took earnings
+precision from **20% to 100%** (312/312). The corpus honestly shrank to 1,127.
+
+**Retention cannot delete it.** `Event`/`EventLink`/`EventImpact`/`EventState` are in
+`NEVER_PRUNED`; `retention.py` references no foundation artifact; tests assert both, plus that no
+collector writes into `News` (pruned at 70 days).
+
 ### Acquisition register — multi-source recovery, 2026-10-15
 
 Every remaining non-PSX price gap was taken to its own primary source. Status per the agreed
@@ -37,9 +70,9 @@ vocabulary: `COMPLETE`, `SOURCE-LIMITED`, `INCOMPLETE`, `BLOCKED`.
 | Crypto 4 bars, `bch-bitcoin-cash` 2018-11-16..19 | 4 / 98,457 | Coinbase (the series' own venue) | Coinbase serves no candles either — trading halted across the Bitcoin Cash hard fork | **COMPLETE** — a closure, not a gap |
 | Commodity 5 bars, 2023-11-23 & 2025-07-04 | 5 / 15,680 | CME calendar | US Thanksgiving and Independence Day | **COMPLETE** — closures |
 | Forex 26 bars, mostly 2019-05-22 | 26 / 54,729 = 0.047% | Yahoo (gap), **ECB via Frankfurter** (has the date) | ECB differs from the stored close by median **0.178%**, p90 0.477%, max 2.09% — a 16:00 CET reference vs a daily close, breaching the project's 0.5% splice bar at the tail | **SOURCE-LIMITED** — recorded as disputed, not merged |
-| US delisted price history | 63 / 127 removals | Yahoo (404), stooq (bot challenge — not circumvented) | no permitted free source serves delisted OHLCV | **SOURCE-LIMITED** |
+| US delisted price history | 63 / 127 removals | Yahoo download (404), **Yahoo v8 chart API (404, tested)**, stooq (bot challenge — not circumvented), EDGAR (no prices by design) | no permitted free source serves delisted OHLCV | **SOURCE-LIMITED** — three doors tried |
 | US instrument identity & lifecycle | 127 removals + 280 assets | **SEC EDGAR** (official) | all 127 resolved: **65 still listed**, **62 absent from the live map**, 12 with a former name; 279/280 of our universe currently listed (`COPX` is an ETF, absent by design) | **COMPLETE** |
-| Historical press evidence | 168 verified events | **GDELT DOC 2.0** (free, no auth) | archive serves dated relevant articles; free endpoint returns **429 on ~3 of 4** requests, so collection is throttled, cached and resumable | **INCOMPLETE** — collector in place, resumes with `--resume` |
+| Historical press evidence | 168 verified events | GDELT DOC API (rate-limited), **GDELT bulk GKG archive** (no quota) | 148 events with references, 1,127 records, 616 publishers; 0 pending | **COMPLETE** — see the disposition table above |
 | PSX borrow / spread / execution cost | all PSX | no free source found | none | **BLOCKED** — restricts executable-short claims only |
 
 **The survivorship finding that changes a number.** Treating "removed from the S&P 500" as
