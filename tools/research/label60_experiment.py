@@ -14,8 +14,8 @@ import numpy as np
 ROOT = pathlib.Path(sys.argv[1])            # extracted/dataset
 REPO = pathlib.Path(sys.argv[2])            # repo root
 OUT  = pathlib.Path(sys.argv[3])
-sys.path.insert(0, str(REPO))
-from tools.research.label60 import band_pct, label_of, calibrate_m, LABEL_THRESHOLD_PCT
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from label60 import band_pct, label_of, calibrate_m, LABEL_THRESHOLD_PCT
 
 FEATURES = ["atr14","drawdownPct","entryTrigger","peerMedianR20","peers","r1","r20","r5",
             "rangePct","relStrength","returnZ","sma20","sma50","triggerDirection","volumeRatio"]

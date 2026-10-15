@@ -1,0 +1,38 @@
+{
+ "datasetRows": 1085544,
+ "eligibleRows": 1026771,
+ "excludedRows": 58773,
+ "pipelineAttribution": {
+  "noPointInTimeFeatures": 30869,
+  "unadjustedActionInWindow": 23810,
+  "windowIsNotDaily": 2855,
+  "basisBreakInWindow": 1239,
+  "noBaseClose": 0
+ },
+ "rowsCarryingEachFlag": {
+  "unadjustedActionInWindow": 24224,
+  "windowIsNotDaily": 3009,
+  "basisBreakInWindow": 1278
+ },
+ "carriedButAttributedElsewhere": {
+  "unadjustedActionInWindow": 414,
+  "windowIsNotDaily": 154,
+  "basisBreakInWindow": 39
+ },
+ "reconciliation": {
+  "rule": "rowsCarryingEachFlag minus carriedButAttributedElsewhere equals pipelineAttribution for that flag",
+  "checks": {
+   "unadjustedActionInWindow": true,
+   "windowIsNotDaily": true,
+   "basisBreakInWindow": true
+  }
+ },
+ "identity": {
+  "datasetRows == eligibleRows + excludedRows": true,
+  "excludedRows == sum(pipelineAttribution)": true
+ },
+ "notInThisDatasetAtAll": {
+  "weekendBarsExcludedByThePipeline": "never written; not among datasetRows",
+  "psxQuarantinedIncoherentRanges": "quarantined upstream; not among datasetRows"
+ }
+}
