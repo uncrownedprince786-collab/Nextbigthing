@@ -5346,3 +5346,52 @@ reads rows that already exist:
       each name what they constrain and what they do not: no execution-cost data anywhere, so
       directional research proceeds and net-performance claims do not; 62 delisted US names
       unrecoverable after four tested routes, so survivorship stays a measured lower bound.
+
+150. **The crashes are in the data; the question was whether the examples are, and three of my
+    own counts were wrong before they were right.** 2026-10-15, year-wise and regime verification.
+    No collection, no rebuild. Artifact `data/foundation/dataset/regime_coverage.json`
+    (sha256 `0b7817dc3f6f12db`), reproducible with `tools/foundation/regime_coverage.py`.
+
+    - **Year-wise coverage, measured inside each asset's own listed range.** US is **1.0000 in
+      every year** 2019-2026 across 263 to 280 instruments. Crypto is 1.0000 except 2018
+      (0.9862, the four Bitcoin Cash fork-halt bars). Forex is 1.0000 except 2019 (0.9963, the
+      2019-05-22 vendor gap). Commodities round to 1.0000 with five US-holiday absences. PSX
+      climbs 0.8476 in 2019 to **0.9913 in 2025 and 0.9985 in 2026** -- the early thinness is
+      securities that did not trade, already classified, not records that went missing.
+
+    - **The episodes the data actually contains, at a 20% threshold.** US: COVID **-33.92%**
+      (2020-02-19 to 03-23, 23 sessions, recovered 2020-08-18) and the 2022 bear **-25.43%**
+      (recovered 2024-01-19). Crypto: eight, including **-81.38%** through 2018 and **-76.67%**
+      from 2021-11 to 2022-11. PSX: **-55.00%** 2018-2019 and **-41.90%** 2021-2023.
+      Commodities: two. **Forex: none at any threshold at or above 20%**, which is not a gap but
+      a fact about currency indices -- so a crash regime cannot be learned from FX here.
+      Thresholds of 10/15/20/30% are all reported, because one cutoff cannot serve equities and
+      crypto at once.
+
+    - **Representation is strong where it matters and thin in two places, stated as effective
+      windows rather than rows.** US COVID carries 33,410 examples (**1,670 independent**), the
+      2022 bear 142,941 (**7,147**), PSX's two bears 5,429 and 6,065. The advances match: US
+      **+118.59%** 2022-2026 (13,722 independent) and **+114.38%** 2020-2022 (6,073), PSX
+      **+316.05%**, crypto **+1177.57%** 2018-2021. Thin: crypto's two short 2021 crashes are 24
+      and 14 independent windows, and crypto's 2018 bear has only five to ten instruments listed,
+      with **28% of its examples quality-flagged**.
+
+    - **Three defects in my own measurement, each found by looking at a number that was too
+      round.** The crypto benchmark file is the pre-2018 backfill and stops at 2018-11-03, so
+      filtering it to 2018+ left ten months and reported *one* drawdown episode for Bitcoin; the
+      stored series gives eight. Episode example counts were keyed on the dataset's `market`
+      field, which files crypto and commodities under "US" -- so a crypto crash was being credited
+      with every US equity example in the same weeks. And the advance windows took `peakDate` as
+      both ends, counting a single day: the largest US bull run in the data reported **0
+      examples** before the fix and 274,444 after. A summary that looks plausible is not
+      evidence; each of these was only visible by reading the row.
+
+    - **Every drawdown window has dated events with press behind it.** The 2022 US bear overlaps
+      50 verified events, 42 with press references; PSX's 2021-2023 bear overlaps 71, with 60.
+      That is corroborating context and nothing more -- an event inside a window is not a cause of
+      it, and this records overlap rather than explanation.
+
+    - **Verdict: PASS WITH LIMITATIONS.** Every required year is covered, both directions of every
+      major regime are present with matured labels, and the two bounded limitations are named: FX
+      has no crash regime to learn from, and crypto's short 2021 episodes are too few independent
+      windows to support a regime-specific claim.

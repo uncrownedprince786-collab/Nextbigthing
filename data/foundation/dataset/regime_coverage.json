@@ -1,0 +1,925 @@
+{
+ "generatedAt": "2026-10-15T17:13:21+00:00",
+ "version": "regime-coverage-v1",
+ "method": {
+  "coverageDenominator": "sessions inside each asset's own first-to-last stored range, on its market's calendar, so a listing or delisting date is never counted as missing",
+  "drawdownEpisode": "running peak to the lowest close before that peak is regained, counted when the fall reaches the threshold",
+  "advanceEpisode": "trough to the highest close before the next qualifying drawdown, reported with its deepest interim pullback",
+  "thresholds": [
+   "10%",
+   "15%",
+   "20%",
+   "30%"
+  ],
+  "primary": "20%",
+  "lookAhead": "future prices identify a peak retrospectively; nothing computed here is written back into the dataset or used as a feature",
+  "psxIndex": "KSE100 starts 2021-10-15; before that the equal-weighted return across stored PKR assets is used, because the earlier index segment is private",
+  "quarantine": "PSX bars whose close falls outside their own range are excluded from any range-dependent calculation; this tool uses closes only"
+ },
+ "yearlyCoverage": {
+  "PSX": {
+   "2018": {
+    "observed": 38095,
+    "expectedWithinListedRanges": 43377,
+    "missing": 5282,
+    "coverage": 0.8782,
+    "instruments": 179,
+    "barsWithoutARange": 126
+   },
+   "2019": {
+    "observed": 39046,
+    "expectedWithinListedRanges": 46066,
+    "missing": 7020,
+    "coverage": 0.8476,
+    "instruments": 187,
+    "barsWithoutARange": 59
+   },
+   "2020": {
+    "observed": 42223,
+    "expectedWithinListedRanges": 47268,
+    "missing": 5045,
+    "coverage": 0.8933,
+    "instruments": 191,
+    "barsWithoutARange": 7
+   },
+   "2021": {
+    "observed": 43552,
+    "expectedWithinListedRanges": 47667,
+    "missing": 4115,
+    "coverage": 0.9137,
+    "instruments": 197,
+    "barsWithoutARange": 182
+   },
+   "2022": {
+    "observed": 43328,
+    "expectedWithinListedRanges": 49238,
+    "missing": 5910,
+    "coverage": 0.88,
+    "instruments": 197,
+    "barsWithoutARange": 152
+   },
+   "2023": {
+    "observed": 43376,
+    "expectedWithinListedRanges": 49586,
+    "missing": 6210,
+    "coverage": 0.8748,
+    "instruments": 201,
+    "barsWithoutARange": 128
+   },
+   "2024": {
+    "observed": 47863,
+    "expectedWithinListedRanges": 50671,
+    "missing": 2808,
+    "coverage": 0.9446,
+    "instruments": 210,
+    "barsWithoutARange": 105
+   },
+   "2025": {
+    "observed": 53365,
+    "expectedWithinListedRanges": 53831,
+    "missing": 466,
+    "coverage": 0.9913,
+    "instruments": 218,
+    "barsWithoutARange": 34
+   },
+   "2026": {
+    "observed": 43221,
+    "expectedWithinListedRanges": 43285,
+    "missing": 64,
+    "coverage": 0.9985,
+    "instruments": 226,
+    "barsWithoutARange": 30
+   }
+  },
+  "US": {
+   "2019": {
+    "observed": 64943,
+    "expectedWithinListedRanges": 64943,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 263,
+    "barsWithoutARange": 0
+   },
+   "2020": {
+    "observed": 66889,
+    "expectedWithinListedRanges": 66889,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 269,
+    "barsWithoutARange": 0
+   },
+   "2021": {
+    "observed": 68750,
+    "expectedWithinListedRanges": 68750,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 277,
+    "barsWithoutARange": 0
+   },
+   "2022": {
+    "observed": 69739,
+    "expectedWithinListedRanges": 69739,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 278,
+    "barsWithoutARange": 0
+   },
+   "2023": {
+    "observed": 69575,
+    "expectedWithinListedRanges": 69575,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 279,
+    "barsWithoutARange": 0
+   },
+   "2024": {
+    "observed": 70308,
+    "expectedWithinListedRanges": 70308,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 279,
+    "barsWithoutARange": 0
+   },
+   "2025": {
+    "observed": 69750,
+    "expectedWithinListedRanges": 69750,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 279,
+    "barsWithoutARange": 0
+   },
+   "2026": {
+    "observed": 55049,
+    "expectedWithinListedRanges": 55049,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 280,
+    "barsWithoutARange": 0
+   }
+  },
+  "commodity": {
+   "2019": {
+    "observed": 2016,
+    "expectedWithinListedRanges": 2016,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 8,
+    "barsWithoutARange": 0
+   },
+   "2020": {
+    "observed": 2024,
+    "expectedWithinListedRanges": 2024,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 8,
+    "barsWithoutARange": 0
+   },
+   "2021": {
+    "observed": 2016,
+    "expectedWithinListedRanges": 2016,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 8,
+    "barsWithoutARange": 0
+   },
+   "2022": {
+    "observed": 2008,
+    "expectedWithinListedRanges": 2008,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 8,
+    "barsWithoutARange": 0
+   },
+   "2023": {
+    "observed": 2004,
+    "expectedWithinListedRanges": 2008,
+    "missing": 4,
+    "coverage": 0.998,
+    "instruments": 8,
+    "barsWithoutARange": 0
+   },
+   "2024": {
+    "observed": 2016,
+    "expectedWithinListedRanges": 2016,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 8,
+    "barsWithoutARange": 0
+   },
+   "2025": {
+    "observed": 2015,
+    "expectedWithinListedRanges": 2016,
+    "missing": 1,
+    "coverage": 0.9995,
+    "instruments": 8,
+    "barsWithoutARange": 0
+   },
+   "2026": {
+    "observed": 1576,
+    "expectedWithinListedRanges": 1576,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 8,
+    "barsWithoutARange": 0
+   }
+  },
+  "crypto": {
+   "2018": {
+    "observed": 286,
+    "expectedWithinListedRanges": 290,
+    "missing": 4,
+    "coverage": 0.9862,
+    "instruments": 5,
+    "barsWithoutARange": 0
+   },
+   "2019": {
+    "observed": 2699,
+    "expectedWithinListedRanges": 2699,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 10,
+    "barsWithoutARange": 0
+   },
+   "2020": {
+    "observed": 4183,
+    "expectedWithinListedRanges": 4183,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 15,
+    "barsWithoutARange": 0
+   },
+   "2021": {
+    "observed": 7762,
+    "expectedWithinListedRanges": 7762,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 27,
+    "barsWithoutARange": 0
+   },
+   "2022": {
+    "observed": 10794,
+    "expectedWithinListedRanges": 10794,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 33,
+    "barsWithoutARange": 0
+   },
+   "2023": {
+    "observed": 13301,
+    "expectedWithinListedRanges": 13301,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 40,
+    "barsWithoutARange": 0
+   },
+   "2024": {
+    "observed": 16512,
+    "expectedWithinListedRanges": 16512,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 50,
+    "barsWithoutARange": 0
+   },
+   "2025": {
+    "observed": 22087,
+    "expectedWithinListedRanges": 22087,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 68,
+    "barsWithoutARange": 0
+   },
+   "2026": {
+    "observed": 20829,
+    "expectedWithinListedRanges": 20829,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 75,
+    "barsWithoutARange": 0
+   }
+  },
+  "forex": {
+   "2019": {
+    "observed": 7021,
+    "expectedWithinListedRanges": 7047,
+    "missing": 26,
+    "coverage": 0.9963,
+    "instruments": 27,
+    "barsWithoutARange": 0
+   },
+   "2020": {
+    "observed": 7074,
+    "expectedWithinListedRanges": 7074,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 27,
+    "barsWithoutARange": 0
+   },
+   "2021": {
+    "observed": 7047,
+    "expectedWithinListedRanges": 7047,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 27,
+    "barsWithoutARange": 0
+   },
+   "2022": {
+    "observed": 7020,
+    "expectedWithinListedRanges": 7020,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 27,
+    "barsWithoutARange": 0
+   },
+   "2023": {
+    "observed": 7020,
+    "expectedWithinListedRanges": 7020,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 27,
+    "barsWithoutARange": 0
+   },
+   "2024": {
+    "observed": 7074,
+    "expectedWithinListedRanges": 7074,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 27,
+    "barsWithoutARange": 0
+   },
+   "2025": {
+    "observed": 6939,
+    "expectedWithinListedRanges": 6939,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 27,
+    "barsWithoutARange": 0
+   },
+   "2026": {
+    "observed": 5508,
+    "expectedWithinListedRanges": 5508,
+    "missing": 0,
+    "coverage": 1.0,
+    "instruments": 27,
+    "barsWithoutARange": 30
+   }
+  }
+ },
+ "psxQuarantinedByYear": {
+  "2018": 13,
+  "2019": 12,
+  "2020": 3,
+  "2021": 3,
+  "2022": 12,
+  "2023": 20,
+  "2024": 300,
+  "2025": 260,
+  "2026": 94
+ },
+ "kse100Available": {
+  "from": "2021-10-15",
+  "observations": 1239
+ },
+ "episodes": {
+  "US": {
+   "benchmark": "^GSPC",
+   "range": [
+    "2018-01-02",
+    "2026-10-14"
+   ],
+   "observations": 2208,
+   "episodeCountByThreshold": {
+    "10%": 5,
+    "15%": 4,
+    "20%": 2,
+    "30%": 1
+   },
+   "primaryThresholdPct": 20.0,
+   "drawdownEpisodes": [
+    {
+     "peakDate": "2020-02-19",
+     "peakClose": 3386.1499,
+     "troughDate": "2020-03-23",
+     "troughClose": 2237.3999,
+     "drawdownPct": -33.92,
+     "sessionsToTrough": 23,
+     "recoveryDate": "2020-08-18",
+     "recovered": true,
+     "sessionsTroughToRecovery": 103,
+     "trainingExamplesInWindow": 33410,
+     "ofWhichQualityFlagged": 0,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 1670,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "peakDate": "2022-01-03",
+     "peakClose": 4796.5601,
+     "troughDate": "2022-10-12",
+     "troughClose": 3577.03,
+     "drawdownPct": -25.43,
+     "sessionsToTrough": 195,
+     "recoveryDate": "2024-01-19",
+     "recovered": true,
+     "sessionsTroughToRecovery": 318,
+     "trainingExamplesInWindow": 142941,
+     "ofWhichQualityFlagged": 423,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 7147,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    }
+   ],
+   "advanceEpisodes": [
+    {
+     "startDate": "2020-03-23",
+     "startClose": 2237.3999,
+     "peakDate": "2022-01-03",
+     "peakClose": 4796.5601,
+     "gainPct": 114.38,
+     "sessions": 450,
+     "deepestPullbackPct": -9.6,
+     "trainingExamplesInWindow": 121451,
+     "ofWhichQualityFlagged": 787,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 6073,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "startDate": "2022-10-12",
+     "startClose": 3577.03,
+     "peakDate": "2026-10-06",
+     "peakClose": 7818.9302,
+     "gainPct": 118.59,
+     "sessions": 998,
+     "deepestPullbackPct": -18.9,
+     "trainingExamplesInWindow": 274444,
+     "ofWhichQualityFlagged": 1839,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 13722,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    }
+   ]
+  },
+  "crypto": {
+   "benchmark": "btc-bitcoin (stored series, Coinbase)",
+   "range": [
+    "2018-01-01",
+    "2026-10-14"
+   ],
+   "observations": 3209,
+   "episodeCountByThreshold": {
+    "10%": 13,
+    "15%": 9,
+    "20%": 8,
+    "30%": 4
+   },
+   "primaryThresholdPct": 20.0,
+   "drawdownEpisodes": [
+    {
+     "peakDate": "2018-01-06",
+     "peakClose": 17098.99,
+     "troughDate": "2018-12-15",
+     "troughClose": 3183.0,
+     "drawdownPct": -81.38,
+     "sessionsToTrough": 343,
+     "recoveryDate": "2020-11-17",
+     "recovered": true,
+     "sessionsTroughToRecovery": 703,
+     "trainingExamplesInWindow": 6576,
+     "ofWhichQualityFlagged": 1816,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 329,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "peakDate": "2021-01-08",
+     "peakClose": 40665.15,
+     "troughDate": "2021-01-27",
+     "troughClose": 30407.13,
+     "drawdownPct": -25.23,
+     "sessionsToTrough": 19,
+     "recoveryDate": "2021-02-08",
+     "recovered": true,
+     "sessionsTroughToRecovery": 12,
+     "trainingExamplesInWindow": 480,
+     "ofWhichQualityFlagged": 116,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 24,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "peakDate": "2021-02-21",
+     "peakClose": 57489.16,
+     "troughDate": "2021-02-28",
+     "troughClose": 45231.75,
+     "drawdownPct": -21.32,
+     "sessionsToTrough": 7,
+     "recoveryDate": "2021-03-11",
+     "recovered": true,
+     "sessionsTroughToRecovery": 11,
+     "trainingExamplesInWindow": 285,
+     "ofWhichQualityFlagged": 57,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 14,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "peakDate": "2021-04-13",
+     "peakClose": 63588.22,
+     "troughDate": "2021-07-20",
+     "troughClose": 29796.16,
+     "drawdownPct": -53.14,
+     "sessionsToTrough": 98,
+     "recoveryDate": "2021-10-19",
+     "recovered": true,
+     "sessionsTroughToRecovery": 91,
+     "trainingExamplesInWindow": 4230,
+     "ofWhichQualityFlagged": 1414,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 212,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "peakDate": "2021-11-08",
+     "peakClose": 67554.84,
+     "troughDate": "2022-11-21",
+     "troughClose": 15760.14,
+     "drawdownPct": -76.67,
+     "sessionsToTrough": 378,
+     "recoveryDate": "2024-03-04",
+     "recovered": true,
+     "sessionsTroughToRecovery": 469,
+     "trainingExamplesInWindow": 28216,
+     "ofWhichQualityFlagged": 3737,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 1411,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "peakDate": "2024-03-13",
+     "peakClose": 73135.04,
+     "troughDate": "2024-09-06",
+     "troughClose": 53950.01,
+     "drawdownPct": -26.23,
+     "sessionsToTrough": 177,
+     "recoveryDate": "2024-11-06",
+     "recovered": true,
+     "sessionsTroughToRecovery": 61,
+     "trainingExamplesInWindow": 10753,
+     "ofWhichQualityFlagged": 523,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 538,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "peakDate": "2025-01-21",
+     "peakClose": 106159.26,
+     "troughDate": "2025-04-08",
+     "troughClose": 76251.64,
+     "drawdownPct": -28.17,
+     "sessionsToTrough": 77,
+     "recoveryDate": "2025-05-18",
+     "recovered": true,
+     "sessionsTroughToRecovery": 40,
+     "trainingExamplesInWindow": 6553,
+     "ofWhichQualityFlagged": 626,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 328,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "peakDate": "2025-10-06",
+     "peakClose": 124720.09,
+     "troughDate": "2026-06-30",
+     "troughClose": 58523.93,
+     "drawdownPct": -53.08,
+     "sessionsToTrough": 267,
+     "recoveryDate": null,
+     "recovered": false,
+     "trainingExamplesInWindow": 18773,
+     "ofWhichQualityFlagged": 1956,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 939,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    }
+   ],
+   "advanceEpisodes": [
+    {
+     "startDate": "2018-12-15",
+     "startClose": 3183.0,
+     "peakDate": "2021-01-08",
+     "peakClose": 40665.15,
+     "gainPct": 1177.57,
+     "sessions": 755,
+     "deepestPullbackPct": -62.43,
+     "trainingExamplesInWindow": 7087,
+     "ofWhichQualityFlagged": 1976,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 354,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "startDate": "2021-01-27",
+     "startClose": 30407.13,
+     "peakDate": "2021-02-21",
+     "peakClose": 57489.16,
+     "gainPct": 89.06,
+     "sessions": 25,
+     "deepestPullbackPct": -3.58,
+     "trainingExamplesInWindow": 390,
+     "ofWhichQualityFlagged": 79,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 20,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "startDate": "2021-02-28",
+     "startClose": 45231.75,
+     "peakDate": "2021-04-13",
+     "peakClose": 63588.22,
+     "gainPct": 40.58,
+     "sessions": 44,
+     "deepestPullbackPct": -16.11,
+     "trainingExamplesInWindow": 722,
+     "ofWhichQualityFlagged": 124,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 36,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "startDate": "2021-07-20",
+     "startClose": 29796.16,
+     "peakDate": "2021-11-08",
+     "peakClose": 67554.84,
+     "gainPct": 126.72,
+     "sessions": 111,
+     "deepestPullbackPct": -22.73,
+     "trainingExamplesInWindow": 2788,
+     "ofWhichQualityFlagged": 936,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 139,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "startDate": "2022-11-21",
+     "startClose": 15760.14,
+     "peakDate": "2024-03-13",
+     "peakClose": 73135.04,
+     "gainPct": 364.05,
+     "sessions": 478,
+     "deepestPullbackPct": -20.08,
+     "trainingExamplesInWindow": 17713,
+     "ofWhichQualityFlagged": 1248,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 886,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "startDate": "2024-09-06",
+     "startClose": 53950.01,
+     "peakDate": "2025-01-21",
+     "peakClose": 106159.26,
+     "gainPct": 96.77,
+     "sessions": 137,
+     "deepestPullbackPct": -12.8,
+     "trainingExamplesInWindow": 6680,
+     "ofWhichQualityFlagged": 625,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 334,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "startDate": "2025-04-08",
+     "startClose": 76251.64,
+     "peakDate": "2025-10-06",
+     "peakClose": 124720.09,
+     "gainPct": 63.56,
+     "sessions": 181,
+     "deepestPullbackPct": -12.25,
+     "trainingExamplesInWindow": 11117,
+     "ofWhichQualityFlagged": 1089,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 556,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "startDate": "2026-06-30",
+     "startClose": 58523.93,
+     "peakDate": "2026-09-21",
+     "peakClose": 86594.94,
+     "gainPct": 47.97,
+     "sessions": 83,
+     "deepestPullbackPct": -6.99,
+     "trainingExamplesInWindow": 6243,
+     "ofWhichQualityFlagged": 532,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 312,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    }
+   ]
+  },
+  "forex": {
+   "benchmark": "DX-Y.NYB",
+   "range": [
+    "2018-01-02",
+    "2026-10-14"
+   ],
+   "observations": 2210,
+   "episodeCountByThreshold": {
+    "10%": 2,
+    "15%": 1,
+    "20%": 0,
+    "30%": 0
+   },
+   "primaryThresholdPct": 20.0,
+   "drawdownEpisodes": [],
+   "advanceEpisodes": []
+  },
+  "commodity": {
+   "benchmark": "GC=F",
+   "range": [
+    "2018-01-02",
+    "2026-10-14"
+   ],
+   "observations": 2210,
+   "episodeCountByThreshold": {
+    "10%": 4,
+    "15%": 2,
+    "20%": 2,
+    "30%": 0
+   },
+   "primaryThresholdPct": 20.0,
+   "drawdownEpisodes": [
+    {
+     "peakDate": "2020-08-06",
+     "peakClose": 2069.3999,
+     "troughDate": "2022-11-03",
+     "troughClose": 1630.9,
+     "drawdownPct": -21.19,
+     "sessionsToTrough": 566,
+     "recoveryDate": "2023-12-01",
+     "recovered": true,
+     "sessionsTroughToRecovery": 271,
+     "trainingExamplesInWindow": 6700,
+     "ofWhichQualityFlagged": 281,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 335,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "peakDate": "2026-01-29",
+     "peakClose": 5318.3999,
+     "troughDate": "2026-07-16",
+     "troughClose": 3992.1001,
+     "drawdownPct": -24.94,
+     "sessionsToTrough": 115,
+     "recoveryDate": null,
+     "recovered": false,
+     "trainingExamplesInWindow": 928,
+     "ofWhichQualityFlagged": 0,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 46,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    }
+   ],
+   "advanceEpisodes": [
+    {
+     "startDate": "2022-11-03",
+     "startClose": 1630.9,
+     "peakDate": "2026-01-29",
+     "peakClose": 5318.3999,
+     "gainPct": 226.1,
+     "sessions": 813,
+     "deepestPullbackPct": -10.89,
+     "trainingExamplesInWindow": 6507,
+     "ofWhichQualityFlagged": 67,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 325,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "startDate": "2026-07-16",
+     "startClose": 3992.1001,
+     "peakDate": "2026-08-24",
+     "peakClose": 4697.7998,
+     "gainPct": 17.68,
+     "sessions": 27,
+     "deepestPullbackPct": -2.78,
+     "trainingExamplesInWindow": 224,
+     "ofWhichQualityFlagged": 0,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 11,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    }
+   ]
+  },
+  "PSX": {
+   "benchmark": "PSX equal-weighted (stored PKR assets)",
+   "range": [
+    "2018-01-02",
+    "2026-10-15"
+   ],
+   "observations": 2175,
+   "episodeCountByThreshold": {
+    "10%": 6,
+    "15%": 4,
+    "20%": 3,
+    "30%": 2
+   },
+   "primaryThresholdPct": 20.0,
+   "drawdownEpisodes": [
+    {
+     "peakDate": "2018-04-11",
+     "peakClose": 121.476,
+     "troughDate": "2019-08-16",
+     "troughClose": 54.6624,
+     "drawdownPct": -55.0,
+     "sessionsToTrough": 327,
+     "recoveryDate": "2021-01-01",
+     "recovered": true,
+     "sessionsTroughToRecovery": 346,
+     "trainingExamplesInWindow": 108581,
+     "ofWhichQualityFlagged": 2451,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 5429,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "peakDate": "2021-08-23",
+     "peakClose": 152.3562,
+     "troughDate": "2023-06-23",
+     "troughClose": 88.5206,
+     "drawdownPct": -41.9,
+     "sessionsToTrough": 461,
+     "recoveryDate": "2024-05-23",
+     "recovered": true,
+     "sessionsTroughToRecovery": 224,
+     "trainingExamplesInWindow": 121294,
+     "ofWhichQualityFlagged": 2605,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 6065,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "peakDate": "2026-01-20",
+     "peakClose": 368.2905,
+     "troughDate": "2026-03-09",
+     "troughClose": 265.0623,
+     "drawdownPct": -28.03,
+     "sessionsToTrough": 33,
+     "recoveryDate": "2026-07-02",
+     "recovered": true,
+     "sessionsTroughToRecovery": 75,
+     "trainingExamplesInWindow": 23981,
+     "ofWhichQualityFlagged": 1412,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 1199,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    }
+   ],
+   "advanceEpisodes": [
+    {
+     "startDate": "2019-08-16",
+     "startClose": 54.6624,
+     "peakDate": "2021-08-23",
+     "peakClose": 152.3562,
+     "gainPct": 178.72,
+     "sessions": 499,
+     "deepestPullbackPct": -38.7,
+     "trainingExamplesInWindow": 84673,
+     "ofWhichQualityFlagged": 2785,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 4234,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "startDate": "2023-06-23",
+     "startClose": 88.5206,
+     "peakDate": "2026-01-20",
+     "peakClose": 368.2905,
+     "gainPct": 316.05,
+     "sessions": 637,
+     "deepestPullbackPct": -18.22,
+     "trainingExamplesInWindow": 127434,
+     "ofWhichQualityFlagged": 6063,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 6372,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    },
+    {
+     "startDate": "2026-03-09",
+     "startClose": 265.0623,
+     "peakDate": "2026-07-06",
+     "peakClose": 375.4022,
+     "gainPct": 41.63,
+     "sessions": 77,
+     "deepestPullbackPct": -7.47,
+     "trainingExamplesInWindow": 17230,
+     "ofWhichQualityFlagged": 1030,
+     "ofWhichImmatureLabel": 0,
+     "effectiveIndependentWindows": 862,
+     "datasetNote": "counted by asset class, so this is the episode's own instruments and not the whole market code"
+    }
+   ]
+  }
+ }
+}

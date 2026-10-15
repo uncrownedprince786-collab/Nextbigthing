@@ -1,5 +1,54 @@
 # Resume here
 
+## 0. REGIME VERIFICATION — PASS WITH LIMITATIONS, 2026-10-15
+
+**Training still NOT started.** Artifact `data/foundation/dataset/regime_coverage.json`
+(sha256 `0b7817dc3f6f12db`), reproducible with `tools/foundation/regime_coverage.py`.
+Detail in `brain.md` rule 150.
+
+### Year-wise coverage, within each asset's own listed range
+
+| Market | 2018 | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 |
+|---|---|---|---|---|---|---|---|---|---|
+| US | — | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
+| PSX | 0.8782 | 0.8476 | 0.8933 | 0.9137 | 0.8800 | 0.8748 | 0.9446 | **0.9913** | **0.9985** |
+| crypto | 0.9862 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
+| forex | — | 0.9963 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
+| commodity | — | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 0.9980 | 1.0000 | 0.9995 | 1.0000 |
+
+US begins 2019 and PSX 2018 because that is when their instruments list; a listing date is never
+counted as missing. PSX's early shortfall is securities that did not trade, already classified.
+
+### Major regimes present, and their representation in `examples-v3`
+
+| Market | Episode | Drawdown / gain | Examples | **Effective windows** |
+|---|---|---|---|---|
+| US | COVID crash 2020-02-19 → 03-23 | −33.92% | 33,410 | 1,670 |
+| US | 2022 bear → 2024-01-19 | −25.43% | 142,941 | 7,147 |
+| US | bull 2022-10 → 2026-10 | +118.59% | 274,444 | 13,722 |
+| US | bull 2020-03 → 2022-01 | +114.38% | 121,451 | 6,073 |
+| PSX | bear 2018-04 → 2019-08 | −55.00% | 108,581 | 5,429 |
+| PSX | bear 2021-08 → 2023-06 | −41.90% | 121,294 | 6,065 |
+| PSX | bull 2023-06 → 2026-01 | +316.05% | 127,434 | 6,372 |
+| crypto | bear 2021-11 → 2022-11 | −76.67% | — | 9,734 (all classes) |
+| crypto | bull 2018-12 → 2021-01 | +1177.57% | 7,087 | 354 |
+| commodity | bear 2020-08 → 2022-11 | −21.19% | 6,700 | 335 |
+
+Thresholds of 10/15/20/30% are all reported; 20% is the headline.
+
+### Two bounded limitations
+
+- **Forex has no crash regime** — zero episodes at 20% or deeper, at any threshold. That is a
+  property of currency indices, not a data gap, but a crash regime cannot be learned from FX here.
+- **Crypto's two short 2021 crashes are 24 and 14 effective windows**, and its 2018 bear had only
+  five to ten listed instruments with 28% of examples quality-flagged. Too few independent windows
+  for a crypto-specific regime claim.
+
+Every drawdown window is overlapped by dated events with press evidence (the 2022 US bear: 50
+events, 42 with press). That is corroborating context, not causation.
+
+---
+
 ## 0. DATA FOUNDATION CLOSED — PASS WITH LIMITATIONS, 2026-10-15
 
 **Training has NOT started.** Read this, then `brain.md` rules 148–149. The machine-readable
