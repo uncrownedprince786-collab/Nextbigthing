@@ -5624,3 +5624,61 @@ reads rows that already exist:
       cost, spread or borrow data exists for any market. Writing the state into the contract and
       then making it unreachable is better than omitting it: it says what would have to become
       true, rather than pretending the question does not exist.
+
+156. **Four things were called unreachable that were not, and the one real leak was never in the
+    training data.** 2026-10-16. Six commits: `96236b6`, `2053937`, `fb8e7cc`, `51f9401`,
+    `cc8fea3`, `8400321`, `d80166a`, `bd5576e`, `e14b32c`, `8feb778`.
+
+    - **"Absent from the checkout" is not evidence of inaccessible.** The database was reported
+      unreachable; `SUPABASE_DATABASE_URL` connects and serves 1,098,074 price rows. The dataset
+      was reported gone with `nbt-private`; it survives as a sealed CI artifact and all nine year
+      digests verify. Freshness telemetry was reported unassessable; the `Coverage` table holds
+      282 rows of it. A local Postgres was reported missing because `psql` was not on PATH;
+      PostgreSQL 15 is installed with a full server toolchain. Four claims, four wrong, and each
+      was wrong in the same way -- a single negative check generalised into an absence.
+
+    - **The macro CSVs pair a final value with a first publication date.** `CPIAUCSL` holds
+      observation 2010-01-01 with `availableAt` 2010-02-16 and value 217.488; the vintage history
+      shows 217.488 is the **2015-02-28** revision and February 2010 printed 217.587. Audited
+      across all ten revision-tracked series: of 2,536 observations the CSV equals the final
+      revision on 2,305 and the original release on 121, and on 2,065 it claims availability
+      before any vintage existed -- by up to **507 days** for NFCI. `macro_pit.py` now emits one
+      row per publication event from the vintage, so the existing bisect picks the revision
+      actually public on the day.
+
+    - **It never reached training, which is why the NO-GO still stands.** `examples-v3` carries
+      no macro field; the fifteen `pit.f` features are price and volume only. The contaminated
+      artifact is `dataset/macro/macro-sessions.jsonl.gz` alone, now recorded as invalidated and
+      **not yet rebuilt**. Finding a leak and then checking what consumed it is the whole of the
+      work; a leak in an artifact nothing reads is a defect, not a retraction.
+
+    - **`label60` was built and it has no edge.** Mean accuracy 0.4283 against a mean
+      majority-class rate of 0.5099 -- margin **-0.0816**, one fold of six above its own
+      majority, worst fold -0.2721. Re-run at the label20 baseline's own hyperparameters it moved
+      by 0.0005, so the result is not an artifact of the fit. Stratified, every market, asset
+      class and regime is negative: COVID -0.3427, forex -0.1925, 2022 bear -0.1628. A uniform
+      failure cannot be read as "it works except in one segment".
+
+    - **Three row counts that looked contradictory were three different questions.**
+      `rowsCarryingEachFlag` counts every row carrying a flag, so two flags count twice;
+      `pipelineAttribution` assigns each row to the first rule that rejected it. 24,224 / 3,009 /
+      1,278 against 23,810 / 2,855 / 1,239, the differences being rows an earlier rule claimed.
+      Both are right and only together do they close.
+
+    - **A backup that reads back is not a backup that restores.** `restore_db.py verify` passing
+      on 44 files proves the archive is intact and nothing more. A disposable cluster was
+      `initdb`'d, migrated and loaded: 43 tables, 1,274,615 rows, content digests equal, 45
+      foreign keys and 138 indexes rebuilt, and an independent recount of all 44 manifest tables
+      at 1,274,646 = 1,274,646. The 43-against-44 is `_prisma_migrations`, which the target
+      supplies itself.
+
+    - **Fifteen of eighteen layers were never meant to be features.** "4 of 18 joined" was being
+      read as waste. A market-wide macro series given to 616 instruments as a per-asset feature
+      is one fact counted 616 times, which `macroVeto` already refuses. Each layer now carries a
+      destination *and* a prohibition, and the matrix names a proving test per route so a
+      declared route and an integrated one stop reading as one number: 18 declared, 18 resolving,
+      18 proven.
+
+    - **A test that always passes is worse than no test.** One of the new route tests shipped in
+      draft as `assert 'x', 70 in (...)`, which asserts a tuple and can never fail. It now reads
+      the retention policy through an import.

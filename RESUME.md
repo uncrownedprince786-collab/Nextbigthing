@@ -1,5 +1,127 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT — 2026-10-16, owner asleep, work paused cleanly
+
+**Branch `main`, HEAD `8feb778`. No tracked file is modified; the working tree holds only
+untracked markdown reports, all committed in the checkpoint commit below. Nothing is running:
+the disposable Postgres was stopped and its data directory deleted, no download or job is in
+flight, no deployment and no destructive operation was started.**
+
+### What landed, and what each commit contains
+
+| Commit | Contains |
+|---|---|
+| `96236b6` | `tools/research/label60.py` + 10 tests. The band is a percentage: `atr()` returns price units and `fwd{h}` is a percent, so `band_pct = m * atr14 / base * 100`. `m` is calibrated for continuity with the frozen 2% `label20` band over training rows only. |
+| `2053937` | The `label60` experiment and its result. **NO-GO.** |
+| `fb8e7cc` | `row_accounting.py` + 7 tests. 1,085,544 = 1,026,771 eligible + 58,773 excluded, every per-flag check closing. |
+| `51f9401` | Backup artifact read back: `restore_db.py verify`, 44 of 44 files. |
+| `cc8fea3` | `context_routing.py` + `regime_breakdown.py` + tests. All 18 layers routed; regime stratification wired into the experiment. |
+| `8400321` | `macro_context.py` + 14 tests. The macro layer's runtime consumer. |
+| `d80166a` | **Isolated PostgreSQL restore rehearsal — completed.** |
+| `bd5576e` | Macro revision audit across all ten tracked series; `macro_pit.py` corrected. |
+| `e14b32c` | The last three routes proven: rates, news feed, principles. 18 of 18. |
+| `8feb778` | Resource check: 397.8 MB, connections, failover finding. |
+
+### Tests
+
+**1,121 Python tests pass at `8feb778`** (full suite, run after `e14b32c`; `8feb778` adds a JSON
+artifact only and touches no code). The web suite was **not** run — no TypeScript was changed in
+this session, so it is not the relevant gate. Earlier counts in this file (1,053, 1,063, 1,070,
+1,082, 1,099, 1,107) belong to earlier commits and are superseded.
+
+### Macro point-in-time fix — and what is NOT yet rebuilt
+
+The stored macro CSVs pair the **latest revised value** with the **first publication date**.
+Across all ten revision-tracked series, of 2,536 observations the CSV equals the final revision
+on 2,305 and the original release on 121, and on 2,065 it claims availability before any vintage
+existed — worst gap **507 days (NFCI)**.
+
+- **Fixed in code:** `macro_pit.py` emits one row per publication event from the vintage history;
+  `macro_context.as_of` uses the vintage as the only value source for tracked series and
+  withholds same-day releases by default.
+- **`dataset/macro/macro-sessions.jsonl.gz` is INVALIDATED and HAS NOT BEEN REBUILT.** It was
+  produced by CI run `38735767762` with the faulty join. The corrected artifact does not exist
+  yet and no verification of it has been performed. Do not describe it as fixed.
+- **Training is unaffected.** `examples-v3` carries no macro field — the 15 `pit.f` features are
+  price and volume only — so the `label60` NO-GO stands and nothing was retrained.
+
+### The 18 context routes
+
+`data/foundation/dataset/context_routing.json` is the record: **18 declared · 18 consumers
+resolving · 18 integrations proven by a named test · 0 unproven.** Three layers may cast a
+directional vote (prices, gold/commodities, training examples); fifteen may never, macro, rates,
+events, press and the news feed among them, and a test holds them there.
+
+**Caveat worth keeping honest:** "proven" means a test exercises the consumer's behaviour, not
+that every layer feeds a live production decision path. Macro, events and principles have proven
+consumers and are still not joined into the training dataset.
+
+### Database: connections and restore
+
+- `DATABASE_URL` (Prisma pooled) **fails login**; `DATABASE_URL_FALLBACK` **times out**;
+  `SUPABASE_DATABASE_URL` serves. **The system is on its third option with nothing behind it.**
+- Live: 1,098,074 price rows, 616 assets, 397.8 MB, 15 of 60 connections, 10.9% dead tuples.
+- **Restore rehearsal completed** (`d80166a`): a cluster `initdb`'d into the session scratchpad,
+  all 32 migrations applied, the sealed backup loaded — 43 tables, 1,274,615 rows, content
+  digests equal, 45 foreign keys and 138 indexes. Independent recount of all 44 manifest tables:
+  1,274,646 = 1,274,646, zero mismatches. The cluster was stopped and deleted. Evidence in
+  `data/foundation/dataset/restore_rehearsal.json`.
+
+### `WORKER_ARTIFACT_KEY` — **BLOCKED, authorization required**
+
+A 38-character prefix was printed into a session transcript (not into any commit, file or log).
+The rotation is prepared: 7 workflow consumers inventoried, `pynacl` available, the public-key
+endpoint answers 200, and the plan writes `WORKER_ARTIFACT_KEY_PREVIOUS` **first** so sealed
+backups stay recoverable. **The write was refused by the environment's `Secret-Store Writes`
+policy and was not retried or worked around.** Nothing partial was left: `.env` is unchanged and
+the four repository secrets are as they were.
+
+**External authorization required:** either the owner rotates it through GitHub's own secret UI,
+or grants secret-store write permission to this session.
+
+### Position horizon — NO-GO, do not re-run
+
+Measured, frozen, and **not to be re-tuned against the same protected period**:
+
+| | |
+|---|---|
+| Mean accuracy | **0.4283** |
+| Mean majority-class rate | **0.5099** |
+| Mean margin | **−0.0816** |
+| Folds beating their own majority | **1 of 6** |
+| Worst fold | **−0.2721** |
+| Re-run at the baseline's own hyperparameters | moved 0.0005 — not an artifact of the fit |
+
+Stratified, every stratum is negative: COVID −0.3427, forex −0.1925, 2022 bear −0.1628,
+PSX −0.1537, US −0.0623, crypto −0.0429. Artifact:
+`data/foundation/dataset/label60_experiment.json`.
+
+### Uncommitted work and recovery steps
+
+**None.** Every change is committed. The only working-tree entries were the session's markdown
+reports and they are committed in the checkpoint. No half-written artifact, no partial download,
+no open transaction. The decrypted dataset and backup copies live in the session scratchpad and
+are **disposable** — both are re-downloadable from CI artifacts `11974491801` and `11960878774`.
+
+### Next action, prerequisites, acceptance criteria
+
+**Next:** rebuild `macro-sessions.jsonl.gz` with the corrected `macro_pit.py` and verify it.
+
+- **Prerequisites:** a CI run of the macro lane (or a local run with database access), and
+  `bd5576e` present — it is.
+- **Acceptance:** the rebuilt artifact differs from the invalidated one on the ten tracked series;
+  for each, the value on a given session equals the latest revision published by that session and
+  never the CSV's final value; `observationsDatedAfterTheirSession` stays 0; the manifest records
+  the new checksum; and `macro_revision_audit.json` is updated to mark the artifact rebuilt.
+
+**Then, in parallel and independent of the above:** diagnose why `DATABASE_URL` fails login and
+`DATABASE_URL_FALLBACK` times out, and restore a working fallback chain. Acceptance: at least two
+of the three connection strings serve a read, and the failover order is asserted by a test.
+
+**Still blocked and not startable:** the key rotation, until authorization arrives.
+
+---
+
 ## 0. BRAIN SPEC V1.1 FINALISED — THREE DECISIONS FROZEN, 2026-10-15
 
 **Specification only. No code, dataset, experiment or deployment was changed.**
