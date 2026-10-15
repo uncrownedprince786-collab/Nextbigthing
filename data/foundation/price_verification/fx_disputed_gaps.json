@@ -1,0 +1,146 @@
+{
+ "generatedAt": "2026-10-15T14:10:38+00:00",
+ "version": "fx-disputed-v1",
+ "finding": "Yahoo serves no FX bar for 2019-05-22 (and 2019-11-08 for USDCNY, USDMYR); the ECB published 2019-05-22.",
+ "decision": "NOT merged into PriceSnapshot. The ECB reference rate is a 16:00 CET fixing, the stored series is a daily close, and the two differ by more than this project's 0.5% splice threshold at the tail.",
+ "agreementTest": {
+  "observations": 264,
+  "window": "2019-05-15..2019-05-31",
+  "medianAbsDiffPct": 0.1779,
+  "p90AbsDiffPct": 0.4771,
+  "maxAbsDiffPct": 2.0876,
+  "worstPair": "USDTRY"
+ },
+ "coverageAtStake": {
+  "bars": 26,
+  "ofTotalForexBars": 54729,
+  "sharePct": 0.047
+ },
+ "pairsEcbDoesNotPublish": [
+  "EURGBP",
+  "EURJPY",
+  "GBPJPY",
+  "USDBDT",
+  "USDPKR"
+ ],
+ "missingByPair": {
+  "AUDUSD": [
+   "2019-05-22"
+  ],
+  "EURUSD": [
+   "2019-05-22"
+  ],
+  "GBPUSD": [
+   "2019-05-22"
+  ],
+  "NZDUSD": [
+   "2019-05-22"
+  ],
+  "USDBDT": [
+   "2019-05-22"
+  ],
+  "USDBRL": [
+   "2019-05-22"
+  ],
+  "USDCAD": [
+   "2019-05-22"
+  ],
+  "USDCHF": [
+   "2019-05-22"
+  ],
+  "USDCNY": [
+   "2019-05-22",
+   "2019-11-08"
+  ],
+  "USDIDR": [
+   "2019-05-22"
+  ],
+  "USDINR": [
+   "2019-05-22"
+  ],
+  "USDJPY": [
+   "2019-05-22"
+  ],
+  "USDKRW": [
+   "2019-05-22"
+  ],
+  "USDMXN": [
+   "2019-05-22"
+  ],
+  "USDMYR": [
+   "2019-05-22",
+   "2019-11-08"
+  ],
+  "USDNOK": [
+   "2019-05-22"
+  ],
+  "USDPHP": [
+   "2019-05-22"
+  ],
+  "USDPKR": [
+   "2019-05-22"
+  ],
+  "USDPLN": [
+   "2019-05-22"
+  ],
+  "USDSEK": [
+   "2019-05-22"
+  ],
+  "USDSGD": [
+   "2019-05-22"
+  ],
+  "USDTHB": [
+   "2019-05-22"
+  ],
+  "USDTRY": [
+   "2019-05-22"
+  ],
+  "USDZAR": [
+   "2019-05-22"
+  ]
+ },
+ "alternativeSourceValues": {
+  "source": "ECB via api.frankfurter.app",
+  "date": "2019-05-22",
+  "base": "USD",
+  "rates": {
+   "ARS": 44.787,
+   "AUD": 1.4521,
+   "BGN": 1.7508,
+   "BRL": 4.0429,
+   "CAD": 1.3385,
+   "CHF": 1.0073,
+   "CNY": 6.9025,
+   "CZK": 23.089,
+   "DKK": 6.6852,
+   "DZD": 119.75,
+   "EUR": 0.89518,
+   "GBP": 0.79026,
+   "HKD": 7.85,
+   "HRK": 6.6476,
+   "HUF": 292.31,
+   "IDR": 14525,
+   "ILS": 3.6113,
+   "INR": 69.698,
+   "ISK": 123.98,
+   "JPY": 110.35,
+   "KRW": 1189.96,
+   "MAD": 9.6815,
+   "MXN": 19.0081,
+   "MYR": 4.1855,
+   "NOK": 8.7367,
+   "NZD": 1.5373,
+   "PHP": 52.466,
+   "PLN": 3.8527,
+   "RON": 4.2633,
+   "RUB": 64.24,
+   "SEK": 9.6321,
+   "SGD": 1.3785,
+   "THB": 31.945,
+   "TRY": 6.097,
+   "TWD": 31.447,
+   "ZAR": 14.3679
+  }
+ },
+ "ifEverMerged": "write with source='ECB reference rate' so the basis is visible, and extend basis_transitions.py beyond PSX first"
+}

@@ -27,6 +27,32 @@ Content digests: **9 of 9 years match** the manifest (hashed over the JSON lines
 **parallel** labelled dataset on main (`data/foundation/events/reactions.jsonl.gz`, 167 rows with
 zero measured leakage). Saying the event layer is "in the training set" would be false.
 
+### Acquisition register — multi-source recovery, 2026-10-15
+
+Every remaining non-PSX price gap was taken to its own primary source. Status per the agreed
+vocabulary: `COMPLETE`, `SOURCE-LIMITED`, `INCOMPLETE`, `BLOCKED`.
+
+| Gap | Scope | Sources searched | Outcome | Status |
+|---|---|---|---|---|
+| Crypto 4 bars, `bch-bitcoin-cash` 2018-11-16..19 | 4 / 98,457 | Coinbase (the series' own venue) | Coinbase serves no candles either — trading halted across the Bitcoin Cash hard fork | **COMPLETE** — a closure, not a gap |
+| Commodity 5 bars, 2023-11-23 & 2025-07-04 | 5 / 15,680 | CME calendar | US Thanksgiving and Independence Day | **COMPLETE** — closures |
+| Forex 26 bars, mostly 2019-05-22 | 26 / 54,729 = 0.047% | Yahoo (gap), **ECB via Frankfurter** (has the date) | ECB differs from the stored close by median **0.178%**, p90 0.477%, max 2.09% — a 16:00 CET reference vs a daily close, breaching the project's 0.5% splice bar at the tail | **SOURCE-LIMITED** — recorded as disputed, not merged |
+| US delisted price history | 63 / 127 removals | Yahoo (404), stooq (bot challenge — not circumvented) | no permitted free source serves delisted OHLCV | **SOURCE-LIMITED** |
+| US instrument identity & lifecycle | 127 removals + 280 assets | **SEC EDGAR** (official) | all 127 resolved: **65 still listed**, **62 absent from the live map**, 12 with a former name; 279/280 of our universe currently listed (`COPX` is an ETF, absent by design) | **COMPLETE** |
+| Historical press evidence | 168 verified events | **GDELT DOC 2.0** (free, no auth) | archive serves dated relevant articles; free endpoint returns **429 on ~3 of 4** requests, so collection is throttled, cached and resumable | **INCOMPLETE** — collector in place, resumes with `--resume` |
+| PSX borrow / spread / execution cost | all PSX | no free source found | none | **BLOCKED** — restricts executable-short claims only |
+
+**The survivorship finding that changes a number.** Treating "removed from the S&P 500" as
+"delisted" would have overstated the failure population by half: **65 of 127 are still listed**
+under the same ticker, removed for market-cap drift. The 62 genuinely absent agree closely with
+the 63 whose bars the vendor cannot serve — two independent sources, same story. Prices for them
+remain unrecoverable, so the bias figure stays a measured lower bound.
+
+**New durable artifacts:** `data/foundation/survivorship/sec_lifecycle.json` (official identity
+and lifecycle) and, once the throttled run completes,
+`data/foundation/events/press_evidence.jsonl` + its manifest. Press evidence is deliberately **not**
+written to `News`, which `jobs/retention.py` prunes at 70 days.
+
 ### Master completion register, measured 2026-10-15
 
 Denominator for "within range" is each asset's own first-to-last stored session on its market's

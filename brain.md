@@ -5200,3 +5200,52 @@ reads rows that already exist:
       files by artifact name, eleven artifacts share the name `nbt-canonical-checkpoint`, and the
       cleanup glob then deleted the correct copies as well. Artifact ids are unique and names are
       not.
+
+147. **Every remaining price "gap" turned out to be a closure, and the one real gap was not worth
+    the basis it would cost.** 2026-10-15, multi-source recovery. No price row was written; two
+    official sources were added as evidence.
+
+    - **35 missing bars, and each market's answer came from its own primary source.** Crypto's
+      four were `bch-bitcoin-cash`, 2018-11-16 to 11-19. Coinbase -- the venue the series is built
+      from -- returns no candles for those dates either: trading was halted across the Bitcoin
+      Cash hard fork. Commodities' five sit on 2023-11-23 and 2025-07-04, US Thanksgiving and
+      Independence Day. Neither is a gap; both are the market being shut, which is the distinction
+      that matters and the one a coverage percentage cannot see.
+
+    - **Forex's 26 are a real vendor gap, and the alternative source is a different measurement.**
+      Nearly every pair is missing 2019-05-22. The ECB published that day -- Frankfurter returns
+      it, free and unauthenticated -- so the date exists and Yahoo simply lacks it. Then the test
+      that decides it: over 264 overlapping observations the ECB reference rate differs from the
+      stored Yahoo close by a **median 0.178%, p90 0.477%, max 2.09%**. That is a 16:00 CET
+      reference against a daily close, and it breaches this project's own 0.5% splice threshold at
+      the tail. Writing 26 ECB values into a Yahoo series to raise coverage by **0.047%** would
+      buy a rounding error with the mixed-basis defect Milestone B spent a milestone measuring.
+      Recorded as disputed, with the values, rather than merged. Five pairs -- EURGBP, EURJPY,
+      GBPJPY, USDBDT, USDPKR -- the ECB does not publish at all.
+
+    - **EDGAR knows what the price vendor forgets, and it changed the survivorship picture.** 63
+      of 127 S&P removals have no recoverable bars at Yahoo and `stooq` answers a bot challenge
+      this project will not work around, so prices stay unrecoverable. But identity does not:
+      `company_tickers.json` is 10,444 official listings and the submissions API keeps filing
+      history forever. Resolving all **127** removals against it splits them **65 still listed
+      under the same ticker** against **62 absent from the live map** -- and that first number is
+      the finding. A name leaving the S&P 500 for market-cap drift is still trading; treating
+      index removal as delisting would have overstated the failure population by half. 12 carry a
+      former name. The 62 agree closely with the 63 the vendor cannot serve, which is two
+      independent sources telling the same story.
+
+    - **279 of our 280 US assets are currently listed per EDGAR**, the exception being `COPX`,
+      an ETF -- and `company_tickers.json` lists company registrants, not funds. An absence with a
+      known reason is not a defect.
+
+    - **GDELT works and is rate-limited, which are two different facts.** A 2022 window returned
+      dated, relevant articles; collecting the corpus returned **HTTP 429 on 3 of the first 4
+      events** even at six seconds apart. So the archive is open and the throughput is not. The
+      collector caches per event, retries with backoff, records a failure as a failure and resumes
+      exactly where it stopped -- which is the shape this has to take, because the alternative is
+      reporting "unavailable" for something that demonstrably answers.
+
+    - **And the corpus must not live in `News`.** `jobs/retention.py` prunes that table at 70
+      days. Historical press evidence goes to a durable artifact with its own checksum and
+      provenance; operational news stays short-lived on purpose. Conflating the two is how a
+      cleanup job silently deletes a research corpus.

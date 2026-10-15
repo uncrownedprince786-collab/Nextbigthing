@@ -1,0 +1,2045 @@
+{
+ "generatedAt": "2026-10-15T14:07:52+00:00",
+ "version": "sec-lifecycle-v1",
+ "source": {
+  "name": "SEC EDGAR",
+  "tickerMap": "https://www.sec.gov/files/company_tickers.json",
+  "submissions": "https://data.sec.gov/submissions/CIK{cik:010d}.json",
+  "auth": "none, User-Agent with contact required",
+  "serves": "registrant identity and lifecycle, never prices"
+ },
+ "usUniverse": {
+  "assets": 280,
+  "currentlyListedInEdgar": 279,
+  "notInLiveMap": [
+   "COPX"
+  ]
+ },
+ "removalsResolved": 127,
+ "removalsStillListed": 65,
+ "removalsWithDelistedSignal": 0,
+ "removalsNotInEdgarTickerMap": 62,
+ "removalsWithAFormerName": 12,
+ "delistedSignalMeaning": "EDGAR serves empty `tickers` and `exchanges` for a registrant that still files but is no longer listed; the filing history remains, so the absence is evidence and not a failed lookup",
+ "whatThisDoesNotRecover": "price history. EDGAR has none, Yahoo 404s the delisted names, and stooq answers a bot challenge this project will not work around. The survivorship bias figure therefore stays a measured lower bound",
+ "records": [
+  {
+   "ticker": "AVB",
+   "name": "AvalonBay Communities",
+   "date": "2026-08-18",
+   "kind": "acquired-or-merged",
+   "vendorBars": 1,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "EA",
+   "name": "Electronic Arts",
+   "date": "2026-08-05",
+   "kind": "acquired-or-merged",
+   "vendorBars": 1,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "POOL",
+   "name": "Pool Corporation",
+   "date": "2026-06-22",
+   "kind": "market-cap-drift",
+   "vendorBars": 1957,
+   "cik": 945841,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "POOL CORP",
+   "tickers": [
+    "POOL"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "SCP POOL CORP"
+   ],
+   "sic": "5090",
+   "sicDescription": "Wholesale-Misc Durable Goods",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "CPB",
+   "name": "Campbell's",
+   "date": "2026-06-22",
+   "kind": "market-cap-drift",
+   "vendorBars": 1957,
+   "cik": 16732,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "CAMPBELL'S Co",
+   "tickers": [
+    "CPB"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "CAMPBELL SOUP CO"
+   ],
+   "sic": "2000",
+   "sicDescription": "Food and Kindred Products",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "CTRA",
+   "name": "Coterra Energy",
+   "date": "2026-05-07",
+   "kind": "acquired-or-merged",
+   "vendorBars": 0,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "HOLX",
+   "name": "Hologic",
+   "date": "2026-04-09",
+   "kind": "acquired-or-merged",
+   "vendorBars": 0,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "MTCH",
+   "name": "Match Group",
+   "date": "2026-03-23",
+   "kind": "market-cap-drift",
+   "vendorBars": 1957,
+   "cik": 891103,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Match Group, Inc.",
+   "tickers": [
+    "MTCH"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "IAC/INTERACTIVECORP",
+    "INTERACTIVECORP",
+    "USA INTERACTIVE",
+    "USA NETWORKS INC",
+    "HSN INC",
+    "SILVER KING COMMUNICATIONS INC"
+   ],
+   "sic": "7370",
+   "sicDescription": "Services-Computer Programming, Data Processing, Etc.",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "MOH",
+   "name": "Molina Healthcare",
+   "date": "2026-03-23",
+   "kind": "market-cap-drift",
+   "vendorBars": 1957,
+   "cik": 1179929,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "MOLINA HEALTHCARE, INC.",
+   "tickers": [
+    "MOH"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "MOLINA HEALTHCARE INC"
+   ],
+   "sic": "6324",
+   "sicDescription": "Hospital & Medical Service Plans",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "LW",
+   "name": "Lamb Weston",
+   "date": "2026-03-23",
+   "kind": "market-cap-drift",
+   "vendorBars": 1957,
+   "cik": 1679273,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Lamb Weston Holdings, Inc.",
+   "tickers": [
+    "LW"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "2030",
+   "sicDescription": "Canned, Frozen & Preservd Fruit, Veg & Food Specialties",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "PAYC",
+   "name": "Paycom",
+   "date": "2026-03-23",
+   "kind": "market-cap-drift",
+   "vendorBars": 1957,
+   "cik": 1590955,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Paycom Software, Inc.",
+   "tickers": [
+    "PAYC"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "DAY",
+   "name": "Dayforce",
+   "date": "2026-02-09",
+   "kind": "acquired-or-merged",
+   "vendorBars": 0,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "LKQ",
+   "name": "LKQ Corporation",
+   "date": "2025-12-22",
+   "kind": "market-cap-drift",
+   "vendorBars": 1957,
+   "cik": 1065696,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "LKQ CORP",
+   "tickers": [
+    "LKQ"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "LKQ CORP"
+   ],
+   "sic": "5010",
+   "sicDescription": "Wholesale-Motor Vehicles & Motor Vehicle Parts & Supplies",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "SOLS",
+   "name": "Solstice Advanced Materials",
+   "date": "2025-12-22",
+   "kind": "market-cap-drift",
+   "vendorBars": 248,
+   "cik": 2064953,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Solstice Advanced Materials Inc.",
+   "tickers": [
+    "SOLS"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "Solstice Advanced Materials, LLC"
+   ],
+   "sic": "2800",
+   "sicDescription": "Chemicals & Allied Products",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "MHK",
+   "name": "Mohawk Industries",
+   "date": "2025-12-22",
+   "kind": "market-cap-drift",
+   "vendorBars": 1957,
+   "cik": 851968,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "MOHAWK INDUSTRIES INC",
+   "tickers": [
+    "MHK"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "MOHAWK INDUSTRIES INC."
+   ],
+   "sic": "2273",
+   "sicDescription": "Carpets & Rugs",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "K",
+   "name": "Kellanova",
+   "date": "2025-12-11",
+   "kind": "acquired-or-merged",
+   "vendorBars": 0,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "IPG",
+   "name": "Interpublic Group",
+   "date": "2025-11-28",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "ENPH",
+   "name": "Enphase Energy",
+   "date": "2025-09-22",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1463101,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Enphase Energy, Inc.",
+   "tickers": [
+    "ENPH"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [],
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "CZR",
+   "name": "Caesars Entertainment",
+   "date": "2025-09-22",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1590895,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Caesars Entertainment, Inc.",
+   "tickers": [
+    "CZR"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "Eldorado Resorts, Inc.",
+    "Eclair Holdings Co"
+   ],
+   "sic": "7011",
+   "sicDescription": "Hotels & Motels",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "MKTX",
+   "name": "MarketAxess",
+   "date": "2025-09-22",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1278021,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "MARKETAXESS HOLDINGS INC",
+   "tickers": [
+    "MKTX"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "MARKETAXESS HOLDINGS INC",
+    "MARKETAXESS HOLDING INC"
+   ],
+   "sic": "6211",
+   "sicDescription": "Security Brokers, Dealers & Flotation Companies",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "WBA",
+   "name": "Walgreens Boots Alliance",
+   "date": "2025-08-28",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "HES",
+   "name": "Hess Corporation",
+   "date": "2025-07-23",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "ANSS",
+   "name": "Ansys",
+   "date": "2025-07-18",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "JNPR",
+   "name": "Juniper Networks",
+   "date": "2025-07-09",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "DFS",
+   "name": "Discover Financial",
+   "date": "2025-05-19",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "BWA",
+   "name": "BorgWarner",
+   "date": "2025-03-24",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 908255,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "BORGWARNER INC",
+   "tickers": [
+    "BWA"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "BORG WARNER AUTOMOTIVE INC"
+   ],
+   "sic": "3714",
+   "sicDescription": "Motor Vehicle Parts & Accessories",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "TFX",
+   "name": "Teleflex",
+   "date": "2025-03-24",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 96943,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "TELEFLEX INC",
+   "tickers": [
+    "TFX"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "3841",
+   "sicDescription": "Surgical & Medical Instruments & Apparatus",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "CE",
+   "name": "Celanese",
+   "date": "2025-03-24",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1306830,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Celanese Corp",
+   "tickers": [
+    "CE"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "2820",
+   "sicDescription": "Plastic Material, Synth Resin/Rubber, Cellulos (No Glass)",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "FMC",
+   "name": "FMC Corporation",
+   "date": "2025-03-24",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 37785,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "FMC CORP",
+   "tickers": [
+    "FMC"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "2800",
+   "sicDescription": "Chemicals & Allied Products",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "QRVO",
+   "name": "Qorvo",
+   "date": "2024-12-23",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1604778,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Qorvo, Inc.",
+   "tickers": [
+    "QRVO"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "Rocky Holding, Inc."
+   ],
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "AMTM",
+   "name": "Amentum",
+   "date": "2024-12-23",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 2011286,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Amentum Holdings, Inc.",
+   "tickers": [
+    "AMTM"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "Amazon Holdco Inc."
+   ],
+   "sic": "7389",
+   "sicDescription": "Services-Business Services, NEC",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "CTLT",
+   "name": "Catalent",
+   "date": "2024-12-23",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "MRO",
+   "name": "Marathon Oil",
+   "date": "2024-11-26",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "AAL",
+   "name": "American Airlines Group",
+   "date": "2024-09-23",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 6201,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "American Airlines Group Inc.",
+   "tickers": [
+    "AAL"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "AMR CORP"
+   ],
+   "sic": "4512",
+   "sicDescription": "Air Transportation, Scheduled",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "ETSY",
+   "name": "Etsy",
+   "date": "2024-09-23",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1370637,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "ETSY INC",
+   "tickers": [
+    "ETSY"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "7389",
+   "sicDescription": "Services-Business Services, NEC",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "BIO",
+   "name": "Bio-Rad Laboratories",
+   "date": "2024-09-23",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 12208,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "BIO-RAD LABORATORIES, INC.",
+   "tickers": [
+    "BIO",
+    "BIO-B"
+   ],
+   "exchanges": [
+    "NYSE",
+    "NYSE"
+   ],
+   "formerNames": [
+    "BIO RAD LABORATORIES INC"
+   ],
+   "sic": "3826",
+   "sicDescription": "Laboratory Analytical Instruments",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "RHI",
+   "name": "Robert Half",
+   "date": "2024-06-24",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 315213,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "ROBERT HALF INC.",
+   "tickers": [
+    "RHI"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "ROBERT HALF INTERNATIONAL INC.",
+    "HALF ROBERT INTERNATIONAL INC /DE/"
+   ],
+   "sic": "7363",
+   "sicDescription": "Services-Help Supply Services",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "CMA",
+   "name": "Comerica",
+   "date": "2024-06-24",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "ILMN",
+   "name": "Illumina, Inc.",
+   "date": "2024-06-24",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1110803,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "ILLUMINA, INC.",
+   "tickers": [
+    "ILMN"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "ILLUMINA INC"
+   ],
+   "sic": "3826",
+   "sicDescription": "Laboratory Analytical Instruments",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "PXD",
+   "name": "Pioneer Natural Resources",
+   "date": "2024-05-08",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "WHR",
+   "name": "Whirlpool Corporation",
+   "date": "2024-03-18",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 106640,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "WHIRLPOOL CORP /DE/",
+   "tickers": [
+    "WHR",
+    "WHR-PA"
+   ],
+   "exchanges": [
+    "NYSE",
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "3630",
+   "sicDescription": "Household Appliances",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "ZION",
+   "name": "Zions Bancorporation",
+   "date": "2024-03-18",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 109380,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "ZIONS BANCORPORATION, NATIONAL ASSOCIATION /UT/",
+   "tickers": [
+    "ZION",
+    "ZIONP"
+   ],
+   "exchanges": [
+    "Nasdaq",
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "ZIONS BANCORPORATION /UT/"
+   ],
+   "sic": "6021",
+   "sicDescription": "National Commercial Banks",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "CDAY",
+   "name": "Ceridian",
+   "date": "2024-02-01",
+   "kind": "other",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "SEE",
+   "name": "Sealed Air",
+   "date": "2023-12-18",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "ALK",
+   "name": "Alaska Air Group",
+   "date": "2023-12-18",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 766421,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "ALASKA AIR GROUP, INC.",
+   "tickers": [
+    "ALK"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "ALASKA AIR GROUP INC"
+   ],
+   "sic": "4512",
+   "sicDescription": "Air Transportation, Scheduled",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "SEDG",
+   "name": "SolarEdge",
+   "date": "2023-12-18",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1419612,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "SOLAREDGE TECHNOLOGIES, INC.",
+   "tickers": [
+    "SEDG"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "SolarEdge Technologies Inc"
+   ],
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "OGN",
+   "name": "Organon & Co.",
+   "date": "2023-10-18",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1821825,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Organon & Co.",
+   "tickers": [
+    "OGN"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "2834",
+   "sicDescription": "Pharmaceutical Preparations",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "ATVI",
+   "name": "Activision Blizzard",
+   "date": "2023-10-18",
+   "kind": "other",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "LNC",
+   "name": "Lincoln National Corporation",
+   "date": "2023-09-18",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 59558,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "LINCOLN NATIONAL CORP",
+   "tickers": [
+    "LNC",
+    "LNC-PD"
+   ],
+   "exchanges": [
+    "NYSE",
+    "NYSE"
+   ],
+   "formerNames": [
+    "LINCOLN NATIONAL CORP ET AL"
+   ],
+   "sic": "6311",
+   "sicDescription": "Life Insurance",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "NWL",
+   "name": "Newell Brands",
+   "date": "2023-09-18",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 814453,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "NEWELL BRANDS INC.",
+   "tickers": [
+    "NWL"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "NEWELL BRANDS, INC.",
+    "NEWELL BRANDS INC",
+    "NEWELL RUBBERMAID INC",
+    "NEWELL CO"
+   ],
+   "sic": "3089",
+   "sicDescription": "Plastics Products, NEC",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "AAP",
+   "name": "Advance Auto Parts",
+   "date": "2023-08-25",
+   "kind": "spin-off",
+   "vendorBars": null,
+   "cik": 1158449,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "ADVANCE AUTO PARTS INC",
+   "tickers": [
+    "AAP"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "5531",
+   "sicDescription": "Retail-Auto & Home Supply Stores",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "DISH",
+   "name": "Dish Network",
+   "date": "2023-06-20",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "FRC",
+   "name": "First Republic Bank",
+   "date": "2023-05-04",
+   "kind": "other",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "LUMN",
+   "name": "Lumen Technologies",
+   "date": "2023-03-20",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 18926,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Lumen Technologies, Inc.",
+   "tickers": [
+    "LUMN"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "CENTURYLINK, INC",
+    "CENTURYTEL INC",
+    "CENTURY TELEPHONE ENTERPRISES INC"
+   ],
+   "sic": "4813",
+   "sicDescription": "Telephone Communications (No Radiotelephone)",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "SBNY",
+   "name": "Signature Bank",
+   "date": "2023-03-15",
+   "kind": "other",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "SIVB",
+   "name": "SVB Financial Group",
+   "date": "2023-03-15",
+   "kind": "other",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "ABMD",
+   "name": "Abiomed",
+   "date": "2022-12-22",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "FBHS",
+   "name": "Fortune Brands Home & Security",
+   "date": "2022-12-19",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "TWTR",
+   "name": "Twitter",
+   "date": "2022-11-01",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "NLSN",
+   "name": "Nielsen Holdings",
+   "date": "2022-10-12",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "CTXS",
+   "name": "Citrix Systems",
+   "date": "2022-10-03",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "DRE",
+   "name": "Duke Realty",
+   "date": "2022-10-03",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "PVH",
+   "name": "PVH",
+   "date": "2022-09-19",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 78239,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "PVH CORP. /DE/",
+   "tickers": [
+    "PVH"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "PHILLIPS VAN HEUSEN CORP /DE/"
+   ],
+   "sic": "2320",
+   "sicDescription": "Men's & Boys' Furnishgs, Work Clothg, & Allied Garments",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "PENN",
+   "name": "Penn Entertainment",
+   "date": "2022-09-19",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 921738,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "PENN Entertainment, Inc.",
+   "tickers": [
+    "PENN"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "PENN NATIONAL GAMING INC"
+   ],
+   "sic": "7011",
+   "sicDescription": "Hotels & Motels",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "UAA",
+   "name": "Under Armour (Class A)",
+   "date": "2022-06-21",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1336917,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Under Armour, Inc.",
+   "tickers": [
+    "UAA",
+    "UA"
+   ],
+   "exchanges": [
+    "NYSE",
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "2300",
+   "sicDescription": "Apparel & Other Finishd Prods of  Fabrics & Similar Matl",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "IPGP",
+   "name": "IPG Photonics",
+   "date": "2022-06-21",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1111928,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "IPG PHOTONICS CORP",
+   "tickers": [
+    "IPGP"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [],
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "CERN",
+   "name": "Cerner",
+   "date": "2022-06-08",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "DISCA",
+   "name": "Discovery, Inc.",
+   "date": "2022-04-11",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "PBCT",
+   "name": "People's United Financial",
+   "date": "2022-04-04",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "INFO",
+   "name": "IHS Markit",
+   "date": "2022-03-02",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "XLNX",
+   "name": "Xilinx",
+   "date": "2022-02-15",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "LEG",
+   "name": "Leggett & Platt",
+   "date": "2021-12-20",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "WLTW",
+   "name": "Willis Towers Watson",
+   "date": "2022-01-10",
+   "kind": "other",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "HBI",
+   "name": "Hanesbrands",
+   "date": "2021-12-20",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "WU",
+   "name": "Western Union",
+   "date": "2021-12-20",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1365135,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Western Union CO",
+   "tickers": [
+    "WU"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "7389",
+   "sicDescription": "Services-Business Services, NEC",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "KSU",
+   "name": "Kansas City Southern",
+   "date": "2021-12-14",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "PRGO",
+   "name": "Perrigo",
+   "date": "2021-09-20",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1585364,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "PERRIGO Co plc",
+   "tickers": [
+    "PRGO"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "PERRIGO Co Ltd"
+   ],
+   "sic": "2834",
+   "sicDescription": "Pharmaceutical Preparations",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "UNM",
+   "name": "Unum",
+   "date": "2021-09-20",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 5513,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Unum Group",
+   "tickers": [
+    "UNM",
+    "UNMA"
+   ],
+   "exchanges": [
+    "NYSE",
+    "NYSE"
+   ],
+   "formerNames": [
+    "UNUMPROVIDENT CORP",
+    "PROVIDENT COMPANIES INC /DE/",
+    "PROVIDENT COMPANIES INC /TN/",
+    "PROVIDENT LIFE & ACCIDENT INSURANCE CO OF AMERICA"
+   ],
+   "sic": "6321",
+   "sicDescription": "Accident & Health Insurance",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "NOV",
+   "name": "Nov",
+   "date": "2021-09-20",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1021860,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "NOV Inc.",
+   "tickers": [
+    "NOV"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "NATIONAL OILWELL VARCO INC",
+    "NATIONAL OILWELL INC"
+   ],
+   "sic": "3533",
+   "sicDescription": "Oil & Gas Field Machinery & Equipment",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "MXIM",
+   "name": "Maxim Integrated",
+   "date": "2021-08-30",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "ALXN",
+   "name": "Alexion Pharmaceuticals",
+   "date": "2021-07-21",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "FLIR",
+   "name": "FLIR Systems",
+   "date": "2021-05-14",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "VAR",
+   "name": "Varian Medical Systems",
+   "date": "2021-04-20",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "FLS",
+   "name": "Flowserve",
+   "date": "2021-03-22",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 30625,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "FLOWSERVE CORP",
+   "tickers": [
+    "FLS"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "DURCO INTERNATIONAL INC",
+    "DURIRON CO INC"
+   ],
+   "sic": "3561",
+   "sicDescription": "Pumps & Pumping Equipment",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "SLG",
+   "name": "SL Green Realty",
+   "date": "2021-03-22",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1040971,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "SL GREEN REALTY CORP",
+   "tickers": [
+    "SLG",
+    "SLG-PI"
+   ],
+   "exchanges": [
+    "NYSE",
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "6798",
+   "sicDescription": "Real Estate Investment Trusts",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "XRX",
+   "name": "Xerox",
+   "date": "2021-03-22",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1770450,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Xerox Holdings Corp",
+   "tickers": [
+    "XRX",
+    "XRXDW"
+   ],
+   "exchanges": [
+    "Nasdaq",
+    "Nasdaq"
+   ],
+   "formerNames": [],
+   "sic": "3577",
+   "sicDescription": "Computer Peripheral Equipment, NEC",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "VNT",
+   "name": "Vontier",
+   "date": "2021-03-22",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1786842,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Vontier Corp",
+   "tickers": [
+    "VNT"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "TTF Holdings Corp."
+   ],
+   "sic": "3824",
+   "sicDescription": "Totalizing Fluid Meters & Counting Devices",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "FTI",
+   "name": "TechnipFMC",
+   "date": "2021-02-12",
+   "kind": "spin-off",
+   "vendorBars": null,
+   "cik": 1681459,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "TechnipFMC plc",
+   "tickers": [
+    "FTI"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "TechnipFMC Ltd"
+   ],
+   "sic": "3533",
+   "sicDescription": "Oil & Gas Field Machinery & Equipment",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "CXO|| Concho Resources",
+   "name": "ConocoPhillips acquired Concho Resources.",
+   "date": "2021-01-21",
+   "kind": "other",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "TIF",
+   "name": "Tiffany & Co",
+   "date": "2021-01-07",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "AIV",
+   "name": "Aimco",
+   "date": "2020-12-21",
+   "kind": "spin-off",
+   "vendorBars": null,
+   "cik": 922864,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "APARTMENT INVESTMENT & MANAGEMENT CO",
+   "tickers": [
+    "AIV"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "6798",
+   "sicDescription": "Real Estate Investment Trusts",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "ETFC",
+   "name": "E-Trade",
+   "date": "2020-10-07",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "HRB",
+   "name": "H&R Block",
+   "date": "2020-09-21",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 12659,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "H&R BLOCK INC",
+   "tickers": [
+    "HRB"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "7200",
+   "sicDescription": "Services-Personal Services",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "COTY",
+   "name": "Coty",
+   "date": "2020-09-21",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1024305,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "COTY INC.",
+   "tickers": [
+    "COTY"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "COTY INC /"
+   ],
+   "sic": "2844",
+   "sicDescription": "Perfumes, Cosmetics & Other Toilet Preparations",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "KSS",
+   "name": "Kohl's",
+   "date": "2020-09-21",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 885639,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "KOHLS Corp",
+   "tickers": [
+    "KSS"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "KOHLS CORPORATION"
+   ],
+   "sic": "5311",
+   "sicDescription": "Retail-Department Stores",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "ADS",
+   "name": "Alliance Data Systems",
+   "date": "2020-06-22",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "HOG|| Harley-Davidson",
+   "name": "Market capitalization changes.",
+   "date": "2020-06-22",
+   "kind": "other",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "JWN",
+   "name": "Nordstrom",
+   "date": "2020-06-22",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "HP",
+   "name": "Helmerich & Payne",
+   "date": "2020-05-22",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 46765,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Helmerich & Payne, Inc.",
+   "tickers": [
+    "HP"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "HELMERICH & PAYNE INC"
+   ],
+   "sic": "1381",
+   "sicDescription": "Drilling Oil & Gas Wells",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "CPRI",
+   "name": "Capri Holdings",
+   "date": "2020-05-12",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1530721,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Capri Holdings Ltd",
+   "tickers": [
+    "CPRI"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "Michael Kors Holdings Ltd"
+   ],
+   "sic": "3100",
+   "sicDescription": "Leather & Leather Products",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "AGN",
+   "name": "Allergan",
+   "date": "2020-05-12",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "ARNC",
+   "name": "Arconic",
+   "date": "2020-04-01",
+   "kind": "other",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "XEC",
+   "name": "Cimarex Energy",
+   "date": "2020-03-02",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "WCG",
+   "name": "WellCare",
+   "date": "2020-01-28",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "AMG",
+   "name": "Affiliated Managers Group",
+   "date": "2019-12-23",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1004434,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "AFFILIATED MANAGERS GROUP, INC.",
+   "tickers": [
+    "AMG",
+    "MGR",
+    "MGRB",
+    "MGRD",
+    "MGRE"
+   ],
+   "exchanges": [
+    "NYSE",
+    "NYSE",
+    "NYSE",
+    "NYSE",
+    "NYSE"
+   ],
+   "formerNames": [
+    "AFFILIATED MANAGERS GROUP INC"
+   ],
+   "sic": "6282",
+   "sicDescription": "Investment Advice",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "TRIP",
+   "name": "TripAdvisor",
+   "date": "2019-12-23",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 1526520,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "TripAdvisor, Inc.",
+   "tickers": [
+    "TRIP"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [],
+   "sic": "7370",
+   "sicDescription": "Services-Computer Programming, Data Processing, Etc.",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "MAC",
+   "name": "Macerich",
+   "date": "2019-12-23",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 912242,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "MACERICH CO",
+   "tickers": [
+    "MAC"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "6798",
+   "sicDescription": "Real Estate Investment Trusts",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "STI",
+   "name": "SunTrust Banks",
+   "date": "2019-12-09",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": 1881551,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Solidion Technology Inc.",
+   "tickers": [
+    "STI"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "Nubia Brand International Corp."
+   ],
+   "sic": "3690",
+   "sicDescription": "Miscellaneous Electrical Machinery, Equipment & Supplies",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "VIAB",
+   "name": "Viacom",
+   "date": "2019-12-05",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "CELG",
+   "name": "Celgene",
+   "date": "2019-11-21",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "NKTR",
+   "name": "Nektar Therapeutics",
+   "date": "2019-10-03",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": 906709,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "NEKTAR THERAPEUTICS",
+   "tickers": [
+    "NKTR"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "INHALE THERAPEUTIC SYSTEMS INC",
+    "INHALE THERAPEUTIC SYSTEMS"
+   ],
+   "sic": "2834",
+   "sicDescription": "Pharmaceutical Preparations",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "JEF",
+   "name": "Jefferies Financial Group",
+   "date": "2019-09-26",
+   "kind": "spin-off",
+   "vendorBars": null,
+   "cik": 96223,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Jefferies Financial Group Inc.",
+   "tickers": [
+    "JEF"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [
+    "Jefferies Financial Group Inc.",
+    "LEUCADIA NATIONAL CORP"
+   ],
+   "sic": "6211",
+   "sicDescription": "Security Brokers, Dealers & Flotation Companies",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "TSS",
+   "name": "TSYS",
+   "date": "2019-09-23",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "APC",
+   "name": "Anadarko Petroleum",
+   "date": "2019-08-09",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": 2080921,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "ARKO Petroleum Corp.",
+   "tickers": [
+    "APC"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [],
+   "sic": "5172",
+   "sicDescription": "Wholesale-Petroleum & Petroleum Products (No Bulk Stations)",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "FL",
+   "name": "Foot Locker",
+   "date": "2019-08-09",
+   "kind": "market-cap-drift",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "RHT",
+   "name": "Red Hat",
+   "date": "2019-07-15",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "LLL",
+   "name": "L3 Technologies",
+   "date": "2019-07-01",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "BMS",
+   "name": "Bemis",
+   "date": "2019-06-11",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "MAT",
+   "name": "Mattel",
+   "date": "2019-06-07",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": 63276,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "MATTEL INC /DE/",
+   "tickers": [
+    "MAT"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [],
+   "sic": "3942",
+   "sicDescription": "Dolls & Stuffed Toys",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "DWDP",
+   "name": "DuPont",
+   "date": "2019-06-03",
+   "kind": "spin-off",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "FLR",
+   "name": "Fluor Corporation",
+   "date": "2019-06-03",
+   "kind": "spin-off",
+   "vendorBars": null,
+   "cik": 1124198,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "FLUOR CORP",
+   "tickers": [
+    "FLR"
+   ],
+   "exchanges": [
+    "NYSE"
+   ],
+   "formerNames": [],
+   "sic": "1600",
+   "sicDescription": "Heavy Construction Other Than Bldg Const - Contractors",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "BHF",
+   "name": "Brighthouse Financial",
+   "date": "2019-04-02",
+   "kind": "spin-off",
+   "vendorBars": null,
+   "cik": 1685040,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Brighthouse Financial, Inc.",
+   "tickers": [
+    "BHF",
+    "BHFAL",
+    "BHFAM",
+    "BHFAN",
+    "BHFAO",
+    "BHFAP"
+   ],
+   "exchanges": [
+    "Nasdaq",
+    "Nasdaq",
+    "Nasdaq",
+    "Nasdaq",
+    "Nasdaq",
+    "Nasdaq"
+   ],
+   "formerNames": [],
+   "sic": "6311",
+   "sicDescription": "Life Insurance",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "FOXA",
+   "name": "21st Century Fox",
+   "date": "2019-03-19",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": 1754301,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Fox Corp",
+   "tickers": [
+    "FOXA",
+    "FOX"
+   ],
+   "exchanges": [
+    "Nasdaq",
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "NEW FOX, INC."
+   ],
+   "sic": "4833",
+   "sicDescription": "Television Broadcasting Stations",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "FOX",
+   "name": "21st Century Fox",
+   "date": "2019-03-19",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": 1754301,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "Fox Corp",
+   "tickers": [
+    "FOXA",
+    "FOX"
+   ],
+   "exchanges": [
+    "Nasdaq",
+    "Nasdaq"
+   ],
+   "formerNames": [
+    "NEW FOX, INC."
+   ],
+   "sic": "4833",
+   "sicDescription": "Television Broadcasting Stations",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "GT",
+   "name": "The Goodyear Tire & Rubber Company",
+   "date": "2019-02-27",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": 42582,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "GOODYEAR TIRE & RUBBER CO /OH/",
+   "tickers": [
+    "GT"
+   ],
+   "exchanges": [
+    "Nasdaq"
+   ],
+   "formerNames": [],
+   "sic": "3011",
+   "sicDescription": "Tires & Inner Tubes",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "NFX",
+   "name": "Newfield Exploration",
+   "date": "2019-02-15",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  },
+  {
+   "ticker": "PCG",
+   "name": "Pacific Gas & Electric Company",
+   "date": "2019-01-18",
+   "kind": "bankruptcy",
+   "vendorBars": null,
+   "cik": 1004980,
+   "stillListedUnderThisTicker": true,
+   "edgarName": "PG&E Corp",
+   "tickers": [
+    "PCG",
+    "PCG-PE",
+    "PCG-PD",
+    "PCG-PC",
+    "PCG-PH",
+    "PCG-PG",
+    "PCG-PI",
+    "PCG-PA",
+    "PCG-PB",
+    "PCG-PX"
+   ],
+   "exchanges": [
+    "NYSE",
+    "NYSE",
+    "NYSE",
+    "NYSE",
+    "NYSE",
+    "NYSE",
+    "NYSE",
+    "NYSE",
+    "NYSE",
+    "NYSE"
+   ],
+   "formerNames": [
+    "PG&E CORP",
+    "PG&E Corp",
+    "PG&E PARENT CO INC"
+   ],
+   "sic": "4931",
+   "sicDescription": "Electric & Other Services Combined",
+   "delistedSignal": false
+  },
+  {
+   "ticker": "SCG",
+   "name": "SCANA",
+   "date": "2019-01-02",
+   "kind": "acquired-or-merged",
+   "vendorBars": null,
+   "cik": null,
+   "stillListedUnderThisTicker": false
+  }
+ ]
+}
