@@ -44,17 +44,38 @@ def test_no_reading_is_ever_published_after_the_decision_date():
             assert rec["availableAt"] <= on, f"{code} leaked a value published {rec['availableAt']}"
 
 
-def test_an_observation_is_withheld_until_its_publication_day():
-    """For a series that is never revised, its own `availableAt` is the publication date."""
+def test_the_publication_boundary_in_both_cutoff_modes():
+    """A same-day release is withheld by default and credited only when asked for explicitly."""
     with (SERIES_DIR / f"{SLOW_UNREVISED}.csv").open(newline="", encoding="utf-8") as fh:
         rows = [r for r in csv.DictReader(fh) if r["value"].strip() not in ("", ".")]
     row = next(r for r in rows[1:] if r["availableAt"] > r["observation_date"])
     obs, pub = row["observation_date"], row["availableAt"]
-    day_before = (date.fromisoformat(pub) - timedelta(days=1)).isoformat()
-    earlier = as_of(SLOW_UNREVISED, day_before)
-    assert earlier is None or earlier["observationDate"] < obs, "published a value a day early"
-    onday = as_of(SLOW_UNREVISED, pub)
-    assert onday is not None and onday["observationDate"] >= obs
+    day_after = (date.fromisoformat(pub) + timedelta(days=1)).isoformat()
+
+    # Conservative default: on the publication date itself the value is not yet credited.
+    same_day_default = as_of(SLOW_UNREVISED, pub)
+    assert same_day_default is None or same_day_default["observationDate"] < obs
+
+    # Explicitly crediting the same day makes it readable -- the end-of-session convention.
+    credited = as_of(SLOW_UNREVISED, pub, same_day=True)
+    assert credited is not None and credited["observationDate"] >= obs
+    assert credited["sameDayCredited"] is True
+
+    # And by the next day it is readable under either rule.
+    assert as_of(SLOW_UNREVISED, day_after)["observationDate"] >= obs
+
+
+def test_the_cutoff_is_reported_on_every_reading():
+    rec = as_of(FAST, "2024-06-03")
+    assert rec["cutoff"] == "2024-06-02", "default withholds the decision day itself"
+    assert rec["sameDayCredited"] is False
+    assert as_of(FAST, "2024-06-03", same_day=True)["cutoff"] == "2024-06-03"
+
+
+def test_a_value_is_never_credited_before_its_publication_date():
+    for on in ("2019-03-15", "2021-07-01", "2024-02-29"):
+        for rec in context_for(on)["readings"].values():
+            assert rec["availableAt"] <= rec["cutoff"] < on or rec["availableAt"] <= rec["cutoff"]
 
 
 def test_the_csv_value_is_not_trusted_for_a_revision_tracked_series():
@@ -141,3 +162,72 @@ def test_missing_values_are_skipped_not_zero_filled():
     rec = as_of(FAST, "2024-06-03")
     assert rec is not None and rec["value"] != "." and rec["value"] != ""
     float(rec["value"])          # parses, and the caller decides the type
+
+
+TRACKED_ALL = ("CPIAUCSL", "GDPC1", "HOUST", "INDPRO", "M2SL",
+               "NFCI", "PAYEMS", "PCEPILFE", "RSAFS", "UNRATE")
+
+
+def test_every_revision_tracked_series_has_a_vintage_file():
+    for code in TRACKED_ALL:
+        assert (VINTAGE_DIR / f"{code}.jsonl").exists(), code
+
+
+def test_no_tracked_series_ever_returns_the_csv_final_value_too_early():
+    """The systemic form of the CPI defect: all ten series carry it, so all ten are checked.
+
+    For each, take the first CSV row and ask for it on its own `availableAt`. The CSV's value is
+    the final revision, so returning it on that date would be the leak. Either nothing is
+    knowable yet, or what comes back is a genuine vintage value -- never the CSV's.
+    """
+    for code in TRACKED_ALL:
+        with (SERIES_DIR / f"{code}.csv").open(newline="", encoding="utf-8") as fh:
+            first = next(r for r in csv.DictReader(fh) if r["value"].strip() not in ("", "."))
+        rec = as_of(code, first["availableAt"], same_day=True)
+        if rec is not None and rec["observationDate"] == first["observation_date"]:
+            assert rec["value"] != first["value"], f"{code} returned the final revision too early"
+
+
+def test_a_tracked_series_never_falls_back_to_the_csv_when_no_vintage_exists():
+    # Before any revision was published there must be no reading at all, not a CSV value.
+    for code in TRACKED_ALL:
+        assert as_of(code, "2009-12-31") is None, f"{code} invented a pre-history value"
+
+
+def test_every_tracked_reading_is_flagged_as_revision_tracked():
+    for code in TRACKED_ALL:
+        rec = as_of(code, "2026-01-05")
+        if rec is not None:
+            assert rec["revisionTracked"] is True, code
+            assert rec["revisionsKnown"] >= 0
+
+
+def test_macro_pit_builds_its_grid_from_vintages_not_the_csv():
+    """The producer of `macro-sessions` must use the same corrected rule as the consumer."""
+    sys.path.insert(0, str(ROOT / "tools" / "foundation"))
+    import macro_pit
+
+    series = macro_pit.load_series()
+    # A tracked series now carries one row per publication event, so it has far more rows
+    # than it has observations.
+    tracked = series["CPIAUCSL"]
+    assert len(tracked["avail"]) > len(set(tracked["obs"])), "no revision rows were loaded"
+    # On the CSV's own availableAt for the first observation, the grid must not show the
+    # final revision.
+    with (SERIES_DIR / "CPIAUCSL.csv").open(newline="", encoding="utf-8") as fh:
+        first = next(r for r in csv.DictReader(fh) if r["value"].strip() not in ("", "."))
+    state = macro_pit.state_at(series, first["availableAt"]).get("CPIAUCSL")
+    if state is not None:
+        assert state["v"] != float(first["value"]), "macro_pit leaked the final revision"
+
+
+def test_macro_pit_change_compares_observations_not_revisions():
+    sys.path.insert(0, str(ROOT / "tools" / "foundation"))
+    import macro_pit
+
+    series = macro_pit.load_series()
+    state = macro_pit.state_at(series, "2026-01-05")
+    row = state.get("CPIAUCSL")
+    assert row is not None and "chg" in row
+    # A month-on-month CPI change is small but not a revision-sized zero.
+    assert abs(row["chg"]) > 0, "chg collapsed to a revision difference"

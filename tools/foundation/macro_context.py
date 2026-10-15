@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -89,21 +89,35 @@ def _vintage(code: str, vintage_dir: Path) -> dict[str, list[tuple[date, str]]]:
 
 
 def as_of(code: str, on: date | str, series_dir: Path | None = None,
-          vintage_dir: Path | None = None) -> dict | None:
-    """The newest reading of `code` that was published on or before `on`, or `None`.
+          vintage_dir: Path | None = None, same_day: bool = False) -> dict | None:
+    """The newest reading of `code` knowable at a decision taken on `on`, or `None`.
 
     `None` means nothing was knowable -- an unknown code, a date before the series began, or a
     series whose first publication is still in the future. It is never a zero and never the
     nearest value from the wrong side of the publication date.
+
+    **The publication-time problem, and the cutoff chosen for it.** The sources carry publication
+    *dates*, not timestamps. A date alone cannot establish that a value was public before a
+    particular decision on that day: a release at 08:30 precedes a midday decision, and one at
+    16:00 does not. Because the hour is unknowable from the data, the default here is the
+    conservative reading -- `same_day=False` withholds a value until the day **after** its
+    publication date, so a same-day release can never be credited to a decision that may have
+    preceded it.
+
+    `same_day=True` relaxes that to "published on or before `on`". It is correct for an
+    end-of-session state, where everything printed during the day is known by the close, which is
+    why `tools/foundation/macro_pit.py` uses that convention for its session grid. It is not
+    correct for an arbitrary decision moment, which is what this function answers.
     """
     on = on if isinstance(on, date) else _d(on)
+    cutoff = on if same_day else on - timedelta(days=1)
     sd = series_dir or SERIES_DIR
     vd = vintage_dir or VINTAGE_DIR
     rows = _rows(code, sd)
     if not rows:
         return None
 
-    known = [r for r in rows if r[2] <= on]
+    known = [r for r in rows if r[2] <= cutoff]
     if not known:
         return None
 
@@ -117,7 +131,7 @@ def as_of(code: str, on: date | str, series_dir: Path | None = None,
     vint = _vintage(code, vd)
     if vint:
         for obs, _csv_value, _csv_published in sorted(known, key=lambda t: t[0], reverse=True):
-            seen = [h for h in vint.get(obs.isoformat(), []) if h[0] <= on]
+            seen = [h for h in vint.get(obs.isoformat(), []) if h[0] <= cutoff]
             if seen:
                 published, value = seen[-1]
                 revisions = len(seen) - 1
@@ -134,6 +148,8 @@ def as_of(code: str, on: date | str, series_dir: Path | None = None,
         "value": value,                        # kept as text: the source's own precision
         "availableAt": published.isoformat(),
         "asOf": on.isoformat(),
+        "cutoff": cutoff.isoformat(),
+        "sameDayCredited": same_day,
         "ageDays": (on - obs).days,
         "revisionsKnown": revisions,
         "revisionTracked": bool(vint),
@@ -142,7 +158,8 @@ def as_of(code: str, on: date | str, series_dir: Path | None = None,
 
 
 def context_for(on: date | str, codes: list[str] | None = None,
-                series_dir: Path | None = None, vintage_dir: Path | None = None) -> dict:
+                series_dir: Path | None = None, vintage_dir: Path | None = None,
+                same_day: bool = False) -> dict:
     """Every requested series as it stood on `on`, with the ones that were not knowable named.
 
     The absent list is part of the answer. A context block that silently omits what it could not
@@ -152,7 +169,7 @@ def context_for(on: date | str, codes: list[str] | None = None,
     wanted = codes if codes is not None else available_series(sd)
     readings, absent = {}, []
     for c in wanted:
-        rec = as_of(c, on, sd, vintage_dir)
+        rec = as_of(c, on, sd, vintage_dir, same_day)
         if rec is None:
             absent.append(c)
         else:
@@ -161,6 +178,7 @@ def context_for(on: date | str, codes: list[str] | None = None,
         "asOf": on if isinstance(on, str) else on.isoformat(),
         "readings": readings,
         "notKnowable": absent,
+        "sameDayCredited": same_day,
         "role": "decision-context",
         "mayVote": False,
     }

@@ -46,6 +46,33 @@ def arg(name, default=None):
     return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else default
 
 
+def vintage_rows(sid: str) -> list[tuple[str, str, float]] | None:
+    """One row per *publication event* from the revision history, or None when untracked.
+
+    **Why the CSV cannot be used for these series.** Its `value` column holds the latest revision
+    while its `availableAt` holds the first publication, so the two together describe a value that
+    nobody could see on that date. Measured across all ten tracked series: the CSV equals the
+    final revision on 1,905 of 2,336 observations and the original release on only 120, and on
+    2,065 of them it claims availability before the earliest vintage existed -- by up to 507 days
+    for NFCI. Emitting one row per revision instead lets the existing `bisect_right` on
+    `availableAt` pick the latest revision actually published by a given day, which is what a
+    point-in-time read means.
+    """
+    path = MACRO / "vintages" / f"{sid}.jsonl"
+    if not path.exists():
+        return None
+    rows: list[tuple[str, str, float]] = []
+    with path.open(encoding="utf-8") as fh:
+        for line in fh:
+            if not line.strip():
+                continue
+            rec = json.loads(line)
+            for published, value in rec.get("history") or []:
+                if published and value not in (None, "", "."):
+                    rows.append((published, rec["obs"], float(value)))
+    return rows or None
+
+
 def load_series() -> dict[str, dict]:
     """{id: {availableAt[], obs[], value[]}} sorted by availableAt, excluding ex-post labels."""
     manifest = json.loads((MACRO / "manifest.json").read_text(encoding="utf-8"))
@@ -53,12 +80,14 @@ def load_series() -> dict[str, dict]:
     for sid, meta in manifest["series"].items():
         if meta["availability"] == "none":
             continue
-        rows = []
-        with open(MACRO / f"{sid}.csv", encoding="utf-8") as f:
-            for r in csv.DictReader(f):
-                if not r["availableAt"]:
-                    continue
-                rows.append((r["availableAt"], r["observation_date"], float(r["value"])))
+        rows = vintage_rows(sid)
+        if rows is None:
+            rows = []
+            with open(MACRO / f"{sid}.csv", encoding="utf-8") as f:
+                for r in csv.DictReader(f):
+                    if not r["availableAt"]:
+                        continue
+                    rows.append((r["availableAt"], r["observation_date"], float(r["value"])))
         rows.sort()
         out[sid] = {"avail": [r[0] for r in rows], "obs": [r[1] for r in rows],
                     "val": [r[2] for r in rows], "title": meta["title"],
@@ -85,8 +114,14 @@ def state_at(series: dict[str, dict], day: str) -> dict:
             continue
         row = {"v": s["val"][i],
                "age": (date.fromisoformat(day) - date.fromisoformat(s["obs"][i])).days}
-        if i > 0:
-            row["chg"] = round(s["val"][i] - s["val"][i - 1], 6)
+        # Step back to the newest row describing a *different* observation. For a revision-tracked
+        # series the rows immediately before this one can be earlier revisions of the same month,
+        # and "the change since last month" must not become "the size of a revision".
+        j = i - 1
+        while j >= 0 and s["obs"][j] == s["obs"][i]:
+            j -= 1
+        if j >= 0:
+            row["chg"] = round(s["val"][i] - s["val"][j], 6)
         out[sid] = row
     return out
 

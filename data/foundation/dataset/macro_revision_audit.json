@@ -1,0 +1,109 @@
+{
+ "generatedAt": "2026-10-15T22:51:29+00:00",
+ "finding": "for every revision-tracked series the stored CSV pairs the LATEST revised value with the FIRST publication date, so a join on availableAt reads a value nobody could see",
+ "seriesAudited": 10,
+ "totals": {
+  "observations": 2536,
+  "csvEqualsFirstRelease": 121,
+  "csvEqualsFinalRevision": 2305,
+  "csvAvailableBeforeAnyVintage": 2065
+ },
+ "perSeries": {
+  "CPIAUCSL": {
+   "observations": 199,
+   "csvEqualsFirstRelease": 8,
+   "csvEqualsFinalRevision": 199,
+   "csvAvailableBeforeAnyVintage": 83,
+   "worstGapDays": 29
+  },
+  "GDPC1": {
+   "observations": 66,
+   "csvEqualsFirstRelease": 0,
+   "csvEqualsFinalRevision": 44,
+   "csvAvailableBeforeAnyVintage": 33,
+   "worstGapDays": 59
+  },
+  "HOUST": {
+   "observations": 200,
+   "csvEqualsFirstRelease": 3,
+   "csvEqualsFinalRevision": 200,
+   "csvAvailableBeforeAnyVintage": 200,
+   "worstGapDays": 86
+  },
+  "INDPRO": {
+   "observations": 200,
+   "csvEqualsFirstRelease": 1,
+   "csvEqualsFinalRevision": 200,
+   "csvAvailableBeforeAnyVintage": 182,
+   "worstGapDays": 57
+  },
+  "M2SL": {
+   "observations": 200,
+   "csvEqualsFirstRelease": 1,
+   "csvEqualsFinalRevision": 200,
+   "csvAvailableBeforeAnyVintage": 104,
+   "worstGapDays": 3
+  },
+  "NFCI": {
+   "observations": 873,
+   "csvEqualsFirstRelease": 1,
+   "csvEqualsFinalRevision": 733,
+   "csvAvailableBeforeAnyVintage": 832,
+   "worstGapDays": 507
+  },
+  "PAYEMS": {
+   "observations": 200,
+   "csvEqualsFirstRelease": 0,
+   "csvEqualsFinalRevision": 198,
+   "csvAvailableBeforeAnyVintage": 200,
+   "worstGapDays": 49
+  },
+  "PCEPILFE": {
+   "observations": 199,
+   "csvEqualsFirstRelease": 0,
+   "csvEqualsFinalRevision": 132,
+   "csvAvailableBeforeAnyVintage": 124,
+   "worstGapDays": 58
+  },
+  "RSAFS": {
+   "observations": 200,
+   "csvEqualsFirstRelease": 1,
+   "csvEqualsFinalRevision": 200,
+   "csvAvailableBeforeAnyVintage": 108,
+   "worstGapDays": 42
+  },
+  "UNRATE": {
+   "observations": 199,
+   "csvEqualsFirstRelease": 106,
+   "csvEqualsFinalRevision": 199,
+   "csvAvailableBeforeAnyVintage": 199,
+   "worstGapDays": 49
+  }
+ },
+ "worstGapDays": 507,
+ "worstSeries": "NFCI",
+ "contaminatedArtifacts": [
+  {
+   "artifact": "dataset/macro/macro-sessions.jsonl.gz",
+   "inRun": "38735767762",
+   "sessions": 2844,
+   "series": 31,
+   "trackedSeriesCarried": 10,
+   "status": "INVALIDATED - built with the faulty join; not rebuilt here because it is produced by CI",
+   "consumedByTraining": false,
+   "evidence": "its own manifest rule is \"the newest observation whose availableAt is on or before D\""
+  }
+ ],
+ "notContaminated": [
+  {
+   "artifact": "examples-v3",
+   "why": "carries no macro field; the 15 pit.f features are price and volume only"
+  },
+  {
+   "artifact": "label60_experiment.json",
+   "why": "same feature set, no macro"
+  }
+ ],
+ "fix": "tools/foundation/macro_pit.py now emits one row per publication event from the vintage history",
+ "remaining": "macro-sessions must be rebuilt by CI before any consumer uses it"
+}
