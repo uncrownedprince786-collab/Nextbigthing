@@ -1,0 +1,1527 @@
+{
+ "generatedAt": "2026-10-15T09:44:32+00:00",
+ "version": "basis-transitions-v1",
+ "scope": "the two PSX price sources only; no other market mixes bases",
+ "band": {
+  "percent": 10.0,
+  "minimumPkr": 1.0,
+  "tolerance": 1.005,
+  "rule": "the greater of 10% and Rs 1.00, the exchange's own daily price band",
+  "derivedFrom": "same-source transitions in this table, not from documentation"
+ },
+ "crossBasis": {
+  "transitions": 22898,
+  "outOfBand": 5,
+  "rate": 0.000218
+ },
+ "sameBasis": {
+  "transitions": 370890,
+  "outOfBand": 263,
+  "rate": 0.000709
+ },
+ "comparison": "if the cross-basis out-of-band rate is not materially above the same-source rate, the two bases are not silently disagreeing: a basis change looks like any other session",
+ "windows": {
+  "window": 20,
+  "total": 389494,
+  "spanningABasisChange": 188528,
+  "excluded": 96,
+  "shareSpanning": 0.484,
+  "shareExcluded": 0.000246
+ },
+ "assetsWithTwoBases": 203,
+ "exceptions": [
+  {
+   "symbol": "POL",
+   "fromDate": "2023-09-27",
+   "toDate": "2023-09-28",
+   "fromClose": 439.49,
+   "toClose": 389.76,
+   "fromSource": "karachi",
+   "toSource": "exchange",
+   "changePkr": -49.73,
+   "changePct": -11.315,
+   "bandPkr": 43.949,
+   "overBandPkr": 5.781,
+   "verdict": "out-of-band cross-basis step: exclude any window spanning it"
+  },
+  {
+   "symbol": "KOHE",
+   "fromDate": "2024-04-30",
+   "toDate": "2024-05-02",
+   "fromClose": 47.0,
+   "toClose": 40.0,
+   "fromSource": "exchange",
+   "toSource": "karachi",
+   "changePkr": -7.0,
+   "changePct": -14.894,
+   "bandPkr": 4.7,
+   "overBandPkr": 2.3,
+   "verdict": "out-of-band cross-basis step: exclude any window spanning it"
+  },
+  {
+   "symbol": "HMB",
+   "fromDate": "2023-09-01",
+   "toDate": "2023-09-04",
+   "fromClose": 42.58,
+   "toClose": 37.5,
+   "fromSource": "exchange",
+   "toSource": "karachi",
+   "changePkr": -5.08,
+   "changePct": -11.93,
+   "bandPkr": 4.258,
+   "overBandPkr": 0.822,
+   "verdict": "out-of-band cross-basis step: exclude any window spanning it"
+  },
+  {
+   "symbol": "GCIL",
+   "fromDate": "2022-11-28",
+   "toDate": "2022-11-29",
+   "fromClose": 21.27,
+   "toClose": 18.35,
+   "fromSource": "exchange",
+   "toSource": "karachi",
+   "changePkr": -2.92,
+   "changePct": -13.728,
+   "bandPkr": 2.127,
+   "overBandPkr": 0.793,
+   "verdict": "out-of-band cross-basis step: exclude any window spanning it"
+  },
+  {
+   "symbol": "NPL",
+   "fromDate": "2022-10-31",
+   "toDate": "2022-11-01",
+   "fromClose": 19.47,
+   "toClose": 17.48,
+   "fromSource": "karachi",
+   "toSource": "exchange",
+   "changePkr": -1.99,
+   "changePct": -10.221,
+   "bandPkr": 1.947,
+   "overBandPkr": 0.043,
+   "verdict": "out-of-band cross-basis step: exclude any window spanning it"
+  }
+ ],
+ "perAsset": {
+  "ABL": {
+   "bars": 2123,
+   "basisChanges": 152,
+   "windows": 2103,
+   "windowsSpanningABasisChange": 1334,
+   "windowsExcluded": 0
+  },
+  "ABOT": {
+   "bars": 2128,
+   "basisChanges": 160,
+   "windows": 2108,
+   "windowsSpanningABasisChange": 1337,
+   "windowsExcluded": 0
+  },
+  "ACPL": {
+   "bars": 2170,
+   "basisChanges": 148,
+   "windows": 2150,
+   "windowsSpanningABasisChange": 1361,
+   "windowsExcluded": 0
+  },
+  "ADMM": {
+   "bars": 1753,
+   "basisChanges": 136,
+   "windows": 1733,
+   "windowsSpanningABasisChange": 1032,
+   "windowsExcluded": 0
+  },
+  "AGHA": {
+   "bars": 1474,
+   "basisChanges": 74,
+   "windows": 1454,
+   "windowsSpanningABasisChange": 680,
+   "windowsExcluded": 0
+  },
+  "AGL": {
+   "bars": 2175,
+   "basisChanges": 150,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1363,
+   "windowsExcluded": 0
+  },
+  "AGP": {
+   "bars": 2128,
+   "basisChanges": 150,
+   "windows": 2108,
+   "windowsSpanningABasisChange": 1363,
+   "windowsExcluded": 0
+  },
+  "AGTL": {
+   "bars": 2144,
+   "basisChanges": 146,
+   "windows": 2124,
+   "windowsSpanningABasisChange": 1316,
+   "windowsExcluded": 0
+  },
+  "AHCL": {
+   "bars": 2017,
+   "basisChanges": 152,
+   "windows": 1997,
+   "windowsSpanningABasisChange": 1207,
+   "windowsExcluded": 0
+  },
+  "AHL": {
+   "bars": 2157,
+   "basisChanges": 70,
+   "windows": 2137,
+   "windowsSpanningABasisChange": 676,
+   "windowsExcluded": 0
+  },
+  "AIRLINK": {
+   "bars": 1256,
+   "basisChanges": 70,
+   "windows": 1236,
+   "windowsSpanningABasisChange": 677,
+   "windowsExcluded": 0
+  },
+  "AKBL": {
+   "bars": 2173,
+   "basisChanges": 36,
+   "windows": 2153,
+   "windowsSpanningABasisChange": 330,
+   "windowsExcluded": 0
+  },
+  "AKDSL": {
+   "bars": 848,
+   "basisChanges": 33,
+   "windows": 828,
+   "windowsSpanningABasisChange": 236,
+   "windowsExcluded": 0
+  },
+  "ALTN": {
+   "bars": 1758,
+   "basisChanges": 146,
+   "windows": 1738,
+   "windowsSpanningABasisChange": 1053,
+   "windowsExcluded": 0
+  },
+  "AMTEX": {
+   "bars": 1125,
+   "basisChanges": 38,
+   "windows": 1105,
+   "windowsSpanningABasisChange": 338,
+   "windowsExcluded": 0
+  },
+  "ANL": {
+   "bars": 2175,
+   "basisChanges": 114,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1083,
+   "windowsExcluded": 0
+  },
+  "APL": {
+   "bars": 2173,
+   "basisChanges": 46,
+   "windows": 2153,
+   "windowsSpanningABasisChange": 434,
+   "windowsExcluded": 0
+  },
+  "ARCTM": {
+   "bars": 1203,
+   "basisChanges": 41,
+   "windows": 1183,
+   "windowsSpanningABasisChange": 305,
+   "windowsExcluded": 0
+  },
+  "ARPL": {
+   "bars": 2082,
+   "basisChanges": 154,
+   "windows": 2062,
+   "windowsSpanningABasisChange": 1251,
+   "windowsExcluded": 0
+  },
+  "ASC": {
+   "bars": 2174,
+   "basisChanges": 42,
+   "windows": 2154,
+   "windowsSpanningABasisChange": 392,
+   "windowsExcluded": 0
+  },
+  "ASL": {
+   "bars": 2175,
+   "basisChanges": 154,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1366,
+   "windowsExcluded": 0
+  },
+  "ASTL": {
+   "bars": 2175,
+   "basisChanges": 154,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1367,
+   "windowsExcluded": 0
+  },
+  "ASTM": {
+   "bars": 1771,
+   "basisChanges": 140,
+   "windows": 1751,
+   "windowsSpanningABasisChange": 964,
+   "windowsExcluded": 0
+  },
+  "ATLH": {
+   "bars": 1891,
+   "basisChanges": 132,
+   "windows": 1871,
+   "windowsSpanningABasisChange": 1001,
+   "windowsExcluded": 0
+  },
+  "ATRL": {
+   "bars": 2175,
+   "basisChanges": 146,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1363,
+   "windowsExcluded": 0
+  },
+  "AVN": {
+   "bars": 2172,
+   "basisChanges": 30,
+   "windows": 2152,
+   "windowsSpanningABasisChange": 293,
+   "windowsExcluded": 0
+  },
+  "BAFL": {
+   "bars": 2175,
+   "basisChanges": 146,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "BAHL": {
+   "bars": 2175,
+   "basisChanges": 142,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1363,
+   "windowsExcluded": 0
+  },
+  "BAPL": {
+   "bars": 1705,
+   "basisChanges": 140,
+   "windows": 1685,
+   "windowsSpanningABasisChange": 957,
+   "windowsExcluded": 0
+  },
+  "BECO": {
+   "bars": 1687,
+   "basisChanges": 75,
+   "windows": 1667,
+   "windowsSpanningABasisChange": 681,
+   "windowsExcluded": 0
+  },
+  "BERG": {
+   "bars": 1978,
+   "basisChanges": 30,
+   "windows": 1958,
+   "windowsSpanningABasisChange": 274,
+   "windowsExcluded": 0
+  },
+  "BIFO": {
+   "bars": 2125,
+   "basisChanges": 62,
+   "windows": 2105,
+   "windowsSpanningABasisChange": 581,
+   "windowsExcluded": 0
+  },
+  "BIPL": {
+   "bars": 2137,
+   "basisChanges": 132,
+   "windows": 2117,
+   "windowsSpanningABasisChange": 1186,
+   "windowsExcluded": 0
+  },
+  "BNL": {
+   "bars": 1468,
+   "basisChanges": 92,
+   "windows": 1448,
+   "windowsSpanningABasisChange": 782,
+   "windowsExcluded": 0
+  },
+  "BOP": {
+   "bars": 2174,
+   "basisChanges": 36,
+   "windows": 2154,
+   "windowsSpanningABasisChange": 330,
+   "windowsExcluded": 0
+  },
+  "BPL": {
+   "bars": 1660,
+   "basisChanges": 112,
+   "windows": 1640,
+   "windowsSpanningABasisChange": 853,
+   "windowsExcluded": 0
+  },
+  "BUXL": {
+   "bars": 1792,
+   "basisChanges": 166,
+   "windows": 1772,
+   "windowsSpanningABasisChange": 1042,
+   "windowsExcluded": 0
+  },
+  "BWCL": {
+   "bars": 2166,
+   "basisChanges": 172,
+   "windows": 2146,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "CHBL": {
+   "bars": 592,
+   "basisChanges": 4,
+   "windows": 572,
+   "windowsSpanningABasisChange": 37,
+   "windowsExcluded": 0
+  },
+  "CHCC": {
+   "bars": 2175,
+   "basisChanges": 124,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1165,
+   "windowsExcluded": 0
+  },
+  "CLOV": {
+   "bars": 2161,
+   "basisChanges": 110,
+   "windows": 2141,
+   "windowsSpanningABasisChange": 1046,
+   "windowsExcluded": 0
+  },
+  "CNERGY": {
+   "bars": 1924,
+   "basisChanges": 67,
+   "windows": 1904,
+   "windowsSpanningABasisChange": 637,
+   "windowsExcluded": 0
+  },
+  "COLG": {
+   "bars": 1834,
+   "basisChanges": 30,
+   "windows": 1814,
+   "windowsSpanningABasisChange": 275,
+   "windowsExcluded": 0
+  },
+  "CPHL": {
+   "bars": 1305,
+   "basisChanges": 72,
+   "windows": 1285,
+   "windowsSpanningABasisChange": 678,
+   "windowsExcluded": 0
+  },
+  "CSAP": {
+   "bars": 2164,
+   "basisChanges": 152,
+   "windows": 2144,
+   "windowsSpanningABasisChange": 1357,
+   "windowsExcluded": 0
+  },
+  "CTM": {
+   "bars": 2132,
+   "basisChanges": 156,
+   "windows": 2112,
+   "windowsSpanningABasisChange": 1331,
+   "windowsExcluded": 0
+  },
+  "DBCI": {
+   "bars": 592,
+   "basisChanges": 4,
+   "windows": 572,
+   "windowsSpanningABasisChange": 37,
+   "windowsExcluded": 0
+  },
+  "DCL": {
+   "bars": 2175,
+   "basisChanges": 148,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1365,
+   "windowsExcluded": 0
+  },
+  "DEL": {
+   "bars": 1841,
+   "basisChanges": 66,
+   "windows": 1821,
+   "windowsSpanningABasisChange": 627,
+   "windowsExcluded": 0
+  },
+  "DFML": {
+   "bars": 2175,
+   "basisChanges": 148,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "DFSM": {
+   "bars": 2165,
+   "basisChanges": 176,
+   "windows": 2145,
+   "windowsSpanningABasisChange": 1361,
+   "windowsExcluded": 0
+  },
+  "DGKC": {
+   "bars": 2175,
+   "basisChanges": 146,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1363,
+   "windowsExcluded": 0
+  },
+  "DLL": {
+   "bars": 1483,
+   "basisChanges": 236,
+   "windows": 1463,
+   "windowsSpanningABasisChange": 821,
+   "windowsExcluded": 0
+  },
+  "DNCC": {
+   "bars": 1624,
+   "basisChanges": 70,
+   "windows": 1604,
+   "windowsSpanningABasisChange": 518,
+   "windowsExcluded": 0
+  },
+  "DOL": {
+   "bars": 2175,
+   "basisChanges": 96,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 919,
+   "windowsExcluded": 0
+  },
+  "DSIL": {
+   "bars": 2166,
+   "basisChanges": 168,
+   "windows": 2146,
+   "windowsSpanningABasisChange": 1362,
+   "windowsExcluded": 0
+  },
+  "DSL": {
+   "bars": 2175,
+   "basisChanges": 150,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "EFERT": {
+   "bars": 2175,
+   "basisChanges": 150,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1365,
+   "windowsExcluded": 0
+  },
+  "EPCL": {
+   "bars": 2175,
+   "basisChanges": 152,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1367,
+   "windowsExcluded": 0
+  },
+  "EPQL": {
+   "bars": 2170,
+   "basisChanges": 144,
+   "windows": 2150,
+   "windowsSpanningABasisChange": 1340,
+   "windowsExcluded": 0
+  },
+  "FABL": {
+   "bars": 2171,
+   "basisChanges": 152,
+   "windows": 2151,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "FATIMA": {
+   "bars": 2173,
+   "basisChanges": 156,
+   "windows": 2153,
+   "windowsSpanningABasisChange": 1366,
+   "windowsExcluded": 0
+  },
+  "FCCL": {
+   "bars": 2174,
+   "basisChanges": 46,
+   "windows": 2154,
+   "windowsSpanningABasisChange": 434,
+   "windowsExcluded": 0
+  },
+  "FCEPL": {
+   "bars": 1928,
+   "basisChanges": 135,
+   "windows": 1908,
+   "windowsSpanningABasisChange": 1240,
+   "windowsExcluded": 0
+  },
+  "FCSC": {
+   "bars": 2161,
+   "basisChanges": 166,
+   "windows": 2141,
+   "windowsSpanningABasisChange": 1343,
+   "windowsExcluded": 0
+  },
+  "FDPL": {
+   "bars": 1910,
+   "basisChanges": 11,
+   "windows": 1890,
+   "windowsSpanningABasisChange": 97,
+   "windowsExcluded": 0
+  },
+  "FECTC": {
+   "bars": 1973,
+   "basisChanges": 132,
+   "windows": 1953,
+   "windowsSpanningABasisChange": 1103,
+   "windowsExcluded": 0
+  },
+  "FEROZ": {
+   "bars": 2170,
+   "basisChanges": 46,
+   "windows": 2150,
+   "windowsSpanningABasisChange": 434,
+   "windowsExcluded": 0
+  },
+  "FFC": {
+   "bars": 2175,
+   "basisChanges": 156,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "FFL": {
+   "bars": 2174,
+   "basisChanges": 70,
+   "windows": 2154,
+   "windowsSpanningABasisChange": 678,
+   "windowsExcluded": 0
+  },
+  "FLYNG": {
+   "bars": 2117,
+   "basisChanges": 64,
+   "windows": 2097,
+   "windowsSpanningABasisChange": 597,
+   "windowsExcluded": 0
+  },
+  "FML": {
+   "bars": 1885,
+   "basisChanges": 46,
+   "windows": 1865,
+   "windowsSpanningABasisChange": 345,
+   "windowsExcluded": 0
+  },
+  "FNEL": {
+   "bars": 2115,
+   "basisChanges": 144,
+   "windows": 2095,
+   "windowsSpanningABasisChange": 1307,
+   "windowsExcluded": 0
+  },
+  "GADT": {
+   "bars": 1843,
+   "basisChanges": 188,
+   "windows": 1823,
+   "windowsSpanningABasisChange": 1097,
+   "windowsExcluded": 0
+  },
+  "GATM": {
+   "bars": 2172,
+   "basisChanges": 30,
+   "windows": 2152,
+   "windowsSpanningABasisChange": 275,
+   "windowsExcluded": 0
+  },
+  "GCIL": {
+   "bars": 971,
+   "basisChanges": 46,
+   "windows": 951,
+   "windowsSpanningABasisChange": 407,
+   "windowsExcluded": 12
+  },
+  "GGL": {
+   "bars": 2174,
+   "basisChanges": 44,
+   "windows": 2154,
+   "windowsSpanningABasisChange": 394,
+   "windowsExcluded": 0
+  },
+  "GHNI": {
+   "bars": 2175,
+   "basisChanges": 152,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1367,
+   "windowsExcluded": 0
+  },
+  "GLAXO": {
+   "bars": 2173,
+   "basisChanges": 152,
+   "windows": 2153,
+   "windowsSpanningABasisChange": 1366,
+   "windowsExcluded": 0
+  },
+  "GWLC": {
+   "bars": 2150,
+   "basisChanges": 144,
+   "windows": 2130,
+   "windowsSpanningABasisChange": 1334,
+   "windowsExcluded": 0
+  },
+  "HALEON": {
+   "bars": 1889,
+   "basisChanges": 45,
+   "windows": 1869,
+   "windowsSpanningABasisChange": 358,
+   "windowsExcluded": 0
+  },
+  "HASCOL": {
+   "bars": 2175,
+   "basisChanges": 124,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1147,
+   "windowsExcluded": 0
+  },
+  "HBL": {
+   "bars": 2175,
+   "basisChanges": 150,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1366,
+   "windowsExcluded": 0
+  },
+  "HCAR": {
+   "bars": 2175,
+   "basisChanges": 146,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1363,
+   "windowsExcluded": 0
+  },
+  "HINO": {
+   "bars": 1925,
+   "basisChanges": 114,
+   "windows": 1905,
+   "windowsSpanningABasisChange": 781,
+   "windowsExcluded": 0
+  },
+  "HINOON": {
+   "bars": 2163,
+   "basisChanges": 30,
+   "windows": 2143,
+   "windowsSpanningABasisChange": 275,
+   "windowsExcluded": 0
+  },
+  "HIRAT": {
+   "bars": 2111,
+   "basisChanges": 148,
+   "windows": 2091,
+   "windowsSpanningABasisChange": 1311,
+   "windowsExcluded": 0
+  },
+  "HMB": {
+   "bars": 2148,
+   "basisChanges": 148,
+   "windows": 2128,
+   "windowsSpanningABasisChange": 1345,
+   "windowsExcluded": 21
+  },
+  "HTL": {
+   "bars": 2174,
+   "basisChanges": 72,
+   "windows": 2154,
+   "windowsSpanningABasisChange": 678,
+   "windowsExcluded": 0
+  },
+  "HUBC": {
+   "bars": 2175,
+   "basisChanges": 146,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1285,
+   "windowsExcluded": 0
+  },
+  "HUMNL": {
+   "bars": 2170,
+   "basisChanges": 46,
+   "windows": 2150,
+   "windowsSpanningABasisChange": 415,
+   "windowsExcluded": 0
+  },
+  "IBLHL": {
+   "bars": 2140,
+   "basisChanges": 20,
+   "windows": 2120,
+   "windowsSpanningABasisChange": 193,
+   "windowsExcluded": 0
+  },
+  "ICIBL": {
+   "bars": 2172,
+   "basisChanges": 154,
+   "windows": 2152,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "ICL": {
+   "bars": 2140,
+   "basisChanges": 70,
+   "windows": 2120,
+   "windowsSpanningABasisChange": 634,
+   "windowsExcluded": 0
+  },
+  "IDRT": {
+   "bars": 811,
+   "basisChanges": 52,
+   "windows": 791,
+   "windowsSpanningABasisChange": 257,
+   "windowsExcluded": 0
+  },
+  "IDYM": {
+   "bars": 1717,
+   "basisChanges": 116,
+   "windows": 1697,
+   "windowsSpanningABasisChange": 797,
+   "windowsExcluded": 0
+  },
+  "ILP": {
+   "bars": 1860,
+   "basisChanges": 30,
+   "windows": 1840,
+   "windowsSpanningABasisChange": 275,
+   "windowsExcluded": 0
+  },
+  "INDU": {
+   "bars": 2174,
+   "basisChanges": 148,
+   "windows": 2154,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "INIL": {
+   "bars": 2175,
+   "basisChanges": 128,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1186,
+   "windowsExcluded": 0
+  },
+  "ISL": {
+   "bars": 2175,
+   "basisChanges": 148,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "ITTEFAQ": {
+   "bars": 2173,
+   "basisChanges": 154,
+   "windows": 2153,
+   "windowsSpanningABasisChange": 1365,
+   "windowsExcluded": 0
+  },
+  "JATM": {
+   "bars": 1623,
+   "basisChanges": 122,
+   "windows": 1603,
+   "windowsSpanningABasisChange": 838,
+   "windowsExcluded": 0
+  },
+  "JDMT": {
+   "bars": 1337,
+   "basisChanges": 94,
+   "windows": 1317,
+   "windowsSpanningABasisChange": 636,
+   "windowsExcluded": 0
+  },
+  "JSBL": {
+   "bars": 2103,
+   "basisChanges": 148,
+   "windows": 2083,
+   "windowsSpanningABasisChange": 1278,
+   "windowsExcluded": 0
+  },
+  "JSCL": {
+   "bars": 2174,
+   "basisChanges": 152,
+   "windows": 2154,
+   "windowsSpanningABasisChange": 1365,
+   "windowsExcluded": 0
+  },
+  "KAPCO": {
+   "bars": 2175,
+   "basisChanges": 148,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "KEL": {
+   "bars": 2175,
+   "basisChanges": 150,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "KML": {
+   "bars": 1482,
+   "basisChanges": 126,
+   "windows": 1462,
+   "windowsSpanningABasisChange": 781,
+   "windowsExcluded": 0
+  },
+  "KOHC": {
+   "bars": 2175,
+   "basisChanges": 150,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "KOHE": {
+   "bars": 1972,
+   "basisChanges": 140,
+   "windows": 1952,
+   "windowsSpanningABasisChange": 1184,
+   "windowsExcluded": 21
+  },
+  "KOHP": {
+   "bars": 1875,
+   "basisChanges": 124,
+   "windows": 1855,
+   "windowsSpanningABasisChange": 1010,
+   "windowsExcluded": 0
+  },
+  "KOHTM": {
+   "bars": 1066,
+   "basisChanges": 102,
+   "windows": 1046,
+   "windowsSpanningABasisChange": 480,
+   "windowsExcluded": 0
+  },
+  "KOIL": {
+   "bars": 2075,
+   "basisChanges": 162,
+   "windows": 2055,
+   "windowsSpanningABasisChange": 1257,
+   "windowsExcluded": 0
+  },
+  "KOSM": {
+   "bars": 2172,
+   "basisChanges": 156,
+   "windows": 2152,
+   "windowsSpanningABasisChange": 1361,
+   "windowsExcluded": 0
+  },
+  "KSBP": {
+   "bars": 1858,
+   "basisChanges": 204,
+   "windows": 1838,
+   "windowsSpanningABasisChange": 1057,
+   "windowsExcluded": 0
+  },
+  "KTML": {
+   "bars": 2074,
+   "basisChanges": 164,
+   "windows": 2054,
+   "windowsSpanningABasisChange": 1262,
+   "windowsExcluded": 0
+  },
+  "LCI": {
+   "bars": 1899,
+   "basisChanges": 45,
+   "windows": 1879,
+   "windowsSpanningABasisChange": 371,
+   "windowsExcluded": 0
+  },
+  "LOTCHEM": {
+   "bars": 2175,
+   "basisChanges": 150,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1365,
+   "windowsExcluded": 0
+  },
+  "LPL": {
+   "bars": 2143,
+   "basisChanges": 148,
+   "windows": 2123,
+   "windowsSpanningABasisChange": 1331,
+   "windowsExcluded": 0
+  },
+  "LSECL": {
+   "bars": 593,
+   "basisChanges": 6,
+   "windows": 573,
+   "windowsSpanningABasisChange": 38,
+   "windowsExcluded": 0
+  },
+  "LUCK": {
+   "bars": 2170,
+   "basisChanges": 146,
+   "windows": 2150,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "MACTER": {
+   "bars": 1387,
+   "basisChanges": 204,
+   "windows": 1367,
+   "windowsSpanningABasisChange": 685,
+   "windowsExcluded": 0
+  },
+  "MARI": {
+   "bars": 2175,
+   "basisChanges": 126,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1167,
+   "windowsExcluded": 0
+  },
+  "MCB": {
+   "bars": 2175,
+   "basisChanges": 156,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1368,
+   "windowsExcluded": 0
+  },
+  "MDTL": {
+   "bars": 2172,
+   "basisChanges": 166,
+   "windows": 2152,
+   "windowsSpanningABasisChange": 1367,
+   "windowsExcluded": 0
+  },
+  "MEBL": {
+   "bars": 2162,
+   "basisChanges": 50,
+   "windows": 2142,
+   "windowsSpanningABasisChange": 476,
+   "windowsExcluded": 0
+  },
+  "MEHT": {
+   "bars": 990,
+   "basisChanges": 46,
+   "windows": 970,
+   "windowsSpanningABasisChange": 185,
+   "windowsExcluded": 0
+  },
+  "MFFL": {
+   "bars": 1877,
+   "basisChanges": 100,
+   "windows": 1857,
+   "windowsSpanningABasisChange": 854,
+   "windowsExcluded": 0
+  },
+  "MFL": {
+   "bars": 2121,
+   "basisChanges": 146,
+   "windows": 2101,
+   "windowsSpanningABasisChange": 1310,
+   "windowsExcluded": 0
+  },
+  "MLCF": {
+   "bars": 2175,
+   "basisChanges": 126,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1166,
+   "windowsExcluded": 0
+  },
+  "MQTM": {
+   "bars": 893,
+   "basisChanges": 96,
+   "windows": 873,
+   "windowsSpanningABasisChange": 405,
+   "windowsExcluded": 0
+  },
+  "MSCL": {
+   "bars": 1329,
+   "basisChanges": 138,
+   "windows": 1309,
+   "windowsSpanningABasisChange": 672,
+   "windowsExcluded": 0
+  },
+  "MSOT": {
+   "bars": 1482,
+   "basisChanges": 142,
+   "windows": 1462,
+   "windowsSpanningABasisChange": 828,
+   "windowsExcluded": 0
+  },
+  "MTL": {
+   "bars": 2172,
+   "basisChanges": 30,
+   "windows": 2152,
+   "windowsSpanningABasisChange": 275,
+   "windowsExcluded": 0
+  },
+  "MUGHAL": {
+   "bars": 2174,
+   "basisChanges": 70,
+   "windows": 2154,
+   "windowsSpanningABasisChange": 678,
+   "windowsExcluded": 0
+  },
+  "MUREB": {
+   "bars": 1914,
+   "basisChanges": 126,
+   "windows": 1894,
+   "windowsSpanningABasisChange": 1023,
+   "windowsExcluded": 0
+  },
+  "NATF": {
+   "bars": 2123,
+   "basisChanges": 70,
+   "windows": 2103,
+   "windowsSpanningABasisChange": 678,
+   "windowsExcluded": 0
+  },
+  "NBP": {
+   "bars": 2175,
+   "basisChanges": 148,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "NCL": {
+   "bars": 2175,
+   "basisChanges": 146,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "NCPL": {
+   "bars": 2174,
+   "basisChanges": 150,
+   "windows": 2154,
+   "windowsSpanningABasisChange": 1367,
+   "windowsExcluded": 0
+  },
+  "NESTLE": {
+   "bars": 1736,
+   "basisChanges": 146,
+   "windows": 1716,
+   "windowsSpanningABasisChange": 1064,
+   "windowsExcluded": 0
+  },
+  "NETSOL": {
+   "bars": 2175,
+   "basisChanges": 150,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "NICL": {
+   "bars": 1791,
+   "basisChanges": 150,
+   "windows": 1771,
+   "windowsSpanningABasisChange": 1002,
+   "windowsExcluded": 0
+  },
+  "NML": {
+   "bars": 2175,
+   "basisChanges": 150,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "NPL": {
+   "bars": 2148,
+   "basisChanges": 148,
+   "windows": 2128,
+   "windowsSpanningABasisChange": 1339,
+   "windowsExcluded": 21
+  },
+  "NRL": {
+   "bars": 2175,
+   "basisChanges": 150,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "NRSL": {
+   "bars": 2163,
+   "basisChanges": 80,
+   "windows": 2143,
+   "windowsSpanningABasisChange": 717,
+   "windowsExcluded": 0
+  },
+  "OBOY": {
+   "bars": 1177,
+   "basisChanges": 56,
+   "windows": 1157,
+   "windowsSpanningABasisChange": 536,
+   "windowsExcluded": 0
+  },
+  "OCTOPUS": {
+   "bars": 1246,
+   "basisChanges": 32,
+   "windows": 1226,
+   "windowsSpanningABasisChange": 293,
+   "windowsExcluded": 0
+  },
+  "OGDC": {
+   "bars": 2175,
+   "basisChanges": 144,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1363,
+   "windowsExcluded": 0
+  },
+  "OLPL": {
+   "bars": 2134,
+   "basisChanges": 100,
+   "windows": 2114,
+   "windowsSpanningABasisChange": 907,
+   "windowsExcluded": 0
+  },
+  "OTSU": {
+   "bars": 1514,
+   "basisChanges": 178,
+   "windows": 1494,
+   "windowsSpanningABasisChange": 826,
+   "windowsExcluded": 0
+  },
+  "PAKD": {
+   "bars": 1823,
+   "basisChanges": 66,
+   "windows": 1803,
+   "windowsSpanningABasisChange": 603,
+   "windowsExcluded": 0
+  },
+  "PAKOXY": {
+   "bars": 2013,
+   "basisChanges": 20,
+   "windows": 1993,
+   "windowsSpanningABasisChange": 192,
+   "windowsExcluded": 0
+  },
+  "PASL": {
+   "bars": 2175,
+   "basisChanges": 162,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1366,
+   "windowsExcluded": 0
+  },
+  "PECO": {
+   "bars": 1216,
+   "basisChanges": 148,
+   "windows": 1196,
+   "windowsSpanningABasisChange": 543,
+   "windowsExcluded": 0
+  },
+  "PIAHCLA": {
+   "bars": 592,
+   "basisChanges": 5,
+   "windows": 572,
+   "windowsSpanningABasisChange": 37,
+   "windowsExcluded": 0
+  },
+  "PIOC": {
+   "bars": 2175,
+   "basisChanges": 144,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1363,
+   "windowsExcluded": 0
+  },
+  "PKGP": {
+   "bars": 2087,
+   "basisChanges": 144,
+   "windows": 2067,
+   "windowsSpanningABasisChange": 1280,
+   "windowsExcluded": 0
+  },
+  "POL": {
+   "bars": 2175,
+   "basisChanges": 148,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 21
+  },
+  "POWER": {
+   "bars": 2175,
+   "basisChanges": 152,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1366,
+   "windowsExcluded": 0
+  },
+  "PPL": {
+   "bars": 2175,
+   "basisChanges": 126,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1165,
+   "windowsExcluded": 0
+  },
+  "PREMA": {
+   "bars": 2029,
+   "basisChanges": 44,
+   "windows": 2009,
+   "windowsSpanningABasisChange": 413,
+   "windowsExcluded": 0
+  },
+  "PRET": {
+   "bars": 1337,
+   "basisChanges": 186,
+   "windows": 1317,
+   "windowsSpanningABasisChange": 721,
+   "windowsExcluded": 0
+  },
+  "PRL": {
+   "bars": 2175,
+   "basisChanges": 112,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1061,
+   "windowsExcluded": 0
+  },
+  "PSO": {
+   "bars": 2175,
+   "basisChanges": 124,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1165,
+   "windowsExcluded": 0
+  },
+  "PTC": {
+   "bars": 2175,
+   "basisChanges": 146,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1363,
+   "windowsExcluded": 0
+  },
+  "QUICE": {
+   "bars": 2168,
+   "basisChanges": 148,
+   "windows": 2148,
+   "windowsSpanningABasisChange": 1358,
+   "windowsExcluded": 0
+  },
+  "SAIF": {
+   "bars": 1896,
+   "basisChanges": 134,
+   "windows": 1876,
+   "windowsSpanningABasisChange": 1064,
+   "windowsExcluded": 0
+  },
+  "SARC": {
+   "bars": 1377,
+   "basisChanges": 102,
+   "windows": 1357,
+   "windowsSpanningABasisChange": 627,
+   "windowsExcluded": 0
+  },
+  "SAZEW": {
+   "bars": 2133,
+   "basisChanges": 70,
+   "windows": 2113,
+   "windowsSpanningABasisChange": 678,
+   "windowsExcluded": 0
+  },
+  "SBL": {
+   "bars": 1615,
+   "basisChanges": 124,
+   "windows": 1595,
+   "windowsSpanningABasisChange": 932,
+   "windowsExcluded": 0
+  },
+  "SCBPL": {
+   "bars": 1987,
+   "basisChanges": 138,
+   "windows": 1967,
+   "windowsSpanningABasisChange": 1203,
+   "windowsExcluded": 0
+  },
+  "SEARL": {
+   "bars": 2172,
+   "basisChanges": 24,
+   "windows": 2152,
+   "windowsSpanningABasisChange": 233,
+   "windowsExcluded": 0
+  },
+  "SERT": {
+   "bars": 1499,
+   "basisChanges": 112,
+   "windows": 1479,
+   "windowsSpanningABasisChange": 736,
+   "windowsExcluded": 0
+  },
+  "SGPL": {
+   "bars": 1194,
+   "basisChanges": 73,
+   "windows": 1174,
+   "windowsSpanningABasisChange": 562,
+   "windowsExcluded": 0
+  },
+  "SHDT": {
+   "bars": 1520,
+   "basisChanges": 108,
+   "windows": 1500,
+   "windowsSpanningABasisChange": 826,
+   "windowsExcluded": 0
+  },
+  "SHEZ": {
+   "bars": 1791,
+   "basisChanges": 110,
+   "windows": 1771,
+   "windowsSpanningABasisChange": 599,
+   "windowsExcluded": 0
+  },
+  "SITC": {
+   "bars": 1868,
+   "basisChanges": 158,
+   "windows": 1848,
+   "windowsSpanningABasisChange": 1111,
+   "windowsExcluded": 0
+  },
+  "SNBL": {
+   "bars": 2075,
+   "basisChanges": 146,
+   "windows": 2055,
+   "windowsSpanningABasisChange": 1214,
+   "windowsExcluded": 0
+  },
+  "SNGP": {
+   "bars": 2175,
+   "basisChanges": 148,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "SPWL": {
+   "bars": 2148,
+   "basisChanges": 152,
+   "windows": 2128,
+   "windowsSpanningABasisChange": 1344,
+   "windowsExcluded": 0
+  },
+  "SSGC": {
+   "bars": 2175,
+   "basisChanges": 148,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1366,
+   "windowsExcluded": 0
+  },
+  "SURC": {
+   "bars": 1163,
+   "basisChanges": 28,
+   "windows": 1143,
+   "windowsSpanningABasisChange": 103,
+   "windowsExcluded": 0
+  },
+  "SYM": {
+   "bars": 773,
+   "basisChanges": 24,
+   "windows": 753,
+   "windowsSpanningABasisChange": 214,
+   "windowsExcluded": 0
+  },
+  "SYS": {
+   "bars": 2167,
+   "basisChanges": 60,
+   "windows": 2147,
+   "windowsSpanningABasisChange": 574,
+   "windowsExcluded": 0
+  },
+  "SZTM": {
+   "bars": 482,
+   "basisChanges": 26,
+   "windows": 462,
+   "windowsSpanningABasisChange": 73,
+   "windowsExcluded": 0
+  },
+  "TATM": {
+   "bars": 1637,
+   "basisChanges": 110,
+   "windows": 1617,
+   "windowsSpanningABasisChange": 813,
+   "windowsExcluded": 0
+  },
+  "TELE": {
+   "bars": 2172,
+   "basisChanges": 46,
+   "windows": 2152,
+   "windowsSpanningABasisChange": 434,
+   "windowsExcluded": 0
+  },
+  "THCCL": {
+   "bars": 2160,
+   "basisChanges": 158,
+   "windows": 2140,
+   "windowsSpanningABasisChange": 1355,
+   "windowsExcluded": 0
+  },
+  "TOMCL": {
+   "bars": 1535,
+   "basisChanges": 20,
+   "windows": 1515,
+   "windowsSpanningABasisChange": 193,
+   "windowsExcluded": 0
+  },
+  "TOWL": {
+   "bars": 1680,
+   "basisChanges": 188,
+   "windows": 1660,
+   "windowsSpanningABasisChange": 1007,
+   "windowsExcluded": 0
+  },
+  "TPL": {
+   "bars": 2175,
+   "basisChanges": 152,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1365,
+   "windowsExcluded": 0
+  },
+  "TPLT": {
+   "bars": 1488,
+   "basisChanges": 98,
+   "windows": 1468,
+   "windowsSpanningABasisChange": 882,
+   "windowsExcluded": 0
+  },
+  "TREET": {
+   "bars": 2172,
+   "basisChanges": 18,
+   "windows": 2152,
+   "windowsSpanningABasisChange": 172,
+   "windowsExcluded": 0
+  },
+  "TRG": {
+   "bars": 2175,
+   "basisChanges": 150,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1364,
+   "windowsExcluded": 0
+  },
+  "TSBL": {
+   "bars": 1067,
+   "basisChanges": 126,
+   "windows": 1047,
+   "windowsSpanningABasisChange": 491,
+   "windowsExcluded": 0
+  },
+  "TSPL": {
+   "bars": 2100,
+   "basisChanges": 148,
+   "windows": 2080,
+   "windowsSpanningABasisChange": 1292,
+   "windowsExcluded": 0
+  },
+  "UBL": {
+   "bars": 2175,
+   "basisChanges": 152,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1366,
+   "windowsExcluded": 0
+  },
+  "UNITY": {
+   "bars": 2175,
+   "basisChanges": 106,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 982,
+   "windowsExcluded": 0
+  },
+  "UPFL": {
+   "bars": 1221,
+   "basisChanges": 100,
+   "windows": 1201,
+   "windowsSpanningABasisChange": 563,
+   "windowsExcluded": 0
+  },
+  "WTL": {
+   "bars": 2175,
+   "basisChanges": 152,
+   "windows": 2155,
+   "windowsSpanningABasisChange": 1366,
+   "windowsExcluded": 0
+  },
+  "ZAHID": {
+   "bars": 1307,
+   "basisChanges": 100,
+   "windows": 1287,
+   "windowsSpanningABasisChange": 626,
+   "windowsExcluded": 0
+  }
+ }
+}

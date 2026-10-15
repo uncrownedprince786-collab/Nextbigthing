@@ -18,6 +18,7 @@ Run: python jobs/prices.py
 from __future__ import annotations
 
 import contextlib
+from collections import Counter
 import hashlib
 import html
 import os
@@ -37,6 +38,7 @@ from nbt import SNAPSHOTS, Link, db, get_json, get, rows, step  # noqa: E402
 from runlog import chunk_label, chunk_run, parse_chunk, slice_of  # noqa: E402
 import breaker  # noqa: E402
 from sessions import trades_on  # noqa: E402
+from ohlc import UNTRUSTWORTHY as OHLC_UNTRUSTWORTHY, guard as ohlc_guard  # noqa: E402
 
 try:
     from dotenv import load_dotenv
@@ -835,6 +837,7 @@ def chart_repair(cur, assets: list[dict], reached: date | None) -> tuple[int, se
     """
     buffer: list[tuple] = []
     rescued: set[str] = set()
+    range_dropped: Counter[str] = Counter()
     for a in assets:
         sym = a["sourceRef"]
         try:
@@ -850,13 +853,26 @@ def chart_repair(cur, assets: list[dict], reached: date | None) -> tuple[int, se
             # is the case where the asset really has not traded, not the case where we were
             # throttled, and the two must not read the same in the log.
             print(f"    {YAHOO_CHART} for {sym} also stops at {bars[-1][0]}")
-        buffer.extend(
-            (a["id"], day, op, hi, lo, close, vol, None, YAHOO_CHART)
-            for day, op, hi, lo, close, vol in bars
-        )
+        # The same two rules `_store_frame` applies, which this path did not: a range that
+        # cannot hold its own close is not stored, and a currency pair's volume is null rather
+        # than the 0 Yahoo sends. FX is over the counter and has no consolidated tape, so a 0
+        # here is a measurement nobody took -- and it is read as real by `avg_volume` in
+        # jobs/rank.py, by `write_rising`, and by VOLUME_CONFIRMS_AT in lib/decision.ts.
+        is_forex = (a.get("assetType") or "") == "forex"
+        for day, op, hi, lo, close, vol in bars:
+            g_op, g_hi, g_lo, verdict = ohlc_guard(op, hi, lo, close)
+            if verdict in OHLC_UNTRUSTWORTHY:
+                range_dropped[verdict] += 1
+            buffer.append(
+                (a["id"], day, g_op, g_hi, g_lo, close,
+                 None if (is_forex and not vol) else vol, None, YAHOO_CHART)
+            )
         rescued.add(sym)
         print(f"    {sym:7} {len(bars)} days recovered from {YAHOO_CHART}")
 
+    if range_dropped:
+        detail = ", ".join(f"{n} {kind}" for kind, n in sorted(range_dropped.items()))
+        print(f"    ranges dropped as untrustworthy: {detail}")
     insert_snapshots(cur, buffer, replace=False)
     return len(buffer), rescued
 
@@ -893,6 +909,7 @@ def _store_frame(
     being hidden.
     """
     written = 0
+    range_dropped: Counter[str] = Counter()
     newest: dict[str, date | None] = {a["sourceRef"]: None for a in assets}
 
     # An empty frame has no `Close` column, and `dropna(subset=["Close"])` raises `KeyError` on
@@ -987,14 +1004,18 @@ def _store_frame(
 
         cap_by_day = {day: val for day, val in cap_rows}
 
-        buffer = [
-            (
-                a["id"], day,
-                *bars.get(day, (None, None, None)),
-                close, volumes.get(day), cap_by_day.get(day), YAHOO,
+        # A range that cannot hold its own close is stored as the absence it is, never as a
+        # contradiction, and never by moving the close to fit (jobs/ohlc.py). Yahoo's equity
+        # bars have never needed this; its currency pairs need it on about 8% of sessions,
+        # because the FX close is a different snapshot from the range around it.
+        buffer = []
+        for day, close in closes:
+            o, h, lo, verdict = ohlc_guard(*bars.get(day, (None, None, None)), close)
+            if verdict in OHLC_UNTRUSTWORTHY:
+                range_dropped[verdict] += 1
+            buffer.append(
+                (a["id"], day, o, h, lo, close, volumes.get(day), cap_by_day.get(day), YAHOO)
             )
-            for day, close in closes
-        ]
         insert_snapshots(cur, buffer, replace=is_full)
         written += len(buffer)
         # `max`, not the last row: the frame has always come back in date order, but the newest
@@ -1006,6 +1027,12 @@ def _store_frame(
             + (f", {open_session} still trading" if dropped_forming else "")
         )
         time.sleep(0.4)
+
+    if range_dropped:
+        # Not a failure: a published range that cannot hold its own close is dropped and the
+        # close kept. Printed so it can never happen silently.
+        detail = ", ".join(f"{n} {kind}" for kind, n in sorted(range_dropped.items()))
+        print(f"  ranges dropped as untrustworthy: {detail}")
 
     return written, newest
 

@@ -47,6 +47,29 @@ def unadjusted_windows(path: Path | None) -> dict[str, list[str]]:
     return {k: sorted(v) for k, v in out.items()}
 
 
+def basis_breaks(path: Path | None) -> dict[str, list[str]]:
+    """{symbol: [dates]} where the PSX series changes price basis by more than one session could.
+
+    Written by `basis_transitions.py`. 203 PSX assets carry both the exchange's raw file and the
+    split-adjusted Karachi listing, and 48.4% of 20-session windows span a change between them --
+    so a flag on "spans a basis change" would quarantine half the history to describe a risk that
+    was measured and found absent: a cross-basis step falls outside the exchange's own daily price
+    band in 0.022% of cases against 0.071% for an ordinary same-source session. The joins are
+    *cleaner* than the sessions, because the anchor rule vetted them at insert time and nothing
+    vetted the rest.
+
+    What is left is the handful of steps no single legitimate session could have produced. Those
+    are the dates returned here, and the only ones a window needs to exclude.
+    """
+    if not path or not Path(path).exists():
+        return {}
+    doc = json.loads(Path(path).read_text(encoding="utf-8"))
+    out: dict[str, list[str]] = {}
+    for e in doc.get("exceptions", []):
+        out.setdefault(e["symbol"], []).append(e["toDate"])
+    return {k: sorted(v) for k, v in out.items()}
+
+
 def crossed(dates, actions: list[str]) -> list[int]:
     """How many actions fall on or before each bar date, as a running count.
 

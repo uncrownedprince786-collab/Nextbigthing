@@ -24,7 +24,27 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
+import sys
+
 ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(ROOT / "jobs"))
+
+from ohlc import OK, UNTRUSTWORTHY, classify  # noqa: E402
+
+# A price below zero is normally a parse error. On 2020-04-20 WTI settled at -37.63 because
+# holders paid to avoid delivery, and FRED's DCOILWTICO carries it. The event is named here with
+# its count so that this one row passes and any other non-positive value in the same file still
+# fails: a blanket "non-positive is fine for oil" rule would hide a real parse error.
+REAL_NON_POSITIVE = {"DCOILWTICO": 1}
+
+# The PSX daily file publishes two shapes of range its own close contradicts -- a range collapsed
+# to one value, and a close outside a real range -- and the delisted history inherits both from
+# the same archive. They are classified and quarantined in
+# data/foundation/price_verification/ohlc_quarantine.json; the close in each row is the exchange's
+# own and is kept. Pinned to the exact counts rather than waved through by class, so one more of
+# either still fails here. This file is checksummed and must not be rewritten to satisfy a rule.
+KNOWN_RANGE_DEFECTS = {"psx_delisted": {"collapsed-range": 232, "incoherent-range": 138}}
+
 DIRS = [ROOT / "data" / "foundation" / "benchmarks",
         ROOT / "data" / "foundation" / "sbp",
         ROOT / "data" / "foundation" / "psx_index",
@@ -96,15 +116,18 @@ def check(path: Path, claim: dict) -> dict:
         got["valueRange"] = [min(vals), max(vals)]
     if "high" in header and "low" in header:
         hi, lo, cl = header.index("high"), header.index("low"), header.index("close")
-        viol = 0
+        # One definition of a range defect for the whole project: jobs/ohlc.py. The ad-hoc
+        # 1e-6 absolute tolerance this used before was both too tight for a cheap scrip and too
+        # loose for a Rs 500 one, and it could not tell a float artefact from a collapsed range.
+        classes: Counter = Counter()
         for r in rows:
             try:
                 h, l, c = float(r[hi]), float(r[lo]), float(r[cl])
             except (ValueError, IndexError):
                 continue
-            if h < l or c > h + 1e-6 or c < l - 1e-6:
-                viol += 1
-        got["ohlcViolations"] = viol
+            classes[classify(h, l, c)] += 1
+        got["ohlcClasses"] = {k: v for k, v in sorted(classes.items()) if k != OK}
+        got["ohlcViolations"] = sum(v for k, v in classes.items() if k in UNTRUSTWORTHY)
     return got
 
 
@@ -144,9 +167,13 @@ def main() -> None:
             if got.get("duplicateDateSeriesPairs"):
                 report["problems"].append(
                     f"{key}: {got['duplicateDateSeriesPairs']} duplicate date/series pairs")
-            if got.get("ohlcViolations"):
-                report["problems"].append(f"{key}: {got['ohlcViolations']} OHLC violations")
-            if got.get("nonPositiveValues"):
+            classes = got.get("ohlcClasses") or {}
+            known = KNOWN_RANGE_DEFECTS.get(key, {})
+            unexpected = {k: n - known.get(k, 0) for k, n in classes.items()
+                          if n > known.get(k, 0)}
+            if unexpected:
+                report["problems"].append(f"{key}: OHLC ranges beyond the recorded set {unexpected}")
+            if got.get("nonPositiveValues", 0) > REAL_NON_POSITIVE.get(key, 0):
                 report["problems"].append(
                     f"{key}: {got['nonPositiveValues']} non-positive values")
             # identity: a file that is numerically identical to another would be a conflation

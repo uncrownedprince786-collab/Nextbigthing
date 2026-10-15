@@ -1,5 +1,5 @@
 {
- "verifiedAt": "2026-10-15T00:56:28+00:00",
+ "verifiedAt": "2026-10-15T10:11:26+00:00",
  "files": {
   "^GSPC": {
    "file": "GSPC.csv.gz",
@@ -28,6 +28,7 @@
     4.400000095367432,
     7818.93017578125
    ],
+   "ohlcClasses": {},
    "ohlcViolations": 0,
    "claimedName": "S&P 500 index",
    "basis": "price index (not total return)"
@@ -59,6 +60,7 @@
     242.8699951171875,
     17539.279296875
    ],
+   "ohlcClasses": {},
    "ohlcViolations": 0,
    "claimedName": "S&P 500 total return index",
    "basis": "total return (dividends reinvested) -- a different series from ^GSPC, kept separate and never substituted for it"
@@ -90,6 +92,7 @@
     9.140000343322754,
     82.69000244140625
    ],
+   "ohlcClasses": {},
    "ohlcViolations": 0,
    "claimedName": "CBOE volatility index",
    "basis": "calculated index level, volume always 0"
@@ -121,6 +124,7 @@
     71.33000183105469,
     164.72000122070312
    ],
+   "ohlcClasses": {},
    "ohlcViolations": 0,
    "claimedName": "ICE US Dollar Index (DXY)",
    "basis": "price index against six currencies; NOT the Federal Reserve's broad trade-weighted index (DTWEXBGS), which is held separately"
@@ -152,6 +156,7 @@
     255.10000610351562,
     5318.39990234375
    ],
+   "ohlcClasses": {},
    "ohlcViolations": 0,
    "claimedName": "Gold continuous future",
    "basis": "continuous front-month future, not spot"
@@ -183,6 +188,7 @@
     19.329999923706055,
     146.0800018310547
    ],
+   "ohlcClasses": {},
    "ohlcViolations": 0,
    "claimedName": "Brent crude continuous future",
    "basis": "continuous front-month future, not spot"
@@ -344,6 +350,7 @@
     211.16,
     19650.01
    ],
+   "ohlcClasses": {},
    "ohlcViolations": 0,
    "claimedName": "Bitcoin daily, venue history before the stored series",
    "basis": "exchange traded spot pair, raw"
@@ -375,6 +382,7 @@
     2.24,
     1132.01
    ],
+   "ohlcClasses": {},
    "ohlcViolations": 0,
    "claimedName": "Bitcoin daily, venue history before the stored series",
    "basis": "exchange traded spot pair, raw"
@@ -493,6 +501,10 @@
     0.4,
     4004.44
    ],
+   "ohlcClasses": {
+    "collapsed-range": 232,
+    "incoherent-range": 138
+   },
    "ohlcViolations": 370,
    "claimedName": null,
    "basis": "raw as-traded OHLCV, the same basis as the stored PSX series"
@@ -516,10 +528,7 @@
    "generatedAt": "2026-10-14T23:15:39+00:00"
   }
  },
- "problems": [
-  "DCOILWTICO: 1 non-positive values",
-  "psx_delisted: 370 OHLC violations"
- ],
+ "problems": [],
  "distinctInstrumentCheck": {
   "method": "sha256 of the first 400 (date, first value) pairs of each file",
   "filesSharingAFingerprint": [],

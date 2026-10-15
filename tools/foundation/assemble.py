@@ -58,7 +58,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "tools"))
 
 from walkforward import assert_features_are_past_only  # noqa: E402
-from actions import unadjusted_windows  # noqa: E402
+from actions import basis_breaks, unadjusted_windows  # noqa: E402
 
 # How far back a feature window reaches (tools/foundation/pit_features.WINDOW) and how far forward
 # an outcome does. A row is suspect when an unadjusted corporate action falls in either.
@@ -126,7 +126,7 @@ def setups_for_year(replay: Path | None, runs: dict, year: int) -> dict[tuple, d
 
 def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setups: dict, stats: dict,
                   actions: dict[str, list[str]] | None = None, replayed_dates: set | None = None,
-                  pool_clean: bool = False):
+                  pool_clean: bool = False, basis: dict[str, list[str]] | None = None):
     pit: dict[tuple, dict] = {}
     if pit_path and pit_path.exists():
         for r in read_gz(pit_path):
@@ -178,6 +178,18 @@ def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setup
         if suspect:
             stats["rowsTouchingAnUnadjustedAction"] += 1
             stats[f"suspect:{cls}"] += 1
+        # A basis change the exchange's own price band cannot explain. Only the lookback matters:
+        # a step between two sources corrupts the factors measured across it, and unlike an
+        # action it says nothing about the outcome window ahead of the session.
+        basis_break = False
+        for bd in (basis or {}).get(r["symbol"], ()):
+            lo = (date.fromisoformat(r["asOf"]) - timedelta(days=378)).isoformat()
+            if lo <= bd <= r["asOf"]:
+                basis_break = True
+                break
+        if basis_break:
+            stats["rowsTouchingABasisBreak"] += 1
+            stats[f"basisbreak:{cls}"] += 1
         # A window is only a daily window if its bars are daily. Sessions are roughly 5 per 7
         # calendar days, so a window of n bars should span about 1.5n days; three times that is
         # generously beyond any holiday run and means the bars are not daily at all.
@@ -190,7 +202,8 @@ def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setup
                 stats[f"sparse:{cls}"] += 1
         row = {
             "asOf": r["asOf"], "symbol": r["symbol"], "assetType": cls, "market": r["market"],
-            "dataQuality": {"unadjustedActionInWindow": suspect, "windowIsNotDaily": sparse},
+            "dataQuality": {"unadjustedActionInWindow": suspect, "windowIsNotDaily": sparse,
+                            "basisBreakInWindow": basis_break},
             "outcome": r["outcome"],
             "pit": None if p is None else {"n": p["n"], "spanDays": p.get("spanDays"),
                                            "f": p["f"], "an": p.get("an")},
@@ -236,13 +249,14 @@ def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setup
 
 
 def build_year(year, full_rows, pit_path, setups, out_dir: Path | None, actions=None, replayed_dates=None,
-               pool_clean: bool = False):
+               pool_clean: bool = False, basis=None):
     stats = Counter()
     h = hashlib.sha256()
     n = 0
     fh = gzip.open(out_dir / f"examples-v3-{year}.jsonl.gz", "wt", encoding="utf-8", compresslevel=6) if out_dir else None
     batch = []
-    for row in assemble_year(year, full_rows, pit_path, setups, stats, actions, replayed_dates, pool_clean):
+    for row in assemble_year(year, full_rows, pit_path, setups, stats, actions, replayed_dates,
+                             pool_clean, basis):
         line = json.dumps(row, separators=(",", ":"), default=str)
         h.update(line.encode())
         n += 1
@@ -283,12 +297,16 @@ def main() -> int:
         replayed_dates |= {d for (_a, d) in setups_for_year(replay, runs, y)}
     actions = unadjusted_windows(Path(arg("--actions")) if arg("--actions") else
                                  ROOT / "data" / "foundation" / "price_verification" / "unadjusted_actions.json")
+    basis = basis_breaks(Path(arg("--basis")) if arg("--basis") else
+                         ROOT / "data" / "foundation" / "price_verification" / "basis_transitions.json")
+    print(f"  basis breaks loaded: {sum(len(v) for v in basis.values())} "
+          f"across {len(basis)} symbols", flush=True)
     pool_clean = pit_pool_is_clean(pit_dir)
     print(f"  analog pool cleaned in the feature build: {pool_clean}", flush=True)
     for y in sorted(by_year):
         stats, digest, n = build_year(y, by_year[y], pit_dir / f"pit-{y}.jsonl.gz",
                                       setups_for_year(replay, runs, y), out, actions, replayed_dates,
-                                      pool_clean)
+                                      pool_clean, basis)
         total.update(stats)
         digests[y], counts[y] = digest, n
         print(f"  {y}: {n:,} rows, features on {stats['withPit']:,}, setups on {stats['withSetup']:,}", flush=True)
@@ -298,7 +316,7 @@ def main() -> int:
     again_rows = [need(r) for r in read_gz(full_file) if int(r["asOf"][:4]) == first_year]
     _, d2, _ = build_year(first_year, again_rows, pit_dir / f"pit-{first_year}.jsonl.gz",
                           setups_for_year(replay, runs, first_year), None, actions, replayed_dates,
-                          pool_clean)
+                          pool_clean, basis)
 
     no_feature_reasons = {k.split(":", 1)[1]: v for k, v in total.items() if k.startswith("noPit:")}
     explained = total["withPit"] + total["noPit"] - no_feature_reasons.get("other", 0)
@@ -344,6 +362,16 @@ def main() -> int:
                                "are excluded there and this flag is 0. Uncleaned, every session at "
                                "or after an asset's first action is flagged instead, because a "
                                "window-sized flag would miss them"),
+            "basisBreaksKnown": sum(len(v) for v in basis.values()),
+            "symbolsWithABasisBreak": len(basis),
+            "rowsTouchingABasisBreak": total["rowsTouchingABasisBreak"],
+            "rowsTouchingABasisBreakByClass": {c: total[f"basisbreak:{c}"] for c in cls_names},
+            "basisNote": ("203 PSX assets carry both the exchange's raw file and the adjusted "
+                          "Karachi listing and 48.4% of 20-session windows span a change between "
+                          "them, but a cross-basis step falls outside the exchange's own daily "
+                          "price band in 0.022% of cases against 0.071% for an ordinary session. "
+                          "Only the steps no single session could produce are flagged; see "
+                          "data/foundation/price_verification/basis_transitions.json"),
             "rowsWithANonDailyWindow": total["rowsWithANonDailyWindow"],
             "rowsWithANonDailyWindowByClass": {c: total[f"sparse:{c}"] for c in cls_names},
             "nonDailyNote": ("the stored PSX history holds about 12 dates a year before 2024 and "

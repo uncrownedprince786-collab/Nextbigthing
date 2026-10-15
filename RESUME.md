@@ -1,5 +1,50 @@
 # Resume here
 
+## 0. State of play, 2026-10-15 — Milestone B is COMPLETE
+
+**Read this, then `brain.md` rule 142. The acquisition section below it is still accurate about
+what was acquired; this section supersedes its "what is next".**
+
+Cleaning and point-in-time integrity closed against the four objectives of rule 141. The full
+evidence is `MILESTONE-B-CLOSEOUT-2026-10-15.md`.
+
+| | |
+|---|---|
+| Branch | `restore-db-utility` |
+| Database | 1,097,638 rows, 384 MB of the 500 MB tier — **unchanged in row count** |
+| Database writes | **216 rows**, one UPDATE, rollback at `data/foundation/price_verification/forex_volume_rollback.json` |
+| Tests | 998 Python (27 new), 466 web, 0 failures |
+| Durable artifacts | 17 of 17 checksums verify; `verify_durable.py` now exits clean |
+
+**What changed, in one line each.**
+
+- **Ranges that contradict their own close are no longer stored.** `jobs/ohlc.py` is the single
+  definition; both price lanes and the chart-repair path run it. The close is never altered.
+- **The 6,858 stored contradictions are classified, not edited** —
+  `data/foundation/price_verification/ohlc_quarantine.json`, reconciling exactly to 6,809
+  quarantined ranges plus 49 float-representation rows.
+- **The two PSX bases were measured and are safe to mix.** A cross-basis step falls outside the
+  exchange's own daily price band 0.022% of the time against 0.071% for an ordinary same-source
+  session, so 96 of 389,494 windows are excluded rather than the 188,528 that span a basis change.
+  Ledger: `basis_transitions.json`; flag: `dataQuality.basisBreakInWindow`.
+- **2022-10-01 is not a PSX session.** The exchange serves Friday's file at the Saturday URL; the
+  lane now trusts the date inside the file. The 171 rows are preserved and were already excluded
+  by `session_bar()`.
+- **Missing fields stay missing.** `jobs/horizons.py` no longer fills an absent high/low with the
+  close, and 216 fabricated FX zero-volumes became nulls.
+
+### What is next
+
+**Not started, and none of it is begun:** historical news and original documents, the major crash
+and bull-run timelines, pre-event information, catalysts and post-event market reactions. That
+corpus is a separate research-data phase and must not be described as complete.
+
+One material exception is carried forward rather than closed: **747 PSX bars** whose published
+close sits outside a real traded range. They are quarantined with their evidence; settling the
+mechanism needs the exchange's own specification. See the closeout's "Remaining exception".
+
+---
+
 ## 0. State of play, 2026-10-16 — market and macro data acquisition is COMPLETE
 
 **Everything below section 0 predates 2026-10-14 and is stale. Read this section, then

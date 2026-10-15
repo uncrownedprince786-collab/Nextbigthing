@@ -104,19 +104,36 @@ DISAGREE_AT = 0.5
 # ----------------------------------------------------------------------------- shared helpers
 
 
+def has_range(bar: dict) -> bool:
+    """Whether this bar carries a published high and low at all.
+
+    712 stored bars do not, every one of them from the PSX daily file, and `jobs/ohlc.py` adds
+    to that set whenever a source publishes a range that cannot hold its own close. Both are
+    the same fact -- this session's range is not known -- and the answer to an unknown range is
+    to measure something else, not to substitute the close for it. A bar filled with its own
+    close reads as a session that never moved, which is a measurement nobody took.
+    """
+    return bar.get("high") is not None and bar.get("low") is not None
+
+
 def true_range(bars: list[dict], window: int) -> float | None:
     """Average true range over the last `window` bars, from stored highs, lows and closes.
 
     True range rather than the close-to-close standard deviation, because a gap between one
     bar's close and the next bar's open is real movement and a close-only measure cannot see
     it. None when there is not enough history, never a default.
+
+    Bars with no published range are skipped rather than filled: true range is defined on a
+    range, and a bar without one cannot contribute to it. The previous close still comes from
+    the bar before it in the usable series, which is a real traded price either way.
     """
-    if len(bars) < window + 1:
+    usable = [b for b in bars if has_range(b)]
+    if len(usable) < window + 1:
         return None
     spans = []
-    for i in range(len(bars) - window, len(bars)):
-        prev_close = float(bars[i - 1]["close"])
-        hi, lo = float(bars[i]["high"]), float(bars[i]["low"])
+    for i in range(len(usable) - window, len(usable)):
+        prev_close = float(usable[i - 1]["close"])
+        hi, lo = float(usable[i]["high"]), float(usable[i]["low"])
         spans.append(max(hi - lo, abs(hi - prev_close), abs(lo - prev_close)))
     return sum(spans) / len(spans) if spans else None
 
@@ -128,6 +145,10 @@ def pivots(bars: list[dict], lookback: int) -> tuple[list[float], list[float]]:
     simplest definition that does not require a parameter nobody can justify. These are the
     levels a structural target is measured to: places price has already stopped at once.
     """
+    # A turn is defined on highs and lows, so a bar that has neither cannot be one and cannot
+    # stand between two that are. Dropped here rather than filled with the close, which would
+    # invent a level the session never printed.
+    bars = [b for b in bars if has_range(b)]
     window = bars[-lookback:] if len(bars) > lookback else bars
     highs, lows = [], []
     for i in range(2, len(window) - 2):
@@ -686,14 +707,10 @@ def run_longer(cur, today: date) -> int:
     payload: list[tuple] = []
     for a in assets:
         bars = [dict(b) for b in bars_by_asset.get(a["id"], [])]
-        # High and low are needed for the structural levels. Rows stored before OHLC existed
-        # have only a close, so they are filled with the close for the pivot test rather than
-        # dropped — a close is a real traded price and the level it marks is real.
-        for b in bars:
-            if b["high"] is None:
-                b["high"] = b["close"]
-            if b["low"] is None:
-                b["low"] = b["close"]
+        # The structural levels need a high and a low. A bar that has neither is left as it is
+        # and skipped by `pivots` and `true_range`: filling it with its own close invented a
+        # zero-width session, and since jobs/ohlc.py began withholding ranges that contradict
+        # their close, it would have re-invented exactly what was withheld.
         if len(bars) < MIN_LONG:
             skipped += 1
             continue
@@ -999,11 +1016,6 @@ def run_targets(cur) -> int:
             bars = [dict(b) for b in intra.get(s["assetId"], [])]
         else:
             bars = [dict(b) for b in daily.get(s["assetId"], [])]
-            for b in bars:
-                if b["high"] is None:
-                    b["high"] = b["close"]
-                if b["low"] is None:
-                    b["low"] = b["close"]
         if len(bars) < ATR_WINDOW + 3:
             continue
 

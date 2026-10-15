@@ -4915,3 +4915,78 @@ reads rows that already exist:
       and not the research corpus. **Historical news, original documents, the crash and bull-run
       timelines, pre-event information, catalysts and post-event market reactions remain a
       separate later phase that has not been started** and must not be described as complete.
+
+142. **Milestone B: the three findings that looked worst were measured, and two of them were not
+    defects.** 2026-10-15, cleaning and point-in-time integrity. One database write in the whole
+    milestone: 216 rows. Everything else is a code fix, a ledger, or a measurement.
+
+    - **The basis risk was real to worry about and small to measure, and the measurement is the
+      whole entry.** 203 PSX assets carry both the exchange's raw file and the split-adjusted
+      Karachi listing, they interleave rather than abut, 119 assets change source more than 120
+      times, and **48.4% of 20-session windows span a change**. Excluding those windows would have
+      quarantined half the PSX history. So the question was asked properly: is a cross-basis step
+      distinguishable from an ordinary session? The test is the exchange's own daily price band,
+      derived from the stored data rather than from documentation -- the greater of 10% and Rs 1.00,
+      which 10 of 71,816 low-priced same-source moves and 253 of 299,074 high-priced ones exceed.
+      Against that band, **a cross-basis step is out of band 0.022% of the time and an ordinary
+      same-source session 0.071%** -- the joins are three times *cleaner* than the sessions, because
+      the anchor rule vetted them at insert time and nothing vetted the rest. 5 exceptions remain,
+      all downward and all just over the band, and the policy excludes the **96 windows** that span
+      one. `basis_transitions.json` holds every join's provenance; `actions.basis_breaks` is the
+      single reader, matching `unadjusted_windows`; `assemble.py` carries
+      `dataQuality.basisBreakInWindow`.
+
+    - **A 178% move was the exchange's minimum tick.** `AMTEX` 2024-06-03 looked like the worst
+      cross-basis step in the data at z=56 against its own volatility. It is five consecutive
+      sessions closing exactly Rs 1.00 higher, each at the day's high: a limit-up run on a
+      sub-rupee scrip, where the band is absolute and not a percentage. `CHBL` and `DBCI` on the
+      same date are the same thing. A z-score against an asset's own history cannot tell a real
+      limit move from a basis artefact, and a rule derived from how the market actually works can.
+
+    - **2022-10-01 is Friday's file with Saturday's name.** The only weekend date in the PSX
+      series, 171 bars. The exchange answers **200** at the Saturday URL and every row inside is
+      stamped `30SEP2022`; Sunday 404s as weekends normally do. All 25 symbols holding both dates
+      have byte-identical OHLCV, and it is the only date in the whole stored history where every
+      shared symbol repeats the previous date exactly. The cause was keying a bar by the date whose
+      URL was requested instead of the date the file stamps on itself, and `file_session_date()`
+      now settles it the same way a closed market is settled. **No row was deleted**: `session_bar()`
+      already excluded all 171, measured, because they fall on a Saturday.
+
+    - **The close is the datum; the range is the thing that can be wrong.** 6,858 stored bars have
+      a close outside their own high and low. Three different facts, so three expectations rather
+      than one tolerance: Yahoo's equities are coherent to the last bit (**all 49** breaches at
+      about 1.7e-15, of which 47 are below one ULP and visible only to Postgres, which is why the
+      ledger reconciles rather than approximates); Yahoo's currency pairs breach on about 8% of
+      sessions at a median of 3.6 basis points, because the FX close is a different snapshot from
+      the range; and the exchange file collapses its range to one value on 1,912 rows. `jobs/ohlc.py`
+      stores the close exactly and drops a range that contradicts it, which is what `None` on this
+      table has always meant. **Still happening when found** -- 763 in 2024, 514 in 2025, 163 in
+      2026 -- so the lane fix is the load-bearing half and the ledger is the record.
+
+    - **The fix exposed a fabrication it would otherwise have fed.** `jobs/horizons.py` filled an
+      absent high and low with the close, which reads as a session that never moved. Harmless-ish
+      for 712 pre-OHLC rows; not harmless once `ohlc.py` began withholding ranges, because the
+      fabrication would have reinvented exactly what was withheld. `true_range` and `pivots` now
+      skip a bar with no range, which is what `true_range`'s own docstring already promised:
+      "None when there is not enough history, never a default."
+
+    - **The one write, and why it was worth making.** 216 currency-pair bars carried `volume = 0`.
+      FX has no consolidated tape, so that 0 is a placeholder; `_store_frame` has always nulled it
+      and `chart_repair` did not. The project's own comment names the three readers that take it as
+      real. 27 pairs across 8 sessions, one source, rollback written before the UPDATE. The
+      commodity and equity zero-volume rows -- 1,966 and 1,136 -- are real sessions that did not
+      trade and were left alone.
+
+    - **What a validator should not do is hide a real event.** `verify_durable.py` failed on
+      "DCOILWTICO: 1 non-positive value", which is WTI settling at -37.63 on 2020-04-20. It is named
+      with its count so that row passes and a second one still fails, rather than exempting the
+      series. Its OHLC check now uses `jobs/ohlc.py` instead of a 1e-6 absolute tolerance that was
+      too tight for a cheap scrip and too loose for an expensive one, and the delisted file's 370
+      violations are pinned at their exact classes rather than rewritten -- that file is checksummed,
+      and satisfying a rule by editing the evidence is not a fix.
+
+    - **Open, and deliberately not closed.** 747 PSX bars whose close sits outside a real traded
+      range: 358 above the high, 389 below the low, 65% of them by 2% or less, half on sessions
+      whose whole range is within 2% of its own low. Consistent with a closing price computed on a
+      different basis from the intraday range, but that is a hypothesis and the exchange's own
+      specification would settle it. Quarantined on the uncertainty, not on a diagnosis.
