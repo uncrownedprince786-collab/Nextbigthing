@@ -5395,3 +5395,50 @@ reads rows that already exist:
       major regime are present with matured labels, and the two bounded limitations are named: FX
       has no crash regime to learn from, and crypto's short 2021 episodes are too few independent
       windows to support a regime-specific claim.
+
+151. **The 2008 crisis is now real evidence here, and it is not training data — those are two
+    findings, not one.** 2026-10-15, historical corpus closure. Artifacts
+    `historical_regimes.json` (`5c94ddcad368e8f0`), `crisis_2008/manifest.json` (`6550d11e03961c82`),
+    `source_inventory.json` (`2f02fa289057f743`).
+
+    - **The deep history was already on disk and nobody had looked at it.** `^GSPC` reaches
+      1927, `DFF` 1954, `DGS10` 1962, `DX-Y.NYB` 1971, `DCOILWTICO` 1986, `^VIX` 1990.
+      Running the regime rule over them measures **1929 at -86.19%**, 1973-74 at -48.20%, 1987 at
+      -33.51%, dot-com at -49.15% and **2008 at -56.78%** -- every one inside a point or two of
+      the published figure, which is the check that the detector is right rather than merely
+      running. Three FRED files had loaded as zero rows because they name their column `value`
+      and the Yahoo files name it `close`; a silent empty series is the failure mode a row count
+      would have hidden.
+
+    - **2008 is a complete research package and an empty training window at the same time.**
+      18 of 18 FRED series for 2005-2012, 481 FDIC failure and assistance records, a 13-entry
+      chronology. It validates against the record: unemployment peaks at **10.00%** in 2009-10,
+      the TED spread at **4.58 on 2008-10-10**, Case-Shiller **-27.4%** from July 2006 to
+      February 2012, Washington Mutual failing on 2008-09-25 with $307bn. And none of it can be
+      a feature, because `examples-v3` starts in 2018. Both statements are true and the manifest
+      carries them together, because a 2008 file sitting beside a 2018 dataset is exactly what
+      later gets mistaken for coverage.
+
+    - **Every chronology entry says what its date means.** Announcement, effective date, filing,
+      market observation or later retrospective description. The FCIC report is dated 2011-01-27
+      and is a *description* of 2008 -- evidence about the event, not evidence of what was
+      knowable on the day. Collapsing those two is how a backtest learns from a document that did
+      not exist yet.
+
+    - **PSX has no 2008, and now that is proved rather than assumed.** A real GET returns
+      **404 for 2008-08-27 and for 2013-11-01**, and **430 symbols for 2013-11-04**. The exchange
+      archive simply begins there. The public KSE-100 endpoint starts 2021-10-15 and the
+      2018-2021 segment is private. So the Pakistani angle on 2008 is documentable as events and
+      is unavailable as prices, and US index history is not evidence about it either way.
+
+    - **The inventory's real finding is the third column.** Eighteen layers: 11 COMPLETE,
+      4 PARTIAL, 2 SOURCE_BLOCKED, 1 LICENSE_BLOCKED -- and **4 of 18 are joined into training**.
+      Prices, corporate-action flags, commodities and the examples themselves. Benchmarks, macro,
+      rates, the 2008 package, lifecycle, events, press, reactions, principles and regimes are all
+      downloaded and validated and **none of them is a feature**. That is the correct shape for a
+      price-and-volume first task, and stating it in one table is what stops the next session
+      assuming otherwise.
+
+    - **The credit spread is the one licence wall.** ICE limits FRED to a rolling three years, so
+      `BAMLH0A0HYM2` starts 2023-10-16 and the 2008 high-yield spread is not publicly served.
+      TEDRATE is the free stand-in and the gap is recorded rather than papered over.

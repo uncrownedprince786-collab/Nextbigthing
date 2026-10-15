@@ -1,0 +1,1078 @@
+{
+ "generatedAt": "2026-10-15T17:22:24+00:00",
+ "version": "historical-regimes-v1",
+ "purpose": "which historical regimes this project holds any evidence for, over the full benchmark history. Representation inside examples-v3 is a different question and lives in regime_coverage.json",
+ "trainingDataStarts": "2018-01-01",
+ "seriesCoverage": {
+  "^GSPC": {
+   "observations": 24814,
+   "from": "1927-12-30",
+   "to": "2026-10-14",
+   "describes": "US large-cap equity"
+  },
+  "^SP500TR": {
+   "observations": 9769,
+   "from": "1988-01-04",
+   "to": "2026-10-14",
+   "describes": "US equity total return"
+  },
+  "^VIX": {
+   "observations": 9266,
+   "from": "1990-01-02",
+   "to": "2026-10-14",
+   "describes": "US equity implied volatility"
+  },
+  "DX-Y.NYB": {
+   "observations": 14164,
+   "from": "1971-01-04",
+   "to": "2026-10-14",
+   "describes": "US dollar index"
+  },
+  "GC=F": {
+   "observations": 6556,
+   "from": "2000-08-30",
+   "to": "2026-10-14",
+   "describes": "gold"
+  },
+  "BZ=F": {
+   "observations": 4782,
+   "from": "2007-07-30",
+   "to": "2026-10-14",
+   "describes": "Brent crude"
+  },
+  "DCOILWTICO": {
+   "observations": 9516,
+   "from": "1986-01-02",
+   "to": "2026-10-06",
+   "describes": "WTI crude"
+  },
+  "DGS10": {
+   "observations": 16180,
+   "from": "1962-01-02",
+   "to": "2026-10-13",
+   "describes": "US 10-year Treasury yield"
+  },
+  "DFF": {
+   "observations": 26403,
+   "from": "1954-07-01",
+   "to": "2026-10-13",
+   "describes": "effective fed funds rate"
+  }
+ },
+ "episodeCountByThreshold": {
+  "^GSPC": {
+   "10%": 26,
+   "20%": 12,
+   "30%": 7,
+   "50%": 2
+  },
+  "^SP500TR": {
+   "10%": 14,
+   "20%": 4,
+   "30%": 3,
+   "50%": 1
+  },
+  "^VIX": {
+   "10%": 15,
+   "20%": 11,
+   "30%": 8,
+   "50%": 5
+  },
+  "DX-Y.NYB": {
+   "10%": 2,
+   "20%": 2,
+   "30%": 2,
+   "50%": 1
+  },
+  "GC=F": {
+   "10%": 8,
+   "20%": 5,
+   "30%": 1,
+   "50%": 0
+  },
+  "BZ=F": {
+   "10%": 3,
+   "20%": 1,
+   "30%": 1,
+   "50%": 1
+  },
+  "DCOILWTICO": {
+   "10%": 15,
+   "20%": 5,
+   "30%": 4,
+   "50%": 3
+  },
+  "DGS10": {
+   "10%": 8,
+   "20%": 4,
+   "30%": 3,
+   "50%": 1
+  },
+  "DFF": {
+   "10%": 95,
+   "20%": 58,
+   "30%": 47,
+   "50%": 28
+  }
+ },
+ "thresholds": [
+  "10%",
+  "20%",
+  "30%",
+  "50%"
+ ],
+ "namedEpisodes": [
+  {
+   "episode": "1929 crash and Great Depression",
+   "window": [
+    "1929-09-01",
+    "1932-07-31"
+   ],
+   "inTrainingData": false,
+   "trainingDataNote": "examples-v3 begins 2018-01-01; anything earlier is evidence in a benchmark series only and cannot be trained on",
+   "seriesMeasured": 1,
+   "seriesTooYoung": 8,
+   "deepestEquityDrawdownPct": -86.19,
+   "perSeries": {
+    "^GSPC": {
+     "status": "MEASURED",
+     "peakDate": "1929-09-16",
+     "peakClose": 31.86,
+     "troughDate": "1932-06-01",
+     "troughClose": 4.4,
+     "drawdownPct": -86.19
+    },
+    "^SP500TR": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "1988-01-04"
+    },
+    "^VIX": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "1990-01-02"
+    },
+    "DX-Y.NYB": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "1971-01-04"
+    },
+    "GC=F": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "2000-08-30"
+    },
+    "BZ=F": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "2007-07-30"
+    },
+    "DCOILWTICO": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "1986-01-02"
+    },
+    "DGS10": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "1962-01-02"
+    },
+    "DFF": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "1954-07-01"
+    }
+   }
+  },
+  {
+   "episode": "1973-74 bear market and oil shock",
+   "window": [
+    "1973-01-01",
+    "1974-12-31"
+   ],
+   "inTrainingData": false,
+   "trainingDataNote": "examples-v3 begins 2018-01-01; anything earlier is evidence in a benchmark series only and cannot be trained on",
+   "seriesMeasured": 4,
+   "seriesTooYoung": 5,
+   "deepestEquityDrawdownPct": -48.2,
+   "perSeries": {
+    "^GSPC": {
+     "status": "MEASURED",
+     "peakDate": "1973-01-11",
+     "peakClose": 120.24,
+     "troughDate": "1974-10-03",
+     "troughClose": 62.28,
+     "drawdownPct": -48.2
+    },
+    "^SP500TR": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "1988-01-04"
+    },
+    "^VIX": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "1990-01-02"
+    },
+    "DX-Y.NYB": {
+     "status": "MEASURED",
+     "peakDate": "1973-01-19",
+     "peakClose": 110.31,
+     "troughDate": "1973-07-06",
+     "troughClose": 90.54,
+     "drawdownPct": -17.92
+    },
+    "GC=F": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "2000-08-30"
+    },
+    "BZ=F": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "2007-07-30"
+    },
+    "DCOILWTICO": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "1986-01-02"
+    },
+    "DGS10": {
+     "status": "MEASURED",
+     "peakDate": "1973-08-07",
+     "peakClose": 7.58,
+     "troughDate": "1973-12-17",
+     "troughClose": 6.67,
+     "drawdownPct": -12.01
+    },
+    "DFF": {
+     "status": "MEASURED",
+     "peakDate": "1974-07-01",
+     "peakClose": 14.33,
+     "troughDate": "1974-12-31",
+     "troughClose": 3.87,
+     "drawdownPct": -72.99
+    }
+   }
+  },
+  {
+   "episode": "1987 crash",
+   "window": [
+    "1987-08-01",
+    "1987-12-31"
+   ],
+   "inTrainingData": false,
+   "trainingDataNote": "examples-v3 begins 2018-01-01; anything earlier is evidence in a benchmark series only and cannot be trained on",
+   "seriesMeasured": 5,
+   "seriesTooYoung": 4,
+   "deepestEquityDrawdownPct": -33.51,
+   "perSeries": {
+    "^GSPC": {
+     "status": "MEASURED",
+     "peakDate": "1987-08-25",
+     "peakClose": 336.77,
+     "troughDate": "1987-12-04",
+     "troughClose": 223.92,
+     "drawdownPct": -33.51
+    },
+    "^SP500TR": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "1988-01-04"
+    },
+    "^VIX": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "1990-01-02"
+    },
+    "DX-Y.NYB": {
+     "status": "MEASURED",
+     "peakDate": "1987-08-11",
+     "peakClose": 101.35,
+     "troughDate": "1987-12-31",
+     "troughClose": 85.42,
+     "drawdownPct": -15.72
+    },
+    "GC=F": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "2000-08-30"
+    },
+    "BZ=F": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "2007-07-30"
+    },
+    "DCOILWTICO": {
+     "status": "MEASURED",
+     "peakDate": "1987-08-03",
+     "peakClose": 22.21,
+     "troughDate": "1987-12-21",
+     "troughClose": 15.12,
+     "drawdownPct": -31.92
+    },
+    "DGS10": {
+     "status": "MEASURED",
+     "peakDate": "1987-10-16",
+     "peakClose": 10.23,
+     "troughDate": "1987-11-05",
+     "troughClose": 8.72,
+     "drawdownPct": -14.76
+    },
+    "DFF": {
+     "status": "MEASURED",
+     "peakDate": "1987-09-30",
+     "peakClose": 8.38,
+     "troughDate": "1987-12-16",
+     "troughClose": 5.52,
+     "drawdownPct": -34.13
+    }
+   }
+  },
+  {
+   "episode": "1997-98 Asian / Russian / LTCM stress",
+   "window": [
+    "1997-07-01",
+    "1998-12-31"
+   ],
+   "inTrainingData": false,
+   "trainingDataNote": "examples-v3 begins 2018-01-01; anything earlier is evidence in a benchmark series only and cannot be trained on",
+   "seriesMeasured": 7,
+   "seriesTooYoung": 2,
+   "deepestEquityDrawdownPct": -19.34,
+   "perSeries": {
+    "^GSPC": {
+     "status": "MEASURED",
+     "peakDate": "1998-07-17",
+     "peakClose": 1186.75,
+     "troughDate": "1998-08-31",
+     "troughClose": 957.28,
+     "drawdownPct": -19.34
+    },
+    "^SP500TR": {
+     "status": "MEASURED",
+     "peakDate": "1998-07-17",
+     "peakClose": 1601.08,
+     "troughDate": "1998-08-31",
+     "troughClose": 1293.9,
+     "drawdownPct": -19.19
+    },
+    "^VIX": {
+     "status": "MEASURED",
+     "peakDate": "1997-10-30",
+     "peakClose": 38.2,
+     "troughDate": "1998-07-17",
+     "troughClose": 16.23,
+     "drawdownPct": -57.51
+    },
+    "DX-Y.NYB": {
+     "status": "MEASURED",
+     "peakDate": "1998-08-26",
+     "peakClose": 102.57,
+     "troughDate": "1998-10-16",
+     "troughClose": 92.22,
+     "drawdownPct": -10.09
+    },
+    "GC=F": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "2000-08-30"
+    },
+    "BZ=F": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "2007-07-30"
+    },
+    "DCOILWTICO": {
+     "status": "MEASURED",
+     "peakDate": "1997-10-03",
+     "peakClose": 22.86,
+     "troughDate": "1998-12-10",
+     "troughClose": 10.82,
+     "drawdownPct": -52.67
+    },
+    "DGS10": {
+     "status": "MEASURED",
+     "peakDate": "1997-07-01",
+     "peakClose": 6.45,
+     "troughDate": "1998-10-05",
+     "troughClose": 4.16,
+     "drawdownPct": -35.5
+    },
+    "DFF": {
+     "status": "MEASURED",
+     "peakDate": "1998-06-30",
+     "peakClose": 7.06,
+     "troughDate": "1998-12-31",
+     "troughClose": 4.07,
+     "drawdownPct": -42.35
+    }
+   }
+  },
+  {
+   "episode": "2000-02 dot-com bear market",
+   "window": [
+    "2000-03-01",
+    "2002-12-31"
+   ],
+   "inTrainingData": false,
+   "trainingDataNote": "examples-v3 begins 2018-01-01; anything earlier is evidence in a benchmark series only and cannot be trained on",
+   "seriesMeasured": 8,
+   "seriesTooYoung": 1,
+   "deepestEquityDrawdownPct": -49.15,
+   "perSeries": {
+    "^GSPC": {
+     "status": "MEASURED",
+     "peakDate": "2000-03-24",
+     "peakClose": 1527.46,
+     "troughDate": "2002-10-09",
+     "troughClose": 776.76,
+     "drawdownPct": -49.15
+    },
+    "^SP500TR": {
+     "status": "MEASURED",
+     "peakDate": "2000-09-01",
+     "peakClose": 2108.76,
+     "troughDate": "2002-10-09",
+     "troughClose": 1108.91,
+     "drawdownPct": -47.41
+    },
+    "^VIX": {
+     "status": "MEASURED",
+     "peakDate": "2001-09-20",
+     "peakClose": 43.74,
+     "troughDate": "2002-03-28",
+     "troughClose": 17.4,
+     "drawdownPct": -60.22
+    },
+    "DX-Y.NYB": {
+     "status": "MEASURED",
+     "peakDate": "2001-07-05",
+     "peakClose": 120.9,
+     "troughDate": "2002-12-31",
+     "troughClose": 101.85,
+     "drawdownPct": -15.76
+    },
+    "GC=F": {
+     "status": "MEASURED",
+     "peakDate": "2000-09-27",
+     "peakClose": 278.4,
+     "troughDate": "2001-02-15",
+     "troughClose": 255.1,
+     "drawdownPct": -8.37
+    },
+    "BZ=F": {
+     "status": "SERIES_STARTS_AFTER_EPISODE",
+     "seriesFrom": "2007-07-30"
+    },
+    "DCOILWTICO": {
+     "status": "MEASURED",
+     "peakDate": "2000-09-20",
+     "peakClose": 37.22,
+     "troughDate": "2001-11-15",
+     "troughClose": 17.5,
+     "drawdownPct": -52.98
+    },
+    "DGS10": {
+     "status": "MEASURED",
+     "peakDate": "2000-05-08",
+     "peakClose": 6.57,
+     "troughDate": "2002-10-09",
+     "troughClose": 3.61,
+     "drawdownPct": -45.05
+    },
+    "DFF": {
+     "status": "MEASURED",
+     "peakDate": "2000-07-03",
+     "peakClose": 7.03,
+     "troughDate": "2002-12-25",
+     "troughClose": 1.15,
+     "drawdownPct": -83.64
+    }
+   }
+  },
+  {
+   "episode": "2007-09 Global Financial Crisis",
+   "window": [
+    "2007-10-01",
+    "2009-06-30"
+   ],
+   "inTrainingData": false,
+   "trainingDataNote": "examples-v3 begins 2018-01-01; anything earlier is evidence in a benchmark series only and cannot be trained on",
+   "seriesMeasured": 9,
+   "seriesTooYoung": 0,
+   "deepestEquityDrawdownPct": -56.78,
+   "perSeries": {
+    "^GSPC": {
+     "status": "MEASURED",
+     "peakDate": "2007-10-09",
+     "peakClose": 1565.15,
+     "troughDate": "2009-03-09",
+     "troughClose": 676.53,
+     "drawdownPct": -56.78
+    },
+    "^SP500TR": {
+     "status": "MEASURED",
+     "peakDate": "2007-10-09",
+     "peakClose": 2447.03,
+     "troughDate": "2009-03-09",
+     "troughClose": 1095.04,
+     "drawdownPct": -55.25
+    },
+    "^VIX": {
+     "status": "MEASURED",
+     "peakDate": "2008-11-20",
+     "peakClose": 80.86,
+     "troughDate": "2009-06-29",
+     "troughClose": 25.35,
+     "drawdownPct": -68.65
+    },
+    "DX-Y.NYB": {
+     "status": "MEASURED",
+     "peakDate": "2009-03-05",
+     "peakClose": 89.11,
+     "troughDate": "2009-06-02",
+     "troughClose": 78.4,
+     "drawdownPct": -12.02
+    },
+    "GC=F": {
+     "status": "MEASURED",
+     "peakDate": "2008-03-18",
+     "peakClose": 1003.2,
+     "troughDate": "2008-11-13",
+     "troughClose": 704.9,
+     "drawdownPct": -29.73
+    },
+    "BZ=F": {
+     "status": "MEASURED",
+     "peakDate": "2008-07-03",
+     "peakClose": 146.08,
+     "troughDate": "2008-12-24",
+     "troughClose": 36.61,
+     "drawdownPct": -74.94
+    },
+    "DCOILWTICO": {
+     "status": "MEASURED",
+     "peakDate": "2008-07-03",
+     "peakClose": 145.31,
+     "troughDate": "2008-12-23",
+     "troughClose": 30.28,
+     "drawdownPct": -79.16
+    },
+    "DGS10": {
+     "status": "MEASURED",
+     "peakDate": "2007-10-12",
+     "peakClose": 4.7,
+     "troughDate": "2008-12-18",
+     "troughClose": 2.08,
+     "drawdownPct": -55.74
+    },
+    "DFF": {
+     "status": "MEASURED",
+     "peakDate": "2007-10-01",
+     "peakClose": 4.92,
+     "troughDate": "2009-01-04",
+     "troughClose": 0.08,
+     "drawdownPct": -98.37
+    }
+   }
+  },
+  {
+   "episode": "2010-12 European sovereign-debt stress",
+   "window": [
+    "2010-04-01",
+    "2012-12-31"
+   ],
+   "inTrainingData": false,
+   "trainingDataNote": "examples-v3 begins 2018-01-01; anything earlier is evidence in a benchmark series only and cannot be trained on",
+   "seriesMeasured": 9,
+   "seriesTooYoung": 0,
+   "deepestEquityDrawdownPct": -19.39,
+   "perSeries": {
+    "^GSPC": {
+     "status": "MEASURED",
+     "peakDate": "2011-04-29",
+     "peakClose": 1363.61,
+     "troughDate": "2011-10-03",
+     "troughClose": 1099.23,
+     "drawdownPct": -19.39
+    },
+    "^SP500TR": {
+     "status": "MEASURED",
+     "peakDate": "2011-04-29",
+     "peakClose": 2305.76,
+     "troughDate": "2011-10-03",
+     "troughClose": 1875.95,
+     "drawdownPct": -18.64
+    },
+    "^VIX": {
+     "status": "MEASURED",
+     "peakDate": "2011-08-08",
+     "peakClose": 48.0,
+     "troughDate": "2012-08-17",
+     "troughClose": 13.45,
+     "drawdownPct": -71.98
+    },
+    "DX-Y.NYB": {
+     "status": "MEASURED",
+     "peakDate": "2010-06-07",
+     "peakClose": 88.4,
+     "troughDate": "2011-04-29",
+     "troughClose": 72.93,
+     "drawdownPct": -17.5
+    },
+    "GC=F": {
+     "status": "MEASURED",
+     "peakDate": "2011-08-22",
+     "peakClose": 1888.7,
+     "troughDate": "2012-05-16",
+     "troughClose": 1536.2,
+     "drawdownPct": -18.66
+    },
+    "BZ=F": {
+     "status": "MEASURED",
+     "peakDate": "2011-04-08",
+     "peakClose": 126.65,
+     "troughDate": "2012-06-21",
+     "troughClose": 89.23,
+     "drawdownPct": -29.55
+    },
+    "DCOILWTICO": {
+     "status": "MEASURED",
+     "peakDate": "2011-05-02",
+     "peakClose": 113.03,
+     "troughDate": "2011-10-04",
+     "troughClose": 75.4,
+     "drawdownPct": -33.29
+    },
+    "DGS10": {
+     "status": "MEASURED",
+     "peakDate": "2010-04-05",
+     "peakClose": 4.01,
+     "troughDate": "2012-07-25",
+     "troughClose": 1.43,
+     "drawdownPct": -64.34
+    },
+    "DFF": {
+     "status": "MEASURED",
+     "peakDate": "2010-04-15",
+     "peakClose": 0.22,
+     "troughDate": "2011-12-30",
+     "troughClose": 0.04,
+     "drawdownPct": -81.82
+    }
+   }
+  },
+  {
+   "episode": "2014-16 commodity and oil downturn",
+   "window": [
+    "2014-06-01",
+    "2016-02-29"
+   ],
+   "inTrainingData": false,
+   "trainingDataNote": "examples-v3 begins 2018-01-01; anything earlier is evidence in a benchmark series only and cannot be trained on",
+   "seriesMeasured": 9,
+   "seriesTooYoung": 0,
+   "deepestEquityDrawdownPct": -14.16,
+   "perSeries": {
+    "^GSPC": {
+     "status": "MEASURED",
+     "peakDate": "2015-05-21",
+     "peakClose": 2130.8201,
+     "troughDate": "2016-02-11",
+     "troughClose": 1829.08,
+     "drawdownPct": -14.16
+    },
+    "^SP500TR": {
+     "status": "MEASURED",
+     "peakDate": "2015-07-20",
+     "peakClose": 3939.3501,
+     "troughDate": "2016-02-11",
+     "troughClose": 3428.99,
+     "drawdownPct": -12.96
+    },
+    "^VIX": {
+     "status": "MEASURED",
+     "peakDate": "2015-08-24",
+     "peakClose": 40.74,
+     "troughDate": "2015-11-02",
+     "troughClose": 14.15,
+     "drawdownPct": -65.27
+    },
+    "DX-Y.NYB": {
+     "status": "MEASURED",
+     "peakDate": "2015-03-13",
+     "peakClose": 100.33,
+     "troughDate": "2015-05-15",
+     "troughClose": 93.14,
+     "drawdownPct": -7.17
+    },
+    "GC=F": {
+     "status": "MEASURED",
+     "peakDate": "2014-07-10",
+     "peakClose": 1338.7,
+     "troughDate": "2015-12-17",
+     "troughClose": 1050.8,
+     "drawdownPct": -21.51
+    },
+    "BZ=F": {
+     "status": "MEASURED",
+     "peakDate": "2014-06-19",
+     "peakClose": 115.06,
+     "troughDate": "2016-01-20",
+     "troughClose": 27.88,
+     "drawdownPct": -75.77
+    },
+    "DCOILWTICO": {
+     "status": "MEASURED",
+     "peakDate": "2014-06-20",
+     "peakClose": 107.95,
+     "troughDate": "2016-02-11",
+     "troughClose": 26.19,
+     "drawdownPct": -75.74
+    },
+    "DGS10": {
+     "status": "MEASURED",
+     "peakDate": "2014-06-17",
+     "peakClose": 2.66,
+     "troughDate": "2016-02-11",
+     "troughClose": 1.63,
+     "drawdownPct": -38.72
+    },
+    "DFF": {
+     "status": "MEASURED",
+     "peakDate": "2014-12-01",
+     "peakClose": 0.13,
+     "troughDate": "2014-12-31",
+     "troughClose": 0.06,
+     "drawdownPct": -53.85
+    }
+   }
+  },
+  {
+   "episode": "2018 sell-off",
+   "window": [
+    "2018-09-01",
+    "2018-12-31"
+   ],
+   "inTrainingData": true,
+   "trainingDataNote": "examples-v3 begins 2018-01-01; anything earlier is evidence in a benchmark series only and cannot be trained on",
+   "seriesMeasured": 9,
+   "seriesTooYoung": 0,
+   "deepestEquityDrawdownPct": -19.78,
+   "perSeries": {
+    "^GSPC": {
+     "status": "MEASURED",
+     "peakDate": "2018-09-20",
+     "peakClose": 2930.75,
+     "troughDate": "2018-12-24",
+     "troughClose": 2351.1001,
+     "drawdownPct": -19.78
+    },
+    "^SP500TR": {
+     "status": "MEASURED",
+     "peakDate": "2018-09-20",
+     "peakClose": 5794.7202,
+     "troughDate": "2018-12-24",
+     "troughClose": 4672.6602,
+     "drawdownPct": -19.36
+    },
+    "^VIX": {
+     "status": "MEASURED",
+     "peakDate": "2018-10-24",
+     "peakClose": 25.23,
+     "troughDate": "2018-11-07",
+     "troughClose": 16.36,
+     "drawdownPct": -35.16
+    },
+    "DX-Y.NYB": {
+     "status": "MEASURED",
+     "peakDate": "2018-09-04",
+     "peakClose": 95.42,
+     "troughDate": "2018-09-20",
+     "troughClose": 93.91,
+     "drawdownPct": -1.58
+    },
+    "GC=F": {
+     "status": "MEASURED",
+     "peakDate": "2018-11-01",
+     "peakClose": 1236.0,
+     "troughDate": "2018-11-13",
+     "troughClose": 1199.2,
+     "drawdownPct": -2.98
+    },
+    "BZ=F": {
+     "status": "MEASURED",
+     "peakDate": "2018-10-03",
+     "peakClose": 86.29,
+     "troughDate": "2018-12-24",
+     "troughClose": 50.47,
+     "drawdownPct": -41.51
+    },
+    "DCOILWTICO": {
+     "status": "MEASURED",
+     "peakDate": "2018-10-03",
+     "peakClose": 76.4,
+     "troughDate": "2018-12-27",
+     "troughClose": 44.48,
+     "drawdownPct": -41.78
+    },
+    "DGS10": {
+     "status": "MEASURED",
+     "peakDate": "2018-11-08",
+     "peakClose": 3.24,
+     "troughDate": "2018-12-31",
+     "troughClose": 2.69,
+     "drawdownPct": -16.98
+    },
+    "DFF": {
+     "status": "MEASURED",
+     "peakDate": "2018-10-23",
+     "peakClose": 2.2,
+     "troughDate": "2018-12-16",
+     "troughClose": 2.19,
+     "drawdownPct": -0.45
+    }
+   }
+  },
+  {
+   "episode": "COVID crash 2020",
+   "window": [
+    "2020-02-01",
+    "2020-04-30"
+   ],
+   "inTrainingData": true,
+   "trainingDataNote": "examples-v3 begins 2018-01-01; anything earlier is evidence in a benchmark series only and cannot be trained on",
+   "seriesMeasured": 9,
+   "seriesTooYoung": 0,
+   "deepestEquityDrawdownPct": -33.92,
+   "perSeries": {
+    "^GSPC": {
+     "status": "MEASURED",
+     "peakDate": "2020-02-19",
+     "peakClose": 3386.1499,
+     "troughDate": "2020-03-23",
+     "troughClose": 2237.3999,
+     "drawdownPct": -33.92
+    },
+    "^SP500TR": {
+     "status": "MEASURED",
+     "peakDate": "2020-02-19",
+     "peakClose": 6886.4702,
+     "troughDate": "2020-03-23",
+     "troughClose": 4559.5,
+     "drawdownPct": -33.79
+    },
+    "^VIX": {
+     "status": "MEASURED",
+     "peakDate": "2020-03-16",
+     "peakClose": 82.69,
+     "troughDate": "2020-04-29",
+     "troughClose": 31.23,
+     "drawdownPct": -62.23
+    },
+    "DX-Y.NYB": {
+     "status": "MEASURED",
+     "peakDate": "2020-02-20",
+     "peakClose": 99.87,
+     "troughDate": "2020-03-09",
+     "troughClose": 94.9,
+     "drawdownPct": -4.98
+    },
+    "GC=F": {
+     "status": "MEASURED",
+     "peakDate": "2020-03-09",
+     "peakClose": 1674.5,
+     "troughDate": "2020-03-18",
+     "troughClose": 1477.3,
+     "drawdownPct": -11.78
+    },
+    "BZ=F": {
+     "status": "MEASURED",
+     "peakDate": "2020-02-20",
+     "peakClose": 59.31,
+     "troughDate": "2020-04-21",
+     "troughClose": 19.33,
+     "drawdownPct": -67.41
+    },
+    "DCOILWTICO": {
+     "status": "MEASURED",
+     "peakDate": "2020-02-20",
+     "peakClose": 53.77,
+     "troughDate": "2020-04-21",
+     "troughClose": 8.91,
+     "drawdownPct": -83.43
+    },
+    "DGS10": {
+     "status": "MEASURED",
+     "peakDate": "2020-02-05",
+     "peakClose": 1.66,
+     "troughDate": "2020-03-09",
+     "troughClose": 0.54,
+     "drawdownPct": -67.47
+    },
+    "DFF": {
+     "status": "MEASURED",
+     "peakDate": "2020-02-01",
+     "peakClose": 1.59,
+     "troughDate": "2020-04-29",
+     "troughClose": 0.04,
+     "drawdownPct": -97.48
+    }
+   }
+  },
+  {
+   "episode": "2022 inflation and rate-shock bear",
+   "window": [
+    "2022-01-01",
+    "2022-12-31"
+   ],
+   "inTrainingData": true,
+   "trainingDataNote": "examples-v3 begins 2018-01-01; anything earlier is evidence in a benchmark series only and cannot be trained on",
+   "seriesMeasured": 9,
+   "seriesTooYoung": 0,
+   "deepestEquityDrawdownPct": -25.43,
+   "perSeries": {
+    "^GSPC": {
+     "status": "MEASURED",
+     "peakDate": "2022-01-03",
+     "peakClose": 4796.5601,
+     "troughDate": "2022-10-12",
+     "troughClose": 3577.03,
+     "drawdownPct": -25.43
+    },
+    "^SP500TR": {
+     "status": "MEASURED",
+     "peakDate": "2022-01-03",
+     "peakClose": 10050.4102,
+     "troughDate": "2022-10-12",
+     "troughClose": 7588.8999,
+     "drawdownPct": -24.49
+    },
+    "^VIX": {
+     "status": "MEASURED",
+     "peakDate": "2022-03-07",
+     "peakClose": 36.45,
+     "troughDate": "2022-04-04",
+     "troughClose": 18.57,
+     "drawdownPct": -49.05
+    },
+    "DX-Y.NYB": {
+     "status": "MEASURED",
+     "peakDate": "2022-09-27",
+     "peakClose": 114.11,
+     "troughDate": "2022-12-30",
+     "troughClose": 103.52,
+     "drawdownPct": -9.28
+    },
+    "GC=F": {
+     "status": "MEASURED",
+     "peakDate": "2022-03-08",
+     "peakClose": 2043.3,
+     "troughDate": "2022-11-03",
+     "troughClose": 1630.9,
+     "drawdownPct": -20.18
+    },
+    "BZ=F": {
+     "status": "MEASURED",
+     "peakDate": "2022-03-08",
+     "peakClose": 127.98,
+     "troughDate": "2022-12-09",
+     "troughClose": 76.1,
+     "drawdownPct": -40.54
+    },
+    "DCOILWTICO": {
+     "status": "MEASURED",
+     "peakDate": "2022-03-08",
+     "peakClose": 123.64,
+     "troughDate": "2022-12-09",
+     "troughClose": 71.05,
+     "drawdownPct": -42.53
+    },
+    "DGS10": {
+     "status": "MEASURED",
+     "peakDate": "2022-06-14",
+     "peakClose": 3.49,
+     "troughDate": "2022-08-01",
+     "troughClose": 2.6,
+     "drawdownPct": -25.5
+    },
+    "DFF": {
+     "status": "MEASURED",
+     "peakDate": "2022-07-28",
+     "peakClose": 2.33,
+     "troughDate": "2022-07-29",
+     "troughClose": 2.32,
+     "drawdownPct": -0.43
+    }
+   }
+  },
+  {
+   "episode": "2023 banking stress",
+   "window": [
+    "2023-03-01",
+    "2023-05-31"
+   ],
+   "inTrainingData": true,
+   "trainingDataNote": "examples-v3 begins 2018-01-01; anything earlier is evidence in a benchmark series only and cannot be trained on",
+   "seriesMeasured": 9,
+   "seriesTooYoung": 0,
+   "deepestEquityDrawdownPct": -4.76,
+   "perSeries": {
+    "^GSPC": {
+     "status": "MEASURED",
+     "peakDate": "2023-03-06",
+     "peakClose": 4048.4199,
+     "troughDate": "2023-03-13",
+     "troughClose": 3855.76,
+     "drawdownPct": -4.76
+    },
+    "^SP500TR": {
+     "status": "MEASURED",
+     "peakDate": "2023-03-06",
+     "peakClose": 8649.8799,
+     "troughDate": "2023-03-13",
+     "troughClose": 8241.3896,
+     "drawdownPct": -4.72
+    },
+    "^VIX": {
+     "status": "MEASURED",
+     "peakDate": "2023-03-13",
+     "peakClose": 26.52,
+     "troughDate": "2023-04-28",
+     "troughClose": 15.78,
+     "drawdownPct": -40.5
+    },
+    "DX-Y.NYB": {
+     "status": "MEASURED",
+     "peakDate": "2023-03-08",
+     "peakClose": 105.66,
+     "troughDate": "2023-04-13",
+     "troughClose": 101.01,
+     "drawdownPct": -4.4
+    },
+    "GC=F": {
+     "status": "MEASURED",
+     "peakDate": "2023-05-04",
+     "peakClose": 2055.7,
+     "troughDate": "2023-05-25",
+     "troughClose": 1943.7,
+     "drawdownPct": -5.45
+    },
+    "BZ=F": {
+     "status": "MEASURED",
+     "peakDate": "2023-04-12",
+     "peakClose": 87.33,
+     "troughDate": "2023-05-03",
+     "troughClose": 72.33,
+     "drawdownPct": -17.18
+    },
+    "DCOILWTICO": {
+     "status": "MEASURED",
+     "peakDate": "2023-04-12",
+     "peakClose": 83.26,
+     "troughDate": "2023-05-31",
+     "troughClose": 68.11,
+     "drawdownPct": -18.2
+    },
+    "DGS10": {
+     "status": "MEASURED",
+     "peakDate": "2023-03-02",
+     "peakClose": 4.08,
+     "troughDate": "2023-04-05",
+     "troughClose": 3.3,
+     "drawdownPct": -19.12
+    },
+    "DFF": {
+     "status": "MEASURED",
+     "peakDate": "2023-03-01",
+     "peakClose": 4.58,
+     "troughDate": "2023-03-02",
+     "troughClose": 4.57,
+     "drawdownPct": -0.22
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,4822 @@
+{
+ "source": "FDIC BankFind failures and assistance",
+ "url": "https://banks.data.fdic.gov/bankfind-suite/failures",
+ "api": "https://banks.data.fdic.gov/api/failures?filters=FAILYR:%5B2005%20TO%202012%5D&fields=NAME,CITYST,FAILDATE,FAILYR,QBFASSET,COST,RESTYPE,CHCLASS1&limit=2000&format=json",
+ "window": [
+  "2005",
+  "2012"
+ ],
+ "records": 481,
+ "failures": [
+  {
+   "name": "METROPOLITAN SAVINGS BANK",
+   "cityState": "PITTSBURGH, PA",
+   "failDate": "2/2/2007",
+   "year": "2007",
+   "assetsAtFailureThousands": 15760,
+   "estimatedCostThousands": 9438.083,
+   "resolutionType": "FAILURE",
+   "charterClass": "SI"
+  },
+  {
+   "name": "NETBANK",
+   "cityState": "ALPHARETTA, GA",
+   "failDate": "9/28/2007",
+   "year": "2007",
+   "assetsAtFailureThousands": 2473806,
+   "estimatedCostThousands": 119608.007,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "MIAMI VALLEY BANK",
+   "cityState": "LAKEVIEW, OH",
+   "failDate": "10/4/2007",
+   "year": "2007",
+   "assetsAtFailureThousands": 125362,
+   "estimatedCostThousands": 28393.966,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "DOUGLASS NATIONAL BANK",
+   "cityState": "KANSAS CITY, MO",
+   "failDate": "1/25/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 52824,
+   "estimatedCostThousands": 7157.136,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "HUME BANK",
+   "cityState": "HUME, MO",
+   "failDate": "3/7/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 18682,
+   "estimatedCostThousands": 3754.611,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "ANB FINANCIAL NATIONAL ASSOCIATION",
+   "cityState": "BENTONVILLE, AR",
+   "failDate": "5/9/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 1895545,
+   "estimatedCostThousands": 1025204.119,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "FIRST INTEGRITY BANK, N.A.",
+   "cityState": "STAPLES, MN",
+   "failDate": "5/30/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 52916,
+   "estimatedCostThousands": 10305.161,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "INDYMAC BANK F.S.B",
+   "cityState": "PASADENA, CA",
+   "failDate": "7/11/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 30698512,
+   "estimatedCostThousands": 11979120.801,
+   "resolutionType": "FAILURE",
+   "charterClass": "SL"
+  },
+  {
+   "name": "FIRST NATIONAL BANK OF NEVADA",
+   "cityState": "RENO, NV",
+   "failDate": "7/25/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 3411145,
+   "estimatedCostThousands": 709606.72,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "FIRST HERITAGE BANK N.A.",
+   "cityState": "NEWPORT BEACH, CA",
+   "failDate": "7/25/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 255376,
+   "estimatedCostThousands": 92139.375,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "FIRST PRIORITY BANK",
+   "cityState": "BRADENTON, FL",
+   "failDate": "8/1/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 258610,
+   "estimatedCostThousands": 95554.633,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE COLUMBIAN BANK AND TRUST COMPANY",
+   "cityState": "TOPEKA, KS",
+   "failDate": "8/22/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 735071,
+   "estimatedCostThousands": 334276.996,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "INTEGRITY BANK",
+   "cityState": "ALPHARETTA, GA",
+   "failDate": "8/29/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 1107514,
+   "estimatedCostThousands": 465942.478,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SILVER STATE BANK",
+   "cityState": "HENDERSON, NV",
+   "failDate": "9/5/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 1957120,
+   "estimatedCostThousands": 722103.525,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "AMERIBANK, INC.",
+   "cityState": "NORTHFORK, WV",
+   "failDate": "9/19/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 103965,
+   "estimatedCostThousands": 38289.951,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "WASHINGTON MUTUAL BANK",
+   "cityState": "HENDERSON, NV",
+   "failDate": "9/25/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 307021614,
+   "estimatedCostThousands": 0,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "MERIDIAN BANK",
+   "cityState": "ELDRED, IL",
+   "failDate": "10/10/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 38223,
+   "estimatedCostThousands": 16617.897,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "MAIN STREET BANK",
+   "cityState": "NORTHVILLE, MI",
+   "failDate": "10/10/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 112368,
+   "estimatedCostThousands": 56317.793,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "ALPHA BANK & TRUST",
+   "cityState": "ALPHARETTA, GA",
+   "failDate": "10/24/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 354090,
+   "estimatedCostThousands": 211264.238,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FREEDOM BANK",
+   "cityState": "BRADENTON, FL",
+   "failDate": "10/31/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 270842,
+   "estimatedCostThousands": 113456.301,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SECURITY PACIFIC BANK",
+   "cityState": "SAN DIEGO, CA",
+   "failDate": "11/7/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 527959,
+   "estimatedCostThousands": 148254.891,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FRANKLIN BANK, SSB",
+   "cityState": "HOUSTON, TX",
+   "failDate": "11/7/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 5089260,
+   "estimatedCostThousands": 614110.962,
+   "resolutionType": "FAILURE",
+   "charterClass": "SI"
+  },
+  {
+   "name": "THE COMMUNITY BANK",
+   "cityState": "LOGANVILLE, GA",
+   "failDate": "11/21/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 634901,
+   "estimatedCostThousands": 335061.648,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PFF BANK & TRUST",
+   "cityState": "POMONA, CA",
+   "failDate": "11/21/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 3715433,
+   "estimatedCostThousands": 258807.329,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "DOWNEY SAVINGS AND LOAN ASSOCIATION, F.A.",
+   "cityState": "NEWPORT BEACH, CA",
+   "failDate": "11/21/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 12779371,
+   "estimatedCostThousands": 151232.052,
+   "resolutionType": "FAILURE",
+   "charterClass": "SL"
+  },
+  {
+   "name": "CITIBANK, NATIONAL ASSOCIATION",
+   "cityState": "LAS VEGAS, NV",
+   "failDate": "11/23/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 1207007000,
+   "estimatedCostThousands": null,
+   "resolutionType": "ASSISTANCE",
+   "charterClass": "N"
+  },
+  {
+   "name": "CITICORP TRUST BANK, FSB",
+   "cityState": "WILMINGTON, DE",
+   "failDate": "11/23/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 19599414,
+   "estimatedCostThousands": null,
+   "resolutionType": "ASSISTANCE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "CITIBANK (BANAMEX USA)",
+   "cityState": "CENTURY CITY, CA",
+   "failDate": "11/23/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 1322720,
+   "estimatedCostThousands": null,
+   "resolutionType": "ASSISTANCE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CITIBANK (SOUTH DAKOTA), N.A.",
+   "cityState": "SIOUX FALLS, SD",
+   "failDate": "11/23/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 77737957,
+   "estimatedCostThousands": null,
+   "resolutionType": "ASSISTANCE",
+   "charterClass": "N"
+  },
+  {
+   "name": "DEPARTMENT STORES NATIONAL BANK",
+   "cityState": "SIOUX FALLS, SD",
+   "failDate": "11/23/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 374903,
+   "estimatedCostThousands": null,
+   "resolutionType": "ASSISTANCE",
+   "charterClass": "N"
+  },
+  {
+   "name": "FIRST GEORGIA COMMUNITY BANK",
+   "cityState": "JACKSON, GA",
+   "failDate": "12/5/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 256371,
+   "estimatedCostThousands": 86315.499,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "SANDERSON STATE BANK",
+   "cityState": "SANDERSON, TX",
+   "failDate": "12/12/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 38217,
+   "estimatedCostThousands": 7709.925,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "HAVEN TRUST BANK",
+   "cityState": "DULUTH, GA",
+   "failDate": "12/12/2008",
+   "year": "2008",
+   "assetsAtFailureThousands": 559551,
+   "estimatedCostThousands": 246602.5,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BANK OF AMERICA N.A.",
+   "cityState": "CHARLOTTE, NC",
+   "failDate": "1/16/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 1471631047,
+   "estimatedCostThousands": null,
+   "resolutionType": "ASSISTANCE",
+   "charterClass": "N"
+  },
+  {
+   "name": "NATIONAL BANK OF COMMERCE",
+   "cityState": "BERKELEY, IL",
+   "failDate": "1/16/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 419741,
+   "estimatedCostThousands": 80487.826,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "BANK OF AMERICA CALIFORNIA N.A.",
+   "cityState": "SAN FRANCISCO, CA",
+   "failDate": "1/16/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 21502223,
+   "estimatedCostThousands": null,
+   "resolutionType": "ASSISTANCE",
+   "charterClass": "N"
+  },
+  {
+   "name": "MERRILL LYNCH BANK USA",
+   "cityState": "SALT LAKE CITY, UT",
+   "failDate": "1/16/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 61809503,
+   "estimatedCostThousands": null,
+   "resolutionType": "ASSISTANCE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COUNTRYWIDE BANK FSB",
+   "cityState": "ALEXANDRIA, VA",
+   "failDate": "1/16/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 117978966,
+   "estimatedCostThousands": null,
+   "resolutionType": "ASSISTANCE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "FIA CARD SERVICES N.A.",
+   "cityState": "WILMINGTON, DE",
+   "failDate": "1/16/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 159637136,
+   "estimatedCostThousands": null,
+   "resolutionType": "ASSISTANCE",
+   "charterClass": "N"
+  },
+  {
+   "name": "MERRILL LYNCH BANK & TRUST CO FSB",
+   "cityState": "NEW YORK, NY",
+   "failDate": "1/16/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 37986413,
+   "estimatedCostThousands": null,
+   "resolutionType": "ASSISTANCE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "BANK OF CLARK COUNTY",
+   "cityState": "VANCOUVER, WA",
+   "failDate": "1/16/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 441085,
+   "estimatedCostThousands": 150723.682,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BANK OF AMERICA OREGON N.A.",
+   "cityState": "PORTLAND, OR",
+   "failDate": "1/16/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 11526309,
+   "estimatedCostThousands": null,
+   "resolutionType": "ASSISTANCE",
+   "charterClass": "N"
+  },
+  {
+   "name": "BANK OF AMERICA RHODE ISLAND N.A.",
+   "cityState": "PROVIDENCE, RI",
+   "failDate": "1/16/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 35410586,
+   "estimatedCostThousands": null,
+   "resolutionType": "ASSISTANCE",
+   "charterClass": "N"
+  },
+  {
+   "name": "1ST CENTENNIAL BANK",
+   "cityState": "REDLANDS, CA",
+   "failDate": "1/23/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 797959,
+   "estimatedCostThousands": 136041.307,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "OCALA NATIONAL BANK",
+   "cityState": "OCALA, FL",
+   "failDate": "1/30/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 219424,
+   "estimatedCostThousands": 93552.006,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "SUBURBAN FEDERAL SAVINGS BANK",
+   "cityState": "CROFTON, MD",
+   "failDate": "1/30/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 347408,
+   "estimatedCostThousands": 73818.806,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "MAGNET BANK",
+   "cityState": "SALT LAKE CITY, UT",
+   "failDate": "1/30/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 300674,
+   "estimatedCostThousands": 170125.212,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COUNTY BANK",
+   "cityState": "MERCED, CA",
+   "failDate": "2/6/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 1711552,
+   "estimatedCostThousands": 61783.459,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "ALLIANCE BANK",
+   "cityState": "CULVER CITY, CA",
+   "failDate": "2/6/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 1113361,
+   "estimatedCostThousands": 118078.703,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRSTBANK FINANCIAL SERVICES",
+   "cityState": "MCDONOUGH, GA",
+   "failDate": "2/6/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 317237,
+   "estimatedCostThousands": 151332.907,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SHERMAN COUNTY BANK",
+   "cityState": "LOUP CITY, NE",
+   "failDate": "2/13/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 135431,
+   "estimatedCostThousands": 42684.004,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CORN BELT BANK AND TRUST COMPANY",
+   "cityState": "PITTSFIELD, IL",
+   "failDate": "2/13/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 260201,
+   "estimatedCostThousands": 80893.901,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "RIVERSIDE BANK OF THE GULF COAST",
+   "cityState": "CAPE CORAL, FL",
+   "failDate": "2/13/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 523673,
+   "estimatedCostThousands": 199817.818,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "PINNACLE BANK",
+   "cityState": "BEAVERTON, OR",
+   "failDate": "2/13/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 71921,
+   "estimatedCostThousands": 10218.286,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SILVER FALLS BANK",
+   "cityState": "SILVERTON, OR",
+   "failDate": "2/20/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 134206,
+   "estimatedCostThousands": 39092.099,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "HERITAGE COMMUNITY BANK",
+   "cityState": "GLENWOOD, IL",
+   "failDate": "2/27/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 235154,
+   "estimatedCostThousands": 48231.035,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SECURITY SAVINGS BANK",
+   "cityState": "HENDERSON, NV",
+   "failDate": "2/27/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 238307,
+   "estimatedCostThousands": 32328.329,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FREEDOM BANK OF GEORGIA",
+   "cityState": "COMMERCE, GA",
+   "failDate": "3/6/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 172454,
+   "estimatedCostThousands": 43267.285,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "TEAMBANK, N.A.",
+   "cityState": "PAOLA, KS",
+   "failDate": "3/20/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 669830,
+   "estimatedCostThousands": 134592.589,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "FIRSTCITY BANK",
+   "cityState": "STOCKBRIDGE, GA",
+   "failDate": "3/20/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 285015,
+   "estimatedCostThousands": 135210.254,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COLORADO NATIONAL BANK",
+   "cityState": "COLORADO SPRINGS, CO",
+   "failDate": "3/20/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 123508,
+   "estimatedCostThousands": 12687.378,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "OMNI NATIONAL BANK",
+   "cityState": "ATLANTA, GA",
+   "failDate": "3/27/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 979585,
+   "estimatedCostThousands": 288414.854,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "CAPE FEAR BANK",
+   "cityState": "WILMINGTON, NC",
+   "failDate": "4/10/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 492418,
+   "estimatedCostThousands": 118565.468,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "NEW FRONTIER BANK",
+   "cityState": "GREELEY, CO",
+   "failDate": "4/10/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 1774588,
+   "estimatedCostThousands": 913431.679,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "AMERICAN STERLING BANK",
+   "cityState": "SUGAR CREEK, MO",
+   "failDate": "4/17/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 166456,
+   "estimatedCostThousands": 44668.926,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "GREAT BASIN BANK OF NEVADA",
+   "cityState": "ELKO, NV",
+   "failDate": "4/17/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 238940,
+   "estimatedCostThousands": 20023.186,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST BANK OF BEVERLY HILLS",
+   "cityState": "CALABASAS, CA",
+   "failDate": "4/24/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 1260354,
+   "estimatedCostThousands": 8429.996,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "MICHIGAN HERITAGE BANK",
+   "cityState": "FARMINGTON HILLS, MI",
+   "failDate": "4/24/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 167710,
+   "estimatedCostThousands": 48551.264,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "FIRST BANK OF IDAHO, FSB",
+   "cityState": "KETCHUM, ID",
+   "failDate": "4/24/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 490656,
+   "estimatedCostThousands": 109230.208,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "AMERICAN SOUTHERN BANK",
+   "cityState": "KENNESAW, GA",
+   "failDate": "4/24/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 105950,
+   "estimatedCostThousands": 32820.448,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SILVERTON BANK, NATIONAL ASSOCIATION",
+   "cityState": "ATLANTA, GA",
+   "failDate": "5/1/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 4157246,
+   "estimatedCostThousands": 638949.572,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "AMERICA WEST BANK",
+   "cityState": "LAYTON, UT",
+   "failDate": "5/1/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 281564,
+   "estimatedCostThousands": 114351.671,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CITIZENS COMMUNITY BANK",
+   "cityState": "RIDGEWOOD, NJ",
+   "failDate": "5/1/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 40657,
+   "estimatedCostThousands": 18186.788,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "WESTSOUND BANK",
+   "cityState": "BREMERTON, WA",
+   "failDate": "5/8/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 334608,
+   "estimatedCostThousands": 81049.73,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BANKUNITED, FSB",
+   "cityState": "CORAL GABLES, FL",
+   "failDate": "5/21/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 13111463,
+   "estimatedCostThousands": 5228684.226,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "CITIZENS NATIONAL BANK",
+   "cityState": "MACOMB, IL",
+   "failDate": "5/22/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 438560,
+   "estimatedCostThousands": 30261.928,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "STRATEGIC CAPITAL BANK",
+   "cityState": "CHAMPAIGN, IL",
+   "failDate": "5/22/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 546576,
+   "estimatedCostThousands": 92680.603,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BANK OF LINCOLNWOOD",
+   "cityState": "LINCOLNWOOD, IL",
+   "failDate": "6/5/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 212718,
+   "estimatedCostThousands": 70928.222,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST NATIONAL BANK OF ANTHONY",
+   "cityState": "ANTHONY, KS",
+   "failDate": "6/19/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 156954,
+   "estimatedCostThousands": 33229.791,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "COOPERATIVE BANK",
+   "cityState": "WILMINGTON, NC",
+   "failDate": "6/19/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 966778,
+   "estimatedCostThousands": 287345.282,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SOUTHERN COMMUNITY BANK",
+   "cityState": "FAYETTEVILLE, GA",
+   "failDate": "6/19/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 371695,
+   "estimatedCostThousands": 136635.503,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "HORIZON BANK",
+   "cityState": "PINE CITY, MN",
+   "failDate": "6/26/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 84763,
+   "estimatedCostThousands": 24009.747,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "NEIGHBORHOOD COMMUNITY BANK",
+   "cityState": "NEWNAN, GA",
+   "failDate": "6/26/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 212616,
+   "estimatedCostThousands": 80745.392,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "MIRAE BANK",
+   "cityState": "LOS ANGELES, CA",
+   "failDate": "6/26/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 480619,
+   "estimatedCostThousands": 45309.281,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COMMUNITY BANK OF WEST GEORGIA",
+   "cityState": "VILLA RICA, GA",
+   "failDate": "6/26/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 201222,
+   "estimatedCostThousands": 71712.316,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "METROPACIFIC BANK",
+   "cityState": "IRVINE, CA",
+   "failDate": "6/26/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 75316,
+   "estimatedCostThousands": 32167.898,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE FIRST NATIONAL BANK OF DANVILLE",
+   "cityState": "DANVILLE, IL",
+   "failDate": "7/2/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 148218,
+   "estimatedCostThousands": 24202.092,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "THE ELIZABETH STATE BANK",
+   "cityState": "ELIZABETH, IL",
+   "failDate": "7/2/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 55027,
+   "estimatedCostThousands": 9832.018,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE FIRST STATE BANK OF WINCHESTER",
+   "cityState": "WINCHESTER, IL",
+   "failDate": "7/2/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 30073,
+   "estimatedCostThousands": 8030.034,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE JOHN WARNER BANK",
+   "cityState": "CLINTON, IL",
+   "failDate": "7/2/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 69609,
+   "estimatedCostThousands": 14314.657,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "ROCK RIVER BANK",
+   "cityState": "OREGON, IL",
+   "failDate": "7/2/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 74808,
+   "estimatedCostThousands": 18558.249,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FOUNDERS BANK",
+   "cityState": "WORTH, IL",
+   "failDate": "7/2/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 889172,
+   "estimatedCostThousands": 129511.783,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "MILLENNIUM STATE BANK OF TEXAS",
+   "cityState": "DALLAS, TX",
+   "failDate": "7/2/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 118601,
+   "estimatedCostThousands": 52700.096,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BANK OF WYOMING",
+   "cityState": "THERMOPOLIS, WY",
+   "failDate": "7/10/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 70188,
+   "estimatedCostThousands": 32543.27,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "VINEYARD BANK, NATIONAL ASSOCIATION",
+   "cityState": "RANCHO CUCAMONGA, CA",
+   "failDate": "7/17/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 1638378,
+   "estimatedCostThousands": 278590.809,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "BANKFIRST",
+   "cityState": "SIOUX FALLS, SD",
+   "failDate": "7/17/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 210844,
+   "estimatedCostThousands": 110200.671,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "TEMECULA VALLEY BANK",
+   "cityState": "TEMECULA, CA",
+   "failDate": "7/17/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 1396622,
+   "estimatedCostThousands": 227400.345,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST PIEDMONT BANK",
+   "cityState": "WINDER, GA",
+   "failDate": "7/17/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 114113,
+   "estimatedCostThousands": 37997.899,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SECURITY BANK OF JONES COUNTY",
+   "cityState": "GRAY, GA",
+   "failDate": "7/24/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 432712,
+   "estimatedCostThousands": 98200.622,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SECURITY BANK OF HOUSTON COUNTY",
+   "cityState": "PERRY, GA",
+   "failDate": "7/24/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 371624,
+   "estimatedCostThousands": 50980.079,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SECURITY BANK OF BIBB COUNTY",
+   "cityState": "MACON, GA",
+   "failDate": "7/24/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 943744,
+   "estimatedCostThousands": 414269.295,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SECURITY BANK OF NORTH METRO",
+   "cityState": "WOODSTOCK, GA",
+   "failDate": "7/24/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 184184,
+   "estimatedCostThousands": 102030.642,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SECURITY BANK OF GWINNETT COUNTY",
+   "cityState": "SUWANNEE, GA",
+   "failDate": "7/24/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 259182,
+   "estimatedCostThousands": 193409.222,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SECURITY BANK OF NORTH FULTON",
+   "cityState": "ALPHARETTA, GA",
+   "failDate": "7/24/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 190564,
+   "estimatedCostThousands": 49000.106,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "WATERFORD VILLAGE BANK",
+   "cityState": "WILLIAMSVILLE, NY",
+   "failDate": "7/24/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 55707,
+   "estimatedCostThousands": 7875.008,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST STATE BANK OF ALTUS",
+   "cityState": "ALTUS, OK",
+   "failDate": "7/31/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 90867,
+   "estimatedCostThousands": 25968.652,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "MUTUAL BANK",
+   "cityState": "HARVEY, IL",
+   "failDate": "7/31/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 1595657,
+   "estimatedCostThousands": 793841.215,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PEOPLES COMMUNITY BANK",
+   "cityState": "WEST CHESTER, OH",
+   "failDate": "7/31/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 606153,
+   "estimatedCostThousands": 61522.565,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "FIRST BANKAMERICANO",
+   "cityState": "ELIZABTH, NJ",
+   "failDate": "7/31/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 163372,
+   "estimatedCostThousands": 20048.318,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "INTEGRITY BANK",
+   "cityState": "JUPITER, FL",
+   "failDate": "7/31/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 105298,
+   "estimatedCostThousands": 36472.599,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COMMUNITY FIRST BANK",
+   "cityState": "PRINEVILLE, OR",
+   "failDate": "8/7/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 199508,
+   "estimatedCostThousands": 73567.118,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "COMMUNITY NATIONAL BANK OF SARASOTA COUNTY",
+   "cityState": "VENICE, FL",
+   "failDate": "8/7/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 92528,
+   "estimatedCostThousands": 25369.427,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "FIRST STATE BANK",
+   "cityState": "SARASOTA, FL",
+   "failDate": "8/7/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 447667,
+   "estimatedCostThousands": 119466.042,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COLONIAL BANK",
+   "cityState": "MONTGOMERY, AL",
+   "failDate": "8/14/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 25455112,
+   "estimatedCostThousands": 2366269.245,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "DWELLING HOUSE SAVINGS AND LOAN",
+   "cityState": "PITTSBURGH, PA",
+   "failDate": "8/14/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 12947,
+   "estimatedCostThousands": 8351.881,
+   "resolutionType": "FAILURE",
+   "charterClass": "SL"
+  },
+  {
+   "name": "COMMUNITY BANK OF NEVADA",
+   "cityState": "LAS VEGAS, NV",
+   "failDate": "8/14/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 1397798,
+   "estimatedCostThousands": 557961.565,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "UNION BANK, NATIONAL ASSOCIATION",
+   "cityState": "GILBERT, AZ",
+   "failDate": "8/14/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 119529,
+   "estimatedCostThousands": 51989.229,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "COMMUNITY BANK OF ARIZONA",
+   "cityState": "PHOENIX, AZ",
+   "failDate": "8/14/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 158517,
+   "estimatedCostThousands": 26760.332,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CAPITALSOUTH BANK",
+   "cityState": "BIRMINGHAM, AL",
+   "failDate": "8/21/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 586586,
+   "estimatedCostThousands": 126332.097,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "GUARANTY BANK",
+   "cityState": "AUSTIN, TX",
+   "failDate": "8/21/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 13464352,
+   "estimatedCostThousands": 0,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "EBANK",
+   "cityState": "ATLANTA, GA",
+   "failDate": "8/21/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 144688,
+   "estimatedCostThousands": 49947.695,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "FIRST COWETA",
+   "cityState": "NEWNAN, GA",
+   "failDate": "8/21/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 163755,
+   "estimatedCostThousands": 66683.837,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "MAINSTREET BANK",
+   "cityState": "FOREST LAKE, MN",
+   "failDate": "8/28/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 458533,
+   "estimatedCostThousands": 89930.087,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "AFFINITY BANK",
+   "cityState": "VENTURA, CA",
+   "failDate": "8/28/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 1211431,
+   "estimatedCostThousands": 234069.06,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BRADFORD BANK",
+   "cityState": "BALTIMORE, MD",
+   "failDate": "8/28/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 451888,
+   "estimatedCostThousands": 46897.293,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "INBANK",
+   "cityState": "OAK FOREST, IL",
+   "failDate": "9/4/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 209848,
+   "estimatedCostThousands": 56911.298,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST BANK OF KANSAS CITY",
+   "cityState": "KANSAS CITY, MO",
+   "failDate": "9/4/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 15723,
+   "estimatedCostThousands": 7548.068,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "VANTUS BANK",
+   "cityState": "SIOUX CITY, IA",
+   "failDate": "9/4/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 503643,
+   "estimatedCostThousands": 101576.301,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "FIRST STATE BANK",
+   "cityState": "FLAGSTAFF, AZ",
+   "failDate": "9/4/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 107235,
+   "estimatedCostThousands": 49832.516,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PLATINUM COMMUNITY BANK",
+   "cityState": "ROLLING MEADOWS, IL",
+   "failDate": "9/4/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 147961,
+   "estimatedCostThousands": 0,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "CORUS BANK, N.A.",
+   "cityState": "CHICAGO, IL",
+   "failDate": "9/11/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 7003321,
+   "estimatedCostThousands": 0,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "VENTURE BANK",
+   "cityState": "LACEY, WA",
+   "failDate": "9/11/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 968385,
+   "estimatedCostThousands": 201127.926,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BRICKWELL COMMUNITY BANK",
+   "cityState": "WOODBURY, MN",
+   "failDate": "9/11/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 72576,
+   "estimatedCostThousands": 24596.778,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "IRWIN UNION BANK AND TRUST COMPANY",
+   "cityState": "COLUMBUS, IN",
+   "failDate": "9/18/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 2839747,
+   "estimatedCostThousands": 755961.772,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "IRWIN UNION BANK, FSB",
+   "cityState": "LOUISVILLE, KY",
+   "failDate": "9/18/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 518151,
+   "estimatedCostThousands": 114005.937,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "GEORGIAN BANK",
+   "cityState": "ATLANTA, GA",
+   "failDate": "9/25/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 2230230,
+   "estimatedCostThousands": 960819.804,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "JENNINGS STATE BANK",
+   "cityState": "SPRING GROVE, MN",
+   "failDate": "10/2/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 52347,
+   "estimatedCostThousands": 18876.02,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "WARREN BANK",
+   "cityState": "WARREN, MI",
+   "failDate": "10/2/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 504816,
+   "estimatedCostThousands": 217486.859,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "SOUTHERN COLORADO NATIONAL BANK",
+   "cityState": "PUEBLO, CO",
+   "failDate": "10/2/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 37142,
+   "estimatedCostThousands": 8323.25,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "SAN JOAQUIN BANK",
+   "cityState": "BAKERSFIELD, CA",
+   "failDate": "10/16/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 766359,
+   "estimatedCostThousands": 79080.185,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "BANK OF ELMWOOD",
+   "cityState": "RACINE, WI",
+   "failDate": "10/23/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 327444,
+   "estimatedCostThousands": 99462.712,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "FIRST DUPAGE BANK",
+   "cityState": "WESTMONT, IL",
+   "failDate": "10/23/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 262093,
+   "estimatedCostThousands": 85319.466,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FLAGSHIP NATIONAL BANK",
+   "cityState": "BRADENTON, FL",
+   "failDate": "10/23/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 177563,
+   "estimatedCostThousands": 62112.171,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "RIVERVIEW COMMUNITY BANK",
+   "cityState": "OSTEGO, MN",
+   "failDate": "10/23/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 99057,
+   "estimatedCostThousands": 23475.556,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "AMERICAN UNITED BANK",
+   "cityState": "LAWRENCEVILLE, GA",
+   "failDate": "10/23/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 110094,
+   "estimatedCostThousands": 44017.82,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PARTNERS BANK",
+   "cityState": "NAPLES, FL",
+   "failDate": "10/23/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 65498,
+   "estimatedCostThousands": 31809.005,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "HILLCREST BANK FLORIDA",
+   "cityState": "NAPLES, FL",
+   "failDate": "10/23/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 82774,
+   "estimatedCostThousands": 42975.917,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PARK NATIONAL BANK",
+   "cityState": "CHICAGO, IL",
+   "failDate": "10/30/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 4680881,
+   "estimatedCostThousands": 2754.465,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "NORTH HOUSTON BANK",
+   "cityState": "HOUSTON, TX",
+   "failDate": "10/30/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 325474,
+   "estimatedCostThousands": 11999.604,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SAN DIEGO NATIONAL BANK",
+   "cityState": "SAN DIEGO, CA",
+   "failDate": "10/30/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 3594544,
+   "estimatedCostThousands": 36362.544,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "CITIZENS NATIONAL BANK",
+   "cityState": "TEAGUE, TX",
+   "failDate": "10/30/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 118236,
+   "estimatedCostThousands": 5846.262,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "PACIFIC NATIONAL BANK",
+   "cityState": "SAN FRANCISCO, CA",
+   "failDate": "10/30/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 2319263,
+   "estimatedCostThousands": 58565.343,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "BANK USA, NA",
+   "cityState": "PHOENIX, AZ",
+   "failDate": "10/30/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 213205,
+   "estimatedCostThousands": 11740.678,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "MADISONVILLE STATE BANK",
+   "cityState": "MADISONVILLE, TX",
+   "failDate": "10/30/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 256330,
+   "estimatedCostThousands": 0,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CALIFORNIA NATIONAL BANK",
+   "cityState": "LOS ANGELES, CA",
+   "failDate": "10/30/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 7781100,
+   "estimatedCostThousands": 182035.937,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "COMMUNITY BANK OF LEMONT",
+   "cityState": "LEMONT, IL",
+   "failDate": "10/30/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 81843,
+   "estimatedCostThousands": 25944.659,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "GATEWAY BANK OF ST LOUIS",
+   "cityState": "ST LOUIS, MO",
+   "failDate": "11/6/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 26882,
+   "estimatedCostThousands": 11647.757,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "UNITED SECURITY BANK",
+   "cityState": "SPARTA, GA",
+   "failDate": "11/6/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 153639,
+   "estimatedCostThousands": 60895.161,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "HOME FEDERAL SAVINGS BANK",
+   "cityState": "DETROIT, MI",
+   "failDate": "11/6/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 12994,
+   "estimatedCostThousands": 8612.177,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "UNITED COMMERCIAL BANK",
+   "cityState": "SAN FRANCISCO, CA",
+   "failDate": "11/6/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 10895336,
+   "estimatedCostThousands": 572243.499,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PROSPERAN BANK",
+   "cityState": "OAKDALE, MN",
+   "failDate": "11/6/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 197442,
+   "estimatedCostThousands": 31684.973,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "ORION BANK",
+   "cityState": "NAPLES, FL",
+   "failDate": "11/13/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 2612515,
+   "estimatedCostThousands": 713128.698,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "CENTURY BANK, A FEDERAL SAVINGS BANK",
+   "cityState": "SARASOTA, FL",
+   "failDate": "11/13/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 755923,
+   "estimatedCostThousands": 306876.819,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "PACIFIC COAST NATIONAL BANK",
+   "cityState": "SAN CLEMENTE, CA",
+   "failDate": "11/13/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 131418,
+   "estimatedCostThousands": 33470.482,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "COMMERCE BANK OF SOUTHWEST FLORIDA",
+   "cityState": "FORT MYERS, FL",
+   "failDate": "11/20/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 70997,
+   "estimatedCostThousands": 32235.81,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BENCHMARK BANK",
+   "cityState": "AURORA, IL",
+   "failDate": "12/4/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 173062,
+   "estimatedCostThousands": 79321.446,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE TATNALL BANK",
+   "cityState": "REIDSVILLE, GA",
+   "failDate": "12/4/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 49612,
+   "estimatedCostThousands": 14705.064,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST SECURITY NATIONAL BANK",
+   "cityState": "NORCROSS, GA",
+   "failDate": "12/4/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 127455,
+   "estimatedCostThousands": 34282.229,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "AMTRUST BANK",
+   "cityState": "CLEVELAND, OH",
+   "failDate": "12/4/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 11438990,
+   "estimatedCostThousands": 1687530.375,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "GREATER ATLANTIC BANK",
+   "cityState": "RESTON, VA",
+   "failDate": "12/4/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 203262,
+   "estimatedCostThousands": 26609.701,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "THE BUCKHEAD COMMUNITY BANK",
+   "cityState": "ATLANTA, GA",
+   "failDate": "12/4/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 856236,
+   "estimatedCostThousands": 310552.029,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SOLUTIONSBANK",
+   "cityState": "OVERLAND PARK, KS",
+   "failDate": "12/11/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 511103,
+   "estimatedCostThousands": 93393.389,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "REPUBLIC FEDERAL BANK, N.A.",
+   "cityState": "MIAMI, FL",
+   "failDate": "12/11/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 433011,
+   "estimatedCostThousands": 77976.562,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "VALLEY CAPITAL BANK, N.A.",
+   "cityState": "MESA, AZ",
+   "failDate": "12/11/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 40270,
+   "estimatedCostThousands": 15047.131,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "CITIZENS STATE BANK",
+   "cityState": "NEW BALTIMORE, MI",
+   "failDate": "12/18/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 168551,
+   "estimatedCostThousands": 68170.958,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "IMPERIAL CAPITAL BANK",
+   "cityState": "LA JOLLA, CA",
+   "failDate": "12/18/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 4046888,
+   "estimatedCostThousands": 266235.31,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "INDEPENDENT BANKERS' BANK",
+   "cityState": "SPRINGFIELD, IL",
+   "failDate": "12/18/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 585508,
+   "estimatedCostThousands": 0,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "FIRST FEDERAL BANK OF CALIFORNIA,  A FEDERAL SAVINGS BANK",
+   "cityState": "SANTA MONICA, CA",
+   "failDate": "12/18/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 6143903,
+   "estimatedCostThousands": 0,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "PEOPLES FIRST COMMUNITY BANK",
+   "cityState": "PANAMA CITY, FL",
+   "failDate": "12/18/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 1795420,
+   "estimatedCostThousands": 597057.533,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "NEW SOUTH FEDERAL SAVINGS BANK",
+   "cityState": "IRONDALE, AL",
+   "failDate": "12/18/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 1464127,
+   "estimatedCostThousands": 311640.913,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "ROCKBRIDGE COMMERCIAL BANK",
+   "cityState": "ATLANTA, GA",
+   "failDate": "12/18/2009",
+   "year": "2009",
+   "assetsAtFailureThousands": 294024,
+   "estimatedCostThousands": 98836.68,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "HORIZON BANK",
+   "cityState": "BELLINGHAM, WA",
+   "failDate": "1/8/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 1188956,
+   "estimatedCostThousands": 205487.776,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BARNES BANKING COMPANY",
+   "cityState": "KAYSVILLE, UT",
+   "failDate": "1/15/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 709171,
+   "estimatedCostThousands": 106768.629,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "ST. STEPHEN STATE BANK",
+   "cityState": "ST. STEPHEN, MN",
+   "failDate": "1/15/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 22895,
+   "estimatedCostThousands": 7706.732,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "TOWN COMMUNITY BANK AND TRUST",
+   "cityState": "ANTIOCH, IL",
+   "failDate": "1/15/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 70758,
+   "estimatedCostThousands": 23289.139,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BANK OF LEETON",
+   "cityState": "LEETON, MO",
+   "failDate": "1/22/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 20128,
+   "estimatedCostThousands": 7092.058,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "EVERGREEN BANK",
+   "cityState": "SEATTLE, WA",
+   "failDate": "1/22/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 395980,
+   "estimatedCostThousands": 43421.653,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COLUMBIA RIVER BANK",
+   "cityState": "THE DALLES, OR",
+   "failDate": "1/22/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 955112,
+   "estimatedCostThousands": 54899.321,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CHARTER BANK",
+   "cityState": "SANTA FE, NM",
+   "failDate": "1/22/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 1201922,
+   "estimatedCostThousands": 127197.44,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "PREMIER AMERICAN BANK",
+   "cityState": "MIAMI, FL",
+   "failDate": "1/22/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 299225,
+   "estimatedCostThousands": 84453.961,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FLORIDA COMMUNITY BANK",
+   "cityState": "IMMOKALEE, FL",
+   "failDate": "1/29/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 835701,
+   "estimatedCostThousands": 308983.547,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COMMUNITY BANK & TRUST",
+   "cityState": "CORNELIA, GA",
+   "failDate": "1/29/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 1181717,
+   "estimatedCostThousands": 477153.3,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "MARSHALL BANK, NATIONAL ASSOCIATION",
+   "cityState": "HALLOCK, MN",
+   "failDate": "1/29/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 58566,
+   "estimatedCostThousands": 1063.357,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "FIRST NATIONAL BANK OF GEORGIA",
+   "cityState": "CARROLLTON, GA",
+   "failDate": "1/29/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 840633,
+   "estimatedCostThousands": 203880.827,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "AMERICAN MARINE BANK",
+   "cityState": "BAINBRIDGE ISLAND, WA",
+   "failDate": "1/29/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 329246,
+   "estimatedCostThousands": 28351.718,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST REGIONAL BANK",
+   "cityState": "LOS ANGELES, CA",
+   "failDate": "1/29/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 2082684,
+   "estimatedCostThousands": 224134.008,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "1ST AMERICAN STATE BANK OF MINNESOTA",
+   "cityState": "HANCOCK, MN",
+   "failDate": "2/5/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 18155,
+   "estimatedCostThousands": 4521.138,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE LA COSTE NATIONAL BANK",
+   "cityState": "LA COSTE, TX",
+   "failDate": "2/19/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 53936,
+   "estimatedCostThousands": 5709.015,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "GEORGE WASHINGTON SAVINGS BANK",
+   "cityState": "ORLAND PARK, IL",
+   "failDate": "2/19/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 413673,
+   "estimatedCostThousands": 118851.81,
+   "resolutionType": "FAILURE",
+   "charterClass": "SI"
+  },
+  {
+   "name": "LA JOLLA BANK, FSB",
+   "cityState": "LA JOLLA, CA",
+   "failDate": "2/19/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 3646071,
+   "estimatedCostThousands": 560147.278,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "MARCO COMMUNITY BANK",
+   "cityState": "MARCO ISLAND, FL",
+   "failDate": "2/19/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 119578,
+   "estimatedCostThousands": 25613.736,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "RAINIER PACIFIC BANK",
+   "cityState": "TACOMA, WA",
+   "failDate": "2/26/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 717806,
+   "estimatedCostThousands": 2751.634,
+   "resolutionType": "FAILURE",
+   "charterClass": "SI"
+  },
+  {
+   "name": "CARSON RIVER COMMUNITY BANK",
+   "cityState": "CARSON CITY, NV",
+   "failDate": "2/26/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 51095,
+   "estimatedCostThousands": 14450.584,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BANK OF ILLINOIS",
+   "cityState": "NORMAL, IL",
+   "failDate": "3/5/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 211711,
+   "estimatedCostThousands": 18736.62,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "SUN AMERICAN BANK",
+   "cityState": "BOCA RATON, FL",
+   "failDate": "3/5/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 535724,
+   "estimatedCostThousands": 122300.586,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "CENTENNIAL BANK",
+   "cityState": "OGDEN, UT",
+   "failDate": "3/5/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 212839,
+   "estimatedCostThousands": 70515.464,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "WATERFIELD BANK",
+   "cityState": "GERMANTOWN, MD",
+   "failDate": "3/5/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 155566,
+   "estimatedCostThousands": 11322.216,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "LIBERTYPOINTE BANK",
+   "cityState": "NEW YORK, NY",
+   "failDate": "3/11/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 216500,
+   "estimatedCostThousands": 18406.68,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE PARK AVENUE BANK",
+   "cityState": "NEW YORK, NY",
+   "failDate": "3/12/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 520146,
+   "estimatedCostThousands": 76368.394,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "STATEWIDE BANK",
+   "cityState": "COVINGTON, LA",
+   "failDate": "3/12/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 243215,
+   "estimatedCostThousands": 26124.193,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "OLD SOUTHERN BANK",
+   "cityState": "ORLANDO, FL",
+   "failDate": "3/12/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 336390,
+   "estimatedCostThousands": 76501.424,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "STATE BANK OF AURORA",
+   "cityState": "AURORA, MN",
+   "failDate": "3/19/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 28159,
+   "estimatedCostThousands": 7025.521,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BANK OF HIAWASSEE",
+   "cityState": "HIAWASSEE, GA",
+   "failDate": "3/19/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 377779,
+   "estimatedCostThousands": 107262.676,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "AMERICAN NATIONAL BANK",
+   "cityState": "PARMA, OH",
+   "failDate": "3/19/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 70318,
+   "estimatedCostThousands": 14960.294,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "FIRST LOWNDES BANK",
+   "cityState": "FORT DEPOSIT, AL",
+   "failDate": "3/19/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 137175,
+   "estimatedCostThousands": 11724.506,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "ADVANTA BANK CORP.",
+   "cityState": "DRAPER, UT",
+   "failDate": "3/19/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 1525931,
+   "estimatedCostThousands": 521524.763,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "APPALACHIAN COMMUNITY BANK",
+   "cityState": "ELLIJAY, GA",
+   "failDate": "3/19/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 1010075,
+   "estimatedCostThousands": 456454.534,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CENTURY SECURITY BANK",
+   "cityState": "DULUTH, GA",
+   "failDate": "3/19/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 96535,
+   "estimatedCostThousands": 37707.023,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "UNITY NATIONAL BANK",
+   "cityState": "CARTERSVILLE, GA",
+   "failDate": "3/26/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 300590,
+   "estimatedCostThousands": 73588.731,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "KEY WEST BANK",
+   "cityState": "KEY WEST, FL",
+   "failDate": "3/26/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 88031,
+   "estimatedCostThousands": 16209.691,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "DESERT HILLS BANK",
+   "cityState": "PHOENIX, AZ",
+   "failDate": "3/26/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 496552,
+   "estimatedCostThousands": 108862.002,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "MCINTOSH COMMERCIAL BANK",
+   "cityState": "CARROLLTON, GA",
+   "failDate": "3/26/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 363405,
+   "estimatedCostThousands": 164026.37,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BEACH FIRST NATIONAL BANK",
+   "cityState": "MYRTLE BEACH, SC",
+   "failDate": "4/9/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 590024,
+   "estimatedCostThousands": 164584.754,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "CITY BANK",
+   "cityState": "LYNNWOOD, WA",
+   "failDate": "4/16/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 981913,
+   "estimatedCostThousands": 154993.145,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "INNOVATIVE BANK",
+   "cityState": "OAKLAND, CA",
+   "failDate": "4/16/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 266816,
+   "estimatedCostThousands": 22715.417,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "RIVERSIDE NATIONAL BANK OF FLORIDA",
+   "cityState": "FORT PIERCE, FL",
+   "failDate": "4/16/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 3393818,
+   "estimatedCostThousands": 0,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "BUTLER BANK",
+   "cityState": "LOWELL, MA",
+   "failDate": "4/16/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 245534,
+   "estimatedCostThousands": 18260.699,
+   "resolutionType": "FAILURE",
+   "charterClass": "SI"
+  },
+  {
+   "name": "FIRST FEDERAL BANK OF NORTH FLORIDA",
+   "cityState": "PALATKA, FL",
+   "failDate": "4/16/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 440122,
+   "estimatedCostThousands": 11968.784,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "TAMALPAIS BANK",
+   "cityState": "SAN RAFAEL, CA",
+   "failDate": "4/16/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 611504,
+   "estimatedCostThousands": 0,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "LAKESIDE COMMUNITY BANK",
+   "cityState": "STERLING HEIGHTS, MI",
+   "failDate": "4/16/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 49173,
+   "estimatedCostThousands": 20976.89,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "AMERICANFIRST BANK",
+   "cityState": "CLERMONT, FL",
+   "failDate": "4/16/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 104034,
+   "estimatedCostThousands": 16404.06,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "AMCORE BANK, NATIONAL ASSOCIATION",
+   "cityState": "ROCKFORD, IL",
+   "failDate": "4/23/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 3066240,
+   "estimatedCostThousands": 10800.694,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "PEOTONE BANK AND TRUST COMPANY",
+   "cityState": "PEOTONE, IL",
+   "failDate": "4/23/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 130165,
+   "estimatedCostThousands": 45596.496,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BROADWAY BANK",
+   "cityState": "CHICAGO, IL",
+   "failDate": "4/23/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 1059194,
+   "estimatedCostThousands": 377438.286,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "LINCOLN PARK SAVINGS BANK",
+   "cityState": "CHICAGO, IL",
+   "failDate": "4/23/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 194618,
+   "estimatedCostThousands": 37917.452,
+   "resolutionType": "FAILURE",
+   "charterClass": "SI"
+  },
+  {
+   "name": "CITIZENS BANK & TRUST COMPANY OF CHICAGO",
+   "cityState": "CHICAGO, IL",
+   "failDate": "4/23/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 73490,
+   "estimatedCostThousands": 41327.496,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "NEW CENTURY BANK",
+   "cityState": "CHICAGO, IL",
+   "failDate": "4/23/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 447239,
+   "estimatedCostThousands": 132055.822,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "WHEATLAND BANK",
+   "cityState": "NAPERVILLE, IL",
+   "failDate": "4/23/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 441694,
+   "estimatedCostThousands": 189658.398,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BC NATIONAL BANKS",
+   "cityState": "BUTLER, MO",
+   "failDate": "4/30/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 52204,
+   "estimatedCostThousands": 8619.663,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "FRONTIER BANK",
+   "cityState": "EVERETT, WA",
+   "failDate": "4/30/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 3250734,
+   "estimatedCostThousands": 453919.785,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "EUROBANK",
+   "cityState": "SAN JUAN, PR",
+   "failDate": "4/30/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 2453138,
+   "estimatedCostThousands": 539123.865,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CF BANCORP",
+   "cityState": "PORT HURON, MI",
+   "failDate": "4/30/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 1599122,
+   "estimatedCostThousands": 340615.017,
+   "resolutionType": "FAILURE",
+   "charterClass": "SI"
+  },
+  {
+   "name": "WESTERNBANK PUERTO RICO",
+   "cityState": "MAYAGUEZ, PR",
+   "failDate": "4/30/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 10797345,
+   "estimatedCostThousands": 2173621.233,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "R-G PREMIER BANK OF PUERTO RICO",
+   "cityState": "HATO REY, PR",
+   "failDate": "4/30/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 5681177,
+   "estimatedCostThousands": 978074.626,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CHAMPION BANK",
+   "cityState": "CREVE COEUR, MO",
+   "failDate": "4/30/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 195510,
+   "estimatedCostThousands": 57090.839,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE BANK OF BONIFAY",
+   "cityState": "BONIFAY, FL",
+   "failDate": "5/7/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 242871,
+   "estimatedCostThousands": 65887.127,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "ACCESS BANK",
+   "cityState": "CHAMPLIN, MN",
+   "failDate": "5/7/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 31996,
+   "estimatedCostThousands": 7916.271,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "1st PACIFIC BANK OF CALIFORNIA",
+   "cityState": "SAN DIEGO, CA",
+   "failDate": "5/7/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 335798,
+   "estimatedCostThousands": 6342.068,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "TOWNE BANK OF ARIZONA",
+   "cityState": "MESA, AZ",
+   "failDate": "5/7/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 120246,
+   "estimatedCostThousands": 44322.148,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "MIDWEST BANK AND TRUST COMPANY",
+   "cityState": "ELMWOOD PARK, IL",
+   "failDate": "5/14/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 3172915,
+   "estimatedCostThousands": 0,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "SOUTHWEST COMMUNITY BANK",
+   "cityState": "SPRINGFIELD, MO",
+   "failDate": "5/14/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 100659,
+   "estimatedCostThousands": 25580.177,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SATILLA COMMUNITY BANK",
+   "cityState": "SAINT MARYS, GA",
+   "failDate": "5/14/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 135688,
+   "estimatedCostThousands": 36321.332,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "NEW LIBERTY BANK",
+   "cityState": "PLYMOUTH, MI",
+   "failDate": "5/14/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 111239,
+   "estimatedCostThousands": 23557.74,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PINEHURST BANK",
+   "cityState": "ST. PAUL, MN",
+   "failDate": "5/21/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 61215,
+   "estimatedCostThousands": 8409.689,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SUN WEST BANK",
+   "cityState": "LAS VEGAS, NV",
+   "failDate": "5/28/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 360662,
+   "estimatedCostThousands": 115959.896,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BANK OF FLORIDA - SOUTHWEST",
+   "cityState": "NAPLES, FL",
+   "failDate": "5/28/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 640894,
+   "estimatedCostThousands": 87637.714,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "GRANITE COMMUNITY BANK, NATIONAL ASSOCIATION",
+   "cityState": "GRANITE BAY, CA",
+   "failDate": "5/28/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 102913,
+   "estimatedCostThousands": 13174.674,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "BANK OF FLORIDA - SOUTHEAST",
+   "cityState": "FORT LAUDERDALE, FL",
+   "failDate": "5/28/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 595318,
+   "estimatedCostThousands": 60469.759,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BANK OF FLORIDA - TAMPA BAY",
+   "cityState": "TAMPA BAY, FL",
+   "failDate": "5/28/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 240513,
+   "estimatedCostThousands": 30582.305,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST NATIONAL BANK",
+   "cityState": "ROSEDALE, MS",
+   "failDate": "6/4/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 60449,
+   "estimatedCostThousands": 18084.964,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "TIERONE BANK",
+   "cityState": "LINCOLN, NE",
+   "failDate": "6/4/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 2824737,
+   "estimatedCostThousands": 0,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "ARCOLA HOMESTEAD SAVINGS BANK",
+   "cityState": "ARCOLA, IL",
+   "failDate": "6/4/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 17028,
+   "estimatedCostThousands": 11533.86,
+   "resolutionType": "FAILURE",
+   "charterClass": "SI"
+  },
+  {
+   "name": "WASHINGTON FIRST INTERNATIONAL BANK",
+   "cityState": "SEATTLE, WA",
+   "failDate": "6/11/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 520887,
+   "estimatedCostThousands": 95151.457,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "NEVADA SECURITY BANK",
+   "cityState": "RENO, NV",
+   "failDate": "6/18/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 492491,
+   "estimatedCostThousands": 70038.599,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PENINSULA BANK",
+   "cityState": "ENGLEWOOD, FL",
+   "failDate": "6/25/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 630179,
+   "estimatedCostThousands": 184044.994,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST NATIONAL BANK",
+   "cityState": "SAVANNAH, GA",
+   "failDate": "6/25/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 252520,
+   "estimatedCostThousands": 78166.891,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "HIGH DESERT STATE BANK",
+   "cityState": "ALBUQUERQUE, NM",
+   "failDate": "6/25/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 80343,
+   "estimatedCostThousands": 28392.42,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "HOME NATIONAL BANK",
+   "cityState": "BLACKWELL, OK",
+   "failDate": "7/9/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 585445,
+   "estimatedCostThousands": 65821.785,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "IDEAL FEDERAL SAVINGS BANK",
+   "cityState": "BALTIMORE, MD",
+   "failDate": "7/9/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 6177,
+   "estimatedCostThousands": 3694.076,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "BAY NATIONAL BANK",
+   "cityState": "BALTIMORE, MD",
+   "failDate": "7/9/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 217743,
+   "estimatedCostThousands": 21144.095,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "USA BANK",
+   "cityState": "PORT CHESTER, NY",
+   "failDate": "7/9/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 190678,
+   "estimatedCostThousands": 63537.16,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "METRO BANK OF DADE COUNTY",
+   "cityState": "MIAMI, FL",
+   "failDate": "7/16/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 399441,
+   "estimatedCostThousands": 64178.959,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "MAINSTREET SAVINGS BANK, FSB",
+   "cityState": "HASTINGS, MI",
+   "failDate": "7/16/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 96584,
+   "estimatedCostThousands": 12788.676,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "OLDE CYPRESS COMMUNITY BANK",
+   "cityState": "CLEWISTON, FL",
+   "failDate": "7/16/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 161355,
+   "estimatedCostThousands": 25532.503,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "TURNBERRY BANK",
+   "cityState": "AVENTURA, FL",
+   "failDate": "7/16/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 240251,
+   "estimatedCostThousands": 28658.461,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "WOODLANDS BANK",
+   "cityState": "BLUFFTON, SC",
+   "failDate": "7/16/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 382803,
+   "estimatedCostThousands": 107349.326,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "FIRST NATIONAL BANK OF THE SOUTH",
+   "cityState": "SPARTANBURG, SC",
+   "failDate": "7/16/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 619374,
+   "estimatedCostThousands": 68273.846,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "THUNDER BANK",
+   "cityState": "SYLVAN GROVE, KS",
+   "failDate": "7/23/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 28248,
+   "estimatedCostThousands": 6650.587,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "WILLIAMSBURG FIRST NATIONAL BANK",
+   "cityState": "KINGSTREE, SC",
+   "failDate": "7/23/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 130411,
+   "estimatedCostThousands": 2424.993,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "HOME VALLEY BANK",
+   "cityState": "CAVE JUNCTION, OR",
+   "failDate": "7/23/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 250488,
+   "estimatedCostThousands": 28068.234,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "CRESCENT BANK AND TRUST COMPANY",
+   "cityState": "JASPER, GA",
+   "failDate": "7/23/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 970235,
+   "estimatedCostThousands": 303698.392,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "STERLING BANK",
+   "cityState": "LANTANA, FL",
+   "failDate": "7/23/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 354966,
+   "estimatedCostThousands": 41791.763,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "COMMUNITY SECURITY BANK",
+   "cityState": "NEW PRAGUE, MN",
+   "failDate": "7/23/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 100649,
+   "estimatedCostThousands": 18494.588,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SOUTHWESTUSA BANK",
+   "cityState": "LAS VEGAS, NV",
+   "failDate": "7/23/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 203690,
+   "estimatedCostThousands": 86296.85,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COASTAL COMMUNITY BANK",
+   "cityState": "PANAMA CITY BEACH, FL",
+   "failDate": "7/30/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 377469,
+   "estimatedCostThousands": 116866.315,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE COWLITZ BANK",
+   "cityState": "LONGVIEW, WA",
+   "failDate": "7/30/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 489019,
+   "estimatedCostThousands": 31281.672,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "LIBERTYBANK",
+   "cityState": "EUGENE, OR",
+   "failDate": "7/30/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 714574,
+   "estimatedCostThousands": 50953.788,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "NORTHWEST BANK & TRUST",
+   "cityState": "ACWORTH, GA",
+   "failDate": "7/30/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 160763,
+   "estimatedCostThousands": 33626.758,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BAYSIDE SAVINGS BANK",
+   "cityState": "PORT SAINT JOE, FL",
+   "failDate": "7/30/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 64344,
+   "estimatedCostThousands": 12478.602,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "RAVENSWOOD BANK",
+   "cityState": "CHICAGO, IL",
+   "failDate": "8/6/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 264628,
+   "estimatedCostThousands": 67727.931,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PALOS BANK AND TRUST COMPANY",
+   "cityState": "PALOS HEIGHTS, IL",
+   "failDate": "8/13/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 493391,
+   "estimatedCostThousands": 66962.408,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SHOREBANK",
+   "cityState": "CHICAGO, IL",
+   "failDate": "8/20/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 2166431,
+   "estimatedCostThousands": 525961.665,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COMMUNITY NATIONAL BANK AT BARTOW",
+   "cityState": "BARTOW, FL",
+   "failDate": "8/20/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 67918,
+   "estimatedCostThousands": 9170.249,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "PACIFIC STATE BANK",
+   "cityState": "STOCKTON, CA",
+   "failDate": "8/20/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 312077,
+   "estimatedCostThousands": 34038.109,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "SONOMA VALLEY BANK",
+   "cityState": "SONOMA, CA",
+   "failDate": "8/20/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 337113,
+   "estimatedCostThousands": 10284.84,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "INDEPENDENT NATIONAL BANK",
+   "cityState": "OCALA, FL",
+   "failDate": "8/20/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 156218,
+   "estimatedCostThousands": 11981.87,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "IMPERIAL SAVINGS AND LOAN ASSOCIATION",
+   "cityState": "MARTINSVILLE, VA",
+   "failDate": "8/20/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 9448,
+   "estimatedCostThousands": 4745.903,
+   "resolutionType": "FAILURE",
+   "charterClass": "SL"
+  },
+  {
+   "name": "LOS PADRES BANK",
+   "cityState": "SOLVANG, CA",
+   "failDate": "8/20/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 866459,
+   "estimatedCostThousands": 3433.57,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "BUTTE COMMUNITY BANK",
+   "cityState": "CHICO, CA",
+   "failDate": "8/20/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 498751,
+   "estimatedCostThousands": 1662.779,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "HORIZON BANK",
+   "cityState": "BRADENTON, FL",
+   "failDate": "9/10/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 187819,
+   "estimatedCostThousands": 61294.756,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "THE PEOPLES BANK",
+   "cityState": "WINDER, GA",
+   "failDate": "9/17/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 447185,
+   "estimatedCostThousands": 101852.185,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BRAMBLE SAVINGS BANK",
+   "cityState": "MILFORD, OH",
+   "failDate": "9/17/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 47523,
+   "estimatedCostThousands": 17928.321,
+   "resolutionType": "FAILURE",
+   "charterClass": "SI"
+  },
+  {
+   "name": "MARITIME SAVINGS BANK",
+   "cityState": "WEST ALLIS, WI",
+   "failDate": "9/17/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 350488,
+   "estimatedCostThousands": 88383.817,
+   "resolutionType": "FAILURE",
+   "charterClass": "SL"
+  },
+  {
+   "name": "ISN BANK",
+   "cityState": "CHERRY HILL, NJ",
+   "failDate": "9/17/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 81564,
+   "estimatedCostThousands": 18855.922,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST COMMERCE COMMUNITY BANK",
+   "cityState": "DOUGLASVILLE, GA",
+   "failDate": "9/17/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 248151,
+   "estimatedCostThousands": 101038.905,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE BANK OF ELLIJAY",
+   "cityState": "ELLIJAY, GA",
+   "failDate": "9/17/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 168820,
+   "estimatedCostThousands": 79709.412,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "NORTH COUNTY BANK",
+   "cityState": "ARLINGTON, WA",
+   "failDate": "9/24/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 288776,
+   "estimatedCostThousands": 70800.36,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "HAVEN TRUST BANK FLORIDA",
+   "cityState": "PONTE VEDRA BEACH, FL",
+   "failDate": "9/24/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 148575,
+   "estimatedCostThousands": 34827.369,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "WAKULLA BANK",
+   "cityState": "CRAWFORDVILLE, FL",
+   "failDate": "10/1/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 402205,
+   "estimatedCostThousands": 119933.262,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SHORELINE BANK",
+   "cityState": "SHORELINE, WA",
+   "failDate": "10/1/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 92980,
+   "estimatedCostThousands": 23478.122,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SECURITY SAVINGS BANK, F.S.B.",
+   "cityState": "OLATHE, KS",
+   "failDate": "10/15/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 453349,
+   "estimatedCostThousands": 53100.228,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "PREMIER BANK",
+   "cityState": "JEFFERSON CITY, MO",
+   "failDate": "10/15/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 989382,
+   "estimatedCostThousands": 308543.479,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "WESTBRIDGE BANK AND TRUST COMPANY",
+   "cityState": "CHESTERFIELD, MO",
+   "failDate": "10/15/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 87782,
+   "estimatedCostThousands": 22436.354,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE FIRST NATIONAL BANK OF BARNESVILLE",
+   "cityState": "BARNESVILLE, GA",
+   "failDate": "10/22/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 126622,
+   "estimatedCostThousands": 46896.887,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "FIRST SUBURBAN NATIONAL BANK",
+   "cityState": "MAYWOOD, IL",
+   "failDate": "10/22/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 143451,
+   "estimatedCostThousands": 44303.038,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "HILLCREST BANK",
+   "cityState": "OVERLAND PARK, KS",
+   "failDate": "10/22/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 1583611,
+   "estimatedCostThousands": 275261.572,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST BANK OF JACKSONVILLE",
+   "cityState": "JACKSONVILLE, FL",
+   "failDate": "10/22/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 73922,
+   "estimatedCostThousands": 14276.743,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PROGRESS BANK OF FLORIDA",
+   "cityState": "TAMPA, FL",
+   "failDate": "10/22/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 94823,
+   "estimatedCostThousands": 34562.25,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "FIRST ARIZONA SAVINGS, A FSB",
+   "cityState": "SCOTTSDALE, AZ",
+   "failDate": "10/22/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 255920,
+   "estimatedCostThousands": 26775.536,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "THE GORDON BANK",
+   "cityState": "GORDON, GA",
+   "failDate": "10/22/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 29259,
+   "estimatedCostThousands": 10353.75,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "K BANK",
+   "cityState": "RANDALLSTOWN, MD",
+   "failDate": "11/5/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 538258,
+   "estimatedCostThousands": 136315.612,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PIERCE COMMERCIAL BANK",
+   "cityState": "TACOMA, WA",
+   "failDate": "11/5/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 221082,
+   "estimatedCostThousands": 26753.764,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "FIRST VIETNAMESE AMERICAN BANK",
+   "cityState": "WESTMINSTER, CA",
+   "failDate": "11/5/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 48000,
+   "estimatedCostThousands": 14263.871,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "WESTERN COMMERCIAL BANK",
+   "cityState": "WOODLAND HILLS, CA",
+   "failDate": "11/5/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 98635,
+   "estimatedCostThousands": 16943.138,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "DARBY BANK & TRUST COMPANY",
+   "cityState": "VIDALIA, GA",
+   "failDate": "11/12/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 654714,
+   "estimatedCostThousands": 125907.826,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COPPER STAR BANK",
+   "cityState": "SCOTTSDALE, AZ",
+   "failDate": "11/12/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 203955,
+   "estimatedCostThousands": 52560.589,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "TIFTON BANKING COMPANY",
+   "cityState": "TIFTON, GA",
+   "failDate": "11/12/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 143729,
+   "estimatedCostThousands": 21382.655,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST BANKING CENTER",
+   "cityState": "BURLINGTON, WI",
+   "failDate": "11/19/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 750724,
+   "estimatedCostThousands": 86070.554,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "GULF STATE COMMUNITY BANK",
+   "cityState": "CARRABELLE, FL",
+   "failDate": "11/19/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 112144,
+   "estimatedCostThousands": 44442.987,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "ALLEGIANCE BANK OF NORTH AMERICA",
+   "cityState": "BALA CYNWYD, PA",
+   "failDate": "11/19/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 106595,
+   "estimatedCostThousands": 12651.666,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PARAMOUNT BANK",
+   "cityState": "FARMINGTON HILLS, MI",
+   "failDate": "12/10/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 252744,
+   "estimatedCostThousands": 68585.951,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "EARTHSTAR BANK",
+   "cityState": "SOUTHAMPTON, PA",
+   "failDate": "12/10/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 112643,
+   "estimatedCostThousands": 22494.611,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE BANK OF MIAMI",
+   "cityState": "CORAL GABLES, FL",
+   "failDate": "12/17/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 448150,
+   "estimatedCostThousands": 28965.429,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "COMMUNITY NATIONAL BANK",
+   "cityState": "LINO LAKES, MN",
+   "failDate": "12/17/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 31569,
+   "estimatedCostThousands": 5827.394,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "CHESTATEE STATE BANK",
+   "cityState": "DAWSONVILLE, GA",
+   "failDate": "12/17/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 244376,
+   "estimatedCostThousands": 83074.928,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "UNITED AMERICAS BANK",
+   "cityState": "ATLANTA, GA",
+   "failDate": "12/17/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 242339,
+   "estimatedCostThousands": 96415.349,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "FIRST SOUTHERN BANK",
+   "cityState": "BATESVILLE, AR",
+   "failDate": "12/17/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 191764,
+   "estimatedCostThousands": 24770.929,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "APPALACIAN COMMUNITY BANK, F.S.B.",
+   "cityState": "MCCAYSVILLE, GA",
+   "failDate": "12/17/2010",
+   "year": "2010",
+   "assetsAtFailureThousands": 68201,
+   "estimatedCostThousands": 28451.837,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "FIRST COMMERCIAL BANK OF FLORIDA",
+   "cityState": "ORLANDO, FL",
+   "failDate": "1/7/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 578638,
+   "estimatedCostThousands": 88904.018,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "LEGACY BANK",
+   "cityState": "SCOTTSDALE, AZ",
+   "failDate": "1/7/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 136446,
+   "estimatedCostThousands": 32224.202,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "OGLETHORPE BANK",
+   "cityState": "BRUNSWICK, GA",
+   "failDate": "1/14/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 211149,
+   "estimatedCostThousands": 84065.595,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "ENTERPRISE BANKING COMPANY",
+   "cityState": "MCDONOUGH, GA",
+   "failDate": "1/21/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 99461,
+   "estimatedCostThousands": 43538.236,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "UNITED WESTERN BANK",
+   "cityState": "DENVER, CO",
+   "failDate": "1/21/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 2153690,
+   "estimatedCostThousands": 133204.444,
+   "resolutionType": "FAILURE",
+   "charterClass": "SL"
+  },
+  {
+   "name": "THE BANK OF ASHEVILLE",
+   "cityState": "ASHEVILLE, NC",
+   "failDate": "1/21/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 204925,
+   "estimatedCostThousands": 43944.583,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COMMUNITYSOUTH BANK AND TRUST",
+   "cityState": "EASLEY, SC",
+   "failDate": "1/21/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 340986,
+   "estimatedCostThousands": 45189.045,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE FIRST STATE BANK",
+   "cityState": "CAMARGO, OK",
+   "failDate": "1/28/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 44546,
+   "estimatedCostThousands": 33589.634,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "EVERGREEN STATE BANK",
+   "cityState": "STOUGHTON, WI",
+   "failDate": "1/28/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 240949,
+   "estimatedCostThousands": 28060.164,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST COMMUNITY BANK",
+   "cityState": "TAOS, NM",
+   "failDate": "1/28/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 2188154,
+   "estimatedCostThousands": 230711.735,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "FIRSTIER BANK",
+   "cityState": "LOUISVILLE, CO",
+   "failDate": "1/28/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 764090,
+   "estimatedCostThousands": 232851.285,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "NORTH GEORGIA BANK",
+   "cityState": "WATKINSVILLE, GA",
+   "failDate": "2/4/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 153172,
+   "estimatedCostThousands": 48160.711,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "AMERICAN TRUST BANK",
+   "cityState": "ROSWELL, GA",
+   "failDate": "2/4/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 238205,
+   "estimatedCostThousands": 69323.329,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COMMUNITY FIRST BANK - CHICAGO",
+   "cityState": "CHICAGO, IL",
+   "failDate": "2/4/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 51083,
+   "estimatedCostThousands": 10212.952,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "BADGER STATE BANK",
+   "cityState": "CASSVILLE, WI",
+   "failDate": "2/11/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 83828,
+   "estimatedCostThousands": 19454.212,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PEOPLES STATE BANK",
+   "cityState": "HAMTRAMCK, MI",
+   "failDate": "2/11/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 390524,
+   "estimatedCostThousands": 103057.004,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CANYON NATIONAL BANK",
+   "cityState": "PALM SPRINGS, CA",
+   "failDate": "2/11/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 210859,
+   "estimatedCostThousands": 15617.298,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "SUNSHINE STATE COMMUNITY BANK",
+   "cityState": "PORT ORANGE, FL",
+   "failDate": "2/11/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 125531,
+   "estimatedCostThousands": 32293.529,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "HABERSHAM BANK",
+   "cityState": "CLARKESVILLE, GA",
+   "failDate": "2/18/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 387681,
+   "estimatedCostThousands": 119370.023,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CITIZENS BANK OF EFFINGHAM",
+   "cityState": "SPRINGFIELD, GA",
+   "failDate": "2/18/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 214275,
+   "estimatedCostThousands": 48229.282,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SAN LUIS TRUST BANK, FSB",
+   "cityState": "SAN LUIS OBISPO, CA",
+   "failDate": "2/18/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 332596,
+   "estimatedCostThousands": 72905.959,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "CHARTER OAK BANK",
+   "cityState": "NAPA, CA",
+   "failDate": "2/18/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 120833,
+   "estimatedCostThousands": 20075.677,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "VALLEY COMMUNITY BANK",
+   "cityState": "ST. CHARLES, IL",
+   "failDate": "2/25/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 123774,
+   "estimatedCostThousands": 28269.674,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE FIRST NATIONAL BANK OF DAVIS",
+   "cityState": "DAVIS, OK",
+   "failDate": "3/11/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 90183,
+   "estimatedCostThousands": 29846.416,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "LEGACY BANK",
+   "cityState": "MILWAUKEE, WI",
+   "failDate": "3/11/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 190418,
+   "estimatedCostThousands": 73718.247,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "THE BANK OF COMMERCE",
+   "cityState": "WOOD DALE, IL",
+   "failDate": "3/25/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 163074,
+   "estimatedCostThousands": 44142.194,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "WESTERN SPRINGS NATIONAL BANK AND TRUST",
+   "cityState": "WESTERN SPRINGS, IL",
+   "failDate": "4/8/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 186677,
+   "estimatedCostThousands": 38047.305,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "NEVADA COMMERCE BANK",
+   "cityState": "LAS VEGAS, NV",
+   "failDate": "4/8/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 135064,
+   "estimatedCostThousands": 38492.484,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "HERITAGE BANKING GROUP",
+   "cityState": "CARTHAGE, MS",
+   "failDate": "4/15/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 228328,
+   "estimatedCostThousands": 37841.406,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SUPERIOR BANK",
+   "cityState": "BIRMINGHAM, AL",
+   "failDate": "4/15/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 2977290,
+   "estimatedCostThousands": 281198.056,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "NEXITY BANK",
+   "cityState": "BIRMINGHAM, AL",
+   "failDate": "4/15/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 757574,
+   "estimatedCostThousands": 182002.207,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BARTOW COUNTY BANK",
+   "cityState": "CARTERSVILLE, GA",
+   "failDate": "4/15/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 314019,
+   "estimatedCostThousands": 83036.626,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "ROSEMOUNT NATIONAL BANK",
+   "cityState": "ROSEMOUNT, MN",
+   "failDate": "4/15/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 21454,
+   "estimatedCostThousands": 5398.076,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "NEW HORIZONS BANK",
+   "cityState": "EAST ELLIJAY, GA",
+   "failDate": "4/15/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 103055,
+   "estimatedCostThousands": 34708.016,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE PARK AVENUE BANK",
+   "cityState": "VALDOSTA, GA",
+   "failDate": "4/29/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 849409,
+   "estimatedCostThousands": 212045.26,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "FIRST NATIONAL BANK OF CENTRAL FLORIDA",
+   "cityState": "WINTER PARK, FL",
+   "failDate": "4/29/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 342079,
+   "estimatedCostThousands": 42898.566,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "COMMUNITY CENTRAL BANK",
+   "cityState": "MOUNT CLEMENS, MI",
+   "failDate": "4/29/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 451683,
+   "estimatedCostThousands": 98636.009,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CORTEZ COMMUNITY  BANK",
+   "cityState": "BROOKSVILLE, FL",
+   "failDate": "4/29/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 66282,
+   "estimatedCostThousands": 17194.474,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST CHOICE COMMUNITY BANK",
+   "cityState": "DALLAS, GA",
+   "failDate": "4/29/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 291196,
+   "estimatedCostThousands": 105179.837,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COASTAL BANK",
+   "cityState": "COCOA BEACH, FL",
+   "failDate": "5/6/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 129429,
+   "estimatedCostThousands": 18526.96,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "SUMMIT BANK",
+   "cityState": "BURLINGTON, WA",
+   "failDate": "5/20/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 142729,
+   "estimatedCostThousands": 24194.505,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "ATLANTIC SOUTHERN BANK",
+   "cityState": "MACON, GA",
+   "failDate": "5/20/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 741855,
+   "estimatedCostThousands": 280970.94,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST GEORGIA BANKING COMPANY",
+   "cityState": "FRANKLIN, GA",
+   "failDate": "5/20/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 730981,
+   "estimatedCostThousands": 134594.79,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST HERITAGE BANK",
+   "cityState": "SNOHOMISH, WA",
+   "failDate": "5/27/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 173478,
+   "estimatedCostThousands": 33596.323,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "ATLANTIC BANK AND TRUST",
+   "cityState": "CHARLESTON, SC",
+   "failDate": "6/3/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 208204,
+   "estimatedCostThousands": 31203.98,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "MCINTOSH STATE BANK",
+   "cityState": "JACKSON, GA",
+   "failDate": "6/17/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 339929,
+   "estimatedCostThousands": 75417.816,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST COMMERCIAL BANK OF TAMPA BAY",
+   "cityState": "TAMPA, FL",
+   "failDate": "6/17/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 98624,
+   "estimatedCostThousands": 33476.68,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "MOUNTAIN HERITAGE BANK",
+   "cityState": "CLAYTON, GA",
+   "failDate": "6/24/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 103716,
+   "estimatedCostThousands": 34479.618,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST CHICAGO BANK & TRUST",
+   "cityState": "CHICAGO, IL",
+   "failDate": "7/8/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 896864,
+   "estimatedCostThousands": 192898.881,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "COLORADO CAPITAL BANK",
+   "cityState": "CASTLE ROCK, CO",
+   "failDate": "7/8/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 665806,
+   "estimatedCostThousands": 254943.654,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SIGNATURE  BANK",
+   "cityState": "WINDSOR, CO",
+   "failDate": "7/8/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 62518,
+   "estimatedCostThousands": 23310.727,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "HIGH TRUST BANK",
+   "cityState": "STOCKBRIDGE, GA",
+   "failDate": "7/15/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 180340,
+   "estimatedCostThousands": 70771.938,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST PEOPLES BANK",
+   "cityState": "PORT SAINT LUCIE, FL",
+   "failDate": "7/15/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 225035,
+   "estimatedCostThousands": 13110.382,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SUMMIT BANK",
+   "cityState": "PRESCOTT, AZ",
+   "failDate": "7/15/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 73066,
+   "estimatedCostThousands": 14868.036,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "ONE GEORGIA BANK",
+   "cityState": "ATLANTA, GA",
+   "failDate": "7/15/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 177715,
+   "estimatedCostThousands": 40555.094,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BANK OF CHOICE",
+   "cityState": "GREELEY, CO",
+   "failDate": "7/22/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 954106,
+   "estimatedCostThousands": 135592.619,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "LANDMARK BANK OF FLORIDA",
+   "cityState": "SARASOTA, FL",
+   "failDate": "7/22/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 266482,
+   "estimatedCostThousands": 37389.362,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "SOUTHSHORE COMMUNITY BANK",
+   "cityState": "APOLLO BEACH, FL",
+   "failDate": "7/22/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 41252,
+   "estimatedCostThousands": 11402.636,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "INTEGRA BANK NATIONAL ASSOCIATION",
+   "cityState": "EVANSVILLE, IN",
+   "failDate": "7/29/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 1994430,
+   "estimatedCostThousands": 26192.154,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "BANKMERIDIAN, N.A.",
+   "cityState": "COLUMBIA, SC",
+   "failDate": "7/29/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 232648,
+   "estimatedCostThousands": 49181.44,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "VIRGINIA BUSINESS BANK",
+   "cityState": "RICHMOND, VA",
+   "failDate": "7/29/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 83493,
+   "estimatedCostThousands": 19851.224,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "BANK OF WHITMAN",
+   "cityState": "COLFAX, WA",
+   "failDate": "8/5/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 548570,
+   "estimatedCostThousands": 100913.886,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "BANK OF SHOREWOOD",
+   "cityState": "SHOREWOOD, IL",
+   "failDate": "8/5/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 110723,
+   "estimatedCostThousands": 29377.569,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE FIRST NATIONAL BANK OF OLATHE",
+   "cityState": "OLATHE, KS",
+   "failDate": "8/12/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 538091,
+   "estimatedCostThousands": 103327.601,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "PUBLIC SAVINGS BANK",
+   "cityState": "HUNTINGDON VALLEY, PA",
+   "failDate": "8/18/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 46818,
+   "estimatedCostThousands": 15828.422,
+   "resolutionType": "FAILURE",
+   "charterClass": "SI"
+  },
+  {
+   "name": "LYDIAN PRIVATE BANK",
+   "cityState": "PALM BEACH, FL",
+   "failDate": "8/19/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 1700117,
+   "estimatedCostThousands": 183529.233,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "FIRST CHOICE BANK",
+   "cityState": "GENEVA, IL",
+   "failDate": "8/19/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 141016,
+   "estimatedCostThousands": 34064.199,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST SOUTHERN NATIONAL BANK",
+   "cityState": "STATESBORO, GA",
+   "failDate": "8/19/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 164599,
+   "estimatedCostThousands": 22170.579,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "CREEKSIDE BANK",
+   "cityState": "WOODSTOCK, GA",
+   "failDate": "9/2/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 102338,
+   "estimatedCostThousands": 33845.185,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PATRIOT BANK OF GEORGIA",
+   "cityState": "CUMMING, GA",
+   "failDate": "9/2/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 150751,
+   "estimatedCostThousands": 54247.71,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE FIRST NATIONAL BANK OF FLORIDA",
+   "cityState": "MILTON, FL",
+   "failDate": "9/9/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 296841,
+   "estimatedCostThousands": 75749.208,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "BANK OF THE COMMONWEALTH",
+   "cityState": "NORFOLK, VA",
+   "failDate": "9/23/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 985096,
+   "estimatedCostThousands": 238719.329,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "CITIZENS BANK OF NORTHERN CALIFORNIA",
+   "cityState": "NEVADA CITY, CA",
+   "failDate": "9/23/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 288765,
+   "estimatedCostThousands": 40894.852,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST INTERNATIONAL BANK",
+   "cityState": "PLANO, TX",
+   "failDate": "9/30/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 239916,
+   "estimatedCostThousands": 58021.999,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE RIVERBANK",
+   "cityState": "WYOMING, MN",
+   "failDate": "10/7/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 419723,
+   "estimatedCostThousands": 71176.451,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SUN SECURITY BANK",
+   "cityState": "ELLINGTON, MO",
+   "failDate": "10/7/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 351492,
+   "estimatedCostThousands": 93108.743,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BLUE RIDGE SAVINGS BANK, INC.",
+   "cityState": "ASHEVILLE, NC",
+   "failDate": "10/14/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 161430,
+   "estimatedCostThousands": 44111.804,
+   "resolutionType": "FAILURE",
+   "charterClass": "SI"
+  },
+  {
+   "name": "COUNTRY BANK",
+   "cityState": "ALEDO, IL",
+   "failDate": "10/14/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 195034,
+   "estimatedCostThousands": 69305.349,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PIEDMONT COMMUNITY BANK",
+   "cityState": "GRAY, GA",
+   "failDate": "10/14/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 198993,
+   "estimatedCostThousands": 88193.669,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST STATE BANK",
+   "cityState": "CRANFORD, NJ",
+   "failDate": "10/14/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 191852,
+   "estimatedCostThousands": 45629.308,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COMMUNITY BANKS OF COLORADO",
+   "cityState": "GREENWOOD VILLAGE, CO",
+   "failDate": "10/21/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 1280964,
+   "estimatedCostThousands": 169246.716,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "DECATUR FIRST BANK",
+   "cityState": "DECATUR, GA",
+   "failDate": "10/21/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 184750,
+   "estimatedCostThousands": 24567.552,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COMMUNITY CAPITAL BANK",
+   "cityState": "JONESBORO, GA",
+   "failDate": "10/21/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 165291,
+   "estimatedCostThousands": 64965.324,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "OLD HARBOR BANK",
+   "cityState": "CLEARWATER, FL",
+   "failDate": "10/21/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 209048,
+   "estimatedCostThousands": 26298.848,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "ALL AMERICAN BANK",
+   "cityState": "DES PLAINES, IL",
+   "failDate": "10/28/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 34800,
+   "estimatedCostThousands": 13752.951,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "MID CITY BANK, INC.",
+   "cityState": "OMAHA, NE",
+   "failDate": "11/4/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 106075,
+   "estimatedCostThousands": 10944.401,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SUNFIRST BANK",
+   "cityState": "SAINT GEORGE, UT",
+   "failDate": "11/4/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 198081,
+   "estimatedCostThousands": 43574.759,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COMMUNITY BANK OF ROCKMART",
+   "cityState": "ROCKMART, GA",
+   "failDate": "11/10/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 62383,
+   "estimatedCostThousands": 20301.313,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "POLK COUNTY BANK",
+   "cityState": "JOHNSTON, IA",
+   "failDate": "11/18/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 91580,
+   "estimatedCostThousands": 16053.274,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CENTRAL PROGRESSIVE BANK",
+   "cityState": "LACOMBE, LA",
+   "failDate": "11/18/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 383132,
+   "estimatedCostThousands": 48823.859,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "WESTERN NATIONAL BANK",
+   "cityState": "PHOENIX, AZ",
+   "failDate": "12/16/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 162872,
+   "estimatedCostThousands": 41735.494,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "PREMIER COMMUNITY BANK OF THE EMERALD COAST",
+   "cityState": "CRESTVIEW, FL",
+   "failDate": "12/16/2011",
+   "year": "2011",
+   "assetsAtFailureThousands": 125976,
+   "estimatedCostThousands": 25065.124,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE FIRST STATE BANK",
+   "cityState": "STOCKBRIDGE, GA",
+   "failDate": "1/20/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 516760,
+   "estimatedCostThousands": 192145.247,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "AMERICAN EAGLE SAVINGS BANK",
+   "cityState": "BOOTHWYN, PA",
+   "failDate": "1/20/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 19259,
+   "estimatedCostThousands": 4670.609,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "CENTRAL FLORIDA STATE BANK",
+   "cityState": "BELLEVIEW, FL",
+   "failDate": "1/20/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 71485,
+   "estimatedCostThousands": 13696.641,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST GUARANTY BANK AND TRUST COMPANY OF JACKSONVILLE",
+   "cityState": "JACKSONVILLE, FL",
+   "failDate": "1/27/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 397082,
+   "estimatedCostThousands": 54383.489,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "BANKEAST",
+   "cityState": "KNOXVILLE, TN",
+   "failDate": "1/27/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 261947,
+   "estimatedCostThousands": 74063.839,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "PATRIOT BANK MINNESOTA",
+   "cityState": "FOREST LAKE, MN",
+   "failDate": "1/27/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 105029,
+   "estimatedCostThousands": 35345.977,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "TENNESSEE COMMERCE BANK",
+   "cityState": "FRANKLIN, TN",
+   "failDate": "1/27/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 1009154,
+   "estimatedCostThousands": 351815.215,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CHARTER NATIONAL BANK AND TRUST",
+   "cityState": "HOFFMAN ESTATES, IL",
+   "failDate": "2/10/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 93894,
+   "estimatedCostThousands": 18454.068,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "SCB BANK",
+   "cityState": "SHELBYVILLE, IN",
+   "failDate": "2/10/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 182561,
+   "estimatedCostThousands": 38269.449,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "CENTRAL BANK OF GEORGIA",
+   "cityState": "ELLAVILLE, GA",
+   "failDate": "2/24/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 278860,
+   "estimatedCostThousands": 51763.478,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "HOME SAVINGS OF AMERICA",
+   "cityState": "LITTLE FALLS, MN",
+   "failDate": "2/24/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 434111,
+   "estimatedCostThousands": 43036.762,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "GLOBAL COMMERCE BANK",
+   "cityState": "DORAVILLE, GA",
+   "failDate": "3/2/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 143678,
+   "estimatedCostThousands": 40288.567,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "NEW CITY BANK",
+   "cityState": "CHICAGO, IL",
+   "failDate": "3/9/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 71202,
+   "estimatedCostThousands": 13227.087,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PREMIER BANK",
+   "cityState": "WILMETTE, IL",
+   "failDate": "3/23/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 268703,
+   "estimatedCostThousands": 69337.997,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "CONVENANT BANK & TRUST",
+   "cityState": "ROCK SPRING, GA",
+   "failDate": "3/23/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 95725,
+   "estimatedCostThousands": 30278.665,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIDELITY BANK",
+   "cityState": "DEARBORN, MI",
+   "failDate": "3/30/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 818237,
+   "estimatedCostThousands": 97229.245,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FORT LEE FEDERAL SAVINGS BANK, FSB",
+   "cityState": "FORT LEE, NJ",
+   "failDate": "4/20/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 48861,
+   "estimatedCostThousands": 11925.425,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "PALM DESERT NATIONAL BANK",
+   "cityState": "PALM DESERT, CA",
+   "failDate": "4/27/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 129253,
+   "estimatedCostThousands": 26330.595,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "BANK OF THE EASTERN SHORE",
+   "cityState": "CAMBRIDGE, MD",
+   "failDate": "4/27/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 162460,
+   "estimatedCostThousands": 57855.74,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "INTER SAVINGS BANK, FSB D/B/A/ INTERBANK, FSB",
+   "cityState": "MAPLE GROVE, MN",
+   "failDate": "4/27/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 463840,
+   "estimatedCostThousands": 79681.479,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "PLANTATION FEDERAL BANK",
+   "cityState": "PAWLEYS ISLAND, SC",
+   "failDate": "4/27/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 433512,
+   "estimatedCostThousands": 83229.862,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "HARVEST BANK OF MARYLAND",
+   "cityState": "GAITHERSBURG, MD",
+   "failDate": "4/27/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 163019,
+   "estimatedCostThousands": 26694.483,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SECURITY BANK, NATIONAL ASSOCIATION",
+   "cityState": "NORTH LAUDERDALE, FL",
+   "failDate": "5/4/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 101026,
+   "estimatedCostThousands": 15097.541,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "ALABAMA TRUST BANK, NATIONAL ASSOCIATION",
+   "cityState": "SYLACAUGA, AL",
+   "failDate": "5/18/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 51553,
+   "estimatedCostThousands": 10671.923,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "FIRST CAPITAL BANK",
+   "cityState": "KINGFISHER, OK",
+   "failDate": "6/8/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 44448,
+   "estimatedCostThousands": 8725.354,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FARMERS' AND TRADERS' STATE BANK",
+   "cityState": "SHABBONA, IL",
+   "failDate": "6/8/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 43077,
+   "estimatedCostThousands": 10243.026,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "WACCAMAW BANK",
+   "cityState": "WHITEVILLE, NC",
+   "failDate": "6/8/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 533114,
+   "estimatedCostThousands": 23756.214,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "CAROLINA FEDERAL SAVINGS BANK",
+   "cityState": "CHARLESTON, SC",
+   "failDate": "6/8/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 54373,
+   "estimatedCostThousands": 17629.773,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "THE FARMERS BANK OF LYNCHBURG",
+   "cityState": "LYNCHBURG, TN",
+   "failDate": "6/15/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 163859,
+   "estimatedCostThousands": 33105.602,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "PUTNAM STATE BANK",
+   "cityState": "PALATKA, FL",
+   "failDate": "6/15/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 169489,
+   "estimatedCostThousands": 28751.066,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SECURITY EXCHANGE BANK",
+   "cityState": "MARIETTA, GA",
+   "failDate": "6/15/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 150962,
+   "estimatedCostThousands": 44759.752,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "MONTGOMERY BANK & TRUST",
+   "cityState": "AILEY, GA",
+   "failDate": "7/6/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 153208,
+   "estimatedCostThousands": 65798.276,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "GLASGOW SAVINGS BANK",
+   "cityState": "GLASGOW, MO",
+   "failDate": "7/13/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 22341,
+   "estimatedCostThousands": 1395.592,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "HEARTLAND BANK",
+   "cityState": "LEAWOOD, KS",
+   "failDate": "7/20/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 96002,
+   "estimatedCostThousands": 362.839,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "SECOND FEDERAL SAVINGS AND LOAN ASSOCIATION OF CHICAGO",
+   "cityState": "CHICAGO, IL",
+   "failDate": "7/20/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 190891,
+   "estimatedCostThousands": 86252.32,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "FIRST CHEROKEE STATE BANK",
+   "cityState": "WOODSTOCK, GA",
+   "failDate": "7/20/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 209021,
+   "estimatedCostThousands": 36215.052,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "THE ROYAL PALM BANK OF FLORIDA",
+   "cityState": "NAPLES, FL",
+   "failDate": "7/20/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 78771,
+   "estimatedCostThousands": 16848.136,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "GEORGIA TRUST BANK",
+   "cityState": "BUFORD, GA",
+   "failDate": "7/20/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 116890,
+   "estimatedCostThousands": 25334.58,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "JASPER BANKING COMPANY",
+   "cityState": "JASPER, GA",
+   "failDate": "7/27/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 206672,
+   "estimatedCostThousands": 49244.251,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "WAUKEGAN SAVINGS BANK",
+   "cityState": "WAUKEGAN, IL",
+   "failDate": "8/3/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 83679,
+   "estimatedCostThousands": 23518.002,
+   "resolutionType": "FAILURE",
+   "charterClass": "SI"
+  },
+  {
+   "name": "FIRST COMMERCIAL BANK",
+   "cityState": "BLOOMINGTON, MN",
+   "failDate": "9/7/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 215867,
+   "estimatedCostThousands": 65212.542,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "TRUMAN BANK",
+   "cityState": "ST. LOUIS, MO",
+   "failDate": "9/14/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 282338,
+   "estimatedCostThousands": 39468.719,
+   "resolutionType": "FAILURE",
+   "charterClass": "SM"
+  },
+  {
+   "name": "FIRST UNITED BANK",
+   "cityState": "CRETE, IL",
+   "failDate": "9/28/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 328422,
+   "estimatedCostThousands": 33841.059,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "EXCEL BANK",
+   "cityState": "SEDALIA, MO",
+   "failDate": "10/19/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 186113,
+   "estimatedCostThousands": 29581.833,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "FIRST EAST SIDE SAVINGS BANK",
+   "cityState": "TAMARAC, FL",
+   "failDate": "10/19/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 65686,
+   "estimatedCostThousands": 12370.234,
+   "resolutionType": "FAILURE",
+   "charterClass": "SB"
+  },
+  {
+   "name": "GULFSOUTH PRIVATE BANK",
+   "cityState": "DESTIN, FL",
+   "failDate": "10/19/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 139391,
+   "estimatedCostThousands": 40332.286,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "NOVA BANK",
+   "cityState": "BERWYN, PA",
+   "failDate": "10/26/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 444710,
+   "estimatedCostThousands": 85428.31,
+   "resolutionType": "FAILURE",
+   "charterClass": "SI"
+  },
+  {
+   "name": "CITIZENS FIRST NATIONAL BANK",
+   "cityState": "PRINCETON, IL",
+   "failDate": "11/2/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 923959,
+   "estimatedCostThousands": 32458.018,
+   "resolutionType": "FAILURE",
+   "charterClass": "N"
+  },
+  {
+   "name": "HERITAGE BANK OF FLORIDA",
+   "cityState": "LUTZ, FL",
+   "failDate": "11/2/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 225477,
+   "estimatedCostThousands": 73810.965,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "HOMETOWN COMMUNITYBANK",
+   "cityState": "BRASELTON, GA",
+   "failDate": "11/16/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 124561,
+   "estimatedCostThousands": 39664.911,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  },
+  {
+   "name": "COMMUNITY BANK OF THE OZARKS",
+   "cityState": "SUNRISE, MO",
+   "failDate": "12/14/2012",
+   "year": "2012",
+   "assetsAtFailureThousands": 42816,
+   "estimatedCostThousands": 13419.371,
+   "resolutionType": "FAILURE",
+   "charterClass": "NM"
+  }
+ ]
+}

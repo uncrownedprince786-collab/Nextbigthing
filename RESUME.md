@@ -1,5 +1,48 @@
 # Resume here
 
+## 0. HISTORICAL CORPUS CLOSED — READY WITH DOCUMENTED LIMITATIONS, 2026-10-15
+
+**Training still NOT started.** Read `brain.md` rule 151. Artifacts:
+`data/foundation/dataset/source_inventory.json`, `historical_regimes.json`,
+`data/foundation/crisis_2008/`.
+
+### The one table that matters: 18 data layers, 4 joined into training
+
+| Joined into `examples-v3` (4) | Validated but **not** a feature (12) | Blocked (2) |
+|---|---|---|
+| instrument prices/OHLCV | benchmarks 1927+, macro (PIT), rates 1954+, 2008 package, lifecycle, events, press, reactions, principles, regimes, operational news, credit spreads* | delisted US prices, PSX pre-2013 |
+
+11 COMPLETE · 4 PARTIAL · 2 SOURCE_BLOCKED · 1 LICENSE_BLOCKED. *credit spreads are the
+licence-blocked one.
+
+### Deep history was already on disk
+
+`^GSPC` to 1927, `DFF` 1954, `DGS10` 1962, `DX-Y.NYB` 1971, `DCOILWTICO` 1986, `^VIX` 1990.
+Measured drawdowns match the record: **1929 −86.19%**, 1973-74 −48.20%, 1987 −33.51%, dot-com
+−49.15%, **2008 −56.78%**, COVID −33.92%, 2022 −25.43%. Only the last four are inside the
+training window.
+
+### 2008 package — complete as research, empty as training
+
+18/18 FRED series (2005–2012), **481 FDIC failure/assistance records**, 13-entry chronology where
+every date is labelled announcement / effective / filing / market observation / retrospective.
+Validates: unemployment peak **10.00%** (2009-10), TED spread **4.58** (2008-10-10), Case-Shiller
+**−27.4%**, WaMu $307bn on 2008-09-25. **None of it can be a feature** — `examples-v3` starts 2018.
+
+### PSX has no 2008, proved
+
+Real GETs: **2008-08-27 → 404**, **2013-11-01 → 404**, **2013-11-04 → 430 symbols**. The archive
+begins 2013-11-04; the public KSE-100 endpoint starts 2021-10-15. Pakistani 2008 evidence is
+documentable as events, unavailable as prices.
+
+### Verdict: READY WITH DOCUMENTED LIMITATIONS
+
+The first task — 20-session direction classification, chronological, 20-session embargo — is fully
+supported. Limitations that do **not** touch it: no pre-2018 instrument history, no delisted US
+prices, no PSX before 2013, no 2008 credit spread, no execution costs.
+
+---
+
 ## 0. REGIME VERIFICATION — PASS WITH LIMITATIONS, 2026-10-15
 
 **Training still NOT started.** Artifact `data/foundation/dataset/regime_coverage.json`
