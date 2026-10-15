@@ -5054,3 +5054,41 @@ reads rows that already exist:
       sealed replay artifacts through an authenticated GitHub API this session does not have.
       Training on the probe build would use a dataset that silently predates the quality flags --
       the exact failure the brief names.
+
+144. **The dataset rebuild cannot be run from a feature branch, and that is by design rather than
+    by accident.** 2026-10-15. `milestone-c-research-corpus` is pushed and verified on the remote;
+    the rebuild it was meant to unblock is **blocked**, and the reason is worth writing down
+    because it will block every future milestone branch in exactly the same way.
+
+    - **Three independent gates, each deliberate.** `data-pit-features.yml` and
+      `data-assemble.yml` (a) are `workflow_dispatch` plus a push to **main** touching
+      `ops/pit.json` / `ops/assemble.json`, so pushing any other branch triggers nothing;
+      (b) hardcode `actions/checkout@v4` with `ref: main` and expose **no input** to override it,
+      so a dispatch from a feature branch would still build main's code; and (c) carry the
+      **"Prove this run is executing main"** step, which fetches `origin/main` and fails the run
+      when `HEAD` differs. 16 workflows carry that guard and the handoff says in plain words: do
+      not delete it. It exists because run `37028111026` executed a stale file from a default
+      branch 34 commits behind, and the cost was a real migration failure.
+
+    - **So the gate is not "can CI run", it is "is the code on main".** Milestone B is
+      `ba06cd1` and Milestone C is `3ab7f18`, both on feature branches; `origin/main` and
+      `origin/master` are both still `767d26b`. A dispatch today would rebuild from `767d26b` and
+      produce a dataset with **no** `dataQuality.basisBreakInWindow` and **no** event layer, while
+      exiting 0. That is the precise shape of the failure the brief names: a successful workflow
+      exit is not proof of correctness, and here it would be proof of the opposite.
+
+    - **Weakening the guard was the obvious workaround and was refused.** Adding a `ref` input
+      and relaxing the main check would have made the rebuild runnable from this branch. It would
+      also have removed, for a convenience, the one mechanism that stands between this repository
+      and the stale-file class of bug it has already been bitten by. The sanctioned path is to put
+      the code on main, which is a merge, which this task forbade.
+
+    - **Credentials are a second, independent blocker.** No `gh` binary, no `GH_TOKEN` or
+      `GITHUB_TOKEN`. Measured, not assumed: an unauthenticated `POST .../dispatches` returns
+      **401**, and so does the artifact zip endpoint. Dispatch needs `actions: write`.
+
+    - **Nothing is lost while it waits.** All 58 workflow artifacts are live and none has expired:
+      the sealed replay inputs, the `nbt-pit-features-*` sets, and `nbt-dataset-38593680381` at
+      233 MB from 2026-10-14T16:03Z, which expires **2026-11-13**. That dataset is the current
+      authoritative one and it predates both milestones. The rebuild has four weeks of headroom
+      before its inputs start expiring, which is the real deadline on this blocker.

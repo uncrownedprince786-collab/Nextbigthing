@@ -41,6 +41,28 @@ wins, losses and inconclusive cases, which is the point.
 - **Survivorship is measured, not removed.** 63 of 127 S&P removals since 2019 have no free daily
   history left, so the bias figure is a lower bound.
 
+### Pushed, and the rebuild is blocked on main (verified 2026-10-15)
+
+`milestone-c-research-corpus` is pushed: `origin/milestone-c-research-corpus` == local at
+`4374623`, 0 ahead / 0 behind, both milestone commits on the remote. `origin/main` and
+`origin/master` are untouched at `767d26b`.
+
+**The CI rebuild cannot be run from this branch, and not because CI is broken.** Read
+`brain.md` rule 144. `data-pit-features.yml` and `data-assemble.yml` each (1) trigger only on
+dispatch or a push to **main** touching `ops/*.json`, (2) hardcode `checkout ref: main` with no
+input to override it, and (3) carry the **"Prove this run is executing main"** guard that fails
+when `HEAD != origin/main` — a guard 16 workflows share and the handoff says not to delete. A
+dispatch today would rebuild from `767d26b`, producing a dataset with no
+`dataQuality.basisBreakInWindow` and no event layer **while exiting 0**.
+
+Second, independent blocker: no `gh` and no token here. Measured: unauthenticated dispatch POST
+returns **401**, artifact download **401**.
+
+**Nothing has expired.** All 58 workflow artifacts are live, including the sealed replay inputs
+and `nbt-dataset-38593680381` (233 MB, built 2026-10-14T16:03Z) — the current authoritative
+dataset, which predates both milestones. Its inputs expire **2026-11-13**, which is the real
+deadline.
+
 ### The one blocker, and the single next step
 
 The training dataset has not been rebuilt since Milestones B and C. What exists locally is 22,868
@@ -49,8 +71,11 @@ examples in `.cache/foundation/assembled_test3/` — a gitignored probe run pred
 `data-pit-features.yml` → `data-assemble.yml` on a GitHub runner; the assembly needs the sealed
 replay artifacts through an authenticated GitHub API this session does not have.
 
-**Next step: run that rebuild on CI and promote the result to a durable, checksummed artifact.**
-Nothing else is proposed.
+**Next step: get Milestone B and C onto `main` (a merge or fast-forward, the repository's own
+sanctioned path), then dispatch `data-pit-features.yml` → `data-assemble.yml` in that order and
+let the first finish before starting the second — they are separate concurrency groups and the
+assembly reads the feature artifact the first one uploads.** Only then does the rebuild carry the
+milestone changes. Nothing else is proposed.
 
 ---
 

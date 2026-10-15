@@ -234,14 +234,61 @@ B added, which is exactly the "silently appears current" failure the brief forbi
 | Commit | `3ab7f18a0a86419e9691712b8695279b703db255` |
 | Cut from | `ba06cd1a0702f20feed7d6f5e7e3cfd3663e0f62` (Milestone B, protected) |
 | Working tree | changes staged in this milestone; the two acquisition-phase notes remain untracked and unmixed |
-| Pushed | **not yet** — no remote state has been verified, so nothing here claims it was |
+| Pushed | **yes, verified 2026-10-15** — `origin/milestone-c-research-corpus` == local `4374623`, 0 ahead / 0 behind, both milestone commits present |
+| `main` / `master` | untouched at `767d26b`; no merge, no deploy, no amend |
+
+---
+
+## 9a. CI rebuild attempt — BLOCKED, with evidence
+
+The branch is pushed, and the rebuild it was meant to unblock cannot run from it. Three gates,
+each deliberate, verified in the repository and against GitHub's API:
+
+1. **Trigger.** Both workflows fire on `workflow_dispatch` or a push to **`main`** touching
+   `ops/pit.json` / `ops/assemble.json`. Pushing this branch triggers nothing, so there is also no
+   duplicate or competing build to worry about — verified: `data-pit-features` has 3 runs and
+   `data-assemble` 2, all on `main`, all `success`, the most recent 2026-10-14.
+2. **Pinned ref.** Both hardcode `actions/checkout@v4` with `ref: main` and expose **no input** to
+   override it.
+3. **The main guard.** Both carry *"Prove this run is executing main"*, which fetches `origin/main`
+   and fails when `HEAD` differs. 16 workflows share it; `HANDOFF.md` says "Do not delete it",
+   because it exists after run `37028111026` executed a stale file from a default branch 34 commits
+   behind.
+
+So a dispatch today would rebuild from `767d26b` — **no `dataQuality.basisBreakInWindow`, no event
+layer — and exit 0.** A green run would be evidence of the wrong thing.
+
+**I did not weaken the guard.** Adding a `ref` input and relaxing the main check would have made
+the rebuild runnable from here, at the cost of removing the one mechanism standing between this
+repository and a class of bug it has already paid for. The sanctioned path is to put the code on
+`main`, which is a merge, which this task forbade.
+
+**Second, independent blocker: credentials.** No `gh` binary, no `GH_TOKEN`/`GITHUB_TOKEN`.
+Measured, not assumed — unauthenticated `POST .../actions/workflows/data-pit-features.yml/
+dispatches` returns **401**, and the artifact zip endpoint returns **401**. Dispatch needs
+`actions: write`.
+
+**Nothing has expired.** All 58 workflow artifacts are live: the sealed replay inputs, the
+`nbt-pit-features-*` sets, and `nbt-dataset-38593680381` (233,190,836 bytes, 2026-10-14T16:03Z) —
+the current authoritative dataset, which predates both milestones. Its inputs expire
+**2026-11-13**; that is the real deadline on this blocker.
+
+| Gate | Verdict |
+|---|---|
+| Dataset rebuild | **BLOCKED** — code is not on `main`; no credentials to dispatch |
+| Dataset validation | **BLOCKED** — cannot validate an artifact that was not produced |
+| Brain-training readiness | **BLOCKED** — unchanged; depends on the two above |
 
 ---
 
 ## 10. The single next step
 
-**Run the dataset rebuild on CI** — `data-pit-features.yml` then `data-assemble.yml` — so the
-training dataset carries `dataQuality.basisBreakInWindow`, the corrected PSX series and the event
-layer, and promote the result from a scratch directory to a durable, checksummed artifact.
+**Get Milestone B and C onto `main`** — a merge or fast-forward, the repository's own sanctioned
+path and the only one that satisfies the `ref: main` pin and the main guard — **then dispatch
+`data-pit-features.yml`, let it finish, and dispatch `data-assemble.yml`.** The order matters: the
+assembly reads the feature artifact the first run uploads, and they sit in separate concurrency
+groups so nothing serialises them for you.
+
+Both steps need repository credentials this session does not have, so they are the owner's to run.
 
 That is the whole of the next step. Nothing else is proposed.
