@@ -30,8 +30,8 @@
   "weekdayCoverage": 0.9502
  },
  "frozenTargetRequiredFrom": "2018-01-01",
- "coverageAgainstFrozenTarget": "PARTIAL",
- "missingAgainstFrozenTarget": "2018-01-01 .. 2021-10-15",
+ "coverageAgainstFrozenTarget": "COMPLETE",
+ "missingAgainstFrozenTarget": null,
  "licensing": "PSX's terms forbid redistributing its market data feed without a licence, delayed included; recovery-manifest.json carries this as psx-redistribution-licence, an accepted unresolved risk. Acquisition and private use are unaffected; publishing these levels is not cleared.",
  "gapSourceInvestigation": {
   "investigatedAt": "2026-10-15T00:01:22+00:00",
@@ -190,5 +190,23 @@
   "overlapBetweenCandidateAndBaseline": 0,
   "obstacleType": "source permission - not missing data and not a numerical mismatch",
   "permissionRequestsDrafted": "data/foundation/psx_index/PERMISSION-REQUEST.md"
- }
+ },
+ "seriesComposition": {
+  "requiredFrom": "2018-01-01",
+  "publishedSessionsInRange": 2171,
+  "covered": 2171,
+  "missing": 0,
+  "segments": {
+   "2018-01-01..2021-10-14": "Karandaaz portal file, close only, owner-downloaded and owner-confirmed as permitted. Private: .cache/acquire/karandaaz/ and the PC backup.",
+   "2021-10-15..2026-10-14": "Pakistan Stock Exchange EOD endpoint, 1,239 observations, data/foundation/psx_index/KSE100.csv"
+  },
+  "validation": "the two agree on 1,228 shared dates with zero failures at the 0.05% rule and a maximum difference of 0.000026%",
+  "fieldsNotProvided": [
+   "high",
+   "low"
+  ],
+  "note": "the Karandaaz segment is close only and the exchange segment adds open and volume; neither carries high or low, and none were invented",
+  "rejectedCandidate": "the Open Data Pakistan CSV is REJECTED on index identity - its values differ from the verified series by a non-constant ratio between 1.01 and 1.51. It must never be merged into this series."
+ },
+ "finalisedAt": "2026-10-15T00:52:58+00:00"
 }

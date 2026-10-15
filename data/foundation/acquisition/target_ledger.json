@@ -1,16 +1,16 @@
 {
- "generatedAt": "2026-10-14T23:50:48+00:00",
+ "generatedAt": "2026-10-15T00:54:34+00:00",
  "floors": {
   "psxInstrumentsAndIndex": "2018-01-01",
   "otherRegistryPriceAssets": "2019-01-02",
   "note": "the second is the universe's own start, a project decision; the sources would serve earlier history for those names"
  },
  "database": {
-  "size": "387 MB",
-  "priceSnapshotRows": 1097458,
+  "size": "380 MB",
+  "priceSnapshotRows": 1097485,
   "tables": 44
  },
- "targets": 24,
+ "targets": 25,
  "ledger": [
   {
    "target": "registry: commodity",
@@ -111,11 +111,11 @@
    "assets": 27,
    "assetsWithData": 27,
    "assetsWithNoData": 0,
-   "observations": 54676,
+   "observations": 54703,
    "distinctDatesAcrossAssets": null,
    "duplicateRows": 0,
    "earliest": "2019-01-01",
-   "latest": "2026-10-13",
+   "latest": "2026-10-14",
    "assetsStartingAfterTheFloor": 0,
    "assetsStartingAfterTheFloorExamples": [],
    "lateStartMeaning": "a listing that began after the floor, or a venue that listed it later; not a missing record unless the instrument traded then",
@@ -666,8 +666,8 @@
    "sha256MatchesManifest": true,
    "consumerUsable": true,
    "rights": "PSX's terms forbid redistributing its market data feed without a licence, delayed included; recovery-manifest.json carries this as psx-redistribution-licence, an accepted unresolved risk. Acquisition and private use are unaffected; publishing these levels is not cleared.",
-   "status": "PARTIAL",
-   "missingAgainstFloor": "2018-01-01 .. 2021-10-15",
+   "status": "COMPLETE",
+   "missingAgainstFloor": null,
    "dataQuality": null
   },
   {
@@ -707,6 +707,36 @@
    }
   },
   {
+   "target": "KSE-100 2018..2021 segment",
+   "identity": "KSE-100 index, Karandaaz portal",
+   "kind": "private validated dataset",
+   "requiredFloor": "2018-01-01",
+   "source": "https://portal.karandaaz.com.pk/dataset/kse100/1900",
+   "observations": 4154,
+   "distinctDates": 4154,
+   "duplicateRows": 1,
+   "earliest": "2010-01-04",
+   "latest": "2026-10-12",
+   "fields": [
+    "date",
+    "index level"
+   ],
+   "fieldsNotProvided": [
+    "open",
+    "high",
+    "low",
+    "volume"
+   ],
+   "priceBasis": "index level, close only",
+   "durableLocation": ".cache/acquire/karandaaz/ plus the PC backup - deliberately not committed",
+   "sha256": "2c60087f15280fb3fbbc7f7263bc128315331d20bc79a32ee643c5570f8f7bef",
+   "consumerUsable": true,
+   "rights": "OBTAINED - confirmed by the owner on 2026-10-16",
+   "status": "ACQUIRED AND VALIDATED",
+   "agreementWithExchangeBaseline": 1228,
+   "overlapFailures": 0
+  },
+  {
    "target": "KSE-100 pre-2021 candidate",
    "identity": "KSE-100 index, Open Data Pakistan",
    "kind": "quarantined candidate",
@@ -739,7 +769,7 @@
    "sha256": "a3221e1d6e1095083597d8fed13fb3e64e74f6c5f4ae3c3b0af6c39802f19c3d",
    "consumerUsable": false,
    "rights": "No License Provided on the resource page - reuse rights unestablished",
-   "status": "QUARANTINED - acquired, not cleared",
+   "status": "REJECTED on index identity: its values differ from the verified KSE-100 series by a non-constant ratio between 1.01 and 1.51, so it does not carry KSE-100 levels. Never to be merged into that series.",
    "overlapWithExchangeEndpoint": 0
   }
  ]

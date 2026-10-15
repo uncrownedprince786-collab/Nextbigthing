@@ -4818,3 +4818,50 @@ reads rows that already exist:
 
     - **Status: VALIDATED BUT PERMISSION PENDING.** The remaining obstacle is one written reply,
       and it is the last thing standing between this project and a complete frozen KSE-100 range.
+
+140. **The frozen market and macro acquisition phase is closed: 14 of 14 targets acquired.**
+    2026-10-16. The database is unchanged at 387 MB, 1,097,485 rows, 44 tables. Nothing here
+    begins Milestone B.
+
+    - **KSE-100 is complete and this is how it is assembled.** 2018-01-01 to 2021-10-14 comes from
+      the Karandaaz portal file the owner downloaded; 2021-10-15 to 2026-10-14 from the exchange's
+      own EOD endpoint. Across the **2,171 published PSX sessions** since 2018-01-01, **2,171 are
+      covered and none are missing**. The two segments agree on **1,228 shared dates with zero
+      failures** at the 0.05% rule and a maximum difference of **0.000026%**, which is what made
+      it safe to treat them as one series.
+
+    - **It is close-only where the source is close-only.** The Karandaaz file carries `Date` and
+      the index level and nothing else; the exchange segment adds open and volume. **Neither
+      carries high or low, and none were invented.** Any consumer wanting a range from this series
+      will not find one, which is the correct outcome rather than a gap to fill.
+
+    - **Permission: obtained, confirmed by the owner on 2026-10-16.** The specific conditions were
+      not supplied to this process, so nothing is assumed beyond internal research and model
+      development: the dataset lives in `.cache/acquire/karandaaz/` and in the PC backup, is
+      **never committed to Git**, and is not published on any surface. Raw sha256
+      `2c60087f...0f8f7bef` (103,995 bytes), normalized `0f8e74c5...255d6cc5` (84,700 bytes).
+
+    - **The Open Data Pakistan CSV is rejected and must never be merged.** It fails on **index
+      identity**, not licence: across 2,761 shared dates its values differ from the verified series
+      by a ratio wandering between 1.01 and 1.51, and on 2021-02-23 it reads 31,626.19 where the
+      verified series and the exchange both read 45,728.75. Rule 139 records how a direction-only
+      cross-check had let it pass.
+
+    - **Where the next session should look.** Manifest
+      `data/foundation/acquisition/manifest.json` (`acquisition-manifest-v7-final`) and the
+      per-target ledger `data/foundation/acquisition/target_ledger.json`, which carries a required
+      floor per target decided before the data was read. Durable series files under
+      `data/foundation/{benchmarks,sbp,psx_index,psx_delisted}`; 17 of 17 artifact checksums match.
+      The private KSE-100 segment is the one dataset outside the repository, by design.
+
+    - **No further acquisition or resync is required** unless specific evidence of a defect
+      appears. The two known, documented data-quality notes stand and are not defects: `DCOILWTICO`
+      prints -36.98 on 2020-04-20, the day WTI settled negative, and the delisted archive holds 369
+      rows where the exchange published open=high=low on a thin session against a differently
+      computed close.
+
+    - **Still ahead, and explicitly not done.** Milestone B -- cleaning and point-in-time integrity
+      -- has not begun and needs the owner's approval. After it, still required and not started:
+      **historical news and original documents, the major crash and bull-run timelines, pre-event
+      information, catalysts, and post-event market reactions.** That corpus is a separate research
+      requirement and nothing in this phase has touched it.

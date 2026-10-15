@@ -275,9 +275,12 @@
  },
  "permissionStatus": {
   "accessObtained": "the owner downloaded the file through the portal's own flow",
-  "useStillUnresolved": "the portal Terms of Use require the express written permission of KRN & CS before the content may be used; access is not a grant of use",
+  "usePermission": "OBTAINED - confirmed by the owner on 2026-10-16",
+  "confirmedBy": "owner statement in session; the written grant itself was not supplied to this process",
+  "conditionsRecorded": "none were supplied. Because the specific conditions are not held here, redistribution is not assumed: the dataset stays in private storage and out of Git, and nothing publishes it.",
   "dataValidated": true,
-  "dataCleared": false,
-  "requestDrafted": "data/foundation/psx_index/PERMISSION-REQUEST.md"
- }
+  "dataCleared": true,
+  "status": "VALIDATED AND CLEARED for internal research and model development"
+ },
+ "finalStatus": "ACQUIRED AND VALIDATED"
 }

@@ -159,6 +159,27 @@ def main() -> None:
             })
 
     # ---- quarantined candidate ----
+    # the validated KSE-100 segment that lives outside the repository
+    kar = load(F / "psx_index" / "kse100_karandaaz_candidate.json")
+    if kar:
+        ledger.append({
+            "target": "KSE-100 2018..2021 segment", "identity": "KSE-100 index, Karandaaz portal",
+            "kind": "private validated dataset", "requiredFloor": PSX_FLOOR,
+            "source": "https://portal.karandaaz.com.pk/dataset/kse100/1900",
+            "observations": kar["observations"], "distinctDates": kar["distinctDates"],
+            "duplicateRows": kar["rejected"].get("duplicateDate", 0),
+            "earliest": kar["first"], "latest": kar["last"],
+            "fields": kar["fields"], "fieldsNotProvided": kar["fieldsNotProvided"],
+            "priceBasis": "index level, close only",
+            "durableLocation": (".cache/acquire/karandaaz/ plus the PC backup - deliberately not "
+                                "committed"),
+            "sha256": kar["sha256"],
+            "consumerUsable": True,
+            "rights": kar["permissionStatus"]["usePermission"],
+            "status": kar["finalStatus"],
+            "agreementWithExchangeBaseline": kar["overlapVsExchangeBaseline"]["matchedDates"],
+            "overlapFailures": kar["overlapVsExchangeBaseline"]["failureCount"]})
+
     odp = load(F / "psx_index" / "kse100_opendata_candidate.json")
     if odp:
         ledger.append({
@@ -176,7 +197,9 @@ def main() -> None:
             "sha256": odp["sha256Raw"],
             "consumerUsable": False,
             "rights": "No License Provided on the resource page - reuse rights unestablished",
-            "status": "QUARANTINED - acquired, not cleared",
+            "status": ("REJECTED on index identity: its values differ from the verified KSE-100 "
+                       "series by a non-constant ratio between 1.01 and 1.51, so it does not "
+                       "carry KSE-100 levels. Never to be merged into that series."),
             "overlapWithExchangeEndpoint": odp["overlappingSessionsWithPsxEndpoint"],
         })
 
