@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-15T22:09:43+00:00",
+ "generatedAt": "2026-10-15T22:55:33+00:00",
  "version": "context-routing-v1",
  "roles": {
   "training-feature": "enters the model's feature vector for an instrument",
@@ -84,13 +84,13 @@
    ],
    "mayVote": false,
    "pointInTime": "FRED observation dates; same publication-lag rule as macro",
-   "whenAbsent": "absent: the context line is omitted rather than filled with a stale level",
-   "consumer": "tools/foundation/macro.py",
+   "whenAbsent": "an unreadable spread is None, never False: 'could not look' is not 'not inverted'",
+   "consumer": "tools/foundation/macro_context.py",
    "consumerResolves": true,
    "unknownRoles": [],
    "voteRoleConsistent": true,
-   "provingTest": null,
-   "integrationProven": false
+   "provingTest": "tests/test_context_integration.py",
+   "integrationProven": true
   },
   {
    "layer": "banking and credit stress (2008 window)",
@@ -228,8 +228,8 @@
    "consumerResolves": true,
    "unknownRoles": [],
    "voteRoleConsistent": true,
-   "provingTest": null,
-   "integrationProven": false
+   "provingTest": "tests/test_context_integration.py",
+   "integrationProven": true
   },
   {
    "layer": "event-to-market reactions",
@@ -259,8 +259,8 @@
    "consumerResolves": true,
    "unknownRoles": [],
    "voteRoleConsistent": true,
-   "provingTest": null,
-   "integrationProven": false
+   "provingTest": "tests/test_context_integration.py",
+   "integrationProven": true
   },
   {
    "layer": "regime episodes",
@@ -296,12 +296,8 @@
  "summary": {
   "declared": 18,
   "consumersResolving": 18,
-  "integrationProven": 15,
-  "routedNotYetProven": [
-   "interest rates and yield curve",
-   "operational news feed",
-   "books, references and testable principles"
-  ],
+  "integrationProven": 18,
+  "routedNotYetProven": [],
   "mayVote": 3,
   "neverVote": 15,
   "byRole": {

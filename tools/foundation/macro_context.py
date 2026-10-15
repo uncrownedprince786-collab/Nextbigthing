@@ -182,3 +182,55 @@ def context_for(on: date | str, codes: list[str] | None = None,
         "role": "decision-context",
         "mayVote": False,
     }
+
+
+#: The rates route's own series: the short, belly and long ends plus the two spreads FRED
+#: publishes directly. All are daily and unrevised, so `availableAt` is authoritative for them.
+CURVE = ("DGS3MO", "DGS2", "DGS10", "T10Y2Y", "T10Y3M")
+
+
+def curve_at(on: date | str, series_dir: Path | None = None,
+             vintage_dir: Path | None = None, same_day: bool = False) -> dict:
+    """The yield curve as it stood for a decision on `on`, with its shape named.
+
+    The rates layer's economic role is the *shape* of the term structure, not the level of any
+    one tenor: an inversion is a statement about the relationship between two points, and reading
+    a single yield tells you nothing about it. So this returns the tenors that were knowable, the
+    spreads, and whether the curve was inverted -- and, like everything else in this module, no
+    direction. An inverted curve is context for a decision; it is not a vote to be short.
+
+    `inverted` is `None` rather than `False` when the spread could not be read. "We could not
+    look" and "we looked and it was positive" are different facts, and collapsing them is how a
+    missing series becomes a bullish signal.
+    """
+    block = context_for(on, list(CURVE), series_dir, vintage_dir, same_day)
+    readings = block["readings"]
+
+    def val(code: str) -> float | None:
+        r = readings.get(code)
+        try:
+            return float(r["value"]) if r else None
+        except (TypeError, ValueError):
+            return None
+
+    t10y2y, t10y3m = val("T10Y2Y"), val("T10Y3M")
+    # Prefer the published spread; fall back to differencing the tenors only when both are known.
+    if t10y2y is None and val("DGS10") is not None and val("DGS2") is not None:
+        t10y2y = round(val("DGS10") - val("DGS2"), 4)
+    if t10y3m is None and val("DGS10") is not None and val("DGS3MO") is not None:
+        t10y3m = round(val("DGS10") - val("DGS3MO"), 4)
+
+    inverted = None if (t10y2y is None and t10y3m is None) else (
+        (t10y2y is not None and t10y2y < 0) or (t10y3m is not None and t10y3m < 0))
+
+    return {
+        "asOf": block["asOf"],
+        "sameDayCredited": same_day,
+        "tenors": {c: val(c) for c in ("DGS3MO", "DGS2", "DGS10")},
+        "spreads": {"T10Y2Y": t10y2y, "T10Y3M": t10y3m},
+        "inverted": inverted,
+        "notKnowable": block["notKnowable"],
+        "readings": readings,
+        "role": "decision-context",
+        "mayVote": False,
+    }

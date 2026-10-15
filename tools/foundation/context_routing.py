@@ -75,8 +75,8 @@ ROUTES: dict[str, tuple[tuple[str, ...], bool, str, str, str, str]] = {
     "interest rates and yield curve": (
         ("decision-context", "research-only"), False,
         "FRED observation dates; same publication-lag rule as macro",
-        "absent: the context line is omitted rather than filled with a stale level",
-        "tools/foundation/macro.py", ""),
+        "an unreadable spread is None, never False: 'could not look' is not 'not inverted'",
+        "tools/foundation/macro_context.py", "tests/test_context_integration.py"),
     "banking and credit stress (2008 window)": (
         ("research-only", "evaluation-stratification"), False,
         "2005-2012; entirely before the 2018 dataset, so it can only inform research",
@@ -121,7 +121,7 @@ ROUTES: dict[str, tuple[tuple[str, ...], bool, str, str, str, str]] = {
         ("decision-context",), False,
         "published < decision; pruned at 70 days, so never a historical corpus",
         "coverage 'unavailable' is never converted into a neutral tone",
-        "jobs/lineage.py", ""),
+        "jobs/lineage.py", "tests/test_context_integration.py"),
     "event-to-market reactions": (
         ("historical-prior", "research-only"), False,
         "before-state strictly before the event; forward windows strictly after",
@@ -131,7 +131,7 @@ ROUTES: dict[str, tuple[tuple[str, ...], bool, str, str, str, str]] = {
         ("research-only",), False,
         "literature has no bearing on a decision timestamp",
         "an untestable principle is recorded as untestable",
-        "tools/foundation/principles.py", ""),
+        "tools/foundation/principles.py", "tests/test_context_integration.py"),
     "regime episodes": (
         ("evaluation-stratification",), False,
         "episode windows are known only in hindsight, so they may never enter a predictor",
