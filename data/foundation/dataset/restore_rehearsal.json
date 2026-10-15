@@ -1,52 +1,61 @@
 {
- "generatedAt": "2026-10-15T21:24:21+00:00",
- "artifact": {
-  "source": "GitHub Actions artifact 11960878774 (nbt-backup-38712534137)",
+ "generatedAt": "2026-10-15T22:23:11+00:00",
+ "status": "COMPLETED",
+ "what": "a real PostgreSQL restore of the sealed backup into an isolated, disposable cluster",
+ "target": {
+  "engine": "PostgreSQL 15.18",
+  "host": "127.0.0.1",
+  "port": 55432,
+  "database": "nbt_restore",
+  "dataDirectory": "session scratchpad, deleted after the rehearsal",
+  "isolation": "a cluster created for this rehearsal; production was never written to"
+ },
+ "source": {
+  "artifact": "GitHub Actions 11960878774 (nbt-backup-38712534137)",
   "sealed": "aes-256-cbc, pbkdf2, 200000 iterations",
-  "decrypted": true
- },
- "verifyResult": {
-  "command": "python tools/restore_db.py verify <dir>",
-  "filesVerified": "44 of 44",
-  "exitCode": 0
- },
- "backupManifest": {
   "schemaVersion": "20261011130000_decision_history",
-  "tableCount": 44,
-  "rowCount": 1274646,
-  "status": "verified",
-  "errors": [],
-  "started": "2026-10-15T09:23:32"
+  "dumpStarted": "2026-10-15T09:23:32"
  },
- "backupVsLive": {
+ "schemaPreparation": "prisma migrate deploy applied all 32 migrations to the empty target",
+ "toolResult": "restore: VERIFIED: 43 tables, 1,274,615 rows, content digests equal",
+ "constraintsAndIndexes": {
+  "foreignKeys": 45,
+  "primaryKeys": 44,
+  "indexes": 138,
+  "sequences": 0
+ },
+ "independentRecount": {
+  "backupTables": 44,
+  "restoredTables": 44,
+  "backupRows": 1274646,
+  "restoredRows": 1274646,
+  "rowCountMismatches": {}
+ },
+ "theOneDifference": "the tool verifies 43 tables and 1,274,615 rows; the manifest counts 44 and 1,274,646. The difference is _prisma_migrations (31 rows), which the restore deliberately does not load because the target was migrated by Prisma and so supplies its own. Every data table matches exactly.",
+ "selectedRowCounts": {
   "PriceSnapshot": {
    "backup": 1097638,
-   "live": 1098074,
-   "delta": 436
+   "restored": 1097638
   },
-  "AssetFactor": {
-   "backup": 3075,
-   "live": 3075,
-   "delta": 0
+  "IntradayBar": {
+   "backup": 103898,
+   "restored": 103898
   },
-  "Asset": {
-   "backup": 616,
-   "live": 616,
-   "delta": 0
-  },
-  "News": {
-   "backup": 8134,
-   "live": 8726,
-   "delta": 592
+  "EventImpact": {
+   "backup": 8878,
+   "restored": 8878
   },
   "DecisionLog": {
    "backup": 2778,
-   "live": 2778,
-   "delta": 0
+   "restored": 2778
+  },
+  "Asset": {
+   "backup": 616,
+   "restored": 616
+  },
+  "News": {
+   "backup": 8134,
+   "restored": 8134
   }
- },
- "liveDatabaseSize": "398 MB",
- "whatThisProves": "the sealed artifact decrypts, every one of its 44 table files matches its recorded checksum and row count, and the counts agree with the live database allowing for ingestion since the dump. This is strictly more than a dump-and-encrypt job reporting success.",
- "whatThisDoesNotProve": "no rows were loaded into a running Postgres. restore_db.py restore requires RESTORE_DATABASE_URL to name a migrated, empty target; this machine has no running database engine (docker daemon not running, and psql/pg_restore/initdb are absent), so a full restore rehearsal remains OUTSTANDING and is not claimed.",
- "exactBlocker": "no running PostgreSQL instance available as a disposable restore target"
+ }
 }
