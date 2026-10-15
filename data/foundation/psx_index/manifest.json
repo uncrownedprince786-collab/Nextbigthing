@@ -157,5 +157,38 @@
     "result": "HTTP 404 - no robots file published"
    }
   ]
+ },
+ "karandaazAttempt": {
+  "attemptedAt": "2026-10-15T00:33:25+00:00",
+  "datasetPage": "https://portal.karandaaz.com.pk/dataset/kse100/1900",
+  "pageTitle": "KSE - 100 index",
+  "downloadControlsOffered": [
+   "/download/csv",
+   "/download/xslx",
+   "/studio?export=4133"
+  ],
+  "result": "every download control returns HTTP 200 with a 33,157-byte HTML page whose <title> is \"Login\" and which carries a password field. The portal's ordinary download flow requires an account.",
+  "dataDownloaded": false,
+  "accountCreated": false,
+  "whyNotPursued": "creating an account or signing in on the owner's behalf is not something this process does, and the task forbids bypassing access controls. No credential was entered and no registration was attempted.",
+  "termsOfUse": {
+   "parties": "Karandaaz Pakistan (KRN) and CS Solutions (Pvt) Limited (CS)",
+   "quoted": [
+    "KRN & CS and its licensors retain all proprietary rights to that content and technology.",
+    "any license or right to use any of the Content or proprietary material without the express written permission of KRN & CS ... any rights not expressly granted herein are reserved"
+   ],
+   "consequence": "express written permission is required before this data may be stored or used, independently of whether the download button works"
+  },
+  "verdict": "REJECTED for this pass - not obtainable through the legitimate flow available here, and its terms require express written permission"
+ },
+ "remainingGapMeasuredExactly": {
+  "interval": "2021-02-24..2021-10-14",
+  "publishedPsxSessions": 155,
+  "method": "counted from this project's own sweep of the exchange daily archive (.cache/acquire/psx_sweep_ledger.json), status=published",
+  "nonPublishedWeekdaysInWindow": 12,
+  "boundaryConfirmed": "the quarantined candidate ends 2021-02-23 and 2021-02-24 is a published session; 2021-10-14 is a published session and the acquired baseline begins 2021-10-15. The gap is contiguous and exact.",
+  "overlapBetweenCandidateAndBaseline": 0,
+  "obstacleType": "source permission - not missing data and not a numerical mismatch",
+  "permissionRequestsDrafted": "data/foundation/psx_index/PERMISSION-REQUEST.md"
  }
 }
