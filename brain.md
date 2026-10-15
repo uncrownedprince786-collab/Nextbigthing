@@ -4737,3 +4737,39 @@ reads rows that already exist:
       to 2018-01-01 under a licence this project can rely on**, and three sources now sit in that
       same bucket: Karandaaz, Open Data Pakistan and CountryEconomy. The data exists and is
       correct; permission does not.
+
+138. **The PSX endpoint has no older history to give, and now that is proved from its own code
+    rather than inferred from a 404.** 2026-10-16, bounded PSX-only pass. No database change.
+
+    - **The contract, read from the site.** `static/script.js` calls
+      `$.getJSON("/timeseries/" + type + "/" + symbol)` with **no parameters**, then slices the
+      returned array in the browser with `filter(from, to, data)`. The 1D/1W/1M buttons are a
+      client-side view of one payload. So the payload is everything the endpoint holds.
+
+    - **Confirmed against the wire, not assumed.** Six parameter forms -- `from`/`to`,
+      `start`/`end`, `period1`/`period2`, `limit=20000`, `years=10`, and no query at all -- each
+      returned **HTTP 200 with the identical 1,240 rows, 2021-10-15 to 2026-10-14**. A `/2018`
+      path segment returned 404. The endpoint ignores parameters; it does not withhold history
+      behind one.
+
+    - **The official archives do not carry the index either, checked inside the gap.**
+      `POST /historical` with `date=2021-06-15` answered 200 with 326,329 bytes and **575 rows,
+      every one a security** -- `data-type` is only `equity` and `debt`, and there is no index
+      row. The daily closing file for the same session holds 554 rows and no index row, which is
+      what the same check already showed at 2018-01-01 and 2026-10-13. The exchange publishes the
+      KSE-100 level on its indices page and in that five-year endpoint, and nowhere else free.
+
+    - **Nothing new opened this pass.** The Internet Archive's CDX answered 503 and was left
+      alone; its measured density of about ten captures a year could not fill ~160 sessions in any
+      case. `psx.com.pk/resources-and-tools/{downloads,historical-data}` answer 200 with a
+      zero-byte body. `dps.psx.com.pk/robots.txt` is a 404, so that host publishes no exclusion --
+      which is worth recording precisely because CountryEconomy's does name ClaudeBot.
+
+    - **The quarantined file was re-verified, not re-downloaded.** sha256 unchanged, 3,206
+      observations reparsed, resource page still states **No License Provided**.
+
+    - **Verdict: PSX still blocked, and the obstacle is permission, not capability.** The daily
+      history for 2018-01-01 to 2021-02-23 is sitting on this machine and cannot be used; the
+      stub from 2021-02-24 to 2021-10-14 is not held by any source reached. The single cheapest
+      move is not technical: ask Open Data Pakistan's publisher to state a licence on the resource
+      already downloaded.

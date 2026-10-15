@@ -74,5 +74,88 @@
    "locate the SBP bulletin on the rebuilt site and check its reuse terms - lawful but monthly only"
   ]
  },
- "independentValidationOfAcquiredSegment": "CountryEconomy, an unrelated publisher, quotes 44821.53 for 2021-10-15 and 44629.45 for 2021-10-18; the stored exchange-endpoint closes for those dates are identical."
+ "independentValidationOfAcquiredSegment": "CountryEconomy, an unrelated publisher, quotes 44821.53 for 2021-10-15 and 44629.45 for 2021-10-18; the stored exchange-endpoint closes for those dates are identical.",
+ "endpointCapabilityExhausted": {
+  "testedAt": "2026-10-15T00:12:43+00:00",
+  "contractFromSiteCode": "static/script.js calls $.getJSON(\"/timeseries/\"+type+\"/\"+symbol) with NO parameters and then slices the returned array client-side with filter(from,to,data). The payload is therefore the whole series the endpoint has, and the range buttons are a browser-side view of it.",
+  "parameterFormsTested": [
+   {
+    "query": "(none)",
+    "status": 200,
+    "rows": 1240,
+    "range": "2021-10-15..2026-10-14"
+   },
+   {
+    "query": "?from=2018-01-01&to=2018-12-31",
+    "status": 200,
+    "rows": 1240,
+    "range": "identical"
+   },
+   {
+    "query": "?start=2018-01-01&end=2018-12-31",
+    "status": 200,
+    "rows": 1240,
+    "range": "identical"
+   },
+   {
+    "query": "?period1=1514764800&period2=1546300799",
+    "status": 200,
+    "rows": 1240,
+    "range": "identical"
+   },
+   {
+    "query": "?limit=20000",
+    "status": 200,
+    "rows": 1240,
+    "range": "identical"
+   },
+   {
+    "query": "?years=10",
+    "status": 200,
+    "rows": 1240,
+    "range": "identical"
+   },
+   {
+    "query": "/2018 (path segment)",
+    "status": 404,
+    "rows": 0,
+    "range": null
+   }
+  ],
+  "conclusion": "every parameter form returns the identical fixed window, which matches the site code: the endpoint has no date-range contract and no older history to give.",
+  "officialArchivesCheckedInsideTheGap": [
+   {
+    "source": "POST https://dps.psx.com.pk/historical  body date=2021-06-15",
+    "status": 200,
+    "bytes": 326329,
+    "tableRows": 575,
+    "dataTypesPresent": [
+     "equity",
+     "debt"
+    ],
+    "indexRowPresent": false,
+    "note": "the full official daily table for a session inside the gap lists securities only"
+   },
+   {
+    "source": "daily closing file, mkt_summary 2021-06-15",
+    "rows": 554,
+    "indexRowPresent": false,
+    "note": "consistent with the same check at 2018-01-01 and 2026-10-13"
+   }
+  ],
+  "otherRoutesThisPass": [
+   {
+    "source": "Internet Archive CDX, captures of dps.psx.com.pk/indices inside the gap window",
+    "result": "HTTP 503; stopped with that host. An earlier measurement found 69 captures across seven years (~10/yr), so even if served it would yield a handful of scattered levels against ~160 sessions - not a daily fill."
+   },
+   {
+    "source": "https://www.psx.com.pk/psx/resources-and-tools/{downloads,historical-data}",
+    "result": "HTTP 200 with a zero-byte body"
+   },
+   {
+    "source": "dps.psx.com.pk/robots.txt",
+    "result": "HTTP 404 - no robots file published"
+   }
+  ]
+ }
 }
