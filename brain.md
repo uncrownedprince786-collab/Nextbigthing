@@ -4990,3 +4990,67 @@ reads rows that already exist:
       whose whole range is within 2% of its own low. Consistent with a closing price computed on a
       different basis from the intraday range, but that is a hypothesis and the exchange's own
       specification would settle it. Quarantined on the uncertainty, not on a diagnosis.
+
+143. **Milestone C: the corpus was built in October and never loaded, and the loading is most of
+    the work.** 2026-10-15, data-foundation completion. Branch `milestone-c-research-corpus`, cut
+    from the protected Milestone B commit. Database grew 384 MB to 385 MB.
+
+    - **168 verified events existed in a file and 8 existed in the database.** `events.py`
+      verified 168 of 240 candidates against Wikipedia, Wikidata and a measured move, writing
+      `data/foundation/events/events.json`. `jobs/events.py` seeds a hand-written list of eight,
+      and eight is what the site and every reader had seen since. Loading the corpus took historical
+      `Event` rows from **8 to 176**, asset links from 8 to 119, the span from 2022-2025 to
+      **2019-2026** and the categories from 4 to 12. No new source, no fetch, no verification --
+      the evidence was already paid for and was sitting on disk. Worth remembering when the next
+      instinct is to collect more: check what was collected and never wired up.
+
+    - **Linkage came from the corpus, not from a matcher.** Each verified event names the one
+      instrument that was checked for a move at verification time, so the link is explicit
+      evidence rather than a similarity score: 119 map to a stored asset, 48 are the MKT and PSX
+      market proxies, and `GME` is not in the universe and is reported rather than dropped. The
+      alternative -- measuring all 616 assets against all 168 events -- was rejected twice over:
+      ~197,000 rows against 115 MB of headroom, and more importantly it manufactures rows that
+      *look* causal, which is the error `jobs/events.py`'s own docstring was written about.
+
+    - **Three fields that must never merge, and the dataset's shape is the argument.** `before` is
+      built from bars strictly before the event session and is the only part a model may read as
+      an input. `day0` is the event session's own move -- evidence and a label, never actionable,
+      because the information arrived during that session and its close is already after it.
+      `forward` starts at the session *after* day0. Putting day0 in the features is the leak; putting
+      it in the outcome is why event studies look profitable. Measured over all 167 rows: **0**
+      before-states dated on or after their event, **0** forward windows starting at or before the
+      event session, **0** windows ending before they start.
+
+    - **The distribution is the second proof, and it is the one that would have caught a cheat.**
+      1d 74 up / 93 down, 5d 79/88, 20d 88/79, 60d 104/60; **20-session continuation of the day-0
+      move at 44.9%**, and a median 20-day excess return of **-0.197%** across 92 benchmarked rows.
+      A corpus that showed 85% continuation would be re-reporting day 0 under a forward label.
+      Near coin-flip with no abnormal return is what an honest event corpus looks like, and it is
+      now a test with bounds rather than a paragraph.
+
+    - **An instrument cannot be its own benchmark.** The first build adjusted the 43 MKT events
+      against `^GSPC`, which *is* MKT, and produced an excess return of exactly 0.0 -- which reads
+      as "no abnormal move" when the truth is "the question does not apply". Caught by looking at a
+      row rather than at the summary.
+
+    - **Rule 130's open line, closed.** `events.py` built the PSX reaction series with
+      `source ILIKE 'Pakistan%'`, reading the exchange file and skipping the 183,267 recovered
+      Karachi bars -- about half the stored PSX history. `a.currency = 'PKR'` selects the market
+      instead of the vendor. The stored `market` blocks for the five PSX-proxy events were computed
+      under the old predicate and would change on a re-verification, which was not run: it is a
+      fetch-heavy job and the brief forbids reconfirming what has sufficient evidence.
+
+    - **What is genuinely not available, stated once.** Historical news. `News` holds 8,134 items
+      across **37 days**, because RSS serves a recent window and no free source carries a news
+      archive at scale for PSX or globally. The event corpus is the historical catalyst layer
+      instead. Equally absent: PSX borrow availability and historical spreads, so no execution-cost
+      model is asserted anywhere and no backtest may assume free execution.
+
+    - **Readiness is BLOCKED on one thing, and naming it precisely is the deliverable.** The
+      training dataset has not been rebuilt since Milestones B and C. What exists locally is 22,868
+      examples in `.cache/foundation/assembled_test3/`, a gitignored probe run that predates
+      `dataQuality.basisBreakInWindow` and the event layer. The authoritative build is
+      `data-pit-features.yml` then `data-assemble.yml` on a runner, and the assembly needs the
+      sealed replay artifacts through an authenticated GitHub API this session does not have.
+      Training on the probe build would use a dataset that silently predates the quality flags --
+      the exact failure the brief names.

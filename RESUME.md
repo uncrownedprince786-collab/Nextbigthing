@@ -1,5 +1,59 @@
 # Resume here
 
+## 0. State of play, 2026-10-15 — Milestone C COMPLETE, training readiness BLOCKED
+
+**Read this, then `brain.md` rules 142 and 143. Full evidence:
+`MILESTONE-C-CLOSEOUT-2026-10-15.md`.**
+
+| | |
+|---|---|
+| Branch | `milestone-c-research-corpus`, cut from Milestone B `ba06cd1` (protected, do not reopen) |
+| Database | 1,097,638 rows, **385 MB** of 500 MB; no price row added or changed |
+| Tests | **1,019 Python** (21 new), **466 web**, 0 failures; `verify_durable.py` exit 0 |
+| Data-foundation gate | **PASS**, two documented source limitations |
+| Training readiness | **BLOCKED** — see "the one blocker" below |
+
+**What this milestone did.** The verified event corpus — 168 events checked against Wikipedia,
+Wikidata and a measured market move back in October — existed only as a file. The database held
+eight. Loading it took historical events from **8 to 176**, asset links to **119**, and the span
+from 2022–2025 to **2019–2026** across 12 categories. On top of it,
+`data/foundation/events/reactions.jsonl.gz` holds **167 event-reaction rows** over 1/5/20/60
+sessions with excess return, MFE/MAE, drawdown and duration.
+
+**The leakage guarantee, measured not asserted.** Every row keeps `before` (bars strictly before
+the event), `day0` (the event session's own move — evidence, never a feature) and `forward` (from
+the session after day0 — the only outcome label) apart. Over all 167 rows: 0 before-states dated
+on or after their event, 0 forward windows starting at or before it, 0 inverted windows. 20-day
+continuation of the day-0 move is **44.9%** and median excess return **−0.197%** — a corpus with
+wins, losses and inconclusive cases, which is the point.
+
+**Also closed:** rule 130's open line. `events.py` built the PSX series with
+`source ILIKE 'Pakistan%'`, skipping the 183,267 recovered Karachi bars; it now reads
+`a.currency = 'PKR'`.
+
+### Known limitations, bounded and documented
+
+- **Historical news is absent.** `News` spans **37 days** (2026-09-08 → 2026-10-15). No free
+  source carries a news archive at scale. The event corpus is the historical catalyst layer; no
+  artifact presents news coverage as complete.
+- **No execution-cost data.** No free source for PSX borrow or historical spreads, so no cost
+  model is asserted and no backtest may assume free execution.
+- **Survivorship is measured, not removed.** 63 of 127 S&P removals since 2019 have no free daily
+  history left, so the bias figure is a lower bound.
+
+### The one blocker, and the single next step
+
+The training dataset has not been rebuilt since Milestones B and C. What exists locally is 22,868
+examples in `.cache/foundation/assembled_test3/` — a gitignored probe run predating
+`dataQuality.basisBreakInWindow` and the event layer. The authoritative build is
+`data-pit-features.yml` → `data-assemble.yml` on a GitHub runner; the assembly needs the sealed
+replay artifacts through an authenticated GitHub API this session does not have.
+
+**Next step: run that rebuild on CI and promote the result to a durable, checksummed artifact.**
+Nothing else is proposed.
+
+---
+
 ## 0. State of play, 2026-10-15 — Milestone B is COMPLETE
 
 **Read this, then `brain.md` rule 142. The acquisition section below it is still accurate about

@@ -155,10 +155,14 @@ def load_series() -> None:
                      WHERE a."assetType"::text = 'stock' AND p.source = 'Yahoo Finance') x
                    WHERE r IS NOT NULL AND abs(r) < 0.4 GROUP BY date ORDER BY date''')
     _series["MKT"] = {r["date"]: float(r["r"]) for r in cur.fetchall()}
+    # `source ILIKE 'Pakistan%'` read only the exchange's own file and silently skipped the
+    # 183,267 bars recovered from the Karachi listing, so the PSX reaction series was built from
+    # roughly half the stored history (brain.md rule 130 flagged this line as the one to change
+    # at the next rebuild). Currency is the right test: it selects the market, not the vendor.
     cur.execute('''SELECT date, avg(r) r FROM (
                      SELECT p.date, p.close / lag(p.close) OVER (PARTITION BY p."assetId" ORDER BY p.date) - 1 r
                      FROM "PriceSnapshot" p JOIN "Asset" a ON a.id = p."assetId"
-                     WHERE p.source ILIKE 'Pakistan%') x
+                     WHERE a.currency = 'PKR') x
                    WHERE r IS NOT NULL AND abs(r) < 0.4 GROUP BY date ORDER BY date''')
     _series["PSX"] = {r["date"]: float(r["r"]) for r in cur.fetchall()}
     cur.execute('''SELECT a.symbol, p.date, p.close FROM "PriceSnapshot" p JOIN "Asset" a ON a.id = p."assetId"
