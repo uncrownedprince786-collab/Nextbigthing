@@ -5145,3 +5145,58 @@ reads rows that already exist:
       `nbt-private/dataset/examples-v3-2026-10-15-run38735767762/` — 283 MB, 20 files,
       `sha256sum -c` clean over 19, `PROVENANCE.json` naming both run ids and both sealed artifact
       digests. The sealed CI artifacts expire 2026-11-14; this copy does not.
+
+146. **Four of the five markets were already complete, and the number that said otherwise was the
+    wrong denominator.** 2026-10-15, multi-market completion. Measurement and one preservation
+    action; no price row was added, changed or deleted.
+
+    - **45% crypto coverage was an artefact of counting.** Against the full market calendar,
+      crypto stores 45.23% of a 75-asset x 2,902-session grid, which reads like a hole. Measured
+      **within each asset's own listed range** it is **100.00%** -- 98,453 of 98,457, four bars
+      missing, 74 of 75 assets complete. The grid was never the right denominator: coins listed
+      between 2018 and 2026 and a coin cannot have a bar before it existed. The same correction
+      puts **US at 100.00%** (535,003 of 535,003, every one of 280 assets complete), forex at
+      99.95% and commodities at 99.97%. The lesson is cheap and keeps recurring in this project:
+      a coverage percentage is a claim about a denominator, and the denominator is usually the bug.
+
+    - **PSX's 36,920 missing bars reconcile exactly to the existing classification.** 91.43%
+      within range, and the shortfall equals `residual_classification.json`'s **36,762 sessions a
+      security did not trade plus 158 on empty archive dates**. Not a gap to fill: a market state
+      already counted, to the row.
+
+    - **The 747 PSX bars are an upstream source error, and that is now evidence rather than a
+      hypothesis.** Forty of them were fetched back from the exchange's own archive and compared
+      field by field: **40 of 40 stored rows are identical to the published file**, and the
+      published file is the thing that is internally inconsistent -- it prints a close outside its
+      own high and low. So it is not symbol or date misalignment, not decimal scaling, not an
+      adjusted-versus-raw mix-up, and not a transformation defect in this repository. Milestone C's
+      closeout called the mechanism unresolved; it is resolved as far as the source permits, and
+      the correct value remains unknowable, so the quarantine stands.
+
+    - **The Milestone B guard is visibly working on live data.** Since the fix, PSX rows with a
+      withheld range went **712 to 824**, incoherent ranges **747 to 717** and collapsed ranges
+      **1,912 to 1,831**, with six withheld in the last thirty days. The historical rows were
+      deliberately left alone, so the only way those counts move is the lane refusing to store a
+      new contradiction. That is the fix reporting on itself.
+
+    - **The 37-day news window is a retention policy, not a source limit, and nobody had checked.**
+      `jobs/retention.py` prunes `News` at **70 days** on `publishedAt` because the deepest reader
+      clusters over 45. So even a perfect historical fetch would be deleted. And the archive side
+      is not closed either: a GDELT DOC 2.0 query for April 2022 returned **8 dated, relevant
+      articles**, free and unauthenticated. Two separate obstacles were being reported as one
+      impossibility. GDELT rate-limits hard -- two rapid follow-up probes returned **429** -- so
+      any use of it needs throttling, and the retention floor has to move before history can be
+      kept.
+
+    - **Costs are category three, and saying so is the honest version.** There is no spread,
+      borrow, fee or slippage field anywhere in the schema and no free source for PSX borrow. So
+      every execution cost is *unknown*, not estimated-and-labelled-observed. Directional research
+      proceeds; executable short-trade claims do not.
+
+    - **The expiry risk was retired rather than noted.** All 45 sealed replay artifacts and
+      checkpoints -- the inputs `data-assemble.yml` cannot rebuild without, expiring 2026-11-12/13
+      -- are copied to `nbt-private/replay-inputs-2026-10-15/` with per-file checksums and a
+      provenance note, 200 MB. Worth recording how it nearly went wrong: the first pass named
+      files by artifact name, eleven artifacts share the name `nbt-canonical-checkpoint`, and the
+      cleanup glob then deleted the correct copies as well. Artifact ids are unique and names are
+      not.

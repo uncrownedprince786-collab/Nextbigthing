@@ -27,6 +27,45 @@ Content digests: **9 of 9 years match** the manifest (hashed over the JSON lines
 **parallel** labelled dataset on main (`data/foundation/events/reactions.jsonl.gz`, 167 rows with
 zero measured leakage). Saying the event layer is "in the training set" would be false.
 
+### Master completion register, measured 2026-10-15
+
+Denominator for "within range" is each asset's own first-to-last stored session on its market's
+calendar, which is the only denominator that does not punish a late listing.
+
+| Market | Prices (within range) | Identity / lifecycle | News & evidence | Event links | Reactions | Costs | PIT | Dataset |
+|---|---|---|---|---|---|---|---|---|
+| **US** 280 assets | **PASS** 535,003/535,003 = 100.00%, 0 missing, all 280 complete | PASS WITH LIMITATIONS — 0 assets ended; survivorship a measured lower bound | BLOCKED — 37-day window | PASS 617 links | PASS | BLOCKED — no data | PASS 0 leakage | PASS |
+| **PSX** 226 assets | **PASS WITH LIMITATIONS** 394,069/430,989 = 91.43%; all 36,920 absences classified | PASS WITH LIMITATIONS — 21 delisted/renamed recovered; 0 current assets ended | BLOCKED — no PKR archive ingested | PASS WITH LIMITATIONS — 5 proxy events | PASS | **BLOCKED** — no borrow/spread | PASS | PASS |
+| **Crypto** 75 assets | **PASS** 98,453/98,457 = 100.00%, 4 missing, 74/75 complete | PASS — late listings are legitimate, 2018→2026 | BLOCKED — 37-day window | PASS WITH LIMITATIONS 7 links | PASS | BLOCKED — no venue fee data | PASS | PASS |
+| **Forex** 27 pairs | **PASS** 54,703/54,729 = 99.95%, 26 missing | PASS — 27 pairs from 2019-01-01 | PASS WITH LIMITATIONS — 31 macro series with `availableAt` | PASS WITH LIMITATIONS 6 links | PASS | BLOCKED — no spread/rollover | PASS | PASS |
+| **Commodity** 8 | **PASS** 15,675/15,680 = 99.97% | PASS | BLOCKED — 37-day window | PASS 14 links | PASS | BLOCKED | PASS | PASS |
+
+Freshness: every market current to 2026-10-14/15, 616 of 616 assets inside their lane interval.
+Intraday exists only as a rolling recent window (US 63,595 bars / 99 assets, crypto 35,835 / 14),
+not history.
+
+**Three things this register corrects.** Crypto is not at 45% — that was the full-calendar grid
+punishing coins for not existing yet. PSX's 36,920 "missing" bars equal
+`residual_classification.json` exactly: 36,762 sessions a security did not trade plus 158 on empty
+archive dates. And the 37-day news window is `jobs/retention.py` pruning at **70 days**, not a
+source limit — a GDELT query for April 2022 returned 8 dated relevant articles, free and
+unauthenticated, though it rate-limits (429) and the retention floor would delete anything fetched.
+
+**The 747 PSX bars are resolved as far as the source allows.** 40 of 40 sampled stored rows are
+identical to the exchange's published file, and the file itself prints a close outside its own
+range: an upstream source error, not a transformation defect here. The correct value is
+unknowable, so the quarantine stands. Dependent calculations that must exclude them:
+`horizons.true_range` (ATR), `horizons.pivots` (structural levels) — both already skip bars with
+no range via `has_range()` — and any future range, gap or intraday-position feature. Closes are
+unaffected and are used everywhere.
+
+The Milestone B guard is working on live data: PSX withheld ranges **712 → 824**, incoherent
+**747 → 717**, collapsed **1,912 → 1,831**, six withheld in the last 30 days.
+
+**Replay inputs preserved.** All 45 sealed artifacts and checkpoints copied to
+`nbt-private/replay-inputs-2026-10-15/` (200 MB, per-file checksums, `PROVENANCE.json`) before
+their 2026-11-12/13 expiry.
+
 ### The defined first training task, and why it is eligible
 
 **Task:** 20-session direction classification over the 616-asset universe, chronological
