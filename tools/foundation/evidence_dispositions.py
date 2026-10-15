@@ -45,12 +45,24 @@ CORPUS = ROOT / "data" / "foundation" / "events" / "events.json"
 DOC_CACHE = ROOT / ".cache" / "foundation" / "gdelt"
 GKG_CACHE = ROOT / ".cache" / "foundation" / "gkg"
 OUT_DIR = ROOT / "data" / "foundation" / "events"
+FILINGS = OUT_DIR / "official_filings.json"
 
 FOUND = "PRESS_EVIDENCE_FOUND"
 OFFICIAL = "OFFICIAL_SOURCE_ONLY"
 NO_MATCH = "SEARCHED_NO_MATCH"
 LIMITED = "SOURCE_LIMITED"
 PENDING = "PENDING"
+
+
+def cached_at(path: Path) -> str:
+    """When this evidence was collected, taken from its checkpoint file.
+
+    Not `now`: a rebuild of the artifact is not a retrieval, and stamping it as one would change
+    every record's timestamp -- and so the file's checksum -- on every run, which makes the
+    artifact impossible to pin.
+    """
+    return datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat(
+        timespec="seconds")
 
 
 def event_id(e: dict) -> str:
@@ -80,17 +92,28 @@ def main() -> int:
 
     # Route 1: the DOC API cache, keyed by the same slug the collector used.
     doc_by_event: dict[str, dict] = {}
+    doc_when: dict[str, str] = {}
     for e in events:
         p = DOC_CACHE / f"{event_id(e)}.json"
         if p.exists():
             doc_by_event[e["name"]] = json.loads(p.read_text(encoding="utf-8"))
+            doc_when[e["name"]] = cached_at(p)
 
     # Route 2: the GKG archive cache, keyed by date.
     gkg_by_date: dict[str, dict] = {}
+    gkg_when: dict[str, str] = {}
     for p in sorted(GKG_CACHE.glob("*.json")):
         blob = json.loads(p.read_text(encoding="utf-8"))
         if blob.get("date"):
             gkg_by_date[blob["date"]] = blob
+            gkg_when[blob["date"]] = cached_at(p)
+
+    # Official filings recovered for events that ended with no press reference. An 8-K filed by
+    # the registrant on the earnings date is the announcement itself, so it upgrades the
+    # disposition -- to OFFICIAL_SOURCE_ONLY, never to PRESS_EVIDENCE_FOUND.
+    filings = {}
+    if FILINGS.exists():
+        filings = json.loads(FILINGS.read_text(encoding="utf-8")).get("filings", {})
 
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     records: dict[str, dict] = {}
@@ -146,11 +169,20 @@ def main() -> int:
             kept.append(r)
 
         off = official_evidence(e)
+        filed = filings.get(e["name"])
+        if filed:
+            routes["secEdgarFilings"] = (f"{filed['form']} filed {filed['filingDate']} "
+                                         f"(+{filed['daysFromEvent']}d)")
+            off = {"kind": f"official filing ({filed['form']}) by the registrant",
+                   "url": filed["url"], "accession": filed["accession"],
+                   "filingDate": filed["filingDate"], "registrant": filed.get("registrant")}
         if kept:
             state = FOUND
         elif any(v.startswith("blocked") or v.startswith("unavailable")
                  for v in routes.values()):
             state = LIMITED
+        elif filed:
+            state = OFFICIAL
         elif all(v == "not attempted" for v in routes.values()):
             state = PENDING
         elif off:
@@ -159,9 +191,11 @@ def main() -> int:
             state = NO_MATCH
 
         for r in kept:
+            when = (doc_when.get(e["name"]) if r["route"] == "gdelt-doc-api"
+                    else gkg_when.get(e["date"])) or now
             rec = {"eventId": eid, "eventName": e["name"], "eventDate": e["date"],
                    "eventCategory": e.get("category"), "instrument": e.get("instrument"),
-                   "retrievedAt": now,
+                   "retrievedAt": when,
                    "accessStatus": "reference only; article text was not fetched", **r}
             records.setdefault(f"{eid}|{r['dedupeKey']}", rec)
 

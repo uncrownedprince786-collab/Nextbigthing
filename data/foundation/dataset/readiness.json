@@ -1,0 +1,208 @@
+{
+ "generatedAt": "2026-10-15T00:00:00+00:00",
+ "version": "training-readiness-v1",
+ "verdict": "PASS WITH LIMITATIONS",
+ "verdictScope": "the agreed first training task only; not a claim that every use case is ready",
+ "trainingStarted": false,
+
+ "authoritativeDataset": {
+  "name": "examples-v3",
+  "rows": 1085544,
+  "assets": 616,
+  "dateRange": ["2018-01-01", "2026-09-24"],
+  "builtFrom": {
+   "commit": "a62b392829515e8eb5f63260a3aa784d378ed80e",
+   "pitFeaturesRun": 38733216507,
+   "assembleRun": 38735767762,
+   "pitArtifactConsumed": "11972311495"
+  },
+  "durableLocation": "nbt-private/dataset/examples-v3-2026-10-15-run38735767762/",
+  "checksums": "dataset/manifest.json sha256ByYear, 9 of 9 verified over the JSON lines; SHA256SUMS.txt over 19 files",
+  "featureCoverage": 0.9716,
+  "setupCoverage": 0.6974
+ },
+
+ "initialTask": {
+  "name": "20-session direction classification",
+  "inputs": "the `pit.f` block only: 15 price and volume derived features",
+  "featureNames": ["atr14", "drawdownPct", "entryTrigger", "peerMedianR20", "peers", "r1", "r20",
+                   "r5", "rangePct", "relStrength", "returnZ", "sma20", "sma50",
+                   "triggerDirection", "volumeRatio"],
+  "label": "label20",
+  "labelRule": "fwd20 = close[t+20]/close[t] - 1; UP when fwd20 >= +2.0%, DOWN when <= -2.0%, else FLAT",
+  "labelThresholdPct": 2.0,
+  "maturity": "a session inside the final 20 of a series is excluded as immature, never labelled FLAT",
+  "auxiliaryOutcomes": ["fwd1", "fwd5", "mfe", "mae", "baseClose", "sessionsAvailable"],
+  "labelCounts": {"UP": 458828, "FLAT": 213594, "DOWN": 413122},
+  "labelShares": {"UP": 0.4227, "FLAT": 0.1967, "DOWN": 0.3806}
+ },
+
+ "coverageByMarket": {
+  "US": {"rows": 641661, "assets": 280, "pricesWithinListedRange": 1.0},
+  "PK": {"rows": 389720, "assets": 226, "pricesWithinListedRange": 0.9143,
+         "note": "every absence classified: 36,762 no-trade sessions plus 158 empty archive dates"},
+  "FX": {"rows": 54163, "assets": 27, "pricesWithinListedRange": 0.9995}
+ },
+
+ "labelBalanceByClass": {
+  "stock": {"rows": 903427, "UP": 0.439, "FLAT": 0.178, "DOWN": 0.383},
+  "crypto": {"rows": 96953, "UP": 0.401, "FLAT": 0.095, "DOWN": 0.503},
+  "forex": {"rows": 54163, "UP": 0.177, "FLAT": 0.680, "DOWN": 0.142,
+            "warning": "the fixed 2% band is not volatility-scaled and collapses 68% of FX into FLAT; FX direction classification is weakly supported by this label"},
+  "commodity": {"rows": 15511, "UP": 0.447, "FLAT": 0.205, "DOWN": 0.348},
+  "etf": {"rows": 15490, "UP": 0.440, "FLAT": 0.242, "DOWN": 0.318}
+ },
+
+ "diversityAndIndependence": {
+  "instruments": 616,
+  "medianRowsPerInstrument": 1936,
+  "topFiveInstrumentsShareOfRows": 0.0133,
+  "exactDuplicateRows": 0,
+  "identicalFeatureVectors": 0,
+  "outcomeWindowOverlap": "consecutive rows for one instrument share 19 of their 20 forward sessions",
+  "effectiveIndependentExamples": 54277,
+  "effectiveNote": "rows / 20. The row count is not the sample size for a 20-session label, and any confidence interval must use the effective figure"
+ },
+
+ "adverseRegimeCoverage": {
+  "downShareByYear": {"2018": 0.488, "2019": 0.330, "2020": 0.326, "2021": 0.373, "2022": 0.470,
+                      "2023": 0.356, "2024": 0.352, "2025": 0.369, "2026": 0.440},
+  "note": "the bear periods are present and are the most DOWN-heavy years, so adverse conditions are represented rather than averaged away",
+  "outcomeSpread": {"fwd20Median": 0.38, "fwd20P10": -12.83, "fwd20P90": 15.86,
+                    "mfeMedian": 5.04, "maeMedian": -4.37}
+ },
+
+ "pointInTimeAndLeakage": {
+  "featureDatedAfterSession": 0,
+  "setupDatedAfterSession": 0,
+  "futureNamedFieldScanRows": 18000,
+  "duplicates": {"outcomes": 0, "features": 0},
+  "reproducible": {"year": 2018, "byteIdentical": true},
+  "macroObservationsDatedAfterTheirSession": 0,
+  "usrecExcluded": "the NBER recession flag is ex-post and is excluded from the PIT feature set, with a test asserting its absence",
+  "splitPlan": {
+   "method": "chronological, walk-forward",
+   "embargoSessions": 20,
+   "why": "one full label horizon, because a session's outcome window extends 20 sessions past it; without the embargo the last training rows and the first test rows share outcome sessions",
+   "notExecuted": "no split was run and no model was evaluated in this milestone"
+  }
+ },
+
+ "dataQualityExclusions": {
+  "unadjustedActionInWindow": 24224,
+  "windowIsNotDaily": 3009,
+  "basisBreakInWindow": 1278,
+  "weekendBarsExcludedByThePipeline": 171,
+  "psxQuarantinedIncoherentRanges": 717,
+  "howToUse": "each flag is a column on the row, so a training run excludes them explicitly rather than hoping they were filtered upstream"
+ },
+
+ "evidenceToDatasetMap": {
+  "1_persistedSourceEvidence": {
+   "pressReferences": "data/foundation/events/press_evidence.jsonl (1,146 records, 627 publishers)",
+   "officialFilings": "data/foundation/events/official_filings.json (13 SEC filings)",
+   "instrumentLifecycle": "data/foundation/survivorship/sec_lifecycle.json (127 removals resolved)",
+   "verifiedEventCorpus": "data/foundation/events/events.json (168 verified)",
+   "inExamplesV3": false
+  },
+  "2_structuredEventRecords": {
+   "where": "Event 699 rows (176 historical, 523 scheduled), EventLink 642",
+   "inExamplesV3": false
+  },
+  "3_derivedReactionRecords": {
+   "where": "data/foundation/events/reactions.jsonl.gz (167 rows), EventImpact 8,878, EventState",
+   "inExamplesV3": false
+  },
+  "4_featuresAndLabelsInTheDataset": {
+   "features": "pit.f, 15 price and volume derived fields",
+   "labels": "outcome.label20 plus fwd1/fwd5/fwd20/mfe/mae",
+   "inExamplesV3": true
+  },
+  "5_preservedButNotConsumed": {
+   "macro": "dataset/macro/macro-sessions.jsonl.gz ships inside the same bundle: 2,844 sessions, 31 series, each with value, publication age and change. Joinable on date; NOT pre-joined into the example rows",
+   "pressAndEventLayers": "preserved as separate artifacts; no example row carries an event or news field",
+   "decision": "not required for the first task, which is price-and-volume direction classification. Integrating them is a later capability milestone, not a gap in this one"
+  }
+ },
+
+ "useCaseMatrix": {
+  "A_marketStructureAndRegimes": {
+   "trendAndMomentum": "SUPPORTED (r1, r5, r20, sma20, sma50, returnZ)",
+   "rangeAndMeanReversion": "SUPPORTED (rangePct, drawdownPct, atr14)",
+   "breakoutsAndFailures": "PARTIAL (entryTrigger and triggerDirection are null on ~90% of rows)",
+   "volatilityExpansion": "SUPPORTED (atr14, returnZ)",
+   "priceVolumeRelationship": "SUPPORTED (volumeRatio); absent for FX, which publishes no volume",
+   "multipleTimeframes": "NOT SUPPORTED (daily bars only; intraday is a 7-day rolling window, not history)",
+   "marketWideVsInstrument": "SUPPORTED (peerMedianR20, relStrength, peers)"
+  },
+  "B_crossAssetAndMacro": {
+   "peerAndSectorRelative": "SUPPORTED (peerMedianR20, relStrength)",
+   "macroReleasesAndRates": "AVAILABLE NOT JOINED (macro-sessions.jsonl.gz, PIT-correct, joinable on date)",
+   "pakistanSpecificPolicy": "PARTIAL (SBP policy rate and KIBOR acquired; not a dataset feature)",
+   "geopoliticalShocks": "EVIDENCE ONLY (event corpus and reactions; not a dataset feature)",
+   "regimeChange": "NOT SUPPORTED as a label; no regime label exists"
+  },
+  "C_companyAndInstrumentEvents": {
+   "earnings": "EVIDENCE ONLY (86 verified earnings events, 13 official filings; not a dataset feature)",
+   "corporateActions": "PARTIAL (237 actions drive the unadjustedActionInWindow flag, which is a quality flag rather than a predictor)",
+   "listingsDelistingsRenames": "EVIDENCE ONLY (sec_lifecycle.json)",
+   "productAndIndustry": "NOT REPRESENTED in the dataset"
+  },
+  "D_newsAndCatalystInterpretation": {
+   "classification": "EVIDENCE ONLY (168 events categorised, 1,146 press references)",
+   "sourceReliability": "PARTIAL (tier and evidence groups per event; no per-publisher statistics)",
+   "preAndPostEventBehaviour": "SUPPORTED IN THE REACTION CORPUS (before / day0 / forward), not in examples-v3",
+   "futureCapability": true
+  },
+  "E_outcomesAndRisk": {
+   "direction": "SUPPORTED (label20)",
+   "returns": "SUPPORTED (fwd1, fwd5, fwd20)",
+   "benchmarkAdjusted": "IN THE REACTION CORPUS ONLY (excess return vs ^GSPC); not in examples-v3",
+   "mfeAndMae": "SUPPORTED",
+   "drawdownAndDuration": "PARTIAL (mae is the adverse excursion; holding duration is fixed at 20 sessions)",
+   "stopAndTargetOrdering": "NOT SUPPORTED (daily closes only; intraday path unknown)",
+   "executionCosts": "NOT SUPPORTED (no observed spread, borrow or fee data for any market)"
+  }
+ },
+
+ "residualLimitations": [
+  {"item": "US delisted prices", "measured": "62 of 127 S&P removals absent; 63 with no recoverable bars",
+   "sourcesTried": ["Yahoo download (404)", "Yahoo v8 chart API (404)", "stooq (bot challenge, not circumvented)", "SEC EDGAR (identity only, never prices)"],
+   "constrains": "unbiased absolute-return claims; survivorship stays a measured lower bound",
+   "doesNotConstrain": "relative and directional research on the surviving universe"},
+  {"item": "FX label balance", "measured": "68% of forex rows are FLAT under the fixed 2% band",
+   "constrains": "FX direction classification with this label",
+   "doesNotConstrain": "equity, crypto and commodity direction classification"},
+  {"item": "Forex 2019-05-22", "measured": "26 observations; ECB differs from the stored close by median 0.178%, max 2.09%",
+   "constrains": "nothing material (0.047% of FX bars); preserved as disputed with the ECB values"},
+  {"item": "PSX incoherent ranges", "measured": "717 bars, quarantined; upstream file itself incoherent",
+   "constrains": "range, ATR and pivot features on those rows",
+   "doesNotConstrain": "close-based features, which is what the first task uses"},
+  {"item": "Execution costs", "measured": "no free historical spread or borrow source for any market",
+   "constrains": "net-of-cost performance claims and PSX short-trade feasibility",
+   "doesNotConstrain": "directional research"},
+  {"item": "Press coverage", "measured": "148 of 168 events with press references, 12 official-source-only, 2 searched-no-match, 6 source-limited, 0 pending",
+   "constrains": "news-driven features, which are not part of the first task"}
+ ],
+
+ "retentionSafety": {
+  "operationalNewsPrunedAtDays": 70,
+  "researchArtifactsPruned": false,
+  "neverPrunedTables": ["Event", "EventLink", "EventImpact", "EventState"],
+  "evidence": "retention.py references no foundation artifact; tests assert that, and that no collector writes into News"
+ },
+
+ "acceptanceCriteria": {
+  "everyMarketHasMeasuredCoverage": true,
+  "noPendingAcquisition": true,
+  "evidenceOrganisedAndTraceable": true,
+  "featureAndLabelDefinitionsVerified": true,
+  "positiveNegativeAdverseInconclusiveSamplesPresent": true,
+  "pitAndLeakageControlsTested": true,
+  "limitationsExplicitAndBounded": true,
+  "artifactDurableAndChecksummed": true,
+  "handoffDocumentsUpdated": true
+ },
+
+ "nextMilestone": "Build the documented rule-based baseline and evaluate it chronologically with a 20-session embargo. No learned model, and no performance claim without out-of-sample evidence."
+}

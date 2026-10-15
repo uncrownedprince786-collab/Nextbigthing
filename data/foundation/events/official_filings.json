@@ -1,0 +1,231 @@
+{
+ "generatedAt": "2026-10-15T16:34:22+00:00",
+ "version": "official-filings-v1",
+ "source": {
+  "name": "SEC EDGAR submissions API",
+  "auth": "none, contact UA required"
+ },
+ "scope": "only events that ended with zero press references; press findings untouched",
+ "window": {
+  "days": 3,
+  "forms": [
+   "10-K",
+   "10-Q",
+   "20-F",
+   "6-K",
+   "8-K"
+  ]
+ },
+ "eventsExamined": 20,
+ "eventsWithAnOfficialFiling": 13,
+ "eventsStillWithout": 7,
+ "whyThisIsNotAPressArticle": "an 8-K is the announcement itself, filed by the company. It is stronger evidence than a report about it and a different kind, so the disposition says OFFICIAL_SOURCE_ONLY",
+ "filings": {
+  "NVDA earnings release (2021-02-24)": {
+   "form": "8-K",
+   "filingDate": "2021-02-24",
+   "accession": "0001045810-21-000007",
+   "daysFromEvent": 0,
+   "items": "2.02,9.01",
+   "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581021000007/nvda-20210224.htm",
+   "cik": 1045810,
+   "ticker": "NVDA",
+   "registrant": "NVIDIA CORP",
+   "evidenceKind": "official filing by the registrant",
+   "retrievedAt": "2026-10-15T16:34:07+00:00"
+  },
+  "NKE earnings release (2021-06-24)": {
+   "form": "8-K",
+   "filingDate": "2021-06-24",
+   "accession": "0000320187-21-000025",
+   "daysFromEvent": 0,
+   "items": "2.02,9.01",
+   "url": "https://www.sec.gov/Archives/edgar/data/320187/000032018721000025/nke-20210624.htm",
+   "cik": 320187,
+   "ticker": "NKE",
+   "registrant": "NIKE, Inc.",
+   "evidenceKind": "official filing by the registrant",
+   "retrievedAt": "2026-10-15T16:34:09+00:00"
+  },
+  "ORCL earnings release (2021-12-09)": {
+   "form": "8-K",
+   "filingDate": "2021-12-09",
+   "accession": "0001564590-21-059893",
+   "daysFromEvent": 0,
+   "items": "2.02,8.01,9.01",
+   "url": "https://www.sec.gov/Archives/edgar/data/1341439/000156459021059893/orcl-8k_20211209.htm",
+   "cik": 1341439,
+   "ticker": "ORCL",
+   "registrant": "ORACLE CORP",
+   "evidenceKind": "official filing by the registrant",
+   "retrievedAt": "2026-10-15T16:34:10+00:00"
+  },
+  "PYPL earnings release (2022-02-01)": {
+   "form": "8-K",
+   "filingDate": "2022-02-01",
+   "accession": "0001633917-22-000021",
+   "daysFromEvent": 0,
+   "items": "2.02,9.01",
+   "url": "https://www.sec.gov/Archives/edgar/data/1633917/000163391722000021/pypl-20220201.htm",
+   "cik": 1633917,
+   "ticker": "PYPL",
+   "registrant": "PayPal Holdings, Inc.",
+   "evidenceKind": "official filing by the registrant",
+   "retrievedAt": "2026-10-15T16:34:13+00:00"
+  },
+  "AMZN earnings release (2022-02-03)": {
+   "form": "8-K",
+   "filingDate": "2022-02-03",
+   "accession": "0001018724-22-000002",
+   "daysFromEvent": 0,
+   "items": "2.02,9.01",
+   "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872422000002/amzn-20220203.htm",
+   "cik": 1018724,
+   "ticker": "AMZN",
+   "registrant": "AMAZON COM INC",
+   "evidenceKind": "official filing by the registrant",
+   "retrievedAt": "2026-10-15T16:34:14+00:00"
+  },
+  "ADBE earnings release (2022-09-15)": {
+   "form": "8-K",
+   "filingDate": "2022-09-15",
+   "accession": "0001140361-22-033412",
+   "daysFromEvent": 0,
+   "items": "1.01,8.01,9.01",
+   "url": "https://www.sec.gov/Archives/edgar/data/796343/000114036122033412/ny20005310x2_8k.htm",
+   "cik": 796343,
+   "ticker": "ADBE",
+   "registrant": "ADOBE INC.",
+   "evidenceKind": "official filing by the registrant",
+   "retrievedAt": "2026-10-15T16:34:16+00:00"
+  },
+  "MU earnings release (2024-03-20)": {
+   "form": "8-K",
+   "filingDate": "2024-03-20",
+   "accession": "0000723125-24-000004",
+   "daysFromEvent": 0,
+   "items": "2.02,9.01",
+   "url": "https://www.sec.gov/Archives/edgar/data/723125/000072312524000004/mu-20240320.htm",
+   "cik": 723125,
+   "ticker": "MU",
+   "registrant": "MICRON TECHNOLOGY INC",
+   "evidenceKind": "official filing by the registrant",
+   "retrievedAt": "2026-10-15T16:34:19+00:00"
+  },
+  "SBUX earnings release (2024-04-30)": {
+   "form": "10-Q",
+   "filingDate": "2024-04-30",
+   "accession": "0000829224-24-000024",
+   "daysFromEvent": 0,
+   "items": "",
+   "url": "https://www.sec.gov/Archives/edgar/data/829224/000082922424000024/sbux-20240331.htm",
+   "cik": 829224,
+   "ticker": "SBUX",
+   "registrant": "STARBUCKS CORP",
+   "evidenceKind": "official filing by the registrant",
+   "retrievedAt": "2026-10-15T16:34:21+00:00"
+  },
+  "ORCL earnings release (2024-06-11)": {
+   "form": "8-K",
+   "filingDate": "2024-06-11",
+   "accession": "0000950170-24-071916",
+   "daysFromEvent": 0,
+   "items": "2.02,8.01,9.01",
+   "url": "https://www.sec.gov/Archives/edgar/data/1341439/000095017024071916/orcl-20240611.htm",
+   "cik": 1341439,
+   "ticker": "ORCL",
+   "registrant": "ORACLE CORP",
+   "evidenceKind": "official filing by the registrant",
+   "retrievedAt": "2026-10-15T16:34:21+00:00"
+  },
+  "ADBE earnings release (2024-06-13)": {
+   "form": "8-K",
+   "filingDate": "2024-06-13",
+   "accession": "0000796343-24-000140",
+   "daysFromEvent": 0,
+   "items": "2.02,9.01",
+   "url": "https://www.sec.gov/Archives/edgar/data/796343/000079634324000140/adbe-20240613.htm",
+   "cik": 796343,
+   "ticker": "ADBE",
+   "registrant": "ADOBE INC.",
+   "evidenceKind": "official filing by the registrant",
+   "retrievedAt": "2026-10-15T16:34:21+00:00"
+  },
+  "ADBE earnings release (2024-12-11)": {
+   "form": "8-K",
+   "filingDate": "2024-12-11",
+   "accession": "0000796343-24-000250",
+   "daysFromEvent": 0,
+   "items": "2.02,9.01",
+   "url": "https://www.sec.gov/Archives/edgar/data/796343/000079634324000250/adbe-20241211.htm",
+   "cik": 796343,
+   "ticker": "ADBE",
+   "registrant": "ADOBE INC.",
+   "evidenceKind": "official filing by the registrant",
+   "retrievedAt": "2026-10-15T16:34:21+00:00"
+  },
+  "ORCL earnings release (2025-09-09)": {
+   "form": "8-K",
+   "filingDate": "2025-09-09",
+   "accession": "0001193125-25-199175",
+   "daysFromEvent": 0,
+   "items": "2.02,8.01,9.01",
+   "url": "https://www.sec.gov/Archives/edgar/data/1341439/000119312525199175/orcl-20250909.htm",
+   "cik": 1341439,
+   "ticker": "ORCL",
+   "registrant": "ORACLE CORP",
+   "evidenceKind": "official filing by the registrant",
+   "retrievedAt": "2026-10-15T16:34:21+00:00"
+  },
+  "CRM earnings release (2026-08-26)": {
+   "form": "8-K",
+   "filingDate": "2026-08-26",
+   "accession": "0001108524-26-000187",
+   "daysFromEvent": 0,
+   "items": "2.02,9.01",
+   "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852426000187/crm-20260826.htm",
+   "cik": 1108524,
+   "ticker": "CRM",
+   "registrant": "Salesforce, Inc.",
+   "evidenceKind": "official filing by the registrant",
+   "retrievedAt": "2026-10-15T16:34:22+00:00"
+  }
+ },
+ "misses": [
+  {
+   "name": "GOOGL earnings release (2019-07-25)",
+   "date": "2019-07-25",
+   "reason": "no 10-K/10-Q/20-F/6-K/8-K within 3 days"
+  },
+  {
+   "name": "NFLX earnings release (2022-01-20)",
+   "date": "2022-01-20",
+   "reason": "no 10-K/10-Q/20-F/6-K/8-K within 3 days"
+  },
+  {
+   "name": "FTX collapse",
+   "date": "2022-11-08",
+   "reason": "instrument BTC is not an SEC registrant"
+  },
+  {
+   "name": "Cool US CPI, November 2022",
+   "date": "2022-11-10",
+   "reason": "instrument MKT is not an SEC registrant"
+  },
+  {
+   "name": "ChatGPT released",
+   "date": "2022-11-30",
+   "reason": "instrument MKT is not an SEC registrant"
+  },
+  {
+   "name": "GS earnings release (2023-01-17)",
+   "date": "2023-01-17",
+   "reason": "no 10-K/10-Q/20-F/6-K/8-K within 3 days"
+  },
+  {
+   "name": "US strikes Iranian nuclear sites",
+   "date": "2025-06-22",
+   "reason": "instrument OIL is not an SEC registrant"
+  }
+ ]
+}

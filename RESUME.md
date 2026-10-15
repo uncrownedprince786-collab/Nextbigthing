@@ -1,5 +1,73 @@
 # Resume here
 
+## 0. DATA FOUNDATION CLOSED — PASS WITH LIMITATIONS, 2026-10-15
+
+**Training has NOT started.** Read this, then `brain.md` rules 148–149. The machine-readable
+package is `data/foundation/dataset/readiness.json`.
+
+| | |
+|---|---|
+| Authoritative dataset | `examples-v3`, **1,085,544 rows**, 616 assets, 2018-01-01 → 2026-09-24 |
+| Built from | `main` `a62b392`; PIT run **38733216507**, assemble run **38735767762** |
+| Durable | `nbt-private/dataset/examples-v3-2026-10-15-run38735767762/` — 9/9 content digests verified |
+| Research corpus | `nbt-private/research-corpus-2026-10-15/` (163 files, checksummed) |
+| Tests | 1,031 Python + 466 web, 0 failures |
+
+### The two numbers that matter most
+
+**Effective sample size is ~54,277, not 1,085,544.** Zero duplicates and zero identical feature
+vectors, but a 20-session label means consecutive rows share 19 of their 20 forward sessions. Any
+confidence interval must use the effective figure, and **a chronological split needs a 20-session
+embargo** or train and test are scored on the same future.
+
+**The dataset contains 15 price/volume features and the outcomes — nothing else.** No macro
+field, no event field, no news field. Verified by reading a row, not the documentation.
+
+### What is in the dataset vs preserved beside it
+
+| Layer | In `examples-v3`? |
+|---|---|
+| 15 price/volume features + `label20`/`fwd1`/`fwd5`/`fwd20`/`mfe`/`mae` | **yes** |
+| Macro (2,844 sessions, 31 series, PIT-correct with publication age) | ships in the same bundle, **joinable on date, not joined** |
+| Press corpus (1,146 refs, 627 publishers), event corpus (168), reactions (167) | **no** — preserved artifacts |
+
+That separation is correct for a price-and-volume direction task. Integrating the event layer is a
+later capability milestone, not a gap in this one.
+
+### First task, and its label rule
+
+20-session direction classification. `fwd20 = close[t+20]/close[t] − 1`; **UP ≥ +2.0%, DOWN ≤
+−2.0%, else FLAT**. Sessions inside the final 20 of a series are excluded as immature, never
+labelled FLAT. Labels: UP 458,828 / FLAT 213,594 / DOWN 413,122.
+
+**The label hides one market:** the flat 2% band puts **68% of forex into FLAT** (equities 18%,
+crypto 10%). FX direction classification is weakly supported by this label.
+
+### Adverse coverage and diversity
+
+DOWN share by year runs 32.6%–48.8%, highest in 2018 and 2022 — the bear periods are in the data.
+616 instruments, top-5 are 1.33% of rows, median 1,936 rows each. Sample preview:
+`data/foundation/dataset/sample_preview.jsonl`, 28 buckets, deliberately including deep adverse
+excursions, UP-after-drawdown, inconclusive FLAT and every quality flag.
+
+### Residual limitations, and exactly what each blocks
+
+| Limitation | Blocks | Does not block |
+|---|---|---|
+| No execution-cost data (any market) | net-of-cost claims, PSX shorts | directional research |
+| 62 delisted US names (4 routes tested) | unbiased absolute-return claims | relative/direction work |
+| FX 68% FLAT under a 2% band | FX direction with this label | equity/crypto/commodity |
+| 717 PSX quarantined bars | range/ATR/pivot on those rows | close-based features |
+| Press: 148/168 with references | news-driven features | the first task |
+
+### The single next milestone
+
+**Build the documented rule-based baseline and evaluate it chronologically with a 20-session
+embargo.** No learned model, and no performance claim without out-of-sample evidence.
+
+---
+
+
 ## 0. State of play, 2026-10-15 — integrated on `main`, dataset rebuilt and validated
 
 **Read this, then `brain.md` rule 145.**

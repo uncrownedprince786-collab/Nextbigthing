@@ -5296,3 +5296,53 @@ reads rows that already exist:
       work around. EDGAR has identity and lifecycle but never prices. So the survivorship figure
       stays a measured lower bound, and that is a limitation with three named attempts behind it
       rather than an assumption.
+
+149. **The row count was never the sample size, and the evidence was never in the dataset.**
+    2026-10-15, data-foundation closeout. One bounded recovery attempt, then the corpus was
+    measured rather than described.
+
+    - **1,085,544 examples are about 54,277 independent ones.** Zero exact duplicates and zero
+      identical feature vectors -- but a 20-session label means consecutive rows for one
+      instrument share **19 of their 20 forward sessions**. Dividing by the horizon is the honest
+      figure, and it is the one any confidence interval has to use. It also fixes the evaluation
+      design: a chronological split needs a **20-session embargo**, or the last training rows and
+      the first test rows are scored on the same future.
+
+    - **The final recovery attempt worked because it stopped looking for the wrong thing.**
+      Eighteen events had no press reference and sixteen were US earnings -- where the press
+      article was never the primary record. EDGAR had an **8-K filed on the event date itself**
+      for thirteen of them, +0 days in every case. Dispositions moved from 14 `SEARCHED_NO_MATCH`
+      to **2**, with those thirteen becoming `OFFICIAL_SOURCE_ONLY` -- better evidence, and
+      labelled as the different kind of evidence it is. A filing is not journalism and the state
+      never pretends otherwise.
+
+    - **The artifact was not idempotent and the brief was right to ask.** `press_evidence.jsonl`
+      stamped `retrievedAt` with the rebuild time, so its checksum changed on every run and
+      nothing could be pinned to it. Retrieval time now comes from the checkpoint file that
+      collected the evidence. A rebuild is not a retrieval.
+
+    - **What is actually in the training dataset, stated once and plainly.** Fifteen price and
+      volume features, and the outcomes. **No macro field, no event field, no news field.** The
+      macro file ships inside the same bundle -- 2,844 sessions, 31 series, each carrying its
+      publication age, zero observations dated after their session -- and is joinable on date, but
+      it is not joined. The press corpus, the event corpus and the reaction corpus are preserved
+      artifacts, not features. For a price-and-volume direction task that is correct rather than
+      incomplete; calling the event layer "in the training set" would have been false, and it was
+      checked by reading a row rather than trusting the documentation.
+
+    - **The label hides a market.** `label20` uses a flat 2% band across every asset class, and
+      for forex that puts **68% of rows into FLAT** -- the band is wider than the move. Equities,
+      crypto and commodities sit at 18-24% FLAT. So FX direction classification is weakly
+      supported by this label and says so in the readiness record, rather than being counted as
+      54,163 usable examples.
+
+    - **Adverse conditions are present, which is the thing a cherry-picked corpus loses.** The
+      DOWN share runs 32.6% to 48.8% by year, and the two most DOWN-heavy years are 2018 and 2022
+      -- the bear periods are in the data, not averaged out of it. The sample preview is drawn by
+      rule into 28 buckets that deliberately include deep adverse excursions, rows labelled UP
+      after a -10% drawdown, inconclusive FLAT rows and every quality flag.
+
+    - **Verdict: PASS WITH LIMITATIONS**, for the first task only. The limitations that remain
+      each name what they constrain and what they do not: no execution-cost data anywhere, so
+      directional research proceeds and net-performance claims do not; 62 delisted US names
+      unrecoverable after four tested routes, so survivorship stays a measured lower bound.

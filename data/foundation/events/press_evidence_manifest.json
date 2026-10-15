@@ -1,16 +1,16 @@
 {
- "generatedAt": "2026-10-15T16:00:44+00:00",
+ "generatedAt": "2026-10-15T16:35:33+00:00",
  "version": "press-evidence-v2",
  "events": 168,
  "dispositionCounts": {
   "PRESS_EVIDENCE_FOUND": 148,
-  "SEARCHED_NO_MATCH": 14,
-  "SOURCE_LIMITED": 4,
-  "OFFICIAL_SOURCE_ONLY": 2
+  "SEARCHED_NO_MATCH": 2,
+  "SOURCE_LIMITED": 6,
+  "OFFICIAL_SOURCE_ONLY": 12
  },
- "pressReferenceRecords": 1127,
+ "pressReferenceRecords": 1146,
  "eventsWithPressEvidence": 148,
- "distinctPublishers": 616,
+ "distinctPublishers": 627,
  "routes": {
   "gdeltDocApi": {
    "endpoint": "https://api.gdeltproject.org/api/v2/doc/doc",
@@ -27,8 +27,8 @@
  "whatAReferenceIs": "a dated link published by an outlet, recovered from an index. No article text was fetched, so no record asserts the page was read",
  "zeroResultMeaning": "SEARCHED_NO_MATCH records that the listed searches completed and returned nothing relevant; it is not a claim about world coverage",
  "file": "press_evidence.jsonl",
- "bytes": 622753,
- "sha256": "cada04b29fae7e60b14cd4f3b237401d80b7b44d479d56db421e055611c62ba6",
+ "bytes": 634289,
+ "sha256": "89ea440d741b1290b37cd5f04dab75b1888cb3bdfd91434e2f69536f8c50de1a",
  "dispositions": [
   {
    "eventId": "9c3729136c374924",
@@ -744,9 +744,16 @@
    "independentPublishers": 0,
    "routes": {
     "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
-    "gdeltGkgArchive": "searched, 0 matched"
+    "gdeltGkgArchive": "searched, 0 matched",
+    "secEdgarFilings": "8-K filed 2021-02-24 (+0d)"
    },
-   "officialEvidence": null
+   "officialEvidence": {
+    "kind": "official filing (8-K) by the registrant",
+    "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581021000007/nvda-20210224.htm",
+    "accession": "0001045810-21-000007",
+    "filingDate": "2021-02-24",
+    "registrant": "NVIDIA CORP"
+   }
   },
   {
    "eventId": "ea74c1ca7fd467ce",
@@ -817,14 +824,21 @@
    "category": "earnings",
    "instrument": "NKE",
    "tier": "B",
-   "disposition": "SEARCHED_NO_MATCH",
+   "disposition": "OFFICIAL_SOURCE_ONLY",
    "pressReferences": 0,
    "independentPublishers": 0,
    "routes": {
     "gdeltDocApi": "searched, 0 returned",
-    "gdeltGkgArchive": "searched, 0 matched"
+    "gdeltGkgArchive": "searched, 0 matched",
+    "secEdgarFilings": "8-K filed 2021-06-24 (+0d)"
    },
-   "officialEvidence": null
+   "officialEvidence": {
+    "kind": "official filing (8-K) by the registrant",
+    "url": "https://www.sec.gov/Archives/edgar/data/320187/000032018721000025/nke-20210624.htm",
+    "accession": "0000320187-21-000025",
+    "filingDate": "2021-06-24",
+    "registrant": "NIKE, Inc."
+   }
   },
   {
    "eventId": "3d8b4bd04cacf271",
@@ -932,9 +946,16 @@
    "independentPublishers": 0,
    "routes": {
     "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
-    "gdeltGkgArchive": "searched, 0 matched"
+    "gdeltGkgArchive": "searched, 0 matched",
+    "secEdgarFilings": "8-K filed 2021-12-09 (+0d)"
    },
-   "officialEvidence": null
+   "officialEvidence": {
+    "kind": "official filing (8-K) by the registrant",
+    "url": "https://www.sec.gov/Archives/edgar/data/1341439/000156459021059893/orcl-8k_20211209.htm",
+    "accession": "0001564590-21-059893",
+    "filingDate": "2021-12-09",
+    "registrant": "ORACLE CORP"
+   }
   },
   {
    "eventId": "187493e3d4a0d404",
@@ -1007,11 +1028,11 @@
    "category": "earnings",
    "instrument": "NFLX",
    "tier": "B",
-   "disposition": "SEARCHED_NO_MATCH",
+   "disposition": "SOURCE_LIMITED",
    "pressReferences": 0,
    "independentPublishers": 0,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
     "gdeltGkgArchive": "searched, 0 matched"
    },
    "officialEvidence": null
@@ -1023,14 +1044,21 @@
    "category": "earnings",
    "instrument": "PYPL",
    "tier": "B",
-   "disposition": "SEARCHED_NO_MATCH",
+   "disposition": "SOURCE_LIMITED",
    "pressReferences": 0,
    "independentPublishers": 0,
    "routes": {
-    "gdeltDocApi": "not attempted",
-    "gdeltGkgArchive": "searched, 0 matched"
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
+    "gdeltGkgArchive": "searched, 0 matched",
+    "secEdgarFilings": "8-K filed 2022-02-01 (+0d)"
    },
-   "officialEvidence": null
+   "officialEvidence": {
+    "kind": "official filing (8-K) by the registrant",
+    "url": "https://www.sec.gov/Archives/edgar/data/1633917/000163391722000021/pypl-20220201.htm",
+    "accession": "0001633917-22-000021",
+    "filingDate": "2022-02-01",
+    "registrant": "PayPal Holdings, Inc."
+   }
   },
   {
    "eventId": "b29784e47e3bfca8",
@@ -1043,7 +1071,7 @@
    "pressReferences": 10,
    "independentPublishers": 9,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "searched, 0 returned",
     "gdeltGkgArchive": "searched, 10 matched"
    },
    "officialEvidence": null
@@ -1055,14 +1083,21 @@
    "category": "earnings",
    "instrument": "AMZN",
    "tier": "B",
-   "disposition": "SEARCHED_NO_MATCH",
+   "disposition": "OFFICIAL_SOURCE_ONLY",
    "pressReferences": 0,
    "independentPublishers": 0,
    "routes": {
-    "gdeltDocApi": "not attempted",
-    "gdeltGkgArchive": "searched, 0 matched"
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 0 matched",
+    "secEdgarFilings": "8-K filed 2022-02-03 (+0d)"
    },
-   "officialEvidence": null
+   "officialEvidence": {
+    "kind": "official filing (8-K) by the registrant",
+    "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872422000002/amzn-20220203.htm",
+    "accession": "0001018724-22-000002",
+    "filingDate": "2022-02-03",
+    "registrant": "AMAZON COM INC"
+   }
   },
   {
    "eventId": "f98f57c1586c1de0",
@@ -1072,10 +1107,10 @@
    "instrument": "OIL",
    "tier": "B",
    "disposition": "PRESS_EVIDENCE_FOUND",
-   "pressReferences": 10,
+   "pressReferences": 11,
    "independentPublishers": 10,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "searched, 1 returned",
     "gdeltGkgArchive": "searched, 10 matched"
    },
    "officialEvidence": {
@@ -1096,7 +1131,7 @@
    "pressReferences": 10,
    "independentPublishers": 9,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
     "gdeltGkgArchive": "searched, 10 matched"
    },
    "officialEvidence": {
@@ -1116,7 +1151,7 @@
    "pressReferences": 3,
    "independentPublishers": 3,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "searched, 0 returned",
     "gdeltGkgArchive": "searched, 3 matched"
    },
    "officialEvidence": null
@@ -1132,7 +1167,7 @@
    "pressReferences": 3,
    "independentPublishers": 3,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "searched, 0 returned",
     "gdeltGkgArchive": "searched, 3 matched"
    },
    "officialEvidence": null
@@ -1148,7 +1183,7 @@
    "pressReferences": 10,
    "independentPublishers": 9,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "searched, 0 returned",
     "gdeltGkgArchive": "searched, 10 matched"
    },
    "officialEvidence": {
@@ -1165,10 +1200,10 @@
    "instrument": "MKT",
    "tier": "B",
    "disposition": "PRESS_EVIDENCE_FOUND",
-   "pressReferences": 10,
-   "independentPublishers": 9,
+   "pressReferences": 24,
+   "independentPublishers": 19,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "searched, 15 returned",
     "gdeltGkgArchive": "searched, 10 matched"
    },
    "officialEvidence": {
@@ -1189,7 +1224,7 @@
    "pressReferences": 10,
    "independentPublishers": 10,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "searched, 0 returned",
     "gdeltGkgArchive": "searched, 10 matched"
    },
    "officialEvidence": null
@@ -1205,7 +1240,7 @@
    "pressReferences": 10,
    "independentPublishers": 8,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
     "gdeltGkgArchive": "searched, 10 matched"
    },
    "officialEvidence": {
@@ -1225,7 +1260,7 @@
    "pressReferences": 10,
    "independentPublishers": 10,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "searched, 0 returned",
     "gdeltGkgArchive": "searched, 10 matched"
    },
    "officialEvidence": {
@@ -1245,7 +1280,7 @@
    "pressReferences": 10,
    "independentPublishers": 8,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
     "gdeltGkgArchive": "searched, 10 matched"
    },
    "officialEvidence": {
@@ -1262,14 +1297,21 @@
    "category": "earnings",
    "instrument": "ADBE",
    "tier": "B",
-   "disposition": "SEARCHED_NO_MATCH",
+   "disposition": "OFFICIAL_SOURCE_ONLY",
    "pressReferences": 0,
    "independentPublishers": 0,
    "routes": {
-    "gdeltDocApi": "not attempted",
-    "gdeltGkgArchive": "searched, 0 matched"
+    "gdeltDocApi": "searched, 0 returned",
+    "gdeltGkgArchive": "searched, 0 matched",
+    "secEdgarFilings": "8-K filed 2022-09-15 (+0d)"
    },
-   "officialEvidence": null
+   "officialEvidence": {
+    "kind": "official filing (8-K) by the registrant",
+    "url": "https://www.sec.gov/Archives/edgar/data/796343/000114036122033412/ny20005310x2_8k.htm",
+    "accession": "0001140361-22-033412",
+    "filingDate": "2022-09-15",
+    "registrant": "ADOBE INC."
+   }
   },
   {
    "eventId": "5e650c1e7dac3ead",
@@ -1282,7 +1324,7 @@
    "pressReferences": 10,
    "independentPublishers": 10,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "searched, 0 returned",
     "gdeltGkgArchive": "searched, 10 matched"
    },
    "officialEvidence": {
@@ -1300,10 +1342,10 @@
    "instrument": "MKT",
    "tier": "B",
    "disposition": "PRESS_EVIDENCE_FOUND",
-   "pressReferences": 10,
-   "independentPublishers": 10,
+   "pressReferences": 14,
+   "independentPublishers": 14,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "searched, 4 returned",
     "gdeltGkgArchive": "searched, 10 matched"
    },
    "officialEvidence": {
@@ -1324,7 +1366,7 @@
    "pressReferences": 10,
    "independentPublishers": 9,
    "routes": {
-    "gdeltDocApi": "not attempted",
+    "gdeltDocApi": "blocked: gave up after 3 attempts (HTTP 429)",
     "gdeltGkgArchive": "searched, 10 matched"
    },
    "officialEvidence": {
@@ -1989,14 +2031,21 @@
    "category": "earnings",
    "instrument": "MU",
    "tier": "B",
-   "disposition": "SEARCHED_NO_MATCH",
+   "disposition": "OFFICIAL_SOURCE_ONLY",
    "pressReferences": 0,
    "independentPublishers": 0,
    "routes": {
     "gdeltDocApi": "not attempted",
-    "gdeltGkgArchive": "searched, 0 matched"
+    "gdeltGkgArchive": "searched, 0 matched",
+    "secEdgarFilings": "8-K filed 2024-03-20 (+0d)"
    },
-   "officialEvidence": null
+   "officialEvidence": {
+    "kind": "official filing (8-K) by the registrant",
+    "url": "https://www.sec.gov/Archives/edgar/data/723125/000072312524000004/mu-20240320.htm",
+    "accession": "0000723125-24-000004",
+    "filingDate": "2024-03-20",
+    "registrant": "MICRON TECHNOLOGY INC"
+   }
   },
   {
    "eventId": "24fb85c19d2ed328",
@@ -2079,14 +2128,21 @@
    "category": "earnings",
    "instrument": "SBUX",
    "tier": "B",
-   "disposition": "SEARCHED_NO_MATCH",
+   "disposition": "OFFICIAL_SOURCE_ONLY",
    "pressReferences": 0,
    "independentPublishers": 0,
    "routes": {
     "gdeltDocApi": "not attempted",
-    "gdeltGkgArchive": "searched, 0 matched"
+    "gdeltGkgArchive": "searched, 0 matched",
+    "secEdgarFilings": "10-Q filed 2024-04-30 (+0d)"
    },
-   "officialEvidence": null
+   "officialEvidence": {
+    "kind": "official filing (10-Q) by the registrant",
+    "url": "https://www.sec.gov/Archives/edgar/data/829224/000082922424000024/sbux-20240331.htm",
+    "accession": "0000829224-24-000024",
+    "filingDate": "2024-04-30",
+    "registrant": "STARBUCKS CORP"
+   }
   },
   {
    "eventId": "a9199b7106634eda",
@@ -2159,14 +2215,21 @@
    "category": "earnings",
    "instrument": "ORCL",
    "tier": "B",
-   "disposition": "SEARCHED_NO_MATCH",
+   "disposition": "OFFICIAL_SOURCE_ONLY",
    "pressReferences": 0,
    "independentPublishers": 0,
    "routes": {
     "gdeltDocApi": "not attempted",
-    "gdeltGkgArchive": "searched, 0 matched"
+    "gdeltGkgArchive": "searched, 0 matched",
+    "secEdgarFilings": "8-K filed 2024-06-11 (+0d)"
    },
-   "officialEvidence": null
+   "officialEvidence": {
+    "kind": "official filing (8-K) by the registrant",
+    "url": "https://www.sec.gov/Archives/edgar/data/1341439/000095017024071916/orcl-20240611.htm",
+    "accession": "0000950170-24-071916",
+    "filingDate": "2024-06-11",
+    "registrant": "ORACLE CORP"
+   }
   },
   {
    "eventId": "b5e72def89a9b105",
@@ -2175,14 +2238,21 @@
    "category": "earnings",
    "instrument": "ADBE",
    "tier": "B",
-   "disposition": "SEARCHED_NO_MATCH",
+   "disposition": "OFFICIAL_SOURCE_ONLY",
    "pressReferences": 0,
    "independentPublishers": 0,
    "routes": {
     "gdeltDocApi": "not attempted",
-    "gdeltGkgArchive": "searched, 0 matched"
+    "gdeltGkgArchive": "searched, 0 matched",
+    "secEdgarFilings": "8-K filed 2024-06-13 (+0d)"
    },
-   "officialEvidence": null
+   "officialEvidence": {
+    "kind": "official filing (8-K) by the registrant",
+    "url": "https://www.sec.gov/Archives/edgar/data/796343/000079634324000140/adbe-20240613.htm",
+    "accession": "0000796343-24-000140",
+    "filingDate": "2024-06-13",
+    "registrant": "ADOBE INC."
+   }
   },
   {
    "eventId": "802029f9bd95caf1",
@@ -2453,14 +2523,21 @@
    "category": "earnings",
    "instrument": "ADBE",
    "tier": "B",
-   "disposition": "SEARCHED_NO_MATCH",
+   "disposition": "OFFICIAL_SOURCE_ONLY",
    "pressReferences": 0,
    "independentPublishers": 0,
    "routes": {
     "gdeltDocApi": "not attempted",
-    "gdeltGkgArchive": "searched, 0 matched"
+    "gdeltGkgArchive": "searched, 0 matched",
+    "secEdgarFilings": "8-K filed 2024-12-11 (+0d)"
    },
-   "officialEvidence": null
+   "officialEvidence": {
+    "kind": "official filing (8-K) by the registrant",
+    "url": "https://www.sec.gov/Archives/edgar/data/796343/000079634324000250/adbe-20241211.htm",
+    "accession": "0000796343-24-000250",
+    "filingDate": "2024-12-11",
+    "registrant": "ADOBE INC."
+   }
   },
   {
    "eventId": "06ea9e312a2903c1",
@@ -2766,14 +2843,21 @@
    "category": "earnings",
    "instrument": "ORCL",
    "tier": "B",
-   "disposition": "SEARCHED_NO_MATCH",
+   "disposition": "OFFICIAL_SOURCE_ONLY",
    "pressReferences": 0,
    "independentPublishers": 0,
    "routes": {
     "gdeltDocApi": "not attempted",
-    "gdeltGkgArchive": "searched, 0 matched"
+    "gdeltGkgArchive": "searched, 0 matched",
+    "secEdgarFilings": "8-K filed 2025-09-09 (+0d)"
    },
-   "officialEvidence": null
+   "officialEvidence": {
+    "kind": "official filing (8-K) by the registrant",
+    "url": "https://www.sec.gov/Archives/edgar/data/1341439/000119312525199175/orcl-20250909.htm",
+    "accession": "0001193125-25-199175",
+    "filingDate": "2025-09-09",
+    "registrant": "ORACLE CORP"
+   }
   },
   {
    "eventId": "102f2f9fcbdf4f93",
@@ -3100,14 +3184,21 @@
    "category": "earnings",
    "instrument": "CRM",
    "tier": "B",
-   "disposition": "SEARCHED_NO_MATCH",
+   "disposition": "OFFICIAL_SOURCE_ONLY",
    "pressReferences": 0,
    "independentPublishers": 0,
    "routes": {
     "gdeltDocApi": "not attempted",
-    "gdeltGkgArchive": "searched, 0 matched"
+    "gdeltGkgArchive": "searched, 0 matched",
+    "secEdgarFilings": "8-K filed 2026-08-26 (+0d)"
    },
-   "officialEvidence": null
+   "officialEvidence": {
+    "kind": "official filing (8-K) by the registrant",
+    "url": "https://www.sec.gov/Archives/edgar/data/1108524/000110852426000187/crm-20260826.htm",
+    "accession": "0001108524-26-000187",
+    "filingDate": "2026-08-26",
+    "registrant": "Salesforce, Inc."
+   }
   }
  ]
 }
