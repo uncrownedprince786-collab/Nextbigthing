@@ -1,0 +1,45 @@
+{
+ "generatedAt": "2026-10-15T22:57:38+00:00",
+ "measured": {
+  "databaseBytes": 417093299,
+  "databasePretty": "397.8 MB",
+  "maxConnections": 60,
+  "currentConnections": 15,
+  "connectionsThisDatabase": 9,
+  "userTables": 83,
+  "deadTuples": 139366,
+  "liveTuples": 1278510,
+  "bloatRatio": 0.109,
+  "largestTablesMB": {
+   "PriceSnapshot": 261.6,
+   "IntradayBar": 52.4,
+   "News": 14.3,
+   "EventImpact": 9.0,
+   "AssetSetup": 5.4,
+   "SetupTarget": 5.2,
+   "NewsLineage": 3.9,
+   "SignalLog": 3.8
+  }
+ },
+ "headroom": {
+  "connections": "VERIFIED: 15 of 60 in use, 9 on this database -- 75% free",
+  "storage": "ASSUMED LIMIT: Supabase free tier is commonly 500 MB, which would put this at about 80% used. The plan limit was NOT read from the provider, so the percentage is an assumption and only the 397.8 MB is measured."
+ },
+ "notes": [
+  "PriceSnapshot is 66% of the database; IntradayBar a further 13%.",
+  "bloat is 10.9% of live tuples; a routine VACUUM would reclaim part of the 397.8 MB.",
+  "83 user tables against 44 in the backup manifest -- the backup covers the data tables."
+ ],
+ "connectionFailover": {
+  "DATABASE_URL": "FAILS: server login has been failing (Prisma pooled endpoint)",
+  "DATABASE_URL_FALLBACK": "FAILS: connection timeout",
+  "SUPABASE_DATABASE_URL": "SERVES: all work in this session ran through it",
+  "consequence": "the system is running on its third option with no further fallback configured"
+ },
+ "notVerified": [
+  "provider plan limits and quota",
+  "egress and request quotas",
+  "CI minute consumption",
+  "sync wall-clock duration per run"
+ ]
+}
