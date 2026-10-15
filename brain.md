@@ -4773,3 +4773,48 @@ reads rows that already exist:
       stub from 2021-02-24 to 2021-10-14 is not held by any source reached. The single cheapest
       move is not technical: ask Open Data Pakistan's publisher to state a licence on the resource
       already downloaded.
+
+139. **The owner's own download closed the KSE-100 gap completely, and in doing so exposed that
+    the file quarantined for months was never the KSE-100 at all.** 2026-10-16. No database
+    change. The data is validated; its use is not yet permitted.
+
+    - **What arrived.** A `Date,KSE 100 Index` CSV, 103,995 bytes, sha256 `2c60087f...0f8f7bef`,
+      downloaded by the owner through the Karandaaz portal's own flow. **4,154 observations,
+      2010-01-04 to 2026-10-12**, one duplicate date rejected, nothing unparseable, nothing
+      non-positive. **Close only** -- no open, high, low or volume, and none were invented.
+
+    - **It is the same series the exchange publishes, to six decimal places.** On **1,228 shared
+      dates** against the exchange endpoint already held: **zero failures** at the frozen 0.05%
+      rule, **maximum difference 0.000026%**, median 0.000003%, 367 exact matches. This is the
+      first candidate that overlapped the baseline at all, and it passed by four orders of
+      magnitude.
+
+    - **It closes the gap exactly.** The interval that no source covered -- 2021-02-24 to
+      2021-10-14, measured at **155 published sessions** -- is **155 of 155 covered, zero
+      missing**, with no date present that is not a published session. Taking this file together
+      with the exchange baseline, **all 2,171 published PSX sessions from 2018-01-01 onward are
+      covered, with none missing**. The frozen KSE-100 range is complete in data.
+
+    - **And it convicts the Open Data Pakistan file.** That file was quarantined on licence
+      grounds and treated as a genuine KSE-100 series with full OHLC. It is not one. On **2,761
+      shared dates** its values differ from this file by a ratio that **wanders between 1.01 and
+      1.51** (median 1.42) -- not a constant rebasing, so not a units or base-year difference
+      either. On 2021-02-23 this file reads **45,728.75** and Open Data reads **31,626.19**; the
+      index was near 45,700 that day. **Rejected on identity**, which is a stronger and more
+      fundamental reason than the licence question that had been holding it.
+
+    - **The weak test that let it pass before.** An earlier check compared Open Data's daily
+      *direction* against the median return of stored constituents and scored 9 of 12. Direction
+      agreement is a test a correlated but different index passes easily. Comparing **levels**
+      against a trusted series is the test that decides, and it was only possible once something
+      trustworthy overlapped it. A cross-check that cannot fail is not a cross-check.
+
+    - **Access is not permission.** The portal's Terms of Use require the **express written
+      permission of KRN & CS** before the content may be used. The owner's download settles how
+      the file was obtained; it does not settle whether it may be stored in this project's
+      database or used to develop a model. So the file is **validated and held privately** --
+      `.cache/acquire/karandaaz/`, gitignored, out of every production table -- and the request
+      that would clear it is drafted at `data/foundation/psx_index/PERMISSION-REQUEST.md`.
+
+    - **Status: VALIDATED BUT PERMISSION PENDING.** The remaining obstacle is one written reply,
+      and it is the last thing standing between this project and a complete frozen KSE-100 range.

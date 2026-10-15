@@ -129,5 +129,12 @@
     "constituents": 174
    }
   ]
+ },
+ "identityCheck": {
+  "checkedAgainst": "the Karandaaz file, which matches the exchange endpoint to 0.000026%",
+  "sharedDates": 2761,
+  "result": "FAILED - values differ by a non-constant ratio, median 1.42, range 1.01 to 1.51",
+  "conclusion": "this file does not carry KSE-100 index levels; rejected on identity",
+  "status": "REJECTED (identity), in addition to the unresolved licence"
  }
 }

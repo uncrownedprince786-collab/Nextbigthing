@@ -1,0 +1,283 @@
+{
+ "validatedAt": "2026-10-15T00:36:55+00:00",
+ "sourceFile": "KSE - 100 index.csv",
+ "bytes": 103995,
+ "sha256": "2c60087f15280fb3fbbc7f7263bc128315331d20bc79a32ee643c5570f8f7bef",
+ "providedBy": "downloaded by the owner through the portal's own flow",
+ "fields": [
+  "date",
+  "index level"
+ ],
+ "fieldsNotProvided": [
+  "open",
+  "high",
+  "low",
+  "volume"
+ ],
+ "granularityMarkerInFile": "Daily",
+ "observations": 4154,
+ "distinctDates": 4154,
+ "rejected": {
+  "headerRows": 2,
+  "unparseableDate": 0,
+  "unparseableValue": 0,
+  "nonPositive": 0,
+  "duplicateDate": 1
+ },
+ "first": "2010-01-04",
+ "last": "2026-10-12",
+ "chronologicalAfterSort": true,
+ "gapInterval": {
+  "from": "2021-02-24",
+  "to": "2021-10-14",
+  "expectedPublishedSessions": 155,
+  "covered": 155,
+  "missing": 0,
+  "missingDates": [],
+  "datesNotAPublishedSession": 0,
+  "datesNotAPublishedSessionExamples": []
+ },
+ "largeDailyMoves": {
+  "thresholdPct": 3.0,
+  "count": 88,
+  "kept": true,
+  "examples": [
+   {
+    "date": "2010-06-10",
+    "prev": 9678.38,
+    "close": 9379.78,
+    "pct": -3.09
+   },
+   {
+    "date": "2010-08-31",
+    "prev": 9516.42,
+    "close": 9813.05,
+    "pct": 3.12
+   },
+   {
+    "date": "2011-08-05",
+    "prev": 11846.16,
+    "close": 11375.09,
+    "pct": -3.98
+   },
+   {
+    "date": "2011-08-09",
+    "prev": 11404.17,
+    "close": 11034.92,
+    "pct": -3.24
+   },
+   {
+    "date": "2013-01-15",
+    "prev": 16633.18,
+    "close": 16107.89,
+    "pct": -3.16
+   },
+   {
+    "date": "2014-08-11",
+    "prev": 29380.5,
+    "close": 28071.41,
+    "pct": -4.46
+   },
+   {
+    "date": "2014-09-03",
+    "prev": 28493.74,
+    "close": 29595.55,
+    "pct": 3.87
+   },
+   {
+    "date": "2015-03-30",
+    "prev": 29957.83,
+    "close": 28927.04,
+    "pct": -3.44
+   },
+   {
+    "date": "2015-03-31",
+    "prev": 28927.04,
+    "close": 30233.87,
+    "pct": 4.52
+   },
+   {
+    "date": "2015-05-11",
+    "prev": 33530.3,
+    "close": 32506.36,
+    "pct": -3.05
+   }
+  ]
+ },
+ "overlapVsExchangeBaseline": {
+  "sourceA": "karandaaz",
+  "sourceB": "psxEndpoint",
+  "matchedDates": 1228,
+  "exactMatches": 367,
+  "withinTolerance": 1228,
+  "tolerance": "0.0500%",
+  "maxAbsPctDiff": 2.6e-05,
+  "medianAbsPctDiff": 3e-06,
+  "failures": [],
+  "failureCount": 0,
+  "datesOnlyInA": 2926,
+  "datesOnlyInB": 11
+ },
+ "overlapVsOpenDataCandidate": {
+  "sourceA": "karandaaz",
+  "sourceB": "openData",
+  "matchedDates": 2761,
+  "exactMatches": 0,
+  "withinTolerance": 0,
+  "tolerance": "0.0500%",
+  "maxAbsPctDiff": 51.344824,
+  "medianAbsPctDiff": 41.900404,
+  "failures": [
+   {
+    "date": "2010-01-04",
+    "karandaaz": 9437.85,
+    "openData": 6700.97,
+    "pctDiff": 40.843
+   },
+   {
+    "date": "2010-01-05",
+    "karandaaz": 9657.38,
+    "openData": 6847.99,
+    "pctDiff": 41.025
+   },
+   {
+    "date": "2010-01-06",
+    "karandaaz": 9727.36,
+    "openData": 6891.55,
+    "pctDiff": 41.1491
+   },
+   {
+    "date": "2010-01-07",
+    "karandaaz": 9737.47,
+    "openData": 6901.59,
+    "pctDiff": 41.0902
+   },
+   {
+    "date": "2010-01-08",
+    "karandaaz": 9776.21,
+    "openData": 6930.92,
+    "pctDiff": 41.0521
+   },
+   {
+    "date": "2010-01-11",
+    "karandaaz": 9797.0,
+    "openData": 6942.43,
+    "pctDiff": 41.1177
+   },
+   {
+    "date": "2010-01-12",
+    "karandaaz": 9778.36,
+    "openData": 6926.07,
+    "pctDiff": 41.1819
+   },
+   {
+    "date": "2010-01-13",
+    "karandaaz": 9784.85,
+    "openData": 6932.11,
+    "pctDiff": 41.1525
+   },
+   {
+    "date": "2010-01-14",
+    "karandaaz": 9802.45,
+    "openData": 6943.19,
+    "pctDiff": 41.1808
+   },
+   {
+    "date": "2010-01-15",
+    "karandaaz": 9923.14,
+    "openData": 7025.46,
+    "pctDiff": 41.2454
+   },
+   {
+    "date": "2010-01-18",
+    "karandaaz": 9895.46,
+    "openData": 7010.09,
+    "pctDiff": 41.1602
+   },
+   {
+    "date": "2010-01-19",
+    "karandaaz": 9954.41,
+    "openData": 7050.38,
+    "pctDiff": 41.1897
+   },
+   {
+    "date": "2010-01-20",
+    "karandaaz": 9904.74,
+    "openData": 7013.69,
+    "pctDiff": 41.2201
+   },
+   {
+    "date": "2010-01-21",
+    "karandaaz": 9753.84,
+    "openData": 6912.69,
+    "pctDiff": 41.1005
+   },
+   {
+    "date": "2010-01-22",
+    "karandaaz": 9777.59,
+    "openData": 6933.03,
+    "pctDiff": 41.0291
+   },
+   {
+    "date": "2010-01-25",
+    "karandaaz": 9689.2,
+    "openData": 6875.87,
+    "pctDiff": 40.916
+   },
+   {
+    "date": "2010-01-26",
+    "karandaaz": 9666.48,
+    "openData": 6859.58,
+    "pctDiff": 40.9194
+   },
+   {
+    "date": "2010-01-27",
+    "karandaaz": 9603.55,
+    "openData": 6815.91,
+    "pctDiff": 40.899
+   },
+   {
+    "date": "2010-01-28",
+    "karandaaz": 9579.81,
+    "openData": 6794.88,
+    "pctDiff": 40.9857
+   },
+   {
+    "date": "2010-01-29",
+    "karandaaz": 9614.19,
+    "openData": 6821.14,
+    "pctDiff": 40.947
+   }
+  ],
+  "failureCount": 2761,
+  "datesOnlyInA": 1393,
+  "datesOnlyInB": 460
+ },
+ "privateArtifacts": {
+  "raw": ".cache\\acquire\\karandaaz\\kse100_karandaaz_raw.csv",
+  "normalized": ".cache\\acquire\\karandaaz\\kse100_karandaaz_normalized.csv",
+  "normalizedSha256": "0f8e74c5b4831a2eb6c1504a5505838113f57e4496fdf1cbe56227bb255d6cc5",
+  "note": "held privately: the portal's Terms of Use require the express written permission of KRN & CS before this content may be used. Not committed, not in production."
+ },
+ "frozenRequirementCoverage": {
+  "requiredFrom": "2018-01-01",
+  "publishedSessionsInRange": 2171,
+  "coveredByKarandaazPlusBaseline": 2171,
+  "stillMissing": 0,
+  "stillMissingDates": [],
+  "verdict": "the frozen KSE-100 range is fully covered"
+ },
+ "identityFindingAboutOpenDataCandidate": {
+  "finding": "the Open Data Pakistan file is NOT the KSE-100 index level. On 2,761 shared dates its values differ from this file by a ratio that wanders between 1.01 and 1.51 (median 1.42), so it is not a constant rebasing either. On 2021-02-23 this file reads 45,728.75 and Open Data reads 31,626.19.",
+  "whyThisFileIsTheTrustedOne": "it matches the exchange's own endpoint on 1,228 shared dates with a maximum difference of 0.000026% and zero failures",
+  "consequence": "the Open Data candidate is rejected on identity, which is a stronger reason than the licence question that had it quarantined. It was never used.",
+  "noteOnTheEarlierDirectionCheck": "an earlier 9/12 direction-agreement check on the Open Data file passed; direction agreement is a weak test that a correlated but different index also passes. The level comparison is the decisive one."
+ },
+ "permissionStatus": {
+  "accessObtained": "the owner downloaded the file through the portal's own flow",
+  "useStillUnresolved": "the portal Terms of Use require the express written permission of KRN & CS before the content may be used; access is not a grant of use",
+  "dataValidated": true,
+  "dataCleared": false,
+  "requestDrafted": "data/foundation/psx_index/PERMISSION-REQUEST.md"
+ }
+}
