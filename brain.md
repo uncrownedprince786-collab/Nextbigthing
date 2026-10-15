@@ -5092,3 +5092,56 @@ reads rows that already exist:
       233 MB from 2026-10-14T16:03Z, which expires **2026-11-13**. That dataset is the current
       authoritative one and it predates both milestones. The rebuild has four weeks of headroom
       before its inputs start expiring, which is the real deadline on this blocker.
+
+145. **The dataset was rebuilt on main, and the only surprise was a checksum that was right.**
+    2026-10-15. Milestones B and C are on `main` and the authoritative dataset now carries them.
+
+    - **The merge was a fast-forward, which is why there was nothing to resolve.** `origin/main`
+      at `767d26b` was an *ancestor* of the Milestone C head, so PR #1 merged 23 commits with no
+      conflict and nothing on main lost. The thing worth noticing is what the previous session got
+      wrong: it reported the rebuild as blocked on credentials after testing *unauthenticated* API
+      calls and finding 401. Git push had been working all along. `git credential fill` returns a
+      `gho_` token with `repo` and `workflow` scope and admin on the repository. **Check the
+      credential helper before concluding there is no credential.**
+
+    - **Default branch moved to `main`, and `master` was left exactly where it is.** This is the
+      fix rule 128's handoff called "proper long-term": scheduled workflows take their file from
+      the default branch, and `master` at `767d26b` was hundreds of commits behind. Vercel's
+      production branch follows the default too, so this also moves what deploys — worth knowing
+      rather than discovering.
+
+    - **Stage A, run `38733216507`: 1,066,708 point-in-time rows**, `expectedRows ==
+      producedRows`, `coverageReconciles: true`, `duplicateRows: 0`, live-equivalence 240 sampled
+      and **0 mismatches**. 16 minutes, peak RSS 1.1 GB. It now covers 2018, which the old build
+      did not, because the PSX recovery put that year in the database.
+
+    - **Stage B, run `38735767762`: 1,085,544 examples**, and it consumed `pitArtifactId
+      11972311495` — the Stage A artifact, confirmed from the run's own annotation rather than
+      assumed from ordering. Feature coverage 0.9716, setup coverage 0.6974, labels UP 458,828 /
+      FLAT 213,594 / DOWN 413,122, every row `mature20`, 2018-01-01 to 2026-09-24.
+
+    - **Milestone B is visibly in the data, which is the only proof that counts.**
+      `dataQuality.basisBreakInWindow` is on every row and true on **1,278**; the manifest carries
+      `basisBreaksKnown: 5` and `symbolsWithABasisBreak: 5`. And `withoutFeaturesByReason` lists
+      **171 "weekend bar of a non-crypto asset (not a session)"** — the 2022-10-01 Saturday, found
+      in Milestone B, excluded by the pipeline without anyone writing a special case for it.
+
+    - **Nine checksums "failed" and the checksums were fine.** Comparing the manifest's
+      `sha256ByYear` against the `.jsonl.gz` files mismatched on all nine years. The digest is
+      taken over the concatenated JSON *lines* (`h.update(line.encode())` in `assemble.py`), not
+      over the gzip container, which carries its own timestamp and compression state. Hashed the
+      way the code defines it, **9 of 9 match**. A checksum comparison is only evidence when both
+      sides hash the same thing, and the cheap mistake is to report the mismatch rather than read
+      the producer.
+
+    - **What the dataset does not contain, stated plainly.** No event or reaction field.
+      `assemble.py` builds from `PriceSnapshot`, the point-in-time features and the replayed
+      setups; the Milestone C corpus is a parallel labelled dataset on main
+      (`data/foundation/events/reactions.jsonl.gz`, 167 rows). That is the design, not an
+      oversight, and claiming the event layer is "integrated into the training set" would be
+      false.
+
+    - **Durable copy**, with its own provenance file and verified checksums:
+      `nbt-private/dataset/examples-v3-2026-10-15-run38735767762/` — 283 MB, 20 files,
+      `sha256sum -c` clean over 19, `PROVENANCE.json` naming both run ids and both sealed artifact
+      digests. The sealed CI artifacts expire 2026-11-14; this copy does not.

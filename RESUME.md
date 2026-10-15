@@ -1,5 +1,56 @@
 # Resume here
 
+## 0. State of play, 2026-10-15 — integrated on `main`, dataset rebuilt and validated
+
+**Read this, then `brain.md` rule 145.**
+
+| | |
+|---|---|
+| Canonical branch | **`main`** — now the repository default; `master` left at `767d26b` as a legacy reference |
+| `origin/main` | `a62b392` (merge of PR #1); Milestones B `ba06cd1` and C `3ab7f18` both ancestors |
+| Stage A | run **38733216507**, success, 1,066,708 point-in-time rows, 0 duplicates, 240/240 live-equivalence |
+| Stage B | run **38735767762**, success, **1,085,544 examples**, consumed pit artifact `11972311495` |
+| Durable copy | `nbt-private/dataset/examples-v3-2026-10-15-run38735767762/` (283 MB, `PROVENANCE.json`, `SHA256SUMS.txt`) |
+| Verdicts | Integration **PASS** · Rebuild **PASS** · Validation **PASS** · Training readiness **PASS for one defined task** |
+
+**The dataset carries the Milestone B safeguards, verified in the rows rather than assumed:**
+`dataQuality.basisBreakInWindow` present on every row and true on **1,278**; manifest
+`basisBreaksKnown: 5`; and `withoutFeaturesByReason` lists **171 "weekend bar of a non-crypto
+asset"** — the 2022-10-01 Saturday, excluded by the pipeline with no special case written for it.
+Leakage: `featureDatedAfterSession` **0**, `setupDatedAfterSession` **0**, future-named-field scan
+clean over 18,000 rows. Duplicates **0**. Reproducibility: 2018 rebuilt byte-identical.
+Content digests: **9 of 9 years match** the manifest (hashed over the JSON lines, which is how
+`assemble.py` defines them — not over the gzip container).
+
+**What the dataset does not contain:** any event or reaction field. `assemble.py` builds from
+`PriceSnapshot`, the point-in-time features and the replayed setups. The Milestone C corpus is a
+**parallel** labelled dataset on main (`data/foundation/events/reactions.jsonl.gz`, 167 rows with
+zero measured leakage). Saying the event layer is "in the training set" would be false.
+
+### The defined first training task, and why it is eligible
+
+**Task:** 20-session direction classification over the 616-asset universe, chronological
+walk-forward, with abstention. Labels `UP` 458,828 / `FLAT` 213,594 / `DOWN` 413,122, every row
+`mature20`, 2018-01-01 → 2026-09-24. Inputs are the `pit` block only; `outcome` is a separate key
+and never an input.
+
+**Eligible because** the leakage, duplicate, maturity and reproducibility gates all pass on
+measured evidence, and the quality flags let a run exclude `unadjustedActionInWindow` (24,224),
+`windowIsNotDaily` (3,009) and `basisBreakInWindow` (1,278) rows explicitly.
+
+**Not eligible, and why:** any task needing historical news (37 days of coverage only), realistic
+execution cost or shorting feasibility (no free PSX borrow or spread data), or survivorship-free
+backtesting (measured as a lower bound, not removed). The 747 quarantined PSX bars stay
+quarantined; their ranges feed nothing.
+
+### The single next step
+
+**Build the documented rule-based baseline and run chronological walk-forward evaluation on it
+before any learned model.** Keep the baseline and any future model separate, and make no
+predictive claim without out-of-sample evidence.
+
+---
+
 ## 0. State of play, 2026-10-15 — Milestone C COMPLETE, training readiness BLOCKED
 
 **Read this, then `brain.md` rules 142 and 143. Full evidence:
