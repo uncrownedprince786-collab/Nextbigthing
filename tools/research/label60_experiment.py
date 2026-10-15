@@ -16,6 +16,7 @@ REPO = pathlib.Path(sys.argv[2])            # repo root
 OUT  = pathlib.Path(sys.argv[3])
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from label60 import band_pct, label_of, calibrate_m, LABEL_THRESHOLD_PCT
+from regime_breakdown import episode_of, episodes_in_training, stratify
 
 FEATURES = ["atr14","drawdownPct","entryTrigger","peerMedianR20","peers","r1","r20","r5",
             "rangePct","relStrength","returnZ","sma20","sma50","triggerDirection","volumeRatio"]
@@ -117,6 +118,9 @@ for as_of,sym,cls,mkt,base,fe,l20 in rows:
     X.append(vec); Y.append(CLASSES.index(lab))
     D.append(as_of); CLS.append(cls); MKT.append(mkt); bands.append(b)
 X=np.asarray(X,dtype=np.float64); Y=np.asarray(Y)
+EPS=episodes_in_training()
+REG=[episode_of(d,EPS) for d in D]
+print('  regime coverage:', {k:v for k,v in __import__('collections').Counter(REG).most_common()}, flush=True)
 print(f"  labelled {len(Y):,}   immature(<60 fwd sessions) {immature:,}   no band {noband:,}", flush=True)
 dist=Counter(CLASSES[y] for y in Y)
 print("  label60 distribution:", {k:round(v/len(Y),4) for k,v in dist.items()}, flush=True)
@@ -152,7 +156,11 @@ for k in range(FOLDS):
     pred=predict(W,mu,sd,X[te]); truth=Y[te]
     acc=float((pred==truth).mean())
     maj=Counter(truth.tolist()).most_common(1)[0]
-    folds.append({"fold":k+1,"testFrom":te_lo,"testTo":te_hi or dates[-1],
+    strat=stratify(np.asarray(D)[te], truth.tolist(), pred.tolist(),
+                   {"regime":[REG[i] for i in np.where(te)[0]],
+                    "market":[MKT[i] for i in np.where(te)[0]],
+                    "assetType":[CLS[i] for i in np.where(te)[0]]})
+    folds.append({"breakdown":strat,"fold":k+1,"testFrom":te_lo,"testTo":te_hi or dates[-1],
                   "trainRows":int(tr.sum()),"testRows":int(te.sum()),
                   "purgedSessions":PURGE,"purgeFrom":purge_from,
                   "accuracy":round(acc,4),
@@ -167,10 +175,10 @@ for k in range(FOLDS):
 accs=[f["accuracy"] for f in folds]; margins=[f["margin"] for f in folds]
 report={
  "generatedAt": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(timespec="seconds"),
- "experiment":"label60-v1",
+ "experiment":"label60-v2",
  "preRegistered":{"m":"median implied multiple, TRAINING rows only","floorPct":LABEL_THRESHOLD_PCT,
                   "horizon":HORIZON,"purgeSessions":PURGE,"folds":FOLDS,"seed":SEED,"steps":400,"lr":0.5,"l2":1e-4,
-                  "features":FEATURES,"headline":"accuracy minus the fold's own majority-class rate"},
+                  "features":FEATURES,"stratifiedBy":["regime","market","assetType"],"headline":"accuracy minus the fold's own majority-class rate"},
  "calibration":{"m":round(m,4),"mByAssetClass":m_by_class,
                 "trainingRowsUsed":int(sum(train_mask)),"firstFoldBoundary":cut[0],
                 "medianBandPct":round(float(np.median(bands)),4)},

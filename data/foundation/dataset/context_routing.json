@@ -1,0 +1,277 @@
+{
+ "generatedAt": "2026-10-15T21:54:27+00:00",
+ "version": "context-routing-v1",
+ "roles": {
+  "training-feature": "enters the model's feature vector for an instrument",
+  "directional-evidence": "may cast a directional vote in the evidence model",
+  "decision-context": "qualifies or explains a decision; may never set a direction",
+  "integrity-veto": "may withhold a decision or exclude a row; may never create or reverse one",
+  "historical-prior": "base rates over past outcomes; informs confidence, not direction",
+  "evaluation-stratification": "splits measured results for reporting; never a model input",
+  "research-only": "informs research and documentation; never reaches the decision engine",
+  "documented-exclusion": "no permitted source serves it; the gap itself is the artifact"
+ },
+ "rule": "every layer names a destination and a consumer; the consumer must resolve on disk, and only an instrument-level layer may cast a directional vote",
+ "layers": [
+  {
+   "layer": "prices / OHLCV (instrument level)",
+   "roles": [
+    "training-feature",
+    "directional-evidence"
+   ],
+   "mayVote": true,
+   "pointInTime": "closes <= asOf; the as-of close is excluded from every forward window",
+   "whenAbsent": "no price, no row: the instrument is ineligible, never defaulted",
+   "consumer": "tools/make_dataset.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "market / index benchmarks (deep history)",
+   "roles": [
+    "evaluation-stratification",
+    "research-only"
+   ],
+   "mayVote": false,
+   "pointInTime": "daily series with its own date; used only to date and bound an episode",
+   "whenAbsent": "an episode without a benchmark is reported as uncovered, not assumed calm",
+   "consumer": "tools/foundation/historical_regimes.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "corporate actions",
+   "roles": [
+    "integrity-veto"
+   ],
+   "mayVote": false,
+   "pointInTime": "an action's date must precede the window it invalidates",
+   "whenAbsent": "unknown action: the row keeps its flag and the consumer excludes it explicitly",
+   "consumer": "tools/foundation/actions.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "macroeconomic series (point-in-time)",
+   "roles": [
+    "decision-context",
+    "integrity-veto"
+   ],
+   "mayVote": false,
+   "pointInTime": "joined on observation_date + publicationLagDays, never on observation date alone",
+   "whenAbsent": "no macro reading: no veto, and no neutral vote invented in its place",
+   "consumer": "tools/foundation/macro_pit.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "interest rates and yield curve",
+   "roles": [
+    "decision-context",
+    "research-only"
+   ],
+   "mayVote": false,
+   "pointInTime": "FRED observation dates; same publication-lag rule as macro",
+   "whenAbsent": "absent: the context line is omitted rather than filled with a stale level",
+   "consumer": "tools/foundation/macro.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "banking and credit stress (2008 window)",
+   "roles": [
+    "research-only",
+    "evaluation-stratification"
+   ],
+   "mayVote": false,
+   "pointInTime": "2005-2012; entirely before the 2018 dataset, so it can only inform research",
+   "whenAbsent": "absent: the 2008 regime is reported as out of training range",
+   "consumer": "tools/foundation/crisis_2008.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "credit spreads (2008 window)",
+   "roles": [
+    "research-only"
+   ],
+   "mayVote": false,
+   "pointInTime": "2005-2012 observation dates",
+   "whenAbsent": "the licence-limited ICE series is evidenced by a dated probe, not guessed",
+   "consumer": "tools/foundation/crisis_2008.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "gold and commodities",
+   "roles": [
+    "training-feature",
+    "directional-evidence"
+   ],
+   "mayVote": true,
+   "pointInTime": "closes <= asOf, as any other instrument",
+   "whenAbsent": "no bar, no row",
+   "consumer": "tools/make_dataset.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "instrument identity and lifecycle",
+   "roles": [
+    "integrity-veto",
+    "research-only"
+   ],
+   "mayVote": false,
+   "pointInTime": "registry read date recorded; a delisting is known only from its filing date",
+   "whenAbsent": "unknown lifecycle: the instrument stays in the universe and the gap is recorded",
+   "consumer": "tools/foundation/sec_lifecycle.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "delisted instrument price history",
+   "roles": [
+    "documented-exclusion"
+   ],
+   "mayVote": false,
+   "pointInTime": "n/a: no permitted source serves it",
+   "whenAbsent": "the probe record is the artifact; survivorship stays a measured lower bound",
+   "consumer": "tools/foundation/gap_evidence.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "PSX history before 2013-11-04",
+   "roles": [
+    "documented-exclusion"
+   ],
+   "mayVote": false,
+   "pointInTime": "n/a: absent at source",
+   "whenAbsent": "the archive floor is established by probe, not assumed",
+   "consumer": "tools/foundation/gap_evidence.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "dated events corpus",
+   "roles": [
+    "decision-context"
+   ],
+   "mayVote": false,
+   "pointInTime": "an event may only inform a decision whose timestamp follows its publication",
+   "whenAbsent": "no event: `eventInDays` is null, which is not the same as 'no event due'",
+   "consumer": "tools/foundation/events_load.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "press and original-document evidence",
+   "roles": [
+    "decision-context",
+    "research-only"
+   ],
+   "mayVote": false,
+   "pointInTime": "publication time strictly before the decision timestamp",
+   "whenAbsent": "no press record: the event stands on its own disposition",
+   "consumer": "tools/foundation/gkg_evidence.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "operational news feed",
+   "roles": [
+    "decision-context"
+   ],
+   "mayVote": false,
+   "pointInTime": "published < decision; pruned at 70 days, so never a historical corpus",
+   "whenAbsent": "coverage 'unavailable' is never converted into a neutral tone",
+   "consumer": "jobs/lineage.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "event-to-market reactions",
+   "roles": [
+    "historical-prior",
+    "research-only"
+   ],
+   "mayVote": false,
+   "pointInTime": "before-state strictly before the event; forward windows strictly after",
+   "whenAbsent": "an event without a reaction window is dropped, not zero-filled",
+   "consumer": "tools/foundation/event_reactions.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "books, references and testable principles",
+   "roles": [
+    "research-only"
+   ],
+   "mayVote": false,
+   "pointInTime": "literature has no bearing on a decision timestamp",
+   "whenAbsent": "an untestable principle is recorded as untestable",
+   "consumer": "tools/foundation/principles.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "regime episodes",
+   "roles": [
+    "evaluation-stratification"
+   ],
+   "mayVote": false,
+   "pointInTime": "episode windows are known only in hindsight, so they may never enter a predictor",
+   "whenAbsent": "a session outside every episode is reported as 'none', not as calm",
+   "consumer": "tools/research/regime_breakdown.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  },
+  {
+   "layer": "training examples",
+   "roles": [
+    "training-feature"
+   ],
+   "mayVote": true,
+   "pointInTime": "assembled from point-in-time features and mature outcomes only",
+   "whenAbsent": "immature rows are excluded, never labelled FLAT",
+   "consumer": "tools/foundation/assemble.py",
+   "consumerResolves": true,
+   "unknownRoles": [],
+   "voteRoleConsistent": true
+  }
+ ],
+ "summary": {
+  "declared": 18,
+  "consumersResolving": 18,
+  "mayVote": 3,
+  "neverVote": 15,
+  "byRole": {
+   "training-feature": 3,
+   "directional-evidence": 2,
+   "decision-context": 5,
+   "integrity-veto": 3,
+   "historical-prior": 1,
+   "evaluation-stratification": 3,
+   "research-only": 8,
+   "documented-exclusion": 2
+  },
+  "unroutedOrBroken": []
+ }
+}

@@ -1,6 +1,6 @@
 {
- "generatedAt": "2026-10-15T20:43:35+00:00",
- "experiment": "label60-v1",
+ "generatedAt": "2026-10-15T21:52:33+00:00",
+ "experiment": "label60-v2",
  "preRegistered": {
   "m": "median implied multiple, TRAINING rows only",
   "floorPct": 2.0,
@@ -27,6 +27,11 @@
    "sma50",
    "triggerDirection",
    "volumeRatio"
+  ],
+  "stratifiedBy": [
+   "regime",
+   "market",
+   "assetType"
   ],
   "headline": "accuracy minus the fold's own majority-class rate"
  },
@@ -64,6 +69,74 @@
  },
  "folds": [
   {
+   "breakdown": {
+    "regime": {
+     "COVID crash 2020": {
+      "n": 28691,
+      "accuracy": 0.2553,
+      "majorityRate": 0.598,
+      "margin": -0.3427
+     },
+     "none": {
+      "n": 109993,
+      "accuracy": 0.3228,
+      "majorityRate": 0.5765,
+      "margin": -0.2536
+     }
+    },
+    "market": {
+     "FX": {
+      "n": 8138,
+      "accuracy": 0.2842,
+      "majorityRate": 0.4128,
+      "margin": -0.1285
+     },
+     "PK": {
+      "n": 47115,
+      "accuracy": 0.287,
+      "majorityRate": 0.5913,
+      "margin": -0.3043
+     },
+     "US": {
+      "n": 83431,
+      "accuracy": 0.3236,
+      "majorityRate": 0.6041,
+      "margin": -0.2805
+     }
+    },
+    "assetType": {
+     "commodity": {
+      "n": 2383,
+      "accuracy": 0.4012,
+      "majorityRate": 0.5594,
+      "margin": -0.1582
+     },
+     "crypto": {
+      "n": 3094,
+      "accuracy": 0.3555,
+      "majorityRate": 0.5417,
+      "margin": -0.1862
+     },
+     "etf": {
+      "n": 2384,
+      "accuracy": 0.4115,
+      "majorityRate": 0.6229,
+      "margin": -0.2114
+     },
+     "forex": {
+      "n": 8138,
+      "accuracy": 0.2842,
+      "majorityRate": 0.4128,
+      "margin": -0.1285
+     },
+     "stock": {
+      "n": 122685,
+      "accuracy": 0.3055,
+      "majorityRate": 0.6012,
+      "margin": -0.2957
+     }
+    }
+   },
    "fold": 1,
    "testFrom": "2019-08-22",
    "testTo": "2020-10-27",
@@ -82,6 +155,74 @@
    }
   },
   {
+   "breakdown": {
+    "regime": {
+     "2022 inflation and rate-shock bear": {
+      "n": 19,
+      "accuracy": 0.1053,
+      "majorityRate": 1.0,
+      "margin": -0.8947
+     },
+     "none": {
+      "n": 145757,
+      "accuracy": 0.4419,
+      "majorityRate": 0.4813,
+      "margin": -0.0394
+     }
+    },
+    "market": {
+     "FX": {
+      "n": 8228,
+      "accuracy": 0.2363,
+      "majorityRate": 0.5495,
+      "margin": -0.3132
+     },
+     "PK": {
+      "n": 49998,
+      "accuracy": 0.3822,
+      "majorityRate": 0.4866,
+      "margin": -0.1044
+     },
+     "US": {
+      "n": 87550,
+      "accuracy": 0.4953,
+      "majorityRate": 0.5602,
+      "margin": -0.065
+     }
+    },
+    "assetType": {
+     "commodity": {
+      "n": 2381,
+      "accuracy": 0.5124,
+      "majorityRate": 0.5519,
+      "margin": -0.0395
+     },
+     "crypto": {
+      "n": 5390,
+      "accuracy": 0.4894,
+      "majorityRate": 0.495,
+      "margin": -0.0056
+     },
+     "etf": {
+      "n": 2384,
+      "accuracy": 0.367,
+      "majorityRate": 0.4467,
+      "margin": -0.0797
+     },
+     "forex": {
+      "n": 8228,
+      "accuracy": 0.2363,
+      "majorityRate": 0.5495,
+      "margin": -0.3132
+     },
+     "stock": {
+      "n": 127393,
+      "accuracy": 0.4532,
+      "majorityRate": 0.4922,
+      "margin": -0.039
+     }
+    }
+   },
    "fold": 2,
    "testFrom": "2020-10-27",
    "testTo": "2022-01-02",
@@ -100,6 +241,80 @@
    }
   },
   {
+   "breakdown": {
+    "regime": {
+     "2022 inflation and rate-shock bear": {
+      "n": 129323,
+      "accuracy": 0.354,
+      "majorityRate": 0.5167,
+      "margin": -0.1627
+     },
+     "2023 banking stress": {
+      "n": 3137,
+      "accuracy": 0.3765,
+      "majorityRate": 0.4635,
+      "margin": -0.087
+     },
+     "none": {
+      "n": 21016,
+      "accuracy": 0.3831,
+      "majorityRate": 0.4473,
+      "margin": -0.0641
+     }
+    },
+    "market": {
+     "FX": {
+      "n": 8316,
+      "accuracy": 0.4696,
+      "majorityRate": 0.4537,
+      "margin": 0.0159
+     },
+     "PK": {
+      "n": 50984,
+      "accuracy": 0.2523,
+      "majorityRate": 0.6232,
+      "margin": -0.371
+     },
+     "US": {
+      "n": 94176,
+      "accuracy": 0.4062,
+      "majorityRate": 0.4666,
+      "margin": -0.0605
+     }
+    },
+    "assetType": {
+     "commodity": {
+      "n": 2090,
+      "accuracy": 0.3641,
+      "majorityRate": 0.5354,
+      "margin": -0.1713
+     },
+     "crypto": {
+      "n": 10295,
+      "accuracy": 0.3272,
+      "majorityRate": 0.5442,
+      "margin": -0.217
+     },
+     "etf": {
+      "n": 2368,
+      "accuracy": 0.4329,
+      "majorityRate": 0.4793,
+      "margin": -0.0465
+     },
+     "forex": {
+      "n": 8316,
+      "accuracy": 0.4696,
+      "majorityRate": 0.4537,
+      "margin": 0.0159
+     },
+     "stock": {
+      "n": 130407,
+      "accuracy": 0.3524,
+      "majorityRate": 0.5204,
+      "margin": -0.168
+     }
+    }
+   },
    "fold": 3,
    "testFrom": "2022-01-02",
    "testTo": "2023-03-09",
@@ -118,6 +333,74 @@
    }
   },
   {
+   "breakdown": {
+    "regime": {
+     "2023 banking stress": {
+      "n": 29667,
+      "accuracy": 0.4613,
+      "majorityRate": 0.5272,
+      "margin": -0.0659
+     },
+     "none": {
+      "n": 128203,
+      "accuracy": 0.462,
+      "majorityRate": 0.536,
+      "margin": -0.074
+     }
+    },
+    "market": {
+     "FX": {
+      "n": 8316,
+      "accuracy": 0.2367,
+      "majorityRate": 0.4957,
+      "margin": -0.259
+     },
+     "PK": {
+      "n": 49386,
+      "accuracy": 0.4948,
+      "majorityRate": 0.5729,
+      "margin": -0.078
+     },
+     "US": {
+      "n": 100168,
+      "accuracy": 0.4643,
+      "majorityRate": 0.5321,
+      "margin": -0.0678
+     }
+    },
+    "assetType": {
+     "commodity": {
+      "n": 2380,
+      "accuracy": 0.4353,
+      "majorityRate": 0.4235,
+      "margin": 0.0118
+     },
+     "crypto": {
+      "n": 15359,
+      "accuracy": 0.4694,
+      "majorityRate": 0.4753,
+      "margin": -0.0059
+     },
+     "etf": {
+      "n": 2376,
+      "accuracy": 0.4314,
+      "majorityRate": 0.4604,
+      "margin": -0.029
+     },
+     "forex": {
+      "n": 8316,
+      "accuracy": 0.2367,
+      "majorityRate": 0.4957,
+      "margin": -0.259
+     },
+     "stock": {
+      "n": 129439,
+      "accuracy": 0.4765,
+      "majorityRate": 0.5635,
+      "margin": -0.087
+     }
+    }
+   },
    "fold": 4,
    "testFrom": "2023-03-09",
    "testTo": "2024-05-14",
@@ -136,6 +419,68 @@
    }
   },
   {
+   "breakdown": {
+    "regime": {
+     "none": {
+      "n": 167762,
+      "accuracy": 0.5191,
+      "majorityRate": 0.5211,
+      "margin": -0.0021
+     }
+    },
+    "market": {
+     "FX": {
+      "n": 8262,
+      "accuracy": 0.2737,
+      "majorityRate": 0.4281,
+      "margin": -0.1544
+     },
+     "PK": {
+      "n": 56269,
+      "accuracy": 0.5824,
+      "majorityRate": 0.5874,
+      "margin": -0.0049
+     },
+     "US": {
+      "n": 103231,
+      "accuracy": 0.5042,
+      "majorityRate": 0.5044,
+      "margin": -0.0002
+     }
+    },
+    "assetType": {
+     "commodity": {
+      "n": 2375,
+      "accuracy": 0.5023,
+      "majorityRate": 0.5006,
+      "margin": 0.0017
+     },
+     "crypto": {
+      "n": 19471,
+      "accuracy": 0.428,
+      "majorityRate": 0.4446,
+      "margin": -0.0166
+     },
+     "etf": {
+      "n": 2360,
+      "accuracy": 0.6407,
+      "majorityRate": 0.6407,
+      "margin": 0.0
+     },
+     "forex": {
+      "n": 8262,
+      "accuracy": 0.2737,
+      "majorityRate": 0.4281,
+      "margin": -0.1544
+     },
+     "stock": {
+      "n": 135294,
+      "accuracy": 0.5453,
+      "majorityRate": 0.5486,
+      "margin": -0.0033
+     }
+    }
+   },
    "fold": 5,
    "testFrom": "2024-05-14",
    "testTo": "2025-07-20",
@@ -154,6 +499,68 @@
    }
   },
   {
+   "breakdown": {
+    "regime": {
+     "none": {
+      "n": 153918,
+      "accuracy": 0.4794,
+      "majorityRate": 0.4353,
+      "margin": 0.0441
+     }
+    },
+    "market": {
+     "FX": {
+      "n": 7047,
+      "accuracy": 0.2493,
+      "majorityRate": 0.5869,
+      "margin": -0.3376
+     },
+     "PK": {
+      "n": 51339,
+      "accuracy": 0.3974,
+      "majorityRate": 0.4809,
+      "margin": -0.0835
+     },
+     "US": {
+      "n": 95532,
+      "accuracy": 0.5404,
+      "majorityRate": 0.4732,
+      "margin": 0.0672
+     }
+    },
+    "assetType": {
+     "commodity": {
+      "n": 2016,
+      "accuracy": 0.5501,
+      "majorityRate": 0.5377,
+      "margin": 0.0124
+     },
+     "crypto": {
+      "n": 23694,
+      "accuracy": 0.5749,
+      "majorityRate": 0.5775,
+      "margin": -0.0026
+     },
+     "etf": {
+      "n": 2016,
+      "accuracy": 0.5789,
+      "majorityRate": 0.5754,
+      "margin": 0.0035
+     },
+     "forex": {
+      "n": 7047,
+      "accuracy": 0.2493,
+      "majorityRate": 0.5869,
+      "margin": -0.3376
+     },
+     "stock": {
+      "n": 119145,
+      "accuracy": 0.4711,
+      "majorityRate": 0.4701,
+      "margin": 0.001
+     }
+    }
+   },
    "fold": 6,
    "testFrom": "2025-07-20",
    "testTo": "2026-09-24",
