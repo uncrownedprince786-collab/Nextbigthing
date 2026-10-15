@@ -1,0 +1,183 @@
+{
+ "generatedAt": "2026-10-15T17:40:31+00:00",
+ "version": "foundation-score-v1",
+ "scopeVersion": "acceptance-scope-v1-FROZEN",
+ "scopeFrozenBeforeMeasurement": true,
+ "headlineMetrics": {
+  "1_dataCoverage": {
+   "score": 0.9674,
+   "numerator": 1097903,
+   "denominator": 1134858,
+   "scope": "all instrument sessions inside listed ranges"
+  },
+  "2_organisationAndValidation": {
+   "score": 0.8333,
+   "numerator": 15,
+   "denominator": 18,
+   "attributesRequired": [
+    "sourceLineage",
+    "schema",
+    "dateRange",
+    "qualityChecks",
+    "reproducibleLocation",
+    "checksumOrBackup"
+   ]
+  },
+  "3_trainingReadiness": {
+   "score": 0.9716,
+   "numerator": 1054715,
+   "denominator": 1085544,
+   "meaning": "eligible asset-sessions carrying point-in-time features in examples-v3"
+  },
+  "contextLayerIntegration": {
+   "score": 0.2222,
+   "numerator": 4,
+   "denominator": 18,
+   "warning": "reported beside metric 3 and never in place of it; most validated layers are research context, not features"
+  }
+ },
+ "domains": [
+  {
+   "domain": "prices",
+   "numerator": 1097903,
+   "denominator": 1134858,
+   "score": 0.9674,
+   "evidence": "regime_coverage.json yearlyCoverage, summed over every market and year; the denominator is sessions inside each asset's own first-to-last stored range",
+   "weight": 0.22,
+   "weighted": 0.2128
+  },
+  {
+   "domain": "corporateActionsAndLifecycle",
+   "numerator": 127,
+   "denominator": 190,
+   "score": 0.6684,
+   "components": [
+    {
+     "item": "S&P removals resolved to an official registry",
+     "numerator": 127,
+     "denominator": 127
+    },
+    {
+     "item": "delisted instrument price history recovered",
+     "numerator": 0,
+     "denominator": 63
+    }
+   ],
+   "evidence": "sec_lifecycle.json; the 63 delisted price histories stay in the denominator at zero because no permitted source serves them",
+   "weight": 0.1,
+   "weighted": 0.0668
+  },
+  {
+   "domain": "macroAndRates",
+   "numerator": 63,
+   "denominator": 63,
+   "score": 1.0,
+   "components": [
+    {
+     "item": "macro series",
+     "numerator": 32,
+     "denominator": 32
+    },
+    {
+     "item": "crisis-window series",
+     "numerator": 18,
+     "denominator": 18
+    },
+    {
+     "item": "benchmark series",
+     "numerator": 13,
+     "denominator": 13
+    }
+   ],
+   "note": "the crisis package now holds 22 series against a frozen requirement of 18; the surplus is capped rather than allowed to inflate the score",
+   "weight": 0.12,
+   "weighted": 0.12
+  },
+  {
+   "domain": "historicalCrisesAndRegimes",
+   "numerator": 12,
+   "denominator": 12,
+   "score": 1.0,
+   "evidence": "historical_regimes.json: each named episode measured against at least one benchmark series",
+   "weight": 0.12,
+   "weighted": 0.12
+  },
+  {
+   "domain": "newsEventsAndOriginalReports",
+   "numerator": 495,
+   "denominator": 503,
+   "score": 0.9841,
+   "components": [
+    {
+     "item": "events with a disposition",
+     "numerator": 168,
+     "denominator": 168
+    },
+    {
+     "item": "events carrying press or official evidence",
+     "numerator": 160,
+     "denominator": 168
+    },
+    {
+     "item": "event-reaction rows",
+     "numerator": 167,
+     "denominator": 167
+    }
+   ],
+   "note": "operational news is a rolling 70-day window by retention policy and is not counted as historical coverage",
+   "weight": 0.14,
+   "weighted": 0.1378
+  },
+  {
+   "domain": "researchPrinciplesAndCaseStudies",
+   "numerator": 168,
+   "denominator": 240,
+   "score": 0.7,
+   "components": [
+    {
+     "item": "principles with a verified citation",
+     "numerator": 80,
+     "denominator": 80
+    },
+    {
+     "item": "principles testable on this data",
+     "numerator": 69,
+     "denominator": 80
+    },
+    {
+     "item": "principles with a runnable rule",
+     "numerator": 19,
+     "denominator": 80
+    }
+   ],
+   "note": "a verified citation is not a trading edge; the runnable-rule count is deliberately the harshest of the three and is not dropped",
+   "weight": 0.1,
+   "weighted": 0.07
+  },
+  {
+   "domain": "provenanceAndLicensing",
+   "numerator": 18,
+   "denominator": 18,
+   "score": 1.0,
+   "evidence": "every layer in source_inventory.json carries a named source, an access method and a status, including the blocked ones",
+   "weight": 0.1,
+   "weighted": 0.1
+  },
+  {
+   "domain": "backupAndRecovery",
+   "numerator": 3,
+   "denominator": 3,
+   "score": 1.0,
+   "evidence": "three durable stores, each with its own SHA256SUMS.txt: the research corpus, the versioned dataset and the sealed replay inputs",
+   "weight": 0.1,
+   "weighted": 0.1
+  }
+ ],
+ "overallWeightedScore": 0.9274,
+ "passThreshold": 0.9,
+ "passesThreshold": true,
+ "blockedStillCounted": [
+  "delisted instrument price history",
+  "PSX history before 2013-11-04"
+ ]
+}

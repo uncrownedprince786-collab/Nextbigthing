@@ -1,5 +1,58 @@
 # Resume here
 
+## 0. FOUNDATION CLOSED 92.74% · FIRST EXPERIMENT RUN · NO EDGE, 2026-10-15
+
+Read `brain.md` rule 152. Scope was frozen **before** measurement in
+`data/foundation/dataset/acceptance_scope.json`.
+
+### Score: 0.9274 weighted — PASSES the 0.90 gate
+
+| Domain | num / den | score | weight |
+|---|---|---|---|
+| prices | 1,097,903 / 1,134,858 | 0.9674 | 0.22 |
+| corporate actions & lifecycle | 127 / 190 | **0.6684** | 0.10 |
+| macro & rates | 63 / 63 | 1.0000 | 0.12 |
+| historical crises & regimes | 12 / 12 | 1.0000 | 0.12 |
+| news, events & original reports | 495 / 503 | 0.9841 | 0.14 |
+| research principles & case studies | 168 / 240 | 0.7000 | 0.10 |
+| provenance & licensing | 18 / 18 | 1.0000 | 0.10 |
+| backup & recovery | 3 / 3 | 1.0000 | 0.10 |
+
+Blocked items stayed in the denominator — the 63 unrecoverable delisted price histories are why
+corporate-actions scores 0.6684.
+
+**Headline metrics:** coverage **0.9674**, organisation **0.8333** (15/18 — below 90% on its own),
+training readiness **0.9716**, and `contextLayerIntegration` **0.2222** (4/18), which is printed
+beside readiness and never instead of it.
+
+**One recovery:** the 2008 credit spread was wrongly recorded as licence-blocked. The ICE *index*
+is blocked; Moody's `BAA10Y` is free for the whole window and peaks at **6.16%**. Four series
+added. TEDRATE is now labelled bank-funding/liquidity, **not** a credit spread.
+
+### First experiment — NO DEMONSTRATED EDGE
+
+| | Mean accuracy |
+|---|---|
+| Rule baseline (trend agreement) | 0.3423 |
+| **Candidate (multinomial logistic, numpy)** | **0.4211** |
+| **Always predict the majority class** | **0.4204** |
+
+The model beats the rule by 7.9 points and beats a constant predictor by **0.07 of a point**.
+Per-class recall UP 0.74 / DOWN 0.24 / FLAT 0.10 — it collapsed toward the majority class, and its
+worst fold is **2022**, the one year DOWN was the largest class. A model that fails in the adverse
+regime has failed at the thing it was for.
+
+6 chronological folds, 20-session embargo, per-market and per-regime reported. **Direction only —
+the execution-cost layer is empty, so nothing here is net of anything.**
+
+### The single next step
+
+Go after the **unjoined context layers** (macro is PIT-correct and joinable on date; events and
+reactions exist) rather than tuning a linear model until it looks better. `examples-v3` stays
+immutable as the reference version.
+
+---
+
 ## 0. HISTORICAL CORPUS CLOSED — READY WITH DOCUMENTED LIMITATIONS, 2026-10-15
 
 **Training still NOT started.** Read `brain.md` rule 151. Artifacts:

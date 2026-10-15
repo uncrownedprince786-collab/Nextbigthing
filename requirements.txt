@@ -5,6 +5,7 @@ requests==2.34.2
 urllib3==2.6.3
 python-dotenv==1.2.1
 yfinance==1.7.0
+numpy==2.2.1
 pandas==2.3.3
 pytrends==4.9.2
 # Read by tests/test_brain.py to check the workflow files (schedules, permissions, which step holds

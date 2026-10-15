@@ -1,0 +1,613 @@
+{
+ "generatedAt": "2026-10-15T17:54:56+00:00",
+ "version": "baseline-experiment-v1",
+ "status": "offline research experiment; nothing deployed, nothing traded",
+ "dataVersion": {
+  "dataset": "examples-v3",
+  "durable": "examples-v3-2026-10-15-run38735767762",
+  "assembleRun": 38735767762,
+  "pitRun": 38733216507
+ },
+ "task": {
+  "label": "label20",
+  "classes": [
+   "DOWN",
+   "FLAT",
+   "UP"
+  ],
+  "rule": "UP when fwd20 >= +2%, DOWN when <= -2%, else FLAT",
+  "inputs": [
+   "atr14",
+   "drawdownPct",
+   "entryTrigger",
+   "peerMedianR20",
+   "peers",
+   "r1",
+   "r20",
+   "r5",
+   "rangePct",
+   "relStrength",
+   "returnZ",
+   "sma20",
+   "sma50",
+   "triggerDirection",
+   "volumeRatio"
+  ],
+  "inputCount": 15,
+  "outcomeFieldsUsedAsFeatures": 0
+ },
+ "config": {
+  "model": "multinomial logistic regression, numpy, full batch",
+  "seed": 20261015,
+  "steps": 400,
+  "learningRate": 0.5,
+  "l2": 0.0001,
+  "standardisation": "mean and sd of the training fold only",
+  "embargoSessions": 20
+ },
+ "splitPlan": {
+  "method": "chronological walk-forward, one fold per test year",
+  "embargoReason": "a 20-session label makes consecutive rows share 19 of their 20 forward sessions"
+ },
+ "referenceRates": {
+  "majorityClassShare": 0.4204,
+  "note": "always predicting the most common class scores this"
+ },
+ "folds": [
+  {
+   "testYear": 2021,
+   "trainRows": 244667,
+   "testRows": 127832,
+   "trainEffectiveWindows": 12233,
+   "embargoSessionsDropped": 20,
+   "trainEnds": "2020-12-11",
+   "testBegins": "2021-01-01",
+   "testEnds": "2021-12-31",
+   "baseline": {
+    "n": 127832,
+    "effectiveIndependentWindows": 6392,
+    "accuracy": 0.3409,
+    "recall_DOWN": 0.3426,
+    "precision_DOWN": 0.3695,
+    "recall_FLAT": 0.3087,
+    "precision_FLAT": 0.2325,
+    "recall_UP": 0.3561,
+    "precision_UP": 0.3976,
+    "predictedMix": {
+     "DOWN": 44091,
+     "FLAT": 36406,
+     "UP": 47335
+    },
+    "actualMix": {
+     "DOWN": 47553,
+     "FLAT": 27429,
+     "UP": 52850
+    }
+   },
+   "candidate": {
+    "n": 127832,
+    "effectiveIndependentWindows": 6392,
+    "accuracy": 0.4201,
+    "recall_DOWN": 0.0943,
+    "precision_DOWN": 0.3652,
+    "recall_FLAT": 0.1368,
+    "precision_FLAT": 0.5395,
+    "recall_UP": 0.8604,
+    "precision_UP": 0.4187,
+    "predictedMix": {
+     "DOWN": 12274,
+     "FLAT": 6956,
+     "UP": 108602
+    },
+    "actualMix": {
+     "DOWN": 47553,
+     "FLAT": 27429,
+     "UP": 52850
+    }
+   },
+   "byMarket": {
+    "PSX": {
+     "baseline": 0.3509,
+     "candidate": 0.3639,
+     "n": 43337
+    },
+    "US": {
+     "baseline": 0.3415,
+     "candidate": 0.445,
+     "n": 68356
+    },
+    "commodity": {
+     "baseline": 0.2579,
+     "candidate": 0.4673,
+     "n": 2016
+    },
+    "crypto": {
+     "baseline": 0.3746,
+     "candidate": 0.4661,
+     "n": 7076
+    },
+    "forex": {
+     "baseline": 0.2635,
+     "candidate": 0.4653,
+     "n": 7047
+    }
+   },
+   "byRegime": {
+    "2020-22 recovery": {
+     "baseline": 0.3409,
+     "candidate": 0.4201,
+     "n": 127832
+    }
+   }
+  },
+  {
+   "testYear": 2022,
+   "trainRows": 371539,
+   "testRows": 132332,
+   "trainEffectiveWindows": 18577,
+   "embargoSessionsDropped": 20,
+   "trainEnds": "2021-12-11",
+   "testBegins": "2022-01-01",
+   "testEnds": "2022-12-31",
+   "baseline": {
+    "n": 132332,
+    "effectiveIndependentWindows": 6617,
+    "accuracy": 0.331,
+    "recall_DOWN": 0.3686,
+    "precision_DOWN": 0.4659,
+    "recall_FLAT": 0.3353,
+    "precision_FLAT": 0.1891,
+    "recall_UP": 0.2787,
+    "precision_UP": 0.3145,
+    "predictedMix": {
+     "DOWN": 49092,
+     "FLAT": 41904,
+     "UP": 41336
+    },
+    "actualMix": {
+     "DOWN": 62061,
+     "FLAT": 23627,
+     "UP": 46644
+    }
+   },
+   "candidate": {
+    "n": 132332,
+    "effectiveIndependentWindows": 6617,
+    "accuracy": 0.3618,
+    "recall_DOWN": 0.0243,
+    "precision_DOWN": 0.4904,
+    "recall_FLAT": 0.0849,
+    "precision_FLAT": 0.4246,
+    "recall_UP": 0.9512,
+    "precision_UP": 0.3563,
+    "predictedMix": {
+     "DOWN": 3081,
+     "FLAT": 4725,
+     "UP": 124526
+    },
+    "actualMix": {
+     "DOWN": 62061,
+     "FLAT": 23627,
+     "UP": 46644
+    }
+   },
+   "byMarket": {
+    "PSX": {
+     "baseline": 0.3437,
+     "candidate": 0.2901,
+     "n": 43193
+    },
+    "US": {
+     "baseline": 0.3278,
+     "candidate": 0.4031,
+     "n": 69617
+    },
+    "commodity": {
+     "baseline": 0.257,
+     "candidate": 0.4223,
+     "n": 2008
+    },
+    "crypto": {
+     "baseline": 0.3225,
+     "candidate": 0.3391,
+     "n": 10494
+    },
+    "forex": {
+     "baseline": 0.3177,
+     "candidate": 0.4105,
+     "n": 7020
+    }
+   },
+   "byRegime": {
+    "2020-22 recovery": {
+     "baseline": 0.3192,
+     "candidate": 0.3157,
+     "n": 567
+    },
+    "2022 rate-shock bear": {
+     "baseline": 0.325,
+     "candidate": 0.3471,
+     "n": 102732
+    },
+    "2022-26 advance": {
+     "baseline": 0.3511,
+     "candidate": 0.4159,
+     "n": 30063
+    }
+   }
+  },
+  {
+   "testYear": 2023,
+   "trainRows": 503678,
+   "testRows": 134687,
+   "trainEffectiveWindows": 25184,
+   "embargoSessionsDropped": 20,
+   "trainEnds": "2022-12-11",
+   "testBegins": "2023-01-01",
+   "testEnds": "2023-12-31",
+   "baseline": {
+    "n": 134687,
+    "effectiveIndependentWindows": 6734,
+    "accuracy": 0.3391,
+    "recall_DOWN": 0.3228,
+    "precision_DOWN": 0.3458,
+    "recall_FLAT": 0.313,
+    "precision_FLAT": 0.2185,
+    "recall_UP": 0.3648,
+    "precision_UP": 0.4296,
+    "predictedMix": {
+     "DOWN": 44672,
+     "FLAT": 39994,
+     "UP": 50021
+    },
+    "actualMix": {
+     "DOWN": 47854,
+     "FLAT": 27925,
+     "UP": 58908
+    }
+   },
+   "candidate": {
+    "n": 134687,
+    "effectiveIndependentWindows": 6734,
+    "accuracy": 0.404,
+    "recall_DOWN": 0.42,
+    "precision_DOWN": 0.3706,
+    "recall_FLAT": 0.0905,
+    "precision_FLAT": 0.4921,
+    "recall_UP": 0.5396,
+    "precision_UP": 0.4221,
+    "predictedMix": {
+     "DOWN": 54236,
+     "FLAT": 5133,
+     "UP": 75318
+    },
+    "actualMix": {
+     "DOWN": 47854,
+     "FLAT": 27925,
+     "UP": 58908
+    }
+   },
+   "byMarket": {
+    "PSX": {
+     "baseline": 0.336,
+     "candidate": 0.4274,
+     "n": 43187
+    },
+    "US": {
+     "baseline": 0.342,
+     "candidate": 0.3883,
+     "n": 69525
+    },
+    "commodity": {
+     "baseline": 0.2799,
+     "candidate": 0.3478,
+     "n": 2004
+    },
+    "crypto": {
+     "baseline": 0.3737,
+     "candidate": 0.4377,
+     "n": 12951
+    },
+    "forex": {
+     "baseline": 0.2833,
+     "candidate": 0.3699,
+     "n": 7020
+    }
+   },
+   "byRegime": {
+    "2023 banking stress": {
+     "baseline": 0.3325,
+     "candidate": 0.4269,
+     "n": 33390
+    },
+    "2022-26 advance": {
+     "baseline": 0.3391,
+     "candidate": 0.404,
+     "n": 134687
+    }
+   }
+  },
+  {
+   "testYear": 2024,
+   "trainRows": 638686,
+   "testRows": 142921,
+   "trainEffectiveWindows": 31934,
+   "embargoSessionsDropped": 20,
+   "trainEnds": "2023-12-11",
+   "testBegins": "2024-01-01",
+   "testEnds": "2024-12-31",
+   "baseline": {
+    "n": 142921,
+    "effectiveIndependentWindows": 7146,
+    "accuracy": 0.3492,
+    "recall_DOWN": 0.3399,
+    "precision_DOWN": 0.3504,
+    "recall_FLAT": 0.2811,
+    "precision_FLAT": 0.2153,
+    "recall_UP": 0.3883,
+    "precision_UP": 0.4405,
+    "predictedMix": {
+     "DOWN": 48749,
+     "FLAT": 38404,
+     "UP": 55768
+    },
+    "actualMix": {
+     "DOWN": 50247,
+     "FLAT": 29410,
+     "UP": 63264
+    }
+   },
+   "candidate": {
+    "n": 142921,
+    "effectiveIndependentWindows": 7146,
+    "accuracy": 0.4545,
+    "recall_DOWN": 0.199,
+    "precision_DOWN": 0.4579,
+    "recall_FLAT": 0.0809,
+    "precision_FLAT": 0.573,
+    "recall_UP": 0.8312,
+    "precision_UP": 0.4497,
+    "predictedMix": {
+     "DOWN": 21833,
+     "FLAT": 4152,
+     "UP": 116936
+    },
+    "actualMix": {
+     "DOWN": 50247,
+     "FLAT": 29410,
+     "UP": 63264
+    }
+   },
+   "byMarket": {
+    "PSX": {
+     "baseline": 0.3615,
+     "candidate": 0.4741,
+     "n": 47510
+    },
+    "US": {
+     "baseline": 0.3545,
+     "candidate": 0.4451,
+     "n": 70308
+    },
+    "commodity": {
+     "baseline": 0.2728,
+     "candidate": 0.4494,
+     "n": 2016
+    },
+    "crypto": {
+     "baseline": 0.3277,
+     "candidate": 0.4676,
+     "n": 16013
+    },
+    "forex": {
+     "baseline": 0.2854,
+     "candidate": 0.3885,
+     "n": 7074
+    }
+   },
+   "byRegime": {
+    "2022-26 advance": {
+     "baseline": 0.3492,
+     "candidate": 0.4545,
+     "n": 142921
+    }
+   }
+  },
+  {
+   "testYear": 2025,
+   "trainRows": 781197,
+   "testRows": 152848,
+   "trainEffectiveWindows": 39060,
+   "embargoSessionsDropped": 20,
+   "trainEnds": "2024-12-11",
+   "testBegins": "2025-01-01",
+   "testEnds": "2025-12-31",
+   "baseline": {
+    "n": 152848,
+    "effectiveIndependentWindows": 7642,
+    "accuracy": 0.3516,
+    "recall_DOWN": 0.3739,
+    "precision_DOWN": 0.3808,
+    "recall_FLAT": 0.2645,
+    "precision_FLAT": 0.2006,
+    "recall_UP": 0.373,
+    "precision_UP": 0.4301,
+    "predictedMix": {
+     "DOWN": 55148,
+     "FLAT": 40446,
+     "UP": 57254
+    },
+    "actualMix": {
+     "DOWN": 56158,
+     "FLAT": 30684,
+     "UP": 66006
+    }
+   },
+   "candidate": {
+    "n": 152848,
+    "effectiveIndependentWindows": 7642,
+    "accuracy": 0.4757,
+    "recall_DOWN": 0.2588,
+    "precision_DOWN": 0.542,
+    "recall_FLAT": 0.0953,
+    "precision_FLAT": 0.6064,
+    "recall_UP": 0.8371,
+    "precision_UP": 0.4559,
+    "predictedMix": {
+     "DOWN": 26816,
+     "FLAT": 4822,
+     "UP": 121210
+    },
+    "actualMix": {
+     "DOWN": 56158,
+     "FLAT": 30684,
+     "UP": 66006
+    }
+   },
+   "byMarket": {
+    "PSX": {
+     "baseline": 0.3636,
+     "candidate": 0.4498,
+     "n": 52950
+    },
+    "US": {
+     "baseline": 0.3483,
+     "candidate": 0.4713,
+     "n": 69750
+    },
+    "commodity": {
+     "baseline": 0.2655,
+     "candidate": 0.533,
+     "n": 2015
+    },
+    "crypto": {
+     "baseline": 0.3771,
+     "candidate": 0.5715,
+     "n": 21194
+    },
+    "forex": {
+     "baseline": 0.2405,
+     "candidate": 0.4084,
+     "n": 6939
+    }
+   },
+   "byRegime": {
+    "2022-26 advance": {
+     "baseline": 0.3516,
+     "candidate": 0.4757,
+     "n": 152848
+    }
+   }
+  },
+  {
+   "testYear": 2026,
+   "trainRows": 933551,
+   "testRows": 112897,
+   "trainEffectiveWindows": 46678,
+   "embargoSessionsDropped": 20,
+   "trainEnds": "2025-12-11",
+   "testBegins": "2026-01-01",
+   "testEnds": "2026-09-24",
+   "baseline": {
+    "n": 112897,
+    "effectiveIndependentWindows": 5645,
+    "accuracy": 0.3422,
+    "recall_DOWN": 0.3547,
+    "precision_DOWN": 0.4348,
+    "recall_FLAT": 0.301,
+    "precision_FLAT": 0.1853,
+    "recall_UP": 0.3467,
+    "precision_UP": 0.3737,
+    "predictedMix": {
+     "DOWN": 40439,
+     "FLAT": 31968,
+     "UP": 40490
+    },
+    "actualMix": {
+     "DOWN": 49573,
+     "FLAT": 19678,
+     "UP": 43646
+    }
+   },
+   "candidate": {
+    "n": 112897,
+    "effectiveIndependentWindows": 5645,
+    "accuracy": 0.4107,
+    "recall_DOWN": 0.2416,
+    "precision_DOWN": 0.4701,
+    "recall_FLAT": 0.0958,
+    "precision_FLAT": 0.6277,
+    "recall_UP": 0.7447,
+    "precision_UP": 0.385,
+    "predictedMix": {
+     "DOWN": 25473,
+     "FLAT": 3003,
+     "UP": 84421
+    },
+    "actualMix": {
+     "DOWN": 49573,
+     "FLAT": 19678,
+     "UP": 43646
+    }
+   },
+   "byMarket": {
+    "PSX": {
+     "baseline": 0.3521,
+     "candidate": 0.3612,
+     "n": 38333
+    },
+    "US": {
+     "baseline": 0.3429,
+     "candidate": 0.427,
+     "n": 49193
+    },
+    "commodity": {
+     "baseline": 0.2266,
+     "candidate": 0.403,
+     "n": 1412
+    },
+    "crypto": {
+     "baseline": 0.3567,
+     "candidate": 0.4718,
+     "n": 18991
+    },
+    "forex": {
+     "baseline": 0.2373,
+     "candidate": 0.3994,
+     "n": 4968
+    }
+   },
+   "byRegime": {
+    "2022-26 advance": {
+     "baseline": 0.3422,
+     "candidate": 0.4107,
+     "n": 112897
+    }
+   }
+  }
+ ],
+ "summary": {
+  "folds": 6,
+  "baselineMeanAccuracy": 0.3423,
+  "candidateMeanAccuracy": 0.4211,
+  "candidateMinusBaseline": 0.0788,
+  "foldsWhereCandidateWins": 6
+ },
+ "verdict": {
+  "candidateMeanAccuracy": 0.4211,
+  "ruleBaselineMeanAccuracy": 0.3423,
+  "majorityClassShare": 0.4204,
+  "candidateMinusRuleBaseline": 0.0788,
+  "candidateMinusMajorityClass": 0.0007,
+  "candidateBeatsRuleBaseline": true,
+  "candidateBeatsMajorityClass": false,
+  "statement": "NO DEMONSTRATED EDGE. The candidate scores 0.4211 against a majority-class reference of 0.4204, a difference of +0.0007. It beats the rule baseline only because that rule is worse than predicting the most common class. Per-class recall shows the model collapsing toward UP, and its worst fold is 2022 -- the one year in which DOWN was the largest class. A model that fails in the adverse regime is not a model that works."
+ },
+ "limitations": [
+  "direction only. No execution cost, spread or borrow data exists for any market, so no result here is a profitability claim and none may be reported as net.",
+  "effective sample is rows / 20; the row counts overstate independence.",
+  "survivorship: the universe is today's registered assets, so delisted names are absent and the bias is a measured lower bound, not removed.",
+  "forex is 68% FLAT under a fixed 2% band, so its accuracy is dominated by one class.",
+  "a single linear model on 15 price and volume features is a first candidate, not a tuned system, and no hyperparameter search was run."
+ ]
+}

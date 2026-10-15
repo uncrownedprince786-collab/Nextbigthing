@@ -1,0 +1,67 @@
+{
+ "version": "acceptance-scope-v1-FROZEN",
+ "frozenAt": "2026-10-15",
+ "frozenBeforeMeasurement": true,
+ "rule": "This file fixes the scope, the denominators and the weights. It was written before any score was computed. A score may not be improved by dropping a blocked source, removing a difficult year, shrinking the expected universe, counting an unvalidated download as complete, or reweighting after seeing a result. A blocked item stays in the denominator as a visible gap.",
+
+ "frozenScope": {
+  "instrumentUniverse": {"assets": 616, "markets": ["US", "PSX", "crypto", "forex", "commodity"],
+                         "range": ["2018-01-01", "2026-10-15"],
+                         "note": "today's registered universe; delisted names that were never seeded are out of scope and recorded as a survivorship limitation, not removed from the denominator of anything they would affect"},
+  "benchmarkSeries": {"required": 13, "note": "data/foundation/benchmarks manifest"},
+  "macroSeries": {"required": 32, "range": ["2010-01-01", "2026-10"]},
+  "crisisPackageSeries": {"required": 18, "range": ["2005-01-01", "2012-12-31"]},
+  "eventCorpus": {"requiredVerifiedEvents": 168},
+  "principlesCorpus": {"requiredPrinciples": 80},
+  "reactionCorpus": {"requiredRows": 167},
+  "regimeEpisodes": {"requiredNamed": 12}
+ },
+
+ "metricDefinitions": {
+  "1_dataCoverage": {
+   "statement": "validated observations divided by expected eligible observations in the frozen scope",
+   "priceDenominator": "sessions inside each asset's own first-to-last stored range on its market's calendar; a listing or delisting date is never counted as missing; exchange holidays and no-trade sessions are classified separately and excluded from the numerator AND the denominator only when the classification is evidenced",
+   "documentDenominator": "the predefined target counts above, never file sizes",
+   "blockedHandling": "a SOURCE_BLOCKED or LICENSE_BLOCKED target stays in the denominator at zero numerator"
+  },
+  "2_organisationAndValidation": {
+   "statement": "required inventory items carrying ALL SIX attributes, divided by all required inventory items",
+   "sixAttributes": ["sourceLineage", "schema", "dateRange", "qualityChecks", "reproducibleLocation", "checksumOrBackup"],
+   "denominator": "all 18 layers in source_inventory.json, including the blocked ones"
+  },
+  "3_trainingReadiness": {
+   "statement": "eligible asset-sessions carrying validated point-in-time features in the versioned training dataset, divided by all eligible asset-sessions",
+   "denominator": "eligibleAssetSessions in the examples-v3 manifest",
+   "mustAlsoReport": "contextLayerIntegration = layers joined into examples-v3 / 18, reported separately and never substituted for this metric"
+  }
+ },
+
+ "domains": [
+  {"name": "prices", "weight": 0.22},
+  {"name": "corporateActionsAndLifecycle", "weight": 0.10},
+  {"name": "macroAndRates", "weight": 0.12},
+  {"name": "historicalCrisesAndRegimes", "weight": 0.12},
+  {"name": "newsEventsAndOriginalReports", "weight": 0.14},
+  {"name": "researchPrinciplesAndCaseStudies", "weight": 0.10},
+  {"name": "provenanceAndLicensing", "weight": 0.10},
+  {"name": "backupAndRecovery", "weight": 0.10}
+ ],
+ "weightsSumTo": 1.0,
+
+ "mandatoryGates": [
+  "no future return, future event or unpublished macro value in any predictor feature",
+  "macro publication lag respected wherever macro is used",
+  "corporate actions, listing dates, asset classes, currencies and bad-bar flags correct",
+  "crypto and commodities not grouped under US in any evaluator or report",
+  "overlapping 20-session outcomes not treated as independent; chronological split with a 20-session embargo",
+  "every evaluation reproducible from a versioned artifact and a recorded configuration",
+  "coverage, data quality, directional accuracy and execution readiness reported separately; unknown transaction costs never reported as zero"
+ ],
+
+ "decisionRule": {
+  "passThreshold": 0.90,
+  "appliesTo": "the weighted overall score of metrics 1 and 2 across the eight domains",
+  "andAlso": "every mandatory gate must pass",
+  "ifBelow": "report the real number and the precise blockers; state separately whether the V1 price/volume baseline is independently safe to evaluate, and never present one as the other"
+ }
+}

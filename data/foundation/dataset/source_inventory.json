@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-15T17:27:18+00:00",
+ "generatedAt": "2026-10-15T17:40:31+00:00",
  "version": "source-inventory-v1",
  "threeQuestions": [
   "downloaded",
@@ -91,14 +91,16 @@
   },
   {
    "layer": "credit spreads (2008 window)",
-   "source": "ICE BofA via FRED",
-   "access": "free but licence-limited",
-   "range": "rolling three years only",
-   "downloaded": false,
-   "validated": false,
+   "source": "Moody's Baa/Aaa via FRED (BAA10Y, AAA10Y, DBAA, DAAA); ICE BofA blocked",
+   "access": "free, no key",
+   "range": "2005-01-03 .. 2012-12-31",
+   "downloaded": true,
+   "validated": true,
    "joinedIntoTraining": false,
-   "status": "LICENSE_BLOCKED",
-   "evidence": "BAMLH0A0HYM2 returns data only from 2023-10-16; ICE licensing limits FRED to a rolling window. TEDRATE used instead"
+   "artifact": "data/foundation/crisis_2008/BAA10Y.csv and three companions",
+   "status": "PARTIAL",
+   "evidence": "the ICE indices are licence-limited to a rolling three years (BAMLH0A0HYM2 starts 2023-10-16), but the credit spread itself is freely served: BAA10Y covers the window in full and peaks at 6.16%. Recovered after the earlier pass recorded the layer as blocked",
+   "limitation": "the ICE high-yield index specifically remains unavailable; TEDRATE is a bank funding and liquidity spread and is NOT a substitute for a corporate credit spread"
   },
   {
    "layer": "gold and commodities",
@@ -179,6 +181,7 @@
    "downloaded": true,
    "validated": true,
    "joinedIntoTraining": false,
+   "artifact": "News and NewsLineage tables (operational, pruned at 70 days)",
    "status": "PARTIAL",
    "evidence": "jobs/retention.py prunes News at 70 days by design; this is operational freshness, not a historical corpus"
   },
@@ -231,8 +234,7 @@
   "layers": 18,
   "byStatus": {
    "COMPLETE": 11,
-   "LICENSE_BLOCKED": 1,
-   "PARTIAL": 4,
+   "PARTIAL": 5,
    "SOURCE_BLOCKED": 2
   },
   "joinedIntoTraining": 4,
@@ -247,6 +249,7 @@
    "macroeconomic series (point-in-time)",
    "interest rates and yield curve",
    "banking and credit stress (2008 window)",
+   "credit spreads (2008 window)",
    "instrument identity and lifecycle",
    "dated events corpus",
    "press and original-document evidence",
@@ -261,7 +264,7 @@
   "historical_regimes.json": "5c94ddcad368e8f0",
   "readiness.json": "f5f3ca673fea5043",
   "press_evidence.jsonl": "89ea440d741b1290",
-  "crisis_2008/manifest.json": "6550d11e03961c82",
+  "crisis_2008/manifest.json": "e6bf482bd44d99c6",
   "acquisitionManifestVersion": "acquisition-manifest-v7-final"
  }
 }

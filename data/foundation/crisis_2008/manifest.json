@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-15T17:24:54+00:00",
+ "generatedAt": "2026-10-15T17:38:44+00:00",
  "version": "crisis-2008-v1",
  "window": [
   "2005-01-01",
@@ -176,15 +176,71 @@
   },
   "TEDRATE": {
    "status": "COMPLETE",
-   "title": "TED spread",
+   "title": "TED spread (3m LIBOR minus 3m T-bill)",
    "frequency": "D",
-   "measures": "credit and liquidity stress",
+   "measures": "bank funding and liquidity stress -- NOT a credit spread",
    "publicationLagDays": 1,
    "rows": 1962,
    "first": "2005-01-04",
    "last": "2012-12-31",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=TEDRATE&cosd=2005-01-01&coed=2012-12-31",
    "sha256": "ac6bf0454cab469aab8ede26a3052c2457e597d54c67e97799024c9198cc4165",
+   "pointInTimeReady": true,
+   "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
+  },
+  "BAA10Y": {
+   "status": "COMPLETE",
+   "title": "Moody's Baa corporate yield minus 10-year Treasury",
+   "frequency": "D",
+   "measures": "corporate credit risk spread",
+   "publicationLagDays": 1,
+   "rows": 2003,
+   "first": "2005-01-03",
+   "last": "2012-12-31",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=BAA10Y&cosd=2005-01-01&coed=2012-12-31",
+   "sha256": "bf95ae0753c05384178b384571027b19382af39e5615fe1e2876ccf9f488c19c",
+   "pointInTimeReady": true,
+   "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
+  },
+  "AAA10Y": {
+   "status": "COMPLETE",
+   "title": "Moody's Aaa corporate yield minus 10-year Treasury",
+   "frequency": "D",
+   "measures": "high-grade credit risk spread",
+   "publicationLagDays": 1,
+   "rows": 2003,
+   "first": "2005-01-03",
+   "last": "2012-12-31",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=AAA10Y&cosd=2005-01-01&coed=2012-12-31",
+   "sha256": "c94e647d096a641cedabb1b8ef44a41fa167e0254ad3a8a3da4b6898f5f75406",
+   "pointInTimeReady": true,
+   "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
+  },
+  "DBAA": {
+   "status": "COMPLETE",
+   "title": "Moody's Baa corporate bond yield",
+   "frequency": "D",
+   "measures": "corporate credit level",
+   "publicationLagDays": 1,
+   "rows": 2004,
+   "first": "2005-01-03",
+   "last": "2012-12-31",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DBAA&cosd=2005-01-01&coed=2012-12-31",
+   "sha256": "7e51f891d9ed0ba53bf1bee1fdb6219301db1b968e06994e98b893e7685dc495",
+   "pointInTimeReady": true,
+   "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
+  },
+  "DAAA": {
+   "status": "COMPLETE",
+   "title": "Moody's Aaa corporate bond yield",
+   "frequency": "D",
+   "measures": "high-grade credit level",
+   "publicationLagDays": 1,
+   "rows": 2004,
+   "first": "2005-01-03",
+   "last": "2012-12-31",
+   "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DAAA&cosd=2005-01-01&coed=2012-12-31",
+   "sha256": "9dd56b89c3020a34b53e6c15b62824904561496133622c8ec4fece559cc34a75",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -285,8 +341,12 @@
   "sha256": "a72857e5c7b5c3748f4898a050ae0471846c6b85cb3ea441f7c5d13d504afa7a"
  },
  "licenseBlocked": {
-  "BAMLH0A0HYM2": "ICE licensing limits FRED to a rolling three-year window; the 2008 high-yield spread is not publicly served. TEDRATE is used as the freely available liquidity-stress measure instead.",
-  "BAMLC0A0CM": "same ICE licensing limit for the investment-grade spread."
+  "BAMLH0A0HYM2": "ICE licensing limits FRED to a rolling three-year window; the 2008 ICE high-yield index is not publicly served.",
+  "BAMLC0A0CM": "same ICE licensing limit for the investment-grade index."
  },
+ "creditSpreadRecovered": {
+  "BAA10Y": "Moody's Baa minus 10-year Treasury: a corporate credit risk spread covering 2005-2012 in full, recovered after the ICE indices proved licence-limited"
+ },
+ "tedVersusCredit": "TEDRATE is a bank funding and liquidity spread; BAA10Y is a corporate credit risk spread. They are not the same measurement and neither substitutes for the other",
  "psxNote": "PSX 2008 coverage is investigated separately; US index history is not evidence about Pakistani market coverage"
 }

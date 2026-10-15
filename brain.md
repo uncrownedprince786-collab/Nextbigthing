@@ -5442,3 +5442,51 @@ reads rows that already exist:
     - **The credit spread is the one licence wall.** ICE limits FRED to a rolling three years, so
       `BAMLH0A0HYM2` starts 2023-10-16 and the 2008 high-yield spread is not publicly served.
       TEDRATE is the free stand-in and the gap is recorded rather than papered over.
+
+152. **The foundation scored 92.74% and the first model learned nothing. Both are the result.**
+    2026-10-15, closure and first experiment. Scope frozen before measurement
+    (`acceptance_scope.json`), scores in `foundation_score.json` (`1bfbdbd2d5c82fb5`), experiment in
+    `baseline_experiment.json` (`7ed1f2d69df036c4`).
+
+    - **Freezing the denominator first is what makes the number mean anything.**
+      `acceptance_scope.json` fixed the scope, the eight domain weights and the pass rule, and
+      records that it was written before any score existed. The blocked layers stayed in the
+      denominator: the 63 delisted price histories sit in corporate-actions at zero, which is why
+      that domain scores **0.6684** and drags the total. Overall **0.9274**, past the 0.90 gate.
+      Prices 0.9674, macro and rates 1.0000, regimes 1.0000, events 0.9841, provenance 1.0000,
+      backup 1.0000, principles 0.7000 -- that last kept deliberately harsh by counting runnable
+      rules, 19 of 80, rather than citations.
+
+    - **One real recovery, and it was a misclassification of my own.** The 2008 credit spread had
+      been recorded as LICENSE_BLOCKED because the ICE indices are limited to a rolling three
+      years. The ICE *index* is blocked; the credit *spread* is not. Moody's `BAA10Y` is served
+      free for the whole 2005-2012 window and peaks at **6.16%** in the crisis. Four series
+      recovered, the layer moved from blocked to partial, and TEDRATE is now labelled for what it
+      is -- bank funding and liquidity, not corporate credit. Two measurements that move together
+      in a crisis are still two measurements.
+
+    - **Metric 2 is 0.8333 and that is below the gate on its own.** The frozen rule applies 0.90
+      to the weighted overall, so the pass is real, but organisation-and-validation at 15 of 18
+      is the weakest headline and saying "92.74%" without it would be choosing the flattering
+      number. `contextLayerIntegration` is **4 of 18** and is printed beside training readiness
+      every time, because 97% of sessions carrying price features is a different claim from the
+      corpus being integrated, and they are easy to confuse in one's own favour.
+
+    - **The experiment: the rule baseline scores 0.3423, the model 0.4211, and the constant
+      predictor 0.4204.** So the model beats the baseline by 7.9 points and beats *always saying
+      UP* by **0.07 of a point**. There is no edge. Per-class recall shows why -- UP 0.74,
+      DOWN 0.24, FLAT 0.10 -- the fit collapsed toward the majority class, and its worst fold is
+      **2022**, the single year in which DOWN was the largest class. A model that fails in the
+      adverse regime has failed at the thing it was for.
+
+    - **The rule baseline was worth running precisely because it lost.** Had the model only been
+      compared against it, +7.9 points would have read as learning. The majority-class reference
+      costs one line and is the difference between a result and a story. It is now a field in the
+      artifact so the next reader cannot miss it.
+
+    - **What this does not say.** It does not say the data is bad; coverage, leakage and
+      reproducibility all passed. It says a single linear model on fifteen price and volume
+      features, untuned, does not predict 20-session direction -- which is close to what the
+      efficient-market prior would expect and is a reason to go after the unjoined context
+      layers, not a reason to tune this one until it looks better. And no result here is net of
+      anything: the execution-cost layer is empty, so direction is all that was measured.

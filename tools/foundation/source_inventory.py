@@ -137,13 +137,19 @@ def main() -> int:
         },
         {
             "layer": "credit spreads (2008 window)",
-            "source": "ICE BofA via FRED",
-            "access": "free but licence-limited",
-            "range": "rolling three years only",
-            "downloaded": False, "validated": False, "joinedIntoTraining": False,
-            "status": "LICENSE_BLOCKED",
-            "evidence": "BAMLH0A0HYM2 returns data only from 2023-10-16; ICE licensing limits "
-                        "FRED to a rolling window. TEDRATE used instead",
+            "source": "Moody's Baa/Aaa via FRED (BAA10Y, AAA10Y, DBAA, DAAA); ICE BofA blocked",
+            "access": "free, no key",
+            "range": "2005-01-03 .. 2012-12-31",
+            "downloaded": True, "validated": True, "joinedIntoTraining": False,
+            "artifact": "data/foundation/crisis_2008/BAA10Y.csv and three companions",
+            "status": "PARTIAL",
+            "evidence": "the ICE indices are licence-limited to a rolling three years "
+                        "(BAMLH0A0HYM2 starts 2023-10-16), but the credit spread itself is "
+                        "freely served: BAA10Y covers the window in full and peaks at 6.16%. "
+                        "Recovered after the earlier pass recorded the layer as blocked",
+            "limitation": "the ICE high-yield index specifically remains unavailable; TEDRATE "
+                          "is a bank funding and liquidity spread and is NOT a substitute for "
+                          "a corporate credit spread",
         },
         {
             "layer": "gold and commodities",
@@ -216,6 +222,7 @@ def main() -> int:
             "access": "free",
             "range": "a rolling ~37-day window",
             "downloaded": True, "validated": True, "joinedIntoTraining": False,
+            "artifact": "News and NewsLineage tables (operational, pruned at 70 days)",
             "status": "PARTIAL",
             "evidence": "jobs/retention.py prunes News at 70 days by design; this is operational "
                         "freshness, not a historical corpus",

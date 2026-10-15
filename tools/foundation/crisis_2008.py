@@ -72,7 +72,14 @@ SERIES = [
     ("CSUSHPINSA", "Case-Shiller national home price index", "M", 60, "housing"),
     ("MORTGAGE30US", "30-year mortgage rate", "W", 1, "housing"),
     ("DRSFRMACBS", "Delinquency rate, single-family residential mortgages", "Q", 60, "credit"),
-    ("TEDRATE", "TED spread", "D", 1, "credit and liquidity stress"),
+    ("TEDRATE", "TED spread (3m LIBOR minus 3m T-bill)", "D", 1,
+     "bank funding and liquidity stress -- NOT a credit spread"),
+    ("BAA10Y", "Moody's Baa corporate yield minus 10-year Treasury", "D", 1,
+     "corporate credit risk spread"),
+    ("AAA10Y", "Moody's Aaa corporate yield minus 10-year Treasury", "D", 1,
+     "high-grade credit risk spread"),
+    ("DBAA", "Moody's Baa corporate bond yield", "D", 1, "corporate credit level"),
+    ("DAAA", "Moody's Aaa corporate bond yield", "D", 1, "high-grade credit level"),
     ("WALCL", "Federal Reserve total assets", "W", 1, "policy"),
     ("FEDFUNDS", "Effective federal funds rate, monthly", "M", 1, "policy"),
     ("DGS2", "2-year Treasury yield", "D", 1, "rates"),
@@ -83,10 +90,18 @@ SERIES = [
 
 # Not obtainable for this window, and why.
 BLOCKED = {
-    "BAMLH0A0HYM2": "ICE licensing limits FRED to a rolling three-year window; the 2008 "
-                    "high-yield spread is not publicly served. TEDRATE is used as the "
-                    "freely available liquidity-stress measure instead.",
-    "BAMLC0A0CM": "same ICE licensing limit for the investment-grade spread.",
+    "BAMLH0A0HYM2": "ICE licensing limits FRED to a rolling three-year window; the 2008 ICE "
+                    "high-yield index is not publicly served.",
+    "BAMLC0A0CM": "same ICE licensing limit for the investment-grade index.",
+}
+# The ICE indices are blocked; the credit spread itself is not. Moody's Baa and Aaa yields and
+# their spreads over the 10-year Treasury are served freely for the whole window, and BAA10Y
+# peaks at 6.16% in the crisis. Recorded distinctly because TEDRATE measures bank funding and
+# liquidity, which is a different thing from corporate credit risk, and conflating the two would
+# be describing one measurement as another.
+CREDIT_SPREAD_SUBSTITUTES = {
+    "BAA10Y": "Moody's Baa minus 10-year Treasury: a corporate credit risk spread covering "
+              "2005-2012 in full, recovered after the ICE indices proved licence-limited",
 }
 
 # Dated chronology. `dateMeans` is the point: an announcement, an effective date, a filing and a
@@ -238,6 +253,10 @@ def main() -> int:
         "chronology": {"entries": len(CHRONOLOGY), "file": cp.name,
                        "sha256": hashlib.sha256(cp.read_bytes()).hexdigest()},
         "licenseBlocked": BLOCKED,
+        "creditSpreadRecovered": CREDIT_SPREAD_SUBSTITUTES,
+        "tedVersusCredit": ("TEDRATE is a bank funding and liquidity spread; BAA10Y is a "
+                            "corporate credit risk spread. They are not the same measurement "
+                            "and neither substitutes for the other"),
         "psxNote": "PSX 2008 coverage is investigated separately; US index history is not "
                    "evidence about Pakistani market coverage",
     }
