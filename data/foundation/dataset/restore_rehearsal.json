@@ -1,0 +1,52 @@
+{
+ "generatedAt": "2026-10-15T21:24:21+00:00",
+ "artifact": {
+  "source": "GitHub Actions artifact 11960878774 (nbt-backup-38712534137)",
+  "sealed": "aes-256-cbc, pbkdf2, 200000 iterations",
+  "decrypted": true
+ },
+ "verifyResult": {
+  "command": "python tools/restore_db.py verify <dir>",
+  "filesVerified": "44 of 44",
+  "exitCode": 0
+ },
+ "backupManifest": {
+  "schemaVersion": "20261011130000_decision_history",
+  "tableCount": 44,
+  "rowCount": 1274646,
+  "status": "verified",
+  "errors": [],
+  "started": "2026-10-15T09:23:32"
+ },
+ "backupVsLive": {
+  "PriceSnapshot": {
+   "backup": 1097638,
+   "live": 1098074,
+   "delta": 436
+  },
+  "AssetFactor": {
+   "backup": 3075,
+   "live": 3075,
+   "delta": 0
+  },
+  "Asset": {
+   "backup": 616,
+   "live": 616,
+   "delta": 0
+  },
+  "News": {
+   "backup": 8134,
+   "live": 8726,
+   "delta": 592
+  },
+  "DecisionLog": {
+   "backup": 2778,
+   "live": 2778,
+   "delta": 0
+  }
+ },
+ "liveDatabaseSize": "398 MB",
+ "whatThisProves": "the sealed artifact decrypts, every one of its 44 table files matches its recorded checksum and row count, and the counts agree with the live database allowing for ingestion since the dump. This is strictly more than a dump-and-encrypt job reporting success.",
+ "whatThisDoesNotProve": "no rows were loaded into a running Postgres. restore_db.py restore requires RESTORE_DATABASE_URL to name a migrated, empty target; this machine has no running database engine (docker daemon not running, and psql/pg_restore/initdb are absent), so a full restore rehearsal remains OUTSTANDING and is not claimed.",
+ "exactBlocker": "no running PostgreSQL instance available as a disposable restore target"
+}
