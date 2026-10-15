@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-15T21:54:27+00:00",
+ "generatedAt": "2026-10-15T22:09:43+00:00",
  "version": "context-routing-v1",
  "roles": {
   "training-feature": "enters the model's feature vector for an instrument",
@@ -25,7 +25,9 @@
    "consumer": "tools/make_dataset.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_dataset.py",
+   "integrationProven": true
   },
   {
    "layer": "market / index benchmarks (deep history)",
@@ -39,7 +41,9 @@
    "consumer": "tools/foundation/historical_regimes.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_historical_corpus.py",
+   "integrationProven": true
   },
   {
    "layer": "corporate actions",
@@ -52,7 +56,9 @@
    "consumer": "tools/foundation/actions.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_milestone_b.py",
+   "integrationProven": true
   },
   {
    "layer": "macroeconomic series (point-in-time)",
@@ -63,10 +69,12 @@
    "mayVote": false,
    "pointInTime": "joined on observation_date + publicationLagDays, never on observation date alone",
    "whenAbsent": "no macro reading: no veto, and no neutral vote invented in its place",
-   "consumer": "tools/foundation/macro_pit.py",
+   "consumer": "tools/foundation/macro_context.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_macro_context.py",
+   "integrationProven": true
   },
   {
    "layer": "interest rates and yield curve",
@@ -80,7 +88,9 @@
    "consumer": "tools/foundation/macro.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": null,
+   "integrationProven": false
   },
   {
    "layer": "banking and credit stress (2008 window)",
@@ -94,7 +104,9 @@
    "consumer": "tools/foundation/crisis_2008.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_historical_corpus.py",
+   "integrationProven": true
   },
   {
    "layer": "credit spreads (2008 window)",
@@ -107,7 +119,9 @@
    "consumer": "tools/foundation/crisis_2008.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_historical_corpus.py",
+   "integrationProven": true
   },
   {
    "layer": "gold and commodities",
@@ -121,7 +135,9 @@
    "consumer": "tools/make_dataset.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_dataset.py",
+   "integrationProven": true
   },
   {
    "layer": "instrument identity and lifecycle",
@@ -135,7 +151,9 @@
    "consumer": "tools/foundation/sec_lifecycle.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_evidence_corpus.py",
+   "integrationProven": true
   },
   {
    "layer": "delisted instrument price history",
@@ -148,7 +166,9 @@
    "consumer": "tools/foundation/gap_evidence.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_organisation_metric.py",
+   "integrationProven": true
   },
   {
    "layer": "PSX history before 2013-11-04",
@@ -161,7 +181,9 @@
    "consumer": "tools/foundation/gap_evidence.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_organisation_metric.py",
+   "integrationProven": true
   },
   {
    "layer": "dated events corpus",
@@ -174,7 +196,9 @@
    "consumer": "tools/foundation/events_load.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_evidence_corpus.py",
+   "integrationProven": true
   },
   {
    "layer": "press and original-document evidence",
@@ -188,7 +212,9 @@
    "consumer": "tools/foundation/gkg_evidence.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_evidence_corpus.py",
+   "integrationProven": true
   },
   {
    "layer": "operational news feed",
@@ -201,7 +227,9 @@
    "consumer": "jobs/lineage.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": null,
+   "integrationProven": false
   },
   {
    "layer": "event-to-market reactions",
@@ -215,7 +243,9 @@
    "consumer": "tools/foundation/event_reactions.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_evidence_corpus.py",
+   "integrationProven": true
   },
   {
    "layer": "books, references and testable principles",
@@ -228,7 +258,9 @@
    "consumer": "tools/foundation/principles.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": null,
+   "integrationProven": false
   },
   {
    "layer": "regime episodes",
@@ -241,7 +273,9 @@
    "consumer": "tools/research/regime_breakdown.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_context_routing.py",
+   "integrationProven": true
   },
   {
    "layer": "training examples",
@@ -254,12 +288,20 @@
    "consumer": "tools/foundation/assemble.py",
    "consumerResolves": true,
    "unknownRoles": [],
-   "voteRoleConsistent": true
+   "voteRoleConsistent": true,
+   "provingTest": "tests/test_dataset.py",
+   "integrationProven": true
   }
  ],
  "summary": {
   "declared": 18,
   "consumersResolving": 18,
+  "integrationProven": 15,
+  "routedNotYetProven": [
+   "interest rates and yield curve",
+   "operational news feed",
+   "books, references and testable principles"
+  ],
   "mayVote": 3,
   "neverVote": 15,
   "byRole": {

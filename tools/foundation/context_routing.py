@@ -45,101 +45,106 @@ ROLES = {
     "documented-exclusion": "no permitted source serves it; the gap itself is the artifact",
 }
 
-#: layer -> (roles, may it vote, point-in-time rule, behaviour when absent, consumer path)
-ROUTES: dict[str, tuple[tuple[str, ...], bool, str, str, str]] = {
+#: layer -> (roles, may it vote, point-in-time rule, behaviour when absent, consumer, proving test)
+#:
+#: The last field is what separates a *declared* route from an *integrated* one. A consumer path
+#: that merely exists proves nothing; a test that drives source -> parse -> point-in-time ->
+#: consumer proves the path carries data without leaking the future. An empty string is an
+#: honest "routed, not yet proven" and is counted separately.
+ROUTES: dict[str, tuple[tuple[str, ...], bool, str, str, str, str]] = {
     "prices / OHLCV (instrument level)": (
         ("training-feature", "directional-evidence"), True,
         "closes <= asOf; the as-of close is excluded from every forward window",
         "no price, no row: the instrument is ineligible, never defaulted",
-        "tools/make_dataset.py"),
+        "tools/make_dataset.py", "tests/test_dataset.py"),
     "market / index benchmarks (deep history)": (
         ("evaluation-stratification", "research-only"), False,
         "daily series with its own date; used only to date and bound an episode",
         "an episode without a benchmark is reported as uncovered, not assumed calm",
-        "tools/foundation/historical_regimes.py"),
+        "tools/foundation/historical_regimes.py", "tests/test_historical_corpus.py"),
     "corporate actions": (
         ("integrity-veto",), False,
         "an action's date must precede the window it invalidates",
         "unknown action: the row keeps its flag and the consumer excludes it explicitly",
-        "tools/foundation/actions.py"),
+        "tools/foundation/actions.py", "tests/test_milestone_b.py"),
     "macroeconomic series (point-in-time)": (
         ("decision-context", "integrity-veto"), False,
         "joined on observation_date + publicationLagDays, never on observation date alone",
         "no macro reading: no veto, and no neutral vote invented in its place",
-        "tools/foundation/macro_pit.py"),
+        "tools/foundation/macro_context.py", "tests/test_macro_context.py"),
     "interest rates and yield curve": (
         ("decision-context", "research-only"), False,
         "FRED observation dates; same publication-lag rule as macro",
         "absent: the context line is omitted rather than filled with a stale level",
-        "tools/foundation/macro.py"),
+        "tools/foundation/macro.py", ""),
     "banking and credit stress (2008 window)": (
         ("research-only", "evaluation-stratification"), False,
         "2005-2012; entirely before the 2018 dataset, so it can only inform research",
         "absent: the 2008 regime is reported as out of training range",
-        "tools/foundation/crisis_2008.py"),
+        "tools/foundation/crisis_2008.py", "tests/test_historical_corpus.py"),
     "credit spreads (2008 window)": (
         ("research-only",), False,
         "2005-2012 observation dates",
         "the licence-limited ICE series is evidenced by a dated probe, not guessed",
-        "tools/foundation/crisis_2008.py"),
+        "tools/foundation/crisis_2008.py", "tests/test_historical_corpus.py"),
     "gold and commodities": (
         ("training-feature", "directional-evidence"), True,
         "closes <= asOf, as any other instrument",
         "no bar, no row",
-        "tools/make_dataset.py"),
+        "tools/make_dataset.py", "tests/test_dataset.py"),
     "instrument identity and lifecycle": (
         ("integrity-veto", "research-only"), False,
         "registry read date recorded; a delisting is known only from its filing date",
         "unknown lifecycle: the instrument stays in the universe and the gap is recorded",
-        "tools/foundation/sec_lifecycle.py"),
+        "tools/foundation/sec_lifecycle.py", "tests/test_evidence_corpus.py"),
     "delisted instrument price history": (
         ("documented-exclusion",), False,
         "n/a: no permitted source serves it",
         "the probe record is the artifact; survivorship stays a measured lower bound",
-        "tools/foundation/gap_evidence.py"),
+        "tools/foundation/gap_evidence.py", "tests/test_organisation_metric.py"),
     "PSX history before 2013-11-04": (
         ("documented-exclusion",), False,
         "n/a: absent at source",
         "the archive floor is established by probe, not assumed",
-        "tools/foundation/gap_evidence.py"),
+        "tools/foundation/gap_evidence.py", "tests/test_organisation_metric.py"),
     "dated events corpus": (
         ("decision-context",), False,
         "an event may only inform a decision whose timestamp follows its publication",
         "no event: `eventInDays` is null, which is not the same as 'no event due'",
-        "tools/foundation/events_load.py"),
+        "tools/foundation/events_load.py", "tests/test_evidence_corpus.py"),
     "press and original-document evidence": (
         ("decision-context", "research-only"), False,
         "publication time strictly before the decision timestamp",
         "no press record: the event stands on its own disposition",
-        "tools/foundation/gkg_evidence.py"),
+        "tools/foundation/gkg_evidence.py", "tests/test_evidence_corpus.py"),
     "operational news feed": (
         ("decision-context",), False,
         "published < decision; pruned at 70 days, so never a historical corpus",
         "coverage 'unavailable' is never converted into a neutral tone",
-        "jobs/lineage.py"),
+        "jobs/lineage.py", ""),
     "event-to-market reactions": (
         ("historical-prior", "research-only"), False,
         "before-state strictly before the event; forward windows strictly after",
         "an event without a reaction window is dropped, not zero-filled",
-        "tools/foundation/event_reactions.py"),
+        "tools/foundation/event_reactions.py", "tests/test_evidence_corpus.py"),
     "books, references and testable principles": (
         ("research-only",), False,
         "literature has no bearing on a decision timestamp",
         "an untestable principle is recorded as untestable",
-        "tools/foundation/principles.py"),
+        "tools/foundation/principles.py", ""),
     "regime episodes": (
         ("evaluation-stratification",), False,
         "episode windows are known only in hindsight, so they may never enter a predictor",
         "a session outside every episode is reported as 'none', not as calm",
-        "tools/research/regime_breakdown.py"),
+        "tools/research/regime_breakdown.py", "tests/test_context_routing.py"),
     "training examples": (
         ("training-feature",), True,
         "assembled from point-in-time features and mature outcomes only",
         "immature rows are excluded, never labelled FLAT",
-        "tools/foundation/assemble.py"),
+        "tools/foundation/assemble.py", "tests/test_dataset.py"),
 }
 
-FIELDS = ("roles", "mayVote", "pointInTime", "whenAbsent", "consumer")
+FIELDS = ("roles", "mayVote", "pointInTime", "whenAbsent", "consumer", "provingTest")
 
 
 def route(layer: str) -> dict | None:
@@ -159,16 +164,18 @@ def route(layer: str) -> dict | None:
 def verify(root: Path = ROOT) -> dict:
     """Check every declared consumer resolves, and that no role is invented."""
     rows = []
-    for layer, (roles, may_vote, pit, absent, consumer) in ROUTES.items():
+    for layer, (roles, may_vote, pit, absent, consumer, proof) in ROUTES.items():
         unknown = [x for x in roles if x not in ROLES]
         exists = (root / consumer).exists()
         # Only an instrument-level layer may ever vote; this is the rule that keeps a
         # market-wide series from becoming 616 independent confirmations of one fact.
         vote_ok = (not may_vote) or ("directional-evidence" in roles) or ("training-feature" in roles)
+        proven = bool(proof) and (root / proof).exists()
         rows.append({"layer": layer, "roles": list(roles), "mayVote": may_vote,
                      "pointInTime": pit, "whenAbsent": absent, "consumer": consumer,
                      "consumerResolves": exists, "unknownRoles": unknown,
-                     "voteRoleConsistent": vote_ok})
+                     "voteRoleConsistent": vote_ok,
+                     "provingTest": proof or None, "integrationProven": proven})
     wired = [r for r in rows if r["consumerResolves"]]
     voting = [r for r in rows if r["mayVote"]]
     return {
@@ -181,6 +188,8 @@ def verify(root: Path = ROOT) -> dict:
         "summary": {
             "declared": len(rows),
             "consumersResolving": len(wired),
+            "integrationProven": sum(1 for r in rows if r["integrationProven"]),
+            "routedNotYetProven": [r["layer"] for r in rows if not r["integrationProven"]],
             "mayVote": len(voting),
             "neverVote": len(rows) - len(voting),
             "byRole": {k: sum(1 for r in rows if k in r["roles"]) for k in ROLES},
@@ -199,7 +208,8 @@ def main() -> int:
     s = payload["summary"]
     for r in payload["layers"]:
         mark = "ok " if r["consumerResolves"] else "MISSING"
-        print(f"  {mark} {r['layer'][:44]:<46}{','.join(r['roles'])}")
+        proof = "tested" if r["integrationProven"] else "UNPROVEN"
+        print(f"  {mark} {proof:<9}{r['layer'][:42]:<44}{','.join(r['roles'])}")
     print(f"\ndeclared {s['declared']}  consumers resolving {s['consumersResolving']}  "
           f"may vote {s['mayVote']}  never vote {s['neverVote']}")
     if s["unroutedOrBroken"]:

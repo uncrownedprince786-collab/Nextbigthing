@@ -99,3 +99,25 @@ def test_each_group_is_scored_against_its_own_majority():
     assert out["a"]["margin"] == 0.0
     # group b: 3 of 4 correct against its own 3-of-4 majority
     assert out["b"]["majorityRate"] == 0.75
+
+
+def test_a_proving_test_is_named_and_exists_or_is_honestly_blank():
+    """A route may be unproven, but it may not claim a test that is not there."""
+    for layer, (*_rest, proof) in ROUTES.items():
+        if proof:
+            assert (ROOT / proof).exists(), f"{layer} names a test that does not exist: {proof}"
+
+
+def test_the_matrix_separates_resolved_from_proven():
+    s = verify(ROOT)["summary"]
+    assert s["consumersResolving"] == s["declared"], "every consumer must resolve"
+    assert s["integrationProven"] <= s["consumersResolving"]
+    # The unproven ones are named rather than folded into the total.
+    assert len(s["routedNotYetProven"]) == s["declared"] - s["integrationProven"]
+
+
+def test_macro_is_proven_and_still_may_not_vote():
+    r = route("macroeconomic series (point-in-time)")
+    assert r["consumer"].endswith("macro_context.py")
+    assert r["provingTest"] == "tests/test_macro_context.py"
+    assert r["mayVote"] is False
