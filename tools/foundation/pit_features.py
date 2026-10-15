@@ -61,17 +61,23 @@ try:  # not available on Windows; the resource figure is simply omitted there
 except ImportError:  # pragma: no cover
     resource = None
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parent.parent
+sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "jobs"))
 
 import analogs as an  # noqa: E402
 import factors as fc  # noqa: E402
+from actions import crossed, unadjusted_windows  # noqa: E402
 
 # The live job reads about (120 + 50 + 60) * 7/5 + 30 calendar days. Longer than any window it uses
 # is enough to give the same answer; this is the trailing session count handed to `compute`.
 WINDOW = 260
 MIN_BARS = fc.SMA_LONG + 1          # a row below this is "thin" in the live job and is still emitted
 ANALOG_MIN = an.VOL_WINDOW + 30     # the live analog job skips assets with fewer bars
+# How far back an analog factor reads when the volume ratio is not part of the match: the five day
+# return is the longest of them, and the one day return is inside it.
+ACTION_REACH = 5
 NAN = float("nan")
 
 
@@ -101,11 +107,30 @@ class AnalogSeries:
 
     `an.factors(bars, i)` depends only on bars up to i, so computing it once per bar and reusing
     it for every later session is exactly what running the live job at each session would do.
+
+    Unadjusted corporate actions, and why the pool rather than the row
+    -----------------------------------------------------------------
+    The match pool is the asset's *entire* stored history, so a 2026 session can match against a
+    2019 candidate whose one-day move is a split nobody adjusted for, and take that candidate's
+    forward return as evidence. The first answer to this was to flag every session at or after an
+    asset's first action, which quarantined nearly all of 88 assets' history: safe, and far more
+    than the defect costs.
+
+    The defect is narrower than the asset. A fabricated move spoils exactly three things: a
+    candidate whose own factors are measured across the action, a forward window that crosses it,
+    and a session that compares with factors of its own measured across it. Those are excluded
+    here, by date, and every other candidate day in the same series stays in the pool where it
+    belongs. `ACTION_REACH` is how far back a factor reads: five sessions for the one and five day
+    returns, and `an.VOL_WINDOW` when the volume ratio is part of the match.
     """
 
-    def __init__(self, bars: list[dict]):
+    def __init__(self, bars: list[dict], actions: list[str] | None = None):
         n = len(bars)
         self.bars = bars
+        self.has_actions = bool(actions)
+        # Running count of actions on or before each bar: an action falls in the span
+        # (dates[j], dates[i]] exactly when na[i] > na[j], which is one comparison per candidate.
+        self.na = _arr(crossed([b["date"] for b in bars], list(actions or [])))
         self.close = _arr([float(b["close"]) for b in bars])
         day, vol, five = [NAN] * n, [NAN] * n, [NAN] * n
         for i in range(n):
@@ -132,6 +157,11 @@ class AnalogSeries:
         tol = self.tol(t)
         if tol is None:
             return None
+        reach = an.VOL_WINDOW if tol["use_volume"] else ACTION_REACH
+        if self.has_actions and self.na[t] > self.na[max(0, t - reach)]:
+            # This session's own factors are measured across a fabricated move. There is nothing
+            # to match on, so no row is written rather than a row built on a number that is wrong.
+            return None
         nd, nv, nf = self.day[t], self.vol[t], self.five[t]
         if nd != nd or nf != nf or (tol["use_volume"] and nv != nv):
             return None
@@ -143,6 +173,12 @@ class AnalogSeries:
             ok &= abs(self.five[sl] - nf) <= tol["five"]
             if tol["use_volume"]:
                 ok &= abs(self.vol[sl] - nv) <= tol["vol"]
+            if self.has_actions:
+                na = self.na
+                # `lo` is an.VOL_WINDOW and `reach` is at most that, so neither index can go
+                # negative; `hi + horizon` is t, so neither can run off the end.
+                ok &= na[sl] == na[lo - reach: hi + 1 - reach]            # the candidate's factors
+                ok &= na[lo + horizon: hi + 1 + horizon] == na[sl]        # its forward window
             idx = ok.nonzero()[0] + lo
             moves = [float((self.close[i + horizon] / self.close[i] - 1.0) * 100.0)
                      for i in idx if self.close[i] > 0]
@@ -171,8 +207,13 @@ def peer_r20(closes_by_asset, dates_by_asset: dict[str, list[date]], r20_by_asse
     return out
 
 
-def build(assets: list[dict], series: dict[str, list[dict]], *, first_year: int | None = None):
-    """Yield one row per asset-session. Pure: reads only the arguments."""
+def build(assets: list[dict], series: dict[str, list[dict]], *, first_year: int | None = None,
+          actions: dict[str, list[str]] | None = None):
+    """Yield one row per asset-session. Pure: reads only the arguments.
+
+    `actions` is {symbol: [unadjusted action dates]}; where it is empty the analog pool is the
+    whole history, exactly as before.
+    """
     dates_by = {a["id"]: [b["date"] for b in series[a["id"]]] for a in assets}
     closes_by = {a["id"]: [float(b["close"]) for b in series[a["id"]]] for a in assets}
     r20_by = {}
@@ -193,7 +234,8 @@ def build(assets: list[dict], series: dict[str, list[dict]], *, first_year: int 
         bars = series[a["id"]]
         if len(bars) < MIN_BARS:
             continue
-        analog = AnalogSeries(bars) if len(bars) >= ANALOG_MIN else None
+        analog = (AnalogSeries(bars, (actions or {}).get(a["symbol"]))
+                  if len(bars) >= ANALOG_MIN else None)
         peers = [p for p in groups.get(a["industryId"], []) if p != a["id"]] if a["industryId"] else []
         for t in range(MIN_BARS - 1, len(bars)):
             d = bars[t]["date"]
@@ -230,19 +272,32 @@ def load(cur, limit: int | None):
     return assets, series
 
 
-def live_oracle(bars: list[dict], t: int, horizon: int) -> dict | None:
-    """What `jobs/analogs.main` computes for the bars as they stood at index t, step for step."""
+def live_oracle(bars: list[dict], t: int, horizon: int, actions: list[str] | None = None) -> dict | None:
+    """The same answer `AnalogSeries.at` gives, written the long way round.
+
+    Step for step what `jobs/analogs.main` computes for the bars as they stood at index t, with one
+    deliberate difference: the unadjusted-action exclusion `AnalogSeries` applies is applied here
+    too, candidate by candidate, so the equivalence check compares the vectorised rule against a
+    plain loop over the *same* rule rather than against the live job's contaminated pool. The live
+    job's own exposure to this is a separate, open item; it is not what this oracle measures.
+    """
     b = bars[: t + 1]
     if len(b) < ANALOG_MIN:
         return None
     tol = an.tolerances(b)
     if tol is None:
         return None
+    na = crossed([x["date"] for x in bars], list(actions or []))
+    reach = an.VOL_WINDOW if tol["use_volume"] else ACTION_REACH
+    if actions and na[t] > na[max(0, t - reach)]:
+        return None
     now = an.factors(b, len(b) - 1)
     if now is None or now["five"] is None or (tol["use_volume"] and now["vol"] is None):
         return None
     moves = []
     for i in range(an.VOL_WINDOW, len(b) - 1 - horizon + 1):
+        if actions and (na[i] > na[max(0, i - reach)] or na[i + horizon] > na[i]):
+            continue
         past = an.factors(b, i)
         if past is None or not an.similar(now, past, tol):
             continue
@@ -266,6 +321,10 @@ def main() -> None:
     cur = db().cursor()
     assets, series = load(cur, limit)
     t_read = time.time() - t0
+    actions = unadjusted_windows(Path(arg("--actions")) if arg("--actions") else
+                                 ROOT / "data" / "foundation" / "price_verification" / "unadjusted_actions.json")
+    print(f"  unadjusted actions: {sum(len(v) for v in actions.values())} across {len(actions)} assets",
+          flush=True)
     expected = sum(max(0, len(series[a["id"]]) - MIN_BARS + 1) for a in assets)
 
     files: dict[int, gzip.GzipFile] = {}
@@ -273,8 +332,10 @@ def main() -> None:
     counts: dict[int, int] = {}
     null_f: dict[str, dict[str, int]] = {}
     seen: set[tuple] = set()
-    dupes = produced = 0
-    for row in build(assets, series):
+    dupes = produced = suppressed = 0
+    for row in build(assets, series, actions=actions):
+        if "an" in row and not any(v is not None for v in row["an"].values()):
+            suppressed += 1
         key = (row["a"], row["d"])
         if key in seen:
             dupes += 1
@@ -307,9 +368,10 @@ def main() -> None:
             a, n = rng.choice(eligible)
             bars = series[a["id"]]
             t = rng.randrange(ANALOG_MIN - 1, n)
-            ours = AnalogSeries(bars)
+            acts = actions.get(a["symbol"])
+            ours = AnalogSeries(bars, acts)
             for h in an.HORIZONS:
-                got, want = ours.at(t, h), live_oracle(bars, t, h)
+                got, want = ours.at(t, h), live_oracle(bars, t, h, acts)
                 def keep(x):
                     """The fields that must agree. A zero-match row has no statistics to compare."""
                     if x is None:
@@ -334,6 +396,11 @@ def main() -> None:
             for t, v in null_f.items()},
         "liveEquivalence": {"sampled": check * len(an.HORIZONS), "mismatches": len(mismatches),
                             "examples": mismatches[:5]} if check else "not run",
+        # What `assemble.py` reads to know the match pool was cleaned here, so it does not have to
+        # fall back to flagging every session at or after an asset's first action.
+        "analogPoolExcludesUnadjustedActions": bool(actions),
+        "unadjustedActions": {"dates": sum(len(v) for v in actions.values()), "assets": len(actions)},
+        "sessionsWithNoAnalogBlockBecauseTheirOwnFactorsCrossAnAction": suppressed,
         "resources": {"readSeconds": round(t_read, 1), "buildSeconds": round(t_build, 1),
                       "peakRssMB": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1)
                       if resource else None},

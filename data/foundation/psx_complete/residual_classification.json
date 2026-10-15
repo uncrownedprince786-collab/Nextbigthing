@@ -1,0 +1,25 @@
+{
+ "generatedAt": "2026-10-14T23:15:38+00:00",
+ "method": "every in-range calendar date without a stored bar, classified against the cached exchange archive and the staged provider data; no new requests",
+ "storedPsxBars": 394014,
+ "publishedSessionsRead": 2171,
+ "classification": {
+  "2_securityDidNotTrade": 36762,
+  "3_exchangeArchiveEmpty": 158,
+  "3a_ofWhichAnotherProviderHas": 69
+ },
+ "total": 36920,
+ "category4Detail": {
+  "symbols": 0,
+  "bars": 0,
+  "whatTheyAre": "dates the Karachi listing serves a validated bar for and this database does not hold, withheld because that provider quotes them split-adjusted while the stored series is raw. Staged, not lost: .cache/acquire/psx_withheld.json",
+  "worst": []
+ },
+ "emptyArchiveDates": [
+  "2018-07-19",
+  "2021-02-09",
+  "2023-05-17",
+  "2023-05-18"
+ ],
+ "examples": {}
+}

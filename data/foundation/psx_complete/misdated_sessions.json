@@ -1,0 +1,40 @@
+{
+ "generatedAt": "2026-10-15T00:00:00+00:00",
+ "version": "misdated-sessions-v1",
+ "finding": "2022-10-01 is not a PSX session. It is the 2022-09-30 session stored a second time under the following day's date.",
+ "evidence": {
+  "exchangeArchive": {
+   "url": "https://dps.psx.com.pk/download/mkt_summary/2022-10-01.Z",
+   "httpStatus": 200,
+   "rows": 668,
+   "rowsStampedWith": "30SEP2022",
+   "note": "the archive answers 200 at the Saturday URL and every row inside carries the Friday session date; 2022-10-02 (Sunday) answers 404 as weekends normally do"
+  },
+  "storedRows": {
+   "date": "2022-10-01",
+   "bars": 171,
+   "symbolsHoldingBoth20220930And20221001": 25,
+   "ofThoseWithIdenticalOhlcv": 25,
+   "identicalShare": 1.0
+  },
+  "uniqueness": {
+   "datesWhereEverySharedSymbolRepeatsThePreviousStoredDate": 1,
+   "theDate": "2022-10-01",
+   "nonCryptoWeekendBarsInTheWholeTable": 171,
+   "allOfThemOnThisDate": true
+  }
+ },
+ "rootCause": "jobs/psx.py keyed each bar by the date whose URL it requested rather than the session date the file stamps on its own rows, so an archive served under the wrong date was stored under the wrong date.",
+ "fix": {
+  "ingestion": "jobs/psx.py file_session_date() reads the stamp from the file's first usable row and read_day() returns None when it disagrees with the requested day, which is the same answer it already gives for a closed market. Verified against the live archive: 2022-09-30 reads 668 symbols, 2022-10-01 is refused, 2022-10-03 reads 655.",
+  "existingRows": "none deleted and none altered"
+ },
+ "exposure": {
+  "barsPassingTheCanonicalSessionFilter": 0,
+  "filter": "jobs/sessions.py session_bar(), mirrored in lib/sessions.ts",
+  "why": "the filter admits a non-crypto bar only on Monday to Friday (brain.md rule 95), and 2022-10-01 is a Saturday, so every reader of closes already skips these rows",
+  "verified": "SELECT over PriceSnapshot with session_bar() applied returns 0 of the 171"
+ },
+ "decision": "preserve the rows as stored source evidence; no database write. The canonical filter already excludes them, the ingestion fix stops the mechanism, and a regression test pins both.",
+ "rollback": "nothing to roll back: no row was inserted, updated or deleted for this finding. To undo the ingestion fix alone, remove the file_session_date() check in jobs/psx.py read_day()."
+}

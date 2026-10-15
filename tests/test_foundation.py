@@ -381,6 +381,133 @@ class PointInTime(unittest.TestCase):
         self.assertEqual(base, pit.AnalogSeries(future).at(t, 5))
 
 
+class UnadjustedActionsInTheAnalogPool(unittest.TestCase):
+    """The analog match pool is the asset's whole history, so an unadjusted split years back can
+    still reach a session today. These fix the shape of that reach, not the asset: the contaminated
+    candidates go, and everything else in the same series stays matchable."""
+
+    STEP = 0.001          # every session moves the same amount, so every bar matches every other
+    SPLIT = 200           # index of the one day the stored series was never adjusted for
+    N = 400
+
+    @classmethod
+    def ramp(cls, crash_at_end: bool = False) -> list[dict]:
+        """A series whose factors are identical on every bar but two: the unadjusted action at
+        SPLIT, and -- when asked for -- a genuine fall of the same size on the final bar."""
+        price, out = 100.0, []
+        dates = sessions(cls.N)
+        for i, ds in enumerate(dates):
+            if i:
+                price *= 1 + cls.STEP
+            if i == cls.SPLIT or (crash_at_end and i == cls.N - 1):
+                price *= 0.5
+            out.append({"date": date.fromisoformat(ds), "close": price, "volume": 1e6,
+                        "high": price * 1.01, "low": price * 0.99})
+        return out
+
+    @classmethod
+    def action_dates(cls, bars) -> list[str]:
+        return [bars[cls.SPLIT]["date"].isoformat()]
+
+    def test_a_candidate_on_the_other_side_of_an_unadjusted_action_is_not_matched(self):
+        """The session really did fall by half, and the only day in its history that looks like it
+        is a split nobody adjusted for. Matching them reads a fabricated move as a precedent."""
+        import pit_features as pit
+        bars = self.ramp(crash_at_end=True)
+        t = self.N - 1
+        loose = pit.AnalogSeries(bars).at(t, 5)
+        self.assertEqual(loose["matches"], 1, "the split day should be the one lookalike")
+
+        tight = pit.AnalogSeries(bars, self.action_dates(bars)).at(t, 5)
+        self.assertIsNotNone(tight, "the session's own factors are clean; it must still get a row")
+        self.assertEqual(tight["matches"], 0)
+        self.assertEqual(tight["grade"], "none")
+
+    def test_a_forward_window_that_crosses_an_action_is_not_counted(self):
+        """A candidate can be clean itself and still be read across the action, because the move
+        it is credited with is measured from it to five sessions later."""
+        import pit_features as pit
+        bars = self.ramp()
+        t = 380
+        loose = pit.AnalogSeries(bars).at(t, 5)
+        tight = pit.AnalogSeries(bars, self.action_dates(bars)).at(t, 5)
+
+        self.assertLess(loose["min"], -40.0, "the fabricated halving should reach the statistics")
+        self.assertGreater(tight["min"], -1.0, "and must not survive the exclusion")
+        # Five candidates whose forward window crosses the action, and the fifteen inside the
+        # volume window behind it whose ratio is averaged across it. The split day itself and the
+        # four behind it never matched: their own factors are already the fabricated move.
+        self.assertEqual(loose["matches"] - tight["matches"], 20)
+        self.assertGreater(tight["matches"], 300, "the rest of the history stays in the pool")
+
+    def test_a_session_measured_across_an_action_gets_no_analog_row(self):
+        import pit_features as pit
+        bars = self.ramp()
+        t = self.SPLIT + 10
+        self.assertIsNotNone(pit.AnalogSeries(bars).at(t, 5))
+        self.assertIsNone(pit.AnalogSeries(bars, self.action_dates(bars)).at(t, 5))
+
+    def test_the_vectorised_exclusion_equals_the_plain_loop(self):
+        import pit_features as pit
+        bars = self.ramp()
+        acts = self.action_dates(bars)
+        ours = pit.AnalogSeries(bars, acts)
+        for t in (self.SPLIT + 5, self.SPLIT + 40, 300, 380):
+            for h in (1, 5):
+                got, want = ours.at(t, h), pit.live_oracle(bars, t, h, acts)
+                if want is None:
+                    self.assertIsNone(got, (t, h))
+                    continue
+                self.assertEqual(got["matches"], want["matches"], (t, h))
+                if want["matches"]:
+                    for k in ("mean", "median", "min", "max"):
+                        self.assertAlmostEqual(got[k], want[k], places=9, msg=(t, h, k))
+
+    def test_the_exclusion_reads_nothing_after_the_session(self):
+        """The action dates are an argument, not something read out of the bars, and every one the
+        rule consults lies at or before the session. So bending every later bar -- and adding an
+        action after the session -- cannot move the answer."""
+        import pit_features as pit
+        bars = self.ramp()
+        t = 300
+        acts = self.action_dates(bars)
+        base = pit.AnalogSeries(bars, acts).at(t, 5)
+
+        future = [dict(b) for b in bars]
+        for b in future[t + 1:]:
+            b["close"] *= 7.0
+            b["volume"] = 9e9
+        self.assertEqual(base, pit.AnalogSeries(future, acts).at(t, 5))
+        later = acts + [bars[t + 20]["date"].isoformat()]
+        self.assertEqual(base, pit.AnalogSeries(bars, later).at(t, 5))
+
+    def test_a_move_both_providers_saw_is_not_treated_as_an_action(self):
+        """The scan's second-provider check is the evidence. Where both independent providers
+        report the same fall, it happened, and excluding that day would throw away a real one."""
+        import actions as act
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "unadjusted_actions.json"
+            path.write_text(json.dumps({"candidatesList": [
+                {"symbol": "SPLIT", "date": "2024-01-05",
+                 "secondProvider": {"return": 0.0, "verdict": "unadjusted here"}},
+                {"symbol": "REAL", "date": "2024-08-29",
+                 "secondProvider": {"return": -32.15, "verdict": "both saw the move"}},
+                {"symbol": "UNCHECKED", "date": "2023-02-02", "secondProvider": None},
+            ]}), encoding="utf-8")
+            got = act.unadjusted_windows(path)
+        self.assertEqual(got, {"SPLIT": ["2024-01-05"], "UNCHECKED": ["2023-02-02"]})
+
+    def test_the_count_of_actions_behind_each_bar_only_ever_rises(self):
+        import actions as act
+        bars = self.ramp()
+        dates = [b["date"] for b in bars]
+        na = act.crossed(dates, self.action_dates(bars))
+        self.assertEqual(na[self.SPLIT - 1], 0)
+        self.assertEqual(na[self.SPLIT], 1)
+        self.assertEqual(na, sorted(na))
+        self.assertEqual(act.crossed(dates, []), [0] * len(dates))
+
+
 class Assembly(unittest.TestCase):
     """The assembly joins on (symbol, session) and accounts for every row it cannot join."""
 

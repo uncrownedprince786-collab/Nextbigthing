@@ -1,0 +1,537 @@
+{
+ "verifiedAt": "2026-10-15T10:11:26+00:00",
+ "files": {
+  "^GSPC": {
+   "file": "GSPC.csv.gz",
+   "exists": true,
+   "bytes": 357600,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume"
+   ],
+   "rows": 24814,
+   "rowsMatchManifest": true,
+   "distinctDates": 24814,
+   "duplicateDates": 0,
+   "first": "1927-12-30",
+   "last": "2026-10-14",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    4.400000095367432,
+    7818.93017578125
+   ],
+   "ohlcClasses": {},
+   "ohlcViolations": 0,
+   "claimedName": "S&P 500 index",
+   "basis": "price index (not total return)"
+  },
+  "^SP500TR": {
+   "file": "SP500TR.csv.gz",
+   "exists": true,
+   "bytes": 128241,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume"
+   ],
+   "rows": 9769,
+   "rowsMatchManifest": true,
+   "distinctDates": 9769,
+   "duplicateDates": 0,
+   "first": "1988-01-04",
+   "last": "2026-10-14",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    242.8699951171875,
+    17539.279296875
+   ],
+   "ohlcClasses": {},
+   "ohlcViolations": 0,
+   "claimedName": "S&P 500 total return index",
+   "basis": "total return (dividends reinvested) -- a different series from ^GSPC, kept separate and never substituted for it"
+  },
+  "^VIX": {
+   "file": "VIX.csv.gz",
+   "exists": true,
+   "bytes": 124988,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume"
+   ],
+   "rows": 9266,
+   "rowsMatchManifest": true,
+   "distinctDates": 9266,
+   "duplicateDates": 0,
+   "first": "1990-01-02",
+   "last": "2026-10-14",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    9.140000343322754,
+    82.69000244140625
+   ],
+   "ohlcClasses": {},
+   "ohlcViolations": 0,
+   "claimedName": "CBOE volatility index",
+   "basis": "calculated index level, volume always 0"
+  },
+  "DX-Y.NYB": {
+   "file": "DX-Y.NYB.csv.gz",
+   "exists": true,
+   "bytes": 164206,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume"
+   ],
+   "rows": 14164,
+   "rowsMatchManifest": true,
+   "distinctDates": 14164,
+   "duplicateDates": 0,
+   "first": "1971-01-04",
+   "last": "2026-10-14",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    71.33000183105469,
+    164.72000122070312
+   ],
+   "ohlcClasses": {},
+   "ohlcViolations": 0,
+   "claimedName": "ICE US Dollar Index (DXY)",
+   "basis": "price index against six currencies; NOT the Federal Reserve's broad trade-weighted index (DTWEXBGS), which is held separately"
+  },
+  "GC=F": {
+   "file": "GC_F.csv.gz",
+   "exists": true,
+   "bytes": 94353,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume"
+   ],
+   "rows": 6556,
+   "rowsMatchManifest": true,
+   "distinctDates": 6556,
+   "duplicateDates": 0,
+   "first": "2000-08-30",
+   "last": "2026-10-14",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    255.10000610351562,
+    5318.39990234375
+   ],
+   "ohlcClasses": {},
+   "ohlcViolations": 0,
+   "claimedName": "Gold continuous future",
+   "basis": "continuous front-month future, not spot"
+  },
+  "BZ=F": {
+   "file": "BZ_F.csv.gz",
+   "exists": true,
+   "bytes": 82375,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume"
+   ],
+   "rows": 4782,
+   "rowsMatchManifest": true,
+   "distinctDates": 4782,
+   "duplicateDates": 0,
+   "first": "2007-07-30",
+   "last": "2026-10-14",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    19.329999923706055,
+    146.0800018310547
+   ],
+   "ohlcClasses": {},
+   "ohlcViolations": 0,
+   "claimedName": "Brent crude continuous future",
+   "basis": "continuous front-month future, not spot"
+  },
+  "DGS10": {
+   "file": "DGS10.csv.gz",
+   "exists": true,
+   "bytes": 59757,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "value"
+   ],
+   "rows": 16180,
+   "rowsMatchManifest": true,
+   "distinctDates": 16180,
+   "duplicateDates": 0,
+   "first": "1962-01-02",
+   "last": "2026-10-13",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    0.52,
+    15.84
+   ],
+   "claimedName": "10-year Treasury yield",
+   "basis": "published macro observation"
+  },
+  "VIXCLS": {
+   "file": "VIXCLS.csv.gz",
+   "exists": true,
+   "bytes": 42427,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "value"
+   ],
+   "rows": 9294,
+   "rowsMatchManifest": true,
+   "distinctDates": 9294,
+   "duplicateDates": 0,
+   "first": "1990-01-02",
+   "last": "2026-10-13",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    9.14,
+    82.69
+   ],
+   "claimedName": "CBOE volatility index",
+   "basis": "published macro observation"
+  },
+  "DTWEXBGS": {
+   "file": "DTWEXBGS.csv.gz",
+   "exists": true,
+   "bytes": 30059,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "value"
+   ],
+   "rows": 5208,
+   "rowsMatchManifest": true,
+   "distinctDates": 5208,
+   "duplicateDates": 0,
+   "first": "2006-01-02",
+   "last": "2026-10-09",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    85.4692,
+    130.0413
+   ],
+   "claimedName": "Broad trade-weighted US dollar index (NOT DXY)",
+   "basis": "published macro observation"
+  },
+  "DFF": {
+   "file": "DFF.csv.gz",
+   "exists": true,
+   "bytes": 76370,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "value"
+   ],
+   "rows": 26403,
+   "rowsMatchManifest": true,
+   "distinctDates": 26403,
+   "duplicateDates": 0,
+   "first": "1954-07-01",
+   "last": "2026-10-13",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    0.04,
+    22.36
+   ],
+   "claimedName": "Effective federal funds rate",
+   "basis": "published macro observation"
+  },
+  "DCOILWTICO": {
+   "file": "DCOILWTICO.csv.gz",
+   "exists": true,
+   "bytes": 45220,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "value"
+   ],
+   "rows": 9517,
+   "rowsMatchManifest": true,
+   "distinctDates": 9517,
+   "duplicateDates": 0,
+   "first": "1986-01-02",
+   "last": "2026-10-06",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 1,
+   "valueRange": [
+    -36.98,
+    145.31
+   ],
+   "claimedName": "WTI crude oil spot",
+   "basis": "published macro observation"
+  },
+  "BTC-USD.coinbase": {
+   "file": "BTC-USD_coinbase.csv",
+   "exists": true,
+   "bytes": 63592,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume"
+   ],
+   "rows": 1203,
+   "rowsMatchManifest": true,
+   "distinctDates": 1203,
+   "duplicateDates": 0,
+   "first": "2015-07-20",
+   "last": "2018-11-03",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    211.16,
+    19650.01
+   ],
+   "ohlcClasses": {},
+   "ohlcViolations": 0,
+   "claimedName": "Bitcoin daily, venue history before the stored series",
+   "basis": "exchange traded spot pair, raw"
+  },
+  "BTC-USD.bitstamp": {
+   "file": "BTC-USD_bitstamp.csv",
+   "exists": true,
+   "bytes": 69600,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume"
+   ],
+   "rows": 1432,
+   "rowsMatchManifest": true,
+   "distinctDates": 1432,
+   "duplicateDates": 0,
+   "first": "2011-08-18",
+   "last": "2015-07-19",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    2.24,
+    1132.01
+   ],
+   "ohlcClasses": {},
+   "ohlcViolations": 0,
+   "claimedName": "Bitcoin daily, venue history before the stored series",
+   "basis": "exchange traded spot pair, raw"
+  },
+  "SBP_POLICY_RATE": {
+   "file": "sbp_policy_rate.csv",
+   "exists": true,
+   "bytes": 1241,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "policy_rate_percent",
+    "unit",
+    "status"
+   ],
+   "rows": 39,
+   "rowsMatchManifest": true,
+   "distinctDates": 39,
+   "duplicateDates": 0,
+   "first": "2015-05-25",
+   "last": "2026-04-28",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    5.75,
+    22.0
+   ],
+   "claimedName": "SBP Policy (Target) Rate",
+   "basis": "policy rate per annum, effective-dated; not an interbank rate"
+  },
+  "KIBOR": {
+   "file": "sbp_kibor.csv.gz",
+   "exists": true,
+   "bytes": 369171,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "series_key",
+    "rate_percent",
+    "unit"
+   ],
+   "rows": 93300,
+   "rowsMatchManifest": true,
+   "distinctDates": 5549,
+   "duplicateDateSeriesPairs": 0,
+   "seriesInFile": 18,
+   "first": "2005-06-09",
+   "last": "2026-10-14",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    5.01,
+    25.16
+   ],
+   "claimedName": "Structure of Interest Rates: KIBORs and KIBIDs",
+   "basis": "interbank bid and offer rates by tenor; not the policy rate"
+  },
+  "KSE100": {
+   "file": "KSE100.csv",
+   "exists": true,
+   "bytes": 52930,
+   "sha256Matches": true,
+   "header": [
+    "date",
+    "open",
+    "close",
+    "volume"
+   ],
+   "rows": 1239,
+   "rowsMatchManifest": true,
+   "distinctDates": 1239,
+   "duplicateDates": 0,
+   "first": "2021-10-15",
+   "last": "2026-10-14",
+   "rangeMatchesManifest": true,
+   "datesSorted": true,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    38342.21,
+    189166.82
+   ],
+   "claimedName": "KSE-100 index, daily close",
+   "basis": "index level as published by the exchange; not a total-return index"
+  },
+  "psx_delisted": {
+   "file": "psx_delisted_history.csv.gz",
+   "exists": true,
+   "bytes": 287782,
+   "sha256Matches": true,
+   "header": [
+    "symbol",
+    "date",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume"
+   ],
+   "rows": 24613,
+   "rowsMatchManifest": true,
+   "distinctDates": 2160,
+   "duplicateDateSeriesPairs": 0,
+   "seriesInFile": 21,
+   "first": "2018-01-01",
+   "last": "2026-10-14",
+   "rangeMatchesManifest": true,
+   "datesSorted": false,
+   "unparseableValues": 0,
+   "nonPositiveValues": 0,
+   "valueRange": [
+    0.4,
+    4004.44
+   ],
+   "ohlcClasses": {
+    "collapsed-range": 232,
+    "incoherent-range": 138
+   },
+   "ohlcViolations": 370,
+   "claimedName": null,
+   "basis": "raw as-traded OHLCV, the same basis as the stored PSX series"
+  }
+ },
+ "manifests": {
+  "benchmarks": {
+   "series": 13,
+   "generatedAt": "2026-10-14T23:01:08+00:00"
+  },
+  "sbp": {
+   "series": 2,
+   "generatedAt": "2026-10-14T22:57:48+00:00"
+  },
+  "psx_index": {
+   "series": 1,
+   "generatedAt": "2026-10-14T23:28:43+00:00"
+  },
+  "psx_delisted": {
+   "series": 1,
+   "generatedAt": "2026-10-14T23:15:39+00:00"
+  }
+ },
+ "problems": [],
+ "distinctInstrumentCheck": {
+  "method": "sha256 of the first 400 (date, first value) pairs of each file",
+  "filesSharingAFingerprint": [],
+  "allDistinct": true
+ }
+}

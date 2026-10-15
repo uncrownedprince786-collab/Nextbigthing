@@ -1,0 +1,123 @@
+{
+ "generatedAt": "2026-10-14T20:01:06+00:00",
+ "seams": 18760,
+ "medianAbsMovePct": 1.465,
+ "p99AbsMovePct": 11.28,
+ "seamsMovingOver30Pct": 3,
+ "seamsWhereTheProvidersDisagreeOnTheDate": 0,
+ "seamsTheProviderCannotConfirm": 907,
+ "test": "a seam fails when the two providers quote different closes for the exchange bar it joins to, not when the market moved a long way that day",
+ "worstTen": [
+  {
+   "symbol": "JATM",
+   "from": "2019-08-29",
+   "at": "2019-08-30",
+   "movePct": 64.05,
+   "timesTypicalMove": 21.5,
+   "fromSource": "Yahoo Finance Karachi listing",
+   "toSource": "Pakistan Stock Exchange daily closing file",
+   "providersAgreeOnTheSeamDate": true,
+   "seamDateRatio": 1.0
+  },
+  {
+   "symbol": "HIRAT",
+   "from": "2024-02-20",
+   "at": "2024-04-30",
+   "movePct": 59.06,
+   "timesTypicalMove": 24.3,
+   "fromSource": "Yahoo Finance Karachi listing",
+   "toSource": "Pakistan Stock Exchange daily closing file",
+   "providersAgreeOnTheSeamDate": true,
+   "seamDateRatio": 1.0
+  },
+  {
+   "symbol": "PASL",
+   "from": "2019-05-28",
+   "at": "2019-05-30",
+   "movePct": 35.42,
+   "timesTypicalMove": 12.7,
+   "fromSource": "Yahoo Finance Karachi listing",
+   "toSource": "Pakistan Stock Exchange daily closing file",
+   "providersAgreeOnTheSeamDate": true,
+   "seamDateRatio": 1.0
+  },
+  {
+   "symbol": "SGPL",
+   "from": "2021-11-30",
+   "at": "2021-12-01",
+   "movePct": 29.9,
+   "timesTypicalMove": 8.6,
+   "fromSource": "Yahoo Finance Karachi listing",
+   "toSource": "Pakistan Stock Exchange daily closing file",
+   "providersAgreeOnTheSeamDate": true,
+   "seamDateRatio": 1.0
+  },
+  {
+   "symbol": "AGL",
+   "from": "2019-11-28",
+   "at": "2019-11-29",
+   "movePct": 29.15,
+   "timesTypicalMove": 16.1,
+   "fromSource": "Yahoo Finance Karachi listing",
+   "toSource": "Pakistan Stock Exchange daily closing file",
+   "providersAgreeOnTheSeamDate": true,
+   "seamDateRatio": 1.0
+  },
+  {
+   "symbol": "DFSM",
+   "from": "2022-11-30",
+   "at": "2022-12-01",
+   "movePct": 28.57,
+   "timesTypicalMove": 11.0,
+   "fromSource": "Yahoo Finance Karachi listing",
+   "toSource": "Pakistan Stock Exchange daily closing file",
+   "providersAgreeOnTheSeamDate": true,
+   "seamDateRatio": 1.0
+  },
+  {
+   "symbol": "JATM",
+   "from": "2020-07-29",
+   "at": "2020-07-30",
+   "movePct": 28.05,
+   "timesTypicalMove": 9.4,
+   "fromSource": "Yahoo Finance Karachi listing",
+   "toSource": "Pakistan Stock Exchange daily closing file",
+   "providersAgreeOnTheSeamDate": true,
+   "seamDateRatio": 1.0
+  },
+  {
+   "symbol": "DFSM",
+   "from": "2022-12-30",
+   "at": "2023-01-02",
+   "movePct": 27.78,
+   "timesTypicalMove": 10.7,
+   "fromSource": "Pakistan Stock Exchange daily closing file",
+   "toSource": "Yahoo Finance Karachi listing",
+   "providersAgreeOnTheSeamDate": true,
+   "seamDateRatio": 1.0
+  },
+  {
+   "symbol": "JATM",
+   "from": "2019-08-30",
+   "at": "2019-09-03",
+   "movePct": -27.49,
+   "timesTypicalMove": 9.2,
+   "fromSource": "Pakistan Stock Exchange daily closing file",
+   "toSource": "Yahoo Finance Karachi listing",
+   "providersAgreeOnTheSeamDate": true,
+   "seamDateRatio": 1.0
+  },
+  {
+   "symbol": "KOHP",
+   "from": "2020-03-31",
+   "at": "2020-04-01",
+   "movePct": 26.67,
+   "timesTypicalMove": 8.7,
+   "fromSource": "Yahoo Finance Karachi listing",
+   "toSource": "Pakistan Stock Exchange daily closing file",
+   "providersAgreeOnTheSeamDate": true,
+   "seamDateRatio": 1.0
+  }
+ ],
+ "disagreements": []
+}

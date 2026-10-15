@@ -1,0 +1,27 @@
+{
+ "generatedAt": "2026-10-14T19:44:52+00:00",
+ "symbolsStaged": 203,
+ "providerBars": 403042,
+ "validBars": 340643,
+ "droppedByValidation": {
+  "flatZeroVolumeFiller": 55445,
+  "ohlcOutOfOrder": 2797,
+  "incompleteBar": 4157
+ },
+ "storedBarsAtPlanTime": 123276,
+ "writableBars": 183267,
+ "writableByYear": {
+  "2019": 24837,
+  "2020": 29639,
+  "2021": 31806,
+  "2022": 35349,
+  "2023": 38532,
+  "2024": 23104
+ },
+ "heldBack": {
+  "basisDivergedAtAnchor": 38221,
+  "splitBetweenAnchors": 25
+ },
+ "symbolsFullyHeld": [],
+ "rule": "a date is writable only when the nearest stored anchor on each side quotes the same basis to within 0.5% and no split falls between them"
+}

@@ -1,0 +1,142 @@
+{
+ "generatedAt": "2026-10-14T22:57:48+00:00",
+ "source": "State Bank of Pakistan EasyData portal (easydata.sbp.org.pk)",
+ "retrievedBy": "tools/foundation/sbp_easydata.py",
+ "series": {
+  "SBP_POLICY_RATE": {
+   "file": "sbp_policy_rate.csv",
+   "title": "SBP Policy (Target) Rate",
+   "seriesKey": "TS_GP_IR_SIRPR_AH.SBPOL0030",
+   "basis": "policy rate per annum, effective-dated; not an interbank rate",
+   "frequency": "irregular - one observation per policy decision that changed the rate",
+   "observations": 39,
+   "unparseableDates": 0,
+   "first": "2015-05-25",
+   "last": "2026-04-28",
+   "sha256": "8454a934a668387e96ca0a685a0cb44e2801f42c8dce1f24bef62a9dd420f2d9"
+  },
+  "KIBOR": {
+   "file": "sbp_kibor.csv.gz",
+   "title": "Structure of Interest Rates: KIBORs and KIBIDs",
+   "datasetKey": "TS_GP_BAM_SIRKIBOR_D",
+   "basis": "interbank bid and offer rates by tenor; not the policy rate",
+   "frequency": "daily, business days",
+   "observations": 93300,
+   "unparseableRows": 0,
+   "seriesCount": 18,
+   "first": "2005-06-09",
+   "last": "2026-10-14",
+   "sha256": "619b0a03cada47854039182652edb5194563cf48c2385dca96214dcbcd1cee58",
+   "perSeries": {
+    "TS_GP_BAM_SIRKIBOR_D.10KIBID1W": {
+     "n": 5547,
+     "first": "2005-06-09",
+     "last": "2026-10-14",
+     "name": ". One-Week Karachi Interbank Bid Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.11KIBID2W": {
+     "n": 5547,
+     "first": "2005-06-09",
+     "last": "2026-10-14",
+     "name": ". Two-Weeks Karachi Interbank Bid Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.12KIBID1M": {
+     "n": 5547,
+     "first": "2005-06-09",
+     "last": "2026-10-14",
+     "name": ". One-Month Karachi Interbank Bid Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.13KIBID3M": {
+     "n": 5547,
+     "first": "2005-06-09",
+     "last": "2026-10-14",
+     "name": ". Three-Months Karachi Interbank Bid Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.14KIBID6M": {
+     "n": 5547,
+     "first": "2005-06-09",
+     "last": "2026-10-14",
+     "name": ". Six-Months Karachi Interbank Bid Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.15KIBID9M": {
+     "n": 5547,
+     "first": "2005-06-09",
+     "last": "2026-10-14",
+     "name": ". Nine-Months Karachi Interbank Bid Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.16KIBID12M": {
+     "n": 5547,
+     "first": "2005-06-09",
+     "last": "2026-10-14",
+     "name": ". One-Year Karachi Interbank Bid Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.17KIBID2Y": {
+     "n": 3909,
+     "first": "2005-06-09",
+     "last": "2020-02-04",
+     "name": ". Two-Years Karachi Interbank Bid Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.18KIBID3Y": {
+     "n": 3909,
+     "first": "2005-06-09",
+     "last": "2020-02-04",
+     "name": ". Three-Years Karachi Interbank Bid Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.1KIBOR1W": {
+     "n": 5547,
+     "first": "2005-06-09",
+     "last": "2026-10-14",
+     "name": ". One-Week Karachi Interbank Offer Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.2KIBOR2W": {
+     "n": 5547,
+     "first": "2005-06-09",
+     "last": "2026-10-14",
+     "name": ". Two-Weeks Karachi Interbank Offer Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.6KIBOR9M": {
+     "n": 5547,
+     "first": "2005-06-09",
+     "last": "2026-10-14",
+     "name": ". Nine-Months Karachi Interbank Offer Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.7KIBOR12M": {
+     "n": 5547,
+     "first": "2005-06-09",
+     "last": "2026-10-14",
+     "name": ". One-Year Karachi Interbank Offer Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.8KIBOR2Y": {
+     "n": 3909,
+     "first": "2005-06-09",
+     "last": "2020-02-04",
+     "name": ". Two-Years Karachi Interbank Offer Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.9KIBOR3Y": {
+     "n": 3909,
+     "first": "2005-06-09",
+     "last": "2020-02-04",
+     "name": ". Three-Years Karachi Interbank Offer Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.KIBOR0010": {
+     "n": 5549,
+     "first": "2005-06-09",
+     "last": "2026-10-14",
+     "name": ". One-Month Karachi Interbank Offer Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.KIBOR0020": {
+     "n": 5549,
+     "first": "2005-06-09",
+     "last": "2026-10-14",
+     "name": ". Three-Months Karachi Interbank Offer Rate"
+    },
+    "TS_GP_BAM_SIRKIBOR_D.KIBOR0030": {
+     "n": 5549,
+     "first": "2005-06-09",
+     "last": "2026-10-14",
+     "name": ". Six-Months Karachi Interbank Offer Rate"
+    }
+   }
+  }
+ }
+}

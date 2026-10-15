@@ -1,0 +1,212 @@
+{
+ "generatedAt": "2026-10-14T23:28:43+00:00",
+ "series": "KSE100",
+ "name": "KSE-100 index, daily close",
+ "sourceUrl": "https://dps.psx.com.pk/timeseries/eod/KSE100",
+ "sourceNote": "requires X-Req-Id (the page's own token) and X-Requested-With together; either alone returns 404 or 403",
+ "fields": [
+  "date",
+  "open",
+  "close",
+  "volume"
+ ],
+ "fieldsNotProvided": [
+  "high",
+  "low"
+ ],
+ "basis": "index level as published by the exchange; not a total-return index",
+ "file": "KSE100.csv",
+ "sha256": "7d0fd3d3389f4f6a1bb9bfdc91186bb17c8c39c038b72871f4f235154c8a1af0",
+ "validation": {
+  "rowsReturned": 1240,
+  "malformedRows": 0,
+  "rowsWithNulls": 0,
+  "nonPositiveOrNegativeVolume": 0,
+  "duplicateDatesCollapsed": 1,
+  "distinctDates": 1239,
+  "first": "2021-10-15",
+  "last": "2026-10-14",
+  "weekdaysInRange": 1304,
+  "weekdayCoverage": 0.9502
+ },
+ "frozenTargetRequiredFrom": "2018-01-01",
+ "coverageAgainstFrozenTarget": "COMPLETE",
+ "missingAgainstFrozenTarget": null,
+ "licensing": "PSX's terms forbid redistributing its market data feed without a licence, delayed included; recovery-manifest.json carries this as psx-redistribution-licence, an accepted unresolved risk. Acquisition and private use are unaffected; publishing these levels is not cleared.",
+ "gapSourceInvestigation": {
+  "investigatedAt": "2026-10-15T00:01:22+00:00",
+  "interval": "2018-01-01..2021-10-14",
+  "sources": [
+   {
+    "source": "CountryEconomy, countryeconomy.com/stock-exchange/pakistan",
+    "isKse100": true,
+    "granularity": "daily, non-trading days omitted",
+    "fields": [
+     "Date",
+     "Level",
+     "Ch.%"
+    ],
+    "fieldsNotProvided": [
+     "open",
+     "high",
+     "low",
+     "volume"
+    ],
+    "intervalAddressable": "yes, via an undocumented ?dr=YYYY-MM parameter; both 2018-01 and 2021-10 verified to return complete months",
+    "crossValidation": "its Level for 2021-10-15 and 2021-10-18 is 44821.53 and 44629.45, identical to the exchange endpoint values already stored, and it skips 2021-10-16/17 as a weekend exactly as the exchange does",
+    "terms": "the Legal Notice contains no grant covering reproduction, extraction or redistribution; the footer asserts copyright. Operator is Alldatanow, S.L., a Spanish company, so the EU sui generis database right (96/9/EC) attaches by default to substantial extraction and re-utilisation.",
+    "robotsTxt": "User-agent: ClaudeBot Disallow: / and User-agent: Claude-SearchBot Disallow: / ; bulk downloaders also disallowed",
+    "verdict": "NOT USABLE - data correct, systematic extraction not authorised",
+    "requestsMade": "3 data pages plus terms and robots.txt, as single verification reads; no harvest attempted"
+   },
+   {
+    "source": "State Bank of Pakistan statistical bulletin, Capital Market table 7.1",
+    "isKse100": "table is titled \"KSE 100 & All Shares Index\", sourced from PSX",
+    "granularity": "monthly, last working day of the month - not daily",
+    "result": "legacy deep links now answer HTTP 200 with Content-Type text/html and the site navigation shell rather than the document; no values retrieved",
+    "verdict": "NOT USABLE as retrieved; best remaining lawful lead but monthly only and its new path is unknown"
+   }
+  ],
+  "conclusion": "the interval cannot be closed from any lawful free source reached. CountryEconomy could close it technically and at daily granularity, but ships no licence, is EU-domiciled so the database right attaches, and names ClaudeBot in robots.txt. It would also be close-only, so it could not restore the OHLC the quarantined Open Data Pakistan file already has.",
+  "routesThatWouldWork": [
+   "ask the Open Data Pakistan publisher to state a licence on the existing resource - cheapest; would clear 3,206 observations already downloaded covering 2018-01-01..2021-02-23 with full OHLC",
+   "ask PSX for a licence or a historical extract for 2018-01-01..2021-10-14 - the only route yielding daily OHLC with clean provenance",
+   "locate the SBP bulletin on the rebuilt site and check its reuse terms - lawful but monthly only"
+  ]
+ },
+ "independentValidationOfAcquiredSegment": "CountryEconomy, an unrelated publisher, quotes 44821.53 for 2021-10-15 and 44629.45 for 2021-10-18; the stored exchange-endpoint closes for those dates are identical.",
+ "endpointCapabilityExhausted": {
+  "testedAt": "2026-10-15T00:12:43+00:00",
+  "contractFromSiteCode": "static/script.js calls $.getJSON(\"/timeseries/\"+type+\"/\"+symbol) with NO parameters and then slices the returned array client-side with filter(from,to,data). The payload is therefore the whole series the endpoint has, and the range buttons are a browser-side view of it.",
+  "parameterFormsTested": [
+   {
+    "query": "(none)",
+    "status": 200,
+    "rows": 1240,
+    "range": "2021-10-15..2026-10-14"
+   },
+   {
+    "query": "?from=2018-01-01&to=2018-12-31",
+    "status": 200,
+    "rows": 1240,
+    "range": "identical"
+   },
+   {
+    "query": "?start=2018-01-01&end=2018-12-31",
+    "status": 200,
+    "rows": 1240,
+    "range": "identical"
+   },
+   {
+    "query": "?period1=1514764800&period2=1546300799",
+    "status": 200,
+    "rows": 1240,
+    "range": "identical"
+   },
+   {
+    "query": "?limit=20000",
+    "status": 200,
+    "rows": 1240,
+    "range": "identical"
+   },
+   {
+    "query": "?years=10",
+    "status": 200,
+    "rows": 1240,
+    "range": "identical"
+   },
+   {
+    "query": "/2018 (path segment)",
+    "status": 404,
+    "rows": 0,
+    "range": null
+   }
+  ],
+  "conclusion": "every parameter form returns the identical fixed window, which matches the site code: the endpoint has no date-range contract and no older history to give.",
+  "officialArchivesCheckedInsideTheGap": [
+   {
+    "source": "POST https://dps.psx.com.pk/historical  body date=2021-06-15",
+    "status": 200,
+    "bytes": 326329,
+    "tableRows": 575,
+    "dataTypesPresent": [
+     "equity",
+     "debt"
+    ],
+    "indexRowPresent": false,
+    "note": "the full official daily table for a session inside the gap lists securities only"
+   },
+   {
+    "source": "daily closing file, mkt_summary 2021-06-15",
+    "rows": 554,
+    "indexRowPresent": false,
+    "note": "consistent with the same check at 2018-01-01 and 2026-10-13"
+   }
+  ],
+  "otherRoutesThisPass": [
+   {
+    "source": "Internet Archive CDX, captures of dps.psx.com.pk/indices inside the gap window",
+    "result": "HTTP 503; stopped with that host. An earlier measurement found 69 captures across seven years (~10/yr), so even if served it would yield a handful of scattered levels against ~160 sessions - not a daily fill."
+   },
+   {
+    "source": "https://www.psx.com.pk/psx/resources-and-tools/{downloads,historical-data}",
+    "result": "HTTP 200 with a zero-byte body"
+   },
+   {
+    "source": "dps.psx.com.pk/robots.txt",
+    "result": "HTTP 404 - no robots file published"
+   }
+  ]
+ },
+ "karandaazAttempt": {
+  "attemptedAt": "2026-10-15T00:33:25+00:00",
+  "datasetPage": "https://portal.karandaaz.com.pk/dataset/kse100/1900",
+  "pageTitle": "KSE - 100 index",
+  "downloadControlsOffered": [
+   "/download/csv",
+   "/download/xslx",
+   "/studio?export=4133"
+  ],
+  "result": "every download control returns HTTP 200 with a 33,157-byte HTML page whose <title> is \"Login\" and which carries a password field. The portal's ordinary download flow requires an account.",
+  "dataDownloaded": false,
+  "accountCreated": false,
+  "whyNotPursued": "creating an account or signing in on the owner's behalf is not something this process does, and the task forbids bypassing access controls. No credential was entered and no registration was attempted.",
+  "termsOfUse": {
+   "parties": "Karandaaz Pakistan (KRN) and CS Solutions (Pvt) Limited (CS)",
+   "quoted": [
+    "KRN & CS and its licensors retain all proprietary rights to that content and technology.",
+    "any license or right to use any of the Content or proprietary material without the express written permission of KRN & CS ... any rights not expressly granted herein are reserved"
+   ],
+   "consequence": "express written permission is required before this data may be stored or used, independently of whether the download button works"
+  },
+  "verdict": "REJECTED for this pass - not obtainable through the legitimate flow available here, and its terms require express written permission"
+ },
+ "remainingGapMeasuredExactly": {
+  "interval": "2021-02-24..2021-10-14",
+  "publishedPsxSessions": 155,
+  "method": "counted from this project's own sweep of the exchange daily archive (.cache/acquire/psx_sweep_ledger.json), status=published",
+  "nonPublishedWeekdaysInWindow": 12,
+  "boundaryConfirmed": "the quarantined candidate ends 2021-02-23 and 2021-02-24 is a published session; 2021-10-14 is a published session and the acquired baseline begins 2021-10-15. The gap is contiguous and exact.",
+  "overlapBetweenCandidateAndBaseline": 0,
+  "obstacleType": "source permission - not missing data and not a numerical mismatch",
+  "permissionRequestsDrafted": "data/foundation/psx_index/PERMISSION-REQUEST.md"
+ },
+ "seriesComposition": {
+  "requiredFrom": "2018-01-01",
+  "publishedSessionsInRange": 2171,
+  "covered": 2171,
+  "missing": 0,
+  "segments": {
+   "2018-01-01..2021-10-14": "Karandaaz portal file, close only, owner-downloaded and owner-confirmed as permitted. Private: .cache/acquire/karandaaz/ and the PC backup.",
+   "2021-10-15..2026-10-14": "Pakistan Stock Exchange EOD endpoint, 1,239 observations, data/foundation/psx_index/KSE100.csv"
+  },
+  "validation": "the two agree on 1,228 shared dates with zero failures at the 0.05% rule and a maximum difference of 0.000026%",
+  "fieldsNotProvided": [
+   "high",
+   "low"
+  ],
+  "note": "the Karandaaz segment is close only and the exchange segment adds open and volume; neither carries high or low, and none were invented",
+  "rejectedCandidate": "the Open Data Pakistan CSV is REJECTED on index identity - its values differ from the verified series by a non-constant ratio between 1.01 and 1.51. It must never be merged into this series."
+ },
+ "finalisedAt": "2026-10-15T00:52:58+00:00"
+}

@@ -1,0 +1,29 @@
+{
+ "fetchedAt": "2026-10-14T22:44:15+00:00",
+ "series": {
+  "TS_GP_IR_SIRPR_AH.SBPOL0030": {
+   "name": "SBP Policy (Target) Rate",
+   "basis": "policy rate, per annum; not an interbank rate and not a repo amount",
+   "key": "TS_GP_IR_SIRPR_AH.SBPOL0030",
+   "acquired": false,
+   "httpStatus": 200,
+   "contentType": "text/html;charset=utf-8",
+   "contentDisposition": "",
+   "bytes": 4532,
+   "savedTo": ".cache\\acquire\\sbp\\TS_GP_IR_SIRPR_AH_SBPOL0030.raw",
+   "portalDateRange": [
+    "25-May-2015",
+    "28-Apr-2026"
+   ],
+   "reason": "the portal answered with a page rather than a file"
+  },
+  "TS_GP_BAM_SIRKIBOR_D": {
+   "name": "Structure of Interest Rates: KIBORs and KIBIDs",
+   "basis": "interbank offered/bid rates by tenor; not the policy rate",
+   "isDataset": true,
+   "key": "TS_GP_BAM_SIRKIBOR_D",
+   "acquired": false,
+   "reason": "no download page is offered for this series"
+  }
+ }
+}

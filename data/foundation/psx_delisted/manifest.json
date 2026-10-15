@@ -1,0 +1,127 @@
+{
+ "generatedAt": "2026-10-14T23:15:39+00:00",
+ "file": "psx_delisted_history.csv.gz",
+ "source": "Pakistan Stock Exchange daily closing file, dps.psx.com.pk",
+ "basis": "raw as-traded OHLCV, the same basis as the stored PSX series",
+ "whatThisIs": "symbols that traded in the exchange's own files during the swept window and have no Asset row in this project, so nothing else here keeps their history. Identified by comparing the first and last archive day; dated futures contracts were excluded.",
+ "symbols": 21,
+ "bars": 24613,
+ "sha256": "304b67beb989d51acfe22b81bd742cf2eb8ee4f6a0c4a0306ba6a69690db2353",
+ "perSymbol": {
+  "BHAT": {
+   "bars": 866,
+   "first": "2018-01-05",
+   "last": "2026-10-14"
+  },
+  "BOPTFC2": {
+   "bars": 72,
+   "first": "2023-03-30",
+   "last": "2026-06-29"
+  },
+  "BRR": {
+   "bars": 1006,
+   "first": "2018-01-01",
+   "last": "2023-06-22"
+  },
+  "DAWH": {
+   "bars": 1710,
+   "first": "2018-01-01",
+   "last": "2025-01-03"
+  },
+  "ENGRO": {
+   "bars": 1730,
+   "first": "2018-01-01",
+   "last": "2025-01-03"
+  },
+  "FDIBL": {
+   "bars": 1531,
+   "first": "2018-01-01",
+   "last": "2024-03-22"
+  },
+  "FFBL": {
+   "bars": 1721,
+   "first": "2018-01-01",
+   "last": "2024-12-20"
+  },
+  "JOPP": {
+   "bars": 826,
+   "first": "2018-01-01",
+   "last": "2024-04-16"
+  },
+  "META": {
+   "bars": 473,
+   "first": "2022-08-10",
+   "last": "2024-07-18"
+  },
+  "MODAM": {
+   "bars": 1180,
+   "first": "2018-01-08",
+   "last": "2024-04-19"
+  },
+  "MUGHALSC": {
+   "bars": 92,
+   "first": "2022-03-11",
+   "last": "2025-06-18"
+  },
+  "PHDL": {
+   "bars": 1212,
+   "first": "2018-01-02",
+   "last": "2025-01-20"
+  },
+  "PIAA": {
+   "bars": 1579,
+   "first": "2018-01-01",
+   "last": "2024-05-24"
+  },
+  "PMI": {
+   "bars": 1748,
+   "first": "2018-01-01",
+   "last": "2025-07-25"
+  },
+  "PMPK": {
+   "bars": 1013,
+   "first": "2018-01-03",
+   "last": "2025-10-03"
+  },
+  "PSMC": {
+   "bars": 1559,
+   "first": "2018-01-01",
+   "last": "2024-04-25"
+  },
+  "SHEL": {
+   "bars": 1769,
+   "first": "2018-01-01",
+   "last": "2025-02-28"
+  },
+  "SILK": {
+   "bars": 1781,
+   "first": "2018-01-01",
+   "last": "2025-03-18"
+  },
+  "SMBL": {
+   "bars": 1456,
+   "first": "2018-01-01",
+   "last": "2023-11-24"
+  },
+  "STML": {
+   "bars": 943,
+   "first": "2018-01-09",
+   "last": "2026-10-14"
+  },
+  "WHALE": {
+   "bars": 346,
+   "first": "2022-08-03",
+   "last": "2023-12-27"
+  }
+ },
+ "observations": 24613,
+ "first": "2018-01-01",
+ "last": "2026-10-14",
+ "distinctDates": 2160,
+ "dataQuality": {
+  "ohlcInconsistentRows": 369,
+  "blankOpenHighLowRows": 489,
+  "explanation": "the exchange publishes a single indicative trade as open=high=low on thin sessions -- BHAT 2022-09-23 prints 1150/1150/1150 on 20 shares against a 1112.32 close -- so the close sits outside its own range. These are the exchange own published values and are preserved verbatim rather than altered; a consumer computing a range must drop the range and keep the close, as tools/foundation/acquire.py does for thin futures sessions. A blank open/high/low is the exchange did-not-trade marker, already nulled by jobs/psx.read_day.",
+  "concentration": "BHAT 128, STML 116, PHDL 49, PMPK 34, MODAM 9, DAWH 4"
+ }
+}

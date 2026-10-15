@@ -4220,3 +4220,875 @@ reads rows that already exist:
       rather than the 0 or 1 `main` returns — so the monitor goes red without saying why. A monitor
       that cannot report its own fault is the shape of problem rule 75 was written about.
       Diagnosing it needs the run log and `SITE_URL`, neither of which this session has.
+
+130. **The PSX history was recovered rather than measured again, and the corporate-action
+    quarantine was narrowed from the asset to the defect.** 2026-10-15, Phase 3 data foundation.
+    This is the first entry here that changed production data: 183,267 rows were added to
+    `PriceSnapshot`, after a verified backup, and no existing row was altered.
+
+    - **The headline number was wrong in the safe direction, and the difference is the whole
+      point.** `psx_recovery.json` put the shortfall at 275,812 bars across 203 symbols. Of the
+      403,042 bars Yahoo's Karachi listing actually served, **62,399 are not bars**: 55,445 flat
+      zero-volume pads for sessions the exchange did not hold, 4,157 missing an OHLC field, 2,797
+      with prices out of order. Of what survived, **38,246 could not be written** because the two
+      providers quote that stretch of history on different bases. **183,267 were written.** The
+      gap between 275,812 and 183,267 is not a shortfall in the recovery; it is the part of the
+      headline that was never recoverable, counted for the first time.
+
+    - **Two providers, two bases, and an anchor rule instead of a judgement.** The exchange file is
+      raw; Yahoo back-adjusts for splits. `MTL` shows what that means: it has nine splits since
+      2019, and its 2019 Yahoo close is 189.48 where the exchange stored 820.48 -- a ratio of
+      4.3303, which is the nine factors multiplied together. Appending those bars would have
+      written a 77% fall that no holder lived through. So a missing date is written **only when the
+      nearest stored date on each side of it is one Yahoo also serves and prices within 0.5% of the
+      exchange**, and no split falls between them. An action inside the gap necessarily makes the
+      earlier anchor disagree, which is why the rule needs no opinion about where the actions are.
+      `recovery-manifest.json` had already demanded this under `psx-pre-2024-monthly-grid` ("never
+      mix the two series for one asset"); the anchor rule is how that demand was met per date
+      rather than per asset.
+
+    - **The join was measured, not argued.** 18,760 places in the stored PSX series now have one
+      provider's bar next to the other's. **At none of them do the two providers price the seam
+      date differently.** Three seams move more than 30% -- JATM +64.05%, HIRAT +59.06%,
+      PASL +35.42% -- and all three are real: each symbol makes six to twelve moves that size
+      *within a single source*, and both providers quote the same close on the seam date. HIRAT is
+      the clearest: Yahoo padded 2024-04-15 to 04-29 flat at 1.27 with zero volume, the filter
+      dropped every one of them, and both providers then quote 2.02 on the reopening session. 907
+      seams join to a date Yahoo serves no valid bar for; those are reported as unconfirmed rather
+      than counted as clean. **The first version of this check failed 341 seams and was wrong** --
+      it compared against the raw provider array, including the very pads the filter had rejected.
+      A bar thrown away as fabricated cannot then be quoted as the provider's opinion of that date.
+
+    - **PSX coverage fell from 0.983 to 0.816, and that is the first honest reading of it.** The
+      per-asset figure compares each asset with a calendar built from the same data, so twelve
+      dates a year looked like a complete year. The calendar is real now: **2019 went from 13
+      session dates to 246, 2023 from 12 to 245, 2024 from 118 to 245**, and the assets that are
+      still sparse have stopped being flattered by a sparse calendar. Nothing got worse; the
+      measurement stopped agreeing with itself.
+
+    - **The quarantine was costing 88 assets nearly their whole history for a defect that lasts
+      five sessions.** The analog pool is the asset's entire history, so the old rule flagged every
+      session at or after an asset's first unadjusted action. `AnalogSeries` now excludes the three
+      things an action actually spoils -- a candidate whose own factors are measured across it, a
+      forward window that crosses it, and a session whose own factors cross it -- and nothing else.
+      Measured over 1,017,125 eligible sessions: the old rule flagged **171,746**, the window rule
+      still excludes **53,571**, **4,614** sessions get no analog block because their own factors
+      cross an action, and **120,839 sessions across 138 assets are restored**. `assemble.py` reads
+      the feature build's manifest to decide which rule applies, so an older dataset built without
+      the exclusion is still flagged the old way rather than silently trusted.
+
+    - **Two of the 239 candidates are not actions at all.** Where the scan's second provider
+      reported the same large move, the move happened: Yahoo adjusts for splits, so a split cannot
+      still be a 32% one-day fall there. `DG` 2024-08-29 and `ALTN` 2025-02-27 are excluded from
+      the action list, which both consumers now read from one place (`tools/foundation/actions.py`)
+      so they cannot disagree about what the file says.
+
+    - **The provider's split calendar confirms ten of the 173 PSX candidates and is silent on the
+      rest.** Ten match a Yahoo split within five days whose factor reproduces the observed ratio
+      (LCI 5:1, DLL 10:1, CLOV 10:1, MTL 2:1, KOHC 5:1, KML 10:1, BAFL 2:1, THCCL 5:1, KTML 5:1,
+      UBL 2:1). One contradicts it: `ICIBL` moved 5.96x on 2026-07-13 while the nearest recorded
+      split is 84.9:100 three days earlier. 158 candidates belong to symbols Yahoo lists with no
+      split recorded on that date -- so Yahoo's split *events* for `.KA` are sparser than its own
+      price adjustments, and a candidate without a provider split stays a candidate. **No price was
+      de-adjusted and no factor was applied**: the evidence establishes which candidates are
+      actions, not what the raw series should have been.
+
+    - **What is still missing, exactly.** 38,246 bars across 69 symbols, all pre-2024, held because
+      the bases diverge -- worst are TREET (1,151, 2019-01-02 to 2023-11-30), IBLHL (1,106), SEARL
+      (1,093), GATM (1,054), AVN (1,053). 23 symbols are served HTTP 404 by Yahoo and keep the
+      7,309 bars they have (BBFL, BFAGRO, BFBIO, BML, ENGROH, GAL, GCWL, GDL, IMS, ITANZ, LIVEN,
+      LSEVL, QTECH, SELECT, SOYASUP, SPAC1, SPSL, STL, TISL, WAFI, WAHDAT, ZAL, ZUMA); 17 of them
+      were already recorded under `late-listing-histories` as recent listings, which is the same
+      fact from the other side. Recovering either group needs a provider that serves raw PSX prices
+      and is not the restricted feed, and no such provider is known.
+
+    - **A fetch that cannot tell a 404 from a dropped connection writes symbols off.** The first
+      pass reported 41 symbols unserved. Eighteen of them had simply failed mid-run -- `nbt.get`
+      returns None for a refusal and for a timeout alike -- and one of the eighteen, SZTM, had been
+      fetched by hand minutes earlier. The tool now asks for the status code once before deciding,
+      and the count settled at exactly the 203 and 23 measured on 2026-10-14.
+
+    - **Still open, and why.** The dataset itself was not rebuilt. `data-pit-features.yml` and
+      `data-assemble.yml` run on a runner, and the assembly also needs the sealed replay artifacts,
+      which need an authenticated GitHub API this session does not have; a local feature build was
+      measured at roughly an hour and could not be followed by an assembly in any case. What was
+      proven locally against the real database, on 25 assets: the exclusion is active, 237 actions
+      across 150 assets are loaded, and **10 of 10 live-equivalence samples match the plain loop**.
+      `tools/foundation/events.py:161` still selects the PSX market series with `source ILIKE
+      'Pakistan%'`, so it reads only the exchange's own bars and not the recovered ones -- correct
+      today, and the line to change when the events series is next rebuilt. And the public `/psx`
+      surface now publishes considerably more PSX history than it did; the licence question under
+      `psx-redistribution-licence` is unchanged by that, but the volume behind it is not, and it
+      remains the owner's decision.
+
+131. **The frozen target's missing series were acquired, and three of them do not have a history
+    to acquire.** 2026-10-15, Phase 3 data foundation. Acquisition and staging only: **nothing was
+    written to the database**, which ends this work at 374 MB and 1,017,296 rows, exactly where it
+    started.
+
+    - **What came back.** `^GSPC` 4,726 sessions, `^VIX` 4,728 and `DX-Y.NYB` 4,727, all from
+      2008-01-02 and all from Yahoo's chart API. Bitcoin went back from 2018-11-04 to **2015-07-20**,
+      1,203 daily bars, which is Coinbase's own earliest: page five of the walk returned 24 candles
+      and page six returned nothing, so the floor is the venue's and not a budget's.
+
+    - **DXY and the broad dollar index are two different series and both are held now.**
+      `DX-Y.NYB` is ICE's dollar index against six currencies; `DTWEXBGS`, already in the macro
+      files, is the Federal Reserve's broad trade-weighted index against twenty-six. Neither
+      substitutes for the other and the manifest records which is which. The same distinction is
+      kept for `^GSPC` against `^SP500TR`, which exists and was deliberately not acquired: a price
+      index is not a total-return index and the frozen target names the price index.
+
+    - **The padding rule does not transfer to an index, and nearly cost the whole series.**
+      `psx_backfill.validate` rejects a bar whose OHLC are equal with zero volume, because that is
+      how Yahoo pads a session Karachi did not hold. `^VIX` publishes **zero volume on every
+      session** -- it is calculated, not traded -- so that rule would have thrown away all 4,728
+      bars. Index validation keeps the checks that mean something (a positive close, high not below
+      low, no repeated date) and drops the one that does not.
+
+    - **Three series publish a number today and no history anywhere this task could reach.**
+      KSE-100: Yahoo 404s seven symbol spellings, the exchange's own closing file carries KSE30
+      *futures* and no index level, `dps.psx.com.pk/indices` publishes the current level only, and
+      stooq is still behind the JavaScript wall rule 46 recorded. KIBOR: the SBP page is
+      server-rendered and parses, but history lives in per-day PDFs behind a JavaScript document
+      search. SBP policy rate: the monetary policy page states 11.50% and no series. All three were
+      captured as **one dated observation each** -- KSE-100 165,417.50, policy rate 11.50% with its
+      12.50/10.50 corridor, KIBOR 3M/6M/12M at 11.72/11.97, 12.17/12.42, 12.24/12.74 as on
+      14-Oct-26 -- and recorded as unresolved for history rather than smoothed over. **SBP answers
+      403 to this project's user agent and 200 to a browser's**, which is why the earlier evaluation
+      recorded it as unreachable.
+
+    - **The two PSX numbers reconcile exactly, and neither was wrong.** 38,246 bars were withheld on
+      basis grounds; 37,617 of them fall inside a symbol's stored range and **629 do not**. A gap is
+      counted against the range an asset actually has, so the 629 -- which would extend a history
+      rather than fill a hole in one -- were never in the 70,824. Both figures are now derived from
+      the same staged file.
+
+    - **8.1% of the "rejected padding" gaps were not absences at all.** The attribution put 32,519
+      PSX gaps under provider padding, which says what Yahoo did and not whether a price exists. The
+      exchange's own archives for 272 dates answer it: of 5,199 such gaps falling on those dates,
+      **4,778 have no traded price at the exchange either** -- the symbol did not trade, and that is
+      not a missing observation -- while **421 do**, and were staged from the cached archives at no
+      further cost. Extrapolated, about **2,633** of the 32,519 are still recoverable this way.
+      They were not all fetched because `recovery-manifest.json` records this host refusing at
+      roughly 600 requests in a session and 272 were already spent.
+
+    - **The 23 names Yahoo does not list were never short of a source.** The exchange's own closing
+      file carries them, at the raw basis the stored series already uses, so there is no basis
+      question: **637 of their 662 in-range gaps** came back. The remaining 25 are dates those
+      symbols did not trade.
+
+    - **Delisted and renamed, measured rather than assumed.** Comparing the first and last archive
+      day, 320 symbols traded early and not late -- and **277 of them are dated futures contracts
+      that simply expired**. Twenty-one are genuine delisting or rename candidates, including FFBL,
+      PSMC, PIAA, ENGRO and DAWH. A caution that belongs with them: `META` and `SHEL` appear in both
+      lists and are not the same companies, the registry's being the US ones.
+
+    - **Where the collection stands.** Raw acquisition including staging is **97.12%**
+      (1,130,829 of 1,164,354 expected observations); production-integrated is **87.37%**, and the
+      difference is deliberate -- index levels have no `Asset` row, and the 38,246 basis-conflicting
+      bars must not sit beside the exchange's own numbers until a sourced factor is adjudicated.
+      Nine of the thirteen frozen target items hold usable history. The manifest is
+      `data/foundation/acquisition/manifest.json`, version `acquisition-manifest-v1`.
+
+132. **The PSX history is complete to the limit of what the exchange ever published, and the proof
+    is that every remaining gap is a day the stock did not trade.** 2026-10-15, Phase 3 data
+    foundation. 80,162 rows added after a verified backup; 394,014 PSX bars now, none lost, the
+    database at 387 MB of 500.
+
+    - **The sweep that should have come first.** The earlier run read 272 archive dates chosen for
+      23 symbols. That was the wrong shape: the exchange's closing file carries the whole market on
+      every date, so one pass over the calendar answers every PSX question at once. 2,294 weekday
+      dates from 2018-01-01 were read, **2,171 published**, 119 silent (holidays, each confirmed by
+      a real 404), 2 not an archive, 2 published but empty. The download is the persistence --
+      `nbt.get` caches each archive for a year and `psx.read_day` reads through the same key -- so
+      every later pass over 2,171 files cost nothing.
+
+    - **The host did not refuse.** `recovery-manifest.json` records this server "refusing at
+      roughly 600 requests in one session", and that figure stopped the previous run early. 2,294
+      requests at the declared 1.5s spacing completed without a single refusal. The earlier limit
+      was real when it was measured; it is not a property of the host at this rate, and the
+      manifest's note should be read as "observed once" rather than a ceiling.
+
+    - **The basis problem dissolved rather than being solved.** 38,246 Yahoo bars were withheld
+      because Yahoo back-adjusts for splits while the stored series is raw. The exchange's own file
+      *is* the raw series, so for those same dates there was never anything to adjudicate -- only a
+      fetch nobody had done. Of the 80,162 bars recovered, **41,767 fall inside a stored range**
+      (the basis-divergent dates, the pad-rejected dates and the 23 unlisted names together) and
+      **38,395 fall before it**: 2018, a whole year that predates the universe's 2019 start. By
+      year: 38,095 in 2018, then 12,228, 10,616, 9,504, 6,078, 2,729 and 912 to 2024.
+
+    - **What the 36,762 remaining gaps are, measured and not assumed.** Every published archive was
+      re-read and every remaining in-range gap tested against it. **36,762 of 36,762 are sessions on
+      which the exchange published no traded price for that symbol**, and **none** is a date the
+      exchange priced and this database lacks. A thinly traded Karachi listing does not trade every
+      session; `gaps.json` counts every market session for every in-range asset, so its PSX figure
+      of 0.914 is measuring the market's liquidity and not this project's coverage. **Against
+      sessions where a price actually exists, PSX acquisition is complete.**
+
+    - **Coverage, with the denominator named each time.** PSX went 0.816 to **0.914** on the
+      per-asset measure, and the calendar gained a year: 2018 contributes 245 session dates where
+      it previously had none. Across everything: historical observation coverage **96.74%**
+      (1,097,458 of 1,134,465), raw acquisition including staging **99.93%** (1,274,292 of
+      1,275,182), primary-store integrated **86.06%** -- the difference being benchmark and macro
+      series that are staged because they have no `Asset` row, which is a Milestone B decision and
+      not an acquisition failure.
+
+    - **Three series publish a number and no history, and the search for one is now exhausted.**
+      KSE-100, KIBOR and the SBP policy rate were pursued through nine further paths this session:
+      seven Yahoo symbol spellings (404), the exchange's closing file at both 2018-01-01 and
+      2026-10-13 (KSE30 *futures* rows, never an index level), `/indices` (current level only),
+      `/historical` and `/daily-downloads` (JavaScript shells), stooq (JavaScript challenge,
+      re-verified), SBP's `kibor_index.asp`, `kibor_archive.asp` and `economic-data` pages
+      (JavaScript document search over per-day PDFs), and SBP EasyData (Oracle APEX 19.2, whose
+      URLs carry session checksums). `IR-Corridor-Hist.xls` turned out to hold overnight repo
+      *amounts*, not rates. One dated observation each was captured. **SBP answers 403 to this
+      project's user agent and 200 to a browser's**, which is why it was previously recorded as
+      unreachable.
+
+    - **Everything else reached its source's own floor.** `^GSPC` 24,814 sessions from 1927-12-30,
+      `^VIX` 9,266 from its 1990 inception, `DX-Y.NYB` 14,164 from 1971, `^SP500TR` 9,769 from 1988
+      kept deliberately distinct from the price index, `GC=F` 6,556 and `BZ=F` 4,782 in full, FRED's
+      `DGS10` to 1962 and `DFF` to 1954, and Bitcoin to **2011-08-18** through Bitstamp once
+      Coinbase's own floor of 2015-07-20 was confirmed by the venue returning nothing earlier.
+      The manifest is `data/foundation/acquisition/manifest.json`, version
+      `acquisition-manifest-v2`.
+
+133. **KIBOR and the SBP policy rate were never unavailable — they were behind a form submit, and
+    two earlier entries said otherwise.** 2026-10-15, Phase 3 data foundation. No production
+    database change: this entry adds 138,588 benchmark observations and 93,339 SBP observations to
+    the project's data files, and `PriceSnapshot` ends where it started at 1,097,458 rows and
+    387 MB.
+
+    - **The correction.** Rules 130 and 132 recorded KIBOR, the SBP policy rate and KSE-100 as
+      having no reachable history. For two of the three that was wrong, and the reason is worth
+      keeping: the search stopped at pages that render data, and the data is published through
+      SBP's EasyData portal, an Oracle APEX application whose series page carries a **"Download
+      Available Series"** button. That button is an ordinary page submit, not an API, so nothing
+      that reads HTML could ever find it.
+
+    - **What it took, and the three mistakes on the way.** The submit posts the page's own form to
+      `wwv_flow.accept`. APEX 19.2 protects page items with per-item checksums, and the three
+      fields that decide acceptance -- `pPageItemsProtected`, `pSalt`, `pPageItemsRowVersion` --
+      carry an `id` and **no** `name`, so looking them up by name found none and the portal replied
+      "Page protection violation". Past that, the submit answers 302 to the file, and gives that
+      Location as `http://`: following it as issued is a protocol downgrade the site's edge answers
+      403 to. Following it by hand through a *second* opener then produced "Your session has
+      expired", because a second opener means a second cookie jar. One opener, redirect captured
+      only at the submit, forced to https: `application/excel`, `data_series.csv`.
+
+    - **What came back.** **KIBOR: 93,300 observations across 18 series** -- bid and offer at 1W,
+      2W, 1M, 3M, 6M, 9M and 12M -- **from 2005-06-09 to 2026-10-14**, which is a fortnight later
+      than the range this task quoted, so the source had moved on rather than stopped. **The SBP
+      policy rate: 39 effective-dated observations from 2015-05-25 to 2026-04-28**, which is the
+      whole series: it prints only when the rate changes. Zero unparseable rows in either. A
+      dataset downloads through page 213 and a single series through page 222 -- the same submit,
+      a different page.
+
+    - **KSE-100 is still not published anywhere permitted, and the list is now specific.** EasyData's
+      own search for "KSE" returns **No Data Found** -- the portal carries SBP and PBS statistics,
+      not exchange index levels. From the exchange's own origin, `/timeseries/eod/KSE100`,
+      `/timeseries/int/KSE100` and `/timeseries/INDEX/KSE100` all answer **404**, while
+      `/indices/KSE100` answers 200 with the **constituent list** and no history. Add the seven
+      Yahoo spellings, every closing file from 2018 to 2026 (KSE30 *futures* rows, never an index
+      level) and stooq's JavaScript wall. The current level is captured; the history is not
+      published free.
+
+    - **The four dates the sweep could not classify, settled.** 2,171 published plus 119 silent is
+      2,290, not 2,294. Two dates -- **2018-07-19 and 2021-02-09** -- are served as **HTTP 200 with
+      a zero-byte body**, confirmed by a direct re-request; two -- **2023-05-17 and 2023-05-18** --
+      unpack to an archive with no rows. Against the independent provider, 2018-07-19 was not a
+      trading day anywhere, while the other three were **real sessions the exchange's own archive
+      does not carry**, which is why those dates hold partial coverage from the Karachi listing and
+      no exchange bars at all.
+
+    - **The staged series are not in a cache any more.** `.cache` is gitignored and disposable, so
+      thirteen benchmark and macro series (138,588 observations, 1.3 MB) now live in
+      `data/foundation/benchmarks/` and the two SBP series in `data/foundation/sbp/`, each a CSV --
+      gzipped above 3,000 rows -- beside a manifest carrying the count, the range and a sha256.
+      That is the convention `data/foundation/macro/` already uses. **No `Asset` row was created for
+      any of them**: an index level is not a tradable instrument, and `PriceSnapshot` is what every
+      ranking, peer median and relative-strength figure in this project is computed over.
+
+    - **Coverage, with the denominator named.** Frozen target series **12 of 14**; historical
+      observation coverage **96.74%**; raw acquisition including staging **99.43%** (1,367,592 of
+      1,375,442); primary-store integrated **79.79%**, the gap being series that deliberately do
+      not belong in `PriceSnapshot`. The SBP policy rate is excluded from both sides of the ratio:
+      an irregular event series has no expected count to divide by, and including it would have
+      flattered the figure. An earlier build of this manifest read **107%** for exactly that
+      mistake.
+
+    - **Still ahead, and not to be dropped.** This closes frozen market and macro data collection.
+      Milestone B is the cleaning and point-in-time integrity pass. After it, still required as
+      training data and not yet begun: **historical news and original documents, the major crash
+      and bull-run timelines, pre-event information, catalysts, and post-event market reactions.**
+      The dataset rebuild (`data-pit-features.yml`, `data-assemble.yml`) also still needs an
+      authenticated runner, and the 38,246 basis-conflicting Karachi bars remain staged, largely
+      superseded by raw exchange bars for the same dates.
+
+134. **Two claims in the last two entries were looser than the evidence, and the delisted history
+    was sitting in files already on disk.** 2026-10-15, pre-Milestone-B closeout. No database
+    change: 387 MB, 1,097,458 rows, 44 tables, identical to the start of this pass.
+
+    - **"KSE-100 is the only remaining series" was wrong.** The frozen list has fourteen items and
+      rule 133 reported twelve acquired, which leaves two, not one. The second was **PSX renamed
+      and delisted securities**, carried as "candidates identified" -- twenty-one symbols named and
+      not a single bar of their history retrieved. The arithmetic was in the manifest the whole
+      time; the sentence next to it was not checked against it.
+
+    - **That one is now closed, from files already downloaded.** The twenty-one symbols trade in
+      the exchange's own archives, and all 2,171 of those were already cached by the sweep, so
+      **24,613 bars across 21 symbols** came back without a single new request -- FFBL, PSMC,
+      PIAA, ENGRO, DAWH and the rest, at the raw basis the stored series uses, in
+      `data/foundation/psx_delisted/`. Thirteen of fourteen targets are acquired.
+
+    - **"36,762 remaining gaps, all non-trading sessions" conflated three different facts.** A day
+      the exchange was shut, a day one security did not trade, and a session whose archive the
+      exchange never published are not the same claim. Classified against the cached archives:
+      **36,762 are published sessions on which that one security did not trade** -- category two,
+      not category one -- and a further **158 fall on the four dates whose archive is empty or
+      absent, 69 of which another provider does serve**. The total is 36,920, and the earlier
+      figure had silently dropped the 158.
+
+    - **The withheld Karachi bars are fully superseded, and that is now measured.** Of every
+      remaining in-range gap on a published session, **none** has a validated bar at the Karachi
+      listing. So the 38,246 bars withheld on basis grounds in rule 130 are not a residual: every
+      date that provider validly served has since been filled from the exchange's own file, at the
+      raw basis, with nothing left to adjudicate.
+
+    - **Checked rather than asserted.** All fifteen durable files re-read from disk: sha256 matches
+      the manifest in 15 of 15, row counts and date ranges match, no duplicate dates, and no two
+      files are numerically identical -- which is the check that would catch the price index being
+      served as the total-return series, or ICE's dollar index as the Federal Reserve's broad one.
+      One flagged value is real history: `DCOILWTICO` prints **-36.98 on 2020-04-20**, the day WTI
+      settled negative, the same event as `CL=F`. The two Bitcoin venue files share **zero dates**,
+      so nothing is double counted.
+
+    - **KSE-100 stays unresolved, and the search is now exhausted rather than abandoned.** New this
+      pass: every plausible exchange download path in the `mkt_summary` family --
+      `index_summary`, `indices`, `mkt_index`, `index`, `historical` -- answers **404**, while
+      `mkt_summary` answers 200, so the closing file is the only published download. The Internet
+      Archive does hold the indices page, but **69 captures across seven years**, about ten a year:
+      real observations, nowhere near a historical series, and the CDX API began answering 429, so
+      it was not pushed further. Added to the routes already recorded in rule 133, this is a
+      source-by-source negative and **not** a reason to relabel the series acquired.
+
+    - **Pre-Milestone-B readiness: BLOCKED, on one criterion.** Everything else passes --
+      backup verified at `backup-2026-10-15T2305Z-post-acquisition` with the SBP and benchmark
+      files byte-identical to the repository, metrics with stated denominators, 971 tests green,
+      no unexplained counts. KSE-100 historical levels are not acquired, and the acceptance gate
+      says the frozen scope is not complete while that is true.
+
+135. **KSE-100 was never unpublished. Three entries said it was, and all three were describing the
+    request I sent rather than the endpoint.** 2026-10-15. 1,239 daily index observations acquired,
+    2021-10-15 to 2026-10-14, persisted to `data/foundation/psx_index/`. No database change.
+
+    - **The correction, plainly.** Rules 132, 133 and 134 recorded `dps.psx.com.pk/timeseries/eod/
+      KSE100` as a 404 and the series as unavailable from permitted free sources. It answers **HTTP
+      200 with `application/json`**. What was missing was a header pair: the endpoint needs
+      **`X-Req-Id`** -- the per-page token the site attaches to its own AJAX, set in its own
+      `static/script.js` as `$.ajaxSetup({headers:{"X-Req-Id": window.__ps._k}})` -- **and**
+      `X-Requested-With: XMLHttpRequest` together. Sent alone, the first returns 404 and the second
+      403, which is exactly the pair of readings the earlier entries recorded and mistook for a
+      verdict about the data.
+
+    - **What finally separated the two.** Reading the browser's own network log while a company
+      page loaded: that page's request to `/timeseries/int/OGDC` returned **200** in the same
+      session where my fetch of the identical URL returned 404. A path cannot be both absent and
+      present, so the difference had to be in the request -- and the site's own script named it.
+      **A 404 from this host is not evidence that a path does not exist.**
+
+    - **What the endpoint gives, and what it withholds.** `[unixSeconds, close, volume, open]`,
+      newest first. **There is no high and no low**, so this series cannot carry a true range, an
+      ATR or a candle, and nothing was derived to pretend otherwise. 1,240 rows arrived: 0
+      malformed, 0 null, 0 non-positive, **one duplicate date collapsed**, leaving 1,239 distinct
+      dates. Weekday coverage is **0.9502**, which sits inside the 0.939-0.958 the PSX calendar
+      reads elsewhere in this project -- the shortfall is exchange holidays.
+
+    - **Checked against something that is not itself.** The newest close, **165,417.50**, is
+      identical to the level captured from `dps.psx.com.pk/indices` on the same day through a
+      different page. Across ten sampled sessions the index's daily direction agrees with the
+      median return of the stored PSX constituents -- computed from the exchange's closing files,
+      a different source -- on **nine of ten**, and the magnitudes track (2025-10-28: index
+      -1.27%, market median -1.27%). The single disagreement is the shape a capitalisation
+      weighted index has: it rose 0.67% on a day the median stock did not move.
+
+    - **Partial, and the word is load bearing.** The endpoint's own depth stops at **2021-10-15**
+      and the frozen cutoff for PSX instruments is **2018-01-01**, so **2018-01-01 to 2021-10-14 is
+      not acquired**. The reference implementation that documented this endpoint measured its depth
+      on OGDC and found about five years, which is the same limit from the other side. This is a
+      partially acquired series and the manifest says so in the field a reader would check.
+
+    - **Licensing is unchanged by availability.** PSX's terms forbid redistributing its market data
+      feed without a licence, delayed included. `recovery-manifest.json` carries this as
+      `psx-redistribution-licence`, an accepted unresolved risk. Acquisition and private use are
+      unaffected; publishing these levels is not cleared, and the index manifest repeats that where
+      it will be seen.
+
+    - **Readiness is still the owner's call.** Thirteen of fourteen frozen targets are acquired and
+      the fourteenth is partial, so the frozen scope is **not** complete. Milestone B stays blocked
+      pending an explicit confirmation, which this entry does not grant itself.
+
+136. **The KSE-100 gap has three parts, and only one of them is closed.** 2026-10-15. Open Data
+    Pakistan's file was fetched, parsed and cross-checked; it covers the frozen start and carries a
+    real high and low, and it is **quarantined**, because its own resource page says **"License: No
+    License Provided"**. No database change: 387 MB, 1,097,458 rows.
+
+    - **The file is real and it is good.** One ordinary request returned HTTP 200, `text/csv`,
+      250,903 bytes, `Last-Modified: 2021-04-03`. **3,206 valid observations, 2008-02-22 to
+      2021-02-23**, zero duplicate dates, zero unparseable dates, 15 rows rejected (one
+      non-positive, fourteen with the close outside its own range). It has `Open, High, Low, Close,
+      Change, Volume` -- **a real high and low**, which the exchange endpoint does not provide.
+
+    - **The seam nobody covers.** The file ends **2021-02-23**; the exchange endpoint begins
+      **2021-10-15**. So the two sources have **zero overlapping sessions** -- they cannot be
+      compared against each other at all -- and roughly eight months, **2021-02-24 to 2021-10-14**,
+      is covered by neither. Karandaaz spans the whole period and its terms forbid systematic
+      retrieval and database creation, so it is not a route this project may take. That interval
+      stands unresolved and the search stops there.
+
+    - **Cross-checked against something else instead.** With no overlap available, the file was
+      tested against the stored PSX constituents, which come from the exchange's own closing files:
+      across twelve sampled sessions its daily direction agrees with the median constituent return
+      on **nine**. The three disagreements are the shape a capitalisation-weighted index has
+      against a median -- 2020-10-01, index +0.08% against a median of -0.22%.
+
+    - **Downloadable is not licensed.** The resource page states no licence. The raw file is
+      therefore kept in `.cache/acquire/opendata/` and in the PC backup, **not committed to Git and
+      not written to any table**; only the manifest -- counts, ranges, checksums, the licence
+      finding -- is in the repository. Committing the file would itself be a redistribution of data
+      nobody has granted rights to.
+
+    - **So KSE-100 reads in three segments, and the manifest says so in those words.**
+      2018-01-01 to 2021-02-23: available, licence unverified, quarantined. 2021-02-24 to
+      2021-10-14: no compliant source. 2021-10-15 to 2026-10-14: acquired, 1,239 observations,
+      private use only.
+
+    - **Two durable-file findings worth keeping.** `DCOILWTICO` carries one non-positive value,
+      **-36.98 on 2020-04-20**, which is the day WTI settled negative -- real history. The delisted
+      archive carries **369 rows where the exchange published open=high=low on a thin session**
+      against a differently computed close (BHAT 2022-09-23: 1150/1150/1150 on twenty shares, close
+      1112.32), concentrated in BHAT, STML, PHDL and PMPK. They are the exchange's own values and
+      are preserved verbatim; a consumer computing a range must drop the range and keep the close,
+      which is what `acquire.py` already does for thin futures sessions.
+
+    - **A verifier that reads one file shape will invent problems in another.** The first run of
+      `verify_durable` reported the delisted archive as having "24,592 duplicate dates" and a range
+      of "BHAT .. WHALE", because it read column zero as the date and that file is keyed
+      (symbol, date). It also called KSE-100's counts a mismatch because that manifest keeps them
+      under `validation`. Both were the checker's fault, not the data's, and a problem list that
+      cries wolf is worse than none.
+
+    - **Verdict: Milestone B stays blocked.** Seventeen durable artifacts verify, 17 of 17
+      checksums match, 971 tests pass, the backup is current. The unmet criterion is one:
+      **KSE-100 is not acquired to 2018-01-01 under a licence this project can rely on.**
+
+137. **Every frozen target now carries a floor decided before the data was looked at, and only one
+    fails it.** 2026-10-16, final acquisition gate. No database change: 387 MB, 1,097,458 rows, 44
+    tables. 24 targets in the ledger, 23 meeting their floor.
+
+    - **The metric trap this closes.** A coverage figure computed from the dates already stored can
+      never find missing older history: whatever is present defines the range, so the range is
+      always full. `tools/foundation/target_ledger.py` fixes a required floor per target first and
+      reports the distance to the first real observation. Two floors are in play and they are not
+      the same thing: **2018-01-01** for PSX instruments and the index, from the frozen brief, and
+      **2019-01-02** for the registry's other price assets, which is the universe's own start and a
+      project decision rather than a limit of the sources. Yahoo would serve earlier history for
+      the US names and has never been asked to; that is a scope choice, labelled as one, not
+      counted as a gap.
+
+    - **Late starts are listings, checked rather than assumed.** 70 of 75 crypto, 82 of 226 PSX and
+      26 of 272 US names begin after their floor. Spot checks settle what that means: `ARM` first
+      trades 2023-09-14, which is the day Arm Holdings listed; `SOYASUP`, `TISL` and `SELECT` are
+      2026 PSX listings already recorded under `late-listing-histories`. Zero duplicate rows across
+      all 616 assets -- the primary key makes that structural rather than lucky.
+
+    - **KSE-100 was investigated once more and the answer did not change.** CountryEconomy carries
+      the real index at **daily** granularity and its whole 2018-2021 span is addressable through
+      an undocumented `?dr=YYYY-MM` parameter. Its values are not in question: its levels for
+      2021-10-15 and 2021-10-18, **44,821.53 and 44,629.45**, are identical to the exchange
+      endpoint rows already stored, and it skips the weekend exactly as the exchange does. **It is
+      still not usable.** Its Legal Notice grants nothing about reproduction or extraction, its
+      operator is a Spanish company so the EU database right attaches to substantial extraction by
+      default, and its `robots.txt` names **`ClaudeBot`** and **`Claude-SearchBot`** under
+      `Disallow: /`. Three data pages were read to verify the claim; no harvest was attempted and
+      none will be. It would also be **close only**, so it could not restore the OHLC the
+      quarantined Open Data Pakistan file already has.
+
+    - **The one useful thing that fell out of it.** An unrelated publisher independently quotes the
+      same two closes this project stores for the same two dates. That is third-party corroboration
+      of the acquired 2021-10-15 onward segment, obtained from pages already fetched for a
+      different purpose.
+
+    - **SBP was the lawful lead and it did not resolve.** The statistical bulletin's Capital Market
+      table 7.1 is titled "KSE 100 & All Shares Index" and is sourced from PSX, but the legacy deep
+      links now answer HTTP 200 with the site navigation shell instead of the document, so no value
+      was retrieved. It is monthly end-of-month in any case, which would leave the series
+      mixed-granularity and would have to be labelled that way.
+
+    - **So the gap stands, in three named pieces.** 2018-01-01 to 2021-02-23: held, licence
+      unverified, quarantined. 2021-02-24 to 2021-10-14: no compliant source. 2021-10-15 onward:
+      acquired, 1,239 observations. The cheapest route out is not technical -- asking the Open Data
+      Pakistan publisher to state a licence would clear 3,206 observations with full OHLC that are
+      already downloaded.
+
+    - **Verdict: Milestone B stays blocked on one criterion.** 17 durable artifacts verify with 17
+      of 17 checksums matching, every non-PSX target is individually confirmed against its floor,
+      971 tests pass, the backup is current. The unmet criterion is that **KSE-100 is not acquired
+      to 2018-01-01 under a licence this project can rely on**, and three sources now sit in that
+      same bucket: Karandaaz, Open Data Pakistan and CountryEconomy. The data exists and is
+      correct; permission does not.
+
+138. **The PSX endpoint has no older history to give, and now that is proved from its own code
+    rather than inferred from a 404.** 2026-10-16, bounded PSX-only pass. No database change.
+
+    - **The contract, read from the site.** `static/script.js` calls
+      `$.getJSON("/timeseries/" + type + "/" + symbol)` with **no parameters**, then slices the
+      returned array in the browser with `filter(from, to, data)`. The 1D/1W/1M buttons are a
+      client-side view of one payload. So the payload is everything the endpoint holds.
+
+    - **Confirmed against the wire, not assumed.** Six parameter forms -- `from`/`to`,
+      `start`/`end`, `period1`/`period2`, `limit=20000`, `years=10`, and no query at all -- each
+      returned **HTTP 200 with the identical 1,240 rows, 2021-10-15 to 2026-10-14**. A `/2018`
+      path segment returned 404. The endpoint ignores parameters; it does not withhold history
+      behind one.
+
+    - **The official archives do not carry the index either, checked inside the gap.**
+      `POST /historical` with `date=2021-06-15` answered 200 with 326,329 bytes and **575 rows,
+      every one a security** -- `data-type` is only `equity` and `debt`, and there is no index
+      row. The daily closing file for the same session holds 554 rows and no index row, which is
+      what the same check already showed at 2018-01-01 and 2026-10-13. The exchange publishes the
+      KSE-100 level on its indices page and in that five-year endpoint, and nowhere else free.
+
+    - **Nothing new opened this pass.** The Internet Archive's CDX answered 503 and was left
+      alone; its measured density of about ten captures a year could not fill ~160 sessions in any
+      case. `psx.com.pk/resources-and-tools/{downloads,historical-data}` answer 200 with a
+      zero-byte body. `dps.psx.com.pk/robots.txt` is a 404, so that host publishes no exclusion --
+      which is worth recording precisely because CountryEconomy's does name ClaudeBot.
+
+    - **The quarantined file was re-verified, not re-downloaded.** sha256 unchanged, 3,206
+      observations reparsed, resource page still states **No License Provided**.
+
+    - **Verdict: PSX still blocked, and the obstacle is permission, not capability.** The daily
+      history for 2018-01-01 to 2021-02-23 is sitting on this machine and cannot be used; the
+      stub from 2021-02-24 to 2021-10-14 is not held by any source reached. The single cheapest
+      move is not technical: ask Open Data Pakistan's publisher to state a licence on the resource
+      already downloaded.
+
+139. **The owner's own download closed the KSE-100 gap completely, and in doing so exposed that
+    the file quarantined for months was never the KSE-100 at all.** 2026-10-16. No database
+    change. The data is validated; its use is not yet permitted.
+
+    - **What arrived.** A `Date,KSE 100 Index` CSV, 103,995 bytes, sha256 `2c60087f...0f8f7bef`,
+      downloaded by the owner through the Karandaaz portal's own flow. **4,154 observations,
+      2010-01-04 to 2026-10-12**, one duplicate date rejected, nothing unparseable, nothing
+      non-positive. **Close only** -- no open, high, low or volume, and none were invented.
+
+    - **It is the same series the exchange publishes, to six decimal places.** On **1,228 shared
+      dates** against the exchange endpoint already held: **zero failures** at the frozen 0.05%
+      rule, **maximum difference 0.000026%**, median 0.000003%, 367 exact matches. This is the
+      first candidate that overlapped the baseline at all, and it passed by four orders of
+      magnitude.
+
+    - **It closes the gap exactly.** The interval that no source covered -- 2021-02-24 to
+      2021-10-14, measured at **155 published sessions** -- is **155 of 155 covered, zero
+      missing**, with no date present that is not a published session. Taking this file together
+      with the exchange baseline, **all 2,171 published PSX sessions from 2018-01-01 onward are
+      covered, with none missing**. The frozen KSE-100 range is complete in data.
+
+    - **And it convicts the Open Data Pakistan file.** That file was quarantined on licence
+      grounds and treated as a genuine KSE-100 series with full OHLC. It is not one. On **2,761
+      shared dates** its values differ from this file by a ratio that **wanders between 1.01 and
+      1.51** (median 1.42) -- not a constant rebasing, so not a units or base-year difference
+      either. On 2021-02-23 this file reads **45,728.75** and Open Data reads **31,626.19**; the
+      index was near 45,700 that day. **Rejected on identity**, which is a stronger and more
+      fundamental reason than the licence question that had been holding it.
+
+    - **The weak test that let it pass before.** An earlier check compared Open Data's daily
+      *direction* against the median return of stored constituents and scored 9 of 12. Direction
+      agreement is a test a correlated but different index passes easily. Comparing **levels**
+      against a trusted series is the test that decides, and it was only possible once something
+      trustworthy overlapped it. A cross-check that cannot fail is not a cross-check.
+
+    - **Access is not permission.** The portal's Terms of Use require the **express written
+      permission of KRN & CS** before the content may be used. The owner's download settles how
+      the file was obtained; it does not settle whether it may be stored in this project's
+      database or used to develop a model. So the file is **validated and held privately** --
+      `.cache/acquire/karandaaz/`, gitignored, out of every production table -- and the request
+      that would clear it is drafted at `data/foundation/psx_index/PERMISSION-REQUEST.md`.
+
+    - **Status: VALIDATED BUT PERMISSION PENDING.** The remaining obstacle is one written reply,
+      and it is the last thing standing between this project and a complete frozen KSE-100 range.
+
+140. **The frozen market and macro acquisition phase is closed: 14 of 14 targets acquired.**
+    2026-10-16. The database is unchanged at 387 MB, 1,097,485 rows, 44 tables. Nothing here
+    begins Milestone B.
+
+    - **KSE-100 is complete and this is how it is assembled.** 2018-01-01 to 2021-10-14 comes from
+      the Karandaaz portal file the owner downloaded; 2021-10-15 to 2026-10-14 from the exchange's
+      own EOD endpoint. Across the **2,171 published PSX sessions** since 2018-01-01, **2,171 are
+      covered and none are missing**. The two segments agree on **1,228 shared dates with zero
+      failures** at the 0.05% rule and a maximum difference of **0.000026%**, which is what made
+      it safe to treat them as one series.
+
+    - **It is close-only where the source is close-only.** The Karandaaz file carries `Date` and
+      the index level and nothing else; the exchange segment adds open and volume. **Neither
+      carries high or low, and none were invented.** Any consumer wanting a range from this series
+      will not find one, which is the correct outcome rather than a gap to fill.
+
+    - **Permission: obtained, confirmed by the owner on 2026-10-16.** The specific conditions were
+      not supplied to this process, so nothing is assumed beyond internal research and model
+      development: the dataset lives in `.cache/acquire/karandaaz/` and in the PC backup, is
+      **never committed to Git**, and is not published on any surface. Raw sha256
+      `2c60087f...0f8f7bef` (103,995 bytes), normalized `0f8e74c5...255d6cc5` (84,700 bytes).
+
+    - **The Open Data Pakistan CSV is rejected and must never be merged.** It fails on **index
+      identity**, not licence: across 2,761 shared dates its values differ from the verified series
+      by a ratio wandering between 1.01 and 1.51, and on 2021-02-23 it reads 31,626.19 where the
+      verified series and the exchange both read 45,728.75. Rule 139 records how a direction-only
+      cross-check had let it pass.
+
+    - **Where the next session should look.** Manifest
+      `data/foundation/acquisition/manifest.json` (`acquisition-manifest-v7-final`) and the
+      per-target ledger `data/foundation/acquisition/target_ledger.json`, which carries a required
+      floor per target decided before the data was read. Durable series files under
+      `data/foundation/{benchmarks,sbp,psx_index,psx_delisted}`; 17 of 17 artifact checksums match.
+      The private KSE-100 segment is the one dataset outside the repository, by design.
+
+    - **No further acquisition or resync is required** unless specific evidence of a defect
+      appears. The two known, documented data-quality notes stand and are not defects: `DCOILWTICO`
+      prints -36.98 on 2020-04-20, the day WTI settled negative, and the delisted archive holds 369
+      rows where the exchange published open=high=low on a thin session against a differently
+      computed close.
+
+    - **Still ahead, and explicitly not done.** Milestone B -- cleaning and point-in-time integrity
+      -- has not begun and needs the owner's approval. After it, still required and not started:
+      **historical news and original documents, the major crash and bull-run timelines, pre-event
+      information, catalysts, and post-event market reactions.** That corpus is a separate research
+      requirement and nothing in this phase has touched it.
+
+141. **Handoff: where this project stands, and what Milestone B has to do.** 2026-10-16. Written
+    so a session with no memory of the last few days can pick the work up from the repository
+    alone.
+
+    - **State.** Branch `restore-db-utility`, acquisition closed at commit `e457276`; `origin/main`
+      is still at `767d26b` and is far behind, so **do not read `main` as the current state**.
+      Latest verified backup
+      `C:\Users\NEW TECH\nbt-private\backup-2026-10-16T0600Z-acquisition-complete\` — 44 of 44
+      tables, 25 key files checksummed, zero mismatches, nine backups preserved. The database was
+      **unchanged** throughout the final closeout: 1,097,485 rows, 44 tables, about 380 MB of the
+      500 MB tier. `RESUME.md` section 0 carries the same orientation in short form; the rest of
+      that file, and `AUDIT.md`, predate this work.
+
+    - **Acquisition is finished and must not be repeated.** 14 of 14 frozen targets, with the
+      per-target ledger at `data/foundation/acquisition/target_ledger.json` and the manifest at
+      `data/foundation/acquisition/manifest.json` (`acquisition-manifest-v7-final`). Rules 130 to
+      140 carry the detail. **No further acquisition, broad resync or source research is required
+      unless specific evidence of a real defect appears.**
+
+    - **The two standing constraints.** The Karandaaz KSE-100 segment is private, in
+      `.cache/acquire/karandaaz/` and the backup, permitted for internal research and model
+      development by the owner's confirmation and **nothing wider** — never committed, never
+      published. The Open Data Pakistan CSV is **rejected on index identity** and must never be
+      merged into the KSE-100 series.
+
+    ### Milestone B — cleaning and point-in-time integrity. Not started; needs the owner's go-ahead.
+
+    - **Objectives.** Validate source provenance and timestamps across every stored series.
+      Resolve duplicates and conflicting prices between sources without silently overwriting
+      either. Settle corporate actions and the raw-versus-adjusted basis question per asset --
+      the PSX series is raw from the exchange and split-adjusted from the Karachi listing, kept
+      apart by `source`, and that distinction is load-bearing. Verify point-in-time correctness
+      and that no path lets a later observation reach an earlier session.
+
+    - **The distinction the data already makes, and that must survive.** A genuine no-trade
+      session, an exchange holiday, a source that published nothing, and an actual missing record
+      are four different facts. `data/foundation/psx_complete/residual_classification.json` already
+      separates them for PSX; nothing in Milestone B may collapse them back into "missing".
+
+    - **Acceptance criteria.** All existing data preserved and backward compatible. Only
+      specifically evidenced gaps recovered -- no full resync, no rebuild, no reset. Any write
+      quantified first for row-level effect, rollback path, free-tier storage and database load,
+      against a verified backup. One bounded, evidence-backed completion report at the end, with
+      metrics whose denominators are stated and reproducible.
+
+    - **What Milestone B is not.** It is not feature engineering, not training, not strategy work,
+      and not the research corpus. **Historical news, original documents, the crash and bull-run
+      timelines, pre-event information, catalysts and post-event market reactions remain a
+      separate later phase that has not been started** and must not be described as complete.
+
+142. **Milestone B: the three findings that looked worst were measured, and two of them were not
+    defects.** 2026-10-15, cleaning and point-in-time integrity. One database write in the whole
+    milestone: 216 rows. Everything else is a code fix, a ledger, or a measurement.
+
+    - **The basis risk was real to worry about and small to measure, and the measurement is the
+      whole entry.** 203 PSX assets carry both the exchange's raw file and the split-adjusted
+      Karachi listing, they interleave rather than abut, 119 assets change source more than 120
+      times, and **48.4% of 20-session windows span a change**. Excluding those windows would have
+      quarantined half the PSX history. So the question was asked properly: is a cross-basis step
+      distinguishable from an ordinary session? The test is the exchange's own daily price band,
+      derived from the stored data rather than from documentation -- the greater of 10% and Rs 1.00,
+      which 10 of 71,816 low-priced same-source moves and 253 of 299,074 high-priced ones exceed.
+      Against that band, **a cross-basis step is out of band 0.022% of the time and an ordinary
+      same-source session 0.071%** -- the joins are three times *cleaner* than the sessions, because
+      the anchor rule vetted them at insert time and nothing vetted the rest. 5 exceptions remain,
+      all downward and all just over the band, and the policy excludes the **96 windows** that span
+      one. `basis_transitions.json` holds every join's provenance; `actions.basis_breaks` is the
+      single reader, matching `unadjusted_windows`; `assemble.py` carries
+      `dataQuality.basisBreakInWindow`.
+
+    - **A 178% move was the exchange's minimum tick.** `AMTEX` 2024-06-03 looked like the worst
+      cross-basis step in the data at z=56 against its own volatility. It is five consecutive
+      sessions closing exactly Rs 1.00 higher, each at the day's high: a limit-up run on a
+      sub-rupee scrip, where the band is absolute and not a percentage. `CHBL` and `DBCI` on the
+      same date are the same thing. A z-score against an asset's own history cannot tell a real
+      limit move from a basis artefact, and a rule derived from how the market actually works can.
+
+    - **2022-10-01 is Friday's file with Saturday's name.** The only weekend date in the PSX
+      series, 171 bars. The exchange answers **200** at the Saturday URL and every row inside is
+      stamped `30SEP2022`; Sunday 404s as weekends normally do. All 25 symbols holding both dates
+      have byte-identical OHLCV, and it is the only date in the whole stored history where every
+      shared symbol repeats the previous date exactly. The cause was keying a bar by the date whose
+      URL was requested instead of the date the file stamps on itself, and `file_session_date()`
+      now settles it the same way a closed market is settled. **No row was deleted**: `session_bar()`
+      already excluded all 171, measured, because they fall on a Saturday.
+
+    - **The close is the datum; the range is the thing that can be wrong.** 6,858 stored bars have
+      a close outside their own high and low. Three different facts, so three expectations rather
+      than one tolerance: Yahoo's equities are coherent to the last bit (**all 49** breaches at
+      about 1.7e-15, of which 47 are below one ULP and visible only to Postgres, which is why the
+      ledger reconciles rather than approximates); Yahoo's currency pairs breach on about 8% of
+      sessions at a median of 3.6 basis points, because the FX close is a different snapshot from
+      the range; and the exchange file collapses its range to one value on 1,912 rows. `jobs/ohlc.py`
+      stores the close exactly and drops a range that contradicts it, which is what `None` on this
+      table has always meant. **Still happening when found** -- 763 in 2024, 514 in 2025, 163 in
+      2026 -- so the lane fix is the load-bearing half and the ledger is the record.
+
+    - **The fix exposed a fabrication it would otherwise have fed.** `jobs/horizons.py` filled an
+      absent high and low with the close, which reads as a session that never moved. Harmless-ish
+      for 712 pre-OHLC rows; not harmless once `ohlc.py` began withholding ranges, because the
+      fabrication would have reinvented exactly what was withheld. `true_range` and `pivots` now
+      skip a bar with no range, which is what `true_range`'s own docstring already promised:
+      "None when there is not enough history, never a default."
+
+    - **The one write, and why it was worth making.** 216 currency-pair bars carried `volume = 0`.
+      FX has no consolidated tape, so that 0 is a placeholder; `_store_frame` has always nulled it
+      and `chart_repair` did not. The project's own comment names the three readers that take it as
+      real. 27 pairs across 8 sessions, one source, rollback written before the UPDATE. The
+      commodity and equity zero-volume rows -- 1,966 and 1,136 -- are real sessions that did not
+      trade and were left alone.
+
+    - **What a validator should not do is hide a real event.** `verify_durable.py` failed on
+      "DCOILWTICO: 1 non-positive value", which is WTI settling at -37.63 on 2020-04-20. It is named
+      with its count so that row passes and a second one still fails, rather than exempting the
+      series. Its OHLC check now uses `jobs/ohlc.py` instead of a 1e-6 absolute tolerance that was
+      too tight for a cheap scrip and too loose for an expensive one, and the delisted file's 370
+      violations are pinned at their exact classes rather than rewritten -- that file is checksummed,
+      and satisfying a rule by editing the evidence is not a fix.
+
+    - **Open, and deliberately not closed.** 747 PSX bars whose close sits outside a real traded
+      range: 358 above the high, 389 below the low, 65% of them by 2% or less, half on sessions
+      whose whole range is within 2% of its own low. Consistent with a closing price computed on a
+      different basis from the intraday range, but that is a hypothesis and the exchange's own
+      specification would settle it. Quarantined on the uncertainty, not on a diagnosis.
+
+143. **Milestone C: the corpus was built in October and never loaded, and the loading is most of
+    the work.** 2026-10-15, data-foundation completion. Branch `milestone-c-research-corpus`, cut
+    from the protected Milestone B commit. Database grew 384 MB to 385 MB.
+
+    - **168 verified events existed in a file and 8 existed in the database.** `events.py`
+      verified 168 of 240 candidates against Wikipedia, Wikidata and a measured move, writing
+      `data/foundation/events/events.json`. `jobs/events.py` seeds a hand-written list of eight,
+      and eight is what the site and every reader had seen since. Loading the corpus took historical
+      `Event` rows from **8 to 176**, asset links from 8 to 119, the span from 2022-2025 to
+      **2019-2026** and the categories from 4 to 12. No new source, no fetch, no verification --
+      the evidence was already paid for and was sitting on disk. Worth remembering when the next
+      instinct is to collect more: check what was collected and never wired up.
+
+    - **Linkage came from the corpus, not from a matcher.** Each verified event names the one
+      instrument that was checked for a move at verification time, so the link is explicit
+      evidence rather than a similarity score: 119 map to a stored asset, 48 are the MKT and PSX
+      market proxies, and `GME` is not in the universe and is reported rather than dropped. The
+      alternative -- measuring all 616 assets against all 168 events -- was rejected twice over:
+      ~197,000 rows against 115 MB of headroom, and more importantly it manufactures rows that
+      *look* causal, which is the error `jobs/events.py`'s own docstring was written about.
+
+    - **Three fields that must never merge, and the dataset's shape is the argument.** `before` is
+      built from bars strictly before the event session and is the only part a model may read as
+      an input. `day0` is the event session's own move -- evidence and a label, never actionable,
+      because the information arrived during that session and its close is already after it.
+      `forward` starts at the session *after* day0. Putting day0 in the features is the leak; putting
+      it in the outcome is why event studies look profitable. Measured over all 167 rows: **0**
+      before-states dated on or after their event, **0** forward windows starting at or before the
+      event session, **0** windows ending before they start.
+
+    - **The distribution is the second proof, and it is the one that would have caught a cheat.**
+      1d 74 up / 93 down, 5d 79/88, 20d 88/79, 60d 104/60; **20-session continuation of the day-0
+      move at 44.9%**, and a median 20-day excess return of **-0.197%** across 92 benchmarked rows.
+      A corpus that showed 85% continuation would be re-reporting day 0 under a forward label.
+      Near coin-flip with no abnormal return is what an honest event corpus looks like, and it is
+      now a test with bounds rather than a paragraph.
+
+    - **An instrument cannot be its own benchmark.** The first build adjusted the 43 MKT events
+      against `^GSPC`, which *is* MKT, and produced an excess return of exactly 0.0 -- which reads
+      as "no abnormal move" when the truth is "the question does not apply". Caught by looking at a
+      row rather than at the summary.
+
+    - **Rule 130's open line, closed.** `events.py` built the PSX reaction series with
+      `source ILIKE 'Pakistan%'`, reading the exchange file and skipping the 183,267 recovered
+      Karachi bars -- about half the stored PSX history. `a.currency = 'PKR'` selects the market
+      instead of the vendor. The stored `market` blocks for the five PSX-proxy events were computed
+      under the old predicate and would change on a re-verification, which was not run: it is a
+      fetch-heavy job and the brief forbids reconfirming what has sufficient evidence.
+
+    - **What is genuinely not available, stated once.** Historical news. `News` holds 8,134 items
+      across **37 days**, because RSS serves a recent window and no free source carries a news
+      archive at scale for PSX or globally. The event corpus is the historical catalyst layer
+      instead. Equally absent: PSX borrow availability and historical spreads, so no execution-cost
+      model is asserted anywhere and no backtest may assume free execution.
+
+    - **Readiness is BLOCKED on one thing, and naming it precisely is the deliverable.** The
+      training dataset has not been rebuilt since Milestones B and C. What exists locally is 22,868
+      examples in `.cache/foundation/assembled_test3/`, a gitignored probe run that predates
+      `dataQuality.basisBreakInWindow` and the event layer. The authoritative build is
+      `data-pit-features.yml` then `data-assemble.yml` on a runner, and the assembly needs the
+      sealed replay artifacts through an authenticated GitHub API this session does not have.
+      Training on the probe build would use a dataset that silently predates the quality flags --
+      the exact failure the brief names.
+
+144. **The dataset rebuild cannot be run from a feature branch, and that is by design rather than
+    by accident.** 2026-10-15. `milestone-c-research-corpus` is pushed and verified on the remote;
+    the rebuild it was meant to unblock is **blocked**, and the reason is worth writing down
+    because it will block every future milestone branch in exactly the same way.
+
+    - **Three independent gates, each deliberate.** `data-pit-features.yml` and
+      `data-assemble.yml` (a) are `workflow_dispatch` plus a push to **main** touching
+      `ops/pit.json` / `ops/assemble.json`, so pushing any other branch triggers nothing;
+      (b) hardcode `actions/checkout@v4` with `ref: main` and expose **no input** to override it,
+      so a dispatch from a feature branch would still build main's code; and (c) carry the
+      **"Prove this run is executing main"** step, which fetches `origin/main` and fails the run
+      when `HEAD` differs. 16 workflows carry that guard and the handoff says in plain words: do
+      not delete it. It exists because run `37028111026` executed a stale file from a default
+      branch 34 commits behind, and the cost was a real migration failure.
+
+    - **So the gate is not "can CI run", it is "is the code on main".** Milestone B is
+      `ba06cd1` and Milestone C is `3ab7f18`, both on feature branches; `origin/main` and
+      `origin/master` are both still `767d26b`. A dispatch today would rebuild from `767d26b` and
+      produce a dataset with **no** `dataQuality.basisBreakInWindow` and **no** event layer, while
+      exiting 0. That is the precise shape of the failure the brief names: a successful workflow
+      exit is not proof of correctness, and here it would be proof of the opposite.
+
+    - **Weakening the guard was the obvious workaround and was refused.** Adding a `ref` input
+      and relaxing the main check would have made the rebuild runnable from this branch. It would
+      also have removed, for a convenience, the one mechanism that stands between this repository
+      and the stale-file class of bug it has already been bitten by. The sanctioned path is to put
+      the code on main, which is a merge, which this task forbade.
+
+    - **Credentials are a second, independent blocker.** No `gh` binary, no `GH_TOKEN` or
+      `GITHUB_TOKEN`. Measured, not assumed: an unauthenticated `POST .../dispatches` returns
+      **401**, and so does the artifact zip endpoint. Dispatch needs `actions: write`.
+
+    - **Nothing is lost while it waits.** All 58 workflow artifacts are live and none has expired:
+      the sealed replay inputs, the `nbt-pit-features-*` sets, and `nbt-dataset-38593680381` at
+      233 MB from 2026-10-14T16:03Z, which expires **2026-11-13**. That dataset is the current
+      authoritative one and it predates both milestones. The rebuild has four weeks of headroom
+      before its inputs start expiring, which is the real deadline on this blocker.

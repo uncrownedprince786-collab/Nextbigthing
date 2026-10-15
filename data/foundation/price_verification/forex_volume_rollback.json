@@ -1,0 +1,1306 @@
+{
+ "generatedAt": "2026-10-15T10:09:35+00:00",
+ "version": "forex-volume-rollback-v1",
+ "what": "volume set from 0 to NULL on currency-pair bars; nothing else changed",
+ "why": "FX has no consolidated tape, so Yahoo's 0 is a placeholder and not a measurement; jobs/prices.py _store_frame has always nulled it and chart_repair did not",
+ "rollback": "UPDATE \"PriceSnapshot\" SET volume = 0 WHERE (\"assetId\", date) IN the keys below",
+ "rows": 216,
+ "keys": [
+  {
+   "assetId": "5003e525-c0d5-428e-b875-fca0914d636b",
+   "symbol": "AUDUSD",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "5003e525-c0d5-428e-b875-fca0914d636b",
+   "symbol": "AUDUSD",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "5003e525-c0d5-428e-b875-fca0914d636b",
+   "symbol": "AUDUSD",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "5003e525-c0d5-428e-b875-fca0914d636b",
+   "symbol": "AUDUSD",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "5003e525-c0d5-428e-b875-fca0914d636b",
+   "symbol": "AUDUSD",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "5003e525-c0d5-428e-b875-fca0914d636b",
+   "symbol": "AUDUSD",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "5003e525-c0d5-428e-b875-fca0914d636b",
+   "symbol": "AUDUSD",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "5003e525-c0d5-428e-b875-fca0914d636b",
+   "symbol": "AUDUSD",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "e139ce54-c6fd-452e-802a-3f64ec032672",
+   "symbol": "EURGBP",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "e139ce54-c6fd-452e-802a-3f64ec032672",
+   "symbol": "EURGBP",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "e139ce54-c6fd-452e-802a-3f64ec032672",
+   "symbol": "EURGBP",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "e139ce54-c6fd-452e-802a-3f64ec032672",
+   "symbol": "EURGBP",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "e139ce54-c6fd-452e-802a-3f64ec032672",
+   "symbol": "EURGBP",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "e139ce54-c6fd-452e-802a-3f64ec032672",
+   "symbol": "EURGBP",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "e139ce54-c6fd-452e-802a-3f64ec032672",
+   "symbol": "EURGBP",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "e139ce54-c6fd-452e-802a-3f64ec032672",
+   "symbol": "EURGBP",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab2275ed-1b1e-4771-b2f9-ed6e620384c8",
+   "symbol": "EURJPY",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab2275ed-1b1e-4771-b2f9-ed6e620384c8",
+   "symbol": "EURJPY",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab2275ed-1b1e-4771-b2f9-ed6e620384c8",
+   "symbol": "EURJPY",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab2275ed-1b1e-4771-b2f9-ed6e620384c8",
+   "symbol": "EURJPY",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab2275ed-1b1e-4771-b2f9-ed6e620384c8",
+   "symbol": "EURJPY",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab2275ed-1b1e-4771-b2f9-ed6e620384c8",
+   "symbol": "EURJPY",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab2275ed-1b1e-4771-b2f9-ed6e620384c8",
+   "symbol": "EURJPY",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab2275ed-1b1e-4771-b2f9-ed6e620384c8",
+   "symbol": "EURJPY",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9126f832-5f5a-49b2-9446-1a56521eb30b",
+   "symbol": "EURUSD",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9126f832-5f5a-49b2-9446-1a56521eb30b",
+   "symbol": "EURUSD",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9126f832-5f5a-49b2-9446-1a56521eb30b",
+   "symbol": "EURUSD",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9126f832-5f5a-49b2-9446-1a56521eb30b",
+   "symbol": "EURUSD",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9126f832-5f5a-49b2-9446-1a56521eb30b",
+   "symbol": "EURUSD",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9126f832-5f5a-49b2-9446-1a56521eb30b",
+   "symbol": "EURUSD",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9126f832-5f5a-49b2-9446-1a56521eb30b",
+   "symbol": "EURUSD",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9126f832-5f5a-49b2-9446-1a56521eb30b",
+   "symbol": "EURUSD",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "1f850602-117c-4195-aecd-344a1f1a4d02",
+   "symbol": "GBPJPY",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "1f850602-117c-4195-aecd-344a1f1a4d02",
+   "symbol": "GBPJPY",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "1f850602-117c-4195-aecd-344a1f1a4d02",
+   "symbol": "GBPJPY",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "1f850602-117c-4195-aecd-344a1f1a4d02",
+   "symbol": "GBPJPY",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "1f850602-117c-4195-aecd-344a1f1a4d02",
+   "symbol": "GBPJPY",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "1f850602-117c-4195-aecd-344a1f1a4d02",
+   "symbol": "GBPJPY",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "1f850602-117c-4195-aecd-344a1f1a4d02",
+   "symbol": "GBPJPY",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "1f850602-117c-4195-aecd-344a1f1a4d02",
+   "symbol": "GBPJPY",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6f511daa-b9aa-41f8-b301-4cc9e31dc68d",
+   "symbol": "GBPUSD",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6f511daa-b9aa-41f8-b301-4cc9e31dc68d",
+   "symbol": "GBPUSD",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6f511daa-b9aa-41f8-b301-4cc9e31dc68d",
+   "symbol": "GBPUSD",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6f511daa-b9aa-41f8-b301-4cc9e31dc68d",
+   "symbol": "GBPUSD",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6f511daa-b9aa-41f8-b301-4cc9e31dc68d",
+   "symbol": "GBPUSD",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6f511daa-b9aa-41f8-b301-4cc9e31dc68d",
+   "symbol": "GBPUSD",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6f511daa-b9aa-41f8-b301-4cc9e31dc68d",
+   "symbol": "GBPUSD",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6f511daa-b9aa-41f8-b301-4cc9e31dc68d",
+   "symbol": "GBPUSD",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "daf1a954-1edf-433c-b99b-54dbaec7a654",
+   "symbol": "NZDUSD",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "daf1a954-1edf-433c-b99b-54dbaec7a654",
+   "symbol": "NZDUSD",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "daf1a954-1edf-433c-b99b-54dbaec7a654",
+   "symbol": "NZDUSD",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "daf1a954-1edf-433c-b99b-54dbaec7a654",
+   "symbol": "NZDUSD",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "daf1a954-1edf-433c-b99b-54dbaec7a654",
+   "symbol": "NZDUSD",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "daf1a954-1edf-433c-b99b-54dbaec7a654",
+   "symbol": "NZDUSD",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "daf1a954-1edf-433c-b99b-54dbaec7a654",
+   "symbol": "NZDUSD",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "daf1a954-1edf-433c-b99b-54dbaec7a654",
+   "symbol": "NZDUSD",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0eca66ce-7f23-4377-b4e9-97b21c69a9b0",
+   "symbol": "USDBDT",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0eca66ce-7f23-4377-b4e9-97b21c69a9b0",
+   "symbol": "USDBDT",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0eca66ce-7f23-4377-b4e9-97b21c69a9b0",
+   "symbol": "USDBDT",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0eca66ce-7f23-4377-b4e9-97b21c69a9b0",
+   "symbol": "USDBDT",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0eca66ce-7f23-4377-b4e9-97b21c69a9b0",
+   "symbol": "USDBDT",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0eca66ce-7f23-4377-b4e9-97b21c69a9b0",
+   "symbol": "USDBDT",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0eca66ce-7f23-4377-b4e9-97b21c69a9b0",
+   "symbol": "USDBDT",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0eca66ce-7f23-4377-b4e9-97b21c69a9b0",
+   "symbol": "USDBDT",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "7d445f9f-4f47-49fe-976c-5261932599b7",
+   "symbol": "USDBRL",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "7d445f9f-4f47-49fe-976c-5261932599b7",
+   "symbol": "USDBRL",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "7d445f9f-4f47-49fe-976c-5261932599b7",
+   "symbol": "USDBRL",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "7d445f9f-4f47-49fe-976c-5261932599b7",
+   "symbol": "USDBRL",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "7d445f9f-4f47-49fe-976c-5261932599b7",
+   "symbol": "USDBRL",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "7d445f9f-4f47-49fe-976c-5261932599b7",
+   "symbol": "USDBRL",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "7d445f9f-4f47-49fe-976c-5261932599b7",
+   "symbol": "USDBRL",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "7d445f9f-4f47-49fe-976c-5261932599b7",
+   "symbol": "USDBRL",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "85f143c2-6ba9-4695-a805-c88773669fdd",
+   "symbol": "USDCAD",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "85f143c2-6ba9-4695-a805-c88773669fdd",
+   "symbol": "USDCAD",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "85f143c2-6ba9-4695-a805-c88773669fdd",
+   "symbol": "USDCAD",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "85f143c2-6ba9-4695-a805-c88773669fdd",
+   "symbol": "USDCAD",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "85f143c2-6ba9-4695-a805-c88773669fdd",
+   "symbol": "USDCAD",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "85f143c2-6ba9-4695-a805-c88773669fdd",
+   "symbol": "USDCAD",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "85f143c2-6ba9-4695-a805-c88773669fdd",
+   "symbol": "USDCAD",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "85f143c2-6ba9-4695-a805-c88773669fdd",
+   "symbol": "USDCAD",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "c85c298c-e590-416a-b35f-5de9715a0e18",
+   "symbol": "USDCHF",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "c85c298c-e590-416a-b35f-5de9715a0e18",
+   "symbol": "USDCHF",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "c85c298c-e590-416a-b35f-5de9715a0e18",
+   "symbol": "USDCHF",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "c85c298c-e590-416a-b35f-5de9715a0e18",
+   "symbol": "USDCHF",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "c85c298c-e590-416a-b35f-5de9715a0e18",
+   "symbol": "USDCHF",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "c85c298c-e590-416a-b35f-5de9715a0e18",
+   "symbol": "USDCHF",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "c85c298c-e590-416a-b35f-5de9715a0e18",
+   "symbol": "USDCHF",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "c85c298c-e590-416a-b35f-5de9715a0e18",
+   "symbol": "USDCHF",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6e8824fd-6aa0-45ce-a566-0bbe10b5926b",
+   "symbol": "USDCNY",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6e8824fd-6aa0-45ce-a566-0bbe10b5926b",
+   "symbol": "USDCNY",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6e8824fd-6aa0-45ce-a566-0bbe10b5926b",
+   "symbol": "USDCNY",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6e8824fd-6aa0-45ce-a566-0bbe10b5926b",
+   "symbol": "USDCNY",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6e8824fd-6aa0-45ce-a566-0bbe10b5926b",
+   "symbol": "USDCNY",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6e8824fd-6aa0-45ce-a566-0bbe10b5926b",
+   "symbol": "USDCNY",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6e8824fd-6aa0-45ce-a566-0bbe10b5926b",
+   "symbol": "USDCNY",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "6e8824fd-6aa0-45ce-a566-0bbe10b5926b",
+   "symbol": "USDCNY",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "cee57be1-f057-4b15-a7af-92e5961257fb",
+   "symbol": "USDIDR",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "cee57be1-f057-4b15-a7af-92e5961257fb",
+   "symbol": "USDIDR",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "cee57be1-f057-4b15-a7af-92e5961257fb",
+   "symbol": "USDIDR",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "cee57be1-f057-4b15-a7af-92e5961257fb",
+   "symbol": "USDIDR",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "cee57be1-f057-4b15-a7af-92e5961257fb",
+   "symbol": "USDIDR",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "cee57be1-f057-4b15-a7af-92e5961257fb",
+   "symbol": "USDIDR",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "cee57be1-f057-4b15-a7af-92e5961257fb",
+   "symbol": "USDIDR",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "cee57be1-f057-4b15-a7af-92e5961257fb",
+   "symbol": "USDIDR",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "89ff016f-d015-43e0-93bf-730a8d0da4f1",
+   "symbol": "USDINR",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "89ff016f-d015-43e0-93bf-730a8d0da4f1",
+   "symbol": "USDINR",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "89ff016f-d015-43e0-93bf-730a8d0da4f1",
+   "symbol": "USDINR",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "89ff016f-d015-43e0-93bf-730a8d0da4f1",
+   "symbol": "USDINR",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "89ff016f-d015-43e0-93bf-730a8d0da4f1",
+   "symbol": "USDINR",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "89ff016f-d015-43e0-93bf-730a8d0da4f1",
+   "symbol": "USDINR",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "89ff016f-d015-43e0-93bf-730a8d0da4f1",
+   "symbol": "USDINR",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "89ff016f-d015-43e0-93bf-730a8d0da4f1",
+   "symbol": "USDINR",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "fd5f5b6a-99f9-4ebe-bf39-42c63fa5be11",
+   "symbol": "USDJPY",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "fd5f5b6a-99f9-4ebe-bf39-42c63fa5be11",
+   "symbol": "USDJPY",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "fd5f5b6a-99f9-4ebe-bf39-42c63fa5be11",
+   "symbol": "USDJPY",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "fd5f5b6a-99f9-4ebe-bf39-42c63fa5be11",
+   "symbol": "USDJPY",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "fd5f5b6a-99f9-4ebe-bf39-42c63fa5be11",
+   "symbol": "USDJPY",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "fd5f5b6a-99f9-4ebe-bf39-42c63fa5be11",
+   "symbol": "USDJPY",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "fd5f5b6a-99f9-4ebe-bf39-42c63fa5be11",
+   "symbol": "USDJPY",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "fd5f5b6a-99f9-4ebe-bf39-42c63fa5be11",
+   "symbol": "USDJPY",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0312f20e-41de-4ba4-a008-1223135eca23",
+   "symbol": "USDKRW",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0312f20e-41de-4ba4-a008-1223135eca23",
+   "symbol": "USDKRW",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0312f20e-41de-4ba4-a008-1223135eca23",
+   "symbol": "USDKRW",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0312f20e-41de-4ba4-a008-1223135eca23",
+   "symbol": "USDKRW",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0312f20e-41de-4ba4-a008-1223135eca23",
+   "symbol": "USDKRW",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0312f20e-41de-4ba4-a008-1223135eca23",
+   "symbol": "USDKRW",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0312f20e-41de-4ba4-a008-1223135eca23",
+   "symbol": "USDKRW",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "0312f20e-41de-4ba4-a008-1223135eca23",
+   "symbol": "USDKRW",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9c153c44-8f6f-4674-85d1-6ac5e988d769",
+   "symbol": "USDMXN",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9c153c44-8f6f-4674-85d1-6ac5e988d769",
+   "symbol": "USDMXN",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9c153c44-8f6f-4674-85d1-6ac5e988d769",
+   "symbol": "USDMXN",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9c153c44-8f6f-4674-85d1-6ac5e988d769",
+   "symbol": "USDMXN",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9c153c44-8f6f-4674-85d1-6ac5e988d769",
+   "symbol": "USDMXN",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9c153c44-8f6f-4674-85d1-6ac5e988d769",
+   "symbol": "USDMXN",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9c153c44-8f6f-4674-85d1-6ac5e988d769",
+   "symbol": "USDMXN",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9c153c44-8f6f-4674-85d1-6ac5e988d769",
+   "symbol": "USDMXN",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "91e6ca2d-e5fa-4f76-ac65-d8bba2f5b9ad",
+   "symbol": "USDMYR",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "91e6ca2d-e5fa-4f76-ac65-d8bba2f5b9ad",
+   "symbol": "USDMYR",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "91e6ca2d-e5fa-4f76-ac65-d8bba2f5b9ad",
+   "symbol": "USDMYR",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "91e6ca2d-e5fa-4f76-ac65-d8bba2f5b9ad",
+   "symbol": "USDMYR",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "91e6ca2d-e5fa-4f76-ac65-d8bba2f5b9ad",
+   "symbol": "USDMYR",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "91e6ca2d-e5fa-4f76-ac65-d8bba2f5b9ad",
+   "symbol": "USDMYR",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "91e6ca2d-e5fa-4f76-ac65-d8bba2f5b9ad",
+   "symbol": "USDMYR",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "91e6ca2d-e5fa-4f76-ac65-d8bba2f5b9ad",
+   "symbol": "USDMYR",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "436d4533-071c-45aa-8626-162bcd09e038",
+   "symbol": "USDNOK",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "436d4533-071c-45aa-8626-162bcd09e038",
+   "symbol": "USDNOK",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "436d4533-071c-45aa-8626-162bcd09e038",
+   "symbol": "USDNOK",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "436d4533-071c-45aa-8626-162bcd09e038",
+   "symbol": "USDNOK",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "436d4533-071c-45aa-8626-162bcd09e038",
+   "symbol": "USDNOK",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "436d4533-071c-45aa-8626-162bcd09e038",
+   "symbol": "USDNOK",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "436d4533-071c-45aa-8626-162bcd09e038",
+   "symbol": "USDNOK",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "436d4533-071c-45aa-8626-162bcd09e038",
+   "symbol": "USDNOK",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab419f82-f1bb-4c34-a3be-761a03b5e777",
+   "symbol": "USDPHP",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab419f82-f1bb-4c34-a3be-761a03b5e777",
+   "symbol": "USDPHP",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab419f82-f1bb-4c34-a3be-761a03b5e777",
+   "symbol": "USDPHP",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab419f82-f1bb-4c34-a3be-761a03b5e777",
+   "symbol": "USDPHP",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab419f82-f1bb-4c34-a3be-761a03b5e777",
+   "symbol": "USDPHP",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab419f82-f1bb-4c34-a3be-761a03b5e777",
+   "symbol": "USDPHP",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab419f82-f1bb-4c34-a3be-761a03b5e777",
+   "symbol": "USDPHP",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "ab419f82-f1bb-4c34-a3be-761a03b5e777",
+   "symbol": "USDPHP",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "946ef31f-1265-457a-825d-e3f2fb68689b",
+   "symbol": "USDPKR",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "946ef31f-1265-457a-825d-e3f2fb68689b",
+   "symbol": "USDPKR",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "946ef31f-1265-457a-825d-e3f2fb68689b",
+   "symbol": "USDPKR",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "946ef31f-1265-457a-825d-e3f2fb68689b",
+   "symbol": "USDPKR",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "946ef31f-1265-457a-825d-e3f2fb68689b",
+   "symbol": "USDPKR",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "946ef31f-1265-457a-825d-e3f2fb68689b",
+   "symbol": "USDPKR",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "946ef31f-1265-457a-825d-e3f2fb68689b",
+   "symbol": "USDPKR",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "946ef31f-1265-457a-825d-e3f2fb68689b",
+   "symbol": "USDPKR",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "f1131d27-96e7-47af-832d-125e0192c809",
+   "symbol": "USDPLN",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "f1131d27-96e7-47af-832d-125e0192c809",
+   "symbol": "USDPLN",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "f1131d27-96e7-47af-832d-125e0192c809",
+   "symbol": "USDPLN",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "f1131d27-96e7-47af-832d-125e0192c809",
+   "symbol": "USDPLN",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "f1131d27-96e7-47af-832d-125e0192c809",
+   "symbol": "USDPLN",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "f1131d27-96e7-47af-832d-125e0192c809",
+   "symbol": "USDPLN",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "f1131d27-96e7-47af-832d-125e0192c809",
+   "symbol": "USDPLN",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "f1131d27-96e7-47af-832d-125e0192c809",
+   "symbol": "USDPLN",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "26c42fd5-99b7-40ec-9ae3-a7187d7256e8",
+   "symbol": "USDSEK",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "26c42fd5-99b7-40ec-9ae3-a7187d7256e8",
+   "symbol": "USDSEK",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "26c42fd5-99b7-40ec-9ae3-a7187d7256e8",
+   "symbol": "USDSEK",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "26c42fd5-99b7-40ec-9ae3-a7187d7256e8",
+   "symbol": "USDSEK",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "26c42fd5-99b7-40ec-9ae3-a7187d7256e8",
+   "symbol": "USDSEK",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "26c42fd5-99b7-40ec-9ae3-a7187d7256e8",
+   "symbol": "USDSEK",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "26c42fd5-99b7-40ec-9ae3-a7187d7256e8",
+   "symbol": "USDSEK",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "26c42fd5-99b7-40ec-9ae3-a7187d7256e8",
+   "symbol": "USDSEK",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "849df8af-0f09-41a6-98c8-be3631ba2178",
+   "symbol": "USDSGD",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "849df8af-0f09-41a6-98c8-be3631ba2178",
+   "symbol": "USDSGD",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "849df8af-0f09-41a6-98c8-be3631ba2178",
+   "symbol": "USDSGD",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "849df8af-0f09-41a6-98c8-be3631ba2178",
+   "symbol": "USDSGD",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "849df8af-0f09-41a6-98c8-be3631ba2178",
+   "symbol": "USDSGD",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "849df8af-0f09-41a6-98c8-be3631ba2178",
+   "symbol": "USDSGD",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "849df8af-0f09-41a6-98c8-be3631ba2178",
+   "symbol": "USDSGD",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "849df8af-0f09-41a6-98c8-be3631ba2178",
+   "symbol": "USDSGD",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9fbc64fc-abda-4e09-9867-725f37c4e51a",
+   "symbol": "USDTHB",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9fbc64fc-abda-4e09-9867-725f37c4e51a",
+   "symbol": "USDTHB",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9fbc64fc-abda-4e09-9867-725f37c4e51a",
+   "symbol": "USDTHB",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9fbc64fc-abda-4e09-9867-725f37c4e51a",
+   "symbol": "USDTHB",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9fbc64fc-abda-4e09-9867-725f37c4e51a",
+   "symbol": "USDTHB",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9fbc64fc-abda-4e09-9867-725f37c4e51a",
+   "symbol": "USDTHB",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9fbc64fc-abda-4e09-9867-725f37c4e51a",
+   "symbol": "USDTHB",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "9fbc64fc-abda-4e09-9867-725f37c4e51a",
+   "symbol": "USDTHB",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "40485dc5-8414-4cdd-adfa-a722da2c6e78",
+   "symbol": "USDTRY",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "40485dc5-8414-4cdd-adfa-a722da2c6e78",
+   "symbol": "USDTRY",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "40485dc5-8414-4cdd-adfa-a722da2c6e78",
+   "symbol": "USDTRY",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "40485dc5-8414-4cdd-adfa-a722da2c6e78",
+   "symbol": "USDTRY",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "40485dc5-8414-4cdd-adfa-a722da2c6e78",
+   "symbol": "USDTRY",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "40485dc5-8414-4cdd-adfa-a722da2c6e78",
+   "symbol": "USDTRY",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "40485dc5-8414-4cdd-adfa-a722da2c6e78",
+   "symbol": "USDTRY",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "40485dc5-8414-4cdd-adfa-a722da2c6e78",
+   "symbol": "USDTRY",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "de901d51-d5f7-4c4a-8dd6-2c521a5231b4",
+   "symbol": "USDZAR",
+   "date": "2026-09-14",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "de901d51-d5f7-4c4a-8dd6-2c521a5231b4",
+   "symbol": "USDZAR",
+   "date": "2026-09-15",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "de901d51-d5f7-4c4a-8dd6-2c521a5231b4",
+   "symbol": "USDZAR",
+   "date": "2026-09-16",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "de901d51-d5f7-4c4a-8dd6-2c521a5231b4",
+   "symbol": "USDZAR",
+   "date": "2026-09-17",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "de901d51-d5f7-4c4a-8dd6-2c521a5231b4",
+   "symbol": "USDZAR",
+   "date": "2026-09-21",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "de901d51-d5f7-4c4a-8dd6-2c521a5231b4",
+   "symbol": "USDZAR",
+   "date": "2026-09-22",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "de901d51-d5f7-4c4a-8dd6-2c521a5231b4",
+   "symbol": "USDZAR",
+   "date": "2026-09-23",
+   "priorVolume": 0.0
+  },
+  {
+   "assetId": "de901d51-d5f7-4c4a-8dd6-2c521a5231b4",
+   "symbol": "USDZAR",
+   "date": "2026-09-24",
+   "priorVolume": 0.0
+  }
+ ]
+}

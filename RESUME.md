@@ -1,5 +1,192 @@
 # Resume here
 
+## 0. State of play, 2026-10-15 — Milestone C COMPLETE, training readiness BLOCKED
+
+**Read this, then `brain.md` rules 142 and 143. Full evidence:
+`MILESTONE-C-CLOSEOUT-2026-10-15.md`.**
+
+| | |
+|---|---|
+| Branch | `milestone-c-research-corpus` at `3ab7f18`, cut from Milestone B `ba06cd1` (protected, do not reopen) |
+| Database | 1,097,638 rows, **385 MB** of 500 MB; no price row added or changed |
+| Tests | **1,019 Python** (21 new), **466 web**, 0 failures; `verify_durable.py` exit 0 |
+| Data-foundation gate | **PASS**, two documented source limitations |
+| Training readiness | **BLOCKED** — see "the one blocker" below |
+
+**What this milestone did.** The verified event corpus — 168 events checked against Wikipedia,
+Wikidata and a measured market move back in October — existed only as a file. The database held
+eight. Loading it took historical events from **8 to 176**, asset links to **119**, and the span
+from 2022–2025 to **2019–2026** across 12 categories. On top of it,
+`data/foundation/events/reactions.jsonl.gz` holds **167 event-reaction rows** over 1/5/20/60
+sessions with excess return, MFE/MAE, drawdown and duration.
+
+**The leakage guarantee, measured not asserted.** Every row keeps `before` (bars strictly before
+the event), `day0` (the event session's own move — evidence, never a feature) and `forward` (from
+the session after day0 — the only outcome label) apart. Over all 167 rows: 0 before-states dated
+on or after their event, 0 forward windows starting at or before it, 0 inverted windows. 20-day
+continuation of the day-0 move is **44.9%** and median excess return **−0.197%** — a corpus with
+wins, losses and inconclusive cases, which is the point.
+
+**Also closed:** rule 130's open line. `events.py` built the PSX series with
+`source ILIKE 'Pakistan%'`, skipping the 183,267 recovered Karachi bars; it now reads
+`a.currency = 'PKR'`.
+
+### Known limitations, bounded and documented
+
+- **Historical news is absent.** `News` spans **37 days** (2026-09-08 → 2026-10-15). No free
+  source carries a news archive at scale. The event corpus is the historical catalyst layer; no
+  artifact presents news coverage as complete.
+- **No execution-cost data.** No free source for PSX borrow or historical spreads, so no cost
+  model is asserted and no backtest may assume free execution.
+- **Survivorship is measured, not removed.** 63 of 127 S&P removals since 2019 have no free daily
+  history left, so the bias figure is a lower bound.
+
+### Pushed, and the rebuild is blocked on main (verified 2026-10-15)
+
+`milestone-c-research-corpus` is pushed: `origin/milestone-c-research-corpus` == local at
+`4374623`, 0 ahead / 0 behind, both milestone commits on the remote. `origin/main` and
+`origin/master` are untouched at `767d26b`.
+
+**The CI rebuild cannot be run from this branch, and not because CI is broken.** Read
+`brain.md` rule 144. `data-pit-features.yml` and `data-assemble.yml` each (1) trigger only on
+dispatch or a push to **main** touching `ops/*.json`, (2) hardcode `checkout ref: main` with no
+input to override it, and (3) carry the **"Prove this run is executing main"** guard that fails
+when `HEAD != origin/main` — a guard 16 workflows share and the handoff says not to delete. A
+dispatch today would rebuild from `767d26b`, producing a dataset with no
+`dataQuality.basisBreakInWindow` and no event layer **while exiting 0**.
+
+Second, independent blocker: no `gh` and no token here. Measured: unauthenticated dispatch POST
+returns **401**, artifact download **401**.
+
+**Nothing has expired.** All 58 workflow artifacts are live, including the sealed replay inputs
+and `nbt-dataset-38593680381` (233 MB, built 2026-10-14T16:03Z) — the current authoritative
+dataset, which predates both milestones. Its inputs expire **2026-11-13**, which is the real
+deadline.
+
+### The one blocker, and the single next step
+
+The training dataset has not been rebuilt since Milestones B and C. What exists locally is 22,868
+examples in `.cache/foundation/assembled_test3/` — a gitignored probe run predating
+`dataQuality.basisBreakInWindow` and the event layer. The authoritative build is
+`data-pit-features.yml` → `data-assemble.yml` on a GitHub runner; the assembly needs the sealed
+replay artifacts through an authenticated GitHub API this session does not have.
+
+**Next step: get Milestone B and C onto `main` (a merge or fast-forward, the repository's own
+sanctioned path), then dispatch `data-pit-features.yml` → `data-assemble.yml` in that order and
+let the first finish before starting the second — they are separate concurrency groups and the
+assembly reads the feature artifact the first one uploads.** Only then does the rebuild carry the
+milestone changes. Nothing else is proposed.
+
+---
+
+## 0. State of play, 2026-10-15 — Milestone B is COMPLETE
+
+**Read this, then `brain.md` rule 142. The acquisition section below it is still accurate about
+what was acquired; this section supersedes its "what is next".**
+
+Cleaning and point-in-time integrity closed against the four objectives of rule 141. The full
+evidence is `MILESTONE-B-CLOSEOUT-2026-10-15.md`.
+
+| | |
+|---|---|
+| Branch | `restore-db-utility` |
+| Database | 1,097,638 rows, 384 MB of the 500 MB tier — **unchanged in row count** |
+| Database writes | **216 rows**, one UPDATE, rollback at `data/foundation/price_verification/forex_volume_rollback.json` |
+| Tests | 998 Python (27 new), 466 web, 0 failures |
+| Durable artifacts | 17 of 17 checksums verify; `verify_durable.py` now exits clean |
+
+**What changed, in one line each.**
+
+- **Ranges that contradict their own close are no longer stored.** `jobs/ohlc.py` is the single
+  definition; both price lanes and the chart-repair path run it. The close is never altered.
+- **The 6,858 stored contradictions are classified, not edited** —
+  `data/foundation/price_verification/ohlc_quarantine.json`, reconciling exactly to 6,809
+  quarantined ranges plus 49 float-representation rows.
+- **The two PSX bases were measured and are safe to mix.** A cross-basis step falls outside the
+  exchange's own daily price band 0.022% of the time against 0.071% for an ordinary same-source
+  session, so 96 of 389,494 windows are excluded rather than the 188,528 that span a basis change.
+  Ledger: `basis_transitions.json`; flag: `dataQuality.basisBreakInWindow`.
+- **2022-10-01 is not a PSX session.** The exchange serves Friday's file at the Saturday URL; the
+  lane now trusts the date inside the file. The 171 rows are preserved and were already excluded
+  by `session_bar()`.
+- **Missing fields stay missing.** `jobs/horizons.py` no longer fills an absent high/low with the
+  close, and 216 fabricated FX zero-volumes became nulls.
+
+### What is next
+
+**Not started, and none of it is begun:** historical news and original documents, the major crash
+and bull-run timelines, pre-event information, catalysts and post-event market reactions. That
+corpus is a separate research-data phase and must not be described as complete.
+
+One material exception is carried forward rather than closed: **747 PSX bars** whose published
+close sits outside a real traded range. They are quarantined with their evidence; settling the
+mechanism needs the exchange's own specification. See the closeout's "Remaining exception".
+
+---
+
+## 0. State of play, 2026-10-16 — market and macro data acquisition is COMPLETE
+
+**Everything below section 0 predates 2026-10-14 and is stale. Read this section, then
+`brain.md` rules 129–141. Ignore the older instruction to "read AUDIT.md first"; AUDIT.md
+describes a production state that this branch has moved well past.**
+
+### Where the work is
+
+| | |
+|---|---|
+| Branch | `restore-db-utility` (not `main`; `origin/main` is still at `767d26b`, well behind) |
+| Last acquisition commit | `e457276` — "closeout: frozen market and macro acquisition complete at 14 of 14" |
+| Latest verified backup | `C:\Users\NEW TECH\nbt-private\backup-2026-10-16T0600Z-acquisition-complete\` (44/44 tables, 25 key files checksummed, 0 mismatches) |
+| Database | 1,097,485 rows, 44 tables, ~380 MB of the 500 MB free tier |
+
+### What is done — do not redo any of it
+
+**Frozen market/macro acquisition: 14 of 14 targets.** The authoritative ledger is
+`data/foundation/acquisition/target_ledger.json` (a required floor per target, decided before the
+data was read) and the manifest is `data/foundation/acquisition/manifest.json`
+(`acquisition-manifest-v7-final`).
+
+- **PSX**: 394,014 bars, 2018-01-01 onward, from the exchange's own archive — every published
+  session since 2018 was swept. Remaining gaps are 36,762 sessions where a security did not trade
+  plus 158 on four empty/absent archive dates; classified with evidence, not assumed.
+- **KSE-100**: complete from 2018-01-01. Two segments — the Karandaaz file (2018-01-01 to
+  2021-10-14, **close only**, **private**) and the exchange EOD endpoint (2021-10-15 onward,
+  `data/foundation/psx_index/KSE100.csv`). They agree on 1,228 shared dates with **zero failures**
+  and a maximum difference of **0.000026%**. All 2,171 published sessions covered, none missing.
+- **Benchmarks and macro**: 13 series in `data/foundation/benchmarks/` at their sources' own floors
+  (^GSPC to 1927, ^VIX to 1990, DX-Y.NYB to 1971, DGS10 to 1962, DFF to 1954, Bitcoin to 2011).
+- **SBP**: KIBOR 93,300 observations across 18 series and the policy rate, in `data/foundation/sbp/`.
+- **PSX delisted/renamed**: 24,613 bars, 21 symbols, `data/foundation/psx_delisted/`.
+- 17 of 17 durable artifact checksums verify. 971 tests pass.
+
+### Two things that must not be undone
+
+1. **The Karandaaz KSE-100 dataset is private.** It lives in `.cache/acquire/karandaaz/`
+   (gitignored) and in the PC backup. Permission for internal research and model development was
+   confirmed by the owner on 2026-10-16; the written conditions were not supplied, so **no broader
+   redistribution right is assumed** — never commit it, never publish it, never serve it.
+2. **The Open Data Pakistan CSV is rejected on index identity.** Its values differ from the
+   verified KSE-100 by a non-constant ratio (1.01–1.51); on 2021-02-23 it reads 31,626.19 where
+   the verified series reads 45,728.75. **Never merge it into the KSE-100 series.**
+
+### What is next
+
+**Milestone B — data cleaning and point-in-time integrity.** Not started. Its objectives and
+acceptance criteria are in `brain.md` rule 141. It needs the owner's explicit go-ahead.
+
+**Still later, and not begun:** historical news and original documents, the major crash and
+bull-run timelines, pre-event information, catalysts and post-event market reactions. That corpus
+is a separate research-data phase — nothing in the acquisition work touched it, and it must not be
+described as complete.
+
+**No further acquisition, broad resync or source research is required** unless specific evidence of
+a real defect appears.
+
+---
+
+*Everything from here down is the older resume note, kept unchanged for the record.*
+
+
 ## 0. State of play, 2026-10-10 (eleventh session, final audit) — read AUDIT.md first
 
 `AUDIT.md` is the current, authoritative state (PRODUCTION LOCKED on `c36d2a0`): what was verified, what was fixed in `f77e2d7`, `f548e85` and `c36d2a0`

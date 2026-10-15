@@ -46,6 +46,7 @@ Run: python jobs/psx.py [recent|full]
 from __future__ import annotations
 
 import gzip
+from collections import Counter
 import io
 import re
 import sys
@@ -56,6 +57,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from nbt import RISING_MONTHS, SNAPSHOTS, db, get, rows, step  # noqa: E402
+from ohlc import UNTRUSTWORTHY as OHLC_UNTRUSTWORTHY, guard as ohlc_guard  # noqa: E402
 
 try:
     from dotenv import load_dotenv
@@ -158,6 +160,30 @@ def ttl_for(day: date, today: date) -> int:
     return 3600 * 6 if (today - day).days <= 14 else 3600 * 24 * 365
 
 
+MONTHS = ("JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+          "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
+
+
+def file_session_date(text: str) -> date | None:
+    """The session date the archive stamps on its own rows, e.g. `30SEP2022` -> 2022-09-30.
+
+    None when no row carries a readable one, which leaves the caller with the behaviour it had
+    before this check existed: an unreadable stamp must not turn a real session into silence.
+    """
+    for line in text.splitlines():
+        f = line.split("|")
+        if len(f) < 10 or not f[0]:
+            continue
+        s = f[0].strip().upper()
+        if len(s) != 9:
+            continue
+        try:
+            return date(int(s[5:9]), MONTHS.index(s[2:5]) + 1, int(s[0:2]))
+        except ValueError:
+            continue
+    return None
+
+
 def read_day(
     day: date, today: date, keep: frozenset[str] | None = None
 ) -> dict[str, dict] | None:
@@ -179,6 +205,18 @@ def read_day(
     text = unpack(raw)
     if text is None:
         print(f"  {day}: unreadable archive, {len(raw)} bytes")
+        return None
+
+    # The file carries its own session date in the first field, and it is not always the date
+    # the URL was asked for. `2022-10-01` is a Saturday; the exchange answers 200 there with a
+    # file whose every row is stamped `30SEP2022`, and because this job keyed the bar by the
+    # date it requested, Friday's session was stored a second time as a Saturday one -- 171
+    # bars, the only weekend date in the PSX series, and every one of the 25 symbols holding
+    # both dates has byte-identical OHLCV on the two. Trusting the URL over the file is what
+    # made a duplicate look like a session, so the file wins.
+    stamped = file_session_date(text)
+    if stamped is not None and stamped != day:
+        print(f"  {day}: archive is stamped {stamped}, not a session of its own")
         return None
 
     out: dict[str, dict] = {}
@@ -450,6 +488,7 @@ def _run() -> None:
     latest_rows: dict[str, dict] = {}
     batches: list[list[tuple]] = []
     buffer: list[tuple] = []
+    range_dropped: Counter[str] = Counter()
 
     for day in targets:
         got = cache[day]
@@ -464,9 +503,16 @@ def _run() -> None:
                 # The symbol did not trade that day, or was not listed yet. Either way
                 # there is no close to store.
                 continue
+            # The archive prints a range it cannot always stand behind: on a thin session
+            # it collapses high and low to one value that is not the close, and 72% of this
+            # file's 2,659 contradictions are that shape. The close is the exchange's result
+            # and is kept exactly; the range is stored as the absence it is (jobs/ohlc.py).
+            o, hi, lo, verdict = ohlc_guard(row["open"], row["high"], row["low"], row["close"])
+            if verdict in OHLC_UNTRUSTWORTHY:
+                range_dropped[verdict] += 1
             buffer.append(
                 (
-                    a["id"], day, row["open"], row["high"], row["low"],
+                    a["id"], day, o, hi, lo,
                     row["close"], row["volume"], None, CLOSING,
                 )
             )
@@ -476,6 +522,11 @@ def _run() -> None:
     if buffer:
         batches.append(buffer)
     print(f"  {traded} trading days read, {asked} dates requested")
+    if range_dropped:
+        # Never silent: the exchange is still publishing these and the count is how
+        # anyone notices the shape changing.
+        detail = ", ".join(f"{n} {kind}" for kind, n in sorted(range_dropped.items()))
+        print(f"  ranges dropped as untrustworthy: {detail}")
     if asked and traded == 0:
         # RECENT_DAYS is 120, so the window asked about is four months. An exchange with no
         # published day in four months is not a holiday, it is the source refusing this host,
