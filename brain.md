@@ -4681,3 +4681,59 @@ reads rows that already exist:
     - **Verdict: Milestone B stays blocked.** Seventeen durable artifacts verify, 17 of 17
       checksums match, 971 tests pass, the backup is current. The unmet criterion is one:
       **KSE-100 is not acquired to 2018-01-01 under a licence this project can rely on.**
+
+137. **Every frozen target now carries a floor decided before the data was looked at, and only one
+    fails it.** 2026-10-16, final acquisition gate. No database change: 387 MB, 1,097,458 rows, 44
+    tables. 24 targets in the ledger, 23 meeting their floor.
+
+    - **The metric trap this closes.** A coverage figure computed from the dates already stored can
+      never find missing older history: whatever is present defines the range, so the range is
+      always full. `tools/foundation/target_ledger.py` fixes a required floor per target first and
+      reports the distance to the first real observation. Two floors are in play and they are not
+      the same thing: **2018-01-01** for PSX instruments and the index, from the frozen brief, and
+      **2019-01-02** for the registry's other price assets, which is the universe's own start and a
+      project decision rather than a limit of the sources. Yahoo would serve earlier history for
+      the US names and has never been asked to; that is a scope choice, labelled as one, not
+      counted as a gap.
+
+    - **Late starts are listings, checked rather than assumed.** 70 of 75 crypto, 82 of 226 PSX and
+      26 of 272 US names begin after their floor. Spot checks settle what that means: `ARM` first
+      trades 2023-09-14, which is the day Arm Holdings listed; `SOYASUP`, `TISL` and `SELECT` are
+      2026 PSX listings already recorded under `late-listing-histories`. Zero duplicate rows across
+      all 616 assets -- the primary key makes that structural rather than lucky.
+
+    - **KSE-100 was investigated once more and the answer did not change.** CountryEconomy carries
+      the real index at **daily** granularity and its whole 2018-2021 span is addressable through
+      an undocumented `?dr=YYYY-MM` parameter. Its values are not in question: its levels for
+      2021-10-15 and 2021-10-18, **44,821.53 and 44,629.45**, are identical to the exchange
+      endpoint rows already stored, and it skips the weekend exactly as the exchange does. **It is
+      still not usable.** Its Legal Notice grants nothing about reproduction or extraction, its
+      operator is a Spanish company so the EU database right attaches to substantial extraction by
+      default, and its `robots.txt` names **`ClaudeBot`** and **`Claude-SearchBot`** under
+      `Disallow: /`. Three data pages were read to verify the claim; no harvest was attempted and
+      none will be. It would also be **close only**, so it could not restore the OHLC the
+      quarantined Open Data Pakistan file already has.
+
+    - **The one useful thing that fell out of it.** An unrelated publisher independently quotes the
+      same two closes this project stores for the same two dates. That is third-party corroboration
+      of the acquired 2021-10-15 onward segment, obtained from pages already fetched for a
+      different purpose.
+
+    - **SBP was the lawful lead and it did not resolve.** The statistical bulletin's Capital Market
+      table 7.1 is titled "KSE 100 & All Shares Index" and is sourced from PSX, but the legacy deep
+      links now answer HTTP 200 with the site navigation shell instead of the document, so no value
+      was retrieved. It is monthly end-of-month in any case, which would leave the series
+      mixed-granularity and would have to be labelled that way.
+
+    - **So the gap stands, in three named pieces.** 2018-01-01 to 2021-02-23: held, licence
+      unverified, quarantined. 2021-02-24 to 2021-10-14: no compliant source. 2021-10-15 onward:
+      acquired, 1,239 observations. The cheapest route out is not technical -- asking the Open Data
+      Pakistan publisher to state a licence would clear 3,206 observations with full OHLC that are
+      already downloaded.
+
+    - **Verdict: Milestone B stays blocked on one criterion.** 17 durable artifacts verify with 17
+      of 17 checksums matching, every non-PSX target is individually confirmed against its floor,
+      971 tests pass, the backup is current. The unmet criterion is that **KSE-100 is not acquired
+      to 2018-01-01 under a licence this project can rely on**, and three sources now sit in that
+      same bucket: Karandaaz, Open Data Pakistan and CountryEconomy. The data exists and is
+      correct; permission does not.

@@ -32,5 +32,47 @@
  "frozenTargetRequiredFrom": "2018-01-01",
  "coverageAgainstFrozenTarget": "PARTIAL",
  "missingAgainstFrozenTarget": "2018-01-01 .. 2021-10-15",
- "licensing": "PSX's terms forbid redistributing its market data feed without a licence, delayed included; recovery-manifest.json carries this as psx-redistribution-licence, an accepted unresolved risk. Acquisition and private use are unaffected; publishing these levels is not cleared."
+ "licensing": "PSX's terms forbid redistributing its market data feed without a licence, delayed included; recovery-manifest.json carries this as psx-redistribution-licence, an accepted unresolved risk. Acquisition and private use are unaffected; publishing these levels is not cleared.",
+ "gapSourceInvestigation": {
+  "investigatedAt": "2026-10-15T00:01:22+00:00",
+  "interval": "2018-01-01..2021-10-14",
+  "sources": [
+   {
+    "source": "CountryEconomy, countryeconomy.com/stock-exchange/pakistan",
+    "isKse100": true,
+    "granularity": "daily, non-trading days omitted",
+    "fields": [
+     "Date",
+     "Level",
+     "Ch.%"
+    ],
+    "fieldsNotProvided": [
+     "open",
+     "high",
+     "low",
+     "volume"
+    ],
+    "intervalAddressable": "yes, via an undocumented ?dr=YYYY-MM parameter; both 2018-01 and 2021-10 verified to return complete months",
+    "crossValidation": "its Level for 2021-10-15 and 2021-10-18 is 44821.53 and 44629.45, identical to the exchange endpoint values already stored, and it skips 2021-10-16/17 as a weekend exactly as the exchange does",
+    "terms": "the Legal Notice contains no grant covering reproduction, extraction or redistribution; the footer asserts copyright. Operator is Alldatanow, S.L., a Spanish company, so the EU sui generis database right (96/9/EC) attaches by default to substantial extraction and re-utilisation.",
+    "robotsTxt": "User-agent: ClaudeBot Disallow: / and User-agent: Claude-SearchBot Disallow: / ; bulk downloaders also disallowed",
+    "verdict": "NOT USABLE - data correct, systematic extraction not authorised",
+    "requestsMade": "3 data pages plus terms and robots.txt, as single verification reads; no harvest attempted"
+   },
+   {
+    "source": "State Bank of Pakistan statistical bulletin, Capital Market table 7.1",
+    "isKse100": "table is titled \"KSE 100 & All Shares Index\", sourced from PSX",
+    "granularity": "monthly, last working day of the month - not daily",
+    "result": "legacy deep links now answer HTTP 200 with Content-Type text/html and the site navigation shell rather than the document; no values retrieved",
+    "verdict": "NOT USABLE as retrieved; best remaining lawful lead but monthly only and its new path is unknown"
+   }
+  ],
+  "conclusion": "the interval cannot be closed from any lawful free source reached. CountryEconomy could close it technically and at daily granularity, but ships no licence, is EU-domiciled so the database right attaches, and names ClaudeBot in robots.txt. It would also be close-only, so it could not restore the OHLC the quarantined Open Data Pakistan file already has.",
+  "routesThatWouldWork": [
+   "ask the Open Data Pakistan publisher to state a licence on the existing resource - cheapest; would clear 3,206 observations already downloaded covering 2018-01-01..2021-02-23 with full OHLC",
+   "ask PSX for a licence or a historical extract for 2018-01-01..2021-10-14 - the only route yielding daily OHLC with clean provenance",
+   "locate the SBP bulletin on the rebuilt site and check its reuse terms - lawful but monthly only"
+  ]
+ },
+ "independentValidationOfAcquiredSegment": "CountryEconomy, an unrelated publisher, quotes 44821.53 for 2021-10-15 and 44629.45 for 2021-10-18; the stored exchange-endpoint closes for those dates are identical."
 }
