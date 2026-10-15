@@ -5530,3 +5530,51 @@ reads rows that already exist:
       denominator are unchanged, that every referenced path resolves, that a blocked layer is
       organised but never counted as downloaded or joined, and that every gap carries dated probe
       evidence. 1,053 tests pass; all three durable stores verify at 197, 19 and 45 checksums.
+
+154. **The brain's logic is specified, and the specification's main job was to say what is not
+    built.** 2026-10-15. `BRAIN-SPEC-V1.md` is the single place the decision logic lives; this
+    entry records the decisions behind it. Specification only -- no code, no training, no
+    evaluation was run for it.
+
+    - **Ten specialists became ten roles in one pipeline, and that is the central design call.**
+      The brief lists ten specialists; building ten agents would have made a deterministic,
+      cheap, auditable process slow, non-reproducible and hard to test, and bought nothing. Most
+      of these responsibilities are rules. A rule can be read, argued with and shown to be wrong,
+      which is the property this project has relied on every time a number turned out to be an
+      artefact. Learned components are named as candidates -- evidence combination, analogue
+      ranking, event materiality -- and all three are deferred.
+
+    - **One vote per evidence family is the answer to double-counting.** `r5`, `r20`, `sma20` and
+      `sma50` are four numbers describing one fact, so they are one family with one vote. Six
+      families, fixed published weights, no fitting. It deliberately throws information away: a
+      correlated-but-genuine signal will be under-weighted. That is the trade accepted, because
+      the alternative is four indicators voting four times for the same observation and calling
+      it agreement.
+
+    - **The honest reading of the existing engine is that the hard part was already done.**
+      `lib/decision.ts` has `LONG | SHORT | WAIT` and, more importantly, `WaitBasis` --
+      `"file"` for "we do not have the measurement" against `"evidence"` for "we have it and it
+      does not support acting". `DecisionLog` already stores the gate that decided and the
+      reward-to-risk *as measured at the time*, so a later rebuild cannot quietly answer a
+      different question. The specification builds on those rather than around them.
+
+    - **Three things in the brief are untestable as written and are labelled so rather than
+      quietly dropped.** "World-class mathematician" is a direction of travel and no acceptance
+      criterion tests it. Behavioural science is reachable only through proxies, so R6 is
+      deliberately the thinnest role instead of inventing a sentiment score nobody can falsify.
+      And "realistic trade outcomes" cannot be tested at all today -- there is no cost, spread or
+      borrow data for any market -- so V1 forbids `executionReadiness = executable` outright.
+      A simulated fill would be fiction.
+
+    - **Regimes may stratify evaluation and may never be a feature.** A peak is only a peak
+      afterwards, so a regime label knows the future by construction. Writing that rule down was
+      worth more than any other line in the leakage section, because the regime work is recent,
+      it is good, and it is exactly the sort of artefact that gets joined into a feature table by
+      someone who means well.
+
+    - **Eight open decisions, each with a default, and only three are the owner's.** Which
+      horizons the product promises, whether PSX short research publishes at all without borrow
+      data, and the risk appetite behind the minimum-evidence thresholds. The rest -- equal
+      weights, no published probability, no learned components in V1 -- are defaulted here with
+      reasons, because a specification that asks for a decision it could have made itself is
+      passing work upward.

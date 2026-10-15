@@ -1,5 +1,39 @@
 # Resume here
 
+## 0. BRAIN LOGIC SPECIFICATION V1 DELIVERED, 2026-10-15
+
+**Specification only. No code written, no training run, no evaluation executed.**
+The spec is `BRAIN-SPEC-V1.md`; the reasoning behind it is `brain.md` rule 154.
+
+**Architecture call:** ten *roles* in one ordered pipeline of pure functions, not ten agents.
+Most responsibilities are deterministic rules because a rule can be read and shown to be wrong.
+Three learned components are named as candidates and all three are deferred past V1.
+
+**Aggregation:** six evidence families, one vote each, fixed published weights.
+`r5`/`r20`/`sma20`/`sma50` are one family — that is the mechanism against correlated
+double-counting. R1 (integrity) and R9 (risk) hold vetoes; they can force `WAIT` but never force
+a direction.
+
+**What already exists** and the spec builds on: `LONG | SHORT | WAIT` with `WaitBasis`
+(`file` = no measurement vs `evidence` = measured and unconvincing), `DecisionLog` storing the
+deciding gate and reward-to-risk as measured at the time, the OHLC and session integrity rules,
+the 20-session embargo and the maturity concept.
+
+**What is proposed and unbuilt:** evidence-family aggregation, the adversarial role, macro and
+event wiring, and the learning lifecycle.
+
+**Three requirements are untestable as written and labelled so:** "world-class" is a direction of
+travel; behavioural science is proxy-only; and realistic trade outcomes cannot be tested at all
+— no cost, spread or borrow data exists, so V1 forbids `executionReadiness = executable`.
+
+**Owner decisions needed:** which horizons the product promises (D4), whether PSX short research
+publishes without borrow data (D7), and the risk appetite setting the minimum-evidence thresholds
+(D2). The other five open decisions are defaulted in the spec with reasons.
+
+**Next phase awaits your review and approval.** Training remains NOT started.
+
+---
+
 ## 0. ORGANISATION GATE MET — 100%, 2026-10-15
 
 **Phase: DATA ORGANISATION ONLY.** No training, baseline or evaluation was run or changed; the
