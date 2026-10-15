@@ -1,5 +1,52 @@
 # Resume here
 
+## 0. BRAIN SPEC V1.1 FINALISED — THREE DECISIONS FROZEN, 2026-10-15
+
+**Specification only. No code, dataset, experiment or deployment was changed.**
+`BRAIN-SPEC-V1.md` updated in place; reasoning in `brain.md` rule 155.
+
+### The three frozen decisions
+
+**D4 — horizons.** Swing (~20 sessions) is claimable on `label20`. **Position is NOT**, because
+`examples-v3` carries only `label20` plus raw `fwd1`/`fwd5`/`fwd20` — there is no 60-session
+label anywhere in the training data. Position becomes data requirement **DR-1**: build `label60`
+and evaluate it independently first. Scalp and intraday stay out of scope (intraday history is a
+7-day rolling window). A long-term bias never makes a current entry actionable.
+
+**D7 — PSX shorts.** A bearish conclusion publishes when the evidence supports it; missing
+borrow, short-ineligibility or suspension downgrades `executionReadiness` to `unverified` or
+`blocked` and **leaves the `SHORT` standing**. The execution gate may withhold, never reverse.
+
+**D2 — thresholds.** `MIN_FAMILIES = 3` (how much of the file is readable) and `MIN_NET = 2`
+(how decisive it is). Fixed, documented, **not to be tuned against results**.
+
+### The formula, now exact
+
+Six evidence families, one vote each (`-1`/`0`/`+1`), equal weight 1.
+`NET = Σ v_i`, an integer in `[-6, +6]`. Conflict is handled by subtraction only.
+A family is *eligible* when its inputs are present, fresh, un-vetoed and not self-contradictory.
+**Eligible-but-inconclusive** (counts toward `MIN_FAMILIES`, `evidence` fact) is distinct from
+**ineligible** (does not count, `file` fact). Four worked examples are in the spec.
+
+Vetoes act at two stages and **never create or reverse a direction**.
+
+### Corrections made to V1
+
+`MIN_NET`/`MIN_FAMILIES` had no arithmetic definition; family scores had no formulas; the
+position horizon was implied as supported. All three fixed. One V1 claim was too generous and is
+corrected: the existing `Decision` contract is `{action, why, entry, invalidation, timeSense,
+confidence, missing, notes, measured, gate, basis, plan, legs, intent, developing}` —
+`snapshotId`, `horizon`, `regime` and `executionReadiness` are additions, not existing fields.
+
+### Still owner-dependent
+
+**D9** — approve building `label60` for the position horizon (scope/cost).
+**D10** — the deadband τ and family thresholds (risk appetite).
+
+**Awaiting your review and approval. Training remains NOT started.**
+
+---
+
 ## 0. BRAIN LOGIC SPECIFICATION V1 DELIVERED, 2026-10-15
 
 **Specification only. No code written, no training run, no evaluation executed.**

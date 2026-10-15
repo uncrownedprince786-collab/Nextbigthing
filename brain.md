@@ -5578,3 +5578,49 @@ reads rows that already exist:
       weights, no published probability, no learned components in V1 -- are defaulted here with
       reasons, because a specification that asks for a decision it could have made itself is
       passing work upward.
+
+155. **V1.1 froze the three decisions, and the one that mattered was the horizon nobody had a
+    label for.** 2026-10-15. `BRAIN-SPEC-V1.md` updated in place. Specification only: no code,
+    no dataset, no experiment, no deployment changed.
+
+    - **D4 could not be answered from the brief; it had to be answered from the data.** The
+      instruction was to adopt swing *and* position as V1 horizons "subject to the availability
+      of suitable labels". `examples-v3` carries exactly one label -- `label20` -- plus the raw
+      returns `fwd1`, `fwd5` and `fwd20`. There is **no 60-session label anywhere in the training
+      data**; the only 60-session outcomes in the project are 164 rows of the event-reaction
+      corpus, which is event-scoped and far too small to validate a horizon on. So swing is
+      claimable and **position is a data requirement, not a capability** -- `label60` has to be
+      built and evaluated independently first. Adopting both horizons because the brief listed
+      both would have been exactly the inference the brief itself forbade.
+
+    - **The arithmetic that was missing is the part that decides everything.** V1 named
+      `MIN_NET` and `MIN_FAMILIES` without defining either. V1.1 defines them: a family is
+      *eligible* when its inputs are present, fresh, un-vetoed and not self-contradictory;
+      `MIN_FAMILIES = 3` asks how much of the file is readable; `NET` is the signed sum of six
+      one-vote families with equal weight, an integer in [-6, +6]; `MIN_NET = 2` asks how
+      decisive the readable evidence is. Conflict is handled by subtraction and nothing else --
+      a second dissent threshold would be a second thing to tune.
+
+    - **Eligible-but-inconclusive and ineligible both contribute zero, and they are not the same
+      fact.** The first counts toward `MIN_FAMILIES` and is an `evidence` statement; the second
+      does not and is a `file` statement. Worked example C in the spec is the case that makes it
+      concrete: an FX pair with no volume and no peers has only two eligible families, and
+      `NET` would have been +2 and passed -- the decision is withheld because too little of the
+      file is readable, which is a different sentence and the one that gets published.
+
+    - **I nearly corrected a label that was right.** A grep for `waitBasis` returned nothing in
+      `lib/decision.ts` and I was about to downgrade V1's `[EXISTS]` claim to "type only". The
+      field is named `basis` and typed `WaitBasis`; it is on the `Decision` interface and
+      rendered by `WaitBasisChip`. Checking before correcting cost one command and would have
+      put a false retraction into the specification.
+
+    - **D7 is a withholding rule, never a reversing one.** Missing borrow, short ineligibility or
+      suspension downgrades `executionReadiness` and leaves the `SHORT` standing. An opposite
+      conclusion needs its own evidence through the same gate. The existing `short-unbacked` gate
+      already has this shape, which is why the rule could be stated as an invariant rather than
+      invented.
+
+    - **`executionReadiness = executable` is unreachable in V1 by construction**, because no
+      cost, spread or borrow data exists for any market. Writing the state into the contract and
+      then making it unreachable is better than omitting it: it says what would have to become
+      true, rather than pretending the question does not exist.

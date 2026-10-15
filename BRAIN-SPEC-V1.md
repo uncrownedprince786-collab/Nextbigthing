@@ -1,355 +1,451 @@
-# Brain Logic Specification V1
+# Brain Logic Specification V1.1
 
-**Status: proposed design. Nothing here is implemented by this document.**
-Written 2026-10-15 against `main` at `4f1e4de`. No code was written, no model trained, no
-evaluation run for this specification.
+**Status: proposed design, frozen for review. Nothing here is implemented by this document.**
+V1 written 2026-10-15. V1.1 finalises the three open decisions and specifies the aggregation
+arithmetic exactly. No code, dataset, experiment or deployment was changed to produce it.
 
-Every claim below carries one of three labels:
+Labels used throughout:
 
 | Label | Meaning |
 |---|---|
-| **[EXISTS]** | implemented in the repository today |
+| **[EXISTS]** | implemented in the repository today, verified by reading the code |
 | **[VERIFIED]** | exists *and* is proven by a test or a recorded measurement |
 | **[PROPOSED]** | design only; no implementation |
 
-The project's sources of truth remain `brain.md` (reasoning log), `RESUME.md` (handoff) and
-`ARCHITECTURE.md` (layer map). This file is the one place the brain's *logic* is specified; those
-three point here rather than repeating it.
+Sources of truth stay `brain.md` (reasoning log), `RESUME.md` (handoff), `ARCHITECTURE.md`
+(layer map). This file is the only place the brain's decision logic is specified.
 
 ---
 
 ## 1. Mission and non-negotiable principles
 
 **Mission.** For an eligible instrument at an eligible decision timestamp, produce the
-best-supported directional research conclusion the available data can justify, with its evidence,
-its counter-evidence, its uncertainty and the conditions that would overturn it — or decline to
-produce one.
+best-supported directional research conclusion the data can justify — with its evidence,
+counter-evidence, uncertainty and invalidation conditions — or decline to produce one.
 
-### Non-negotiable principles
-
-1. **A conclusion is not a trade.** Directional research and execution readiness are separate
-   dimensions and are never collapsed into one score. **[EXISTS]** — the engine already separates
-   direction from `TimeSense`.
-2. **`WAIT` is a real answer, and it has two kinds.** "I do not have the measurement" and "I have
-   it and it does not support acting" are different sentences and must never print the same.
-   **[EXISTS]** — `WaitBasis = "file" | "evidence"` in `lib/decision.ts`.
-3. **No manufactured certainty.** A probability is published only where an evaluation supports
-   calibrating one. Absent that, the system reports an ordinal strength and says so.
-4. **Nothing learns from the future.** A feature may use only what was knowable at the decision
-   timestamp. **[VERIFIED]** — `featureDatedAfterSession: 0`, `setupDatedAfterSession: 0` in the
-   dataset manifest; `USREC` excluded with a test.
-5. **History is append-only.** A decision, once recorded, is never rewritten by a later model.
-   **[EXISTS]** — `DecisionLog` stores the reward-to-risk *as measured at the time*, precisely so
-   a later rebuild cannot answer a different question.
-6. **Unknown is not zero.** A missing cost, an unpublished volume, an absent borrow rate stay
-   missing. **[VERIFIED]** — FX volume is stored null rather than the provider's `0`.
-7. **Beating a weak baseline is not evidence.** Every candidate is measured against the
-   majority-class reference as well as the rule baseline. **[VERIFIED]** — the first experiment
-   scored 0.4211 against a 0.4204 majority class and is recorded as *no demonstrated edge*.
+1. **A conclusion is not a trade.** Direction and execution readiness are separate dimensions,
+   never one score. **[EXISTS]** — `Decision.timeSense` is already distinct from `action`.
+2. **`WAIT` has two kinds.** `file` = the measurement is unavailable. `evidence` = it is
+   available and does not support acting. **[EXISTS]** — `WaitBasis` type, `Decision.basis`
+   field, rendered by `WaitBasisChip`.
+3. **No manufactured certainty.** A probability is published only where out-of-sample
+   calibration passes (§5.6). Otherwise an ordinal strength, labelled as such.
+4. **Nothing learns from the future.** **[VERIFIED]** — `featureDatedAfterSession: 0`,
+   `setupDatedAfterSession: 0`; `USREC` excluded with an asserting test.
+5. **History is append-only.** **[EXISTS]** — `DecisionLog` stores `rewardRisk` *as measured at
+   the time*, so a later rebuild cannot answer a different question.
+6. **Unknown is not zero.** **[VERIFIED]** — FX volume is stored null, never the provider's `0`.
+7. **Beating a weak baseline is not evidence.** **[VERIFIED]** — the first candidate scored
+   0.4211 against a 0.4204 majority class and is recorded as *no demonstrated edge*.
 
 ---
 
-## 2. Decision contract
+## 2. The three frozen decisions
 
-One decision record per (instrument, timestamp). **[PROPOSED]** except where noted.
+### D4 — V1 prediction horizons: **swing only is claimable; position is a data requirement**
 
-```
-direction            LONG | SHORT | WAIT                                   [EXISTS]
-waitBasis            file | evidence | null                                [EXISTS]
-horizon              scalp | intraday | swing | position | null
-regime               trend_up | trend_down | range | high_vol | transition | unknown
-setupClass           breakout | pullback | reversal | continuation | none
-evidenceStrength     0..4 ordinal, per evidence family (§4)
-dataQuality          complete | partial | stale | conflicted
-executionReadiness   executable | unverified | blocked                     [EXISTS, partial]
-probability          float | null   -- null unless calibration is evidenced
-entryLow/High        float | null                                          [EXISTS]
-invalidation         float | null                                          [EXISTS]
-target               float | null                                          [EXISTS]
-expectedHoldSessions int | null
-supporting[]         {familyId, claim, sourceRef, asOf}
-contradicting[]      {familyId, claim, sourceRef, asOf}
-alternatives[]       {hypothesisId, whyNotChosen}
-invalidatedIf[]      {condition, measurable}
-historicalCases[]    {episodeId, similarity, outcome}  -- retrieval only
-limitations[]        {missingField, consequence}
-gate                 which rule decided                                    [EXISTS]
-snapshotId           the exact data version read                           [PROPOSED]
-```
-
-**Contract rules.** `direction != WAIT` requires `invalidation != null`. `probability != null`
-requires a calibration record. `executionReadiness = executable` requires a cost model, which does
-not exist for any market today — so V1 may only ever emit `unverified` or `blocked`.
-
----
-
-## 3. Architecture
-
-### Recommendation: ten roles, not ten agents
-
-Ten independent agents would be the wrong design here. Most of these responsibilities are
-deterministic, cheap and must be auditable; wrapping them in autonomous agents would make them
-slower, non-reproducible and harder to test, and would buy nothing. **Recommended: a single
-ordered pipeline of pure functions**, each owning one role, each independently testable, with
-learned components introduced only where a rule demonstrably cannot express the judgement.
-
-```
-snapshot ─► R1 integrity ─► R2 structure ─┐
-                                          ├─► R8 adversary ─► aggregate ─► R9 risk ─► decision
-     R4 macro ─ R5 news ─ R6 behaviour ───┤                      │
-                        R7 memory ────────┘                      └─► R3 statistics
-                                                                        │
-                                                        R10 learning ◄──┘ (offline)
-```
-
-| Role | Kind | Status |
-|---|---|---|
-| R1 Evidence & data integrity | deterministic rules | **[EXISTS]** `jobs/ohlc.py`, `basis_transitions`, `session_bar()` |
-| R2 Market structure | deterministic + thresholds | **[EXISTS]** `jobs/factors.py`, `horizons.py` |
-| R3 Mathematics & statistics | statistical functions | **[EXISTS]** partially — `robust_z`, analog quartiles |
-| R4 Cross-market & macro | retrieval + rules | data **[EXISTS]**, wiring **[PROPOSED]** |
-| R5 News & original research | retrieval + classification | corpus **[EXISTS]**, wiring **[PROPOSED]** |
-| R6 Human behaviour | derived measures only | **[PROPOSED]** |
-| R7 Historical memory | retrieval | corpus **[EXISTS]**, wiring **[PROPOSED]** |
-| R8 Adversarial scientist | deterministic challenge set | **[PROPOSED]** |
-| R9 Risk & execution | deterministic gates | **[EXISTS]** partially |
-| R10 Learning & evaluation | offline only | **[EXISTS]** `DecisionLog`, `tools/scorecard.py` |
-
-**Which capabilities should be learned?** Only three are candidates, and only after V1:
-combining evidence families into a probability (R3), ranking historical analogues by relevance
-(R7), and classifying event materiality (R5). Everything else should stay rules, because a rule
-can be read, argued with, and shown to be wrong — which is the property this project values most.
-
-**R6 is the most dangerous role** and is deliberately the thinnest: "fear" and "greed" are
-measurable only as proxies (volatility expansion, volume extremes, crowded positioning where
-data exists). V1 specifies no sentiment score derived from headline text.
-
----
-
-## 4. Reasoning process and the aggregation policy
-
-The eleven steps of the brief map onto the pipeline above. The two parts that need exact
-specification are how evidence combines and how correlated signals are prevented from voting
-twice.
-
-### Evidence families
-
-Indicators are grouped into **families**. A family casts **one** vote, regardless of how many
-indicators it contains. This is the whole mechanism against double-counting: `r5`, `r20`, `sma20`
-and `sma50` are four numbers describing one fact (trend), so they are one family and one vote.
-
-| Family | Members (current features) | Independent of |
-|---|---|---|
-| F1 trend | r5, r20, sma20, sma50 | F2–F6 |
-| F2 participation | volumeRatio | F1, F3–F6 |
-| F3 volatility & range | atr14, rangePct, drawdownPct | F1, F2 |
-| F4 relative strength | peerMedianR20, relStrength, peers | F1–F3 |
-| F5 macro context | macro-sessions join **[PROPOSED]** | F1–F4 |
-| F6 event context | event/reaction corpus **[PROPOSED]** | F1–F5 |
-
-### Aggregation
-
-```
-net = Σ family_vote × family_weight     vote ∈ {-1, 0, +1}
-```
-
-- A family votes `0` when its inputs are missing or internally contradictory.
-- Weights are **fixed and published**, not fitted, in V1.
-- `|net| < MIN_NET` → `WAIT` with `waitBasis = "evidence"`.
-- Fewer than `MIN_FAMILIES` families reporting → `WAIT` with `waitBasis = "file"`.
-- Families that disagree do not cancel silently: both sides are recorded in `supporting[]` and
-  `contradicting[]`, and the disagreement itself is a published field.
-
-**Reconciling conflict.** There is no voting-down of a specialist. R1 (integrity) and R9 (risk)
-hold **vetoes** — they can force `WAIT` but never force a direction. Every other role contributes
-a vote. A veto is always recorded with its reason.
-
-**Avoiding endless analysis.** The pipeline is a fixed, finite sequence with no loops. It always
-terminates in a decision, and `WAIT` is a legitimate terminus. There is no "gather more evidence"
-branch.
-
----
-
-## 5. Missing, conflicting and adverse data
-
-Full catalogue in §7. The policy is three rules:
-
-1. **Missing input → family votes 0 and the gap is named in `limitations[]`.** Never imputed,
-   never treated as neutral-positive.
-2. **Conflicting sources → the conflict is the output.** Both values are preserved with their
-   provenance; `dataQuality = conflicted`; the family votes 0 unless a documented authority rule
-   resolves it. **[EXISTS]** — the FX 2019-05-22 disputed record is exactly this shape.
-3. **Stale beyond its lane interval → `WAIT` with `waitBasis = "file"`.** **[EXISTS]**
-
----
-
-## 6. Memory and the learning lifecycle
-
-### What is recorded, immutably
-
-**[EXISTS]** — `DecisionLog` already stores `periodEnd`, `action`, `gate`, `confidence`,
-`entryLow/High`, `invalidation`, `legs`, `intent`, and reward-to-risk *as measured at the time*.
-
-**[PROPOSED]** additions: `snapshotId`, `hypothesisId`, `invalidatedIf[]`, `expectedHoldSessions`.
-
-### Lifecycle
-
-```
-decide ─► freeze (append-only) ─► wait for maturity (20 sessions)
-   ─► evaluate: correct | incorrect | ambiguous | unevaluable
-   ─► classify failure ─► propose correction ─► validate out-of-sample ─► accept or reject
-```
-
-**Rules.** No outcome is read before it matures. No correction is accepted on in-sample evidence.
-A rejected correction is recorded, not deleted — the record of what did not work is as valuable
-as what did. **[VERIFIED]** the maturity concept exists: `mature20` is on every example and
-sessions inside the final 20 of a series are excluded rather than labelled FLAT.
-
-### How research materials are used — and not used
-
-| Material | Role | May become a predictor? |
-|---|---|---|
-| price/volume + outcomes | predictors and labels | **yes** — already is |
-| macro (point-in-time) | context | yes, joined on `observation_date + publicationLag` |
-| events / reactions | context and hypothesis source | yes, with explicit availability timestamps |
-| press references | retrieval only | **no** — references, text never fetched |
-| principles / citations | hypothesis source | **no** — they generate *tests*, not features |
-| regime episodes | retrieval and stratification | **no** — identified with future prices |
-
-**The leak this table prevents:** a regime label knows the future by construction (a peak is only
-a peak afterwards). Regimes may stratify *evaluation*; they may never be an input feature.
-
----
-
-## 7. Edge-case catalogue
-
-Each row: condition → expected behaviour → output state → required regression test.
-
-| # | Condition | Behaviour | Output | Test |
-|---|---|---|---|---|
-| E1 | Fewer than N sessions of history | family votes 0 | WAIT/file | synthetic short series |
-| E2 | Whole feature group missing | family votes 0, named | WAIT/file if < MIN_FAMILIES | drop a family |
-| E3 | Two providers disagree | preserve both, vote 0 | conflicted | FX 2019-05-22 fixture **[EXISTS]** |
-| E4 | Stale price beyond lane interval | veto | WAIT/file | aged snapshot |
-| E5 | close outside high/low | range withheld | partial | `jobs/ohlc.py` **[VERIFIED]** |
-| E6 | Unadjusted corporate action in window | flag; family 0 | partial | `unadjustedActionInWindow` **[VERIFIED]** |
-| E7 | Delisted instrument | excluded; bias noted | n/a | survivorship fixture |
-| E8 | Non-trading day / holiday | not a session | n/a | `session_bar()` **[VERIFIED]** |
-| E9 | Missing volume (FX) | F2 votes 0 | partial | FX fixture **[VERIFIED]** |
-| E10 | News about the wrong company | link rejected | n/a | ambiguous-ticker fixture |
-| E11 | Republished old story | dedupe by content hash | n/a | duplicate fixture **[EXISTS]** |
-| E12 | Negated headline | no vote from text | n/a | negation fixture |
-| E13 | Macro revised after timestamp | original vintage used | n/a | ALFRED vintage **[EXISTS]** |
-| E14 | Limit move / halt | structure invalid | WAIT/file | PSX band fixture **[EXISTS]** |
-| E15 | Flash crash | volatility veto | WAIT/evidence | COVID window |
-| E16 | False breakout | recorded as failure | — | labelled fixture |
-| E17 | Timeframes disagree | explicit mixed gate | WAIT/evidence | **[EXISTS]** |
-| E18 | Correlated indicators | one family, one vote | — | family-independence test |
-| E19 | Direction fine, execution unknown | direction published, `unverified` | — | cost-absent test |
-| E20 | Label overlap at split | 20-session embargo | — | **[VERIFIED]** |
-| E21 | Class imbalance (FX 68% FLAT) | report per class | — | per-class metrics **[VERIFIED]** |
-| E22 | Model drift | degradation alarm | — | rolling-window test |
-
----
-
-## 8. Testing strategy
-
-**Acceptance principle:** a test suite that cannot distinguish a legitimate `WAIT` from a hidden
-defect is useless. Every test states which it expects.
-
-| Tier | Scope | Failure means |
-|---|---|---|
-| T1 Unit | each role's contract in isolation | role is wrong |
-| T2 Integration | pipeline end-to-end on fixtures | wiring is wrong |
-| T3 Lineage | every feature traced to source + timestamp | provenance broken |
-| T4 Leakage | no future value reachable from any predictor | **blocks training** |
-| T5 Corruption | missing source, truncated file, bad bar | recovery broken |
-| T6 Regime | crisis, bull, bear, transition fixtures | brittle in the case that matters |
-| T7 Adversarial | false news, source conflict, correlated evidence | over-confident |
-| T8 Survivorship | delisted names | bias understated |
-| T9 Execution | cost absent → never `executable` | over-claims tradability |
-| T10 Reproducibility | same snapshot ⇒ same decision, byte-identical | not scientific |
-| T11 History | old decisions unchanged after a model change | memory corrupted |
-
-T4, T10 and T11 are **blocking**: training may not begin while any fails.
-
----
-
-## 9. Evaluation standards and gates
-
-### Pre-training gates (all must pass)
-
-1. T4 leakage, T10 reproducibility, T11 history — green.
-2. Feature lineage complete for every predictor.
-3. Chronological split defined with a 20-session embargo. **[VERIFIED]**
-4. Effective sample size reported, not row count. **[VERIFIED]** — 1,085,544 rows ≈ 54,277
-   independent windows.
-5. References fixed in advance: majority-class **and** rule baseline. **[VERIFIED]**
-
-### Accept / reject a candidate
-
-**Accept** only if it beats *both* references out-of-sample, on identical samples, with the
-improvement holding in **more than half the folds** and **not vanishing in the adverse regime**.
-The first candidate failed exactly this last clause — its worst fold was 2022.
-
-**Reject** if it beats only the rule baseline, if the gain is inside the confidence interval, if
-it is driven by one market or one year, or if it collapses toward the majority class. Accuracy is
-never the sole objective: calibration and behaviour in drawdowns count equally.
-
-### Post-training and deployment
-
-Post-training: rerun T1–T11, compare against the preserved reference, publish per-market,
-per-regime, per-horizon and per-class metrics with sample counts.
-Deployment is a **separate** decision requiring independent acceptance evidence and is out of
-scope for V1.
-
----
-
-## 10. Unresolved decisions
-
-| # | Decision | Recommended default | Rationale |
+| Horizon | Sessions | Label available today | V1 status |
 |---|---|---|---|
-| D1 | Family weights | equal weights in V1 | nothing yet justifies unequal ones; fitted weights need an edge that does not exist |
-| D2 | `MIN_NET` / `MIN_FAMILIES` | 2 and 3 | must be set *before* seeing results and then left alone |
-| D3 | Publish a probability? | **no** in V1 | no calibration evidence exists; an ordinal strength is honest |
-| D4 | Horizons supported | swing + position only | intraday history is a 7-day rolling window, not history |
-| D5 | Join macro into features? | yes, next milestone | it is PIT-correct and joinable; the largest available gain |
-| D6 | Event features | defer to V2 | 167 reaction rows is too few to fit on |
-| D7 | PSX shorts | **blocked** | no borrow data; direction may still publish |
-| D8 | Learned components | none in V1 | a rule that loses is more useful than a model that cannot be read |
+| scalp | < 1 | none | **out of scope** |
+| intraday | 1 | `fwd1` (raw return, no label) | **out of scope** |
+| **swing** | ~5–20 | **`label20`** **[VERIFIED]** | **claimable, subject to §9 tests** |
+| **position** | ~60+ | **none in `examples-v3`** | **NOT claimable in V1** |
 
-**Owner-dependent (cannot be resolved from existing requirements):** D4 (which horizons the
-product promises), D7 (whether PSX short research publishes at all), and the risk appetite that
-sets D2.
+**The finding that decides this.** `examples-v3` carries exactly one label — `label20` — plus
+raw returns `fwd1`, `fwd5`, `fwd20`. There is **no 60-session label**. Sixty-session outcomes
+exist only in the 167-row event-reaction corpus, which is event-scoped and far too small to
+validate a horizon on.
+
+So the brief's caution is adopted literally: **a position-horizon capability may not be inferred
+from `label20`.** Position becomes a *data requirement*, not a capability:
+
+> **DR-1 [PROPOSED]** — build `label60` over the same universe and eligibility rule as `label20`
+> (threshold restated for the horizon, maturity = 60 sessions, final 60 sessions excluded as
+> immature), then evaluate it independently before any position-horizon claim.
+
+**Intraday** is out of scope for a second, independent reason: intraday history is a rolling
+~7-day window, not history. **[VERIFIED]**
+
+**Horizon independence rules.**
+- Each horizon is evaluated on its own samples, with its own baseline and its own embargo.
+- A swing conclusion never implies a position conclusion, and vice versa.
+- Every decision record carries the horizon it is about; a decision with no supported horizon
+  is `WAIT`.
+- **A longer-term directional bias never makes a current entry actionable.** Entry actionability
+  is `timeSense`/`executionReadiness`, decided in §4 stage 5, not by direction.
+
+**Acceptance tests per horizon** — §9 T-H1..T-H4.
+
+### D7 — PSX bearish research vs executable short: **publish the research, withhold the execution**
+
+A bearish conclusion is published when the evidence supports it. Execution is a separate gate.
+
+| Condition | `action` | `executionReadiness` | Rule |
+|---|---|---|---|
+| Bearish evidence passes §4, borrow unknown | `SHORT` | `unverified` | research stands |
+| Bearish evidence passes, security short-ineligible | `SHORT` | `blocked` | research stands |
+| Bearish evidence passes, instrument suspended | `SHORT` | `blocked` | research stands |
+| Bearish evidence passes, execution fully verified | `SHORT` | `executable` | **unreachable in V1** — no cost data exists for any market |
+| Bearish evidence fails §4 | `WAIT` | n/a | basis `evidence` |
+
+**Invariant D7-I.** The execution gate may withhold executability. It may **never** invent the
+opposite direction, and it may never convert a failed `SHORT` into a `LONG`. A `LONG` requires
+its own evidence passing §4 independently. **[EXISTS in spirit]** — `short-unbacked` is already a
+distinct gate that withholds rather than reverses.
+
+Tests: §9 T-D7a..T-D7d.
+
+### D2 — Minimum evidence: **`MIN_NET = 2`, `MIN_FAMILIES = 3`**
+
+Fixed initial thresholds, documented, **not to be tuned against evaluation results**. They are
+design choices, not calibrated or optimal values, and no edge is claimed for them.
+
+- **`MIN_FAMILIES = 3`** — at least 3 of the 6 families must be **eligible** (§3.2). Fewer →
+  `WAIT` with basis `file`. This is a statement about *how much of the file is readable*.
+- **`MIN_NET = 2`** — `|NET|` must be ≥ 2. Below → `WAIT` with basis `evidence`. This is a
+  statement about *how decisive the readable evidence is*.
+
+Changing either requires a specification amendment and a recorded reason; neither may move in
+response to a result.
 
 ---
 
-## Review: contradictions, untestable requirements, trade-offs
+## 3. Evidence families and the aggregation formula
 
-**Resolved contradictions.**
-- *"Decisive without manufacturing certainty"* vs *"return WAIT when evidence fails"* — resolved
-  by making `WAIT` a first-class answer with a stated basis, not a failure to decide.
-- *"Calibrated probability"* vs *no demonstrated edge* — resolved by D3: no probability in V1.
-- *"Ten specialists"* vs *auditability* — resolved as ten **roles**, one pipeline.
+### 3.1 Sign convention
 
-**Genuinely untestable as written.**
-- "World-class mathematician/scientist" is a direction of travel, not an acceptance criterion;
-  nothing in this spec tests it and nothing should claim it.
-- "Behavioural science" (R6) is only testable through proxies. V1 keeps it thin deliberately
-  rather than inventing a sentiment number that cannot be falsified.
-- "Realistic trade outcomes" is **untestable today** — no cost data exists for any market. Any
-  simulated fill would be fiction, so V1 forbids `executable`.
+One convention everywhere: **positive supports LONG, negative supports SHORT, zero supports
+neither.** No family has a private convention.
 
-**Major trade-offs accepted.**
-- Rules over learned components: less ceiling, far more auditability. Given the first candidate
-  showed no edge, auditability is worth more right now.
-- One vote per family: deliberately discards information to avoid correlated double-counting.
-  A correlated-but-real signal will be under-weighted. Accepted.
-- 20-session embargo cuts the effective sample to ~54k. Accepted — the alternative is a number
-  that is not real.
+### 3.2 The six families
 
-**The honest summary.** This specification describes a system that is mostly *not built*. What
-exists today is the data foundation, the decision contract, the gate/log machinery and the
-integrity rules. What is proposed is the evidence-family aggregation, the adversarial role, the
-macro/event wiring and the learning lifecycle. The first candidate model produced no edge, and
-nothing in this document should be read as predicting that the designed system will.
+Correlated columns live in one family and produce **one vote**. `r5`, `r20`, `sma20` and `sma50`
+are four numbers describing one fact; they are F1 and they vote once.
+
+| Family | Inputs (current feature names) | Weight |
+|---|---|---|
+| **F1 trend** | `r5`, `r20`, `sma20`, `sma50` | 1 |
+| **F2 participation** | `volumeRatio`, `r1` | 1 |
+| **F3 volatility & range** | `atr14`, `rangePct`, `drawdownPct` | 1 |
+| **F4 relative strength** | `relStrength`, `peerMedianR20`, `peers` | 1 |
+| **F5 macro context** | point-in-time macro join **[PROPOSED]** | 1 |
+| **F6 event context** | event/reaction corpus **[PROPOSED]** | 1 |
+
+**Equal weights (all 1) are retained from V1.** Nothing yet justifies unequal weights, and fitted
+weights would require an edge that does not exist.
+
+**Eligibility.** A family is **eligible** when *all* hold:
+1. at least one input is present and non-null,
+2. no input is stale beyond its lane interval,
+3. no integrity veto applies to its inputs (§3.5),
+4. its inputs are not mutually contradictory in a way the family cannot resolve.
+
+An **ineligible** family does not count toward `MIN_FAMILIES` and contributes 0 to `NET`.
+An **eligible but inconclusive** family counts toward `MIN_FAMILIES` and contributes 0 to `NET`.
+These two are recorded distinctly — the first is a `file` fact, the second an `evidence` fact.
+
+### 3.3 Family score and vote
+
+Each eligible family computes a score `s ∈ [-1, +1]`, then a vote by deadband `τ = 0.5`:
+
+```
+v = +1  if s >=  τ
+v = -1  if s <= -τ
+v =  0  otherwise
+```
+
+**F1 trend.** `a = sign(r20)`, `b = +1 if sma20 > sma50 else -1 if sma20 < sma50 else 0`.
+`s_F1 = (a + b) / 2`.
+
+**F2 participation.** Volume confirms the direction of the move it accompanied.
+`s_F2 = sign(r1)` if `volumeRatio >= 1.2`; `0` if `volumeRatio < 1.2`.
+Where volume is not published (FX), F2 is **ineligible**, never 0-as-neutral. **[VERIFIED]**
+
+**F3 volatility & range.** `s_F3 = +1` if `drawdownPct > -5` and `rangePct` is in its lower
+half (constructive); `-1` if `drawdownPct <= -15` or `atr14` exceeds its trailing median by
+≥ 50% (stress); else `0`.
+
+**F4 relative strength.** `s_F4 = sign(relStrength)` when `peers >= 3`; otherwise **ineligible**.
+
+**F5 macro context [PROPOSED].** Joined on `observation_date + publicationLagDays`, never on
+observation date alone. `s_F5` from a declared, published rule table. Until wired: **ineligible**.
+
+**F6 event context [PROPOSED].** From dated events whose publication time precedes the decision
+timestamp. **News alone can never set a direction** (§5.3): F6 may only vote in a direction
+already supported by at least one of F1–F4. Until wired: **ineligible**.
+
+All thresholds above (`τ = 0.5`, `1.2`, `-5`, `-15`, `50%`, `peers >= 3`) are **[PROPOSED]
+design defaults**, chosen before any evaluation, and are not empirical findings.
+
+### 3.4 NET, and how conflict affects it
+
+```
+eligible     = { families passing §3.2 }
+NET          = Σ  w_i · v_i        over eligible families,  w_i = 1
+longVotes    = count(v_i = +1)
+shortVotes   = count(v_i = -1)
+dissent      = min(longVotes, shortVotes)
+```
+
+`NET` is an integer in `[-6, +6]`. **Conflict is handled by subtraction**: every opposing family
+reduces `|NET|` by 1. `dissent` is reported but is not a separate gate — a second threshold would
+be a second thing to tune.
+
+### 3.5 Vetoes, and when they apply
+
+Two veto stages. **Neither can create or reverse a direction.**
+
+**Stage 0 — integrity vetoes (before any voting).** Stale price beyond lane interval; bad bar
+(close outside its own range) where the family needs the range; insufficient history; unadjusted
+corporate action inside the window; non-session date. Effect: the affected inputs are withheld,
+which may make families ineligible. If `eligible < MIN_FAMILIES` → `WAIT` / `file`.
+**[EXISTS]** — `jobs/ohlc.py`, `session_bar()`, `stale` gate.
+
+**Stage 5 — risk & execution vetoes (after a direction exists).** Missing borrow, short
+ineligibility, suspension, unverifiable cost, invalidation already crossed. Effect: downgrade
+`executionReadiness` and `timeSense`; may force `WAIT`. **May never flip the sign.**
+**[EXISTS, partial]** — `stop-crossed` and `short-unbacked` already withhold without reversing.
+
+### 3.6 Resolution table
+
+Evaluated top to bottom; first match wins.
+
+| # | Condition | `action` | `basis` | `gate` |
+|---|---|---|---|---|
+| 1 | Stage-0 veto leaves `eligible < MIN_FAMILIES` | `WAIT` | `file` | `file` / `stale` |
+| 2 | `eligible < MIN_FAMILIES` | `WAIT` | `file` | `file` |
+| 3 | `|NET| < MIN_NET` | `WAIT` | `evidence` | `thin-evidence` |
+| 4 | `NET >= MIN_NET` | `LONG` | `null` | `long` |
+| 5 | `NET <= -MIN_NET` | `SHORT` | `null` | `short` |
+| 6 | Stage-5 veto on a direction from 4/5 | direction **kept**, `executionReadiness` downgraded; `WAIT` only if the veto is absolute | `null` | e.g. `short-unbacked` |
+
+A tie (`NET = 0`) is row 3. There is no row that produces a direction from an absent one.
+
+### 3.7 Worked examples (hand-calculable)
+
+**Example A — a clean LONG.**
+`r20=+6.2`, `sma20 > sma50`, `volumeRatio=1.4`, `r1=+0.9`, `drawdownPct=-3.1`, `rangePct` low,
+`relStrength=+2.4`, `peers=11`. F5, F6 not wired.
+
+| Family | eligible | s | v |
+|---|---|---|---|
+| F1 | yes | (+1 +1)/2 = **+1.0** | **+1** |
+| F2 | yes | sign(+0.9) = **+1.0** | **+1** |
+| F3 | yes | **+1.0** | **+1** |
+| F4 | yes | sign(+2.4) = **+1.0** | **+1** |
+| F5 | no | — | 0 |
+| F6 | no | — | 0 |
+
+`eligible = 4 ≥ 3` ✓ · `NET = +4` · `|NET| = 4 ≥ 2` ✓ → **LONG**, gate `long`, dissent 0.
+
+**Example B — conflict pulls it under the bar.**
+F1 `+1`, F4 `+1`, F2 `-1` (heavy volume on a down session), F3 `-1` (−17% drawdown).
+
+`eligible = 4` ✓ · `NET = +1 +1 −1 −1 = 0` · `|NET| = 0 < 2` → **WAIT**, basis `evidence`,
+gate `thin-evidence`, dissent 2. Both sides are published in `supporting[]`/`contradicting[]`.
+
+**Example C — thin file, not thin evidence.**
+FX pair: no volume (F2 ineligible **[VERIFIED]**), `peers = 0` (F4 ineligible), F5/F6 not wired.
+Only F1 and F3 eligible, both `+1`.
+
+`eligible = 2 < 3` → **WAIT**, basis **`file`**, gate `file`. Note `NET = +2` would have passed
+`MIN_NET` — the decision is withheld because too little of the file is readable, which is a
+different statement and is the one published.
+
+**Example D — PSX bearish, execution withheld (D7).**
+F1 `−1`, F3 `−1`, F4 `−1`, F2 eligible and `0`. `eligible = 4` ✓, `NET = −3` → **SHORT**.
+Stage 5: borrow unknown → `executionReadiness = unverified`, `timeSense` not `NOW`,
+gate `short-unbacked`. **The `SHORT` stands.** No `LONG` is produced.
+
+---
+
+## 4. Reasoning pipeline
+
+One ordered, finite, loop-free sequence. It always terminates; `WAIT` is a legitimate terminus.
+There is no "gather more evidence" branch.
+
+```
+0  snapshot + integrity        R1   → may veto (stage 0)
+1  market state + horizon      R2   → regime, setupClass, horizon eligibility (D4)
+2  hypotheses (bounded set)    R2/R7
+3  evidence per family         R2 R3 R4 R5 R6
+4  historical retrieval        R7   → retrieval only, never a feature
+5  adversarial challenge       R8   → must state what would falsify each hypothesis
+6  aggregate (§3)              —    → NET, eligible, dissent
+7  risk & execution gates      R9   → may withhold, never reverse (stage 5)
+8  emit decision + record      R10  → append-only
+```
+
+---
+
+## 5. Specialist roles
+
+Ten **roles**, one pipeline, not ten agents. Ten autonomous agents would make a deterministic,
+cheap, auditable process slow, non-reproducible and hard to test, and buy nothing. A rule can be
+read, argued with and shown wrong — the property this project has relied on every time a number
+turned out to be an artefact.
+
+| Role | Kind | Inputs | Outputs | On failure | Consumed by |
+|---|---|---|---|---|---|
+| **R1** integrity | deterministic | raw bars, sources, timestamps | validated snapshot, veto flags | veto → `WAIT`/`file` | all |
+| **R2** structure | deterministic | validated snapshot | regime, setupClass, F1–F3 scores | family ineligible | R8, §3 |
+| **R3** statistics | statistical | family scores, history | dispersion, sample counts, intervals | reports insufficiency | R8, R10 |
+| **R4** macro | retrieval + rules | PIT macro join | F5 score | ineligible | §3 |
+| **R5** news/events | retrieval + classification | dated events, filings | F6 score, materiality | ineligible | §3 |
+| **R6** behaviour | derived measures only | volatility, volume extremes, positioning | behavioural hypotheses | silent | R8 |
+| **R7** memory | retrieval | regimes, analogues, principles, past decisions | comparable cases | empty list | R8, R10 |
+| **R8** adversary | deterministic challenge set | all of the above | falsification conditions, alternatives | must not be empty for a direction | §3, record |
+| **R9** risk/execution | deterministic | direction, costs, eligibility | executionReadiness, timeSense | withhold only | record |
+| **R10** learning | offline only | matured outcomes | evaluation, proposals | no silent change | humans |
+
+**Learned components.** Only three are candidates, all **after** V1: evidence combination (R3),
+analogue ranking (R7), event materiality (R5). Everything else stays rules.
+
+**R6 is deliberately the thinnest.** Fear and greed are measurable only through proxies. V1
+specifies **no sentiment score derived from headline text**; R6 produces hypotheses for R8 to
+challenge, never a vote.
+
+---
+
+## 6. Frozen invariants (each testable)
+
+| # | Invariant | Test |
+|---|---|---|
+| I1 | Missing data never becomes neutral or positive evidence | T-I1 |
+| I2 | `file` WAIT stays distinct from `evidence` WAIT | T-I2 |
+| I3 | News alone cannot force a directional vote (F6 needs F1–F4 agreement) | T-I3 |
+| I4 | No future observation, outcome label or regime label reaches a predictor | T-I4 **blocking** |
+| I5 | Regimes may stratify evaluation; never a feature | T-I5 |
+| I6 | No probability published without passing calibration | T-I6 |
+| I7 | Data-quality confidence is never presented as win probability | T-I7 |
+| I8 | Stale or out-of-range price cannot support `NOW` | T-I8 |
+| I9 | Costs/spread/slippage/borrow are never zero when unavailable | T-I9 |
+| I10 | Decisions and snapshots immutable after recording | T-I10 **blocking** |
+| I11 | Any rule/model change is versioned and evaluated before acceptance | T-I11 |
+| I12 | Unknown or conflicting never forced into LONG/SHORT | T-I12 |
+| I13 | A veto never creates or reverses a direction | T-I13 |
+
+---
+
+## 7. Edge cases
+
+Condition → expected behaviour → output → test.
+
+| # | Condition | Behaviour | Output |
+|---|---|---|---|
+| E1 | < N sessions history | families ineligible | WAIT/file |
+| E2 | Whole feature group missing | family ineligible, named in `missing[]` | WAIT/file if eligible < 3 |
+| E3 | Providers disagree | preserve both, family ineligible | WAIT/file, `conflicted` |
+| E4 | Stale beyond lane interval | stage-0 veto | WAIT/file **[EXISTS]** |
+| E5 | close outside high/low | range withheld; F3 ineligible | partial **[VERIFIED]** |
+| E6 | Unadjusted action in window | flagged; affected families ineligible | **[VERIFIED]** |
+| E7 | Delisted instrument | excluded; bias noted | n/a |
+| E8 | Holiday / non-session | not a decision point | n/a **[VERIFIED]** |
+| E9 | No published volume (FX) | **F2 ineligible**, not 0 | **[VERIFIED]** |
+| E10 | News matched to wrong company | link rejected, F6 ineligible | — |
+| E11 | Republished old story | dedupe by content hash | — **[EXISTS]** |
+| E12 | Negated headline | no F6 vote | — |
+| E13 | Macro revised after timestamp | original vintage used | — **[EXISTS]** |
+| E14 | Limit move / halt | structure invalid | WAIT/file **[EXISTS]** |
+| E15 | Flash crash | F3 stress → opposes | usually WAIT/evidence |
+| E16 | False breakout | recorded as failure, not revived | — |
+| E17 | Timeframes disagree | explicit mixed gate | WAIT/evidence **[EXISTS]** |
+| E18 | Correlated indicators | one family, one vote | — |
+| E19 | Direction fine, execution unknown | direction kept, `unverified` | **D7** |
+| E20 | Label overlap at split | 20-session embargo | **[VERIFIED]** |
+| E21 | Class imbalance (FX 68% FLAT) | per-class metrics required | **[VERIFIED]** |
+| E22 | Model drift / unseen regime | degradation alarm; no silent change | — |
+| E23 | A stopped setup revived later | forbidden; invalidation is terminal for that hypothesis | — |
+
+---
+
+## 8. Test matrix
+
+| Tier | Scope | Fixture | Failure means |
+|---|---|---|---|
+| T1 unit | each family's score and eligibility | synthetic vectors | family rule wrong |
+| T2 integration | pipeline on fixtures | recorded snapshots | wiring wrong |
+| T3 lineage | every predictor traced to source + timestamp | manifest | provenance broken |
+| T4 leakage | no future value reachable | dataset scan | **blocks training** |
+| T5 corruption | missing source, truncated file, bad bar | mutated fixtures | recovery broken |
+| T6 regime | COVID, 2022, 2018, bull runs | `regime_coverage.json` windows | brittle where it matters |
+| T7 adversarial | false news, conflict, correlated evidence | crafted | over-confident |
+| T8 survivorship | delisted names | `sec_lifecycle.json` | bias understated |
+| T9 execution | cost absent ⇒ never `executable` | PSX fixture | over-claims tradability |
+| T10 reproducibility | same snapshot ⇒ identical decision | snapshot id | not scientific |
+| T11 history | old decisions unchanged after a model change | `DecisionLog` | memory corrupted |
+| **T-H1..H4** | per-horizon: label exists, maturity, embargo, independent baseline | per horizon | horizon claim unfounded |
+| **T-D7a..d** | bearish + borrow unknown / ineligible / suspended / verified | PSX fixtures | D7 violated |
+| **T-I1..I13** | the frozen invariants | targeted | invariant broken |
+
+**T4, T10, T11 are blocking.** Training may not begin while any fails.
+Every test declares whether it expects a direction or a legitimate `WAIT`, so a suite cannot hide
+a defect behind a `WAIT`.
+
+---
+
+## 9. Phase gates
+
+1. **Approve and freeze this specification.** ← awaiting owner
+2. Implement roles and rules; write regression tests **during** development.
+3. Validate input contracts, lineage, leakage (T3, T4).
+4. Train candidates **only** on approved, versioned datasets.
+5. Compare against **both** the majority-class reference and the rule baseline, on identical
+   chronological windows with the 20-session embargo.
+6. Full regression + adversarial run after training.
+7. Deployment is a separate decision requiring independent acceptance evidence.
+
+**Accept a candidate** only if it beats both references out-of-sample, on identical samples, in
+more than half the folds, **and does not degrade in the adverse regime**. The first experiment
+failed exactly this last clause — its worst fold was 2022. That artifact is preserved and is not
+re-run, tuned or extended by this specification.
+
+---
+
+## 10. Open decisions after V1.1
+
+D2, D4 and D7 are **frozen** above. Remaining:
+
+| # | Decision | Default | Owner input needed? |
+|---|---|---|---|
+| D1 | Family weights | equal (1) | no — amendment only |
+| D3 | Publish a probability | no in V1 | no |
+| D5 | Wire macro into F5 | yes, next milestone | no |
+| D6 | Wire events into F6 | defer to V2 | no |
+| D8 | Learned components | none in V1 | no |
+| **D9** | Build `label60` for the position horizon (DR-1) | recommend yes | **yes — scope/cost** |
+| **D10** | Deadband `τ` and family thresholds (§3.3) | as defaulted | **yes — risk appetite** |
+
+---
+
+## Review: consistency, untestable requirements, trade-offs
+
+**Internal consistency.** The document is now internally consistent. Three V1 ambiguities were
+resolved: `MIN_NET`/`MIN_FAMILIES` had no arithmetic definition and now do (§3.4); family scores
+had no formulas and now do (§3.3); "position horizon" was implied as supported and is now
+correctly a data requirement (D4). One V1 statement was **too generous and is corrected here**:
+V1 implied the full decision contract existed, when what exists is `Decision{action, why, entry,
+invalidation, timeSense, confidence, missing, notes, measured, gate, basis, plan, legs, intent,
+developing}` — `snapshotId`, `horizon`, `regime`, `executionReadiness` and the family breakdown
+are additions.
+
+**Untestable as written, and labelled.**
+- "Scientist-grade" / "world-class" is a direction of travel, not an acceptance criterion.
+- R6 behavioural science is proxy-only; no falsifiable sentiment measure is specified.
+- "Realistic trade outcomes" is untestable today — no cost, spread or borrow data exists for any
+  market — so `executionReadiness = executable` is **unreachable in V1** by construction.
+
+**Trade-offs accepted.**
+- One vote per family discards information: a correlated-but-real signal is under-weighted. The
+  alternative is four columns voting four times for one fact and calling it agreement.
+- Equal weights are certainly not optimal. They are honest, and fitting them needs an edge that
+  does not exist.
+- `MIN_FAMILIES = 3` will produce many `file` WAITs on FX and thin PSX names. That is the correct
+  failure direction: silence over invention.
+- Conflict handled by subtraction only — no second dissent threshold, because a second threshold
+  is a second thing to tune.
+
+**The honest summary.** Most of this is not built. What exists is the data foundation, the
+`Decision` contract, the gate ladder, `WaitBasis`, `DecisionLog` and the integrity rules. What is
+proposed is the family aggregation, R6, R8, the macro/event wiring and the learning lifecycle.
+The first candidate model showed no edge, and nothing here predicts the designed system will.
