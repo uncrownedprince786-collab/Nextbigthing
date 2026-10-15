@@ -5490,3 +5490,43 @@ reads rows that already exist:
       efficient-market prior would expect and is a reason to go after the unjoined context
       layers, not a reason to tune this one until it looks better. And no result here is net of
       anything: the execution-cost layer is empty, so direction is all that was measured.
+
+153. **Organisation went 83.33% to 100% without one new observation, because the metric was
+    never measuring what the scope said.** 2026-10-15, data-organisation gate. Coverage,
+    training readiness, context integration and the weighted overall are all unchanged;
+    `acceptance_scope.json` and the experiment artifacts were not touched.
+
+    - **The implementation had never matched the frozen definition.** The scope names six
+      attributes -- source lineage, schema, date range, quality checks, a reproducible location,
+      a checksum or backup. The scorer checked a looser proxy: has a source, has a status, has an
+      artifact. Nobody noticed because the proxy gave a plausible number. Fixing an implementation
+      to match a rule frozen before it is not moving the goalposts, but it looks exactly like it,
+      so both counts are now printed side by side and the superseded proxy is kept in the output.
+
+    - **A blocked gap can be fully organised and entirely uncovered, and treating those as one
+      thing punishes the same fact twice.** `delisted instrument price history` will never be
+      covered -- four routes, all dead. But the project now knows which four, on what date, and
+      what each returned, and a reader can re-run it. `gap_evidence.json` (`c7df224c5e16d34e`) holds eight
+      dated probes: Yahoo's chart API 404 for HOLX and CTRA, stooq answering a bot challenge,
+      PSX returning 404 at 2008-08-27 and 2013-11-01 and **200 at 2013-11-04**, and FRED's ICE
+      series beginning 2023-10-16 against the recovered Moody's series beginning 2005-01-03. The
+      archive floor is now established rather than asserted.
+
+    - **"All six present" was not a strong enough test and the first run proved it.** Attributes
+      can be written to say a check happened. So the scorer resolves every repository path they
+      name, and the first pass dropped to **13 of 18** -- five layers pointed at
+      `benchmarks/manifest.json` and `crisis_2008/manifest.json`, which are real files written
+      with a path relative to the wrong root. Correcting the notation took it to 18 of 18. The
+      check earned its keep on its first run, which is the only evidence that a check is worth
+      having.
+
+    - **18 of 18 is a perfect score and deserves the scepticism.** It is perfect because the
+      metric measures documentation, and the documentation was the work. Nothing about the data
+      improved: coverage stayed **0.9674**, context integration stayed **0.2222**, and the
+      weighted overall stayed **0.9274** (`de2ceea65d2f6da9`). An organisation score cannot make a gap
+      smaller, and this one did not.
+
+    - **Pinned so it cannot drift back.** Nine tests assert the six attributes and the frozen
+      denominator are unchanged, that every referenced path resolves, that a blocked layer is
+      organised but never counted as downloaded or joined, and that every gap carries dated probe
+      evidence. 1,053 tests pass; all three durable stores verify at 197, 19 and 45 checksums.

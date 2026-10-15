@@ -1,5 +1,42 @@
 # Resume here
 
+## 0. ORGANISATION GATE MET — 100%, 2026-10-15
+
+**Phase: DATA ORGANISATION ONLY.** No training, baseline or evaluation was run or changed; the
+experiment artifacts and `acceptance_scope.json` are untouched.
+
+| Metric | Before | After |
+|---|---|---|
+| **Organisation & validation** | 0.8333 (15/18) | **1.0000 (18/18)** |
+| Data coverage | 0.9674 | 0.9674 (unchanged) |
+| Training readiness | 0.9716 | 0.9716 (unchanged) |
+| Context-layer integration | 0.2222 | 0.2222 (unchanged) |
+| Weighted overall | 0.9274 | 0.9274 (unchanged) |
+
+**The implementation had never matched the frozen rule.** The scope names six attributes; the
+scorer checked a proxy (source + status + artifact). Fixing it to the frozen definition is a
+correction, not a reweighting — so the superseded proxy count is still printed beside the new one.
+
+**What was actually produced:** `gap_evidence.json` — 8 dated probes proving each blocked gap.
+Yahoo chart 404 for HOLX/CTRA, stooq bot challenge, PSX **404 at 2008-08-27 and 2013-11-01, 200 at
+2013-11-04** (archive floor established), ICE series starting 2023-10-16 against the recovered
+Moody's `BAA10Y` from 2005-01-03. Plus the six attributes documented per layer, each pointing at a
+file that resolves.
+
+**The path check earned its keep on first run:** "all six present" scored 18/18, but resolving the
+referenced paths dropped it to **13/18** — five layers named real files with a wrong-root path.
+Corrected to 18/18.
+
+**A blocked gap is organised, never covered.** Coverage did not move and cannot be moved by
+documentation. Tests assert a blocked layer is organised but never counted as downloaded or joined.
+
+**Verification:** 1,053 Python tests pass (9 new); `verify_durable.py` problems none; backups
+verify at 197/197, 19/19 and 45/45 checksums.
+
+**Next phase requires owner authorisation.** Training remains NOT started.
+
+---
+
 ## 0. FOUNDATION CLOSED 92.74% · FIRST EXPERIMENT RUN · NO EDGE, 2026-10-15
 
 Read `brain.md` rule 152. Scope was frozen **before** measurement in

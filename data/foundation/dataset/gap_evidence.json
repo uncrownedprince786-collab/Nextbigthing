@@ -1,0 +1,126 @@
+{
+ "generatedAt": "2026-10-15T18:09:55+00:00",
+ "version": "gap-evidence-v1",
+ "purpose": "dated, reproducible evidence for each reported gap. Organisation and coverage are separate measurements: a gap can be fully organised and entirely uncovered at the same time",
+ "method": "one request per route, status recorded as returned. No retry for a different answer, no bot-challenge circumvention, no licence workaround",
+ "schema": {
+  "gap": "the inventory layer this evidences",
+  "route": "the provider and endpoint tried",
+  "url": "the exact request",
+  "expect": "what the project expects, written before probing",
+  "httpStatus": "as returned",
+  "bytes": "response size",
+  "firstDateReturned": "first data date when the body is a CSV",
+  "note": "anything non-obvious about the body",
+  "probedAt": "UTC timestamp of this request"
+ },
+ "gaps": {
+  "delisted US price history": {
+   "routesTried": 3,
+   "conclusion": "no permitted free source serves OHLCV for a delisted registrant; EDGAR holds identity and lifecycle but never prices",
+   "probes": [
+    {
+     "gap": "delisted US price history",
+     "route": "Yahoo v8 chart API",
+     "url": "https://query1.finance.yahoo.com/v8/finance/chart/HOLX?range=5y&interval=1d",
+     "expect": "404 for a delisted registrant",
+     "httpStatus": 404,
+     "bytes": 0,
+     "note": "HTTPError",
+     "firstDateReturned": "",
+     "probedAt": "2026-10-15T18:09:40+00:00"
+    },
+    {
+     "gap": "delisted US price history",
+     "route": "Yahoo v8 chart API",
+     "url": "https://query1.finance.yahoo.com/v8/finance/chart/CTRA?range=5y&interval=1d",
+     "expect": "404 for a delisted registrant",
+     "httpStatus": 404,
+     "bytes": 0,
+     "note": "HTTPError",
+     "firstDateReturned": "",
+     "probedAt": "2026-10-15T18:09:41+00:00"
+    },
+    {
+     "gap": "delisted US price history",
+     "route": "stooq daily CSV",
+     "url": "https://stooq.com/q/d/l/?s=holx.us&i=d",
+     "expect": "200 carrying a bot challenge rather than CSV; not circumvented",
+     "httpStatus": 200,
+     "bytes": 796,
+     "note": "HTML returned where data was expected (bot challenge or error page)",
+     "firstDateReturned": "",
+     "probedAt": "2026-10-15T18:09:43+00:00"
+    }
+   ]
+  },
+  "PSX history before 2013-11-04": {
+   "routesTried": 3,
+   "conclusion": "the exchange archive begins at 2013-11-04; earlier dates are absent at source, not missing from this project",
+   "probes": [
+    {
+     "gap": "PSX history before 2013-11-04",
+     "route": "PSX daily archive",
+     "url": "https://dps.psx.com.pk/download/mkt_summary/2008-08-27.Z",
+     "expect": "404: the archive does not reach 2008",
+     "httpStatus": 404,
+     "bytes": 0,
+     "note": "HTTPError",
+     "firstDateReturned": "",
+     "probedAt": "2026-10-15T18:09:45+00:00"
+    },
+    {
+     "gap": "PSX history before 2013-11-04",
+     "route": "PSX daily archive",
+     "url": "https://dps.psx.com.pk/download/mkt_summary/2013-11-01.Z",
+     "expect": "404: one session before the archive floor",
+     "httpStatus": 404,
+     "bytes": 0,
+     "note": "HTTPError",
+     "firstDateReturned": "",
+     "probedAt": "2026-10-15T18:09:47+00:00"
+    },
+    {
+     "gap": "PSX history before 2013-11-04",
+     "route": "PSX daily archive",
+     "url": "https://dps.psx.com.pk/download/mkt_summary/2013-11-04.Z",
+     "expect": "200: the archive floor",
+     "httpStatus": 200,
+     "bytes": 10614,
+     "note": "",
+     "firstDateReturned": "",
+     "probedAt": "2026-10-15T18:09:49+00:00"
+    }
+   ]
+  },
+  "ICE credit indices for 2008": {
+   "routesTried": 2,
+   "conclusion": "the ICE index is licence-limited to a rolling window; the credit spread itself was recovered as Moody's BAA10Y and covers 2005-2012 in full",
+   "probes": [
+    {
+     "gap": "ICE credit indices for 2008",
+     "route": "FRED",
+     "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=BAMLH0A0HYM2&cosd=2005-01-01",
+     "expect": "200 but the series begins inside a rolling three-year window",
+     "httpStatus": 200,
+     "bytes": 12702,
+     "note": "",
+     "firstDateReturned": "2023-10-16",
+     "probedAt": "2026-10-15T18:09:51+00:00"
+    },
+    {
+     "gap": "ICE credit indices for 2008",
+     "route": "FRED (recovered substitute)",
+     "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=BAA10Y&cosd=2005-01-01&coed=2012-12-31",
+     "expect": "200 covering the whole crisis window",
+     "httpStatus": 200,
+     "bytes": 33068,
+     "note": "",
+     "firstDateReturned": "2005-01-03",
+     "probedAt": "2026-10-15T18:09:53+00:00"
+    }
+   ]
+  }
+ },
+ "sha256": "4cf91cc9a8d5b8eec31653b84d16306c72f3bae77b4cd9375ff6aa676b3ea69c"
+}

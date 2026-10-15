@@ -34,6 +34,9 @@ F = ROOT / "data" / "foundation"
 OUT = F / "dataset" / "source_inventory.json"
 
 
+from organisation_attributes import SIX, attributes_for, is_complete  # noqa: E402
+
+
 def load(p: Path):
     try:
         return json.loads(p.read_text(encoding="utf-8"))
@@ -273,6 +276,13 @@ def main() -> int:
         },
     ]
 
+    # Metric 2's six frozen attributes. A layer counts only with all six, blocked layers
+    # included: the frozen scope keeps them in the denominator, and an evidenced gap is
+    # organised even though it is uncovered.
+    for x in layers:
+        x["organisation"] = attributes_for(x["layer"])
+        x["organisationComplete"] = is_complete(x["layer"])
+
     joined = [x for x in layers if x.get("joinedIntoTraining")]
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -286,6 +296,8 @@ def main() -> int:
             "byStatus": {s: sum(1 for x in layers if x["status"] == s)
                          for s in sorted({x["status"] for x in layers})},
             "joinedIntoTraining": len(joined),
+            "organisationComplete": sum(1 for x in layers if x["organisationComplete"]),
+            "organisationAttributes": list(SIX),
             "joinedLayers": [x["layer"] for x in joined],
             "preservedButNotJoined": [x["layer"] for x in layers
                                       if not x.get("joinedIntoTraining")

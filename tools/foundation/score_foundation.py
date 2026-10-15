@@ -186,17 +186,61 @@ def main() -> int:
     eligible = (ready.get("authoritativeDataset") or {}).get("rows") or 0
     feat_cov = (ready.get("authoritativeDataset") or {}).get("featureCoverage") or 0
     joined = (inv.get("summary") or {}).get("joinedIntoTraining") or 0
-    six = ("sourceLineage", "schema", "dateRange", "qualityChecks", "reproducibleLocation",
-           "checksumOrBackup")
-    organised = sum(1 for x in layers
-                    if x.get("source") and x.get("range", x.get("records", x.get("rows")))
-                    is not None and x.get("status") and x.get("artifact"))
+    # Metric 2 exactly as acceptance_scope.json defines it: the six named attributes, all
+    # present. The earlier implementation checked a looser proxy (source/range/status/artifact)
+    # that was never the frozen rule; both counts are reported so the change is visible rather
+    # than silent.
+    six = tuple((scope.get("metricDefinitions", {})
+                 .get("2_organisationAndValidation", {})
+                 .get("sixAttributes")) or
+                ("sourceLineage", "schema", "dateRange", "qualityChecks",
+                 "reproducibleLocation", "checksumOrBackup"))
+
+    def referenced_paths_exist(x) -> list[str]:
+        """Every repo path named in the attributes must actually be there.
+
+        An attribute that merely says a check happened is an assertion; one that names a file
+        which resolves on disk is a reference. Only the second is evidence, so a layer whose
+        pointers do not resolve does not count.
+        """
+        missing = []
+        for key in ("reproducibleLocation", "checksumOrBackup"):
+            text = (x.get("organisation") or {}).get(key, "")
+            for tok in text.replace(",", " ").split():
+                tok = tok.strip("();")
+                if "/" in tok and tok.endswith((".py", ".json", ".yml", ".jsonl")):
+                    if not (ROOT / tok).exists():
+                        missing.append(tok)
+        return missing
+
+    org_detail = []
+    for x in layers:
+        attrs = x.get("organisation") or {}
+        present = [k for k in six if attrs.get(k)]
+        missing_paths = referenced_paths_exist(x)
+        ok = len(present) == len(six) and not missing_paths
+        x["organisationVerified"] = ok
+        org_detail.append({"layer": x["layer"], "attributesPresent": len(present),
+                           "attributesRequired": len(six),
+                           "unresolvedPaths": missing_paths, "counts": ok})
+    organised = sum(1 for d in org_detail if d["counts"])
+    organised_proxy = sum(1 for x in layers
+                          if x.get("source") and x.get("status") and x.get("artifact"))
     metrics = {
         "1_dataCoverage": {"score": frac(obs, exp), "numerator": obs, "denominator": exp,
                            "scope": "all instrument sessions inside listed ranges"},
         "2_organisationAndValidation": {"score": frac(organised, len(layers)),
                                         "numerator": organised, "denominator": len(layers),
-                                        "attributesRequired": list(six)},
+                                        "attributesRequired": list(six),
+                                        "rule": "all six attributes present AND every repo path "
+                                                "they name resolves on disk",
+                                        "previousProxyImplementation": {
+                                            "numerator": organised_proxy,
+                                            "denominator": len(layers),
+                                            "note": "source+status+artifact only; never the "
+                                                    "frozen six, reported so the correction is "
+                                                    "visible"},
+                                        "perLayer": org_detail},
         "3_trainingReadiness": {"score": feat_cov,
                                 "numerator": round(feat_cov * eligible),
                                 "denominator": eligible,
