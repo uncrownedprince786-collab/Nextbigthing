@@ -1,5 +1,68 @@
 # Resume here
 
+## 0. State of play, 2026-10-16 — market and macro data acquisition is COMPLETE
+
+**Everything below section 0 predates 2026-10-14 and is stale. Read this section, then
+`brain.md` rules 129–141. Ignore the older instruction to "read AUDIT.md first"; AUDIT.md
+describes a production state that this branch has moved well past.**
+
+### Where the work is
+
+| | |
+|---|---|
+| Branch | `restore-db-utility` (not `main`; `origin/main` is still at `767d26b`, well behind) |
+| Last acquisition commit | `e457276` — "closeout: frozen market and macro acquisition complete at 14 of 14" |
+| Latest verified backup | `C:\Users\NEW TECH\nbt-private\backup-2026-10-16T0600Z-acquisition-complete\` (44/44 tables, 25 key files checksummed, 0 mismatches) |
+| Database | 1,097,485 rows, 44 tables, ~380 MB of the 500 MB free tier |
+
+### What is done — do not redo any of it
+
+**Frozen market/macro acquisition: 14 of 14 targets.** The authoritative ledger is
+`data/foundation/acquisition/target_ledger.json` (a required floor per target, decided before the
+data was read) and the manifest is `data/foundation/acquisition/manifest.json`
+(`acquisition-manifest-v7-final`).
+
+- **PSX**: 394,014 bars, 2018-01-01 onward, from the exchange's own archive — every published
+  session since 2018 was swept. Remaining gaps are 36,762 sessions where a security did not trade
+  plus 158 on four empty/absent archive dates; classified with evidence, not assumed.
+- **KSE-100**: complete from 2018-01-01. Two segments — the Karandaaz file (2018-01-01 to
+  2021-10-14, **close only**, **private**) and the exchange EOD endpoint (2021-10-15 onward,
+  `data/foundation/psx_index/KSE100.csv`). They agree on 1,228 shared dates with **zero failures**
+  and a maximum difference of **0.000026%**. All 2,171 published sessions covered, none missing.
+- **Benchmarks and macro**: 13 series in `data/foundation/benchmarks/` at their sources' own floors
+  (^GSPC to 1927, ^VIX to 1990, DX-Y.NYB to 1971, DGS10 to 1962, DFF to 1954, Bitcoin to 2011).
+- **SBP**: KIBOR 93,300 observations across 18 series and the policy rate, in `data/foundation/sbp/`.
+- **PSX delisted/renamed**: 24,613 bars, 21 symbols, `data/foundation/psx_delisted/`.
+- 17 of 17 durable artifact checksums verify. 971 tests pass.
+
+### Two things that must not be undone
+
+1. **The Karandaaz KSE-100 dataset is private.** It lives in `.cache/acquire/karandaaz/`
+   (gitignored) and in the PC backup. Permission for internal research and model development was
+   confirmed by the owner on 2026-10-16; the written conditions were not supplied, so **no broader
+   redistribution right is assumed** — never commit it, never publish it, never serve it.
+2. **The Open Data Pakistan CSV is rejected on index identity.** Its values differ from the
+   verified KSE-100 by a non-constant ratio (1.01–1.51); on 2021-02-23 it reads 31,626.19 where
+   the verified series reads 45,728.75. **Never merge it into the KSE-100 series.**
+
+### What is next
+
+**Milestone B — data cleaning and point-in-time integrity.** Not started. Its objectives and
+acceptance criteria are in `brain.md` rule 141. It needs the owner's explicit go-ahead.
+
+**Still later, and not begun:** historical news and original documents, the major crash and
+bull-run timelines, pre-event information, catalysts and post-event market reactions. That corpus
+is a separate research-data phase — nothing in the acquisition work touched it, and it must not be
+described as complete.
+
+**No further acquisition, broad resync or source research is required** unless specific evidence of
+a real defect appears.
+
+---
+
+*Everything from here down is the older resume note, kept unchanged for the record.*
+
+
 ## 0. State of play, 2026-10-10 (eleventh session, final audit) — read AUDIT.md first
 
 `AUDIT.md` is the current, authoritative state (PRODUCTION LOCKED on `c36d2a0`): what was verified, what was fixed in `f77e2d7`, `f548e85` and `c36d2a0`

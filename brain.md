@@ -4865,3 +4865,53 @@ reads rows that already exist:
       **historical news and original documents, the major crash and bull-run timelines, pre-event
       information, catalysts, and post-event market reactions.** That corpus is a separate research
       requirement and nothing in this phase has touched it.
+
+141. **Handoff: where this project stands, and what Milestone B has to do.** 2026-10-16. Written
+    so a session with no memory of the last few days can pick the work up from the repository
+    alone.
+
+    - **State.** Branch `restore-db-utility`, acquisition closed at commit `e457276`; `origin/main`
+      is still at `767d26b` and is far behind, so **do not read `main` as the current state**.
+      Latest verified backup
+      `C:\Users\NEW TECH\nbt-private\backup-2026-10-16T0600Z-acquisition-complete\` — 44 of 44
+      tables, 25 key files checksummed, zero mismatches, nine backups preserved. The database was
+      **unchanged** throughout the final closeout: 1,097,485 rows, 44 tables, about 380 MB of the
+      500 MB tier. `RESUME.md` section 0 carries the same orientation in short form; the rest of
+      that file, and `AUDIT.md`, predate this work.
+
+    - **Acquisition is finished and must not be repeated.** 14 of 14 frozen targets, with the
+      per-target ledger at `data/foundation/acquisition/target_ledger.json` and the manifest at
+      `data/foundation/acquisition/manifest.json` (`acquisition-manifest-v7-final`). Rules 130 to
+      140 carry the detail. **No further acquisition, broad resync or source research is required
+      unless specific evidence of a real defect appears.**
+
+    - **The two standing constraints.** The Karandaaz KSE-100 segment is private, in
+      `.cache/acquire/karandaaz/` and the backup, permitted for internal research and model
+      development by the owner's confirmation and **nothing wider** — never committed, never
+      published. The Open Data Pakistan CSV is **rejected on index identity** and must never be
+      merged into the KSE-100 series.
+
+    ### Milestone B — cleaning and point-in-time integrity. Not started; needs the owner's go-ahead.
+
+    - **Objectives.** Validate source provenance and timestamps across every stored series.
+      Resolve duplicates and conflicting prices between sources without silently overwriting
+      either. Settle corporate actions and the raw-versus-adjusted basis question per asset --
+      the PSX series is raw from the exchange and split-adjusted from the Karachi listing, kept
+      apart by `source`, and that distinction is load-bearing. Verify point-in-time correctness
+      and that no path lets a later observation reach an earlier session.
+
+    - **The distinction the data already makes, and that must survive.** A genuine no-trade
+      session, an exchange holiday, a source that published nothing, and an actual missing record
+      are four different facts. `data/foundation/psx_complete/residual_classification.json` already
+      separates them for PSX; nothing in Milestone B may collapse them back into "missing".
+
+    - **Acceptance criteria.** All existing data preserved and backward compatible. Only
+      specifically evidenced gaps recovered -- no full resync, no rebuild, no reset. Any write
+      quantified first for row-level effect, rollback path, free-tier storage and database load,
+      against a verified backup. One bounded, evidence-backed completion report at the end, with
+      metrics whose denominators are stated and reproducible.
+
+    - **What Milestone B is not.** It is not feature engineering, not training, not strategy work,
+      and not the research corpus. **Historical news, original documents, the crash and bull-run
+      timelines, pre-event information, catalysts and post-event market reactions remain a
+      separate later phase that has not been started** and must not be described as complete.

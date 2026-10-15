@@ -1,3 +1,9 @@
+> **SUPERSEDED 2026-10-16.** This file describes the state on 2026-10-01, when the system was in
+> production/maintenance only. Since then the data-foundation work on branch `restore-db-utility`
+> has completed the frozen market and macro acquisition — 14 of 14 targets, commit `e457276`.
+> Read `RESUME.md` section 0 and `brain.md` rules 129–141 first. This file is kept unchanged below
+> for the record.
+
 # Handoff — 2026-10-01, final development pass
 
 > For the short version — where work stopped and what to do next — read
