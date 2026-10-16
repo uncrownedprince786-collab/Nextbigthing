@@ -115,6 +115,66 @@ export const CONNECT_TIMEOUT_MS = 5_000;
 export const STANDBY_MAX_CLIENTS = 1;
 export const STANDBY_IDLE_MS = 2_000;
 
+/// A fair queue in front of a pool, so that nothing ever waits in `pg`'s.
+///
+/// **The fault this exists for, measured on 2026-10-16.** The overview's cold render asks the primary
+/// for about fifty connections at once -- `getDecisionRows` and `getSourceHealth` each fan out and
+/// the page runs them together -- against a pool that admits two (`primaryLimits`, for a free-tier
+/// pooler's sake). Forty-odd acquisitions therefore sat in `pg`'s queue: `total=2 idle=0 waiting=43`
+/// through `waiting=59`. `pg` spends one option, `connectionTimeoutMillis`, on both "how long to wait
+/// for a socket" and "how long to wait for a turn", because its clock starts when an acquisition is
+/// *queued*. So every queued acquisition failed after five seconds with "timeout exceeded when trying
+/// to connect"; `isConnectionFailure` reads that wording as an endpoint that cannot be used, which it
+/// has to, since a genuinely full pooler says the same thing; and a primary that was answering every
+/// query it was actually handed was marked down and the request cascaded to the standbys -- one of
+/// which refuses connections outright. The page failed in fifteen seconds against a healthy database,
+/// and only ever rendered because `unstable_cache` holds its rows with no expiry once warm.
+///
+/// **Why a gate and not a longer timeout.** Raising `connectionTimeoutMillis` was measured and is
+/// worse: `pg`'s queue is FIFO, so a waiter that times out and queues again goes to the back, and
+/// under steady oversubscription the cold render went from failing in fifteen seconds to failing in
+/// two minutes. Raising `max` is the other obvious answer and is not this layer's to take -- the
+/// ceiling is a shared total across every server instance and every job, and what the free tier
+/// admits is the owner's to spend.
+///
+/// So the demand is bounded instead of the supply raised. At most `capacity` acquisitions are
+/// outstanding, which is what the pool could serve anyway, and the rest wait here in arrival order
+/// with no clock running. It opens no additional connection and holds none longer: the ticket is
+/// given back when the client is released, so a queue that was `waiting=50` inside `pg` becomes the
+/// same fifty queries served two at a time, in order, each getting its connection at once.
+export class Gate {
+  private readonly capacity: number;
+  private free: number;
+  private readonly waiting: (() => void)[] = [];
+
+  constructor(capacity: number) {
+    this.capacity = Math.max(1, capacity);
+    this.free = this.capacity;
+  }
+
+  taken = 0;
+
+  async take(): Promise<void> {
+    this.taken++;
+    if (process.env.POOL_DEBUG && this.taken % 50 === 0) {
+      console.warn(`gate: ${this.taken} acquisitions, ${this.waiting.length} waiting, ${this.free} free`);
+    }
+    if (this.free > 0) {
+      this.free--;
+      return;
+    }
+    await new Promise<void>((resolve) => this.waiting.push(resolve));
+  }
+
+  /// Give the place back, to the longest-waiting request if there is one -- handing the permit
+  /// straight over rather than incrementing, so a release cannot be overtaken by a new arrival.
+  give(): void {
+    const next = this.waiting.shift();
+    if (next) next();
+    else this.free = Math.min(this.capacity, this.free + 1);
+  }
+}
+
 export interface Tier<C> {
   /// A label for logs. Never a host and never a credential.
   name: string;
@@ -292,6 +352,12 @@ export function makeFailoverPool(primary: pg.PoolConfig, standbys: StandbyConfig
   });
   const standbyPools = standbys.map((s) => ({ name: s.name, pool: new pg.Pool(withTimeout(s.config, STANDBY_MAX_CLIENTS)) }));
   const router: { current: Failover<pg.PoolClient> | null } = { current: null };
+  // Sized to the primary's ceiling, which is the pool nearly every request is served by; `pg`'s own
+  // default is 10. Not the narrowest tier: a standby admits one client, and sizing the gate to that
+  // would halve the healthy primary's throughput for an outage that is not happening. While a
+  // standby is serving, one acquisition can still queue inside `pg` -- one, briefly, which is the
+  // case `CONNECT_TIMEOUT_MS` was always meant for, rather than the fifty this gate exists to stop.
+  const gate = new Gate(primary.max ?? 10);
 
   class FailoverPool extends pg.Pool {
     // pg types `connect` as three overloads; the override has to serve all of them.
@@ -312,7 +378,41 @@ export function makeFailoverPool(primary: pg.PoolConfig, standbys: StandbyConfig
           discard: (client: pg.PoolClient) => client.release(),
         })),
       ]));
-      const promise = route.connect();
+      const promise = (async () => {
+        await gate.take();
+        let client: pg.PoolClient;
+        try {
+          client = await route.connect();
+        } catch (error) {
+          gate.give();
+          throw error;
+        }
+        // The ticket is held until the client goes back to its pool, so `capacity` bounds the
+        // connections in use and not merely the acquisitions in flight. A client that is never
+        // released would strand a place here -- and would already have stranded the pool's own, so
+        // this adds no failure the pool did not have.
+        // `pg` installs a *fresh* `release` on the client for each checkout -- it is a per-checkout
+        // closure over that checkout's idle listener, not a method -- so the one to wrap is the one
+        // standing now, read after `connect` returned. Keeping the first one aside and reusing it on
+        // a later acquisition was tried and is wrong in a way that looks unrelated: every release
+        // after the first raised "already released to the pool", the raise escaped before the place
+        // was given back, the gate drained to nothing, and the page stopped making progress -- which
+        // reads exactly like the starvation this is here to prevent.
+        const original = client.release.bind(client);
+        let given = false;
+        client.release = (arg?: boolean | Error) => {
+          // The place is given back once and before `pg`'s own raise can escape; a second release is
+          // `pg`'s signal to its caller and is passed through untouched.
+          if (given) return original(arg);
+          given = true;
+          try {
+            original(arg);
+          } finally {
+            gate.give();
+          }
+        };
+        return client;
+      })();
       if (typeof callback !== "function") return promise;
       promise.then(
         (client) => callback(undefined, client, client.release.bind(client)),

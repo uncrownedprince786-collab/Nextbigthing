@@ -26,6 +26,7 @@ import {
   VETTING_TTL_MS,
   CONNECT_TIMEOUT_MS,
   STANDBY_MAX_CLIENTS,
+  Gate,
   type Tier,
 } from "../lib/failover.ts";
 
@@ -346,7 +347,9 @@ test("a writer reaches a standby only through the write failover, never through 
   // restore_db.py names both standbys for the opposite reason to the one this rule guards: it never
   // connects to them, it compares them against RESTORE_DATABASE_URL so a restore cannot be pointed
   // at one. Removing the names would make it possible to overwrite a standby, not harder.
-  const allowed = new Set(["mirror.py", "schema_parity.py", "standby_parity.py", "nbt.py", "reconcile.py", "writer.mjs", "logic_audit.py", "schemacheck.py", "restore_db.py"]);
+  // db_probe.mjs names all three because reporting on each endpoint is the whole of it: it issues
+  // SELECTs and closes, which the assertion below holds it to.
+  const allowed = new Set(["mirror.py", "schema_parity.py", "standby_parity.py", "nbt.py", "reconcile.py", "writer.mjs", "logic_audit.py", "schemacheck.py", "restore_db.py", "db_probe.mjs"]);
   for (const dir of ["jobs", "tools"]) {
     for (const name of readdirSync(new URL(`${dir}/`, root))) {
       if (!/\.(py|mjs|ts)$/.test(name)) continue;
@@ -358,6 +361,12 @@ test("a writer reaches a standby only through the write failover, never through 
   }
   for (const name of ["decide.mjs", "macro_gate.mjs"]) {
     assert.match(readFileSync(new URL(`tools/${name}`, root), "utf8"), /import \{ writerPool \} from "\.\/writer\.mjs";/, name);
+  }
+  // The diagnostic reads and reports. A probe that grew a write would be the thing this rule exists
+  // to stop, and it would arrive looking like a convenience.
+  const probe = readFileSync(new URL("tools/db_probe.mjs", root), "utf8");
+  for (const forbidden of ["INSERT", "UPDATE", "DELETE", "DROP", "TRUNCATE", "ALTER"]) {
+    assert.ok(!probe.includes(forbidden), `tools/db_probe.mjs contains ${forbidden}`);
   }
 });
 
@@ -421,6 +430,84 @@ test("a standby pool is small, because a free pooler admits few clients in total
   assert.ok(STANDBY_MAX_CLIENTS >= 1 && STANDBY_MAX_CLIENTS <= 3, String(STANDBY_MAX_CLIENTS));
   const src = readFileSync(new URL("../lib/failover.ts", import.meta.url), "utf8");
   assert.match(src, /withTimeout\(s\.config, STANDBY_MAX_CLIENTS\)/);
+});
+
+// --- the pool's own queue is not an endpoint failure ---------------------------------------------
+//
+// `pg` spends one option, `connectionTimeoutMillis`, on both "how long to wait for a socket" and
+// "how long to wait for a turn", because its clock starts when an acquisition is queued. On a pool
+// of two serving a page that asks for fifty connections the queue is the normal case, and reading a
+// queued wait as an unreachable endpoint cost the site its whole cold render: measured 2026-10-16,
+// 43 to 59 acquisitions queued, every one timing out at five seconds, the primary marked down while
+// it answered every query it was handed, and the request cascading to a standby that refuses
+// connections.
+
+test("a gate admits its capacity at once and makes the rest wait", async () => {
+  const gate = new Gate(2);
+  const order: number[] = [];
+  await gate.take();
+  await gate.take();
+  // The third and fourth cannot proceed until a place is given back.
+  const third = gate.take().then(() => order.push(3));
+  const fourth = gate.take().then(() => order.push(4));
+  await Promise.resolve();
+  assert.deepEqual(order, [], "the gate admitted more than its capacity");
+  gate.give();
+  await third;
+  assert.deepEqual(order, [3]);
+  gate.give();
+  await fourth;
+  assert.deepEqual(order, [3, 4], "the gate served its queue out of arrival order");
+});
+
+test("a place is given to the longest waiter, so a new arrival cannot overtake it", async () => {
+  const gate = new Gate(1);
+  await gate.take();
+  const served: string[] = [];
+  const first = gate.take().then(() => served.push("first"));
+  const second = gate.take().then(() => served.push("second"));
+  gate.give();
+  await first;
+  gate.give();
+  await second;
+  assert.deepEqual(served, ["first", "second"]);
+});
+
+test("a gate never admits beyond its capacity however often a place is given back", async () => {
+  // `pg` raises on a double release and the gate must not double-count either way, or the ceiling
+  // it exists to hold would drift upwards over a long-running process.
+  const gate = new Gate(2);
+  for (let i = 0; i < 5; i++) gate.give();
+  await gate.take();
+  await gate.take();
+  let admitted = false;
+  void gate.take().then(() => (admitted = true));
+  await Promise.resolve();
+  assert.equal(admitted, false, "a place was handed out beyond the capacity");
+});
+
+test("the pool gates acquisitions at its own ceiling, and gives the place back on release", () => {
+  const src = readFileSync(new URL("../lib/failover.ts", import.meta.url), "utf8");
+  assert.match(src, /const gate = new Gate\(primary\.max \?\? 10\)/);
+  assert.match(src, /await gate\.take\(\)/);
+  // Released on the failure path as well, or one unreachable endpoint would strand every place.
+  assert.match(src, /gate\.give\(\);\s*\n\s*throw error;/);
+  // `pg` installs a fresh `release` per checkout, so the one wrapped must be read after `connect`
+  // returned. Reusing the first one made every later release raise "already released to the pool",
+  // the raise escaped before the place was given back, and the gate drained to nothing.
+  assert.match(src, /const original = client\.release\.bind\(client\);/);
+  // The place is given back even when that raise comes from the first release.
+  assert.match(src, /} finally \{\s*\n\s*gate\.give\(\);/);
+});
+
+test("waiting for a turn is one wait and never a retry", () => {
+  // Measured 2026-10-16: raising `connectionTimeoutMillis` so queued acquisitions wait longer is
+  // worse, because `pg`'s queue is FIFO and a waiter that times out and queues again goes to the
+  // back. The cold render went from failing in 15 seconds to failing in two minutes. The gate waits
+  // in arrival order with no clock, so there is no acquisition retry here to find.
+  const src = readFileSync(new URL("../lib/failover.ts", import.meta.url), "utf8");
+  const code = src.split("\n").filter((l) => !/^\s*\/\//.test(l)).join("\n");
+  assert.ok(!/for \(;;\)|while \(true\)/.test(code), "lib/failover.ts retries an acquisition in a loop");
 });
 
 test("a Supabase primary gets two connections per instance; Neon keeps pg's default", async () => {
