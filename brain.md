@@ -6182,3 +6182,50 @@ reads rows that already exist:
       we hold, with none matured yet, is a measured `0.0`. An instrument we hold none for is
       `None`. Collapsing them would tell a model "nothing happened" where the truth is "we did not
       look", which is the same error `capBasis none` exists to prevent on the price side.
+
+168. **Context reached the model and bought +0.0060 by saying one word more often.** 2026-10-17.
+    Commits: `ed42fdc`, `f664f17`, `dcc96d8`, `39e4d58` and this record.
+
+    - **The experiment that could answer the question had to change one thing.** Two models, one
+      process, the same 1,055,429 rows, the same split, seed and hyperparameters, differing only in
+      their columns: fifteen price fields, or those fifteen plus twenty-nine context ones. Comparing
+      against the recorded 0.4107 instead would have changed the imputation rule and the dataset
+      build at the same time, and a comparison in which two things moved answers nothing.
+
+    - **The criteria were committed before the dataset finished building** (`f664f17`), so `git log`
+      is the evidence that they were not chosen to fit a number. That is the cheapest honest thing
+      this project has ever done and it should be the default for every candidate from here.
+
+    - **+0.0060, and it is not learning.** Context scored 0.4167 against price-only's 0.4107 and a
+      0.4388 largest-class share. It bought the gain by collapsing harder: **UP predicted on 92.19%
+      of a holdout that is 38.67% UP**, against 74.67% before; UP recall 0.7435 -> 0.9501, DOWN
+      recall 0.2427 -> **0.0826**. About 9,100 UP hits gained, about 8,000 DOWN hits given back.
+      **An accuracy that rises because the model says one word more often is not an improvement**,
+      and `notDegenerate` is the criterion that refuses to call it one.
+
+    - **The baseline reproduced itself exactly, which is what made the comparison worth making.**
+      price-only scored **0.4107** here -- brain-v1's recorded figure to four places -- on a
+      different dataset build, a different assemble run and a different imputation rule. A baseline
+      that cannot reproduce itself turns every comparison into an argument about the baseline.
+
+    - **This measured market-wide context, not company context, and the null shares say so.** The
+      events, press and reaction corpora name about **37 of 617** symbols, so `ctx_own*` and the
+      prior columns are null on more than 93% of rows and carry almost nothing after imputation,
+      while the macro and market-event columns are present on 97%+. The honest title of the result
+      is "market-wide context does not help this label", and the company-level question is still
+      unasked.
+
+    - **Crypto is the next hypothesis and must be pre-registered before it is tested.** 0.5143
+      against price-only's 0.4712, and the **only** market in the run to clear its own majority
+      (0.4723). PSX, commodity and forex all got worse. n = 19,220 rows is about **960 effective
+      windows** of one unpristine year -- which is a reason to design a clean test, not to claim
+      one. Testing it on this holdout without pre-registering would make it the eighth way of
+      reading the same year.
+
+    - **An artifact is only proven by a process that holds nothing else.** `verify_artifact.py`
+      reads `model.json`, rebuilds every feature **by name**, applies the preprocessing the file
+      itself describes, and scores the whole holdout. The trainer's own reload check proves the
+      file serialises what was in memory; it cannot prove the file is *sufficient*, because that
+      process still held the loader, the imputation means and the column order. Rebuilding by name
+      is also what an inference path does, so this is the training/inference parity check: a
+      reordered column changes the predicted mix here instead of quietly degrading a live score.

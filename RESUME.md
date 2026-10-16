@@ -1,5 +1,137 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT — 2026-10-17 (twelfth), context reaches the model, and it is a NO-GO
+
+**Branch `main`. Working tree clean. Nothing running.** Commits this session, all on `origin/main`:
+
+| Commit | What |
+|---|---|
+| `ed42fdc` | scope correction (market / own / unresolved) + the `pit.ctx` join |
+| `f664f17` | **the pre-registered experiment, committed before its dataset finished building** |
+| `dcc96d8` | `examples-v4-context` frozen, separately, v3 untouched |
+| `39e4d58` | the context candidate trained, evaluated, **NO-GO**; both artifacts reproduce in a fresh process |
+
+**Usage, as read: 83% used, 17% remaining**, weekly, resetting 2026-10-19. The 20–25% stop was
+superseded for this run by explicit direction; the 1% rule stands.
+
+### The headline, stated the way it should be read
+
+**Context now reaches the model, and it does not help.**
+
+| | accuracy |
+|---|---|
+| context (44 features) | **0.4167** |
+| price-only (15 features), same rows, same split, same seed | **0.4107** |
+| difference | **+0.0060** |
+| holdout largest class | 0.4388 → margin **-0.0221** |
+
+**1 of 4 pre-registered criteria met.** It beats the price-only model. It fails on majority, on
+degeneracy, and on the adverse class.
+
+**The gain is real and it is not learning.** Context buys its +0.0060 by leaning harder into one
+word: UP predicted on **92.19%** of a holdout that is **38.67%** UP, against price-only's 74.67%.
+UP recall 0.7435 → **0.9501**; DOWN recall 0.2427 → **0.0826**. It gains ~9,100 UP hits and gives
+back ~8,000 DOWN hits. An accuracy that rises because the model says one word more often is exactly
+what `notDegenerate` exists to catch, and it caught it.
+
+**The baseline reproduced itself exactly.** price-only scored **0.4107** here — brain-v1's recorded
+figure — on a different dataset build, a different assemble run and a different imputation rule.
+That is what made the comparison worth making.
+
+### What was actually measured, precisely
+
+The instrument-specific corpora name about **37 of 617** symbols. So:
+
+| feature | null share |
+|---|---|
+| `ctx_mktEventsIn90d`, `ctx_mktPressIn90d`, `ctx_unresolvedScopeRecords` | **0.0** |
+| `macro_*` (20 columns) | 0.0278 — that is 2018, which precedes the macro artifact |
+| `ctx_ownEventsIn90d`, `ctx_maturedPriors` | 0.9319 |
+| `ctx_ownPressIn90d` | 0.9355 |
+| `ctx_ownDaysSinceEvent` | 0.9543 |
+| `ctx_priorMedianFwd20` | 0.9551 |
+
+**This run measured whether *market-wide* context helps.** The company-specific columns are null on
+more than 93% of rows and carry almost nothing after imputation. That is a source-coverage fact,
+not a join defect: the producer keeps "no record for this instrument" (`None`) apart from "this
+instrument had a quiet quarter" (`0.0`), and nothing was imputed to flatter a coverage number.
+
+### The one segment that went the other way
+
+| market | context | price-only | its own majority |
+|---|---|---|---|
+| **crypto** | **0.5143** | 0.4712 | 0.4723 |
+| US | 0.4334 | 0.4270 | 0.4336 |
+| PSX | 0.3537 | 0.3611 | 0.5064 |
+| commodity | 0.3743 | 0.4010 | 0.4410 |
+| forex | 0.3714 | 0.3998 | 0.7289 |
+
+Crypto is the **only** market in the run to clear its own majority, by +0.042, and the only one
+where context helped by more than noise. n = 19,220 rows ≈ **960 effective windows**, one unpristine
+year. **This is the next hypothesis, not a result**, and it must be pre-registered before it is
+tested or it becomes the eighth way of reading the same holdout.
+
+### Dataset and artifacts
+
+**`examples-v4-context-2026-10-16-local`**, gates green, 9 files by sha256 in
+`data/foundation/dataset/dataset_freeze_v4_context.json`.
+
+- 1,086,349 eligible asset-sessions, features on 1,055,429, **unexplained 0** — reconciles row for
+  row with v3; the join added columns and moved nothing.
+- `leakage`: featureDatedAfterSession **0**, **contextDatedAfterSession 0**, setupDatedAfterSession 0.
+- duplicates 0/0; 2018 assembled twice, digests match.
+- `pit.ctx` on **1,055,429** rows = **1.0** of every row with price features.
+- **v3 and `brain-v1` are byte-identical and untouched.** `freeze_dataset.py` took `--prefix`
+  because it hard-coded `examples-v3`, which would have written the first version's name over the
+  first version's record.
+
+**Artifacts:** `data/foundation/brain/brain-v2-context/model.json`, sha256 `73d48231…`, status
+NO-GO, `productionApproved: false` **inside the file**. `brain-v1` unchanged at `989ffe09…`.
+
+**Both reproduce in a fresh process.** `tools/research/verify_artifact.py` reads `model.json`,
+rebuilds every feature **by name**, applies the preprocessing the file itself describes, and scores
+the whole holdout: v2 0.4167, v1 0.4107, predicted mix and per-class recall matching their
+manifests exactly. That is the training/inference parity check too — a column reordered between
+training and serving would change the mix here rather than quietly degrading a live score.
+
+### Validation limits, stated plainly
+
+**The holdout is not pristine.** 2026-01-01 → 2026-09-25, 113,651 rows, **5,683 effective
+independent windows**. Every calendar year in this dataset has been scored by a recorded
+experiment. This run is a comparison between two models on identical rows, which is a valid thing
+to measure; it is **not** an independent validation of either.
+
+**No trading claim is possible.** Direction only. No execution-cost, spread or borrow data exists
+for any market in this project, so drawdown and turnover figures attached to a three-class label
+would mean nothing and none are given.
+
+**Eight NO-GO verdicts now recorded, none overwritten.**
+
+### Tests
+
+**1,129 Python, `OK`**, via `python -m unittest discover -s tests`. 35 of them are the context
+producer's and the join's.
+
+### Next authorized action
+
+```
+python -m unittest discover -s tests                     # expect 1129 OK
+python tools/research/verify_artifact.py --model data/foundation/brain/brain-v2-context
+```
+
+Expect 0.4167, mix `{DOWN 6696, FLAT 2182, UP 104773}`. Then, in dependency order:
+
+1. **Shadow-prediction readiness.** The blocker to check first: the macro artifact lives in
+   `.cache/foundation/macro_rebuild/` and is **gitignored and disposable**, so a live inference
+   path cannot depend on it without a rebuild step in the lane. Nothing else in the producer reads
+   `.cache`; events, press and reactions are committed under `data/foundation/events/`.
+2. **The crypto hypothesis**, pre-registered before it is run: baseline, margin and the exact rows
+   fixed in a commit first, as `f664f17` did for this one.
+3. **A pristine holdout, or forward shadow predictions.** Nothing after 2026-09-25 is both unseen
+   and matured at a 20-session horizon. Do not relabel a seen window.
+4. **Three owner decisions**, unchanged: pool ceiling, pooler client ceiling, key rotation.
+   **`WORKER_ARTIFACT_KEY`: BLOCKED — authorization required.**
+
 ## 0. SESSION CHECKPOINT — 2026-10-17 (eleventh), the context producer exists; the join does not
 
 **Branch `main`. Working tree clean. Nothing running.** The work commit is `9d4fab2`; this record
