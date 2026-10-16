@@ -1,0 +1,255 @@
+{
+ "version": "h1-analog-prior-v1",
+ "status": "offline falsification test; nothing deployed, nothing traded, no model fitted",
+ "hypothesis": "the historical analogue prior carries directional information beyond the best constant call on the same rows, at the five-session horizon where the data already exists",
+ "logicVersion": "families-v1.2",
+ "rule": {
+  "source": "E5 as shipped in lib/families.ts, called through readFamilies -- not restated here",
+  "eligibleWhen": "matches >= 8",
+  "callsLongAt": "share >= 0.55",
+  "callsShortAt": "share <= 0.45",
+  "fitted": "nothing; there is no parameter in this test to tune"
+ },
+ "target": {
+  "definition": "sign(outcome.fwd5); UP when fwd5 > 0, DOWN when fwd5 < 0",
+  "whyTheSign": "the prior's `positive` counts matched forward moves above zero, so the event it estimates is fwd5 > 0; a band would be a threshold invented for this test",
+  "zeroOutcome": "excluded and counted -- no directional outcome occurred",
+  "maturity": "fwd5 is mature on every row: full_history.py emits a row only with 20 forward sessions"
+ },
+ "dataVersion": {
+  "dataset": "examples-v3-2026-10-16-local",
+  "frozenAt": "2026-10-16T13:11:03+00:00",
+  "blockingGatesGreen": true,
+  "rowsWithFeatures": 1055429,
+  "repoHead": "3215e0b0bec3614a3443dfccbc67728aa4979918"
+ },
+ "eligibleRows": 801209,
+ "exclusions": {
+  "noFeatures": 30920,
+  "noFwd5": 0,
+  "fwd5Zero": 5283,
+  "qualityFlagged": 60252,
+  "noAnalog": 3117,
+  "tooFewMatches": 185568
+ },
+ "preDeclaredCriteria": {
+  "reusedFrom": "tools/research/context_experiment.py -- the same shape of test, an abstaining signal scored on the rows it calls against a reference on identical rows",
+  "meanGainOverConstantCall": 0.02,
+  "foldsBeatingConstantCall": "4 of 5",
+  "adverseRegime": "2022 rate-shock bear",
+  "validityFloorCallsPerFold": 1000,
+  "setBefore": "the run"
+ },
+ "splitPlan": {
+  "walkForward": [
+   2021,
+   2022,
+   2023,
+   2024,
+   2025
+  ],
+  "heldOut": 2026,
+  "heldOutTreatment": "not used for any choice; read once as a confirmatory report and cannot change the verdict",
+  "embargoSessions": 5,
+  "embargoIsNotALeakageControl": "nothing is fitted, so there is no train-to-test path; the embargo keeps a row's forward window from straddling a fold boundary",
+  "exposureNote": "2021-2026 were exposed by the earlier candidates; this is not a pristine holdout except for 2026, which this test protected"
+ },
+ "crossSectional": {
+  "handling": "reported, not corrected",
+  "why": "many assets share a decision date and their five-session outcomes share a market factor, so the row count overstates independence; unique decision dates are reported per fold"
+ },
+ "folds": [
+  {
+   "testYear": 2021,
+   "testWindow": [
+    "2021-01-07",
+    "2021-12-31"
+   ],
+   "embargoSessionsDropped": 5,
+   "rows": 96103,
+   "calls": 61839,
+   "uniqueDecisionDates": 353,
+   "coverage": 0.6435,
+   "accuracy": 0.5397,
+   "constantCall": "LONG",
+   "constantCallAccuracy": 0.519,
+   "gainOverConstantCall": 0.0207,
+   "beatsConstantCall": true,
+   "meetsValidityFloor": true
+  },
+  {
+   "testYear": 2022,
+   "testWindow": [
+    "2022-01-06",
+    "2022-12-31"
+   ],
+   "embargoSessionsDropped": 5,
+   "rows": 102349,
+   "calls": 60917,
+   "uniqueDecisionDates": 358,
+   "coverage": 0.5952,
+   "accuracy": 0.5203,
+   "constantCall": "SHORT",
+   "constantCallAccuracy": 0.5356,
+   "gainOverConstantCall": -0.0153,
+   "beatsConstantCall": false,
+   "meetsValidityFloor": true
+  },
+  {
+   "testYear": 2023,
+   "testWindow": [
+    "2023-01-06",
+    "2023-12-31"
+   ],
+   "embargoSessionsDropped": 5,
+   "rows": 110390,
+   "calls": 59159,
+   "uniqueDecisionDates": 359,
+   "coverage": 0.5359,
+   "accuracy": 0.516,
+   "constantCall": "LONG",
+   "constantCallAccuracy": 0.5214,
+   "gainOverConstantCall": -0.0054,
+   "beatsConstantCall": false,
+   "meetsValidityFloor": true
+  },
+  {
+   "testYear": 2024,
+   "testWindow": [
+    "2024-01-06",
+    "2024-12-31"
+   ],
+   "embargoSessionsDropped": 5,
+   "rows": 113889,
+   "calls": 57700,
+   "uniqueDecisionDates": 360,
+   "coverage": 0.5066,
+   "accuracy": 0.5331,
+   "constantCall": "LONG",
+   "constantCallAccuracy": 0.5217,
+   "gainOverConstantCall": 0.0114,
+   "beatsConstantCall": true,
+   "meetsValidityFloor": true
+  },
+  {
+   "testYear": 2025,
+   "testWindow": [
+    "2025-01-06",
+    "2025-12-31"
+   ],
+   "embargoSessionsDropped": 5,
+   "rows": 122621,
+   "calls": 61395,
+   "uniqueDecisionDates": 360,
+   "coverage": 0.5007,
+   "accuracy": 0.532,
+   "constantCall": "LONG",
+   "constantCallAccuracy": 0.5149,
+   "gainOverConstantCall": 0.0171,
+   "beatsConstantCall": true,
+   "meetsValidityFloor": true
+  }
+ ],
+ "adverseRegime": {
+  "name": "2022 rate-shock bear",
+  "from": "2022-01-03",
+  "to": "2022-10-12",
+  "rows": 79668,
+  "calls": 48021,
+  "uniqueDecisionDates": 281,
+  "coverage": 0.6028,
+  "accuracy": 0.5029,
+  "constantCall": "SHORT",
+  "constantCallAccuracy": 0.5443,
+  "gainOverConstantCall": -0.0414
+ },
+ "heldOut2026": {
+  "rows": 91878,
+  "calls": 46266,
+  "uniqueDecisionDates": 267,
+  "coverage": 0.5036,
+  "accuracy": 0.5247,
+  "constantCall": "SHORT",
+  "constantCallAccuracy": 0.5161,
+  "gainOverConstantCall": 0.0086,
+  "usedForAnyChoice": false
+ },
+ "byMarket": {
+  "Commodity": {
+   "rows": 10411,
+   "calls": 6342,
+   "uniqueDecisionDates": 1855,
+   "coverage": 0.6092,
+   "accuracy": 0.5396,
+   "constantCall": "LONG",
+   "constantCallAccuracy": 0.5383,
+   "gainOverConstantCall": 0.0013
+  },
+  "Crypto": {
+   "rows": 52053,
+   "calls": 31055,
+   "uniqueDecisionDates": 2555,
+   "coverage": 0.5966,
+   "accuracy": 0.518,
+   "constantCall": "SHORT",
+   "constantCallAccuracy": 0.5304,
+   "gainOverConstantCall": -0.0124
+  },
+  "FX": {
+   "rows": 49406,
+   "calls": 18761,
+   "uniqueDecisionDates": 1958,
+   "coverage": 0.3797,
+   "accuracy": 0.5422,
+   "constantCall": "LONG",
+   "constantCallAccuracy": 0.5399,
+   "gainOverConstantCall": 0.0023
+  },
+  "PSX": {
+   "rows": 241719,
+   "calls": 151475,
+   "uniqueDecisionDates": 2105,
+   "coverage": 0.6267,
+   "accuracy": 0.5344,
+   "constantCall": "SHORT",
+   "constantCallAccuracy": 0.5388,
+   "gainOverConstantCall": -0.0044
+  },
+  "US": {
+   "rows": 447620,
+   "calls": 256986,
+   "uniqueDecisionDates": 1888,
+   "coverage": 0.5741,
+   "accuracy": 0.5309,
+   "constantCall": "LONG",
+   "constantCallAccuracy": 0.5408,
+   "gainOverConstantCall": -0.0099
+  }
+ },
+ "summary": {
+  "folds": 5,
+  "meanAccuracy": 0.5282,
+  "meanConstantCallAccuracy": 0.5225,
+  "meanGain": 0.0057,
+  "foldsBeatingConstantCall": 3,
+  "allFoldsMeetValidityFloor": true
+ },
+ "criteriaMet": {
+  "meanGainAtLeast": [
+   0.0057,
+   0.02,
+   false
+  ],
+  "foldsBeatingConstantCall": [
+   3,
+   4,
+   false
+  ],
+  "doesNotDegradeInTheAdverseRegime": [
+   -0.0414,
+   0,
+   false
+  ]
+ },
+ "verdict": "NO-GO"
+}

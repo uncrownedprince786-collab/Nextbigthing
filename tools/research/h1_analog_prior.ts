@@ -211,7 +211,11 @@ async function main() {
   const freeze = JSON.parse(await readFile("data/foundation/dataset/dataset_freeze.json", "utf8"));
   const allDates = [...new Set(rows.map((r) => r.asOf))].sort();
 
-  const folds = [];
+  type Fold = ReturnType<typeof score> & {
+    testYear: number; testWindow: string[]; embargoSessionsDropped: number;
+    gainOverConstantCall: number | null; beatsConstantCall: boolean; meetsValidityFloor: boolean;
+  };
+  const folds: Fold[] = [];
   for (const year of WALK_FORWARD) {
     // The embargo trims the start of each test window so no row's five-session forward return
     // straddles the boundary from the previous period.
@@ -238,7 +242,7 @@ async function main() {
     byMarket[m] = { ...s, gainOverConstantCall: gain(s) };
   }
 
-  const mean = (pick: (f: (typeof folds)[number]) => number | null) => {
+  const mean = (pick: (f: Fold) => number | null) => {
     const vals = folds.map(pick).filter((v): v is number => v !== null);
     return vals.length ? Number((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(4)) : null;
   };
