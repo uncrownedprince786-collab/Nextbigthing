@@ -89,9 +89,10 @@
    "sessions": 2844,
    "series": 31,
    "trackedSeriesCarried": 10,
-   "status": "INVALIDATED - built with the faulty join; not rebuilt here because it is produced by CI",
+   "status": "INVALIDATED - built with the faulty join. Retained for audit history only; superseded by the rebuild recorded in `rebuilt` below and read by nothing.",
    "consumedByTraining": false,
-   "evidence": "its own manifest rule is \"the newest observation whose availableAt is on or before D\""
+   "evidence": "its own manifest rule is \"the newest observation whose availableAt is on or before D\"",
+   "supersededBy": "be649ce4bdd25cfe5e8c1e7809d4788f91699335b9365024d804e42604c28902"
   }
  ],
  "notContaminated": [
@@ -105,5 +106,18 @@
   }
  ],
  "fix": "tools/foundation/macro_pit.py now emits one row per publication event from the vintage history",
- "remaining": "macro-sessions must be rebuilt by CI before any consumer uses it"
+ "remaining": "none for the artifact: it is rebuilt and verified. `macro_context.as_of` never read it -- it reads the vintages directly -- and `tools/foundation/evaluate_principles.py` reads whichever dataset directory it is given, so it takes the corrected file with no change.",
+ "rebuilt": {
+  "producer": "tools/foundation/macro_pit.py --out dataset/macro, the same command .github/workflows/data-assemble.yml runs",
+  "generatedAt": "2026-10-16T10:41:24+00:00",
+  "sessions": 2844,
+  "range": [
+   "2019-01-02",
+   "2026-10-15"
+  ],
+  "series": 31,
+  "sha256": "be649ce4bdd25cfe5e8c1e7809d4788f91699335b9365024d804e42604c28902",
+  "observationsDatedAfterTheirSession": 0,
+  "verifiedBy": "tools/foundation/macro_pit_verify.py, which recomputes each session's value from the vintage histories rather than trusting the producer"
+ }
 }

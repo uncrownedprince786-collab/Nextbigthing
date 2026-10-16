@@ -866,6 +866,68 @@ class MacroPointInTime(unittest.TestCase):
             self.assertIn("v", row)
             self.assertGreaterEqual(row["age"], 0, sid)
 
+    def tracked(self):
+        """The ten series with a stored revision history, which are the ones the CSV misreports."""
+        return sorted(p.stem for p in (DATA / "macro" / "vintages").glob("*.jsonl"))
+
+    def test_a_tracked_series_is_read_from_its_vintage_and_not_from_the_csv(self):
+        """The fault that invalidated the artifact, asserted at its source.
+
+        The CSV pairs the latest revised value with the first publication date, so for every tracked
+        series its row count and the vintage's publication count differ -- `CPIAUCSL` has one row per
+        month and 1,797 publications. Reading the CSV for these series is what put a 2015 revision
+        of a 2010 observation on a 2010 session (brain.md rule 156).
+        """
+        tracked = self.tracked()
+        self.assertEqual(len(tracked), 10, tracked)
+        for sid in tracked:
+            rows = self.mp.vintage_rows(sid)
+            self.assertIsNotNone(rows, f"{sid} has a vintage file that vintage_rows did not read")
+            # One row per publication event, so revisions outnumber observations.
+            self.assertGreater(len(rows), len({obs for _, obs, _ in rows}), sid)
+            # And the series the producer loaded is the vintage's, not the CSV's.
+            self.assertEqual(len(self.series[sid]["avail"]), len(rows), sid)
+
+    def test_a_session_before_a_series_first_publication_omits_it_rather_than_guessing(self):
+        """The case the artifact's own range cannot reach: every tracked series was already
+        publishing by 2019, so the rebuilt file never exercises an absent one. A series with no
+        vintage yet must be left out of the state, never carried at its earliest-known value."""
+        for sid in self.tracked():
+            first = self.series[sid]["avail"][0]
+            before = (date.fromisoformat(first) - timedelta(days=1)).isoformat()
+            self.assertNotIn(sid, self.mp.state_at({sid: self.series[sid]}, before),
+                             f"{sid} appeared on {before}, before its first publication {first}")
+            self.assertIn(sid, self.mp.state_at({sid: self.series[sid]}, first),
+                          f"{sid} was withheld on {first}, its own publication day")
+
+    def test_chg_is_the_step_between_observations_and_never_the_size_of_a_revision(self):
+        """A revision restates one month; it is not a month-on-month change. Taking `chg` from the
+        row before would turn a 0.1 correction to March into a reading that March moved 0.1."""
+        for sid in self.tracked():
+            s = self.series[sid]
+            # A session on which the newest publication is a revision: its predecessor describes the
+            # same observation, which is exactly the row `chg` must step over.
+            for k in range(1, len(s["avail"])):
+                if s["obs"][k] != s["obs"][k - 1]:
+                    continue
+                day = s["avail"][k]
+                row = self.mp.state_at({sid: s}, day)[sid]
+                if "chg" not in row:
+                    continue
+                # The index the state was read at, derived as `state_at` derives it: several
+                # revisions can share a publication date, and `bisect_right` takes the last of them.
+                i = self.mp.bisect_right(s["avail"], day) - 1
+                j = i - 1
+                while j >= 0 and s["obs"][j] == s["obs"][i]:
+                    j -= 1
+                if j < 0:
+                    continue
+                self.assertAlmostEqual(row["chg"], round(s["val"][i] - s["val"][j], 6), places=6,
+                                       msg=f"{sid} on {day} reported a revision as a change")
+                self.assertNotEqual(s["obs"][j], s["obs"][i],
+                                    f"{sid} on {day} took chg from another revision of the same month")
+                break
+
 
 class CoverageDenominator(unittest.TestCase):
     """A completeness share is only meaningful if its denominator is the right calendar.

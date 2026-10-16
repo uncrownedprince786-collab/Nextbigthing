@@ -98,6 +98,16 @@ def load_series() -> dict[str, dict]:
 def sessions(frm: date, to: date) -> list[str]:
     """Session dates from the stored price history, so the grid matches the dataset's own."""
     sys.path.insert(0, str(ROOT / "jobs"))
+    # The workflow injects the connection as an environment variable and a laptop keeps it in `.env`,
+    # which until now only the other database-reading tools in this directory read -- so the producer
+    # ran in CI and raised `KeyError: DATABASE_URL` anywhere else. Guarded and optional, as they are:
+    # with the variable already set, as in CI, this changes nothing.
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(ROOT / ".env")
+    except Exception:  # noqa: BLE001
+        pass
     from nbt import db
     cur = db().cursor()
     cur.execute('SELECT DISTINCT date FROM "PriceSnapshot" WHERE date >= %s AND date <= %s ORDER BY date',
