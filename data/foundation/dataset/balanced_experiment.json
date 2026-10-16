@@ -1,0 +1,380 @@
+{
+ "version": "balanced-experiment-v1",
+ "status": "offline research experiment; nothing deployed, nothing traded",
+ "hypothesis": "the recorded 0.4211 measures an optimiser that collapsed to one class, not the information in the features; removing the collapse will change the measured accuracy",
+ "changesFromTheBaseline": [
+  "class weights inversely proportional to TRAINING-fold class frequency",
+  "trained to convergence on the training loss instead of a fixed 400 steps, with the step count and final loss recorded as evidence"
+ ],
+ "heldIdentical": [
+  "the same 15 pit.f features",
+  "the same chronological walk-forward, one fold per test year",
+  "the same 20-session embargo",
+  "training-fold standardisation",
+  "the same seed",
+  "row selection and feature handling, by importing load() from baseline_experiment.py"
+ ],
+ "dataVersion": {
+  "dataset": "examples-v3-2026-10-16-local",
+  "frozenAt": "2026-10-16T12:38:45+00:00",
+  "blockingGatesGreen": true,
+  "rowsWithFeatures": 1055429,
+  "repoHead": "f1f6b0ce9fbcf104d7fcae6473fe988aef148dd9"
+ },
+ "config": {
+  "model": "multinomial logistic regression, numpy, full batch, class-weighted",
+  "seed": 20261015,
+  "learningRate": 0.5,
+  "l2": 0.0001,
+  "tolerance": 1e-06,
+  "maxSteps": 20000,
+  "embargoSessions": 20,
+  "features": [
+   "atr14",
+   "drawdownPct",
+   "entryTrigger",
+   "peerMedianR20",
+   "peers",
+   "r1",
+   "r20",
+   "r5",
+   "rangePct",
+   "relStrength",
+   "returnZ",
+   "sma20",
+   "sma50",
+   "triggerDirection",
+   "volumeRatio"
+  ]
+ },
+ "exposure": "these calendar years were already exposed by the earlier candidate, so this is not a pristine out-of-sample measurement; 2026 is the least-exposed fold and is reported separately. No design choice here was made against any fold.",
+ "preDeclaredCriteria": {
+  "meanAccuracyAboveMajority": "strictly above",
+  "foldsBeatingTheirOwnMajority": 4,
+  "adverseRegimeFold": 2022,
+  "degeneracyGuard": "no class predicted on more than 0.7 of rows while actually under half",
+  "setBefore": "any result was seen"
+ },
+ "folds": [
+  {
+   "testYear": 2021,
+   "trainRows": 229417,
+   "testRows": 116217,
+   "trainEnds": "2020-12-11",
+   "embargoSessionsDropped": 20,
+   "classWeights": {
+    "DOWN": 0.9153,
+    "FLAT": 1.6896,
+    "UP": 0.7601
+   },
+   "stepsToConverge": 120,
+   "finalTrainingLoss": 1.061756,
+   "converged": true,
+   "accuracy": 0.3626,
+   "majorityClassAccuracy": 0.4168,
+   "margin": -0.0542,
+   "beatsMajority": false,
+   "predictedMix": {
+    "DOWN": 22742,
+    "FLAT": 61432,
+    "UP": 32043
+   },
+   "actualMix": {
+    "DOWN": 41681,
+    "FLAT": 26099,
+    "UP": 48437
+   },
+   "largestPredictedShare": 0.5286,
+   "degenerate": false,
+   "recall": {
+    "DOWN": 0.2255,
+    "FLAT": 0.6923,
+    "UP": 0.303
+   },
+   "precision": {
+    "DOWN": 0.4134,
+    "FLAT": 0.2941,
+    "UP": 0.4579
+   }
+  },
+  {
+   "testYear": 2022,
+   "trainRows": 344514,
+   "testRows": 125194,
+   "trainEnds": "2021-12-11",
+   "embargoSessionsDropped": 20,
+   "classWeights": {
+    "DOWN": 0.9277,
+    "FLAT": 1.6083,
+    "UP": 0.7691
+   },
+   "stepsToConverge": 123,
+   "finalTrainingLoss": 1.061448,
+   "converged": true,
+   "accuracy": 0.3726,
+   "majorityClassAccuracy": 0.4631,
+   "margin": -0.0905,
+   "beatsMajority": false,
+   "predictedMix": {
+    "DOWN": 48987,
+    "FLAT": 48065,
+    "UP": 28142
+   },
+   "actualMix": {
+    "DOWN": 57983,
+    "FLAT": 22877,
+    "UP": 44334
+   },
+   "largestPredictedShare": 0.3913,
+   "degenerate": false,
+   "recall": {
+    "DOWN": 0.4122,
+    "FLAT": 0.5345,
+    "UP": 0.2372
+   },
+   "precision": {
+    "DOWN": 0.4879,
+    "FLAT": 0.2544,
+    "UP": 0.3737
+   }
+  },
+  {
+   "testYear": 2023,
+   "trainRows": 469321,
+   "testRows": 129029,
+   "trainEnds": "2022-12-11",
+   "embargoSessionsDropped": 20,
+   "classWeights": {
+    "DOWN": 0.86,
+    "FLAT": 1.659,
+    "UP": 0.8101
+   },
+   "stepsToConverge": 122,
+   "finalTrainingLoss": 1.06541,
+   "converged": true,
+   "accuracy": 0.3398,
+   "majorityClassAccuracy": 0.4349,
+   "margin": -0.0951,
+   "beatsMajority": false,
+   "predictedMix": {
+    "DOWN": 50532,
+    "FLAT": 63553,
+    "UP": 14944
+   },
+   "actualMix": {
+    "DOWN": 45656,
+    "FLAT": 27254,
+    "UP": 56119
+   },
+   "largestPredictedShare": 0.4925,
+   "degenerate": false,
+   "recall": {
+    "DOWN": 0.4262,
+    "FLAT": 0.634,
+    "UP": 0.1266
+   },
+   "precision": {
+    "DOWN": 0.3851,
+    "FLAT": 0.2719,
+    "UP": 0.4753
+   }
+  },
+  {
+   "testYear": 2024,
+   "trainRows": 598651,
+   "testRows": 134448,
+   "trainEnds": "2023-12-11",
+   "embargoSessionsDropped": 20,
+   "classWeights": {
+    "DOWN": 0.8784,
+    "FLAT": 1.6461,
+    "UP": 0.7974
+   },
+   "stepsToConverge": 119,
+   "finalTrainingLoss": 1.067911,
+   "converged": true,
+   "accuracy": 0.3497,
+   "majorityClassAccuracy": 0.4403,
+   "margin": -0.0906,
+   "beatsMajority": false,
+   "predictedMix": {
+    "DOWN": 42938,
+    "FLAT": 67733,
+    "UP": 23777
+   },
+   "actualMix": {
+    "DOWN": 46777,
+    "FLAT": 28470,
+    "UP": 59201
+   },
+   "largestPredictedShare": 0.5038,
+   "degenerate": false,
+   "recall": {
+    "DOWN": 0.3787,
+    "FLAT": 0.6508,
+    "UP": 0.182
+   },
+   "precision": {
+    "DOWN": 0.4125,
+    "FLAT": 0.2736,
+    "UP": 0.4532
+   }
+  },
+  {
+   "testYear": 2025,
+   "trainRows": 732844,
+   "testRows": 145628,
+   "trainEnds": "2024-12-11",
+   "embargoSessionsDropped": 20,
+   "classWeights": {
+    "DOWN": 0.8905,
+    "FLAT": 1.6309,
+    "UP": 0.7912
+   },
+   "stepsToConverge": 120,
+   "finalTrainingLoss": 1.068215,
+   "converged": true,
+   "accuracy": 0.377,
+   "majorityClassAccuracy": 0.4353,
+   "margin": -0.0583,
+   "beatsMajority": false,
+   "predictedMix": {
+    "DOWN": 55696,
+    "FLAT": 62418,
+    "UP": 27514
+   },
+   "actualMix": {
+    "DOWN": 52288,
+    "FLAT": 29941,
+    "UP": 63399
+   },
+   "largestPredictedShare": 0.4286,
+   "degenerate": false,
+   "recall": {
+    "DOWN": 0.4576,
+    "FLAT": 0.6046,
+    "UP": 0.2031
+   },
+   "precision": {
+    "DOWN": 0.4296,
+    "FLAT": 0.29,
+    "UP": 0.468
+   }
+  },
+  {
+   "testYear": 2026,
+   "trainRows": 877816,
+   "testRows": 109016,
+   "trainEnds": "2025-12-11",
+   "embargoSessionsDropped": 20,
+   "classWeights": {
+    "DOWN": 0.8943,
+    "FLAT": 1.6266,
+    "UP": 0.7892
+   },
+   "stepsToConverge": 122,
+   "finalTrainingLoss": 1.066871,
+   "converged": true,
+   "accuracy": 0.3691,
+   "majorityClassAccuracy": 0.4355,
+   "margin": -0.0664,
+   "beatsMajority": false,
+   "predictedMix": {
+    "DOWN": 48446,
+    "FLAT": 40957,
+    "UP": 19613
+   },
+   "actualMix": {
+    "DOWN": 47476,
+    "FLAT": 19369,
+    "UP": 42171
+   },
+   "largestPredictedShare": 0.4444,
+   "degenerate": false,
+   "recall": {
+    "DOWN": 0.4568,
+    "FLAT": 0.552,
+    "UP": 0.1864
+   },
+   "precision": {
+    "DOWN": 0.4477,
+    "FLAT": 0.2611,
+    "UP": 0.4007
+   }
+  }
+ ],
+ "leastExposedFold": {
+  "testYear": 2026,
+  "trainRows": 877816,
+  "testRows": 109016,
+  "trainEnds": "2025-12-11",
+  "embargoSessionsDropped": 20,
+  "classWeights": {
+   "DOWN": 0.8943,
+   "FLAT": 1.6266,
+   "UP": 0.7892
+  },
+  "stepsToConverge": 122,
+  "finalTrainingLoss": 1.066871,
+  "converged": true,
+  "accuracy": 0.3691,
+  "majorityClassAccuracy": 0.4355,
+  "margin": -0.0664,
+  "beatsMajority": false,
+  "predictedMix": {
+   "DOWN": 48446,
+   "FLAT": 40957,
+   "UP": 19613
+  },
+  "actualMix": {
+   "DOWN": 47476,
+   "FLAT": 19369,
+   "UP": 42171
+  },
+  "largestPredictedShare": 0.4444,
+  "degenerate": false,
+  "recall": {
+   "DOWN": 0.4568,
+   "FLAT": 0.552,
+   "UP": 0.1864
+  },
+  "precision": {
+   "DOWN": 0.4477,
+   "FLAT": 0.2611,
+   "UP": 0.4007
+  }
+ },
+ "summary": {
+  "folds": 6,
+  "meanAccuracy": 0.3618,
+  "meanMajorityClassAccuracy": 0.4377,
+  "meanMargin": -0.0759,
+  "foldsBeatingMajority": 0,
+  "meanStepsToConverge": 121.0,
+  "anyFoldDegenerate": false,
+  "recordedBaselineForContext": 0.4211
+ },
+ "criteriaMet": {
+  "meanAccuracyAboveMajority": [
+   0.3618,
+   0.4377,
+   false
+  ],
+  "foldsBeatingTheirOwnMajority": [
+   0,
+   4,
+   false
+  ],
+  "doesNotDegradeInTheAdverseRegime": [
+   -0.0905,
+   0.0,
+   false
+  ],
+  "notDegenerate": [
+   false,
+   false,
+   true
+  ]
+ },
+ "verdict": "NO-GO"
+}
