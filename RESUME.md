@@ -1,5 +1,141 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT — 2026-10-16 (second half), the brain is implemented, measured, and a NO-GO
+
+**Branch `main`. Working tree clean. Nothing is running: the dev server was stopped, every data
+producer has exited, no deployment and no destructive operation was started. Tests: 1,125 Python,
+491 web, all passing.**
+
+### What landed
+
+| Commit | Contains |
+|---|---|
+| `089e5ce` | **The evidence families** — `BRAIN-SPEC-V1.md` §3 as corrected by the closure's §B4-B5, with 19 tests. Found an E3 rule arm that could never fire. |
+| `f699902` | **The data chain made runnable here**, and the fourteen-asset smoke test identified for what it is. `freeze_dataset.py`. |
+| `f1f6b0c` | **Why the first candidate failed**, measured from its own prediction mixes: a near-constant UP predictor. |
+| `2ad40bb` | **The decision core measured on 994,731 rows. NO-GO.** Frozen dataset, all blocking gates green. |
+| this one | This record, and `brain.md` rule 158. |
+
+### The brain: implemented, and what it is not
+
+`BRAIN-SPEC-V1.md` §3 was a specification with **no implementation** — no family, no `NET`, no
+`MIN_FAMILIES` anywhere in `lib/decision.ts`. `lib/families.ts` implements it, with the closure
+winning wherever the two disagree, because the closure was written against the shipped code.
+
+- **Votes: E1 trend, E2 participation, E3 volatility, E4 cross-sectional, E5 history.** All
+  asset-specific. V1.1's promotion of macro to a voting family is a regression from shipped
+  behaviour, so macro and news **cannot vote at all** — which is how one announcement is stopped from
+  becoming two confirmations, structurally, with no event-id matching to get wrong.
+- Thresholds are **imported** from `lib/decision.ts`, never restated, so the two paths cannot hold
+  different opinions about when volume confirms.
+- 19 tests: §8 tier T1 per family, invariants T-I1, T-I2, T-I3, T-I12, T-I13, and §B5's own four
+  worked consistency checks.
+
+**A rule arm that could never fire.** §3.3 gives E3 a constructive arm of `drawdownPct > -5` **and**
+`rangePct` in its lower half. `rangePct` is *position* in the trailing range, 0 low and 100 high;
+the two cannot both hold. Measured before changing it: **0 of 21,753** rows, against 8,734 stress
+votes, so E3 could only vote against and the table ran 5,019 SHORT to 1,184 LONG. Corrected to the
+column's documented unit (same class of defect as §B1's price-units-against-percent), under
+`LOGIC_VERSION` `families-v1.2`. After: 273,894 constructive against 405,638 stress, and 251,016
+LONG against 256,167 SHORT.
+
+### The dataset: rebuilt, frozen, gates green
+
+The only assembly on this machine was a **fourteen-asset smoke test** — AA through ADI plus two
+coins, an alphabetical prefix, because `load()` orders by symbol and `--assets N` truncates. Its
+peer columns are 100% null **by construction**, and reading that as a pipeline defect was rule 156's
+failure mode; the recorded experiments disprove it directly, since a rule baseline predicting a full
+UP/FLAT/DOWN mix over 127,000 rows a fold is impossible with `relStrength` null.
+
+Three producers — `pit_features.py`, `full_history.py`, `macro_pit.py` — never loaded `.env`, so they
+**could only ever run in CI**. Fixed, and rebuilt here:
+
+    eligible asset-sessions     1,086,349       2018-01-01 .. 2026-09-25
+    with point-in-time features 1,055,429       coverage 0.9715
+    assets 617, five asset classes
+    duplicates 0 · leakage 0 · unexplained 0 · 2018 rebuilt and matched
+
+`tools/foundation/freeze_dataset.py` is the entry gate §9 gate 4 implies and nothing enforced: it
+reads the producers' own manifests and **exits non-zero writing nothing** when a blocking gate fails.
+All green. Artifact: `data/foundation/dataset/dataset_freeze.json`.
+
+### Why the earlier candidates failed — measured, not guessed
+
+`baseline_experiment.json` already contained the answer:
+
+    predicted UP    78.5%        actually UP    41.1%
+    predicted FLAT   3.6%        actually FLAT  19.7%
+    mean |accuracy − UP base rate|              0.0215
+
+It is a **near-constant UP predictor**. So 0.4211 against a 0.4204 majority class is the same number
+twice, and it "beat" the rule baseline only because a constant call beats a balanced wrong one. Its
+worst fold is 2022, carrying UP at 94% into the one year DOWN dominated. **This does not show the
+features carry an edge** — a degenerate optimiser and an absent edge give the same headline.
+`label60` stays an *inference* (no prediction mix was stored): 49 of 59 strata below their own
+majority. Artifact: `data/foundation/dataset/experiment_diagnosis.json`.
+
+The lesson is built into the new evaluation: the reference is the **best single fixed answer on
+exactly the rows being scored**, which a degenerate predictor cannot win.
+
+### The measured verdict: **NO-GO**
+
+Over 994,731 decided rows, `families-v1.2`:
+
+| | |
+|---|---|
+| coverage | 50.98% |
+| brain | **0.3979** |
+| constant call | **0.4388** |
+| folds beating both references | **0 of 6** |
+| adverse regime 2022 | 0.4055 against 0.4468 — **degrades** |
+
+Both pre-declared §9 gate-5 criteria fail. It loses to a constant call in **every** fold. By market
+only crypto edges its reference, by 0.0003 — noise; FX is 0.1719 against 0.1804, because a 2% band
+over 20 sessions is rarely crossed there. Against the rule baseline it wins one fold of six.
+Artifact: `data/foundation/dataset/family_evaluation.json`.
+
+**E5 history is unreadable at this horizon** and that is a data fact, not a rule choice:
+`examples-v3` carries matched days at horizons 1 and 5 only, and voting a 5-session prior on a
+20-session label is the horizon mixing §D4 forbids. A 20-session analog corpus is a data
+requirement, like DR-1.
+
+**Nothing is wired to a page.** §9 gate 5 was not met and gate 7 makes deployment separate.
+`test_the_family_core_is_read_by_its_evaluation` holds the core out of `app/` and pins that its
+evaluation really reads it, so the allowlist entry cannot outlive its only consumer.
+
+### Operational state
+
+- **Application.** Cold render 200 in ~24s (31.6s with the encrypted primary), warm 5.0s, no failover
+  switching, `/api/health` serving from the primary. **There is no stated latency requirement
+  anywhere in this repository**, so "meets the requirement" has nothing to be measured against; the
+  cold cost is paid once per cache lifetime, since `unstable_cache` has no expiry.
+- **Connections.** Primary serves (PostgreSQL 17.11, 533 MB, 18 of 60 connections); `DATABASE_URL`
+  serves (17.2, 332 MB); `DATABASE_URL_FALLBACK` is **ECONNREFUSED** — a stopped or deleted service,
+  needing the owner's provider account.
+- **Storage.** 533 MB measured. The 500 MB free-tier figure is still an **assumption** not read from
+  the provider; if it is the real limit this database is over it.
+- **`WORKER_ARTIFACT_KEY`: BLOCKED — authorization required.** Verified unchanged, no
+  `WORKER_ARTIFACT_KEY_PREVIOUS` anywhere, seven consumers as they were. Nothing partial, nothing
+  printed, no policy bypassed.
+
+### Still the owner's call
+
+1. **Raise the web pool's connection ceiling** (`primaryLimits`, `max: 2`) — refused as a
+   shared-resource change. The one thing that makes the cold render fast rather than merely correct.
+2. **Measure the Supabase pooler's real client ceiling** — the saturation probe consumes shared
+   slots and was refused, so the "15 session clients" comment is **still unverified**;
+   `max_connections` is 60, which is the server's number and not the pooler's.
+3. **`WORKER_ARTIFACT_KEY` rotation** — GitHub's own secret UI, or secret-store write permission.
+
+### Next action
+
+The brain is implemented and measured and it has no edge. A further candidate is justified only by
+the documented causes in `experiment_diagnosis.json` — class-balanced training, convergence rather
+than a fixed step count, a regime clause in the acceptance criterion — and must be developed against
+training and validation folds, leaving the exposed years immutable. The two data requirements that
+would change what is measurable are a **20-session analog corpus** (for E5) and a stored **trailing
+ATR median** (for E3's stress clause, currently unmeasurable and reported as such, never as calm).
+
 ## 0. SESSION CHECKPOINT — 2026-10-16, five commits, all authorised work closed
 
 **Branch `main`, HEAD at the checkpoint commit below. Working tree clean. Nothing is running: the

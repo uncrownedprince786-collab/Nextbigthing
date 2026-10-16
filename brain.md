@@ -5762,3 +5762,64 @@ reads rows that already exist:
       **+0.0045 where +0.02 was pre-declared**, winning 4 folds of 6 where 5 were required.
       **NO-GO.** Full coverage scores 0.4226, so there was no edge underneath to concentrate.
       `label60`'s -0.0816 was not re-run, re-tuned or consulted for a threshold.
+
+158. **The brain's decision logic was a specification with no implementation, and once implemented
+    and measured on a million rows it loses to a constant call.** 2026-10-16. Commits: `089e5ce`,
+    `f699902`, `f1f6b0c`, `2ad40bb`, and this record.
+
+    - **"Specified" and "implemented" were being read as one thing.** `BRAIN-SPEC-V1.md` §3 defines
+      six evidence families, a `NET` arithmetic, `MIN_FAMILIES` and `MIN_NET`. None of those words
+      appears anywhere in `lib/decision.ts`: the shipped engine is a different, leg-based rule table,
+      and the specification's own header says so -- *"nothing here is implemented by this document"*.
+      The 18-of-18 context routing matrix and a passing test suite had made it feel built.
+
+    - **Where the specification and the closure disagree, the closure wins.** V1.1 promotes macro to
+      a voting family F5; `BRAIN-LOGIC-CLOSURE-2026-10-16.md` §B4 records that as a regression from
+      shipped behaviour, because `macroVeto` has always been *"a veto only"*. So the voting set is
+      E1-E5, all asset-specific, and macro and news cannot vote at all. That is what stops one
+      monetary announcement becoming two confirmations -- **structurally**, with no event-id matching
+      to get wrong, which is the kind of safeguard that cannot be forgotten later.
+
+    - **A rule arm that can never fire is not a conservative threshold.** §3.3 gives E3 a
+      constructive arm of `drawdownPct > -5` **and** `rangePct` in its lower half. `rangePct` is
+      position in the trailing range, 0 at the low and 100 at the high; `drawdownPct` is distance
+      below the trailing high. The two cannot both hold. Measured before changing anything: the `+1`
+      arm fired **0 times in 21,753 rows** while the stress arm fired 8,734, so E3 could only ever
+      vote against, and the table ran 5,019 SHORT against 1,184 LONG. The specification was written
+      against range *width*; the column means *position*. Same class of defect as §B1's price-units
+      against percent, and corrected the same way. After the fix: 273,894 constructive against
+      405,638 stress, and 251,016 LONG against 256,167 SHORT.
+
+    - **A fourteen-asset smoke test nearly became a dataset defect.** The only assembly on this
+      machine recorded `relStrength` and `peerMedianR20` as 100% missing with `peers` never above 2,
+      while the live `AssetFactor` has `peers >= 3` on 3,656 of 3,692 rows and a maximum of 75. The
+      explanation was not a broken pipeline: that assembly holds 14 symbols, an alphabetical prefix,
+      because `load()` orders by symbol and `--assets N` truncates -- and fourteen names cannot form
+      a same-industry group of three. Rule 156's own failure mode, caught this time by checking what
+      the recorded experiments could not have produced if the reading were true: a rule baseline
+      predicting a full UP/FLAT/DOWN mix over 127,000 rows a fold is impossible with `relStrength`
+      null.
+
+    - **Three producers could only ever run in CI**, because `pit_features.py`, `full_history.py` and
+      `macro_pit.py` never loaded `.env`. That is why the smoke test was the only thing here to read.
+      Rebuilt locally once they could run: 1,086,349 eligible sessions, 1,055,429 with features,
+      617 assets, duplicates 0, leakage 0, unexplained 0, and 2018 rebuilt and matched.
+
+    - **The first candidate was a near-constant UP predictor, and its own artifact said so.** It
+      called UP on 78.5% of rows where 41.1% actually were, and FLAT on 3.6% where 19.7% were; its
+      accuracy tracks each test year's UP base rate to a mean absolute 0.0215. So 0.4211 against a
+      0.4204 majority class is the same number twice, not a narrow miss, and it "beat" the rule
+      baseline only because a constant call beats a balanced wrong one. **A degenerate optimiser and
+      an absent edge produce the same headline**, and nothing in that artifact separates them.
+
+    - **So the reference has to be the best single fixed answer on exactly the rows being scored.**
+      A majority class taken over a different set, or over rows the system declined, answers a
+      different question. Measured that way over 994,731 rows: coverage 50.98%, brain **0.3979**,
+      constant call **0.4388**, **0 of 6 folds** beating both references, and the 2022 adverse regime
+      0.4055 against 0.4468. **NO-GO.** By market only crypto edges its reference, by 0.0003.
+
+    - **Implemented, tested, measured, and not wired to anything.** §9 gate 5 was not met and gate 7
+      makes deployment separate, so the core stays out of `app/` -- held there by a test, with its
+      allowlist entry pinned to the evaluation that reads it so the entry cannot outlive its only
+      consumer. A passing suite over 1,125 tests is not a profitable brain, and this is what that
+      distinction looks like when it is written down rather than asserted.
