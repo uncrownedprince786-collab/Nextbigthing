@@ -1,5 +1,129 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT — 2026-10-16 (third), formal training completed and the answer is NO-GO
+
+**Branch `main`. The last work commit is `8687cc5` and this record is the commit after it. Working
+tree clean. Nothing is running: no training, no producer, no dev server, no download. Tests: 1,125
+Python, 494 web, all passing at `8687cc5`.**
+
+**Weekly usage at this checkpoint: 77% used, 23% remaining, resets in about 2d 11h** (read from the
+app's own usage card, not estimated). Extra usage is off. The checkpoint was taken because that is
+near the 20% threshold, not because anything was interrupted.
+
+### What landed since the last checkpoint
+
+| Commit | Contains |
+|---|---|
+| `ee29e16` | **The diagnosed candidate, trained and measured. NO-GO.** The collapse was real, removing it made the score worse. |
+| `8687cc5` | §8 tier T7 adversarial checks for a discrete-vote engine. |
+| this one | This record, and `brain.md` rule 159. |
+
+### Formal training: what ran, and what it settled
+
+**Already complete before this session and not duplicated:** `baseline_experiment.json` (swing,
+`label20`, mean 0.4211 against a 0.4204 majority class) and `label60_experiment.json` (position,
+mean margin −0.0816). No model weights were ever persisted by either — metrics only.
+
+**Run this session, with a concrete documented reason** — `experiment_diagnosis.json` had measured
+*how* the first candidate failed, which gave an independent falsifiable hypothesis rather than a
+desire to retry:
+
+> the recorded 0.4211 measures an optimiser that collapsed to one class, not the information in the
+> features; removing the collapse will change the measured accuracy
+
+Two pre-registered changes, nothing else moved: class weights from the **training** fold's class
+frequency, and training to convergence on the training loss instead of a fixed 400 steps, with the
+step count recorded. Row selection and feature handling imported from `baseline_experiment.py` so
+they could not drift.
+
+| | before | after |
+|---|---|---|
+| largest predicted share | 0.56–0.94 | **0.39–0.53** — no fold degenerate |
+| FLAT recall | ~0 (3.6% predicted) | **0.69** |
+| mean accuracy | 0.4211 | **0.3618** |
+| majority reference | 0.4204 | **0.4377** |
+| folds beating their own majority | — | **0 of 6** |
+| adverse regime 2022 margin | — | **−0.0905** |
+| steps to converge | 400 fixed | **~120 measured** |
+
+**The collapse was real and is gone. The score fell.** Balancing trades a base-rate advantage for
+honestly balanced errors: UP recall 0.30, DOWN 0.23, FLAT 0.69. The convergence half of the
+hypothesis is **disconfirmed outright** — every fold converges in about 120 steps, so 400 was
+already past convergence and under-training was never a cause.
+
+**So the defensible reading, which the diagnosis alone could not make:** the fifteen point-in-time
+price and volume features carry **no directional edge** for `label20` at the swing horizon. The
+earlier 0.4211 was the UP base rate of a collapsed predictor, and an honest predictor on the same
+features scores below the base rate. Artifact: `data/foundation/dataset/balanced_experiment.json`.
+
+**The research cycle stops here.** The hypothesis the diagnosis raised has been tested and answered;
+a third variant on the same features and the same exposed years would be tuning, not research.
+
+### The three recorded verdicts, all NO-GO, all preserved
+
+| Candidate | Measure | Verdict |
+|---|---|---|
+| `label20` baseline classifier | 0.4211 against 0.4204 majority | NO-GO (degenerate, now explained) |
+| `label60` position horizon | mean margin **−0.0816** | NO-GO, frozen, never re-run |
+| macro-as-qualifier (context) | +0.0045 against +0.02 required, 4 of 6 folds | NO-GO |
+| family decision core (rules) | 0.3979 against 0.4388 constant call, 0 of 6 | NO-GO |
+| class-balanced classifier | 0.3618 against 0.4377 majority, 0 of 6 | NO-GO |
+
+### Brain functionality: implemented, and its state
+
+- `lib/families.ts` — the approved decision core (spec §3 as corrected by the closure's §B4-B5):
+  E1–E5 vote, macro and news **cannot** vote, thresholds imported from `lib/decision.ts`,
+  `LOGIC_VERSION` `families-v1.2`. **22 tests**: T1 per family, invariants T-I1/I2/I3/I12/I13, §B5's
+  four worked consistency checks, and T7 adversarial — noise cannot flip a direction, one family
+  cannot carry one, four correlated trend inputs are one vote.
+- **Wired to nothing.** §9 gate 5 was not met and gate 7 makes deployment separate.
+  `test_the_family_core_is_read_by_its_evaluation` holds it out of `app/` and pins its evaluation.
+- `lib/decision.ts` still decides what the site publishes, unchanged.
+
+### Dataset
+
+`data/foundation/dataset/dataset_freeze.json` — 1,086,349 eligible sessions, 1,055,429 with
+point-in-time features, 617 assets, five asset classes, 2018-01-01..2026-09-25, duplicates 0,
+leakage 0, unexplained 0, 2018 rebuilt and matched. All blocking gates green. Artifacts live in
+`.cache/foundation/{full,pit_full,dataset_full,macro_rebuild}` and are **disposable** — rebuildable
+with the three producers, which now load `.env` and so run outside CI.
+
+### Operational state (unchanged this session, re-verified last)
+
+- Primary serves (PostgreSQL 17.11, 533 MB); `DATABASE_URL` serves; `DATABASE_URL_FALLBACK` is
+  **ECONNREFUSED** — a stopped service needing the owner's provider account.
+- Storage 533 MB measured; the 500 MB free-tier figure remains an **assumption**, so this may be over
+  the limit.
+- **No stated latency requirement exists** anywhere in the repository; cold render ~24s (31.6s
+  encrypted), warm 5.0s, paid once per cache lifetime.
+- **`WORKER_ARTIFACT_KEY`: BLOCKED — authorization required.** Verified unchanged, no
+  `WORKER_ARTIFACT_KEY_PREVIOUS` anywhere, seven consumers as they were. Nothing partial, nothing
+  printed, no policy bypassed.
+
+### Still the owner's call
+
+1. Raise the web pool's connection ceiling (`primaryLimits`, `max: 2`) — refused as a shared-resource
+   change; the one thing that makes the cold render fast rather than merely correct.
+2. Measure the Supabase pooler's real client ceiling — the saturation probe consumes shared slots and
+   was refused, so "15 session clients" is **still unverified**; `max_connections` is 60, the
+   server's number, not the pooler's.
+3. `WORKER_ARTIFACT_KEY` rotation — GitHub's own secret UI, or secret-store write permission.
+
+### Next action
+
+**Not another variant of the same experiment.** What would change what is measurable, in order:
+
+1. **A 20-session analog corpus.** E5 history is unreadable at the swing horizon because
+   `examples-v3` carries matched days at horizons 1 and 5 only; voting a 5-session prior on a
+   20-session label is the horizon mixing §D4 forbids. This is a data requirement, like DR-1.
+2. **A stored trailing ATR median**, so E3's stress clause is measurable at all rather than reported
+   as unmeasured (never as calm).
+3. **Features beyond price and volume**, since the measured answer is that these fifteen carry no
+   directional edge. Any new family must still respect the rule that only asset-specific evidence
+   votes, and that macro and news stay context.
+
+Nothing is blocked on this session. No process was interrupted and no partial work exists.
+
 ## 0. SESSION CHECKPOINT — 2026-10-16 (second half), the brain is implemented, measured, and a NO-GO
 
 **Branch `main`. Working tree clean. Nothing is running: the dev server was stopped, every data

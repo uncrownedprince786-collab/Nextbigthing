@@ -5823,3 +5823,40 @@ reads rows that already exist:
       allowlist entry pinned to the evaluation that reads it so the entry cannot outlive its only
       consumer. A passing suite over 1,125 tests is not a profitable brain, and this is what that
       distinction looks like when it is written down rather than asserted.
+
+159. **Removing the collapse was the right fix and it made the score worse, which is the answer.**
+    2026-10-16. Commits: `ee29e16`, `8687cc5`, and this record.
+
+    - **A failed result is not a reason to re-run; a measured mechanism is.** The first candidate's
+      own artifact showed it called UP on 78.5% of rows where 41.1% were, and FLAT on 3.6% where
+      19.7% were, with accuracy tracking the UP base rate to 0.0215. That is an independent,
+      falsifiable hypothesis -- the 0.4211 measures a collapsed optimiser, not the features -- and it
+      is falsifiable in the direction that settles the question, which is what distinguishes it from
+      another pass at the same holdout.
+
+    - **The collapse was real and removing it cost accuracy.** Class weights from the training fold's
+      own frequencies took the largest predicted share from 0.56-0.94 down to 0.39-0.53, no fold
+      degenerate, and FLAT recall from effectively nothing to 0.69. Mean accuracy fell **0.4211 ->
+      0.3618** against a 0.4377 majority reference, losing all six folds. Balancing trades a base-rate
+      advantage for honestly balanced errors: UP recall 0.30, DOWN 0.23. So the fifteen point-in-time
+      price and volume features carry **no directional edge** for `label20`, and the earlier number
+      was the base rate of a predictor that had stopped discriminating.
+
+    - **Half the hypothesis was simply wrong, and recording the step count is what showed it.** The
+      fixed 400 steps was assumed to be under-convergence. Trained to a loss tolerance instead, every
+      fold converges in about **120** steps -- so 400 was already past convergence and under-training
+      was never a cause. An assumption in a comment became a measurement in an artifact, and it was
+      false.
+
+    - **Five recorded NO-GOs now, and they say different things.** The classifier has no edge on
+      these features; the rules-based family core scores 0.3979 against a 0.4388 constant call; macro
+      as a qualifier adds +0.0045 where +0.02 was required; `label60` is -0.0816. A system can be
+      correct, tested, point-in-time clean and still have nothing to say about direction, and the
+      distance between "1,125 tests pass" and "this predicts something" is exactly this.
+
+    - **A discrete-vote engine fails in ways a continuous one does not**, so T7 asks the three
+      questions that match its shape: noise smaller than the deadband must not reverse a published
+      direction -- guaranteed structurally, since reversing a `NET` of +2 takes two families changing
+      at once, not a tolerance anyone has to pick; one family must never carry a call alone, which is
+      what `MIN_NET = 2` is for; and four correlated trend inputs must be one vote, because if they
+      voted separately a single trending price would meet the minimum-evidence bar by itself.
