@@ -84,19 +84,38 @@ about **162 KB a session, ~3.4 MB a month**. The 339 MB recorded on 2026-10-08 a
 both one-off. At the ordinary rate 433 MB is **well over a year** of headroom - but that rests on
 8 days of observation and excludes future backfills, so it is a floor, not a promise.
 
-### Next operation - back to the brain
+### Back to the brain - and the first prospective shadow run is DONE
 
-The database item is closed. The next command is the brain's, unchanged:
+Readiness: **26 ok / 0 blocked / 0 unknown -> ready: True**, including `SELECT 1` and
+`shadowTableExistsLive`.
 
-```
-python tools/research/shadow_readiness.py --probe-db
-python tools/research/shadow_predict.py --live --write
-```
+`python tools/research/shadow_predict.py --live --limit 700 --write` against the newest
+`AssetFactor` session (**2026-10-15**, 617 assets):
 
-Readiness last read **26 ok / 0 blocked / 0 unknown** when the pooler had capacity. `--live` reads
-the newest `AssetFactor` session rather than the frozen dataset, which is what makes the prediction
-prospective. **Run it when the pooler is not saturated**; it needs one connection and holds it
-briefly.
+| | |
+|---|---|
+| written to `ShadowPrediction` | **566** |
+| quality | **566 ok, 0 degraded, 51 refused** |
+| refused because | a critical input was missing - no prediction produced, by design |
+| predicted | **UP x 566** |
+| matures | **2026-11-16**, outcomes **0** (correct - not yet) |
+| `approved` | **false on every row** |
+
+**Every row carries its provenance**: `modelVersion` `brain-v2-context`, `modelSha256`
+`73d48231...3f3b` (full digest), `featureSchema` `context-features-v2`, `datasetVersion`
+`examples-v4-context`, the imputed feature list, `macroAsOf` 2026-10-15 with `macroAgeDays` 0, and
+the class scores.
+
+**All 566 predict UP**, which is the model's recorded 92% collapse showing up in live shadow data
+exactly where it should. That is the point of shadow running a NO-GO candidate: the failure is now
+visible prospectively instead of only in a holdout.
+
+### Next operation
+
+1. **Collect outcomes after 2026-11-16** - fill `outcomeLabel`/`outcomeFwd`; null means "not
+   matured", never "no move". Then judge against the pre-declared criteria.
+2. **The crypto hypothesis**, pre-registered in a commit *before* it is run, as `f664f17` did.
+3. Optional: a second shadow run on a later session, to build more than one decision date.
 
 `brain-v2-context` stays **NO-GO** (0.4167, 1 of 4 criteria, `productionApproved: false`). Do not
 retrain against the inspected holdout. After the first write: collect outcomes when `maturesAfter`

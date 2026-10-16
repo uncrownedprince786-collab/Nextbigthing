@@ -1,14 +1,14 @@
 {
- "generatedAt": "2026-10-16T22:33:25+00:00",
+ "generatedAt": "2026-10-16T23:49:52+00:00",
  "version": "shadow-readiness-v1",
  "model": "data/foundation/brain/brain-v2-context",
  "status": "assessment only; nothing deployed, no prediction recorded, no database written",
  "summary": {
-  "ok": 24,
-  "blocked": 1,
+  "ok": 26,
+  "blocked": 0,
   "unknown": 0
  },
- "ready": false,
+ "ready": true,
  "checks": [
   {
    "check": "artifactLoads",
@@ -160,9 +160,15 @@
   },
   {
    "check": "databaseReachable",
-   "status": "blocked",
-   "evidence": "ConnectionTimeout: connection timeout expired",
-   "detail": "shadow recording needs this; until it answers, recording is unverified"
+   "status": "ok",
+   "evidence": "SELECT 1 returned {'ok': 1}",
+   "detail": "read-only; no table touched, nothing written"
+  },
+  {
+   "check": "shadowTableExistsLive",
+   "status": "ok",
+   "evidence": "to_regclass: present",
+   "detail": "CI applies the migration on a push touching prisma/**; until then a shadow run can compute predictions but cannot record them"
   }
  ],
  "note": "a NO-GO candidate may run in shadow once these hold, and may not be served as an approved brain under any of them."
