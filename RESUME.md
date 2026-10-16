@@ -76,15 +76,50 @@ UP — which is the 92% UP collapse showing up exactly where it should.
 **1,148 Python, `OK`** (1,129 + 19: 15 for the prediction record's failure modes, 4 for the macro
 artifact's durability and digest).
 
+### CI applied the migration, then the database went quiet
+
+**Verified, not assumed.** After the push of `3c62db0`, `schema.yml` applied
+`20261017000000_shadow_prediction`, and a probe returned **`SELECT 1 -> {'ok': 1}`** and
+**`to_regclass('public."ShadowPrediction"') -> present`**. Readiness reached **26 ok / 0 blocked /
+0 unknown**.
+
+**Minutes later the database stopped answering.** Three attempts, two spaced two minutes apart,
+all `psycopg.errors.ConnectionTimeout`. Readiness is back to **24 ok / 1 blocked / 0 unknown** and
+`shadow_readiness.json` records that, because it is the current truth.
+
+**Not retried further, on purpose.** Two open owner decisions cover exactly this — the pool ceiling
+(`max: 2`) and the pooler's real client ceiling, unverified against a measured `max_connections` of
+60 — and a CI schema run had just finished against the same database. Hammering a free tier to turn
+a red check green is how this project's measured limits came to be measured.
+
+**The honest state of the chain:**
+
+| | |
+|---|---|
+| artifact loads, 44 features reproduce by name in a fresh process | **verified** |
+| context block for today, 0 of 29 null, digest checked, cold start works | **verified** |
+| the destination table exists in the live database | **verified** |
+| predictions compute — 75 rows for 2026-09-25, 75 ok / 0 degraded / 0 refused | **verified** |
+| a prospective `--live --write` run | **NOT YET** — the database is not answering |
+
+**Nothing was written to any database this session.**
+
 ### Next authorized action
 
 ```
 python tools/research/shadow_readiness.py --probe-db     # expect 26 ok, 0 blocked, 0 unknown
-python tools/research/shadow_predict.py --as-of <session> --write
+python tools/research/shadow_predict.py --live --write   # the first prospective shadow run
 ```
 
-Once CI has applied `20261017000000_shadow_prediction`, `shadowTableExistsLive` turns ok and the
-first `--write` run records timestamped predictions. Then, in order:
+`--live` reads the newest `AssetFactor` session rather than the frozen dataset, and that is what
+makes the prediction prospective: the dataset ends at the last session with a fully elapsed
+20-session window, so predicting on its newest date would score rows whose outcome already exists
+— a backtest wearing a shadow run's name.
+
+**If the probe still times out**, the blocker is the database and not this code; the two owner
+decisions above are the place to start, and no further retries belong in a session before then.
+
+Then, in order:
 
 1. **Collect outcomes** after `maturesAfter`, and only then — a 20-session horizon on a prediction
    made today matures in about four weeks. Fill `outcomeLabel`/`outcomeFwd`; null means "not yet",
