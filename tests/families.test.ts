@@ -296,6 +296,61 @@ test("B5: one cause cannot become four votes, because macro and news do not vote
   assert.deepEqual(a.abstaining.sort(), ["history", "peers", "volatility"]);
 });
 
+// --- T7 adversarial: what a rule engine with deadbands can be made to do -------------------------
+
+test("T7: a direction does not flip on noise smaller than the deadband", () => {
+  // A vote is discrete, so the hazard is a hair's-breadth input change crossing a threshold and
+  // reversing a published verdict. The guard is that no single family's flip can reverse NET on its
+  // own: reversing a +2 needs two families to change their minds at once.
+  const base: FamilyInput = blank({
+    r20: 6.2, sma20: 11, sma50: 10,          // E1 +1
+    volumeRatio: 1.4, r1: 0.9,               // E2 +1
+    drawdownPct: -3, rangePct: 80,           // E3 +1
+    relStrength: 9, peers: 11,               // E4 +1
+  });
+  const before = aggregate(readFamilies(base));
+  assert.equal(before.action, "LONG");
+  assert.equal(before.net, 4);
+
+  // Nudge every input by a hair, in the direction that hurts.
+  const nudged = aggregate(readFamilies({
+    ...base,
+    r20: 6.19, sma20: 10.999, sma50: 10,
+    volumeRatio: 1.399, r1: 0.899,
+    drawdownPct: -3.001, rangePct: 79.9,
+    relStrength: 8.99,
+  }));
+  assert.equal(nudged.action, "LONG", "a hair of noise reversed a published direction");
+  assert.equal(nudged.net, 4);
+});
+
+test("T7: one family can never carry a direction by itself", () => {
+  // `MIN_NET = 2` is what stops a single measurement -- or a single broken source -- publishing a
+  // call. One family at +1 with the rest eligible and even reaches NET +1 and is held.
+  const alone = aggregate(readFamilies(blank({
+    r20: 6.2, sma20: 11, sma50: 10,          // E1 +1
+    volumeRatio: 1.0, r1: 0.9,               // E2  0, eligible (below the volume threshold)
+    drawdownPct: -3, rangePct: 20,           // E3  0, eligible
+  })));
+  assert.equal(alone.net, 1);
+  assert.equal(alone.action, "WAIT");
+  assert.equal(alone.basis, "evidence");
+  // What leaned is still recorded on a withheld call -- that is the point of publishing the
+  // evidence either way -- but no direction is published from it.
+  assert.deepEqual(alone.supporting, ["trend"]);
+  assert.equal(alone.gate, "thin-evidence");
+});
+
+test("T7: four correlated trend inputs are one vote, not four", () => {
+  // The whole reason E1 exists as a family: `r20`, `sma20` and `sma50` describe one fact. If they
+  // voted separately, one trending price would be three confirmations and `MIN_NET` would be met by
+  // a single observation.
+  const r = reading(blank({ r20: 6.2, sma20: 11, sma50: 10 }), "E1");
+  assert.equal(r.vote, 1);
+  const all = readFamilies(blank({ r20: 6.2, sma20: 11, sma50: 10 }));
+  assert.equal(all.filter((x) => x.eligible).length, 1, "the trend inputs produced more than one family");
+});
+
 test("a direction records what argued against it, so a capped grade can be reviewed afterwards", () => {
   // Without `opposing` by name, a capped Medium and an uncapped Medium are indistinguishable in the
   // log, and the cap is a promise the methodology page publishes.
