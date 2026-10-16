@@ -1,0 +1,40 @@
+{
+ "generatedAt": "2026-10-16T23:57:38+00:00",
+ "version": "crypto-evidence-v1",
+ "question": "is brain-v2-context's 0.5143 on crypto real, or the UP collapse landing on a market that happened to rise",
+ "dataset": {
+  "dir": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\.cache\\foundation\\dataset_v4",
+  "prefix": "examples-v4-context",
+  "cryptoRowsTotal": 93452,
+  "holdoutRows": 19220,
+  "holdoutFrom": "2026-01-01",
+  "holdoutTo": "2026-09-25",
+  "distinctSymbols": 75,
+  "distinctDecisionDates": 268,
+  "effectiveIndependentWindows": 961
+ },
+ "classShare": {
+  "DOWN": 0.4723,
+  "FLAT": 0.1234,
+  "UP": 0.4043
+ },
+ "majorityClass": "DOWN",
+ "alwaysUpBaseline": 0.4043,
+ "modelOnCrypto": {
+  "accuracy": 0.5143,
+  "predictedMix": {
+   "DOWN": 6180,
+   "FLAT": 36,
+   "UP": 13004
+  },
+  "recall": {
+   "DOWN": 0.4173,
+   "FLAT": 0.0013,
+   "UP": 0.7842
+  }
+ },
+ "accuracyMinusAlwaysUp": 0.11,
+ "holdoutPristine": false,
+ "exposureNote": "this window was scored by the recorded walk-forward experiments; it is diagnostic, never independent evidence",
+ "verdict": "the crypto result is NOT explained by the UP collapse"
+}
