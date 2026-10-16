@@ -1,0 +1,19 @@
+-- Rebuild EventImpact's indexes. The previous attempt reclaimed nothing, and the reason is worth
+-- writing down rather than retrying blind.
+--
+-- 20261017140000 used `ALTER COLUMN ... SET DATA TYPE ... USING` to force a table rewrite. CI
+-- applied it cleanly and the table did not move: heap 56.79 MB and indexes 38.16 MB before and
+-- after, to two decimal places. PostgreSQL recognises that the USING expression is a no-op cast
+-- to the column's existing type and skips the rewrite. The clause is not the guarantee it is
+-- commonly described as.
+--
+-- `REINDEX TABLE` is not a trick. It runs inside a transaction, which is what
+-- `prisma migrate deploy` requires, and it genuinely rebuilds every index on the table and frees
+-- the old ones. It takes ACCESS EXCLUSIVE for the rebuild -- on 17,600 rows that is
+-- milliseconds, which is exactly why this would be the wrong thing to do to PriceSnapshot.
+--
+-- This reclaims the index half only: about 38 MB of the 95 MB the table holds. The heap's
+-- 56.8 MB of free space needs VACUUM FULL, CLUSTER or pg_repack, none of which can run inside a
+-- transaction, so none can come from this lane. That residual is recorded in RESUME.md with the
+-- exact command, as an owner decision rather than something to keep retrying from here.
+REINDEX TABLE "EventImpact";
