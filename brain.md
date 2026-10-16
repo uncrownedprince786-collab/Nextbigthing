@@ -6058,3 +6058,52 @@ reads rows that already exist:
     - **The stress clause fires on 6.3% of live rows** (39 of 615), against 8.83% on the bounded
       sample -- close enough to confirm the sample was representative, different enough to be a real
       measurement rather than a number copied forward.
+
+165. **Every experiment had persisted a verdict and none had persisted a model, and the artifact is
+    the part that was missing.** 2026-10-17. Commits: this record and the one before it.
+
+    - **A report about a model is not a model.** `baseline_experiment.json` said 0.4211,
+      `balanced_experiment.json` said 0.3618, and in both cases the weights existed inside a Python
+      process and died with it. Nothing downstream could load the candidate, read a coefficient, or
+      reproduce one prediction, so "the brain was trained" and "a trained brain exists" had quietly
+      become the same sentence when they are not. `tools/research/train_v1.py` writes
+      `data/foundation/brain/brain-v1/model.json`: classes, feature names **in order**, the weight
+      matrix, the training-span standardisation and the hyperparameters, small enough to commit and
+      therefore recoverable from git rather than from one disk.
+
+    - **The configuration is imported, not restated, so there is no seam to tune at.** `FEATURES`,
+      `fit_softmax`, `predict` and every hyperparameter come from `baseline_experiment.py` and the
+      manifest records that file's own sha256. This run is the pre-registered first training task
+      from `readiness.json` fitted once and scored once -- it cannot overturn a recorded verdict,
+      because it is the same hypothesis on the same data, and the manifest says so in those words.
+
+    - **Seventh NO-GO, and the number it adds is the one the reports could not show.** 0.4107 on
+      **113,651** holdout rows (2026-01-01 to 2026-09-25, 5,683 effective windows) against a
+      largest-class share of **0.4388**: margin **-0.0281**. The collapse is now a property of a file
+      anyone can load -- **UP predicted on 74.68% of a holdout that is 38.67% UP**, FLAT recall
+      0.0957, DOWN recall 0.2427.
+
+    - **Two true statements about one model, and reporting only the first would be the manufactured
+      success this project keeps refusing.** It beats the *deployable* constant -- always predicting
+      the training majority, UP -- by **+0.024**. It loses to the holdout's *own* largest class by
+      **-0.0281**, because 2026 is a year in which DOWN led and the model was trained where UP did.
+      A model that only wins against the constant it would have replaced in the previous regime has
+      not learned direction; it has learned a base rate that moved.
+
+    - **The holdout is not pristine and the artifact says so in a field, not a footnote.**
+      `evaluation.holdout.pristine` is `false`: 2021 through 2026 were all scored by the recorded
+      walk-forward experiments and the second chose its configuration after seeing the first. There
+      is no unseen span left in this dataset, so a pristine evaluation needs sessions after
+      2026-09-25 or a feature set these years have not seen. A test pins the field, because the
+      cheapest way to fake an independent validation is to stop mentioning that it is not one.
+
+    - **The dataset is verified by digest before a single row is read.** Every year file is hashed
+      against `dataset_freeze.json` and a mismatch aborts. Training on a moved dataset while
+      recording the frozen version's name beside it is the provenance failure the freeze exists to
+      prevent, and annotating it afterwards would not undo it.
+
+    - **What the artifact is for, given that it failed.** It makes the next experiment cheaper and
+      the current claim checkable: the collapse is inspectable, the encoder that fed the model ships
+      with it (`encode_row`, pinned against the dataset loader by test), a reload is required to
+      reproduce the fit's own predictions, and `productionApproved` is `false` inside the model file
+      itself rather than only in the paperwork around it.

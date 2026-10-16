@@ -1,5 +1,123 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT — 2026-10-17 (eighth), Brain V1 is trained to a file that reloads; NO-GO
+
+**Branch `main`. Working tree clean including untracked files. Nothing is running: no training, no
+producer, no dev server.** The work commit is the one before this record; this record is readable
+with `git log -1`.
+
+**Usage, as actually read** (`/usage` equivalent, twice this session): **82% used, 18% remaining**
+on the weekly all-models window, resetting **2026-10-19**, about 2d 4h away; the 5-hour window was
+at 0–3%. Point readings, not monitored. 18% is past the 20–25% checkpoint rule, so the rule was
+applied as written: **the smallest complete, useful milestone was closed instead of starting a
+large build.** No contextual feature pipeline, no dataset rebuild, no new hypothesis was started,
+and there is **no partial work to reconcile**.
+
+**State verified before changing anything.** `HEAD` was `c1b3432`, `origin/main` was the same
+commit, 0 ahead and 0 behind after a fetch. The frozen dataset `examples-v3-2026-10-16-local` was
+present locally at `.cache/foundation/dataset_full` and **all 9 year files hashed clean against
+`dataset_freeze.json`** before a single row was read.
+
+### What was missing, and what now exists
+
+Every prior experiment persisted a **verdict** and none persisted a **model**. `baseline_experiment`
+reported 0.4211, `balanced_experiment` reported 0.3618, and in both cases the weights lived inside
+a Python process and died with it. Nothing could load the candidate, read a coefficient or
+reproduce one prediction — so §3.E of the directive ("training must produce a reusable, inspectable
+result") was **unmet**, and had been quietly read as met because reports existed.
+
+| Piece | State |
+|---|---|
+| `tools/research/train_v1.py` | **new.** Verifies the freeze by digest, trains, evaluates once, persists |
+| `data/foundation/brain/brain-v1/model.json` | **new, committed, 3.1 KB.** Classes, ordered feature names, 16×3 weights, training-span standardisation, hyperparameters |
+| `data/foundation/brain/brain-v1/manifest.json` | **new.** Dataset by sha256, config sha256, criteria, evaluation, verdict |
+| `data/foundation/dataset/brain_v1_training.json` | **new.** The public record of the run |
+| `tests/test_brain_v1.py` | **new, 25 tests.** Round trip, encoder parity, freeze refusal, misshapen-model refusal, artifact self-consistency |
+
+**No tuning was possible on the way.** `FEATURES`, `fit_softmax`, `predict` and every
+hyperparameter are **imported from `baseline_experiment.py`**, and the manifest records that file's
+own sha256 (`955d4921…`). This is the pre-registered first training task from `readiness.json`,
+fitted once and scored once. It cannot overturn a recorded verdict because it is the same
+hypothesis on the same data, and the manifest says that in those words.
+
+### The result: the seventh NO-GO
+
+Trained on **933,551** rows to 2025-12-11 (20-session embargo dropped), scored on **113,651**
+holdout rows from **2026-01-01 to 2026-09-25** — 5,683 effective independent windows.
+
+| Measure | Value |
+|---|---|
+| Accuracy | **0.4107** |
+| Holdout largest-class share (DOWN) | **0.4388** |
+| **Margin** | **-0.0281** — fails |
+| Deployable constant (always UP, the training majority) | 0.3867 |
+| Margin over that constant | **+0.024** |
+| Degenerate | **yes** — UP predicted on **74.68%** of a holdout that is **38.67%** UP |
+| Recall | DOWN 0.2427, FLAT 0.0957, UP 0.7435 |
+| By market | PSX 0.3612 (maj 0.5064) · US 0.4270 (maj 0.4336) · crypto 0.4711 (maj 0.4723) · forex 0.3992 (maj 0.7289) · commodity 0.4010 (maj 0.4410) |
+
+**Two true statements about one model, and only reporting the first would be manufactured success.**
+It beats the constant it would have replaced (+0.024) and loses to the holdout's own largest class
+(-0.0281), because it was trained where UP led and scored in a year where DOWN did. `verdict`
+`NO-GO`, `eligibleForPromotion` `false`, and `productionApproved: false` sits **inside the model
+file**, not only in the paperwork around it.
+
+**The holdout is not pristine and the artifact says so in a field.** `evaluation.holdout.pristine`
+is `false`: 2021–2026 were all scored by the recorded walk-forward experiments and the second chose
+its configuration after seeing the first. **No unseen span exists in this dataset.** A pristine
+evaluation needs sessions after 2026-09-25 or a feature set these years have not seen. A test pins
+the field, because the cheapest way to fake an independent validation is to stop mentioning it is
+not one.
+
+### Tests, as actually run
+
+**1,089 Python tests, `OK`**, via `python -m unittest discover -s tests` — the exact command
+`.github/workflows/tests.yml` runs. The new file contributes 25 of them.
+
+**Correction to the previous record:** the seventh checkpoint reported *1,132 Python*. The
+CI-equivalent command collects **1,089** at this commit, and 1,064 of those predate this session's
+file. Nothing was deleted — 1,157 `def test_` lines exist in `tests/`, and the gap is methods
+defined on non-`TestCase` helper classes, which `discover` has never collected. **1,089 is the
+measured figure; 1,132 should not be carried forward.** Web tests and `tsc` were **not** re-run:
+no TypeScript, no schema and no query path changed this session.
+
+### Unchanged, and verified unchanged
+
+Seven NO-GO verdicts now, none overwritten; H1's evaluation untouched; the protected holdout was
+not tuned against. `lib/families.ts` `families-v1.2`, 28 tests, **wired to nothing** — §9 gate 5
+unmet. Frozen dataset `examples-v3-2026-10-16-local`, gates green, rebuild commands recorded; it
+still predates `atrTrailingMedian`. Primary serves (533 MB); `DATABASE_URL` serves;
+`DATABASE_URL_FALLBACK` **ECONNREFUSED**. The 500 MB free-tier figure remains an **assumption**.
+**`WORKER_ARTIFACT_KEY`: BLOCKED — authorization required.** Six commits remain stranded on local
+branch `phase2-ingestion-and-backup` (`e38aa30`, no upstream, 386 behind `origin/main`); they are
+old ingestion/backup work, not this session's, and are recorded here rather than pushed.
+
+### Next authorized action, in dependency order
+
+1. **The contextual feature pipeline** — still the real remaining brain work and the only route to
+   new information. Build it as **non-voting ML features**, not as voting families. Needs a fresh
+   usage budget. **Acceptance:** point-in-time correctness per feature (publication time,
+   revisions, no pre-publication values), a frozen dataset with checksums and rebuild commands, and
+   a pre-registered candidate with its baseline and margin fixed before the run. Note that macro is
+   **deliberately not pre-joined** into the example rows (`dataset_freeze.json`
+   `macroContext.joinedNotPreJoined`) because a market-wide series handed to 616 instruments is one
+   fact counted 616 times; any join must respect that or justify overturning it.
+2. **A pristine holdout, or no promotion claim.** Nothing in this dataset is unseen. Either extend
+   the data past 2026-09-25 or change the feature set; until then every evaluation here is a
+   reproduction.
+3. **Three owner decisions**, unchanged: the pool ceiling (`max: 2`), the pooler's real client
+   ceiling (unverified against a measured `max_connections` of 60), and the key rotation.
+
+**Exact next command**, after a fresh budget and with nothing else running:
+
+```
+python tools/research/train_v1.py            # reproduces this artifact; must print the same sha256
+```
+
+Expected output: `9 files match the freeze`, accuracy `0.4107`, `VERDICT NO-GO`, model sha256
+`989ffe099898316e…`. A different digest on unchanged inputs means something moved and must be
+explained before anything else is believed.
+
 ## 0. SESSION CHECKPOINT — 2026-10-16 (seventh), E3 live end to end; pushed and verified
 
 **Branch `main`. Working tree clean including untracked files. Nothing is running: no training, no
