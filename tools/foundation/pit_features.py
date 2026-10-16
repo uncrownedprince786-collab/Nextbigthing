@@ -312,6 +312,16 @@ def live_oracle(bars: list[dict], t: int, horizon: int, actions: list[str] | Non
 
 
 def main() -> None:
+    # The workflow injects the connection as an environment variable and a laptop keeps it in `.env`.
+    # Guarded and optional, as the other database-reading tools in this directory have it: with the
+    # variable already set, as in CI, this changes nothing. Without it the producer could only run in
+    # CI, which is how the only locally available assembly came to be a small-universe test build.
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(ROOT / ".env")
+    except Exception:  # noqa: BLE001
+        pass
     from nbt import db
     out = Path(arg("--out", ROOT / ".cache" / "foundation" / "pit"))
     limit = int(arg("--assets", 0)) or None

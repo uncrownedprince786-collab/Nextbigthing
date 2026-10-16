@@ -40,6 +40,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "jobs"))
 
+# The workflow injects the connection as an environment variable and a laptop keeps it in `.env`.
+# Guarded and optional, as the other database-reading tools have it: with the variable already set,
+# as in CI, this changes nothing. Without it this producer, `pit_features.py` and `macro_pit.py`
+# could only run in CI -- which is how the only locally available assembly came to be a 22,165-row
+# small-universe test build whose peer columns are 100% null.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(ROOT / ".env")
+except Exception:  # noqa: BLE001
+    pass
+
 from nbt import db  # noqa: E402
 
 HORIZONS = (1, 5, 20)
