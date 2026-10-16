@@ -1,5 +1,101 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-17 (fourteenth), the quota is real and EventImpact is not the lever
+
+**Branch `main`, tree clean, nothing running. Assessment only - no data was removed, no retention
+changed, no `VACUUM FULL`, no schema altered, nothing written to any database.**
+
+### Measured 2026-10-16T22:44:50Z, against the live primary
+
+| | |
+|---|---|
+| database size | **535.0 MB** - `pg_database_size(current_database())` |
+| public tables total | 521.6 MB |
+| non-public / catalog overhead | 13.4 MB |
+| **vs the 500 MB Free Plan limit** | **107.0%** |
+| connections | 28 / 60 |
+| prices / factors | 2026-10-16 / 2026-10-15 |
+
+This is **database size**, not allocated disk. Supabase documents that a Free Plan project may be
+put into **read-only mode** above 500 MB. **It has not been** - writes are landing and the newest
+price row is today's. Recorded as an operational risk, not a state already reached. **The 500 MB
+figure is still from documentation, not from the account's own dashboard**, and confirming it
+there is the one cheap step nobody has taken.
+
+**Other instances** - `DATABASE_URL` (Prisma pooled): 343 MB, 11/50, prices 2026-10-15, factors
+**2026-10-12**. `DATABASE_URL_FALLBACK` (Aiven): **connection timeout, not a working standby** -
+previously recorded as `ECONNREFUSED`, so the failure mode changed but the state did not.
+`ShadowPrediction` exists on **both** working instances with **0 rows**. `nbt.primary_choice()`
+selects Supabase because it is fresher.
+
+### EventImpact, assessed - and it is not a storage lever
+
+| | |
+|---|---|
+| total | **109.2 MB** - heap 71.3, indexes 37.9, TOAST 0.1 |
+| rows | **191,238** = 176 events x 616 assets x 2 `windowDays` (14 and 30) |
+| span | 2019-02-12 to 2026-09-25 |
+| source | one: `measured from stored closes` |
+| dead tuples | **0**, autovacuumed 2026-10-16 - **no bloat to reclaim** |
+
+**Deleting rows saves nothing durable.** `jobs/events.py` runs `DELETE FROM "EventImpact"` and
+rebuilds the whole table every run - its own header says so. **The producer is the archive**, which
+makes a separate compressed archive redundant and makes any pruning a saving that lasts until the
+next run.
+
+**It is not disposable.** `app/event/[slug]/page.tsx` reads it live through `getEventImpacts`, per
+window from `getEventWindows`. Also read by `jobs/analysis.py`, `tools/row_counts.py` and
+`tests/test_evidence_corpus.py`. `Asset` and `Event` both relate to it `onDelete: Cascade`.
+
+**The brain does not read it.** `tools/foundation/event_reactions.py`, `events.py`, `events_load.py`
+and `events_src.py` contain **zero** references; historical event-reaction features come from
+`reactions.jsonl.gz`, computed independently from closes. **So pruning it would cost the website,
+not the research capability** - the opposite of the usual trade, and the opposite of what the
+previous session's "nothing reads it" line implied.
+
+### Options, measured, in the required order
+
+| Option | Saving | Cost |
+|---|---|---|
+| 1. Drop `EventImpact_pkey` - **10.8 MB, 0 scans** since stats reset, while the natural-key index `(eventId, assetId, windowDays)` took 432,974 | **-10.8 MB** to 524.2 MB | schema change, owner authorization, no data loss. **Does not reach 500 alone** |
+| 2. Regenerate rather than store | n/a | already how it works |
+| 3. Compressed archive | n/a | **unnecessary** - the producer is the archive |
+| 4. Store one `windowDays` instead of two (14: 95,634 rows; 30: 95,604) | **about -54.6 MB** to ~480 MB, **under the limit** | a **product decision**: the event page's window selector loses an option. A change to `jobs/events.py`, not a deletion |
+
+`PriceSnapshot` at 274.8 MB is the largest table and is explicitly protected by `jobs/retention.py`
+as "the evidence the whole project exists to accumulate". It is not a candidate.
+
+### Backup evidence
+
+`restore_rehearsal.json`, 2026-10-15: a real PostgreSQL restore into an isolated disposable cluster
+- **VERIFIED: 43 tables, 1,274,615 rows, content digests equal**. **But its schema version is
+`20261011130000_decision_history`, two migrations behind** `20261016140000_atr_trailing_median` and
+`20261017000000_shadow_prediction`. The verified backup therefore does **not** contain
+`atrTrailingMedian` or `ShadowPrediction`. A fresh backup and rehearsal is owed.
+
+### Credential hygiene
+
+A prior diagnostic echoed a connection string including its password into terminal output.
+**Scanned 4,093 files across the repository and this session's temp directory.** The secret appears
+in exactly four, all local and all gitignored: `.env` (`.gitignore:55`) and three
+`.next/dev/cache/turbopack/*.sst` files (`.gitignore:17`) left by the dev server run earlier.
+
+**It is in no commit:** `git grep` at HEAD finds none, and `git log -S --all` shows **no commit ever
+added or removed it**. It is not in any handoff. The remaining exposure is this session's
+transcript. **Rotation is an owner action** through Supabase, recorded as the third credential item
+beside `WORKER_ARTIFACT_KEY`; nothing was rotated here.
+
+### Next authorized action
+
+1. **Confirm the real limit** on the Supabase dashboard - database size against the plan's stated
+   cap. Everything above assumes 500 MB from documentation.
+2. **Decide option 1 and/or option 4.** Option 1 is a 10.8 MB schema change with no data loss and
+   no product impact. Option 4 is the only measured route under 500 MB and is a product decision.
+   **Neither is authorized; no pruning may happen without it.**
+3. **Fresh backup and restore rehearsal** at the current schema, since the verified one is two
+   migrations stale.
+4. Unchanged: the Aiven standby is down, and the pool-ceiling decisions remain open.
+
 ## 0. SESSION CHECKPOINT — 2026-10-17 (thirteenth), the three shadow blockers are cleared
 
 **Branch `main`, work commit `3c62db0`, this record after it. Tree clean, nothing running.**
