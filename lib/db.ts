@@ -72,7 +72,14 @@ function create() {
       "DATABASE_URL is not set. Copy .env.example to .env and paste the Neon connection string.",
     );
   }
-  const pool = makeFailoverPool({ connectionString: url, ...primaryLimits(url) }, standbys(url));
+  // Encryption is asked for here too, and not only for the standbys (`standbys()` above).
+  // `withEncryption` leaves a URL that already names a mode exactly as it was, so this changes
+  // nothing for a Neon string; what it changes is the Supabase one, which names no mode at all.
+  // With no mode the Node driver connects **unencrypted** -- measured against the real pooler, and
+  // written down in `withEncryption`'s own comment -- so the primary was the one endpoint reached in
+  // cleartext while every standby was wrapped. The asymmetry is not a decision anyone took: it is
+  // that the wrapper was added where the standbys were built and the primary was passed on raw.
+  const pool = makeFailoverPool({ connectionString: withEncryption(url), ...primaryLimits(url) }, standbys(url));
   servingPool = pool as unknown as { servingFrom?: () => string };
   return new PrismaClient({ adapter: new PrismaPg(pool) });
 }

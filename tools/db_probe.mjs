@@ -117,13 +117,18 @@ for (const { env, role } of ENDPOINTS) {
              (SELECT count(*) FROM information_schema.tables
                WHERE table_schema = 'public')               AS public_tables,
              pg_size_pretty(pg_database_size(current_database())) AS size,
-             (SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()) AS encrypted
+             -- Reported, but read with care: behind a pooler this describes the pooler's own
+             -- connection to Postgres, not this client's connection to the pooler. Both endpoints
+             -- here are pooled and both answer false even when the client asked for TLS, so it says
+             -- nothing about the leg that crosses the network. Whether this side is encrypted is
+             -- decided by the connection string, which is what the "string:" line above reports.
+             (SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()) AS backend_leg_encrypted
     `);
     const r = rows[0];
     console.log(`  reached in ${connectMs}ms, PostgreSQL ${r.version}`);
     console.log(`  connections: ${r.in_use} in use of ${r.limit_total} allowed`);
     console.log(`  database: ${r.public_tables} public tables, ${r.size}`);
-    console.log(`  this connection is ${r.encrypted ? "ENCRYPTED" : "CLEARTEXT"}`);
+    console.log(`  pooler's own backend leg: ${r.backend_leg_encrypted ? "encrypted" : "not encrypted"} (not this client's leg)`);
   } catch (error) {
     console.log(`  FAILED after ${Date.now() - started}ms: ${describe(error)}`);
   } finally {

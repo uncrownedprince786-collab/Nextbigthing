@@ -31,15 +31,49 @@
   "83 user tables against 44 in the backup manifest -- the backup covers the data tables."
  ],
  "connectionFailover": {
-  "DATABASE_URL": "FAILS: server login has been failing (Prisma pooled endpoint)",
-  "DATABASE_URL_FALLBACK": "FAILS: connection timeout",
-  "SUPABASE_DATABASE_URL": "SERVES: all work in this session ran through it",
-  "consequence": "the system is running on its third option with no further fallback configured"
+  "DATABASE_URL": "SERVES (rechecked 2026-10-16; the earlier login failure did not reproduce)",
+  "DATABASE_URL_FALLBACK": "FAILS: connection refused -- a stopped or deleted service, not a network fault",
+  "SUPABASE_DATABASE_URL": "SERVES: primary, and every read in this session ran through it",
+  "order": "asserted by tests/failover.test.ts: the second Neon project, then Supabase, then Neon",
+  "consequence": "two of three serve; standby 1 is the gap and needs the owner's provider account to restore"
  },
  "notVerified": [
   "provider plan limits and quota",
   "egress and request quotas",
   "CI minute consumption",
   "sync wall-clock duration per run"
- ]
+ ],
+ "recheckedAt": "2026-10-16T10:52:00+00:00",
+ "recheck": {
+  "instrument": "tools/db_probe.mjs, which names each endpoint by its environment variable and never prints a string, a credential or a host",
+  "primary": {
+   "endpoint": "SUPABASE_DATABASE_URL",
+   "serves": true,
+   "postgres": "17.11",
+   "databasePretty": "533 MB",
+   "publicTables": 44,
+   "connections": "15 in use of 60 allowed",
+   "reachedInMs": 1424
+  },
+  "standby1": {
+   "endpoint": "DATABASE_URL_FALLBACK",
+   "serves": false,
+   "failure": "connect ECONNREFUSED on its published port",
+   "wasPreviously": "connection timeout",
+   "reading": "a refusal is not a timeout: the host answers and declines the port, which is what a stopped or deleted service looks like rather than a network fault. Restoring it needs the owner's provider account; nothing in this repository can."
+  },
+  "standby2": {
+   "endpoint": "DATABASE_URL",
+   "serves": true,
+   "postgres": "17.2",
+   "databasePretty": "332 MB",
+   "publicTables": 44,
+   "connections": "10 in use of 50 allowed",
+   "reachedInMs": 883,
+   "correction": "the previous check recorded this as failing login. It serves a read now, so that line was either transient or has since been fixed; it is not a standing fault."
+  },
+  "consequence": "two of the three configured endpoints serve a read -- the primary and standby 2 -- so the chain is no longer one deep. Standby 1 is down and is the one to restore.",
+  "storage": "533 MB measured today against 397.8 MB on 2026-10-15. The 500 MB figure in `headroom` remains an ASSUMPTION about the plan and was still not read from the provider; if it is the real limit this database is now over it, which is the owner's to check and is why it is not asserted here.",
+  "encryption": "the primary's string names no sslmode and was passed to the driver unwrapped, so it was the one endpoint reached in cleartext while every standby was wrapped. Fixed in lib/db.ts; pg_stat_ssl cannot confirm it either way, because behind a pooler it describes the pooler's own backend connection and not this client's."
+ }
 }

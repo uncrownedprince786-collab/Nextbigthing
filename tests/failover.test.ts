@@ -510,9 +510,24 @@ test("waiting for a turn is one wait and never a retry", () => {
   assert.ok(!/for \(;;\)|while \(true\)/.test(code), "lib/failover.ts retries an acquisition in a loop");
 });
 
+test("every endpoint is wrapped for encryption, the primary included", () => {
+  // The primary was the one reached in cleartext: `withEncryption` was applied where the standbys
+  // are built and the primary was passed on raw, and the Supabase string names no sslmode, which
+  // this driver reads as "connect unencrypted". Neon's strings name one and are left alone, so the
+  // wrapper is a no-op for them -- which is why the omission was invisible for as long as it was.
+  const db = readFileSync(new URL("../lib/db.ts", import.meta.url), "utf8");
+  const wrapped = db.match(/withEncryption\(/g) ?? [];
+  assert.ok(wrapped.length >= 2, `only ${wrapped.length} endpoint(s) ask for encryption`);
+  assert.ok(!/connectionString: url\b/.test(db), "the primary's URL is still passed on unwrapped");
+  // A URL with no mode gets libpq's own `require`: encrypted, chain not verified, which is what the
+  // Postgres world means by the word and what the Supabase pooler accepts.
+  assert.equal(withEncryption("postgres://h/db"), "postgres://h/db?uselibpqcompat=true&sslmode=require");
+  assert.equal(withEncryption("postgres://h/db?sslmode=require"), "postgres://h/db?sslmode=require");
+});
+
 test("a Supabase primary gets two connections per instance; Neon keeps pg's default", async () => {
   const src = readFileSync(new URL("../lib/db.ts", import.meta.url), "utf8");
-  assert.match(src, /makeFailoverPool\(\{ connectionString: url, \.\.\.primaryLimits\(url\) \}, standbys\(url\)\)/);
+  assert.match(src, /makeFailoverPool\(\{ connectionString: withEncryption\(url\), \.\.\.primaryLimits\(url\) \}, standbys\(url\)\)/);
   assert.match(src, /databaseKey\(c\.url\) !== databaseKey\(primary\)/, "the primary is never its own standby");
   assert.match(src, /hostname\.endsWith\("\.supabase\.com"\)\) return \{ max: 2,/);
 });
