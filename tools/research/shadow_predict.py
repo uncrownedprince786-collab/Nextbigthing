@@ -207,6 +207,56 @@ def rows_at(ds: Path, as_of: str, prefix: str, limit: int):
     return out
 
 
+PRICE_COLUMNS = ("r1", "r5", "r20", "returnZ", "volumeRatio", "peerMedianR20", "relStrength",
+                 "peers", "sma20", "sma50", "rangePct", "drawdownPct", "entryTrigger",
+                 "triggerDirection", "atr14")
+
+
+def live_rows(limit: int):
+    """The newest stored factor session, read from the live database.
+
+    This is what makes a shadow prediction *prospective*. The frozen dataset ends at the last
+    session with a fully elapsed 20-session forward window, so predicting on its newest date
+    would be scoring rows whose outcome already exists -- a backtest wearing a shadow run's
+    name. The newest `AssetFactor` session has no matured outcome yet, which is the whole point.
+
+    `market` is derived from `Asset.source` because the Asset table has no market column. Only
+    `PK` matters: it is the single market-scoped entry in the context producer, and everything
+    else simply needs not to be `PK`.
+    """
+    sys.path.insert(0, str(ROOT / "jobs"))
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(ROOT / ".env")
+    except ImportError:
+        pass
+    from nbt import db
+
+    conn = db()
+    cur = conn.cursor()
+    cur.execute('SELECT max("periodEnd") AS d FROM "AssetFactor"')
+    newest = (cur.fetchone() or {}).get("d")
+    if not newest:
+        cur.close()
+        conn.close()
+        raise SystemExit("no AssetFactor rows: nothing to predict from")
+    cols = ", ".join(f'f."{c}"' for c in PRICE_COLUMNS)
+    cur.execute(
+        f'SELECT f."assetId", a.symbol, '
+        "CASE WHEN a.source = 'psx' THEN 'PK' ELSE 'US' END AS market, " + cols + " "
+        'FROM "AssetFactor" f JOIN "Asset" a ON a.id = f."assetId" '
+        'WHERE f."periodEnd" = %s ORDER BY a.symbol LIMIT %s', (newest, limit))
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    out = []
+    for r in rows:
+        out.append({"asOf": newest.isoformat() if hasattr(newest, "isoformat") else str(newest),
+                    "assetId": r["assetId"], "symbol": r["symbol"], "market": r["market"],
+                    "pit": {"f": {c: r.get(c) for c in PRICE_COLUMNS}}})
+    return out, (newest.isoformat() if hasattr(newest, "isoformat") else str(newest))
+
+
 def write_rows(records: list[dict]) -> dict:
     """Insert into ShadowPrediction. Returns what happened; never raises on a missing table."""
     try:
@@ -242,7 +292,11 @@ def write_rows(records: list[dict]) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--as-of", required=True)
+    ap.add_argument("--as-of")
+    ap.add_argument("--live", action="store_true",
+                    help="read the newest AssetFactor session from the database "
+                         "instead of the frozen dataset; this is what makes a "
+                         "shadow prediction prospective")
     ap.add_argument("--model", default=str(DEFAULT_MODEL))
     ap.add_argument("--dataset", default=str(DEFAULT_DS))
     ap.add_argument("--prefix", default="examples-v4-context")
@@ -255,11 +309,17 @@ def main() -> int:
     print(f"model {model['version']} sha {model['sha256'][:16]} "
           f"({len(model['features'])} features, approved=False)")
     src = ContextSource.load()
-    as_of = date.fromisoformat(a.as_of)
-
-    rows = rows_at(Path(a.dataset), a.as_of, a.prefix, a.limit)
+    if a.live:
+        rows, as_of_str = live_rows(a.limit)
+        print(f"live: newest AssetFactor session {as_of_str}, {len(rows)} assets")
+    else:
+        if not a.as_of:
+            raise SystemExit("pass --as-of or --live")
+        as_of_str = a.as_of
+        rows = rows_at(Path(a.dataset), a.as_of, a.prefix, a.limit)
     if not rows:
-        raise SystemExit(f"no rows with price features for {a.as_of}")
+        raise SystemExit(f"no rows with price features for {as_of_str}")
+    as_of = date.fromisoformat(as_of_str)
 
     records = []
     for r in rows:
@@ -278,7 +338,8 @@ def main() -> int:
         "version": "shadow-predict-v1",
         "status": "experimental; the model is NOT production-approved and nothing here is a "
                   "trading signal",
-        "asOf": a.as_of, "model": model["version"], "modelSha256": model["sha256"],
+        "asOf": as_of_str, "source": "live AssetFactor" if a.live else "dataset",
+        "model": model["version"], "modelSha256": model["sha256"],
         "criticalRules": list(CRITICAL),
         "byQuality": by_q, "byPredictedClass": by_p,
         "records": records,
