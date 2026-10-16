@@ -1,14 +1,14 @@
 {
- "generatedAt": "2026-10-16T21:24:02+00:00",
- "version": "context-features-v1",
- "rowsMeasured": 8160,
+ "generatedAt": "2026-10-16T21:36:45+00:00",
+ "version": "context-features-v2",
+ "rowsMeasured": 7548,
  "sessions": 204,
- "instruments": 40,
+ "instruments": 37,
  "observedShareByBlock": {
   "macro": 1.0,
   "events": 1.0,
   "press": 1.0,
-  "reactionPrior": 0.6012
+  "reactionPrior": 0.6475
  },
  "nullShareByFeature": {
   "macro_DGS10_chg": 0.0,
@@ -31,11 +31,15 @@
   "macro_DCOILWTICO_age": 0.0,
   "macro_ICSA_chg": 0.0,
   "macro_ICSA_age": 0.0,
-  "ctx_eventsIn90d": 0.0,
-  "ctx_daysSinceEvent": 0.0741,
-  "ctx_pressIn90d": 0.0,
-  "ctx_maturedPriors": 0.1,
-  "ctx_priorMedianFwd20": 0.3988
+  "ctx_mktEventsIn90d": 0.0,
+  "ctx_mktDaysSinceEvent": 0.0784,
+  "ctx_ownEventsIn90d": 0.0,
+  "ctx_ownDaysSinceEvent": 0.3422,
+  "ctx_mktPressIn90d": 0.0,
+  "ctx_ownPressIn90d": 0.0541,
+  "ctx_maturedPriors": 0.0,
+  "ctx_priorMedianFwd20": 0.3525,
+  "ctx_unresolvedScopeRecords": 0.0
  },
  "featureOrder": [
   "macro_DGS10_chg",
@@ -58,18 +62,32 @@
   "macro_DCOILWTICO_age",
   "macro_ICSA_chg",
   "macro_ICSA_age",
-  "ctx_eventsIn90d",
-  "ctx_daysSinceEvent",
-  "ctx_pressIn90d",
+  "ctx_mktEventsIn90d",
+  "ctx_mktDaysSinceEvent",
+  "ctx_ownEventsIn90d",
+  "ctx_ownDaysSinceEvent",
+  "ctx_mktPressIn90d",
+  "ctx_ownPressIn90d",
   "ctx_maturedPriors",
-  "ctx_priorMedianFwd20"
+  "ctx_priorMedianFwd20",
+  "ctx_unresolvedScopeRecords"
  ],
+ "scopeRule": "market | own | unresolved; an unplaceable record is counted in ctx_unresolvedScopeRecords and contributes to neither scope",
  "excluded": {
   "operational news feed": "operational news feed: jobs/lineage.py prunes it at 70 days, so no historical corpus exists for any session older than that. A feature built from it would measure the retention window rather than the news."
  },
  "provenance": {
-  "version": "context-features-v1",
-  "loadedAt": "2026-10-16T21:24:00+00:00",
+  "version": "context-features-v2",
+  "loadedAt": "2026-10-16T21:36:42+00:00",
+  "universeGiven": true,
+  "aliases": {
+   "BTC": "btc-bitcoin",
+   "ETH": "eth-ethereum",
+   "OIL": "CL=F"
+  },
+  "marketScoped": {
+   "PSX": "PK"
+  },
   "macro": {
    "path": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\.cache\\foundation\\macro_rebuild\\macro-sessions.jsonl.gz",
    "present": true,
@@ -79,8 +97,11 @@
   "events": {
    "path": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\data\\foundation\\events\\events.json",
    "present": true,
-   "instruments": 40,
-   "rows": 168,
+   "byScope": {
+    "market": 48,
+    "own": 119,
+    "unresolved": 1
+   },
    "rule": "verified events only, date strictly before as_of",
    "neverRead": [
     "market",
@@ -91,16 +112,22 @@
   "press": {
    "path": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\data\\foundation\\events\\press_evidence.jsonl",
    "present": true,
-   "instruments": 38,
-   "rows": 1146,
+   "byScope": {
+    "market": 513,
+    "own": 623,
+    "unresolved": 10
+   },
    "rule": "publishedAt strictly before as_of; retrievedAt is never treated as availability"
+  },
+  "unresolvedInstruments": {
+   "GME": 11
   },
   "reactions": {
    "path": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\data\\foundation\\events\\reactions.jsonl.gz",
    "present": true,
-   "instruments": 39,
-   "rows": 167,
-   "rule": "forward['20'].exitSession strictly before as_of; an open window is not a prior"
+   "instruments": 37,
+   "rows": 119,
+   "rule": "forward['20'].exitSession strictly before as_of; an open window is not a prior; own-scope only"
   },
   "news": {
    "status": "excluded",

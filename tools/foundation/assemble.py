@@ -59,6 +59,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from walkforward import assert_features_are_past_only  # noqa: E402
 from actions import basis_breaks, unadjusted_windows  # noqa: E402
+from context_features import DEFAULT_MACRO, VERSION as CTX_VERSION, ContextSource  # noqa: E402
 
 # How far back a feature window reaches (tools/foundation/pit_features.WINDOW) and how far forward
 # an outcome does. A row is suspect when an unadjusted corporate action falls in either.
@@ -126,7 +127,8 @@ def setups_for_year(replay: Path | None, runs: dict, year: int) -> dict[tuple, d
 
 def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setups: dict, stats: dict,
                   actions: dict[str, list[str]] | None = None, replayed_dates: set | None = None,
-                  pool_clean: bool = False, basis: dict[str, list[str]] | None = None):
+                  pool_clean: bool = False, basis: dict[str, list[str]] | None = None,
+                  ctx: ContextSource | None = None):
     pit: dict[tuple, dict] = {}
     if pit_path and pit_path.exists():
         for r in read_gz(pit_path):
@@ -210,6 +212,26 @@ def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setup
             "candidate": None if s is None else {k: s.get(k) for k in SETUP_KEYS},
             "coverage": {"pit": p is not None, "setup": s is not None},
         }
+        # Context rides inside `pit`, because context without price features is context attached
+        # to a row no trainer will read: `baseline_experiment.load` skips any row without `pit.f`.
+        # `f` mirrors `pit.f` so one flattening rule serves both, and `s` keeps each block's
+        # status, which is what separates "we looked and there was none" from "we could not look".
+        if p is not None and ctx is not None:
+            block = ctx.at(r["asOf"], r["symbol"], r["market"])
+            row["pit"]["ctx"] = {
+                "v": block["version"],
+                "f": dict(zip(ContextSource.feature_names(), ContextSource.vector(block))),
+                "s": {k: (block[k] or {}).get("status")
+                      for k in ("macro", "events", "press", "reactionPrior", "quality")},
+            }
+            stats["withCtx"] += 1
+            macro_as_of = (block.get("macro") or {}).get("asOf")
+            if macro_as_of and macro_as_of > r["asOf"]:
+                stats["leakCtxAfterSession"] += 1
+            for k, v in row["pit"]["ctx"]["f"].items():
+                stats[f"ctxnull:{k}"] += v is None
+            for k, v in row["pit"]["ctx"]["s"].items():
+                stats[f"ctxobs:{k}"] += v == "observed"
         if p is not None:
             stats["withPit"] += 1
             stats[f"pit:{cls}"] += 1
@@ -249,14 +271,15 @@ def assemble_year(year: int, full_rows: list[dict], pit_path: Path | None, setup
 
 
 def build_year(year, full_rows, pit_path, setups, out_dir: Path | None, actions=None, replayed_dates=None,
-               pool_clean: bool = False, basis=None):
+               pool_clean: bool = False, basis=None, ctx: ContextSource | None = None,
+               prefix: str = "examples-v3"):
     stats = Counter()
     h = hashlib.sha256()
     n = 0
-    fh = gzip.open(out_dir / f"examples-v3-{year}.jsonl.gz", "wt", encoding="utf-8", compresslevel=6) if out_dir else None
+    fh = gzip.open(out_dir / f"{prefix}-{year}.jsonl.gz", "wt", encoding="utf-8", compresslevel=6) if out_dir else None
     batch = []
     for row in assemble_year(year, full_rows, pit_path, setups, stats, actions, replayed_dates,
-                             pool_clean, basis):
+                             pool_clean, basis, ctx):
         line = json.dumps(row, separators=(",", ":"), default=str)
         h.update(line.encode())
         n += 1
@@ -303,10 +326,25 @@ def main() -> int:
           f"across {len(basis)} symbols", flush=True)
     pool_clean = pit_pool_is_clean(pit_dir)
     print(f"  analog pool cleaned in the feature build: {pool_clean}", flush=True)
+
+    # The context join is opt-in and writes under its own prefix, so a run without `--context`
+    # reproduces examples-v3 byte for byte and the frozen dataset is never overwritten by a
+    # build that merely happened to have the flag set.
+    ctx = None
+    prefix = "examples-v3"
+    if "--context" in sys.argv:
+        universe = {r["symbol"]: r["market"] for rows in by_year.values() for r in rows}
+        ctx = ContextSource.load(
+            macro=Path(arg("--macro")) if arg("--macro") else DEFAULT_MACRO,
+            universe=set(universe))
+        prefix = arg("--prefix", "examples-v4-context")
+        ev, pr = ctx.provenance["events"]["byScope"], ctx.provenance["press"]["byScope"]
+        print(f"  context: universe {len(universe)} symbols; events {ev}; press {pr}; "
+              f"unplaced {ctx.provenance['unresolvedInstruments']}", flush=True)
     for y in sorted(by_year):
         stats, digest, n = build_year(y, by_year[y], pit_dir / f"pit-{y}.jsonl.gz",
                                       setups_for_year(replay, runs, y), out, actions, replayed_dates,
-                                      pool_clean, basis)
+                                      pool_clean, basis, ctx, prefix)
         total.update(stats)
         digests[y], counts[y] = digest, n
         print(f"  {y}: {n:,} rows, features on {stats['withPit']:,}, setups on {stats['withSetup']:,}", flush=True)
@@ -316,7 +354,7 @@ def main() -> int:
     again_rows = [need(r) for r in read_gz(full_file) if int(r["asOf"][:4]) == first_year]
     _, d2, _ = build_year(first_year, again_rows, pit_dir / f"pit-{first_year}.jsonl.gz",
                           setups_for_year(replay, runs, first_year), None, actions, replayed_dates,
-                          pool_clean, basis)
+                          pool_clean, basis, ctx, prefix)
 
     no_feature_reasons = {k.split(":", 1)[1]: v for k, v in total.items() if k.startswith("noPit:")}
     explained = total["withPit"] + total["noPit"] - no_feature_reasons.get("other", 0)
@@ -342,7 +380,23 @@ def main() -> int:
         # futureNamedFields was a hardcoded 0 and therefore not evidence of anything. The real
         # guard is assert_features_are_past_only, which raises rather than counting, and it is run
         # over a bounded sample per year -- so what is reported is the sample size, not a zero.
+        "context": ("not joined" if ctx is None else {
+            "version": CTX_VERSION, "datasetPrefix": prefix,
+            "rowsWithContext": total["withCtx"],
+            "shareOfFeatureRows": round(total["withCtx"] / max(1, total["withPit"]), 4),
+            "observedShareByBlock": {
+                k: round(total[f"ctxobs:{k}"] / max(1, total["withCtx"]), 4)
+                for k in ("macro", "events", "press", "reactionPrior", "quality")},
+            "nullShareByFeature": {
+                k.split(":", 1)[1]: round(v / max(1, total["withCtx"]), 4)
+                for k, v in sorted(total.items()) if k.startswith("ctxnull:")},
+            "featureOrder": ContextSource.feature_names(),
+            "scopeRule": ("market | own | unresolved; an unplaceable record is counted in "
+                          "ctx_unresolvedScopeRecords and contributes to neither scope"),
+            "provenance": ctx.provenance,
+        }),
         "leakage": {"featureDatedAfterSession": total["leakPitAfterSession"],
+                    "contextDatedAfterSession": total["leakCtxAfterSession"],
                     "setupDatedAfterSession": total["leakSetupAfterSession"],
                     "futureNamedFieldScan": {"rowsChecked": total["futureNameChecked"],
                                              "raises": "assert_features_are_past_only",
