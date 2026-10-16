@@ -492,5 +492,60 @@ class TheJoinPutsContextWhereATrainerWillReadIt(unittest.TestCase):
         self.assertEqual(rows[0]["pit"]["ctx"]["f"]["macro_DGS10_chg"], 0.1)
         self.assertEqual(stats["leakCtxAfterSession"], 0)
 
+class TheMacroArtifactMustSurviveACacheClean(unittest.TestCase):
+    """It used to be read only from `.cache`, which .gitignore excludes and the freeze record
+    calls disposable -- so a serving path was one clean away from silently losing twenty of the
+    model's forty-four features. The durable copy is in the repository; the cache is a fallback.
+    """
+
+    def test_the_committed_artifact_is_the_default_and_verifies(self):
+        if not cf.DURABLE_MACRO.exists():
+            self.skipTest("no durable macro artifact in this checkout")
+        self.assertEqual(cf.DEFAULT_MACRO, cf.DURABLE_MACRO)
+        prov = cf.ContextSource.load().provenance["macro"]
+        self.assertTrue(prov["durable"], "the default artifact must not live under .cache")
+        self.assertTrue(prov["digestVerified"])
+        self.assertEqual(prov["rows"], 2844)
+
+    def test_a_tampered_artifact_is_refused_rather_than_read(self):
+        """Corrupt is worse than absent: absent shows as `status: absent`, corrupt reads as
+        evidence. A mismatch must stop the build, not annotate it."""
+        import shutil
+        with tempfile.TemporaryDirectory() as d:
+            dst = Path(d) / "macro-sessions.jsonl.gz"
+            rows = [macro_row("2024-02-28"), macro_row("2024-03-01")]
+            write_macro(Path(d), rows)
+            shutil.move(str(Path(d) / "macro-sessions.jsonl.gz"), str(dst))
+            (Path(d) / "manifest.json").write_text(
+                json.dumps({"sha256": "0" * 64, "sessions": 2}), encoding="utf-8")
+            with self.assertRaises(SystemExit):
+                cf.ContextSource.load(macro=dst, events=Path(d) / "x.json",
+                                      press=Path(d) / "x.jsonl", reactions=Path(d) / "x2.gz")
+
+    def test_an_artifact_with_no_manifest_loads_and_says_it_was_not_verified(self):
+        with tempfile.TemporaryDirectory() as d:
+            mp = write_macro(Path(d), [macro_row("2024-03-01")])
+            prov = cf.ContextSource.load(macro=mp, events=Path(d) / "x.json",
+                                         press=Path(d) / "x.jsonl",
+                                         reactions=Path(d) / "x2.gz").provenance["macro"]
+        self.assertIsNone(prov["digestVerified"])
+        self.assertEqual(prov["rows"], 1)
+        self.assertIsNotNone(prov["sha256"])
+
+    def test_the_digest_is_taken_over_lines_without_their_newline(self):
+        """macro_pit hashes `line.encode()` and writes `line + chr(10)`. Hashing the written
+        bytes instead would read as corruption on every single run."""
+        import gzip as gz
+        import hashlib
+        if not cf.DURABLE_MACRO.exists():
+            self.skipTest("no durable macro artifact in this checkout")
+        h = hashlib.sha256()
+        with gz.open(cf.DURABLE_MACRO, "rt", encoding="utf-8") as fh:
+            for line in fh:
+                h.update(line.rstrip(chr(10)).encode())
+        side = cf.DURABLE_MACRO.parent / "macro-sessions-manifest.json"
+        self.assertEqual(h.hexdigest(),
+                         json.loads(side.read_text(encoding="utf-8"))["sha256"])
+
 if __name__ == "__main__":
     unittest.main()

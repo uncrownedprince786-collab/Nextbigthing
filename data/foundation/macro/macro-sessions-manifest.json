@@ -1,0 +1,49 @@
+{
+ "generatedAt": "2026-10-16T10:41:24+00:00",
+ "sessions": 2844,
+ "range": [
+  "2019-01-02",
+  "2026-10-15"
+ ],
+ "series": 31,
+ "firstSessionWithEverySeries": "2019-01-02",
+ "excluded": {
+  "USREC": "NBER recession flag: declared after the fact, no honest availability"
+ },
+ "coveragePerSeries": {
+  "CFNAI": 1.0,
+  "CPIAUCSL": 1.0,
+  "CPILFESL": 1.0,
+  "DCOILWTICO": 1.0,
+  "DEXJPUS": 1.0,
+  "DEXUSEU": 1.0,
+  "DFF": 1.0,
+  "DGS10": 1.0,
+  "DGS2": 1.0,
+  "DGS3MO": 1.0,
+  "DTWEXBGS": 1.0,
+  "GDPC1": 1.0,
+  "HOUST": 1.0,
+  "ICSA": 1.0,
+  "INDPRO": 1.0,
+  "M2SL": 1.0,
+  "MORTGAGE30US": 1.0,
+  "NFCI": 1.0,
+  "PAYEMS": 1.0,
+  "PCEPILFE": 1.0,
+  "PERMIT": 1.0,
+  "PPIACO": 1.0,
+  "RSAFS": 1.0,
+  "T10Y2Y": 1.0,
+  "T10Y3M": 1.0,
+  "T10YIE": 1.0,
+  "TCU": 1.0,
+  "UMCSENT": 1.0,
+  "UNRATE": 1.0,
+  "VIXCLS": 1.0,
+  "WALCL": 1.0
+ },
+ "observationsDatedAfterTheirSession": 0,
+ "sha256": "be649ce4bdd25cfe5e8c1e7809d4788f91699335b9365024d804e42604c28902",
+ "rule": "for session D each series contributes its newest observation whose availableAt is on or before D, never the newest observation dated on or before D"
+}

@@ -1,12 +1,12 @@
 {
- "generatedAt": "2026-10-16T22:10:39+00:00",
+ "generatedAt": "2026-10-16T22:27:42+00:00",
  "version": "shadow-readiness-v1",
  "model": "data/foundation/brain/brain-v2-context",
  "status": "assessment only; nothing deployed, no prediction recorded, no database written",
  "summary": {
-  "ok": 15,
-  "blocked": 3,
-  "unknown": 1
+  "ok": 25,
+  "blocked": 1,
+  "unknown": 0
  },
  "ready": false,
  "checks": [
@@ -45,14 +45,20 @@
   {
    "check": "macroArtifactPresent",
    "status": "ok",
-   "evidence": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\.cache\\foundation\\macro_rebuild\\macro-sessions.jsonl.gz",
+   "evidence": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\data\\foundation\\macro\\macro-sessions.jsonl.gz",
    "detail": null
   },
   {
    "check": "macroArtifactIsDurable",
-   "status": "blocked",
-   "evidence": "the macro artifact lives under .cache/, which is gitignored and documented as disposable",
-   "detail": "a live lane must rebuild it on a schedule or move it somewhere durable; a serving path that reads a disposable cache is one cleanup from silently losing twenty of its forty-four features"
+   "status": "ok",
+   "evidence": "committed at data/foundation/macro/macro-sessions.jsonl.gz",
+   "detail": "a serving path that reads a disposable cache is one cleanup from silently losing twenty of its forty-four features"
+  },
+  {
+   "check": "macroDigestVerifies",
+   "status": "ok",
+   "evidence": "sha256 be649ce4bdd25cfe, verified=True",
+   "detail": "a mismatch raises rather than annotating: corrupt is worse than absent, because absent shows as status 'absent' and corrupt reads as evidence"
   },
   {
    "check": "macroIsFresh",
@@ -111,22 +117,58 @@
    "detail": "what happened after the horizon matured"
   },
   {
-   "check": "predictionCarriesAModelVersion",
-   "status": "blocked",
-   "evidence": "a `modelVersion` field is absent in the schema",
-   "detail": "without it two candidates' shadow predictions are indistinguishable once recorded, and the comparison they exist for cannot be made"
+   "check": "modelShadowPredictionExists",
+   "status": "ok",
+   "evidence": "prisma/schema.prisma: present",
+   "detail": "its own table, so an unapproved candidate's output cannot reach a published path through a query someone forgot to filter"
   },
   {
-   "check": "imputationIsVisible",
-   "status": "blocked",
-   "evidence": "no field records which features were imputed at prediction time",
-   "detail": "at training an absent feature takes the training mean, which is measured and fine. At inference the same rule silently turns a failed macro refresh into 'an average day', and the prediction looks as confident as one built from observed evidence. A shadow record must carry the imputed set."
+   "check": "shadowRecordHas_modelVersion",
+   "status": "ok",
+   "evidence": "ShadowPrediction.modelVersion: present",
+   "detail": "without it two candidates' shadow predictions are indistinguishable once recorded"
+  },
+  {
+   "check": "shadowRecordHas_modelSha256",
+   "status": "ok",
+   "evidence": "ShadowPrediction.modelSha256: present",
+   "detail": "traces a prediction to the artifact bytes, not to a name someone may have reused"
+  },
+  {
+   "check": "shadowRecordHas_imputed",
+   "status": "ok",
+   "evidence": "ShadowPrediction.imputed: present",
+   "detail": "at inference the training-mean rule silently turns a failed macro refresh into 'an average day'; this column is what stops that looking identical to a prediction built from evidence"
+  },
+  {
+   "check": "shadowRecordHas_quality",
+   "status": "ok",
+   "evidence": "ShadowPrediction.quality: present",
+   "detail": "ok / degraded / refused, so a downgrade is a value and not a comment"
+  },
+  {
+   "check": "shadowRecordHas_maturesAfter",
+   "status": "ok",
+   "evidence": "ShadowPrediction.maturesAfter: present",
+   "detail": "links a prediction to the outcome it can be judged by, later"
+  },
+  {
+   "check": "shadowMigrationExists",
+   "status": "ok",
+   "evidence": "prisma/migrations/20261017000000_shadow_prediction/migration.sql: present",
+   "detail": "CI applies migrations on a push touching prisma/**; applying from here would risk the pooler advisory lock the handoff documents"
   },
   {
    "check": "databaseReachable",
-   "status": "unknown",
-   "evidence": "DATABASE_URL is not set in this process; connectivity not attempted",
-   "detail": "the fifteen price features are read from AssetFactor by the live lane"
+   "status": "ok",
+   "evidence": "SELECT 1 returned {'ok': 1}",
+   "detail": "read-only; no table touched, nothing written"
+  },
+  {
+   "check": "shadowTableExistsLive",
+   "status": "blocked",
+   "evidence": "to_regclass: absent",
+   "detail": "CI applies the migration on a push touching prisma/**; until then a shadow run can compute predictions but cannot record them"
   }
  ],
  "note": "a NO-GO candidate may run in shadow once these hold, and may not be served as an approved brain under any of them."

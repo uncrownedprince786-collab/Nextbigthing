@@ -1941,3 +1941,65 @@ model CallOutcome {
   @@index([trade])
 }
 
+
+/// A prediction from a model candidate that is NOT approved for production, recorded so its
+/// outcome can be measured later. Deliberately its own table rather than columns on
+/// `DecisionCall`: that table holds the rule engine's *published* calls, and a nullable
+/// `modelVersion` there would make it structurally possible for an unapproved candidate's output
+/// to reach a published path by a query someone forgot to filter. Here it cannot.
+///
+/// Nothing in `app/` reads this table. It exists to be written by a shadow run and read by a
+/// later evaluation, and `approved` is false with no code path that sets it true.
+model ShadowPrediction {
+  id             String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  /// The session whose close the features were read at -- the decision time, not the write time.
+  asOf           DateTime @db.Date
+  assetId        String
+  symbol         String
+  market         String
+  /// DOWN | FLAT | UP, and the class scores behind it.
+  predicted      String
+  scores         Json?
+
+  /// Which model, exactly. `modelSha256` is the artifact's own digest, so a prediction can be
+  /// traced to the bytes that produced it rather than to a name someone may have reused.
+  modelVersion   String
+  modelSha256    String
+  featureSchema  String
+  datasetVersion String?
+  /// False, always, for anything written here. A reader that ignores it is reading an
+  /// experiment as if it were a call.
+  approved       Boolean  @default(false)
+
+  /// What the inputs were actually worth. `ok`, `degraded` (optional inputs imputed) or
+  /// `refused` (a critical input was missing and no prediction was made).
+  quality        String
+  /// The names of every feature whose value was imputed rather than observed. At training an
+  /// absent feature takes the training mean, which is measured and fine; at inference the same
+  /// rule silently turns a failed macro refresh into "an average day", and without this list a
+  /// prediction built from averages is indistinguishable from one built from evidence.
+  imputed        Json?
+  imputedCount   Int      @default(0)
+  missingCritical Json?
+  /// Per-block status from the context producer: observed / absent / excluded.
+  contextStatus  Json?
+  /// Freshness of the inputs, so a stale run is visible without re-deriving it.
+  macroAsOf      DateTime? @db.Date
+  macroAgeDays   Int?
+
+  /// The horizon this prediction is to be judged over, and the first date it can be judged.
+  horizonSessions Int     @default(20)
+  maturesAfter   DateTime? @db.Date
+  /// Filled only once the horizon has matured. Null means "not yet", never "no move".
+  outcomeLabel   String?
+  outcomeFwd     Float?
+  outcomeAt      DateTime?
+
+  createdAt      DateTime @default(now())
+  runId          String?
+  commit         String?
+
+  @@unique([modelVersion, assetId, asOf])
+  @@index([asOf, modelVersion])
+  @@index([maturesAfter, outcomeLabel])
+}

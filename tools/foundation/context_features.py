@@ -80,6 +80,7 @@ from __future__ import annotations
 
 import argparse
 import gzip
+import hashlib
 import json
 from bisect import bisect_right
 from collections import defaultdict
@@ -89,7 +90,15 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 
-DEFAULT_MACRO = ROOT / ".cache" / "foundation" / "macro_rebuild" / "macro-sessions.jsonl.gz"
+#: The macro artifact, durable copy first. It used to be read only from `.cache`, which
+#: `.gitignore` excludes and the freeze record itself calls disposable -- so a serving path was
+#: one cache clean away from silently losing twenty of the model's forty-four features. It is
+#: 364 KB of public FRED statistics and `macro_pit.py`'s own docstring already said it was safe to
+#: commit, so the durable home is in the repository and the cache is now only a fallback for a
+#: machine that has just rebuilt it.
+DURABLE_MACRO = ROOT / "data" / "foundation" / "macro" / "macro-sessions.jsonl.gz"
+CACHED_MACRO = ROOT / ".cache" / "foundation" / "macro_rebuild" / "macro-sessions.jsonl.gz"
+DEFAULT_MACRO = DURABLE_MACRO if DURABLE_MACRO.exists() else CACHED_MACRO
 DEFAULT_DATASET = ROOT / ".cache" / "foundation" / "dataset_full"
 EVENTS = ROOT / "data" / "foundation" / "events" / "events.json"
 PRESS = ROOT / "data" / "foundation" / "events" / "press_evidence.jsonl"
@@ -219,16 +228,41 @@ class ContextSource:
 
         macro_dates: list[date] = []
         macro_rows: list[dict] = []
+        digest = hashlib.sha256()
         if Path(macro).exists():
             with gzip.open(macro, "rt", encoding="utf-8") as fh:
                 for line in fh:
+                    # The producer hashes each line WITHOUT its newline, so this must too; the
+                    # two differ and comparing the wrong one reads as corruption every time.
+                    digest.update(line.rstrip("\n").encode())
                     r = json.loads(line)
                     macro_dates.append(_d(r["d"]))
                     macro_rows.append(r["m"])
             order = sorted(range(len(macro_dates)), key=macro_dates.__getitem__)
             macro_dates = [macro_dates[i] for i in order]
             macro_rows = [macro_rows[i] for i in order]
+        # Verified against the producer's own manifest, and a mismatch is fatal. An artifact
+        # that has been truncated, half-rebuilt or swapped for an older vintage is worse than an
+        # absent one: absent is visible as `status: absent`, while corrupt reads as evidence.
+        verified, recorded = None, None
+        side = Path(macro).parent / "macro-sessions-manifest.json"
+        if not side.exists():
+            side = Path(macro).parent / "manifest.json"
+        if macro_dates and side.exists():
+            recorded = (json.loads(side.read_text(encoding="utf-8")) or {}).get("sha256")
+            verified = (recorded == digest.hexdigest())
+            if recorded and not verified:
+                raise SystemExit(
+                    f"macro artifact does not match its manifest: {macro}\n"
+                    f"  computed {digest.hexdigest()[:16]}  recorded {recorded[:16]}\n"
+                    "  refusing to build features from an artifact that may be truncated, "
+                    "half-rebuilt or a different vintage")
         prov["macro"] = {"path": str(macro), "present": bool(macro_dates), "rows": len(macro_dates),
+                         "sha256": digest.hexdigest() if macro_dates else None,
+                         "digestVerified": verified,
+                         "durable": "/.cache/" not in Path(macro).as_posix(),
+                         "range": [macro_dates[0].isoformat(), macro_dates[-1].isoformat()]
+                                  if macro_dates else None,
                          "rule": "newest observation whose availableAt <= D (macro_pit.py)"}
 
         mkt_ev: dict = defaultdict(list)

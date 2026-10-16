@@ -103,6 +103,7 @@ def context_checks() -> list[dict]:
     out = []
     today = date.today()
 
+    from context_features import DURABLE_MACRO
     macro_path = Path(DEFAULT_MACRO)
     if not macro_path.exists():
         out.append(check("macroArtifactPresent", BLOCKED, f"missing: {macro_path}",
@@ -115,10 +116,18 @@ def context_checks() -> list[dict]:
         out.append(check("macroArtifactPresent", OK, str(macro_path)))
         out.append(check("macroArtifactIsDurable", BLOCKED if ignored else OK,
                          "the macro artifact lives under .cache/, which is gitignored and "
-                         "documented as disposable" if ignored else "outside .cache",
-                         "a live lane must rebuild it on a schedule or move it somewhere durable; "
+                         "documented as disposable" if ignored
+                         else f"committed at {Path(DURABLE_MACRO).relative_to(ROOT).as_posix()}",
                          "a serving path that reads a disposable cache is one cleanup from "
                          "silently losing twenty of its forty-four features"))
+        prov = ContextSource.load().provenance["macro"]
+        v = prov.get("digestVerified")
+        out.append(check("macroDigestVerifies",
+                         OK if v else (UNKNOWN if v is None else BLOCKED),
+                         f"sha256 {str(prov.get('sha256'))[:16]}, verified={v}",
+                         "a mismatch raises rather than annotating: corrupt is worse than "
+                         "absent, because absent shows as status 'absent' and corrupt reads "
+                         "as evidence"))
 
     src = ContextSource.load()
     if src.macro_dates:
@@ -166,46 +175,105 @@ def recording_checks() -> list[dict]:
         out.append(check(f"model{model}Exists", OK if f"model {model} " in text else BLOCKED,
                          f"prisma/schema.prisma: {'present' if f'model {model} ' in text else 'absent'}",
                          why))
-    has_version = "modelVersion" in text
-    out.append(check("predictionCarriesAModelVersion", OK if has_version else BLOCKED,
-                     f"a `modelVersion` field is {'present' if has_version else 'absent'} "
-                     "in the schema",
-                     "without it two candidates' shadow predictions are indistinguishable once "
-                     "recorded, and the comparison they exist for cannot be made"))
-    out.append(check("imputationIsVisible", BLOCKED,
-                     "no field records which features were imputed at prediction time",
-                     "at training an absent feature takes the training mean, which is measured "
-                     "and fine. At inference the same rule silently turns a failed macro refresh "
-                     "into 'an average day', and the prediction looks as confident as one built "
-                     "from observed evidence. A shadow record must carry the imputed set."))
+    shadow = "model ShadowPrediction " in text
+    out.append(check("modelShadowPredictionExists", OK if shadow else BLOCKED,
+                     f"prisma/schema.prisma: {'present' if shadow else 'absent'}",
+                     "its own table, so an unapproved candidate's output cannot reach a "
+                     "published path through a query someone forgot to filter"))
+    for field, why in (
+            ("modelVersion", "without it two candidates' shadow predictions are "
+                             "indistinguishable once recorded"),
+            ("modelSha256", "traces a prediction to the artifact bytes, not to a name someone "
+                            "may have reused"),
+            ("imputed", "at inference the training-mean rule silently turns a failed macro "
+                        "refresh into 'an average day'; this column is what stops that looking "
+                        "identical to a prediction built from evidence"),
+            ("quality", "ok / degraded / refused, so a downgrade is a value and not a comment"),
+            ("maturesAfter", "links a prediction to the outcome it can be judged by, later")):
+        present = shadow and f"  {field} " in text
+        out.append(check(f"shadowRecordHas_{field}", OK if present else BLOCKED,
+                         f"ShadowPrediction.{field}: {'present' if present else 'absent'}", why))
+    mig = ROOT / "prisma" / "migrations" / "20261017000000_shadow_prediction" / "migration.sql"
+    out.append(check("shadowMigrationExists", OK if mig.exists() else BLOCKED,
+                     f"{mig.relative_to(ROOT).as_posix()}: "
+                     f"{'present' if mig.exists() else 'absent'}",
+                     "CI applies migrations on a push touching prisma/**; applying from here "
+                     "would risk the pooler advisory lock the handoff documents"))
     return out
 
 
-def database_checks() -> list[dict]:
-    """Live price factors come from the database. Reachability only; nothing is read or written."""
-    if not os.environ.get("DATABASE_URL"):
+def database_checks(probe: bool) -> list[dict]:
+    """Reachability, by `SELECT 1` and nothing else, and only when asked.
+
+    Opening a connection is a side effect, so the default run stays read-only and reports
+    `unknown`. `--probe-db` runs one `SELECT 1`: no table is read, nothing is written, and a
+    failure is reported rather than retried.
+    """
+    if not probe:
         return [check("databaseReachable", UNKNOWN,
-                      "DATABASE_URL is not set in this process; connectivity not attempted",
+                      "not probed; pass --probe-db to run a single SELECT 1",
                       "the fifteen price features are read from AssetFactor by the live lane")]
     try:
         sys.path.insert(0, str(ROOT / "jobs"))
-        from nbt import db                                   # noqa: F401
-        return [check("databaseReachable", UNKNOWN,
-                      "DATABASE_URL is set and jobs.nbt imports; no connection was opened "
-                      "because this tool is read-only and a probe is a side effect")]
+        # The same way every job in jobs/ supplies its connection: load .env from the repository
+        # root. Reading the variable from somewhere else would be a bypass, not a probe.
+        try:
+            from dotenv import load_dotenv
+            load_dotenv(ROOT / ".env")
+        except ImportError:
+            pass
+        from nbt import db
     except Exception as e:                                   # noqa: BLE001
-        return [check("databaseReachable", UNKNOWN, f"jobs.nbt did not import: {type(e).__name__}")]
+        return [check("databaseReachable", UNKNOWN,
+                      f"jobs.nbt did not import: {type(e).__name__}: {e}")]
+    if not os.environ.get("DATABASE_URL"):
+        return [check("databaseReachable", UNKNOWN,
+                      "DATABASE_URL is not set and .env did not supply one",
+                      "no credential is read from anywhere else and none is printed")]
+    try:
+        conn = db()
+        cur = conn.cursor()
+        cur.execute("SELECT 1 AS ok")
+        got = cur.fetchone()
+        cur.close()
+        conn.close()
+        ok = (got or {}).get("ok") == 1 if isinstance(got, dict) else bool(got)
+        out = [check("databaseReachable", OK if ok else BLOCKED,
+                     f"SELECT 1 returned {got}", "read-only; no table touched, nothing written")]
+        # The table a shadow run would write to. Its migration is committed, and `schema.yml`
+        # applies migrations on a push touching prisma/** -- so until that run completes the
+        # table is absent and recording is not yet possible. Reported, not assumed: a readiness
+        # report that says "ready" while the destination table does not exist is the kind of
+        # claim this whole file exists to avoid.
+        conn2 = db()
+        c = conn2.cursor()
+        c.execute("SELECT to_regclass('public.\"ShadowPrediction\"') AS t")
+        row = c.fetchone()
+        c.close()
+        conn2.close()
+        exists = bool((row or {}).get("t")) if isinstance(row, dict) else bool(row and row[0])
+        out.append(check("shadowTableExistsLive", OK if exists else BLOCKED,
+                         f"to_regclass: {'present' if exists else 'absent'}",
+                         "CI applies the migration on a push touching prisma/**; until then a "
+                         "shadow run can compute predictions but cannot record them"))
+        return out
+    except Exception as e:                                   # noqa: BLE001
+        return [check("databaseReachable", BLOCKED,
+                      f"{type(e).__name__}: {str(e)[:160]}",
+                      "shadow recording needs this; until it answers, recording is unverified")]
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--model", default=str(DEFAULT_MODEL))
     ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--probe-db", action="store_true",
+                    help="run one read-only SELECT 1 against DATABASE_URL")
     a = ap.parse_args()
     mdir = Path(a.model)
 
     checks = (model_checks(mdir) + feature_checks(mdir) + context_checks()
-              + recording_checks() + database_checks())
+              + recording_checks() + database_checks(a.probe_db))
     counts = {s: sum(1 for c in checks if c["status"] == s) for s in (OK, BLOCKED, UNKNOWN)}
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
