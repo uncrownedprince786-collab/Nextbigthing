@@ -1,5 +1,118 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT — 2026-10-17 (ninth), the Phase 2 branch is closed; one gap of six was real
+
+**Branch `main`. Working tree clean including untracked files. Nothing is running: no training, no
+producer, no dev server.** The work commit is the one before this record.
+
+**Usage, as actually read at session start: 82% used, 18% remaining** on the weekly all-models
+window, resetting **2026-10-19** (~2d 4h); the 5-hour window was at 3%. **The weekly budget has not
+reset.** 18% is at the checkpoint threshold, so the brief's own rule was applied as written: **only
+the bounded Phase 2 branch comparison was done, and no part of the contextual pipeline was
+started.** No long job was launched.
+
+**State verified before changing anything:** `HEAD` `1d0073e`, `origin/main` the same commit, 0
+ahead and 0 behind after a fetch, tree clean, no `python.exe` or `node.exe` running.
+
+### The Phase 2 branch comparison
+
+`phase2-ingestion-and-backup` = **`e38aa30`**, **no upstream, on no remote**, merge-base
+**`283a0ab`** (2026-09-30, the old `master` tip). **6 commits on the branch, 388 on `main` since the
+base.** All six are dated 2026-10-13; `main` has rewritten the same ground since.
+
+| Commit | What it did | Verdict | Evidence |
+|---|---|---|---|
+| `cd6de82` | incremental price fetch from the last stored date | **superseded** | `jobs/prices.py` is **2,863 lines on `main` against 723 on the branch**, and already has `stored_coverage` (`max(date)` per asset), a documented correction window, full-vs-incremental batching, `day_shortfall`, `chart_repair` and retry/backoff |
+| `e43886b` | `jobs/backup.py`: `pg_dump`, verify, rehearse | **superseded** | `main` has `tools/cloud_backup.py` (one `REPEATABLE READ` snapshot, per-table gzip CSV, re-read and checksummed, offsite upload + register), `tools/restore_db.py` (byte-level CSV restore that keeps SQL NULL distinct from `''`), `.github/workflows/cron-backup.yml`, and a **recorded** `restore_rehearsal.json`. Its refusal rule is **stricter** than the branch's: `RESTORE_DATABASE_URL` is checked against every known database variable, a non-local host is refused, and there is no fallback to `DATABASE_URL` |
+| `d9af9b3` | `pytest.ini`, `conftest.py`, `requirements-dev.txt`, 21 tests, a benchmark | **superseded, and the tooling is not wanted** | CI runs `python -m unittest discover -s tests`; adding pytest would add a second runner nothing executes. Equivalent coverage lives in `tests/test_brain.py` (`SourceFailure`, `CryptoVenueChain`, `CryptoRewriteBudget`, `SourceBreaker`, `SourceHealthKeepsCalendars`; **20** tests naming the incremental, shortfall and answer-share guards) plus `tests/test_restore_db.py` and `tests/test_cloud_backup_readback.py` |
+| `073b83b`, `e38aa30` | README and `brain.md`: how prices are fetched, how to back up, Neon over quota | **superseded** | `brain.md` on `main` is 6,100+ lines with 165 numbered rules; rule 101 already records Neon over quota and names the recovery path |
+| `d526f9e` | **report a missing CoinPaprika ticker list instead of passing over it** | **MISSING — integrated this session** | below |
+
+**Five of six are superseded. Nothing was merged, cherry-picked or restored**, and the branch is
+left exactly where it was: taking any commit wholesale would have reverted 388 commits of the price
+lane.
+
+### The one real gap, and why it survived 388 commits
+
+`fetch_crypto` on `main` read `tickers = get_json(...) or []` and went straight to
+`by_id = {t["id"]: t for t in tickers}`. An empty list is not an error there, and **nothing
+downstream could see it**:
+
+- `require_answer` and `require_share` raise `SourceSilent` on **price rows**. CoinPaprika writes
+  none — it supplies the market cap — so neither guard ever looks at it.
+- `coverage_report` groups `PriceSnapshot` **by source**, so a source that writes no price rows
+  cannot appear in the end-of-run report at all.
+
+So a total CoinPaprika outage produced a run in which **every printed line was true** and nothing
+said that no coin had a size. That is the contradiction `d526f9e` named on the branch.
+
+**It is a reporting gap, not a data-integrity one**, and the distinction decided the fix. A missing
+cap already yields `capBasis` `none` rather than a fabricated zero — pinned on `main` by the test at
+`tests/test_brain.py:1467` — and the closes still land from the venue chain. So the lane must **not**
+raise: it wrote its rows and the run is not a failure. It is **incomplete**, and now says so.
+
+**The branch's implementation could not be used.** Its `fetch_crypto` returns a report dict; the one
+on `main` returns a row count. The finding carried over; the code did not.
+
+### What was changed — smallest safe integration, report only
+
+| Hop | Change |
+|---|---|
+| producer | `fetch_crypto(cur, restate=False, **gaps=None**)` records the empty ticker list, naming the consequence and the coin count. Keyword with a default, so no caller breaks |
+| lane | the call site passes `gaps=incomplete`; the lane note now reads `…; INCOMPLETE -- …`, because a note carrying only the row count reads the same whether or not every coin lost its size, and the freshness panel reads that note |
+| summary | new `report_incomplete()`, printed after `coverage_report`, **deliberately separate from `fail_on_silent`**: a silent source wrote nothing and the run is wrong; a partial source wrote its rows and the run is merely incomplete |
+
+**No exit code changed, no stored data changed, no rule changed.** `fetch_crypto` has exactly one
+caller (`jobs/prices.py` `main`); `jobs/live.py` and `tools/universe.py` only mention it in comments.
+
+**5 new tests**, all of which fail without the change — verified against `git show HEAD:jobs/prices.py`:
+`report_incomplete` does not exist there, the guard is absent, and the parameter is absent.
+
+### The repository's own guard caught a real mistake, and it is worth recording
+
+The new class was first appended at the end of `tests/test_brain.py` and
+`NothingIsDefinedAfterTheEntryPoint` failed. Moving it above `if __name__ == "__main__":` was **not
+enough**: that test takes `text.index('if __name__ == "__main__":')`, which matches **the literal
+inside its own body**, so in practice the invariant is *`NothingIsDefinedAfterTheEntryPoint` must be
+the last class in the file*. Anything appended after it is reported as unreachable whether or not it
+is. **Add new classes to `tests/test_brain.py` above that class**, not at the end of the file.
+
+### Tests, as actually run
+
+**1,094 Python tests, `OK`**, via `python -m unittest discover -s tests` — the exact command
+`.github/workflows/tests.yml` runs. 1,089 at `1d0073e` plus the 5 added here. `jobs/prices.py`
+compiles. Web tests and `tsc` **not** re-run: no TypeScript, no schema and no query path changed.
+
+### Unchanged, and verified unchanged
+
+Seven NO-GO verdicts preserved, none overwritten; the protected holdout was not touched and no model
+was retrained. The persisted `brain-v1` artifact is unchanged (`989ffe09…`). Frozen dataset
+`examples-v3-2026-10-16-local`, gates green. **`WORKER_ARTIFACT_KEY`: BLOCKED — authorization
+required.** The 500 MB free-tier figure remains an **assumption**.
+
+### Next authorized action, in dependency order
+
+1. **The contextual feature pipeline**, once the weekly budget resets on **2026-10-19**. Build it as
+   **non-voting ML features**. **Acceptance:** point-in-time correctness per feature (publication
+   time, revisions, no pre-publication values), a frozen dataset with checksums and rebuild
+   commands, and a pre-registered candidate with baseline and margin fixed before the run. Macro is
+   **deliberately not pre-joined** into the example rows (`dataset_freeze.json`
+   `macroContext.joinedNotPreJoined`); any join must respect that or justify overturning it.
+2. **A pristine holdout, or no promotion claim.** Nothing in this dataset is unseen; every year
+   2021–2026 has been scored. Either extend the data past 2026-09-25 or change the feature set.
+3. **Three owner decisions**, unchanged: the pool ceiling (`max: 2`), the pooler's real client
+   ceiling (unverified against a measured `max_connections` of 60), and the key rotation.
+
+**The Phase 2 branch comparison is closed and must not be repeated.** `phase2-ingestion-and-backup`
+holds nothing `main` needs. It is left unmerged and unpushed; deleting it is an owner decision, not
+a necessity.
+
+**Exact next command**, after the budget resets and with nothing else running:
+
+```
+python -m unittest discover -s tests      # expect 1,094 OK before starting new work
+```
+
 ## 0. SESSION CHECKPOINT — 2026-10-17 (eighth), Brain V1 is trained to a file that reloads; NO-GO
 
 **Branch `main`. Working tree clean including untracked files. Nothing is running: no training, no

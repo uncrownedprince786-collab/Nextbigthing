@@ -6107,3 +6107,36 @@ reads rows that already exist:
       with it (`encode_row`, pinned against the dataset loader by test), a reload is required to
       reproduce the fit's own predictions, and `productionApproved` is `false` inside the model file
       itself rather than only in the paperwork around it.
+
+166. **A source that wrote its rows and left a field unfilled is a third state, and the reporting
+    had only two.** 2026-10-17. Commits: `f8165f6` and this record.
+
+    - **The guards count rows, so a source that writes none is invisible to them.**
+      `require_answer` and `require_share` raise `SourceSilent` on price rows, and
+      `coverage_report` groups `PriceSnapshot` **by source** -- so CoinPaprika, which supplies the
+      market cap and writes no price rows, could not appear in either. A total outage there
+      produced a run in which **every printed line was true** and nothing said that no coin had a
+      size. The absence was real, correctly stored and completely unreported.
+
+    - **Silent and partial are different events and must not share a response.** A silent source
+      wrote nothing and the run is wrong: `fail_on_silent` exits non-zero after committing what
+      landed. A partial source wrote its rows and the run is merely **incomplete**:
+      `report_incomplete` names it and changes no exit code. Collapsing the two would either fail
+      runs whose data is correct or hide the ones whose data is thin, and the crypto lane would
+      have been the first casualty -- the closes come from the venue chain and are unaffected by a
+      missing ticker list.
+
+    - **The data was never wrong, which is why it lasted.** A missing cap already yields `capBasis`
+      `none` rather than a fabricated zero (rule 1's own line, pinned by test). The defect was that
+      nothing *said* so, and a correctness check looking for a bad value would never have found it.
+      **Ask what a run reports, not only what it stores.**
+
+    - **The finding crossed over from a branch; the code did not.** `phase2-ingestion-and-backup`
+      holds six commits, five superseded by the 388 since its base. Its `fetch_crypto` returns a
+      report dict and the one here returns a row count, so the commit was unusable and the
+      observation was not. **A stale branch can be worth reading and still not worth merging.**
+
+    - **New classes in `tests/test_brain.py` go above `NothingIsDefinedAfterTheEntryPoint`.** That
+      test indexes on `if __name__ == "__main__":`, which matches the literal inside its own body,
+      so the invariant it actually enforces is that it must be the file's last class. Appending
+      below it reports the new class as unreachable whether or not it is.
