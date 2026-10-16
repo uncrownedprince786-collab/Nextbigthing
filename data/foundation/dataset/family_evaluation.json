@@ -1,0 +1,281 @@
+{
+ "version": "family-evaluation-v1",
+ "logicVersion": "families-v1.2",
+ "status": "offline evaluation of the decision core; nothing deployed, nothing traded",
+ "specification": "BRAIN-SPEC-V1.md §3 as corrected by BRAIN-LOGIC-CLOSURE-2026-10-16.md §B4-B5",
+ "scoring": {
+  "rule": "a LONG is correct on label20 UP, a SHORT on DOWN; FLAT counts against the call",
+  "abstention": "reported as coverage, never scored as a miss -- WAIT is a legitimate terminus (§3.6)",
+  "references": "measured on exactly the rows the brain called, since a system that abstains cannot be compared on rows it declined",
+  "constantCallIsTheBar": "the brain cannot emit FLAT, so the majority class including FLAT is reported for context and is not the bar"
+ },
+ "dataVersion": {
+  "dataset": "examples-v3",
+  "rows": 994731,
+  "label": "label20",
+  "horizonSessions": 20
+ },
+ "e5History": "INELIGIBLE: examples-v3 carries matched days at horizons 1 and 5 only, and voting a 5-session prior on a 20-session label is the horizon mixing §D4 forbids",
+ "familyFiring": {
+  "trend": {
+   "eligible": 994731,
+   "for": 371855,
+   "against": 320102,
+   "even": 302774,
+   "unreadable": 0
+  },
+  "volume": {
+   "eligible": 940562,
+   "for": 169816,
+   "against": 152446,
+   "even": 618300,
+   "unreadable": 54169
+  },
+  "volatility": {
+   "eligible": 994731,
+   "for": 273894,
+   "against": 405638,
+   "even": 315199,
+   "unreadable": 0
+  },
+  "peers": {
+   "eligible": 955071,
+   "for": 159451,
+   "against": 138970,
+   "even": 656650,
+   "unreadable": 39660
+  },
+  "history": {
+   "eligible": 0,
+   "for": 0,
+   "against": 0,
+   "even": 0,
+   "unreadable": 994731
+  }
+ },
+ "decisions": {
+  "LONG": 251016,
+  "SHORT": 256167,
+  "WAIT": 487548
+ },
+ "waitBasis": {
+  "file": 1,
+  "evidence": 487547
+ },
+ "byMarket": {
+  "Commodity": {
+   "rows": 14664,
+   "calls": 6499,
+   "coverage": 0.4432,
+   "accuracy": 0.4002,
+   "constantCall": "LONG",
+   "constantCallAccuracy": 0.469,
+   "beatsConstantCall": false
+  },
+  "Crypto": {
+   "rows": 81119,
+   "calls": 42329,
+   "coverage": 0.5218,
+   "accuracy": 0.4839,
+   "constantCall": "SHORT",
+   "constantCallAccuracy": 0.4836,
+   "beatsConstantCall": true
+  },
+  "FX": {
+   "rows": 52549,
+   "calls": 21544,
+   "coverage": 0.41,
+   "accuracy": 0.1719,
+   "constantCall": "LONG",
+   "constantCallAccuracy": 0.1804,
+   "beatsConstantCall": false
+  },
+  "PSX": {
+   "rows": 335732,
+   "calls": 176820,
+   "coverage": 0.5267,
+   "accuracy": 0.4135,
+   "constantCall": "SHORT",
+   "constantCallAccuracy": 0.4336,
+   "beatsConstantCall": false
+  },
+  "US": {
+   "rows": 510667,
+   "calls": 259991,
+   "coverage": 0.5091,
+   "accuracy": 0.3977,
+   "constantCall": "LONG",
+   "constantCallAccuracy": 0.4644,
+   "beatsConstantCall": false
+  }
+ },
+ "eligibleFamiliesHistogram": {
+  "2": 1,
+  "3": 93827,
+  "4": 900903
+ },
+ "folds": [
+  {
+   "testYear": 2021,
+   "trainEnds": "2020-12-11",
+   "embargoSessionsDropped": 20,
+   "testRows": 116217,
+   "brain": {
+    "calls": 58574,
+    "coverage": 0.504,
+    "accuracy": 0.3887
+   },
+   "onTheRowsTheBrainCalled": {
+    "rows": 58574,
+    "constantCall": "LONG",
+    "constantCallAccuracy": 0.4176,
+    "majorityIncludingFlat": 0.4176,
+    "ruleBaselineCalls": 45673,
+    "ruleBaselineAccuracy": 0.3919
+   },
+   "beatsConstantCall": false,
+   "beatsRuleBaseline": false
+  },
+  {
+   "testYear": 2022,
+   "trainEnds": "2021-12-11",
+   "embargoSessionsDropped": 20,
+   "testRows": 125194,
+   "brain": {
+    "calls": 64665,
+    "coverage": 0.5165,
+    "accuracy": 0.4074
+   },
+   "onTheRowsTheBrainCalled": {
+    "rows": 64665,
+    "constantCall": "SHORT",
+    "constantCallAccuracy": 0.4412,
+    "majorityIncludingFlat": 0.4412,
+    "ruleBaselineCalls": 48386,
+    "ruleBaselineAccuracy": 0.4121
+   },
+   "beatsConstantCall": false,
+   "beatsRuleBaseline": false
+  },
+  {
+   "testYear": 2023,
+   "trainEnds": "2022-12-11",
+   "embargoSessionsDropped": 20,
+   "testRows": 129029,
+   "brain": {
+    "calls": 63379,
+    "coverage": 0.4912,
+    "accuracy": 0.3678
+   },
+   "onTheRowsTheBrainCalled": {
+    "rows": 63379,
+    "constantCall": "LONG",
+    "constantCallAccuracy": 0.4481,
+    "majorityIncludingFlat": 0.4481,
+    "ruleBaselineCalls": 49459,
+    "ruleBaselineAccuracy": 0.3689
+   },
+   "beatsConstantCall": false,
+   "beatsRuleBaseline": false
+  },
+  {
+   "testYear": 2024,
+   "trainEnds": "2023-12-11",
+   "embargoSessionsDropped": 20,
+   "testRows": 134448,
+   "brain": {
+    "calls": 70496,
+    "coverage": 0.5243,
+    "accuracy": 0.404
+   },
+   "onTheRowsTheBrainCalled": {
+    "rows": 70496,
+    "constantCall": "LONG",
+    "constantCallAccuracy": 0.4536,
+    "majorityIncludingFlat": 0.4536,
+    "ruleBaselineCalls": 56224,
+    "ruleBaselineAccuracy": 0.4057
+   },
+   "beatsConstantCall": false,
+   "beatsRuleBaseline": false
+  },
+  {
+   "testYear": 2025,
+   "trainEnds": "2024-12-11",
+   "embargoSessionsDropped": 20,
+   "testRows": 145628,
+   "brain": {
+    "calls": 75444,
+    "coverage": 0.5181,
+    "accuracy": 0.4139
+   },
+   "onTheRowsTheBrainCalled": {
+    "rows": 75444,
+    "constantCall": "LONG",
+    "constantCallAccuracy": 0.4339,
+    "majorityIncludingFlat": 0.4339,
+    "ruleBaselineCalls": 60608,
+    "ruleBaselineAccuracy": 0.4129
+   },
+   "beatsConstantCall": false,
+   "beatsRuleBaseline": true
+  },
+  {
+   "testYear": 2026,
+   "trainEnds": "2025-12-11",
+   "embargoSessionsDropped": 20,
+   "testRows": 109016,
+   "brain": {
+    "calls": 55019,
+    "coverage": 0.5047,
+    "accuracy": 0.4054
+   },
+   "onTheRowsTheBrainCalled": {
+    "rows": 55019,
+    "constantCall": "SHORT",
+    "constantCallAccuracy": 0.4385,
+    "majorityIncludingFlat": 0.4385,
+    "ruleBaselineCalls": 43562,
+    "ruleBaselineAccuracy": 0.4084
+   },
+   "beatsConstantCall": false,
+   "beatsRuleBaseline": false
+  }
+ ],
+ "adverseRegime": {
+  "name": "2022 rate-shock bear",
+  "from": "2022-01-03",
+  "to": "2022-10-12",
+  "rows": 96946,
+  "brainCalls": 49317,
+  "brainCoverage": 0.5087,
+  "brainAccuracy": 0.4055,
+  "constantCall": "SHORT",
+  "constantCallAccuracy": 0.4468
+ },
+ "summary": {
+  "folds": 6,
+  "meanCoverage": 0.5098,
+  "meanAccuracy": 0.3979,
+  "meanConstantCallAccuracy": 0.4388,
+  "foldsBeatingBothReferences": 0
+ },
+ "preDeclaredCriteria": {
+  "source": "BRAIN-SPEC-V1.md §9 phase gate 5",
+  "clause": "beat both references out-of-sample on identical samples in more than half the folds, and not degrade in the adverse regime",
+  "setBefore": "any result was seen"
+ },
+ "criteriaMet": {
+  "beatsBothReferencesInMoreThanHalfTheFolds": [
+   0,
+   4,
+   false
+  ],
+  "doesNotDegradeInTheAdverseRegime": [
+   0.4055,
+   0.4468,
+   false
+  ]
+ },
+ "verdict": "NO-GO"
+}

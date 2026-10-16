@@ -80,11 +80,22 @@ def main() -> int:
     def gate(value, required):
         return [value, required, value == required]
 
+    # The future-field check is recorded in one of two shapes depending on the producer's version: an
+    # older count (`futureNamedFields: 0`) or a scan record that *raises* on a hit, where a completed
+    # run is itself the evidence. Both are accepted and the shape is reported, because treating an
+    # absent key as a pass is how a blocking gate quietly stops blocking.
+    scan = leakage.get("futureNamedFieldScan")
+    if isinstance(scan, dict) and scan.get("rowsChecked"):
+        future_fields: list = [f"scan of {scan['rowsChecked']} rows completed without raising",
+                               "no hit", True]
+    else:
+        future_fields = gate(leakage.get("futureNamedFields"), 0)
+
     gates = {
         # §8 T4, blocking.
         "featureDatedAfterSession": gate(leakage.get("featureDatedAfterSession"), 0),
         "setupDatedAfterSession": gate(leakage.get("setupDatedAfterSession"), 0),
-        "futureNamedFields": gate(leakage.get("futureNamedFields"), 0),
+        "futureNamedFields": future_fields,
         # A duplicated asset-session is one observation counted twice, which inflates every count
         # downstream and cannot be detected once the rows are shuffled into folds.
         "duplicateOutcomes": gate(duplicates.get("outcomes"), 0),

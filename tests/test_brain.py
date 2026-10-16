@@ -4656,6 +4656,16 @@ class NothingBuiltAndUnused(unittest.TestCase):
         # pins that the job imports all three.
         "evaluateLocal": "tools/macro_gate.mjs",
         "LOCAL_ENGINE": "tools/macro_gate.mjs",
+        # The family decision core (BRAIN-SPEC-V1.md §3 as corrected by the closure's §B4-B5). Read by
+        # its evaluation and by nothing on the site, deliberately: §9 gate 5 requires a candidate to
+        # beat both references out-of-sample before acceptance and gate 7 makes deployment a separate
+        # decision, and it was measured as a **NO-GO** -- 0.3979 against a 0.4388 constant call over
+        # 994,731 rows, losing in all six folds and degrading in the adverse regime. Wiring it to a
+        # page would publish a verdict that failed its own acceptance test; deleting it would discard
+        # the implementation the specification asked for and the artifact that records why it failed.
+        # `test_the_family_core_is_read_by_its_evaluation` pins the consumer, so this entry cannot
+        # outlive it.
+        "readFamilies": "tools/research/family_eval.ts",
     }
 
     def exports_without_consumers(self) -> list[str]:
@@ -4685,6 +4695,20 @@ class NothingBuiltAndUnused(unittest.TestCase):
             if uses <= 0 and name not in self.ALLOWED:
                 orphans.append(f"{name} ({Path(origin).name})")
         return orphans
+
+    def test_the_family_core_is_read_by_its_evaluation(self):
+        """The allowlist entry above is only honest while its named consumer really imports it.
+
+        Without this, `readFamilies` could be allowlisted, its evaluation deleted, and the test suite
+        would keep passing over a decision core nothing reads at all.
+        """
+        evaluation = (ROOT / "tools" / "research" / "family_eval.ts").read_text(encoding="utf-8")
+        self.assertIn("readFamilies", evaluation)
+        self.assertIn("lib/families.ts", evaluation)
+        # And the engine stays out of the published path while it is a recorded NO-GO.
+        for page in list((ROOT / "app").rglob("*.tsx")) + list((ROOT / "app").rglob("*.ts")):
+            self.assertNotIn("lib/families", code_only(page.read_text(encoding="utf-8")),
+                             f"{page.name} publishes a decision core that failed its acceptance test")
 
     def test_every_export_in_the_web_layer_has_a_consumer(self):
         orphans = self.exports_without_consumers()

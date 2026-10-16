@@ -1,0 +1,323 @@
+{
+ "version": "examples-v3-2026-10-16-local",
+ "frozenAt": "2026-10-16T12:38:45+00:00",
+ "status": "frozen for training",
+ "repoHead": "f1f6b0ce9fbcf104d7fcae6473fe988aef148dd9",
+ "builtBy": {
+  "outcomes": "tools/full_history.py",
+  "features": "tools/foundation/pit_features.py",
+  "assembly": "tools/foundation/assemble.py",
+  "macroContext": "tools/foundation/macro_pit.py"
+ },
+ "rows": {
+  "eligibleAssetSessions": 1086349,
+  "withPointInTimeFeatures": 1055429,
+  "withoutFeatures": 30920,
+  "withoutFeaturesByReason": {
+   "history shorter than the feature threshold": 30749,
+   "weekend bar of a non-crypto asset (not a session)": 171
+  },
+  "featureCoverage": 0.9715,
+  "setupCoverage": 0.0
+ },
+ "outcomes": {
+  "rows": 1086349,
+  "dateRange": [
+   "2018-01-01",
+   "2026-09-25"
+  ],
+  "label20Counts": {
+   "UP": 459161,
+   "FLAT": 213756,
+   "DOWN": 413432
+  },
+  "reconciliation": {
+   "storedPriceRowsTotal": 1098689,
+   "storedRowsWithClose": 1098689,
+   "generated": 1086349,
+   "excludedImmature": 12340,
+   "excludedNoBase": 0,
+   "accountedFor": 1098689,
+   "unexplained": 0
+  },
+  "sha256": "568a662f1411565b0754d042545919a71cf1e6c6acdbfb4a1d780a3a1ca92397"
+ },
+ "features": {
+  "rows": null,
+  "missingnessByAssetType": {
+   "stock": {
+    "r1": 0.0,
+    "r5": 0.0,
+    "r20": 0.0,
+    "returnZ": 0.0,
+    "volumeRatio": 0.0002,
+    "entryTrigger": 0.8965,
+    "triggerDirection": 0.8965,
+    "sma20": 0.0,
+    "sma50": 0.0,
+    "rangePct": 0.0,
+    "drawdownPct": 0.0,
+    "atr14": 0.0,
+    "peerMedianR20": 0.0332,
+    "relStrength": 0.0332,
+    "peers": 0.0,
+    "rows": 888827
+   },
+   "crypto": {
+    "r1": 0.0,
+    "r5": 0.0,
+    "r20": 0.0,
+    "returnZ": 0.0,
+    "volumeRatio": 0.0,
+    "entryTrigger": 0.9021,
+    "triggerDirection": 0.9021,
+    "sma20": 0.0,
+    "sma50": 0.0,
+    "rangePct": 0.0,
+    "drawdownPct": 0.0,
+    "atr14": 0.0,
+    "peerMedianR20": 0.0052,
+    "relStrength": 0.0052,
+    "peers": 0.0,
+    "rows": 94953
+   },
+   "forex": {
+    "r1": 0.0,
+    "r5": 0.0,
+    "r20": 0.0,
+    "returnZ": 0.0,
+    "volumeRatio": 1.0,
+    "entryTrigger": 0.9569,
+    "triggerDirection": 0.9569,
+    "sma20": 0.0,
+    "sma50": 0.0,
+    "rangePct": 0.0,
+    "drawdownPct": 0.0,
+    "atr14": 0.0,
+    "peerMedianR20": 0.0,
+    "relStrength": 0.0,
+    "peers": 0.0,
+    "rows": 53380
+   },
+   "commodity": {
+    "r1": 0.0001,
+    "r5": 0.0001,
+    "r20": 0.0001,
+    "returnZ": 0.0001,
+    "volumeRatio": 0.1038,
+    "entryTrigger": 0.9116,
+    "triggerDirection": 0.9116,
+    "sma20": 0.0,
+    "sma50": 0.0,
+    "rangePct": 0.0,
+    "drawdownPct": 0.0,
+    "atr14": 0.0,
+    "peerMedianR20": 0.5001,
+    "relStrength": 0.5001,
+    "peers": 0.0,
+    "rows": 15283
+   },
+   "etf": {
+    "r1": 0.0,
+    "r5": 0.0,
+    "r20": 0.0,
+    "returnZ": 0.0,
+    "volumeRatio": 0.0,
+    "entryTrigger": 0.9012,
+    "triggerDirection": 0.9012,
+    "sma20": 0.0,
+    "sma50": 0.0,
+    "rangePct": 0.0,
+    "drawdownPct": 0.0,
+    "atr14": 0.0,
+    "peerMedianR20": 0.25,
+    "relStrength": 0.25,
+    "peers": 0.0,
+    "rows": 15264
+   }
+  }
+ },
+ "macroContext": {
+  "sha256": "be649ce4bdd25cfe5e8c1e7809d4788f91699335b9365024d804e42604c28902",
+  "sessions": 2844,
+  "observationsDatedAfterTheirSession": 0,
+  "verifiedBy": "tools/foundation/macro_pit_verify.py",
+  "joinedNotPreJoined": "macro is joinable on date and is NOT a column in the example rows; a market-wide series given to every instrument as a per-asset feature is one fact counted once per name"
+ },
+ "coverage": {
+  "byAssetClass": {
+   "commodity": {
+    "eligible": 15523,
+    "withFeatures": 15123
+   },
+   "crypto": {
+    "eligible": 97233,
+    "withFeatures": 93452
+   },
+   "etf": {
+    "eligible": 15504,
+    "withFeatures": 15104
+   },
+   "forex": {
+    "eligible": 54190,
+    "withFeatures": 52840
+   },
+   "stock": {
+    "eligible": 903899,
+    "withFeatures": 878910
+   }
+  },
+  "outcomesByAssetClass": {
+   "commodity": {
+    "storedRows": 15683,
+    "generated": 15523,
+    "excludedImmature": 160
+   },
+   "crypto": {
+    "storedRows": 98753,
+    "generated": 97233,
+    "excludedImmature": 1520
+   },
+   "etf": {
+    "storedRows": 15664,
+    "generated": 15504,
+    "excludedImmature": 160
+   },
+   "forex": {
+    "storedRows": 54730,
+    "generated": 54190,
+    "excludedImmature": 540
+   },
+   "stock": {
+    "storedRows": 913859,
+    "generated": 903899,
+    "excludedImmature": 9960
+   }
+  }
+ },
+ "qualityExclusions": {
+  "unadjustedActionsKnown": 237,
+  "symbolsWithAnUnadjustedAction": 150,
+  "rowsTouchingOne": 57516,
+  "rowsTouchingOneByClass": {
+   "commodity": 459,
+   "crypto": 12608,
+   "etf": 0,
+   "forex": 291,
+   "stock": 44158
+  },
+  "rowsWithAPoisonedAnalogPool": 0,
+  "rowsWithAPoisonedAnalogPoolByClass": {
+   "commodity": 0,
+   "crypto": 0,
+   "etf": 0,
+   "forex": 0,
+   "stock": 0
+  },
+  "analogPoolCleanedInFeatureBuild": true,
+  "analogPoolNote": "the analog match pool is the asset's whole history, not a window. Cleaned in the feature build, the contaminated candidates, their forward windows and the sessions whose own factors cross an action are excluded there and this flag is 0. Uncleaned, every session at or after an asset's first action is flagged instead, because a window-sized flag would miss them",
+  "basisBreaksKnown": 5,
+  "symbolsWithABasisBreak": 5,
+  "rowsTouchingABasisBreak": 1278,
+  "rowsTouchingABasisBreakByClass": {
+   "commodity": 0,
+   "crypto": 0,
+   "etf": 0,
+   "forex": 0,
+   "stock": 1278
+  },
+  "basisNote": "203 PSX assets carry both the exchange's raw file and the adjusted Karachi listing and 48.4% of 20-session windows span a change between them, but a cross-basis step falls outside the exchange's own daily price band in 0.022% of cases against 0.071% for an ordinary session. Only the steps no single session could produce are flagged; see data/foundation/price_verification/basis_transitions.json",
+  "rowsWithANonDailyWindow": 3009,
+  "rowsWithANonDailyWindowByClass": {
+   "commodity": 0,
+   "crypto": 0,
+   "etf": 0,
+   "forex": 0,
+   "stock": 3009
+  },
+  "nonDailyNote": "the stored PSX history holds about 12 dates a year before 2024 and becomes daily in 2025, so a 20-session average there is a 20-month average under a daily name",
+  "note": "flagged, not dropped: a row is still correct about everything that does not cross the action, and the consumer decides. See price_verification/unadjusted_actions.json"
+ },
+ "files": {
+  "examples-v3-2018.jsonl.gz": {
+   "sha256": "6abc3a733eec13279748ce4fc6624bb570e60f90c5e14e6e64d1796f85ce5bdc",
+   "bytes": 6229833
+  },
+  "examples-v3-2019.jsonl.gz": {
+   "sha256": "418aa8945f96b86fb0dc3661ec80ce600e52f61d0bcf042895d3882a0b3b75b5",
+   "bytes": 23544373
+  },
+  "examples-v3-2020.jsonl.gz": {
+   "sha256": "b48a9f90523944b2a9634535b078c020c14fbc97819f698302772fa63d347b26",
+   "bytes": 28450176
+  },
+  "examples-v3-2021.jsonl.gz": {
+   "sha256": "c46f62284f5009e2092e793ebe21be16de76b089801327d1b82da38f7219c3b3",
+   "bytes": 30475372
+  },
+  "examples-v3-2022.jsonl.gz": {
+   "sha256": "7a69021fc37daf39d39dc23de97213ad1c98b995bb5a1eec273fba0a2cd2345d",
+   "bytes": 32054135
+  },
+  "examples-v3-2023.jsonl.gz": {
+   "sha256": "d39cb698a4a942d8ec79bd399985ba8c0f0e8549014235c6656dea222960babc",
+   "bytes": 32398567
+  },
+  "examples-v3-2024.jsonl.gz": {
+   "sha256": "ce11ab25103aead6edfb8e6ec5543eda637ed19dcf802429e29f059c634bfe2a",
+   "bytes": 34162576
+  },
+  "examples-v3-2025.jsonl.gz": {
+   "sha256": "7ca271f0a480e5f05befc701d42411a709012c819568c05c84b3c091d2211ce4",
+   "bytes": 36160543
+  },
+  "examples-v3-2026.jsonl.gz": {
+   "sha256": "e3b8c651954f7e8d878e226a8cfeb5b3a6218ee966d1b670d7376dcebfbde7e8",
+   "bytes": 27120576
+  }
+ },
+ "splitPlan": {
+  "method": "chronological walk-forward, one fold per test year",
+  "embargoSessions": 20,
+  "embargoReason": "a 20-session label makes consecutive rows share 19 of their 20 forward sessions, so rows either side of a cut are not independent",
+  "rowsAreNotIndependentObservations": "a row count is not a sample size; the effective count is nearer rows/embargo and is reported as such"
+ },
+ "gates": {
+  "featureDatedAfterSession": [
+   0,
+   0,
+   true
+  ],
+  "setupDatedAfterSession": [
+   0,
+   0,
+   true
+  ],
+  "futureNamedFields": [
+   "scan of 18000 rows completed without raising",
+   "no hit",
+   true
+  ],
+  "duplicateOutcomes": [
+   0,
+   0,
+   true
+  ],
+  "duplicateFeatures": [
+   0,
+   0,
+   true
+  ],
+  "unexplainedRows": [
+   0,
+   0,
+   true
+  ],
+  "yearFilesPresent": [
+   9,
+   "at least 1",
+   true
+  ]
+ },
+ "blockingGatesGreen": true
+}
