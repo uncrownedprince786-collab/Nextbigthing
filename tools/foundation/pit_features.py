@@ -92,7 +92,8 @@ def _arr(values):
 
 
 FACTOR_KEYS = ("r1", "r5", "r20", "returnZ", "volumeRatio", "entryTrigger", "triggerDirection",
-               "sma20", "sma50", "rangePct", "drawdownPct", "atr14", "peerMedianR20", "relStrength", "peers")
+               "sma20", "sma50", "rangePct", "drawdownPct", "atr14", "atrTrailingMedian",
+               "peerMedianR20", "relStrength", "peers")
 
 
 def arg(name: str, default=None):
@@ -237,12 +238,20 @@ def build(assets: list[dict], series: dict[str, list[dict]], *, first_year: int 
         analog = (AnalogSeries(bars, (actions or {}).get(a["symbol"]))
                   if len(bars) >= ANALOG_MIN else None)
         peers = [p for p in groups.get(a["industryId"], []) if p != a["id"]] if a["industryId"] else []
+        # `atr14` at every session, for E3's stress clause. Built once per asset rather than
+        # accumulated inside the loop below, because that loop is skipped for years outside
+        # `first_year` and a baseline assembled as it ran would then depend on which years were
+        # asked for -- the reproducibility re-run of a single year would disagree with the full
+        # build. This does not: `atr_series(bars)[t]` is the same value whichever years are emitted.
+        atrs = fc.atr_series(bars)
         for t in range(MIN_BARS - 1, len(bars)):
             d = bars[t]["date"]
             if first_year and d.year < first_year:
                 continue
             f = fc.compute(bars[max(0, t - WINDOW + 1): t + 1], d,
                            peer_r20(closes_by, dates_by, r20_by, peers, d))
+            # The sessions strictly before this one, so today is never inside its own baseline.
+            f["atrTrailingMedian"] = fc.atr_trailing_median(atrs[:t])
             lo = max(0, t - WINDOW + 1)
             row = {"a": a["symbol"], "t": a["assetType"], "d": d.isoformat(), "n": t + 1,
                    # Calendar days spanned by the bars the factors were computed from.

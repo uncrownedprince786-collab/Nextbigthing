@@ -112,7 +112,9 @@ async function load(dir: string): Promise<Row[]> {
           market: marketOf(rec),
           r20: num(fts.r20), sma20: num(fts.sma20), sma50: num(fts.sma50),
           volumeRatio: num(fts.volumeRatio), r1: num(fts.r1),
-          atr14: num(fts.atr14), atrTrailingMedian: null,
+          // Present from the build that added `atrTrailingMedian` onward; `num` returns null for an
+          // assembly made before it, which E3 reports as an unmeasured baseline rather than as calm.
+          atr14: num(fts.atr14), atrTrailingMedian: num(fts.atrTrailingMedian),
           rangePct: num(fts.rangePct), drawdownPct: num(fts.drawdownPct),
           relStrength: num(fts.relStrength), peers: num(fts.peers) ?? 0,
           // See the header: no 20-session matched days exist. `--h5-analogs` substitutes the

@@ -5561,6 +5561,46 @@ class TheAverageTrueRange(unittest.TestCase):
     def test_too_short_a_history_measures_nothing(self):
         self.assertIsNone(factors.atr(self.bars(14)))
 
+    def test_the_one_pass_series_equals_the_per_session_function(self):
+        """`atr_series` exists only to avoid a quadratic re-slice, so it must agree exactly.
+
+        Asserted rather than assumed: the series carries a running sum, and an off-by-one in its
+        window would be invisible in the output -- every value would still look like an ATR.
+        """
+        for bars in (self.bars(40, high=1.5, low=1.5), self.bars(40, high=0.1, low=0.1), self.bars(40)):
+            series = factors.atr_series(bars)
+            self.assertEqual(len(series), len(bars))
+            for t in range(len(bars)):
+                expected = factors.atr(bars[: t + 1])
+                if expected is None:
+                    self.assertIsNone(series[t], t)
+                else:
+                    self.assertAlmostEqual(series[t], expected, places=9, msg=f"index {t}")
+
+    def test_the_trailing_median_excludes_the_session_it_judges(self):
+        # A flat history then one violent session: the baseline must be the quiet past, not an
+        # average dragged up by the bar being judged.
+        quiet = [1.0] * 40
+        self.assertAlmostEqual(factors.atr_trailing_median(quiet), 1.0)
+        self.assertAlmostEqual(factors.atr_trailing_median(quiet + [50.0]), 1.0,
+                               msg="one loud session moved its own baseline")
+
+    def test_no_baseline_is_not_a_calm_baseline(self):
+        """The one answer the data cannot support is "measured, and not stressed"."""
+        self.assertIsNone(factors.atr_trailing_median([]))
+        self.assertIsNone(factors.atr_trailing_median([1.0] * (factors.ATR_BASELINE_MIN - 1)))
+        self.assertIsNotNone(factors.atr_trailing_median([1.0] * factors.ATR_BASELINE_MIN))
+        # Nones and non-positive values are not usable observations and do not count toward the floor.
+        self.assertIsNone(factors.atr_trailing_median([None] * 60))
+        self.assertIsNone(factors.atr_trailing_median([0.0] * 60))
+
+    def test_the_baseline_reads_only_its_own_window(self):
+        # Older sessions beyond the window cannot drag the baseline: only the last
+        # ATR_BASELINE_WINDOW usable values are read.
+        old = [100.0] * 200
+        recent = [1.0] * factors.ATR_BASELINE_WINDOW
+        self.assertAlmostEqual(factors.atr_trailing_median(old + recent), 1.0)
+
     def test_it_is_computed_stored_and_read_by_the_resolver(self):
         f = factors.compute(self.bars(60, high=1.0, low=1.0), self.bars(60)[-1]["date"])
         self.assertIsNotNone(f["atr14"])

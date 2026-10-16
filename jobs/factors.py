@@ -534,17 +534,89 @@ def atr(bars: list[dict], span: int = ATR_SPAN) -> float | None:
     """
     if len(bars) < span + 1:
         return None
-    ranges = []
-    for prev, cur in zip(bars[-span - 1 : -1], bars[-span:]):
-        pc, c = float(prev["close"]), float(cur["close"])
-        hi, lo = cur.get("high"), cur.get("low")
-        if hi is None or lo is None or float(hi) < float(lo):
-            ranges.append(abs(c - pc))
-        else:
-            hi, lo = float(hi), float(lo)
-            ranges.append(max(hi - lo, abs(hi - pc), abs(lo - pc)))
+    ranges = [true_range(prev, cur) for prev, cur in zip(bars[-span - 1 : -1], bars[-span:])]
     value = sum(ranges) / span
     return value if value > 0 else None
+
+
+# The baseline `atr14` is judged against, in sessions, and the fewest usable values that baseline
+# may rest on.
+#
+# **Why 60 and not 20.** `VOLUME_WINDOW` is 20 and is the right length for volume, where each session
+# is an independent observation. `atr14` is not: consecutive values share 13 of their 14 sessions, so
+# twenty of them cover about thirty-four sessions of underlying range and move almost together. The
+# failure that length invites is the one that matters — a stress episode lasting two or three weeks
+# would sit inside its own baseline, raise the median with it, and silence the clause exactly when it
+# should fire. Sixty sessions is about a quarter, long enough that a fortnight of stress cannot
+# define the normal it is measured against, and still trailing rather than structural.
+#
+# **Why the median.** The same reason `volume_ratio` gives in this file: a range cannot be negative
+# and one gap inflates a mean, so the mean of a window sits above its typical session and the ratio
+# it produces is biased low on an ordinary day. ATR has that skew for the same reason volume does.
+#
+# A [PROPOSED] default in the sense BRAIN-SPEC-V1.md §3.3 uses, chosen before any evaluation and not
+# an empirical finding.
+ATR_BASELINE_WINDOW = 60
+ATR_BASELINE_MIN = 30
+
+
+def true_range(prev: dict, cur: dict) -> float:
+    """One session's true range, by the same rule `atr` applies, in price units.
+
+    Factored out of `atr` so a whole series can be built in one pass without re-reading the same
+    bars for every session. A venue storing no high or low contributes its close-to-close move
+    instead -- the part of the range a close series can see, smaller than the true range and never
+    larger -- and a high below its own low is treated as absent rather than trusted.
+    """
+    pc, c = float(prev["close"]), float(cur["close"])
+    hi, lo = cur.get("high"), cur.get("low")
+    if hi is None or lo is None or float(hi) < float(lo):
+        return abs(c - pc)
+    hi, lo = float(hi), float(lo)
+    return max(hi - lo, abs(hi - pc), abs(lo - pc))
+
+
+def atr_series(bars: list[dict], span: int = ATR_SPAN) -> list[float | None]:
+    """`atr14` at every index of `bars`, in one pass, None where `atr` would return None.
+
+    Equal by construction to calling `atr(bars[: t + 1], span)` for each `t` -- the same true ranges
+    averaged over the same window -- and `tests/test_factors.py` asserts that equality rather than
+    assuming it. It exists because the per-session form is quadratic over a long series: a 2,000-bar
+    asset would re-slice and re-sum about two million bar reads, and there are 617 assets.
+
+    `bars` must be sorted ascending. Nothing here reads a bar later than the index it reports, so a
+    value at `t` is available at the close of `t`.
+    """
+    out: list[float | None] = [None] * len(bars)
+    if len(bars) < span + 1:
+        return out
+    ranges = [0.0] + [true_range(bars[i - 1], bars[i]) for i in range(1, len(bars))]
+    running = sum(ranges[1 : span + 1])
+    for t in range(span, len(bars)):
+        if t > span:
+            running += ranges[t] - ranges[t - span]
+        value = running / span
+        out[t] = value if value > 0 else None
+    return out
+
+
+def atr_trailing_median(previous_atrs: list[float | None]) -> float | None:
+    """The median `atr14` of the sessions *before* this one, or None when too few are usable.
+
+    `previous_atrs` is this asset's `atr14` for the sessions preceding the one being measured, most
+    recent last. Only the final `ATR_BASELINE_WINDOW` are read, and the current session's own value
+    is deliberately **not** among them: "exceeds its trailing median" compares today against the
+    recent past, and including today in its own baseline pulls the comparison toward itself.
+
+    **None is not "not stressed".** Below `ATR_BASELINE_MIN` usable values there is no baseline, and
+    this returns None so the consumer reports the measurement as absent. A number here would let a
+    short history read as calm, which is the one answer the data cannot support — `lib/families.ts`
+    E3 holds that line and `tests/families.test.ts` pins it.
+    """
+    window = [a for a in previous_atrs[-ATR_BASELINE_WINDOW:] if a is not None and a > 0]
+    if len(window) < ATR_BASELINE_MIN:
+        return None
+    return median(window)
 
 
 def peer_median_r20(peer_returns: list[float]) -> float | None:
