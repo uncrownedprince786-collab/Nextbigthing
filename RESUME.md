@@ -1,5 +1,118 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT — 2026-10-16 (fourth), H1 tested and failed; model experimentation stops
+
+**Branch `main`. Working tree clean including untracked files. Nothing is running: no training, no
+producer, no dev server; `tasklist` shows no `python.exe` and no `node.exe`. The last work commits
+are `ce71420` (H1 pre-registration) and `297b682` (H1 result); this record is the commit after them,
+readable with `git log -1`.**
+
+**Tests, as actually run this session:** `tests/families.test.ts` **22/22**, `npx tsc --noEmit`
+**clean**, `tests/test_brain.py` **779/779**. No full suite was re-run and none was needed — the
+changes are one new research tool and its artifact, plus `RESUME.md` and `brain.md`. The full-suite
+evidence at `8687cc5` (**1,125 Python, 494 web**) remains applicable.
+
+**Weekly usage: 78% used, 22% remaining, resetting in about 2d 11h** — a point reading taken at the
+close of this session, not a monitored figure. Extra usage is off.
+
+### H1 — pre-registered, run once, NO-GO
+
+Pre-registration was committed in `ce71420` **before** the run, so the contract could not move.
+Nothing was changed after the result was seen.
+
+**Hypothesis.** The historical analogue prior carries directional information beyond the best
+constant call on the same rows — the one source the policy permits to vote directionally that had
+never had a readable vote, and the only one asking what followed similar past configurations rather
+than describing today's bar.
+
+**Contract.** Target `sign(fwd5)`, because the prior's `positive` counts matched forward moves above
+zero, so the event it estimates is `fwd5 > 0`; no band was invented. Rule reused as shipped — E5 via
+`readFamilies`, `matches >= 8`, share 0.55 / 0.45 — so nothing was fitted and there was no parameter
+to tune. Acceptance reused from `context_experiment.py`: **+0.02** mean gain, **4 of 5** folds, and no
+degradation in the 2022 adverse regime.
+
+| | measured | required | |
+|---|---|---|---|
+| mean gain over constant call | **+0.0057** | +0.02 | **FAIL** |
+| folds beating the constant call | **3 of 5** | 4 of 5 | **FAIL** |
+| adverse regime 2022 | **−0.0414** | ≥ 0 | **FAIL** |
+| validity floor (1,000 calls/fold) | 57,700–61,839 | ≥ 1,000 | pass |
+
+**NO-GO, not INCONCLUSIVE** — every fold cleared the validity floor by a wide margin, so this is
+measured and absent rather than too little to tell.
+
+**The denominator is the finding.** Each fold has 57,000–62,000 called rows and only **353–360 unique
+decision dates**; many assets share a date and one market factor, so the row count overstates
+independence by roughly 170×. A +0.0057 mean over some 1,800 effective observations is not
+distinguishable from zero. It is also negative where the data is thickest — US −0.0099 over 447,620
+rows, Crypto −0.0124, PSX −0.0044 — and positive only in the two thinnest, Commodity +0.0013 and FX
++0.0023.
+
+**The 2026 holdout was protected** from every choice, threshold and calibration, and read once:
++0.0086 — positive, under the margin, consistent with the same noise. It did not and could not change
+the verdict.
+
+Artifacts: `tools/research/h1_analog_prior.ts`, `data/foundation/dataset/h1_analog_prior.json`.
+
+### The stopping rule has fired
+
+Six recorded verdicts, all NO-GO, none overwritten:
+
+| Candidate | Measure | Verdict |
+|---|---|---|
+| `label20` baseline classifier | 0.4211 against 0.4204 majority | NO-GO (degenerate, explained) |
+| `label60` position horizon | mean margin **−0.0816** | NO-GO, frozen, never re-run |
+| macro-as-qualifier | +0.0045 against +0.02 required | NO-GO |
+| family decision core (rules) | 0.3979 against 0.4388 constant call | NO-GO |
+| class-balanced classifier | 0.3618 against 0.4377 majority | NO-GO |
+| **H1 analogue prior** | **+0.0057 against +0.02 required** | **NO-GO** |
+
+**Three independent routes now agree the information is absent**, which is stronger than any one of
+them: a classifier over the fifteen point-in-time columns, a rule engine over the same information,
+and a source asking a genuinely different question. Different methods failing the same way points at
+the data, not the method.
+
+**The twenty-session analogue corpus was not built.** That is what testing the cheap horizon first
+was for: the expensive step was explicitly conditional, the condition failed, and the rebuild hour
+was not spent.
+
+**Model experimentation on this data stops here** — not because a result disappointed, but because
+every information source the policy lets vote directionally has now been measured.
+
+### What has not changed
+
+- `lib/families.ts` — the approved decision core, `families-v1.2`, 22 tests. **Wired to nothing**;
+  §9 gate 5 unmet and gate 7 makes deployment separate. `lib/decision.ts` still decides what the site
+  publishes.
+- Frozen dataset `examples-v3-2026-10-16-local`, all blocking gates green, with `artifactLocations`
+  and five `rebuildCommands` recorded; artifacts live under the ignored `.cache/foundation/` and are
+  disposable.
+- **No reusable trained model weights have ever been persisted**, across all four training runs —
+  verified by inspection; each recorded metrics only.
+- Operational: primary serves (533 MB); `DATABASE_URL` serves; `DATABASE_URL_FALLBACK` is
+  **ECONNREFUSED**, needing the owner's provider account. The 500 MB free-tier figure is still an
+  **assumption**. **No stated latency requirement exists** in this repository.
+- **`WORKER_ARTIFACT_KEY`: BLOCKED — authorization required.** Verified unchanged, no
+  `WORKER_ARTIFACT_KEY_PREVIOUS` anywhere, seven consumers as they were.
+
+### Next authorized action
+
+**Not another model.** The stopping rule forbids a seventh variant over the same columns, and no
+evidence currently supports a materially distinct hypothesis. What is authorized:
+
+1. **A new information source, or nothing.** Any further directional work needs data this project
+   does not yet hold. Until such a source exists and is point-in-time clean, the honest position is
+   that the brain reasons correctly and has no measured directional edge.
+2. **Engineering that is correctness, not edge** — chiefly a stored trailing ATR median so E3's
+   stress clause becomes measurable instead of honestly unmeasured. Expect no edge from it; it is a
+   gap in a rule's inputs, not a signal.
+3. **The three owner decisions**, unchanged: raise the web pool's connection ceiling (`max: 2`),
+   measure the Supabase pooler's real client ceiling (the "15 session clients" comment is still
+   unverified against a measured `max_connections` of 60), and rotate `WORKER_ARTIFACT_KEY` through
+   GitHub's own secret UI or by granting secret-store write permission.
+
+Nothing is blocked on this session. No process was interrupted and no partial work exists.
+
 ## 0. SESSION CHECKPOINT — 2026-10-16 (third), formal training completed and the answer is NO-GO
 
 **Branch `main`. Working tree clean, including untracked files (`git status --porcelain

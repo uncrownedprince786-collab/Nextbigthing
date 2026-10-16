@@ -5900,3 +5900,38 @@ reads rows that already exist:
     - **And the stopping rule is written down before the result.** If the horizon-5 prior carries
       nothing, model experimentation stops until a genuinely new information source exists. Naming
       that in advance is what stops a failed result turning into the next variant.
+
+161. **The analogue prior was the last permitted directional source, and it is absent too. Model
+    experimentation stops.** 2026-10-16. Commits: `ce71420` (pre-registration), `297b682` (result).
+
+    - **The cheap test killed the expensive one, which is what it was for.** H1 was pre-registered
+      and committed *before* the run, then executed once at the five-session horizon where the data
+      already existed. Mean gain over the best constant call on the same rows: **+0.0057 against a
+      required +0.02**, winning 3 folds of 5 where 4 were required, and **-0.0414 in the 2022 adverse
+      regime**. The twenty-session analogue corpus was therefore never built -- the expensive step was
+      conditional on the cheap one surviving, and about an hour of rebuild was not spent on a
+      hypothesis that had already failed where it could be tested for free.
+
+    - **61,839 calls is not a sample size; 353 dates is nearer it.** Each fold held 57,000 to 62,000
+      called rows and only **353 to 360 unique decision dates**, because many assets share a date and
+      their five-session outcomes share one market factor. The row count overstates independence by
+      roughly 170 times, and a +0.0057 mean over some 1,800 effective observations cannot be told from
+      zero. Reporting coverage and unique dates beside accuracy is what kept that visible; a pooled
+      accuracy alone would have presented noise as a small finding.
+
+    - **It is negative where the data is thickest.** US -0.0099 over 447,620 rows, Crypto -0.0124,
+      PSX -0.0044; the only positives are the two thinnest markets, Commodity +0.0013 and FX +0.0023.
+      A signal that works only where there is least of it is the shape of a sampling artefact.
+
+    - **Three independent routes now agree the information is not there.** A classifier over the
+      fifteen point-in-time columns at 0.3618 against a 0.4377 majority; the rule engine over the same
+      information at 0.3979 against a 0.4388 constant call; and now the one source that had never had
+      a readable vote, asking a genuinely different question -- what followed similar past
+      configurations rather than what today's bar looks like -- at noise. Different methods failing
+      the same way is stronger evidence than any one of them: it is the information that is absent,
+      not the method that is wrong.
+
+    - **So the stopping rule fires, and it was written down before the result.** Model
+      experimentation on this data stops until a genuinely new information source exists. Naming the
+      stopping condition in advance is the whole difference between concluding and continuing: six
+      recorded NO-GOs, none overwritten, and no seventh variant over the same columns.
