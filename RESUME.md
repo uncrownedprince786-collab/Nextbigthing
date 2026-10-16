@@ -1,5 +1,106 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-17 (fifteenth), EventImpact cut 91%, and the space needs one blocked command
+
+**Branch `main`, work commit `09174e5`, tree clean. The mitigation is implemented, deployed and
+verified against the live page. One step is blocked on a permission and is the only thing between
+the current 526.2 MB and roughly 433 MB.**
+
+### Before and after, measured
+
+| | before (22:44:50Z) | after (23:24:13Z) |
+|---|---|---|
+| database | **535.0 MB** | **526.2 MB** |
+| EventImpact rows | **191,238** | **17,600** (-90.8%) |
+| EventImpact size | 109.2 MB | 95.0 MB (heap 56.8 + idx 38.2) |
+| vs 500 MB free plan | 107.0% | **105.2%** |
+
+**The rows are gone; the space is not yet returned.** Postgres left the freed pages in the table's
+free space map. The table will reuse them - it is rewritten in full every run, so ~95 MB is now a
+ceiling rather than a growth path - but `pg_database_size` will not fall until the table and its
+indexes are rebuilt.
+
+**Blocked:** `REINDEX TABLE CONCURRENTLY "EventImpact"` (and a plain `VACUUM`) were **refused by
+the sandbox permission classifier**. Those are the non-disruptive forms - `REINDEX CONCURRENTLY`
+builds beside the old index and swaps, so readers keep working - and `VACUUM FULL` was never
+attempted because it takes an ACCESS EXCLUSIVE lock and is out of scope. **38.2 MB of index for
+17,600 rows is almost entirely bloat**, and the heap is 56.8 MB for the same rows.
+
+**Expected after a rebuild: roughly 433 MB**, about 13% headroom. That needs one approved command.
+
+### What was changed, and why it is safe
+
+`EventImpact` materialised 176 events x 616 assets x 2 windows. **No reader ever wanted the
+middle.** `getEventImpacts` fetches an event-window and returns the top and bottom ten by
+`changePct`; `jobs/analysis.py` takes the five largest by `rank` and a count. The producer now
+keeps **25 a side** (`KEEP_PER_SIDE`) and nothing between.
+
+**Selected by signed change, not by rank** - the whole correctness argument. `rank` is by absolute
+size, so in a window where every asset rose, the ten rows the page calls "fallers" are the
+smallest rises, the *worst*-ranked rows. Keeping by rank would have dropped exactly the half the
+page asks for, and it would have looked fine until an event where nothing fell. Keeping 25 of each
+sign also retains the five largest by absolute size, so `analysis.py` is untouched.
+
+**`measuredCount`** carries what `count(*)` used to mean. Row count is now the slice; the readers
+want the number of assets measured. Both call sites read it and fall back to counting rows for
+pre-column rows.
+
+**Reversible**: raise `KEEP_PER_SIDE`, re-run `python jobs/events.py`, and the full table returns
+from the stored closes it was always derived from. `EventImpact` stays in `retention.NEVER_PRUNED`
+- this changes what the producer materialises, not a retention policy.
+
+### Verified live, not assumed
+
+`/event/fed-raises-75bp-2022-06-15` returns **HTTP 200** and renders **"533 assets have stored
+closes"** (14d) and **"530"** (30d) - the true measured totals, not the 50 rows stored. Narrative
+sentence, both tables, and every per-row tooltip carry the real figure. Overview and the event list
+both 200. `getEventWindows` still sees 2 windows; rank 1 is present in every event-window.
+
+### Archive, verified before anything changed
+
+`C:\Users\NEW TECH\nbt-private\archive\eventimpact-2026-10-17\` (outside the repository)
+
+| | |
+|---|---|
+| rows | **191,238**, read back and matched |
+| content sha256 | `bde68acd8adeff38...` - recomputed on read-back, **matches** |
+| file | `EventImpact.csv.gz`, 15.9 MB, file digest **matches** |
+| coverage | 176 events, 616 assets, windows 14 and 30 |
+| schema | 14 columns with types and null semantics, 3 index definitions |
+| regeneration | `python jobs/events.py`, from `PriceSnapshot` 1,098,915 rows 2018-01-01..2026-10-16 and 707 `Event` rows |
+
+### Growth evidence, measured
+
+`PriceSnapshot` takes **617 rows per trading session**, 76 on weekends (crypto only), at
+**262.3 bytes/row** - about **162 KB a session**, roughly **3.4 MB a month**. The 339 MB recorded
+in `jobs/retention.py` on 2026-10-08 against 535 MB on 2026-10-16 is **not** a growth rate: that
+span contains the PSX backfill and the EventImpact rebuild, both one-off. **At the measured
+ordinary rate, 433 MB would give well over a year** - but that figure rests on 8 days of
+observation and excludes future backfills, so treat it as a floor on headroom, not a promise.
+
+### The pooler ceiling is 15, measured
+
+A connection was refused with `(EMAXCONNSESSION) max clients reached in session mode - max clients
+are limited to pool_size: 15`. **That answers the open owner question** - the pooler's real client
+ceiling is **15**, not the 60 that `max_connections` suggests - and it is the actual cause of the
+"ConnectionTimeout" recorded earlier as transient. Diagnostics must stay under it and close
+promptly.
+
+### Next authorized action
+
+1. **Approve and run the reclaim** - the one blocked step:
+   ```
+   REINDEX TABLE CONCURRENTLY "EventImpact";
+   VACUUM "EventImpact";
+   ```
+   Then re-measure `pg_database_size`. Expect roughly **433 MB**. Non-disruptive; **not**
+   `VACUUM FULL`.
+2. **Fresh backup and restore rehearsal** - the verified one is at schema `20261011130000`, now
+   three migrations behind.
+3. **Then back to brain work**, unchanged: `brain-v2-context` stays **NO-GO** (0.4167, 1 of 4
+   criteria, `productionApproved: false`). The next brain step is still
+   `python tools/research/shadow_predict.py --live --write` for the first prospective shadow run.
+
 ## 0. SESSION CHECKPOINT - 2026-10-17 (fourteenth), the quota is real and EventImpact is not the lever
 
 **Branch `main`, tree clean, nothing running. Assessment only - no data was removed, no retention
