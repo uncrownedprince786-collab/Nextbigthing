@@ -118,6 +118,29 @@ def main() -> int:
             "assembly": "tools/foundation/assemble.py",
             "macroContext": "tools/foundation/macro_pit.py",
         },
+        # Where the bytes are and how to make them again. The data derive from a third-party feed, so
+        # they stay out of the repository by the rule `pit_features.py` states -- which means a digest
+        # alone identifies an artifact that a later session cannot find. These are the commands that
+        # produced exactly the digests below, in order; each reads the database and writes only under
+        # `.cache/`, which is ignored.
+        "artifactLocations": {
+            "root": ".cache/foundation",
+            "outcomes": ".cache/foundation/full/full-history-v2.jsonl.gz",
+            "features": ".cache/foundation/pit_full/pit-<year>.jsonl.gz",
+            "assembled": ".cache/foundation/dataset_full/examples-v3-<year>.jsonl.gz",
+            "macroContext": ".cache/foundation/macro_rebuild/macro-sessions.jsonl.gz",
+            "note": "ignored by .gitignore and disposable; rebuildable with the commands below, which "
+                    "need only database access and take about 70 minutes, the feature build being the "
+                    "long half at roughly an hour",
+        },
+        "rebuildCommands": [
+            "python tools/full_history.py --out .cache/foundation/full",
+            "python tools/foundation/pit_features.py --out .cache/foundation/pit_full",
+            "python tools/foundation/assemble.py --full .cache/foundation/full "
+            "--pit .cache/foundation/pit_full --out .cache/foundation/dataset_full",
+            "python tools/foundation/macro_pit.py --out .cache/foundation/macro_rebuild",
+            "python tools/foundation/freeze_dataset.py --dataset .cache/foundation/dataset_full",
+        ],
         "rows": {
             "eligibleAssetSessions": manifest.get("eligibleAssetSessions"),
             "withPointInTimeFeatures": manifest.get("withPointInTimeFeatures"),

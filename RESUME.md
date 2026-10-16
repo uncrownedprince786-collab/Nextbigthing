@@ -2,9 +2,21 @@
 
 ## 0. SESSION CHECKPOINT — 2026-10-16 (third), formal training completed and the answer is NO-GO
 
-**Branch `main`. The last work commit is `8687cc5` and this record is the commit after it. Working
-tree clean. Nothing is running: no training, no producer, no dev server, no download. Tests: 1,125
-Python, 494 web, all passing at `8687cc5`.**
+**Branch `main`. Working tree clean, including untracked files (`git status --porcelain
+--untracked-files=all` is empty). Nothing is running: no training, no producer, no dev server, no
+download; `tasklist` shows no `python.exe` and no `node.exe`.**
+
+**Tests, as actually run.** 1,125 Python and 494 web at `8687cc5`, all passing. Re-verified after the
+checkpoint commits: `tests/families.test.ts` 22/22 and `npx tsc --noEmit` clean. The two full-suite
+runs remain applicable — the commits after `8687cc5` change only `RESUME.md`, `brain.md`,
+`tools/foundation/freeze_dataset.py` and the freeze artifact, none of which the suites cover beyond
+`brain.md`'s own tests, which were run.
+
+**No reusable trained model weights have been persisted, by inspection.** A search for `*.npy`,
+`*.pkl`, `*weights*` and `*model*.json` across the repository returns nothing. All three training
+runs recorded **metrics only**; `fit_softmax`/`fit_weighted` return their coefficient matrix to the
+caller and it is discarded when the process exits. Reproducing a candidate means re-running its
+script against the frozen dataset, which its artifact identifies by digest.
 
 **Weekly usage at this checkpoint: 77% used, 23% remaining, resets in about 2d 11h** (read from the
 app's own usage card, not estimated). Extra usage is off. The checkpoint was taken because that is
@@ -109,18 +121,60 @@ with the three producers, which now load `.env` and so run outside CI.
    server's number, not the pooler's.
 3. `WORKER_ARTIFACT_KEY` rotation — GitHub's own secret UI, or secret-store write permission.
 
-### Next action
+### Where the artifacts are, and how to make them again
 
-**Not another variant of the same experiment.** What would change what is measurable, in order:
+The dataset derives from a third-party feed, so by the rule `pit_features.py` states it stays **out
+of the repository**: it lives under `.cache/foundation/`, which `.gitignore` line 47 ignores. A
+digest alone would identify an artifact a later session cannot find, so
+`data/foundation/dataset/dataset_freeze.json` now carries `artifactLocations` and
+`rebuildCommands` as well — the five commands, in order, that produced exactly the digests it
+records. They need only database access and take about 70 minutes, the feature build being the long
+hour. Re-running the freeze after adding them reproduced **identical** per-file digests, identical
+outcome and macro digests and identical row counts, which is the evidence that the frozen bytes are
+unchanged.
 
-1. **A 20-session analog corpus.** E5 history is unreadable at the swing horizon because
-   `examples-v3` carries matched days at horizons 1 and 5 only; voting a 5-session prior on a
-   20-session label is the horizon mixing §D4 forbids. This is a data requirement, like DR-1.
-2. **A stored trailing ATR median**, so E3's stress clause is measurable at all rather than reported
-   as unmeasured (never as calm).
-3. **Features beyond price and volume**, since the measured answer is that these fifteen carry no
-   directional edge. Any new family must still respect the rule that only asset-specific evidence
-   votes, and that macro and news stay context.
+### Next action — one experiment, and the cheap test that gates it
+
+**Do not start another variant of a tested candidate.** Everything the policy lets vote directionally
+is asset-specific and price- or volume-derived, and those are now measured: no edge, by two
+independent routes (a classifier at 0.3618 against 0.4377, a rule engine at 0.3979 against 0.4388).
+One permitted directional source has **never been readable at all**, and it is the only materially
+distinct hypothesis the evidence supports:
+
+> **H1.** The historical analogue prior carries directional information that the current-state
+> features do not, because it asks a different question — what followed similar past configurations
+> — rather than describing today's bar.
+
+It is materially distinct from every failed candidate: those all read the present state of one
+instrument, and E5 reads matched past days. It is not a re-tune, because E5 has never had a readable
+vote at any evaluated horizon.
+
+**Run the cheap falsification first. It needs no new data.** `examples-v3` already carries
+`pit.an.5` (matched days at horizon 5) and `outcome.fwd5`. So measure, on the frozen dataset, whether
+the horizon-5 analogue prior predicts the **5-session** outcome better than the best single fixed
+answer on exactly the rows it calls.
+
+- **Baseline:** the best constant call on the called rows, as `family_eval.ts` already computes — the
+  reference a degenerate predictor cannot win.
+- **Validation:** chronological walk-forward, one fold per test year, embargo matched to the horizon
+  (5 sessions, not 20 — the embargo belongs to the label).
+- **Holdout:** hold **2026 out entirely** and do not look at it until the design is fixed; 2021–2025
+  are the walk-forward. The earlier candidates exposed these years, so that is stated, not implied.
+- **Acceptance, to be declared in the script before it runs:** beat the constant call in more than
+  half the folds **and** not degrade in the 2022 fold **and** clear it by a margin declared up front.
+- **Falsification:** if the horizon-5 prior carries nothing, H1 is dead at the horizon where the data
+  already exists, and the 20-session corpus should **not** be built — that saves about an hour of
+  rebuild and the budget with it.
+
+**Only if the horizon-5 test passes** is the expensive step justified: build a 20-session analogue
+corpus (`jobs/analogs.py` computes any horizon; `pit_features.py` currently emits 1 and 5), then let
+E5 vote in the family core and re-measure.
+
+**If it fails, stop model experimentation.** The recommendation then is to stop until a genuinely new
+information source exists, rather than to keep varying models over the same fifteen columns. A
+stored trailing ATR median — so E3's stress clause becomes measurable rather than unmeasured, which
+it currently reports honestly and never as calm — remains worth doing as engineering, but it is a
+correctness fix and no one should expect an edge from it.
 
 Nothing is blocked on this session. No process was interrupted and no partial work exists.
 

@@ -1,14 +1,29 @@
 {
  "version": "examples-v3-2026-10-16-local",
- "frozenAt": "2026-10-16T12:38:45+00:00",
+ "frozenAt": "2026-10-16T13:11:03+00:00",
  "status": "frozen for training",
- "repoHead": "f1f6b0ce9fbcf104d7fcae6473fe988aef148dd9",
+ "repoHead": "3215e0b0bec3614a3443dfccbc67728aa4979918",
  "builtBy": {
   "outcomes": "tools/full_history.py",
   "features": "tools/foundation/pit_features.py",
   "assembly": "tools/foundation/assemble.py",
   "macroContext": "tools/foundation/macro_pit.py"
  },
+ "artifactLocations": {
+  "root": ".cache/foundation",
+  "outcomes": ".cache/foundation/full/full-history-v2.jsonl.gz",
+  "features": ".cache/foundation/pit_full/pit-<year>.jsonl.gz",
+  "assembled": ".cache/foundation/dataset_full/examples-v3-<year>.jsonl.gz",
+  "macroContext": ".cache/foundation/macro_rebuild/macro-sessions.jsonl.gz",
+  "note": "ignored by .gitignore and disposable; rebuildable with the commands below, which need only database access and take about 70 minutes, the feature build being the long half at roughly an hour"
+ },
+ "rebuildCommands": [
+  "python tools/full_history.py --out .cache/foundation/full",
+  "python tools/foundation/pit_features.py --out .cache/foundation/pit_full",
+  "python tools/foundation/assemble.py --full .cache/foundation/full --pit .cache/foundation/pit_full --out .cache/foundation/dataset_full",
+  "python tools/foundation/macro_pit.py --out .cache/foundation/macro_rebuild",
+  "python tools/foundation/freeze_dataset.py --dataset .cache/foundation/dataset_full"
+ ],
  "rows": {
   "eligibleAssetSessions": 1086349,
   "withPointInTimeFeatures": 1055429,

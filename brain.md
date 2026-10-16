@@ -5860,3 +5860,43 @@ reads rows that already exist:
       at once, not a tolerance anyone has to pick; one family must never carry a call alone, which is
       what `MIN_NET = 2` is for; and four correlated trend inputs must be one vote, because if they
       voted separately a single trending price would meet the minimum-evidence bar by itself.
+
+160. **Every directional source the policy permits has now been measured, and the one that was never
+    readable is the only hypothesis left.** 2026-10-16. Commits: `3215e0b` and this record.
+
+    - **A digest identifies an artifact a later session cannot find.** The dataset stays out of the
+      repository by the project's own rule -- it derives from a third-party feed -- so it lives under
+      an ignored `.cache/`. `dataset_freeze.json` recorded nine per-file digests and no way to
+      regenerate them, which is identification without recovery. It now carries the five commands
+      that produced exactly those digests and where each writes; re-running the freeze reproduced
+      every digest and row count unchanged, which is what makes that claim checkable rather than
+      asserted.
+
+    - **No model weights have ever been persisted here, across three training runs.** Each recorded
+      metrics only and returned its coefficient matrix to a caller that dropped it. That is defensible
+      -- the scripts are deterministic against a digest-identified dataset, so the run is the
+      artifact -- but it has to be stated, because "training completed" reads like "a model exists".
+
+    - **The permitted directional sources are exhausted, by two independent routes.** Only
+      asset-specific price- and volume-derived evidence may vote. A classifier over those fifteen
+      columns scores 0.3618 against a 0.4377 majority; the rule engine over the same information
+      scores 0.3979 against a 0.4388 constant call. Two different methods, the same answer, which is
+      stronger evidence than either alone: the information is not there, rather than the method being
+      wrong.
+
+    - **So the last distinct hypothesis is the one source that was never readable.** E5, the
+      historical analogue prior, has had no readable vote at any evaluated horizon -- `examples-v3`
+      carries matched days at 1 and 5, and voting a 5-session prior on a 20-session label is the
+      horizon mixing §D4 forbids. It is materially distinct because it asks what followed similar past
+      configurations instead of describing today's bar, and it is the only remaining candidate that is
+      not a re-tune.
+
+    - **Test it where the data already exists, before paying for the data where it does not.** The
+      horizon-5 prior and `fwd5` are both already in the frozen dataset, so H1 can be falsified in
+      minutes against the horizon-5 outcome before anyone spends an hour building a 20-session
+      analogue corpus. A cheap test that can kill an expensive one should always run first, and the
+      expensive step is explicitly conditional on it passing.
+
+    - **And the stopping rule is written down before the result.** If the horizon-5 prior carries
+      nothing, model experimentation stops until a genuinely new information source exists. Naming
+      that in advance is what stops a failed result turning into the next variant.
