@@ -249,9 +249,12 @@ def build(assets: list[dict], series: dict[str, list[dict]], *, first_year: int 
             if first_year and d.year < first_year:
                 continue
             f = fc.compute(bars[max(0, t - WINDOW + 1): t + 1], d,
-                           peer_r20(closes_by, dates_by, r20_by, peers, d))
-            # The sessions strictly before this one, so today is never inside its own baseline.
-            f["atrTrailingMedian"] = fc.atr_trailing_median(atrs[:t])
+                           peer_r20(closes_by, dates_by, r20_by, peers, d),
+                           # The sessions strictly before this one, so today is never inside its own
+                           # baseline. Passed rather than derived inside `compute`, which would make
+                           # this per-session loop quadratic; the value is the same either way and
+                           # `tests/test_brain.py` asserts that equality.
+                           atr_baseline=fc.atr_trailing_median(atrs[:t]))
             lo = max(0, t - WINDOW + 1)
             row = {"a": a["symbol"], "t": a["assetType"], "d": d.isoformat(), "n": t + 1,
                    # Calendar days spanned by the bars the factors were computed from.

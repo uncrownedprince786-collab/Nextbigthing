@@ -480,6 +480,14 @@ export interface DecisionInput {
   /// The 14-session average true range, in price units, from `AssetFactor.atr14`. Not read by the
   /// evidence table; `lib/resolve.ts` measures a stop from it where a resolved call has none.
   atr?: number | null;
+  /// The median `atr14` of the sessions before this one -- the baseline E3's stress clause in
+  /// `lib/families.ts` judges `atr14` against (`jobs/factors.atr_trailing_median`).
+  ///
+  /// **Null is unmeasured, never calm.** Too short a history, a row written before the column
+  /// existed, or a standby that has not had the migration all arrive here as null, and E3 reports
+  /// that it could not look rather than that the asset was quiet. The rule table does not read it;
+  /// it crosses this seam for the family path only.
+  atrTrailingMedian?: number | null;
   /// This asset's own 20-session return, in percent. How much of the move is already behind it.
   ///
   /// Read by the short gate and by nothing else: a short on a name already down more than

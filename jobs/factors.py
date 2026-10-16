@@ -644,7 +644,17 @@ def rel_strength(own_r20: float | None, peer_median: float | None) -> float | No
     return own_r20 - peer_median
 
 
-def compute(bars: list[dict], period_end: date, peer_returns: list[float] | None = None) -> dict:
+# Sentinel for `compute`'s `atr_baseline`: derive it from the bars rather than take it.
+#
+# A plain `None` default cannot serve, because None is also the honest answer when there is no
+# baseline, and the two must stay distinguishable. `tools/foundation/pit_features.py` passes its own
+# value because it calls `compute` once per *session* and deriving an O(n) series inside each call
+# would make a 2,000-bar asset quadratic; the live job calls it once per asset and derives.
+DERIVE = object()
+
+
+def compute(bars: list[dict], period_end: date, peer_returns: list[float] | None = None,
+            atr_baseline=DERIVE) -> dict:
     """Every price factor for one asset as of `period_end`, from `bars`.
 
     `bars` are rows carrying `date`, `close` and optionally `volume`, in any order. The cutoff
@@ -685,6 +695,14 @@ def compute(bars: list[dict], period_end: date, peer_returns: list[float] | None
     out["rangePct"] = range_pct(closes)
     out["drawdownPct"] = drawdown_pct(closes)
     out["atr14"] = atr(usable)
+    # The baseline E3's stress clause is judged against, on the same construction as `returnZ`
+    # above: the session being judged is excluded from the window it is measured against, or the
+    # median is pulled toward the very observation that was asked about. Derived here, from the
+    # cut-off bars, because the cutoff is applied in this function and not trusted from the caller
+    # -- a baseline taken from a caller's uncut window would read sessions after `period_end`.
+    out["atrTrailingMedian"] = (
+        atr_trailing_median(atr_series(usable)[:-1]) if atr_baseline is DERIVE else atr_baseline
+    )
 
     peer_med = peer_median_r20(peer_returns or [])
     out["peerMedianR20"] = peer_med
@@ -810,8 +828,8 @@ def flush(conn, cur, payload: list[tuple]) -> int:
         INSERT INTO "AssetFactor" ("assetId", "periodEnd", r1, r5, r20, "returnZ",
             "volumeRatio", "peerMedianR20", "relStrength", peers, sma20, sma50, "rangePct",
             "drawdownPct", "eventInDays", "newsStories", "entryTrigger", "triggerDirection",
-            bars, source, atr14, "computedAt")
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now())
+            bars, source, atr14, "atrTrailingMedian", "computedAt")
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,now())
         ON CONFLICT ("assetId", "periodEnd") DO UPDATE SET
             r1 = EXCLUDED.r1, r5 = EXCLUDED.r5, r20 = EXCLUDED.r20,
             "returnZ" = EXCLUDED."returnZ", "volumeRatio" = EXCLUDED."volumeRatio",
@@ -823,7 +841,8 @@ def flush(conn, cur, payload: list[tuple]) -> int:
             "newsStories" = EXCLUDED."newsStories",
             "entryTrigger" = EXCLUDED."entryTrigger",
             "triggerDirection" = EXCLUDED."triggerDirection", bars = EXCLUDED.bars,
-            source = EXCLUDED.source, atr14 = EXCLUDED.atr14, "computedAt" = now()
+            source = EXCLUDED.source, atr14 = EXCLUDED.atr14,
+            "atrTrailingMedian" = EXCLUDED."atrTrailingMedian", "computedAt" = now()
         WHERE (
             "AssetFactor".r1, "AssetFactor".r5, "AssetFactor".r20, "AssetFactor"."returnZ",
             "AssetFactor"."volumeRatio", "AssetFactor"."peerMedianR20",
@@ -831,7 +850,8 @@ def flush(conn, cur, payload: list[tuple]) -> int:
             "AssetFactor".sma50, "AssetFactor"."rangePct", "AssetFactor"."drawdownPct",
             "AssetFactor"."eventInDays", "AssetFactor"."newsStories",
             "AssetFactor"."entryTrigger", "AssetFactor"."triggerDirection",
-            "AssetFactor".bars, "AssetFactor".source, "AssetFactor".atr14
+            "AssetFactor".bars, "AssetFactor".source, "AssetFactor".atr14,
+            "AssetFactor"."atrTrailingMedian"
         ) IS DISTINCT FROM (
             EXCLUDED.r1, EXCLUDED.r5, EXCLUDED.r20, EXCLUDED."returnZ",
             EXCLUDED."volumeRatio", EXCLUDED."peerMedianR20",
@@ -839,7 +859,8 @@ def flush(conn, cur, payload: list[tuple]) -> int:
             EXCLUDED.sma50, EXCLUDED."rangePct", EXCLUDED."drawdownPct",
             EXCLUDED."eventInDays", EXCLUDED."newsStories",
             EXCLUDED."entryTrigger", EXCLUDED."triggerDirection",
-            EXCLUDED.bars, EXCLUDED.source, EXCLUDED.atr14
+            EXCLUDED.bars, EXCLUDED.source, EXCLUDED.atr14,
+            EXCLUDED."atrTrailingMedian"
         )
         """,
         payload,
@@ -909,7 +930,7 @@ def main() -> None:
                     event_in_days(period_end, events.get(a["id"])),
                     news_stories(period_end, n.get("periodEnd"), n.get("recentStories")),
                     f["entryTrigger"], f["triggerDirection"],
-                    f["bars"], COMPUTED, f["atr14"],
+                    f["bars"], COMPUTED, f["atr14"], f["atrTrailingMedian"],
                 )
             )
             if len(payload) >= BATCH_ROWS:

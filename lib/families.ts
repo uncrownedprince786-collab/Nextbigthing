@@ -121,6 +121,53 @@ export interface FamilyInput {
   integrityVeto?: Partial<Record<FamilyId, string>>;
 }
 
+/// The live `DecisionInput` as the families read it. The one adapter, as this module's header says.
+///
+/// **What it does not do is the point.** `DecisionInput` carries far more than the families may see
+/// -- a macro veto, a news tone, a catalyst flag, a prior direction -- and every one of those is
+/// omitted here rather than filtered downstream, so a family rule cannot start reading news by
+/// accident. What crosses is price, volume, peers and matched days.
+///
+/// **Fields the live query layer does not yet carry arrive null, and null is honest.** `sma20`,
+/// `sma50`, `rangePct` and `drawdownPct` are stored on `AssetFactor` but are not selected by
+/// `getFactor`, so E1 falls back to `r20` alone and E3 reads only its volatility clause. Those
+/// families report what they could read; none of them reports a zero it did not measure. Extending
+/// the select is the remaining work, and it is a query change rather than a rule change.
+export function fromDecisionInput(input: {
+  market: Market;
+  r20?: number | null;
+  r1?: number | null;
+  volumeRatio?: number | null;
+  relStrength?: number | null;
+  atr?: number | null;
+  atrTrailingMedian?: number | null;
+  sma20?: number | null;
+  sma50?: number | null;
+  rangePct?: number | null;
+  drawdownPct?: number | null;
+  peers?: number | null;
+  analogs?: { count: number; positive?: number | null } | null;
+}): FamilyInput {
+  return {
+    market: input.market,
+    r20: input.r20 ?? null,
+    sma20: input.sma20 ?? null,
+    sma50: input.sma50 ?? null,
+    volumeRatio: input.volumeRatio ?? null,
+    r1: input.r1 ?? null,
+    // `DecisionInput` calls it `atr`; E3 calls it `atr14`. One rename at one seam, here.
+    atr14: input.atr ?? null,
+    atrTrailingMedian: input.atrTrailingMedian ?? null,
+    rangePct: input.rangePct ?? null,
+    drawdownPct: input.drawdownPct ?? null,
+    relStrength: input.relStrength ?? null,
+    peers: input.peers ?? 0,
+    analogs: input.analogs
+      ? { count: input.analogs.count, positive: input.analogs.positive ?? null }
+      : null,
+  };
+}
+
 function voteOf(score: number): Vote {
   if (score >= TAU) return 1;
   if (score <= -TAU) return -1;

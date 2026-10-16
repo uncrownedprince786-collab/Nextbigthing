@@ -4666,6 +4666,12 @@ class NothingBuiltAndUnused(unittest.TestCase):
         # `test_the_family_core_is_read_by_its_evaluation` pins the consumer, so this entry cannot
         # outlive it.
         "readFamilies": "tools/research/family_eval.ts",
+        # The one adapter from a live `DecisionInput` to what the families may read. It exists so the
+        # E3 stress baseline reaches its consumer from stored data, and it is held out of `app/` on
+        # the same terms as `readFamilies`: the core it feeds is a recorded NO-GO and §9 gate 7 makes
+        # deployment a separate decision. `tests/families.test.ts` exercises it directly -- the live
+        # seam tests there are its consumer, and they would fail if it were deleted.
+        "fromDecisionInput": "tests/families.test.ts",
     }
 
     def exports_without_consumers(self) -> list[str]:
@@ -5600,6 +5606,63 @@ class TheAverageTrueRange(unittest.TestCase):
         old = [100.0] * 200
         recent = [1.0] * factors.ATR_BASELINE_WINDOW
         self.assertAlmostEqual(factors.atr_trailing_median(old + recent), 1.0)
+
+    def test_compute_derives_the_baseline_and_a_caller_may_supply_the_same_one(self):
+        """The live job derives it; the per-session producer passes its own. They must agree.
+
+        `pit_features.py` supplies the value because deriving an O(n) series inside a call made once
+        per session would be quadratic over a 2,000-bar asset. Two routes to one number is exactly
+        how this project's measurements have drifted before, so the equality is asserted here.
+        """
+        bars = self.bars(80, high=1.0, low=1.0)
+        derived = factors.compute(bars, bars[-1]["date"])
+        self.assertIsNotNone(derived["atrTrailingMedian"])
+        # What a caller computing the series itself would pass for the same session.
+        supplied = factors.atr_trailing_median(factors.atr_series(bars)[:-1])
+        self.assertAlmostEqual(derived["atrTrailingMedian"], supplied, places=9)
+        # And an explicitly supplied value is used as given, including a deliberate None.
+        self.assertIsNone(factors.compute(bars, bars[-1]["date"], atr_baseline=None)["atrTrailingMedian"])
+        self.assertEqual(factors.compute(bars, bars[-1]["date"], atr_baseline=7.5)["atrTrailingMedian"], 7.5)
+
+    def test_the_baseline_never_reads_a_bar_after_the_session(self):
+        """The cutoff is `compute`'s job, and the baseline must be inside it.
+
+        Handing uncut bars to a caller-side computation is how a factor dated D comes to be measured
+        from a close after D, which `compute`'s own docstring exists to prevent.
+        """
+        bars = self.bars(80, high=1.0, low=1.0)
+        cut = bars[59]["date"]
+        # The same call with 20 extra future bars appended must not change the answer.
+        quiet = factors.compute(bars[:60], cut)["atrTrailingMedian"]
+        future = [dict(b, high=float(b["close"]) + 50.0, low=float(b["close"]) - 50.0) for b in bars[60:]]
+        withFuture = factors.compute(bars[:60] + future, cut)["atrTrailingMedian"]
+        self.assertAlmostEqual(quiet, withFuture, places=9,
+                               msg="a bar after the session changed its baseline")
+        self.assertTrue(future and future[0]["date"] > cut, "the fixture appended no future bar")
+
+    def test_the_live_job_writes_the_baseline_it_computes(self):
+        """The column, the upsert and the payload must all carry it, or the measurement is computed
+        and thrown away -- which is the state E3 was in for its whole existence."""
+        src = (ROOT / "jobs" / "factors.py").read_text(encoding="utf-8")
+        self.assertIn('"atrTrailingMedian", "computedAt")', src)
+        self.assertIn('f["atr14"], f["atrTrailingMedian"],', src)
+        self.assertIn('"atrTrailingMedian" = EXCLUDED."atrTrailingMedian"', src)
+        # Placeholders must match the column count, or psycopg raises at run time and not at review.
+        insert = src[src.index('INSERT INTO "AssetFactor"'):]
+        columns = insert[insert.index("(") + 1: insert.index(")")].count(",") + 1
+        values = insert[insert.index("VALUES (") + 8:]
+        values = values[: values.index(")")]
+        self.assertEqual(columns, values.count(",") + 1, "column count and placeholder count differ")
+        # And the migration that adds it exists, nullable and without a default.
+        sql = (ROOT / "prisma" / "migrations" / "20261016140000_atr_trailing_median" / "migration.sql")
+        self.assertTrue(sql.exists())
+        text = sql.read_text(encoding="utf-8")
+        self.assertIn('ADD COLUMN "atrTrailingMedian" DOUBLE PRECISION', text)
+        # No default, checked on the statement rather than the file: the comment above it explains
+        # *why* there is no DEFAULT 0, so matching the whole text would find the word it warns about.
+        statements = [l for l in text.splitlines() if l.strip() and not l.strip().startswith("--")]
+        self.assertEqual(len(statements), 1, statements)
+        self.assertNotIn("DEFAULT", statements[0].upper().replace("DOUBLE PRECISION", ""))
 
     def test_it_is_computed_stored_and_read_by_the_resolver(self):
         f = factors.compute(self.bars(60, high=1.0, low=1.0), self.bars(60)[-1]["date"])

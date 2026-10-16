@@ -1,0 +1,13 @@
+-- The baseline `atr14` is judged against: the median `atr14` of the 60 sessions before the one in
+-- this row, written by jobs/factors.py and read by E3's stress clause (lib/families.ts).
+--
+-- Nullable, and the null means something: rows written before this column, assets with too few
+-- usable readings to form a baseline, and sessions whose own baseline could not be measured all
+-- carry no reading. A consumer must report that as unmeasured and never as a measured calm
+-- condition -- which is why this is not DEFAULT 0 and must never be backfilled with one.
+--
+-- Added the same way `atr14` was (20261011000000_atr14) and for the same reason: the column is
+-- deliberately kept out of the Prisma model, because Prisma selects every model column by default
+-- and a standby that has not had this migration applied would otherwise fail every read of this
+-- table during a failover. It is read raw and fail-open in lib/queries.ts `getLateColumns`.
+ALTER TABLE "AssetFactor" ADD COLUMN "atrTrailingMedian" DOUBLE PRECISION;

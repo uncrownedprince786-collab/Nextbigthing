@@ -22,6 +22,7 @@ import {
   TAU,
   aggregate,
   readFamilies,
+  fromDecisionInput,
   type FamilyInput,
 } from "../lib/families.ts";
 import { ANALOGS_CONFIRM_MIN, ANALOG_SHARE_CONFIRMS, VOLUME_CONFIRMS_AT } from "../lib/decision.ts";
@@ -294,6 +295,65 @@ test("B5: one cause cannot become four votes, because macro and news do not vote
   assert.equal(a.action, "LONG");
   assert.equal(a.confidence, "Medium");
   assert.deepEqual(a.abstaining.sort(), ["history", "peers", "volatility"]);
+});
+
+// --- the live seam: producer to persistence to consumer ------------------------------------------
+
+test("the baseline reaches E3 from a live decision input, and is renamed exactly once", () => {
+  // `jobs/factors.py` writes `atrTrailingMedian`, `getLateColumns` reads it raw and fail-open, the
+  // bundle carries it, and `fromDecisionInput` is the one place `atr` becomes `atr14`. This asserts
+  // the last hop: that the value arrives at the family that judges it.
+  const live = fromDecisionInput({ market: "US", atr: 9, atrTrailingMedian: 4, drawdownPct: -2, rangePct: 20 });
+  assert.equal(live.atr14, 9);
+  assert.equal(live.atrTrailingMedian, 4);
+  const r = readFamilies(live).find((x) => x.id === "E3");
+  assert.ok(r);
+  assert.equal(r.eligible, true);
+  assert.equal(r.vote, -1, "a baseline arrived and the stress clause still did not fire");
+  assert.match(r.detail, /volatility against its median/);
+});
+
+test("a baseline the live path cannot supply is unmeasured at the consumer, never calm", () => {
+  // The case that matters for a standby without the migration, a row written before the column, or
+  // an asset with too little history: `getLateColumns` catches and the map has no entry, so the
+  // bundle passes null. E3 must say it could not look.
+  const live = fromDecisionInput({ market: "US", atr: 9, drawdownPct: -2, rangePct: 20 });
+  assert.equal(live.atrTrailingMedian, null);
+  const r = readFamilies(live).find((x) => x.id === "E3");
+  assert.ok(r);
+  assert.equal(r.vote, 0, "an absent baseline was read as not stressed");
+  assert.match(r.detail, /volatility baseline not stored/);
+});
+
+test("the adapter hands the families price and peers, and nothing else", () => {
+  // A family rule that can reach the whole DecisionInput is one that can start reading news. The
+  // adapter is the boundary, so what it returns is checked by key rather than by behaviour.
+  const keys = Object.keys(fromDecisionInput({ market: "US" })).sort();
+  assert.deepEqual(keys, [
+    "analogs", "atr14", "atrTrailingMedian", "drawdownPct", "market", "peers",
+    "r1", "r20", "rangePct", "relStrength", "sma20", "sma50", "volumeRatio",
+  ]);
+});
+
+test("every late column is read by its own query, so one missing column costs only itself", () => {
+  // `atr14` and `atrTrailingMedian` are both absent from the Prisma model on purpose: Prisma selects
+  // every model column, and a standby without one would fail every read of the table. Selected in a
+  // single raw query they would share a failure, and a standby lacking the baseline would silently
+  // cost the resolver its stop distance too.
+  const src = readFileSync(new URL("../lib/queries.ts", import.meta.url), "utf8");
+  const fn = src.slice(src.indexOf("export async function getLateColumns"));
+  // To the function's own return statement: its multi-line return type contains a `}` of its own,
+  // so slicing at the first closing brace stops inside the signature and measures nothing.
+  const body = fn.slice(0, fn.indexOf("return { atr, atrBaseline, inactive };"));
+  assert.ok(body.length > 500, "the function body was not found; this test is measuring nothing");
+  assert.equal((body.match(/\$queryRaw/g) ?? []).length, 3, "the late columns share a query");
+  assert.equal((body.match(/\.catch\(\(\) => undefined\)/g) ?? []).length, 3, "a late read is not fail-open");
+  assert.ok(!/atr14,\s*"atrTrailingMedian"/.test(body), "both late columns are selected together");
+  // And neither is in the model, which is what makes the raw read necessary.
+  const schema = readFileSync(new URL("../prisma/schema.prisma", import.meta.url), "utf8");
+  const model = schema.slice(schema.indexOf("model AssetFactor"));
+  assert.ok(!/^\s*atrTrailingMedian\s/m.test(model.slice(0, model.indexOf("\n}"))),
+    "atrTrailingMedian is in the Prisma model, which breaks a standby that lacks the column");
 });
 
 // --- T7 adversarial: what a rule engine with deadbands can be made to do -------------------------

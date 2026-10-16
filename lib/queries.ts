@@ -1339,6 +1339,7 @@ export async function getDecisionBundle(assetId: string) {
           r20: factor.r20,
           r1: factor.r1,
           atr14: late.atr.get(assetId) ?? null,
+          atrTrailingMedian: late.atrBaseline.get(assetId) ?? null,
           entryTrigger: factor.entryTrigger,
           triggerDirection: factor.triggerDirection,
         }
@@ -1463,6 +1464,11 @@ export type DecisionQueryRow = {
   r1: number | null;
   /// The 14-session average true range, for a resolved call's stop (lib/resolve.ts).
   atr14: number | null;
+  /// The median `atr14` of the sessions before this one, which is what E3's stress clause in
+  /// `lib/families.ts` judges `atr14` against. Null is **unmeasured, never calm**: rows written
+  /// before the column existed, a standby that has not had its migration, and assets with too few
+  /// usable readings all arrive here as null, and the clause must report that it could not look.
+  atrTrailingMedian: number | null;
   /// The entry rule that fired on this session and which way, for the fifth confirmation.
   /// Null on about nineteen sessions in twenty, which is the rule being silent and not a
   /// measurement that failed — see `DecisionInput.entryTrigger`.
@@ -1608,14 +1614,35 @@ function distinctDays(maxes: (Date | null)[]): Date[] {
 /// failover to a standby without `atr14` turned every uncached asset page into a 500. Read here, a
 /// database without them answers "no ATR, everyone active" -- the site as it was before them --
 /// instead of failing. One query each for the whole universe.
-export async function getLateColumns(): Promise<{ atr: Map<string, number>; inactive: Set<string> }> {
+export async function getLateColumns(): Promise<{
+  atr: Map<string, number>;
+  atrBaseline: Map<string, number>;
+  inactive: Set<string>;
+}> {
   const atr = new Map<string, number>();
+  const atrBaseline = new Map<string, number>();
   const inactive = new Set<string>();
   await Promise.all([
     prisma.$queryRaw<{ assetId: string; atr14: number | null }[]>`
       SELECT DISTINCT ON ("assetId") "assetId", atr14 FROM "AssetFactor" ORDER BY "assetId", "periodEnd" DESC`
       .then((rows) => {
         for (const r of rows) if (r.atr14 != null && Number.isFinite(r.atr14)) atr.set(r.assetId, r.atr14);
+      })
+      .catch(() => undefined),
+    // Its **own** query, deliberately, and not another column on the one above. Both are late
+    // columns, so either can be missing from a standby -- and selected together, a standby without
+    // `atrTrailingMedian` would fail the read that also carries `atr14` and silently cost the
+    // resolver its stop distance. One query per late column means one missing column costs only
+    // itself. An absent baseline stays absent: E3 reports the clause unmeasured, never calm.
+    prisma.$queryRaw<{ assetId: string; atrTrailingMedian: number | null }[]>`
+      SELECT DISTINCT ON ("assetId") "assetId", "atrTrailingMedian" FROM "AssetFactor"
+       ORDER BY "assetId", "periodEnd" DESC`
+      .then((rows) => {
+        for (const r of rows) {
+          if (r.atrTrailingMedian != null && Number.isFinite(r.atrTrailingMedian)) {
+            atrBaseline.set(r.assetId, r.atrTrailingMedian);
+          }
+        }
       })
       .catch(() => undefined),
     prisma.$queryRaw<{ id: string }[]>`
@@ -1625,7 +1652,7 @@ export async function getLateColumns(): Promise<{ atr: Map<string, number>; inac
       })
       .catch(() => undefined),
   ]);
-  return { atr, inactive };
+  return { atr, atrBaseline, inactive };
 }
 
 /// What the decision rows were read from, as one comparable string (brain.md rule 93): the pool size,
@@ -1961,6 +1988,7 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
       r20: factor?.r20 ?? null,
       r1: factor?.r1 ?? null,
       atr14: late.atr.get(asset.id) ?? null,
+      atrTrailingMedian: late.atrBaseline.get(asset.id) ?? null,
       entryTrigger: factor?.entryTrigger ?? null,
       triggerDirection: factor?.triggerDirection ?? null,
       quotePrice: quoteByAsset.get(asset.id)?.price ?? null,

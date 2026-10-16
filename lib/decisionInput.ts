@@ -307,6 +307,8 @@ export interface DecisionBundle {
     r20?: number | null;
     r1?: number | null;
     atr14?: number | null;
+    /// The baseline `atr14` is judged against; see `DecisionInput.atrTrailingMedian`.
+    atrTrailingMedian?: number | null;
     /// The entry rule that fired on this session and which way, as two stored columns.
     ///
     /// Kept as the raw pair across this seam rather than as the shape the rules take, because
@@ -510,6 +512,9 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
     r1: bundle.factors?.r1 ?? null,
     // Seventh across this seam: the range a resolved call's stop is measured from (lib/resolve.ts).
     atr: bundle.factors?.atr14 ?? null,
+    // Eighth across this seam, and the one whose null carries a meaning: absent is unmeasured,
+    // never calm, so it is passed through rather than defaulted to anything.
+    atrTrailingMedian: bundle.factors?.atrTrailingMedian ?? null,
     // Sixth field across this seam, and the count in the comment above is the reason it has its
     // own test rather than being assumed to arrive.
     entryTrigger: entryTriggerOf(
@@ -606,6 +611,8 @@ export interface QueryBundle {
     r20?: number | null;
     r1?: number | null;
     atr14?: number | null;
+    /// The baseline `atr14` is judged against; see `DecisionInput.atrTrailingMedian`.
+    atrTrailingMedian?: number | null;
     entryTrigger?: string | null;
     triggerDirection?: string | null;
   } | null;
@@ -675,6 +682,7 @@ export function bundleFromQuery(
           r20: row.factor.r20 ?? null,
           r1: row.factor.r1 ?? null,
           atr14: row.factor.atr14 ?? null,
+          atrTrailingMedian: row.factor.atrTrailingMedian ?? null,
           entryTrigger: row.factor.entryTrigger ?? null,
           triggerDirection: row.factor.triggerDirection ?? null,
         }
@@ -745,6 +753,8 @@ export interface QueryRow {
   r1?: number | null;
   /// The 14-session average true range, for a resolved call's stop.
   atr14?: number | null;
+  /// The median `atr14` of the sessions before this one, for E3's stress clause.
+  atrTrailingMedian?: number | null;
   /// The entry rule that fired this session, for the fifth confirmation. Named `entryTrigger`
   /// and not `trigger`: `trigger` on this same row is the investigation's, a different thing
   /// from a different table, and two fields one word apart is how a list comes to confirm a
@@ -815,6 +825,7 @@ export function bundleFromRow(
               r20: row.r20 ?? null,
               r1: row.r1 ?? null,
               atr14: row.atr14 ?? null,
+              atrTrailingMedian: row.atrTrailingMedian ?? null,
               entryTrigger: row.entryTrigger ?? null,
               triggerDirection: row.triggerDirection ?? null,
             },

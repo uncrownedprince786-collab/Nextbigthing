@@ -36,9 +36,21 @@ test("columns the standbys may not have are read raw and fail-open, never throug
   const schema = readFileSync(new URL("../prisma/schema.prisma", import.meta.url), "utf8");
   const model = (name: string) => schema.slice(schema.indexOf(`model ${name} {`), schema.indexOf("\n}", schema.indexOf(`model ${name} {`)));
   assert.doesNotMatch(model("AssetFactor"), /^\s+atr14\s+Float/m);
+  // `atrTrailingMedian` is the second column on this table kept out of the model, for the same
+  // reason and added the same way (migration 20261016140000_atr_trailing_median).
+  assert.doesNotMatch(model("AssetFactor"), /^\s+atrTrailingMedian\s+Float/m);
   assert.doesNotMatch(model("Asset"), /^\s+(active|poolNote)\s+/m);
   const q = readFileSync(new URL("../lib/queries.ts", import.meta.url), "utf8");
-  const late = q.slice(q.indexOf("export async function getLateColumns("), q.indexOf("export async function getDecisionRows("));
-  assert.equal((late.match(/\.catch\(\(\) => undefined\)/g) ?? []).length, 2, "both late reads fail open");
+  // To this function's own return statement, not to the next `export`: the span between them holds
+  // another raw query, which would make the count below measure two functions instead of one.
+  const late = q.slice(q.indexOf("export async function getLateColumns("),
+                       q.indexOf("return { atr, atrBaseline, inactive };"));
+  assert.ok(late.length > 500, "getLateColumns was not found; this test is measuring nothing");
+  // Three late reads now, and each fails open **on its own**. Selecting two late columns in one
+  // query would hand them a shared failure: a standby missing only the newer one would also lose
+  // `atr14`, and with it the resolver's stop distance -- a wider blast radius than the incident
+  // above, reached while fixing something unrelated.
+  assert.equal((late.match(/\.catch\(\(\) => undefined\)/g) ?? []).length, 3, "every late read fails open");
+  assert.equal((late.match(/\$queryRaw/g) ?? []).length, 3, "the late columns share a query");
   assert.doesNotMatch(q, /atr14: true|active: true/);
 });
