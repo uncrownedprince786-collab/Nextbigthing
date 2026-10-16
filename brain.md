@@ -5935,3 +5935,43 @@ reads rows that already exist:
       experimentation on this data stops until a genuinely new information source exists. Naming the
       stopping condition in advance is the whole difference between concluding and continuing: six
       recorded NO-GOs, none overwritten, and no seventh variant over the same columns.
+
+162. **There is no unused source that is allowed to vote, and the three that are allowed are already
+    in.** 2026-10-16. Commits: `7158c41` and this record.
+
+    - **The question answered itself from the routing contract.** Looking for "one genuinely new
+      information source" meant checking which layers `context_routing.json` permits to cast a
+      directional vote. Exactly three do -- prices/OHLCV, gold and commodities, training examples --
+      and **all three are already joined into training**. All fifteen unjoined layers carry
+      `mayVote: false`: decision-context, integrity-veto, research-only, evaluation-stratification,
+      documented-exclusion or historical-prior. So completing a missing path for an acquired source
+      cannot add directional information, because every incomplete path belongs to a layer the policy
+      forbids from voting. That is not an argument, it is a join between two files the project
+      already maintains.
+
+    - **Which closes the loop the three measurements opened.** The permitted directional information
+      *is* the price and volume of the instrument and of gold, and three independent routes now agree
+      it carries no edge. Looking for a fourth model over it was already forbidden by the stopping
+      rule; looking for a fifth source turns out to be forbidden by the policy. A genuinely new
+      directional source would need both new acquisition **and** an amendment letting it vote, and the
+      second of those is the owner's decision, not an engineering one.
+
+    - **`event-to-market reactions` is the near miss worth naming.** It carries the one role that is a
+      prior rather than a description -- `historical-prior`, the same kind as E5 -- so it asks a
+      different question from today's bar. It still may not vote, and its corpus is 167 rows, which
+      §D4 already called event-scoped and far too small to validate a horizon on. Both reasons stand
+      on their own.
+
+    - **A measurement nobody computed is a clause that never fired.** `atrTrailingMedian` was an input
+      to E3 from the day the family core was written and nothing ever produced it: every call site
+      passed null, so the stress arm could not fire from a stored baseline. It now exists, is
+      populated on 100% of sampled rows, and fires on 8.83% of them. The lesson is the same one the E3
+      constructive arm taught at 0 of 21,753 -- a rule whose input is never supplied and a rule whose
+      arm is unreachable look identical from the outside, and only a firing rate tells them apart.
+
+    - **The fix's own defect is the more useful half.** The baseline was first accumulated inside the
+      per-session loop, which the `first_year` filter skips -- so a single-year reproducibility re-run
+      would have built a different baseline from the full run and the manifest's `reproducible.match`
+      would have quietly become false. Computing the series once per asset removes the dependency
+      entirely. A reproducibility flag that can be made to lie by an unrelated argument is worse than
+      no flag, because it is believed.

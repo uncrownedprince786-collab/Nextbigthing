@@ -1,5 +1,101 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT — 2026-10-16 (fifth), E3 measurable at last; no unused source may vote
+
+**Branch `main`. Working tree clean including untracked files. Nothing is running: no training, no
+producer, no dev server; `tasklist` shows no `python.exe` and no `node.exe`. The work commit is
+`7158c41`; this record is the commit after it, readable with `git log -1`.**
+
+**State verified, not assumed.** `HEAD` was confirmed at `314abaa` before any change, matching the
+fourth checkpoint exactly; nothing had moved externally. **H1 was left closed** — not retested, not
+rebuilt, its protected evaluation untouched.
+
+**Tests, as actually run:** `test_brain.py` + `test_foundation.py` **869 passed**, `test_brain.py`
+alone **783 passed** after the `brain.md` rule, `tests/families.test.ts` **22/22**, `npx tsc --noEmit`
+clean. No full regression re-run: the changes are the factor library, the feature producer, one
+research tool and tests, and the suites covering them were run. The full-suite evidence at `8687cc5`
+(**1,125 Python, 494 web**) otherwise remains applicable.
+
+**Weekly usage: 78% used, 22% remaining, about 2d 11h to reset** — a point reading at the close of
+this batch, not a monitored figure.
+
+### E3's volatility baseline — implemented, tested, verified (`7158c41`)
+
+`atrTrailingMedian` had been an input to E3 since the family core was written and **nothing ever
+computed it**: every call site passed null, so the stress arm could never fire from a stored
+baseline. Correctness, not edge, and nothing here should be expected to improve a verdict.
+
+- `jobs/factors.atr_trailing_median` — the median `atr14` of the sessions **before** the one judged,
+  so today is never inside its own baseline. **60 sessions**, because `atr14` values share 13 of
+  their 14 sessions and a 20-long window would let a fortnight of stress define its own normal and
+  silence the clause when it matters. Median not mean, following `volume_ratio`'s reasoning in the
+  same file.
+- **Absent is not calm.** Below `ATR_BASELINE_MIN` usable values it returns None and E3 reports an
+  unmeasured clause; Nones and non-positive values do not count toward the floor. Three tests hold it.
+- `jobs/factors.atr_series` — the series in one pass, with `atr` sharing its `true_range`. A test
+  asserts the series equals the per-session function at every index, because an off-by-one in a
+  running sum is invisible in the output.
+- **A defect found while writing it:** the baseline was first accumulated inside the per-session loop,
+  which the `first_year` filter skips — a single-year reproducibility re-run would have built a
+  different baseline from the full run and the manifest's `reproducible.match` would have quietly
+  become false. Computing the series per asset removes the dependency.
+- **Verified end to end on a bounded sample**, not by rebuilding a million rows: 12 assets, 23,206
+  rows, coverage reconciles, 0 duplicates, the producer's own live-equivalence check **50 sampled /
+  0 mismatches**, `atrTrailingMedian` missing on **0.0%** of rows, stress firing on **8.83%**.
+
+**The frozen dataset is deliberately not rebuilt.** It predates the field, so `family_eval.ts` reads
+null there and E3 honestly reports an unmeasured baseline. The next full build carries it. The live
+`AssetFactor` path needs a column to store it — a schema change and **the owner's call**; the
+function is written and tested, so wiring it is a one-line change once that column exists.
+
+### The new-information-source question is answered, and the answer is no
+
+Checked against the routing contract rather than argued: `context_routing.json` permits exactly
+**three** layers to cast a directional vote — prices/OHLCV, gold and commodities, training examples —
+and **all three are already joined into training**. All fifteen unjoined layers carry
+`mayVote: false`.
+
+So **completing a missing path for an acquired source cannot add directional information**, because
+every incomplete path belongs to a layer the policy forbids from voting. The near miss worth naming
+is `event-to-market reactions`, which carries the `historical-prior` role — a prior rather than a
+description, the same kind as E5 — but it still may not vote and its corpus is 167 rows, which §D4
+already called far too small to validate a horizon on.
+
+A genuinely new directional source therefore needs **both** new acquisition **and** an amendment
+letting it vote. The second is the owner's decision, not an engineering one. No external source was
+pursued further: spending the budget probing one that could not be admitted even if it were perfect
+would not be a feasibility check.
+
+### Unchanged, and not re-audited
+
+Six NO-GO verdicts preserved, none overwritten. `lib/families.ts` `families-v1.2`, 22 tests, **wired
+to nothing**. Frozen dataset `examples-v3-2026-10-16-local`, gates green, with rebuild commands and
+artifact locations. **No reusable trained model weights have ever been persisted.** Primary serves
+(533 MB); `DATABASE_URL` serves; `DATABASE_URL_FALLBACK` **ECONNREFUSED** — the owner's provider
+account. The 500 MB free-tier figure is still an **assumption**. **No stated latency requirement
+exists.** **`WORKER_ARTIFACT_KEY`: BLOCKED — authorization required**, verified unchanged, nothing
+partial, no policy bypassed.
+
+### Next authorized action
+
+Engineering work inside the approved policy is now **complete**: the decision core is implemented and
+tested, the data chain is reproducible, the entry gates are enforced, and E3's last unmeasured clause
+is measured. What remains is not engineering:
+
+1. **Three owner decisions**, unchanged and each blocking something concrete: raise the web pool's
+   connection ceiling (`primaryLimits`, `max: 2`) so the cold render is fast rather than merely
+   correct; measure the Supabase pooler's real client ceiling (the "15 session clients" comment is
+   still unverified against a measured `max_connections` of 60); rotate `WORKER_ARTIFACT_KEY` through
+   GitHub's own secret UI or grant secret-store write permission.
+2. **A policy decision before any further directional work:** whether any layer currently marked
+   `mayVote: false` should be allowed to vote, and on what evidence. Until that is answered, no model
+   experiment is authorized — the stopping rule stands.
+3. **Optional, no edge expected:** store `atrTrailingMedian` on `AssetFactor` so the live path reads
+   the same baseline the dataset now carries. Acceptance: the column exists, `jobs/factors.compute`
+   populates it, and E3 in the live path reports a measured rather than unmeasured clause.
+
+Nothing is blocked on this session. No process was interrupted and no partial work exists.
+
 ## 0. SESSION CHECKPOINT — 2026-10-16 (fourth), H1 tested and failed; model experimentation stops
 
 **Branch `main`. Working tree clean including untracked files. Nothing is running: no training, no
