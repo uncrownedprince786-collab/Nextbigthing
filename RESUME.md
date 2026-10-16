@@ -1,5 +1,99 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT — 2026-10-17 (thirteenth), the three shadow blockers are cleared
+
+**Branch `main`, work commit `3c62db0`, this record after it. Tree clean, nothing running.**
+
+**Usage: 83% used, 17% remaining**, weekly, resetting 2026-10-19. Working to the 1% rule.
+
+**Readiness went 15 ok / 3 blocked / 1 unknown → 25 ok / 1 blocked / 0 unknown**, and the one that
+remains is the honest one: the destination table exists in a migration and not yet in the database.
+
+### Blocker 1 — the macro artifact lived in disposable `.cache`
+
+364 KB of public FRED statistics, and `macro_pit.py`'s own docstring already said it was safe to
+commit. Durable home is now **`data/foundation/macro/macro-sessions.jsonl.gz`**; the cache is a
+fallback. `ContextSource` **verifies the artifact against its manifest on every load and raises on
+a mismatch** — corrupt is worse than absent, because absent shows as `status: absent` and corrupt
+reads as evidence.
+
+**The digest is taken over lines *without* their newline**, which is how `macro_pit` computes it.
+Hashing the written bytes instead reads as corruption on every run; I got that wrong once first.
+
+**Cold start proven**: with `.cache/foundation/macro_rebuild` moved away, the producer still loads
+2,844 sessions, verifies `be649ce4…`, and returns an observed macro block.
+
+### Blocker 2 — predictions could not name their model
+
+New **`ShadowPrediction`** table: `modelVersion`, `modelSha256`, `featureSchema`, `datasetVersion`.
+**Its own table, not columns on `DecisionCall`**: that table holds the rule engine's *published*
+calls, and a nullable `modelVersion` there would make it structurally possible for an unapproved
+candidate's output to reach a published path through a query someone forgot to filter. `approved`
+defaults false and no code path sets it true.
+
+### Blocker 3 — imputation was invisible
+
+Every record carries `quality` and the features it imputed:
+
+| tier | meaning |
+|---|---|
+| `refused` | a critical input missing → **no prediction at all**, not one with a caveat |
+| `degraded` | a feature the model usually **had** is missing now (`imputedUnexpected`) |
+| `ok` | nothing unexpected missing; routinely-absent columns are imputed and **listed** |
+
+**The middle tier took two wrong attempts.** The first version called every price feature critical
+and refused **24 of 25** real rows — `entryTrigger` is null on ~90% of *training* rows, because a
+trigger only exists when there is one. The second called every row degraded for the same reason.
+Criticality is now read from the model's own `nullShareByFeature`: a column it almost always saw
+is critical, one it usually lacked is an expected absence and degrades nothing.
+
+**The macro block is critical as a whole** — 20 of 44 inputs. A prediction with all twenty invented
+is a price-only prediction wearing a context-aware model's name, and its errors would be filed
+under the wrong candidate.
+
+### Database
+
+`shadow_readiness.py --probe-db` runs one read-only **`SELECT 1`**, loading `.env` the way every
+job in `jobs/` does rather than reading the credential from anywhere else. **It answered
+`{'ok': 1}`.** The default run reports `unknown` and opens nothing, because a probe is a side
+effect and that tool promises none.
+
+Then: **`to_regclass('public."ShadowPrediction"')` was ABSENT** at commit time. `schema.yml`
+applies migrations on a push touching `prisma/**`, so the push of `3c62db0` is what creates it.
+A shadow run can compute predictions now and cannot record them until that lands.
+
+### The candidate is unchanged
+
+**NO-GO.** 0.4167 against a 0.4388 largest class, 1 of 4 criteria, `productionApproved: false`
+inside `model.json` (`73d48231…`). Nothing retrained, no holdout re-read. `shadow_predict.py`
+refuses outright to serve any artifact that does not say `productionApproved: false`.
+
+A dry run over the 75 rows of 2026-09-25 produced **75 ok, 0 degraded, 0 refused**, all predicting
+UP — which is the 92% UP collapse showing up exactly where it should.
+
+### Tests
+
+**1,148 Python, `OK`** (1,129 + 19: 15 for the prediction record's failure modes, 4 for the macro
+artifact's durability and digest).
+
+### Next authorized action
+
+```
+python tools/research/shadow_readiness.py --probe-db     # expect 26 ok, 0 blocked, 0 unknown
+python tools/research/shadow_predict.py --as-of <session> --write
+```
+
+Once CI has applied `20261017000000_shadow_prediction`, `shadowTableExistsLive` turns ok and the
+first `--write` run records timestamped predictions. Then, in order:
+
+1. **Collect outcomes** after `maturesAfter`, and only then — a 20-session horizon on a prediction
+   made today matures in about four weeks. Fill `outcomeLabel`/`outcomeFwd`; null means "not yet",
+   never "no move".
+2. **The crypto hypothesis**, pre-registered before it is run, as `f664f17` did for the last one.
+3. **Nothing is promoted on shadow evidence until the horizon matures and the pre-declared
+   criteria are applied to it.** Shadow readiness and predictive approval are separate gates, and
+   clearing the first does not touch the second.
+
 ## 0. SESSION CHECKPOINT — 2026-10-17 (twelfth), context reaches the model, and it is a NO-GO
 
 **Branch `main`. Working tree clean. Nothing running.** Commits this session, all on `origin/main`:

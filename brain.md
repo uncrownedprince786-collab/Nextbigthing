@@ -6229,3 +6229,50 @@ reads rows that already exist:
       process still held the loader, the imputation means and the column order. Rebuilding by name
       is also what an inference path does, so this is the training/inference parity check: a
       reordered column changes the predicted mix here instead of quietly degrading a live score.
+
+169. **A readiness report that says "ready" while its destination table does not exist is the
+    failure the report was written to prevent.** 2026-10-17. Commits: `3c62db0` and this record.
+
+    - **Three blockers, and the interesting one was not the one predicted.** The twelfth checkpoint
+      expected the macro artifact's disposable home to be the problem. It was *a* problem and the
+      smallest: 364 KB of public FRED statistics whose own producer docstring already said it was
+      safe to commit. The two that mattered were in the *record*: nothing named the model that made
+      a prediction, and nothing said which of its inputs were invented.
+
+    - **At training an imputation is a measurement; at inference it is a disguise.** An absent
+      feature taking the training mean is fine while the null share is recorded. The same rule at
+      serving time turns a failed macro refresh into "an average day", and the prediction comes out
+      looking exactly as confident as one built from evidence. The column that records the imputed
+      set is what keeps a later outcome evaluation from averaging two different things.
+
+    - **"Critical" has to be read from the model's own experience, not from intuition.** The first
+      attempt called every price feature critical and refused **24 of 25** real rows, because
+      `entryTrigger` is null on about 90% of *training* rows -- a trigger only exists when there is
+      one. The second attempt then called every row degraded for the same reason, which makes the
+      word useless. A column the model almost always saw is critical; one it usually lacked is an
+      expected absence. **The band between those two numbers is where the judgement lives**, and
+      both wrong attempts are in the module's comments because the next reader will reach for the
+      same intuition.
+
+    - **The macro block is critical as a whole, not feature by feature.** Twenty of forty-four
+      inputs. A prediction with all twenty invented is not a context-aware prediction with a
+      caveat; it is a price-only prediction wearing a context-aware model's name, and its errors
+      would be filed under the wrong candidate.
+
+    - **Shadow output belongs in its own table.** Adding a nullable `modelVersion` to
+      `DecisionCall` would have been smaller and would have made it *structurally possible* for an
+      unapproved candidate's output to reach a published path through a query someone forgot to
+      filter. A separate table makes that impossible rather than discouraged, which is the
+      difference between a rule and a guarantee.
+
+    - **A probe is a side effect, so it is opt-in.** `--probe-db` runs one read-only `SELECT 1`,
+      loading `.env` the way every job in `jobs/` does rather than reading the credential from
+      somewhere else. The default run opens nothing and reports `unknown` -- and **`unknown` is
+      counted separately from both `ok` and `blocked`**, because a check that could not run is not
+      a check that passed.
+
+    - **The last check is the one that kept the report honest.** With all three blockers cleared
+      and the database answering, `to_regclass('public."ShadowPrediction"')` came back **absent**:
+      the migration was committed and `schema.yml` had not yet run. Every other signal said ready.
+      **Readiness is not the conjunction of the checks you thought to write**, and the cheapest
+      defence is to ask the destination whether it exists.
