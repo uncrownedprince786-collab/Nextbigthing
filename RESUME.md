@@ -1,5 +1,111 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT — 2026-10-17 (tenth), bounded verification; the budget has not reset
+
+**Branch `main`, `HEAD` `d810998`, working tree clean, `origin/main` == `HEAD` (0 ahead, 0 behind
+after a fetch). Nothing running. `phase2-ingestion-and-backup` untouched at `e38aa30`.**
+
+**Usage, as actually read: 82% used, 18% remaining** on the weekly all-models window, resetting
+**2026-10-19** (~2d 3h); the 5-hour window was at 5%. **The weekly budget has NOT reset** — the
+reading is the meter's, not the calendar's. 18% is at the checkpoint threshold, so under the
+standing rule **no part of the contextual pipeline was started**: this session ran only the bounded
+checks that confirm the checkpoint, and nothing long was launched. **No partial work exists.**
+
+### Everything below was verified from the artifacts, not read from the previous record
+
+| Claim in the ninth checkpoint | How it was checked | Result |
+|---|---|---|
+| frozen dataset intact | all 9 year files re-hashed against `dataset_freeze.json` | **match**, `examples-v3-2026-10-16-local`, gates green |
+| `brain-v1` artifact loads | `load_model()` on `data/foundation/brain/brain-v1/model.json` | **loads**: 15 features, 3 classes, weights `[16, 3]` |
+| artifact digest | sha256 of the file now vs the manifest's record | **`989ffe09…` both**, match |
+| candidate's own numbers | read from `manifest.json`, not from prose | accuracy **0.4107**, majority **0.4388**, margin **-0.0281**, UP predicted on **74.68%** where UP is **38.67%** |
+| promotion status | `verdict`, `eligibleForPromotion`, and `productionApproved` inside the model file | **NO-GO**, `false`, `false` |
+| holdout integrity | `evaluation.holdout.pristine` | **`false`** — unchanged, still not a pristine window |
+| tests | `python -m unittest discover -s tests` | **1,094, `OK`** |
+
+### The contextual pipeline is pending, and this is the measurement of it
+
+Measured, not asserted — the first row of `examples-v3-2026.jsonl.gz` was read directly:
+
+```
+top-level keys : asOf, assetType, candidate, coverage, dataQuality, market, outcome, pit, symbol
+pit.f keys     : atr14, drawdownPct, entryTrigger, peerMedianR20, peers, r1, r20, r5,
+                 rangePct, relStrength, returnZ, sma20, sma50, triggerDirection, volumeRatio
+```
+
+**There is no context block in a dataset row and no context field in the feature vector.** Not a
+partial integration — an absent one.
+
+`context_routing.py` run now: **18 layers declared, 18 consumers resolving, 18 integration-proven,
+0 broken, 3 may vote, 15 never vote.** Every layer is routed and every route resolves. The gap is
+not routing; it is the destination.
+
+**Integration matrix, as it actually stands:**
+
+| Reaches the model (`training-feature`) | Consumer |
+|---|---|
+| prices / OHLCV (instrument level) | `tools/make_dataset.py` |
+| gold and commodities | `tools/make_dataset.py` |
+| training examples | `tools/foundation/assemble.py` |
+
+| Does **not** reach the model | Current role |
+|---|---|
+| macroeconomic series (point-in-time) | decision-context, integrity-veto |
+| interest rates and yield curve | decision-context, research-only |
+| dated events corpus | decision-context |
+| press and original-document evidence | decision-context, research-only |
+| operational news feed | decision-context |
+| event-to-market reactions | historical-prior, research-only |
+| market / index benchmarks · regime episodes | evaluation-stratification |
+| corporate actions · instrument lifecycle | integrity-veto |
+| 2008 banking stress · credit spreads · books and principles | research-only |
+| delisted price history · PSX before 2013-11-04 | **documented-exclusion** — no permitted source exists |
+
+**So the next task is precisely stated:** the six layers in the first group above
+(macro, rates, dated events, press, operational news, event reactions) already have point-in-time
+producers and resolving consumers. What they lack is a **second, non-voting `training-feature`
+role** with a historical feature producer and a join that reaches `pit` — **`mayVote` is not
+touched**, and two layers stay excluded because no permitted source serves them.
+
+### Unchanged
+
+Seven NO-GO verdicts preserved. The protected holdout was not touched, nothing was retrained, no
+threshold was moved. The Phase 2 branch comparison stays **CLOSED** and was not repeated.
+**`WORKER_ARTIFACT_KEY`: BLOCKED — authorization required.** The 500 MB free-tier figure remains an
+**assumption**. Macro is still **deliberately not pre-joined** into the example rows
+(`dataset_freeze.json` `macroContext.joinedNotPreJoined`): a market-wide series handed to 616
+instruments is one fact counted 616 times, so any join must respect that or justify overturning it.
+
+### Next authorized action — the exact operation
+
+**Not before the weekly meter actually shows a reset** (expected 2026-10-19; read the meter, do not
+infer it from the date). Then, in order:
+
+```
+python -m unittest discover -s tests          # expect: Ran 1094 tests ... OK
+python tools/research/train_v1.py             # expect: 9 files match the freeze, accuracy 0.4107,
+                                              #         VERDICT NO-GO, sha256 989ffe099898316e...
+```
+
+Both must reproduce exactly before new work starts; a different digest on unchanged inputs means
+something moved and must be explained first. Then build the contextual feature producer for the six
+layers named above, as **non-voting ML features**, with:
+
+- point-in-time correctness per feature — publication/availability time, revisions, no
+  pre-publication values, conservative rule where the true time is unknown;
+- a join whose manifest reports per-feature missingness, coverage, leakage assertions via
+  `walkforward.assert_features_are_past_only`, duplicate checks and digests;
+- proving tests driving source → parse → point-in-time → consumer, including one that fails if a
+  value could have been read before its publication time;
+- `context_routing.py` updated so the new roles are declared and `verify()` still passes;
+- a **separately versioned** frozen dataset — `examples-v3-2026-10-16-local` and the `brain-v1`
+  artifact are preserved, never overwritten;
+- a candidate pre-registered with its baseline and margin fixed **before** the run.
+
+**No pristine holdout exists in this dataset** — every year 2021–2026 has been scored. Either
+extend the data past 2026-09-25, or record timestamped forward shadow predictions and judge the
+candidate on those when they mature. Do not relabel a seen window as untouched.
+
 ## 0. SESSION CHECKPOINT — 2026-10-17 (ninth), the Phase 2 branch is closed; one gap of six was real
 
 **Branch `main`. Working tree clean including untracked files. Nothing is running: no training, no
