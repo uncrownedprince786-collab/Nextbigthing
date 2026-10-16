@@ -1,0 +1,328 @@
+{
+ "generatedAt": "2026-10-16T22:00:47+00:00",
+ "modelVersion": "brain-v2-context",
+ "artifact": {
+  "path": "data/foundation/brain/brain-v2-context/model.json",
+  "sha256": "73d48231258b7b9fed7aab1d3719f465de7d9daaf0f925bf9687bd634fd63f3b"
+ },
+ "producedBy": "tools/research/train_v2_context.py",
+ "configurationImportedFrom": "tools/research/baseline_experiment.py",
+ "configurationSha256": "955d4921427c8ad2439a8f7bfe91a792801a5c3cb84d548567783a486dcf7a8b",
+ "contextProducerSha256": "284b93a855a82756bf68f3e49650fb2e9fe52b0295d7a309b55be6b8db9f520e",
+ "repoHead": "dcc96d87f718603bb8cbf6f24063c6d78fb7e2a7",
+ "dataset": {
+  "dir": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\.cache\\foundation\\dataset_v4",
+  "prefix": "examples-v4-context",
+  "rowsUsed": 1055429,
+  "rowsWithContextBlock": 1055429,
+  "contextShare": 1.0
+ },
+ "task": {
+  "label": "label20",
+  "classes": [
+   "DOWN",
+   "FLAT",
+   "UP"
+  ],
+  "priceFeatures": [
+   "atr14",
+   "drawdownPct",
+   "entryTrigger",
+   "peerMedianR20",
+   "peers",
+   "r1",
+   "r20",
+   "r5",
+   "rangePct",
+   "relStrength",
+   "returnZ",
+   "sma20",
+   "sma50",
+   "triggerDirection",
+   "volumeRatio"
+  ],
+  "contextFeatures": [
+   "macro_DGS10_chg",
+   "macro_DGS10_age",
+   "macro_T10Y2Y_chg",
+   "macro_T10Y2Y_age",
+   "macro_T10Y3M_chg",
+   "macro_T10Y3M_age",
+   "macro_DFF_chg",
+   "macro_DFF_age",
+   "macro_T10YIE_chg",
+   "macro_T10YIE_age",
+   "macro_VIXCLS_chg",
+   "macro_VIXCLS_age",
+   "macro_NFCI_chg",
+   "macro_NFCI_age",
+   "macro_DTWEXBGS_chg",
+   "macro_DTWEXBGS_age",
+   "macro_DCOILWTICO_chg",
+   "macro_DCOILWTICO_age",
+   "macro_ICSA_chg",
+   "macro_ICSA_age",
+   "ctx_mktEventsIn90d",
+   "ctx_mktDaysSinceEvent",
+   "ctx_ownEventsIn90d",
+   "ctx_ownDaysSinceEvent",
+   "ctx_mktPressIn90d",
+   "ctx_ownPressIn90d",
+   "ctx_maturedPriors",
+   "ctx_priorMedianFwd20",
+   "ctx_unresolvedScopeRecords"
+  ],
+  "featureCount": 44,
+  "outcomeFieldsUsedAsFeatures": 0
+ },
+ "hyperparameters": {
+  "seed": 20261015,
+  "steps": 400,
+  "learningRate": 0.5,
+  "l2": 0.0001,
+  "embargoSessions": 20
+ },
+ "preDeclaredCriteria": {
+  "accuracyAboveHoldoutMajority": "strictly above the holdout's largest-class share",
+  "notDegenerate": "no predicted class exceeds 0.7 of the holdout while being under half of it",
+  "adverseClassIsPredicted": "recall for DOWN is at least 0.2",
+  "beatsThePriceOnlyModel": "accuracy strictly above the price-only model fitted here on the same rows, same split, same seed",
+  "setBefore": "any number from this run was seen"
+ },
+ "criteriaMet": {
+  "accuracyAboveHoldoutMajority": [
+   0.4167,
+   0.4388,
+   false
+  ],
+  "notDegenerate": [
+   true,
+   false,
+   false
+  ],
+  "adverseClassIsPredicted": [
+   0.0826,
+   0.2,
+   false
+  ],
+  "beatsThePriceOnlyModel": [
+   0.4167,
+   0.4107,
+   true
+  ]
+ },
+ "evaluation": {
+  "holdout": {
+   "from": "2026-01-01",
+   "to": "2026-09-25",
+   "rows": 113651,
+   "effectiveIndependentWindows": 5683,
+   "pristine": false,
+   "exposure": "every calendar year in this dataset has been scored by a recorded experiment, so this is a comparison between two models and not an independent validation of either."
+  },
+  "context": {
+   "accuracy": 0.4167,
+   "perClass": {
+    "DOWN": {
+     "recall": 0.0826,
+     "precision": 0.6148
+    },
+    "FLAT": {
+     "recall": 0.075,
+     "precision": 0.6815
+    },
+    "UP": {
+     "recall": 0.9501,
+     "precision": 0.3986
+    }
+   },
+   "predictedMix": {
+    "DOWN": 6696,
+    "FLAT": 2182,
+    "UP": 104773
+   },
+   "actualMix": {
+    "DOWN": 49867,
+    "FLAT": 19834,
+    "UP": 43950
+   },
+   "confusion": {
+    "DOWN": {
+     "DOWN": 4117,
+     "FLAT": 325,
+     "UP": 45425
+    },
+    "FLAT": {
+     "DOWN": 758,
+     "FLAT": 1487,
+     "UP": 17589
+    },
+    "UP": {
+     "DOWN": 1821,
+     "FLAT": 370,
+     "UP": 41759
+    }
+   },
+   "degeneracy": {
+    "largestPredicted": {
+     "class": "UP",
+     "predictedShare": 0.9219,
+     "actualShare": 0.3867
+    },
+    "degenerate": true
+   }
+  },
+  "priceOnly": {
+   "accuracy": 0.4107,
+   "perClass": {
+    "DOWN": {
+     "recall": 0.2427,
+     "precision": 0.4699
+    },
+    "FLAT": {
+     "recall": 0.0958,
+     "precision": 0.6264
+    },
+    "UP": {
+     "recall": 0.7435,
+     "precision": 0.385
+    }
+   },
+   "predictedMix": {
+    "DOWN": 25751,
+    "FLAT": 3033,
+    "UP": 84867
+   },
+   "confusion": {
+    "DOWN": {
+     "DOWN": 12101,
+     "FLAT": 542,
+     "UP": 37224
+    },
+    "FLAT": {
+     "DOWN": 2968,
+     "FLAT": 1900,
+     "UP": 14966
+    },
+    "UP": {
+     "DOWN": 10682,
+     "FLAT": 591,
+     "UP": 32677
+    }
+   },
+   "degeneracy": {
+    "largestPredicted": {
+     "class": "UP",
+     "predictedShare": 0.7467,
+     "actualShare": 0.3867
+    },
+    "degenerate": true
+   }
+  },
+  "contextMinusPriceOnly": 0.006,
+  "holdoutMajorityShare": 0.4388,
+  "marginOverHoldoutMajority": -0.0221,
+  "trainMajorityConstantOnHoldout": 0.3867,
+  "byYear": {
+   "2026": {
+    "n": 113651,
+    "context": 0.4167,
+    "priceOnly": 0.4107,
+    "majority": 0.4388
+   }
+  },
+  "byMarket": {
+   "PSX": {
+    "n": 38333,
+    "context": 0.3537,
+    "priceOnly": 0.3611,
+    "majority": 0.5064
+   },
+   "US": {
+    "n": 49679,
+    "context": 0.4334,
+    "priceOnly": 0.427,
+    "majority": 0.4336
+   },
+   "commodity": {
+    "n": 1424,
+    "context": 0.3743,
+    "priceOnly": 0.401,
+    "majority": 0.441
+   },
+   "crypto": {
+    "n": 19220,
+    "context": 0.5143,
+    "priceOnly": 0.4712,
+    "majority": 0.4723
+   },
+   "forex": {
+    "n": 4995,
+    "context": 0.3714,
+    "priceOnly": 0.3998,
+    "majority": 0.7289
+   }
+  },
+  "recordedBrainV1ForContext": {
+   "accuracy": 0.4107,
+   "majority": 0.4388,
+   "margin": -0.0281,
+   "note": "a different imputation rule and a different dataset build; reported as the historical result it is, not as this run's baseline."
+  }
+ },
+ "nullShareByFeature": {
+  "atr14": 0.0,
+  "drawdownPct": 0.0,
+  "entryTrigger": 0.9006,
+  "peerMedianR20": 0.0389,
+  "peers": 0.0,
+  "r1": 0.0,
+  "r20": 0.0,
+  "r5": 0.0,
+  "rangePct": 0.0,
+  "relStrength": 0.0389,
+  "returnZ": 0.0,
+  "sma20": 0.0,
+  "sma50": 0.0,
+  "triggerDirection": 0.9006,
+  "volumeRatio": 0.0517,
+  "macro_DGS10_chg": 0.0278,
+  "macro_DGS10_age": 0.0278,
+  "macro_T10Y2Y_chg": 0.0278,
+  "macro_T10Y2Y_age": 0.0278,
+  "macro_T10Y3M_chg": 0.0278,
+  "macro_T10Y3M_age": 0.0278,
+  "macro_DFF_chg": 0.0278,
+  "macro_DFF_age": 0.0278,
+  "macro_T10YIE_chg": 0.0278,
+  "macro_T10YIE_age": 0.0278,
+  "macro_VIXCLS_chg": 0.0278,
+  "macro_VIXCLS_age": 0.0278,
+  "macro_NFCI_chg": 0.0278,
+  "macro_NFCI_age": 0.0278,
+  "macro_DTWEXBGS_chg": 0.0278,
+  "macro_DTWEXBGS_age": 0.0278,
+  "macro_DCOILWTICO_chg": 0.0278,
+  "macro_DCOILWTICO_age": 0.0278,
+  "macro_ICSA_chg": 0.0278,
+  "macro_ICSA_age": 0.0278,
+  "ctx_mktEventsIn90d": 0.0,
+  "ctx_mktDaysSinceEvent": 0.0599,
+  "ctx_ownEventsIn90d": 0.9319,
+  "ctx_ownDaysSinceEvent": 0.9543,
+  "ctx_mktPressIn90d": 0.0,
+  "ctx_ownPressIn90d": 0.9355,
+  "ctx_maturedPriors": 0.9319,
+  "ctx_priorMedianFwd20": 0.9551,
+  "ctx_unresolvedScopeRecords": 0.0
+ },
+ "verdict": "NO-GO",
+ "eligibleForPromotion": false,
+ "limitations": [
+  "direction only. No execution cost, spread or borrow data exists for any market, so nothing here is a profitability claim and a drawdown or turnover figure attached to a three-class label would not mean anything.",
+  "the effective sample is rows / 20; the row count is not the sample size.",
+  "survivorship: the universe is today's registered assets.",
+  "an absent feature takes the training fold's mean; a model cannot tell an imputed value from an observed one, which is why the age and count columns matter.",
+  "the holdout is not pristine; see evaluation.holdout.exposure."
+ ]
+}
