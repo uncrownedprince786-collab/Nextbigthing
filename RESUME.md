@@ -1,5 +1,108 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT — 2026-10-17 (eleventh), the context producer exists; the join does not
+
+**Branch `main`. Working tree clean. Nothing running.** The work commit is `9d4fab2`; this record
+is the commit after it.
+
+**Usage: 82% used, 18% remaining**, weekly, resetting **2026-10-19**; the 5-hour window was at 6%.
+**The weekly budget has not reset.** The bounded producer milestone was done *because* it fits:
+it is complete, tested, committed and independently useful, and it starts nothing that could be
+interrupted half-built. **No dataset rebuild and no training run was started.**
+
+### What now exists
+
+`tools/foundation/context_features.py` — `ContextSource.load() / .at(as_of, instrument) /
+.vector(block)`, **25 ordered features**, and `tests/test_context_features.py` with **19 tests**.
+Measured coverage in `data/foundation/dataset/context_features_coverage.json`.
+
+**Four layers, four availability rules**, because they are not the same question:
+
+| Layer | Rule | Why it differs |
+|---|---|---|
+| macro + rates | macro_pit row for D, `d <= as_of` | that row already holds each series' newest observation whose **`availableAt` <= D**; its manifest records `observationsDatedAfterTheirSession: 0`. Correct here, sloppy anywhere else |
+| dated events | `date` **strictly <** `as_of` | an announcement must not inform the bar it moved |
+| press + filings | `publishedAt` **strictly <** `as_of` | `retrievedAt` is collection time (2026) and is never treated as availability |
+| reaction priors | `forward["20"].exitSession` **strictly <** `as_of` | a prior from a forward window is knowable only once that window has **closed**; the artifact dates its own windows, so maturity is read, not assumed |
+
+**Two deliberate refusals, reported rather than omitted:**
+
+1. **The operational news feed is EXCLUDED from historical features.** `jobs/lineage.py` prunes it
+   at **70 days**, so for any older session there is nothing stored and never was. A feature built
+   from it would measure the retention window, not the news. **Five of six layers can be made
+   point-in-time safe over history; the sixth cannot.** The exclusion is a field in every block, so
+   a reader finds five and knows why instead of finding five and assuming six.
+2. **An event's `market` block is never read** — `peakDate`, `z`, `returnPct` are the future at the
+   event's own date. A test plants `424242` there and asserts it reaches neither block nor vector.
+
+**Levels are excluded, changes and ages carried.** A trending level is a proxy for the date and a
+model handed one learns the calendar. The recorded context experiment already fixed this
+(`levelsExcluded: "chg only"`); inherited, not re-litigated.
+
+**Missing is missing.** Every block carries a `status`; an absent reading is `None`, never 0. A dry
+spell for an instrument we *do* hold reactions for is a measured `0.0`; an instrument we hold none
+for is `None`. A test pins that those two differ.
+
+**The strongest test is the one `pit_features.py` already uses:** rewrite the future and require the
+past to be unchanged. Adding macro rows, events, articles and reactions dated after the session
+leaves that session's vector identical.
+
+**`mayVote` is untouched.** These are non-voting inputs to a learned model.
+
+### Integration matrix, as it actually stands after this commit
+
+| Layer | Producer | Time semantics | Historical coverage | In training vector | In inference path | Tests |
+|---|---|---|---|---|---|---|
+| macro observations | `macro_pit.py` → `context_features.macro_at` | `availableAt <= D` | **1.00** | **no — join not written** | no | 5 |
+| rates / curve | same artifact, same call | `availableAt <= D` | **1.00** | **no** | no | 5 |
+| dated events | `events_load.py` → `events_at` | `date < as_of`, verified only | **1.00** (MKT fallback), `daysSinceEvent` null 0.074 | **no** | no | 4 |
+| press + filings | `gkg_evidence.py` → `press_at` | `publishedAt < as_of`, deduped | **1.00** | **no** | no | 3 |
+| event reactions | `event_reactions.py` → `prior_at` | `exitSession < as_of` | **0.601**; `priorMedianFwd20` null 0.399 | **no** | no | 4 |
+| operational news | — | — | **excluded**, 70-day prune | **no, and never** | no | 1 |
+
+Measured over **8,160 asset-sessions** (204 sessions × 40 instruments). **No layer is integrated
+yet** — a producer is not an integration, and this table says so in its own columns.
+
+### Tests
+
+**1,113 Python, `OK`** (1,094 + 19), via `python -m unittest discover -s tests` — the command CI
+runs. No TypeScript, schema or query path changed, so web tests and `tsc` were not re-run.
+
+### Unchanged
+
+Seven NO-GO verdicts preserved; the protected holdout untouched; nothing retrained;
+`examples-v3-2026-10-16-local` and the `brain-v1` artifact (`989ffe09…`) untouched. The Phase 2
+comparison stays **CLOSED**. **`WORKER_ARTIFACT_KEY`: BLOCKED — authorization required.**
+
+### Next authorized action — the exact operation
+
+**Read the meter first; do not infer the reset from the date.** Then:
+
+```
+python -m unittest discover -s tests                 # expect: Ran 1113 tests ... OK
+python tools/foundation/context_features.py --coverage
+```
+
+Expect macro 1.0, events 1.0, press 1.0, reactionPrior 0.6012 over 8,160 rows. Then, in order:
+
+1. **The join.** Add a `--context` input to `tools/foundation/assemble.py` so each row carries
+   `pit.ctx` from `ContextSource.at(asOf, symbol)`. Macro is market-wide: join it **on date**, and
+   keep `dataset_freeze.json`'s `macroContext.joinedNotPreJoined` reasoning in view — one fact
+   counted 616 times is the thing to avoid, so the manifest must report the duplication explicitly
+   rather than hide it.
+2. **The freeze**, separately versioned — `examples-v4-context-<date>` — leaving v3 and `brain-v1`
+   untouched; digests, row counts, class distribution, effective decision dates, rebuild command.
+3. **The candidate**, pre-registered: baseline = the recorded `brain-v1` at 0.4107 against 0.4388,
+   margin and criteria fixed **before** the run, trained on `FEATURES + ContextSource.feature_names()`.
+4. **Evaluation.** No pristine holdout exists past 2026-09-25; either extend the data or record
+   timestamped forward shadow predictions. Do not relabel a seen window.
+
+**The one design question to settle before step 1**, and it is a real one: the per-asset layers
+resolve by `instrument`, and `events`/`press` fall back to `MKT`, which is why their coverage reads
+1.00. That fallback is honest for a market-wide event and wrong for a company one, so the join must
+decide whether a US equity's `ctx_eventsIn90d` counts market events, its own, or both in separate
+fields. **Both in separate fields is the defensible answer** and costs two more features.
+
 ## 0. SESSION CHECKPOINT — 2026-10-17 (tenth), bounded verification; the budget has not reset
 
 **Branch `main`, `HEAD` `d810998`, working tree clean, `origin/main` == `HEAD` (0 ahead, 0 behind

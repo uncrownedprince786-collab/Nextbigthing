@@ -6140,3 +6140,45 @@ reads rows that already exist:
       test indexes on `if __name__ == "__main__":`, which matches the literal inside its own body,
       so the invariant it actually enforces is that it must be the file's last class. Appending
       below it reports the new class as unreachable whether or not it is.
+
+167. **Four context layers, four availability rules, and the one that could not be done is the
+    finding worth keeping.** 2026-10-17. Commits: `9d4fab2` and this record.
+
+    - **A route that resolves is not a feature that arrives.** `context_routing.py` reported 18
+      declared routes, 18 resolving consumers and 18 integration-proven -- and a direct read of a
+      dataset row showed `pit.f` holding fifteen price and volume fields and no context block at
+      all. Both were true. **"Every layer has a consumer" and "every layer reaches the model" are
+      different sentences**, and the audit only ever claimed the first.
+
+    - **The rules differ because the questions differ, and one `<=` is correct.** Macro is read
+      **at** the session, because `macro_pit`'s row for D already holds each series' newest
+      observation whose `availableAt` is on or before D -- the availability work is done inside the
+      artifact and its manifest records `observationsDatedAfterTheirSession: 0`. Events and press
+      are read **strictly before**, because an announcement must not inform the bar it moved. A
+      reaction prior needs more than a date: it is knowable only once its forward window has
+      **closed**, and the artifact dates its own windows, so `exitSession < as_of` is read rather
+      than a calendar offset assumed. **A single availability rule across four layers would have
+      been wrong three times.**
+
+    - **The operational news feed cannot become a historical feature, and saying so is the
+      deliverable.** `jobs/lineage.py` prunes it at 70 days, so for any older session there is
+      nothing stored and never was. A feature built from it would measure the retention window
+      rather than the news. Five of the six layers can be made point-in-time safe over history and
+      the sixth cannot; the exclusion is a field in every block, because a reader who finds five
+      layers should know why, not infer that the sixth was forgotten.
+
+    - **An event record carries its own future.** `events.json` events hold a `market` block with
+      `peakDate`, `z` and `returnPct` -- the market's reaction *to* the event, which at the event's
+      own date has not happened. `FORBIDDEN_KEYS` names it and a test plants a distinctive number
+      there and asserts it reaches neither the block nor the vector. **The leak that matters is
+      usually inside a record you were right to read.**
+
+    - **The test that catches what equality does not**: rewrite the future and require the past to
+      be unchanged. `pit_features.py` already works this way. Adding macro rows, events, articles
+      and reactions dated after a session must leave that session's vector identical, and a value
+      check alone would pass while a lookahead quietly widened.
+
+    - **A dry spell and an unknown instrument are different facts.** An instrument whose reactions
+      we hold, with none matured yet, is a measured `0.0`. An instrument we hold none for is
+      `None`. Collapsing them would tell a model "nothing happened" where the truth is "we did not
+      look", which is the same error `capBasis none` exists to prevent on the price side.
