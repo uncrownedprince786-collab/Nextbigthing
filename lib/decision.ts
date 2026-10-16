@@ -488,6 +488,13 @@ export interface DecisionInput {
   /// that it could not look rather than that the asset was quiet. The rule table does not read it;
   /// it crosses this seam for the family path only.
   atrTrailingMedian?: number | null;
+  /// Where the close sits against its own averages and its own trailing range, from the same
+  /// `AssetFactor` row. Read by the family path (E1's moving-average half, E3's range and
+  /// drawdown clauses) and not by the rule table.
+  sma20?: number | null;
+  sma50?: number | null;
+  rangePct?: number | null;
+  drawdownPct?: number | null;
   /// This asset's own 20-session return, in percent. How much of the move is already behind it.
   ///
   /// Read by the short gate and by nothing else: a short on a name already down more than

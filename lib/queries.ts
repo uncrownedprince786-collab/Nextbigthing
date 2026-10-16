@@ -300,6 +300,15 @@ export async function getFactor(assetId: string) {
       peers: true,
       r20: true,
       r1: true,
+      // Where the close sits against its own averages and its own range. Stored since the table
+      // was written and selected only now: E1 scores the moving-average half of its trend from
+      // sma20/sma50, and E3 reads rangePct and drawdownPct. Without them E1 fell back to r20
+      // alone and E3 to its volatility clause -- honestly, but on half the inputs each.
+      // Ordinary model columns, present on every endpoint, so no raw read is needed.
+      sma20: true,
+      sma50: true,
+      rangePct: true,
+      drawdownPct: true,
       entryTrigger: true,
       triggerDirection: true,
     },
@@ -1888,6 +1897,10 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
             relStrength: true,
             r20: true,
             r1: true,
+            sma20: true,
+            sma50: true,
+            rangePct: true,
+            drawdownPct: true,
             entryTrigger: true,
             triggerDirection: true,
           },

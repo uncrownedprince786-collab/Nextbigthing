@@ -309,6 +309,12 @@ export interface DecisionBundle {
     atr14?: number | null;
     /// The baseline `atr14` is judged against; see `DecisionInput.atrTrailingMedian`.
     atrTrailingMedian?: number | null;
+    /// Where the close sits against its own averages and its own range: E1's second half and
+    /// E3's range and drawdown clauses.
+    sma20?: number | null;
+    sma50?: number | null;
+    rangePct?: number | null;
+    drawdownPct?: number | null;
     /// The entry rule that fired on this session and which way, as two stored columns.
     ///
     /// Kept as the raw pair across this seam rather than as the shape the rules take, because
@@ -515,6 +521,10 @@ export function toDecisionInput(bundle: DecisionBundle, today: string): Decision
     // Eighth across this seam, and the one whose null carries a meaning: absent is unmeasured,
     // never calm, so it is passed through rather than defaulted to anything.
     atrTrailingMedian: bundle.factors?.atrTrailingMedian ?? null,
+    sma20: bundle.factors?.sma20 ?? null,
+    sma50: bundle.factors?.sma50 ?? null,
+    rangePct: bundle.factors?.rangePct ?? null,
+    drawdownPct: bundle.factors?.drawdownPct ?? null,
     // Sixth field across this seam, and the count in the comment above is the reason it has its
     // own test rather than being assumed to arrive.
     entryTrigger: entryTriggerOf(
@@ -613,6 +623,12 @@ export interface QueryBundle {
     atr14?: number | null;
     /// The baseline `atr14` is judged against; see `DecisionInput.atrTrailingMedian`.
     atrTrailingMedian?: number | null;
+    /// Where the close sits against its own averages and its own range: E1's second half and
+    /// E3's range and drawdown clauses.
+    sma20?: number | null;
+    sma50?: number | null;
+    rangePct?: number | null;
+    drawdownPct?: number | null;
     entryTrigger?: string | null;
     triggerDirection?: string | null;
   } | null;
@@ -683,6 +699,10 @@ export function bundleFromQuery(
           r1: row.factor.r1 ?? null,
           atr14: row.factor.atr14 ?? null,
           atrTrailingMedian: row.factor.atrTrailingMedian ?? null,
+          sma20: row.factor.sma20 ?? null,
+          sma50: row.factor.sma50 ?? null,
+          rangePct: row.factor.rangePct ?? null,
+          drawdownPct: row.factor.drawdownPct ?? null,
           entryTrigger: row.factor.entryTrigger ?? null,
           triggerDirection: row.factor.triggerDirection ?? null,
         }
@@ -755,6 +775,10 @@ export interface QueryRow {
   atr14?: number | null;
   /// The median `atr14` of the sessions before this one, for E3's stress clause.
   atrTrailingMedian?: number | null;
+  sma20?: number | null;
+  sma50?: number | null;
+  rangePct?: number | null;
+  drawdownPct?: number | null;
   /// The entry rule that fired this session, for the fifth confirmation. Named `entryTrigger`
   /// and not `trigger`: `trigger` on this same row is the investigation's, a different thing
   /// from a different table, and two fields one word apart is how a list comes to confirm a
@@ -826,6 +850,10 @@ export function bundleFromRow(
               r1: row.r1 ?? null,
               atr14: row.atr14 ?? null,
               atrTrailingMedian: row.atrTrailingMedian ?? null,
+              sma20: row.sma20 ?? null,
+              sma50: row.sma50 ?? null,
+              rangePct: row.rangePct ?? null,
+              drawdownPct: row.drawdownPct ?? null,
               entryTrigger: row.entryTrigger ?? null,
               triggerDirection: row.triggerDirection ?? null,
             },

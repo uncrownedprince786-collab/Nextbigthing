@@ -325,6 +325,41 @@ test("a baseline the live path cannot supply is unmeasured at the consumer, neve
   assert.match(r.detail, /volatility baseline not stored/);
 });
 
+test("E1 and E3 read their full inputs from a live row, not half of each", () => {
+  // Until `getFactor` selected them, `sma20`, `sma50`, `rangePct` and `drawdownPct` were stored on
+  // `AssetFactor` and never read, so E1 scored from `r20` alone -- half its fact, landing exactly on
+  // the deadband -- and E3 could only read its volatility clause. Both are ordinary model columns on
+  // every endpoint, so this needed no migration and no raw read.
+  const half = readFamilies(fromDecisionInput({ market: "US", r20: 6.2 })).find((r) => r.id === "E1");
+  assert.ok(half);
+  assert.equal(half.score, 0.5, "r20 alone should be half of E1's score");
+
+  const whole = readFamilies(fromDecisionInput({
+    market: "US", r20: 6.2, sma20: 11, sma50: 10, rangePct: 80, drawdownPct: -3,
+  }));
+  const e1 = whole.find((r) => r.id === "E1");
+  const e3 = whole.find((r) => r.id === "E3");
+  assert.ok(e1 && e3);
+  assert.equal(e1.score, 1, "E1 did not use the moving-average half of its score");
+  assert.match(e1.detail, /fast above slow/);
+  assert.equal(e3.vote, 1, "E3 did not read its range and drawdown clauses");
+  assert.match(e3.detail, /range position 80/);
+  // Two families readable where one was: the eligibility count is the point of the change.
+  assert.equal(whole.filter((r) => r.eligible).length, 2);
+});
+
+test("the four range-and-average columns are selected wherever factors are read", () => {
+  // They are read through the Prisma model, so a select that forgets one silently returns undefined
+  // and the family reports an input it could have had as absent.
+  const q = readFileSync(new URL("../lib/queries.ts", import.meta.url), "utf8");
+  const selects = q.split("relStrength: true,").length - 1;
+  assert.ok(selects >= 2, "the factor selects were not found");
+  for (const field of ["sma20", "sma50", "rangePct", "drawdownPct"]) {
+    assert.equal(q.split(`${field}: true,`).length - 1, selects,
+      `${field} is missing from one of the ${selects} factor selects`);
+  }
+});
+
 test("the adapter hands the families price and peers, and nothing else", () => {
   // A family rule that can reach the whole DecisionInput is one that can start reading news. The
   // adapter is the boundary, so what it returns is checked by key rather than by behaviour.
