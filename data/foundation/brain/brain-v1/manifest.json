@@ -1,0 +1,202 @@
+{
+ "generatedAt": "2026-10-16T20:39:32+00:00",
+ "modelVersion": "brain-v1",
+ "artifact": {
+  "path": "data/foundation/brain/brain-v1/model.json",
+  "sha256": "989ffe099898316ecc386d7bc4157f0e5e28c3b9d2cf57a1ecfa6e74f3d0084f",
+  "reloadReproducesPredictions": true,
+  "fitIsDeterministic": true
+ },
+ "producedBy": "tools/research/train_v1.py",
+ "configurationImportedFrom": "tools/research/baseline_experiment.py",
+ "configurationSha256": "955d4921427c8ad2439a8f7bfe91a792801a5c3cb84d548567783a486dcf7a8b",
+ "repoHead": "c1b343293e3ac1500bc27b11f00e03fd5a4bd1b0",
+ "task": {
+  "label": "label20",
+  "classes": [
+   "DOWN",
+   "FLAT",
+   "UP"
+  ],
+  "features": [
+   "atr14",
+   "drawdownPct",
+   "entryTrigger",
+   "peerMedianR20",
+   "peers",
+   "r1",
+   "r20",
+   "r5",
+   "rangePct",
+   "relStrength",
+   "returnZ",
+   "sma20",
+   "sma50",
+   "triggerDirection",
+   "volumeRatio"
+  ],
+  "featureCount": 15,
+  "rule": "UP when fwd20 >= +2%, DOWN when <= -2%, else FLAT",
+  "outcomeFieldsUsedAsFeatures": 0
+ },
+ "hyperparameters": {
+  "seed": 20261015,
+  "steps": 400,
+  "learningRate": 0.5,
+  "l2": 0.0001,
+  "embargoSessions": 20,
+  "standardisation": "training span only"
+ },
+ "dataVersion": {
+  "version": "examples-v3-2026-10-16-local",
+  "frozenAt": "2026-10-16T13:11:03+00:00",
+  "blockingGatesGreen": true,
+  "fileCount": 9,
+  "files": {
+   "examples-v3-2018.jsonl.gz": {
+    "sha256": "6abc3a733eec13279748ce4fc6624bb570e60f90c5e14e6e64d1796f85ce5bdc",
+    "bytes": 6229833
+   },
+   "examples-v3-2019.jsonl.gz": {
+    "sha256": "418aa8945f96b86fb0dc3661ec80ce600e52f61d0bcf042895d3882a0b3b75b5",
+    "bytes": 23544373
+   },
+   "examples-v3-2020.jsonl.gz": {
+    "sha256": "b48a9f90523944b2a9634535b078c020c14fbc97819f698302772fa63d347b26",
+    "bytes": 28450176
+   },
+   "examples-v3-2021.jsonl.gz": {
+    "sha256": "c46f62284f5009e2092e793ebe21be16de76b089801327d1b82da38f7219c3b3",
+    "bytes": 30475372
+   },
+   "examples-v3-2022.jsonl.gz": {
+    "sha256": "7a69021fc37daf39d39dc23de97213ad1c98b995bb5a1eec273fba0a2cd2345d",
+    "bytes": 32054135
+   },
+   "examples-v3-2023.jsonl.gz": {
+    "sha256": "d39cb698a4a942d8ec79bd399985ba8c0f0e8549014235c6656dea222960babc",
+    "bytes": 32398567
+   },
+   "examples-v3-2024.jsonl.gz": {
+    "sha256": "ce11ab25103aead6edfb8e6ec5543eda637ed19dcf802429e29f059c634bfe2a",
+    "bytes": 34162576
+   },
+   "examples-v3-2025.jsonl.gz": {
+    "sha256": "7ca271f0a480e5f05befc701d42411a709012c819568c05c84b3c091d2211ce4",
+    "bytes": 36160543
+   },
+   "examples-v3-2026.jsonl.gz": {
+    "sha256": "e3b8c651954f7e8d878e226a8cfeb5b3a6218ee966d1b670d7376dcebfbde7e8",
+    "bytes": 27120576
+   }
+  }
+ },
+ "preDeclaredCriteria": {
+  "accuracyAboveHoldoutMajority": "strictly above the holdout's largest-class share",
+  "notDegenerate": "no predicted class exceeds 0.7 of the holdout while being under half of it",
+  "adverseClassIsPredicted": "recall for DOWN is at least 0.2, so the model has not stopped saying the word",
+  "setBefore": "any number from this run was seen"
+ },
+ "criteriaMet": {
+  "accuracyAboveHoldoutMajority": [
+   0.4107,
+   0.4388,
+   false
+  ],
+  "notDegenerate": [
+   true,
+   false,
+   false
+  ],
+  "adverseClassIsPredicted": [
+   0.2427,
+   0.2,
+   true
+  ]
+ },
+ "evaluation": {
+  "holdout": {
+   "from": "2026-01-01",
+   "to": "2026-09-25",
+   "rows": 113651,
+   "effectiveIndependentWindows": 5683,
+   "pristine": false,
+   "exposure": "calendar years 2021-2026 were all scored by the recorded walk-forward experiments, and the second of them chose its configuration after seeing the first. No unseen span exists in this dataset, so this is a reproduction and not an independent validation."
+  },
+  "accuracy": 0.4107,
+  "holdoutMajorityShare": 0.4388,
+  "marginOverHoldoutMajority": -0.0281,
+  "trainMajorityClass": "UP",
+  "trainMajorityConstantOnHoldout": 0.3867,
+  "marginOverDeployableConstant": 0.024,
+  "perClass": {
+   "DOWN": {
+    "recall": 0.2427,
+    "precision": 0.4699
+   },
+   "FLAT": {
+    "recall": 0.0957,
+    "precision": 0.6268
+   },
+   "UP": {
+    "recall": 0.7435,
+    "precision": 0.385
+   }
+  },
+  "predictedMix": {
+   "DOWN": 25754,
+   "FLAT": 3028,
+   "UP": 84869
+  },
+  "actualMix": {
+   "DOWN": 49867,
+   "FLAT": 19834,
+   "UP": 43950
+  },
+  "degeneracy": {
+   "largestPredicted": {
+    "class": "UP",
+    "predictedShare": 0.7468,
+    "actualShare": 0.3867
+   },
+   "degenerate": true
+  },
+  "byMarket": {
+   "PSX": {
+    "n": 38333,
+    "accuracy": 0.3612,
+    "majority": 0.5064
+   },
+   "US": {
+    "n": 49679,
+    "accuracy": 0.427,
+    "majority": 0.4336
+   },
+   "commodity": {
+    "n": 1424,
+    "accuracy": 0.401,
+    "majority": 0.441
+   },
+   "crypto": {
+    "n": 19220,
+    "accuracy": 0.4711,
+    "majority": 0.4723
+   },
+   "forex": {
+    "n": 4995,
+    "accuracy": 0.3992,
+    "majority": 0.7289
+   }
+  }
+ },
+ "verdict": "NO-GO",
+ "eligibleForPromotion": false,
+ "promotionNote": "NO-GO: not eligible. Preserved as an experiment artifact.",
+ "limitations": [
+  "direction only. No execution cost, spread or borrow data exists for any market, so nothing here is a profitability claim and none of it may be reported as net.",
+  "the effective sample is rows / 20; the row count is not the sample size.",
+  "survivorship: the universe is today's registered assets, so the bias is a measured lower bound rather than something removed.",
+  "forex is 68% FLAT under a fixed 2% band, so its accuracy is dominated by one class.",
+  "the holdout is not pristine; see evaluation.holdout.exposure."
+ ]
+}
