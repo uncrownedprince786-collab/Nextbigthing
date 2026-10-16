@@ -1,24 +1,32 @@
 # Resume here
 
-## 0. SESSION CHECKPOINT — 2026-10-16 (seventh), E1/E3 fed from live data; **35 commits unpushed**
+## 0. SESSION CHECKPOINT — 2026-10-16 (seventh), E3 live end to end; pushed and verified
 
 **Branch `main`. Working tree clean including untracked files. Nothing is running: no training, no
 producer, no dev server; `tasklist` shows no `python.exe` and no `node.exe`. The work commit is
 `ef2e030`; this record is the commit after it, readable with `git log -1`.**
 
-> ### ⚠ The one thing to do first next session
+> ### ✅ Resolved: pushed, migrated, populated, verified
 >
-> **`main` is 35 commits ahead of `origin/main` and the push was refused by the environment's
-> permission policy** (`[Out-of-Place Publication]`, on `git push origin main`). It was **not** an
-> authentication failure and no credential is missing. Every commit, artifact and checkpoint from
-> this session exists **on one machine only**.
+> The push was first refused by the environment's permission policy
+> (`[Out-of-Place Publication]`). The owner granted permission and it succeeded:
+> **`origin/main` == `HEAD`**, confirmed by `git fetch` and a hash comparison, with no commits ahead.
 >
-> This also blocks E3 in production: CI applies `20261016140000_atr_trailing_median` from the
-> migration committed in `e1af228`, and **CI cannot see a commit that was never pushed**. Confirmed
-> directly against `information_schema`: `atr14`, `sma20`, `sma50`, `rangePct` and `drawdownPct` are
-> present in the live database and **`atrTrailingMedian` is not**.
+> That unblocked the rest of the chain, which was waiting on it:
 >
-> **Needed:** the owner pushes, or grants push permission. Nothing was worked around.
+> 1. The push touched `prisma/**`, which is exactly what triggers `schema.yml`.
+> 2. **CI applied `20261016140000_atr_trailing_median`** — `atrTrailingMedian` now exists in the live
+>    database, confirmed via `information_schema`.
+> 3. `ADD COLUMN` leaves nulls, so the sanctioned factor lane (`python jobs/factors.py`, as
+>    `jobs/run.py` invokes it) was run to populate it: **617 rows written for 2026-10-15**.
+> 4. **615 of 617 populated.** The two blanks are the two assets the lane itself reported as having
+>    fewer than 51 closes — too little history for a baseline, so `None`, which is the correct answer
+>    and **never a calm reading**.
+> 5. The stress clause fires on **39 of 615 (6.3%)** live, consistent with the 8.83% measured on the
+>    bounded sample. Real values, e.g. AAPL `atr14` 6.52 against a baseline of 7.43.
+> 6. Both `getLateColumns` queries were run in their exact form against live data: **617 assets with a
+>    usable `atr14`** and **615 with a usable baseline**. The separate-query design holds — adding the
+>    baseline did not cost `atr14` a single asset.
 
 **Weekly usage: 81% used, 19% remaining**, about 2d 10h to reset — a point reading, not monitored.
 That is **past** the 20% checkpoint threshold, so the large contextual-feature build, dataset rebuild
@@ -50,13 +58,14 @@ its range clause, and the eligible-family count goes 1 → 2 on the same row.
 | Hop | State |
 |---|---|
 | calculation, tests, cutoff | **done** (`e1af228`) |
-| migration file | **written**, not applied — CI applies it, and cannot see an unpushed commit |
-| live column | **absent**, confirmed via `information_schema` |
-| raw fail-open read, seam, adapter | **done**; E3 reads null and reports the clause **unmeasured, never calm** |
+| migration | **applied by CI** after the push, confirmed via `information_schema` |
+| live column | **populated: 615 of 617** on the newest session; the 2 blanks are too-short histories |
+| raw fail-open read, seam, adapter | **done and verified live** — both late-column queries run, 617 `atr14` and 615 baselines |
 | E1/E3 other inputs | **done** (`ef2e030`), verified on live rows |
 
-So E3's integration is complete in code and verified end to end from a live-shaped input; only the
-column's creation is outstanding, and it is downstream of the push.
+**E3's integration is complete and live.** Calculation, persistence, population, read, seam and
+consumer are all verified against the real database, not only against fixtures. Nothing about E3 is
+outstanding.
 
 ### Not started, and why
 
@@ -83,11 +92,9 @@ free-tier figure remains an **assumption**. **No stated latency requirement exis
 
 ### Next authorized action, in dependency order
 
-1. **Push `main`** (or have the owner push). **Acceptance:** `git status -sb` shows no commits ahead
-   and the remote hash matches `HEAD`.
-2. **Let CI apply the migration**, then confirm the live column. **Acceptance:**
-   `information_schema` lists `atrTrailingMedian`, `getLateColumns` returns a populated
-   `atrBaseline`, and E3 reports a **measured** clause on an asset with enough history.
+1. ~~Push `main`~~ — **done**, `origin/main` == `HEAD`.
+2. ~~Apply the migration and confirm the live column~~ — **done**: applied, 615 of 617 populated,
+   both read-path queries verified, stress firing on 6.3%.
 3. **The contextual feature pipeline (§4–§6)** — the real remaining brain work, and the only route
    left to new information. Needs a fresh usage budget. Build it as **non-voting ML features**, not
    as new voting families, so the directional policy is untouched. **Acceptance:** point-in-time

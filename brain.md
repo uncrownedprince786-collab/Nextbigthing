@@ -6040,7 +6040,21 @@ reads rows that already exist:
       fix completed and tested locally is, in production, still waiting on a permission -- and the
       fail-open read is what makes that wait safe rather than a failure.
 
-    - **Thirty-five unpushed commits is itself the finding.** Every result, artifact and checkpoint
-      from this session exists on one machine. The handoff and the `brain.md` rules are only as
-      durable as the disk until that push lands, which makes it the highest-value action available
-      and not an administrative afterthought.
+    - **Thirty-five unpushed commits was itself the finding, and the push resolved four things at
+      once.** Every result, artifact and checkpoint existed on one machine, and the handoff was only
+      as durable as that disk. Once the owner granted permission and it landed, the rest followed in
+      order, because each step had been waiting on the one before it: the push touched `prisma/**`,
+      which triggers `schema.yml`; CI applied the migration; `ADD COLUMN` left nulls, so the factor
+      lane was run and wrote 617 rows; 615 of 617 carry a baseline, the two blanks being the assets
+      the lane itself reported as having fewer than 51 closes. **A chain of blockers is only ever as
+      visible as its first link** -- "the migration is not applied" and "the commit is not pushed"
+      looked like two problems and were one.
+
+    - **The separate-query design was worth the paragraph it cost.** Both `getLateColumns` queries
+      were run in their exact form against the live database afterwards: 617 assets with a usable
+      `atr14`, 615 with a usable baseline. Adding the second late column cost the first nothing,
+      which is the property that only shows up once both columns actually exist.
+
+    - **The stress clause fires on 6.3% of live rows** (39 of 615), against 8.83% on the bounded
+      sample -- close enough to confirm the sample was representative, different enough to be a real
+      measurement rather than a number copied forward.
