@@ -577,8 +577,14 @@ model EventImpact {
   /// Change in 20 day average volume across the same window. Null when the source
   /// published no volume for this asset.
   volumeChangePct Float?
-  /// Position within the event, 1 being the largest move by absolute size.
+  /// Position within the event, 1 being the largest move by absolute size. Ranked over every
+  /// measurable asset, not only the stored ones, so it still describes the whole field.
   rank            Int
+  /// How many assets were measurable for this event and window. The table stores only the
+  /// extremes (see jobs/events.py), so `count(*)` is the number kept and this is the number
+  /// measured -- a different fact that used to wear the same name. Null on rows written
+  /// before the column existed, where counting rows is the correct answer.
+  measuredCount   Int?
   confidence      Confidence @default(none)
   confidenceNote  String?
   source          String

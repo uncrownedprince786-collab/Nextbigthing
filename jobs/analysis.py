@@ -885,8 +885,9 @@ def event_notes(cur) -> None:
     for r in rows(
         cur,
         """
-        SELECT "eventId", "windowDays", count(*) AS n FROM "EventImpact"
-        GROUP BY "eventId", "windowDays"
+        SELECT "eventId", "windowDays",
+               coalesce(max("measuredCount"), count(*)) AS n
+        FROM "EventImpact" GROUP BY "eventId", "windowDays"
         """,
     ):
         if widest.get(r["eventId"]) == int(r["windowDays"]):

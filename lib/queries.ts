@@ -208,8 +208,13 @@ export async function getEventImpacts(eventId: string, windowDays: number, take 
     orderBy: { changePct: "desc" },
     include: { asset: { include: { industry: true } } },
   });
+  // `total` is how many assets were measurable, not how many rows are stored. The producer
+  // keeps only the extremes (jobs/events.py KEEP_PER_SIDE), so counting rows would quietly
+  // report the size of the slice instead. Rows written before `measuredCount` existed carry
+  // null, and for those the row count is the right answer.
   return {
-    total: rows.length,
+    total: rows[0]?.measuredCount ?? rows.length,
+    stored: rows.length,
     risers: rows.slice(0, take),
     fallers: rows.slice(-take).reverse(),
   };

@@ -1,0 +1,15 @@
+-- How many assets were measurable for this event and window, kept on every retained row.
+--
+-- `EventImpact` materialised a full cross-product: 176 events x 616 assets x 2 windows =
+-- 191,238 rows and 109 MB of a 500 MB tier, while the only consumers read the extremes and a
+-- count. `getEventImpacts` fetches every row for an event-window and returns `rows.length` as
+-- `total` with the top and bottom ten by `changePct`; `jobs/analysis.py` reads `count(*)` per
+-- event-window and the five largest by `rank`.
+--
+-- So the producer now stores only the extremes, and this column carries the figure the count
+-- used to provide. Without it `total` would silently become the number of rows kept instead of
+-- the number of assets measured, which is a different fact wearing the same name.
+--
+-- Nullable, and the null means "written before this column existed", not "nothing measured" --
+-- the readers fall back to counting rows, which is exactly right for a full materialisation.
+ALTER TABLE "EventImpact" ADD COLUMN "measuredCount" INTEGER;

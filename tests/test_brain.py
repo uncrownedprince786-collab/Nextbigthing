@@ -30,6 +30,7 @@ sys.path.insert(0, str(ROOT / "jobs"))
 
 import analogs  # noqa: E402
 import attribution  # noqa: E402
+import events  # noqa: E402
 import factors  # noqa: E402
 import graph  # noqa: E402
 import horizons  # noqa: E402
@@ -9958,6 +9959,65 @@ class APartialSourceIsNotASilentOne(unittest.TestCase):
         self.assertIn("fetch_crypto(cur, restate, gaps=incomplete)", text)
         self.assertIn("INCOMPLETE -- ", text)
         self.assertIn("report_incomplete(incomplete)", text)
+
+
+class EventImpactStoresTheExtremesNotTheCrossProduct(unittest.TestCase):
+    """191,238 rows and 109 MB of a 500 MB tier, and no reader ever wanted the middle.
+
+    `getEventImpacts` returns the top and bottom ten by `changePct`; `jobs/analysis.py` takes the
+    five largest by `rank` and a count per event-window. The producer now stores only the
+    extremes and carries the count in `measuredCount`, because once the middle is gone
+    `count(*)` is the number of rows kept and not the number of assets measured -- two different
+    facts that used to wear the same name.
+    """
+
+    @staticmethod
+    def _measured(changes):
+        return [({"id": f"a{i}"}, None, None, c, None, 0) for i, c in enumerate(changes)]
+
+    def test_both_signs_are_kept_not_the_best_ranks(self):
+        """The case that makes rank the wrong key: every asset rose."""
+        m = self._measured([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+        kept = events.keep_extremes(m, 2)
+        self.assertEqual(kept, {"a0", "a1", "a4", "a5"},
+                         "the two smallest rises are the page's 'fallers' and must survive")
+
+    def test_the_largest_absolute_moves_survive_so_rank_readers_still_work(self):
+        m = self._measured([-30.0, -2.0, 0.1, 0.2, 3.0, 25.0])
+        kept = events.keep_extremes(m, 2)
+        for i in (0, 5):                      # -30 and +25, the two largest by absolute size
+            self.assertIn(f"a{i}", kept)
+
+    def test_a_field_smaller_than_the_cap_is_kept_whole(self):
+        m = self._measured([1.0, -1.0, 2.0])
+        self.assertEqual(events.keep_extremes(m, 25), {"a0", "a1", "a2"})
+
+    def test_no_measurable_asset_keeps_nothing_rather_than_raising(self):
+        self.assertEqual(events.keep_extremes([], 25), set())
+
+    def test_the_cap_leaves_room_above_what_the_readers_ask_for(self):
+        """`getEventImpacts` defaults to ten a side; the cap must exceed it or the page's own
+        default would silently return fewer rows than it asked for."""
+        self.assertGreaterEqual(events.KEEP_PER_SIDE, 10)
+        q = (ROOT / "lib" / "queries.ts").read_text(encoding="utf-8")
+        self.assertIn("take = 10", q)
+
+    def test_the_count_is_read_from_measuredCount_not_from_the_row_count(self):
+        q = (ROOT / "lib" / "queries.ts").read_text(encoding="utf-8")
+        self.assertIn("total: rows[0]?.measuredCount ?? rows.length", q)
+        a = (ROOT / "jobs" / "analysis.py").read_text(encoding="utf-8")
+        self.assertIn('coalesce(max("measuredCount"), count(*))', a)
+
+    def test_the_producer_writes_the_measured_count_on_every_row(self):
+        src = (ROOT / "jobs" / "events.py").read_text(encoding="utf-8")
+        self.assertIn('source, "measuredCount")', src)
+        self.assertIn('"measuredCount" = EXCLUDED."measuredCount"', src)
+
+    def test_rank_is_assigned_before_the_filter_so_it_describes_the_whole_field(self):
+        src = (ROOT / "jobs" / "events.py").read_text(encoding="utf-8")
+        body = src[src.index("def measure("):src.index("def main(")]
+        self.assertLess(body.index("for rank, (a, start, end"), body.index('if a["id"] not in keep_ids'),
+                        "ranking must happen over every measurable asset, then be filtered")
 
 
 class NothingIsDefinedAfterTheEntryPoint(unittest.TestCase):

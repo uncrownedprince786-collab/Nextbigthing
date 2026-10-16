@@ -39,6 +39,12 @@ try:
 except Exception:  # noqa: BLE001
     pass
 
+#: How many assets to store on each side of an event-window, by signed change.
+#: `lib/queries.getEventImpacts` takes ten of each and `jobs/analysis.py` five by rank;
+#: twenty-five leaves room for a larger `take` without another rebuild, and turns a
+#: 191,238-row cross-product into roughly 17,600 rows.
+KEEP_PER_SIDE = 25
+
 MEASURED = "measured from stored closes"
 
 # The window measured after each event, in days. Two lengths, because a move that shows up
@@ -252,6 +258,26 @@ def grade(peers: int, drift: int, volume_known: bool) -> tuple[str, str]:
     return "low", "; ".join(bits)
 
 
+def keep_extremes(measured: list, k: int) -> set:
+    """The ids of the k largest and k smallest by SIGNED change.
+
+    Signed, not by rank. `rank` is assigned by absolute size, so in a window where every asset
+    rose, the ten rows the page shows as "fallers" are the smallest rises -- the worst-ranked
+    rows in the table. Selecting by rank would discard exactly the half the page asks for.
+
+    Keeping k of each sign also keeps the k largest by absolute size, because each of those is
+    either among the largest risers or among the largest fallers. That is what lets
+    `jobs/analysis.py` go on reading the five best ranks from a table that no longer holds the
+    middle of the field.
+
+    `measured` is the producer's tuple list; element 0 is the asset and element 3 the change.
+    """
+    if not measured:
+        return set()
+    by_change = sorted(measured, key=lambda t: t[3], reverse=True)
+    return {t[0]["id"] for t in by_change[:k]} | {t[0]["id"] for t in by_change[-k:]}
+
+
 def measure(cur, event, assets) -> int:
     """Measure every asset's move across each window after one event.
 
@@ -301,17 +327,36 @@ def measure(cur, event, assets) -> int:
         peers = len(measured)
         measured.sort(key=lambda t: abs(t[3]), reverse=True)
 
+        # Only the extremes are stored. The full cross-product was 176 events x 616 assets x 2
+        # windows = 191,238 rows and 109 MB of a 500 MB tier, and no reader ever wanted the
+        # middle: `getEventImpacts` returns the top and bottom ten by `changePct`, and
+        # `jobs/analysis.py` takes the five largest by `rank`. Both also want a count, which is
+        # why `measuredCount` carries `peers` -- `count(*)` is now the number kept, not the
+        # number measured, and those are different facts.
+        #
+        # Selected by SIGNED change, not by rank. `rank` is by absolute size, so in a window
+        # where every asset rose, the ten the page shows as "fallers" are the smallest rises --
+        # the worst-ranked rows in the table. Keeping by rank would throw away exactly the half
+        # the page asks for. Keeping KEEP_PER_SIDE of each sign also keeps the five largest by
+        # absolute size, because each of those is either a largest riser or a largest faller.
+        keep_ids = keep_extremes(measured, KEEP_PER_SIDE)
+
         # One statement for the whole window rather than one per asset. 160 single-row
         # inserts per window, across two windows and every event, is a few thousand round
         # trips; `executemany` makes it a handful. The same change intraday.py needed, for the
         # same reason — this is the only other job here that writes a row per asset at once.
         payload = []
         for rank, (a, start, end, change, vol_change, drift) in enumerate(measured, 1):
+            # Ranked over every measurable asset and only then filtered, so a stored row's rank
+            # still describes its place in the whole field rather than among the survivors.
+            if a["id"] not in keep_ids:
+                continue
             g, note = grade(peers, drift, vol_change is not None)
             payload.append(
                 (
                     event["id"], a["id"], window, start["date"], start["close"],
                     end["date"], end["close"], change, vol_change, rank, g, note, MEASURED,
+                    peers,
                 )
             )
         if payload:
@@ -320,20 +365,22 @@ def measure(cur, event, assets) -> int:
                 INSERT INTO "EventImpact"
                   ("eventId", "assetId", "windowDays", "startDate", "startClose",
                    "endDate", "endClose", "changePct", "volumeChangePct", rank,
-                   confidence, "confidenceNote", source)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::"Confidence",%s,%s)
+                   confidence, "confidenceNote", source, "measuredCount")
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::"Confidence",%s,%s,%s)
                 ON CONFLICT ("eventId", "assetId", "windowDays") DO UPDATE
                 SET "startDate" = EXCLUDED."startDate", "startClose" = EXCLUDED."startClose",
                     "endDate" = EXCLUDED."endDate", "endClose" = EXCLUDED."endClose",
                     "changePct" = EXCLUDED."changePct",
                     "volumeChangePct" = EXCLUDED."volumeChangePct",
                     rank = EXCLUDED.rank, confidence = EXCLUDED.confidence,
-                    "confidenceNote" = EXCLUDED."confidenceNote"
+                    "confidenceNote" = EXCLUDED."confidenceNote",
+                    "measuredCount" = EXCLUDED."measuredCount"
                 """,
                 payload,
             )
             written += len(payload)
-        print(f"  {event['slug']} {window}d: {peers} assets measurable")
+        print(f"  {event['slug']} {window}d: {peers} assets measurable, "
+              f"{len(payload)} stored")
     return written
 
 
