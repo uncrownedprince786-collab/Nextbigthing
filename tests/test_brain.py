@@ -9905,6 +9905,61 @@ class WritesFailOverAndComeBack(unittest.TestCase):
             self.assertIn("await writerPool(", text, js)
             self.assertNotIn("new pg.Pool", text, js)
 
+class APartialSourceIsNotASilentOne(unittest.TestCase):
+    """CoinPaprika writes no price rows, so an outage there was invisible in the run's output.
+
+    `coverage_report` groups `PriceSnapshot` by source and can only show sources that write
+    price rows. CoinPaprika supplies the market cap and writes none, and `require_answer` /
+    `require_share` count rows, so a total outage produced a run in which every printed line
+    was true and nothing said that no coin had a size. The closes still land, which is why
+    this must not be reported -- or handled -- as a silent source.
+
+    Carried over from the finding on branch `phase2-ingestion-and-backup` (`d526f9e`), whose
+    own implementation did not apply: `fetch_crypto` there returned a report dict and the
+    function on `main` returns a row count.
+    """
+
+    def test_an_unfilled_field_is_reported_and_does_not_fail_the_run(self):
+        gaps = ["CoinPaprika: no ticker list, so no market cap for 68 coins"]
+        with mock.patch("builtins.print") as p:
+            prices.report_incomplete(gaps)          # must not raise
+        out = " ".join(str(c.args[0]) for c in p.call_args_list if c.args)
+        self.assertIn("INCOMPLETE", out)
+        self.assertIn("CoinPaprika", out)
+        self.assertIn("68 coins", out)
+
+    def test_nothing_is_printed_when_every_field_was_filled(self):
+        with mock.patch("builtins.print") as p:
+            prices.report_incomplete([])
+        self.assertEqual(p.call_args_list, [])
+
+    def test_a_silent_source_still_fails_and_a_partial_one_still_does_not(self):
+        """The two events must not collapse into one. A silent source wrote nothing and the
+        run is wrong; a partial source wrote its rows and the run is merely incomplete."""
+        with mock.patch("builtins.print"):
+            with self.assertRaises(SystemExit):
+                prices.fail_on_silent(["Yahoo answered for none of 280 assets"])
+            prices.report_incomplete(["CoinPaprika: no ticker list"])
+
+    def test_the_missing_ticker_list_is_recorded_before_anything_reads_it(self):
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        body = text[text.index("def fetch_crypto"):text.index("def today_utc")]
+        self.assertLess(
+            body.index("if assets and not tickers:"),
+            body.index("by_id = {t[\"id\"]: t for t in tickers}"),
+            "the empty-list guard must come before the lookup built from that list",
+        )
+        self.assertIn("gaps.append", body)
+
+    def test_the_lane_passes_its_gap_list_and_says_so_in_the_note(self):
+        """A note that reported only the row count would read the same whether or not every
+        coin lost its size, and the freshness panel reads that note."""
+        text = (ROOT / "jobs" / "prices.py").read_text(encoding="utf-8")
+        self.assertIn("fetch_crypto(cur, restate, gaps=incomplete)", text)
+        self.assertIn("INCOMPLETE -- ", text)
+        self.assertIn("report_incomplete(incomplete)", text)
+
+
 class NothingIsDefinedAfterTheEntryPoint(unittest.TestCase):
     """`unittest.main()` belongs at the end of the file, and nothing may follow it.
 
@@ -9936,7 +9991,6 @@ class NothingIsDefinedAfterTheEntryPoint(unittest.TestCase):
         ).countTestCases()
         self.assertGreater(defined, 50)
         self.assertGreater(loaded, 400)
-
 
 
 if __name__ == "__main__":

@@ -1378,7 +1378,7 @@ def crypto_closes(sym: str, today: date | None = None) -> tuple[str | None, list
     return fallback if fallback else (None, [])
 
 
-def fetch_crypto(cur, restate: bool = False) -> int:
+def fetch_crypto(cur, restate: bool = False, gaps: list[str] | None = None) -> int:
     step("crypto history")
     assets = crypto_assets(cur)
     tickers = get_json(
@@ -1386,6 +1386,17 @@ def fetch_crypto(cur, restate: bool = False) -> int:
         cache_key="paprika-tickers",
         ttl=12 * 3600,
     ) or []
+    # An empty ticker list costs every coin its size figure and nothing else: the closes come
+    # from the venue chain below and still land, so this is not a silent source in the sense
+    # `require_answer` means and must not abort the lane. But it is not a complete refresh
+    # either, and the guards above only count price rows -- `coverage_report` groups
+    # `PriceSnapshot` by source, and CoinPaprika is not a price source, so an outage here
+    # appears nowhere in the run's own output. `gaps` is how it reaches the summary.
+    if assets and not tickers:
+        print(f"  FAIL {PAPRIKA} returned no tickers: no size figure for any of "
+              f"{len(assets)} coins this run; their closes are unaffected")
+        if gaps is not None:
+            gaps.append(f"{PAPRIKA}: no ticker list, so no market cap for {len(assets)} coins")
     by_id = {t["id"]: t for t in tickers}
 
     # How many rows each coin already has, in one query rather than one per coin. The depth is
@@ -2677,6 +2688,26 @@ def coverage_report(cur) -> None:
         print(coverage_line(r["source"], int(r["n"]), r["newest"], today))
 
 
+def report_incomplete(incomplete: list[str]) -> None:
+    """Name every source that wrote its rows and still left a field it supplies unfilled.
+
+    `coverage_report` groups `PriceSnapshot` by source, so it can only show sources that write
+    price rows. CoinPaprika writes none -- it supplies the market cap -- and a total outage
+    there therefore produced a run whose every printed line was true and whose overall shape
+    said the refresh was done. The closes had landed and no coin had a size, and nothing said
+    so. This does not change the exit code: the rows are correct, the run is not a failure,
+    and a partial answer that still wrote its rows is not the same event as a silent source.
+    """
+    if not incomplete:
+        return
+    print()
+    print(f"INCOMPLETE: {len(incomplete)} source(s) wrote their rows and left a field unfilled:")
+    for line in incomplete:
+        print(f"  {line}")
+    print("the rows that landed are correct and committed; the missing field is absent, "
+          "not zero, and capBasis stays 'none' rather than inventing a size")
+
+
 def fail_on_silent(silent: list[str]) -> None:
     """Exit non-zero once the writes are committed, naming every source that said nothing.
 
@@ -2773,6 +2804,10 @@ def main() -> None:
     # which is what a local run is.
     job = os.environ.get("GITHUB_WORKFLOW") or "prices"
     silent: list[str] = []
+    # Sources that answered for the rows they own but not for a field they also supply. Kept
+    # apart from `silent` on purpose: `silent` exits non-zero because nothing landed, and a
+    # partial answer that still wrote its rows is a different fact with a different response.
+    incomplete: list[str] = []
     cur = conn.cursor()
     try:
         # Each lane is caught on its own. A SourceSilent is our own exception and not a
@@ -2806,9 +2841,13 @@ def main() -> None:
             try:
                 with lane(cur, job, BINANCE, label) as run:
                     if run is not None:
-                        n2 = fetch_crypto(cur, restate)
+                        n2 = fetch_crypto(cur, restate, gaps=incomplete)
                         run.rows_written = n2
-                        run.note = f"{n2} crypto price rows from the venue chain"
+                        # A lane that fetched its closes and lost its size figures is not the
+                        # same as one that fetched everything, and the freshness panel reads
+                        # this note. Saying only the row count would report the two alike.
+                        run.note = f"{n2} crypto price rows from the venue chain" + (
+                            "; INCOMPLETE -- " + "; ".join(incomplete) if incomplete else "")
                         print(f"  {n2} crypto price rows")
             except SourceSilent as e:
                 silent.append(str(e))
@@ -2847,6 +2886,7 @@ def main() -> None:
         cur.execute('SELECT count(*) AS n FROM "News"')
         print(f"News rows: {cur.fetchone()['n']}")
         coverage_report(cur)
+        report_incomplete(incomplete)
         conn.commit()
     finally:
         try:
