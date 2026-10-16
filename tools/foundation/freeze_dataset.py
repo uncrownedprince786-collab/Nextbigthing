@@ -68,7 +68,8 @@ def main() -> int:
     macro_manifest_path = macro / "manifest.json"
     macro_manifest = json.loads(macro_manifest_path.read_text(encoding="utf-8")) if macro_manifest_path.exists() else {}
 
-    years = sorted(ds.glob("examples-v3-*.jsonl.gz"))
+    prefix = arg("--prefix", "examples-v3")
+    years = sorted(ds.glob(f"{prefix}-*.jsonl.gz"))
     files = {p.name: {"sha256": digest(p), "bytes": p.stat().st_size} for p in years}
 
     leakage = manifest.get("leakage", {})
@@ -108,7 +109,7 @@ def main() -> int:
     failed = {k: v for k, v in gates.items() if v[2] is not True}
 
     record = {
-        "version": f"examples-v3-{datetime.now(timezone.utc).date().isoformat()}-local",
+        "version": f"{prefix}-{datetime.now(timezone.utc).date().isoformat()}-local",
         "frozenAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "status": "frozen for training" if not failed else "REFUSED -- a blocking gate failed",
         "repoHead": head(ROOT),
@@ -127,7 +128,7 @@ def main() -> int:
             "root": ".cache/foundation",
             "outcomes": ".cache/foundation/full/full-history-v2.jsonl.gz",
             "features": ".cache/foundation/pit_full/pit-<year>.jsonl.gz",
-            "assembled": ".cache/foundation/dataset_full/examples-v3-<year>.jsonl.gz",
+            "assembled": f"{ds}/{prefix}-<year>.jsonl.gz",
             "macroContext": ".cache/foundation/macro_rebuild/macro-sessions.jsonl.gz",
             "note": "ignored by .gitignore and disposable; rebuildable with the commands below, which "
                     "need only database access and take about 70 minutes, the feature build being the "

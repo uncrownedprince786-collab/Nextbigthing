@@ -1,0 +1,338 @@
+{
+ "version": "examples-v4-context-2026-10-16-local",
+ "frozenAt": "2026-10-16T21:49:07+00:00",
+ "status": "frozen for training",
+ "repoHead": "f664f170d82a316dc7e0a1b704f8321cf993a511",
+ "builtBy": {
+  "outcomes": "tools/full_history.py",
+  "features": "tools/foundation/pit_features.py",
+  "assembly": "tools/foundation/assemble.py",
+  "macroContext": "tools/foundation/macro_pit.py"
+ },
+ "artifactLocations": {
+  "root": ".cache/foundation",
+  "outcomes": ".cache/foundation/full/full-history-v2.jsonl.gz",
+  "features": ".cache/foundation/pit_full/pit-<year>.jsonl.gz",
+  "assembled": ".cache\\foundation\\dataset_v4/examples-v4-context-<year>.jsonl.gz",
+  "macroContext": ".cache/foundation/macro_rebuild/macro-sessions.jsonl.gz",
+  "note": "ignored by .gitignore and disposable; rebuildable with the commands below, which need only database access and take about 70 minutes, the feature build being the long half at roughly an hour"
+ },
+ "rebuildCommands": [
+  "python tools/full_history.py --out .cache/foundation/full",
+  "python tools/foundation/pit_features.py --out .cache/foundation/pit_full",
+  "python tools/foundation/assemble.py --full .cache/foundation/full --pit .cache/foundation/pit_full --out .cache/foundation/dataset_full",
+  "python tools/foundation/macro_pit.py --out .cache/foundation/macro_rebuild",
+  "python tools/foundation/freeze_dataset.py --dataset .cache/foundation/dataset_full"
+ ],
+ "rows": {
+  "eligibleAssetSessions": 1086349,
+  "withPointInTimeFeatures": 1055429,
+  "withoutFeatures": 30920,
+  "withoutFeaturesByReason": {
+   "history shorter than the feature threshold": 30749,
+   "weekend bar of a non-crypto asset (not a session)": 171
+  },
+  "featureCoverage": 0.9715,
+  "setupCoverage": 0.0
+ },
+ "outcomes": {
+  "rows": 1086349,
+  "dateRange": [
+   "2018-01-01",
+   "2026-09-25"
+  ],
+  "label20Counts": {
+   "UP": 459161,
+   "FLAT": 213756,
+   "DOWN": 413432
+  },
+  "reconciliation": {
+   "storedPriceRowsTotal": 1098689,
+   "storedRowsWithClose": 1098689,
+   "generated": 1086349,
+   "excludedImmature": 12340,
+   "excludedNoBase": 0,
+   "accountedFor": 1098689,
+   "unexplained": 0
+  },
+  "sha256": "568a662f1411565b0754d042545919a71cf1e6c6acdbfb4a1d780a3a1ca92397"
+ },
+ "features": {
+  "rows": null,
+  "missingnessByAssetType": {
+   "stock": {
+    "r1": 0.0,
+    "r5": 0.0,
+    "r20": 0.0,
+    "returnZ": 0.0,
+    "volumeRatio": 0.0002,
+    "entryTrigger": 0.8965,
+    "triggerDirection": 0.8965,
+    "sma20": 0.0,
+    "sma50": 0.0,
+    "rangePct": 0.0,
+    "drawdownPct": 0.0,
+    "atr14": 0.0,
+    "peerMedianR20": 0.0332,
+    "relStrength": 0.0332,
+    "peers": 0.0,
+    "rows": 888827
+   },
+   "crypto": {
+    "r1": 0.0,
+    "r5": 0.0,
+    "r20": 0.0,
+    "returnZ": 0.0,
+    "volumeRatio": 0.0,
+    "entryTrigger": 0.9021,
+    "triggerDirection": 0.9021,
+    "sma20": 0.0,
+    "sma50": 0.0,
+    "rangePct": 0.0,
+    "drawdownPct": 0.0,
+    "atr14": 0.0,
+    "peerMedianR20": 0.0052,
+    "relStrength": 0.0052,
+    "peers": 0.0,
+    "rows": 94953
+   },
+   "forex": {
+    "r1": 0.0,
+    "r5": 0.0,
+    "r20": 0.0,
+    "returnZ": 0.0,
+    "volumeRatio": 1.0,
+    "entryTrigger": 0.9569,
+    "triggerDirection": 0.9569,
+    "sma20": 0.0,
+    "sma50": 0.0,
+    "rangePct": 0.0,
+    "drawdownPct": 0.0,
+    "atr14": 0.0,
+    "peerMedianR20": 0.0,
+    "relStrength": 0.0,
+    "peers": 0.0,
+    "rows": 53380
+   },
+   "commodity": {
+    "r1": 0.0001,
+    "r5": 0.0001,
+    "r20": 0.0001,
+    "returnZ": 0.0001,
+    "volumeRatio": 0.1038,
+    "entryTrigger": 0.9116,
+    "triggerDirection": 0.9116,
+    "sma20": 0.0,
+    "sma50": 0.0,
+    "rangePct": 0.0,
+    "drawdownPct": 0.0,
+    "atr14": 0.0,
+    "peerMedianR20": 0.5001,
+    "relStrength": 0.5001,
+    "peers": 0.0,
+    "rows": 15283
+   },
+   "etf": {
+    "r1": 0.0,
+    "r5": 0.0,
+    "r20": 0.0,
+    "returnZ": 0.0,
+    "volumeRatio": 0.0,
+    "entryTrigger": 0.9012,
+    "triggerDirection": 0.9012,
+    "sma20": 0.0,
+    "sma50": 0.0,
+    "rangePct": 0.0,
+    "drawdownPct": 0.0,
+    "atr14": 0.0,
+    "peerMedianR20": 0.25,
+    "relStrength": 0.25,
+    "peers": 0.0,
+    "rows": 15264
+   }
+  }
+ },
+ "macroContext": {
+  "sha256": "be649ce4bdd25cfe5e8c1e7809d4788f91699335b9365024d804e42604c28902",
+  "sessions": 2844,
+  "observationsDatedAfterTheirSession": 0,
+  "verifiedBy": "tools/foundation/macro_pit_verify.py",
+  "joinedNotPreJoined": "macro is joinable on date and is NOT a column in the example rows; a market-wide series given to every instrument as a per-asset feature is one fact counted once per name"
+ },
+ "coverage": {
+  "byAssetClass": {
+   "commodity": {
+    "eligible": 15523,
+    "withFeatures": 15123
+   },
+   "crypto": {
+    "eligible": 97233,
+    "withFeatures": 93452
+   },
+   "etf": {
+    "eligible": 15504,
+    "withFeatures": 15104
+   },
+   "forex": {
+    "eligible": 54190,
+    "withFeatures": 52840
+   },
+   "stock": {
+    "eligible": 903899,
+    "withFeatures": 878910
+   }
+  },
+  "outcomesByAssetClass": {
+   "commodity": {
+    "storedRows": 15683,
+    "generated": 15523,
+    "excludedImmature": 160
+   },
+   "crypto": {
+    "storedRows": 98753,
+    "generated": 97233,
+    "excludedImmature": 1520
+   },
+   "etf": {
+    "storedRows": 15664,
+    "generated": 15504,
+    "excludedImmature": 160
+   },
+   "forex": {
+    "storedRows": 54730,
+    "generated": 54190,
+    "excludedImmature": 540
+   },
+   "stock": {
+    "storedRows": 913859,
+    "generated": 903899,
+    "excludedImmature": 9960
+   }
+  }
+ },
+ "qualityExclusions": {
+  "unadjustedActionsKnown": 237,
+  "symbolsWithAnUnadjustedAction": 150,
+  "rowsTouchingOne": 57516,
+  "rowsTouchingOneByClass": {
+   "commodity": 459,
+   "crypto": 12608,
+   "etf": 0,
+   "forex": 291,
+   "stock": 44158
+  },
+  "rowsWithAPoisonedAnalogPool": 0,
+  "rowsWithAPoisonedAnalogPoolByClass": {
+   "commodity": 0,
+   "crypto": 0,
+   "etf": 0,
+   "forex": 0,
+   "stock": 0
+  },
+  "analogPoolCleanedInFeatureBuild": true,
+  "analogPoolNote": "the analog match pool is the asset's whole history, not a window. Cleaned in the feature build, the contaminated candidates, their forward windows and the sessions whose own factors cross an action are excluded there and this flag is 0. Uncleaned, every session at or after an asset's first action is flagged instead, because a window-sized flag would miss them",
+  "basisBreaksKnown": 5,
+  "symbolsWithABasisBreak": 5,
+  "rowsTouchingABasisBreak": 1278,
+  "rowsTouchingABasisBreakByClass": {
+   "commodity": 0,
+   "crypto": 0,
+   "etf": 0,
+   "forex": 0,
+   "stock": 1278
+  },
+  "basisNote": "203 PSX assets carry both the exchange's raw file and the adjusted Karachi listing and 48.4% of 20-session windows span a change between them, but a cross-basis step falls outside the exchange's own daily price band in 0.022% of cases against 0.071% for an ordinary session. Only the steps no single session could produce are flagged; see data/foundation/price_verification/basis_transitions.json",
+  "rowsWithANonDailyWindow": 3009,
+  "rowsWithANonDailyWindowByClass": {
+   "commodity": 0,
+   "crypto": 0,
+   "etf": 0,
+   "forex": 0,
+   "stock": 3009
+  },
+  "nonDailyNote": "the stored PSX history holds about 12 dates a year before 2024 and becomes daily in 2025, so a 20-session average there is a 20-month average under a daily name",
+  "note": "flagged, not dropped: a row is still correct about everything that does not cross the action, and the consumer decides. See price_verification/unadjusted_actions.json"
+ },
+ "files": {
+  "examples-v4-context-2018.jsonl.gz": {
+   "sha256": "f7ffef8486c2fc080d84497143a538d9fc1cb6f89d5a8feefd595fac8cfd8a93",
+   "bytes": 6713948
+  },
+  "examples-v4-context-2019.jsonl.gz": {
+   "sha256": "5e571825890ddf65874849311537a4306e321b4bbdc9a579631d9dc3f616e242",
+   "bytes": 29197655
+  },
+  "examples-v4-context-2020.jsonl.gz": {
+   "sha256": "7b9ca66831bb45deffd912f0c624cda5fd5010014bbb8480117f070cc279c93d",
+   "bytes": 35708437
+  },
+  "examples-v4-context-2021.jsonl.gz": {
+   "sha256": "355e5a942d9b12a3d30c3e6e326d16a317687d6657d14e4865f6a72238007eef",
+   "bytes": 38253895
+  },
+  "examples-v4-context-2022.jsonl.gz": {
+   "sha256": "960c92adda614412cae6aaa9899fde678a998de77de77f890286f89fdbc6a726",
+   "bytes": 40352620
+  },
+  "examples-v4-context-2023.jsonl.gz": {
+   "sha256": "c484a894aab2f98d12c5e02f93d29a52ed89ed9c379918174c63f45e8e6330ad",
+   "bytes": 40660936
+  },
+  "examples-v4-context-2024.jsonl.gz": {
+   "sha256": "4b8392dbc7cf8bb189addfb573a2b70f0c759df55a92c036fc28b4f762d5683d",
+   "bytes": 42763657
+  },
+  "examples-v4-context-2025.jsonl.gz": {
+   "sha256": "df33b33f77abea2d2dc86b98a5d2a8aed0dcc38b1cf5e1dc5ff5692ae6624c03",
+   "bytes": 45292775
+  },
+  "examples-v4-context-2026.jsonl.gz": {
+   "sha256": "dd477f7c96a93e99360a9f23c1b2a1d01d5c3226188e58a5eeefec8c519f7600",
+   "bytes": 33679251
+  }
+ },
+ "splitPlan": {
+  "method": "chronological walk-forward, one fold per test year",
+  "embargoSessions": 20,
+  "embargoReason": "a 20-session label makes consecutive rows share 19 of their 20 forward sessions, so rows either side of a cut are not independent",
+  "rowsAreNotIndependentObservations": "a row count is not a sample size; the effective count is nearer rows/embargo and is reported as such"
+ },
+ "gates": {
+  "featureDatedAfterSession": [
+   0,
+   0,
+   true
+  ],
+  "setupDatedAfterSession": [
+   0,
+   0,
+   true
+  ],
+  "futureNamedFields": [
+   "scan of 18000 rows completed without raising",
+   "no hit",
+   true
+  ],
+  "duplicateOutcomes": [
+   0,
+   0,
+   true
+  ],
+  "duplicateFeatures": [
+   0,
+   0,
+   true
+  ],
+  "unexplainedRows": [
+   0,
+   0,
+   true
+  ],
+  "yearFilesPresent": [
+   9,
+   "at least 1",
+   true
+  ]
+ },
+ "blockingGatesGreen": true
+}
