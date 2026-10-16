@@ -1,0 +1,201 @@
+{
+ "version": "context-experiment-v1",
+ "status": "offline research experiment; nothing deployed, nothing traded",
+ "question": "does macro context, which may never pick a side, improve decision quality by telling us when to act on a direction the approved features already produced",
+ "policy": {
+  "macroRole": "decision-context and integrity-veto; mayVote false (context_routing.json)",
+  "howItIsHeldThere": "the qualifier sees macro only, emits a confidence only, and can withhold a call but never change its direction",
+  "perAssetDuplication": "avoided: macro is joined on date, so a market-wide series is one value per session and not one per name",
+  "levelsExcluded": "chg only; a trending level is a proxy for the date",
+  "positionHorizonResult": "label60 mean margin -0.0816, frozen, not re-run and not re-tuned here"
+ },
+ "dataVersion": {
+  "dataset": "examples-v3",
+  "macroArtifactSha256": "be649ce4bdd25cfe5e8c1e7809d4788f91699335b9365024d804e42604c28902",
+  "macroSessions": 2844,
+  "macroVerifiedBy": "tools/foundation/macro_pit_verify.py"
+ },
+ "config": {
+  "directionModel": "imported from tools/research/baseline_experiment.py, unchanged",
+  "features": [
+   "atr14",
+   "drawdownPct",
+   "entryTrigger",
+   "peerMedianR20",
+   "peers",
+   "r1",
+   "r20",
+   "r5",
+   "rangePct",
+   "relStrength",
+   "returnZ",
+   "sma20",
+   "sma50",
+   "triggerDirection",
+   "volumeRatio"
+  ],
+  "featureCount": 15,
+  "macroFeatures": [
+   "CFNAI",
+   "CPIAUCSL",
+   "CPILFESL",
+   "DCOILWTICO",
+   "DEXJPUS",
+   "DEXUSEU",
+   "DFF",
+   "DGS10",
+   "DGS2",
+   "DGS3MO",
+   "DTWEXBGS",
+   "GDPC1",
+   "HOUST",
+   "ICSA",
+   "INDPRO",
+   "M2SL",
+   "MORTGAGE30US",
+   "NFCI",
+   "PAYEMS",
+   "PCEPILFE",
+   "PERMIT",
+   "PPIACO",
+   "RSAFS",
+   "T10Y2Y",
+   "T10Y3M",
+   "T10YIE",
+   "TCU",
+   "UMCSENT",
+   "UNRATE",
+   "VIXCLS",
+   "WALCL"
+  ],
+  "macroFeatureCount": 31,
+  "seed": 20261015,
+  "steps": 400,
+  "learningRate": 0.5,
+  "l2": 0.0001,
+  "embargoSessions": 20,
+  "withholdShare": 0.3,
+  "thresholdFrom": "the training fold's own confidence distribution"
+ },
+ "preDeclaredCriteria": {
+  "gainOverCoverageMatchedRandom": 0.02,
+  "foldsWonOfSix": 5,
+  "minimumCoverage": 0.5,
+  "setBefore": "any result was seen"
+ },
+ "folds": [
+  {
+   "testYear": 2021,
+   "trainRows": 3480,
+   "testRows": 2548,
+   "trainEnds": "2020-12-02",
+   "embargoSessionsDropped": 20,
+   "coverage": 0.3885,
+   "qualifierThreshold": 0.483571,
+   "candidateAccuracy": 0.4667,
+   "randomControlAccuracy": 0.4697,
+   "noFilterAccuracy": 0.4714,
+   "majorityClassOnRetained": 0.5091,
+   "candidateMinusRandom": -0.003
+  },
+  {
+   "testYear": 2022,
+   "trainRows": 6042,
+   "testRows": 2837,
+   "trainEnds": "2021-12-11",
+   "embargoSessionsDropped": 20,
+   "coverage": 0.7561,
+   "qualifierThreshold": 0.444606,
+   "candidateAccuracy": 0.3641,
+   "randomControlAccuracy": 0.3716,
+   "noFilterAccuracy": 0.3736,
+   "majorityClassOnRetained": 0.5016,
+   "candidateMinusRandom": -0.0075
+  },
+  {
+   "testYear": 2023,
+   "trainRows": 8859,
+   "testRows": 3009,
+   "trainEnds": "2022-12-11",
+   "embargoSessionsDropped": 20,
+   "coverage": 0.6005,
+   "qualifierThreshold": 0.42576,
+   "candidateAccuracy": 0.4483,
+   "randomControlAccuracy": 0.4289,
+   "noFilterAccuracy": 0.4261,
+   "majorityClassOnRetained": 0.4898,
+   "candidateMinusRandom": 0.0194
+  },
+  {
+   "testYear": 2024,
+   "trainRows": 11874,
+   "testRows": 3354,
+   "trainEnds": "2023-12-11",
+   "embargoSessionsDropped": 20,
+   "coverage": 0.6974,
+   "qualifierThreshold": 0.417076,
+   "candidateAccuracy": 0.4566,
+   "randomControlAccuracy": 0.4489,
+   "noFilterAccuracy": 0.4523,
+   "majorityClassOnRetained": 0.4587,
+   "candidateMinusRandom": 0.0077
+  },
+  {
+   "testYear": 2025,
+   "trainRows": 15192,
+   "testRows": 3730,
+   "trainEnds": "2024-12-11",
+   "embargoSessionsDropped": 20,
+   "coverage": 0.8279,
+   "qualifierThreshold": 0.427112,
+   "candidateAccuracy": 0.432,
+   "randomControlAccuracy": 0.4226,
+   "noFilterAccuracy": 0.4212,
+   "majorityClassOnRetained": 0.4323,
+   "candidateMinusRandom": 0.0094
+  },
+  {
+   "testYear": 2026,
+   "trainRows": 18922,
+   "testRows": 2635,
+   "trainEnds": "2025-12-11",
+   "embargoSessionsDropped": 20,
+   "coverage": 0.7006,
+   "qualifierThreshold": 0.416542,
+   "candidateAccuracy": 0.3862,
+   "randomControlAccuracy": 0.3852,
+   "noFilterAccuracy": 0.3909,
+   "majorityClassOnRetained": 0.441,
+   "candidateMinusRandom": 0.001
+  }
+ ],
+ "summary": {
+  "folds": 6,
+  "meanCoverage": 0.6618,
+  "candidateMeanAccuracy": 0.4257,
+  "coverageMatchedRandomMeanAccuracy": 0.4212,
+  "noFilterMeanAccuracy": 0.4226,
+  "candidateMinusRandom": 0.0045,
+  "foldsWon": 4
+ },
+ "criteriaMet": {
+  "gainOverRandomAtLeast": [
+   0.0045,
+   0.02,
+   false
+  ],
+  "foldsWonAtLeast": [
+   4,
+   5,
+   false
+  ],
+  "coverageAtLeast": [
+   0.6618,
+   0.5,
+   true
+  ]
+ },
+ "verdict": "NO-GO",
+ "statement": "NO DEMONSTRATED EDGE. Withholding the calls the macro qualifier was least confident in scores 0.4257 on the 66.2% of calls it kept, against 0.4212 for withholding the same number at random -- a difference of +0.0045 where 0.02 was required, and it wins 4 folds of 6 where 5 were required. The filter is not selecting the calls that were going to be right; it is selecting a subset, and a random subset of the same size does as well. Note also that full coverage scores 0.4226, so the direction model it is filtering has no edge of its own to concentrate -- this measures whether macro context adds decision quality, and the answer is that it does not.",
+ "notDeployed": "a NO-GO is recorded and nothing is wired into a live decision path. The macro layer keeps the role it already had: decision-context and integrity-veto, never a vote."
+}
