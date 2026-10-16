@@ -1,5 +1,107 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-17 (sixteenth), database item CLOSED with a named residual
+
+**Branch `main`, work commits `09174e5`, `c5371e2`, `1e2f6a6`. Tree clean.**
+
+**The database task is closed.** The functional mitigation is done, deployed and verified. One
+physical-space residual is named below with its exact command and is an owner decision, not
+something to keep retrying. **No further database investigation is in scope** unless a new,
+concrete incident appears.
+
+### What is verified
+
+| Acceptance criterion | Result |
+|---|---|
+| archive intact, digest matches | **yes** - 191,238 rows re-read, content `bde68acd8adeff38` and file digest both match |
+| 25-per-side by **signed** change | **yes** - `keep_extremes`, pinned by the all-rose test |
+| true measured total preserved | **yes** - `measuredCount`, max 616 |
+| `analysis.py` top-5 by rank | **yes** - rank 1 present in every event-window |
+| live page | **yes** - `/event/fed-raises-75bp-2022-06-15` HTTP 200, renders **533** (14d) and **530** (30d), not the 50 rows stored |
+| regression | **1,156 Python, 500 web, `tsc` clean** |
+| artifacts untouched | **yes** - brain-v1 `989ffe09`, brain-v2-context `73d48231`, both **NO-GO**; examples-v3 and examples-v4-context both gates-green |
+
+**Rows: 191,238 -> 17,600 (-90.8%).** That part is complete and irreversible only in the sense
+that raising `KEEP_PER_SIDE` and re-running `python jobs/events.py` restores it from stored closes.
+
+### Measured, before and after
+
+| | 22:44:50Z | 23:48:48Z |
+|---|---|---|
+| **database** | **535.0 MB** | **492.2 MB** |
+| vs 500 MB Free Plan | 107.0% | **98.4% - under the limit** |
+| headroom | **-35.0 MB** | **+7.8 MB** |
+| EventImpact rows | 191,238 | **17,600** |
+| EventImpact heap | 71.3 MB | 56.79 MB |
+| EventImpact indexes | 37.9 MB | **3.69 MB** |
+
+**The database is back under quota.** It took three steps, and the middle one failed in a way
+worth keeping:
+
+1. `20261017120000` - the producer stores 25 a side. Rows fell 90.8%; **the database fell only
+   8.8 MB**, because Postgres kept the freed pages in the table's free space map.
+2. `20261017140000` - `ALTER COLUMN ... SET DATA TYPE ... USING`, to force a rewrite. **Applied
+   cleanly and reclaimed nothing**: heap 56.79 and idx 38.16 before and after, to two decimal
+   places. PostgreSQL recognises the no-op cast and skips the rewrite. **The `USING` clause is not
+   the guarantee it is commonly described as**, and the commit claiming it was has been corrected.
+3. `20261017150000` - `REINDEX TABLE "EventImpact"`. Plain REINDEX *can* run in a transaction,
+   which is what the migration lane requires. **Indexes 38.16 -> 3.69 MB, database 526.2 -> 492.2.**
+
+`REINDEX ... CONCURRENTLY` and plain `VACUUM` were refused by this environment's permission policy
+and cannot run in a migration anyway, since neither is allowed in a transaction.
+
+### The residual, and it is an owner decision
+
+**The heap still holds 56.79 MB for 17,600 rows.** That space is reusable by the table - it is
+rewritten in full every run, so it is a ceiling rather than a growth path - but it is not returned
+to the database. Reclaiming it needs a command that cannot run in a transaction, so it cannot come
+from the migration lane:
+
+```
+VACUUM FULL "EventImpact";     -- ACCESS EXCLUSIVE for the rewrite; 17,600 rows, so brief
+-- or, with the extension installed:
+pg_repack -t EventImpact       -- online, no long exclusive lock
+```
+
+**That would take the database to roughly 435 MB, about 13% headroom.** Today's **7.8 MB** is
+real but thin: at the measured rate below it is about **two months**. Worth doing, not urgent, and
+**not something to keep retrying from a session** - it needs the permission that blocked the
+earlier attempt.
+
+### The pooler ceiling is 15, and it is the real constraint
+
+`(EMAXCONNSESSION) max clients reached in session mode - max clients are limited to pool_size: 15`.
+That is the answer to the open owner question - **15, not the 60 `max_connections` suggests** - and
+it is the actual cause of every "ConnectionTimeout" recorded earlier as transient, including the
+ones that interrupted this closeout. **Diagnostics must stay well under it and close promptly**, and
+CI needs headroom within the same 15 to apply migrations at all.
+
+### Growth, measured
+
+`PriceSnapshot` takes **617 rows a trading session**, 76 on weekends, at **262.3 bytes/row** -
+about **162 KB a session, ~3.4 MB a month**. The 339 MB recorded on 2026-10-08 against 535 MB on
+2026-10-16 is **not** a growth rate: that span holds the PSX backfill and the EventImpact rebuild,
+both one-off. At the ordinary rate 433 MB is **well over a year** of headroom - but that rests on
+8 days of observation and excludes future backfills, so it is a floor, not a promise.
+
+### Next operation - back to the brain
+
+The database item is closed. The next command is the brain's, unchanged:
+
+```
+python tools/research/shadow_readiness.py --probe-db
+python tools/research/shadow_predict.py --live --write
+```
+
+Readiness last read **26 ok / 0 blocked / 0 unknown** when the pooler had capacity. `--live` reads
+the newest `AssetFactor` session rather than the frozen dataset, which is what makes the prediction
+prospective. **Run it when the pooler is not saturated**; it needs one connection and holds it
+briefly.
+
+`brain-v2-context` stays **NO-GO** (0.4167, 1 of 4 criteria, `productionApproved: false`). Do not
+retrain against the inspected holdout. After the first write: collect outcomes when `maturesAfter`
+passes, then the pre-registered crypto hypothesis.
+
 ## 0. SESSION CHECKPOINT - 2026-10-17 (fifteenth), EventImpact cut 91%, and the space needs one blocked command
 
 **Branch `main`, work commit `09174e5`, tree clean. The mitigation is implemented, deployed and
