@@ -1,0 +1,95 @@
+{
+ "version": "experiment-diagnosis-v1",
+ "status": "a reading of recorded artifacts; no experiment was re-run and no result changed",
+ "question": "what actually caused the two recorded NO-GO results",
+ "label20Candidate": {
+  "source": "data/foundation/dataset/baseline_experiment.json",
+  "finding": "a near-constant UP predictor, measured from its own prediction mixes",
+  "folds": [
+   {
+    "testYear": 2021,
+    "accuracy": 0.4201,
+    "predictedUpShare": 0.8496,
+    "actualUpShare": 0.4134,
+    "predictedFlatShare": 0.0544,
+    "actualFlatShare": 0.2146,
+    "accuracyMinusActualUpShare": 0.0067
+   },
+   {
+    "testYear": 2022,
+    "accuracy": 0.3618,
+    "predictedUpShare": 0.941,
+    "actualUpShare": 0.3525,
+    "predictedFlatShare": 0.0357,
+    "actualFlatShare": 0.1785,
+    "accuracyMinusActualUpShare": 0.0093
+   },
+   {
+    "testYear": 2023,
+    "accuracy": 0.404,
+    "predictedUpShare": 0.5592,
+    "actualUpShare": 0.4374,
+    "predictedFlatShare": 0.0381,
+    "actualFlatShare": 0.2073,
+    "accuracyMinusActualUpShare": -0.0334
+   },
+   {
+    "testYear": 2024,
+    "accuracy": 0.4545,
+    "predictedUpShare": 0.8182,
+    "actualUpShare": 0.4427,
+    "predictedFlatShare": 0.0291,
+    "actualFlatShare": 0.2058,
+    "accuracyMinusActualUpShare": 0.0118
+   },
+   {
+    "testYear": 2025,
+    "accuracy": 0.4757,
+    "predictedUpShare": 0.793,
+    "actualUpShare": 0.4318,
+    "predictedFlatShare": 0.0315,
+    "actualFlatShare": 0.2007,
+    "accuracyMinusActualUpShare": 0.0439
+   },
+   {
+    "testYear": 2026,
+    "accuracy": 0.4107,
+    "predictedUpShare": 0.7478,
+    "actualUpShare": 0.3866,
+    "predictedFlatShare": 0.0266,
+    "actualFlatShare": 0.1743,
+    "accuracyMinusActualUpShare": 0.0241
+   }
+  ],
+  "meanPredictedUpShare": 0.7848,
+  "meanActualUpShare": 0.4107,
+  "meanPredictedFlatShare": 0.0359,
+  "meanActualFlatShare": 0.1969,
+  "meanAbsAccuracyMinusUpShare": 0.0215,
+  "reading": "It called UP on a mean 79% of rows where 41% actually were, and FLAT on 3.6% where 20% actually were -- it essentially never predicts the middle class. Its accuracy tracks each test year's UP base rate to a mean absolute 0.0215, which is what makes 0.4211 against a 0.4204 majority class the same number twice rather than a narrow miss. It beat the rule baseline only because that rule predicted a balanced mix and a constant call scores better than a balanced wrong one.",
+  "mechanism": "Three classes with a FLAT band holding about a fifth of rows, an unweighted softmax, and 400 full-batch steps at a fixed learning rate: the cheapest descent is toward the largest class, and FLAT lies between the other two in feature space, so it is both the hardest to carve out and the least rewarded. The worst fold is 2022, where it carried UP into the one year DOWN dominated at a 94% UP rate -- regime fragility, which is the \u00a79 acceptance clause this candidate actually failed.",
+  "whatItDoesNotShow": "It does not show the features carry an edge. A degenerate optimiser and an absent edge produce the same headline, and nothing here separates them."
+ },
+ "label60Candidate": {
+  "source": "data/foundation/dataset/label60_experiment.json",
+  "meanMargin": -0.0816,
+  "strataRecorded": 59,
+  "strataBelowTheirMajority": 49,
+  "worstStratum": {
+   "kind": "regime",
+   "stratum": "2022 inflation and rate-shock bear",
+   "accuracy": 0.1053,
+   "majorityRate": 1.0,
+   "margin": -0.8947
+  },
+  "finding": "INFERRED, not measured: no prediction mix was recorded for this experiment",
+  "reading": "49 of 59 recorded strata sit below their own majority rate, several by 25 to 34 points. Accuracy that far beneath the majority is what a near-constant predictor produces when the period it was fitted on was balanced the other way, which is the same mechanism measured directly for label20 -- but the prediction mix was not stored, so for this horizon it stays an inference."
+ },
+ "whatAFurtherCandidateWouldHaveToFix": [
+  "class-balanced training, or a target whose middle class is not simply never predicted",
+  "enough optimisation to converge, rather than a fixed step count chosen before the loss was seen",
+  "an evaluation a constant call cannot win -- the reference must be the best single fixed answer on exactly the rows being scored, not the majority class over a different set",
+  "a regime clause in the acceptance criterion, since the 2022 fold is where both candidates broke"
+ ],
+ "notARecommendationToRetune": "None of this licenses another pass at the same exposed period. It names the cause so that a further candidate has a documented hypothesis to test, and the exposed folds stay immutable: both recorded results are preserved exactly as they were measured."
+}
