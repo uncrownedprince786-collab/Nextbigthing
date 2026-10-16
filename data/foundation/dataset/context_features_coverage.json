@@ -1,0 +1,110 @@
+{
+ "generatedAt": "2026-10-16T21:24:02+00:00",
+ "version": "context-features-v1",
+ "rowsMeasured": 8160,
+ "sessions": 204,
+ "instruments": 40,
+ "observedShareByBlock": {
+  "macro": 1.0,
+  "events": 1.0,
+  "press": 1.0,
+  "reactionPrior": 0.6012
+ },
+ "nullShareByFeature": {
+  "macro_DGS10_chg": 0.0,
+  "macro_DGS10_age": 0.0,
+  "macro_T10Y2Y_chg": 0.0,
+  "macro_T10Y2Y_age": 0.0,
+  "macro_T10Y3M_chg": 0.0,
+  "macro_T10Y3M_age": 0.0,
+  "macro_DFF_chg": 0.0,
+  "macro_DFF_age": 0.0,
+  "macro_T10YIE_chg": 0.0,
+  "macro_T10YIE_age": 0.0,
+  "macro_VIXCLS_chg": 0.0,
+  "macro_VIXCLS_age": 0.0,
+  "macro_NFCI_chg": 0.0,
+  "macro_NFCI_age": 0.0,
+  "macro_DTWEXBGS_chg": 0.0,
+  "macro_DTWEXBGS_age": 0.0,
+  "macro_DCOILWTICO_chg": 0.0,
+  "macro_DCOILWTICO_age": 0.0,
+  "macro_ICSA_chg": 0.0,
+  "macro_ICSA_age": 0.0,
+  "ctx_eventsIn90d": 0.0,
+  "ctx_daysSinceEvent": 0.0741,
+  "ctx_pressIn90d": 0.0,
+  "ctx_maturedPriors": 0.1,
+  "ctx_priorMedianFwd20": 0.3988
+ },
+ "featureOrder": [
+  "macro_DGS10_chg",
+  "macro_DGS10_age",
+  "macro_T10Y2Y_chg",
+  "macro_T10Y2Y_age",
+  "macro_T10Y3M_chg",
+  "macro_T10Y3M_age",
+  "macro_DFF_chg",
+  "macro_DFF_age",
+  "macro_T10YIE_chg",
+  "macro_T10YIE_age",
+  "macro_VIXCLS_chg",
+  "macro_VIXCLS_age",
+  "macro_NFCI_chg",
+  "macro_NFCI_age",
+  "macro_DTWEXBGS_chg",
+  "macro_DTWEXBGS_age",
+  "macro_DCOILWTICO_chg",
+  "macro_DCOILWTICO_age",
+  "macro_ICSA_chg",
+  "macro_ICSA_age",
+  "ctx_eventsIn90d",
+  "ctx_daysSinceEvent",
+  "ctx_pressIn90d",
+  "ctx_maturedPriors",
+  "ctx_priorMedianFwd20"
+ ],
+ "excluded": {
+  "operational news feed": "operational news feed: jobs/lineage.py prunes it at 70 days, so no historical corpus exists for any session older than that. A feature built from it would measure the retention window rather than the news."
+ },
+ "provenance": {
+  "version": "context-features-v1",
+  "loadedAt": "2026-10-16T21:24:00+00:00",
+  "macro": {
+   "path": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\.cache\\foundation\\macro_rebuild\\macro-sessions.jsonl.gz",
+   "present": true,
+   "rows": 2844,
+   "rule": "newest observation whose availableAt <= D (macro_pit.py)"
+  },
+  "events": {
+   "path": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\data\\foundation\\events\\events.json",
+   "present": true,
+   "instruments": 40,
+   "rows": 168,
+   "rule": "verified events only, date strictly before as_of",
+   "neverRead": [
+    "market",
+    "wikidata",
+    "wikipedia"
+   ]
+  },
+  "press": {
+   "path": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\data\\foundation\\events\\press_evidence.jsonl",
+   "present": true,
+   "instruments": 38,
+   "rows": 1146,
+   "rule": "publishedAt strictly before as_of; retrievedAt is never treated as availability"
+  },
+  "reactions": {
+   "path": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\data\\foundation\\events\\reactions.jsonl.gz",
+   "present": true,
+   "instruments": 39,
+   "rows": 167,
+   "rule": "forward['20'].exitSession strictly before as_of; an open window is not a prior"
+  },
+  "news": {
+   "status": "excluded",
+   "reason": "operational news feed: jobs/lineage.py prunes it at 70 days, so no historical corpus exists for any session older than that. A feature built from it would measure the retention window rather than the news."
+  }
+ }
+}
