@@ -1,0 +1,27 @@
+-- Return EventImpact's freed pages to the database, through the lane that is allowed to.
+--
+-- 20261017120000 cut the table from 191,238 rows to 17,600. The rows went; the space did not.
+-- Postgres left the freed pages in the table's free space map, so `pg_database_size` still
+-- reported 526.2 MB with the table at 95.0 MB -- heap 56.8 MB and indexes 38.2 MB holding
+-- 17,600 rows, which is almost entirely bloat.
+--
+-- The usual fixes are unavailable here. `REINDEX ... CONCURRENTLY` and `VACUUM` cannot run
+-- inside a transaction, and `prisma migrate deploy` wraps every migration in one; run outside
+-- a migration they were refused by this environment's permission policy. `VACUUM FULL` is out
+-- of scope: it takes an ACCESS EXCLUSIVE lock for the length of a full rewrite.
+--
+-- What is left is the in-transaction form, and at this size it is the right tool rather than a
+-- compromise. A `SET DATA TYPE` with a `USING` clause always rewrites the table and every index
+-- attached to it, even when the type is unchanged -- the clause is what stops the planner
+-- optimising the no-op away. The lock is ACCESS EXCLUSIVE, which is why this would be the wrong
+-- thing to do on `PriceSnapshot`; on 17,600 rows it is a few milliseconds, inside the same CI
+-- step that already holds a migration lock.
+--
+-- Nothing changes about the data. `changePct` is double precision before and after, every row
+-- keeps its value, and the constraints and indexes are recreated identically by the rewrite.
+-- If it is ever wrong, it is wrong in the harmless direction: the table is rebuilt as itself.
+--
+-- Expected: roughly 93 MB returned, taking the database from 526.2 MB to about 433 MB against
+-- the 500 MB Free Plan limit.
+ALTER TABLE "EventImpact"
+  ALTER COLUMN "changePct" SET DATA TYPE DOUBLE PRECISION USING "changePct"::DOUBLE PRECISION;
