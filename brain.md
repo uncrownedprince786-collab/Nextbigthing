@@ -5975,3 +5975,43 @@ reads rows that already exist:
       would have quietly become false. Computing the series once per asset removes the dependency
       entirely. A reproducibility flag that can be made to lie by an unrelated argument is worse than
       no flag, because it is believed.
+
+163. **A measurement that reaches nothing is not an integration, and the second late column nearly
+    widened an old outage.** 2026-10-16. Commit: `e1af228`.
+
+    - **"Implemented and tested" was true and still useless.** E3's baseline had a function, unit
+      tests and a firing rate, and the live `AssetFactor` had no column, `getFactor` selected
+      nothing, and the `fromDecisionInput` adapter this module's own header promised had never been
+      written. Each piece passed its own test; the value reached no consumer. A helper and an
+      integration differ by the seam between them, and only a test that starts from a live-shaped
+      input can tell them apart.
+
+    - **The cutoff decides where the measurement belongs.** `compute` applies the date cutoff itself
+      rather than trusting its caller, so a baseline derived at the call site would read bars after
+      `period_end` -- the exact defect that docstring exists to prevent. Deriving it inside `compute`
+      puts it behind the cutoff; a test appends violent future bars and requires the answer not to
+      move. `returnZ` in the same function already excluded "the move being judged" for the same
+      reason, so the construction was not a new idea, only an unapplied one.
+
+    - **Two late columns in one query share a failure.** `atr14` is kept out of the Prisma model
+      because Prisma selects every model column and a standby lacking it failed every read of the
+      table on 2026-10-10. Adding `atrTrailingMedian` to that same raw SELECT would have given the
+      new column's absence the old column's blast radius: a standby with only the newer migration
+      missing would also lose `atr14`, and with it the resolver's stop distance. One query and one
+      catch per late column, pinned by a test. **A fix that widens an outage it was not touching is
+      the expensive kind, and it is invisible until a failover.**
+
+    - **Two existing tests caught this change and were tightened, not loosened.** The late-column
+      count and the unused-export rule both failed; the first gained the new column and a per-column
+      assertion, the second an allowlist entry naming the consumer that would fail if the adapter
+      were deleted. Both of my own first attempts at those assertions were wrong in the same way --
+      a slice that stopped inside a multi-line signature and measured an empty string, and a `DEFAULT`
+      match that found the word in the comment explaining why there is no default. **A test that
+      measures nothing passes**, which is why each now asserts its own body was found.
+
+    - **The migration is deliberately not applied from here.** `schema.yml` deploys over the direct
+      endpoint because `migrate deploy` takes a session advisory lock that a pooler in transaction
+      mode returns still held -- schema run 50, twelve seconds, on a commit touching two Markdown
+      files. No direct endpoint exists locally, so applying it would risk stranding that lock for the
+      next CI run. The fail-open read is what makes waiting safe: before the column exists the
+      baseline is null and E3 reports it unmeasured, which is the same answer it gave yesterday.

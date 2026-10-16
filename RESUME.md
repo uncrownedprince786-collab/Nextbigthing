@@ -1,5 +1,88 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT — 2026-10-16 (sixth), E3 integrated end to end; stopped at the usage threshold
+
+**Branch `main`. Working tree clean including untracked files. Nothing is running: no training, no
+producer, no dev server; `tasklist` shows no `python.exe` and no `node.exe`. The work commit is
+`e1af228`; this record is the commit after it, readable with `git log -1`.**
+
+**Stopped here deliberately.** Weekly usage read **80% used, 20% remaining**, about 2d 10h to reset —
+a point reading, not monitored. That is the established checkpoint threshold, so the current atomic
+operation was finished, verified and committed, and nothing expensive was started after it.
+
+**State verified before changing anything:** `HEAD` was `058bb64`, matching the fifth checkpoint.
+**H1 left closed** — not retested, not rebuilt, protected evaluation untouched. Six NO-GO verdicts
+preserved.
+
+**Tests, as actually run:** full regression at this integration boundary, because the change touches
+the live query path — **1,132 Python**, **498 web**, `npx tsc --noEmit` clean. Two existing tests
+caught the change and were **tightened, not loosened**.
+
+### E3 is integrated end to end (`e1af228`)
+
+The previous report left the measurement computed and unreachable: a helper with tests, no database
+column, nothing selected, and a `fromDecisionInput` adapter the module header promised but nobody had
+written. That is not an integration. The whole path now exists:
+
+| Hop | What was done |
+|---|---|
+| producer | `compute` derives it from the **cut-off** bars, on `returnZ`'s own construction — the judged session excluded from its own baseline |
+| per-session producer | `pit_features.py` passes its own value via `atr_baseline`, a `DERIVE` sentinel keeping that distinct from an honest `None`; the equality of the two routes is asserted |
+| persistence | migration `20261016140000_atr_trailing_median`, nullable, **no default**, the upsert carrying it in all four places, with a test counting placeholders against columns |
+| read | kept **out of the Prisma model** as `atr14` is, read raw and fail-open in `getLateColumns` — in **its own query** |
+| seam | eighth field across the `decisionInput` seam, which has its own tests because fields have silently failed to arrive four times |
+| consumer | `fromDecisionInput` hands the families price, volume, peers and matched days and **omits macro, news, catalyst and prior direction**, asserted by key |
+
+**Verified from a live-shaped input in both directions:** with a baseline the stress clause fires;
+without one E3 reports "volatility baseline not stored" — **unmeasured, never calm**.
+
+**The near miss worth keeping:** putting `atrTrailingMedian` in the same raw SELECT as `atr14` would
+have given the new column's absence the old column's blast radius — a standby missing only the newer
+migration would also lose `atr14`, and with it the resolver's stop distance. One query and one catch
+per late column now, pinned by a test.
+
+**The migration is deliberately not applied from here.** `schema.yml` deploys over the **direct**
+endpoint because `migrate deploy` takes a session advisory lock that a pooler in transaction mode
+returns still held — the documented P1002 that cost schema run 50 twelve seconds. No
+`DIRECT_DATABASE_URL` exists locally and the only Supabase URL here is the pooler, so applying it
+would risk stranding that lock for the next CI run. **CI creates the column on its next schema run**,
+as it did for `atr14`, and the fail-open read is what makes waiting safe.
+
+### Known and recorded, not hidden
+
+Four families still read null for `sma20`, `sma50`, `rangePct` and `drawdownPct`: stored on
+`AssetFactor`, **not selected by `getFactor`**. They report what they could read and invent nothing.
+Widening that select is a **query change, not a rule change**, and is the first item below.
+
+### Unchanged
+
+Six NO-GO verdicts preserved, none overwritten. `lib/families.ts` `families-v1.2`, now 26 tests,
+**wired to nothing** — §9 gate 5 unmet, gate 7 makes deployment separate. Frozen dataset
+`examples-v3-2026-10-16-local`, gates green, rebuild commands recorded; it predates
+`atrTrailingMedian`, so `family_eval.ts` reads null there, honestly. **No reusable trained model
+weights have ever been persisted.** Primary serves (533 MB); `DATABASE_URL` serves;
+`DATABASE_URL_FALLBACK` **ECONNREFUSED**. The 500 MB free-tier figure remains an **assumption**. **No
+stated latency requirement exists.** **`WORKER_ARTIFACT_KEY`: BLOCKED — authorization required**,
+verified unchanged, nothing partial, no policy bypassed.
+
+### Next authorized action, in dependency order
+
+1. **Widen `getFactor`'s select** to `sma20`, `sma50`, `rangePct`, `drawdownPct` so E1 and E3 read
+   their full inputs live. Pure query change, no rule change, no migration — these columns are
+   already in the Prisma model. **Acceptance:** `fromDecisionInput` carries non-null values for them
+   on a live row, E1 uses both halves of its score, and the families' eligibility counts rise
+   accordingly in a test built from a live-shaped bundle.
+2. **Let CI apply the migration**, then confirm `getLateColumns` returns a populated `atrBaseline`
+   map. **Acceptance:** a live read shows a non-null baseline for assets with enough history, and E3
+   reports a measured clause rather than an unmeasured one.
+3. **The policy decision**, which gates all further directional work: whether any layer currently
+   marked `mayVote: false` may vote, and on what evidence. Until answered, **the stopping rule
+   stands** — no model experiment is authorized, and none should be started on the same information.
+4. **Three owner decisions**, unchanged: the pool ceiling (`max: 2`), the pooler's real client
+   ceiling (still unverified against a measured `max_connections` of 60), and the key rotation.
+
+Nothing is blocked on this session. No process was interrupted and no partial work exists.
+
 ## 0. SESSION CHECKPOINT — 2026-10-16 (fifth), E3 measurable at last; no unused source may vote
 
 **Branch `main`. Working tree clean including untracked files. Nothing is running: no training, no
