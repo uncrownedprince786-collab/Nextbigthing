@@ -1,0 +1,133 @@
+{
+ "generatedAt": "2026-10-16T22:10:39+00:00",
+ "version": "shadow-readiness-v1",
+ "model": "data/foundation/brain/brain-v2-context",
+ "status": "assessment only; nothing deployed, no prediction recorded, no database written",
+ "summary": {
+  "ok": 15,
+  "blocked": 3,
+  "unknown": 1
+ },
+ "ready": false,
+ "checks": [
+  {
+   "check": "artifactLoads",
+   "status": "ok",
+   "evidence": "brain-v2-context: 44 features, weights [45, 3], classes ['DOWN', 'FLAT', 'UP']",
+   "detail": null
+  },
+  {
+   "check": "notProductionApproved",
+   "status": "ok",
+   "evidence": "productionApproved=False, status=NO-GO",
+   "detail": "a shadow path must refuse to serve this as an approved brain"
+  },
+  {
+   "check": "verdictIsRecorded",
+   "status": "ok",
+   "evidence": "verdict=NO-GO, eligibleForPromotion=False",
+   "detail": null
+  },
+  {
+   "check": "contextProducerImports",
+   "status": "ok",
+   "evidence": "tools/foundation/context_features",
+   "detail": null
+  },
+  {
+   "check": "everyFeatureHasAProducer",
+   "status": "ok",
+   "evidence": "44 wanted; 29 from the context producer, 15 from the factor lane",
+   "detail": {
+    "withoutAProducer": []
+   }
+  },
+  {
+   "check": "macroArtifactPresent",
+   "status": "ok",
+   "evidence": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\.cache\\foundation\\macro_rebuild\\macro-sessions.jsonl.gz",
+   "detail": null
+  },
+  {
+   "check": "macroArtifactIsDurable",
+   "status": "blocked",
+   "evidence": "the macro artifact lives under .cache/, which is gitignored and documented as disposable",
+   "detail": "a live lane must rebuild it on a schedule or move it somewhere durable; a serving path that reads a disposable cache is one cleanup from silently losing twenty of its forty-four features"
+  },
+  {
+   "check": "macroIsFresh",
+   "status": "ok",
+   "evidence": "newest macro session 2026-10-15, 2 days old (today 2026-10-17)",
+   "detail": "staleness is visible per series in macro_*_age, so a model can see it; an outright missing row cannot be seen and becomes an imputed mean"
+  },
+  {
+   "check": "eventsCorpusIsCommitted",
+   "status": "ok",
+   "evidence": "data/foundation/events/events.json: present",
+   "detail": "committed under data/, so unlike macro it survives a cache clean"
+  },
+  {
+   "check": "pressCorpusIsCommitted",
+   "status": "ok",
+   "evidence": "data/foundation/events/press_evidence.jsonl: present",
+   "detail": "committed under data/, so unlike macro it survives a cache clean"
+  },
+  {
+   "check": "reactionsCorpusIsCommitted",
+   "status": "ok",
+   "evidence": "data/foundation/events/reactions.jsonl.gz: present",
+   "detail": "committed under data/, so unlike macro it survives a cache clean"
+  },
+  {
+   "check": "producesABlockForToday",
+   "status": "ok",
+   "evidence": "block for 2026-10-17 AAPL/US: {'macro': 'observed', 'events': 'observed', 'press': 'observed', 'reactionPrior': 'observed', 'quality': 'observed'}",
+   "detail": null
+  },
+  {
+   "check": "todaysBlockIsNotMostlyNull",
+   "status": "ok",
+   "evidence": "0 of 29 context features null for this instrument today",
+   "detail": {
+    "null": []
+   }
+  },
+  {
+   "check": "modelDecisionRunExists",
+   "status": "ok",
+   "evidence": "prisma/schema.prisma: present",
+   "detail": "a dated run a prediction can belong to"
+  },
+  {
+   "check": "modelDecisionCallExists",
+   "status": "ok",
+   "evidence": "prisma/schema.prisma: present",
+   "detail": "one call, with its direction and evidence"
+  },
+  {
+   "check": "modelCallOutcomeExists",
+   "status": "ok",
+   "evidence": "prisma/schema.prisma: present",
+   "detail": "what happened after the horizon matured"
+  },
+  {
+   "check": "predictionCarriesAModelVersion",
+   "status": "blocked",
+   "evidence": "a `modelVersion` field is absent in the schema",
+   "detail": "without it two candidates' shadow predictions are indistinguishable once recorded, and the comparison they exist for cannot be made"
+  },
+  {
+   "check": "imputationIsVisible",
+   "status": "blocked",
+   "evidence": "no field records which features were imputed at prediction time",
+   "detail": "at training an absent feature takes the training mean, which is measured and fine. At inference the same rule silently turns a failed macro refresh into 'an average day', and the prediction looks as confident as one built from observed evidence. A shadow record must carry the imputed set."
+  },
+  {
+   "check": "databaseReachable",
+   "status": "unknown",
+   "evidence": "DATABASE_URL is not set in this process; connectivity not attempted",
+   "detail": "the fifteen price features are read from AssetFactor by the live lane"
+  }
+ ],
+ "note": "a NO-GO candidate may run in shadow once these hold, and may not be served as an approved brain under any of them."
+}
