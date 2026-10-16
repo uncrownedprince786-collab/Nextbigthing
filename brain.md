@@ -5682,3 +5682,83 @@ reads rows that already exist:
     - **A test that always passes is worse than no test.** One of the new route tests shipped in
       draft as `assert 'x', 70 in (...)`, which asserts a tuple and can never fail. It now reads
       the retention policy through an import.
+
+157. **The pool's own queue was read as the database being gone, and the macro artifact was
+    rebuilt and checked against the vintages rather than against its producer.** 2026-10-16.
+    Five commits: `0e97f0f`, `d808432`, `50dba85`, `2fbe158`, and this record.
+
+    - **"Timeout exceeded when trying to connect" was not a connection timeout.** `pg` spends one
+      option on two different things: `connectionTimeoutMillis` starts its clock when an
+      acquisition is *queued*, so on a pool of two it is how long a request waits for a turn. The
+      overview's cold render asks the primary for about fifty connections at once --
+      `getDecisionRows` and `getSourceHealth` each fan out and the page runs them together --
+      measured at `total=2 idle=0 waiting=43` through `waiting=59`. Every queued acquisition
+      failed at five seconds, `isConnectionFailure` read that wording as an unreachable endpoint,
+      which it must because a full pooler says the same thing, and so a primary answering every
+      query it was handed was marked down and the request cascaded to a standby that refuses
+      connections. The page failed in fifteen seconds against a healthy database.
+
+    - **A green health endpoint proved nothing about the page.** `/api/health` returned
+      `ok:true, servedFrom: "the primary"` throughout, because it makes a handful of queries where
+      the overview makes fifty. The same database, the same pool, opposite answers -- and the only
+      reason the site appeared to work at all is that `unstable_cache` holds its rows with no
+      expiry, so the first render that ever succeeded kept it alive.
+
+    - **Two obvious fixes were measured and both were worse.** Raising the timeout so queued
+      acquisitions wait longer made the cold render fail in two minutes instead of fifteen
+      seconds: `pg`'s queue is FIFO, so a waiter that times out and queues again goes to the back
+      and under steady oversubscription never reaches the front. Raising `max` was refused as a
+      shared-resource change and rightly so -- the ceiling is a total across every instance and
+      every job, and what a free tier admits is the owner's to spend, not a library's.
+
+    - **So bound the demand, not the supply.** A gate in front of the pool holds acquisitions to
+      the ceiling the pool had anyway and queues the rest in arrival order with no clock running.
+      It opens no connection the pool would not have opened. Cold render: 500 after 15s became
+      200 in 24.0s, 50 acquisitions with 3 queued at peak, no failover switch at all.
+
+    - **Two bugs in that gate both presented as starvation rather than as themselves.** `pg`
+      installs a *fresh* `release` per checkout -- it is a per-checkout closure, not a method --
+      so keeping the first one aside and reusing it made every later release raise "already
+      released to the pool"; and releasing before counting let that raise escape with the place
+      still held, draining the gate to nothing. A fix that fails the same way as the fault it
+      replaces is the expensive kind.
+
+    - **The primary was the one endpoint reached in cleartext.** `withEncryption` was applied
+      where the standbys are built and the primary was passed on raw. Neon's strings name an
+      sslmode and the wrapper leaves those alone, so it was a no-op for every endpoint except the
+      Supabase one, which names none -- which this driver reads as "connect unencrypted". The
+      omission was invisible precisely because it only mattered where it applied. `pg_stat_ssl`
+      is not the check it looks like: behind a pooler it describes the pooler's own backend
+      connection, not the client's, and both pooled endpoints report false even when TLS was
+      asked for.
+
+    - **Two of the three recorded connection faults had changed.** `DATABASE_URL` was recorded as
+      failing login and serves a read; `DATABASE_URL_FALLBACK` was recorded as a timeout and is a
+      refusal -- the host answers and declines the port, which is a stopped service and not a
+      network fault. Carrying a handoff's connection table forward without re-measuring would
+      have had the system on its third option when it was on its first of two.
+
+    - **`observationsDatedAfterTheirSession` could not see the fault it was guarding against.**
+      The macro CSVs pair a latest revision with a first publication date: the number is wrong
+      while every date is right, so a date check passes. The rebuilt artifact is therefore read
+      back against the vintage histories themselves -- 28,440 session-and-series checks, zero
+      values that were not public that day, zero introduced by a later publication, zero still
+      equal to the CSV's final value, zero `chg` taken from a revision -- and it differs from the
+      invalidated file on all ten tracked series. A guard that cannot fail for the reason you
+      care about is documentation, not a test.
+
+    - **Three cases the artifact's own range cannot reach are held by tests instead.** Every
+      tracked series was already publishing by 2019, so the file never contains an absent one.
+      The `chg` test was written first with its own index and disagreed with the producer
+      whenever several revisions share a publication date; it now derives the index the way
+      `state_at` does.
+
+    - **Macro may not pick a side, so the experiment was when to act.** Its contract gives it
+      `decision-context` and `integrity-veto` and `mayVote: false`. Direction came from the
+      baseline model *imported* rather than restated, so the base could not quietly become a
+      re-tuned one; qualification came from macro alone and could only withhold. Against
+      coverage-matched random withholding -- the control that matters, because withholding the
+      hard half of anything raises accuracy on what is left -- it scored 0.4257 against 0.4212,
+      **+0.0045 where +0.02 was pre-declared**, winning 4 folds of 6 where 5 were required.
+      **NO-GO.** Full coverage scores 0.4226, so there was no edge underneath to concentrate.
+      `label60`'s -0.0816 was not re-run, re-tuned or consulted for a threshold.

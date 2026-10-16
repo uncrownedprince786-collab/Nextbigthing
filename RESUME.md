@@ -1,6 +1,183 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT — 2026-10-16, five commits, all authorised work closed
+
+**Branch `main`, HEAD at the checkpoint commit below. Working tree clean. Nothing is running: the
+dev server was stopped, no job or download is in flight, no deployment and no destructive operation
+was started. Tests: 1,124 Python, 472 web, all passing.**
+
+### What landed
+
+| Commit | Contains |
+|---|---|
+| `0e97f0f` | **The homepage database timeouts.** `pg`'s acquisition queue was being read as an unreachable endpoint. A gate bounds the page's demand to the pool's own ceiling. Cold render: 500 after 15s → **200 in 24.0s**. |
+| `d808432` | **`macro-sessions.jsonl.gz` rebuilt and verified.** sha256 `be649ce4…`, 2,844 sessions, 31 series, 0 leaks. Checked against the vintage histories, not against its producer. |
+| `50dba85` | **Connections rechecked; the primary was in cleartext.** Two of three endpoints serve. `withEncryption` now applied to the primary too. |
+| `2fbe158` | **Context-aware evaluation: NO-GO.** Macro as a qualifier scores +0.0045 over coverage-matched random, against a pre-declared +0.02. |
+| this one | This record, and `brain.md` rule 157. |
+
+### Priority 1 — homepage timeouts: fixed, cold and warm both verified
+
+**Root cause.** `pg` spends one option on two things: `connectionTimeoutMillis` starts its clock
+when an acquisition is *queued*, so on a pool of two it is not a connect timeout but a queue wait.
+The overview asks the primary for about fifty connections at once — `getDecisionRows` and
+`getSourceHealth` each fan out, and the page runs them together — measured at `total=2 idle=0
+waiting=43` through `waiting=59`. Every queued acquisition failed at five seconds;
+`isConnectionFailure` read that wording as an unreachable endpoint, which it must, because a full
+pooler says the same thing; so a primary answering every query it was handed was marked down and
+the request cascaded to a standby that refuses connections.
+
+**Why `/api/health` was green the whole time.** It makes a handful of queries where the overview
+makes fifty. A green probe is not evidence that the application works. The site only ever appeared
+to work because `unstable_cache` holds its rows with **no expiry** (`revalidate: false`), so the
+first render that succeeded kept it alive.
+
+**Two fixes measured and rejected.** Raising the timeout made it *worse* — `pg`'s queue is FIFO, a
+waiter that times out and re-queues goes to the back, and the cold render went from failing in 15s
+to failing in **two minutes**. Raising `max` was refused as a shared-resource change: the ceiling
+is a total across every instance and every job.
+
+**What shipped:** a gate in front of the pool, holding acquisitions to the ceiling the pool had
+anyway and queueing the rest in arrival order with no clock running. It opens no extra connection.
+
+| | before | after |
+|---|---|---|
+| cold render | 500 after 15s | **200 in 24.0s** (50 acquisitions, 3 queued at peak) |
+| warm render | only ever worked warm | 200 in 5.0s |
+| failover | flapping on every page | **none**; `/api/health` serves from the primary |
+| `/api/health`, `/api/signals` | — | 200, 557 assets, real data |
+
+With the primary also encrypted (`50dba85`) the cold render is **31.6s** — TLS handshake cost,
+paid knowingly.
+
+Two bugs in the gate itself, both of which presented as starvation rather than as themselves: `pg`
+installs a **fresh `release` per checkout**, so keeping the first one aside and reusing it made
+every later release raise "already released to the pool"; and releasing before counting let that
+raise escape with the place still held, draining the gate to nothing.
+
+### Priority 2 — macro artifact: rebuilt, verified, consumers checked
+
+    sessions 2844   range 2019-01-02..2026-10-15   series 31
+    observationsDatedAfterTheirSession 0
+    sha256 be649ce4bdd25cfe5e8c1e7809d4788f91699335b9365024d804e42604c28902
+
+Built with the same command `data-assemble.yml` runs. The producer was the one database-reading
+tool in its directory that never loaded `.env`, so it only ran in CI; it now loads it the way its
+neighbours do, guarded and optional.
+
+**`observationsDatedAfterTheirSession` cannot see the fault it guards against** — the CSVs pair a
+latest revision with a first publication date, so the number is wrong while every date is right.
+So `tools/foundation/macro_pit_verify.py` reads the artifact back against the vintage histories:
+
+| check | result |
+|---|---|
+| session×series checked | 28,440 |
+| value not public that day | 0 |
+| introduced by a later publication | 0 |
+| still equals the CSV's final value | 0 |
+| `chg` taken from a revision | 0 |
+
+Differs from the invalidated file on **all ten** tracked series — 1,880 sessions for UNRATE
+through 2,842 for GDPC1. Three cases the artifact's own range cannot reach are held by tests
+instead, because every tracked series was already publishing by 2019.
+
+**Consumers, checked rather than assumed:** `macro_context.as_of` never read the artifact — it
+reads the vintages directly, and the vintage wins outright for a tracked series.
+`evaluate_principles.py` reads whichever dataset directory it is handed. **No committed output is
+downstream of it**, so nothing needed rebuilding. The invalidated copy is retained beside an
+`INVALID.md` naming what superseded it.
+
+### Priority 3 — connections: two of three serve, and one was in cleartext
+
+    SUPABASE_DATABASE_URL  primary    SERVES  PostgreSQL 17.11  533 MB  15 of 60 connections
+    DATABASE_URL_FALLBACK  standby 1  FAILS   connection refused on its published port
+    DATABASE_URL           standby 2  SERVES  PostgreSQL 17.2   332 MB  10 of 50 connections
+
+Both previously recorded faults had changed. `DATABASE_URL` was recorded as failing login and
+serves a read. `DATABASE_URL_FALLBACK` was recorded as a timeout and is a **refusal** — the host
+answers and declines the port, which is a stopped or deleted service rather than a network fault,
+and restoring it needs the owner's provider account. The failover order was already asserted by a
+test. Carrying the handoff's table forward unmeasured would have had the system on its third
+option when it is on the first of two.
+
+**The primary was the one endpoint reached in cleartext.** `withEncryption` was applied where the
+standbys are built and the primary was passed on raw; Neon's strings name an sslmode so the
+wrapper was a no-op for them, and the Supabase string names none, which this driver reads as
+"connect unencrypted". `pg_stat_ssl` cannot settle it either way — behind a pooler it describes
+the pooler's own backend leg, not the client's, and the probe no longer reports it as if it could.
+
+**Storage: 533 MB today against 397.8 MB on 2026-10-15.** The 500 MB free-tier figure is still an
+**assumption** that was not read from the provider. If it is the real limit this database is now
+over it — recorded as the owner's to check rather than asserted.
+
+### Priority 4 — context-aware evaluation: NO-GO, recorded, not deployed
+
+Macro's contract gives it `decision-context` and `integrity-veto`, `mayVote: false`. So the
+experiment is not "does macro predict direction" but "does it tell us when to act". Direction came
+from the baseline model **imported** from `baseline_experiment.py` rather than restated, so the
+base could not quietly become a re-tuned one; qualification came from macro alone and could only
+withhold. `chg` only, joined on date — never a per-asset feature (one market-wide fact counted 616
+times is what `macroVeto` refuses), never a level, because a trending level is a proxy for the
+date.
+
+The control that decides it is coverage-matched random withholding, because withholding the hard
+half of anything raises accuracy on what is left.
+
+| | |
+|---|---|
+| coverage | 66.2% (≥ 50% required) **PASS** |
+| candidate | 0.4257 |
+| coverage-matched random | 0.4212 |
+| difference | **+0.0045** (≥ +0.02 required) **FAIL** |
+| folds won | **4 of 6** (≥ 5 required) **FAIL** |
+
+**NO-GO.** The filter is not selecting the calls that were going to be right — a random subset of
+the same size does as well. Full coverage scores 0.4226, so there is no edge underneath to
+concentrate, which is the same answer `baseline_experiment.json` already gave at +0.0007 over the
+majority class. Artifact: `data/foundation/dataset/context_experiment.json`.
+
+**`label60` is untouched:** still a mean margin of **−0.0816**, not re-run, not re-tuned and not
+consulted for a threshold.
+
+### Priority 5 — `WORKER_ARTIFACT_KEY`: **BLOCKED — authorization required**
+
+Unchanged and verified: the key is in `.env` as it was, **no `WORKER_ARTIFACT_KEY_PREVIOUS` exists
+anywhere**, and the seven workflow consumers are as they were. No partial rotation. The
+secret-store write policy was not bypassed and nothing was printed.
+
+**External action required — the owner/admin must do one of:** rotate it through GitHub's own
+secret UI, or grant secret-store write permission to a session. The rotation plan still stands:
+write `WORKER_ARTIFACT_KEY_PREVIOUS` **first** so sealed backups stay recoverable, then verify
+both new-key operation and previous-artifact recovery.
+
+### Two things that were blocked, and are the owner's call
+
+1. **Raising the web pool's connection ceiling** (`primaryLimits`, currently `max: 2`). Refused as
+   a shared-resource change. It is the one thing that would make the cold render fast rather than
+   merely correct — 24s is two connections doing fifty queries honestly. Measured headroom: 15 of
+   60 connections in use.
+2. **Measuring the Supabase pooler's real client ceiling.** The saturation probe
+   (`tools/db_probe.mjs --saturate`) deliberately consumes shared slots and was refused. The "15
+   session clients" figure in `primaryLimits`' comment is therefore **still unverified**;
+   `max_connections` is measured at 60, which is the server's number and not the pooler's.
+
+### Uncommitted work
+
+**None.** Everything is committed. `.cache/` holds the dataset, the rebuilt macro artifact and the
+retained invalid one — all disposable and re-derivable.
+
+### Next action
+
+Nothing is blocked on this session. The open items are the two permission decisions above and the
+`WORKER_ARTIFACT_KEY` rotation, all three of which need the owner. Beyond those: the cold render is
+correct but slow for the reason stated, and `DATABASE_URL_FALLBACK` needs its provider account.
+
 ## 0. SESSION CHECKPOINT — 2026-10-16, owner asleep, work paused cleanly
+
+> **Superseded by the checkpoint above.** Two statements in this section are no longer true and are
+> kept only as the record of what was known then: `macro-sessions.jsonl.gz` has since been rebuilt
+> and verified (sha256 `be649ce4…`), and the connection table below is out of date — `DATABASE_URL`
+> serves a read, so the system is not on its third option.
 
 **Branch `main`, HEAD `8feb778`. No tracked file is modified; the working tree holds only
 untracked markdown reports, all committed in the checkpoint commit below. Nothing is running:
