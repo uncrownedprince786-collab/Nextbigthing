@@ -28,7 +28,9 @@ near the 20% threshold, not because anything was interrupted.
 |---|---|
 | `ee29e16` | **The diagnosed candidate, trained and measured. NO-GO.** The collapse was real, removing it made the score worse. |
 | `8687cc5` | §8 tier T7 adversarial checks for a discrete-vote engine. |
-| this one | This record, and `brain.md` rule 159. |
+| `3215e0b` | This record and `brain.md` rule 159, as first written. |
+| `5b37051` | `artifactLocations` and `rebuildCommands` in the freeze, the weights statement, the next hypothesis, and `brain.md` rule 160. |
+| the commit carrying this table | Pins the hashes above. **It is the session's final commit and `HEAD`** — a commit cannot contain its own hash, so read it with `git log -1`; its parent is `5b37051`. |
 
 ### Formal training: what ran, and what it settled
 
