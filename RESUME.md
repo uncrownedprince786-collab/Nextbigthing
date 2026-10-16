@@ -1,5 +1,104 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT — 2026-10-16 (seventh), E1/E3 fed from live data; **35 commits unpushed**
+
+**Branch `main`. Working tree clean including untracked files. Nothing is running: no training, no
+producer, no dev server; `tasklist` shows no `python.exe` and no `node.exe`. The work commit is
+`ef2e030`; this record is the commit after it, readable with `git log -1`.**
+
+> ### ⚠ The one thing to do first next session
+>
+> **`main` is 35 commits ahead of `origin/main` and the push was refused by the environment's
+> permission policy** (`[Out-of-Place Publication]`, on `git push origin main`). It was **not** an
+> authentication failure and no credential is missing. Every commit, artifact and checkpoint from
+> this session exists **on one machine only**.
+>
+> This also blocks E3 in production: CI applies `20261016140000_atr_trailing_median` from the
+> migration committed in `e1af228`, and **CI cannot see a commit that was never pushed**. Confirmed
+> directly against `information_schema`: `atr14`, `sma20`, `sma50`, `rangePct` and `drawdownPct` are
+> present in the live database and **`atrTrailingMedian` is not**.
+>
+> **Needed:** the owner pushes, or grants push permission. Nothing was worked around.
+
+**Weekly usage: 81% used, 19% remaining**, about 2d 10h to reset — a point reading, not monitored.
+That is **past** the 20% checkpoint threshold, so the large contextual-feature build, dataset rebuild
+and new training run in the latest brief were **deliberately not started**. The cheap, already
+specified work was finished, verified and committed instead.
+
+**Tests, as actually run:** **1,132 Python**, **500 web**, `npx tsc --noEmit` clean. Full regression
+run because the change touches the live query path.
+
+### E1 and E3 now read their full inputs from live data (`ef2e030`)
+
+`getFactor` selected seven factor columns and left four unread that `AssetFactor` has stored since
+the table was written. The cost was quiet and per-family: **E1 scored from `r20` alone** — half its
+fact, landing exactly on the deadband — and **E3 could read only its volatility clause**. Both
+reported honestly what they could see, which is why nothing failed: *an honest report of a missing
+input looks identical whether the input is absent or merely unasked for.*
+
+Verified against the live database before trusting it: all **617** assets on the newest session carry
+`sma20`, `rangePct` and `drawdownPct`; **615** carry `sma50`. Ordinary model columns on every
+endpoint, so — unlike `atr14` and `atrTrailingMedian` — they need no fail-open raw read.
+
+Threaded the whole way: both factor selects, both bundle shapes, the decision-row shape, all three
+mappings, `DecisionInput`, and out through `fromDecisionInput`. **Acceptance met** (the criterion
+recorded in the sixth checkpoint): E1's score moves 0.5 → 1 and gains "fast above slow", E3 votes on
+its range clause, and the eligible-family count goes 1 → 2 on the same row.
+
+### E3 status, precisely
+
+| Hop | State |
+|---|---|
+| calculation, tests, cutoff | **done** (`e1af228`) |
+| migration file | **written**, not applied — CI applies it, and cannot see an unpushed commit |
+| live column | **absent**, confirmed via `information_schema` |
+| raw fail-open read, seam, adapter | **done**; E3 reads null and reports the clause **unmeasured, never calm** |
+| E1/E3 other inputs | **done** (`ef2e030`), verified on live rows |
+
+So E3's integration is complete in code and verified end to end from a live-shaped input; only the
+column's creation is outstanding, and it is downstream of the push.
+
+### Not started, and why
+
+The brief's §4–§6 — a contextual news/macro/event feature pipeline, a new frozen dataset and a new
+context-aware training candidate — are a multi-hour build. At 19% weekly remaining that would likely
+stop mid-way and leave a half-built pipeline, which is the one outcome the checkpoint rule exists to
+prevent. **Nothing about it was started**, so there is no partial work to reconcile. Note also that
+the previous context-aware candidate is already a recorded NO-GO at +0.0045 against +0.02.
+
+**The architectural point in §3 is accepted and unimplemented:** `mayVote: false` forbids a
+*directional rule vote*, and does not forbid a non-voting ML feature. That distinction is real and is
+the honest route to using news, macro, events and reactions. It needs the pipeline above, and the
+pipeline needs budget — it is not blocked by policy.
+
+### Unchanged
+
+Six NO-GO verdicts preserved, none overwritten; H1's evaluation untouched. `lib/families.ts`
+`families-v1.2`, now **28 tests**, **wired to nothing** — §9 gate 5 unmet, gate 7 makes deployment
+separate. Frozen dataset `examples-v3-2026-10-16-local`, gates green, rebuild commands recorded; it
+predates `atrTrailingMedian`. **No reusable trained model weights have ever been persisted.** Primary
+serves (533 MB); `DATABASE_URL` serves; `DATABASE_URL_FALLBACK` **ECONNREFUSED**. The 500 MB
+free-tier figure remains an **assumption**. **No stated latency requirement exists.**
+**`WORKER_ARTIFACT_KEY`: BLOCKED — authorization required**, verified unchanged.
+
+### Next authorized action, in dependency order
+
+1. **Push `main`** (or have the owner push). **Acceptance:** `git status -sb` shows no commits ahead
+   and the remote hash matches `HEAD`.
+2. **Let CI apply the migration**, then confirm the live column. **Acceptance:**
+   `information_schema` lists `atrTrailingMedian`, `getLateColumns` returns a populated
+   `atrBaseline`, and E3 reports a **measured** clause on an asset with enough history.
+3. **The contextual feature pipeline (§4–§6)** — the real remaining brain work, and the only route
+   left to new information. Needs a fresh usage budget. Build it as **non-voting ML features**, not
+   as new voting families, so the directional policy is untouched. **Acceptance:** point-in-time
+   correctness per feature (publication time, revisions, no pre-publication values), a frozen dataset
+   with checksums and rebuild commands, and a pre-registered candidate with its baseline and margin
+   fixed before the run.
+4. **Three owner decisions**, unchanged: the pool ceiling (`max: 2`), the pooler's real client
+   ceiling (unverified against a measured `max_connections` of 60), and the key rotation.
+
+No process was interrupted and no partial work exists.
+
 ## 0. SESSION CHECKPOINT — 2026-10-16 (sixth), E3 integrated end to end; stopped at the usage threshold
 
 **Branch `main`. Working tree clean including untracked files. Nothing is running: no training, no

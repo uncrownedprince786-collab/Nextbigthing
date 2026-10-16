@@ -6015,3 +6015,32 @@ reads rows that already exist:
       files. No direct endpoint exists locally, so applying it would risk stranding that lock for the
       next CI run. The fail-open read is what makes waiting safe: before the column exists the
       baseline is null and E3 reports it unmeasured, which is the same answer it gave yesterday.
+
+164. **Four columns were written for a year and never read, and the push that would apply a
+    migration is the blocker for the fifth.** 2026-10-16. Commits: `ef2e030`, and this record.
+
+    - **A column that is stored and unselected is indistinguishable, from inside a rule, from a
+      column that does not exist.** `AssetFactor` has held `sma20`, `sma50`, `rangePct` and
+      `drawdownPct` since the table was written; `getFactor` selected seven columns and not those
+      four. E1 therefore scored from `r20` alone -- half its fact, landing exactly on the deadband --
+      and E3 could read only its volatility clause. Both reported honestly what they could see, which
+      is why nothing failed and nothing complained: **an honest report of a missing input looks the
+      same whether the input is absent or merely unasked for.**
+
+    - **Verified against the live database before trusting it**, because that is the same mistake in
+      the other direction: all 617 assets on the newest session carry `sma20`, `rangePct` and
+      `drawdownPct`, and 615 carry `sma50`. Ordinary model columns on every endpoint, so unlike
+      `atr14` and `atrTrailingMedian` they need no fail-open raw read -- no standby can be missing
+      them.
+
+    - **The chain of blockers is worth naming in order**, because each hides the next.
+      `atrTrailingMedian` is confirmed absent from the live database by `information_schema`. CI
+      applies it from the migration committed in `e1af228`. **CI cannot see that commit, because the
+      branch is 35 commits ahead of its remote and the push is refused by policy.** So a correctness
+      fix completed and tested locally is, in production, still waiting on a permission -- and the
+      fail-open read is what makes that wait safe rather than a failure.
+
+    - **Thirty-five unpushed commits is itself the finding.** Every result, artifact and checkpoint
+      from this session exists on one machine. The handoff and the `brain.md` rules are only as
+      durable as the disk until that push lands, which makes it the highest-value action available
+      and not an administrative afterthought.
