@@ -18,9 +18,11 @@ runs recorded **metrics only**; `fit_softmax`/`fit_weighted` return their coeffi
 caller and it is discarded when the process exits. Reproducing a candidate means re-running its
 script against the frozen dataset, which its artifact identifies by digest.
 
-**Weekly usage at this checkpoint: 77% used, 23% remaining, resets in about 2d 11h** (read from the
-app's own usage card, not estimated). Extra usage is off. The checkpoint was taken because that is
-near the 20% threshold, not because anything was interrupted.
+**Weekly usage, read from the app's own usage card and not estimated: 77% used when this checkpoint
+was opened, 78% used — 22% remaining — at the last reading before it closed, resetting in about
+2d 11h.** Extra usage is off. These are **point readings taken at those two moments**, not a
+continuously monitored figure, and nothing here watches the quota in the background. The checkpoint
+was taken because that is near the 20% threshold, not because anything was interrupted.
 
 ### What landed since the last checkpoint
 
