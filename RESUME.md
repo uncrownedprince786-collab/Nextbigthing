@@ -112,6 +112,26 @@ would mean nothing and none are given.
 **1,129 Python, `OK`**, via `python -m unittest discover -s tests`. 35 of them are the context
 producer's and the join's.
 
+### Shadow-prediction readiness: measured, not assumed (`fb0953f`)
+
+`tools/research/shadow_readiness.py`, read-only: **ok 15, blocked 3, unknown 1 -> ready: False**.
+
+| Blocked | What it would cause |
+|---|---|
+| `macroArtifactIsDurable` | the macro artifact is in `.cache/foundation/macro_rebuild/`, gitignored and documented as disposable. A serving path reading it is one cache clean from silently losing **20 of the model's 44 features** |
+| `predictionCarriesAModelVersion` | no `modelVersion` field in the schema, so two candidates' shadow predictions are indistinguishable once recorded |
+| `imputationIsVisible` | nothing records which features were imputed. At training an absent feature takes the training mean -- measured and fine. **At inference the same rule turns a failed macro refresh into "an average day"**, and the prediction looks as confident as one built from observed evidence |
+
+`databaseReachable` is **unknown**, not ok: `DATABASE_URL` is unset in that process and opening a
+probe would be a side effect in a tool that promises none. A check that could not run is not a
+check that passed, and the summary counts the three states separately.
+
+Already true: the artifact loads (44 features, weights `[45, 3]`); every feature has a producer
+(29 context, 15 factor lane); events, press and reactions are committed under `data/` so unlike
+macro they survive a cache clean; macro is 2 days old and its staleness is visible per series in
+`macro_*_age`; today's block for AAPL/US has **0 of 29** context features null; `DecisionRun`,
+`DecisionCall` and `CallOutcome` all exist to hold a dated prediction and its matured outcome.
+
 ### Next authorized action
 
 ```
@@ -121,10 +141,11 @@ python tools/research/verify_artifact.py --model data/foundation/brain/brain-v2-
 
 Expect 0.4167, mix `{DOWN 6696, FLAT 2182, UP 104773}`. Then, in dependency order:
 
-1. **Shadow-prediction readiness.** The blocker to check first: the macro artifact lives in
-   `.cache/foundation/macro_rebuild/` and is **gitignored and disposable**, so a live inference
-   path cannot depend on it without a rebuild step in the lane. Nothing else in the producer reads
-   `.cache`; events, press and reactions are committed under `data/foundation/events/`.
+1. **Clear the three shadow blockers**, in this order, smallest first: add `modelVersion` and an
+   imputed-feature list to the prediction record (a migration plus the writer), then give the macro
+   artifact a durable home or a scheduled rebuild in the lane. Re-run
+   `python tools/research/shadow_readiness.py` and require **blocked 0**; `unknown` may remain for
+   `databaseReachable` when run without `DATABASE_URL`.
 2. **The crypto hypothesis**, pre-registered before it is run: baseline, margin and the exact rows
    fixed in a commit first, as `f664f17` did for this one.
 3. **A pristine holdout, or forward shadow predictions.** Nothing after 2026-09-25 is both unseen
