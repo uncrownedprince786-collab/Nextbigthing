@@ -107,6 +107,25 @@ Conclusion from the harness design (committed as written-but-never-run, with exp
 
 **Cost estimate.** ~1 h: the adjustment is arithmetic over the cached slice's labels and dates plus one bootstrap sweep; no retraining for the baseline.
 
+**Executed 2026-10-17 — verdict: fails all three criteria.** `tools/research/prevalence_adjustment.py`,
+artifact `data/foundation/dataset/prevalence_adjustment.json`. The refit reproduced
+`stationarity.json`'s recorded all-history numbers exactly (guarded). (a) beats unadjusted in
+**0 of 4** years: −0.0018 / −0.0172 / −0.0009 / −0.0014. (b) mean advantage −0.0053 vs mean
+half-width 0.0141. (c) 2025 improvement −0.0009 vs its half-width 0.0038. The corrected
+shuffled control shows real-minus-shuffled ≤ 0 every year (−0.0015 / −0.0165 / −0.0028 /
+−0.0000): the real prevalence signal is indistinguishable from a placebo. Mechanism: the
+trailing-365-matured π_recent lags the regime — in 2025 it was near-identical to π_train
+(0.478/0.087/0.435 vs 0.481/0.087/0.432), so the correction was ~zero where the deficit was
+largest; in 2023/2026 it amplified a stale sell-off-era lean and cost accuracy. Label-shift
+correction requires `p(x|y)` stable with only the prior moving; here the discriminative
+relationship itself moves. **Conclusion: the lean is not correctable from recently matured
+outcomes → next registered question is cross-sectional ranking.** Two methodology notes are
+recorded in the artifact: the sign discrepancy in this section's prose was resolved to the
+standard (add) form per the parenthetical, before the run; and the first shuffled control was a
+within-window permutation (class counts invariant, tautological) and was corrected to
+permute across the matured pre-cut population before the reported run. No criteria or
+thresholds were changed after seeing results.
+
 ## 11. What was NOT measured and why
 - No full PIT audit across all years/files (timestamp existence/discipline checked only); full audit out of scope.
 - No out-of-sample performance (measurement only, no training/evaluation beyond bounds).

@@ -1,5 +1,90 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-17 (twenty-sixth), registered experiment executed (fails); two pre-existing UI guards red
+
+**Branch `main`, this checkpoint's commit (see git log) on `origin/main`, tree clean after
+commit, `origin/main == HEAD`.**
+Local cache and files only; no database touched, no frozen artifact or model changed, no new
+training machinery. Started from verified `3c90a0b`.
+
+### The registered experiment ran and failed, on criteria fixed before the run
+
+Executed the hypothesis registered in `BRAIN-CORPUS-COVERAGE-2026-10-17.md` §10 — **prevalence-adjusted
+scoring**, a point-in-time label-shift prior correction on the all-history crypto-slice fits.
+New files only: `tools/research/prevalence_adjustment.py` and
+`data/foundation/dataset/prevalence_adjustment.json`. The refit reproduced `stationarity.json`'s
+recorded all-history numbers exactly (the script's fidelity guard aborts otherwise), so the
+baseline is the recorded one, not a re-tuned one.
+
+**Verdict: fails all three registered criteria.**
+- (a) beats unadjusted in **0 of 4** years (needs 3) — adjusted advantage −0.0018 / −0.0172 /
+  −0.0009 / −0.0014.
+- (b) mean advantage **−0.0053** vs mean half-width **0.0141**.
+- (c) 2025 improvement **−0.0009** vs its half-width 0.0038 (the three balanced years did not
+  degrade beyond theirs, but 2025 — the year that needed it — did not improve).
+- Real-minus-shuffled corrected control ≤ 0 in every year (−0.0015 / −0.0165 / −0.0028 / −0.0000):
+  the real prevalence signal is indistinguishable from a placebo shift.
+- In-sample-to-OOS gap stands: in-sample over-majority +0.021…+0.082 per year against OOS ≤ 0.
+
+**Mechanism, named in the artifact.** The trailing-365-matured window lags the regime: in 2025,
+π_recent (0.478/0.087/0.435) was nearly identical to π_train (0.481/0.087/0.432), so the
+correction was ~zero exactly where the deficit was largest (it flipped 153 of 21,194 rows); in
+2023 and 2026 it amplified a stale sell-off-era lean (π_recent DOWN 0.63/0.60 vs π_train ~0.51)
+and cost accuracy. Label-shift correction assumes `p(x|y)` is stable and only the prior moves; on
+this slice the discriminative relationship itself moves. **Conclusion recorded: the lean is not
+correctable from recently matured outcomes.**
+
+**Two methodology notes, both written before the reported run.** (1) The registration's prose
+said "subtract log(π_recent/π_train)" but named the operation "(standard label-shift prior
+correction)"; those are inverses. The standard **add** form was implemented per the parenthetical
+and the discrepancy recorded in the artifact — a literal subtraction would push the mix toward
+the training lean when the world shifts away, the opposite of the hypothesis. (2) The first
+shuffled-control implementation permuted labels *within* the window, which leaves class counts
+invariant — real-minus-shuffled came out exactly 0.0 in every resample, a tautology. Corrected to
+permute across the matured pre-cut population (same window width and row count) before the
+reported run; criteria (a)–(c) never depended on the control.
+
+**Rejection criteria and thresholds were not adjusted after seeing results.** Per the
+pre-declaration, the next registered question is **cross-sectional ranking** (relative-to-peer
+moves, no absolute threshold) — its spec to be registered the same way before any run. No
+promotion under any outcome: every evaluation year is exposed.
+
+### Two pre-existing Python guard tests are red — first task of the pending UI pass
+
+The full Python suite is now **1,160 of 1,162** (`Ran 1162 tests ... FAILED (failures=2)`). Both
+failures come from the Screen 8 commit (`dbe3004`), not from this session (no `app/` file was
+touched here):
+- `NoPlaceholdersInTheRenderedLayer.test_no_page_or_component_prints_a_placeholder` —
+  `app/preview/status/page.tsx:74` prints `{c.newest ?? <span …>none stored</span>}`, a banned
+  placeholder string, plus two more occurrences in `app/preview/`. The guard scans all of
+  `app/**/*.tsx`; `app/preview` is not exempt.
+- `SqlSafety.test_nothing_is_exposed_to_the_browser` — `app/preview/status/Preferences.tsx`
+  carries `"use client"` but is not in the deliberate `CLIENT_ALLOWED` allowlist
+  (`app/error.tsx`, `app/global-error.tsx`, `components/LivePrice.tsx`). Screen 6's watchlist did
+  not trip this; only Screen 8's Preferences did.
+
+These are the entry findings of the **UI integration and dynamic-route verification** milestone
+(task 3.2 below), not brain work. Deciding whether to fix the two preview files or to sanction
+`app/preview/` as a sandbox (its own placeholder/client rules) is an owner-facing design choice;
+do not paper over them. Recorded here so the next UI session starts from a known state.
+
+### Where the workstreams stand
+
+| | state | next |
+|---|---|---|
+| **C - UI** | 8 of 8 screens built (`dbe3004`); **2 Python guards red on Screen 8** | **fix or sanction the two guards**, then integration + route/user-flow verification, then cutover decision |
+| **B - Sync** | matrix written; B1–B6 open; calendar gap investigated (no row added) | **B1** when pooler has headroom; B3 needs live reads |
+| **A - Brain** | recency closed; prevalence-adjustment **executed, fails**; widening closed | **register cross-sectional ranking** (same discipline), then run it — local cache only |
+
+### Next action
+
+**UI: resolve the two red guards** (`no_page_or_component_prints_a_placeholder`,
+`nothing_is_exposed_to_the_browser`) — smallest change or an explicit `app/preview/` exemption,
+owner-facing — then proceed to dynamic-route/user-flow verification of the eight screens. Brain's
+next registered question (cross-sectional ranking) is the parallel research step; **B1** remains
+the sync step when the pooler has headroom. Deployment of the preview screens is verified
+separately from the Git push.
+
 ## 0. SESSION CHECKPOINT - 2026-10-17 (twenty-fifth), sync matrix, corpus measurement, one hypothesis registered
 
 **Branch `main`, docs commit for this checkpoint (see git log), tree clean after commit,

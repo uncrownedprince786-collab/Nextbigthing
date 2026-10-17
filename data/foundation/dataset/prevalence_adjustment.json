@@ -1,0 +1,455 @@
+{
+ "generatedAt": "2026-10-17T21:21:16+00:00",
+ "version": "prevalence-adjustment-v1",
+ "registeredIn": "BRAIN-CORPUS-COVERAGE-2026-10-17.md section 10, before any run",
+ "signResolution": "registration prose said 'subtract log(pi_recent/pi_train)' while naming the operation '(standard label-shift prior correction)'; the two are inverses. The standard form (add log(pi_recent/pi_train) to the class logits) was implemented per the parenthetical, chosen and recorded in the script before any number from this run was seen. A literal subtraction would push the prediction mix toward the training lean when the world shifts away from it - the opposite of the registered hypothesis.",
+ "controlNote": "the shuffled-label control permutes labels across the matured pre-cut population, then takes the trailing window's shares (same width, same row count). The first run permuted within the window, which leaves class counts invariant - real-minus-shuffled was identically 0.0 in every resample, a tautology. Corrected before the reported run; criteria (a)-(c) compare adjusted vs unadjusted only and are unaffected either way.",
+ "slice": "crypto, from the examples-v4-context cache; same slice as stationarity.json",
+ "recentWindowDecisionDates": 365,
+ "maturityRule": "only rows whose decision date is <= cut - 20 sessions (outcome had resolved by the cut) are visible to pi_recent; the evaluation year's own rows are never consulted",
+ "embargoSessions": 20,
+ "uncertainty": "moving-block bootstrap over decision dates, 20-date blocks, 400 resamples, identical implementation imported from stationarity.py",
+ "preDeclaredCriteria": {
+  "allThreeMustHold": [
+   "(a) beats unadjusted all-history in at least 3 of 4 evaluation years",
+   "(b) mean advantage across years exceeds the bootstrap half-width: resolved before the run as mean(per-year advantage) > mean(per-year halfWidth)",
+   "(c) 2025's advantage exceeds its own halfWidth, and no balanced year (2023/2024/2026) degrades below -halfWidth of that year"
+  ],
+  "failingAny": "the lean is not correctable from recently matured outcomes -> next registered hypothesis is cross-sectional ranking",
+  "setBefore": "any number from this run was seen (BRAIN-CORPUS-COVERAGE-2026-10-17.md section 10)",
+  "promotion": "none; every evaluation period is exposed and no artifact is promotable"
+ },
+ "byEvaluationYear": {
+  "2023": {
+   "evalRows": 12951,
+   "trainRows": 23414,
+   "classShare": {
+    "DOWN": 0.4393,
+    "FLAT": 0.114,
+    "UP": 0.4466
+   },
+   "piTrain": {
+    "DOWN": 0.5149,
+    "FLAT": 0.0731,
+    "UP": 0.4119
+   },
+   "piRecent": {
+    "DOWN": 0.6252,
+    "FLAT": 0.074,
+    "UP": 0.3008
+   },
+   "piRecentFrom": "2021-12-12",
+   "piRecentTo": "2022-12-11",
+   "piRecentRows": 10363,
+   "piRecentDecisionDates": 365,
+   "logShift": {
+    "DOWN": 0.194,
+    "FLAT": 0.0122,
+    "UP": -0.3145
+   },
+   "unadjusted": {
+    "accuracy": 0.441,
+    "majority": 0.4466,
+    "overMajority": -0.0056,
+    "predictedMix": {
+     "DOWN": 12879,
+     "FLAT": 0,
+     "UP": 72
+    }
+   },
+   "adjusted": {
+    "accuracy": 0.4392,
+    "majority": 0.4466,
+    "overMajority": -0.0074,
+    "predictedMix": {
+     "DOWN": 12936,
+     "FLAT": 0,
+     "UP": 15
+    },
+    "perClass": {
+     "DOWN": {
+      "recall": 0.9986,
+      "precision": 0.4392,
+      "predicted": 12936
+     },
+     "FLAT": {
+      "recall": 0.0,
+      "precision": null,
+      "predicted": 0
+     },
+     "UP": {
+      "recall": 0.001,
+      "precision": 0.4,
+      "predicted": 15
+     }
+    }
+   },
+   "shuffledControl": {
+    "accuracy": 0.4407,
+    "overMajority": -0.0059,
+    "piRecentShuffled": {
+     "DOWN": 0.52,
+     "FLAT": 0.0725,
+     "UP": 0.4075
+    }
+   },
+   "rowsFlipped": 57,
+   "adjustedVsUnadjustedBootstrap": {
+    "mean": -0.0018,
+    "p2_5": -0.0043,
+    "p97_5": 0.0005,
+    "halfWidth": 0.0024,
+    "resamples": 400,
+    "blockDays": 20
+   },
+   "adjustedVsShuffledBootstrap": {
+    "mean": -0.0015,
+    "p2_5": -0.0042,
+    "p97_5": 0.0007,
+    "halfWidth": 0.0025,
+    "resamples": 400,
+    "blockDays": 20
+   },
+   "inSampleOnTrainingRows": {
+    "accuracy": 0.583,
+    "majority": 0.5149,
+    "overMajority": 0.0681,
+    "note": "the correction is an identity on its own training rows (pi_train against pi_train), so adjusted in-sample equals unadjusted in-sample"
+   },
+   "inSampleToOOSgapAdjusted": 0.0755
+  },
+  "2024": {
+   "evalRows": 16013,
+   "trainRows": 36234,
+   "classShare": {
+    "DOWN": 0.4839,
+    "FLAT": 0.0886,
+    "UP": 0.4275
+   },
+   "piTrain": {
+    "DOWN": 0.4834,
+    "FLAT": 0.0868,
+    "UP": 0.4298
+   },
+   "piRecent": {
+    "DOWN": 0.4258,
+    "FLAT": 0.1119,
+    "UP": 0.4623
+   },
+   "piRecentFrom": "2022-12-12",
+   "piRecentTo": "2023-12-11",
+   "piRecentRows": 12820,
+   "piRecentDecisionDates": 365,
+   "logShift": {
+    "DOWN": -0.1269,
+    "FLAT": 0.2533,
+    "UP": 0.073
+   },
+   "unadjusted": {
+    "accuracy": 0.4518,
+    "majority": 0.4839,
+    "overMajority": -0.032,
+    "predictedMix": {
+     "DOWN": 2043,
+     "FLAT": 84,
+     "UP": 13886
+    }
+   },
+   "adjusted": {
+    "accuracy": 0.4346,
+    "majority": 0.4839,
+    "overMajority": -0.0492,
+    "predictedMix": {
+     "DOWN": 625,
+     "FLAT": 158,
+     "UP": 15230
+    },
+    "perClass": {
+     "DOWN": {
+      "recall": 0.0481,
+      "precision": 0.5968,
+      "predicted": 625
+     },
+     "FLAT": {
+      "recall": 0.0148,
+      "precision": 0.1329,
+      "predicted": 158
+     },
+     "UP": {
+      "recall": 0.9591,
+      "precision": 0.4311,
+      "predicted": 15230
+     }
+    }
+   },
+   "shuffledControl": {
+    "accuracy": 0.4516,
+    "overMajority": -0.0322,
+    "piRecentShuffled": {
+     "DOWN": 0.4849,
+     "FLAT": 0.0873,
+     "UP": 0.4278
+    }
+   },
+   "rowsFlipped": 1467,
+   "adjustedVsUnadjustedBootstrap": {
+    "mean": -0.0176,
+    "p2_5": -0.0597,
+    "p97_5": 0.0181,
+    "halfWidth": 0.0389,
+    "resamples": 400,
+    "blockDays": 20
+   },
+   "adjustedVsShuffledBootstrap": {
+    "mean": -0.0165,
+    "p2_5": -0.0539,
+    "p97_5": 0.0221,
+    "halfWidth": 0.038,
+    "resamples": 400,
+    "blockDays": 20
+   },
+   "inSampleOnTrainingRows": {
+    "accuracy": 0.565,
+    "majority": 0.4834,
+    "overMajority": 0.0816,
+    "note": "the correction is an identity on its own training rows (pi_train against pi_train), so adjusted in-sample equals unadjusted in-sample"
+   },
+   "inSampleToOOSgapAdjusted": 0.1308
+  },
+  "2025": {
+   "evalRows": 21194,
+   "trainRows": 52070,
+   "classShare": {
+    "DOWN": 0.5746,
+    "FLAT": 0.0938,
+    "UP": 0.3316
+   },
+   "piTrain": {
+    "DOWN": 0.4814,
+    "FLAT": 0.0869,
+    "UP": 0.4317
+   },
+   "piRecent": {
+    "DOWN": 0.4779,
+    "FLAT": 0.087,
+    "UP": 0.4351
+   },
+   "piRecentFrom": "2023-12-13",
+   "piRecentTo": "2024-12-11",
+   "piRecentRows": 15797,
+   "piRecentDecisionDates": 365,
+   "logShift": {
+    "DOWN": -0.0074,
+    "FLAT": 0.0011,
+    "UP": 0.008
+   },
+   "unadjusted": {
+    "accuracy": 0.366,
+    "majority": 0.5746,
+    "overMajority": -0.2086,
+    "predictedMix": {
+     "DOWN": 2606,
+     "FLAT": 5,
+     "UP": 18583
+    }
+   },
+   "adjusted": {
+    "accuracy": 0.3652,
+    "majority": 0.5746,
+    "overMajority": -0.2095,
+    "predictedMix": {
+     "DOWN": 2453,
+     "FLAT": 5,
+     "UP": 18736
+    },
+    "perClass": {
+     "DOWN": {
+      "recall": 0.1211,
+      "precision": 0.6013,
+      "predicted": 2453
+     },
+     "FLAT": {
+      "recall": 0.0015,
+      "precision": 0.6,
+      "predicted": 5
+     },
+     "UP": {
+      "recall": 0.891,
+      "precision": 0.3342,
+      "predicted": 18736
+     }
+    }
+   },
+   "shuffledControl": {
+    "accuracy": 0.3675,
+    "overMajority": -0.2071,
+    "piRecentShuffled": {
+     "DOWN": 0.4841,
+     "FLAT": 0.088,
+     "UP": 0.4279
+    }
+   },
+   "rowsFlipped": 153,
+   "adjustedVsUnadjustedBootstrap": {
+    "mean": -0.0008,
+    "p2_5": -0.0046,
+    "p97_5": 0.003,
+    "halfWidth": 0.0038,
+    "resamples": 400,
+    "blockDays": 20
+   },
+   "adjustedVsShuffledBootstrap": {
+    "mean": -0.0028,
+    "p2_5": -0.0109,
+    "p97_5": 0.0052,
+    "halfWidth": 0.0081,
+    "resamples": 400,
+    "blockDays": 20
+   },
+   "inSampleOnTrainingRows": {
+    "accuracy": 0.5329,
+    "majority": 0.4814,
+    "overMajority": 0.0514,
+    "note": "the correction is an identity on its own training rows (pi_train against pi_train), so adjusted in-sample equals unadjusted in-sample"
+   },
+   "inSampleToOOSgapAdjusted": 0.2609
+  },
+  "2026": {
+   "evalRows": 19220,
+   "trainRows": 72892,
+   "classShare": {
+    "DOWN": 0.4723,
+    "FLAT": 0.1234,
+    "UP": 0.4043
+   },
+   "piTrain": {
+    "DOWN": 0.5163,
+    "FLAT": 0.0892,
+    "UP": 0.3945
+   },
+   "piRecent": {
+    "DOWN": 0.6035,
+    "FLAT": 0.095,
+    "UP": 0.3015
+   },
+   "piRecentFrom": "2024-12-12",
+   "piRecentTo": "2025-12-11",
+   "piRecentRows": 20822,
+   "piRecentDecisionDates": 365,
+   "logShift": {
+    "DOWN": 0.1561,
+    "FLAT": 0.0629,
+    "UP": -0.269
+   },
+   "unadjusted": {
+    "accuracy": 0.4736,
+    "majority": 0.4723,
+    "overMajority": 0.0014,
+    "predictedMix": {
+     "DOWN": 18644,
+     "FLAT": 1,
+     "UP": 575
+    }
+   },
+   "adjusted": {
+    "accuracy": 0.4723,
+    "majority": 0.4723,
+    "overMajority": 0.0,
+    "predictedMix": {
+     "DOWN": 19136,
+     "FLAT": 2,
+     "UP": 82
+    },
+    "perClass": {
+     "DOWN": {
+      "recall": 0.9958,
+      "precision": 0.4724,
+      "predicted": 19136
+     },
+     "FLAT": {
+      "recall": 0.0004,
+      "precision": 0.5,
+      "predicted": 2
+     },
+     "UP": {
+      "recall": 0.0048,
+      "precision": 0.4512,
+      "predicted": 82
+     }
+    }
+   },
+   "shuffledControl": {
+    "accuracy": 0.4724,
+    "overMajority": 0.0002,
+    "piRecentShuffled": {
+     "DOWN": 0.5231,
+     "FLAT": 0.0909,
+     "UP": 0.386
+    }
+   },
+   "rowsFlipped": 493,
+   "adjustedVsUnadjustedBootstrap": {
+    "mean": -0.001,
+    "p2_5": -0.0141,
+    "p97_5": 0.0089,
+    "halfWidth": 0.0115,
+    "resamples": 400,
+    "blockDays": 20
+   },
+   "adjustedVsShuffledBootstrap": {
+    "mean": -0.0,
+    "p2_5": -0.0089,
+    "p97_5": 0.0083,
+    "halfWidth": 0.0086,
+    "resamples": 400,
+    "blockDays": 20
+   },
+   "inSampleOnTrainingRows": {
+    "accuracy": 0.5374,
+    "majority": 0.5163,
+    "overMajority": 0.0211,
+    "note": "the correction is an identity on its own training rows (pi_train against pi_train), so adjusted in-sample equals unadjusted in-sample"
+   },
+   "inSampleToOOSgapAdjusted": 0.0211
+  }
+ },
+ "criteria": {
+  "(a) beats unadjusted in >=3 of 4 years": {
+   "holds": false,
+   "wins": 0,
+   "perYear": [
+    [
+     "2023",
+     -0.0018
+    ],
+    [
+     "2024",
+     -0.0172
+    ],
+    [
+     "2025",
+     -0.0009
+    ],
+    [
+     "2026",
+     -0.0014
+    ]
+   ]
+  },
+  "(b) mean advantage > mean halfWidth": {
+   "holds": false,
+   "meanAdvantage": -0.0053,
+   "meanHalfWidth": 0.0141
+  },
+  "(c) 2025 clears its halfWidth, balanced years do not degrade beyond theirs": {
+   "holds": false,
+   "advantage2025": -0.0009,
+   "halfWidth2025": 0.0038,
+   "balancedYearsDegrading": []
+  },
+  "allThreeHold": false
+ },
+ "citedNotRerun": "the completed 18m-window result in stationarity.json (overMajority -0.0327 in 2025, no year clear of the interval)",
+ "verdict": "prevalence adjustment fails: the lean is not correctable from recently matured outcomes - next registered hypothesis is cross-sectional ranking",
+ "exposure": "every evaluation period here has been scored before; exploratory evidence only, never confirmatory, and nothing is promotable from it"
+}

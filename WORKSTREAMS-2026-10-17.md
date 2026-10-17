@@ -169,14 +169,30 @@ at least 3 of 4 walk-forward years by more than the bootstrap half-width. The me
 named is **prevalence shift** — 2025's class mix (DOWN 0.575 / UP 0.332) is the year the model
 loses 0.2086 to majority, while it sits within ~0.03 of majority in the three balanced years.
 
-**Registered next experiment** — full spec in `BRAIN-CORPUS-COVERAGE-2026-10-17.md` §10, fixed
-before any run: **prevalence-adjusted scoring**, a point-in-time label-shift prior correction on
-the all-history crypto-slice fits, with π_recent from the trailing 365 decision dates of
-already-matured outcomes, one variant only, the same four-year walk-forward and block bootstrap,
-and rejection criteria (a)–(c) written into the registration. It fails → cross-sectional
-ranking, unchanged as the alternative with the strongest prior: a formulation with a
-decision-shaped target that names which assets move most **relative to peers**, requiring no
-absolute directional threshold.
+**Registered experiment — executed 2026-10-17, verdict: fails.** Full spec was in
+`BRAIN-CORPUS-COVERAGE-2026-10-17.md` §10, fixed before any run: **prevalence-adjusted scoring**,
+a point-in-time label-shift prior correction on the all-history crypto-slice fits, with π_recent
+from the trailing 365 decision dates of already-matured outcomes, one variant only, the same
+four-year walk-forward and block bootstrap, rejection criteria (a)–(c). Run:
+`tools/research/prevalence_adjustment.py`, artifact `data/foundation/dataset/prevalence_adjustment.json`.
+**All three criteria fail, decisively.** (a) wins 0 of 4 years — the adjusted model is *worse*
+than unadjusted in every year: −0.0018, −0.0172, −0.0009, −0.0014 over majority. (b) mean
+advantage −0.0053 against mean half-width 0.0141. (c) 2025's advantage −0.0009 against its
+half-width 0.0038 (no balanced year degraded, but 2025 did not improve). Real-minus-shuffled
+corrected control is ≤ 0 in every year (−0.0015, −0.0165, −0.0028, −0.0000) — the real
+prevalence signal is indistinguishable from a placebo. The mechanism: the trailing-365-matured
+window lags the regime — in 2025, π_recent (0.478/0.087/0.435) was near-identical to π_train
+(0.481/0.087/0.432), so the correction was ~zero exactly where the deficit was largest; in 2023
+and 2026 it amplified a stale sell-off-era lean and cost accuracy. Label-shift theory assumes
+`p(x|y)` is stable and only the prior moves; on this slice the discriminative relationship itself
+moves. **Conclusion: the lean is not correctable from recently matured outcomes.**
+
+**Next registered question — cross-sectional ranking** (pre-declared before the run): a
+formulation with a decision-shaped target that names which assets move most **relative to peers**,
+requiring no absolute directional threshold. Its full spec must be registered the same way
+(artifact, splits, baselines, fixed rejection criteria) before any run — not rerun as a variant
+of the failed test. This closes the windowing family (recency) and the prior-correction family
+(label-shift); both are negative with the mechanism named.
 
 ---
 
