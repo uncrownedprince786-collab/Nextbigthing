@@ -1,5 +1,65 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-17 (twenty-second), the replacement UI is running
+
+**Branch `main`, work commit `3811fe4`, tree clean, `origin/main == HEAD`.**
+**Usage 87% weekly** (reset 2026-10-19 - **not yet reset**). Tests **1,162 Python, 500 web, `tsc`
+clean, production build clean**.
+
+### Workstream C has started, and it works
+
+**Two live screens at `/preview`**, built against real backend data, not fixtures.
+
+**The named gap is closed.** `lib/queries.ts` had 50 readers and none touched `ShadowPrediction`.
+**`getShadowPredictions`** adds one and **enforces the maturity rule in the reader**, so no caller
+can get it wrong:
+
+| state | meaning |
+|---|---|
+| `awaitingMaturity` | the horizon has not passed - **not a miss, not a FLAT, not a result** |
+| `maturedAwaitingOutcome` | horizon passed, nothing scored it - work owed, counted as owed |
+| `scored` | an outcome exists - **only these may enter an accuracy figure** |
+
+`outcomeLabel IS NULL` means *not yet*, never *no move*.
+
+**Screen 7 shows no accuracy at all**, because `scored` is 0. A percentage over zero scored
+records is not a small number - it is not a number. The page says so in words.
+
+**Screen 1 states plainly that no directional model is validated** (four candidates, four NO-GO)
+and shows what is measured instead.
+
+**Verified on real data**: the production build prerenders both routes, and the predictions page
+renders **566 awaiting maturity, 0 scored**, "No accuracy is shown", and names `brain-v2-context`
+as not approved for production.
+
+**Isolation**: everything under `/preview`, no existing route's files touched, **all 60 pages
+still build**, rollback is deleting one folder. The layout carries a banner and `robots: noindex`
+- a preview that looks like the product is a preview someone will quote.
+
+### Three signatures I guessed wrong, caught by the typechecker
+
+`getUpcoming` takes an options object; `getDataStamp` returns a **string**, not a record; `Event`
+rows carry no `inDays`. All fixed against the real definitions rather than cast away. **Read the
+signature before calling it** - the contract document lists the names, not the shapes.
+
+### Where the three workstreams stand
+
+| | state | next |
+|---|---|---|
+| **A - Brain** | not started this session | corpus-coverage measurement: does widening past ~37 of 617 instruments raise the in-sample floor above +0.0332 by more than the shuffled band |
+| **B - Sync** | `daily_audit.py` exists and finds real faults; **B1-B6 not started** | **B1**: fresh backup + restore rehearsal at current schema (5 migrations behind), which unblocks **B4**, putting the audit on a real schedule |
+| **C - UI** | **2 of 8 screens live and verified** | Screens 2-5 from already-mapped readers (no new queries needed); Screen 6 as `localStorage` only |
+
+### Next action
+
+**Screens 2-5** need no new readers - `getIndustriesByMarket`, `getPricedAssetsByIndustry`,
+`getAsset`, `getAssetPrices`, `getLiveQuoteFor`, `getAssetFreshness`, `getDecisionBundle`,
+`getStories`, `getEvents` are all mapped in `WORKSTREAMS-2026-10-17.md` §3 and already tested.
+That is the cheapest remaining product progress and it needs no database writes.
+
+**B1 remains the highest-value operational task** and needs the pooler to be under its 15-client
+ceiling.
+
 ## 0. SESSION CHECKPOINT - 2026-10-17 (twenty-first), contracts set; two UI scope discoveries
 
 **Branch `main`, work commit `da81bb5`, tree clean, `origin/main == HEAD`.**
