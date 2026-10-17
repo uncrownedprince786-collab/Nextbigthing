@@ -1,5 +1,72 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-18 (twenty-ninth), the tests lane is green — CI failure closed
+
+**Branch `main`, this checkpoint's commit `3c5952d` on `origin/main`, tree clean,
+`origin/main == HEAD`.** Documentation only this session; no database touched, no frozen artifact or
+model changed, no new training machinery. Started from verified `d06091a`.
+
+### The red `tests` lane is green, the first green run since 2026-10-15
+
+**GitHub Actions `tests` run #291 on `3c5952d` completed `success`.** Both jobs pass, every step:
+- **`types and lint`** — Type check ✅, Decision rules ✅, **Lint ✅**.
+- **`brain logic`** — Compile every job ✅, **Brain logic tests ✅**.
+
+This closes the failure that had run on every push since **2026-10-15T16:03Z** (last green
+`ac2dac4` at 14:11Z). The two closing commits are `65754a6` (evidence checksum + escaped JSX quote)
+and `3c5952d`.
+
+### Root causes fixed in `3c5952d` (recorded, not re-investigated)
+
+- **`brain logic` / crisis_2008 checksum.** `data/foundation/crisis_2008/*.csv` (22 series) plus
+  `fdic_failures.json` and `chronology.json` recorded sha256 values computed over Windows **CRLF**
+  bytes, while git stores and CI checks out **LF**, so
+  `test_historical_corpus.test_every_series_file_matches_its_recorded_checksum` failed on Linux.
+  `tools/foundation/crisis_2008.py` already writes with `newline=""`, so **LF is canonical**: the
+  manifest's 24 digests were corrected to their LF values, and `*.csv` plus
+  `data/foundation/crisis_2008/*.json` were pinned to `eol=lf` in `.gitattributes`. (Same class as
+  the `press_evidence.jsonl` CRLF defect closed in `65754a6`.)
+- **`types and lint` / Lint.** Next 16's React Compiler rules (`react-hooks/set-state-in-effect`,
+  `react-hooks/purity`) are errors under `eslint-config-next` 16.3.8 and fired on deliberately
+  SSR-safe preview code. The three `localStorage` reads in
+  `app/preview/{status/Preferences,watchlist/SaveButton,watchlist/WatchlistClient}.tsx` were
+  refactored from post-mount `useState`+`useEffect` to `useSyncExternalStore` (snapshot + subscribe
+  helpers added to `app/preview/prefs.ts` and `app/preview/watchlist/storage.ts`), preserving the
+  deliberate "not read yet" state through a `null` server snapshot. `app/preview/page.tsx` — an ISR
+  server component — reads the clock once behind one justified `react-hooks/purity` disable.
+  `eslint.config.mjs` now ignores the git-ignored `.cache/` (vendored scripts that exist only
+  locally), so a local lint run agrees with the lane that gates a push.
+- Also closed in `65754a6`: `app/preview/predictions/page.tsx`'s bare `"` (escaped to
+  `&ldquo;…&rdquo;`, the codebase style).
+
+### Local results, this session (all re-run; no database)
+
+| gate | result |
+|---|---|
+| `python -m unittest discover -s tests` | **1,163 of 1,163 OK** |
+| `npm run test:web` | **500 of 500 pass** |
+| `npx eslint .` | **exit 0** (0 errors, 0 problems) |
+| `npx tsc --noEmit` | **clean** |
+| `npm run build` | **clean** — all eight `/preview` routes plus the dynamic `/preview/asset/[symbol]` and `/preview/markets/[slug]` routes present; every production route intact |
+
+An LF-checkout rehearsal (`git clone -c core.autocrlf=false` into a temp dir, then run the suite)
+reproduced the CI checksum failure before the fix and passed after it — which is how the crisis
+cause was isolated without GitHub job-log access.
+
+### Where the workstreams stand
+
+| | state | next |
+|---|---|---|
+| **C - UI** | 8 of 8 screens; both Python guards green; **tests lane green** | cutover + rollback runbook, then verification |
+| **B - Sync** | matrix written; B1–B6 open; `daily_audit.py` **unscheduled** (B4) | **B1** when the pooler has headroom; **B4** strictly after B1 |
+| **A - Brain** | recency, prevalence, ranking (20s) and horizon (5s) all **negative** | eligible set / target family (declared); explicit NO-GO → GO pathway added to the handoff |
+
+### Next action
+
+**The closure plan**: prepare and verify the controlled cutover + rollback runbook (no production
+cutover yet); complete the local sync checks; then **B1** when the pooler has headroom, with **B4**
+strictly after it. No new roadmap and no repeated experiment loop.
+
 ## 0. SESSION CHECKPOINT - 2026-10-18 (twenty-eighth), the 5-session outcome-horizon experiment executed (fails)
 
 **Branch `main`, this checkpoint's commit on `origin/main`, tree clean after commit,

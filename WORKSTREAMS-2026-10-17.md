@@ -234,3 +234,29 @@ the UI. The honest sequencing is: B1–B4 make operation routine; C builds the r
 existing readers; A continues as research with no release dependency; cutover happens when C
 passes verification, with or without a validated brain — because the product is useful without a
 direction and dishonest with an unvalidated one.
+
+---
+
+## 8. The `tests` lane is green — 2026-10-18 (CI failure closed)
+
+The `tests` workflow had failed on every push since **2026-10-15T16:03Z**. **GitHub Actions
+`tests` run #291 on commit `3c5952d` completed `success`**, both jobs and every step:
+**`types and lint`** (type check, decision rules, **lint**) and **`brain logic`** (compile every
+job, **brain logic tests**). Closing commits: `65754a6` and `3c5952d`.
+
+**Root causes.** (1) `data/foundation/crisis_2008/*.csv` (22 series) plus `fdic_failures.json`
+and `chronology.json` recorded sha256 values over Windows **CRLF** bytes while git stores and CI
+checks out **LF**; LF is canonical (the generator writes `newline=""`), so the manifest's 24
+digests were corrected and `*.csv` / `data/foundation/crisis_2008/*.json` pinned to `eol=lf`.
+(2) Next 16's React Compiler lint rules fired on the preview client components' post-mount
+`localStorage` reads — refactored to `useSyncExternalStore`; one justified `react-hooks/purity`
+disable for the ISR server clock; `.cache/` added to the eslint ignores.
+
+**Local gates (re-run this session).** Python **1,163 OK**; web **500/500**; `eslint .` **exit 0**;
+`tsc --noEmit` clean; `next build` clean (all `/preview` routes and every production route present).
+
+**Next closure actions.** (a) prepare and verify the controlled **cutover + rollback runbook**
+(`UI-CUTOVER-RUNBOOK-2026-10-18.md`) — production cutover is *not* performed here; (b) complete the
+**local sync checks** and, when the pooler has headroom, **B1 → B4**; (c) the explicit brain
+**NO-GO → GO** pathway (§6). Release stays gated on **brain evidence**, not on build or test
+health.
