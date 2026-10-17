@@ -2047,3 +2047,56 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
     };
   });
 }
+
+/// Experimental predictions from a candidate that is **not approved for production**, with the
+/// maturity rule enforced here rather than left to each caller.
+///
+/// Three states, and conflating any two of them would misreport the record:
+///
+/// * **awaiting** — `maturesAfter` is still in the future. The outcome has not happened yet, so
+///   it is not a miss, not a FLAT, and not a result. A reader that counted these as anything
+///   would be reporting the calendar as performance.
+/// * **matured, unscored** — the horizon has passed and nothing has written the outcome yet.
+///   This is work owed, and it is counted separately so it cannot hide inside "awaiting".
+/// * **scored** — `outcomeLabel` is present. Only these may enter any accuracy figure.
+///
+/// `null` in `outcomeLabel` therefore means "not yet", **never** "no move". The table's own
+/// migration says so and this is where that promise is kept.
+export async function getShadowPredictions(limit = 200) {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  const rows = await prisma.shadowPrediction.findMany({
+    orderBy: [{ asOf: "desc" }, { symbol: "asc" }],
+    take: limit,
+  });
+  const all = await prisma.shadowPrediction.findMany({
+    select: { maturesAfter: true, outcomeLabel: true, quality: true, predicted: true,
+              modelVersion: true, approved: true },
+  });
+
+  const scored = all.filter((r) => r.outcomeLabel !== null);
+  const matured = all.filter((r) => r.outcomeLabel === null && r.maturesAfter !== null
+    && r.maturesAfter <= today);
+  const awaiting = all.filter((r) => r.outcomeLabel === null
+    && (r.maturesAfter === null || r.maturesAfter > today));
+
+  const tally = <T extends string>(xs: (T | null)[]) =>
+    xs.reduce<Record<string, number>>((a, k) => (k ? { ...a, [k]: (a[k] ?? 0) + 1 } : a), {});
+
+  return {
+    rows,
+    total: all.length,
+    /// Counted apart, always. An accuracy over `scored` is honest; one over `total` is not.
+    scored: scored.length,
+    maturedAwaitingOutcome: matured.length,
+    awaitingMaturity: awaiting.length,
+    byQuality: tally(all.map((r) => r.quality)),
+    byPredictedClass: tally(all.map((r) => r.predicted)),
+    modelVersions: [...new Set(all.map((r) => r.modelVersion))],
+    /// Nothing here is approved, and the page says so rather than assuming it.
+    anyApproved: all.some((r) => r.approved),
+    earliestMaturity: all.reduce<Date | null>(
+      (m, r) => (r.maturesAfter && (!m || r.maturesAfter < m) ? r.maturesAfter : m), null),
+  };
+}
