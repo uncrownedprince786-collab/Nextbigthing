@@ -71,13 +71,15 @@ export default async function StatusPage() {
                   <tr key={c.market}>
                     <td className="px-3 py-2">{c.market}</td>
                     <td className="px-3 py-2 tabular-nums">
-                      {c.newest ?? <span className="text-muted-foreground">none stored</span>}
+                      {c.newest ?? (
+                        <span className="text-muted-foreground">no close stored</span>
+                      )}
                     </td>
                     <td className="px-3 py-2 tabular-nums">
                       {q?.newest ? (
                         day(q.newest)
                       ) : (
-                        <span className="text-muted-foreground">none stored</span>
+                        <span className="text-muted-foreground">no quote stored</span>
                       )}
                     </td>
                   </tr>

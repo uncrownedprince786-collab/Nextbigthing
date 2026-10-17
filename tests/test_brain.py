@@ -4969,7 +4969,7 @@ class SqlSafety(unittest.TestCase):
                     offenders.append(f"{p.relative_to(ROOT)}")
         self.assertEqual(offenders, [], "; ".join(offenders))
 
-    # The only files allowed to carry `use client`, named one by one so a third cannot appear
+    # The only files allowed to carry `use client`, named one by one so another cannot appear
     # without this list being edited deliberately.
     #
     # Next requires an error boundary to be a Client Component -- there is no server-rendered
@@ -4979,7 +4979,20 @@ class SqlSafety(unittest.TestCase):
     # browser, and that is the one thing a server-rendered, hourly-cached page cannot do. It is held to
     # the same rule as they are -- no server module, no environment, no database -- and to one more in
     # `TheLiveLane`: it may fetch exactly one same-origin URL.
-    CLIENT_ALLOWED = ("app/error.tsx", "app/global-error.tsx", "components/LivePrice.tsx")
+    #
+    # The three `app/preview/` islands are the replacement UI's browser-local state: the watchlist
+    # list, its save button and the two preferences. They exist as client components for the same
+    # single reason -- the state lives in `localStorage` and there is no identity subsystem, user
+    # table or preference table to move it to (see `app/preview/watchlist/storage.ts` and
+    # `app/preview/prefs.ts`) -- so the server cannot render them and must not be asked to guess.
+    # None is a sandbox exemption: each is one component in the allow list, held to the same
+    # no-server-value rule below, and `test_no_allowed_client_component_fetches_off_site` keeps
+    # their `fetch` on this origin.
+    CLIENT_ALLOWED = (
+        "app/error.tsx", "app/global-error.tsx", "components/LivePrice.tsx",
+        "app/preview/watchlist/WatchlistClient.tsx", "app/preview/watchlist/SaveButton.tsx",
+        "app/preview/status/Preferences.tsx",
+    )
 
     def test_nothing_is_exposed_to_the_browser(self):
         # No NEXT_PUBLIC_ variable and no client component means no server-only value can reach
@@ -5013,6 +5026,18 @@ class SqlSafety(unittest.TestCase):
             self.assertIn("use client", text, f"{rel} is in the allow list but is not one")
             for needle in banned:
                 self.assertNotIn(needle, text, f"{rel} reaches a server value: {needle}")
+
+    def test_no_allowed_client_component_fetches_off_site(self):
+        import re
+
+        # A client component is the one place a URL built at runtime leaves the server. It may
+        # only ever ask this origin: a stored or computed absolute URL would be the browser
+        # bundle reaching a host the server never chose. LivePrice's one fetch is the model.
+        for rel in self.CLIENT_ALLOWED:
+            text = code_only((ROOT / rel).read_text(encoding="utf-8"))
+            for m in re.finditer(r"fetch\(\s*[`\"']([^`\"']*)", text):
+                self.assertTrue(m.group(1).startswith("/"),
+                                f"{rel} fetches off-site: {m.group(1)}")
 
     def test_a_wrong_address_has_a_page_of_its_own(self):
         # Four routes call notFound(); without this file all four land on the built-in 404, with

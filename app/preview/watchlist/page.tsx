@@ -21,8 +21,8 @@ export default function WatchlistPage() {
           <p className="text-sm leading-relaxed">
             <strong>This list is held in this browser only.</strong> It is not an account. Nothing
             here is sent to the server except the symbols needed to look up their stored readings,
-            and the list itself is not stored anywhere else — it will not follow you to another
-            browser or device, and clearing this site&rsquo;s data will remove it.
+            and the list itself is held nowhere else — it will not follow you to another browser
+            or device, and clearing this site&rsquo;s data will remove it.
           </p>
           <p className="text-muted-foreground mt-2 text-sm">
             This project has no user accounts: there is no sign-in, and no user, watchlist or
