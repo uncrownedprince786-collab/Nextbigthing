@@ -2,15 +2,12 @@
 
 ## 0. SESSION CHECKPOINT - 2026-10-17 (seventeenth), the crypto lead is closed by measurement
 
-**Branch `main`. Work commits `c12daec` (pre-registration) and `9005c98` (result).
-`9005c98` is COMMITTED LOCALLY AND NOT PUSHED** - `github.com` stopped resolving
-(`Could not resolve host`), three attempts, two spaced. **Push it before anything else:**
+**Branch `main`, tree clean. Work commits `c12daec` (pre-registration) and `9005c98` (result),
+both verified on `origin/main`.**
 
-```
-git push origin main && git fetch origin && git rev-list --left-right --count HEAD...origin/main
-```
-
-Expect `0 0`. Everything below is committed; nothing is only in the working tree.
+`9005c98` was briefly stranded: `github.com` stopped resolving (`Could not resolve host`) for
+three attempts, two of them spaced. DNS recovered and the push went through with the checkpoint
+behind it. Recorded because a handoff that says "pushed" should say when that was in doubt.
 
 ### The crypto specialist is a NO-GO, and the failure explains the number that started it
 
