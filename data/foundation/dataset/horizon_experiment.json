@@ -1,0 +1,391 @@
+{
+ "generatedAt": "2026-10-17T22:17:24+00:00",
+ "version": "horizon-experiment-v1",
+ "registeredIn": "this file's docstring, 2026-10-18, before any run",
+ "question": "at a 5-session horizon, does the primary directional formulation carry out-of-sample skill where the identical 20-session formulation did not",
+ "target": "label5 = UP/DOWN at +/-1.0% fwd5, else FLAT; threshold = 2.0*sqrt(5/20), fixed before the run",
+ "slice": "crypto rows of the frozen examples-v4-context dataset; same filter as stationarity.json (label20 in classes, mature20), plus fwd5 for the h5 target",
+ "rowsWithoutFwd5": 0,
+ "embargoSessions": 20,
+ "horizonIsolation": "identical split and identical 20-decision-date embargo for both horizons, so the target horizon is the only thing that changes",
+ "fidelityGuard": "the h20 refit must reproduce stationarity.json's recorded all-window accuracy and predicted mix per year; any mismatch >5e-4 aborts",
+ "uncertainty": "moving-block bootstrap over decision dates, 20-date blocks, 400 resamples, imported verbatim from stationarity.py",
+ "preDeclaredCriteria": {
+  "promisingIfAllHold": [
+   "(a) h5 beats its own year's majority in >= 3 of 4 evaluation years",
+   "(b) h5's mean accuracy-over-majority exceeds the mean bootstrap half-width",
+   "(c) h5's mean accuracy-over-majority exceeds h20's (the horizon helps)"
+  ],
+  "failing": "the horizon change does not rescue the directional formulation; both horizons are negative -> next question is the eligible set / target family, not another horizon",
+  "setBefore": "any number from this run was seen (registered 2026-10-18)",
+  "promotion": "none; every evaluation period is exposed and no artifact is promotable"
+ },
+ "byEvaluationYear": {
+  "2023": {
+   "evalRowsH20": 12951,
+   "evalRowsH5": 12951,
+   "trainRowsH20": 23414,
+   "trainRowsH5": 23414,
+   "classShareH5": {
+    "DOWN": 0.42,
+    "FLAT": 0.1308,
+    "UP": 0.4492
+   },
+   "h20": {
+    "accuracy": 0.441,
+    "majority": 0.4466,
+    "overMajority": -0.0056,
+    "predictedMix": {
+     "DOWN": 12879,
+     "FLAT": 0,
+     "UP": 72
+    },
+    "perClass": {
+     "DOWN": {
+      "recall": 0.996,
+      "precision": 0.44,
+      "predicted": 12879
+     },
+     "FLAT": {
+      "recall": 0.0,
+      "precision": null,
+      "predicted": 0
+     },
+     "UP": {
+      "recall": 0.0076,
+      "precision": 0.6111,
+      "predicted": 72
+     }
+    },
+    "inSampleOverMajority": 0.0681
+   },
+   "h5": {
+    "accuracy": 0.4201,
+    "majority": 0.4492,
+    "overMajority": -0.029,
+    "predictedMix": {
+     "DOWN": 12901,
+     "FLAT": 0,
+     "UP": 50
+    },
+    "perClass": {
+     "DOWN": {
+      "recall": 0.9963,
+      "precision": 0.4201,
+      "predicted": 12901
+     },
+     "FLAT": {
+      "recall": 0.0,
+      "precision": null,
+      "predicted": 0
+     },
+     "UP": {
+      "recall": 0.0036,
+      "precision": 0.42,
+      "predicted": 50
+     }
+    },
+    "inSampleOverMajority": 0.0608,
+    "majorityClass": "DOWN"
+   },
+   "shuffledControl": {
+    "accuracy": 0.423,
+    "overMajority": -0.0262
+   },
+   "h5MinusH20OverMajority": -0.0234,
+   "h5VsMajorityBootstrap": {
+    "mean": 0.0001,
+    "p2_5": -0.0016,
+    "p97_5": 0.0014,
+    "halfWidth": 0.0015,
+    "resamples": 400,
+    "blockDays": 20
+   }
+  },
+  "2024": {
+   "evalRowsH20": 16013,
+   "evalRowsH5": 16013,
+   "trainRowsH20": 36234,
+   "trainRowsH5": 36234,
+   "classShareH5": {
+    "DOWN": 0.4553,
+    "FLAT": 0.0914,
+    "UP": 0.4534
+   },
+   "h20": {
+    "accuracy": 0.4518,
+    "majority": 0.4839,
+    "overMajority": -0.032,
+    "predictedMix": {
+     "DOWN": 2043,
+     "FLAT": 84,
+     "UP": 13886
+    },
+    "perClass": {
+     "DOWN": {
+      "recall": 0.147,
+      "precision": 0.5575,
+      "predicted": 2043
+     },
+     "FLAT": {
+      "recall": 0.0063,
+      "precision": 0.1071,
+      "predicted": 84
+     },
+     "UP": {
+      "recall": 0.8891,
+      "precision": 0.4384,
+      "predicted": 13886
+     }
+    },
+    "inSampleOverMajority": 0.0816
+   },
+   "h5": {
+    "accuracy": 0.464,
+    "majority": 0.4553,
+    "overMajority": 0.0087,
+    "predictedMix": {
+     "DOWN": 5192,
+     "FLAT": 222,
+     "UP": 10599
+    },
+    "perClass": {
+     "DOWN": {
+      "recall": 0.3392,
+      "precision": 0.4763,
+      "predicted": 5192
+     },
+     "FLAT": {
+      "recall": 0.0198,
+      "precision": 0.1306,
+      "predicted": 222
+     },
+     "UP": {
+      "recall": 0.6788,
+      "precision": 0.4649,
+      "predicted": 10599
+     }
+    },
+    "inSampleOverMajority": 0.0581,
+    "majorityClass": "DOWN"
+   },
+   "shuffledControl": {
+    "accuracy": 0.4714,
+    "overMajority": 0.0162
+   },
+   "h5MinusH20OverMajority": 0.0407,
+   "h5VsMajorityBootstrap": {
+    "mean": 0.0098,
+    "p2_5": -0.0969,
+    "p97_5": 0.1156,
+    "halfWidth": 0.1062,
+    "resamples": 400,
+    "blockDays": 20
+   }
+  },
+  "2025": {
+   "evalRowsH20": 21194,
+   "evalRowsH5": 21194,
+   "trainRowsH20": 52070,
+   "trainRowsH5": 52070,
+   "classShareH5": {
+    "DOWN": 0.5113,
+    "FLAT": 0.1107,
+    "UP": 0.3779
+   },
+   "h20": {
+    "accuracy": 0.366,
+    "majority": 0.5746,
+    "overMajority": -0.2086,
+    "predictedMix": {
+     "DOWN": 2606,
+     "FLAT": 5,
+     "UP": 18583
+    },
+    "perClass": {
+     "DOWN": {
+      "recall": 0.1276,
+      "precision": 0.5963,
+      "predicted": 2606
+     },
+     "FLAT": {
+      "recall": 0.0015,
+      "precision": 0.6,
+      "predicted": 5
+     },
+     "UP": {
+      "recall": 0.8825,
+      "precision": 0.3337,
+      "predicted": 18583
+     }
+    },
+    "inSampleOverMajority": 0.0514
+   },
+   "h5": {
+    "accuracy": 0.395,
+    "majority": 0.5113,
+    "overMajority": -0.1164,
+    "predictedMix": {
+     "DOWN": 2219,
+     "FLAT": 158,
+     "UP": 18817
+    },
+    "perClass": {
+     "DOWN": {
+      "recall": 0.1093,
+      "precision": 0.5336,
+      "predicted": 2219
+     },
+     "FLAT": {
+      "recall": 0.017,
+      "precision": 0.2532,
+      "predicted": 158
+     },
+     "UP": {
+      "recall": 0.8923,
+      "precision": 0.3798,
+      "predicted": 18817
+     }
+    },
+    "inSampleOverMajority": 0.0525,
+    "majorityClass": "DOWN"
+   },
+   "shuffledControl": {
+    "accuracy": 0.4709,
+    "overMajority": -0.0404
+   },
+   "h5MinusH20OverMajority": 0.0922,
+   "h5VsMajorityBootstrap": {
+    "mean": -0.1179,
+    "p2_5": -0.202,
+    "p97_5": -0.0173,
+    "halfWidth": 0.0923,
+    "resamples": 400,
+    "blockDays": 20
+   }
+  },
+  "2026": {
+   "evalRowsH20": 19220,
+   "evalRowsH5": 19220,
+   "trainRowsH20": 72892,
+   "trainRowsH5": 72892,
+   "classShareH5": {
+    "DOWN": 0.4741,
+    "FLAT": 0.131,
+    "UP": 0.3948
+   },
+   "h20": {
+    "accuracy": 0.4736,
+    "majority": 0.4723,
+    "overMajority": 0.0014,
+    "predictedMix": {
+     "DOWN": 18644,
+     "FLAT": 1,
+     "UP": 575
+    },
+    "perClass": {
+     "DOWN": {
+      "recall": 0.9739,
+      "precision": 0.4741,
+      "predicted": 18644
+     },
+     "FLAT": {
+      "recall": 0.0004,
+      "precision": 1.0,
+      "predicted": 1
+     },
+     "UP": {
+      "recall": 0.0337,
+      "precision": 0.4557,
+      "predicted": 575
+     }
+    },
+    "inSampleOverMajority": 0.0211
+   },
+   "h5": {
+    "accuracy": 0.4771,
+    "majority": 0.4741,
+    "overMajority": 0.003,
+    "predictedMix": {
+     "DOWN": 18987,
+     "FLAT": 7,
+     "UP": 226
+    },
+    "perClass": {
+     "DOWN": {
+      "recall": 0.9923,
+      "precision": 0.4763,
+      "predicted": 18987
+     },
+     "FLAT": {
+      "recall": 0.0016,
+      "precision": 0.5714,
+      "predicted": 7
+     },
+     "UP": {
+      "recall": 0.0162,
+      "precision": 0.5442,
+      "predicted": 226
+     }
+    },
+    "inSampleOverMajority": 0.0367,
+    "majorityClass": "DOWN"
+   },
+   "shuffledControl": {
+    "accuracy": 0.4717,
+    "overMajority": -0.0024
+   },
+   "h5MinusH20OverMajority": 0.0016,
+   "h5VsMajorityBootstrap": {
+    "mean": 0.003,
+    "p2_5": 0.0001,
+    "p97_5": 0.0071,
+    "halfWidth": 0.0035,
+    "resamples": 400,
+    "blockDays": 20
+   }
+  }
+ },
+ "criteria": {
+  "meanOverMajorityH5": -0.0334,
+  "meanOverMajorityH20": -0.0612,
+  "meanHalfWidth": 0.0509,
+  "(a) h5 beats majority in >=3 of 4 years": {
+   "holds": false,
+   "wins": 2,
+   "perYear": [
+    [
+     "2023",
+     -0.029
+    ],
+    [
+     "2024",
+     0.0087
+    ],
+    [
+     "2025",
+     -0.1164
+    ],
+    [
+     "2026",
+     0.003
+    ]
+   ]
+  },
+  "(b) h5 mean over majority > mean halfWidth": {
+   "holds": false
+  },
+  "(c) h5 mean over majority > h20 mean over majority": {
+   "holds": true
+  },
+  "allHold": false
+ },
+ "citedNotRerun": {
+  "recency": "stationarity.json: no shorter window beats all-history in >=3 of 4 years",
+  "prevalence": "prevalence_adjustment.json: fails all three, 0 of 4 years",
+  "ranking": "cross_sectional_ranking.json: fails (a), (b), (d) at 20 sessions",
+  "corpusWidening": "BRAIN-CORPUS-COVERAGE section 9: 6.00% own-scope, do not widen"
+ },
+ "verdict": "the 5-session horizon is negative: the horizon change does not rescue the directional formulation; next question is the eligible set / target family",
+ "exposure": "every evaluation period here has been scored before; exploratory evidence only, never confirmatory, and nothing is promotable from it"
+}

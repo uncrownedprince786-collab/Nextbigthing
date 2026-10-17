@@ -1,5 +1,62 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-18 (twenty-eighth), the 5-session outcome-horizon experiment executed (fails)
+
+**Branch `main`, this checkpoint's commit on `origin/main`, tree clean after commit,
+`origin/main == HEAD`.** Local cache and files only; no database touched, no frozen artifact or
+model changed, no new training machinery. Started from verified `51eda91`.
+
+### Verification first: working repository, branch, HEAD, remote
+
+`C:\Users\NEW TECH\Documents\Nextbigthing-restore`, branch `main`, remote
+`https://github.com/uncrownedprince786-collab/Nextbigthing.git`; HEAD `51eda91` is a
+**descendant** of `0ffd0ac` (`0ffd0ac -> c382618 -> 51eda91`), working tree clean,
+`origin/main == HEAD`. Nothing was reset or overwritten. (The session CWD `Default Project` is
+not a git repository.)
+
+### The registered 5-session outcome-horizon experiment ran and failed, on criteria fixed before the run
+
+Registered in full in the docstring of `tools/research/horizon_experiment.py` before any run:
+question, target (`label5` = UP/DOWN at **±1.0%** `fwd5`, else FLAT — the 20-session ±2.0%
+threshold scaled by `sqrt(5/20)`, fixed, not tuned), the same frozen slice and the same four-year
+walk-forward with a 20-decision-date embargo, the same seeds and the verbatim block bootstrap,
+baselines and rejection criteria (a)-(c) fixed first. It varies the **one dimension not yet
+varied — the horizon** — holding everything else identical, with the 20-session side embedded as a
+**fidelity-guarded re-derivation** (it reproduced `stationarity.json`'s recorded accuracy and
+predicted mix exactly in all four years, else the run aborts). New files:
+`tools/research/horizon_experiment.py` and `data/foundation/dataset/horizon_experiment.json`; new
+git-ignored cache `.cache/foundation/horizon_slice.npz` (adds `fwd5`; 93,452 rows, none missing
+`fwd5`, so both horizons use the same rows).
+
+**Verdict: fails.** h5 accuracy-over-majority per year (2023-2026): **−0.0290 / +0.0087 / −0.1164 /
++0.0030**, against h20's recorded −0.0056 / −0.0320 / −0.2086 / +0.0014.
+- (a) h5 beats its own year's majority in **2 of 4** years (2024 +0.0087, 2026 +0.0030; needs 3) — fail.
+- (b) mean h5 over-majority **−0.0334** vs mean bootstrap half-width **0.0509** — fail.
+- (c) h5 mean over-majority **−0.0334** > h20 mean **−0.0612** — holds: the shorter horizon is
+  better in 3 of 4 years (h5−h20 +0.0407 / +0.0922 / +0.0016; only 2023 is negative, −0.0234).
+
+The 5-session fit is still class-degenerate in two years (2023 predicted DOWN on 12,901 of 12,951
+rows, FLAT on 0; 2026 DOWN on 18,987 of 19,220), and the paired shuffled-label control is at or
+**above** h5 in three of four years (−0.0262 / +0.0162 / −0.0404 vs h5's −0.0290 / +0.0087 /
+−0.1164), so the little skill that appears is not distinguishable from a placebo fit. **Conclusion
+recorded: the horizon change points the right way but does not rescue the directional formulation;
+both horizons are negative.** Next question (declared): the **eligible set / target family** — not
+another horizon, and not a rerun of any completed experiment.
+
+### Where the workstreams stand
+
+| | state | next |
+|---|---|---|
+| **C - UI** | 8 of 8 screens; both Python guards green; suite 1,163 + 500 web + build clean | integration + regression, then cutover |
+| **B - Sync** | matrix written; B1–B6 open; `daily_audit.py` verified **unscheduled** (B4) | **B1** when pooler has headroom; B4 strictly after B1; B3 needs live reads |
+| **A - Brain** | recency, prevalence, ranking (20s) and horizon (5s) all **negative** | eligible set / target family (declared), same discipline — no rerun |
+
+### Next action
+
+**Return to the closure plan**: sync/recovery work (**B1** when the pooler has headroom; **B3** needs
+live reads; **B4** scheduling `daily_audit.py` strictly after B1) and replacement-UI integration,
+then full regression and production verification. No new roadmap and no repeated experiment loop.
+
 ## 0. SESSION CHECKPOINT - 2026-10-18 (twenty-seventh), the two UI guards are green; cross-sectional ranking executed (fails)
 
 **Branch `main`, this checkpoint's commit on `origin/main`, tree clean after commit,

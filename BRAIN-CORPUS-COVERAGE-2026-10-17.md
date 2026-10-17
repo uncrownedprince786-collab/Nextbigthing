@@ -158,6 +158,29 @@ outcome horizon itself** — the frozen rows already carry `fwd1`/`fwd5` as well
 next question is a **5-session cross-sectional / directional test**, registered the same way before
 any run. No criteria were changed after seeing this result, and nothing is promotable.
 
+### Follow-on experiment: the outcome horizon (5-session) — registered and executed 2026-10-18, verdict: fails
+
+The next question named above — the **outcome horizon** — was registered in full in the docstring of
+`tools/research/horizon_experiment.py` (question, target `label5` = UP/DOWN at ±1.0% `fwd5` else FLAT
+— the 20-session ±2.0% scaled by `sqrt(5/20)`; the same frozen slice and four-year walk-forward with a
+20-decision-date embargo; the same seeds and verbatim block bootstrap; baselines and criteria (a)-(c)
+fixed before any run), then executed. The horizon is the only dimension varied; the 20-session side is
+embedded as a fidelity-guarded re-derivation that reproduced `stationarity.json`'s recorded accuracy
+and predicted mix exactly in all four years. Artifact `data/foundation/dataset/horizon_experiment.json`;
+new git-ignored cache `.cache/foundation/horizon_slice.npz`.
+
+**Result: negative.** h5 accuracy-over-majority per year (2023-2026): −0.0290 / +0.0087 / −0.1164 /
++0.0030 (h20 recorded: −0.0056 / −0.0320 / −0.2086 / +0.0014). (a) h5 beats its own year's majority
+in **2 of 4** years (2024, 2026) — fail; (b) mean **−0.0334** vs mean bootstrap half-width **0.0509**
+— fail; (c) mean **−0.0334** > h20's **−0.0612** — holds, and h5 beats h20 in 3 of 4 years
+(+0.0407 / +0.0922 / +0.0016; 2023 −0.0234). The fit is still class-degenerate in two years (2023
+DOWN on 12,901 of 12,951; 2026 DOWN on 18,987 of 19,220) and the shuffled-label control is at or above
+h5 in three of four years, so the apparent skill is not distinguishable from a placebo fit.
+**Conclusion: the horizon change points the right way but does not rescue the directional
+formulation; both horizons are negative.** The one dimension left untouched is the **eligible set /
+target family** (`fwd1`/`fwd5`/`fwd20` and `mfe`/`mae` are all in the frozen rows), to be registered
+the same way before any run. No criteria were changed after the result, and nothing is promotable.
+
 ## 11. What was NOT measured and why
 - No full PIT audit across all years/files (timestamp existence/discipline checked only); full audit out of scope.
 - No out-of-sample performance (measurement only, no training/evaluation beyond bounds).

@@ -203,13 +203,27 @@ IC in only **1 of 4** years — (d) fails; in fact `directionModel` beat price-o
 3 of 4 years, so removing the directional threshold helped nothing. Every per-year half-width
 exceeds its mean IC. **Conclusion: the 20-session cross-sectional form is also negative.**
 
-**Next registered question — the outcome horizon.** With the window family (recency), the
-prior-correction family (label-shift) and the 20-session cross-sectional form all negative with
-mechanisms named, the one dimension not yet varied is **the forward window itself**. The frozen
-rows already carry `fwd1` and `fwd5` beside `fwd20`, so the next test is a **5-session**
-cross-sectional / directional experiment, registered in full (target, eligible set, walk-forward,
-baselines, fixed rejection criteria) before any run — not a rerun of this one at a new width.
-Nothing here is promotable; every evaluation period is exposed.
+**Registered question — the outcome horizon — executed 2026-10-18, verdict: fails.** Full spec
+was registered in the docstring of `tools/research/horizon_experiment.py` before any run: the 5-session
+target `label5` (UP/DOWN at ±1.0% `fwd5`, the 20-session ±2.0% scaled by `sqrt(5/20)`), the same
+frozen slice and four-year walk-forward with a 20-decision-date embargo, the same seeds and verbatim
+block bootstrap, the 20-session side embedded as a fidelity-guarded re-derivation (it reproduced
+`stationarity.json`'s recorded numbers exactly), and criteria (a)-(c) fixed first. Artifact
+`data/foundation/dataset/horizon_experiment.json`. **Result: negative.** h5 accuracy-over-majority
+per year: −0.0290 / +0.0087 / −0.1164 / +0.0030; (a) beats majority in **2 of 4** years (needs 3);
+(b) mean **−0.0334** vs mean half-width **0.0509**; (c) holds — h5 mean −0.0334 beats h20's −0.0612,
+and h5 beats h20 in 3 of 4 years. The fit is still class-degenerate in two years and the
+shuffled-label control is at or above h5 in three, so the apparent skill is not distinguishable from
+a placebo. **Conclusion: the horizon change points the right way but does not rescue the directional
+formulation; both horizons are negative.**
+
+**Next registered question — the eligible set / target family.** With the window family (recency),
+the prior-correction family (label-shift), the 20-session cross-sectional form, and now the 5-session
+horizon all negative with mechanisms named, the remaining untouched dimension is **which rows are
+eligible** and **what the target is a function of** (the frozen rows carry `fwd1`/`fwd5`/`fwd20` and
+`mfe`/`mae` beside the class labels). Any such test must be registered in full (target, eligible set,
+walk-forward, baselines, fixed rejection criteria) before a run — not a rerun of any completed
+experiment, and not another horizon. Nothing here is promotable; every evaluation period is exposed.
 
 ---
 
