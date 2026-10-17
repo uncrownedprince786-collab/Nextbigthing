@@ -108,3 +108,47 @@ the row below it; polling every source every second would be both impossible and
 * Backup/restore rehearsal currency (B1) not verified.
 * No claim that any lane is currently healthy — this is the contract of the system as
   written, not a health report.
+
+---
+
+## Verified locally — 2026-10-18 (no database touched)
+
+An evidence stamp for the contract above, gathered from the repository this session. No live reads.
+
+**Schedules cross-checked, matrix vs workflows — all match.** `cron-us-prices 50 1,7,13,21 * * *`,
+`cron-crypto 5 */2 * * *`, `cron-psx 40 12,16,20 * * *`, `cron-live */5 13-21 * * 1-5` +
+`7,22,37,52 * * * *`, `cron-news 20 */2 * * *`, `cron-calendar 40 03 * * *`,
+`cron-products 10 3 * * *`, `cron-decision 10 22 * * *`, `cron-mirror 40 23 * * *`,
+`cron-backup 40 4 * * *`, `cron-watchdog 45 * * * *`, `cron-audit 35 1-23/2 * * *`,
+`refresh 45 6 * * 1`. **36 migrations on disk.**
+
+**Retry and gap recovery confirmed as written.** `retry.yml` re-runs a failed lane **once**, guarded
+by `run_attempt == 1`, over the nine data lanes, and deliberately excludes `schema.yml` and
+`tests.yml`. `lib/health.ts` imports `STALE_AFTER_DAYS` from `lib/decision.ts` (one definition of
+stale) rather than restating it; `BACKTRACK=9`, `is_full` delete+rewrite, the forward-only quote
+upsert and the 14-day correction window are the gap-recovery mechanisms named in the rows.
+
+**`tools/daily_audit.py` remains unscheduled — B4 reconfirmed.** Its only references are
+`WORKSTREAMS-2026-10-17.md`, `RESUME.md`, this file, itself and `tests/test_daily_audit.py`. No
+workflow invokes it. `cron-audit.yml` runs `jobs/run.py audit` (`jobs/audit.py`, the Coverage
+writer), not this.
+
+**`daily_audit.py --no-db` runs clean** (exit 0; 6 ok, 1 warn, 1 unknown). The warn is
+`restoreRehearsalCurrent`: *"verified at schema `20261011130000_decision_history`; 5 migration(s)
+applied since."* The five are `20261016140000_atr_trailing_median`,
+`20261017000000_shadow_prediction`, `20261017120000_eventimpact_measured_count`,
+`20261017140000_eventimpact_reclaim`, `20261017150000_eventimpact_reindex`. **This is B1,
+reproduced locally without opening a connection.**
+
+**Last recorded real audit** (`data/foundation/dataset/daily_audit.json`, run `2026-10-17T00:32:40Z`,
+one DB connection): `healthy: false`; **1 fail** — `jobRuns36h`: 104 slices in 36 h, failing
+`cron products:blocked×2, cron products:empty×1`. Warns: `restoreRehearsalCurrent` (B1),
+`sourceCoverage` (8 sources outside, incl. `Yahoo Finance daily closes (Commodity) stale ×2.27`) and
+`databaseSize` **493.0 MB of 500 MB (98.6 %)**. `migrationsApplied` **36 applied / 0 pending** — the
+live database is at current schema. `shadowOutcomes`: 566 predictions, 0 scored, 0 matured. This is
+the exact live picture B1/B2/B5 address; it is **recorded, not re-measured**, to protect the pooler.
+
+**Live blocker, stated exactly.** B1 — a fresh sealed backup at the current schema plus an isolated
+restore rehearsal — needs database access this session does not take: the pooler accepts ~15
+session-mode clients and size headroom is at 98.6 %. **B4 stays ordered after B1.** No destructive
+or owner-authorised operation (`VACUUM FULL "EventImpact"`, ~57 MB, B5) was attempted.

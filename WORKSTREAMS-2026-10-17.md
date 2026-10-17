@@ -225,6 +225,43 @@ eligible** and **what the target is a function of** (the frozen rows carry `fwd1
 walk-forward, baselines, fixed rejection criteria) before a run — not a rerun of any completed
 experiment, and not another horizon. Nothing here is promotable; every evaluation period is exposed.
 
+### The NO-GO → GO pathway — explicit, because every result so far is NO-GO
+
+Four registered experiments (prevalence adjustment, 20-session cross-sectional ranking, the
+5-session horizon, and the earlier 60-session label) are all negative, each with its mechanism
+named; the recency/window family is closed and corpus widening is closed. **The default is NO-GO and
+stays NO-GO until evidence moves it.** The route from here to a GO is a bounded research programme,
+run after the UI/sync closure — not a repeat of anything above:
+
+1. **Define the capability and preregister acceptance before any run.** State, in the tool's own
+   docstring, the single decision the model supports, the eligible set, the target as a function of
+   the frozen rows, the walk-forward windows, the baselines and the numeric rejection/success
+   criteria — fixed first, as every prior experiment did. A capability without a pre-committed bar is
+   not testable.
+2. **Compare against stronger baselines, not only the majority class.** Include a
+   **gradient-boosted tabular** model on the same frozen features and, where justified, an
+   **opportunity-ranking** objective or an **alternative target family** — the still-untouched
+   *eligible set / target family* dimension. The direction classifier is the incumbent, not the
+   ceiling; a candidate must beat the incumbent **and** the stronger baselines.
+3. **Frozen, chronological, leakage-safe evaluation with uncertainty.** The same four-year
+   walk-forward, an embargo, block-bootstrap half-widths, and **market / asset-class / regime
+   breakdowns**, each against its own base rate. A pooled mean is not evidence; a stratum that is
+   negative is a stated failure.
+4. **Respect the holdout limitation. No in-sample promotion, ever.** Every evaluation period is
+   already exposed to whoever reads these artifacts, so no candidate is promoted on a walk-forward
+   score alone.
+5. **Select only on a pass.** A candidate advances only if it clears the registered criteria on the
+   frozen evaluation. If it does not, it is recorded NO-GO and preserved — not tuned until it passes.
+6. **Then, and only then, prospective shadow testing → production approval.** A passing candidate
+   moves to forward **shadow** predictions (`ShadowPrediction`, `approved: false`) and is
+   production-approved only after **forward**-outcome evidence plus **costs, risk and operational
+   gates** — never on the retrospective score. `productionApproved` stays `false` until that step is
+   satisfied; `daily_audit.py`'s `noApprovedShadowRecords` and artifact checks enforce it in code.
+
+**No step may be skipped, and no completed experiment may be re-run to manufacture a different
+answer.** The pathway is recorded here; the next run is a *newly registered* question on the
+eligible-set / target-family dimension, not another horizon.
+
 ---
 
 ## 7. What a release actually needs
