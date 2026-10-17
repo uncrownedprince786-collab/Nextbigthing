@@ -1,5 +1,82 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-17 (twenty-fifth), sync matrix, corpus measurement, one hypothesis registered
+
+**Branch `main`, docs commit for this checkpoint (see git log), tree clean after commit,
+`origin/main == HEAD`.** Live database touched by exactly one bounded read-only query (the
+calendar `createdAt` cadence check below); nothing destructive run; no training performed;
+no frozen artifact or model modified.
+
+### UI milestone (from the twenty-fourth session) is complete and pushed
+
+All eight replacement screens exist under `app/preview/`; commit `dbe3004` ("preview: screens
+6 and 8, so all eight replacement screens exist") pushed to `origin/main`. **500 web tests,
+`tsc --noEmit` clean, production build clean (65 pages).** `npm run lint` hangs on this machine
+(pre-existing). Screen 6 (watchlist, localStorage-only, no auth subsystem) and Screen 8
+(status + preferences, prints each source's own recorded status word, never recomputes
+staleness) verified live once against production. This workstream is done; next for C is an
+integration + regression pass, then the cutover decision.
+
+### Sync: the operational matrix is written, and one "safe fix" was investigated and rejected
+
+**`SYNC-MATRIX-2026-10-17.md`** (committed with this checkpoint): one row per source/system
+across prices, news/events, product signals and operations - cron schedule, freshness target,
+rate/quota budgets, retry/dedup, alerts and tests for each, plus six cross-cutting findings.
+Polling everywhere is confirmed as the correct design (no source offers a stream a free-tier
+runner could hold).
+
+**Calendar-lane finding, investigated with production access before any code was changed:**
+`jobs/audit.py`'s `coverage()` computes each source's gap as `max(0, now - newest)`, and
+`jobs/upcoming.py` stores only forward-dated rows - so a `("Event", "date")` WATCHED entry
+would clamp to gap zero and report **healthy forever**, a false all-clear worse than the gap.
+The alternative ingestion timestamp, `createdAt`, was checked live (one read-only query: 542
+calendar rows, newest inserted today, new-row cadence 364/129/0/13/19/6/11 across three
+weeks): it tracks first-discovery only, because the slug upsert never touches it - discovery
+cadence is not lane cadence, and a week with no new dates would read stale while the lane is
+healthy. **No Coverage row added.** The honest signal is `ChunkRun`, which the lane already
+writes and Screen 8 already displays; the follow-up (ChunkRun-based health problem +
+watchdog lane, or B4 scheduling `daily_audit.py` whose `jobRuns36h` check covers it) is
+recorded in the matrix, owner-scoped.
+
+Also open in sync, unchanged: **B1** (backup + restore rehearsal, 5 migrations behind,
+unblocks B4), **B2** (Aiven standby timeout), **B3** (classify the 8 stale sources against
+production), **B5** (`VACUUM FULL "EventImpact"`, ~57 MB, owner authorisation), **B6**
+(env/secret fixes). B4 (`daily_audit.py` scheduling) stays ordered after B1 per the contract.
+
+### Brain: corpus coverage measured; the widening lever is closed; one experiment registered
+
+**`BRAIN-CORPUS-COVERAGE-2026-10-17.md`** (committed with this checkpoint): own-scope corpus
+coverage is **37 of 617 instruments (6.00%)**, 6.81% of modelled rows carry observed own-scope
+context; the crypto slice - where the +0.0332 in-sample floor was measured - is named by
+btc/eth only (2 of 76 instruments). Widening from disk reaches ~39 (SEC cache adds AAL, BWA;
+no crypto). Where the own-scope block's contribution can be tested on already-covered
+populations it sits below the paired shuffled-control band. **Conclusion: do not widen.**
+
+**The recency hypothesis was checked before registration and found already closed** -
+`tools/research/stationarity.py` (`ef779c3`/`dacaef5`, verdict in
+`data/foundation/dataset/stationarity.json`) tested all-history/3y/18m/6m windows on this
+slice and found recency does not help; the mechanism is prevalence shift. The registered
+experiment is therefore the distinct one that targets that mechanism:
+**prevalence-adjusted scoring** - point-in-time label-shift prior correction on the
+all-history crypto-slice fits, π_recent from the trailing 365 decision dates of already-matured
+outcomes, one variant, same four-year walk-forward, same 20-date-block bootstrap, rejection
+criteria (a)-(c) fixed in the registration. Fails -> cross-sectional ranking. Full spec:
+`BRAIN-CORPUS-COVERAGE-2026-10-17.md` §10; WORKSTREAMS §6 updated to match.
+
+### Where the workstreams stand
+
+| | state | next |
+|---|---|---|
+| **C - UI** | **8 of 8 screens built, verified, pushed (`dbe3004`)** | integration + regression pass, then cutover decision |
+| **B - Sync** | matrix written; B1-B6 open; calendar gap investigated, no row added | **B1** when pooler has headroom; B3 needs live reads |
+| **A - Brain** | coverage measured (do not widen); recency closed; **one experiment registered** | run the prevalence-adjustment experiment (~1 h, local cache only) |
+
+### Next action
+
+**The registered prevalence-adjustment experiment** (`BRAIN-CORPUS-COVERAGE-2026-10-17.md`
+§10) - local-cache only, ~1 h, no database, no new training machinery. Or **B1** when the
+pooler has headroom.
+
 ## 0. SESSION CHECKPOINT - 2026-10-17 (twenty-fourth), all eight screens built
 
 **Branch `main`, tree clean after commit, `origin/main == HEAD`.**

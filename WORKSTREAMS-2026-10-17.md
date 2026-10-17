@@ -152,16 +152,31 @@ later add a direction to this screen; until one exists, the honest screen is the
 
 ---
 
-## 6. Workstream A — next milestone, unchanged
+## 6. Workstream A — widening measured (answer: no); next experiment registered
 
-Measure whether widening the event/press/reaction corpora past the **~37 of 617** instruments they
-name raises the in-sample separation floor above **+0.0332** by more than the shuffled-control
-band — **before** registering any candidate. 6–12 h active.
+**Widening: measured 2026-10-17, answer no.** `BRAIN-CORPUS-COVERAGE-2026-10-17.md` measured
+the corpora from the frozen artifacts: own-scope coverage is **37 of 617 instruments (6.00%)**,
+6.81% of modelled rows carry observed own-scope context; widening from disk reaches only ~39
+instruments (the SEC cache adds AAL and BWA, no crypto); and where the own-scope block's
+contribution can be tested on populations that already have complete coverage it sits **below
+the paired shuffled-control band**, so more rows of that kind cannot raise the floor. The 6–12 h
+acquisition estimate is **not spent**.
 
-Then, and only if that clears: register a formulation with a decision-shaped target. The
-walk-forward evidence says the 20-session three-class call is not supported; **cross-sectional
-ranking** (which names move most, relative to peers) is the alternative with the strongest prior,
-because it does not require an absolute directional threshold at all.
+**Recency: already tested and closed before that milestone was written.**
+`tools/research/stationarity.py` (pre-registration `ef779c3`, result `dacaef5`, verdict in
+`data/foundation/dataset/stationarity.json`): no shorter training window beats all-history in
+at least 3 of 4 walk-forward years by more than the bootstrap half-width. The mechanism it
+named is **prevalence shift** — 2025's class mix (DOWN 0.575 / UP 0.332) is the year the model
+loses 0.2086 to majority, while it sits within ~0.03 of majority in the three balanced years.
+
+**Registered next experiment** — full spec in `BRAIN-CORPUS-COVERAGE-2026-10-17.md` §10, fixed
+before any run: **prevalence-adjusted scoring**, a point-in-time label-shift prior correction on
+the all-history crypto-slice fits, with π_recent from the trailing 365 decision dates of
+already-matured outcomes, one variant only, the same four-year walk-forward and block bootstrap,
+and rejection criteria (a)–(c) written into the registration. It fails → cross-sectional
+ranking, unchanged as the alternative with the strongest prior: a formulation with a
+decision-shaped target that names which assets move most **relative to peers**, requiring no
+absolute directional threshold.
 
 ---
 
