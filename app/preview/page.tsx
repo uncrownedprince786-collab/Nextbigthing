@@ -62,6 +62,11 @@ export default async function PreviewHome() {
     getShadowPredictions(1).catch(() => null),
   ]);
   const stampRows = stamp ? readStamp(stamp) : null;
+  // This is a server component (ISR, `revalidate = 900`): the render instant is the server's
+  // clock by design, and there is no client render for the purity rule to keep idempotent. Read
+  // once here so the whole table is measured against one "now".
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
 
   return (
     <>
@@ -132,7 +137,7 @@ export default async function PreviewHome() {
                 <td className="px-3 py-2">{new Date(u.date).toISOString().slice(0, 10)}</td>
                 <td className="px-3 py-2 text-right">
                   {Math.max(0, Math.round(
-                    (new Date(u.date).getTime() - Date.now()) / 86_400_000))}
+                    (new Date(u.date).getTime() - now) / 86_400_000))}
                 </td>
               </tr>
             ))}

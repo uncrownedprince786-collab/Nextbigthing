@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Git-ignored data-job cache (see .gitignore). It holds downloaded/vendored scripts that are
+    // absent in CI, so linting it would make a local run disagree with the lane that gates a push.
+    ".cache/**",
   ]),
 ]);
 

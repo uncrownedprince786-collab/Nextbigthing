@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Card, Note } from "@/components/ui";
-import { DEFAULT_PREFS, readPrefs, writePrefs, type Prefs } from "../prefs";
+import {
+  DEFAULT_PREFS,
+  getPrefsSnapshot,
+  prefsServerSnapshot,
+  subscribePrefs,
+  writePrefs,
+  type Prefs,
+} from "../prefs";
 
 /// The preferences half of Screen 8, held in this browser for the same reason the watchlist is.
 ///
@@ -30,14 +37,14 @@ const SWITCHES: { key: keyof Prefs; label: string; note: string }[] = [
 ];
 
 export function Preferences() {
-  const [prefs, setPrefs] = useState<Prefs | null>(null);
-
-  useEffect(() => setPrefs(readPrefs()), []);
+  // `null` until this browser's stored values are read; the server cannot see `localStorage`, so it
+  // renders the disabled default and this corrects itself after mount without a hydration mismatch.
+  const prefs = useSyncExternalStore(subscribePrefs, getPrefsSnapshot, prefsServerSnapshot);
 
   const set = (key: keyof Prefs, value: boolean) => {
-    const next = { ...(prefs ?? DEFAULT_PREFS), [key]: value };
-    setPrefs(next);
-    writePrefs(next);
+    // `writePrefs` dispatches the change event, which the subscription above turns into a re-read,
+    // so the switch reflects what was actually stored rather than a second copy of the truth.
+    writePrefs({ ...(prefs ?? DEFAULT_PREFS), [key]: value });
   };
 
   return (

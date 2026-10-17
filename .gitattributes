@@ -3,3 +3,6 @@
 # checks out CRLF on Windows, so a checksum computed on one platform fails on the other.
 # Deterministic LF for line-oriented data keeps a Windows generation and a Linux CI run in agreement.
 *.jsonl text eol=lf
+*.csv text eol=lf
+# The crisis package hashes its own JSON artifacts by sha256; same reasoning as the CSVs above.
+data/foundation/crisis_2008/*.json text eol=lf

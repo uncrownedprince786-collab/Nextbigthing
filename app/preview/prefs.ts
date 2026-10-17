@@ -54,3 +54,37 @@ export function writePrefs(prefs: Prefs): void {
     // CustomEvent is unavailable in no browser this runs in; the guard costs nothing.
   }
 }
+
+/// `useSyncExternalStore` bindings.
+///
+/// Reading `localStorage` during render would be impure and would disagree with the server, so the
+/// value is read once after mount and again on every change event, then cached here. `null` is the
+/// "not read yet" state: the server and the first client render both see it, so they agree, and a
+/// screen shows stored values only once it actually has them.
+let prefsSnapshot: Prefs | null = null;
+
+/// The server and hydration snapshot: nothing is known before this browser is read, and claiming
+/// otherwise would be a guess the HTML cannot back.
+export function prefsServerSnapshot(): Prefs | null {
+  return null;
+}
+
+export function getPrefsSnapshot(): Prefs | null {
+  return prefsSnapshot;
+}
+
+/// Subscribe to preference changes -- this tab's own writes and other tabs' -- re-reading the
+/// snapshot before notifying, so a listener renders the value that was actually stored.
+export function subscribePrefs(onChange: () => void): () => void {
+  const sync = () => {
+    prefsSnapshot = readPrefs();
+    onChange();
+  };
+  sync();
+  window.addEventListener(PREFS_EVENT, sync);
+  window.addEventListener("storage", sync);
+  return () => {
+    window.removeEventListener(PREFS_EVENT, sync);
+    window.removeEventListener("storage", sync);
+  };
+}

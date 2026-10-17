@@ -30,7 +30,7 @@
    "first": "2005-01-01",
    "last": "2012-12-01",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=UNRATE&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "e62d351a99e56334fc52e30249d752fc039500369a95a602dca8995f22510b2a",
+   "sha256": "195f4ab7b8a40c2239e8176e1d153cf7608c4c4b764cf7fdd7d582609985c010",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -44,7 +44,7 @@
    "first": "2005-01-01",
    "last": "2012-12-01",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=PAYEMS&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "0ccd26002e58fd75c21d4fc1a1b46c824c78980ce0d0b7e86391e866cfd1d7ec",
+   "sha256": "a575986a4aa7a12523ecab36bbbe3b3882f18689d196675887caab9bf2a26a75",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -58,7 +58,7 @@
    "first": "2005-01-01",
    "last": "2012-12-29",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=ICSA&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "6d41afbb079600706319c03a4ae949bd0ed02b22191172684bc677103bf080fa",
+   "sha256": "2c7dd2533a67b6423b23deb48aa6859df73cbcd3bb34fc51c6bb4513a58b4ca2",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -72,7 +72,7 @@
    "first": "2005-01-01",
    "last": "2012-10-01",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=GDPC1&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "f5aa6f423fb1f0cfafaa31bef1135072d3879fda1188b3f853b61fd6dc0d71a3",
+   "sha256": "38f7e2534216359b0a0b8eb171729ace8d2418085614d39426d13e4c6fa7a048",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -86,7 +86,7 @@
    "first": "2005-01-01",
    "last": "2012-12-01",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=INDPRO&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "14b730be5649c509eda6d13f6a58c74faac802388dbfeeb0a69d6f0f18c0653a",
+   "sha256": "12b5cb21aed30350d621da4ab5424322c7759011aa2bfba0510c3c11fe0b7b7c",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -100,7 +100,7 @@
    "first": "2005-01-01",
    "last": "2012-12-01",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPIAUCSL&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "ea9e995889be4ae5b6331a02ad2b034cd03d476e6fd867fdc5e307c5686ad519",
+   "sha256": "9d9a60010adf20390ca70d616d003313106820f5fca68dd5edda7c8515c8b838",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -114,7 +114,7 @@
    "first": "2005-01-01",
    "last": "2012-12-01",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=HOUST&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "70bff4ac30219a353da0a6d9034467838e055e18ac807ea4331c106c478495ec",
+   "sha256": "3024da112457c1b74f5511eb60c8a8553adb2f229654118263ff42290a40a14b",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -128,7 +128,7 @@
    "first": "2005-01-01",
    "last": "2012-12-01",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=PERMIT&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "a0299b14d58c15d16d2ae1ce0f48c35ff2962ed944060c73e56038dbe6c97492",
+   "sha256": "8dde981e1d7f0339e3e6dc64a63253a38e665591bef86dc82658fc6e45b22992",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -142,7 +142,7 @@
    "first": "2005-01-01",
    "last": "2012-12-01",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CSUSHPINSA&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "eb26b0ae3dd1e80f76ff61640de63039ae60787fa0c87edaab54dc76b254fcf9",
+   "sha256": "65aba4cd60adc3e38683543ee87630980338828da3be7b33d55628f451077092",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -156,7 +156,7 @@
    "first": "2005-01-06",
    "last": "2012-12-27",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=MORTGAGE30US&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "60c75a0802728053d6a58ec2b0bc1dd5fcf4e0845879f8437dcac533f358bbf8",
+   "sha256": "4205e0f2860c2dee57de4a10e432e703006dccffa33abb6e8151e370436d399a",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -170,7 +170,7 @@
    "first": "2005-01-01",
    "last": "2012-10-01",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DRSFRMACBS&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "a0f66816b7da871105c73a7bbc35ec32376624045af9cc552e0c8426a7ecdc38",
+   "sha256": "b6c1a86dac3f1303076efe6cb912f60bbc3f764ae553055ee5a719aa80f541aa",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -184,7 +184,7 @@
    "first": "2005-01-04",
    "last": "2012-12-31",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=TEDRATE&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "ac6bf0454cab469aab8ede26a3052c2457e597d54c67e97799024c9198cc4165",
+   "sha256": "099f0a3b69e41c2293381e5132b6a771e7773c1b5f602baa6092336d5474cfc9",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -198,7 +198,7 @@
    "first": "2005-01-03",
    "last": "2012-12-31",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=BAA10Y&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "bf95ae0753c05384178b384571027b19382af39e5615fe1e2876ccf9f488c19c",
+   "sha256": "0358a0222eb5729a22e0c51de20e99bc583eeacc55b63b22172aee307778aec7",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -212,7 +212,7 @@
    "first": "2005-01-03",
    "last": "2012-12-31",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=AAA10Y&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "c94e647d096a641cedabb1b8ef44a41fa167e0254ad3a8a3da4b6898f5f75406",
+   "sha256": "a35f825b7eeb064ac423aedef885f6019445102086b028155237d37e3a68e33b",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -226,7 +226,7 @@
    "first": "2005-01-03",
    "last": "2012-12-31",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DBAA&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "7e51f891d9ed0ba53bf1bee1fdb6219301db1b968e06994e98b893e7685dc495",
+   "sha256": "217f059bc0d238c8d39b9c76f42635b386c3cadab72076f36c080c93a9dd3d8d",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -240,7 +240,7 @@
    "first": "2005-01-03",
    "last": "2012-12-31",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DAAA&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "9dd56b89c3020a34b53e6c15b62824904561496133622c8ec4fece559cc34a75",
+   "sha256": "24fab1612a6bb9589c462b5992eba7b9231371f429d8a86d083e819b0f5354c4",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -254,7 +254,7 @@
    "first": "2005-01-05",
    "last": "2012-12-26",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=WALCL&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "f3353d682f407c71a71bd16be5534039aa36a5c2c2a53974d004cd4034c29ab3",
+   "sha256": "154681a02c77e7ad2d3cff1f1c89d0cd4592ae9cc07e283eeffd1872c35efcc7",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -268,7 +268,7 @@
    "first": "2005-01-01",
    "last": "2012-12-01",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=FEDFUNDS&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "0e23a61a799ac95cbe9d888c1467f1c11766ca904995c03d3ab4cafa26d64881",
+   "sha256": "c1c885c48f4bd80ec0a610ef27ba69e5a9e25279df24051252499e9c549d5731",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -282,7 +282,7 @@
    "first": "2005-01-03",
    "last": "2012-12-31",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS2&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "73219d913104daa72b6f627aa69d9a43e8cf26ec3bf98818b7cbbb24dd139250",
+   "sha256": "111abc1ddab55f1664d7105e9ca3b33d930d7b63b0698a8465ba74510ab5cded",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -296,7 +296,7 @@
    "first": "2005-01-03",
    "last": "2012-12-31",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=T10Y2Y&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "eacd4f63ae489d8b6d7d392d1c51c75384d75413c76e433441cae65654e23eaf",
+   "sha256": "cfc97a166af25758c6b985111bc2b14ce65d188d7cb73687391e053ede50ad92",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -310,7 +310,7 @@
    "first": "2005-01-01",
    "last": "2012-12-01",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=UMCSENT&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "8677e0663494307460f8872ea3e40a50d2a03e90f24f8059343f5c870346f454",
+   "sha256": "bb9990d20531debe17e9819af7892d0cee9266428fc907f3396b4bf801f673ec",
    "pointInTimeReady": true,
    "pitNote": "join on observation_date + publicationLagDays, never on observation_date alone"
   },
@@ -324,7 +324,7 @@
    "first": "2005-01-01",
    "last": "2012-12-01",
    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=USREC&cosd=2005-01-01&coed=2012-12-31",
-   "sha256": "522bf1a279ac76c785c994851dfcd5f390d7241e8e2a787bbcbfe942653d6add",
+   "sha256": "1ed024d2df23e01aaa7975606b68f6af6769cc6eaee8607805137c98cef91151",
    "pointInTimeReady": false,
    "pitNote": "ex-post label: declared long after the fact, must never be a feature"
   }
@@ -333,12 +333,12 @@
   "status": "COMPLETE",
   "records": 481,
   "file": "fdic_failures.json",
-  "sha256": "9252cd61886a6fadfabf115d3c9547cf4aebee02431d0ae1b441815c10c3d9b0"
+  "sha256": "7a57261b0362568d1ebd8efbac1b19d88883da8b7e91539167462e5a74fc2356"
  },
  "chronology": {
   "entries": 13,
   "file": "chronology.json",
-  "sha256": "a72857e5c7b5c3748f4898a050ae0471846c6b85cb3ea441f7c5d13d504afa7a"
+  "sha256": "20592730badcec8e262791f80a65d3b532917dd40c5f7e07a415a58c31e78f69"
  },
  "licenseBlocked": {
   "BAMLH0A0HYM2": "ICE licensing limits FRED to a rolling three-year window; the 2008 ICE high-yield index is not publicly served.",

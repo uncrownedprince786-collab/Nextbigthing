@@ -1,12 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Empty, Note, Table } from "@/components/ui";
 import { price } from "@/lib/format";
-import { DEFAULT_PREFS, PREFS_EVENT, readPrefs, type Prefs } from "../prefs";
+import {
+  DEFAULT_PREFS,
+  getPrefsSnapshot,
+  prefsServerSnapshot,
+  subscribePrefs,
+} from "../prefs";
 import type { WatchlistRow } from "../api/watchlist/route";
-import { readWatchlist, writeWatchlist, WATCHLIST_EVENT, type SavedItem } from "./storage";
+import {
+  getWatchlistSnapshot,
+  readWatchlist,
+  subscribeWatchlist,
+  watchlistServerSnapshot,
+  writeWatchlist,
+} from "./storage";
 
 /// Screen 6 — the watchlist, rendered from this browser's own list.
 ///
@@ -21,43 +32,20 @@ import { readWatchlist, writeWatchlist, WATCHLIST_EVENT, type SavedItem } from "
 ///     resolves is a thing the reader should see and decide about, not a row that quietly
 ///     disappears from their own list.
 export function WatchlistClient() {
-  const [items, setItems] = useState<SavedItem[] | null>(null);
+  // The list and the preferences are read after mount and subscribed to, so neither the server nor
+  // the first client render has to guess at this browser's storage.
+  const items = useSyncExternalStore(subscribeWatchlist, getWatchlistSnapshot, watchlistServerSnapshot);
+  const prefs =
+    useSyncExternalStore(subscribePrefs, getPrefsSnapshot, prefsServerSnapshot) ?? DEFAULT_PREFS;
   const [rows, setRows] = useState<WatchlistRow[] | null>(null);
   const [omitted, setOmitted] = useState(0);
   const [failed, setFailed] = useState(false);
-  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
 
   useEffect(() => {
-    const syncPrefs = () => setPrefs(readPrefs());
-    syncPrefs();
-    window.addEventListener(PREFS_EVENT, syncPrefs);
-    window.addEventListener("storage", syncPrefs);
-    return () => {
-      window.removeEventListener(PREFS_EVENT, syncPrefs);
-      window.removeEventListener("storage", syncPrefs);
-    };
-  }, []);
-
-  useEffect(() => {
-    const sync = () => setItems(readWatchlist());
-    sync();
-    window.addEventListener("storage", sync);
-    window.addEventListener(WATCHLIST_EVENT, sync);
-    return () => {
-      window.removeEventListener("storage", sync);
-      window.removeEventListener(WATCHLIST_EVENT, sync);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (items === null) return;
-    if (items.length === 0) {
-      setRows([]);
-      setOmitted(0);
-      return;
-    }
+    // Nothing to resolve before the list is read, and an empty list renders its own screen. The
+    // states that matter are set only from the fetch's callbacks, never synchronously here.
+    if (items === null || items.length === 0) return;
     let live = true;
-    setFailed(false);
     fetch("/preview/api/watchlist", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -68,6 +56,7 @@ export function WatchlistClient() {
         if (!live) return;
         setRows(d.rows);
         setOmitted(d.omitted);
+        setFailed(false);
       })
       .catch(() => {
         if (!live) return;
@@ -81,14 +70,10 @@ export function WatchlistClient() {
     };
   }, [items]);
 
-  const remove = useCallback(
-    (symbol: string) => {
-      const next = readWatchlist().filter((i) => i.symbol !== symbol);
-      writeWatchlist(next);
-      setItems(next);
-    },
-    [],
-  );
+  const remove = useCallback((symbol: string) => {
+    // Writing dispatches the change event, which the subscription above turns into a re-read.
+    writeWatchlist(readWatchlist().filter((i) => i.symbol !== symbol));
+  }, []);
 
   if (items === null) {
     return <Empty>Reading this browser&rsquo;s saved list.</Empty>;

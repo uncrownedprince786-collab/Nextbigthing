@@ -79,3 +79,33 @@ export function toggle(items: SavedItem[], symbol: string, name: string): SavedI
   if (isSaved(items, symbol)) return items.filter((i) => i.symbol !== symbol);
   return [...items, { symbol, name, addedAt: new Date().toISOString() }];
 }
+
+/// `useSyncExternalStore` bindings, for the same reason as `app/preview/prefs.ts`: `localStorage`
+/// cannot be read during render without disagreeing with the server, so the list is read after
+/// mount and cached here. `null` is "not read yet" -- the server and first client render both see
+/// it, and an empty array would wrongly tell a reader with a full list that it was gone.
+let watchlistSnapshot: SavedItem[] | null = null;
+
+export function watchlistServerSnapshot(): SavedItem[] | null {
+  return null;
+}
+
+export function getWatchlistSnapshot(): SavedItem[] | null {
+  return watchlistSnapshot;
+}
+
+/// Subscribe to watchlist changes -- saves on this page and edits in another tab -- re-reading the
+/// list before notifying, so every listener renders the list that is actually stored.
+export function subscribeWatchlist(onChange: () => void): () => void {
+  const sync = () => {
+    watchlistSnapshot = readWatchlist();
+    onChange();
+  };
+  sync();
+  window.addEventListener("storage", sync);
+  window.addEventListener(WATCHLIST_EVENT, sync);
+  return () => {
+    window.removeEventListener("storage", sync);
+    window.removeEventListener(WATCHLIST_EVENT, sync);
+  };
+}
