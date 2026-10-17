@@ -1,5 +1,148 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-17 (eighteenth), the label was never the bottleneck
+
+**Branch `main`, work commit `e72c9f1`, tree clean, `origin/main == HEAD`.**
+**Usage: 86% weekly, resets 2026-10-19.** Tests **1,156 Python, OK**.
+
+### Two leads closed by measurement, one new bottleneck identified
+
+**1. The +/-2% band is not the problem, and this handoff had it backwards.** It has carried
+"forex is 68% FLAT" as a hint that the target was the binding constraint. Across all **1,086,349**
+matured rows the band is too **narrow** for five of six markets:
+
+| class | rows | FLAT | band that would balance it | fixed/balanced |
+|---|---|---|---|---|
+| PSX | 389,720 | 0.161 | 4.40% | 0.45 |
+| commodity | 15,523 | 0.205 | 3.41% | 0.59 |
+| crypto | 97,233 | 0.096 | **7.74%** | **0.26** |
+| etf | 15,504 | 0.242 | 2.85% | 0.70 |
+| **forex** | **54,190** | **0.680** | **0.74%** | **2.69** |
+| stock | 514,179 | 0.191 | 3.59% | 0.56 |
+
+Crypto's median 20-session move is **12.58%**. Forex is the only market the band fails, and it is
+**5% of the data** - generalising from it was the error.
+
+**Relabelling would also cost something.** The 2% band is roughly a 20-session round-trip cost
+plus slippage, so a move inside it is not tradeable even when its sign is right. Under a per-asset
+0.5-sd band, **41% of forex rows that become directional are sub-cost**; for every other market
+that share is **0.0**. A normalised target buys balance in one small market and manufactures
+untradeable labels there at the same time.
+
+**2. The signal is real, and thin.** In-sample fits on the crypto slice (93,452 rows), where the
+model is allowed to cheat:
+
+| fit | accuracy | majority | over |
+|---|---|---|---|
+| three-class, all 44 features | 0.5350 | 0.5018 | **+0.0332** |
+| three-class, price-only 15 | 0.5056 | 0.5018 | +0.0037 |
+| binary UP/DOWN, all features | 0.5915 | 0.5554 | **+0.0361** |
+| **shuffled labels, three-class** | 0.5017 | 0.5018 | **-0.0001** |
+| **shuffled labels, binary** | 0.5554 | 0.5554 | **+0.0001** |
+
+**The shuffled control is zero.** A linear model with 44 columns cannot memorise 93,452 rows, so
+it extracts nothing from noise - which means the in-sample figure is close to the **true linear
+separability** of these features, not an artefact of capacity.
+
+**3. The new bottleneck: non-stationarity, not overfitting.** `brain-v3-crypto` delivered
+**+0.0013** over majority out-of-sample against **+0.0332** available in-sample, with **no capacity
+to overfit in between**. That gap is not a model fitting noise. The relationship differs between
+the training span and the holdout year. **That is a different bottleneck from the one this project
+has been assuming**, and it points at a different experiment.
+
+Also worth keeping: **the context features carry almost all of what exists** - price-only reaches
++0.0037, adding the 29 context columns reaches +0.0332. The context work was not wasted even
+though `brain-v2-context` is a NO-GO.
+
+---
+
+## PROJECT STATUS
+
+### A. Where we stand
+
+**Data foundation: complete and gated.** `examples-v3-2026-10-16-local` and
+`examples-v4-context-2026-10-16-local`, both gates-green, digests recorded, 1,086,349 eligible
+asset-sessions with features on 1,055,429, unexplained 0, leakage 0 on all three checks. Context
+reaches the model: 29 features on 100% of feature rows. **Remaining gaps are documented
+exclusions, not unknowns**: delisted price history and PSX before 2013-11-04 have no permitted
+source; the operational news feed is pruned at 70 days so it cannot be a historical feature.
+
+**Models: four artifacts, four NO-GO, none production-approved.**
+
+| | accuracy | vs baseline | failure mode |
+|---|---|---|---|
+| `brain-v1` price-only | 0.4107 | majority 0.4388 | UP on 74.7% |
+| `brain-v2-context` | 0.4167 | majority 0.4388 | UP on 92.2%, DOWN recall 0.083 |
+| `brain-v3-crypto` | 0.4736 | needed > 0.5143 | DOWN on 97.0%, UP recall 0.034 |
+| rule-family core | 0.3979 | constant 0.4388 | - |
+
+All four reproduce in a fresh process from their artifacts. **Nine NO-GO verdicts recorded, none
+overwritten.**
+
+**Shadow stream: 566 predictions**, 0 degraded, **51 refused** for missing critical inputs,
+`asOf` 2026-10-15, all `approved: false`, full provenance per row. **All 566 predict UP** - the
+collapse, visible prospectively. **Outcomes: 0 matured**; each record carries its own
+`maturesAfter`, earliest **2026-11-16**. No `brain-v3-crypto` stream exists, by its own
+pre-registration, because it failed.
+
+**Infrastructure: closed.** Database 492.2 MB (98.4% of 500 MB) after the EventImpact work;
+residual 56.8 MB heap needs an owner-run `VACUUM FULL`. Pooler ceiling measured at **15** session
+clients. Shadow readiness 26 ok / 0 blocked / 0 unknown.
+
+### B. What remains before credible evaluation
+
+**The next milestone is a stationarity test, not another candidate.** The evidence says the gap
+between +0.0332 in-sample and +0.0013 out-of-sample is the relationship moving, so the experiment
+that carries information is: **does a model trained only on recent history beat one trained on all
+of it, on the same holdout?**
+
+**Acceptance criteria, to be fixed in a pre-registration commit before the run:** a recency-trained
+candidate must beat the all-history candidate on identical holdout rows by a margin exceeding what
+the reduced sample size alone would explain, and must remain non-degenerate. **It can proceed
+now** - it needs no new data and no matured outcomes, and the cached slices already exist.
+
+**The four states, kept distinct:**
+
+| state | meaning | where we are |
+|---|---|---|
+| trained artifact | weights on disk that reload | **4 of these** |
+| promising experiment | beats its pre-registered baselines on exposed data | **0** |
+| validated model | the above on a pristine or prospective window | **0** |
+| production-approved | validated, plus release gates | **0** |
+
+### C. Time and resources
+
+**Measured**: usage 86% weekly, resetting **2026-10-19**; the 5-hour window resets hourly.
+
+**Active work for the stationarity test: roughly 1-2 hours** - the slices are cached, the trainer
+is reusable, the only new code is the training-window sweep. **Confidence: high**, because it
+reuses machinery that has run four times.
+
+**The path to credible multi-market evaluation is dominated by waiting, not working.** Prospective
+validation needs matured outcomes: the first 566 mature from **2026-11-16**, so roughly **four
+weeks of calendar time** for one decision date. A defensible forward record needs several decision
+dates, so realistically **2-3 months of calendar time** against perhaps **8-15 hours of active
+work** spread across it. **Confidence: medium** on the active estimate, **low** on how many
+decision dates will be enough - that depends on effect size, which is currently unmeasured.
+
+**Parallel-safe**: the stationarity sweep, forward shadow writes on new sessions, and outcome
+collection touch different files and tables. **Sequential**: anything that rebuilds a frozen
+dataset, and any second writer to `ShadowPrediction` for the same model and date.
+
+### D. Next action
+
+**Pre-register and run the stationarity test**: train the `brain-v2-context` configuration on
+progressively shorter recent windows (all history / 3 years / 18 months / 6 months) and score each
+on the same 2026 holdout rows.
+
+**Acceptance**: a shorter window beating all-history by more than sampling noise explains would
+make non-stationarity the measured bottleneck and change what the next candidate should be. **If
+no window beats all-history, the thin signal is stationary and genuinely weak**, and the honest
+conclusion is that these features do not support a 20-session directional call - which is a
+publishable negative result for this project, not a failure to hide.
+
+**Nothing is promoted on either outcome.** The 2026 window is exposed; this is diagnostic.
+
 ## 0. SESSION CHECKPOINT - 2026-10-17 (seventeenth), the crypto lead is closed by measurement
 
 **Branch `main`, tree clean. Work commits `c12daec` (pre-registration) and `9005c98` (result),
