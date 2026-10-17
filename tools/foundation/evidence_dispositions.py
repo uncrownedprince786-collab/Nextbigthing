@@ -210,7 +210,10 @@ def main() -> int:
         })
 
     out = OUT_DIR / "press_evidence.jsonl"
-    with out.open("w", encoding="utf-8") as fh:
+    # newline="" so the file is byte-identical (LF) on every platform: the manifest records this
+    # file's sha256, and text-mode translation would make Windows write CRLF and hash CRLF while
+    # git and CI store LF, failing the checksum test on Linux. See .gitattributes.
+    with out.open("w", encoding="utf-8", newline="") as fh:
         for r in sorted(records.values(), key=lambda x: (x["eventDate"], x["publisher"] or "")):
             fh.write(json.dumps(r, separators=(",", ":")) + "\n")
     digest = hashlib.sha256(out.read_bytes()).hexdigest()

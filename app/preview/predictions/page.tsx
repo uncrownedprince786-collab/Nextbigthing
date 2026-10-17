@@ -31,7 +31,7 @@ export default async function PredictionsPage() {
       <Section title="Recorded predictions">
         <Empty>
           The prediction store could not be read, so nothing is shown. An empty table here would
-          be indistinguishable from "no predictions exist", and those are different facts.
+          be indistinguishable from &ldquo;no predictions exist&rdquo;, and those are different facts.
         </Empty>
       </Section>
     );

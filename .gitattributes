@@ -1,0 +1,5 @@
+# Data artifacts must be byte-identical on every platform, because committed manifests record their
+# sha256 and CI (Linux) verifies it. With core.autocrlf=true and no rule here, git stores LF but
+# checks out CRLF on Windows, so a checksum computed on one platform fails on the other.
+# Deterministic LF for line-oriented data keeps a Windows generation and a Linux CI run in agreement.
+*.jsonl text eol=lf
