@@ -1,5 +1,51 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-17 (twenty-third), six of eight screens built
+
+**Branch `main`, work commit `a0c56d3`, tree clean, `origin/main == HEAD`.**
+**Usage 87% weekly** (reset **2026-10-19**, not yet reached - verified this session).
+**Tests: 1,162 Python, 500 web, `tsc` clean, production build clean.**
+
+### Screens 2-5 are built and the browse path runs end to end
+
+`/preview/markets` -> `/preview/markets/[slug]` -> `/preview/asset/[symbol]` ->
+`/preview/asset/[symbol]/research`, with `/preview/news` beside it.
+
+**Signatures were read before being called**, which is why the first typecheck passed rather than
+the third. `getIndustries` carries `_count.assets` and **no asset list**, so the explorer is
+markets and industries with counts, and instruments come from `getIndustry(slug)` one level down.
+
+**Three rules the screens exist to keep:**
+
+| screen | rule |
+|---|---|
+| 3 Asset Detail | a **stored close and a live quote are different claims** - `getAssetFreshness` with its own date and source beside `getLiveQuoteFor` with its own `quotedAt`; when the quote is absent it says the close is the latest available rather than letting it pass as current |
+| 4 Research | **no model direction at all** - four candidates, four NO-GO, stated in the first paragraph. Shows stored factor readings and the rule engine's setup, each field with its own absence: **"not measured", never zero** |
+| 5 News | **publication time is not retrieval time** - `publishedAt` only. One story is one row: `lineageId` folds syndicated copies and the page says how many it folded |
+
+**Verified on real data**: Mega Cap Tech 18 instruments, Semiconductors 20, Crypto 76; real
+headlines with **3 syndicated duplicates folded**; predictions still **566 awaiting, 0 scored,
+no accuracy shown**.
+
+**Isolation holds**: build generates **62** pages (was 60), no pre-existing route's files touched,
+rollback is deleting `app/preview/`.
+
+### Remaining work, preserved
+
+| item | state | next |
+|---|---|---|
+| **Screens 6, 8** | not started | watchlist as `localStorage` only (**no auth subsystem**); status screen from `getHealthReadings`/`getSourceHealth` |
+| **Workstream B** | `daily_audit.py` built; B1-B6 not started | **B1**: backup + restore rehearsal at current schema (5 behind) -> unblocks **B4**, a real schedule |
+| **Workstream A** | not started | corpus-coverage measurement: does widening past ~37 of 617 instruments lift the in-sample floor above +0.0332 by more than the shuffled band |
+| **Integration + regression** | not started | one consolidated release check; cutover needs Screens 6/8 and B1-B4 |
+| **Deployment** | blocked | no validated brain; `VACUUM FULL` still needs owner authorisation |
+
+### Next action
+
+**Screens 6 and 8** - the last two, both cheap: Screen 6 is `localStorage` with no backend, Screen
+8 uses `getHealthReadings`, `getSourceHealth`, `getIntradayHealth`, `getFreshness`, all already
+mapped and tested. Then **B1**, which needs the pooler under its 15-client ceiling.
+
 ## 0. SESSION CHECKPOINT - 2026-10-17 (twenty-second), the replacement UI is running
 
 **Branch `main`, work commit `3811fe4`, tree clean, `origin/main == HEAD`.**

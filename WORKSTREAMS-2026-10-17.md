@@ -98,6 +98,22 @@ Existing routes: `/` `/stocks` `/psx` `/crypto` `/forex` `/commodities` `/asset/
 
 **Six of eight screens are servable from readers that already exist and are already tested.**
 
+### Build status — updated 2026-10-17 (`a0c56d3`)
+
+| # | Screen | Route | State |
+|---|---|---|---|
+| 1 | Overview | `/preview` | **built, verified on real data** |
+| 2 | Market Explorer | `/preview/markets`, `/preview/markets/[slug]` | **built, verified** |
+| 3 | Asset Detail | `/preview/asset/[symbol]` | **built** |
+| 4 | Research Detail | `/preview/asset/[symbol]/research` | **built** |
+| 5 | News & Events | `/preview/news` | **built, verified** |
+| 6 | Watchlist | — | not started — `localStorage` only, no auth |
+| 7 | Predictions | `/preview/predictions` | **built, verified** |
+| 8 | Preferences / Status | — | not started |
+
+**6 of 8 built.** Build generates **62** pages (was 60); every pre-existing route is untouched and
+rollback is deleting `app/preview/`.
+
 ---
 
 ## 4. Screen 4 is the one with a correctness rule, not a design question
