@@ -1,5 +1,80 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-17 (twentieth), a daily audit that found real faults
+
+**Branch `main`, work commit `8b55db2`, tree clean, `origin/main == HEAD`.**
+**Usage 86% weekly**, resets 2026-10-19. Tests **1,162 Python, OK**.
+
+### What was done, and what was deliberately not
+
+Three workstreams were requested in parallel. **At 14% of the weekly budget remaining, three would
+have produced three half-finished things**, so one was taken end to end and the other two are
+checkpointed here with their next concrete step. That is a judgement call and it is recorded as
+one.
+
+**Done: Workstream B, `tools/daily_audit.py`** - one command, exit 1 on any FAIL, usable from a
+scheduler.
+
+### Its first live run, which is why it exists
+
+| | |
+|---|---|
+| **FAIL** `jobRuns36h` | 104 slices in 36h; **`cron products` blocked x2, empty x1** |
+| **WARN** `sourceCoverage` | 8 sources outside their expected interval (Yahoo commodity stale x2.27, …) |
+| **WARN** `databaseSize` | **493.0 MB of 500 (98.6%)** |
+| **WARN** `restoreRehearsalCurrent` | verified at schema `20261011130000`, **5 migrations behind** |
+| ok | prices 2026-10-16 (1,098,991 rows) · factors 2026-10-16 · news 4.1h vs a 6h rule |
+| ok | 36 migrations applied, 0 pending · 566 shadow predictions, **0 matured**, earliest 2026-11-16 |
+| ok | 0 approved shadow records · 3 artifact digests match · 2 dataset freezes gates-green |
+
+**The failing lane is `cron products`** - the product feature that has been deprioritised.
+Reported rather than filtered, because an audit that hides a failure in a deferred area can hide
+one anywhere.
+
+### Design decisions worth keeping
+
+**Staleness thresholds are read out of `lib/health.ts`**, not restated. That file argues a health
+page calling a close fresh while the rules call it stale would be two answers to one question; a
+Python copy would be a third. A test pins that nothing is hard-coded beside what it reads.
+
+**One database connection.** The pooler ceiling is 15 session clients and has broken runs here.
+`--no-db` runs the local half when the pooler is full.
+
+**Two of my own bugs, found by running it**: a naive Postgres timestamp raised a `TypeError` and
+the first version reported it as *"database not reachable"* - a bug in a health check disguised as
+an outage. Internal faults are now `auditInternal`/FAIL; only a failed connection is "not
+reachable", and that is `unknown`, because a full pooler proves nothing wrong. And I invented a
+`finishedAt` column on `ChunkRun`; there is none, and the absence is the design - `runlog.py`
+writes the row whether the slice succeeded or not, so a missing row means *nothing ran*.
+
+### Not started, with their next step
+
+**Workstream A (brain)** - unchanged from the nineteenth checkpoint. Next: measure whether widening
+the event/press/reaction corpora past the ~37 instruments they name raises the in-sample
+separation floor above +0.0332 by more than the shuffled-control band, **before** registering any
+candidate. **6-12 h active.**
+
+**Workstream C (replacement UI)** - **not started.** It needs an isolated route or app, an agreed
+API contract against `lib/queries.ts`, and enough implementation to run against real backend data.
+It is the largest remaining item and the only one with undefined scope. **No estimate is offered,
+because inventing one would be worse than admitting that.**
+
+### Launch blockers, as measured
+
+1. **No validated brain.** Four artifacts, four NO-GO, zero validated. The product cannot present
+   a direction it cannot support. **Not an engineering blocker - an evidence one.**
+2. **`cron products` failing** - a real red lane, in deferred scope.
+3. **Recovery**: restore rehearsal 5 migrations stale; **no working standby** (Aiven times out).
+4. **Headroom**: 493.0 MB of 500. `VACUUM FULL "EventImpact"` would return ~57 MB and needs owner
+   authorisation.
+5. **Replacement UI not begun.**
+
+### Next action
+
+Run `python tools/daily_audit.py` daily and act on what it reports. The first thing it reports
+that is both in scope and fixable is the **stale restore rehearsal** - a fresh backup and
+rehearsal at the current schema, which is **1-2 h** and clears blocker 3's first half.
+
 ## 0. SESSION CHECKPOINT - 2026-10-17 (nineteenth), recency does not help; the instability is prevalence
 
 **Branch `main`, work commits `ef779c3` (pre-registration + correction) and `dacaef5` (result).
