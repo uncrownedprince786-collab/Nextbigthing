@@ -1,0 +1,513 @@
+{
+ "generatedAt": "2026-10-17T00:23:31+00:00",
+ "version": "stationarity-v1",
+ "correctionToThePriorClaim": {
+  "claim": "+0.0332 in-sample vs +0.0013 out-of-sample proves non-stationarity",
+  "why it does not hold": "the two numbers came from different populations with different baselines: +0.0332 was fitted and scored on all 93,452 pooled rows against a 0.5018 majority, +0.0013 came from a model fitted on 72,892 and scored on 19,220 against a 0.4723 majority",
+  "alsoOverstated": "a zero shuffled-label control shows the model cannot fit unstructured noise; it does not exclude fitting structured nuisance variation, so overfitting was never ruled out",
+  "whatReplacesIt": "inSampleOnTrainingRows below: one fit, scored on its own training rows and on the evaluation rows, each against its own majority"
+ },
+ "slice": "crypto, from the examples-v4-context cache; one market, not the whole universe",
+ "windows": {
+  "all": "all history",
+  "3y": 1095,
+  "18m": 548,
+  "6m": 183
+ },
+ "embargoSessions": 20,
+ "uncertainty": "moving-block bootstrap over decision dates, 20-date blocks, 400 resamples; rows are not resampled because consecutive rows share 19 of 20 forward sessions and same-day instruments are correlated",
+ "preDeclaredCriteria": {
+  "recencyHelps": "a shorter window beats all-history in at least 3 of 4 evaluation years AND its mean advantage exceeds the bootstrap half-width",
+  "yearsRequired": 3,
+  "promotion": "none; every evaluation period here is exposed and no artifact is promotable",
+  "setBefore": "any number from this run was seen"
+ },
+ "byEvaluationYear": {
+  "2023": {
+   "evalRows": 12951,
+   "evalFrom": "2023-01-01",
+   "evalTo": "2023-12-31",
+   "decisionDates": 365,
+   "effectiveIndependentWindows": 648,
+   "classShare": {
+    "DOWN": 0.4393,
+    "FLAT": 0.114,
+    "UP": 0.4466
+   },
+   "windows": {
+    "all": {
+     "trainRows": 23414,
+     "trainFrom": "2018-12-24",
+     "trainTo": "2022-12-11",
+     "accuracy": 0.441,
+     "majority": 0.4466,
+     "overMajority": -0.0056,
+     "predictedMix": {
+      "DOWN": 12879,
+      "FLAT": 0,
+      "UP": 72
+     },
+     "classesPredicted": 2
+    },
+    "3y": {
+     "trainRows": 21119,
+     "trainFrom": "2019-12-13",
+     "trainTo": "2022-12-11",
+     "accuracy": 0.4398,
+     "majority": 0.4466,
+     "overMajority": -0.0068,
+     "predictedMix": {
+      "DOWN": 12919,
+      "FLAT": 0,
+      "UP": 32
+     },
+     "classesPredicted": 2,
+     "vsAllHistory": {
+      "mean": -0.0012,
+      "p2_5": -0.0025,
+      "p97_5": 0.0003,
+      "halfWidth": 0.0014,
+      "resamples": 400,
+      "blockDays": 20
+     }
+    },
+    "18m": {
+     "trainRows": 14498,
+     "trainFrom": "2021-06-12",
+     "trainTo": "2022-12-11",
+     "accuracy": 0.4404,
+     "majority": 0.4466,
+     "overMajority": -0.0062,
+     "predictedMix": {
+      "DOWN": 12920,
+      "FLAT": 0,
+      "UP": 31
+     },
+     "classesPredicted": 2,
+     "vsAllHistory": {
+      "mean": -0.0005,
+      "p2_5": -0.0022,
+      "p97_5": 0.0015,
+      "halfWidth": 0.0019,
+      "resamples": 400,
+      "blockDays": 20
+     }
+    },
+    "6m": {
+     "trainRows": 5367,
+     "trainFrom": "2022-06-12",
+     "trainTo": "2022-12-11",
+     "accuracy": 0.4303,
+     "majority": 0.4466,
+     "overMajority": -0.0163,
+     "predictedMix": {
+      "DOWN": 4339,
+      "FLAT": 0,
+      "UP": 8612
+     },
+     "classesPredicted": 2,
+     "vsAllHistory": {
+      "mean": -0.0214,
+      "p2_5": -0.2156,
+      "p97_5": 0.1841,
+      "halfWidth": 0.1999,
+      "resamples": 400,
+      "blockDays": 20
+     }
+    }
+   },
+   "inSampleOnTrainingRows": {
+    "all": {
+     "accuracy": 0.583,
+     "majority": 0.5149,
+     "overMajority": 0.0681
+    },
+    "3y": {
+     "accuracy": 0.609,
+     "majority": 0.5176,
+     "overMajority": 0.0914
+    },
+    "18m": {
+     "accuracy": 0.6184,
+     "majority": 0.5831,
+     "overMajority": 0.0352
+    },
+    "6m": {
+     "accuracy": 0.7162,
+     "majority": 0.5338,
+     "overMajority": 0.1824
+    }
+   }
+  },
+  "2024": {
+   "evalRows": 16013,
+   "evalFrom": "2024-01-01",
+   "evalTo": "2024-12-31",
+   "decisionDates": 366,
+   "effectiveIndependentWindows": 801,
+   "classShare": {
+    "DOWN": 0.4839,
+    "FLAT": 0.0886,
+    "UP": 0.4275
+   },
+   "windows": {
+    "all": {
+     "trainRows": 36234,
+     "trainFrom": "2018-12-24",
+     "trainTo": "2023-12-11",
+     "accuracy": 0.4518,
+     "majority": 0.4839,
+     "overMajority": -0.032,
+     "predictedMix": {
+      "DOWN": 2043,
+      "FLAT": 84,
+      "UP": 13886
+     },
+     "classesPredicted": 3
+    },
+    "3y": {
+     "trainRows": 29970,
+     "trainFrom": "2020-12-12",
+     "trainTo": "2023-12-11",
+     "accuracy": 0.4458,
+     "majority": 0.4839,
+     "overMajority": -0.038,
+     "predictedMix": {
+      "DOWN": 2745,
+      "FLAT": 239,
+      "UP": 13029
+     },
+     "classesPredicted": 3,
+     "vsAllHistory": {
+      "mean": -0.0057,
+      "p2_5": -0.0319,
+      "p97_5": 0.018,
+      "halfWidth": 0.025,
+      "resamples": 400,
+      "blockDays": 20
+     }
+    },
+    "18m": {
+     "trainRows": 18187,
+     "trainFrom": "2022-06-12",
+     "trainTo": "2023-12-11",
+     "accuracy": 0.4859,
+     "majority": 0.4839,
+     "overMajority": 0.0021,
+     "predictedMix": {
+      "DOWN": 3830,
+      "FLAT": 138,
+      "UP": 12045
+     },
+     "classesPredicted": 3,
+     "vsAllHistory": {
+      "mean": 0.0341,
+      "p2_5": -0.0461,
+      "p97_5": 0.1271,
+      "halfWidth": 0.0866,
+      "resamples": 400,
+      "blockDays": 20
+     }
+    },
+    "6m": {
+     "trainRows": 6774,
+     "trainFrom": "2023-06-12",
+     "trainTo": "2023-12-11",
+     "accuracy": 0.4644,
+     "majority": 0.4839,
+     "overMajority": -0.0195,
+     "predictedMix": {
+      "DOWN": 11165,
+      "FLAT": 129,
+      "UP": 4719
+     },
+     "classesPredicted": 3,
+     "vsAllHistory": {
+      "mean": 0.0093,
+      "p2_5": -0.169,
+      "p97_5": 0.1854,
+      "halfWidth": 0.1772,
+      "resamples": 400,
+      "blockDays": 20
+     }
+    }
+   },
+   "inSampleOnTrainingRows": {
+    "all": {
+     "accuracy": 0.565,
+     "majority": 0.4834,
+     "overMajority": 0.0816
+    },
+    "3y": {
+     "accuracy": 0.5784,
+     "majority": 0.5007,
+     "overMajority": 0.0776
+    },
+    "18m": {
+     "accuracy": 0.6625,
+     "majority": 0.4577,
+     "overMajority": 0.2048
+    },
+    "6m": {
+     "accuracy": 0.6819,
+     "majority": 0.5207,
+     "overMajority": 0.1612
+    }
+   }
+  },
+  "2025": {
+   "evalRows": 21194,
+   "evalFrom": "2025-01-01",
+   "evalTo": "2025-12-31",
+   "decisionDates": 365,
+   "effectiveIndependentWindows": 1060,
+   "classShare": {
+    "DOWN": 0.5746,
+    "FLAT": 0.0938,
+    "UP": 0.3316
+   },
+   "windows": {
+    "all": {
+     "trainRows": 52070,
+     "trainFrom": "2018-12-24",
+     "trainTo": "2024-12-11",
+     "accuracy": 0.366,
+     "majority": 0.5746,
+     "overMajority": -0.2086,
+     "predictedMix": {
+      "DOWN": 2606,
+      "FLAT": 5,
+      "UP": 18583
+     },
+     "classesPredicted": 3
+    },
+    "3y": {
+     "trainRows": 38993,
+     "trainFrom": "2021-12-13",
+     "trainTo": "2024-12-11",
+     "accuracy": 0.3403,
+     "majority": 0.5746,
+     "overMajority": -0.2344,
+     "predictedMix": {
+      "DOWN": 297,
+      "FLAT": 6,
+      "UP": 20891
+     },
+     "classesPredicted": 3,
+     "vsAllHistory": {
+      "mean": -0.0237,
+      "p2_5": -0.087,
+      "p97_5": 0.0475,
+      "halfWidth": 0.0673,
+      "resamples": 400,
+      "blockDays": 20
+     }
+    },
+    "18m": {
+     "trainRows": 22575,
+     "trainFrom": "2023-06-13",
+     "trainTo": "2024-12-11",
+     "accuracy": 0.4862,
+     "majority": 0.5746,
+     "overMajority": -0.0885,
+     "predictedMix": {
+      "DOWN": 17081,
+      "FLAT": 8,
+      "UP": 4105
+     },
+     "classesPredicted": 3,
+     "vsAllHistory": {
+      "mean": 0.1204,
+      "p2_5": -0.02,
+      "p97_5": 0.2537,
+      "halfWidth": 0.1368,
+      "resamples": 400,
+      "blockDays": 20
+     }
+    },
+    "6m": {
+     "trainRows": 8226,
+     "trainFrom": "2024-06-12",
+     "trainTo": "2024-12-11",
+     "accuracy": 0.4075,
+     "majority": 0.5746,
+     "overMajority": -0.1672,
+     "predictedMix": {
+      "DOWN": 5503,
+      "FLAT": 0,
+      "UP": 15691
+     },
+     "classesPredicted": 2,
+     "vsAllHistory": {
+      "mean": 0.0391,
+      "p2_5": -0.0033,
+      "p97_5": 0.0836,
+      "halfWidth": 0.0435,
+      "resamples": 400,
+      "blockDays": 20
+     }
+    }
+   },
+   "inSampleOnTrainingRows": {
+    "all": {
+     "accuracy": 0.5329,
+     "majority": 0.4814,
+     "overMajority": 0.0514
+    },
+    "3y": {
+     "accuracy": 0.5574,
+     "majority": 0.4995,
+     "overMajority": 0.0578
+    },
+    "18m": {
+     "accuracy": 0.5838,
+     "majority": 0.4606,
+     "overMajority": 0.1232
+    },
+    "6m": {
+     "accuracy": 0.6208,
+     "majority": 0.478,
+     "overMajority": 0.1428
+    }
+   }
+  },
+  "2026": {
+   "evalRows": 19220,
+   "evalFrom": "2026-01-01",
+   "evalTo": "2026-09-25",
+   "decisionDates": 268,
+   "effectiveIndependentWindows": 961,
+   "classShare": {
+    "DOWN": 0.4723,
+    "FLAT": 0.1234,
+    "UP": 0.4043
+   },
+   "windows": {
+    "all": {
+     "trainRows": 72892,
+     "trainFrom": "2018-12-24",
+     "trainTo": "2025-12-11",
+     "accuracy": 0.4736,
+     "majority": 0.4723,
+     "overMajority": 0.0014,
+     "predictedMix": {
+      "DOWN": 18644,
+      "FLAT": 1,
+      "UP": 575
+     },
+     "classesPredicted": 3
+    },
+    "3y": {
+     "trainRows": 49445,
+     "trainFrom": "2022-12-13",
+     "trainTo": "2025-12-11",
+     "accuracy": 0.4737,
+     "majority": 0.4723,
+     "overMajority": 0.0014,
+     "predictedMix": {
+      "DOWN": 18031,
+      "FLAT": 35,
+      "UP": 1154
+     },
+     "classesPredicted": 3,
+     "vsAllHistory": {
+      "mean": -0.0001,
+      "p2_5": -0.0167,
+      "p97_5": 0.0167,
+      "halfWidth": 0.0167,
+      "resamples": 400,
+      "blockDays": 20
+     }
+    },
+    "18m": {
+     "trainRows": 29048,
+     "trainFrom": "2024-06-12",
+     "trainTo": "2025-12-11",
+     "accuracy": 0.4735,
+     "majority": 0.4723,
+     "overMajority": 0.0012,
+     "predictedMix": {
+      "DOWN": 19129,
+      "FLAT": 60,
+      "UP": 31
+     },
+     "classesPredicted": 3,
+     "vsAllHistory": {
+      "mean": 0.0005,
+      "p2_5": -0.0119,
+      "p97_5": 0.0109,
+      "halfWidth": 0.0114,
+      "resamples": 400,
+      "blockDays": 20
+     }
+    },
+    "6m": {
+     "trainRows": 11303,
+     "trainFrom": "2025-06-12",
+     "trainTo": "2025-12-11",
+     "accuracy": 0.447,
+     "majority": 0.4723,
+     "overMajority": -0.0252,
+     "predictedMix": {
+      "DOWN": 16580,
+      "FLAT": 1949,
+      "UP": 691
+     },
+     "classesPredicted": 3,
+     "vsAllHistory": {
+      "mean": -0.0259,
+      "p2_5": -0.0571,
+      "p97_5": 0.0009,
+      "halfWidth": 0.029,
+      "resamples": 400,
+      "blockDays": 20
+     }
+    }
+   },
+   "inSampleOnTrainingRows": {
+    "all": {
+     "accuracy": 0.5374,
+     "majority": 0.5163,
+     "overMajority": 0.0211
+    },
+    "3y": {
+     "accuracy": 0.5683,
+     "majority": 0.5167,
+     "overMajority": 0.0517
+    },
+    "18m": {
+     "accuracy": 0.6324,
+     "majority": 0.5559,
+     "overMajority": 0.0765
+    },
+    "6m": {
+     "accuracy": 0.7133,
+     "majority": 0.5916,
+     "overMajority": 0.1216
+    }
+   }
+  }
+ },
+ "tally": {
+  "3y": {
+   "yearsBeatingAllHistory": 0,
+   "yearsClearOfTheInterval": 0,
+   "yearsCompared": 4,
+   "meanAdvantage": -0.0077
+  },
+  "18m": {
+   "yearsBeatingAllHistory": 3,
+   "yearsClearOfTheInterval": 0,
+   "yearsCompared": 4,
+   "meanAdvantage": 0.0386
+  },
+  "6m": {
+   "yearsBeatingAllHistory": 2,
+   "yearsClearOfTheInterval": 0,
+   "yearsCompared": 4,
+   "meanAdvantage": 0.0003
+  }
+ },
+ "verdict": "recency does not help: no shorter window beats all-history in at least 3 of 4 evaluation years by more than the bootstrap interval",
+ "exposure": "every evaluation period here has been scored before; exploratory evidence only, never confirmatory, and nothing is promotable from it"
+}
