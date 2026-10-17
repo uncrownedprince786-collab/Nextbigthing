@@ -126,6 +126,38 @@ within-window permutation (class counts invariant, tautological) and was correct
 permute across the matured pre-cut population before the reported run. No criteria or
 thresholds were changed after seeing results.
 
+### Follow-on experiment: cross-sectional ranking — registered and executed 2026-10-17, verdict: fails
+
+The next question named above (and in WORKSTREAMS §6) — **cross-sectional ranking** — was
+registered in full in the docstring of `tools/research/cross_sectional_ranking.py` (target,
+eligible set, walk-forward, scores, metrics, rejection criteria — all fixed before the run) and
+then executed on the same frozen crypto slice. Artifact:
+`data/foundation/dataset/cross_sectional_ranking.json`; a new cache
+`.cache/foundation/ranking_slice.npz` (adds `fwd20` to the slice; `.cache/` is git-ignored).
+Target: the cross-sectional **rank of `fwd20`** within each decision date (continuous, no
+directional threshold), eligible rows needing ≥10 instruments per date.
+
+**Result: negative — the best candidate fails the criteria.** Scores, mean rank IC per year
+(2023 / 2024 / 2025 / 2026): `rankModel` −0.0086 / −0.0386 / +0.0230 / −0.0010; `momentum` (price
+only) **+0.0591** / −0.0089 / +0.0225 / −0.0467; `reversal` (price only) −0.0591 / +0.0089 /
+−0.0225 / +0.0467; `directionModel` (the existing failed 3-class setup, `P(UP)−P(DOWN)`)
+−0.0462 / −0.0024 / +0.0410 / +0.0110; `random` ≈ 0 every year. Best = `momentum`; (a) IC > 0 in
+**2 of 4** years (needs 3) — fail; (b) mean IC **+0.0065** vs mean bootstrap half-width **0.0563**
+— fail; (c) long-short spread positive **4 of 4** years (small: +8.48/+2.29/+1.32/+0.98%) — holds;
+(d) beats `directionModel` in **1 of 4** years — fail. Every per-year half-width exceeds its own
+mean IC, so even the positive years are indistinguishable from noise under the block bootstrap.
+
+**What this says.** Ranking *this way* on *this slice* carries no usable cross-sectional signal,
+and — the sharper point — the failed directional formulation actually beat the price-only
+momentum baseline on IC in 3 of 4 years (2024/2025/2026), so dropping the threshold bought
+nothing. The long-short spread's 4/4 positivity reflects the slice's own dispersion (the top and
+bottom deciles of a 20-session crypto window differ regardless of the score; the `random` control's
+own spread is ~0, so the effect is real but tiny and IC-negative in two years). Conclusion: the
+20-session cross-sectional form is also negative; **the one dimension not yet varied is the
+outcome horizon itself** — the frozen rows already carry `fwd1`/`fwd5` as well as `fwd20`, so the
+next question is a **5-session cross-sectional / directional test**, registered the same way before
+any run. No criteria were changed after seeing this result, and nothing is promotable.
+
 ## 11. What was NOT measured and why
 - No full PIT audit across all years/files (timestamp existence/discipline checked only); full audit out of scope.
 - No out-of-sample performance (measurement only, no training/evaluation beyond bounds).

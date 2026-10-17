@@ -1,5 +1,68 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-18 (twenty-seventh), the two UI guards are green; cross-sectional ranking executed (fails)
+
+**Branch `main`, this checkpoint's commit on `origin/main`, tree clean after commit,
+`origin/main == HEAD`.** Local cache and files only; no database touched, no frozen artifact or
+model changed, no new training machinery. Started from verified `0ffd0ac`.
+
+### Both UI guard tests are green; the two regression failures are closed
+
+The two red guards recorded in the twenty-sixth checkpoint are fixed at source, not sanctioned.
+`app/preview/status/page.tsx` now prints `no close stored` / `no quote stored` instead of the
+banned `none stored` (lines 74/80) and `app/preview/watchlist/page.tsx` says `held nowhere else`
+instead of `is not stored anywhere else`. `SqlSafety` fails on the **first** offender, so it had
+under-reported: the real `"use client"` components number six, of which three were not in
+`CLIENT_ALLOWED` — `app/preview/status/Preferences.tsx`, `app/preview/watchlist/SaveButton.tsx`,
+`app/preview/watchlist/WatchlistClient.tsx`. All three are deliberate client islands
+(`localStorage` only, no server value), so they were added to `CLIENT_ALLOWED` explicitly — **no
+blanket `app/preview/` exemption** — with a new `test_no_allowed_client_component_fetches_off_site`
+as the guard that they stay off-site-free. **Full Python suite 1,163 of 1,163 OK; web 500 of 500;
+`tsc --noEmit` clean; production build clean** (all eight `/preview` routes + the dynamic
+`/preview/asset/[symbol]` routes present; production routes intact). The eight preview screens and
+production `/` were re-verified live (all 2xx, maturity rule intact: 566 awaiting, 0 matured, 0
+scored). The corrected wording deploys on push. `npm run lint` still hangs (pre-existing).
+
+### The cross-sectional ranking experiment ran and failed, on criteria fixed before the run
+
+Registered in full in the docstring of `tools/research/cross_sectional_ranking.py` (target = the
+cross-sectional **rank of `fwd20`** within each decision date, no directional threshold; ≥10
+instruments per date; four-year walk-forward with a 20-decision-date embargo; scores `momentum`,
+`reversal`, ridge `rankModel`, the existing 3-class `directionModel` and a `random` control; the
+same 20-date-block bootstrap; rejection criteria (a)–(d) fixed first), then executed. New files:
+`tools/research/cross_sectional_ranking.py` and
+`data/foundation/dataset/cross_sectional_ranking.json`; a new git-ignored cache
+`.cache/foundation/ranking_slice.npz` (adds `fwd20`; 93,452 rows, 75 instruments).
+
+**Verdict: fails the criteria.** Best candidate `momentum` (price only, no fit) — mean rank IC
+**+0.0591 / −0.0089 / +0.0225 / −0.0467** (2023–2026):
+- (a) IC > 0 in **2 of 4** years (needs 3) — fail.
+- (b) mean IC **+0.0065** vs mean bootstrap half-width **0.0563** — fail.
+- (c) long-short spread positive in **4 of 4** years (holds) but small: +8.48 / +2.29 / +1.32 /
+  +0.98%, and the `random` control's spread is ~0, so the spread is the slice's own dispersion,
+  not the score's ordering.
+- (d) beats `directionModel` on IC in **1 of 4** years — fail; `directionModel` in fact beat
+  price-only momentum in 3 of 4 years (2024/2025/2026), so dropping the directional threshold
+  bought nothing.
+
+Every per-year half-width exceeds its mean IC. **Conclusion recorded: the 20-session
+cross-sectional form is also negative.**
+
+### Where the workstreams stand
+
+| | state | next |
+|---|---|---|
+| **C - UI** | 8 of 8 screens; **both Python guards green**; suite 1,163 + 500 web + build clean | integration + regression pass, then cutover decision |
+| **B - Sync** | matrix written; B1–B6 open; calendar gap investigated (no row added) | **B1** when pooler has headroom; B3 needs live reads |
+| **A - Brain** | recency closed; prevalence-adjustment fails; **cross-sectional ranking fails** | register the **outcome-horizon** test (5-session), same discipline, then run it |
+
+### Next action
+
+**A: register then run the 5-session outcome-horizon experiment** (the one dimension not yet
+varied; the frozen rows already carry `fwd1`/`fwd5`), local cache only, no database — the same
+discipline: full spec and rejection criteria in the docstring before any run. **B1** remains the
+sync step when the pooler has headroom. Both are local/read-only; nothing here is promotable.
+
 ## 0. SESSION CHECKPOINT - 2026-10-17 (twenty-sixth), registered experiment executed (fails); two pre-existing UI guards red
 
 **Branch `main`, this checkpoint's commit (see git log) on `origin/main`, tree clean after

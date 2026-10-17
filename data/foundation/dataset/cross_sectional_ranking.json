@@ -1,0 +1,592 @@
+{
+ "generatedAt": "2026-10-17T21:55:05+00:00",
+ "version": "cross-sectional-ranking-v1",
+ "registeredIn": "this file's docstring, 2026-10-17, before any run",
+ "question": "does ranking crypto instruments within a date carry out-of-sample signal where the 20-session three-class direction task did not",
+ "target": "cross-sectional rank of fwd20 within each decision date; fwd20 never a feature",
+ "slice": "crypto rows of the frozen examples-v4-context dataset; same slice as stationarity.json and prevalence_adjustment.json",
+ "minCrossSection": 10,
+ "ridgeLambda": 1.0,
+ "embargoDecisionDates": 20,
+ "uncertainty": "moving-block bootstrap over decision dates, 20-date blocks, 400 resamples",
+ "preDeclaredCriteria": {
+  "promisingIfAllHold": [
+   "(a) best of {rankModel, momentum, reversal} has mean IC > 0 in >= 3 of 4 years",
+   "(b) that score's mean IC exceeds its bootstrap half-width",
+   "(c) that score's long-short spread is positive in >= 3 of 4 years",
+   "(d) it beats directionModel's mean IC in >= 3 of 4 years"
+  ],
+  "failing": "ranking this way on this slice is negative; next question is data/horizon (a different outcome window or a widened eligible set), not another score",
+  "setBefore": "any number from this run was seen (registered 2026-10-17)",
+  "promotion": "none; every evaluation period is exposed and no artifact is promotable"
+ },
+ "byEvaluationYear": {
+  "2023": {
+   "evalRows": 12951,
+   "trainRows": 23414,
+   "evalFrom": "2023-01-01",
+   "evalTo": "2023-12-31",
+   "decisionDates": 365,
+   "crossSectionMedianSize": 35,
+   "fwd20Mean": 5.5637,
+   "scores": {
+    "rankModel": {
+     "meanIC": -0.0086,
+     "icBootstrap": {
+      "mean": -0.0086,
+      "p2_5": -0.0927,
+      "p97_5": 0.0702,
+      "halfWidth": 0.0814,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": 1.9476,
+     "spreadBootstrap": {
+      "mean": 1.9476,
+      "p2_5": -3.1059,
+      "p97_5": 6.9364,
+      "halfWidth": 5.0212,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.5288,
+     "topDecileTurnover": 0.2216,
+     "datesRanked": 365,
+     "icUpMarketDays": 0.0503,
+     "icDownMarketDays": -0.085
+    },
+    "directionModel": {
+     "meanIC": -0.0462,
+     "icBootstrap": {
+      "mean": -0.0462,
+      "p2_5": -0.1288,
+      "p97_5": 0.034,
+      "halfWidth": 0.0814,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": 3.4508,
+     "spreadBootstrap": {
+      "mean": 3.4508,
+      "p2_5": -3.1056,
+      "p97_5": 10.3648,
+      "halfWidth": 6.7352,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.5233,
+     "topDecileTurnover": 0.2422,
+     "datesRanked": 365,
+     "icUpMarketDays": 0.0369,
+     "icDownMarketDays": -0.1539
+    },
+    "momentum": {
+     "meanIC": 0.0591,
+     "icBootstrap": {
+      "mean": 0.0591,
+      "p2_5": -0.007,
+      "p97_5": 0.1167,
+      "halfWidth": 0.0619,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": 8.4758,
+     "spreadBootstrap": {
+      "mean": 8.4758,
+      "p2_5": 3.645,
+      "p97_5": 14.7019,
+      "halfWidth": 5.5285,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.6548,
+     "topDecileTurnover": 0.1754,
+     "datesRanked": 365,
+     "icUpMarketDays": 0.1044,
+     "icDownMarketDays": 0.0004
+    },
+    "reversal": {
+     "meanIC": -0.0591,
+     "icBootstrap": {
+      "mean": -0.0591,
+      "p2_5": -0.1167,
+      "p97_5": 0.007,
+      "halfWidth": 0.0619,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": -8.4758,
+     "spreadBootstrap": {
+      "mean": -8.4758,
+      "p2_5": -14.7019,
+      "p97_5": -3.645,
+      "halfWidth": 5.5285,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.3452,
+     "topDecileTurnover": 0.266,
+     "datesRanked": 365,
+     "icUpMarketDays": -0.1044,
+     "icDownMarketDays": -0.0004
+    },
+    "random": {
+     "meanIC": -0.0088,
+     "icBootstrap": {
+      "mean": -0.0088,
+      "p2_5": -0.0267,
+      "p97_5": 0.0131,
+      "halfWidth": 0.0199,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": -1.08,
+     "spreadBootstrap": {
+      "mean": -1.08,
+      "p2_5": -2.7357,
+      "p97_5": 0.4607,
+      "halfWidth": 1.5982,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.4712,
+     "topDecileTurnover": 0.8988,
+     "datesRanked": 365,
+     "icUpMarketDays": 0.0061,
+     "icDownMarketDays": -0.0281
+    }
+   }
+  },
+  "2024": {
+   "evalRows": 16013,
+   "trainRows": 36234,
+   "evalFrom": "2024-01-01",
+   "evalTo": "2024-12-31",
+   "decisionDates": 366,
+   "crossSectionMedianSize": 44,
+   "fwd20Mean": 5.3501,
+   "scores": {
+    "rankModel": {
+     "meanIC": -0.0386,
+     "icBootstrap": {
+      "mean": -0.0386,
+      "p2_5": -0.1124,
+      "p97_5": 0.0378,
+      "halfWidth": 0.0751,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": 3.4194,
+     "spreadBootstrap": {
+      "mean": 3.4194,
+      "p2_5": 0.2605,
+      "p97_5": 6.7846,
+      "halfWidth": 3.262,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.5464,
+     "topDecileTurnover": 0.3141,
+     "datesRanked": 366,
+     "icUpMarketDays": 0.0282,
+     "icDownMarketDays": -0.1091
+    },
+    "directionModel": {
+     "meanIC": -0.0024,
+     "icBootstrap": {
+      "mean": -0.0024,
+      "p2_5": -0.0792,
+      "p97_5": 0.0824,
+      "halfWidth": 0.0808,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": 2.3803,
+     "spreadBootstrap": {
+      "mean": 2.3803,
+      "p2_5": -1.1453,
+      "p97_5": 5.8099,
+      "halfWidth": 3.4776,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.5792,
+     "topDecileTurnover": 0.3516,
+     "datesRanked": 366,
+     "icUpMarketDays": 0.0855,
+     "icDownMarketDays": -0.0952
+    },
+    "momentum": {
+     "meanIC": -0.0089,
+     "icBootstrap": {
+      "mean": -0.0089,
+      "p2_5": -0.0493,
+      "p97_5": 0.0332,
+      "halfWidth": 0.0412,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": 2.2934,
+     "spreadBootstrap": {
+      "mean": 2.2934,
+      "p2_5": -0.3585,
+      "p97_5": 4.8078,
+      "halfWidth": 2.5831,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.5902,
+     "topDecileTurnover": 0.1751,
+     "datesRanked": 366,
+     "icUpMarketDays": -0.0453,
+     "icDownMarketDays": 0.0297
+    },
+    "reversal": {
+     "meanIC": 0.0089,
+     "icBootstrap": {
+      "mean": 0.0089,
+      "p2_5": -0.0332,
+      "p97_5": 0.0493,
+      "halfWidth": 0.0412,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": -2.2934,
+     "spreadBootstrap": {
+      "mean": -2.2934,
+      "p2_5": -4.8078,
+      "p97_5": 0.3585,
+      "halfWidth": 2.5831,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.4098,
+     "topDecileTurnover": 0.2736,
+     "datesRanked": 366,
+     "icUpMarketDays": 0.0453,
+     "icDownMarketDays": -0.0297
+    },
+    "random": {
+     "meanIC": -0.0003,
+     "icBootstrap": {
+      "mean": -0.0003,
+      "p2_5": -0.0157,
+      "p97_5": 0.017,
+      "halfWidth": 0.0163,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": 0.0383,
+     "spreadBootstrap": {
+      "mean": 0.0383,
+      "p2_5": -1.1005,
+      "p97_5": 1.0743,
+      "halfWidth": 1.0874,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.5027,
+     "topDecileTurnover": 0.891,
+     "datesRanked": 366,
+     "icUpMarketDays": 0.0012,
+     "icDownMarketDays": -0.0019
+    }
+   }
+  },
+  "2025": {
+   "evalRows": 21194,
+   "trainRows": 52070,
+   "evalFrom": "2025-01-01",
+   "evalTo": "2025-12-31",
+   "decisionDates": 365,
+   "crossSectionMedianSize": 58,
+   "fwd20Mean": -1.8294,
+   "scores": {
+    "rankModel": {
+     "meanIC": 0.023,
+     "icBootstrap": {
+      "mean": 0.023,
+      "p2_5": -0.0269,
+      "p97_5": 0.0673,
+      "halfWidth": 0.0471,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": 4.2301,
+     "spreadBootstrap": {
+      "mean": 4.2301,
+      "p2_5": -0.0334,
+      "p97_5": 10.1841,
+      "halfWidth": 5.1087,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.6137,
+     "topDecileTurnover": 0.4083,
+     "datesRanked": 365,
+     "icUpMarketDays": -0.067,
+     "icDownMarketDays": 0.0711
+    },
+    "directionModel": {
+     "meanIC": 0.041,
+     "icBootstrap": {
+      "mean": 0.041,
+      "p2_5": 0.0007,
+      "p97_5": 0.0776,
+      "halfWidth": 0.0385,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": 3.1615,
+     "spreadBootstrap": {
+      "mean": 3.1615,
+      "p2_5": 0.6535,
+      "p97_5": 5.8469,
+      "halfWidth": 2.5967,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.6466,
+     "topDecileTurnover": 0.4086,
+     "datesRanked": 365,
+     "icUpMarketDays": 0.0417,
+     "icDownMarketDays": 0.0407
+    },
+    "momentum": {
+     "meanIC": 0.0225,
+     "icBootstrap": {
+      "mean": 0.0225,
+      "p2_5": -0.0349,
+      "p97_5": 0.0805,
+      "halfWidth": 0.0577,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": 1.324,
+     "spreadBootstrap": {
+      "mean": 1.324,
+      "p2_5": -4.8286,
+      "p97_5": 9.9134,
+      "halfWidth": 7.371,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.4877,
+     "topDecileTurnover": 0.1731,
+     "datesRanked": 365,
+     "icUpMarketDays": -0.1101,
+     "icDownMarketDays": 0.0932
+    },
+    "reversal": {
+     "meanIC": -0.0225,
+     "icBootstrap": {
+      "mean": -0.0225,
+      "p2_5": -0.0805,
+      "p97_5": 0.0349,
+      "halfWidth": 0.0577,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": -1.3206,
+     "spreadBootstrap": {
+      "mean": -1.3206,
+      "p2_5": -9.9101,
+      "p97_5": 4.8321,
+      "halfWidth": 7.3711,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.5123,
+     "topDecileTurnover": 0.2506,
+     "datesRanked": 365,
+     "icUpMarketDays": 0.1101,
+     "icDownMarketDays": -0.0932
+    },
+    "random": {
+     "meanIC": -0.0007,
+     "icBootstrap": {
+      "mean": -0.0007,
+      "p2_5": -0.0121,
+      "p97_5": 0.0125,
+      "halfWidth": 0.0123,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": 0.1803,
+     "spreadBootstrap": {
+      "mean": 0.1803,
+      "p2_5": -0.9024,
+      "p97_5": 1.2571,
+      "halfWidth": 1.0797,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.5068,
+     "topDecileTurnover": 0.8972,
+     "datesRanked": 365,
+     "icUpMarketDays": -0.0127,
+     "icDownMarketDays": 0.0058
+    }
+   }
+  },
+  "2026": {
+   "evalRows": 19220,
+   "trainRows": 72892,
+   "evalFrom": "2026-01-01",
+   "evalTo": "2026-09-25",
+   "decisionDates": 268,
+   "crossSectionMedianSize": 72,
+   "fwd20Mean": 2.27,
+   "scores": {
+    "rankModel": {
+     "meanIC": -0.001,
+     "icBootstrap": {
+      "mean": -0.001,
+      "p2_5": -0.1017,
+      "p97_5": 0.0894,
+      "halfWidth": 0.0955,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": -0.8314,
+     "spreadBootstrap": {
+      "mean": -0.8314,
+      "p2_5": -4.8593,
+      "p97_5": 3.4984,
+      "halfWidth": 4.1789,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.5373,
+     "topDecileTurnover": 0.3589,
+     "datesRanked": 268,
+     "icUpMarketDays": -0.155,
+     "icDownMarketDays": 0.1529
+    },
+    "directionModel": {
+     "meanIC": 0.011,
+     "icBootstrap": {
+      "mean": 0.011,
+      "p2_5": -0.0662,
+      "p97_5": 0.0861,
+      "halfWidth": 0.0761,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": 0.3886,
+     "spreadBootstrap": {
+      "mean": 0.3886,
+      "p2_5": -2.6842,
+      "p97_5": 3.1622,
+      "halfWidth": 2.9232,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.5261,
+     "topDecileTurnover": 0.4887,
+     "datesRanked": 268,
+     "icUpMarketDays": -0.1165,
+     "icDownMarketDays": 0.1385
+    },
+    "momentum": {
+     "meanIC": -0.0467,
+     "icBootstrap": {
+      "mean": -0.0467,
+      "p2_5": -0.1115,
+      "p97_5": 0.0172,
+      "halfWidth": 0.0643,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": 0.9814,
+     "spreadBootstrap": {
+      "mean": 0.9814,
+      "p2_5": -2.3042,
+      "p97_5": 4.2456,
+      "halfWidth": 3.2749,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.5112,
+     "topDecileTurnover": 0.1701,
+     "datesRanked": 268,
+     "icUpMarketDays": -0.0621,
+     "icDownMarketDays": -0.0312
+    },
+    "reversal": {
+     "meanIC": 0.0467,
+     "icBootstrap": {
+      "mean": 0.0467,
+      "p2_5": -0.0172,
+      "p97_5": 0.1115,
+      "halfWidth": 0.0643,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": -0.9814,
+     "spreadBootstrap": {
+      "mean": -0.9814,
+      "p2_5": -4.2456,
+      "p97_5": 2.3042,
+      "halfWidth": 3.2749,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.4888,
+     "topDecileTurnover": 0.2497,
+     "datesRanked": 268,
+     "icUpMarketDays": 0.0621,
+     "icDownMarketDays": 0.0312
+    },
+    "random": {
+     "meanIC": -0.0012,
+     "icBootstrap": {
+      "mean": -0.0012,
+      "p2_5": -0.0133,
+      "p97_5": 0.0105,
+      "halfWidth": 0.0119,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "longShortSpread": -0.1867,
+     "spreadBootstrap": {
+      "mean": -0.1867,
+      "p2_5": -1.3969,
+      "p97_5": 0.9109,
+      "halfWidth": 1.1539,
+      "resamples": 400,
+      "blockDays": 20
+     },
+     "hitRate": 0.4739,
+     "topDecileTurnover": 0.8998,
+     "datesRanked": 268,
+     "icUpMarketDays": -0.0045,
+     "icDownMarketDays": 0.0022
+    }
+   }
+  }
+ },
+ "criteria": {
+  "bestCandidate": "momentum",
+  "(a) mean IC > 0 in >=3 of 4 years": {
+   "holds": false,
+   "yearsPositive": 2
+  },
+  "(b) mean IC > mean half-width": {
+   "holds": false,
+   "meanIC": 0.0065,
+   "meanHalfWidth": 0.0563
+  },
+  "(c) long-short spread positive in >=3 of 4 years": {
+   "holds": true,
+   "yearsPositive": 4
+  },
+  "(d) beats directionModel IC in >=3 of 4 years": {
+   "holds": false,
+   "yearsBeating": 1
+  },
+  "allHold": false
+ },
+ "verdict": "cross-sectional ranking is negative on this slice: momentum fails the criteria; next question is the outcome window or the eligible set, not another score on the same rows",
+ "exposure": "every evaluation period here has been scored before; exploratory evidence only, never confirmatory, and nothing is promotable from it"
+}

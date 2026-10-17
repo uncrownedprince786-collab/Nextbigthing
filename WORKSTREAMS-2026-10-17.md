@@ -187,12 +187,29 @@ and 2026 it amplified a stale sell-off-era lean and cost accuracy. Label-shift t
 `p(x|y)` is stable and only the prior moves; on this slice the discriminative relationship itself
 moves. **Conclusion: the lean is not correctable from recently matured outcomes.**
 
-**Next registered question — cross-sectional ranking** (pre-declared before the run): a
-formulation with a decision-shaped target that names which assets move most **relative to peers**,
-requiring no absolute directional threshold. Its full spec must be registered the same way
-(artifact, splits, baselines, fixed rejection criteria) before any run — not rerun as a variant
-of the failed test. This closes the windowing family (recency) and the prior-correction family
-(label-shift); both are negative with the mechanism named.
+**Registered question — cross-sectional ranking — executed 2026-10-17, verdict: fails.**
+Full spec was registered in the docstring of `tools/research/cross_sectional_ranking.py` before
+any run (target = the cross-sectional rank of `fwd20` within each decision date; ≥10 instruments
+per date; the same four-year walk-forward with a 20-decision-date embargo; scores `momentum`,
+`reversal`, `rankModel` (ridge on the 44 features), `directionModel` (the existing 3-class setup)
+and a `random` control; the same 20-date-block bootstrap; rejection criteria (a)–(d) fixed
+first). Artifact `data/foundation/dataset/cross_sectional_ranking.json`. **Result: negative.**
+Best candidate `momentum` has mean IC > 0 in **2 of 4** years (2023 +0.0591, 2025 +0.0225; 2024
+−0.0089, 2026 −0.0467) — criterion (a) needs 3. Its mean IC +0.0065 is far under the mean
+half-width 0.0563 — (b) fails. Its long-short spread is positive in 4 of 4 years but small
+(+8.48/+2.29/+1.32/+0.98%) and the `random` control's spread is ~0, so the spread reflects the
+slice's own dispersion, not the score's ordering. It beats `directionModel` (`P(UP)−P(DOWN)`) on
+IC in only **1 of 4** years — (d) fails; in fact `directionModel` beat price-only momentum in
+3 of 4 years, so removing the directional threshold helped nothing. Every per-year half-width
+exceeds its mean IC. **Conclusion: the 20-session cross-sectional form is also negative.**
+
+**Next registered question — the outcome horizon.** With the window family (recency), the
+prior-correction family (label-shift) and the 20-session cross-sectional form all negative with
+mechanisms named, the one dimension not yet varied is **the forward window itself**. The frozen
+rows already carry `fwd1` and `fwd5` beside `fwd20`, so the next test is a **5-session**
+cross-sectional / directional experiment, registered in full (target, eligible set, walk-forward,
+baselines, fixed rejection criteria) before any run — not a rerun of this one at a new width.
+Nothing here is promotable; every evaluation period is exposed.
 
 ---
 
