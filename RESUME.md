@@ -1,5 +1,76 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-17 (twenty-fourth), all eight screens built
+
+**Branch `main`, tree clean after commit, `origin/main == HEAD`.**
+**Tests: 500 web, `tsc` clean, production build clean (65 pages, was 62).**
+**Python tests not run this session - no Python code changed.**
+
+### Screens 6 and 8 are built and verified live
+
+The replacement UI is now **8 of 8**. Everything lives under `app/preview/`; no pre-existing
+route's files were touched beyond the layout nav and the Table-head fragment fix; rollback is
+deleting `app/preview/`.
+
+**Screen 6 - Watchlist (`/preview/watchlist`)**, the cheap first cut the contract recommended:
+
+* **`localStorage` only, no auth subsystem** - `app/preview/watchlist/storage.ts` records why:
+  the schema has no User/Watchlist model and adding one is a subsystem decision, not a screen.
+* **Every surface says the list is device-local.** The page, the empty state and the Status
+  screen's limitations card all say it does not sync and clearing site data removes it. A
+  watchlist that looked like an account while living in one browser would be the dishonest
+  version.
+* **SSR-safe**: `SaveButton` renders neutral on the server and corrects after mount (`ready`
+  flag keeps hydration identical); `WatchlistClient` holds `items === null` as "reading" rather
+  than "empty" so a reader with a full list is never told it is gone; every storage read/write
+  is wrapped for private-window/blocked-storage scenarios (failure is the empty list, not a
+  crash).
+* **`/preview/api/watchlist`** resolves saved symbols through existing readers only
+  (`getAsset` + `getAssetFreshness`), POST (a watchlist is mildly personal; URLs get logged),
+  capped at **50 symbols** and batches of 4 to stay inside the pooler's 15-client ceiling;
+  over the cap it answers for the first 50 and reports how many it left out. A symbol that no
+  longer resolves is kept and marked `unknown`, told apart from "stored but never priced".
+* **The two preference switches are consumed, not decorative**: `recentFirst` orders the list
+  newest-save-first (off: alphabetical by symbol); `verboseProvenance` adds source and full
+  timestamp inline beside every stored close. Shared module: `app/preview/prefs.ts`.
+
+**Screen 8 - Preferences & Status (`/preview/status`)**:
+
+* Status panels read `getSourceHealth`, `getHealthReadings`, `getIntradayCoverage` - all
+  existing, tested readers. (The contract named `getIntradayHealth`, but that reader answers
+  for **one asset**; the site-wide one is `getIntradayCoverage`. Using the named reader would
+  have meant 555 calls for one panel.)
+* **Each source's status word is printed exactly as `jobs/audit.py` recorded it**, with that
+  source's own cadence in hand - never recomputed from a timestamp here, because a weekly source
+  is not stale on day two (that classification is B3's job).
+* Market-level freshness (newest close and newest quote per market), collection-lane runs for
+  the last seven days (last run vs last *successful* run), intraday coverage with
+  `unsupported` counted separately from failures, and a Known-limitations card (no validated
+  model; no accounts; stored data not live feed).
+* Preferences are the same `localStorage` position as the watchlist, stated the same way.
+
+### Verified live, once, with the pooler healthy enough to answer
+
+Production server, bounded single pass: `/preview`, `/preview/markets`,
+`/preview/watchlist`, `/preview/status`, `/preview/predictions`, `/preview/news` all **200**;
+`/preview/markets/mega-cap-tech` and `/semiconductors` **200**; `/preview/asset/AMD` and its
+`/research` page **200**; `POST /preview/api/watchlist` with `["AMD","NOTAREALSYM"]` returned
+AMD's real close (528.75 USD, 2026-10-16, Yahoo Finance) and `unknown: true` for the fake
+symbol. **No repeated production polling was done**; each check ran once.
+
+### Where the workstreams stand
+
+| | state | next |
+|---|---|---|
+| **C - UI** | **8 of 8 screens built and verified** | integration + regression pass, then cutover decision |
+| **B - Sync** | `daily_audit.py` exists; B1-B6 not started | **B1**: backup + restore rehearsal (5 migrations behind) -> unblocks B4 |
+| **A - Brain** | not started this session | corpus-coverage measurement past ~37 of 617 instruments |
+
+### Next action
+
+**Workstream B1** (backup + restore rehearsal at current schema), when the pooler has headroom;
+or **Workstream A**'s coverage measurement, which is local-data-first and needs no database.
+
 ## 0. SESSION CHECKPOINT - 2026-10-17 (twenty-third), six of eight screens built
 
 **Branch `main`, work commit `a0c56d3`, tree clean, `origin/main == HEAD`.**

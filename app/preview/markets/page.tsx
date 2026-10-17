@@ -41,10 +41,10 @@ export default async function MarketsPage() {
         <Section key={market} title={MARKET_NAME[market] ?? market}>
           <Table
             head={
-              <tr>
+              <>
                 <th className="px-3 py-2 text-left">Industry</th>
                 <th className="px-3 py-2 text-right">Instruments</th>
-              </tr>
+              </>
             }
           >
             {industries.map((ind) => (

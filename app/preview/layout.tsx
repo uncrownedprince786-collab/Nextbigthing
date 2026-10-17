@@ -21,6 +21,8 @@ const NAV = [
   ["/preview/markets", "Markets"],
   ["/preview/news", "News & events"],
   ["/preview/predictions", "Predictions"],
+  ["/preview/watchlist", "Watchlist"],
+  ["/preview/status", "Status"],
   ["/", "← Live site"],
 ] as const;
 

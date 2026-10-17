@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, Empty, Note, Section, Table } from "@/components/ui";
 import { getAsset, getAssetFreshness, getAssetPrices, getLiveQuoteFor } from "@/lib/queries";
+import { SaveButton } from "@/app/preview/watchlist/SaveButton";
 
 /// Screen 3 — asset detail.
 ///
@@ -51,6 +52,9 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
             {asset.industry ? <> · {asset.industry.name} · {asset.industry.market}</> : null}
             {asset.currency ? <> · quoted in {asset.currency}</> : null}
           </p>
+          <div className="mt-3">
+            <SaveButton symbol={asset.symbol} name={asset.name} />
+          </div>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
               <div className="text-xs text-muted-foreground">Latest stored close</div>
@@ -95,11 +99,11 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
         ) : (
           <Table
             head={
-              <tr>
+              <>
                 <th className="px-3 py-2 text-left">Session</th>
                 <th className="px-3 py-2 text-right">Close</th>
                 <th className="px-3 py-2 text-right">Volume</th>
-              </tr>
+              </>
             }
           >
             {recent.map((p) => (

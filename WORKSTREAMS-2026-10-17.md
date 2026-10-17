@@ -98,20 +98,26 @@ Existing routes: `/` `/stocks` `/psx` `/crypto` `/forex` `/commodities` `/asset/
 
 **Six of eight screens are servable from readers that already exist and are already tested.**
 
-### Build status — updated 2026-10-17 (`a0c56d3`)
+### Build status — updated 2026-10-17 (screens 6 and 8)
 
 | # | Screen | Route | State |
 |---|---|---|---|
 | 1 | Overview | `/preview` | **built, verified on real data** |
 | 2 | Market Explorer | `/preview/markets`, `/preview/markets/[slug]` | **built, verified** |
-| 3 | Asset Detail | `/preview/asset/[symbol]` | **built** |
-| 4 | Research Detail | `/preview/asset/[symbol]/research` | **built** |
+| 3 | Asset Detail | `/preview/asset/[symbol]` | **built, verified** (Save button added for Screen 6) |
+| 4 | Research Detail | `/preview/asset/[symbol]/research` | **built, verified** |
 | 5 | News & Events | `/preview/news` | **built, verified** |
-| 6 | Watchlist | — | not started — `localStorage` only, no auth |
+| 6 | Watchlist | `/preview/watchlist` | **built, verified** — `localStorage` only, no auth |
 | 7 | Predictions | `/preview/predictions` | **built, verified** |
-| 8 | Preferences / Status | — | not started |
+| 8 | Preferences / Status | `/preview/status` | **built, verified** — preferences are `localStorage` only |
 
-**6 of 8 built.** Build generates **62** pages (was 60); every pre-existing route is untouched and
+**8 of 8 built.** Screen 6 holds the list in the browser (`app/preview/watchlist/storage.ts`),
+resolves symbols through `/preview/api/watchlist` (existing readers `getAsset` +
+`getAssetFreshness`, capped at 50 symbols for the pooler), and says on every surface that the list
+is device-local. Screen 8 prints each source's own recorded status word (never recomputed from a
+timestamp) beside market freshness, lane runs and intraday coverage; its two preference switches
+are consumed by the watchlist (`recentFirst` orders it, `verboseProvenance` shows full source and
+time inline). Build generates **65** pages (was 62); every pre-existing route is untouched and
 rollback is deleting `app/preview/`.
 
 ---

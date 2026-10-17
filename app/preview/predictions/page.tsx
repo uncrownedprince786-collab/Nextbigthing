@@ -95,7 +95,7 @@ export default async function PredictionsPage() {
         ) : (
           <Table
             head={
-              <tr>
+              <>
                 <th className="px-3 py-2 text-left">Session</th>
                 <th className="px-3 py-2 text-left">Symbol</th>
                 <th className="px-3 py-2 text-left">Predicted</th>
@@ -103,7 +103,7 @@ export default async function PredictionsPage() {
                 <th className="px-3 py-2 text-right">Imputed</th>
                 <th className="px-3 py-2 text-left">Matures</th>
                 <th className="px-3 py-2 text-left">Outcome</th>
-              </tr>
+              </>
             }
           >
             {s.rows.map((r) => (

@@ -64,10 +64,10 @@ export default async function ResearchPage({ params }: { params: Promise<{ symbo
   ]);
 
   const head = (
-    <tr>
+    <>
       <th className="px-3 py-2 text-left">Reading</th>
       <th className="px-3 py-2 text-right">Value</th>
-    </tr>
+    </>
   );
 
   return (

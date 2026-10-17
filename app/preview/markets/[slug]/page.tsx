@@ -36,12 +36,12 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
         ) : (
           <Table
             head={
-              <tr>
+              <>
                 <th className="px-3 py-2 text-left">Symbol</th>
                 <th className="px-3 py-2 text-left">Name</th>
                 <th className="px-3 py-2 text-left">Kind</th>
                 <th className="px-3 py-2 text-left">Currency</th>
-              </tr>
+              </>
             }
           >
             {ind.assets.map((a) => (
