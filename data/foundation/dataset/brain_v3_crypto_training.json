@@ -1,0 +1,213 @@
+{
+ "generatedAt": "2026-10-16T23:59:55+00:00",
+ "modelVersion": "brain-v3-crypto",
+ "artifact": {
+  "path": "data/foundation/brain/brain-v3-crypto/model.json",
+  "sha256": "3c8e82395264f70712b2f464e31ffa9f4595f374fa30a6f6ba4b64999de47996"
+ },
+ "producedBy": "tools/research/train_v3_crypto.py",
+ "configurationImportedFrom": "tools/research/baseline_experiment.py",
+ "configurationSha256": "955d4921427c8ad2439a8f7bfe91a792801a5c3cb84d548567783a486dcf7a8b",
+ "contextProducerSha256": "a0c79e42791585320d0a60a0176f2554dbb1ccec8525f6fc1e8bbd0b2539a911",
+ "repoHead": "c12daecf4e23ad0f0139b3001544d6e5a5ac3375",
+ "hypothesis": "a model trained on crypto alone reads crypto better than a model trained on everything and evaluated on crypto",
+ "theOneThingChanged": "the training population; features, target, horizon, split, embargo, seed, hyperparameters and imputation are brain-v2-context's",
+ "dataset": {
+  "version": "examples-v4-context-2026-10-16-local",
+  "slice": "assetType == 'crypto'",
+  "cache": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\.cache\\foundation\\crypto_slice.npz",
+  "rowsTotal": 93452,
+  "symbols": 75,
+  "trainRows": 72892,
+  "holdoutRows": 19220
+ },
+ "task": {
+  "label": "label20",
+  "classes": [
+   "DOWN",
+   "FLAT",
+   "UP"
+  ],
+  "horizonSessions": 20,
+  "thresholdPct": 2.0,
+  "priceFeatures": [
+   "atr14",
+   "drawdownPct",
+   "entryTrigger",
+   "peerMedianR20",
+   "peers",
+   "r1",
+   "r20",
+   "r5",
+   "rangePct",
+   "relStrength",
+   "returnZ",
+   "sma20",
+   "sma50",
+   "triggerDirection",
+   "volumeRatio"
+  ],
+  "contextFeatures": [
+   "macro_DGS10_chg",
+   "macro_DGS10_age",
+   "macro_T10Y2Y_chg",
+   "macro_T10Y2Y_age",
+   "macro_T10Y3M_chg",
+   "macro_T10Y3M_age",
+   "macro_DFF_chg",
+   "macro_DFF_age",
+   "macro_T10YIE_chg",
+   "macro_T10YIE_age",
+   "macro_VIXCLS_chg",
+   "macro_VIXCLS_age",
+   "macro_NFCI_chg",
+   "macro_NFCI_age",
+   "macro_DTWEXBGS_chg",
+   "macro_DTWEXBGS_age",
+   "macro_DCOILWTICO_chg",
+   "macro_DCOILWTICO_age",
+   "macro_ICSA_chg",
+   "macro_ICSA_age",
+   "ctx_mktEventsIn90d",
+   "ctx_mktDaysSinceEvent",
+   "ctx_ownEventsIn90d",
+   "ctx_ownDaysSinceEvent",
+   "ctx_mktPressIn90d",
+   "ctx_ownPressIn90d",
+   "ctx_maturedPriors",
+   "ctx_priorMedianFwd20",
+   "ctx_unresolvedScopeRecords"
+  ],
+  "featureCount": 44,
+  "outcomeFieldsUsedAsFeatures": 0
+ },
+ "hyperparameters": {
+  "seed": 20261015,
+  "steps": 400,
+  "learningRate": 0.5,
+  "l2": 0.0001,
+  "embargoSessions": 20
+ },
+ "baselines": {
+  "holdoutMajorityClass": {
+   "class": "DOWN",
+   "accuracy": 0.4723
+  },
+  "alwaysUp": 0.4043,
+  "multiMarketOnCrypto": 0.5143,
+  "priceOnlyCrypto": "fitted in this run on the same rows, 15 features"
+ },
+ "preDeclaredCriteria": {
+  "accuracyAboveHoldoutMajority": "strictly above 0.4723, the holdout's largest class (DOWN)",
+  "beatsTheMultiMarketModelOnCrypto": "strictly above 0.5143, brain-v2-context on these rows",
+  "notDegenerate": "no predicted class exceeds 0.7 of the holdout while being under half of it",
+  "bothDirectionsPredicted": "recall at least 0.25 for DOWN and at least 0.25 for UP, so the model is reading direction and not leaning on one side",
+  "setBefore": "any number from this run was seen; see the commit that introduced this file"
+ },
+ "criteriaMet": {
+  "accuracyAboveHoldoutMajority": [
+   0.4736,
+   0.4723,
+   true
+  ],
+  "beatsTheMultiMarketModelOnCrypto": [
+   0.4736,
+   0.5143,
+   false
+  ],
+  "notDegenerate": [
+   true,
+   false,
+   false
+  ],
+  "bothDirectionsPredicted": [
+   {
+    "DOWN": 0.9739,
+    "UP": 0.0337
+   },
+   0.25,
+   false
+  ]
+ },
+ "promotionRule": "NOT promoted on this evaluation under any outcome. The window 2026-01-01..2026-09-25 has been scored by the baseline experiment, the balanced experiment and brain-v2-context, so it is diagnostic and never independent. A pass licenses freezing the candidate and starting its own prospective prediction stream; promotion is decided later on matured forward outcomes against these same criteria.",
+ "evaluation": {
+  "holdout": {
+   "from": "2026-01-01",
+   "to": "2026-09-25",
+   "rows": 19220,
+   "effectiveIndependentWindows": 961,
+   "distinctDecisionDates": 268,
+   "pristine": false,
+   "exposure": "scored by the baseline experiment, the balanced experiment and brain-v2-context; diagnostic, never independent"
+  },
+  "accuracy": 0.4736,
+  "holdoutMajorityShare": 0.4723,
+  "marginOverHoldoutMajority": 0.0013,
+  "marginOverMultiMarket": -0.0407,
+  "priceOnlyCrypto": 0.472,
+  "marginOverPriceOnlyCrypto": 0.0016,
+  "perClass": {
+   "DOWN": {
+    "recall": 0.9739,
+    "precision": 0.4741
+   },
+   "FLAT": {
+    "recall": 0.0004,
+    "precision": 1.0
+   },
+   "UP": {
+    "recall": 0.0337,
+    "precision": 0.4557
+   }
+  },
+  "predictedMix": {
+   "DOWN": 18644,
+   "FLAT": 1,
+   "UP": 575
+  },
+  "actualMix": {
+   "DOWN": 9077,
+   "FLAT": 2372,
+   "UP": 7771
+  },
+  "confusion": {
+   "DOWN": {
+    "DOWN": 8840,
+    "FLAT": 0,
+    "UP": 237
+   },
+   "FLAT": {
+    "DOWN": 2295,
+    "FLAT": 1,
+    "UP": 76
+   },
+   "UP": {
+    "DOWN": 7509,
+    "FLAT": 0,
+    "UP": 262
+   }
+  },
+  "degeneracy": {
+   "largestPredicted": {
+    "class": "DOWN",
+    "predictedShare": 0.97,
+    "actualShare": 0.4723
+   },
+   "degenerate": true
+  },
+  "byYear": {
+   "2026": {
+    "n": 19220,
+    "accuracy": 0.4736
+   }
+  }
+ },
+ "verdict": "NO-GO",
+ "eligibleForPromotion": false,
+ "limitations": [
+  "direction only; no execution-cost, spread or borrow data exists, so nothing here is a profitability claim and no drawdown or turnover figure is given.",
+  "the effective sample is rows / 20; the row count is not the sample size.",
+  "crypto trades every day, so a 20-session window is 20 calendar days here and about 28 for equities; the horizons are not the same length in wall-clock time.",
+  "the holdout is not pristine; see evaluation.holdout.exposure."
+ ]
+}
