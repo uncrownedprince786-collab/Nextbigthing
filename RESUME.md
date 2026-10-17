@@ -1,5 +1,149 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-17 (nineteenth), recency does not help; the instability is prevalence
+
+**Branch `main`, work commits `ef779c3` (pre-registration + correction) and `dacaef5` (result).
+Tree clean, `origin/main == HEAD`.** Usage **86% weekly**, resets 2026-10-19. Tests **1,156, OK**.
+
+### First: a claim of mine that did not hold
+
+The eighteenth checkpoint argued that **+0.0332 in-sample against +0.0013 out-of-sample**, with a
+zero shuffled control, **proved non-stationarity**. **It did not.** The two numbers came from
+different populations with different baselines - +0.0332 was fitted *and* scored on all 93,452
+pooled rows against a 0.5018 majority; +0.0013 came from a model fitted on 72,892 and scored on
+19,220 against a 0.4723 majority. Subtracting them measured the difference in setup as much as
+anything about the world. The shuffled control was also oversold: it shows the model cannot fit
+*unstructured* noise, not that it cannot fit structured nuisance variation.
+
+**Corrected decomposition** - one fit, scored on its own training rows and on the evaluation rows,
+each against its own period's majority:
+
+| year | DOWN | FLAT | UP | in-sample | **out-of-sample** |
+|---|---|---|---|---|---|
+| 2023 | 0.439 | 0.114 | 0.447 | +0.0681 | **-0.0056** |
+| 2024 | 0.484 | 0.089 | 0.427 | +0.0816 | **-0.0320** |
+| 2025 | **0.575** | 0.094 | **0.332** | +0.0514 | **-0.2086** |
+| 2026 | 0.472 | 0.123 | 0.404 | +0.0211 | **+0.0014** |
+
+**The qualitative claim survives the correction**: the fit finds +0.02 to +0.08 over majority on
+its own training rows every year, and **none of it transfers**. Out of sample the model is at or
+below majority in all four years.
+
+### The registered test: recency does NOT help
+
+| window | years beating all-history | years clear of the interval | mean advantage |
+|---|---|---|---|
+| 3y | 0 of 4 | 0 | -0.0077 |
+| 18m | **3 of 4** | **0** | +0.0386 |
+| 6m | 2 of 4 | 0 | +0.0003 |
+
+18m meets the three-of-four bar and **fails the interval bar** - its advantages are +0.0341
+±0.0866, +0.1204 ±0.1368 and +0.0005 ±0.0114, every one inside its own bootstrap. The criteria
+were written to catch that, and did.
+
+### The mechanism, named
+
+**2025 is the year prevalence moves** - DOWN 0.575 against UP 0.332, where the other three sit
+near 0.44/0.43 - and it is the year the model **loses 0.2086 to majority**. In the three balanced
+years it lands within 0.03 of majority. **The model learns its training period's lean, and that
+lean becomes a liability exactly when the mix shifts.**
+
+That is non-stationarity of a specific kind: **prevalence shift, not a recency-fixable drift in
+the feature-to-label map**. Which is why shortening the window does nothing - prevalence moves
+faster than any window tracks, and a shorter window is a smaller sample of the same lean.
+
+**The measured conclusion, across four walk-forward years rather than one exposed holdout: these
+44 features do not support a 20-session three-class directional call.**
+
+---
+
+## PRODUCTION-READINESS ROADMAP
+
+### 1. Brain validation and guarded promotion - **BLOCKED on evidence, not on work**
+
+**Complete**: data foundation (both datasets gates-green, leakage 0); four artifacts that reload
+in a fresh process; nine recorded NO-GO verdicts; a shadow path with provenance, quality tiers and
+refusals; 566 prospective predictions written.
+
+**In progress**: nothing. **Not started**: any candidate with a demonstrated edge.
+
+**Blocked**: there is no model worth promoting and no evidence that one is reachable from these
+features. Four experiments and two diagnostics now agree. **Active work remaining before a
+promotion decision is possible: 0 hours** - the blocker is information, not engineering.
+
+**The one lever with evidence behind it**: context features supplied nearly all of what in-sample
+separation exists (+0.0037 price-only → +0.0332 with context), but the **company-specific columns
+are null on >93% of rows because the events, press and reaction corpora name ~37 of 617
+instruments**. Widening that coverage is the only change with a measured reason to expect more
+signal. **Estimate: 6-12 hours active**, mostly acquisition and point-in-time plumbing that
+already exists. **Confidence: medium.** It may still fail - the first context expansion did.
+
+### 2. Automated sync, ingestion, freshness and recovery - **mostly COMPLETE**
+
+**Complete**: price/crypto/PSX ingestion with venue fallback; incremental fetch with a correction
+window; `require_answer`/`require_share` guards; per-source coverage reporting; `report_incomplete`
+for partial sources; `cron-backup.yml` with a verified restore rehearsal; `schemacheck.py`
+migration guard; `jobs/retention.py` caps.
+
+**In progress**: none. **Blocked**: the **Aiven standby is down** (timeout), so there is no working
+failover; and the verified restore rehearsal is at schema `20261011130000`, **three migrations
+stale**.
+
+**Not started**: alerting. Failures are visible in CI logs and run records, but nothing pages
+anyone.
+
+**Remaining active work: 3-6 hours** - a fresh backup rehearsal at current schema (1-2h), and a
+decision on the standby (repair or formally retire it). **Confidence: high.**
+
+### 3. Replacement UI/product workstream - **NOT STARTED, deliberately**
+
+Out of scope by instruction. The existing product is intact and must stay so until its replacement
+is complete and verified. **No estimate offered**: scope is undefined and estimating it would be
+invention.
+
+### 4. End-to-end production deployment checks - **PARTIAL**
+
+**Complete**: migrations applied by CI on push; `tsc`, 1,156 Python and 500 web tests green; live
+page verified after the EventImpact change; database at 492.2 MB (98.4% of 500).
+
+**Blocked**: a **`VACUUM FULL "EventImpact"`** needs owner authorisation and would return ~57 MB.
+**Not started**: a documented release gate that a candidate must pass before serving - irrelevant
+until a candidate exists.
+
+**Remaining active work: 2-4 hours**, excluding the UI workstream. **Confidence: medium.**
+
+### Time, honestly separated
+
+| | active work | calendar wait |
+|---|---|---|
+| context-coverage expansion (the one lever) | **6-12 h** | none |
+| ingestion/recovery hardening | **3-6 h** | none |
+| deployment checks | **2-4 h** | none |
+| **prospective validation of any candidate** | ~2 h to set up | **2-3 months** for enough matured decision dates |
+| replacement UI | undefined | undefined |
+
+**The 1-2 hour figure in the previous checkpoint was for one experiment and should never have been
+read as a system timeline.** Excluding the UI, **roughly 11-22 hours of active work** stands
+between here and a production-ready *pipeline* - but **no amount of that work produces a validated
+brain**, because validation is gated on matured outcomes and, before that, on finding signal that
+four experiments have not found.
+
+**Assumptions**: the universe stays ~617 assets; no new data source beyond widening existing
+corpora; one operator; free tiers hold. **Lowest confidence**: whether context expansion yields
+anything - that is a research bet, not an engineering estimate.
+
+### Next action
+
+**Widen the event/press/reaction corpora beyond the ~37 instruments they currently name**, and
+re-measure the in-sample separation floor before training anything. If the separation does not
+rise materially with coverage, the honest conclusion is that this feature family is exhausted for
+directional prediction at this horizon, and the product should present what it measures well -
+levels, ranges, volatility state, event context - rather than a direction it cannot support.
+
+**Acceptance**: in-sample over-majority on the widened feature set must exceed the current +0.0332
+by more than the shuffled-control noise band, on the same crypto slice, before any new candidate
+is registered. **No promotion on any outcome.**
+
 ## 0. SESSION CHECKPOINT - 2026-10-17 (eighteenth), the label was never the bottleneck
 
 **Branch `main`, work commit `e72c9f1`, tree clean, `origin/main == HEAD`.**
