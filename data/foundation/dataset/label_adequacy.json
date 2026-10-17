@@ -1,0 +1,254 @@
+{
+ "generatedAt": "2026-10-17T00:11:07+00:00",
+ "version": "label-adequacy-v1",
+ "source": "C:\\Users\\NEW TECH\\Documents\\Nextbigthing-restore\\.cache\\foundation\\full\\full-history-v2.jsonl.gz",
+ "rowsMeasured": 1086349,
+ "immatureExcluded": 0,
+ "shippedLabel": {
+  "band": 2.0,
+  "horizonSessions": 20,
+  "justification": "make_dataset.py: roughly a typical 20-session round-trip cost plus slippage, so a move inside it is not tradeable even when its sign is right"
+ },
+ "byAssetClass": {
+  "PSX": {
+   "rows": 389720,
+   "effectiveIndependentWindows": 19486,
+   "labelCounts": {
+    "UP": 156532,
+    "FLAT": 62600,
+    "DOWN": 170588
+   },
+   "labelShares": {
+    "UP": 0.4017,
+    "FLAT": 0.1606,
+    "DOWN": 0.4377
+   },
+   "flatShare": 0.1606,
+   "shareClearingTheBand": 0.8394,
+   "absFwd20": {
+    "p25": 3.2,
+    "p50": 7.213,
+    "p75": 13.807,
+    "p90": 23.314
+   },
+   "fwd20Sd": 20.877,
+   "bandThatWouldBalanceThisMarket": 4.396,
+   "fixedBandVsBalanced": 0.45
+  },
+  "commodity": {
+   "rows": 15523,
+   "effectiveIndependentWindows": 776,
+   "labelCounts": {
+    "UP": 6940,
+    "FLAT": 3181,
+    "DOWN": 5402
+   },
+   "labelShares": {
+    "UP": 0.4471,
+    "FLAT": 0.2049,
+    "DOWN": 0.348
+   },
+   "flatShare": 0.2049,
+   "shareClearingTheBand": 0.7951,
+   "absFwd20": {
+    "p25": 2.474,
+    "p50": 5.465,
+    "p75": 9.838,
+    "p90": 16.09
+   },
+   "fwd20Sd": 11.715,
+   "bandThatWouldBalanceThisMarket": 3.407,
+   "fixedBandVsBalanced": 0.59
+  },
+  "crypto": {
+   "rows": 97233,
+   "effectiveIndependentWindows": 4862,
+   "labelCounts": {
+    "UP": 39054,
+    "DOWN": 48897,
+    "FLAT": 9282
+   },
+   "labelShares": {
+    "UP": 0.4017,
+    "DOWN": 0.5029,
+    "FLAT": 0.0955
+   },
+   "flatShare": 0.0955,
+   "shareClearingTheBand": 0.9045,
+   "absFwd20": {
+    "p25": 5.626,
+    "p50": 12.577,
+    "p75": 23.038,
+    "p90": 36.72
+   },
+   "fwd20Sd": 29.434,
+   "bandThatWouldBalanceThisMarket": 7.742,
+   "fixedBandVsBalanced": 0.26
+  },
+  "etf": {
+   "rows": 15504,
+   "effectiveIndependentWindows": 775,
+   "labelCounts": {
+    "UP": 6819,
+    "FLAT": 3754,
+    "DOWN": 4931
+   },
+   "labelShares": {
+    "UP": 0.4398,
+    "FLAT": 0.2421,
+    "DOWN": 0.318
+   },
+   "flatShare": 0.2421,
+   "shareClearingTheBand": 0.7579,
+   "absFwd20": {
+    "p25": 2.066,
+    "p50": 4.597,
+    "p75": 8.282,
+    "p90": 13.322
+   },
+   "fwd20Sd": 8.53,
+   "bandThatWouldBalanceThisMarket": 2.853,
+   "fixedBandVsBalanced": 0.7
+  },
+  "forex": {
+   "rows": 54190,
+   "effectiveIndependentWindows": 2710,
+   "labelCounts": {
+    "FLAT": 36857,
+    "UP": 9614,
+    "DOWN": 7719
+   },
+   "labelShares": {
+    "FLAT": 0.6801,
+    "UP": 0.1774,
+    "DOWN": 0.1424
+   },
+   "flatShare": 0.6801,
+   "shareClearingTheBand": 0.3199,
+   "absFwd20": {
+    "p25": 0.525,
+    "p50": 1.256,
+    "p75": 2.399,
+    "p90": 3.861
+   },
+   "fwd20Sd": 2.649,
+   "bandThatWouldBalanceThisMarket": 0.744,
+   "fixedBandVsBalanced": 2.69
+  },
+  "stock": {
+   "rows": 514179,
+   "effectiveIndependentWindows": 25709,
+   "labelCounts": {
+    "UP": 240202,
+    "FLAT": 98082,
+    "DOWN": 175895
+   },
+   "labelShares": {
+    "UP": 0.4672,
+    "FLAT": 0.1908,
+    "DOWN": 0.3421
+   },
+   "flatShare": 0.1908,
+   "shareClearingTheBand": 0.8092,
+   "absFwd20": {
+    "p25": 2.645,
+    "p50": 5.731,
+    "p75": 10.538,
+    "p90": 17.416
+   },
+   "fwd20Sd": 12.492,
+   "bandThatWouldBalanceThisMarket": 3.591,
+   "fixedBandVsBalanced": 0.56
+  }
+ },
+ "byYear": {
+  "2018": {
+   "UP": 13225,
+   "FLAT": 6411,
+   "DOWN": 18745
+  },
+  "2019": {
+   "UP": 51722,
+   "FLAT": 25790,
+   "DOWN": 38213
+  },
+  "2020": {
+   "DOWN": 39857,
+   "FLAT": 22127,
+   "UP": 60409
+  },
+  "2021": {
+   "DOWN": 48171,
+   "UP": 53443,
+   "FLAT": 27513
+  },
+  "2022": {
+   "DOWN": 62517,
+   "UP": 46852,
+   "FLAT": 23691
+  },
+  "2023": {
+   "UP": 59123,
+   "DOWN": 48170,
+   "FLAT": 27983
+  },
+  "2024": {
+   "DOWN": 50557,
+   "FLAT": 29530,
+   "UP": 63686
+  },
+  "2025": {
+   "DOWN": 56909,
+   "FLAT": 30793,
+   "UP": 66454
+  },
+  "2026": {
+   "UP": 44247,
+   "FLAT": 19918,
+   "DOWN": 50293
+  }
+ },
+ "volatilityNormalisedBandCheck": {
+  "rule": "per-asset band of 0.5 x the full-sample sd of its own fwd20",
+  "caveat": "full-sample sd, so this is descriptive only; a feature would need a point-in-time estimate",
+  "byAssetClass": {
+   "PSX": {
+    "assetsUsed": 223,
+    "rowsBecomingDirectional": 188805,
+    "ofWhichBelowTheCostBand": 0,
+    "shareBelowCostBand": 0.0
+   },
+   "commodity": {
+    "assetsUsed": 8,
+    "rowsBecomingDirectional": 8306,
+    "ofWhichBelowTheCostBand": 0,
+    "shareBelowCostBand": 0.0
+   },
+   "crypto": {
+    "assetsUsed": 75,
+    "rowsBecomingDirectional": 45465,
+    "ofWhichBelowTheCostBand": 0,
+    "shareBelowCostBand": 0.0
+   },
+   "etf": {
+    "assetsUsed": 8,
+    "rowsBecomingDirectional": 8774,
+    "ofWhichBelowTheCostBand": 0,
+    "shareBelowCostBand": 0.0
+   },
+   "forex": {
+    "assetsUsed": 27,
+    "rowsBecomingDirectional": 29165,
+    "ofWhichBelowTheCostBand": 11979,
+    "shareBelowCostBand": 0.4107
+   },
+   "stock": {
+    "assetsUsed": 272,
+    "rowsBecomingDirectional": 294618,
+    "ofWhichBelowTheCostBand": 0,
+    "shareBelowCostBand": 0.0
+   }
+  }
+ },
+ "dataUse": "descriptive statistics over the whole history, including windows already scored by three experiments. Legitimate for describing a label, which is a property of the data; NOT an evaluation and not to be reported as one."
+}

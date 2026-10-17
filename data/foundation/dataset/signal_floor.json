@@ -1,0 +1,77 @@
+{
+ "generatedAt": "2026-10-17T00:13:58+00:00",
+ "version": "signal-floor-v1",
+ "what": "in-sample fits, deliberately optimistic; a floor on what is findable, never a performance estimate",
+ "slice": "crypto, from the examples-v4-context cache",
+ "results": {
+  "threeClass_allFeatures": {
+   "rows": 93452,
+   "features": 44,
+   "inSampleAccuracy": 0.535,
+   "majorityClass": 0.5018,
+   "overMajority": 0.0332,
+   "predictedMix": {
+    "0": 66671,
+    "1": 103,
+    "2": 26678
+   },
+   "classesPredicted": 3
+  },
+  "threeClass_priceOnly": {
+   "rows": 93452,
+   "features": 15,
+   "inSampleAccuracy": 0.5056,
+   "majorityClass": 0.5018,
+   "overMajority": 0.0037,
+   "predictedMix": {
+    "0": 88257,
+    "1": 134,
+    "2": 5061
+   },
+   "classesPredicted": 3
+  },
+  "binaryUpDown_allFeatures": {
+   "rows": 84444,
+   "features": 44,
+   "inSampleAccuracy": 0.5915,
+   "majorityClass": 0.5554,
+   "overMajority": 0.0361,
+   "predictedMix": {
+    "0": 60266,
+    "1": 24178
+   },
+   "classesPredicted": 2
+  },
+  "shuffledControl_threeClass": {
+   "rows": 93452,
+   "features": 44,
+   "inSampleAccuracy": 0.5017,
+   "majorityClass": 0.5018,
+   "overMajority": -0.0001,
+   "predictedMix": {
+    "0": 93336,
+    "1": 0,
+    "2": 116
+   },
+   "classesPredicted": 2
+  },
+  "shuffledControl_binary": {
+   "rows": 84444,
+   "features": 44,
+   "inSampleAccuracy": 0.5554,
+   "majorityClass": 0.5554,
+   "overMajority": 0.0001,
+   "predictedMix": {
+    "0": 84385,
+    "1": 59
+   },
+   "classesPredicted": 2
+  }
+ },
+ "realMinusNoise": {
+  "threeClass": 0.0333,
+  "binary": 0.036
+ },
+ "verdict": "the features separate the classes in-sample by more than this model extracts from shuffled labels, so signal exists and the failure is generalisation",
+ "notAnEvaluation": "no holdout is involved; none of these numbers may be reported as performance"
+}
