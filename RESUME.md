@@ -1,5 +1,49 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-17 (twenty-first), contracts set; two UI scope discoveries
+
+**Branch `main`, work commit `da81bb5`, tree clean, `origin/main == HEAD`.**
+**Usage 87% weekly**, resets **2026-10-19** (verified, not carried forward). Tests **1,162, OK**.
+
+**New source of truth for the three workstreams: [`WORKSTREAMS-2026-10-17.md`](WORKSTREAMS-2026-10-17.md).**
+It holds disjoint file ownership, the real API contract, all eight screens mapped to named
+readers, and Workstream B's six bounded tasks with dependencies. Read it before starting parallel
+work.
+
+### Two discoveries that change the UI estimate
+
+**1. There is no user.** `prisma/schema.prisma` has **no `User`, `Account`, `Session`, `Watchlist`
+or `Preference` model**, and `package.json` has **no auth dependency**. Every page today is
+anonymous and read-only.
+
+> **Screen 6 (Watchlist) and Screen 8 (Preferences) need identity and per-user persistence that do
+> not exist anywhere in this project** - auth provider, sessions, user-scoped tables, migrations,
+> and a privacy position for stored user data. **That is a subsystem, not a screen.** A
+> `localStorage` watchlist ships the flow, defers the subsystem, and is honest about where the
+> list lives.
+
+**2. Nothing reads `ShadowPrediction`.** 50 readers in `lib/queries.ts`, none touches it. **Screen
+7 needs a new one**, respecting the rule already in the table: `outcomeLabel IS NULL` means *not
+matured*, never *no move*.
+
+**Six of eight screens are servable from readers that already exist and are already tested.**
+
+### Why no code was written this session
+
+The brief says not to start three large implementations at this budget. The pooler also hit its
+**15-client ceiling** mid-session, so the two live diagnoses (B2, B3) could not run; they are
+bounded tasks in the contract rather than half-done work here. **Nothing was left uncommitted.**
+
+### Next action, after the 2026-10-19 reset
+
+**B1 first: a fresh backup and restore rehearsal at the current schema** - the recorded one is
+**5 migrations behind**, it is 1-2 h, and it unblocks B4 (putting `daily_audit.py` on a real
+schedule and verifying it ran - a scheduler-ready script is not a schedule).
+
+Then B2/B3/B5 independently, Workstream C against the mapped readers in a new route group, and
+Workstream A's corpus-coverage measurement. **Release is blocked on evidence for the brain and on
+work for the UI**; the product is useful without a direction and dishonest with an unvalidated one.
+
 ## 0. SESSION CHECKPOINT - 2026-10-17 (twentieth), a daily audit that found real faults
 
 **Branch `main`, work commit `8b55db2`, tree clean, `origin/main == HEAD`.**
