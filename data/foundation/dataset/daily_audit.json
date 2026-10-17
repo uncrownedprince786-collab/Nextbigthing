@@ -1,0 +1,141 @@
+{
+ "generatedAt": "2026-10-17T00:32:40+00:00",
+ "version": "daily-audit-v1",
+ "staleRulesReadFrom": "lib/health.ts + lib/decision.ts",
+ "staleRules": {
+  "DECISIONS_STALE_AFTER_DAYS": 2.0,
+  "NEWS_STALE_AFTER_HOURS": 6.0,
+  "QUOTES_STALE_AFTER_MINUTES": 60.0
+ },
+ "summary": {
+  "ok": 12,
+  "warn": 3,
+  "fail": 1,
+  "unknown": 0
+ },
+ "healthy": false,
+ "checks": [
+  {
+   "check": "artifact:brain-v1",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "989ffe099898316e",
+    "recorded": "989ffe099898316e"
+   }
+  },
+  {
+   "check": "artifact:brain-v2-context",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "73d48231258b7b9f",
+    "recorded": "73d48231258b7b9f"
+   }
+  },
+  {
+   "check": "artifact:brain-v3-crypto",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "3c8e82395264f707",
+    "recorded": "3c8e82395264f707"
+   }
+  },
+  {
+   "check": "freeze:examples-v3-2026-10-16-local",
+   "status": "ok",
+   "detail": "status frozen for training, gates green True, 9 files",
+   "extra": null
+  },
+  {
+   "check": "freeze:examples-v4-context-2026-10-16-local",
+   "status": "ok",
+   "detail": "status frozen for training, gates green True, 9 files",
+   "extra": null
+  },
+  {
+   "check": "restoreRehearsalCurrent",
+   "status": "warn",
+   "detail": "verified at schema 20261011130000_decision_history; 5 migration(s) applied since",
+   "extra": {
+    "behind": [
+     "20261016140000_atr_trailing_median",
+     "20261017000000_shadow_prediction",
+     "20261017120000_eventimpact_measured_count",
+     "20261017140000_eventimpact_reclaim",
+     "20261017150000_eventimpact_reindex"
+    ],
+    "rows": "restore: VERIFIED: 43 tables, 1,274,615 rows, content digests equal"
+   }
+  },
+  {
+   "check": "restoreRehearsalAge",
+   "status": "ok",
+   "detail": "last real restore rehearsal 1 days ago",
+   "extra": null
+  },
+  {
+   "check": "priceFreshness",
+   "status": "ok",
+   "detail": "newest stored close 2026-10-16 (1 days back), 1,098,991 rows",
+   "extra": {
+    "lagDays": 1
+   }
+  },
+  {
+   "check": "factorFreshness",
+   "status": "ok",
+   "detail": "newest factor session 2026-10-16 (1 days back)",
+   "extra": {
+    "lagDays": 1
+   }
+  },
+  {
+   "check": "newsFreshness",
+   "status": "ok",
+   "detail": "newest headline 4.1h old (lib/health.ts calls the lane stale after 6.0h)",
+   "extra": null
+  },
+  {
+   "check": "sourceCoverage",
+   "status": "warn",
+   "detail": "8 source(s) outside: Yahoo Finance daily closes (Commodity)(stale x2.27), Yahoo Finance daily closes (Commodity)(stale x1.52), Google Trends product interest(healthy x1.43), Wikipedia product pageviews(healthy x1.43), Google Trends product interest(healthy x1.40), Wikipedia product pageviews(healthy x1.40), Google Trends product interest(healthy x1.40), Wikipedia product pageviews(healthy x1.40)",
+   "extra": null
+  },
+  {
+   "check": "jobRuns36h",
+   "status": "fail",
+   "detail": "104 slice(s) in 36h; failing: cron products:blockedx2, cron products:emptyx1",
+   "extra": null
+  },
+  {
+   "check": "shadowOutcomes",
+   "status": "ok",
+   "detail": "566 prediction(s) from 1 model version(s); 0 scored; 0 matured and awaiting an outcome; earliest maturity 2026-11-16",
+   "extra": {
+    "matureAndUnscored": 0
+   }
+  },
+  {
+   "check": "noApprovedShadowRecords",
+   "status": "ok",
+   "detail": "0 shadow record(s) marked approved",
+   "extra": null
+  },
+  {
+   "check": "migrationsApplied",
+   "status": "ok",
+   "detail": "36 applied; 0 pending",
+   "extra": null
+  },
+  {
+   "check": "databaseSize",
+   "status": "warn",
+   "detail": "493.0 MB of a 500 MB free tier (98.6%)",
+   "extra": {
+    "mb": "493.0"
+   }
+  }
+ ]
+}
