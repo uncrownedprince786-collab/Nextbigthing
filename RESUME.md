@@ -1,5 +1,84 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-17 (seventeenth), the crypto lead is closed by measurement
+
+**Branch `main`. Work commits `c12daec` (pre-registration) and `9005c98` (result).
+`9005c98` is COMMITTED LOCALLY AND NOT PUSHED** - `github.com` stopped resolving
+(`Could not resolve host`), three attempts, two spaced. **Push it before anything else:**
+
+```
+git push origin main && git fetch origin && git rev-list --left-right --count HEAD...origin/main
+```
+
+Expect `0 0`. Everything below is committed; nothing is only in the working tree.
+
+### The crypto specialist is a NO-GO, and the failure explains the number that started it
+
+| | |
+|---|---|
+| crypto specialist (`brain-v3-crypto`) | **0.4736** |
+| multi-market on the same rows | **0.5143** |
+| price-only crypto | 0.4720 |
+| holdout majority (DOWN) | 0.4723 · always-UP 0.4043 |
+| predicted mix | **DOWN 18,644 · FLAT 1 · UP 575** |
+| recall | DOWN 0.9739 · **UP 0.0337** |
+| criteria met | **1 of 4** |
+
+**The specialist is worse than the generalist at the generalist's weakest market.** Trained on
+crypto alone - 72,892 rows where DOWN is the majority - it collapses onto DOWN at 97%.
+
+**So brain-v2-context's 0.5143 on crypto was never crypto knowledge.** It was a model biased
+toward UP by 933,000 mostly-equity rows, applied to a market whose majority is DOWN, landing in a
+middle that scored better than either pure lean. Remove the tension by training on crypto alone
+and the middle disappears. **A fortunate mis-specification, not a signal.**
+
+**This closes the crypto lead** rather than leaving it open as "the next hypothesis", which is
+what it has been in this handoff since the context run. **Ninth NO-GO**, none overwritten.
+
+### What was checked before registering, and why it mattered
+
+`tools/research/crypto_evidence.py` existed to kill the hypothesis before it cost anything:
+
+- crypto holdout class share **DOWN 0.4723 · FLAT 0.1234 · UP 0.4043** - the majority is **DOWN**
+- always-UP baseline **0.4043**; brain-v2-context **0.5143**, **+0.1100** over it
+- its mix there DOWN 6,180 / FLAT 36 / UP 13,004, DOWN recall **0.4173** against 0.0826 overall
+
+That check said the result was *not* the UP collapse, which is why registering was justified. It
+was right about that and still led to a refuted hypothesis - **a good check does not guarantee a
+good hypothesis, it only stops a worthless one.**
+
+### Pre-registration held
+
+`c12daec` fixed the criteria, every baseline number and the promotion rule **before** the run.
+The rule said a pass licenses a prospective stream. **It failed, so no `brain-v3-crypto` stream
+was started.** The 566 `brain-v2-context` records continue as the **control stream**, untouched.
+Starting a stream anyway would be the criteria-drift the pre-registration exists to prevent.
+
+### Artifacts
+
+`data/foundation/brain/brain-v3-crypto/model.json`, sha256 **`3c8e82395264f707`**, status NO-GO,
+`productionApproved: false`. **Fresh-process verified**: accuracy 0.4736 and the predicted mix both
+reproduce the manifest exactly, 44 features rebuilt by name.
+
+`brain-v1` (`989ffe09`), `brain-v2-context` (`73d48231`), `examples-v3`, `examples-v4-context` and
+the 566 shadow records: all untouched.
+
+### Tests
+
+**1,156 Python, OK.**
+
+### Next operation
+
+1. **Push `9005c98`** (command above) and verify `0 0`.
+2. **Outcomes for the control stream**: the 566 records mature **2026-11-16**. Read each record's
+   own `maturesAfter` rather than treating that as one date for all; fill
+   `outcomeLabel`/`outcomeFwd`, where null means *not matured*, never *no move*.
+3. **No new candidate until there is a new hypothesis with evidence behind it.** Three are now
+   recorded as failures on these features: price-only, context-aware, crypto-specialist. The next
+   one needs either information these features do not carry, or a target other than a 20-session
+   ±2% three-class label - the forex slice is 68% FLAT under that band, which is a measured hint
+   that the label, not the model, may be the binding constraint.
+
 ## 0. SESSION CHECKPOINT - 2026-10-17 (sixteenth), database item CLOSED with a named residual
 
 **Branch `main`, work commits `09174e5`, `c5371e2`, `1e2f6a6`. Tree clean.**
