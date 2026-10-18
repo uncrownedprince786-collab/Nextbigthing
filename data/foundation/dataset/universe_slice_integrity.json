@@ -1,0 +1,117 @@
+{
+ "generatedAt": "2026-10-18T21:23:31+00:00",
+ "freezeManifest": "dataset_freeze_v4_context.json",
+ "freezeVersion": "examples-v4-context-2026-10-16-local",
+ "repoHead": "f664f170d82a316dc7e0a1b704f8321cf993a511",
+ "manifestDigest": "82d7f89ad6f862dd2fb3da0343eb9307378f0a13c6b40d533a5832fdd17c82af",
+ "sourceFiles": [
+  {
+   "name": "examples-v4-context-2018.jsonl.gz",
+   "present": true,
+   "expectedBytes": 6713948,
+   "expectedSha256": "f7ffef8486c2fc080d84497143a538d9fc1cb6f89d5a8feefd595fac8cfd8a93",
+   "bytes": 6713948,
+   "sha256": "f7ffef8486c2fc080d84497143a538d9fc1cb6f89d5a8feefd595fac8cfd8a93",
+   "matches": true
+  },
+  {
+   "name": "examples-v4-context-2019.jsonl.gz",
+   "present": true,
+   "expectedBytes": 29197655,
+   "expectedSha256": "5e571825890ddf65874849311537a4306e321b4bbdc9a579631d9dc3f616e242",
+   "bytes": 29197655,
+   "sha256": "5e571825890ddf65874849311537a4306e321b4bbdc9a579631d9dc3f616e242",
+   "matches": true
+  },
+  {
+   "name": "examples-v4-context-2020.jsonl.gz",
+   "present": true,
+   "expectedBytes": 35708437,
+   "expectedSha256": "7b9ca66831bb45deffd912f0c624cda5fd5010014bbb8480117f070cc279c93d",
+   "bytes": 35708437,
+   "sha256": "7b9ca66831bb45deffd912f0c624cda5fd5010014bbb8480117f070cc279c93d",
+   "matches": true
+  },
+  {
+   "name": "examples-v4-context-2021.jsonl.gz",
+   "present": true,
+   "expectedBytes": 38253895,
+   "expectedSha256": "355e5a942d9b12a3d30c3e6e326d16a317687d6657d14e4865f6a72238007eef",
+   "bytes": 38253895,
+   "sha256": "355e5a942d9b12a3d30c3e6e326d16a317687d6657d14e4865f6a72238007eef",
+   "matches": true
+  },
+  {
+   "name": "examples-v4-context-2022.jsonl.gz",
+   "present": true,
+   "expectedBytes": 40352620,
+   "expectedSha256": "960c92adda614412cae6aaa9899fde678a998de77de77f890286f89fdbc6a726",
+   "bytes": 40352620,
+   "sha256": "960c92adda614412cae6aaa9899fde678a998de77de77f890286f89fdbc6a726",
+   "matches": true
+  },
+  {
+   "name": "examples-v4-context-2023.jsonl.gz",
+   "present": true,
+   "expectedBytes": 40660936,
+   "expectedSha256": "c484a894aab2f98d12c5e02f93d29a52ed89ed9c379918174c63f45e8e6330ad",
+   "bytes": 40660936,
+   "sha256": "c484a894aab2f98d12c5e02f93d29a52ed89ed9c379918174c63f45e8e6330ad",
+   "matches": true
+  },
+  {
+   "name": "examples-v4-context-2024.jsonl.gz",
+   "present": true,
+   "expectedBytes": 42763657,
+   "expectedSha256": "4b8392dbc7cf8bb189addfb573a2b70f0c759df55a92c036fc28b4f762d5683d",
+   "bytes": 42763657,
+   "sha256": "4b8392dbc7cf8bb189addfb573a2b70f0c759df55a92c036fc28b4f762d5683d",
+   "matches": true
+  },
+  {
+   "name": "examples-v4-context-2025.jsonl.gz",
+   "present": true,
+   "expectedBytes": 45292775,
+   "expectedSha256": "df33b33f77abea2d2dc86b98a5d2a8aed0dcc38b1cf5e1dc5ff5692ae6624c03",
+   "bytes": 45292775,
+   "sha256": "df33b33f77abea2d2dc86b98a5d2a8aed0dcc38b1cf5e1dc5ff5692ae6624c03",
+   "matches": true
+  },
+  {
+   "name": "examples-v4-context-2026.jsonl.gz",
+   "present": true,
+   "expectedBytes": 33679251,
+   "expectedSha256": "dd477f7c96a93e99360a9f23c1b2a1d01d5c3226188e58a5eeefec8c519f7600",
+   "bytes": 33679251,
+   "sha256": "dd477f7c96a93e99360a9f23c1b2a1d01d5c3226188e58a5eeefec8c519f7600",
+   "matches": true
+  }
+ ],
+ "allSourcesMatch": true,
+ "sourceRowDigest": {
+  "digest": "36c1da3afc3185b0caa20455d1ad8b3825b2cd66ab8f4fd3c3e3ab38ca2c5da1",
+  "kept": 1055429,
+  "dropped": 30920,
+  "labelCounts": {
+   "DOWN": 404571,
+   "FLAT": 207210,
+   "UP": 443648
+  }
+ },
+ "cacheRowDigest": {
+  "digest": "36c1da3afc3185b0caa20455d1ad8b3825b2cd66ab8f4fd3c3e3ab38ca2c5da1",
+  "kept": 1055429,
+  "labelCounts": {
+   "DOWN": 404571,
+   "FLAT": 207210,
+   "UP": 443648
+  }
+ },
+ "cacheFile": {
+  "name": "universe_slice.npz",
+  "bytes": 137551645,
+  "sha256": "9ecc03edb7503a20b1fd6518ef12e50db0e65b375a1fefc213f44bf513f0b111"
+ },
+ "cacheMatchesSources": true,
+ "note": "the cache is used only if its row digest equals the digest re-derived from the manifest-verified frozen sources; a mismatch stops the run rather than being trusted, and nothing here mutates the frozen dataset"
+}

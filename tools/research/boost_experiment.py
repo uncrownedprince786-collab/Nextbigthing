@@ -48,26 +48,41 @@ Correctness gates (`--selftest`, also run automatically before any real row is r
 There is no reference library to compare against -- deliberately, because `requirements.txt` is
 import-guarded by `tests/test_brain.py` and is inside `REPLAY_CODE`, so adding a dependency would
 flip every previously sealed worker run to untrusted. The implementation is therefore checked
-against problems with known answers instead:
+against problems with known answers instead. The cases are chosen so the exact pre-registered
+configuration can genuinely learn them and held-out accuracy is scored on rows the fit never saw:
 
-* **XOR (2-bit parity) plus 6 noise features:** boosting must reach train accuracy >= 0.98 while
-  a plain linear logistic fit on the same rows must stay <= 0.65 -- the harness can express a
-  boundary the linear family provably cannot, and the linear control behaves.
-* **Parity (3-bit) plus 5 noise features:** same two assertions, >= 0.98 against <= 0.65.
-* **Linearly separable:** both the boosting fit and the linear logistic fit must reach >= 0.99 --
-  the harness is not blind to a linear signal.
+* **Interaction (2-bit XOR parity, exactly two informative columns and no noise columns):**
+  boosting must reach held-out accuracy >= 0.98 while a plain linear logistic fit on the same rows
+  must stay <= 0.65 -- the harness expresses a non-linear boundary the linear family provably
+  cannot, and the linear control behaves. (A first draft reused 6 noise columns and a 3-bit parity
+  case; that draft was wrong for two reasons now fixed: with balanced labels a greedy depth-2 root
+  has zero gain on every parity column but small positive gain on noise columns, so the root split
+  could land on noise and the case was a coin flip, and 3-bit parity is unreachable at depth 2 by
+  construction. A correct harness must not be gated on cases its own fixed capacity cannot express.)
+* **Interaction (XOR over two continuous informative columns plus six noise columns):** boosting
+  must reach held-out accuracy >= 0.98 and must beat the held-out majority by >= 0.20 while the
+  linear control must not beat that majority by more than 0.02 -- the non-linear signal dominates
+  the noise columns, which cannot win the split search, and the linear family cannot express it.
+* **Linearly separable (axis-aligned union):** both the boosting fit and the linear logistic fit
+  must reach >= 0.99 -- the harness is not blind to a linear signal.
 * **Shuffled labels:** fitted on permuted labels, held-out accuracy must stay within 0.05 of its
-  own majority -- the train-to-test path does not leak test rows into fitting.
+  own majority -- the train-to-test path does not leak test rows into fitting. The control is fit
+  with weights derived from the *permuted* labels, never the original ones.
 * **Determinism:** the same fit twice must produce bit-identical predictions.
 
-A failed selftest writes nothing and exits non-zero; a passed selftest is recorded in the artifact.
+A failed selftest writes nothing and exits non-zero before any repository row is read; a passed
+selftest is recorded in the artifact. `tests/test_boost_experiment.py` runs the selftest and the
+per-repair regressions in CI, so the gate is durable rather than a one-off manual step.
 
 Resource limits, declared before the run
 -----------------------------------------
-**<= 16 GB peak RSS and <= 45 minutes of fitting time** for the whole run (six folds, candidate and
-control). Exceeding either writes `resourceLimitExceeded` with **no verdict** rather than a partial
-one, and exits non-zero. A partial result reported as a result is the failure this limit exists to
-prevent.
+**A conservative peak-RSS ceiling and <= 45 minutes of fitting time** for the whole run (six folds,
+candidate and control). The ceiling is measured at process start from the machine's actually
+available physical memory (about 4 GB, and less where other work would be crowded out) rather than
+a fixed 16 GB that this machine could not reach without swapping; it is enforced *during* a fit by
+sampling the peak working set every few rounds, not only after a fold. Exceeding either limit
+stops safely, writes `resourceLimitExceeded` with **no verdict** plus a resumable checkpoint, and
+exits non-zero. A partial result reported as a result is the failure this limit exists to prevent.
 
 Acceptance, fixed before the run
 ---------------------------------
@@ -101,16 +116,25 @@ Pre-declared reading of the outcome
 Fidelity notes
 --------------
 The rows come from `.cache/foundation/universe_slice.npz`, the exact bytes `eligible_set_experiment`
-built, so the data path is shared rather than rebuilt. Binning, imputation and standardisation are
-fit on the training fold only, and the test fold is binned with the training fold's own edges --
-quantile edges computed from test rows would be the leak this protocol exists to exclude.
-`trainLogLoss` here is the class-weighted logistic loss and is not comparable to `finalLoss` in the
-linear artifacts, which is that optimizer's own last averaged loss. Nothing here is a promotion.
+built, so the data path is shared rather than rebuilt. That cache is not trusted because it exists:
+`--verify-data` re-derives a row digest from the nine frozen `examples-v4-context-*.jsonl.gz` files
+after checking every one of them against the sha256 and byte size in
+`data/foundation/dataset/dataset_freeze_v4_context.json`, and compares it to the digest of the same
+rows read out of the cache. The result (both digests, the source-manifest digest, the cache file's
+own sha256 and a match flag) is recorded in `data/foundation/dataset/universe_slice_integrity.json`
+and carried into the artifact; a mismatch stops the run rather than being papered over. Binning,
+imputation and standardisation are fit on the training fold only, and the test fold is binned with
+the training fold's own edges -- quantile edges computed from test rows would be the leak this
+protocol exists to exclude. `trainLogLoss` here is the class-weighted logistic loss and is not
+comparable to `finalLoss` in the linear artifacts, which is that optimizer's own last averaged
+loss. Nothing here is a promotion.
 """
 
 from __future__ import annotations
 
 import argparse
+import gzip
+import hashlib
 import json
 import sys
 import time
@@ -124,7 +148,7 @@ ROOT = HERE.parent.parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "tools" / "foundation"))
 
-from baseline_experiment import EMBARGO, REGIMES, SEED  # noqa: E402
+from baseline_experiment import CLASSES, EMBARGO, REGIMES, SEED  # noqa: E402
 from balanced_experiment import DEGENERATE_SHARE, MIN_FOLDS_WON, class_counts  # noqa: E402
 from eligible_set_experiment import (  # noqa: E402
     ALL_FEATURES,
@@ -162,14 +186,101 @@ GAMMA = 0.0
 MAX_DELTA = 1.0
 BINS = 128
 BASE_SCORE = 0.0
-# Declared before the run.
+# Declared before the run. The RSS ceiling is filled in at process start from real free memory.
 FIT_SECONDS_LIMIT = 45 * 60
-RSS_LIMIT_MB = 16 * 1024
-# Selftest gates, declared before the run.
-ST_BOOST_MIN_ACC = 0.50
-ST_LINEAR_MAX_ACC = 0.60
-ST_SEPARABLE_MIN_ACC = 0.94
+RSS_LIMIT_CAP_MB = 4 * 1024
+RSS_LIMIT_FLOOR_MB = 768
+# Selftest gates, declared before the run (restored to the docstring contract).
+ST_BOOST_MIN_ACC = 0.98
+ST_LINEAR_MAX_ACC = 0.65
+ST_MARGIN_MIN = 0.20
+ST_LINEAR_MARGIN_MAX = 0.02
+ST_SEPARABLE_MIN_ACC = 0.99
 ST_SHUFFLE_TOL = 0.05
+
+
+class ResourceLimitExceeded(RuntimeError):
+    """Raised *during* a fit when the declared time or memory budget is crossed."""
+
+
+class Budget:
+    """The declared resource envelope, checked *during* a fit and after each fold.
+
+    `check` raises `ResourceLimitExceeded` the moment the wall clock or the peak working set crosses
+    the declared ceiling, so a single long fold cannot silently run past the whole budget.
+    """
+
+    def __init__(self, started: float, seconds_limit: int, rss_limit_mb: int):
+        self.started = started
+        self.seconds_limit = seconds_limit
+        self.rss_limit_mb = rss_limit_mb
+
+    def elapsed(self) -> float:
+        return time.monotonic() - self.started
+
+    def check(self, note: str) -> str:
+        used = self.elapsed()
+        rss = peak_rss_mb()
+        if used > self.seconds_limit:
+            raise ResourceLimitExceeded(
+                f"{note}: fitting time {used:.0f}s exceeds the declared {self.seconds_limit}s "
+                f"limit")
+        if rss is not None and rss > self.rss_limit_mb:
+            raise ResourceLimitExceeded(
+                f"{note}: peak RSS {rss} MB exceeds the declared {self.rss_limit_mb} MB limit")
+        print(f"  {note}: {used:.0f}s elapsed, peak RSS "
+              f"{rss if rss is not None else 'unknown'} MB", flush=True)
+        return note
+
+
+def available_mb():
+    """Physical memory available to new allocations in MB, or None where it cannot be read."""
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            class MEMSTATUS(ctypes.Structure):
+                _fields_ = [
+                    ("dwLength", ctypes.c_ulong),
+                    ("dwMemoryLoad", ctypes.c_ulong),
+                    ("ullTotalPhys", ctypes.c_ulonglong),
+                    ("ullAvailPhys", ctypes.c_ulonglong),
+                    ("ullTotalPageFile", ctypes.c_ulonglong),
+                    ("ullAvailPageFile", ctypes.c_ulonglong),
+                    ("ullTotalVirtual", ctypes.c_ulonglong),
+                    ("ullAvailVirtual", ctypes.c_ulonglong),
+                    ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+                ]
+
+            st = MEMSTATUS()
+            st.dwLength = ctypes.sizeof(MEMSTATUS)
+            if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(st)):
+                return int(st.ullAvailPhys // (1024 * 1024))
+        except Exception:
+            return None
+    else:
+        try:
+            with open("/proc/meminfo", encoding="utf-8") as fh:
+                for line in fh:
+                    if line.startswith("MemAvailable:"):
+                        return int(line.split()[1]) // 1024
+        except Exception:
+            return None
+    return None
+
+
+def dynamic_rss_limit_mb():
+    """A peak-RSS ceiling that cannot be reached only by swapping on this machine.
+
+    Conservative by construction: at most 4 GB, and at most the available physical memory minus a
+    reserve for the other processes on this box, with a floor so a nearly-full machine still fails
+    loudly instead of at a nonsensical zero.
+    """
+    avail = available_mb()
+    if avail is None:
+        return RSS_LIMIT_CAP_MB
+    return int(min(RSS_LIMIT_CAP_MB, max(RSS_LIMIT_FLOOR_MB, avail - 256)))
+
 
 
 def peak_rss_mb():
@@ -210,6 +321,193 @@ def peak_rss_mb():
     return None
 
 
+# Filled at import and refreshed at run start from real free memory; see `dynamic_rss_limit_mb`.
+RSS_LIMIT_MB = dynamic_rss_limit_mb()
+
+FREEZE_MANIFEST = ROOT / "data" / "foundation" / "dataset" / "dataset_freeze_v4_context.json"
+INTEGRITY_OUT = ROOT / "data" / "foundation" / "dataset" / "universe_slice_integrity.json"
+
+
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _feature_row(pit):
+    """Exactly `eligible_set_experiment.build_with_labels`' per-feature conversion, mirrored so a
+    digest of the frozen sources can be compared to a digest of the cache they were built into.
+    `tests/test_boost_experiment.py` pins this mirror against that builder on sample rows."""
+    p = pit.get("f") or {}
+    c = (pit.get("ctx") or {}).get("f") or {}
+    row, ok = [], True
+    for k in ALL_FEATURES:
+        v = p.get(k) if k in p else c.get(k)
+        if isinstance(v, str):
+            v = {"up": 1.0, "down": -1.0}.get(v, 0.0)
+        if v is None:
+            row.append(np.nan)
+            continue
+        try:
+            row.append(float(v))
+        except (TypeError, ValueError):
+            ok = False
+            break
+    return row, ok
+
+
+def _digest_row(h, row, label, date, market, flagged):
+    h.update(np.asarray(row, dtype="<f8").tobytes())
+    h.update(np.asarray([label], dtype="<i8").tobytes())
+    h.update(str(date).encode("utf-8"))
+    h.update(b"\x00")
+    h.update(str(market).encode("utf-8"))
+    h.update(b"\x00")
+    h.update(b"\x01" if flagged else b"\x00")
+
+
+def source_row_digest(ds: Path) -> dict:
+    """Stream the frozen sources in parse order and hash every kept row's (features, label, date,
+    market, flagged). O(1) extra memory: nothing but the running hash and counters is held."""
+    h = hashlib.sha256()
+    kept = dropped = 0
+    counts = np.zeros(len(CLASSES), dtype=np.int64)
+    for f in sorted(Path(ds).glob("examples-v4-context-*.jsonl.gz")):
+        with gzip.open(f, "rt", encoding="utf-8") as fh:
+            for line in fh:
+                r = json.loads(line)
+                pit = r.get("pit") or {}
+                o = r.get("outcome") or {}
+                if not pit.get("f") or o.get("label20") not in CLASSES or not o.get("mature20"):
+                    dropped += 1
+                    continue
+                row, ok = _feature_row(pit)
+                if not ok:
+                    dropped += 1
+                    continue
+                dq = r.get("dataQuality") or {}
+                flagged = bool(any(dq.values())) if dq else False
+                label = CLASSES.index(o["label20"])
+                _digest_row(h, row, label, r["asOf"], r.get("assetType") or "unknown", flagged)
+                counts[label] += 1
+                kept += 1
+    return {"digest": h.hexdigest(), "kept": kept, "dropped": dropped,
+            "labelCounts": {CLASSES[i]: int(counts[i]) for i in range(len(CLASSES))}}
+
+
+def cache_row_digest(d: dict) -> dict:
+    """The same digest computed from the built cache, in its stored (parse) order."""
+    h = hashlib.sha256()
+    X, y, dates, market, flagged = d["X"], d["y"], d["dates"], d["market"], d["flagged"]
+    for i in range(len(y)):
+        _digest_row(h, X[i], int(y[i]), dates[i], market[i], bool(flagged[i]))
+    counts = np.bincount(np.asarray(y, dtype=np.int64), minlength=len(CLASSES))
+    return {"digest": h.hexdigest(), "kept": int(len(y)),
+            "labelCounts": {CLASSES[i]: int(counts[i]) for i in range(len(CLASSES))}}
+
+
+def verify_data(ds: Path, cache: Path) -> dict:
+    """Check the frozen sources against the freeze manifest, then check the derived cache against
+    those sources. Records both digests; never mutates the sources or the cache."""
+    manifest = json.loads(FREEZE_MANIFEST.read_text(encoding="utf-8"))
+    declared = manifest["files"]
+    files, all_match = [], True
+    for name, meta in sorted(declared.items()):
+        p = Path(ds) / name
+        actual = {"name": name, "present": p.exists(), "expectedBytes": meta["bytes"],
+                  "expectedSha256": meta["sha256"]}
+        if p.exists():
+            actual["bytes"] = p.stat().st_size
+            actual["sha256"] = sha256_file(p)
+            actual["matches"] = bool(actual["bytes"] == meta["bytes"]
+                                     and actual["sha256"] == meta["sha256"])
+        else:
+            actual["matches"] = False
+        all_match = all_match and actual["matches"]
+        files.append(actual)
+    src = source_row_digest(ds) if all_match else None
+    cac = None
+    if cache.exists():
+        z = np.load(cache, allow_pickle=True)
+        d = {k: z[k] for k in ("X", "y", "dates", "market", "flagged")}
+        cac = cache_row_digest(d)
+        del z, d
+    match = bool(src is not None and cac is not None and src["digest"] == cac["digest"])
+    return {
+        "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "freezeManifest": FREEZE_MANIFEST.name,
+        "freezeVersion": manifest.get("version"), "repoHead": manifest.get("repoHead"),
+        "manifestDigest": sha256_file(FREEZE_MANIFEST),
+        "sourceFiles": files, "allSourcesMatch": all_match,
+        "sourceRowDigest": src, "cacheRowDigest": cac,
+        "cacheFile": {"name": cache.name, "bytes": cache.stat().st_size,
+                      "sha256": sha256_file(cache)} if cache.exists() else None,
+        "cacheMatchesSources": match,
+        "note": "the cache is used only if its row digest equals the digest re-derived from the "
+                "manifest-verified frozen sources; a mismatch stops the run rather than being "
+                "trusted, and nothing here mutates the frozen dataset",
+    }
+
+
+def ensure_integrity(ds: Path, cache: Path) -> dict:
+    """A current integrity record for the cache, reused only when it still matches disk.
+
+    Recomputing re-derives row digests from the frozen sources, so it is not called on every run:
+    the recorded cache sha256 and manifest digest must still agree. A mismatch is fatal, not
+    papered over -- the run refuses to fit on rows whose provenance it cannot establish.
+    """
+    if INTEGRITY_OUT.exists():
+        rec = json.loads(INTEGRITY_OUT.read_text(encoding="utf-8"))
+        same_cache = (rec.get("cacheFile") or {}).get("sha256") == sha256_file(cache)
+        same_manifest = rec.get("manifestDigest") == sha256_file(FREEZE_MANIFEST)
+        if same_cache and same_manifest and rec.get("cacheMatchesSources"):
+            print(f"integrity record reused: {INTEGRITY_OUT.name}", flush=True)
+            return rec
+    print("verifying the frozen sources and the derived cache (re-derives row digests) ...",
+          flush=True)
+    rec = verify_data(ds, cache)
+    INTEGRITY_OUT.parent.mkdir(parents=True, exist_ok=True)
+    INTEGRITY_OUT.write_text(json.dumps(rec, indent=1), encoding="utf-8")
+    if not (rec["allSourcesMatch"] and rec["cacheMatchesSources"]):
+        raise SystemExit(
+            "frozen-source/cache integrity check FAILED; refusing to fit on unverified rows. "
+            f"See {INTEGRITY_OUT}")
+    print(f"integrity verified; wrote {INTEGRITY_OUT}", flush=True)
+    return rec
+
+
+def checkpoint_paths(out: Path):
+    return out.with_suffix(".checkpoint.json"), out.with_suffix(".checkpoint.npz")
+
+
+def write_checkpoint(out: Path, folds, pool, reason: str) -> Path:
+    """Persist completed folds and their pooled rows so the same experiment can resume later."""
+    jp, zp = checkpoint_paths(out)
+    arrays = {k: (np.concatenate(v) if v else np.asarray([], dtype=np.int64))
+              for k, v in pool.items()}
+    jp.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(zp, **arrays)
+    jp.write_text(json.dumps({
+        "version": VERSION, "reason": reason,
+        "completedYears": [f["testYear"] for f in folds],
+        "folds": folds, "arrays": zp.name}, indent=1), encoding="utf-8")
+    return jp
+
+
+def load_checkpoint(out: Path):
+    """Completed folds and pooled rows from a previous run, or empty structures when none exist."""
+    jp, zp = checkpoint_paths(out)
+    empty = {"y": [], "yp": [], "yc": [], "dates": [], "market": [], "gain": []}
+    if not (jp.exists() and zp.exists()):
+        return [], empty
+    rec = json.loads(jp.read_text(encoding="utf-8"))
+    z = np.load(zp, allow_pickle=True)
+    pool = {k: ([z[k]] if k in z.files and z[k].size else []) for k in empty}
+    return rec.get("folds", []), pool
+
+
 def bin_edges(Xtr: np.ndarray) -> np.ndarray:
     """Quantile edges per feature from the training fold only. Shape (features, BINS - 1)."""
     q = np.linspace(0.0, 1.0, BINS + 1)[1:-1]
@@ -229,36 +527,48 @@ def best_split(Bm, idx, g, h):
     """Best (feature, bin) by the standard logistic-boosting gain over `idx` rows, or None.
 
     Left is `bin <= b`. Splits that would leave fewer than MIN_CHILD rows on either side are
-    excluded, and a feature with no eligible split contributes nothing.
+    excluded, and a feature with no eligible split contributes nothing. With the declared
+    `GAMMA = 0.0` only a **strictly positive** gain is accepted: when no split beats gamma the node
+    stays a leaf, so a split that does not reduce the loss is never taken. Ties break by first
+    occurrence (feature, then bin), matching the per-feature scan this was declared as -- the
+    histogram search below is a bit-identical reformulation of that scan, checked by
+    `tests/test_boost_experiment.py`.
     """
-    if len(idx) < 2 * MIN_CHILD:
+    m = len(idx)
+    if m < 2 * MIN_CHILD:
         return None
     gb = g[idx]
     hb = h[idx]
     G = float(gb.sum())
     L = float(hb.sum())
     base = G * G / (L + LAMBDA)
+    nfeat = Bm.shape[1]
     best_f, best_b, best_gain = None, None, -np.inf
-    for f in range(Bm.shape[1]):
-        bf = Bm[idx, f]
-        cg = np.bincount(bf, weights=gb, minlength=BINS)
-        ch = np.bincount(bf, weights=hb, minlength=BINS)
-        cc = np.bincount(bf, minlength=BINS).astype(np.float64)
-        cl = np.cumsum(cg)
-        hl = np.cumsum(ch)
-        nl = np.cumsum(cc)
+    chunk = 4
+    for c0 in range(0, nfeat, chunk):
+        c1 = min(c0 + chunk, nfeat)
+        k = c1 - c0
+        codes = Bm[idx, c0:c1].astype(np.int32)
+        codes += np.arange(k, dtype=np.int32) * BINS
+        flat = codes.ravel()
+        nb = k * BINS
+        cg = np.bincount(flat, weights=np.repeat(gb, k), minlength=nb).reshape(k, BINS)
+        ch = np.bincount(flat, weights=np.repeat(hb, k), minlength=nb).reshape(k, BINS)
+        cc = np.bincount(flat, minlength=nb).reshape(k, BINS).astype(np.float64)
+        cl = np.cumsum(cg, axis=1)
+        hl = np.cumsum(ch, axis=1)
+        nl = np.cumsum(cc, axis=1)
         cr = G - cl
         hr = L - hl
-        nr = len(idx) - nl
+        nr = m - nl
         ok = (nl >= MIN_CHILD) & (nr >= MIN_CHILD)
-        if not ok.any():
-            continue
         gain = 0.5 * (cl * cl / (hl + LAMBDA) + cr * cr / (hr + LAMBDA) - base) - GAMMA
         gain = np.where(ok, gain, -np.inf)
-        b = int(np.argmax(gain))
-        if gain[b] > best_gain:
-            best_f, best_b, best_gain = f, b, float(gain[b])
-    if best_f is None or not np.isfinite(best_gain):
+        r, b = divmod(int(np.argmax(gain)), BINS)
+        v = float(gain[r, b])
+        if v > best_gain:
+            best_f, best_b, best_gain = c0 + int(r), int(b), v
+    if best_f is None or not np.isfinite(best_gain) or best_gain <= GAMMA:
         return None
     return (best_f, best_b), best_gain
 
@@ -318,11 +628,14 @@ def apply_trees(Bm, trees):
     return F * BOOST_LR
 
 
-def fit_boost(Xtr, ytr, w, Xte):
+def fit_boost(Xtr, ytr, w, Xte, budget=None):
     """Boosting fit on the training rows, returning the model and both score vectors.
 
     `Xtr`/`Xte` are already prepped by `prep` (imputed and standardised on the training fold).
-    `w` is the per-row weight vector (see `row_weights`).
+    `w` is the per-row weight vector (see `row_weights`). If `budget` is given, its `check` is
+    called during the round loop, so the declared time and memory limits are enforced *inside* a
+    fit rather than only after a fold returns -- a single fold at the largest test year does not
+    fit inside the whole budget otherwise.
     """
     n, n_feat = Xtr.shape
     edges = bin_edges(Xtr)
@@ -334,7 +647,9 @@ def fit_boost(Xtr, ytr, w, Xte):
     tval = np.empty(n, dtype=np.float64)
     row_idx = np.arange(n)
     trees, gains = [], np.zeros(n_feat, dtype=np.float64)
-    for _ in range(ROUNDS):
+    for r in range(ROUNDS):
+        if budget is not None and r % 25 == 0:
+            budget.check(f"round {r} of {ROUNDS} on {n:,} rows")
         p = 1.0 / (1.0 + np.exp(-np.clip(F, -60.0, 60.0)))
         g = wv * (p - y)
         h = wv * p * (1.0 - p)
@@ -369,7 +684,17 @@ def fit_logistic(Xtr, ytr, w, Xte, steps=400, lr=0.5):
 def row_weights(ytr: np.ndarray) -> np.ndarray:
     """Per-row class-balanced weights with mean 1: `class_weights` gives one value per class,
     which is what `fit_weighted` expects; the boosting loss needs one value per row."""
-    from eligible_set_experiment import class_weights as cw; return cw(ytr)[ytr]
+    return class_weights(ytr)[ytr]
+
+
+def shuffled_control_target(ytr: np.ndarray, rng) -> np.ndarray:
+    """The shuffled-label control target: the training labels permuted within the training fold.
+
+    The weights for the control fit must be derived from *this* permuted vector, not from the
+    original labels -- otherwise the control is fit with the real class balance and its margin is
+    not the null the criteria compare against. Kept as one function so the property is testable.
+    """
+    return rng.permutation(ytr)
 
 
 def _score(y, pred):
@@ -384,32 +709,49 @@ def selftest() -> dict:
     rng = np.random.default_rng(SEED)
     n = 4000
 
-    def make(parity_bits, noise_cols):
-        xb = rng.integers(0, 2, size=(n, parity_bits))
-        yb = xb.sum(axis=1) % 2
-        X = np.hstack([xb.astype(np.float64), rng.normal(0.0, 1.0, size=(n, noise_cols))])
-        return X, yb.astype(np.int64)
-
-    # 1 + 2: XOR and 3-bit parity -- non-linear by construction, linear control must fail them.
-    for name, bits, cols in (("xor", 2, 6), ("parity3", 3, 5)):
-        X, y = make(bits, cols)
+    def split(X, y):
         i = rng.permutation(n)
         X, y = X[i], y[i]
-        Xtr, Xte, ytr, yte = X[:3000], X[3000:], y[:3000], y[3000:]
-        Ztr, Zte = prep(Xtr, Xte)
-        w = row_weights(ytr)
-        _, _, Fte = fit_boost(Ztr, ytr, w, Zte)
-        boost_acc, _, _ = _score(yte, (Fte > 0).astype(np.int64))
-        lin_acc, _, _ = _score(yte, fit_logistic(Ztr, ytr, w, Zte))
-        checks[f"{name}_boostingAccuracy"] = round(boost_acc, 4)
-        checks[f"{name}_linearAccuracy"] = round(lin_acc, 4)
-        checks[f"{name}_pass"] = bool(boost_acc >= ST_BOOST_MIN_ACC
-                                      and lin_acc <= ST_LINEAR_MAX_ACC)
+        return X[:3000], X[3000:], y[:3000], y[3000:]
 
-    # 3: a linearly separable set must be fitted by both, or the harness is blind to a signal.
+    # 1: XOR parity (2-bit) over exactly two informative columns, no noise. A greedy depth-2 tree
+    # can express XOR exactly, so held-out accuracy must saturate while the linear control cannot.
+    xb = rng.integers(0, 2, size=(n, 2))
+    X, y = xb.astype(np.float64), (xb.sum(axis=1) % 2).astype(np.int64)
+    Xtr, Xte, ytr, yte = split(X, y)
+    Ztr, Zte = prep(Xtr, Xte)
+    w = row_weights(ytr)
+    _, _, Fte = fit_boost(Ztr, ytr, w, Zte)
+    boost_acc, boost_maj, boost_over = _score(yte, (Fte > 0).astype(np.int64))
+    lin_acc, _, _ = _score(yte, fit_logistic(Ztr, ytr, w, Zte))
+    checks["xor_boostingAccuracy"] = round(boost_acc, 4)
+    checks["xor_linearAccuracy"] = round(lin_acc, 4)
+    checks["xor_pass"] = bool(boost_acc >= ST_BOOST_MIN_ACC and lin_acc <= ST_LINEAR_MAX_ACC)
+
+    # 2: XOR over two continuous informative columns plus six noise columns. Non-additive, so a
+    # linear boundary cannot represent it (the control sits on its majority), and the informative
+    # columns carry enough signal that noise columns cannot win the split search.
     X = rng.normal(0.0, 1.0, size=(n, 8))
-    y = (X @ np.array([1.0, -1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0]) > 0.0).astype(np.int64)
-    Xtr, Xte, ytr, yte = X[:3000], X[3000:], y[:3000], y[3000:]
+    y = ((X[:, 0] > 0.0) ^ (X[:, 1] > 0.0)).astype(np.int64)
+    Xtr, Xte, ytr, yte = split(X, y)
+    Ztr, Zte = prep(Xtr, Xte)
+    w = row_weights(ytr)
+    _, _, Fte = fit_boost(Ztr, ytr, w, Zte)
+    inter_acc, inter_maj, inter_over = _score(yte, (Fte > 0).astype(np.int64))
+    lin_acc, lin_maj, lin_over = _score(yte, fit_logistic(Ztr, ytr, w, Zte))
+    checks["interaction_boostingAccuracy"] = round(inter_acc, 4)
+    checks["interaction_boostingOverMajority"] = round(inter_over, 4)
+    checks["interaction_linearAccuracy"] = round(lin_acc, 4)
+    checks["interaction_linearOverMajority"] = round(lin_over, 4)
+    checks["interaction_pass"] = bool(
+        inter_acc >= ST_BOOST_MIN_ACC and inter_over >= ST_MARGIN_MIN
+        and lin_over <= ST_LINEAR_MARGIN_MAX)
+
+    # 3: a linearly separable set (a single axis-aligned threshold) must be fitted by both, or the
+    # harness is blind to a linear signal.
+    X = rng.normal(0.0, 1.0, size=(n, 6))
+    y = (X[:, 0] > 0.0).astype(np.int64)
+    Xtr, Xte, ytr, yte = split(X, y)
     Ztr, Zte = prep(Xtr, Xte)
     w = row_weights(ytr)
     _, _, Fte = fit_boost(Ztr, ytr, w, Zte)
@@ -420,34 +762,32 @@ def selftest() -> dict:
     checks["separable_pass"] = bool(sep_boost >= ST_SEPARABLE_MIN_ACC
                                     and sep_lin >= ST_SEPARABLE_MIN_ACC)
 
-    # 4: shuffled labels must not beat the held-out majority -- the test path does not leak.
-    X, y = make(2, 6)
-    i = rng.permutation(n)
-    X, y = X[i], y[i]
-    Xtr, Xte = X[:3000], X[3000:]
-    ytr = rng.permutation(y[:3000])
-    yte = y[3000:]
+    # 4: shuffled labels must not beat the held-out majority -- the test path does not leak. The
+    # control is fit with weights derived from the permuted labels, never the original ones.
+    X = rng.normal(0.0, 1.0, size=(n, 6))
+    y = (X[:, 0] + X[:, 1] > 0.0).astype(np.int64)
+    Xtr, Xte, ytr, yte = split(X, y)
     Ztr, Zte = prep(Xtr, Xte)
-    _, _, Fte = fit_boost(Ztr, ytr, row_weights(ytr), Zte)
-    acc, maj, over = over_majority(yte, (Fte > 0).astype(np.int64))
+    y_control = shuffled_control_target(ytr, rng)
+    _, _, Fc = fit_boost(Ztr, y_control, row_weights(y_control), Zte)
+    acc, maj, over = over_majority(yte, (Fc > 0).astype(np.int64))
     checks["shuffled_accuracy"] = round(acc, 4)
     checks["shuffled_majority"] = round(maj, 4)
     checks["shuffled_overMajority"] = round(over, 4)
     checks["shuffled_pass"] = bool(over <= ST_SHUFFLE_TOL)
 
     # 5: determinism -- the same fit twice must be bit-identical.
-    X, y = make(2, 6)
-    Xtr, Xte, ytr = X[:3000], X[3000:], y[:3000]
-    Ztr, Zte = prep(Xtr, Xte)
+    X, y = Xtr, ytr
     w = row_weights(ytr)
     _, _, F1 = fit_boost(Ztr, ytr, w, Zte)
     _, _, F2 = fit_boost(Ztr, ytr, w, Zte)
     checks["deterministic"] = bool(np.array_equal(F1, F2))
 
     checks["passed"] = bool(
-        checks["xor_pass"] and checks["parity3_pass"] and checks["separable_pass"]
+        checks["xor_pass"] and checks["interaction_pass"] and checks["separable_pass"]
         and checks["shuffled_pass"] and checks["deterministic"])
     return checks
+
 
 
 def main() -> int:
@@ -459,6 +799,11 @@ def main() -> int:
                     help="run the declared synthetic correctness gates and exit; read no data")
     ap.add_argument("--inspect", action="store_true",
                     help="report markets/labels/quarantine and the fold plan; fit nothing")
+    ap.add_argument("--verify-data", action="store_true",
+                    help="verify the frozen sources against the freeze manifest and the derived "
+                         "cache against those sources; write the integrity record and exit")
+    ap.add_argument("--resume", action="store_true",
+                    help="reuse folds already completed in a previous run's checkpoint")
     a = ap.parse_args()
 
     if a.selftest:
@@ -473,20 +818,38 @@ def main() -> int:
         return 1
     print(f"selftest passed ({json.dumps(st, sort_keys=True)[:200]}...)", flush=True)
 
+    global RSS_LIMIT_MB
+    RSS_LIMIT_MB = dynamic_rss_limit_mb()
+
+    if a.verify_data:
+        v = verify_data(Path(a.dataset), Path(a.cache))
+        INTEGRITY_OUT.parent.mkdir(parents=True, exist_ok=True)
+        INTEGRITY_OUT.write_text(json.dumps(v, indent=1), encoding="utf-8")
+        print(json.dumps({k: v[k] for k in ("allSourcesMatch", "cacheMatchesSources")},
+                         sort_keys=True))
+        print(f"wrote {INTEGRITY_OUT}")
+        return 0 if (v["allSourcesMatch"] and v["cacheMatchesSources"]) else 1
+
+    integrity = ensure_integrity(Path(a.dataset), Path(a.cache))
+    print(f"resource ceiling: peak RSS <= {RSS_LIMIT_MB} MB (available now {available_mb()} MB), "
+          f"fitting time <= {FIT_SECONDS_LIMIT}s", flush=True)
+
     d = load_or_build(Path(a.dataset), Path(a.cache))
-    X, y, dates, market, flagged = d["X"], d["y"], d["dates"], d["market"], d["flagged"]
-    if X.shape[1] != len(ALL_FEATURES):
-        raise SystemExit(f"rows have {X.shape[1]} columns, ALL_FEATURES has {len(ALL_FEATURES)}")
+    Xf, yf, datesf, marketf, flaggedf = d["X"], d["y"], d["dates"], d["market"], d["flagged"]
+    if Xf.shape[1] != len(ALL_FEATURES):
+        raise SystemExit(f"rows have {Xf.shape[1]} columns, ALL_FEATURES has {len(ALL_FEATURES)}")
 
-    keep = ~flagged
-    X, y, dates, market = X[keep], y[keep], dates[keep], market[keep]
-    print(f"rows parsed {int((~keep).sum() + len(y)):,}  quarantine dropped {int((~keep).sum()):,}"
-          f"  kept {len(y):,}")
-    market_counts = {m: int((market == m).sum()) for m in sorted(set(market.tolist()))}
-    rows_after_quarantine = len(y)
-
-    order = np.argsort(dates, kind="stable")
-    X, y, dates, market = X[order], y[order], dates[order], market[order]
+    rows_parsed = int(len(flaggedf))
+    keep_idx = np.flatnonzero(~flaggedf)
+    quarantine_dropped = rows_parsed - int(len(keep_idx))
+    keep_idx = keep_idx[np.argsort(datesf[keep_idx], kind="stable")]
+    y = yf[keep_idx]
+    dates = datesf[keep_idx]
+    market = marketf[keep_idx]
+    rows_after_quarantine = int(len(keep_idx))
+    market_counts = {str(m): int(c) for m, c in zip(*np.unique(market, return_counts=True))}
+    print(f"rows parsed {rows_parsed:,}  quarantine dropped {quarantine_dropped:,}"
+          f"  kept {rows_after_quarantine:,}")
 
     if a.inspect:
         keepy = y != FLAT
@@ -510,7 +873,14 @@ def main() -> int:
         return 0
 
     keepy = y != FLAT
-    X, y, dates, market = X[keepy], y[keepy], dates[keepy], market[keepy]
+    sel = np.flatnonzero(keepy)
+    X = Xf[keep_idx[sel]]
+    y = y[sel]
+    dates = dates[sel]
+    market = market[sel]
+    cache_files = list(d["files"])
+    dropped_during_parse = d["dropped"]
+    del Xf, yf, datesf, marketf, flaggedf, keep_idx, d
     udates = np.unique(dates)
     didx = {x: i for i, x in enumerate(udates)}
     pos = np.asarray([didx[x] for x in dates])
@@ -518,101 +888,102 @@ def main() -> int:
     assert set(np.unique(yb).tolist()) <= {BINARY_DOWN, BINARY_UP}
     print(f"rows for the binary target: {len(yb):,}  UP {yb.mean():.4f}", flush=True)
 
-    def budget_check(elapsed_note: str) -> str | None:
-        used = time.monotonic() - t_run0
-        rss = peak_rss_mb()
-        if used > FIT_SECONDS_LIMIT:
-            return f"fitting time {used:.0f}s exceeds the declared {FIT_SECONDS_LIMIT}s limit"
-        if rss is not None and rss > RSS_LIMIT_MB:
-            return f"peak RSS {rss} MB exceeds the declared {RSS_LIMIT_MB} MB limit"
-        print(f"  {elapsed_note}: {used:.0f}s elapsed, peak RSS "
-              f"{rss if rss is not None else 'unknown'} MB", flush=True)
-        return None
-
-    folds, pool = [], {"y": [], "yp": [], "yc": [], "dates": [], "market": []}
-    train_margins, gains_total = [], np.zeros(len(ALL_FEATURES), dtype=np.float64)
+    folds, pool = [], {"y": [], "yp": [], "yc": [], "dates": [], "market": [], "gain": []}
+    done_years = set()
+    if a.resume:
+        folds, pool = load_checkpoint(Path(a.out))
+        done_years = {f["testYear"] for f in folds}
+        if done_years:
+            print(f"resuming: folds {sorted(done_years)} already completed", flush=True)
+    if "gain" not in pool:
+        pool["gain"] = []
+    budget = Budget(t_run0, FIT_SECONDS_LIMIT, RSS_LIMIT_MB)
     exhausted = None
-    for cut_year in range(2021, 2027):
-        cut = f"{cut_year}-01-01"
-        cand = [d for d in udates if d >= cut]
-        if not cand:
-            continue
-        cut_pos = didx.get(cut, didx[cand[0]])
-        tr = pos < (cut_pos - EMBARGO)
-        te = (dates >= cut) & (dates <= f"{cut_year}-12-31")
-        if tr.sum() < MIN_TRAIN or te.sum() < MIN_TEST:
-            continue
+    try:
+        for cut_year in range(2021, 2027):
+            if cut_year in done_years:
+                continue
+            cut = f"{cut_year}-01-01"
+            cand = [d for d in udates if d >= cut]
+            if not cand:
+                continue
+            cut_pos = didx.get(cut, didx[cand[0]])
+            tr = pos < (cut_pos - EMBARGO)
+            te = (dates >= cut) & (dates <= f"{cut_year}-12-31")
+            if tr.sum() < MIN_TRAIN or te.sum() < MIN_TEST:
+                continue
 
-        Ztr, Zte = prep(X[tr], X[te])
-        if not np.isfinite(Ztr).all() or not np.isfinite(Zte).all():
-            raise SystemExit("non-finite value after prep; the imputation path is broken")
-        wtr = row_weights(yb[tr])
-        model, Ftr, Fte = fit_boost(Ztr, yb[tr], wtr, Zte)
-        if Fte.shape != (int(te.sum()),):
-            raise SystemExit(f"expected {int(te.sum())} scores, got {Fte.shape}")
-        yp = (Fte > 0).astype(np.int64)
-        if yp.min() < 0 or yp.max() >= len(BINARY_CLASSES):
-            raise SystemExit(f"prediction outside {BINARY_CLASSES}")
-        gains_total += model["gains"]
+            Ztr, Zte = prep(X[tr], X[te])
+            if not np.isfinite(Ztr).all() or not np.isfinite(Zte).all():
+                raise SystemExit("non-finite value after prep; the imputation path is broken")
+            wtr = row_weights(yb[tr])
+            model, Ftr, Fte = fit_boost(Ztr, yb[tr], wtr, Zte, budget)
+            if Fte.shape != (int(te.sum()),):
+                raise SystemExit(f"expected {int(te.sum())} scores, got {Fte.shape}")
+            yp = (Fte > 0).astype(np.int64)
+            if yp.min() < 0 or yp.max() >= len(BINARY_CLASSES):
+                raise SystemExit(f"prediction outside {BINARY_CLASSES}")
 
-        rng = np.random.default_rng(SEED + 1000 + cut_year)
-        _, _, Fc = fit_boost(Ztr, rng.permutation(yb[tr]), wtr, Zte)
-        yc = (Fc > 0).astype(np.int64)
+            rng = np.random.default_rng(SEED + 1000 + cut_year)
+            y_control = shuffled_control_target(yb[tr], rng)
+            _, _, Fc = fit_boost(Ztr, y_control, row_weights(y_control), Zte, budget)
+            yc = (Fc > 0).astype(np.int64)
 
-        acc, maj, over = over_majority(yb[te], yp)
-        acc_c, maj_c, over_c = over_majority(yb[te], yc)
-        tr_acc, tr_maj, tr_over = over_majority(yb[tr], (Ftr > 0).astype(np.int64))
-        train_margins.append(tr_over)
-        pred_mix = np.bincount(yp, minlength=len(BINARY_CLASSES)) / len(yp)
-        act_mix = np.bincount(yb[te], minlength=len(BINARY_CLASSES)) / len(yb[te])
-        worst_i = int(pred_mix.argmax())
-        degenerate = bool(pred_mix[worst_i] > DEGENERATE_SHARE and act_mix[worst_i] < 0.5)
-        rec = {BINARY_CLASSES[c]: round(float((yp[yb[te] == c] == c).mean()), 4)
-               for c in range(len(BINARY_CLASSES))}
-        total_gain = float(model["gains"].sum())
-        top = sorted(zip(ALL_FEATURES, model["gains"].tolist()), key=lambda kv: -kv[1])[:5]
-        test_ll = float(np.mean(np.logaddexp(0.0, Fte) - yb[te] * Fte))
-        train_ll = float(np.mean(wtr * (np.logaddexp(0.0, Ftr) - yb[tr] * Ftr)))
+            acc, maj, over = over_majority(yb[te], yp)
+            acc_c, maj_c, over_c = over_majority(yb[te], yc)
+            tr_acc, tr_maj, tr_over = over_majority(yb[tr], (Ftr > 0).astype(np.int64))
+            pred_mix = np.bincount(yp, minlength=len(BINARY_CLASSES)) / len(yp)
+            act_mix = np.bincount(yb[te], minlength=len(BINARY_CLASSES)) / len(yb[te])
+            worst_i = int(pred_mix.argmax())
+            degenerate = bool(pred_mix[worst_i] > DEGENERATE_SHARE and act_mix[worst_i] < 0.5)
+            rec = {BINARY_CLASSES[c]: round(float((yp[yb[te] == c] == c).mean()), 4)
+                   for c in range(len(BINARY_CLASSES))}
+            total_gain = float(model["gains"].sum())
+            top = sorted(zip(ALL_FEATURES, model["gains"].tolist()), key=lambda kv: -kv[1])[:5]
+            test_ll = float(np.mean(np.logaddexp(0.0, Fte) - yb[te] * Fte))
+            train_ll = float(np.mean(wtr * (np.logaddexp(0.0, Ftr) - yb[tr] * Ftr)))
 
-        folds.append({"testYear": cut_year, "trainRows": int(tr.sum()),
-                      "testRows": int(te.sum()),
-                      "trainEnds": str(udates[max(0, cut_pos - EMBARGO - 1)]),
-                      "testBegins": str(dates[te][0]), "testEnds": str(dates[te][-1]),
-                      "rounds": ROUNDS, "earlyStopped": False,
-                      "trainAccuracy": round(tr_acc, 4), "trainMajority": round(tr_maj, 4),
-                      "trainMargin": round(tr_over, 4), "trainLogLoss": round(train_ll, 6),
-                      "accuracy": acc, "majority": maj, "margin": over,
-                      "testLogLoss": round(test_ll, 6),
-                      "beatsMajority": bool(over > 0),
-                      "shuffledControlAccuracy": acc_c, "shuffledControlMargin": over_c,
-                      "candidateMinusControl": round(over - over_c, 4),
-                      "predictedMix": class_counts(yp, BINARY_CLASSES),
-                      "actualMix": class_counts(yb[te], BINARY_CLASSES),
-                      "worstPredictedShare": round(float(pred_mix[worst_i]), 4),
-                      "actualShareOfWorstPredicted": round(float(act_mix[worst_i]), 4),
-                      "degenerate": degenerate, "perClassRecall": rec,
-                      "topFeatureGains": [{"feature": f, "gain": round(g, 4)}
-                                          for f, g in top if g > 0],
-                      "totalGain": round(total_gain, 4)})
-        pool["y"].append(yb[te])
-        pool["yp"].append(yp)
-        pool["yc"].append(yc)
-        pool["dates"].append(dates[te])
-        pool["market"].append(market[te])
-        print(f"  fold {cut_year}: acc {acc:.4f}  majority {maj:.4f}  margin {over:+.4f}  "
-              f"control {over_c:+.4f}  train {tr_over:+.4f}  rounds {ROUNDS}"
-              f"{'  DEGENERATE' if degenerate else ''}", flush=True)
-        exhausted = budget_check(f"after fold {cut_year}")
-        if exhausted:
-            break
+            folds.append({"testYear": cut_year, "trainRows": int(tr.sum()),
+                          "testRows": int(te.sum()),
+                          "trainEnds": str(udates[max(0, cut_pos - EMBARGO - 1)]),
+                          "testBegins": str(dates[te][0]), "testEnds": str(dates[te][-1]),
+                          "rounds": ROUNDS, "earlyStopped": False,
+                          "trainAccuracy": round(tr_acc, 4), "trainMajority": round(tr_maj, 4),
+                          "trainMargin": round(tr_over, 4), "trainLogLoss": round(train_ll, 6),
+                          "accuracy": acc, "majority": maj, "margin": over,
+                          "testLogLoss": round(test_ll, 6),
+                          "beatsMajority": bool(over > 0),
+                          "shuffledControlAccuracy": acc_c, "shuffledControlMargin": over_c,
+                          "candidateMinusControl": round(over - over_c, 4),
+                          "predictedMix": class_counts(yp, BINARY_CLASSES),
+                          "actualMix": class_counts(yb[te], BINARY_CLASSES),
+                          "worstPredictedShare": round(float(pred_mix[worst_i]), 4),
+                          "actualShareOfWorstPredicted": round(float(act_mix[worst_i]), 4),
+                          "degenerate": degenerate, "perClassRecall": rec,
+                          "topFeatureGains": [{"feature": f, "gain": round(g, 4)}
+                                              for f, g in top if g > 0],
+                          "totalGain": round(total_gain, 4)})
+            pool["y"].append(yb[te])
+            pool["yp"].append(yp)
+            pool["yc"].append(yc)
+            pool["dates"].append(dates[te])
+            pool["market"].append(market[te])
+            pool["gain"].append(model["gains"])
+            print(f"  fold {cut_year}: acc {acc:.4f}  majority {maj:.4f}  margin {over:+.4f}  "
+                  f"control {over_c:+.4f}  train {tr_over:+.4f}  rounds {ROUNDS}"
+                  f"{'  DEGENERATE' if degenerate else ''}", flush=True)
+            budget.check(f"after fold {cut_year}")
+    except ResourceLimitExceeded as exc:
+        exhausted = str(exc)
 
-    def resource_payload(reason: str) -> dict:
+    def resource_payload(reason: str, checkpoint: Path) -> dict:
         return {
             "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "version": VERSION,
             "question": "does a non-linear decision function on the same 44 features beat its own "
                         "majority out-of-sample where the correctly-shaped linear softmax did not?",
             "selfTest": st,
+            "dataIntegrity": integrity,
             "model": {"algorithm": "logistic gradient boosting over depth-2 trees, numpy only",
                       "rounds": ROUNDS, "learningRate": BOOST_LR, "maxDepth": MAX_DEPTH,
                       "minChildRows": MIN_CHILD, "l2Leaf": LAMBDA, "gamma": GAMMA,
@@ -621,19 +992,26 @@ def main() -> int:
                 "reason": reason,
                 "limits": {"fitSeconds": FIT_SECONDS_LIMIT, "peakRssMB": RSS_LIMIT_MB},
                 "peakRssMB": peak_rss_mb(),
+                "availableMBAtStart": available_mb(),
                 "elapsedSeconds": round(time.monotonic() - t_run0, 1)},
+            "completedFolds": [f["testYear"] for f in folds],
+            "resumableCheckpoint": str(checkpoint.relative_to(ROOT)),
             "verdict": None,
             "note": "the pre-declared resource limits were exceeded, so this run records no "
                     "verdict rather than a partial one. A partial result reported as a result is "
-                    "the failure the limit exists to prevent.",
+                    "the failure the limit exists to prevent. Completed folds are preserved in the "
+                    "checkpoint; `--resume` continues the same pre-registered experiment after the "
+                    "resource or implementation problem is corrected.",
             "notAPromotion": "no verdict, no criteria, nothing to read as a result",
         }
 
     if exhausted:
         out = Path(a.out)
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps(resource_payload(exhausted), indent=1), encoding="utf-8")
+        ckpt = write_checkpoint(out, folds, pool, exhausted)
+        out.write_text(json.dumps(resource_payload(exhausted, ckpt), indent=1), encoding="utf-8")
         print(f"RESOURCE LIMIT: {exhausted}")
+        print(f"completed folds {[f['testYear'] for f in folds]}; checkpoint {ckpt}")
         print(f"wrote {out} with no verdict")
         return 1
     if not folds:
@@ -691,13 +1069,15 @@ def main() -> int:
 
     recalls = {BINARY_CLASSES[c]: round(float((yp_all[y_all == c] == c).mean()), 4)
                for c in range(len(BINARY_CLASSES))}
+    gains_total = (np.sum(np.asarray(pool["gain"]), axis=0) if pool["gain"]
+                   else np.zeros(len(ALL_FEATURES), dtype=np.float64))
     g_sum = float(gains_total.sum())
     feature_gains = ([{"feature": f, "gainShare": round(g / g_sum, 4),
                        "gain": round(g, 4)}
                       for f, g in sorted(zip(ALL_FEATURES, gains_total.tolist()),
                                          key=lambda kv: -kv[1])]
                      if g_sum > 0 else [])
-    mean_train_margin = float(np.mean(train_margins))
+    mean_train_margin = float(np.mean([f["trainMargin"] for f in folds]))
 
     pred_mean = pred_crypto = None
     if PREDECESSOR.exists():
@@ -742,16 +1122,17 @@ def main() -> int:
                          "metric was seen.",
             "pristine": False},
         "data": {"dataset": str(Path(a.dataset).relative_to(ROOT)),
-                 "files": d["files"],
-                 "rowsParsed": int(rows_after_quarantine + int((~keep).sum())),
-                 "quarantineDropped": int((~keep).sum()),
+                 "files": cache_files,
+                 "rowsParsed": rows_parsed,
+                 "quarantineDropped": quarantine_dropped,
                  "quarantine": "any(dataQuality) true drops the row before any split",
                  "rowsKept": rows_after_quarantine,
                  "rowsAfterDroppingFlat": int(len(yb)),
                  "markets": market_counts,
                  "dateRange": [str(min(dates)), str(max(dates))],
                  "features": len(ALL_FEATURES),
-                 "droppedDuringParse": d["dropped"]},
+                 "droppedDuringParse": dropped_during_parse},
+        "dataIntegrity": integrity,
         "target": {"label": "binary UP vs DOWN, FLAT dropped", "up": 1, "down": 0,
                    "construction": "signal_floor.py lines 102-104, identical to "
                                    "eligible_set_experiment_v2",
