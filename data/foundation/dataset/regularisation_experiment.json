@@ -1,0 +1,784 @@
+{
+ "generatedAt": "2026-10-18T04:15:10+00:00",
+ "version": "regularisation-v1",
+ "question": "is the generalisation failure under-regularisation?",
+ "whyNotARerun": "no prior run varied capacity; every one used fixed L2=1e-4. This is the same folds and target as binary_context_experiment with the penalty selected inside the training window",
+ "data": {
+  "cache": ".cache\\foundation\\crypto_slice.npz",
+  "sha256": "b2264beec59e41d9af831aa8cd32a462d0fe367f6626fe553f222faa602c3924",
+  "bytes": 12271421,
+  "slice": "crypto",
+  "rowsInCache": 93452,
+  "rowsAfterDroppingFlat": 84444,
+  "upShare": 0.4446,
+  "dateRange": [
+   "2018-12-24",
+   "2026-09-25"
+  ],
+  "features": 44
+ },
+ "target": {
+  "label": "binary UP vs DOWN, FLAT dropped",
+  "up": 1,
+  "down": 0
+ },
+ "selection": {
+  "grid": [
+   0.0001,
+   0.001,
+   0.01,
+   0.1,
+   1.0,
+   10.0
+  ],
+  "innerValidationShare": 0.2,
+  "innerEmbargoDecisionDates": 20,
+  "metric": "margin over the inner validation majority",
+  "tieBreak": "largest L2 within 0.002 of the best inner margin",
+  "testYearTouched": "once, by the refitted winner only",
+  "selectedL2ByFold": {
+   "2021": 0.001,
+   "2022": 0.1,
+   "2023": 0.01,
+   "2024": 1.0,
+   "2025": 0.01,
+   "2026": 1.0
+  },
+  "selectedAtSmallest": 0,
+  "ofFolds": 6
+ },
+ "model": {
+  "optimizer": "fit_weighted imported unchanged from balanced_experiment",
+  "learningRate": 0.5,
+  "tolerance": 1e-06,
+  "maxSteps": 20000,
+  "convergedFolds": 6,
+  "ofFolds": 6
+ },
+ "protocol": {
+  "folds": "baseline_experiment's rule: one fold per test year 2021..2026",
+  "embargoDecisionDates": 20,
+  "seed": 20261015,
+  "imputation": "training-fold column nan-mean",
+  "standardisation": "training-fold mean and standard deviation only",
+  "minTrainRows": 5000,
+  "minTestRows": 500,
+  "uncertainty": "moving-block bootstrap over decision dates, 20-date blocks, 400 resamples, candidate minus shuffled control",
+  "reference": "over_majority imported unchanged from stationarity"
+ },
+ "criteria": {
+  "C1_meanMarginPositive": [
+   -0.0601,
+   "> 0",
+   false
+  ],
+  "C2_foldsWon": [
+   1,
+   ">= 4",
+   false
+  ],
+  "C3_noDegenerateFold": [
+   [
+    2023,
+    2025,
+    2026
+   ],
+   "== []",
+   false
+  ],
+  "C4_controlIntervalExcludesZero": [
+   -0.0207,
+   "> 0",
+   false
+  ],
+  "C5_worstFoldMargin": [
+   -0.2408,
+   ">= -0.05",
+   false
+  ]
+ },
+ "criteriaSource": "the same five criteria binary_context_experiment declared, fixed in this docstring before any number from this run was seen",
+ "improvementMeasurement": {
+  "predecessor": "binary_context_experiment.json",
+  "predecessorMeanMargin": -0.0527,
+  "thisMeanMargin": -0.0601,
+  "delta": -0.0074,
+  "note": "reported, not a pass criterion: a run that improves and still fails C1 has still failed"
+ },
+ "folds": [
+  {
+   "testYear": 2021,
+   "trainRows": 5732,
+   "testRows": 6632,
+   "trainEnds": "2020-12-11",
+   "testBegins": "2021-01-01",
+   "testEnds": "2021-12-31",
+   "innerSplit": {
+    "validationShare": 0.2,
+    "splitBy": "training-row quantile; embargo measured in decision dates, because the labels overlap",
+    "innerTrainRows": 4382,
+    "innerValRows": 1150,
+    "innerTrainEnds": "2020-08-01",
+    "innerValBegins": "2020-08-22",
+    "embargoDatesDropped": 20
+   },
+   "sweep": [
+    {
+     "l2": 0.0001,
+     "accuracy": 0.4417,
+     "majority": 0.5365,
+     "margin": -0.0948,
+     "steps": 1266,
+     "converged": true,
+     "finalLoss": 0.607533
+    },
+    {
+     "l2": 0.001,
+     "accuracy": 0.44,
+     "majority": 0.5365,
+     "margin": -0.0965,
+     "steps": 597,
+     "converged": true,
+     "finalLoss": 0.617516
+    },
+    {
+     "l2": 0.01,
+     "accuracy": 0.4296,
+     "majority": 0.5365,
+     "margin": -0.107,
+     "steps": 188,
+     "converged": true,
+     "finalLoss": 0.663366
+    },
+    {
+     "l2": 0.1,
+     "accuracy": 0.4209,
+     "majority": 0.5365,
+     "margin": -0.1157,
+     "steps": 50,
+     "converged": true,
+     "finalLoss": 0.807711
+    },
+    {
+     "l2": 1.0,
+     "accuracy": 0.4391,
+     "majority": 0.5365,
+     "margin": -0.0974,
+     "steps": 8,
+     "converged": true,
+     "finalLoss": 1.007887
+    },
+    {
+     "l2": 10.0,
+     "accuracy": 0.3513,
+     "majority": 0.5365,
+     "margin": -0.1852,
+     "steps": 2,
+     "converged": true,
+     "finalLoss": 2.102224
+    }
+   ],
+   "selectedL2": 0.001,
+   "selectedBecause": "inner margin -0.0965 was within 0.002 of the best -0.0948, and the largest such L2 is taken",
+   "unchangedFromPredecessor": false,
+   "candidateAccuracy": 0.4557,
+   "candidateMajority": 0.5112,
+   "candidateMargin": -0.0555,
+   "candidateSteps": 774,
+   "converged": true,
+   "finalLoss": 0.645394,
+   "shuffledControlAccuracy": 0.4801,
+   "shuffledControlMargin": -0.0311,
+   "candidateMinusControl": -0.0244,
+   "predictedMix": {
+    "DOWN": 4818,
+    "FLAT": 1814,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 3390,
+    "FLAT": 3242,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.7265,
+   "actualShareOfWorstPredicted": 0.5112,
+   "degenerate": false,
+   "beatsMajority": false,
+   "controlSteps": 531
+  },
+  {
+   "testYear": 2022,
+   "trainRows": 12106,
+   "testRows": 9722,
+   "trainEnds": "2021-12-11",
+   "testBegins": "2022-01-01",
+   "testEnds": "2022-12-31",
+   "innerSplit": {
+    "validationShare": 0.2,
+    "splitBy": "training-row quantile; embargo measured in decision dates, because the labels overlap",
+    "innerTrainRows": 9247,
+    "innerValRows": 2434,
+    "innerTrainEnds": "2021-08-05",
+    "innerValBegins": "2021-08-26",
+    "embargoDatesDropped": 20
+   },
+   "sweep": [
+    {
+     "l2": 0.0001,
+     "accuracy": 0.4187,
+     "majority": 0.6097,
+     "margin": -0.191,
+     "steps": 1111,
+     "converged": true,
+     "finalLoss": 0.638495
+    },
+    {
+     "l2": 0.001,
+     "accuracy": 0.4203,
+     "majority": 0.6097,
+     "margin": -0.1894,
+     "steps": 717,
+     "converged": true,
+     "finalLoss": 0.649076
+    },
+    {
+     "l2": 0.01,
+     "accuracy": 0.4269,
+     "majority": 0.6097,
+     "margin": -0.1828,
+     "steps": 275,
+     "converged": true,
+     "finalLoss": 0.696133
+    },
+    {
+     "l2": 0.1,
+     "accuracy": 0.4474,
+     "majority": 0.6097,
+     "margin": -0.1623,
+     "steps": 51,
+     "converged": true,
+     "finalLoss": 0.82507
+    },
+    {
+     "l2": 1.0,
+     "accuracy": 0.3969,
+     "majority": 0.6097,
+     "margin": -0.2128,
+     "steps": 8,
+     "converged": true,
+     "finalLoss": 1.004122
+    },
+    {
+     "l2": 10.0,
+     "accuracy": 0.3989,
+     "majority": 0.6097,
+     "margin": -0.2108,
+     "steps": 2,
+     "converged": true,
+     "finalLoss": 2.06013
+    }
+   ],
+   "selectedL2": 0.1,
+   "selectedBecause": "inner margin -0.1623 was within 0.002 of the best -0.1623, and the largest such L2 is taken",
+   "unchangedFromPredecessor": false,
+   "candidateAccuracy": 0.6024,
+   "candidateMajority": 0.6467,
+   "candidateMargin": -0.0442,
+   "candidateSteps": 47,
+   "converged": true,
+   "finalLoss": 0.844149,
+   "shuffledControlAccuracy": 0.4805,
+   "shuffledControlMargin": -0.1662,
+   "candidateMinusControl": 0.122,
+   "predictedMix": {
+    "DOWN": 7358,
+    "FLAT": 2268,
+    "UP": 96
+   },
+   "actualMix": {
+    "DOWN": 6287,
+    "FLAT": 3435,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.7568,
+   "actualShareOfWorstPredicted": 0.6467,
+   "degenerate": false,
+   "beatsMajority": false,
+   "controlSteps": 45
+  },
+  {
+   "testYear": 2023,
+   "trainRows": 21702,
+   "testRows": 11474,
+   "trainEnds": "2022-12-11",
+   "testBegins": "2023-01-01",
+   "testEnds": "2023-12-31",
+   "innerSplit": {
+    "validationShare": 0.2,
+    "splitBy": "training-row quantile; embargo measured in decision dates, because the labels overlap",
+    "innerTrainRows": 16854,
+    "innerValRows": 4349,
+    "innerTrainEnds": "2022-06-11",
+    "innerValBegins": "2022-07-02",
+    "embargoDatesDropped": 20
+   },
+   "sweep": [
+    {
+     "l2": 0.0001,
+     "accuracy": 0.576,
+     "majority": 0.6158,
+     "margin": -0.0398,
+     "steps": 1117,
+     "converged": true,
+     "finalLoss": 0.62389
+    },
+    {
+     "l2": 0.001,
+     "accuracy": 0.5827,
+     "majority": 0.6158,
+     "margin": -0.0331,
+     "steps": 624,
+     "converged": true,
+     "finalLoss": 0.633931
+    },
+    {
+     "l2": 0.01,
+     "accuracy": 0.5997,
+     "majority": 0.6158,
+     "margin": -0.0161,
+     "steps": 241,
+     "converged": true,
+     "finalLoss": 0.680192
+    },
+    {
+     "l2": 0.1,
+     "accuracy": 0.5824,
+     "majority": 0.6158,
+     "margin": -0.0333,
+     "steps": 51,
+     "converged": true,
+     "finalLoss": 0.813836
+    },
+    {
+     "l2": 1.0,
+     "accuracy": 0.4631,
+     "majority": 0.6158,
+     "margin": -0.1527,
+     "steps": 8,
+     "converged": true,
+     "finalLoss": 1.000351
+    },
+    {
+     "l2": 10.0,
+     "accuracy": 0.3628,
+     "majority": 0.6158,
+     "margin": -0.2529,
+     "steps": 2,
+     "converged": true,
+     "finalLoss": 2.148609
+    }
+   ],
+   "selectedL2": 0.01,
+   "selectedBecause": "inner margin -0.0161 was within 0.002 of the best -0.0161, and the largest such L2 is taken",
+   "unchangedFromPredecessor": false,
+   "candidateAccuracy": 0.4966,
+   "candidateMajority": 0.5041,
+   "candidateMargin": -0.0075,
+   "candidateSteps": 190,
+   "converged": true,
+   "finalLoss": 0.692641,
+   "shuffledControlAccuracy": 0.5111,
+   "shuffledControlMargin": 0.007,
+   "candidateMinusControl": -0.0145,
+   "predictedMix": {
+    "DOWN": 11412,
+    "FLAT": 62,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 5690,
+    "FLAT": 5784,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.9946,
+   "actualShareOfWorstPredicted": 0.4959,
+   "degenerate": true,
+   "beatsMajority": false,
+   "controlSteps": 167
+  },
+  {
+   "testYear": 2024,
+   "trainRows": 33088,
+   "testRows": 14594,
+   "trainEnds": "2023-12-11",
+   "testBegins": "2024-01-01",
+   "testEnds": "2024-12-31",
+   "innerSplit": {
+    "validationShare": 0.2,
+    "splitBy": "training-row quantile; embargo measured in decision dates, because the labels overlap",
+    "innerTrainRows": 25890,
+    "innerValRows": 6635,
+    "innerTrainEnds": "2023-04-30",
+    "innerValBegins": "2023-05-21",
+    "embargoDatesDropped": 20
+   },
+   "sweep": [
+    {
+     "l2": 0.0001,
+     "accuracy": 0.4494,
+     "majority": 0.5525,
+     "margin": -0.1031,
+     "steps": 1018,
+     "converged": true,
+     "finalLoss": 0.656645
+    },
+    {
+     "l2": 0.001,
+     "accuracy": 0.4491,
+     "majority": 0.5525,
+     "margin": -0.1034,
+     "steps": 555,
+     "converged": true,
+     "finalLoss": 0.665884
+    },
+    {
+     "l2": 0.01,
+     "accuracy": 0.45,
+     "majority": 0.5525,
+     "margin": -0.1025,
+     "steps": 175,
+     "converged": true,
+     "finalLoss": 0.708959
+    },
+    {
+     "l2": 0.1,
+     "accuracy": 0.4574,
+     "majority": 0.5525,
+     "margin": -0.0951,
+     "steps": 48,
+     "converged": true,
+     "finalLoss": 0.839071
+    },
+    {
+     "l2": 1.0,
+     "accuracy": 0.4633,
+     "majority": 0.5525,
+     "margin": -0.0892,
+     "steps": 8,
+     "converged": true,
+     "finalLoss": 1.016274
+    },
+    {
+     "l2": 10.0,
+     "accuracy": 0.3754,
+     "majority": 0.5525,
+     "margin": -0.1771,
+     "steps": 2,
+     "converged": true,
+     "finalLoss": 2.115599
+    }
+   ],
+   "selectedL2": 1.0,
+   "selectedBecause": "inner margin -0.0892 was within 0.002 of the best -0.0892, and the largest such L2 is taken",
+   "unchangedFromPredecessor": false,
+   "candidateAccuracy": 0.4831,
+   "candidateMajority": 0.5309,
+   "candidateMargin": -0.0478,
+   "candidateSteps": 9,
+   "converged": true,
+   "finalLoss": 1.023161,
+   "shuffledControlAccuracy": 0.4532,
+   "shuffledControlMargin": -0.0777,
+   "candidateMinusControl": 0.0299,
+   "predictedMix": {
+    "DOWN": 10124,
+    "FLAT": 4470,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 7748,
+    "FLAT": 6846,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.6937,
+   "actualShareOfWorstPredicted": 0.5309,
+   "degenerate": false,
+   "beatsMajority": false,
+   "controlSteps": 8
+  },
+  {
+   "testYear": 2025,
+   "trainRows": 47546,
+   "testRows": 19206,
+   "trainEnds": "2024-12-11",
+   "testBegins": "2025-01-01",
+   "testEnds": "2025-12-31",
+   "innerSplit": {
+    "validationShare": 0.2,
+    "splitBy": "training-row quantile; embargo measured in decision dates, because the labels overlap",
+    "innerTrainRows": 37237,
+    "innerValRows": 9531,
+    "innerTrainEnds": "2024-04-01",
+    "innerValBegins": "2024-04-22",
+    "embargoDatesDropped": 20
+   },
+   "sweep": [
+    {
+     "l2": 0.0001,
+     "accuracy": 0.4784,
+     "majority": 0.5247,
+     "margin": -0.0463,
+     "steps": 1018,
+     "converged": true,
+     "finalLoss": 0.659779
+    },
+    {
+     "l2": 0.001,
+     "accuracy": 0.479,
+     "majority": 0.5247,
+     "margin": -0.0457,
+     "steps": 545,
+     "converged": true,
+     "finalLoss": 0.66897
+    },
+    {
+     "l2": 0.01,
+     "accuracy": 0.4845,
+     "majority": 0.5247,
+     "margin": -0.0402,
+     "steps": 170,
+     "converged": true,
+     "finalLoss": 0.711805
+    },
+    {
+     "l2": 0.1,
+     "accuracy": 0.4152,
+     "majority": 0.5247,
+     "margin": -0.1095,
+     "steps": 46,
+     "converged": true,
+     "finalLoss": 0.84265
+    },
+    {
+     "l2": 1.0,
+     "accuracy": 0.4174,
+     "majority": 0.5247,
+     "margin": -0.1073,
+     "steps": 8,
+     "converged": true,
+     "finalLoss": 1.019401
+    },
+    {
+     "l2": 10.0,
+     "accuracy": 0.4206,
+     "majority": 0.5247,
+     "margin": -0.1041,
+     "steps": 2,
+     "converged": true,
+     "finalLoss": 2.113513
+    }
+   ],
+   "selectedL2": 0.01,
+   "selectedBecause": "inner margin -0.0402 was within 0.002 of the best -0.0402, and the largest such L2 is taken",
+   "unchangedFromPredecessor": false,
+   "candidateAccuracy": 0.3933,
+   "candidateMajority": 0.6341,
+   "candidateMargin": -0.2408,
+   "candidateSteps": 169,
+   "converged": true,
+   "finalLoss": 0.723302,
+   "shuffledControlAccuracy": 0.4057,
+   "shuffledControlMargin": -0.2285,
+   "candidateMinusControl": -0.0123,
+   "predictedMix": {
+    "DOWN": 1373,
+    "FLAT": 17833,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 12179,
+    "FLAT": 7027,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.9285,
+   "actualShareOfWorstPredicted": 0.3659,
+   "degenerate": true,
+   "beatsMajority": false,
+   "controlSteps": 167
+  },
+  {
+   "testYear": 2026,
+   "trainRows": 66390,
+   "testRows": 16848,
+   "trainEnds": "2025-12-11",
+   "testBegins": "2026-01-01",
+   "testEnds": "2026-09-25",
+   "innerSplit": {
+    "validationShare": 0.2,
+    "splitBy": "training-row quantile; embargo measured in decision dates, because the labels overlap",
+    "innerTrainRows": 52110,
+    "innerValRows": 13309,
+    "innerTrainEnds": "2025-03-22",
+    "innerValBegins": "2025-04-12",
+    "embargoDatesDropped": 20
+   },
+   "sweep": [
+    {
+     "l2": 0.0001,
+     "accuracy": 0.5948,
+     "majority": 0.6274,
+     "margin": -0.0326,
+     "steps": 1026,
+     "converged": true,
+     "finalLoss": 0.672004
+    },
+    {
+     "l2": 0.001,
+     "accuracy": 0.5942,
+     "majority": 0.6274,
+     "margin": -0.0332,
+     "steps": 547,
+     "converged": true,
+     "finalLoss": 0.681072
+    },
+    {
+     "l2": 0.01,
+     "accuracy": 0.5954,
+     "majority": 0.6274,
+     "margin": -0.032,
+     "steps": 173,
+     "converged": true,
+     "finalLoss": 0.722976
+    },
+    {
+     "l2": 0.1,
+     "accuracy": 0.6,
+     "majority": 0.6274,
+     "margin": -0.0273,
+     "steps": 47,
+     "converged": true,
+     "finalLoss": 0.849463
+    },
+    {
+     "l2": 1.0,
+     "accuracy": 0.6064,
+     "majority": 0.6274,
+     "margin": -0.021,
+     "steps": 8,
+     "converged": true,
+     "finalLoss": 1.020646
+    },
+    {
+     "l2": 10.0,
+     "accuracy": 0.3275,
+     "majority": 0.6274,
+     "margin": -0.2999,
+     "steps": 2,
+     "converged": true,
+     "finalLoss": 2.105347
+    }
+   ],
+   "selectedL2": 1.0,
+   "selectedBecause": "inner margin -0.0210 was within 0.002 of the best -0.0210, and the largest such L2 is taken",
+   "unchangedFromPredecessor": false,
+   "candidateAccuracy": 0.574,
+   "candidateMajority": 0.5388,
+   "candidateMargin": 0.0352,
+   "candidateSteps": 8,
+   "converged": true,
+   "finalLoss": 1.02681,
+   "shuffledControlAccuracy": 0.5122,
+   "shuffledControlMargin": -0.0265,
+   "candidateMinusControl": 0.0617,
+   "predictedMix": {
+    "DOWN": 3515,
+    "FLAT": 13333,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 9077,
+    "FLAT": 7771,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.7914,
+   "actualShareOfWorstPredicted": 0.4612,
+   "degenerate": true,
+   "beatsMajority": true,
+   "controlSteps": 9
+  }
+ ],
+ "summary": {
+  "foldsScored": 6,
+  "foldsWon": 1,
+  "foldsRequired": 4,
+  "meanMargin": -0.0601,
+  "meanShuffledControlMargin": -0.0872,
+  "worstFoldMargin": -0.2408,
+  "worstFoldYear": 2025,
+  "degenerateFolds": [
+   2023,
+   2025,
+   2026
+  ],
+  "anyFoldDegenerate": true,
+  "pooledRows": 78476,
+  "bootstrap": {
+   "mean": 0.0281,
+   "p2_5": -0.0207,
+   "p97_5": 0.0824,
+   "halfWidth": 0.0516,
+   "resamples": 400,
+   "blockDays": 20
+  }
+ },
+ "byRegime": [
+  {
+   "regime": "2020-22 recovery",
+   "rows": 6713,
+   "accuracy": 0.4622,
+   "majority": 0.5171,
+   "margin": -0.0548,
+   "qualification": true
+  },
+  {
+   "regime": "2022 rate-shock bear",
+   "rows": 7339,
+   "accuracy": 0.6332,
+   "majority": 0.6656,
+   "margin": -0.0324,
+   "qualification": false
+  },
+  {
+   "regime": "2023 banking stress",
+   "rows": 2730,
+   "accuracy": 0.722,
+   "majority": 0.7209,
+   "margin": 0.0011,
+   "qualification": false
+  },
+  {
+   "regime": "2022-26 advance",
+   "rows": 64477,
+   "accuracy": 0.4831,
+   "majority": 0.559,
+   "margin": -0.0759,
+   "qualification": true
+  }
+ ],
+ "fidelityLimitations": [
+  "the cache carries no dataQuality mask, so quarantine cannot be reproduced",
+  "crypto only: one market, 93,452 rows in the cache",
+  "three-column softmax with no FLAT targets, matching signal_floor's construction",
+  "the 2021 fold's inner training block is the smallest in the run, so its selected L2 is the least reliable choice; reported per fold for that reason"
+ ],
+ "verdict": "NO-GO: C1_meanMarginPositive, C2_foldsWon, C3_noDegenerateFold, C4_controlIntervalExcludesZero, C5_worstFoldMargin failed the criteria fixed before this run. Qualification: adverse in 2020-22 recovery, 2022-26 advance.",
+ "failingCriteria": [
+  "C1_meanMarginPositive",
+  "C2_foldsWon",
+  "C3_noDegenerateFold",
+  "C4_controlIntervalExcludesZero",
+  "C5_worstFoldMargin"
+ ],
+ "nextQuestion": "if capacity control does not explain the gap either, the model family is exhausted on this slice and the question moves to the eligible set outside crypto",
+ "notAPromotion": "a passing verdict is a candidate for reproduction, never a GO"
+}

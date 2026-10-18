@@ -1,5 +1,93 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-18 (thirty-second), **capacity control tested — NO-GO, and it made things worse**
+
+**Branch `main`, HEAD pushed, tree clean.** No database access this stretch: two experiment runs,
+one read-only probe, one `--inspect` each.
+
+### `regularisation_experiment-v1`: the one axis no run had touched is now tested
+
+**`tools/research/regularisation_experiment.py`**, pre-registered before any number from the run
+was seen. Between them the eleven prior experiments had exonerated the label, the band, the class
+balance, the optimizer and the feature count — but **every single one used the same fixed
+`L2 = 1e-4` / `LR = 0.5` with no capacity control at all**, while `signal_floor` reported
+separation present in-sample and absent out-of-sample. Under-regularisation was the last
+explanation standing, so it was tested directly.
+
+**How `L2` was chosen without touching the test year.** Grid `[1e-4, 1e-3, 1e-2, 1e-1, 1.0,
+10.0]`, fixed in advance. Inside each training window only: rows split 80/20 chronologically, the
+inner training block ending `EMBARGO` (20) decision dates before the validation block, each grid
+value scored on the **inner validation margin over its own majority**, and the tie-break fixed
+up front as *the largest `L2` within 0.002 of the best* — when the evidence cannot separate two
+settings, the more regularised one is taken. The winner is then refitted on the whole training
+window and scores the test year exactly once. Same folds, same target, same controls and **the
+same five criteria** as `binary_context_experiment`, so the two are directly comparable.
+
+`--inspect` earned its place twice. It first revealed that splitting by *unique dates* leaves the
+inner training block with **555 rows against 5,157 in validation** for 2021 — because row density
+grows with the asset count — which would have selected a penalty for 555 rows and applied it to
+66,390. The split was corrected to a **row** quantile (embargo still counted in decision dates)
+before anything was fitted: inner-train 4,382 → 52,110, inner-val 1,150 → 13,309, 20 dates
+dropped each fold.
+
+| year | selected L2 | accuracy | majority | margin | shuffled control | steps |
+|---|---|---|---|---|---|---|
+| 2021 | 0.001 | 0.4557 | 0.5112 | **−0.0555** | −0.0311 | 774 |
+| 2022 | 0.1 | 0.6024 | 0.6467 | **−0.0442** | −0.1662 | 47 |
+| 2023 | 0.01 | 0.4966 | 0.5041 | **−0.0075** *(deg)* | +0.0070 | 190 |
+| 2024 | 1 | 0.4831 | 0.5309 | **−0.0478** | −0.0777 | 9 |
+| 2025 | 0.01 | 0.3933 | 0.6341 | **−0.2408** *(deg)* | −0.2285 | 169 |
+| 2026 | 1 | 0.5740 | 0.5388 | **+0.0352** *(deg)* | −0.0265 | 8 |
+
+**All five criteria failed again:** mean margin **−0.0601** (C1), won **1/6** needed 4 (C2), three
+degenerate folds (C3), bootstrap p2.5 **−0.0207** against `> 0` (C4), worst fold **−0.2408** vs
+`≥ −0.05` (C5). Artifact `data/foundation/dataset/regularisation_experiment.json`.
+
+**The result that settles it:** the predecessor at fixed `L2 = 1e-4` scored **−0.0527**; capacity
+control chosen honestly by inner validation scored **−0.0601** — a **delta of −0.0074**. Selection
+was not degenerate (no fold chose the unchanged `1e-4`; the sweep spread across `0.001 … 1.0`), so
+this is a real measurement, not a no-op: **choosing the penalty properly made the model slightly
+worse, not better.** Strong penalties (`L2 = 1`) stopped in 8–9 steps and produced a degenerate
+2026 fold; the catastrophic 2025 fold (−0.2408) is untouched by penalty choice, which is what an
+*under-fit* response to that year would look like rather than an over-fit one.
+
+### The synthesis this forces
+
+Twelve registered experiments, twelve NO-GOs, and the explanations have been eliminated one at a
+time: label (`label60`, `horizon`), band (`label_adequacy`, `volband`), class balance
+(`balanced`), optimizer (`balanced`, and twice more where every fold converged), feature count
+(`signal_floor`), objective (`cross_sectional_ranking`), target family (`volband`), and now
+**capacity (`regularisation_experiment`)**.
+
+The uncomfortable number is the one `signal_floor` itself supplied and the chain has under-read: a
+model *allowed to cheat* gains only **+0.0361** over majority on the binary/44 cell. That is the
+ceiling. The diagnosis "signal exists, the failure is generalisation" is technically supported (real
+minus noise exceeded 0.02), but a 3.6-point in-sample ceiling does not contain much signal to
+generalise — and the observed out-of-sample result is **−0.0527 to −0.0601**. The gap is not a model
+that overfits a rich signal; it is a feature set carrying almost none about this target on this
+slice, with the linear family then fitting noise.
+
+**Next executable action (brain), in order:**
+
+1. **The eligible set.** Every 44-feature run in the chain used `.cache/foundation/*_slice.npz`,
+   all three of which are **crypto only**. The one named question never answered is whether the
+   same cell holds outside crypto — `cross_sectional_ranking` and `horizon_experiment` both
+   pointed at "the eligible set". This is runnable *now* without building new data:
+   `baseline_experiment.load()` yields the full frozen universe with the 15 price features,
+   `cls` (market) **and** `flags` (the quarantine mask the crypto cache lacks). A binary
+   UP-vs-DOWN run there changes the eligible set while keeping the target, and it is the only
+   variant that brings quarantine back into play.
+2. If that is also negative, the linear family on this feature set is exhausted on every eligible
+   set available, and the remaining move — a non-linear model — is blocked by the standing
+   decision not to declare an ML dependency while `requirements.txt` is trust-fingerprinted.
+   That is an owner decision, not something to route around.
+
+**Blockers unchanged:** B2 (external 429s; the `empty` misclassification fix is recorded above),
+B3 (8 stale sources), B4 (`daily_audit.py` unscheduled), B1's cloud leg (Google upload off;
+sealing key is an Actions secret), DB at 460.2 MB of 500 MB (92.0%), usage meter not inspectable.
+
+---
+
 ## 0. SESSION CHECKPOINT - 2026-10-18 (thirty-first), **second registered experiment — NO-GO** (binary target, 44 features); B1's CI green; B2 root-caused
 
 **Branch `main`, HEAD `96da1b2` = `origin/main`, tree clean.** No database write this stretch: the
