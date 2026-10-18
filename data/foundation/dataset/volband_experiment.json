@@ -1,0 +1,910 @@
+{
+ "generatedAt": "2026-10-18T02:12:15+00:00",
+ "version": "volband-experiment-v1",
+ "status": "offline research experiment; nothing deployed, nothing traded",
+ "hypothesis": "the fixed +/-2% deadband defines FLAT in absolute units, so one linear function is fitted to a target that means six different things across markets; a point-in-time volatility-scaled deadband makes the classes comparable and accuracy over the majority class on exactly the scored rows will rise",
+ "changeFromPriorCandidates": {
+  "target": "deadband = m * atr14 / baseClose * 100, m = median implied multiple of the frozen 2.0% band over TRAINING rows only, no floor",
+  "removedFloor": "label60.band_pct floors at LABEL_THRESHOLD_PCT; this does not, because that floor is what label_adequacy.json measured as 2.69x too wide for FX. label60.band_pct itself is unedited.",
+  "heldIdentical": [
+   "the 15 pit.f features",
+   "row selection of baseline_experiment.load",
+   "dataQuality quarantine",
+   "walk-forward folds 2021-2026",
+   "20-session embargo",
+   "training-fold standardisation",
+   "seed 20261015",
+   "fit_weighted optimiser imported unchanged"
+  ],
+  "notARerunOf": [
+   "balanced_experiment (fixed +/-2% band, this is vol-scaled)",
+   "label60_experiment (60-session horizon, this is 20)",
+   "horizon_experiment (threshold bands at other horizons)"
+  ]
+ },
+ "dataVersion": {
+  "dataset": "dataset_full",
+  "featureCount": 15,
+  "features": [
+   "atr14",
+   "drawdownPct",
+   "entryTrigger",
+   "peerMedianR20",
+   "peers",
+   "r1",
+   "r20",
+   "r5",
+   "rangePct",
+   "relStrength",
+   "returnZ",
+   "sma20",
+   "sma50",
+   "triggerDirection",
+   "volumeRatio"
+  ],
+  "outcomeFieldsUsedAsFeatures": 0
+ },
+ "exclusions": {
+  "withoutFeaturesOrImmature": "same filter as baseline_experiment.load",
+  "dataQualityFlagged": 60698,
+  "bandNotMeasurable": 1,
+  "rule": "a row with no measurable band is excluded, never labelled FLAT"
+ },
+ "config": {
+  "model": "multinomial logistic regression, numpy, full batch, class-weighted",
+  "seed": 20261015,
+  "tolerance": 1e-06,
+  "maxSteps": 20000,
+  "l2": 0.0001,
+  "learningRate": 0.5,
+  "embargoSessions": 20,
+  "standardisation": "mean and sd of the training fold only"
+ },
+ "splitPlan": {
+  "method": "chronological walk-forward, one fold per test year",
+  "embargoReason": "a 20-session label makes consecutive rows share 19 of their 20 forward sessions"
+ },
+ "exposure": "these calendar years were already exposed by the earlier candidates, so this is not a pristine out-of-sample measurement; 2026 is reported separately as the least-exposed fold; no design choice here was made against any fold",
+ "preDeclaredCriteria": {
+  "allSixRequired": [
+   "mean accuracy strictly above the mean majority-class reference",
+   "beats its own fold's majority in more than half the folds (4 of 6)",
+   "does not degrade in the adverse regime: the 2022 fold margin >= 0",
+   "not degenerate in any fold (>=0.7 predicted while <0.5 actual)",
+   "mechanism: the vol band's cross-market FLAT-share spread is the smaller",
+   "convergence reached in every fold, else the verdict is INCONCLUSIVE not GO"
+  ],
+  "setBefore": "any number from this run was seen",
+  "multipleTesting": "one configuration, one run, no hyperparameter search; m is a defined per-fold procedure, not a tuned constant; a second attempt must be registered as a new hypothesis",
+  "promotion": "none; every evaluation period here is exposed and no artifact is promotable"
+ },
+ "loaderEquivalence": {
+  "checkedAgainst": "balanced_experiment.json",
+  "foldsMatchingRecordedTestRows": 6,
+  "foldsChecked": 6,
+  "allMatch": true
+ },
+ "mechanismCheck": {
+  "question": "does the vol band make FLAT comparable across markets",
+  "fixedBandCrossMarketSpread": 0.7191,
+  "volBandCrossMarketSpread": 0.161,
+  "supported": true
+ },
+ "folds": [
+  {
+   "testYear": 2021,
+   "trainRows": 229416,
+   "testRows": 116217,
+   "baselineIdenticalTestRows": 116217,
+   "rowSelectionMatchesBalanced": true,
+   "trainEnds": "2020-12-11",
+   "testBegins": "2021-01-04",
+   "testEnds": "2021-12-31",
+   "mCalibrated": 0.641248,
+   "medianBandPct": 1.7209,
+   "convergence": {
+    "steps": 72,
+    "finalLoss": 1.094975,
+    "reached": true
+   },
+   "candidate": {
+    "n": 116217,
+    "effectiveIndependentWindows": 5811,
+    "accuracy": 0.3862,
+    "recall_DOWN": 0.4494,
+    "precision_DOWN": 0.3743,
+    "recall_FLAT": 0.1192,
+    "precision_FLAT": 0.2004,
+    "recall_UP": 0.4421,
+    "precision_UP": 0.4445,
+    "predictedMix": {
+     "DOWN": 52789,
+     "FLAT": 12561,
+     "UP": 50867
+    },
+    "actualMix": {
+     "DOWN": 43963,
+     "FLAT": 21112,
+     "UP": 51142
+    }
+   },
+   "majorityOnSameRows": 0.4401,
+   "margin": -0.0539,
+   "accuracyOverMajorityCI": {
+    "mean": -0.0557,
+    "p2_5": -0.1021,
+    "p97_5": -0.0038,
+    "halfWidth": 0.0492,
+    "resamples": 400,
+    "blockDays": 20
+   },
+   "predictedMix": {
+    "DOWN": 52789,
+    "FLAT": 12561,
+    "UP": 50867
+   },
+   "actualMix": {
+    "DOWN": 43963,
+    "FLAT": 21112,
+    "UP": 51142
+   },
+   "degenerate": false,
+   "flatShareFixedBand": {
+    "PSX": 0.1855,
+    "US": 0.2078,
+    "commodity": 0.1937,
+    "crypto": 0.0595,
+    "forex": 0.7056
+   },
+   "flatShareVolBand": {
+    "PSX": 0.2089,
+    "US": 0.159,
+    "commodity": 0.1282,
+    "crypto": 0.2351,
+    "forex": 0.2414
+   },
+   "byMarket": {
+    "PSX": {
+     "accuracy": 0.3809,
+     "majority": 0.45136397289139474,
+     "n": 35118
+    },
+    "US": {
+     "accuracy": 0.3983,
+     "majority": 0.49560914723844335,
+     "n": 67299
+    },
+    "commodity": {
+     "accuracy": 0.3572,
+     "majority": 0.49080973671137607,
+     "n": 2013
+    },
+    "crypto": {
+     "accuracy": 0.3318,
+     "majority": 0.40773871437486997,
+     "n": 4807
+    },
+    "forex": {
+     "accuracy": 0.3421,
+     "majority": 0.4169054441260745,
+     "n": 6980
+    }
+   },
+   "byRegime": {
+    "2020-22 recovery": {
+     "accuracy": 0.3862,
+     "majority": 0.44005610194721945,
+     "n": 116217
+    }
+   }
+  },
+  {
+   "testYear": 2022,
+   "trainRows": 344513,
+   "testRows": 125194,
+   "baselineIdenticalTestRows": 125194,
+   "rowSelectionMatchesBalanced": true,
+   "trainEnds": "2021-12-11",
+   "testBegins": "2022-01-03",
+   "testEnds": "2022-12-30",
+   "mCalibrated": 0.677703,
+   "medianBandPct": 2.2289,
+   "convergence": {
+    "steps": 58,
+    "finalLoss": 1.096599,
+    "reached": true
+   },
+   "candidate": {
+    "n": 125194,
+    "effectiveIndependentWindows": 6260,
+    "accuracy": 0.3491,
+    "recall_DOWN": 0.4312,
+    "precision_DOWN": 0.4523,
+    "recall_FLAT": 0.3254,
+    "precision_FLAT": 0.2064,
+    "recall_UP": 0.2561,
+    "precision_UP": 0.3419,
+    "predictedMix": {
+     "DOWN": 54384,
+     "FLAT": 37663,
+     "UP": 33147
+    },
+    "actualMix": {
+     "DOWN": 57053,
+     "FLAT": 23892,
+     "UP": 44249
+    }
+   },
+   "majorityOnSameRows": 0.4557,
+   "margin": -0.1066,
+   "accuracyOverMajorityCI": {
+    "mean": -0.1062,
+    "p2_5": -0.172,
+    "p97_5": -0.0464,
+    "halfWidth": 0.0628,
+    "resamples": 400,
+    "blockDays": 20
+   },
+   "predictedMix": {
+    "DOWN": 54384,
+    "FLAT": 37663,
+    "UP": 33147
+   },
+   "actualMix": {
+    "DOWN": 57053,
+    "FLAT": 23892,
+    "UP": 44249
+   },
+   "degenerate": false,
+   "flatShareFixedBand": {
+    "PSX": 0.1832,
+    "US": 0.1594,
+    "commodity": 0.1907,
+    "crypto": 0.0769,
+    "forex": 0.5338
+   },
+   "flatShareVolBand": {
+    "PSX": 0.2141,
+    "US": 0.1725,
+    "commodity": 0.1764,
+    "crypto": 0.2149,
+    "forex": 0.2177
+   },
+   "byMarket": {
+    "PSX": {
+     "accuracy": 0.3886,
+     "majority": 0.522546350983514,
+     "n": 38942
+    },
+    "US": {
+     "accuracy": 0.3332,
+     "majority": 0.42651655475804584,
+     "n": 69104
+    },
+    "commodity": {
+     "accuracy": 0.3039,
+     "majority": 0.42458736482640863,
+     "n": 1757
+    },
+    "crypto": {
+     "accuracy": 0.2738,
+     "majority": 0.5153506152192092,
+     "n": 8371
+    },
+    "forex": {
+     "accuracy": 0.3885,
+     "majority": 0.4668091168091168,
+     "n": 7020
+    }
+   },
+   "byRegime": {
+    "2020-22 recovery": {
+     "accuracy": 0.2788,
+     "majority": 0.5516569200779727,
+     "n": 513
+    },
+    "2022 rate-shock bear": {
+     "accuracy": 0.3485,
+     "majority": 0.4691477729870237,
+     "n": 96946
+    },
+    "2022-26 advance": {
+     "accuracy": 0.3496,
+     "majority": 0.4062216958127221,
+     "n": 28706
+    }
+   }
+  },
+  {
+   "testYear": 2023,
+   "trainRows": 469320,
+   "testRows": 129029,
+   "baselineIdenticalTestRows": 129029,
+   "rowSelectionMatchesBalanced": true,
+   "trainEnds": "2022-12-11",
+   "testBegins": "2023-01-03",
+   "testEnds": "2023-12-29",
+   "mCalibrated": 0.655598,
+   "medianBandPct": 1.8316,
+   "convergence": {
+    "steps": 56,
+    "finalLoss": 1.096207,
+    "reached": true
+   },
+   "candidate": {
+    "n": 129029,
+    "effectiveIndependentWindows": 6451,
+    "accuracy": 0.3573,
+    "recall_DOWN": 0.4672,
+    "precision_DOWN": 0.3557,
+    "recall_FLAT": 0.1988,
+    "precision_FLAT": 0.2196,
+    "recall_UP": 0.3329,
+    "precision_UP": 0.4237,
+    "predictedMix": {
+     "DOWN": 61795,
+     "FLAT": 21426,
+     "UP": 45808
+    },
+    "actualMix": {
+     "DOWN": 47051,
+     "FLAT": 23671,
+     "UP": 58307
+    }
+   },
+   "majorityOnSameRows": 0.4519,
+   "margin": -0.0946,
+   "accuracyOverMajorityCI": {
+    "mean": -0.0898,
+    "p2_5": -0.1732,
+    "p97_5": -0.0131,
+    "halfWidth": 0.08,
+    "resamples": 400,
+    "blockDays": 20
+   },
+   "predictedMix": {
+    "DOWN": 61795,
+    "FLAT": 21426,
+    "UP": 45808
+   },
+   "actualMix": {
+    "DOWN": 47051,
+    "FLAT": 23671,
+    "UP": 58307
+   },
+   "degenerate": false,
+   "flatShareFixedBand": {
+    "PSX": 0.1745,
+    "US": 0.2044,
+    "commodity": 0.2504,
+    "crypto": 0.1154,
+    "forex": 0.6339
+   },
+   "flatShareVolBand": {
+    "PSX": 0.2163,
+    "US": 0.1566,
+    "commodity": 0.1887,
+    "crypto": 0.2092,
+    "forex": 0.2218
+   },
+   "byMarket": {
+    "PSX": {
+     "accuracy": 0.354,
+     "majority": 0.438640410870519,
+     "n": 38747
+    },
+    "US": {
+     "accuracy": 0.3568,
+     "majority": 0.47077744122313575,
+     "n": 69330
+    },
+    "commodity": {
+     "accuracy": 0.2868,
+     "majority": 0.44916540212443096,
+     "n": 1977
+    },
+    "crypto": {
+     "accuracy": 0.3795,
+     "majority": 0.40769552488498534,
+     "n": 11955
+    },
+    "forex": {
+     "accuracy": 0.362,
+     "majority": 0.439031339031339,
+     "n": 7020
+    }
+   },
+   "byRegime": {
+    "2023 banking stress": {
+     "accuracy": 0.3907,
+     "majority": 0.411598170674797,
+     "n": 32143
+    },
+    "2022-26 advance": {
+     "accuracy": 0.3573,
+     "majority": 0.451890660239171,
+     "n": 129029
+    }
+   }
+  },
+  {
+   "testYear": 2024,
+   "trainRows": 598650,
+   "testRows": 134448,
+   "baselineIdenticalTestRows": 134448,
+   "rowSelectionMatchesBalanced": true,
+   "trainEnds": "2023-12-11",
+   "testBegins": "2024-01-02",
+   "testEnds": "2024-12-31",
+   "mCalibrated": 0.667242,
+   "medianBandPct": 1.94,
+   "convergence": {
+    "steps": 41,
+    "finalLoss": 1.09701,
+    "reached": true
+   },
+   "candidate": {
+    "n": 134448,
+    "effectiveIndependentWindows": 6722,
+    "accuracy": 0.3931,
+    "recall_DOWN": 0.3599,
+    "precision_DOWN": 0.3799,
+    "recall_FLAT": 0.271,
+    "precision_FLAT": 0.2564,
+    "recall_UP": 0.4734,
+    "precision_UP": 0.4663,
+    "predictedMix": {
+     "DOWN": 44247,
+     "FLAT": 28650,
+     "UP": 61551
+    },
+    "actualMix": {
+     "DOWN": 46711,
+     "FLAT": 27105,
+     "UP": 60632
+    }
+   },
+   "majorityOnSameRows": 0.451,
+   "margin": -0.0579,
+   "accuracyOverMajorityCI": {
+    "mean": -0.0577,
+    "p2_5": -0.0997,
+    "p97_5": -0.0191,
+    "halfWidth": 0.0403,
+    "resamples": 400,
+    "blockDays": 20
+   },
+   "predictedMix": {
+    "DOWN": 44247,
+    "FLAT": 28650,
+    "UP": 61551
+   },
+   "actualMix": {
+    "DOWN": 46711,
+    "FLAT": 27105,
+    "UP": 60632
+   },
+   "degenerate": false,
+   "flatShareFixedBand": {
+    "PSX": 0.1705,
+    "US": 0.212,
+    "commodity": 0.2356,
+    "crypto": 0.09,
+    "forex": 0.7026
+   },
+   "flatShareVolBand": {
+    "PSX": 0.2454,
+    "US": 0.1658,
+    "commodity": 0.1781,
+    "crypto": 0.2258,
+    "forex": 0.2528
+   },
+   "byMarket": {
+    "PSX": {
+     "accuracy": 0.3768,
+     "majority": 0.43896730783295546,
+     "n": 41019
+    },
+    "US": {
+     "accuracy": 0.4057,
+     "majority": 0.47587880889428286,
+     "n": 69213
+    },
+    "commodity": {
+     "accuracy": 0.3532,
+     "majority": 0.48759920634920634,
+     "n": 2016
+    },
+    "crypto": {
+     "accuracy": 0.3918,
+     "majority": 0.4106835911675261,
+     "n": 15126
+    },
+    "forex": {
+     "accuracy": 0.38,
+     "majority": 0.45349165959852983,
+     "n": 7074
+    }
+   },
+   "byRegime": {
+    "2022-26 advance": {
+     "accuracy": 0.3931,
+     "majority": 0.45096989170534335,
+     "n": 134448
+    }
+   }
+  },
+  {
+   "testYear": 2025,
+   "trainRows": 732843,
+   "testRows": 145628,
+   "baselineIdenticalTestRows": 145628,
+   "rowSelectionMatchesBalanced": true,
+   "trainEnds": "2024-12-11",
+   "testBegins": "2025-01-02",
+   "testEnds": "2025-12-31",
+   "mCalibrated": 0.671296,
+   "medianBandPct": 2.2342,
+   "convergence": {
+    "steps": 38,
+    "finalLoss": 1.096653,
+    "reached": true
+   },
+   "candidate": {
+    "n": 145628,
+    "effectiveIndependentWindows": 7281,
+    "accuracy": 0.376,
+    "recall_DOWN": 0.3451,
+    "precision_DOWN": 0.3865,
+    "recall_FLAT": 0.3326,
+    "precision_FLAT": 0.2411,
+    "recall_UP": 0.4221,
+    "precision_UP": 0.4676,
+    "predictedMix": {
+     "DOWN": 45810,
+     "FLAT": 42460,
+     "UP": 57358
+    },
+    "actualMix": {
+     "DOWN": 51310,
+     "FLAT": 30775,
+     "UP": 63543
+    }
+   },
+   "majorityOnSameRows": 0.4363,
+   "margin": -0.0603,
+   "accuracyOverMajorityCI": {
+    "mean": -0.0567,
+    "p2_5": -0.1098,
+    "p97_5": -0.0024,
+    "halfWidth": 0.0537,
+    "resamples": 400,
+    "blockDays": 20
+   },
+   "predictedMix": {
+    "DOWN": 45810,
+    "FLAT": 42460,
+    "UP": 57358
+   },
+   "actualMix": {
+    "DOWN": 51310,
+    "FLAT": 30775,
+    "UP": 63543
+   },
+   "degenerate": false,
+   "flatShareFixedBand": {
+    "PSX": 0.1773,
+    "US": 0.1995,
+    "commodity": 0.1682,
+    "crypto": 0.0944,
+    "forex": 0.7786
+   },
+   "flatShareVolBand": {
+    "PSX": 0.2541,
+    "US": 0.1731,
+    "commodity": 0.1608,
+    "crypto": 0.2166,
+    "forex": 0.2892
+   },
+   "byMarket": {
+    "PSX": {
+     "accuracy": 0.3628,
+     "majority": 0.41971652642757945,
+     "n": 48964
+    },
+    "US": {
+     "accuracy": 0.3788,
+     "majority": 0.4940839999419288,
+     "n": 68881
+    },
+    "commodity": {
+     "accuracy": 0.4586,
+     "majority": 0.5389578163771712,
+     "n": 2015
+    },
+    "crypto": {
+     "accuracy": 0.3841,
+     "majority": 0.4925912156779436,
+     "n": 18829
+    },
+    "forex": {
+     "accuracy": 0.396,
+     "majority": 0.3651823029254936,
+     "n": 6939
+    }
+   },
+   "byRegime": {
+    "2022-26 advance": {
+     "accuracy": 0.376,
+     "majority": 0.436337792182822,
+     "n": 145628
+    }
+   }
+  },
+  {
+   "testYear": 2026,
+   "trainRows": 877815,
+   "testRows": 109016,
+   "baselineIdenticalTestRows": 109016,
+   "rowSelectionMatchesBalanced": true,
+   "trainEnds": "2025-12-11",
+   "testBegins": "2026-01-02",
+   "testEnds": "2026-09-17",
+   "mCalibrated": 0.659274,
+   "medianBandPct": 2.4535,
+   "convergence": {
+    "steps": 37,
+    "finalLoss": 1.09608,
+    "reached": true
+   },
+   "candidate": {
+    "n": 109016,
+    "effectiveIndependentWindows": 5451,
+    "accuracy": 0.3378,
+    "recall_DOWN": 0.3537,
+    "precision_DOWN": 0.4222,
+    "recall_FLAT": 0.3628,
+    "precision_FLAT": 0.2151,
+    "recall_UP": 0.3075,
+    "precision_UP": 0.3704,
+    "predictedMix": {
+     "DOWN": 38757,
+     "FLAT": 35772,
+     "UP": 34487
+    },
+    "actualMix": {
+     "DOWN": 46265,
+     "FLAT": 21205,
+     "UP": 41546
+    }
+   },
+   "majorityOnSameRows": 0.4244,
+   "margin": -0.0866,
+   "accuracyOverMajorityCI": {
+    "mean": -0.0875,
+    "p2_5": -0.1591,
+    "p97_5": -0.028,
+    "halfWidth": 0.0656,
+    "resamples": 400,
+    "blockDays": 20
+   },
+   "predictedMix": {
+    "DOWN": 38757,
+    "FLAT": 35772,
+    "UP": 34487
+   },
+   "actualMix": {
+    "DOWN": 46265,
+    "FLAT": 21205,
+    "UP": 41546
+   },
+   "degenerate": false,
+   "flatShareFixedBand": {
+    "PSX": 0.1464,
+    "US": 0.1626,
+    "commodity": 0.1613,
+    "crypto": 0.1284,
+    "forex": 0.7289
+   },
+   "flatShareVolBand": {
+    "PSX": 0.2108,
+    "US": 0.1686,
+    "commodity": 0.203,
+    "crypto": 0.2276,
+    "forex": 0.214
+   },
+   "byMarket": {
+    "PSX": {
+     "accuracy": 0.2988,
+     "majority": 0.4721032414955647,
+     "n": 36187
+    },
+    "US": {
+     "accuracy": 0.3407,
+     "majority": 0.43026663952778343,
+     "n": 49130
+    },
+    "commodity": {
+     "accuracy": 0.3363,
+     "majority": 0.3996789727126806,
+     "n": 1246
+    },
+    "crypto": {
+     "accuracy": 0.3873,
+     "majority": 0.40921067705349984,
+     "n": 17458
+    },
+    "forex": {
+     "accuracy": 0.4198,
+     "majority": 0.41961961961961963,
+     "n": 4995
+    }
+   },
+   "byRegime": {
+    "2022-26 advance": {
+     "accuracy": 0.3378,
+     "majority": 0.4243872459088574,
+     "n": 109016
+    }
+   }
+  }
+ ],
+ "leastExposedFold": {
+  "testYear": 2026,
+  "trainRows": 877815,
+  "testRows": 109016,
+  "baselineIdenticalTestRows": 109016,
+  "rowSelectionMatchesBalanced": true,
+  "trainEnds": "2025-12-11",
+  "testBegins": "2026-01-02",
+  "testEnds": "2026-09-17",
+  "mCalibrated": 0.659274,
+  "medianBandPct": 2.4535,
+  "convergence": {
+   "steps": 37,
+   "finalLoss": 1.09608,
+   "reached": true
+  },
+  "candidate": {
+   "n": 109016,
+   "effectiveIndependentWindows": 5451,
+   "accuracy": 0.3378,
+   "recall_DOWN": 0.3537,
+   "precision_DOWN": 0.4222,
+   "recall_FLAT": 0.3628,
+   "precision_FLAT": 0.2151,
+   "recall_UP": 0.3075,
+   "precision_UP": 0.3704,
+   "predictedMix": {
+    "DOWN": 38757,
+    "FLAT": 35772,
+    "UP": 34487
+   },
+   "actualMix": {
+    "DOWN": 46265,
+    "FLAT": 21205,
+    "UP": 41546
+   }
+  },
+  "majorityOnSameRows": 0.4244,
+  "margin": -0.0866,
+  "accuracyOverMajorityCI": {
+   "mean": -0.0875,
+   "p2_5": -0.1591,
+   "p97_5": -0.028,
+   "halfWidth": 0.0656,
+   "resamples": 400,
+   "blockDays": 20
+  },
+  "predictedMix": {
+   "DOWN": 38757,
+   "FLAT": 35772,
+   "UP": 34487
+  },
+  "actualMix": {
+   "DOWN": 46265,
+   "FLAT": 21205,
+   "UP": 41546
+  },
+  "degenerate": false,
+  "flatShareFixedBand": {
+   "PSX": 0.1464,
+   "US": 0.1626,
+   "commodity": 0.1613,
+   "crypto": 0.1284,
+   "forex": 0.7289
+  },
+  "flatShareVolBand": {
+   "PSX": 0.2108,
+   "US": 0.1686,
+   "commodity": 0.203,
+   "crypto": 0.2276,
+   "forex": 0.214
+  },
+  "byMarket": {
+   "PSX": {
+    "accuracy": 0.2988,
+    "majority": 0.4721032414955647,
+    "n": 36187
+   },
+   "US": {
+    "accuracy": 0.3407,
+    "majority": 0.43026663952778343,
+    "n": 49130
+   },
+   "commodity": {
+    "accuracy": 0.3363,
+    "majority": 0.3996789727126806,
+    "n": 1246
+   },
+   "crypto": {
+    "accuracy": 0.3873,
+    "majority": 0.40921067705349984,
+    "n": 17458
+   },
+   "forex": {
+    "accuracy": 0.4198,
+    "majority": 0.41961961961961963,
+    "n": 4995
+   }
+  },
+  "byRegime": {
+   "2022-26 advance": {
+    "accuracy": 0.3378,
+    "majority": 0.4243872459088574,
+    "n": 109016
+   }
+  }
+ },
+ "summary": {
+  "folds": 6,
+  "meanAccuracy": 0.3666,
+  "meanMajorityOnSameRows": 0.4432,
+  "meanMargin": -0.0767,
+  "foldsBeatingTheirOwnMajority": 0,
+  "meanStepsToConverge": 50.3,
+  "anyFoldDegenerate": false,
+  "allFoldsConverged": true,
+  "recordedBalancedForContext": 0.3618
+ },
+ "criteriaMet": {
+  "meanAccuracyAboveMajority": [
+   0.3666,
+   0.4432,
+   false
+  ],
+  "foldsBeatingTheirOwnMajority": [
+   0,
+   4,
+   false
+  ],
+  "doesNotDegradeInTheAdverseRegime": [
+   -0.1066,
+   0,
+   false
+  ],
+  "notDegenerate": [
+   false,
+   false,
+   true
+  ],
+  "mechanismSupported": [
+   0.161,
+   0.7191,
+   true
+  ],
+  "convergedInEveryFold": [
+   true,
+   true,
+   true
+  ]
+ },
+ "verdict": "NO-GO: the target family is not the obstruction either",
+ "limitations": [
+  "direction only. No execution cost, spread or borrow data exists for any market, so no result here is a profitability claim and none may be reported as net.",
+  "the band is point-in-time, but eligibility still uses the realised forward window, so any coverage figure computed from it is ex-post and is not a deployment claim.",
+  "effective sample is rows / 20; the row counts overstate independence.",
+  "survivorship: the universe is today's registered assets, so delisted names are absent and the bias is a measured lower bound, not removed.",
+  "a single linear model on 15 price and volume features; balanced_experiment.json already showed this model class carries no edge under a comparable 3-class target, so a pass here would be about the target and a failure ends this family."
+ ]
+}

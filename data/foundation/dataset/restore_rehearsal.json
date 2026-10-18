@@ -1,61 +1,83 @@
 {
- "generatedAt": "2026-10-15T22:23:11+00:00",
+ "generatedAt": "2026-10-18T01:51:49+00:00",
  "status": "COMPLETED",
- "what": "a real PostgreSQL restore of the sealed backup into an isolated, disposable cluster",
+ "what": "a real PostgreSQL restore of a fresh, verified backup into an isolated, disposable cluster",
  "target": {
   "engine": "PostgreSQL 15.18",
   "host": "127.0.0.1",
-  "port": 55432,
+  "port": 5433,
   "database": "nbt_restore",
-  "dataDirectory": "session scratchpad, deleted after the rehearsal",
-  "isolation": "a cluster created for this rehearsal; production was never written to"
+  "dataDirectory": "C:/Users/NEW TECH/Documents/nbt-private/restore-rehearsal-2026-10-18/pgdata",
+  "isolation": "a cluster created for this rehearsal on a non-default port with its own superuser and password; production was never written to, and restore_db.py refuses any target outside LOCAL_HOSTS unless --allow-remote is passed"
  },
  "source": {
-  "artifact": "GitHub Actions 11960878774 (nbt-backup-38712534137)",
-  "sealed": "aes-256-cbc, pbkdf2, 200000 iterations",
-  "schemaVersion": "20261011130000_decision_history",
-  "dumpStarted": "2026-10-15T09:23:32"
+  "artifact": "C:/Users/NEW TECH/Documents/nbt-private/cloud/b1-2026-10-18",
+  "runId": "backup-2026-10-18T000302Z",
+  "schemaVersion": "20261017150000_eventimpact_reindex",
+  "dumpStarted": "2026-10-18T00:03:02",
+  "dumpFinished": "2026-10-18T00:04:15",
+  "snapshot": "one REPEATABLE READ, READ ONLY transaction spanning all 45 public tables",
+  "manifestStatus": "verified",
+  "manifestTables": 45,
+  "manifestRows": 1335415,
+  "manifestBytesGz": 47083811,
+  "manifestErrors": 0,
+  "verifyResult": "artifact: 45 of 45 files match the manifest",
+  "sealed": false,
+  "sealedNote": "produced locally by tools/cloud_backup.py. The Google upload steps are OFF because GOOGLE_SERVICE_ACCOUNT_JSON, BACKUP_DRIVE_FOLDER_ID and BACKUP_SHEET_ID are unset, so this copy exists on this machine only and was never uploaded. The sealed, off-machine copy is recorded in offMachineSealedCopy below."
  },
- "schemaPreparation": "prisma migrate deploy applied all 32 migrations to the empty target",
- "toolResult": "restore: VERIFIED: 43 tables, 1,274,615 rows, content digests equal",
+ "offMachineSealedCopy": {
+  "workflow": ".github/workflows/cron-backup.yml",
+  "runNumber": 7,
+  "runId": 39018623911,
+  "artifact": "nbt-backup-39018623911",
+  "artifactBytes": 46912175,
+  "created": "2026-10-17T08:47:28Z",
+  "headSha": "4ca830a",
+  "conclusion": "success",
+  "expired": false,
+  "sealedWith": "tar | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:KEY; key held only in the WORKER_ARTIFACT_KEY Actions secret",
+  "residualGap": "the sealing key is not available in this environment, so today's restore rehearsal ran against the local plaintext artifact rather than by decrypting the sealed one. A sealed-artifact decrypt-then-restore was last exercised on 2026-10-15 (run 38712534137, still unexpired) by an operator who held the key. Closing that specific path needs WORKER_ARTIFACT_KEY access."
+ },
+ "schemaPreparation": "npx prisma migrate deploy applied all 36 migrations to the empty target, landing on 20261017150000_eventimpact_reindex -- the exact migration the backup was taken at",
+ "toolResult": "restore: VERIFIED: 44 tables, 1,335,379 rows, content digests equal",
  "constraintsAndIndexes": {
   "foreignKeys": 45,
-  "primaryKeys": 44,
-  "indexes": 138,
+  "primaryKeys": 45,
+  "indexes": 142,
   "sequences": 0
  },
  "independentRecount": {
-  "backupTables": 44,
-  "restoredTables": 44,
-  "backupRows": 1274646,
-  "restoredRows": 1274646,
-  "rowCountMismatches": {}
+  "publicTables": 45,
+  "restoredDataTables": 44,
+  "backupRows": 1335415,
+  "restoredRows": 1335379,
+  "rowCountMismatches": {},
+  "newestClose": "2026-10-16",
+  "prismaMigrationsOnTarget": 36
  },
- "theOneDifference": "the tool verifies 43 tables and 1,274,615 rows; the manifest counts 44 and 1,274,646. The difference is _prisma_migrations (31 rows), which the restore deliberately does not load because the target was migrated by Prisma and so supplies its own. Every data table matches exactly.",
+ "theOneDifference": "the tool verifies 44 tables and 1,335,379 rows; the manifest counts 45 and 1,335,415. The difference is _prisma_migrations (36 rows), which the restore deliberately does not load because the target was migrated by Prisma and supplies its own history. Every data table matches exactly.",
  "selectedRowCounts": {
-  "PriceSnapshot": {
-   "backup": 1097638,
-   "restored": 1097638
-  },
-  "IntradayBar": {
-   "backup": 103898,
-   "restored": 103898
-  },
-  "EventImpact": {
-   "backup": 8878,
-   "restored": 8878
-  },
-  "DecisionLog": {
-   "backup": 2778,
-   "restored": 2778
-  },
-  "Asset": {
-   "backup": 616,
-   "restored": 616
-  },
-  "News": {
-   "backup": 8134,
-   "restored": 8134
-  }
+  "PriceSnapshot": {"backup": 1099805, "restored": 1099805},
+  "IntradayBar": {"backup": 125445, "restored": 125445},
+  "EventImpact": {"backup": 17600, "restored": 17600},
+  "ShadowPrediction": {"backup": 566, "restored": 566},
+  "Asset": {"backup": 618, "restored": 618},
+  "News": {"backup": 10728, "restored": 10728},
+  "DecisionLog": {"backup": 3890, "restored": 3890}
+ },
+ "previousRehearsal": {
+  "generatedAt": "2026-10-15T22:23:11+00:00",
+  "target": {"engine": "PostgreSQL 15.18", "host": "127.0.0.1", "port": 55432,
+             "database": "nbt_restore",
+             "dataDirectory": "session scratchpad, deleted after the rehearsal"},
+  "source": {"artifact": "GitHub Actions 11960878774 (nbt-backup-38712534137)",
+             "sealed": "aes-256-cbc, pbkdf2, 200000 iterations",
+             "schemaVersion": "20261011130000_decision_history",
+             "dumpStarted": "2026-10-15T09:23:32"},
+  "schemaPreparation": "prisma migrate deploy applied all 32 migrations to the empty target",
+  "toolResult": "restore: VERIFIED: 43 tables, 1,274,615 rows, content digests equal",
+  "constraintsAndIndexes": {"foreignKeys": 45, "primaryKeys": 44, "indexes": 138, "sequences": 0},
+  "note": "preserved as the record of the sealed-artifact rehearsal; superseded for currency by the 2026-10-18 run above, which is the one that covers the five migrations applied since 20261011130000_decision_history."
  }
 }

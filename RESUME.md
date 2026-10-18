@@ -1,5 +1,149 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-18 (thirtieth), **B1 CLOSED** — real backup, real restore, foundation gates green; eligible-set/target-family experiment executed (fails)
+
+**Branch `main`, started from verified `a4023a0`, tree clean, `origin/main == HEAD`.** Database
+touched this session — read-only against the pooler for the backup, and write-only against a
+disposable local cluster. No frozen dataset, model, decision rule or recorded result changed; the
+earlier experiment artifacts are inputs, not things this session may overwrite.
+
+### B1 is closed. Fresh backup, verified, restored, recounted.
+
+The pooler was reachable again (`EMAXCONNSESSION` cleared), so the gate was executed rather than
+deferred.
+
+| step | evidence |
+|---|---|
+| **fresh snapshot** | `python tools/cloud_backup.py backup --out C:\Users\NEW TECH\Documents\nbt-private\cloud\b1-2026-10-18` → `run_id backup-2026-10-18T000302Z`, **status `verified`**, **45/45 tables, 1,335,415 rows, 47,083,811 gz bytes, 0 errors**, one `REPEATABLE READ, READ ONLY` transaction, schema `20261017150000_eventimpact_reindex`, `45 of 45 files match the manifest` |
+| **isolated local cluster** | PostgreSQL **15.18**, `initdb` into `…\nbt-private\restore-rehearsal-2026-10-18\pgdata`, locale C, scram-sha-256, **port 5433**, database **`nbt_restore`** — never a production instance; `restore_db.py` refuses any target outside `LOCAL_HOSTS` without `--allow-remote` |
+| **schema to backup version** | `npx prisma migrate deploy` applied **all 36 migrations**, landing on `20261017150000_eventimpact_reindex` — the exact migration the backup was taken at |
+| **restore** | `RESTORE_DATABASE_URL=…:5433/nbt_restore python tools/restore_db.py restore …\b1-2026-10-18` → **`VERIFIED: 44 tables, 1,335,379 rows, content digests equal`**; constraints `f=45, p=45`; indexes 142; sequences 0 |
+| **independent recount** | 45 public tables; 36 migrations; `PriceSnapshot` **1,099,805** (newest close **2026-10-16**), `IntradayBar` 125,445, `EventImpact` 17,600, `ShadowPrediction` 566, `Asset` 618, `News` 10,728, `DecisionLog` 3,890; FK 45 / PK 45 / indexes 142 — all match the manifest |
+| **off-machine sealed copy** | Actions `cron backup` run **#7 `39018623911`**, artifact **`nbt-backup-39018623911`, 46,912,175 bytes, not expired**, created `2026-10-17T08:47:28Z`; prior rehearsal source `nbt-backup-38712534137` also unexpired |
+
+**The one difference is deliberate and recorded, not hidden.** 44/1,335,379 vs the manifest's
+45/1,335,415 is exactly `_prisma_migrations` (36 rows): the restore does not load it because the
+target was migrated by Prisma and supplies its own history. Every data table matches exactly.
+
+**Residual gap, stated plainly.** The local artifact is plaintext-on-disk — Google upload is off
+(`GOOGLE_SERVICE_ACCOUNT_JSON`, `BACKUP_DRIVE_FOLDER_ID`, `BACKUP_SHEET_ID` all unset) — and the
+sealing key `WORKER_ARTIFACT_KEY` is an Actions secret not available here, so **decrypt-then-restore
+of the sealed artifact was not repeated this session**; it was last exercised 2026-10-15. Closing
+that specific path needs an operator who holds the key.
+
+**Handoff updated.** `data/foundation/dataset/restore_rehearsal.json` now records today's rehearsal
+(`generatedAt 2026-10-18T01:51:49Z`, `source.schemaVersion 20261017150000_eventimpact_reindex`,
+`toolResult` the VERIFIED line, the FK/PK/index counts, the recount and the artifact path), with the
+2026-10-15 sealed rehearsal preserved verbatim under `previousRehearsal` rather than discarded.
+
+### `daily_audit.py` run for real (not `--no-db`): the B1 warnings are gone
+
+```
+ok  restoreRehearsalCurrent   verified at schema 20261017150000_eventimpact_reindex; 0 migration(s) applied since
+ok  restoreRehearsalAge       last real restore rehearsal 0 days ago
+ok  migrationsApplied         36 applied; 0 pending
+ok  priceFreshness / factorFreshness / newsFreshness / shadowOutcomes / noApprovedShadowRecords
+ok  artifact:brain-v1/v2/v3   digest matches its manifest; verdict NO-GO, productionApproved False
+ok  freeze:examples-v3/v4     status frozen for training, gates green True
+WARN sourceCoverage            8 source(s) outside          <- B3
+FAIL jobRuns36h                cron products: blocked x2, empty x1   <- B2
+WARN databaseSize              460.2 MB of 500 MB (92.0%)   <- was 98.6%, now 92.0%
+ok 13  warn 2  fail 1  unknown 0  ->  healthy: False  (exit 1)
+```
+
+`restoreRehearsalCurrent` and `restoreRehearsalAge` were both WARN before this session and are
+**ok** now. The two remaining items are **B2** and **B3** — ingestion and source freshness — not B1.
+
+### All five foundation gates pass; training is permitted
+
+| gate | evidence | |
+|---|---|---|
+| org-quality threshold | `foundation_score.json`: `overallWeightedScore` **0.9274 ≥ 0.90**, `passesThreshold: true`, `scopeFrozenBeforeMeasurement: true` | ✅ |
+| integrity / recovery | B1 rehearsal above: 0 migrations behind, 0 days old, digests equal | ✅ |
+| deterministic dataset prep | `data worker determinism` run #1 success; `data assemble dataset` run #3 success | ✅ |
+| frozen digests | both freezes `blockingGatesGreen: true` with per-file sha256; audit digests match | ✅ |
+| schema compat | `schema` workflow run **#187 success**; `migrationsApplied 36/0 pending` | ✅ |
+
+`readiness.json` = `PASS WITH LIMITATIONS`, `trainingStarted: false` — and independently flags the
+defect this session went on to test: *"the fixed 2% band is not volatility-scaled and collapses 68%
+of FX"*.
+
+### Registered and executed: `volband_experiment-v1` (eligible set / target family) — **NO-GO**
+
+**`tools/research/volband_experiment.py`**, full pre-registration in the docstring before any number
+was seen. The two prior verdicts had named this exact question (`cross_sectional_ranking`: *"next
+question is the outcome window or the eligible set"*; `horizon_experiment`: *"next question is the
+eligible set / target family, not another horizon"*).
+
+**One thing changed: the target.** `band = m * atr14 / baseClose * 100`, with `m` = median implied
+multiple of the frozen 2% band calibrated **on training rows only**, and the `label60.band_pct`
+floor removed (that floor is what `label_adequacy.json` measures as 2.69× too wide for FX).
+Everything else held identical — the 15 `pit.f` features, row selection, quarantine, folds, embargo,
+standardisation, seed, and `fit_weighted` **imported unchanged** from `balanced_experiment` so this
+measures the target and nothing else.
+
+**The input was wrong on the first attempt and the pre-declared check caught it.** I defaulted to
+the older durable copy `examples-v3-2026-10-15-run38735767762`; `balanced_experiment` actually ran
+on `.cache/foundation/dataset_full` (= frozen `examples-v3-2026-10-16-local`, different file bytes).
+`rowSelectionMatchesBalanced` came back **false**, so run 1 was preserved as
+`volband_experiment.run1-dataset-mismatch.json` rather than overwritten, the correct copy was
+verified against `dataset_freeze.json` (**9/9 sha256, 0 mismatches**), and the registered run was
+executed on it. A run violating its own pre-registration is not the registered result.
+
+| | fixed ±2% (`balanced_experiment`) | vol-scaled (this run) |
+|---|---|---|
+| loader equivalence | — | **6/6 folds match recorded testRows**; 1,055,429 rows = `rowsWithFeatures`; 994,731 post-quarantine = `family_evaluation.dataVersion.rows` |
+| mean accuracy | 0.3618 | **0.3666** |
+| majority on the same rows | 0.4377 | **0.4432** |
+| margin | −0.0759 | **−0.0767** |
+| folds beating their own majority | 0/6 | **0/6** |
+| adverse 2022 fold | −0.0905 | **−0.1066** |
+| degenerate / converged | false / yes | **false / yes** (35–72 steps) |
+| **cross-market FLAT spread** | **0.7191** | **0.1610** |
+
+**The mechanism hypothesis was confirmed and the performance hypothesis was falsified — both in the
+same run.** The vol band does what `label_adequacy.json` said the fixed band fails to do: FLAT
+became comparable across markets, spread narrowing 4.5×. Accuracy did not follow (+0.0048 against a
+7.7-point gap to majority). By the criterion written before the run, this is
+**`NO-GO: the target family is not the obstruction either`** — which the docstring states in advance
+is *"a reason to stop this family, not to invent a fifth arm"*.
+
+### Why there is no fifth arm: the bound `signal_floor.json` already measured
+
+`signal_floor.json` ("in-sample fits, deliberately optimistic; never a performance estimate"):
+
+| cell | in-sample over majority |
+|---|---|
+| 3-class, **15 price features** | **+0.0037** |
+| 3-class, 44 features | +0.0332 |
+| binary, 44 features | +0.0361 |
+| shuffled-label controls | −0.0001 / +0.0001 |
+
+With the 15 price features every walk-forward candidate has been fitted on, the **entire in-sample
+ceiling is +0.0037** — while every recorded NO-GO sits ~7 points *below* majority. Its verdict:
+*"signal exists and the failure is generalisation."* That also retires the capacity axis (more
+capacity worsens generalisation) and explains why `balanced_experiment` exonerated the optimiser
+without rescuing accuracy.
+
+### Where the workstreams stand
+
+| | state | next |
+|---|---|---|
+| **C - UI** | 8 of 8 screens; runbook written; **tests lane green** | cutover (Level-1/2 rollback ready), then verification |
+| **B - Sync** | **B1 CLOSED**; matrix written; B4 dependency satisfied | **B2** (`cron products` blocked×2/empty×1) and **B3** (8 stale sources); then **B4** schedule `daily_audit.py` |
+| **A - Brain** | recency, prevalence, ranking, horizon, **and target family** all negative; mechanism validated | register **binary target + 44 context features + converged class-balanced fit** — the one cell `signal_floor` rates highest that no run has tested OOS |
+
+### Next action
+
+1. **B2**: unblock `cron products` (blocked ×2, empty ×1) — the only FAIL in the audit.
+2. **B4**: schedule `tools/daily_audit.py` — its B1 dependency is now satisfied.
+3. **A**: register the binary + 44-feature candidate properly (it is *not* a rerun:
+   `horizon_experiment` was **3-class with FLAT, crypto-only, and its own fit still collapsed** —
+   `predictedMix` 12,879 DOWN / 72 UP — so the cell `signal_floor` rates highest has never been
+   scored out-of-sample with a converged fit).
+4. **Housekeeping:** the local rehearsal cluster is still up on `127.0.0.1:5433` —
+   `pg_ctl -D …\restore-rehearsal-2026-10-18\pgdata stop` when it is no longer needed.
+
 ## 0. SESSION CHECKPOINT - 2026-10-18 (twenty-ninth), the tests lane is green — CI failure closed
 
 **Branch `main`, this checkpoint's commit `3c5952d` on `origin/main`, tree clean,

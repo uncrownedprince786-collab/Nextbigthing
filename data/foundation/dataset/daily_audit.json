@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-17T00:32:40+00:00",
+ "generatedAt": "2026-10-18T01:53:06+00:00",
  "version": "daily-audit-v1",
  "staleRulesReadFrom": "lib/health.ts + lib/decision.ts",
  "staleRules": {
@@ -8,8 +8,8 @@
   "QUOTES_STALE_AFTER_MINUTES": 60.0
  },
  "summary": {
-  "ok": 12,
-  "warn": 3,
+  "ok": 13,
+  "warn": 2,
   "fail": 1,
   "unknown": 0
  },
@@ -56,45 +56,39 @@
   },
   {
    "check": "restoreRehearsalCurrent",
-   "status": "warn",
-   "detail": "verified at schema 20261011130000_decision_history; 5 migration(s) applied since",
+   "status": "ok",
+   "detail": "verified at schema 20261017150000_eventimpact_reindex; 0 migration(s) applied since",
    "extra": {
-    "behind": [
-     "20261016140000_atr_trailing_median",
-     "20261017000000_shadow_prediction",
-     "20261017120000_eventimpact_measured_count",
-     "20261017140000_eventimpact_reclaim",
-     "20261017150000_eventimpact_reindex"
-    ],
-    "rows": "restore: VERIFIED: 43 tables, 1,274,615 rows, content digests equal"
+    "behind": [],
+    "rows": "restore: VERIFIED: 44 tables, 1,335,379 rows, content digests equal"
    }
   },
   {
    "check": "restoreRehearsalAge",
    "status": "ok",
-   "detail": "last real restore rehearsal 1 days ago",
+   "detail": "last real restore rehearsal 0 days ago",
    "extra": null
   },
   {
    "check": "priceFreshness",
    "status": "ok",
-   "detail": "newest stored close 2026-10-16 (1 days back), 1,098,991 rows",
+   "detail": "newest stored close 2026-10-16 (2 days back), 1,099,805 rows",
    "extra": {
-    "lagDays": 1
+    "lagDays": 2
    }
   },
   {
    "check": "factorFreshness",
    "status": "ok",
-   "detail": "newest factor session 2026-10-16 (1 days back)",
+   "detail": "newest factor session 2026-10-16 (2 days back)",
    "extra": {
-    "lagDays": 1
+    "lagDays": 2
    }
   },
   {
    "check": "newsFreshness",
    "status": "ok",
-   "detail": "newest headline 4.1h old (lib/health.ts calls the lane stale after 6.0h)",
+   "detail": "newest headline 3.9h old (lib/health.ts calls the lane stale after 6.0h)",
    "extra": null
   },
   {
@@ -106,7 +100,7 @@
   {
    "check": "jobRuns36h",
    "status": "fail",
-   "detail": "104 slice(s) in 36h; failing: cron products:blockedx2, cron products:emptyx1",
+   "detail": "100 slice(s) in 36h; failing: cron products:blockedx2, cron products:emptyx1",
    "extra": null
   },
   {
@@ -132,9 +126,9 @@
   {
    "check": "databaseSize",
    "status": "warn",
-   "detail": "493.0 MB of a 500 MB free tier (98.6%)",
+   "detail": "460.2 MB of a 500 MB free tier (92.0%)",
    "extra": {
-    "mb": "493.0"
+    "mb": "460.2"
    }
   }
  ]
