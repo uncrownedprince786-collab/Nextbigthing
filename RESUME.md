@@ -1,5 +1,58 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (thirty-sixth), **the boost harness was made correct before it was allowed to fit a market row, and it then ran out of its own declared budget: `verdict: null`, no result, a resumable checkpoint**
+**Branch `main`.** The harness repairs were pushed as `10169d2` and CI run **#302** (id
+39167887783) on that commit = **success**. The run itself is `boost_experiment.json` =
+`verdict: null` (this is a **reproducibility/honesty record, not a result**: the configuration
+neither passed nor failed). Local suite **1202 OK** (was 1193; 9 new), `--selftest` passes with the
+gates the docstring promised (no lowered thresholds). No dependency added, nothing installed, no
+production path touched, no database access.
+
+### What was wrong with the harness (all preflight, all before any market row)
+
+| repair | before | now |
+|---|---|---|
+| selftest gates | `ST_BOOST_MIN_ACC 0.50`, `ST_SEPARABLE_MIN_ACC 0.94` — lowered so a wrong case would pass | `0.98` / `0.99` restored; the **cases** were fixed, not the bars |
+| XOR/parity case | 2-bit XOR **+ 6 noise columns** and 3-bit parity — a coin flip (a balanced root ties parity at zero gain while every noise split gains a little) and depth-2-unreachable, respectively | 2-bit XOR over **two columns, no noise** (deterministic 1.0 vs linear 0.50) and XOR over **two continuous columns + 6 noise** (0.995 vs 0.51, robust across 8 seeds) |
+| split gain | took the best split even at gain `<= 0` with `gamma = 0` | **strictly positive** gain required, else a leaf; the histogram search is a bit-identical reformulation of the per-feature scan, pinned by test |
+| shuffled control | fit with weights from the **original** labels while the target was permuted | weights from the **permuted** target (`shuffled_control_target`) |
+| resource budget | 16 GB ceiling, non-Windows RSS, checked **only after a fold** | ~4 GB ceiling derived from **real free memory** (992 MB this run), checked **inside the round loop** |
+| data trust | cache trusted because it exists | `--verify-data` re-derives a per-row digest from the **manifest-verified** frozen sources and compares to the cache: `36c1da3afc3185b0`, 1,055,429 rows, **match** |
+| CI gate | selftest was a one-off command | `tests/test_boost_experiment.py` (9 tests) runs it in CI |
+
+### The run, honestly
+
+`--selftest` passes; integrity verified; the six folds are ~2.6 M training rows and candidate +
+control twice over. Measured cost ~**4.0 ms per training row per 300-round fit**, so the whole
+experiment is ~**174 minutes against a declared 45**. It ran to the limit and stopped itself:
+
+* fold **2021**: acc 0.5614, majority 0.5375, margin **+0.0239**, shuffled control −0.0276, train +0.1523
+* fold **2022**: acc 0.5335, majority 0.5667, margin **−0.0332**, shuffled control −0.0587, train +0.1216
+* fold 2023 aborted at `round 25` when elapsed fitting time crossed 2700 s (2767.2 s total, peak RSS 992 MB)
+* `verdict: null`; `completedFolds: [2021, 2022]`; resumable checkpoint
+  `data/foundation/dataset/boost_experiment.checkpoint.{json,npz}`
+
+**These two folds are progress, not a result** — the pre-registered criteria need all six, and no
+criterion is read from a partial run. The nonlinear question stays **open**: it is not a NO-GO, and
+it is emphatically not a GO-CANDIDATE. A rerun is justified only to *complete the same
+pre-registered experiment* after a resource or implementation fix; the resume is bounded by the
+whole-experiment 45-minute budget, which this run has already spent.
+
+### Data provenance (this stretch)
+
+`data/foundation/dataset/universe_slice_integrity.json`: the nine `examples-v4-context-*.jsonl.gz`
+all match `dataset_freeze_v4_context.json`'s sha256 + bytes (`allSourcesMatch: true`), and the cache
+row digest equals the digest re-derived from them (`cacheMatchesSources: true`). So
+`eligible_set_experiment_v2`'s "same rows as the frozen universe" claim is now a measurement.
+
+### Where the mission stands and the exact next action
+
+The corrected **linear** family is still a recorded **NO-GO** on all five criteria (bind: capsule
+records in checkpoints 30–35). B4 closed, B1 closed. The next legitimate evidence source is **fresh
+data (sessions after 2026-09-25)** and the prospective shadow protocol matured over the 20-session
+horizon, or an *implementation-fast-enough* completion of `boost-v1`. Next action: no market run
+until one of those exists; do not start a second boosting configuration on these seen years.
+
 ## 0. SESSION CHECKPOINT - 2026-10-18 (thirty-fifth), **every binary verdict was produced by a three-logit model on a two-label target — corrected, re-measured, NO-GO again**
 **Branch `main`, tree clean.** This checkpoint was pushed as `f918618`, and CI run **#299** (id
 39162913449) on that commit = **success**, both jobs green (`brain logic`, `types and lint`).

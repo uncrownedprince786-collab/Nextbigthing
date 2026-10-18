@@ -1,0 +1,131 @@
+{
+ "version": "boost-v1",
+ "reason": "round 25 of 300 on 375,021 rows: fitting time 2767s exceeds the declared 2700s limit",
+ "completedYears": [
+  2021,
+  2022
+ ],
+ "folds": [
+  {
+   "testYear": 2021,
+   "trainRows": 184157,
+   "testRows": 90118,
+   "trainEnds": "2020-12-11",
+   "testBegins": "2021-01-01",
+   "testEnds": "2021-12-31",
+   "rounds": 300,
+   "earlyStopped": false,
+   "trainAccuracy": 0.6986,
+   "trainMajority": 0.5463,
+   "trainMargin": 0.1523,
+   "trainLogLoss": 0.594789,
+   "accuracy": 0.5614,
+   "majority": 0.5375,
+   "margin": 0.0239,
+   "testLogLoss": 0.70879,
+   "beatsMajority": true,
+   "shuffledControlAccuracy": 0.5099,
+   "shuffledControlMargin": -0.0276,
+   "candidateMinusControl": 0.0515,
+   "predictedMix": {
+    "DOWN": 48295,
+    "UP": 41823
+   },
+   "actualMix": {
+    "DOWN": 41681,
+    "UP": 48437
+   },
+   "worstPredictedShare": 0.5359,
+   "actualShareOfWorstPredicted": 0.4625,
+   "degenerate": false,
+   "perClassRecall": {
+    "DOWN": 0.6052,
+    "UP": 0.5237
+   },
+   "topFeatureGains": [
+    {
+     "feature": "macro_ICSA_chg",
+     "gain": 44013.3095
+    },
+    {
+     "feature": "ctx_mktDaysSinceEvent",
+     "gain": 39435.9391
+    },
+    {
+     "feature": "ctx_mktPressIn90d",
+     "gain": 32466.5397
+    },
+    {
+     "feature": "macro_NFCI_chg",
+     "gain": 17784.4866
+    },
+    {
+     "feature": "ctx_mktEventsIn90d",
+     "gain": 7642.2364
+    }
+   ],
+   "totalGain": 187482.5388
+  },
+  {
+   "testYear": 2022,
+   "trainRows": 273110,
+   "testRows": 102317,
+   "trainEnds": "2021-12-11",
+   "testBegins": "2022-01-01",
+   "testEnds": "2022-12-31",
+   "rounds": 300,
+   "earlyStopped": false,
+   "trainAccuracy": 0.6683,
+   "trainMajority": 0.5467,
+   "trainMargin": 0.1216,
+   "trainLogLoss": 0.620068,
+   "accuracy": 0.5335,
+   "majority": 0.5667,
+   "margin": -0.0332,
+   "testLogLoss": 0.708243,
+   "beatsMajority": false,
+   "shuffledControlAccuracy": 0.508,
+   "shuffledControlMargin": -0.0587,
+   "candidateMinusControl": 0.0255,
+   "predictedMix": {
+    "DOWN": 63260,
+    "UP": 39057
+   },
+   "actualMix": {
+    "DOWN": 57983,
+    "UP": 44334
+   },
+   "worstPredictedShare": 0.6183,
+   "actualShareOfWorstPredicted": 0.5667,
+   "degenerate": false,
+   "perClassRecall": {
+    "DOWN": 0.6339,
+    "UP": 0.4022
+   },
+   "topFeatureGains": [
+    {
+     "feature": "ctx_mktPressIn90d",
+     "gain": 48375.531
+    },
+    {
+     "feature": "macro_ICSA_chg",
+     "gain": 45078.5489
+    },
+    {
+     "feature": "ctx_mktDaysSinceEvent",
+     "gain": 38801.9531
+    },
+    {
+     "feature": "macro_NFCI_chg",
+     "gain": 15766.8371
+    },
+    {
+     "feature": "macro_VIXCLS_chg",
+     "gain": 6679.3652
+    }
+   ],
+   "totalGain": 206357.8433
+  }
+ ],
+ "arrays": "boost_experiment.checkpoint.npz"
+}

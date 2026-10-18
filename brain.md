@@ -6339,3 +6339,52 @@ reads rows that already exist:
       and the rule that CI installs the same file, and **the smallest justified dependency for a
       research experiment is the one that does not exist** -- which is why the proposed non-linear
       experiment is numpy-only, and why the proposal is written down before, not after, the answer.
+
+171. **A self-test whose thresholds were moved to make it pass is a disabled test, and a budget
+    checked only outside the loop is a post-mortem.** 2026-10-19.
+    Commits: this record.
+
+    - **The gate was lowered instead of the case being fixed.** The first boost selftest declared
+      `>= 0.98` non-linear and `>= 0.99` separable and then shipped `0.50`/`0.94` constants so the
+      dict said `passed: true` while its own XOR case scored a coin flip. The honest repair was to
+      ask *why* the cases failed. Two answers: with balanced labels a greedy depth-2 root finds
+      **exactly zero** gain on every parity column but small **positive** gain on every noise column,
+      so the root can land on noise and the case is a coin flip; and 3-bit parity is unreachable at
+      depth 2 by construction. **A test must not assert behaviour the system under test cannot
+      produce, and it must not lower its bar to hide that it asked for one.** The fix was a parity
+      case over exactly two columns (no noise to compete) and an XOR over two continuous columns
+      plus six noise columns, both genuinely learnable, both re-checked across eight seeds.
+
+    - **"Fails to exceed a threshold" and "must equal that threshold" are different rules.** A
+      histogram split search that returns the best of a flat field of zero-gain splits will happily
+      split on the winner of a round of noise. Requiring **strictly positive** gain when `gamma` is
+      0 is the standard rule and it changes the model, so it has to be a bit-identical reformulation
+      that is *also* a behaviour change -- pinned both ways: the histogram search is checked against
+      the per-feature scan it replaces, and the positive-gain rule is checked by a case where the
+      reference scan finds only a non-positive best gain and the shipped code must return a leaf.
+
+    - **A resource budget enforced after the fold is not a budget.** Sampling wall clock and peak
+      working set only when a fold returns means the one fold that overruns the whole budget
+      finishes anyway. The ceiling is now checked *inside* the round loop, and it is derived from the
+      machine's real free memory (about 4 GB, and less when other work would be crowded out) rather
+      than a 16 GB number this box could never reach without swapping. A declared limit that
+      cannot be hit is decoration.
+
+    - **The derived cache is trusted by digest, not by existing.** `universe_slice.npz` was checked
+      by re-deriving a per-row digest from the nine frozen `examples-v4-context-*.jsonl.gz` files
+      after verifying each against the sha256 and byte size in the freeze manifest, then comparing
+      to the digest of the same rows read out of the cache. They matched
+      (`36c1da3afc3185b0`, 1,055,429 rows), so the predecessor's "same rows" claim is a measurement
+      rather than an assumption -- recorded in `universe_slice_integrity.json` and carried into the
+      artifact. **A file that is where a file is expected is not a file whose contents are known.**
+
+    - **An experiment that cannot finish inside its own declared budget records no verdict, and the
+      folds it did finish are progress, not a result.** `boost-v1` costs ~4.0 ms per training row
+      per 300-round fit; the six folds are ~2.6 M training rows and candidate and control twice
+      over, so the whole experiment is ~174 minutes against a declared 45. It ran to the limit,
+      completed folds 2021 (+0.0239 over majority) and 2022 (-0.0332), and wrote
+      `verdict: null` with a resumable checkpoint. **The partial folds are printed and preserved so
+      the resume is cheap; they are not, and must not be read as, a pass or a fail of the
+      configuration.** The remaining question -- whether one non-linear configuration clears the
+      linear family's five-failed criteria -- is still open, and open is the honest word for it.
+
