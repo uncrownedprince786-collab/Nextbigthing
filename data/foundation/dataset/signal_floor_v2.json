@@ -1,0 +1,136 @@
+{
+ "generatedAt": "2026-10-18T19:41:29+00:00",
+ "version": "signal-floor-v2",
+ "correctionOf": {
+  "artifact": "signal_floor.json",
+  "version": "signal-floor-v1",
+  "preservedUnchanged": true,
+  "defect": "the binary cells were fitted three-wide, because fit_softmax sized its matrix from len(CLASSES) == 3 while the k argument only sized majorityClass and predictedMix. A third logit trained on no target row, and predictedMix was keyed 0/1 for those cells while the three-class cells were keyed 0/1/2.",
+  "scope": "output dimension and reported class names only. Rows, features, splits, seeds, preprocessing and every reported metric are unchanged, and the three-class cells still fit CLASSES exactly as before; their numbers are expected to be identical to v1.",
+  "exposure": "this artifact is an in-sample diagnostic already examined in v1; the holdout periods used against it were examined too. Nothing here is a new independent result."
+ },
+ "what": "in-sample fits, deliberately optimistic; a floor on what is findable, never a performance estimate",
+ "slice": "crypto, from the examples-v4-context cache",
+ "results": {
+  "threeClass_allFeatures": {
+   "rows": 93452,
+   "features": 44,
+   "outputDimension": 3,
+   "outputClasses": [
+    "DOWN",
+    "FLAT",
+    "UP"
+   ],
+   "inSampleAccuracy": 0.535,
+   "majorityClass": 0.5018,
+   "overMajority": 0.0332,
+   "predictedMix": {
+    "DOWN": 66671,
+    "FLAT": 103,
+    "UP": 26678
+   },
+   "actualMix": {
+    "DOWN": 46898,
+    "FLAT": 9008,
+    "UP": 37546
+   },
+   "classesPredicted": 3
+  },
+  "threeClass_priceOnly": {
+   "rows": 93452,
+   "features": 15,
+   "outputDimension": 3,
+   "outputClasses": [
+    "DOWN",
+    "FLAT",
+    "UP"
+   ],
+   "inSampleAccuracy": 0.5056,
+   "majorityClass": 0.5018,
+   "overMajority": 0.0037,
+   "predictedMix": {
+    "DOWN": 88257,
+    "FLAT": 134,
+    "UP": 5061
+   },
+   "actualMix": {
+    "DOWN": 46898,
+    "FLAT": 9008,
+    "UP": 37546
+   },
+   "classesPredicted": 3
+  },
+  "binaryUpDown_allFeatures": {
+   "rows": 84444,
+   "features": 44,
+   "outputDimension": 2,
+   "outputClasses": [
+    "DOWN",
+    "UP"
+   ],
+   "inSampleAccuracy": 0.5915,
+   "majorityClass": 0.5554,
+   "overMajority": 0.0361,
+   "predictedMix": {
+    "DOWN": 60266,
+    "UP": 24178
+   },
+   "actualMix": {
+    "DOWN": 46898,
+    "UP": 37546
+   },
+   "classesPredicted": 2
+  },
+  "shuffledControl_threeClass": {
+   "rows": 93452,
+   "features": 44,
+   "outputDimension": 3,
+   "outputClasses": [
+    "DOWN",
+    "FLAT",
+    "UP"
+   ],
+   "inSampleAccuracy": 0.5017,
+   "majorityClass": 0.5018,
+   "overMajority": -0.0001,
+   "predictedMix": {
+    "DOWN": 93336,
+    "FLAT": 0,
+    "UP": 116
+   },
+   "actualMix": {
+    "DOWN": 46898,
+    "FLAT": 9008,
+    "UP": 37546
+   },
+   "classesPredicted": 2
+  },
+  "shuffledControl_binary": {
+   "rows": 84444,
+   "features": 44,
+   "outputDimension": 2,
+   "outputClasses": [
+    "DOWN",
+    "UP"
+   ],
+   "inSampleAccuracy": 0.5554,
+   "majorityClass": 0.5554,
+   "overMajority": 0.0001,
+   "predictedMix": {
+    "DOWN": 84383,
+    "UP": 61
+   },
+   "actualMix": {
+    "DOWN": 46898,
+    "UP": 37546
+   },
+   "classesPredicted": 2
+  }
+ },
+ "realMinusNoise": {
+  "threeClass": 0.0333,
+  "binary": 0.036
+ },
+ "verdict": "the features separate the classes in-sample by more than this model extracts from shuffled labels, so signal exists and the failure is generalisation",
+ "notAnEvaluation": "no holdout is involved; none of these numbers may be reported as performance"
+}

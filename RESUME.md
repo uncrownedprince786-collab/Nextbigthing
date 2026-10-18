@@ -1,5 +1,197 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-18 (thirty-fifth), **every binary verdict was produced by a three-logit model on a two-label target — corrected, re-measured, NO-GO again**
+
+**Branch `main`, local suite 1193 OK** (was 1164; 29 new), `python -m compileall -q jobs` clean,
+`npx tsc --noEmit` clean, `npx eslint .` clean. No database access this stretch: one defect fixed,
+six research files edited, three runs in the registered order, one full suite. No dependency added,
+nothing installed, no production path touched.
+
+### The defect — and the fact that this file already carried the evidence for it
+
+`fit_softmax` sized its weight matrix from `len(CLASSES) == 3` and `fit_weighted` did the same, so
+the `k` argument only ever sized `majorityClass` and `predictedMix`, never the weights
+(`tools/research/baseline_experiment.py`, `tools/research/balanced_experiment.py`). Every binary
+experiment encoded UP as `1`, which put target rows in columns 0 and 1, left the column `CLASSES`
+names `UP` trained on nothing, and sent a three-logit argmax to a two-class target. The reported
+mixes then indexed `CLASSES`, which is why every binary artifact printed **`FLAT` holding the real
+UP counts and `UP: 0` on all six folds** — the positive class under the wrong name, in the record of
+every run.
+
+Checkpoint 30 wrote the construction down in its `binary_context_experiment-v1` section — *"`fit_weighted`
+sizes its matrix from `len(CLASSES) = 3`, so this is a three-column softmax trained on labels {0,1}
+… the same construction `signal_floor` used … The shape is asserted at run time"* — and read it as
+consistency with the in-sample bound instead of as a defect. `signal_floor.json` held the rest of the
+proof: its binary cell reports `predictedMix {'0': 60266, '1': 24178}`, which sums to exactly the
+84,444 rows fitted, so argmax never chose column 2 — and that cell carried no `actualMix` and no
+`outputDimension`, so nothing in it said how wide the model was. **The evidence was printed in the
+checkpoint that introduced the construction.** What was missing was one assertion: that the class
+names come from the experiment's own target, not from `CLASSES`.
+
+### What changed, and what is pinned not to change
+
+| file | change |
+|---|---|
+| `tools/research/baseline_experiment.py` | `fit_softmax(..., classes=None)` sizes the matrix from `classes` or `CLASSES` and raises `ValueError` on any label outside the `k` outputs; default path bit-identical to before (asserted against a verbatim legacy reference in the test) |
+| `tools/research/balanced_experiment.py` | `fit_weighted(..., classes=None)` with the same guard, plus `class_counts(values, classes)` — named, range-checked counts, the fix for the mis-named mixes |
+| `tools/research/signal_floor.py` | `fit_in_sample(..., classes)` passes `classes` through, reports `outputDimension`/`outputClasses`/`actualMix`; three-class cells pass `CLASSES`, binary cells pass the new `BINARY_CLASSES = ("DOWN","UP")` |
+| `tools/research/binary_context_experiment.py` | explicit `np.where` encoding, `classes=BINARY_CLASSES` on candidate and shuffled control, shape assert `(45, 2)`, `class_counts` mixes, artifact `binary_context_experiment_v2.json` (`binary-context-v2`) |
+| `tools/research/eligible_set_experiment.py` | same treatment, predecessor now `binary_context_experiment_v2.json` with the v1 mean kept beside it, artifact `eligible_set_experiment_v2.json` (`eligible-set-v2`) |
+| `tools/research/regularisation_experiment.py` | same treatment, output `regularisation_experiment_v2.json` — **not run; its v1 (−0.0601) stands as measured-with-the-defect** and is cited that way |
+
+**The three v1 artifacts are byte-identical** and `tests/test_binary_cardinality.py` (29 tests,
+all `unittest.TestCase`) now pins that, pins `model.whyThreeColumns` still being present in
+`binary_context_experiment.json`, and pins the defect fold by fold: `actualMix['UP'] == 0` on every
+v1 fold, `v1.actualMix['FLAT'] == v2.actualMix['UP']`, `v1.predictedMix` summing to `testRows`.
+The three-class path is asserted unchanged — `signal_floor_v2.json`'s three-class cells are
+numerically identical to v1 (0.5350/0.5018/+0.0332 and 0.5056/+0.0037) — so the repair is scoped to
+the width and the names, and nothing else moved.
+
+Every v2 artifact carries a `correctionOf` block (`artifact`, `version`, `preservedUnchanged: true`,
+`defect`, `scope`, and an `exposure` field stating in the artifact itself that these calendar years
+were previously examined and are therefore a correction of an observed result, **not a pristine
+independent one**).
+
+### The corrected runs: same rows, same folds, same five criteria — NO-GO again
+
+Fidelity first. `eligible-set-v2` reproduced v1's data path exactly: **1,055,429 parsed → 60,698
+dropped by `any(dataQuality)` → 994,731 kept → 794,003 after dropping FLAT, UP 0.5258**; markets
+stock 831,295 / crypto 81,119 / forex 52,549 / etf 15,104 / commodity 14,664. So the model width is
+the only variable between v1 and v2.
+
+| year | `binary-context-v2` (crypto, 93k) acc / maj / margin / control | `eligible-set-v2` (whole universe, 1.05M) acc / maj / margin / control |
+|---|---|---|
+| 2021 | 0.4510 / 0.5112 / **−0.0602** / −0.0253 | 0.5231 / 0.5375 / **−0.0144** / −0.0106 |
+| 2022 | 0.6242 / 0.6467 / **−0.0225** / −0.1530 | 0.5059 / 0.5667 / **−0.0608** / −0.0258 |
+| 2023 | 0.4989 / 0.5041 / **−0.0052** *(deg)* / +0.0078 | 0.4901 / 0.5514 / **−0.0613** *(deg)* / −0.0589 |
+| 2024 | 0.4913 / 0.5309 / **−0.0396** *(deg)* / −0.0683 | 0.4626 / 0.5586 / **−0.0960** *(deg)* / −0.0766 |
+| 2025 | 0.3908 / 0.6341 / **−0.2433** *(deg)* / −0.2243 | 0.4977 / 0.5480 / **−0.0504** / −0.0281 |
+| 2026 | 0.5985 / 0.5388 / **+0.0597** / −0.0224 | 0.4964 / 0.5296 / **−0.0332** *(deg)* / −0.0425 |
+
+| criterion (fixed before both runs) | `binary-context-v2` | `eligible-set-v2` |
+|---|---|---|
+| C1 mean margin > 0 | **−0.0519** ❌ | **−0.0527** ❌ |
+| C2 folds beating own majority ≥ 4 | **1/6** ❌ | **0/6** ❌ |
+| C3 no degenerate fold | 2023, 2024, 2025 ❌ | 2023, 2024, 2026 ❌ |
+| C4 bootstrap p2.5 > 0 (400 × 20-day) | **−0.0273** (p97.5 +0.0853) ❌ | **−0.0352** (p97.5 +0.0118) ❌ |
+| C5 worst fold ≥ −0.05 | **−0.2433 (2025)** ❌ | **−0.0960 (2024)** ❌ |
+
+**NO-GO on all five criteria in both runs, with no threshold retuned and `criteriaSource`
+untouched.** Predecessor references: `binary-context-v2` mean −0.0519 against v1's −0.0527;
+`eligible-set-v2` mean −0.0527 against its corrected predecessor −0.0519, **delta −0.0008**, and
+against its own v1 −0.0613 — a small improvement from the corrected fit, not a change of verdict.
+`eligible-set-v2`'s per-market read repeats v1's: crypto **−0.0320** against everything-else
+**−0.0368** (etf −0.0062, commodity −0.0307, stock −0.0350, forex −0.1336), so **crypto is still the
+better eligible set and the obstruction is still not the eligible set**. Shuffled-label control mean
+−0.0809 (binary) and −0.0404 (eligible).
+
+### `signal-floor-v2`: the in-sample bound is unchanged, and is now correctly named
+
+`binaryUpDown_allFeatures` still reports **84,444 rows, 0.5915 accuracy against 0.5554 majority,
++0.0361 over-majority** — identical to v1, so the width defect never moved the in-sample number. It
+now reports `outputDimension: 2`, `outputClasses: ["DOWN","UP"]`, `classesPredicted: 2` and
+`actualMix {DOWN: 46898, UP: 37546}` summing to the row count. `realMinusNoise`: three-class
++0.0333, binary +0.0360, with the shuffled controls at −0.0001 and +0.0001.
+
+### What the correction changes in earlier conclusions — and what it does not
+
+* **No recorded verdict changes.** Every v1 artifact and verdict stands as reported; both
+  corrections re-run the identical protocol and reproduce NO-GO, which is the only outcome that
+  could have kept the earlier reading honest.
+* **Two sentences in this file are superseded.** Checkpoint 33's *"the linear softmax family is
+  exhausted on this frozen dataset"* and checkpoint 31's *"recorded hypothesis-family exhaustion"*
+  were written when the only binary out-of-sample numbers came from a three-logit fit on a
+  two-label target — as were checkpoint 29's *"the family is exhausted and that is a result too"*
+  and the earlier *"non-linear models blocked pending the owner's decision"* line. The claim now
+  rests on better footing and is re-stated as: **the two-output linear softmax family has been
+  measured correctly, on the crypto slice (−0.0519) and on the whole frozen universe (−0.0527), and
+  fails all five criteria in both.** The three-logit runs are supporting evidence that the defect
+  was survivable, not the basis of the claim. Prior checkpoints are left as written; this one
+  supersedes them.
+* **The generalisation gap is unchanged**: in-sample bound **+0.0361**, holdout mean about **−0.052**
+  — separation present in-sample, absent out-of-sample, now measured by a model shaped like its
+  target.
+* **`regularisation_experiment` v1 (−0.0601) is the one number affected in status, not in value**:
+  it was produced by the same three-column construction, its corrected v2 script exists and has
+  *not* been run, and it is cited as measured-with-the-defect until it is.
+
+### Section 3: one bounded non-linear experiment, **proposed — not started, nothing installed**
+
+The corrected baseline failing is what licenses the next hypothesis. Exactly one experiment is
+put on the record, pre-registered in full, and it does not begin until the owner answers the
+dependency question below.
+
+**Proposed: `tools/research/boost_experiment.py` — logistic gradient boosting over depth-2 trees,
+implemented in numpy only (no new dependency).**
+
+* **Question:** does a non-linear decision function on the same 44 features beat its own majority
+  out-of-sample where the correctly-shaped linear softmax did not?
+* **Input:** `eligible_set_experiment_v2`'s exact rows and preparation — same quarantine, same
+  794,003 binary rows, same `ALL_FEATURES`, same train-fold imputation and standardisation — so the
+  in-artifact predecessor is `eligible-set-v2` (**−0.0527**) with `binary-context-v2` (**−0.0519**)
+  as the crypto-slice reference.
+* **Fixed before it runs, not tunable at run time:** 300 boosting rounds, learning rate 0.05, depth
+  2 (root split plus one split per child), minimum 500 rows per leaf, L2 leaf 1.0, 128 quantile bins
+  computed on the training fold only, logistic loss on the same `n/(2n_c)` class-balanced gradient
+  `fit_weighted` uses, seed 20261015, **no early stopping and no hyperparameter search of any kind**.
+* **Held identical:** folds 2021–2026, `EMBARGO` 20, min 5,000/500, shuffled-label control at
+  `SEED + 1000 + testYear`, moving-block bootstrap (400 resamples × 20-day blocks), `over_majority`
+  from `stationarity`, majority baseline, and **the same five criteria with the same thresholds and
+  the same `criteriaSource`**. Pass = C1–C5 all pass; anything else is a recorded NO-GO, not a
+  reason to retune.
+* **Diagnostics, declared not criteria:** `byRegime` (the same four regimes), `byMarket`, per-class
+  recall, per-feature gain (which columns carry the non-linearity), and the train-vs-holdout margin
+  gap — the generalisation gap itself, which is `binary-context-v2`'s own `nextQuestion`.
+* **Correctness guards, because there is no reference library to cross-check against:**
+  `--selftest` must pass before any real row is read — an XOR set and a parity set (which no linear
+  model can fit), a linearly-separable set (must reach ≥0.99 train accuracy), and a label-shuffled
+  set (must stay at its majority). A green selftest is a precondition of the run, recorded in the
+  artifact.
+* **Declared resource limits:** ≤16 GB RSS and ≤45 minutes wall clock for all six folds. Exceeding
+  either writes `resourceLimitExceeded` with **no verdict** rather than a partial one.
+* **Artifact:** `data/foundation/dataset/boost_experiment.json`, `version "boost-v1"`, with
+  `predecessor: eligible_set_experiment_v2.json`, the fold rows above as its reference, and an
+  explicit statement that these holdouts are already seen. Rejected and not proposed: k-NN and RBF
+  methods (cost or infeasibility at 600k rows), a neural net (the campaign's own standing refusal to
+  add Torch), and `xgboost`/`lightgbm`/`scikit-learn` (see below). **One experiment, one method.**
+
+**The dependency decision this proposal needs — and why it is an owner decision, not a default.**
+The recommendation is the numpy implementation above: **zero new dependencies**, because the
+smallest justified dependency is the one that does not exist. The alternative — a maintained
+library — has three exact consequences, all verified this stretch and none of them acceptable to
+decide unilaterally:
+
+1. `tests/test_brain.py:9195-9225` walks every third-party import under `jobs/`, `tools/` and
+   `tests/` and fails unless its distribution is named in `requirements.txt`; a `sklearn` import
+   would fail it twice over (the `DISTRIBUTION` map at `:9189` does not translate the import name
+   `sklearn` to the distribution `scikit-learn`).
+2. Every workflow — CI included — runs `pip install -r requirements.txt`, so a pin there is a pin in
+   the production runtime and in every cron lane, against the standing rule that research
+   dependencies do not enter that list.
+3. **`requirements.txt` is inside `REPLAY_CODE`** (`.github/workflows/data-assemble.yml:70`,
+   `data-worker-determinism.yml:72`, `data-worker-reconcile.yml:85`), where `trusted` is computed as
+   `git diff --quiet $sha HEAD -- … requirements.txt`. **One added line flips every previously
+   sealed worker run to `trusted: false`**: `tools/foundation/assemble.py:111` stops taking setup
+   rows from the newest previously-trusted run, `tools/determinism_check.py:46,78` reports *"no
+   trusted verified outputs to compare against"*, and `tools/reconcile_replay.py:129` files those
+   days as complete-only-from-untrusted-run. That is a provenance change to the frozen dataset's own
+   inputs, not a package installation.
+
+`torch` is installed on this machine and undeclared, and it is exactly what the standing rule
+forbids; it is not the answer.
+
+### Backlog unchanged
+
+B2 (`jobRuns36h` — external Reddit/Wikimedia 429s; the recorded next action is response-count
+instrumentation in the runners, not passing `answered` through), B3 (`sourceCoverage`, 8 stale),
+B1 cloud leg (3 Google secrets), DB 460.2 MB of 500 MB (92.0%), `cron daily audit` first run at
+05:25 UTC and **expected red by design** while B2/B3 stand.
+
+**Next executable action:** the owner's yes/no on the section-3 proposal (numpy `boost_experiment`
+as specified, or a named alternative with its dependency costs accepted in writing). Nothing else in
+the brain campaign is blocked, and nothing runs until that answer exists.
+
+
 ## 0. SESSION CHECKPOINT - 2026-10-18 (thirty-fourth), **B4 closed — and the B2 "one-line fix" does not exist**
 
 **Branch `main`, suite 1164 OK** (was 1163; one guard added).

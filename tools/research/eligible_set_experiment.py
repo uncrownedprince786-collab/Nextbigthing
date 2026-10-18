@@ -5,6 +5,21 @@
 **Pre-registered before any number from this run was seen.** Target, folds, optimizer, features,
 controls and the five acceptance criteria below were fixed here first.
 
+Correction this version exists for (v1 -> v2)
+----------------------------------------------
+`eligible-set-v1` and its predecessor `binary-context-v1` fitted this two-class target with
+**three output columns**, because `fit_weighted` sized its matrix from `len(CLASSES)` == 3, and
+their saved `predictedMix`/`actualMix` indexed into `CLASSES`, so binary index 1 -- the positive
+class -- was written out as `FLAT` and `UP` as 0 on every fold. v2 fits two columns named
+`["DOWN", "UP"]`, asserts the matrix is `(features + 1) * 2`, and builds both mixes with
+`class_counts` against those same two names. Dataset, quarantine, rows, markets, features, folds,
+embargo, preprocessing order, `L2`, seed, controls, criteria and thresholds are unchanged, and both
+v1 artifacts are preserved untouched on disk.
+
+**Exposure, stated plainly:** these calendar years and this universe were previously examined by
+v1 and by every earlier run, so this corrected run re-measures an already-observed holdout. It is
+not a pristine independent result, and no threshold was moved after any metric was seen.
+
 The question this settles
 --------------------------
 Every 44-feature run in the chain drew its rows from `.cache/foundation/*_slice.npz`, and all
@@ -43,10 +58,12 @@ What is held identical
 * **Feature handling.** `stationarity.fit_window`'s order, which is the only correct one on data
   that can be NaN: impute from the **training** fold's column nan-mean, *then* take the training
   fold's standard deviation, replacing a zero with 1.
-* **Optimizer.** `fit_weighted` imported unchanged from `balanced_experiment` at **`L2 = 1e-4`** —
+* **Optimizer.** `fit_weighted` imported from `balanced_experiment`, called with
+  `classes=BINARY_CLASSES` so the matrix is built for two outputs, at **`L2 = 1e-4`** —
   the fixed setting every prior run used, deliberately, because `regularisation_experiment` has
   just shown that selecting the penalty by inner validation made the result *worse*. The eligible
-  set is the variable under test; the penalty stays where it was.
+  set is the variable under test; the penalty stays where it was. (v1 called it without `classes`
+  and so trained three columns on two labels; that is the defect being corrected.)
 * **Seed.** `SEED = 20261015`, control seed `SEED + 1000 + testYear`.
 * **Reference and uncertainty.** `over_majority` and `block_bootstrap` imported unchanged from
   `stationarity`; 20-decision-date blocks, 400 resamples.
@@ -70,12 +87,19 @@ Pre-declared reading of the outcome
 * Passes all five: the eligible set was the obstruction. Reproduce in a fresh process before
   calling it anything else.
 * Fails with crypto *better* than the rest: widening the eligible set made it worse, so the
-  obstruction is not the eligible set either, and the linear family on this feature set is
-  exhausted across every eligible set available — the remaining move is a non-linear model, which
-  needs an owner decision on declaring an ML dependency while `requirements.txt` is
-  trust-fingerprinted.
+  obstruction is not the eligible set either. Whether that ends the linear family is a separate
+  question and must be answered against **this** corrected two-class fit, not against the runs
+  that preceded it: v1's reading -- "the linear family on this feature set is exhausted across
+  every eligible set available" -- was written for a model whose output width did not match its
+  own target, so it does not prove a proper two-class linear model is exhausted. If this
+  corrected baseline also fails, the next step is **one** bounded, pre-registered non-linear
+  experiment, specified with fixed criteria, baselines and resource limits before it runs and
+  before any ML dependency is declared while `requirements.txt` is trust-fingerprinted.
 * Fails with crypto *worse* than the rest: the crypto slice was the hardest market and the
   prior verdicts over-generalised from it.
+* Whatever the outcome: a NO-GO is preserved as a NO-GO, no threshold moves after any metric
+  is seen, and the fact that this holdout was examined before is disclosed rather than treated
+  as fresh evidence.
 
 Fidelity notes
 --------------
@@ -106,6 +130,7 @@ from balanced_experiment import (  # noqa: E402
     DEGENERATE_SHARE,
     MAX_STEPS,
     MIN_FOLDS_WON,
+    class_counts,
     fit_weighted,
 )
 from stationarity import BLOCK_DAYS, BOOTSTRAP, block_bootstrap, over_majority  # noqa: E402
@@ -113,16 +138,23 @@ from train_v2_context import ALL_FEATURES  # noqa: E402
 
 DATASET = ROOT / ".cache" / "foundation" / "dataset_v4"
 CACHE = ROOT / ".cache" / "foundation" / "universe_slice.npz"
-OUT = ROOT / "data" / "foundation" / "dataset" / "eligible_set_experiment.json"
-PREDECESSOR = ROOT / "data" / "foundation" / "dataset" / "binary_context_experiment.json"
+OUT = ROOT / "data" / "foundation" / "dataset" / "eligible_set_experiment_v2.json"
+PREDECESSOR = ROOT / "data" / "foundation" / "dataset" / "binary_context_experiment_v2.json"
+PREDECESSOR_V1 = ROOT / "data" / "foundation" / "dataset" / "binary_context_experiment.json"
 
-VERSION = "eligible-set-v1"
+VERSION = "eligible-set-v2"
 MIN_TRAIN, MIN_TEST = 5000, 500
 WORST_FOLD_FLOOR = -0.05
 REGIME_MIN_ROWS, REGIME_LOSS = 1000, -0.05
 MIN_MARKET_ROWS = 200
+# Indices into the *loaded* three-class labels, used only to read rows out of the dataset.
 FLAT, UP = CLASSES.index("FLAT"), CLASSES.index("UP")
-N_CLASSES = len(CLASSES)
+# The model's own labels. Index 1 is the positive class and must never be reported as FLAT.
+BINARY_CLASSES = ("DOWN", "UP")
+BINARY_DOWN, BINARY_UP = 0, 1
+N_BINARY = len(BINARY_CLASSES)
+assert BINARY_CLASSES[BINARY_DOWN] == "DOWN" and BINARY_CLASSES[BINARY_UP] == "UP"
+assert "FLAT" not in BINARY_CLASSES
 
 
 def sha256(path: Path) -> str:
@@ -277,7 +309,11 @@ def main() -> int:
     udates = np.unique(dates)
     didx = {x: i for i, x in enumerate(udates)}
     pos = np.asarray([didx[x] for x in dates])
-    yb = (y == UP).astype(np.int64)
+    # Explicit two-class encoding: the dataset's UP becomes BINARY_UP, every other row that
+    # survives the FLAT drop is DOWN. Written out rather than implied so the label array and
+    # BINARY_CLASSES cannot drift apart -- that drift is what named the positive class FLAT in v1.
+    yb = np.where(y == UP, BINARY_UP, BINARY_DOWN).astype(np.int64)
+    assert set(np.unique(yb).tolist()) <= {BINARY_DOWN, BINARY_UP}
     print(f"rows for the binary target: {len(yb):,}  UP {yb.mean():.4f}")
 
     folds, pool = [], {"y": [], "yp": [], "yc": [], "dates": [], "market": []}
@@ -293,20 +329,23 @@ def main() -> int:
             continue
 
         Ztr, Zte = prep(X[tr], X[te])
-        W, steps, loss = fit_weighted(Ztr, yb[tr], class_weights(yb[tr]), l2=L2, seed=SEED)
-        if W.shape != (Ztr.shape[1] + 1, N_CLASSES):
-            raise SystemExit(f"expected {(Ztr.shape[1] + 1, N_CLASSES)}, got {W.shape}")
+        W, steps, loss = fit_weighted(Ztr, yb[tr], class_weights(yb[tr]), l2=L2, seed=SEED,
+                                      classes=BINARY_CLASSES)
+        if W.shape != (Ztr.shape[1] + 1, N_BINARY):
+            raise SystemExit(f"expected {(Ztr.shape[1] + 1, N_BINARY)}, got {W.shape}")
         yp = predict(W, Zte)
+        if yp.min() < 0 or yp.max() >= N_BINARY:
+            raise SystemExit(f"prediction outside {BINARY_CLASSES}: {yp.min()}..{yp.max()}")
 
         rng = np.random.default_rng(SEED + 1000 + cut_year)
         Wc, steps_c, _ = fit_weighted(Ztr, rng.permutation(yb[tr]), class_weights(yb[tr]),
-                                      l2=L2, seed=SEED + 500)
+                                      l2=L2, seed=SEED + 500, classes=BINARY_CLASSES)
         yc = predict(Wc, Zte)
 
         acc, maj, over = over_majority(yb[te], yp)
         acc_c, maj_c, over_c = over_majority(yb[te], yc)
-        pred_mix = np.bincount(yp, minlength=N_CLASSES) / len(yp)
-        act_mix = np.bincount(yb[te], minlength=N_CLASSES) / len(yb[te])
+        pred_mix = np.bincount(yp, minlength=N_BINARY) / len(yp)
+        act_mix = np.bincount(yb[te], minlength=N_BINARY) / len(yb[te])
         worst_i = int(pred_mix.argmax())
         degenerate = bool(pred_mix[worst_i] > DEGENERATE_SHARE and act_mix[worst_i] < 0.5)
 
@@ -320,8 +359,8 @@ def main() -> int:
                       "beatsMajority": bool(over > 0),
                       "shuffledControlAccuracy": acc_c, "shuffledControlMargin": over_c,
                       "candidateMinusControl": round(over - over_c, 4),
-                      "predictedMix": {CLASSES[i]: int((yp == i).sum()) for i in range(N_CLASSES)},
-                      "actualMix": {CLASSES[i]: int((yb[te] == i).sum()) for i in range(N_CLASSES)},
+                      "predictedMix": class_counts(yp, BINARY_CLASSES),
+                      "actualMix": class_counts(yb[te], BINARY_CLASSES),
                       "worstPredictedShare": round(float(pred_mix[worst_i]), 4),
                       "actualShareOfWorstPredicted": round(float(act_mix[worst_i]), 4),
                       "degenerate": degenerate,
@@ -385,10 +424,13 @@ def main() -> int:
                             "qualification": bool(r["rows"] >= REGIME_MIN_ROWS
                                                   and r["margin"] <= REGIME_LOSS)})
 
-    pred_mean = None
+    pred_mean, pred_mean_v1 = None, None
     if PREDECESSOR.exists():
         pj = json.loads(PREDECESSOR.read_text(encoding="utf-8"))
         pred_mean = pj.get("summary", {}).get("meanMargin")
+    if PREDECESSOR_V1.exists():
+        pj1 = json.loads(PREDECESSOR_V1.read_text(encoding="utf-8"))
+        pred_mean_v1 = pj1.get("summary", {}).get("meanMargin")
 
     qualified = [r["regime"] for r in regimes if r["qualification"]]
     if not failing:
@@ -416,6 +458,26 @@ def main() -> int:
                         "eligible set as the next question and neither answered it. Target, "
                         "features, folds, optimizer and criteria are held exactly as "
                         "binary_context_experiment held them",
+        "correctionOf": {
+            "artifact": "eligible_set_experiment.json",
+            "version": "eligible-set-v1",
+            "preservedUnchanged": True,
+            "defect": "eligible-set-v1 fitted this two-class target with three output columns, "
+                      "because fit_weighted sized its matrix from len(CLASSES) == 3. Labels {0,1} "
+                      "used columns 0 and 1, the column CLASSES calls UP never received a target "
+                      "row, and predictedMix/actualMix indexed into CLASSES so the binary positive "
+                      "class was written out as FLAT while UP was written as 0 on every fold. The "
+                      "same defect was in its predecessor, binary-context-v1.",
+            "scope": "correctness repair of the model output dimension and of the reported class "
+                     "names only. Dataset, quarantine, rows, markets, features, folds, embargo, "
+                     "preprocessing order, L2, seed, controls and the five criteria with their "
+                     "thresholds are untouched. The conclusion of eligible-set-v1 -- widening the "
+                     "eligible set did not help, so the obstruction is not the eligible set -- is "
+                     "re-measured here, not assumed.",
+            "exposure": "these calendar years and this universe were previously examined by v1, so "
+                        "this corrected run re-measures an already-observed holdout and is not a "
+                        "pristine independent result. No threshold was changed after any metric "
+                        "was seen."},
         "data": {"dataset": str(Path(a.dataset).relative_to(ROOT)),
                  "files": d["files"],
                  "rowsParsed": int(rows_after_quarantine + int((~keep).sum())),
@@ -428,12 +490,23 @@ def main() -> int:
                  "features": len(ALL_FEATURES),
                  "droppedDuringParse": d["dropped"]},
         "target": {"label": "binary UP vs DOWN, FLAT dropped", "up": 1, "down": 0,
-                   "construction": "signal_floor.py lines 102-104"},
-        "model": {"optimizer": "fit_weighted imported unchanged from balanced_experiment",
+                   "construction": "signal_floor.py lines 102-104",
+                   "classes": list(BINARY_CLASSES),
+                   "encodingNote": "BINARY_CLASSES[1] is UP and is reported as UP; the dataset's "
+                                   "three-class FLAT rows are dropped before encoding"},
+        "model": {"optimizer": "fit_weighted imported from balanced_experiment, called with "
+                               "classes=BINARY_CLASSES so the matrix is built for two outputs",
+                  "outputClasses": list(BINARY_CLASSES),
+                  "outputDimension": N_BINARY,
+                  "weightMatrixShape": [int(len(ALL_FEATURES) + 1), N_BINARY],
+                  "corrects": "eligible-set-v1's three-column fit on a two-class target",
                   "l2": L2, "learningRate": LR, "tolerance": 1e-6, "maxSteps": MAX_STEPS,
                   "l2HeldFixedBecause": "regularisation_experiment showed inner-validation "
-                                         "selection made the result worse; the eligible set is "
-                                         "the variable under test",
+                                        "selection made the result worse; the eligible set is "
+                                        "the variable under test (that finding came from v1, "
+                                        "measured with the same three-column defect this version "
+                                        "corrects, so it is cited as reported, not as settled)",
+
                   "convergedFolds": sum(1 for f in folds if f["converged"]),
                   "ofFolds": len(folds)},
         "protocol": {"folds": "baseline_experiment's rule: one fold per test year 2021..2026",
@@ -459,6 +532,7 @@ def main() -> int:
                     "anyFoldDegenerate": bool(degenerate_folds),
                     "pooledRows": int(len(y_all)), "bootstrap": boot,
                     "predecessorCryptoMeanMargin": pred_mean,
+                    "predecessorCryptoMeanMarginV1": pred_mean_v1,
                     "deltaVsPredecessor": (round(mean_margin - pred_mean, 4)
                                            if pred_mean is not None else None)},
         "byMarket": by_market,
@@ -468,13 +542,16 @@ def main() -> int:
             "the eligible set changed and nothing else, but the crypto caches carried no "
             "dataQuality mask while this run does apply quarantine, so this run is stricter "
             "than its predecessors on that axis",
-            "three-column softmax with no FLAT targets, matching signal_floor's construction"],
+            "this holdout was examined by eligible-set-v1 and is re-measured here, so it is a "
+            "correction of an observed result, not a fresh independent one"],
         "verdict": verdict,
         "failingCriteria": failing,
-        "nextQuestion": ("the linear family on this feature set is exhausted across every "
-                         "eligible set available; the remaining move is a non-linear model, "
-                         "which needs an owner decision on declaring an ML dependency while "
-                         "requirements.txt is trust-fingerprinted"
+        "nextQuestion": ("the corrected two-class linear baseline has now been measured on this "
+                         "eligible set and failed, so any claim that the linear family is "
+                         "exhausted rests on that corrected measurement rather than on the "
+                         "three-logit runs before it. The next step is one bounded, "
+                         "pre-registered non-linear experiment, specified before it runs and "
+                         "before any ML dependency is added"
                          if failing else
                          "reproduce in a fresh process, then read the by-market table for where "
                          "the effect lives"),

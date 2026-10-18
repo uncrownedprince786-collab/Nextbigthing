@@ -56,11 +56,24 @@ Held identical from `binary_context_experiment`
 -----------------------------------------------
 `.cache/foundation/crypto_slice.npz` (sha256 recorded), `keep = y != FLAT`, all 44
 `ALL_FEATURES`, `baseline_experiment`'s fold rule (2021-2026, `EMBARGO` 20, min 5,000/500),
-training-fold-only imputation and standardisation, `fit_weighted` imported unchanged from
-`balanced_experiment` (TOL 1e-6, MAX_STEPS 20,000, only `l2` varying), `SEED = 20261015`,
-`over_majority` and `block_bootstrap` from `stationarity`, the shuffled-label control, and the
-three-column construction that `fit_softmax` and `fit_weighted` both take from `len(CLASSES)` --
-the same shape `signal_floor` used.
+training-fold-only imputation and standardisation, `fit_weighted` imported from `balanced_experiment`
+(TOL 1e-6, MAX_STEPS 20,000, only `l2` varying), `SEED = 20261015`,
+`over_majority` and `block_bootstrap` from `stationarity`, the shuffled-label control, and a
+weight matrix built for the two classes this target actually has (`classes=BINARY_CLASSES`).
+
+Correction this version exists for (v1 -> v2)
+----------------------------------------------
+`regularisation-v1`, like `binary-context-v1` and `eligible-set-v1`, fitted this two-class target
+with **three output columns**, because `fit_weighted` sized its matrix from `len(CLASSES)` == 3,
+and its `predictedMix`/`actualMix` indexed into `CLASSES`, so binary index 1 -- the positive class
+-- was written out as `FLAT` and `UP` as 0 on every fold. v2 builds two columns named
+`["DOWN", "UP"]` and reports both mixes through `class_counts` against those names. The grid,
+inner split, tie-break, seed, controls, criteria and thresholds are unchanged, and
+`regularisation_experiment.json` (v1) is preserved untouched on disk.
+
+**Exposure, stated plainly:** these calendar years were previously examined by v1, so a corrected
+run re-measures an already-observed holdout rather than producing fresh independent evidence, and
+no threshold moves after any metric is seen.
 
 Acceptance, fixed before the run
 ---------------------------------
@@ -80,13 +93,14 @@ predecessor is not judged by a different bar:
 on `-0.0527` and still fails C1 has still failed; a run that passes all five does so on the five.
 
 If selection consistently picks the smallest `L2`, that is a finding in itself: capacity control
-does not explain the gap, the family is exhausted, and the next question is the eligible set rather
-than the model.
+does not explain the gap, and the next question is the eligible set rather than the model. It does
+**not** by itself establish that the linear family is exhausted -- that claim has to be judged
+against a fit whose output dimension matches its target, which is what v2 corrects.
 
 Fidelity limitations, declared in advance
 ------------------------------------------
 Identical to the predecessor: no `dataQuality` mask in the cache so quarantine cannot be
-reproduced; crypto only; three-column softmax with no FLAT targets. One addition -- the 2021
+reproduced; crypto only. One addition -- the 2021
 fold's inner *training* block is the smallest in the run, because the slice held few assets early
 and row density grows over time, so its selected `L2` is the least reliable choice in the run; it
 is reported per fold for exactly that reason.
@@ -112,23 +126,36 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "tools" / "foundation"))
 
 from baseline_experiment import CLASSES, EMBARGO, LR, REGIMES, SEED, predict  # noqa: E402
-from balanced_experiment import DEGENERATE_SHARE, MAX_STEPS, MIN_FOLDS_WON, fit_weighted  # noqa: E402
+from balanced_experiment import (  # noqa: E402
+    DEGENERATE_SHARE,
+    MAX_STEPS,
+    MIN_FOLDS_WON,
+    class_counts,
+    fit_weighted,
+)
 from stationarity import BLOCK_DAYS, BOOTSTRAP, block_bootstrap, over_majority  # noqa: E402
 from train_v2_context import ALL_FEATURES  # noqa: E402
 
 CACHE = ROOT / ".cache" / "foundation" / "crypto_slice.npz"
-OUT = ROOT / "data" / "foundation" / "dataset" / "regularisation_experiment.json"
-PREDECESSOR = ROOT / "data" / "foundation" / "dataset" / "binary_context_experiment.json"
+OUT = ROOT / "data" / "foundation" / "dataset" / "regularisation_experiment_v2.json"
+PREDECESSOR = ROOT / "data" / "foundation" / "dataset" / "binary_context_experiment_v2.json"
+PREDECESSOR_V1 = ROOT / "data" / "foundation" / "dataset" / "binary_context_experiment.json"
 
-VERSION = "regularisation-v1"
+VERSION = "regularisation-v2"
 L2_GRID = [1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0]
 INNER_VAL_SHARE = 0.20
 TIE_BREAK_MARGIN = 0.002
 MIN_TRAIN, MIN_TEST = 5000, 500
 WORST_FOLD_FLOOR = -0.05
 REGIME_MIN_ROWS, REGIME_LOSS = 1000, -0.05
+# Indices into the *cache's* three-class labels, used only to read rows out of it.
 FLAT, UP = CLASSES.index("FLAT"), CLASSES.index("UP")
-N_CLASSES = len(CLASSES)
+# The model's own labels. Index 1 is the positive class and must never be reported as FLAT.
+BINARY_CLASSES = ("DOWN", "UP")
+BINARY_DOWN, BINARY_UP = 0, 1
+N_BINARY = len(BINARY_CLASSES)
+assert BINARY_CLASSES[BINARY_DOWN] == "DOWN" and BINARY_CLASSES[BINARY_UP] == "UP"
+assert "FLAT" not in BINARY_CLASSES
 
 
 def sha256(path: Path) -> str:
@@ -146,11 +173,19 @@ def class_weights(ytr: np.ndarray) -> np.ndarray:
 
 
 def fit_score(Ztr, ytr, Zte, yte, l2: float, seed: int = SEED):
-    """One fit at one `l2`. Returns the predictions and the honest numbers behind them."""
-    W, steps, loss = fit_weighted(Ztr, ytr, class_weights(ytr), l2=l2, seed=seed)
-    if W.shape != (Ztr.shape[1] + 1, N_CLASSES):
-        raise SystemExit(f"expected {(Ztr.shape[1] + 1, N_CLASSES)}, got {W.shape}")
+    """One fit at one `l2`. Returns the predictions and the honest numbers behind them.
+
+    Every caller here passes the two-class target, so the fit is built two-wide
+    (`classes=BINARY_CLASSES`). v1 called `fit_weighted` without that argument and trained three
+    columns on labels {0,1}; this version corrects the width, nothing else.
+    """
+    W, steps, loss = fit_weighted(Ztr, ytr, class_weights(ytr), l2=l2, seed=seed,
+                                  classes=BINARY_CLASSES)
+    if W.shape != (Ztr.shape[1] + 1, N_BINARY):
+        raise SystemExit(f"expected {(Ztr.shape[1] + 1, N_BINARY)}, got {W.shape}")
     yp = predict(W, Zte)
+    if yp.min() < 0 or yp.max() >= N_BINARY:
+        raise SystemExit(f"prediction outside {BINARY_CLASSES}: {yp.min()}..{yp.max()}")
     acc, maj, over = over_majority(yte, yp)
     return yp, {"accuracy": acc, "majority": maj, "margin": over,
                 "steps": int(steps), "converged": bool(steps < MAX_STEPS),
@@ -174,7 +209,11 @@ def main() -> int:
         raise SystemExit(f"cache has {X.shape[1]} columns, ALL_FEATURES has {len(ALL_FEATURES)}")
 
     keep = y != FLAT
-    Xb, yb, db = X[keep], (y[keep] == UP).astype(np.int64), dates[keep]
+    # Explicit two-class encoding: the cache's UP becomes BINARY_UP, everything else that is not
+    # FLAT is DOWN, so the label array and BINARY_CLASSES cannot drift apart.
+    yb = np.where(y[keep] == UP, BINARY_UP, BINARY_DOWN).astype(np.int64)
+    Xb, db = X[keep], dates[keep]
+    assert set(np.unique(yb).tolist()) <= {BINARY_DOWN, BINARY_UP}
     print(f"rows after dropping FLAT: {len(Xb):,}   UP {yb.mean():.4f} / "
           f"DOWN {1 - yb.mean():.4f}")
     print(f"grid (fixed before the run): {L2_GRID}   "
@@ -266,8 +305,8 @@ def main() -> int:
         yc, ctrl = fit_score(Ztr, rng.permutation(yb[tr]), Zte, yb[te], l2_chosen,
                              seed=SEED + 500)
 
-        pred_mix = np.bincount(yp, minlength=N_CLASSES) / len(yp)
-        act_mix = np.bincount(yb[te], minlength=N_CLASSES) / len(yb[te])
+        pred_mix = np.bincount(yp, minlength=N_BINARY) / len(yp)
+        act_mix = np.bincount(yb[te], minlength=N_BINARY) / len(yb[te])
         worst_i = int(pred_mix.argmax())
         degenerate = bool(pred_mix[worst_i] > DEGENERATE_SHARE and act_mix[worst_i] < 0.5)
 
@@ -296,8 +335,8 @@ def main() -> int:
                 "shuffledControlAccuracy": ctrl["accuracy"],
                 "shuffledControlMargin": ctrl["margin"],
                 "candidateMinusControl": round(cand["margin"] - ctrl["margin"], 4),
-                "predictedMix": {CLASSES[i]: int((yp == i).sum()) for i in range(N_CLASSES)},
-                "actualMix": {CLASSES[i]: int((yb[te] == i).sum()) for i in range(N_CLASSES)},
+                "predictedMix": class_counts(yp, BINARY_CLASSES),
+                "actualMix": class_counts(yb[te], BINARY_CLASSES),
                 "worstPredictedShare": round(float(pred_mix[worst_i]), 4),
                 "actualShareOfWorstPredicted": round(float(act_mix[worst_i]), 4),
                 "degenerate": degenerate,
@@ -341,10 +380,13 @@ def main() -> int:
     }
     failing = [k for k, v in criteria.items() if not v[2]]
 
-    pred_mean = None
+    pred_mean, pred_mean_v1 = None, None
     if PREDECESSOR.exists():
         pj = json.loads(PREDECESSOR.read_text(encoding="utf-8"))
         pred_mean = pj.get("summary", {}).get("meanMargin")
+    if PREDECESSOR_V1.exists():
+        pj1 = json.loads(PREDECESSOR_V1.read_text(encoding="utf-8"))
+        pred_mean_v1 = pj1.get("summary", {}).get("meanMargin")
 
     regimes = []
     for name, lo, hi in REGIMES:
@@ -378,6 +420,22 @@ def main() -> int:
         "whyNotARerun": "no prior run varied capacity; every one used fixed L2=1e-4. This is the "
                         "same folds and target as binary_context_experiment with the penalty "
                         "selected inside the training window",
+        "correctionOf": {
+            "artifact": "regularisation_experiment.json",
+            "version": "regularisation-v1",
+            "preservedUnchanged": True,
+            "defect": "regularisation-v1 fitted this two-class target with three output columns, "
+                      "because fit_weighted sized its matrix from len(CLASSES) == 3, and its "
+                      "predictedMix/actualMix indexed into CLASSES so binary index 1 -- the "
+                      "positive class -- was written out as FLAT while UP was written as 0. The "
+                      "same defect was in its predecessor, binary-context-v1.",
+            "scope": "correctness repair of the output dimension and of the reported class names "
+                     "only: grid, inner split, tie-break, seed, controls, criteria and thresholds "
+                     "untouched.",
+            "exposure": "these calendar years were previously examined by regularisation-v1, so a "
+                        "corrected run here would re-measure an already-observed holdout rather "
+                        "than produce fresh independent evidence. No threshold moves after any "
+                        "metric is seen."},
         "data": {"cache": str(cache.relative_to(ROOT)) if cache.is_relative_to(ROOT) else str(cache),
                  "sha256": sha256(cache), "bytes": cache.stat().st_size,
                  "slice": "crypto", "rowsInCache": int(len(X)),
@@ -385,7 +443,10 @@ def main() -> int:
                  "upShare": round(float(yb.mean()), 4),
                  "dateRange": [str(min(db)), str(max(db))],
                  "features": len(ALL_FEATURES)},
-        "target": {"label": "binary UP vs DOWN, FLAT dropped", "up": 1, "down": 0},
+        "target": {"label": "binary UP vs DOWN, FLAT dropped", "up": 1, "down": 0,
+                   "classes": list(BINARY_CLASSES),
+                   "encodingNote": "BINARY_CLASSES[1] is UP and is reported as UP; the cache's "
+                                   "three-class FLAT rows are dropped before encoding"},
         "selection": {"grid": L2_GRID, "innerValidationShare": INNER_VAL_SHARE,
                       "innerEmbargoDecisionDates": EMBARGO,
                       "metric": "margin over the inner validation majority",
@@ -394,7 +455,11 @@ def main() -> int:
                       "selectedL2ByFold": {str(f["testYear"]): f["selectedL2"] for f in folds},
                       "selectedAtSmallest": sum(1 for v in chosen_l2s if v == L2_GRID[0]),
                       "ofFolds": len(folds)},
-        "model": {"optimizer": "fit_weighted imported unchanged from balanced_experiment",
+        "model": {"optimizer": "fit_weighted imported from balanced_experiment, called with "
+                               "classes=BINARY_CLASSES so the matrix is built for two outputs",
+                  "outputClasses": list(BINARY_CLASSES),
+                  "outputDimension": N_BINARY,
+                  "corrects": "regularisation-v1's three-column fit on a two-class target",
                   "learningRate": LR, "tolerance": 1e-6, "maxSteps": MAX_STEPS,
                   "convergedFolds": sum(1 for f in folds if f["converged"]),
                   "ofFolds": len(folds)},
@@ -411,8 +476,10 @@ def main() -> int:
         "criteriaSource": "the same five criteria binary_context_experiment declared, fixed in "
                           "this docstring before any number from this run was seen",
         "improvementMeasurement": {
-            "predecessor": "binary_context_experiment.json",
+            "predecessor": "binary_context_experiment_v2.json",
             "predecessorMeanMargin": pred_mean,
+            "predecessorV1": "binary_context_experiment.json",
+            "predecessorMeanMarginV1": pred_mean_v1,
             "thisMeanMargin": round(mean_margin, 4),
             "delta": (round(mean_margin - pred_mean, 4) if pred_mean is not None else None),
             "note": "reported, not a pass criterion: a run that improves and still fails C1 has "
@@ -431,14 +498,14 @@ def main() -> int:
         "fidelityLimitations": [
             "the cache carries no dataQuality mask, so quarantine cannot be reproduced",
             "crypto only: one market, 93,452 rows in the cache",
-            "three-column softmax with no FLAT targets, matching signal_floor's construction",
             "the 2021 fold's inner training block is the smallest in the run, so its selected "
             "L2 is the least reliable choice; reported per fold for that reason"],
         "verdict": verdict,
         "failingCriteria": failing,
-        "nextQuestion": ("if capacity control does not explain the gap either, the model family "
-                         "is exhausted on this slice and the question moves to the eligible set "
-                         "outside crypto"
+        "nextQuestion": ("if capacity control does not explain the gap either, the next question "
+                         "stays the eligible set outside crypto -- and, separately, whether the "
+                         "linear family itself is exhausted, which only a fit of the correct "
+                         "output dimension can answer"
                          if failing else
                          "reproduce in a fresh process, then test the selected capacity on the "
                          "shipped three-class target"),

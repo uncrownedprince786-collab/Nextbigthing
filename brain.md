@@ -6276,3 +6276,66 @@ reads rows that already exist:
       the migration was committed and `schema.yml` had not yet run. Every other signal said ready.
       **Readiness is not the conjunction of the checks you thought to write**, and the cheapest
       defence is to ask the destination whether it exists.
+
+
+170. **Every binary verdict in this repository was produced by a three-logit model trained on a
+    two-label target, and the proof was printed in the artifact all along.** 2026-10-18.
+    Commits: this record.
+
+    - **One number, two sources of truth, and neither of them was the target.** `fit_softmax` and
+      `fit_weighted` sized the weight matrix from `len(CLASSES) == 3`; the experiments encoded UP
+      as `1`. The model's width came from a list of three class *names*, while its labels came
+      from the experiment's own encoding, and nothing ever asserted the two agreed. The `k`
+      argument that looked like a width check only sized `majorityClass` and `predictedMix`, so the
+      run-time shape assert passed over a matrix that was one column too wide for its target.
+      **The width of a model is a property of the target, and it should be named by the code that
+      built the target, not by a global list of labels some other experiment uses.**
+
+    - **The defect was written down in the checkpoint that introduced it, and read as
+      consistency.** The record said, of `binary_context_experiment`, *"sizes its matrix from
+      `len(CLASSES) = 3`, so this is a three-column softmax trained on labels {0,1} ... the same
+      construction `signal_floor` used"* -- accurate, checked, and wrong about what it meant. The
+      sentence that would have caught it was never asked: **if the target has two classes, what was
+      the third output trained on?** A fidelity note that describes a mechanism is not a review of
+      it; the missing step was one question about the *purpose* of the shape, not another fact
+      about it.
+
+    - **A mix that sums to the row count is telling you which column argmax never chose.**
+      `signal_floor.json`'s binary cell reported `predictedMix {'0': 60266, '1': 24178}` against
+      84,444 fitted rows, with no `actualMix` and no `outputDimension` beside it. The two counts
+      adding up exactly is the whole diagnosis: the third logit never won a single row, so its
+      presence changed nothing measurable and everything about what the report *said*. **Guards
+      should compare a report's totals against the thing it reports about**, and a per-class line
+      that can never appear is worth failing on rather than printing.
+
+    - **Names are data.** The mixes indexed `CLASSES`, so every binary artifact printed the real UP
+      counts under `FLAT` and `UP: 0` on all six folds -- a two-class result rendered as a
+      three-class sentence, in the record of every run, for three experiments. Anyone reading those
+      artifacts for class behavior read the wrong class, and the error was in the *label* of the
+      row rather than in the number, which is the kind of mistake a numeric regression test never
+      sees. `class_counts(values, classes)` now takes the classes the target was built from.
+
+    - **A defect that does not move the number can still invalidate the claim that rests on it.**
+      The corrected in-sample bound is +0.0361, identical to v1's, and the corrected out-of-sample
+      verdicts are NO-GO on all five criteria exactly as v1's were -- so no conclusion in this
+      repository flipped. What changed is the *footing*: "the linear family is exhausted" had been
+      resting on three-logit fits, and it now rests on two-output fits that were measured after the
+      fix. **When the reasoning and the evidence are separable, correcting the evidence is worth
+      doing even -- especially -- when the conclusion survives**, because the surviving version is
+      the one that can be defended line by line.
+
+    - **Re-measuring a year you have already looked at is a disclosure, not a fresh result.**
+      Every v2 artifact carries `correctionOf.exposure` stating in the artifact itself that these
+      holdouts were examined by v1 and by every earlier run. The alternative -- a silent second
+      look with the old thresholds -- would have produced a number nobody could tell from an
+      independent one, and it is precisely how a seen year becomes an unseen one in a report.
+
+    - **A dependency decision is a trust decision, and `requirements.txt` is already load-bearing
+      for provenance.** It sits inside `REPLAY_CODE` in the assemble, determinism and reconcile
+      workflows, where `trusted` is `git diff` against a run's recorded sha: one added pin flips
+      every previously sealed worker run to untrusted, `assemble.py` stops taking setup rows from
+      the newest trusted run, and `determinism_check.py` reports no trusted outputs to compare
+      against. Add the import guard (`tests/test_brain.py`'s walk over `jobs`, `tools`, `tests`)
+      and the rule that CI installs the same file, and **the smallest justified dependency for a
+      research experiment is the one that does not exist** -- which is why the proposed non-linear
+      experiment is numpy-only, and why the proposal is written down before, not after, the answer.

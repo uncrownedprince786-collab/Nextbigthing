@@ -130,14 +130,26 @@ def rule_baseline(X: np.ndarray) -> np.ndarray:
     return out
 
 
-def fit_softmax(Xtr, ytr, steps=STEPS, lr=LR, l2=L2, seed=SEED):
+def fit_softmax(Xtr, ytr, steps=STEPS, lr=LR, l2=L2, seed=SEED, classes=None):
+    """Multinomial logistic regression. `classes` fixes the output width; None means CLASSES.
+
+    The output dimension is the model. A target encoded {0,1} fitted with `len(CLASSES)` columns
+    gets a third logit that never receives a target row, so its training dynamics are not those
+    of the two-class model the labels describe -- and any code naming columns after `CLASSES`
+    then calls the binary positive class `FLAT`. Callers fitting a binary target must pass the
+    two names their labels actually mean.
+    """
     rng = np.random.default_rng(seed)
     n, d = Xtr.shape
-    k = len(CLASSES)
+    k = len(CLASSES) if classes is None else len(classes)
+    labels = np.asarray(ytr)
+    if labels.size and (labels.min() < 0 or labels.max() >= k):
+        raise ValueError(f"label outside the {k} output classes: "
+                         f"range {labels.min()}..{labels.max()}")
     W = rng.normal(0, 0.01, size=(d + 1, k))
     Xb = np.hstack([Xtr, np.ones((n, 1))])
     Y = np.zeros((n, k))
-    Y[np.arange(n), ytr] = 1.0
+    Y[np.arange(n), labels] = 1.0
     for _ in range(steps):
         z = Xb @ W
         z -= z.max(axis=1, keepdims=True)

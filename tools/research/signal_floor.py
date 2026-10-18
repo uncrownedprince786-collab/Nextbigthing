@@ -54,14 +54,26 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "tools" / "foundation"))
 
 from baseline_experiment import CLASSES, FEATURES, SEED, fit_softmax, predict  # noqa: E402
+from balanced_experiment import class_counts  # noqa: E402
 from train_v2_context import ALL_FEATURES  # noqa: E402
 
 CACHE = ROOT / ".cache" / "foundation" / "crypto_slice.npz"
-OUT = ROOT / "data" / "foundation" / "dataset" / "signal_floor.json"
+OUT = ROOT / "data" / "foundation" / "dataset" / "signal_floor_v2.json"
+# The model's own labels for the FLAT-dropped cell. Index 1 is the positive class.
+BINARY_CLASSES = ("DOWN", "UP")
 
 
-def fit_in_sample(X: np.ndarray, y: np.ndarray, cols: list[int], k: int) -> dict:
-    """Fit and score on the same rows. Imputation and standardisation from those rows too."""
+def fit_in_sample(X: np.ndarray, y: np.ndarray, cols: list[int], classes) -> dict:
+    """Fit and score on the same rows. Imputation and standardisation from those rows too.
+
+    `classes` is the model's own label set in index order: it fixes the width of the fit *and*
+    names every count returned here, so the two cannot disagree. Historically the width came from
+    `len(CLASSES)` inside `fit_softmax` while the `k` argument only sized `majorityClass` and
+    `predictedMix` -- a two-class cell was therefore fitted three-wide, its extra logit had no
+    target row, and a prediction that landed on it would have been outside the reported range.
+    The three-class cells pass `CLASSES` and fit exactly as before.
+    """
+    names = list(classes)
     Xa = X[:, cols]
     mu = np.nanmean(Xa, axis=0)
     mu = np.where(np.isnan(mu), 0.0, mu)
@@ -69,17 +81,23 @@ def fit_in_sample(X: np.ndarray, y: np.ndarray, cols: list[int], k: int) -> dict
     sd = Xa.std(axis=0)
     sd[sd == 0] = 1.0
     Z = (Xa - mu) / sd
-    W = fit_softmax(Z, y)
+    W = fit_softmax(Z, y, classes=names)
     yp = predict(W, Z)
     acc = float((y == yp).mean())
-    majority = float(max((y == i).mean() for i in range(k)))
-    mix = {i: int((yp == i).sum()) for i in range(k)}
+    majority = float(max((y == i).mean() for i in range(len(names))))
+    # Both mixes run through the same named, range-checked helper: a count can only be written
+    # under a name `classes` actually contains.
+    pred_mix = class_counts(yp, names)
+    act_mix = class_counts(y, names)
     return {"rows": int(len(y)), "features": len(cols),
+            "outputDimension": len(names),
+            "outputClasses": names,
             "inSampleAccuracy": round(acc, 4),
             "majorityClass": round(majority, 4),
             "overMajority": round(acc - majority, 4),
-            "predictedMix": mix,
-            "classesPredicted": int(sum(1 for v in mix.values() if v > 0))}
+            "predictedMix": pred_mix,
+            "actualMix": act_mix,
+            "classesPredicted": int(sum(1 for v in pred_mix.values() if v > 0))}
 
 
 def main() -> int:
@@ -96,16 +114,17 @@ def main() -> int:
     all_cols = list(range(len(ALL_FEATURES)))
 
     res = {}
-    res["threeClass_allFeatures"] = fit_in_sample(X, y, all_cols, 3)
-    res["threeClass_priceOnly"] = fit_in_sample(X, y, price_cols, 3)
+    res["threeClass_allFeatures"] = fit_in_sample(X, y, all_cols, CLASSES)
+    res["threeClass_priceOnly"] = fit_in_sample(X, y, price_cols, CLASSES)
 
     keep = y != CLASSES.index("FLAT")
-    yb = (y[keep] == CLASSES.index("UP")).astype(np.int64)
-    res["binaryUpDown_allFeatures"] = fit_in_sample(X[keep], yb, all_cols, 2)
+    yb = np.where(y[keep] == CLASSES.index("UP"), 1, 0).astype(np.int64)
+    res["binaryUpDown_allFeatures"] = fit_in_sample(X[keep], yb, all_cols, BINARY_CLASSES)
 
     rng = np.random.default_rng(SEED)
-    res["shuffledControl_threeClass"] = fit_in_sample(X, rng.permutation(y), all_cols, 3)
-    res["shuffledControl_binary"] = fit_in_sample(X[keep], rng.permutation(yb), all_cols, 2)
+    res["shuffledControl_threeClass"] = fit_in_sample(X, rng.permutation(y), all_cols, CLASSES)
+    res["shuffledControl_binary"] = fit_in_sample(X[keep], rng.permutation(yb), all_cols,
+                                                  BINARY_CLASSES)
 
     # The comparison that matters: a real fit must clear what the same model gets from noise.
     real3 = res["threeClass_allFeatures"]["overMajority"]
@@ -123,7 +142,23 @@ def main() -> int:
 
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "version": "signal-floor-v1",
+        "version": "signal-floor-v2",
+        "correctionOf": {
+            "artifact": "signal_floor.json",
+            "version": "signal-floor-v1",
+            "preservedUnchanged": True,
+            "defect": "the binary cells were fitted three-wide, because fit_softmax sized its "
+                      "matrix from len(CLASSES) == 3 while the k argument only sized "
+                      "majorityClass and predictedMix. A third logit trained on no target row, "
+                      "and predictedMix was keyed 0/1 for those cells while the three-class "
+                      "cells were keyed 0/1/2.",
+            "scope": "output dimension and reported class names only. Rows, features, splits, "
+                     "seeds, preprocessing and every reported metric are unchanged, and the "
+                     "three-class cells still fit CLASSES exactly as before; their numbers are "
+                     "expected to be identical to v1.",
+            "exposure": "this artifact is an in-sample diagnostic already examined in v1; the "
+                        "holdout periods used against it were examined too. Nothing here is a "
+                        "new independent result."},
         "what": "in-sample fits, deliberately optimistic; a floor on what is findable, never a "
                 "performance estimate",
         "slice": "crypto, from the examples-v4-context cache",

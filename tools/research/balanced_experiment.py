@@ -96,22 +96,33 @@ def arg(name, default=None):
     return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else default
 
 
-def fit_weighted(Xtr, ytr, weights, lr=LR, l2=L2, seed=SEED, tol=TOL, max_steps=MAX_STEPS):
+def fit_weighted(Xtr, ytr, weights, lr=LR, l2=L2, seed=SEED, tol=TOL, max_steps=MAX_STEPS,
+                 classes=None):
     """Full-batch softmax with per-class weights, trained until the loss stops moving.
 
     Returns the weights, the step count reached and the final loss, so the artifact can show that
     the fit converged rather than asserting it.
+
+    `classes` fixes the output width and defaults to the three-class `CLASSES`, which is the path
+    this experiment was written for and is byte-for-byte the same fit as before the parameter
+    existed. A caller whose target is binary must pass its own two names: fitting {0,1} labels with
+    three columns trains an extra logit that never receives a target, and that is a different model
+    from the one the labels describe.
     """
     rng = np.random.default_rng(seed)
     n, d = Xtr.shape
-    k = len(CLASSES)
+    k = len(CLASSES) if classes is None else len(classes)
+    labels = np.asarray(ytr)
+    if labels.size and (labels.min() < 0 or labels.max() >= k):
+        raise ValueError(f"label outside the {k} output classes: "
+                         f"range {labels.min()}..{labels.max()}")
     W = rng.normal(0, 0.01, size=(d + 1, k))
     Xb = np.hstack([Xtr, np.ones((n, 1))])
     Y = np.zeros((n, k))
-    Y[np.arange(n), ytr] = 1.0
+    Y[np.arange(n), labels] = 1.0
     # One weight per row, from its own class. Normalised to mean 1 so the learning rate keeps its
     # meaning and `l2` is not effectively rescaled by the class balance.
-    w = weights[ytr]
+    w = np.asarray(weights, dtype=np.float64)[labels]
     w = w / w.mean()
     wcol = w[:, None]
 
@@ -130,6 +141,20 @@ def fit_weighted(Xtr, ytr, weights, lr=LR, l2=L2, seed=SEED, tol=TOL, max_steps=
             break
         previous = loss
     return W, steps, loss
+
+
+def class_counts(values, classes) -> dict:
+    """How many of `values` fall in each of `classes`, named by those classes, in order.
+
+    The saved `actualMix` and `predictedMix` of every binary run went through `CLASSES` instead,
+    so a target encoded {0,1} had its positive class written out as `FLAT` and its real `UP` count
+    written as 0 on every fold. The range check is the guard: a label that no name in `classes`
+    covers is an error here, never a silently mis-named bucket.
+    """
+    v = np.asarray(values)
+    if v.size and (v.min() < 0 or v.max() >= len(classes)):
+        raise ValueError(f"value outside {list(classes)}: range {v.min()}..{v.max()}")
+    return {c: int((v == i).sum()) for i, c in enumerate(classes)}
 
 
 def majority_accuracy(y: np.ndarray) -> float:

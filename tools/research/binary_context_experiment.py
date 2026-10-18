@@ -34,22 +34,39 @@ What is held identical
 * **Feature handling.** Imputation from the training fold's column nan-mean and standardisation
   from the training fold's own mean and standard deviation only; a zero standard deviation is
   replaced by 1.
-* **Optimizer.** `fit_weighted` imported unchanged from `balanced_experiment`: full-batch softmax,
-  per-class weights normalised to mean 1, stopped when the loss stops moving (TOL 1e-6,
-  MAX_STEPS 20,000), so the artifact can show convergence rather than assert it. Class weights are
-  `n / (2 * n_c)` over the two classes present.
+* **Optimizer.** `fit_weighted` from `balanced_experiment`: full-batch softmax, per-class weights
+  normalised to mean 1, stopped when the loss stops moving (TOL 1e-6, MAX_STEPS 20,000), so the
+  artifact can show convergence rather than assert it. Class weights are `n / (2 * n_c)` over the
+  two classes present.
 * **Seed.** `SEED = 20261015` throughout, plus `SEED + 1000 + testYear` for the control.
 * **Reference.** `over_majority` from `stationarity`, which is the comparator every prior run used.
 * **Uncertainty.** `block_bootstrap` from `stationarity`: 20-decision-date blocks, 400 resamples.
 
-Why the fit still has three columns
-------------------------------------
-`fit_weighted` sizes its weight matrix from `len(CLASSES)`, which is 3, so this is a three-column
-softmax trained on labels {0,1}: the FLAT column receives no target rows and is driven toward zero
-probability. That is the *same construction `signal_floor` used* -- its `fit_in_sample` also called
-`fit_softmax`, which takes `k = len(CLASSES)` (`baseline_experiment.py:136`) -- so the in-sample
-bound and this out-of-sample run differ only in how they are scored, not in the model. The shape is
-asserted at run time so the assumption cannot silently drift.
+Correction this version exists for (v1 -> v2)
+----------------------------------------------
+`binary-context-v1` fitted this two-class target with **three output columns**, because
+`fit_weighted` sized its weight matrix from `len(CLASSES)` and that is 3. Two consequences, both
+verified against the preserved v1 artifact:
+
+* **The optimizer was not the model the labels describe.** Labels {0,1} occupy columns 0 and 1,
+  column 2 (the one `CLASSES` calls UP) never receives a target row, and the three-way softmax
+  normalisation and its gradients differ from a genuine two-class fit. With `predict` taking the
+  argmax of *logits*, that column could still win a row; it did not, but its presence changed the
+  training trajectory the whole measurement rests on.
+* **The saved mixes named the wrong classes.** `predictedMix` and `actualMix` indexed into
+  `CLASSES`, so binary index 1 -- the positive class -- was written out as `FLAT`, and `UP` was
+  written as 0 on **every fold** of v1 while the real UP rows sat under `FLAT`.
+
+v2 fits two columns named `["DOWN", "UP"]`, builds both mixes with `class_counts` against those
+same two names, and asserts the weight matrix is `(features + 1) * 2`. Everything else -- cache,
+rows, features, folds, embargo, preprocessing order, class-weight policy, seed, controls and the
+**five acceptance criteria and their thresholds** -- is unchanged. `binary-context-v1` is preserved
+untouched on disk; this writes `binary_context_experiment_v2.json`.
+
+**Exposure, stated plainly:** these calendar years were previously examined by v1 and by every
+earlier run on this cache, so a corrected number here is *not* a pristine independent result. The
+repair re-measures an already-observed holdout; it does not tune against it, and no threshold was
+moved after any metric was seen.
 
 Controls
 --------
@@ -104,21 +121,33 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "tools" / "foundation"))
 
 from baseline_experiment import CLASSES, EMBARGO, REGIMES, SEED, predict  # noqa: E402
-from balanced_experiment import DEGENERATE_SHARE, MIN_FOLDS_WON, fit_weighted  # noqa: E402
+from balanced_experiment import (  # noqa: E402
+    DEGENERATE_SHARE,
+    MIN_FOLDS_WON,
+    class_counts,
+    fit_weighted,
+)
 from stationarity import BLOCK_DAYS, BOOTSTRAP, block_bootstrap, over_majority  # noqa: E402
 from train_v2_context import ALL_FEATURES  # noqa: E402
 
 CACHE = ROOT / ".cache" / "foundation" / "crypto_slice.npz"
-OUT = ROOT / "data" / "foundation" / "dataset" / "binary_context_experiment.json"
+OUT = ROOT / "data" / "foundation" / "dataset" / "binary_context_experiment_v2.json"
 SIGNAL_FLOOR = ROOT / "data" / "foundation" / "dataset" / "signal_floor.json"
+SIGNAL_FLOOR_V2 = ROOT / "data" / "foundation" / "dataset" / "signal_floor_v2.json"
 
-VERSION = "binary-context-v1"
+VERSION = "binary-context-v2"
 MIN_TRAIN, MIN_TEST = 5000, 500
 WORST_FOLD_FLOOR = -0.05
 REGIME_MIN_ROWS = 1000
 REGIME_LOSS = -0.05
+# Indices into the *cache's* three-class labels, used only to read rows out of it.
 DOWN, FLAT, UP = CLASSES.index("DOWN"), CLASSES.index("FLAT"), CLASSES.index("UP")
-N_CLASSES = len(CLASSES)
+# The model's own labels. Index 1 is the positive class and must never be reported as FLAT.
+BINARY_CLASSES = ("DOWN", "UP")
+BINARY_DOWN, BINARY_UP = 0, 1
+N_BINARY = len(BINARY_CLASSES)
+assert BINARY_CLASSES[BINARY_DOWN] == "DOWN" and BINARY_CLASSES[BINARY_UP] == "UP"
+assert "FLAT" not in BINARY_CLASSES
 
 
 def sha256(path: Path) -> str:
@@ -171,8 +200,13 @@ def main() -> int:
         raise SystemExit(f"cache has {X.shape[1]} columns, ALL_FEATURES has {len(ALL_FEATURES)}")
 
     keep = y != FLAT
-    Xb, yb, db = X[keep], (y[keep] == UP).astype(np.int64), dates[keep]
+    # Explicit two-class encoding: the cache's UP becomes BINARY_UP, everything else that is not
+    # FLAT is DOWN. Written out rather than implied so the label array and BINARY_CLASSES cannot
+    # drift apart -- that drift is exactly what named the positive class FLAT in v1.
+    yb = np.where(y[keep] == UP, BINARY_UP, BINARY_DOWN).astype(np.int64)
+    Xb, db = X[keep], dates[keep]
     share_up = float(yb.mean())
+    assert set(np.unique(yb).tolist()) <= {BINARY_DOWN, BINARY_UP}
     print(f"rows kept after dropping FLAT: {len(Xb):,}  ({keep.sum() / len(y):.1%} of the slice)"
           f"   class balance UP {share_up:.4f} / DOWN {1 - share_up:.4f}")
 
@@ -214,20 +248,22 @@ def main() -> int:
         counts = np.bincount(yb[tr], minlength=2).astype(float)
         weights = np.asarray([len(yb[tr]) / (2 * counts[0]), len(yb[tr]) / (2 * counts[1])])
 
-        W, steps, loss = fit_weighted(Ztr, yb[tr], weights)
-        if W.shape != (Ztr.shape[1] + 1, N_CLASSES):
-            raise SystemExit(f"expected {(Ztr.shape[1] + 1, N_CLASSES)}, got {W.shape}")
+        W, steps, loss = fit_weighted(Ztr, yb[tr], weights, classes=BINARY_CLASSES)
+        if W.shape != (Ztr.shape[1] + 1, N_BINARY):
+            raise SystemExit(f"expected {(Ztr.shape[1] + 1, N_BINARY)}, got {W.shape}")
         yp = predict(W, Zte)
+        if yp.min() < 0 or yp.max() >= N_BINARY:
+            raise SystemExit(f"prediction outside {BINARY_CLASSES}: {yp.min()}..{yp.max()}")
 
         # Capacity control: the same fit on permuted training labels, scored on real test rows.
         rng = np.random.default_rng(SEED + 1000 + cut_year)
-        Wc, steps_c, _ = fit_weighted(Ztr, rng.permutation(yb[tr]), weights)
+        Wc, steps_c, _ = fit_weighted(Ztr, rng.permutation(yb[tr]), weights, classes=BINARY_CLASSES)
         yc = predict(Wc, Zte)
 
         acc, maj, over = over_majority(yb[te], yp)
         acc_c, maj_c, over_c = over_majority(yb[te], yc)
-        pred_mix = np.bincount(yp, minlength=N_CLASSES) / len(yp)
-        act_mix = np.bincount(yb[te], minlength=N_CLASSES) / len(yb[te])
+        pred_mix = np.bincount(yp, minlength=N_BINARY) / len(yp)
+        act_mix = np.bincount(yb[te], minlength=N_BINARY) / len(yb[te])
         worst = int(pred_mix.argmax())
         degenerate = bool(pred_mix[worst] > DEGENERATE_SHARE and act_mix[worst] < 0.5)
 
@@ -239,8 +275,8 @@ def main() -> int:
                 "beatsMajority": bool(over > 0),
                 "shuffledControlAccuracy": acc_c, "shuffledControlMargin": over_c,
                 "candidateMinusControl": round(over - over_c, 4),
-                "predictedMix": {CLASSES[i]: int((yp == i).sum()) for i in range(N_CLASSES)},
-                "actualMix": {CLASSES[i]: int((yb[te] == i).sum()) for i in range(N_CLASSES)},
+                "predictedMix": class_counts(yp, BINARY_CLASSES),
+                "actualMix": class_counts(yb[te], BINARY_CLASSES),
                 "worstPredictedShare": round(float(pred_mix[worst]), 4),
                 "actualShareOfWorstPredicted": round(float(act_mix[worst]), 4),
                 "degenerate": degenerate,
@@ -293,10 +329,15 @@ def main() -> int:
                         "margin": o_r,
                         "qualification": bool(n >= REGIME_MIN_ROWS and o_r <= REGIME_LOSS)})
 
-    bound = None
-    if SIGNAL_FLOOR.exists():
-        sf = json.loads(SIGNAL_FLOOR.read_text(encoding="utf-8"))
+    bound, bound_source = None, None
+    if SIGNAL_FLOOR_V2.exists():
+        sf = json.loads(SIGNAL_FLOOR_V2.read_text(encoding="utf-8"))
         bound = (sf.get("results", {}).get("binaryUpDown_allFeatures") or {}).get("overMajority")
+        bound_source = f"{SIGNAL_FLOOR_V2.name}, two-class binary cell"
+    bound_v1 = None
+    if SIGNAL_FLOOR.exists():
+        sf1 = json.loads(SIGNAL_FLOOR.read_text(encoding="utf-8"))
+        bound_v1 = (sf1.get("results", {}).get("binaryUpDown_allFeatures") or {}).get("overMajority")
 
     qualified = [r["regime"] for r in regimes if r["qualification"]]
     if not failing:
@@ -316,7 +357,23 @@ def main() -> int:
                     "majority out-of-sample with a converged class-balanced fit?",
         "whyNotARerun": "every prior out-of-sample run on this cache carried the three-class "
                         "label20 target; no prior run dropped FLAT and scored UP-vs-DOWN "
-                        "out-of-sample",
+                        "out-of-sample. v2 is not a rerun of that family either: it corrects "
+                        "binary-context-v1's three-output fit and its mis-named mixes",
+        "correctionOf": {
+            "artifact": "binary_context_experiment.json",
+            "version": "binary-context-v1",
+            "preservedUnchanged": True,
+            "defect": "v1 fitted this two-class target with three output columns, because "
+                      "fit_weighted sized its matrix from len(CLASSES) == 3. Labels {0,1} used "
+                      "columns 0 and 1, the column CLASSES calls UP never received a target row, "
+                      "and predictedMix/actualMix indexed into CLASSES so the binary positive "
+                      "class was written out as FLAT while UP was written as 0 on every fold.",
+            "scope": "correctness repair of the model output dimension and of the reported class "
+                     "names only; criteria, thresholds and protocol untouched",
+            "exposure": "these calendar years were previously examined by v1 and by every earlier "
+                        "run on this cache, so this corrected run re-measures an already-observed "
+                        "holdout and is not a pristine independent result. No threshold was "
+                        "changed after any metric was seen."},
         "data": {"cache": str(cache.relative_to(ROOT)) if cache.is_relative_to(ROOT) else str(cache),
                  "sha256": sha256(cache), "bytes": cache.stat().st_size,
                  "slice": "crypto", "rowsInCache": int(len(X)),
@@ -325,11 +382,16 @@ def main() -> int:
                  "upShare": round(share_up, 4), "dateRange": [str(min(db)), str(max(db))],
                  "features": len(ALL_FEATURES)},
         "target": {"label": "binary UP vs DOWN, FLAT dropped", "up": 1, "down": 0,
-                   "construction": "signal_floor.py lines 102-104"},
-        "model": {"optimizer": "fit_weighted imported unchanged from balanced_experiment",
-                  "weightMatrixShape": [int(X.shape[1] + 1), N_CLASSES],
-                  "whyThreeColumns": "len(CLASSES) is 3; the FLAT column has no target rows, the "
-                                     "same construction signal_floor used via fit_softmax",
+                   "construction": "signal_floor.py lines 102-104",
+                   "classes": list(BINARY_CLASSES),
+                   "encodingNote": "BINARY_CLASSES[1] is UP and is reported as UP; the cache's "
+                                   "three-class FLAT rows are dropped before encoding"},
+        "model": {"optimizer": "fit_weighted imported from balanced_experiment, called with "
+                               "classes=BINARY_CLASSES so the matrix is built for two outputs",
+                  "outputClasses": list(BINARY_CLASSES),
+                  "outputDimension": N_BINARY,
+                  "weightMatrixShape": [int(X.shape[1] + 1), N_BINARY],
+                  "corrects": "binary-context-v1's three-column fit on a two-class target",
                   "classWeights": "n / (2 * n_c) over the two classes present, normalised to mean "
                                   "1 inside fit_weighted",
                   "tolerance": 1e-6, "maxSteps": 20_000,
@@ -358,8 +420,16 @@ def main() -> int:
                     "pooledRows": int(len(y_all)),
                     "bootstrap": boot,
                     "inSampleBoundFromSignalFloor": bound,
-                    "inSampleBoundNote": "signal_floor's in-sample binary/44 over-majority; a "
-                                         "holdout number is expected to be smaller, not larger"},
+                    "inSampleBoundSource": bound_source,
+                    "inSampleBoundNote": "signal_floor's in-sample binary/44 over-majority, "
+                                         "measured by the corrected two-class cell; a holdout "
+                                         "number is expected to be smaller, not larger",
+                    "inSampleBoundFromSignalFloorV1": bound_v1,
+                    "inSampleBoundV1Note": "the same bound as measured by the historical "
+                                           "three-column construction, kept for disclosure; its "
+                                           "reported mix summed to the row count, so no column-2 "
+                                           "prediction occurred even though the third logit was "
+                                           "trained"},
         "byRegime": regimes,
         "regimeClause": f"reported, not a pass criterion; a regime with >= {REGIME_MIN_ROWS} rows "
                         f"and margin <= {REGIME_LOSS} is named in the verdict",
@@ -367,7 +437,8 @@ def main() -> int:
             "the cache carries no dataQuality mask, so the quarantine balanced_experiment applies "
             "cannot be reproduced here",
             "crypto only: one market, 93,452 rows in the cache",
-            "three-column softmax with no FLAT targets, matching signal_floor's construction"],
+            "this holdout was examined by binary-context-v1 and is re-measured here, so it is a "
+            "correction of an observed result, not a fresh independent one"],
         "verdict": verdict,
         "failingCriteria": failing,
         "nextQuestion": ("the generalisation gap itself: what changes the margin, given the "
