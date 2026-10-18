@@ -55,6 +55,7 @@ import argparse
 import gzip
 import json
 import os
+import subprocess
 import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -74,6 +75,17 @@ DEFAULT_DS = ROOT / ".cache" / "foundation" / "dataset_v4"
 OUT = ROOT / "data" / "foundation" / "dataset" / "shadow_predictions.json"
 
 OK, DEGRADED, REFUSED = "ok", "degraded", "refused"
+
+
+def _git_short() -> str | None:
+    """This checkout's short HEAD, recorded with every written row so a prediction is traceable to
+    the code that produced it. Best effort: an absent git or a non-repo tree returns None."""
+    try:
+        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT,
+                             capture_output=True, text=True)
+        return out.stdout.strip() or None
+    except Exception:                                         # noqa: BLE001
+        return None
 
 #: A feature is critical when the model almost always saw it while training. Read from the
 #: training manifest's own `nullShareByFeature` rather than hard-coded, because the first version
@@ -300,16 +312,28 @@ def write_rows(records: list[dict]) -> dict:
                 'INSERT INTO "ShadowPrediction" ("asOf","assetId","symbol","market","predicted",'
                 '"scores","modelVersion","modelSha256","featureSchema","datasetVersion",'
                 '"quality","imputed","imputedCount","missingCritical","contextStatus",'
-                '"macroAsOf","macroAgeDays","horizonSessions","maturesAfter") '
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
-                'ON CONFLICT ("modelVersion","assetId","asOf") DO NOTHING',
+                '"macroAsOf","macroAgeDays","horizonSessions","maturesAfter",'
+                '"strategy","timeframe","referencePrice","features","sources","inputCutoff",'
+                '"runId","commit") '
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,"
+                "%s,%s,%s,%s,%s,%s,%s,%s) "
+                # The identity key, not the old (modelVersion, assetId, asOf): two strategies may
+                # both call the same asset on the same session, and a retry of the same event must
+                # still be a no-op rather than a second row.
+                'ON CONFLICT ("modelVersion","modelSha256","strategy","timeframe","assetId",'
+                '"asOf","horizonSessions") DO NOTHING',
                 (r["asOf"], r["assetId"], r["symbol"], r["market"], r["predicted"],
                  json.dumps(r["scores"]) if r["scores"] else None,
                  r["modelVersion"], r["modelSha256"], r["featureSchema"], r["datasetVersion"],
                  r["quality"], json.dumps(r["imputed"]), r["imputedCount"],
                  json.dumps(r["missingCritical"]) if r["missingCritical"] else None,
                  json.dumps(r["contextStatus"]) if r["contextStatus"] else None,
-                 r["macroAsOf"], r["macroAgeDays"], r["horizonSessions"], r["maturesAfter"]))
+                 r["macroAsOf"], r["macroAgeDays"], r["horizonSessions"], r["maturesAfter"],
+                 r.get("strategy"), r.get("timeframe"),
+                 r.get("referencePrice"),
+                 json.dumps(r["features"]) if r.get("features") else None,
+                 json.dumps(r["sources"]) if r.get("sources") else None,
+                 r.get("inputCutoff"), r.get("runId"), r.get("commit")))
             n += 1
         conn.commit()
         return {"written": n, "status": "ok"}
@@ -333,6 +357,10 @@ def main() -> int:
                          "taken from shadow_markets, not guessed")
     ap.add_argument("--timeframe", default=None,
                     help="an optional finer timeframe label; defaults to the strategy name")
+    ap.add_argument("--run-id", default=None,
+                    help="an identifier for this run, recorded with every row it writes")
+    ap.add_argument("--commit", default=None,
+                    help="the commit to record with the rows; defaults to this checkout's HEAD")
     ap.add_argument("--write", action="store_true")
     ap.add_argument("--out", default=str(OUT))
     a = ap.parse_args()
@@ -385,7 +413,15 @@ def main() -> int:
             payload["write"] = {"written": 0, "status": "unavailable",
                                 "reason": "DATABASE_URL is not set"}
         else:
-            payload["write"] = write_rows([r for r in records if r["quality"] != REFUSED])
+            run_id = a.run_id or f"shadow-{as_of_str}-{a.strategy}"
+            commit = a.commit or _git_short()
+            writable = [r for r in records if r["quality"] != REFUSED]
+            for r in writable:
+                r["runId"] = run_id
+                r["commit"] = commit
+            payload["write"] = write_rows(writable)
+            payload["runId"] = run_id
+            payload["commit"] = commit
         print(f"write: {payload['write']}")
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(json.dumps(payload, indent=1), encoding="utf-8")

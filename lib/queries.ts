@@ -2058,10 +2058,15 @@ export async function getDecisionRows(): Promise<DecisionQueryRow[]> {
 ///   would be reporting the calendar as performance.
 /// * **matured, unscored** — the horizon has passed and nothing has written the outcome yet.
 ///   This is work owed, and it is counted separately so it cannot hide inside "awaiting".
-/// * **scored** — `outcomeLabel` is present. Only these may enter any accuracy figure.
+/// * **scored** — a **final** `ShadowOutcome` is present. Only these may enter any accuracy figure.
 ///
-/// `null` in `outcomeLabel` therefore means "not yet", **never** "no move". The table's own
-/// migration says so and this is where that promise is kept.
+/// The authoritative outcome is `ShadowOutcome` (a final row), not the legacy `outcomeLabel`
+/// column. Both are read so pre-existing rows are not lost, but a row is counted **once**: a
+/// prediction with a final outcome is scored, and the legacy column is only consulted for rows
+/// that have no outcome row. Merging the two without de-duplicating would double-count.
+///
+/// A missing outcome therefore means "not yet", **never** "no move". The table's own migration says
+/// so and this is where that promise is kept.
 export async function getShadowPredictions(limit = 200) {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
@@ -2069,20 +2074,40 @@ export async function getShadowPredictions(limit = 200) {
   const rows = await prisma.shadowPrediction.findMany({
     orderBy: [{ asOf: "desc" }, { symbol: "asc" }],
     take: limit,
+    include: {
+      outcomes: { where: { final: true }, orderBy: { observedOn: "desc" }, take: 1 },
+    },
   });
   const all = await prisma.shadowPrediction.findMany({
-    select: { maturesAfter: true, outcomeLabel: true, quality: true, predicted: true,
-              modelVersion: true, approved: true },
+    select: { id: true, maturesAfter: true, outcomeLabel: true, quality: true, predicted: true,
+              modelVersion: true, approved: true, market: true, strategy: true, timeframe: true },
+  });
+  const finals = await prisma.shadowOutcome.findMany({
+    where: { final: true },
+    select: { predictionId: true, label: true, fwdPct: true, observedOn: true },
   });
 
-  const scored = all.filter((r) => r.outcomeLabel !== null);
-  const matured = all.filter((r) => r.outcomeLabel === null && r.maturesAfter !== null
+  const scoredIds = new Set(finals.map((f) => f.predictionId));
+  const outcomeByPrediction = new Map(finals.map((f) => [f.predictionId, f]));
+
+  // A row is scored if it has a final outcome, or (only then) a legacy label with no outcome row.
+  const isScored = (r: { id: string; outcomeLabel: string | null }) =>
+    scoredIds.has(r.id) || r.outcomeLabel !== null;
+  const scored = all.filter(isScored);
+  const matured = all.filter((r) => !isScored(r) && r.maturesAfter !== null
     && r.maturesAfter <= today);
-  const awaiting = all.filter((r) => r.outcomeLabel === null
+  const awaiting = all.filter((r) => !isScored(r)
     && (r.maturesAfter === null || r.maturesAfter > today));
 
   const tally = <T extends string>(xs: (T | null)[]) =>
     xs.reduce<Record<string, number>>((a, k) => (k ? { ...a, [k]: (a[k] ?? 0) + 1 } : a), {});
+
+  // Descriptive accuracy over scored rows only, and only where a stored outcome carries a label.
+  const graded = [...outcomeByPrediction.values()].filter((f) => f.label !== null);
+  const correct = [...outcomeByPrediction.entries()].filter(([id, f]) => {
+    const p = all.find((r) => r.id === id);
+    return f.label !== null && p?.predicted != null && f.label === p.predicted;
+  }).length;
 
   return {
     rows,
@@ -2091,8 +2116,12 @@ export async function getShadowPredictions(limit = 200) {
     scored: scored.length,
     maturedAwaitingOutcome: matured.length,
     awaitingMaturity: awaiting.length,
+    /// `null` — not 0 — when nothing has matured. An accuracy over nothing is not a number.
+    accuracy: graded.length ? correct / graded.length : null,
     byQuality: tally(all.map((r) => r.quality)),
     byPredictedClass: tally(all.map((r) => r.predicted)),
+    byMarket: tally(all.map((r) => r.market)),
+    byStrategy: tally(all.map((r) => r.strategy)),
     modelVersions: [...new Set(all.map((r) => r.modelVersion))],
     /// Nothing here is approved, and the page says so rather than assuming it.
     anyApproved: all.some((r) => r.approved),

@@ -76,13 +76,22 @@ export default async function PredictionsPage() {
             No accuracy is shown because no prediction has been scored yet. A percentage over zero
             scored records would be a claim about a model nobody has measured.
           </Note>
-        ) : null}
+        ) : (
+          <Note>
+            Accuracy over <strong>{s.scored}</strong> scored record{s.scored === 1 ? "" : "s"}:{" "}
+            <strong>{s.accuracy === null ? "—" : `${(s.accuracy * 100).toFixed(1)}%`}</strong>.
+            Descriptive only — no threshold is applied here and a figure over a handful of matured
+            records is not a promotion case.
+          </Note>
+        )}
       </Section>
 
       <Section title="How they were made">
         <Note>
           Quality: {Object.entries(s.byQuality).map(([k, v]) => `${k} ${v}`).join(" · ") || "—"}.
           Predicted class: {Object.entries(s.byPredictedClass).map(([k, v]) => `${k} ${v}`).join(" · ") || "—"}.
+          Market: {Object.entries(s.byMarket).map(([k, v]) => `${k} ${v}`).join(" · ") || "—"}.
+          Strategy: {Object.entries(s.byStrategy).map(([k, v]) => `${k} ${v}`).join(" · ") || "—"}.
           A <strong>refused</strong> record is one where a critical input was missing and no
           prediction was produced — it is kept rather than dropped, because knowing the model
           declined is worth as much as knowing what it said.
@@ -98,7 +107,10 @@ export default async function PredictionsPage() {
               <>
                 <th className="px-3 py-2 text-left">Session</th>
                 <th className="px-3 py-2 text-left">Symbol</th>
+                <th className="px-3 py-2 text-left">Market</th>
+                <th className="px-3 py-2 text-left">Strategy</th>
                 <th className="px-3 py-2 text-left">Predicted</th>
+                <th className="px-3 py-2 text-right">Ref</th>
                 <th className="px-3 py-2 text-left">Quality</th>
                 <th className="px-3 py-2 text-right">Imputed</th>
                 <th className="px-3 py-2 text-left">Matures</th>
@@ -106,21 +118,35 @@ export default async function PredictionsPage() {
               </>
             }
           >
-            {s.rows.map((r) => (
-              <tr key={r.id}>
-                <td className="px-3 py-2">{fmt(r.asOf)}</td>
-                <td className="px-3 py-2">{r.symbol}</td>
-                <td className="px-3 py-2">{r.predicted ?? "—"}</td>
-                <td className="px-3 py-2">{r.quality}</td>
-                <td className="px-3 py-2 text-right" title="features imputed rather than observed">
-                  {r.imputedCount}
-                </td>
-                <td className="px-3 py-2">{fmt(r.maturesAfter)}</td>
-                <td className="px-3 py-2 text-muted-foreground">
-                  {r.outcomeLabel ?? "not yet"}
-                </td>
-              </tr>
-            ))}
+            {s.rows.map((r) => {
+              const o = r.outcomes[0];
+              const outcome = o
+                ? `${o.label ?? "recorded"} (${o.fwdPct === null
+                    ? "—"
+                    : `${o.fwdPct >= 0 ? "+" : ""}${o.fwdPct.toFixed(1)}%`})`
+                : r.outcomeLabel ?? "not yet";
+              return (
+                <tr key={r.id}>
+                  <td className="px-3 py-2">{fmt(r.asOf)}</td>
+                  <td className="px-3 py-2">{r.symbol}</td>
+                  <td className="px-3 py-2">{r.market}</td>
+                  <td className="px-3 py-2">
+                    {r.strategy}
+                    {r.timeframe && r.timeframe !== r.strategy ? `/${r.timeframe}` : ""}
+                  </td>
+                  <td className="px-3 py-2">{r.predicted ?? "—"}</td>
+                  <td className="px-3 py-2 text-right">
+                    {r.referencePrice === null ? "—" : r.referencePrice.toFixed(2)}
+                  </td>
+                  <td className="px-3 py-2">{r.quality}</td>
+                  <td className="px-3 py-2 text-right" title="features imputed rather than observed">
+                    {r.imputedCount}
+                  </td>
+                  <td className="px-3 py-2">{fmt(r.maturesAfter)}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{outcome}</td>
+                </tr>
+              );
+            })}
           </Table>
         )}
       </Section>

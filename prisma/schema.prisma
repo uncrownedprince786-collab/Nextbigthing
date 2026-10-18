@@ -1989,6 +1989,22 @@ model ShadowPrediction {
   missingCritical Json?
   /// Per-block status from the context producer: observed / absent / excluded.
   contextStatus  Json?
+  /// The strategy and timeframe the call was made under. NOT NULL with defaults so the identity
+  /// index below is total (a nullable column would let duplicates through, because NULL never
+  /// equals NULL in a unique index). Existing rows are 'swing' because they all carry a 20-session
+  /// horizon -- the swing horizon of the 20-session label they were made under.
+  strategy       String   @default("swing")
+  timeframe      String   @default("swing")
+  /// The close the call was read from -- the base an outcome is measured against -- and a compact
+  /// snapshot of the exact feature vector the model consumed. Both are null on rows written before
+  /// this column existed: a past run's input cannot be recovered without re-deriving it, and a
+  /// re-derivation is not the original input.
+  referencePrice Float?
+  features       Json?
+  /// Per-source provenance for the price features and the context blocks.
+  sources        Json?
+  /// The exact timestamp of the point-in-time input cutoff, when it is known.
+  inputCutoff    DateTime?
   /// Freshness of the inputs, so a stale run is visible without re-deriving it.
   macroAsOf      DateTime? @db.Date
   macroAgeDays   Int?
@@ -1996,7 +2012,9 @@ model ShadowPrediction {
   /// The horizon this prediction is to be judged over, and the first date it can be judged.
   horizonSessions Int     @default(20)
   maturesAfter   DateTime? @db.Date
-  /// Filled only once the horizon has matured. Null means "not yet", never "no move".
+  /// Deprecated in favour of `ShadowOutcome`, and kept only for backward compatibility with rows
+  /// written before that table existed. New outcomes are written to `ShadowOutcome` and never here;
+  /// a reader must not merge the two without counting a result twice.
   outcomeLabel   String?
   outcomeFwd     Float?
   outcomeAt      DateTime?
@@ -2005,7 +2023,49 @@ model ShadowPrediction {
   runId          String?
   commit         String?
 
-  @@unique([modelVersion, assetId, asOf])
+  outcomes       ShadowOutcome[]
+
+  @@unique([modelVersion, modelSha256, strategy, timeframe, assetId, asOf, horizonSessions], map: "ShadowPrediction_identity_key")
   @@index([asOf, modelVersion])
   @@index([maturesAfter, outcomeLabel])
+  @@index([market, strategy, timeframe])
+}
+
+/// What actually happened after a `ShadowPrediction`'s horizon, recorded separately so scoring
+/// never edits the prediction it grades.
+///
+/// `final` is false for an interim mark and true once the declared horizon has matured. The unique
+/// key `(predictionId, observedOn, final)` lets many interim marks on different sessions coexist
+/// while enforcing exactly one final result, so rerunning the scorer is idempotent rather than
+/// additive. Null `label`/`fwdPct` on an interim row means "not yet determined", never "no move".
+model ShadowOutcome {
+  id             String   @id @default(dbgenerated("gen_random_uuid()::text"))
+  predictionId   String
+  prediction     ShadowPrediction @relation(fields: [predictionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  final          Boolean  @default(false)
+  /// DOWN | FLAT | UP under the declared scoring rule; null on an interim mark that is not final.
+  label          String?
+  fwdPct         Float?
+  referencePrice Float?
+  observedPrice  Float?
+  /// The session the observed price is from.
+  observedOn     DateTime @db.Date
+  fromSession    DateTime @db.Date
+  toSession      DateTime? @db.Date
+  sessionsElapsed Int?
+  horizonSessions Int
+  mfe            Float?
+  mae            Float?
+  /// The source of the observed closes (e.g. the stored `PriceSnapshot.source`), for provenance.
+  source         String?
+  /// The label rule in force, in words, so a later reader knows what was graded.
+  scoringRule    String?
+  scorerVersion  String?
+  note           String?
+  observedAt     DateTime?
+  createdAt      DateTime @default(now())
+
+  @@unique([predictionId, observedOn, final], map: "ShadowOutcome_predictionId_observedOn_final_key")
+  @@index([final, label])
+  @@index([observedOn])
 }
