@@ -1,0 +1,423 @@
+{
+ "generatedAt": "2026-10-18T04:59:59+00:00",
+ "version": "eligible-set-v1",
+ "question": "does widening the eligible set from crypto to the whole frozen universe change the binary/44 result?",
+ "whyNotARerun": "all three 44-feature caches are crypto only; two verdicts named the eligible set as the next question and neither answered it. Target, features, folds, optimizer and criteria are held exactly as binary_context_experiment held them",
+ "data": {
+  "dataset": ".cache\\foundation\\dataset_v4",
+  "files": [
+   "examples-v4-context-2018.jsonl.gz",
+   "examples-v4-context-2019.jsonl.gz",
+   "examples-v4-context-2020.jsonl.gz",
+   "examples-v4-context-2021.jsonl.gz",
+   "examples-v4-context-2022.jsonl.gz",
+   "examples-v4-context-2023.jsonl.gz",
+   "examples-v4-context-2024.jsonl.gz",
+   "examples-v4-context-2025.jsonl.gz",
+   "examples-v4-context-2026.jsonl.gz"
+  ],
+  "rowsParsed": 1055429,
+  "quarantineDropped": 60698,
+  "quarantine": "any(dataQuality) true drops the row before any split",
+  "rowsKept": 994731,
+  "rowsAfterDroppingFlat": 794003,
+  "markets": {
+   "commodity": 14664,
+   "crypto": 81119,
+   "etf": 15104,
+   "forex": 52549,
+   "stock": 831295
+  },
+  "dateRange": [
+   "2018-03-13",
+   "2026-09-25"
+  ],
+  "features": 44,
+  "droppedDuringParse": {
+   "badOrImmatureLabel": 30920,
+   "unparseable": 0
+  }
+ },
+ "target": {
+  "label": "binary UP vs DOWN, FLAT dropped",
+  "up": 1,
+  "down": 0,
+  "construction": "signal_floor.py lines 102-104"
+ },
+ "model": {
+  "optimizer": "fit_weighted imported unchanged from balanced_experiment",
+  "l2": 0.0001,
+  "learningRate": 0.5,
+  "tolerance": 1e-06,
+  "maxSteps": 20000,
+  "l2HeldFixedBecause": "regularisation_experiment showed inner-validation selection made the result worse; the eligible set is the variable under test",
+  "convergedFolds": 6,
+  "ofFolds": 6
+ },
+ "protocol": {
+  "folds": "baseline_experiment's rule: one fold per test year 2021..2026",
+  "embargoDecisionDates": 20,
+  "seed": 20261015,
+  "imputation": "training-fold column nan-mean, then training-fold standard deviation (stationarity.fit_window order)",
+  "standardisation": "training-fold only",
+  "minTrainRows": 5000,
+  "minTestRows": 500,
+  "uncertainty": "moving-block bootstrap, 20-date blocks, 400 resamples, candidate minus shuffled control",
+  "reference": "over_majority imported unchanged from stationarity"
+ },
+ "criteria": {
+  "C1_meanMarginPositive": [
+   -0.0613,
+   "> 0",
+   false
+  ],
+  "C2_foldsWon": [
+   0,
+   ">= 4",
+   false
+  ],
+  "C3_noDegenerateFold": [
+   [
+    2021,
+    2022,
+    2023,
+    2024,
+    2026
+   ],
+   "== []",
+   false
+  ],
+  "C4_controlIntervalExcludesZero": [
+   -0.0373,
+   "> 0",
+   false
+  ],
+  "C5_worstFoldMargin": [
+   -0.0946,
+   ">= -0.05",
+   false
+  ]
+ },
+ "criteriaSource": "the same five criteria as binary_context_experiment, fixed in this docstring before any number from this run was seen",
+ "diagnosticsNotCriteria": [
+  "byMarket",
+  "cryptoVsRest",
+  "byRegime"
+ ],
+ "folds": [
+  {
+   "testYear": 2021,
+   "trainRows": 184157,
+   "testRows": 90118,
+   "trainEnds": "2020-12-11",
+   "testBegins": "2021-01-01",
+   "testEnds": "2021-12-31",
+   "steps": 1276,
+   "converged": true,
+   "finalLoss": 0.663435,
+   "accuracy": 0.4703,
+   "majority": 0.5375,
+   "margin": -0.0671,
+   "beatsMajority": false,
+   "shuffledControlAccuracy": 0.4815,
+   "shuffledControlMargin": -0.0559,
+   "candidateMinusControl": -0.0112,
+   "predictedMix": {
+    "DOWN": 80521,
+    "FLAT": 9597,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 41681,
+    "FLAT": 48437,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.8935,
+   "actualShareOfWorstPredicted": 0.4625,
+   "degenerate": true,
+   "controlSteps": 989
+  },
+  {
+   "testYear": 2022,
+   "trainRows": 273110,
+   "testRows": 102317,
+   "trainEnds": "2021-12-11",
+   "testBegins": "2022-01-01",
+   "testEnds": "2022-12-31",
+   "steps": 996,
+   "converged": true,
+   "finalLoss": 0.675961,
+   "accuracy": 0.5023,
+   "majority": 0.5667,
+   "margin": -0.0644,
+   "beatsMajority": false,
+   "shuffledControlAccuracy": 0.5523,
+   "shuffledControlMargin": -0.0144,
+   "candidateMinusControl": -0.05,
+   "predictedMix": {
+    "DOWN": 30418,
+    "FLAT": 71899,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 57983,
+    "FLAT": 44334,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.7027,
+   "actualShareOfWorstPredicted": 0.4333,
+   "degenerate": true,
+   "controlSteps": 989
+  },
+  {
+   "testYear": 2023,
+   "trainRows": 375021,
+   "testRows": 101775,
+   "trainEnds": "2022-12-11",
+   "testBegins": "2023-01-01",
+   "testEnds": "2023-12-31",
+   "steps": 992,
+   "converged": true,
+   "finalLoss": 0.67816,
+   "accuracy": 0.4924,
+   "majority": 0.5514,
+   "margin": -0.059,
+   "beatsMajority": false,
+   "shuffledControlAccuracy": 0.4963,
+   "shuffledControlMargin": -0.0551,
+   "candidateMinusControl": -0.0039,
+   "predictedMix": {
+    "DOWN": 89924,
+    "FLAT": 11851,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 45656,
+    "FLAT": 56119,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.8836,
+   "actualShareOfWorstPredicted": 0.4486,
+   "degenerate": true,
+   "controlSteps": 988
+  },
+  {
+   "testYear": 2024,
+   "trainRows": 477424,
+   "testRows": 105978,
+   "trainEnds": "2023-12-11",
+   "testBegins": "2024-01-01",
+   "testEnds": "2024-12-31",
+   "steps": 993,
+   "converged": true,
+   "finalLoss": 0.681707,
+   "accuracy": 0.464,
+   "majority": 0.5586,
+   "margin": -0.0946,
+   "beatsMajority": false,
+   "shuffledControlAccuracy": 0.4673,
+   "shuffledControlMargin": -0.0914,
+   "candidateMinusControl": -0.0032,
+   "predictedMix": {
+    "DOWN": 78143,
+    "FLAT": 27835,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 46777,
+    "FLAT": 59201,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.7374,
+   "actualShareOfWorstPredicted": 0.4414,
+   "degenerate": true,
+   "controlSteps": 988
+  },
+  {
+   "testYear": 2025,
+   "trainRows": 583057,
+   "testRows": 115687,
+   "trainEnds": "2024-12-11",
+   "testBegins": "2025-01-01",
+   "testEnds": "2025-12-31",
+   "steps": 991,
+   "converged": true,
+   "finalLoss": 0.685363,
+   "accuracy": 0.4985,
+   "majority": 0.548,
+   "margin": -0.0495,
+   "beatsMajority": false,
+   "shuffledControlAccuracy": 0.5257,
+   "shuffledControlMargin": -0.0223,
+   "candidateMinusControl": -0.0272,
+   "predictedMix": {
+    "DOWN": 43952,
+    "FLAT": 71735,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 52288,
+    "FLAT": 63399,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.6201,
+   "actualShareOfWorstPredicted": 0.548,
+   "degenerate": false,
+   "controlSteps": 988
+  },
+  {
+   "testYear": 2026,
+   "trainRows": 697926,
+   "testRows": 89647,
+   "trainEnds": "2025-12-11",
+   "testBegins": "2026-01-01",
+   "testEnds": "2026-09-25",
+   "steps": 990,
+   "converged": true,
+   "finalLoss": 0.687881,
+   "accuracy": 0.4966,
+   "majority": 0.5296,
+   "margin": -0.033,
+   "beatsMajority": false,
+   "shuffledControlAccuracy": 0.486,
+   "shuffledControlMargin": -0.0435,
+   "candidateMinusControl": 0.0105,
+   "predictedMix": {
+    "DOWN": 7734,
+    "FLAT": 81913,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 47476,
+    "FLAT": 42171,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.9137,
+   "actualShareOfWorstPredicted": 0.4704,
+   "degenerate": true,
+   "controlSteps": 988
+  }
+ ],
+ "summary": {
+  "foldsScored": 6,
+  "foldsWon": 0,
+  "foldsRequired": 4,
+  "meanMargin": -0.0613,
+  "meanShuffledControlMargin": -0.0471,
+  "worstFoldMargin": -0.0946,
+  "worstFoldYear": 2024,
+  "degenerateFolds": [
+   2021,
+   2022,
+   2023,
+   2024,
+   2026
+  ],
+  "anyFoldDegenerate": true,
+  "pooledRows": 605522,
+  "bootstrap": {
+   "mean": -0.0146,
+   "p2_5": -0.0373,
+   "p97_5": 0.0073,
+   "halfWidth": 0.0223,
+   "resamples": 400,
+   "blockDays": 20
+  },
+  "predecessorCryptoMeanMargin": -0.0527,
+  "deltaVsPredecessor": -0.0086
+ },
+ "byMarket": {
+  "commodity": {
+   "rows": 8789,
+   "accuracy": 0.4979,
+   "majority": 0.551,
+   "margin": -0.0531
+  },
+  "crypto": {
+   "rows": 68857,
+   "accuracy": 0.525,
+   "majority": 0.5594,
+   "margin": -0.0345
+  },
+  "etf": {
+   "rows": 8852,
+   "accuracy": 0.5347,
+   "majority": 0.5563,
+   "margin": -0.0216
+  },
+  "forex": {
+   "rows": 12892,
+   "accuracy": 0.4305,
+   "majority": 0.5625,
+   "margin": -0.132
+  },
+  "stock": {
+   "rows": 506132,
+   "accuracy": 0.483,
+   "majority": 0.5262,
+   "margin": -0.0432
+  }
+ },
+ "cryptoVsRest": {
+  "crypto": {
+   "rows": 68857,
+   "accuracy": 0.525,
+   "majority": 0.5594,
+   "margin": -0.0345
+  },
+  "everythingElse": {
+   "rows": 536665,
+   "accuracy": 0.4828,
+   "majority": 0.5279,
+   "margin": -0.0451
+  }
+ },
+ "byRegime": [
+  {
+   "regime": "2020-22 recovery",
+   "rows": 90532,
+   "accuracy": 0.47,
+   "majority": 0.5366,
+   "margin": -0.0665,
+   "qualification": true
+  },
+  {
+   "regime": "2022 rate-shock bear",
+   "rows": 79305,
+   "accuracy": 0.5056,
+   "majority": 0.5843,
+   "margin": -0.0787,
+   "qualification": true
+  },
+  {
+   "regime": "2023 banking stress",
+   "rows": 24936,
+   "accuracy": 0.5193,
+   "majority": 0.51,
+   "margin": 0.0093,
+   "qualification": false
+  },
+  {
+   "regime": "2022-26 advance",
+   "rows": 436485,
+   "accuracy": 0.4881,
+   "majority": 0.5328,
+   "margin": -0.0447,
+   "qualification": false
+  }
+ ],
+ "fidelityLimitations": [
+  "the eligible set changed and nothing else, but the crypto caches carried no dataQuality mask while this run does apply quarantine, so this run is stricter than its predecessors on that axis",
+  "three-column softmax with no FLAT targets, matching signal_floor's construction"
+ ],
+ "verdict": "NO-GO: C1_meanMarginPositive, C2_foldsWon, C3_noDegenerateFold, C4_controlIntervalExcludesZero, C5_worstFoldMargin failed the criteria fixed before this run. Crypto was the *better* eligible set of the two, so widening it did not help and the obstruction is not the eligible set. Qualification: adverse in 2020-22 recovery, 2022 rate-shock bear.",
+ "failingCriteria": [
+  "C1_meanMarginPositive",
+  "C2_foldsWon",
+  "C3_noDegenerateFold",
+  "C4_controlIntervalExcludesZero",
+  "C5_worstFoldMargin"
+ ],
+ "nextQuestion": "the linear family on this feature set is exhausted across every eligible set available; the remaining move is a non-linear model, which needs an owner decision on declaring an ML dependency while requirements.txt is trust-fingerprinted",
+ "notAPromotion": "a passing verdict is a candidate for reproduction, never a GO"
+}

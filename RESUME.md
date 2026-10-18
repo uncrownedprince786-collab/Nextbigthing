@@ -1,5 +1,64 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-18 (thirty-third), **the eligible set is exonerated — the linear family has nowhere left to stand**
+
+**Branch `main`, HEAD pushed, tree clean.** CI **run #296 on `d5060d3` = success** (workflow
+`371695103`), local suite **1163 OK**. No database access this stretch: one stream parse of the
+frozen universe, one `--inspect`, one run.
+
+### `eligible-set-v1`: the last variable the crypto slice had never let us move
+
+`binary_context_experiment` and `regularisation_experiment` both fitted **crypto only** — 93,452
+of the chain's rows — so a critic could always say the verdicts were an artefact of that slice.
+`tools/research/eligible_set_experiment.py` was pre-registered to change **exactly one thing**: the
+eligible set, widened to every market in `.cache/foundation/dataset_v4`. Target (binary UP vs
+DOWN), folds (2021–2026, `EMBARGO` 20), optimizer (`L2 = 1e-4` held fixed, *because* the previous
+run showed honest capacity selection made things worse), shuffled-label control, bootstrap and
+**the same five criteria** were all held identical.
+
+Fidelity, checked before fitting: **1,055,429 rows parsed, 60,698 dropped by `any(dataQuality)`,
+994,731 kept — exactly the `family_evaluation` post-quarantine count.** After dropping FLAT,
+**794,003 rows, UP 0.5258 / DOWN 0.4742**. Markets: stock 831,295, crypto **81,119 (8%)**, forex
+52,549, etf 15,104, commodity 14,664. All six folds fitted, train 229k → 878k rows.
+
+| year | accuracy | majority | margin | shuffled control | steps |
+|---|---|---|---|---|---|
+| 2021 | 0.4703 | 0.5375 | **−0.0671** *(deg)* | −0.0559 | 1276 |
+| 2022 | 0.5023 | 0.5667 | **−0.0644** *(deg)* | −0.0144 | 996 |
+| 2023 | 0.4924 | 0.5514 | **−0.0590** *(deg)* | −0.0551 | 992 |
+| 2024 | 0.4640 | 0.5586 | **−0.0946** *(deg)* | −0.0914 | 993 |
+| 2025 | 0.4985 | 0.5480 | **−0.0495** | −0.0223 | 991 |
+| 2026 | 0.4966 | 0.5296 | **−0.0330** *(deg)* | −0.0435 | 990 |
+
+**All five criteria failed:** mean margin **−0.0613** (C1), won **0/6** needed 4 (C2), **five**
+degenerate folds (C3), bootstrap p2.5 **−0.0373** against `> 0` (C4), worst fold **−0.0946** vs
+`≥ −0.05` (C5). Predecessor (crypto only) **−0.0527** → **delta −0.0086**. Worse than crypto, and
+this time not a single fold was won. Artifact `data/foundation/dataset/eligible_set_experiment.json`.
+
+### The pre-declared reading, and what it settles
+
+The script declared three readings before the run. **Crypto came out the *better* eligible set**
+(−0.0345 against 506k stock rows at −0.0432 and forex at −0.1320; everything-else pooled
+**−0.0451**), which is the reading: *widening the eligible set did not help, so the obstruction is
+not the eligible set.* Combined with the twelve registered NO-GOs — label, band, class balance,
+optimizer, feature count, objective, target family, capacity control and now eligible set all
+exonerated — the **linear softmax family is exhausted on this frozen dataset**. The honest ceiling
+(`signal_floor`'s in-sample +0.0361) plus out-of-sample −0.05 to −0.06 says this family is fitting
+noise on the slice, not signal.
+
+**What that is *not*:** it is not a GO, not a reason to loosen any criterion, and not a reason to
+re-run any of the twelve unchanged. It is a recorded hypothesis-family exhaustion with an exact
+next blocker: **non-linear models are blocked pending the owner's decision**, because `torch` is
+installed but undeclared and `requirements.txt` is trust-fingerprinted. That decision is now the
+single item standing between the campaign and its next genuine hypothesis.
+
+### Backlog unchanged
+
+B2 (`jobRuns36h` — external Reddit/Wikimedia 429s; the Google Trends `empty` classification fix is
+one function call), B3 (`sourceCoverage`, 8 stale), B4 (schedule `daily_audit.py`), B1 cloud leg
+(3 Google secrets), DB at 92.0%.
+
+
 ## 0. SESSION CHECKPOINT - 2026-10-18 (thirty-second), **capacity control tested — NO-GO, and it made things worse**
 
 **Branch `main`, HEAD pushed, tree clean.** No database access this stretch: two experiment runs,
