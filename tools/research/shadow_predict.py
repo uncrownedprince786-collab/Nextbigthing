@@ -334,7 +334,10 @@ def write_rows(records: list[dict]) -> dict:
                  json.dumps(r["features"]) if r.get("features") else None,
                  json.dumps(r["sources"]) if r.get("sources") else None,
                  r.get("inputCutoff"), r.get("runId"), r.get("commit")))
-            n += 1
+            # Count rows the database actually inserted. A conflict means the event was already
+            # recorded, and reporting that as "written" would make a rerun look additive when the
+            # whole point of the identity key is that it is not.
+            n += cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
         conn.commit()
         return {"written": n, "status": "ok"}
     except Exception as e:                                    # noqa: BLE001

@@ -6434,3 +6434,50 @@ reads rows that already exist:
       **0 approved and 0 scored**, matching the restore rehearsal's count. **A tool that says "I did
       not write anything" has said nothing about whether anything was written.**
 
+173. **An outcome is a later observation of a claim, not an edit of it; a key that cannot tell two
+    events apart is not an identity; and a market the model was never tuned for is a relabel, not a
+    market.** 2026-10-19.
+    Commit: `477db17` (migration applied through the `schema.yml` lane; CI tests `39176448098` and
+    schema `39176448097` both success). Suite 1251 OK.
+
+    - **Scoring must not edit the thing it grades.** The outcome columns lived on the
+      `ShadowPrediction` row, so writing a result meant mutating the claim. `ShadowOutcome` is its
+      own table, linked by `predictionId`, and the scorer writes only into it. A row that carries
+      `final: false` can be an interim mark and `final: true` the matured result, exactly once,
+      because the table is unique on `(predictionId, observedOn, final)`. **If the scorer has to
+      modify the prediction to record a result, the prediction stops being a prediction.**
+
+    - **`(modelVersion, assetId, asOf)` allowed one prediction per asset-session, which is one too
+      few.** Two strategies could never both call the same asset on the same day, and a retried run
+      had no way to be the same event rather than a second one. The identity now includes the
+      artifact bytes (`modelSha256`), the strategy, the timeframe and the horizon. The new columns
+      are NOT NULL with defaults so the unique index is *total*: a nullable column would let
+      duplicates through, because NULL never equals NULL in a unique index. **A unique key built on a
+      nullable column does not enforce uniqueness; it enforces nothing and looks like it does.**
+
+    - **A retry that reports itself as a write is a lie the next reader believes.** `write_rows`
+      counted the rows it *attempted*, so a rerun of the same canary reported `written: 5` while the
+      database inserted nothing. It now sums `cur.rowcount`, and the rerun reports `written: 0` --
+      which is the whole point of the identity key, made visible instead of asserted. **Count what
+      the store accepted, not what you sent it.**
+
+    - **Backfill from evidence only.** `referencePrice`, `features`, `sources` and `inputCutoff` stay
+      NULL for the 566 rows written before the columns existed. The close and feature vector a past
+      run saw cannot be recovered from the stored row without re-deriving it, and a re-derivation is
+      not the original input. NULL means "not recorded", never "no value". **A fabricated backfill is
+      worse than an empty one: it makes a gap look like data.**
+
+    - **Verifiable inputs and a judgeable outcome do not imply a market-specific model.**
+      `capability()` now reports three axes -- input, prediction, outcome -- because they fail
+      independently. Every market has inputs and a judgeable swing outcome, and every market's
+      `prediction.marketSpecific` is **false**, because one global model is applied five times. **A
+      market the model was not tuned for is a relabel; calling it a model is how coverage is
+      claimed without being earned.**
+
+    - **The canary wrote real rows and no outcome was invented to make the path look exercised.** 5
+      live rows for 2026-10-16 landed with every new column populated; the scorer ran dry then
+      `--write` and reported `nothing-matured`, 0 rows, because the 20-session horizon has not
+      elapsed and `accuracy` is `null`, not 0, over nothing. **An end-to-end test that needs the
+      future to succeed is not a test of the present; it is a schedule, and the schedule says
+      ~2026-11-13.**
+

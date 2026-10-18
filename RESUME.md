@@ -1,5 +1,68 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (thirty-eighth), **outcomes are recorded as their own table and predictions have an identity that can tell two events apart; the schema landed, a 5-row canary wrote and re-wrote nothing, and no outcome has matured yet**
+**Branch `main`.** The schema extension and the outcome path were pushed as **`477db17`**. No
+dependency added, nothing installed. CI on that commit: **tests** run `39176448098` = **success**,
+**schema** run `39176448097` = **success** (the migration applied through the established lane). Local
+suite **1251 OK** (was 1231; **20 new** across a new test file plus additions to two existing ones),
+`python -m compileall -q jobs tools tests` clean, `tsc --noEmit` and `eslint` clean on the changed
+TS. The live canary below is the only production write, and it is bounded.
+
+### The schema, applied (verified read-only on the primary after the lane ran)
+
+| probe | result |
+|---|---|
+| `to_regclass('"ShadowOutcome"')` | `"ShadowOutcome"` — the table exists |
+| new `ShadowPrediction` columns | `strategy, timeframe, referencePrice, features, sources, inputCutoff` all present |
+| old unique key | `ShadowPrediction_modelVersion_assetId_asOf_key` **gone**; `ShadowPrediction_identity_key` present |
+| existing rows | **566 preserved** (`strategy`/`timeframe` default `'swing'`; `referencePrice`/`features`/`sources`/`inputCutoff` NULL — a past input cannot be recovered without re-deriving it, and a re-derivation is not the original input) |
+
+The migration (`prisma/migrations/20261019120000_shadow_outcome/`) is additive. `ShadowOutcome` is
+unique on `(predictionId, observedOn, final)` with `observedOn` NOT NULL, so a final result is
+exactly-once and rerunning the scorer is idempotent rather than additive; `final` false lets an
+interim mark and the matured result coexist.
+
+### The bounded prospective canary (real writes, no dummy rows)
+
+* `shadow_predict.py --live --limit 5 --strategy swing --write --run-id canary-477db17` → newest
+  session **2026-10-16**, **5 rows written** (`quality ok 5`, markets **US 4 / Crypto 1**, predicted
+  UP 5). Every new column populated: `market, strategy, timeframe, referencePrice, features, runId,
+  commit=477db17`. Total rows **571**.
+* The same command re-run → **`written: 0`** (the identity key + `ON CONFLICT DO NOTHING` make a
+  retry a no-op; the writer now counts *inserts* via `rowcount`, so a conflict is not reported as a
+  write).
+* `shadow_score.py --as-of 2026-10-19` (dry run) → **571 rows, awaiting 571, matured 0, graded 0,
+  accuracy `null`** (US 351, PK 219, Crypto 1). `--write` → **`nothing-matured`, 0 rows**.
+  `ShadowOutcome` count = **0**. Nothing was scored because nothing has elapsed (the 20-session US
+  horizon from 2026-10-15 matures ~**2026-11-13**), and no outcome was fabricated to make the path
+  look exercised.
+
+### What changed since checkpoint 37
+
+| file | change |
+|---|---|
+| `prisma/migrations/20261019120000_shadow_outcome/migration.sql` (**new**) | the additive schema above |
+| `prisma/schema.prisma` | `ShadowPrediction` gains the six columns, the identity key (mapped name), a `(market, strategy, timeframe)` index and the `outcomes` relation; new `ShadowOutcome` model |
+| `tools/research/shadow_predict.py` | writer inserts the new columns and upserts on the **new** identity key; `rowcount`-based accounting; `--run-id`/`--commit` recorded per row |
+| `tools/research/shadow_score.py` | `--write`: idempotent `ShadowOutcome` upsert (dry run by default), per-market reconciliation, never an UPDATE of a prediction |
+| `lib/queries.ts getShadowPredictions` | a **final `ShadowOutcome`** is authoritative for `scored`; the legacy `outcomeLabel` is read only for rows with no outcome row (so the two are never merged into a count twice); exposes `accuracy` (`null`, not 0, over nothing), `byMarket`, `byStrategy` |
+| `app/preview/predictions/page.tsx` | renders market, strategy/timeframe, reference price and the outcome from the relation; shows an accuracy line only when something is scored |
+| `tools/research/shadow_markets.py` | `capability()` split into **input / prediction / outcome** axes; `prediction.marketSpecific` is **false for every market** (one global model applied five times is a relabel, not five models) |
+| `tests/test_shadow_outcome.py` (**new**), `tests/test_shadow_markets.py`, `tests/test_shadow_score.py` | migration/schema parity, identity + unique keys, writer supplies new columns, scorer upsert-not-update, unelapsed writes nothing, unscorable-without-a-rule, scoring mutates no prediction, insert-conflict not counted as a write, the three capability axes |
+
+### Still owed (the next stretch, in order)
+
+1. **One market-specific model per verifiable market** (all five at swing): a per-market `brain-v3-*`
+   candidate with its own features/calibration, so `capability().prediction.marketSpecific` can
+   become true for a market on evidence — and only then a per-market profile. Until then every call
+   is the single global model wearing a market label.
+2. **Let the outcomes mature and score them.** The earliest US 20-session cohort matures ~2026-11-13;
+   run `shadow_score.py --write` after that and read the per-market scorecard. No accuracy figure
+   exists yet and none should be shown before then.
+3. **The remaining directive items** not yet done: the `/preview` surface driven from the capability
+   contract (it renders real rows today), and the `boost-v1` non-linear question (still `verdict:
+   null`; do not rerun unchanged).
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (thirty-seventh), **the shadow path was given the market it actually trades in, a session calendar, and an outcome scorer; the 566 recorded predictions reconciled, and none has matured yet**
 **Branch `main`.** No dependency added, nothing installed, no production write, no schema change
 (pushed as this record; CI verified in the closeout). Local suite **1231 OK** (was 1202; **29 new**

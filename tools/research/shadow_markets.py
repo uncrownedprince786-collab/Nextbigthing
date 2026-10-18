@@ -146,10 +146,14 @@ def sessions_between(start: date, end: date, market: str | None) -> int:
 
 
 def capability(market: str, timeframe: str) -> dict:
-    """Whether a `timeframe` prediction in `market` can be judged, and the reason either way.
+    """What a `timeframe` prediction in `market` can be judged on, split into the three things that
+    were being conflated: whether the inputs exist, whether a market-specific prediction exists, and
+    whether the outcome can be judged.
 
-    The verdict is about the *data*, not the model: it says what a later outcome evaluation could
-    see, so a record that can never be scored is not created in the first place.
+    Separate axes because they fail independently, and collapsing them into one "supported" flag is
+    how a market silently becomes "covered". A market can have the inputs and a judgeable outcome
+    while still being predicted by a model that was never tuned for it -- that is a relabel, not a
+    market-specific model, and the caller has to be able to see the difference.
     """
     if market not in MARKETS:
         raise ValueError(f"unknown market {market!r}; known: {', '.join(MARKETS)}")
@@ -168,6 +172,29 @@ def capability(market: str, timeframe: str) -> dict:
         "timeframe": timeframe,
         "horizonSessions": tf["sessions"],
         "judgedOn": tf["judgedOn"],
+        # Input: the factor and price pipeline stores the same fields for every market, and the live
+        # lane has rows for each (US, PK, FX, Commodity, Crypto all present). Whether they are fresh
+        # is a separate, per-run fact that the readiness report measures and this does not assume.
+        "input": {
+            "available": True,
+            "note": "the factor/price tables carry rows for this market; freshness is a per-run "
+                    "fact reported elsewhere, not a property of the market",
+        },
+        # Prediction: the candidate is a single global model. It is applied to every market, but it
+        # was not trained or calibrated per market, so a call here is not a market-specific model's
+        # call. False is the honest value until a per-market profile actually exists.
+        "prediction": {
+            "marketSpecific": False,
+            "note": "one global model is applied; the features are not tuned or validated per "
+                    "market, so this is a relabel and not a market-specific model",
+        },
+        # Outcome: the axis this function was originally about -- can daily closes judge it at all.
+        "outcome": {
+            "verifiable": verifiable,
+            "judgedOn": tf["judgedOn"],
+            "reason": reason,
+        },
+        # Kept for existing callers; identical to outcome.verifiable.
         "verifiable": verifiable,
         "reason": reason,
     }

@@ -85,6 +85,27 @@ class CapabilitySaysWhatTheDataCanJudge(unittest.TestCase):
         with self.assertRaises(ValueError):
             mk.capability("US", "fortnight")
 
+    def test_capability_separates_input_prediction_and_outcome(self):
+        c = mk.capability("US", "swing")
+        for axis in ("input", "prediction", "outcome"):
+            self.assertIn(axis, c, axis)
+        # Verifiable input and outcome do not imply a market-specific model: that conflation is the
+        # thing this split exists to stop.
+        self.assertTrue(c["input"]["available"])
+        self.assertTrue(c["outcome"]["verifiable"])
+        self.assertFalse(c["prediction"]["marketSpecific"])
+
+    def test_a_scalp_call_has_an_outcome_axis_that_refuses(self):
+        c = mk.capability("Crypto", "scalp")
+        self.assertFalse(c["outcome"]["verifiable"])
+        self.assertIn("Crypto", c["outcome"]["reason"])
+        # The consequence must be visible even though the market has inputs and a prediction axis.
+        self.assertTrue(c["input"]["available"])
+
+    def test_no_market_claims_a_market_specific_model(self):
+        for r in mk.market_capability_matrix():
+            self.assertFalse(r["prediction"]["marketSpecific"], r["market"])
+
 
 class SessionsFollowTheMarketsOwnCalendar(unittest.TestCase):
     # 2026-10-16 is a Friday; 17/18 are the weekend; 19 is the Monday.

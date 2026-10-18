@@ -6,6 +6,7 @@ makes a scorer rerun additive, or grades a horizon the model was never trained o
 
 import re
 import sys
+import types
 import unittest
 from datetime import date, timedelta
 from pathlib import Path
@@ -15,6 +16,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(ROOT / "tools" / "research"))
 
 import make_dataset  # noqa: E402
+import shadow_predict as sp  # noqa: E402
 import shadow_score as ss  # noqa: E402
 
 
@@ -125,6 +127,43 @@ class PredictWriterTest(unittest.TestCase):
         for col in ('"strategy"', '"timeframe"', '"referencePrice"', '"features"',
                     '"sources"', '"inputCutoff"'):
             self.assertIn(col, self.src)
+
+
+class PredictWriteAccountTest(unittest.TestCase):
+    """An insert conflict must not be reported as a write, or a rerun looks additive."""
+
+    def _record(self):
+        return {"asOf": "2026-10-16", "assetId": "a1", "symbol": "AAPL", "market": "US",
+                "predicted": "UP", "scores": {"UP": 0.6}, "modelVersion": "brain-v2-context",
+                "modelSha256": "sha", "featureSchema": "ctx", "datasetVersion": "v4",
+                "quality": "ok", "imputed": [], "imputedCount": 0, "missingCritical": None,
+                "contextStatus": None, "macroAsOf": None, "macroAgeDays": None,
+                "horizonSessions": 20, "maturesAfter": "2026-11-13", "strategy": "swing",
+                "timeframe": "swing", "referencePrice": 100.0, "features": {"r1": 0.1},
+                "sources": None, "inputCutoff": "2026-10-16", "runId": "r", "commit": "c"}
+
+    def _install(self, rowcount):
+        fake = types.ModuleType("nbt")
+        cursor = FakeCursor(rowcount=rowcount)
+        conn = FakeConn()
+        conn.cursor = lambda: cursor
+        fake.db = lambda: conn
+        prev = sys.modules.get("nbt")
+        sys.modules["nbt"] = fake
+        self.addCleanup(lambda: sys.modules.__setitem__("nbt", prev) if prev
+                        else sys.modules.pop("nbt", None))
+        return cursor
+
+    def test_inserted_row_is_counted(self):
+        cur = self._install(1)
+        res = sp.write_rows([self._record()])
+        self.assertEqual(res, {"written": 1, "status": "ok"})
+        self.assertTrue(cur.calls)
+
+    def test_conflicting_row_is_not_counted_as_written(self):
+        self._install(0)
+        res = sp.write_rows([self._record()])
+        self.assertEqual(res, {"written": 0, "status": "ok"})
 
 
 class ScorerWriteTest(unittest.TestCase):
