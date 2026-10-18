@@ -1,0 +1,354 @@
+{
+ "generatedAt": "2026-10-18T04:00:40+00:00",
+ "version": "binary-context-v1",
+ "question": "does the binary UP-vs-DOWN target on all 44 context features beat its own majority out-of-sample with a converged class-balanced fit?",
+ "whyNotARerun": "every prior out-of-sample run on this cache carried the three-class label20 target; no prior run dropped FLAT and scored UP-vs-DOWN out-of-sample",
+ "data": {
+  "cache": ".cache\\foundation\\crypto_slice.npz",
+  "sha256": "b2264beec59e41d9af831aa8cd32a462d0fe367f6626fe553f222faa602c3924",
+  "bytes": 12271421,
+  "slice": "crypto",
+  "rowsInCache": 93452,
+  "rowsAfterDroppingFlat": 84444,
+  "flatsDropped": 9008,
+  "upShare": 0.4446,
+  "dateRange": [
+   "2018-12-24",
+   "2026-09-25"
+  ],
+  "features": 44
+ },
+ "target": {
+  "label": "binary UP vs DOWN, FLAT dropped",
+  "up": 1,
+  "down": 0,
+  "construction": "signal_floor.py lines 102-104"
+ },
+ "model": {
+  "optimizer": "fit_weighted imported unchanged from balanced_experiment",
+  "weightMatrixShape": [
+   45,
+   3
+  ],
+  "whyThreeColumns": "len(CLASSES) is 3; the FLAT column has no target rows, the same construction signal_floor used via fit_softmax",
+  "classWeights": "n / (2 * n_c) over the two classes present, normalised to mean 1 inside fit_weighted",
+  "tolerance": 1e-06,
+  "maxSteps": 20000,
+  "convergedFolds": 6,
+  "ofFolds": 6
+ },
+ "protocol": {
+  "folds": "baseline_experiment's rule: one fold per test year 2021..2026",
+  "embargoDecisionDates": 20,
+  "seed": 20261015,
+  "controlSeed": "SEED + 1000 + testYear",
+  "imputation": "training-fold column nan-mean",
+  "standardisation": "training-fold mean and standard deviation only",
+  "minTrainRows": 5000,
+  "minTestRows": 500,
+  "uncertainty": "moving-block bootstrap over decision dates, 20-date blocks, 400 resamples, candidate minus shuffled control",
+  "reference": "over_majority imported unchanged from stationarity"
+ },
+ "criteria": {
+  "C1_meanMarginPositive": [
+   -0.0527,
+   "> 0",
+   false
+  ],
+  "C2_foldsWon": [
+   1,
+   ">= 4",
+   false
+  ],
+  "C3_noDegenerateFold": [
+   [
+    2023,
+    2024,
+    2025
+   ],
+   "== []",
+   false
+  ],
+  "C4_controlIntervalExcludesZero": [
+   -0.0258,
+   "> 0",
+   false
+  ],
+  "C5_worstFoldMargin": [
+   -0.242,
+   ">= -0.05",
+   false
+  ]
+ },
+ "criteriaSource": "fixed in this docstring before any number from this run was seen",
+ "folds": [
+  {
+   "testYear": 2021,
+   "trainRows": 5732,
+   "testRows": 6632,
+   "trainEnds": "2020-12-11",
+   "testBegins": "2021-01-01",
+   "testEnds": "2021-12-31",
+   "steps": 2016,
+   "converged": true,
+   "finalLoss": 0.633885,
+   "accuracy": 0.4432,
+   "majority": 0.5112,
+   "margin": -0.068,
+   "beatsMajority": false,
+   "shuffledControlAccuracy": 0.4418,
+   "shuffledControlMargin": -0.0694,
+   "candidateMinusControl": 0.0014,
+   "predictedMix": {
+    "DOWN": 5387,
+    "FLAT": 1245,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 3390,
+    "FLAT": 3242,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.8123,
+   "actualShareOfWorstPredicted": 0.5112,
+   "degenerate": false,
+   "controlSteps": 998
+  },
+  {
+   "testYear": 2022,
+   "trainRows": 12106,
+   "testRows": 9722,
+   "trainEnds": "2021-12-11",
+   "testBegins": "2022-01-01",
+   "testEnds": "2022-12-31",
+   "steps": 1030,
+   "converged": true,
+   "finalLoss": 0.656725,
+   "accuracy": 0.6243,
+   "majority": 0.6467,
+   "margin": -0.0224,
+   "beatsMajority": false,
+   "shuffledControlAccuracy": 0.4961,
+   "shuffledControlMargin": -0.1506,
+   "candidateMinusControl": 0.1282,
+   "predictedMix": {
+    "DOWN": 7446,
+    "FLAT": 2276,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 6287,
+    "FLAT": 3435,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.7659,
+   "actualShareOfWorstPredicted": 0.6467,
+   "degenerate": false,
+   "controlSteps": 995
+  },
+  {
+   "testYear": 2023,
+   "trainRows": 21702,
+   "testRows": 11474,
+   "trainEnds": "2022-12-11",
+   "testBegins": "2023-01-01",
+   "testEnds": "2023-12-31",
+   "steps": 1023,
+   "converged": true,
+   "finalLoss": 0.637149,
+   "accuracy": 0.5003,
+   "majority": 0.5041,
+   "margin": -0.0038,
+   "beatsMajority": false,
+   "shuffledControlAccuracy": 0.5105,
+   "shuffledControlMargin": 0.0064,
+   "candidateMinusControl": -0.0102,
+   "predictedMix": {
+    "DOWN": 11334,
+    "FLAT": 140,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 5690,
+    "FLAT": 5784,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.9878,
+   "actualShareOfWorstPredicted": 0.4959,
+   "degenerate": true,
+   "controlSteps": 995
+  },
+  {
+   "testYear": 2024,
+   "trainRows": 33088,
+   "testRows": 14594,
+   "trainEnds": "2023-12-11",
+   "testBegins": "2024-01-01",
+   "testEnds": "2024-12-31",
+   "steps": 1016,
+   "converged": true,
+   "finalLoss": 0.654957,
+   "accuracy": 0.4894,
+   "majority": 0.5309,
+   "margin": -0.0415,
+   "beatsMajority": false,
+   "shuffledControlAccuracy": 0.4783,
+   "shuffledControlMargin": -0.0526,
+   "candidateMinusControl": 0.0111,
+   "predictedMix": {
+    "DOWN": 1123,
+    "FLAT": 13471,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 7748,
+    "FLAT": 6846,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.9231,
+   "actualShareOfWorstPredicted": 0.4691,
+   "degenerate": true,
+   "controlSteps": 993
+  },
+  {
+   "testYear": 2025,
+   "trainRows": 47546,
+   "testRows": 19206,
+   "trainEnds": "2024-12-11",
+   "testBegins": "2025-01-01",
+   "testEnds": "2025-12-31",
+   "steps": 1019,
+   "converged": true,
+   "finalLoss": 0.670328,
+   "accuracy": 0.3922,
+   "majority": 0.6341,
+   "margin": -0.242,
+   "beatsMajority": false,
+   "shuffledControlAccuracy": 0.407,
+   "shuffledControlMargin": -0.2272,
+   "candidateMinusControl": -0.0148,
+   "predictedMix": {
+    "DOWN": 1287,
+    "FLAT": 17919,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 12179,
+    "FLAT": 7027,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.933,
+   "actualShareOfWorstPredicted": 0.3659,
+   "degenerate": true,
+   "controlSteps": 988
+  },
+  {
+   "testYear": 2026,
+   "trainRows": 66390,
+   "testRows": 16848,
+   "trainEnds": "2025-12-11",
+   "testBegins": "2026-01-01",
+   "testEnds": "2026-09-25",
+   "steps": 1027,
+   "converged": true,
+   "finalLoss": 0.675776,
+   "accuracy": 0.6005,
+   "majority": 0.5388,
+   "margin": 0.0618,
+   "beatsMajority": true,
+   "shuffledControlAccuracy": 0.5116,
+   "shuffledControlMargin": -0.0272,
+   "candidateMinusControl": 0.089,
+   "predictedMix": {
+    "DOWN": 11797,
+    "FLAT": 5051,
+    "UP": 0
+   },
+   "actualMix": {
+    "DOWN": 9077,
+    "FLAT": 7771,
+    "UP": 0
+   },
+   "worstPredictedShare": 0.7002,
+   "actualShareOfWorstPredicted": 0.5388,
+   "degenerate": false,
+   "controlSteps": 991
+  }
+ ],
+ "summary": {
+  "foldsScored": 6,
+  "foldsWon": 1,
+  "foldsRequired": 4,
+  "meanMargin": -0.0527,
+  "meanShuffledControlMargin": -0.0868,
+  "worstFoldMargin": -0.242,
+  "worstFoldYear": 2025,
+  "degenerateFolds": [
+   2023,
+   2024,
+   2025
+  ],
+  "anyFoldDegenerate": true,
+  "pooledRows": 78476,
+  "bootstrap": {
+   "mean": 0.0315,
+   "p2_5": -0.0258,
+   "p97_5": 0.091,
+   "halfWidth": 0.0584,
+   "resamples": 400,
+   "blockDays": 20
+  },
+  "inSampleBoundFromSignalFloor": 0.0361,
+  "inSampleBoundNote": "signal_floor's in-sample binary/44 over-majority; a holdout number is expected to be smaller, not larger"
+ },
+ "byRegime": [
+  {
+   "regime": "2020-22 recovery",
+   "rows": 6713,
+   "accuracy": 0.4499,
+   "majority": 0.5171,
+   "margin": -0.0672,
+   "qualification": true
+  },
+  {
+   "regime": "2022 rate-shock bear",
+   "rows": 7339,
+   "accuracy": 0.6536,
+   "majority": 0.6656,
+   "margin": -0.012,
+   "qualification": false
+  },
+  {
+   "regime": "2023 banking stress",
+   "rows": 2730,
+   "accuracy": 0.7205,
+   "majority": 0.7209,
+   "margin": -0.0004,
+   "qualification": false
+  },
+  {
+   "regime": "2022-26 advance",
+   "rows": 64477,
+   "accuracy": 0.4928,
+   "majority": 0.559,
+   "margin": -0.0662,
+   "qualification": true
+  }
+ ],
+ "regimeClause": "reported, not a pass criterion; a regime with >= 1000 rows and margin <= -0.05 is named in the verdict",
+ "fidelityLimitations": [
+  "the cache carries no dataQuality mask, so the quarantine balanced_experiment applies cannot be reproduced here",
+  "crypto only: one market, 93,452 rows in the cache",
+  "three-column softmax with no FLAT targets, matching signal_floor's construction"
+ ],
+ "verdict": "NO-GO: C1_meanMarginPositive, C2_foldsWon, C3_noDegenerateFold, C4_controlIntervalExcludesZero, C5_worstFoldMargin failed the criteria fixed before this run. Qualification: adverse in 2020-22 recovery, 2022-26 advance.",
+ "failingCriteria": [
+  "C1_meanMarginPositive",
+  "C2_foldsWon",
+  "C3_noDegenerateFold",
+  "C4_controlIntervalExcludesZero",
+  "C5_worstFoldMargin"
+ ],
+ "nextQuestion": "the generalisation gap itself: what changes the margin, given the in-sample bound says the separation is present",
+ "notAPromotion": "a passing verdict is a candidate for reproduction, never a GO"
+}

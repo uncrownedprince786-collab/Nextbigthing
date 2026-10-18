@@ -1,5 +1,136 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-18 (thirty-first), **second registered experiment — NO-GO** (binary target, 44 features); B1's CI green; B2 root-caused
+
+**Branch `main`, HEAD `96da1b2` = `origin/main`, tree clean.** No database write this stretch: the
+audit and the `ChunkRun` probe were read-only, and the local rehearsal cluster is stopped.
+
+### CI green on the B1 commit
+
+`tests` workflow **run #294 on `96da1b2`, both jobs `completed/success`** — `types and lint` and
+`brain logic` (run `39089792358`, created `2026-10-18T02:21:28Z`). The B1/`volband` push is a
+green lane, not just a pushed one. (The earlier lookup used the wrong workflow id and 404'd; the
+`tests` workflow id is **371695103**, `retry` is 380014042.)
+
+### Registered and executed: `binary_context_experiment-v1` — **NO-GO, all five criteria failed**
+
+**`tools/research/binary_context_experiment.py`**, pre-registered in the docstring before any
+number from the run was seen. This was the cell the chain's own evidence had rated highest and
+never scored: `signal_floor.json` measured the **binary UP-vs-DOWN target on all 44 features at
++0.0361 over majority in-sample** (the best of four cells; the shipped three-class/15 cell manages
++0.0037) and concluded *"signal exists and the failure is generalisation"* — but every
+out-of-sample run so far carried the **three-class** `label20` target.
+
+**Why it is not a rerun.** `stationarity`, `prevalence_adjustment`, `cross_sectional_ranking`,
+`horizon_experiment` and `train_v3_crypto` all scored three classes; `balanced_experiment` scored
+three classes on 15 price features. None dropped FLAT and scored UP-vs-DOWN out-of-sample.
+
+**Held identical:** the exact `crypto_slice.npz` input `signal_floor` used (sha256 recorded),
+`signal_floor`'s row selection (`keep = y != FLAT`, 84,444 of 93,452 rows, UP share 0.4446),
+all 44 `ALL_FEATURES`, `baseline_experiment`'s fold rule (2021–2026, `EMBARGO` 20, min 5,000/500),
+training-fold-only imputation and standardisation, `fit_weighted` **imported unchanged** from
+`balanced_experiment` (TOL 1e-6, MAX_STEPS 20,000), `over_majority` and `block_bootstrap`
+imported from `stationarity`, `SEED = 20261015`.
+
+`fit_weighted` sizes its matrix from `len(CLASSES) = 3`, so this is a three-column softmax trained
+on labels {0,1} with no FLAT targets — **the same construction `signal_floor` used** (its
+`fit_in_sample` called `fit_softmax`, which takes `k = len(CLASSES)` at
+`baseline_experiment.py:136`), so the in-sample bound and this run differ only in how they are
+scored. The shape is asserted at run time. `--inspect` ran first, fitted nothing, wrote nothing —
+and caught a real bug in the plan (it compared row indices to a unique-date index and reported
+every fold as skipped) before any fit.
+
+| year | accuracy | majority | margin | shuffled control | steps |
+|---|---|---|---|---|---|
+| 2021 | 0.4432 | 0.5112 | **−0.0680** | −0.0694 | 2016 |
+| 2022 | 0.6243 | 0.6467 | **−0.0224** | −0.1506 | 1030 |
+| 2023 | 0.5003 | 0.5041 | **−0.0038** *(deg)* | +0.0064 | 1023 |
+| 2024 | 0.4894 | 0.5309 | **−0.0415** *(deg)* | −0.0526 | 1016 |
+| 2025 | 0.3922 | 0.6341 | **−0.2420** *(deg)* | −0.2272 | 1019 |
+| 2026 | 0.6005 | 0.5388 | **+0.0618** | −0.0272 | 1027 |
+
+| criterion (fixed before the run) | value | needed | |
+|---|---|---|---|
+| C1 mean margin > 0 | **−0.0527** | > 0 | ❌ |
+| C2 folds beating own majority | **1/6** | ≥ 4 | ❌ |
+| C3 no degenerate fold | 2023, 2024, 2025 | [] | ❌ |
+| C4 bootstrap CI for (candidate − control) excludes 0 | p2.5 **−0.0258**, p97.5 +0.0910 | p2.5 > 0 | ❌ |
+| C5 worst fold ≥ −0.05 | **−0.2420 (2025)** | ≥ −0.05 | ❌ |
+
+**Verdict: `NO-GO: C1, C2, C3, C4, C5 failed the criteria fixed before this run. Qualification:
+adverse in 2020-22 recovery, 2022-26 advance.`** Artifact
+`data/foundation/dataset/binary_context_experiment.json`.
+
+**What this settles.** The generalisation gap is now *quantified* rather than asserted: the
+in-sample bound was **+0.0361**, the out-of-sample mean is **−0.0527** — a gap of about **8.9
+points**, and the model does not merely fail to clear majority, it loses to it. Three independent
+readings agree:
+
+* **The optimizer is exonerated again.** Every fold converged (1,016–2,016 steps, far under
+  20,000), so the loss-based stop is not truncating the fit.
+* **The model is learning *something*, just not enough.** It beat its shuffled-label control on
+  average (−0.0527 vs −0.0868) and in 4 of 6 folds — but the block-bootstrap interval on the
+  difference spans zero, so that difference is not established.
+* **It fails where the majority is lopsided.** 2025 has majority 0.6341 and the model scores
+  0.3922: it is not falling back to the majority, it is predicting the other way, which is the
+  same anti-majority behaviour `brain_v2` showed.
+
+**Fidelity notes, recorded rather than hidden.** (1) Two context columns —
+`ctx_ownDaysSinceEvent`, `ctx_priorMedianFwd20` — are entirely NaN in the **2021 training window
+only** and become constants there; from 2022 on all 44 columns are populated, so this does not
+explain 2025. (2) The cache carries no `dataQuality` mask, so the quarantine
+`balanced_experiment` applies cannot be reproduced; rows were selected exactly as `signal_floor`
+selected them. (3) Crypto only — one market.
+
+### B2 root-caused: it is external throttling, not a workflow failure
+
+Every `cron products` **workflow** run is `success` (#18 on 2026-10-17 and back), so the FAIL is not
+GitHub. `jobRuns36h` reads the **`ChunkRun`** table (`tools/daily_audit.py:172-184`), and the three
+failing slices are:
+
+| status | source | what the note says |
+|---|---|---|
+| `blocked` ×2 | **Reddit public RSS** | *throttled **18 times** (www.reddit.com ×18); 2 of 30 products covered* |
+| `blocked` | **Wikipedia pageviews** | *throttled 6–7× (wikimedia.org); 27–28 of 30 products covered* |
+| `empty` | **Google Trends** | *30 of 30 products covered, **0 new rows*** |
+
+`blocked` means the host answered **429** — `jobs/nbt.py:164` documents exactly this case
+(*"Reddit answered 429 for 27 of 30 products and was filed as a quiet source"*), so the lane is
+recording the truth about somebody else's rate limit. **B2 is therefore not clearable from here**
+without an owner-side decision about Reddit/Wikimedia request rates.
+
+The `empty` row is a **misclassification worth one small fix**: `default_status(asked=30,
+rows_written=0)` returns `empty` (`jobs/runlog.py:170`) even though the note proves the lane
+counted `answered=30`. Passing `answered` through would make the default judge it `ok`/`partial`
+correctly, because `default_status` already handles `answered` (`runlog.py:172`). **Next action on
+B2:** pass the answer count in the Google Trends lane; the two `blocked` rows stay, by design.
+
+The probe also re-struck the pooler: the primary refused with `EMAXCONNSESSION` and the run fell
+back to `DATABASE_URL_FALLBACK`, so `runlog.recent()` returned standby rows ending 2026-10-13 —
+the pattern is identical there, which is why the diagnosis holds despite the fallback.
+
+### Where the brain campaign stands
+
+Eleven registered experiments, eleven NO-GOs. The mandatory gate that stopped training (**B1**) is
+closed and all five foundation gates pass, so training is permitted — but the evidence now says the
+obstruction is **generalisation**, not the label, the band, the horizon, the optimizer or the class
+balance, each of which has been tested and exonerated in turn.
+
+**Next executable action (brain):** the one axis no run has touched. Every experiment has used the
+same fixed `L2 = 1e-4` / `LR = 0.5` with no capacity control whatsoever, while `signal_floor`
+reports separation *in-sample* that does not survive out-of-sample — the textbook signature of
+under-regularisation. Pre-register a **regularisation sweep selected by inner validation on the
+training window only** (grid fixed in advance, test year touched exactly once per fold), scored on
+the same folds, with the same controls and the same five criteria. If capacity control cannot move
+a model that already overfits this badly, the family is exhausted and that is a result too.
+
+**Blockers unchanged:** B2 (external 429s; one `empty` misclassification is fixable), B3 (8 stale
+sources), B4 (`daily_audit.py` still unscheduled), B1's cloud leg (Google upload off; sealing key
+is an Actions secret), non-linear models (no declared dependency; `requirements.txt` is
+trust-fingerprinted), DB at 460.2 MB of 500 MB (92.0%).
+
+---
+
 ## 0. SESSION CHECKPOINT - 2026-10-18 (thirtieth), **B1 CLOSED** — real backup, real restore, foundation gates green; eligible-set/target-family experiment executed (fails)
 
 **Branch `main`, started from verified `a4023a0`, tree clean, `origin/main == HEAD`.** Database
