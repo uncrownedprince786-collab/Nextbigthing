@@ -6388,3 +6388,49 @@ reads rows that already exist:
       configuration.** The remaining question -- whether one non-linear configuration clears the
       linear family's five-failed criteria -- is still open, and open is the honest word for it.
 
+172. **A market code guessed from one column is a wrong market; a horizon counted in calendar days
+    is a wrong date; and a timeframe the data cannot judge is a prediction that can never be
+    scored.** 2026-10-19.
+    Commits: this record.
+
+    - **`source == 'psx'` -> `PK` else `US` filed three of five markets under the fourth.** The
+      first shadow path labelled a live row with the source alone, so FX pairs, commodity futures
+      and crypto were all recorded as US equities. The mistake would never have surfaced as an
+      error -- it would have surfaced as an FX model whose results were read under a US model's
+      name. `shadow_markets.market_of` reads `Asset.assetType` first and the source second, in the
+      same vocabulary `jobs/audit.py`, `jobs/seed.py` and `jobs/pool.py` already use, and the test
+      is a table of the exact mistypings that used to happen. **A label derived from a column that
+      is not the thing it labels is not a label; it is a coincidence that holds for some rows.**
+
+    - **A horizon measured in calendar days is wrong for at least one market.** `maturesAfter` was
+      `as_of + horizon*7//5 + 4`: about right for a US equity and *wrong* for crypto, which trades
+      weekends, and wrong again for any horizon spanning a holiday. Twenty sessions is roughly four
+      weeks for a US name and twenty days for a coin. The count is now taken on each market's own
+      calendar (`shadow_markets.sessions_after`, the same crypto-every-day/weekday-else rule
+      `jobs/sessions.py` enforces in SQL). **When two things are called by the same name, measure
+      the one the name describes.**
+
+    - **The capability matrix belongs before the infrastructure, not after the predictions.** A
+      scalp call is a claim about minutes; the database stores daily closes and cannot order what
+      happened inside a session, so a scalp prediction cannot be scored here -- not *hard to score*,
+      *cannot*. Recording one would create a row that matures into nothing, and an unscored row
+      reads later as neither right nor wrong. So `shadow_markets.capability` states, per market and
+      timeframe, what can be judged and why, and `market_capability.py` renders it. **A prediction
+      the project can never score is not a small waste; it is a future false negative wearing a
+      result's name.**
+
+    - **The scorecard grades on the shared label rule, and refuses to grade what has no rule.** The
+      trained label (`label20 = UP when fwd20 >= +2%, DOWN when <= -2%, else FLAT`) is imported from
+      `tools/make_dataset.py`, not re-stated in the scorer, because a copied threshold drifts. A
+      horizon with no defined rule (a 60-session position) is reported `unscorable` with the reason
+      rather than graded on an invented band, an unelapsed horizon is `awaiting` and never a wrong
+      direction, and `accuracy` is `null` -- not `0` -- when nothing has matured.
+
+    - **An assessment tool's own scope note is not a statement about the data.** `shadow_readiness`'s
+      artifact carries `status: "... no prediction recorded ..."`, and that sentence describes what
+      *the tool* does (it records nothing). It was read as a claim that the `ShadowPrediction` table
+      is empty. It is not: a read-only probe finds **566 rows**, all `brain-v2-context`, all the
+      single session **2026-10-15**, all `quality: ok`, horizon 20, markets US 347 / PK 219, with
+      **0 approved and 0 scored**, matching the restore rehearsal's count. **A tool that says "I did
+      not write anything" has said nothing about whether anything was written.**
+

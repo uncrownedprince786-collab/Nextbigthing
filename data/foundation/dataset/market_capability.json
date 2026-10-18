@@ -1,0 +1,237 @@
+{
+ "generatedAt": "2026-10-18T22:59:33+00:00",
+ "version": "market-capability-v1",
+ "status": "reference table; it says what can be judged, not what is deployed",
+ "markets": [
+  "US",
+  "PK",
+  "FX",
+  "Commodity",
+  "Crypto"
+ ],
+ "timeframes": {
+  "scalp": 0,
+  "intraday": 1,
+  "swing": 20,
+  "position": 60
+ },
+ "profiles": [
+  {
+   "market": "US",
+   "tradesOnWeekends": false,
+   "priceSource": "Yahoo Finance daily closes (stocks, ETFs)",
+   "sessionRule": "Monday to Friday; exchange holidays are not stored and are not subtracted"
+  },
+  {
+   "market": "PK",
+   "tradesOnWeekends": false,
+   "priceSource": "Pakistan Stock Exchange daily closes",
+   "sessionRule": "Monday to Friday; exchange holidays are not stored and are not subtracted"
+  },
+  {
+   "market": "FX",
+   "tradesOnWeekends": false,
+   "priceSource": "Yahoo Finance daily closes (currency pairs)",
+   "sessionRule": "Monday to Friday; exchange holidays are not stored and are not subtracted"
+  },
+  {
+   "market": "Commodity",
+   "tradesOnWeekends": false,
+   "priceSource": "Yahoo Finance daily closes (futures)",
+   "sessionRule": "Monday to Friday; exchange holidays are not stored and are not subtracted"
+  },
+  {
+   "market": "Crypto",
+   "tradesOnWeekends": true,
+   "priceSource": "CoinPaprika daily closes",
+   "sessionRule": "every calendar day"
+  }
+ ],
+ "matrix": [
+  {
+   "market": "US",
+   "timeframe": "scalp",
+   "horizonSessions": 0,
+   "judgedOn": "the move within a session, over minutes",
+   "verifiable": false,
+   "reason": "US: a scalp is a claim about minutes; daily closes cannot order what happened inside one session, so a scalp prediction is not scoreable from anything the project stores"
+  },
+  {
+   "market": "US",
+   "timeframe": "intraday",
+   "horizonSessions": 1,
+   "judgedOn": "the same session's close",
+   "verifiable": true,
+   "reason": "US: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; US on weekdays otherwise)."
+  },
+  {
+   "market": "US",
+   "timeframe": "swing",
+   "horizonSessions": 20,
+   "judgedOn": "the 20-session forward return against the +/-2% label band",
+   "verifiable": true,
+   "reason": "US: the horizon the model was trained on; the label rule is fixed in tools/make_dataset. Sessions are counted on this market's own calendar (crypto every day; US on weekdays otherwise)."
+  },
+  {
+   "market": "US",
+   "timeframe": "position",
+   "horizonSessions": 60,
+   "judgedOn": "the 60-session forward return",
+   "verifiable": true,
+   "reason": "US: judgeable from daily closes, but needs 60 sessions of history after the decision. Sessions are counted on this market's own calendar (crypto every day; US on weekdays otherwise)."
+  },
+  {
+   "market": "PK",
+   "timeframe": "scalp",
+   "horizonSessions": 0,
+   "judgedOn": "the move within a session, over minutes",
+   "verifiable": false,
+   "reason": "PK: a scalp is a claim about minutes; daily closes cannot order what happened inside one session, so a scalp prediction is not scoreable from anything the project stores"
+  },
+  {
+   "market": "PK",
+   "timeframe": "intraday",
+   "horizonSessions": 1,
+   "judgedOn": "the same session's close",
+   "verifiable": true,
+   "reason": "PK: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; PK on weekdays otherwise)."
+  },
+  {
+   "market": "PK",
+   "timeframe": "swing",
+   "horizonSessions": 20,
+   "judgedOn": "the 20-session forward return against the +/-2% label band",
+   "verifiable": true,
+   "reason": "PK: the horizon the model was trained on; the label rule is fixed in tools/make_dataset. Sessions are counted on this market's own calendar (crypto every day; PK on weekdays otherwise)."
+  },
+  {
+   "market": "PK",
+   "timeframe": "position",
+   "horizonSessions": 60,
+   "judgedOn": "the 60-session forward return",
+   "verifiable": true,
+   "reason": "PK: judgeable from daily closes, but needs 60 sessions of history after the decision. Sessions are counted on this market's own calendar (crypto every day; PK on weekdays otherwise)."
+  },
+  {
+   "market": "FX",
+   "timeframe": "scalp",
+   "horizonSessions": 0,
+   "judgedOn": "the move within a session, over minutes",
+   "verifiable": false,
+   "reason": "FX: a scalp is a claim about minutes; daily closes cannot order what happened inside one session, so a scalp prediction is not scoreable from anything the project stores"
+  },
+  {
+   "market": "FX",
+   "timeframe": "intraday",
+   "horizonSessions": 1,
+   "judgedOn": "the same session's close",
+   "verifiable": true,
+   "reason": "FX: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; FX on weekdays otherwise)."
+  },
+  {
+   "market": "FX",
+   "timeframe": "swing",
+   "horizonSessions": 20,
+   "judgedOn": "the 20-session forward return against the +/-2% label band",
+   "verifiable": true,
+   "reason": "FX: the horizon the model was trained on; the label rule is fixed in tools/make_dataset. Sessions are counted on this market's own calendar (crypto every day; FX on weekdays otherwise)."
+  },
+  {
+   "market": "FX",
+   "timeframe": "position",
+   "horizonSessions": 60,
+   "judgedOn": "the 60-session forward return",
+   "verifiable": true,
+   "reason": "FX: judgeable from daily closes, but needs 60 sessions of history after the decision. Sessions are counted on this market's own calendar (crypto every day; FX on weekdays otherwise)."
+  },
+  {
+   "market": "Commodity",
+   "timeframe": "scalp",
+   "horizonSessions": 0,
+   "judgedOn": "the move within a session, over minutes",
+   "verifiable": false,
+   "reason": "Commodity: a scalp is a claim about minutes; daily closes cannot order what happened inside one session, so a scalp prediction is not scoreable from anything the project stores"
+  },
+  {
+   "market": "Commodity",
+   "timeframe": "intraday",
+   "horizonSessions": 1,
+   "judgedOn": "the same session's close",
+   "verifiable": true,
+   "reason": "Commodity: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; Commodity on weekdays otherwise)."
+  },
+  {
+   "market": "Commodity",
+   "timeframe": "swing",
+   "horizonSessions": 20,
+   "judgedOn": "the 20-session forward return against the +/-2% label band",
+   "verifiable": true,
+   "reason": "Commodity: the horizon the model was trained on; the label rule is fixed in tools/make_dataset. Sessions are counted on this market's own calendar (crypto every day; Commodity on weekdays otherwise)."
+  },
+  {
+   "market": "Commodity",
+   "timeframe": "position",
+   "horizonSessions": 60,
+   "judgedOn": "the 60-session forward return",
+   "verifiable": true,
+   "reason": "Commodity: judgeable from daily closes, but needs 60 sessions of history after the decision. Sessions are counted on this market's own calendar (crypto every day; Commodity on weekdays otherwise)."
+  },
+  {
+   "market": "Crypto",
+   "timeframe": "scalp",
+   "horizonSessions": 0,
+   "judgedOn": "the move within a session, over minutes",
+   "verifiable": false,
+   "reason": "Crypto: a scalp is a claim about minutes; daily closes cannot order what happened inside one session, so a scalp prediction is not scoreable from anything the project stores"
+  },
+  {
+   "market": "Crypto",
+   "timeframe": "intraday",
+   "horizonSessions": 1,
+   "judgedOn": "the same session's close",
+   "verifiable": true,
+   "reason": "Crypto: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; Crypto on weekdays otherwise)."
+  },
+  {
+   "market": "Crypto",
+   "timeframe": "swing",
+   "horizonSessions": 20,
+   "judgedOn": "the 20-session forward return against the +/-2% label band",
+   "verifiable": true,
+   "reason": "Crypto: the horizon the model was trained on; the label rule is fixed in tools/make_dataset. Sessions are counted on this market's own calendar (crypto every day; Crypto on weekdays otherwise)."
+  },
+  {
+   "market": "Crypto",
+   "timeframe": "position",
+   "horizonSessions": 60,
+   "judgedOn": "the 60-session forward return",
+   "verifiable": true,
+   "reason": "Crypto: judgeable from daily closes, but needs 60 sessions of history after the decision. Sessions are counted on this market's own calendar (crypto every day; Crypto on weekdays otherwise)."
+  }
+ ],
+ "live": {
+  "status": "ok",
+  "byMarket": {
+   "US": {
+    "assets": 281,
+    "newestSession": "2026-10-16"
+   },
+   "PK": {
+    "assets": 226,
+    "newestSession": "2026-10-16"
+   },
+   "FX": {
+    "assets": 27,
+    "newestSession": "2026-10-16"
+   },
+   "Commodity": {
+    "assets": 8,
+    "newestSession": "2026-10-16"
+   },
+   "Crypto": {
+    "assets": 76,
+    "newestSession": "2026-10-16"
+   }
+  }
+ }
+}

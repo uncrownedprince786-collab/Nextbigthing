@@ -56,7 +56,7 @@ import gzip
 import json
 import os
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -67,6 +67,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "tools" / "foundation"))
 
 from context_features import ContextSource  # noqa: E402
+import shadow_markets as mk  # noqa: E402
 
 DEFAULT_MODEL = ROOT / "data" / "foundation" / "brain" / "brain-v2-context"
 DEFAULT_DS = ROOT / ".cache" / "foundation" / "dataset_v4"
@@ -118,8 +119,19 @@ def load_model(mdir: Path) -> dict:
 
 def predict_one(model: dict, price: dict, ctx_block: dict | None, *,
                 asset_id: str, symbol: str, market: str, as_of: date,
-                horizon: int = 20) -> dict:
-    """One record, whatever the inputs were worth. Never raises on missing data."""
+                horizon: int | None = None, strategy: str = "swing",
+                timeframe: str | None = None,
+                reference_price: float | None = None) -> dict:
+    """One record, whatever the inputs were worth. Never raises on missing data.
+
+    `horizon` defaults to the session count the named `strategy` implies (`shadow_markets`), so a
+    caller cannot record a call as "swing" and then measure it over an unrelated number of
+    sessions. `reference_price` is the close the call was read from -- the base an outcome is
+    measured against -- and is recorded, because without it a stored prediction cannot be scored
+    without re-deriving what it saw.
+    """
+    if horizon is None:
+        horizon = mk.STRATEGY_SESSIONS.get(strategy, 20)
     ctx_f = {}
     ctx_status = {}
     if ctx_block:
@@ -127,15 +139,17 @@ def predict_one(model: dict, price: dict, ctx_block: dict | None, *,
         ctx_status = {k: (ctx_block.get(k) or {}).get("status")
                       for k in ("macro", "events", "press", "reactionPrior", "quality", "news")}
 
-    values, imputed = [], []
+    values, imputed, observed = [], [], {}
     for i, name in enumerate(model["features"]):
         v = price.get(name) if name in price else ctx_f.get(name)
         if isinstance(v, str):
             v = {"up": 1.0, "down": -1.0}.get(v, 0.0)
         if v is None:
             imputed.append(name)
+            observed[name] = None
             values.append(float(model["mu"][i]))     # the training mean: zero after standardising
         else:
+            observed[name] = float(v)
             values.append(float(v))
 
     critical = set(model.get("critical") or ())
@@ -155,6 +169,9 @@ def predict_one(model: dict, price: dict, ctx_block: dict | None, *,
         "modelVersion": model["version"], "modelSha256": model["sha256"],
         "featureSchema": model["featureSchema"], "datasetVersion": model["datasetVersion"],
         "approved": False,
+        "strategy": strategy, "timeframe": timeframe or strategy,
+        "referencePrice": reference_price, "inputCutoff": as_of.isoformat(),
+        "features": observed, "sources": ctx_status or None,
         "imputed": imputed, "imputedCount": len(imputed),
         "imputedExpected": expected, "imputedUnexpected": unexpected,
         "missingCritical": missing_critical or None,
@@ -162,7 +179,9 @@ def predict_one(model: dict, price: dict, ctx_block: dict | None, *,
         "macroAsOf": (ctx_block or {}).get("macro", {}).get("asOf"),
         "macroAgeDays": (ctx_block or {}).get("macro", {}).get("ageDays"),
         "horizonSessions": horizon,
-        "maturesAfter": (as_of + timedelta(days=horizon * 7 // 5 + 4)).isoformat(),
+        # The n-th session of *this asset's market*, not n calendar weeks. A weekday market lands
+        # on a weekday and crypto may land on a weekend, because that is when each trades.
+        "maturesAfter": mk.matures_after(as_of, horizon, market).isoformat(),
         "createdAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
     if missing_critical:
@@ -220,9 +239,11 @@ def live_rows(limit: int):
     would be scoring rows whose outcome already exists -- a backtest wearing a shadow run's
     name. The newest `AssetFactor` session has no matured outcome yet, which is the whole point.
 
-    `market` is derived from `Asset.source` because the Asset table has no market column. Only
-    `PK` matters: it is the single market-scoped entry in the context producer, and everything
-    else simply needs not to be `PK`.
+    `market` comes from `shadow_markets.market_of`, which reads `Asset.assetType` first and the
+    source second. The older derivation here (`source == 'psx'` -> PK else US) filed FX,
+    commodities and crypto under `US`; that is the defect this and the readiness report exist to
+    stop repeating. The reference close -- the base an outcome is measured from -- is read
+    alongside, so a stored prediction can be scored later without re-deriving what it saw.
     """
     sys.path.insert(0, str(ROOT / "jobs"))
     try:
@@ -242,8 +263,10 @@ def live_rows(limit: int):
         raise SystemExit("no AssetFactor rows: nothing to predict from")
     cols = ", ".join(f'f."{c}"' for c in PRICE_COLUMNS)
     cur.execute(
-        f'SELECT f."assetId", a.symbol, '
-        "CASE WHEN a.source = 'psx' THEN 'PK' ELSE 'US' END AS market, " + cols + " "
+        f'SELECT f."assetId", a.symbol, a."assetType", a.source, '
+        '(SELECT s.close FROM "PriceSnapshot" s '
+        'WHERE s."assetId" = f."assetId" AND s.date = f."periodEnd") AS ref_close, '
+        + cols + " "
         'FROM "AssetFactor" f JOIN "Asset" a ON a.id = f."assetId" '
         'WHERE f."periodEnd" = %s ORDER BY a.symbol LIMIT %s', (newest, limit))
     rows = cur.fetchall()
@@ -252,7 +275,11 @@ def live_rows(limit: int):
     out = []
     for r in rows:
         out.append({"asOf": newest.isoformat() if hasattr(newest, "isoformat") else str(newest),
-                    "assetId": r["assetId"], "symbol": r["symbol"], "market": r["market"],
+                    "assetId": r["assetId"], "symbol": r["symbol"],
+                    "assetType": r["assetType"],
+                    "market": mk.market_of(r["assetType"], r["source"]),
+                    "referencePrice": (float(r["ref_close"])
+                                       if r["ref_close"] is not None else None),
                     "pit": {"f": {c: r.get(c) for c in PRICE_COLUMNS}}})
     return out, (newest.isoformat() if hasattr(newest, "isoformat") else str(newest))
 
@@ -301,6 +328,11 @@ def main() -> int:
     ap.add_argument("--dataset", default=str(DEFAULT_DS))
     ap.add_argument("--prefix", default="examples-v4-context")
     ap.add_argument("--limit", type=int, default=20)
+    ap.add_argument("--strategy", default="swing", choices=sorted(mk.TIMEFRAMES),
+                    help="the horizon profile this call is made under; the session count is "
+                         "taken from shadow_markets, not guessed")
+    ap.add_argument("--timeframe", default=None,
+                    help="an optional finer timeframe label; defaults to the strategy name")
     ap.add_argument("--write", action="store_true")
     ap.add_argument("--out", default=str(OUT))
     a = ap.parse_args()
@@ -327,21 +359,25 @@ def main() -> int:
         records.append(predict_one(model, r["pit"]["f"], block,
                                    asset_id=r.get("assetId") or r["symbol"],
                                    symbol=r["symbol"], market=r.get("market") or "",
-                                   as_of=as_of))
+                                   as_of=as_of, strategy=a.strategy, timeframe=a.timeframe,
+                                   reference_price=r.get("referencePrice")))
 
     by_q = {q: sum(1 for x in records if x["quality"] == q) for q in (OK, DEGRADED, REFUSED)}
     by_p = {}
+    by_m = {}
     for x in records:
         by_p[x["predicted"]] = by_p.get(x["predicted"], 0) + 1
+        by_m[x["market"]] = by_m.get(x["market"], 0) + 1
     payload = {
         "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "version": "shadow-predict-v1",
+        "version": "shadow-predict-v2",
         "status": "experimental; the model is NOT production-approved and nothing here is a "
                   "trading signal",
         "asOf": as_of_str, "source": "live AssetFactor" if a.live else "dataset",
         "model": model["version"], "modelSha256": model["sha256"],
+        "strategy": a.strategy, "timeframe": a.timeframe or a.strategy,
         "criticalRules": list(CRITICAL),
-        "byQuality": by_q, "byPredictedClass": by_p,
+        "byQuality": by_q, "byPredictedClass": by_p, "byMarket": by_m,
         "records": records,
     }
     if a.write:
@@ -355,6 +391,7 @@ def main() -> int:
     Path(a.out).write_text(json.dumps(payload, indent=1), encoding="utf-8")
 
     print(f"  rows {len(records)}  quality {by_q}  predicted {by_p}")
+    print(f"  by market {by_m}")
     worst = max(records, key=lambda r: r["imputedCount"])
     print(f"  most-imputed row: {worst['symbol']} {worst['imputedCount']} of "
           f"{len(model['features'])} features imputed, quality {worst['quality']}")

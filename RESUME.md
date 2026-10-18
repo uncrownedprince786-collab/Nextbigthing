@@ -1,5 +1,60 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (thirty-seventh), **the shadow path was given the market it actually trades in, a session calendar, and an outcome scorer; the 566 recorded predictions reconciled, and none has matured yet**
+**Branch `main`.** No dependency added, nothing installed, no production write, no schema change
+(pushed as this record; CI verified in the closeout). Local suite **1231 OK** (was 1202; **29 new**
+across two new test files), `python -m compileall -q jobs tools tests` clean. The three live runs
+below are **read-only** against the primary.
+
+### What the directive's first two questions were, and the measured answers
+
+| question | answer (measured) |
+|---|---|
+| the readiness report says "no prediction recorded" — is the table empty? | **No.** A read-only probe finds **566 rows**, all `brain-v2-context`, all the single session **2026-10-15**, all `quality: ok`, `horizonSessions 20`, markets **US 347 / PK 219**, **0 approved, 0 scored**. The readiness artifact's `status: "… no prediction recorded …"` is *the tool's own scope note* (it writes nothing), not a claim about the table. `restore_rehearsal.json` counts the same 566. |
+| which markets does a live run actually have to serve? | `AssetFactor` newest session **2026-10-16**, **618 assets**: **US 281, PK 226, FX 27, Commodity 8, Crypto 76** (by `assetType`/`source`, not by `source == 'psx'`). |
+
+### The defects fixed (a shadow run is only as good as its labels)
+
+| file | before | now |
+|---|---|---|
+| `tools/research/shadow_markets.py` (**new**) | — | `market_of(assetType, source)`; the site's five markets; timeframe profiles (scalp/intraday/swing/position); `capability(market, timeframe)`; `sessions_after` / `matures_after` / `sessions_between` on each market's own calendar; `market_profile` |
+| `tools/research/shadow_predict.py` | market = `source == 'psx'` → PK else US (**FX, Commodity, Crypto all mislabelled US**); `maturesAfter` = `as_of + horizon*7//5 + 4` (**calendar, not sessions**) | market from `market_of`; `maturesAfter` from `mk.matures_after`; records `strategy`, `timeframe`, `referencePrice` (the close the call was read from), `inputCutoff`, the observed `features`, and `sources` |
+| `tools/research/shadow_score.py` (**new**) | nothing scored ML predictions; `scorecard.py` scores `DecisionLog` only | reads `ShadowPrediction`, computes the realized forward outcome, writes `shadow_scorecard.json`; **never edits a prediction**; grades on the imported `make_dataset` label rule, not a copy |
+| `tools/research/market_capability.py` (**new**) | — | renders the matrix + live per-market counts to `market_capability.json` |
+| `tests/test_shadow_markets.py`, `tests/test_shadow_score.py` (**new**) | — | 19 + 10 tests: the exact mistypings, the calendar, capability verdicts, the shared threshold, `awaiting` vs matured vs graded, accuracy `null` over nothing |
+
+**A `scalp` prediction is not "hard to score here" — it *cannot* be scored:** daily closes cannot
+order what happened inside a session, so `capability()` returns `verifiable: false` for every market
+at `scalp`. That verdict exists so no such record is ever created (a row that matures into nothing
+reads later as an unscored success).
+
+### The fresh current-data dry run, and the scorecard
+
+* `shadow_predict.py --live --limit 30` → newest session **2026-10-16**, 30 rows: quality
+  **ok 28 / refused 2**, by market **US 14 / Crypto 3 / PK 13** (correct classification — the old
+  code would have called the Crypto rows US), predicted **UP 28 + 2 refused**. The **UP bias is
+  visible and the candidate is still NO-GO** (`productionApproved: false`) — nothing here is a
+  signal. Artifact: `data/foundation/dataset/shadow_predictions_live_20261016.json`
+  (`shadow-predict-v2`); the earlier `shadow_predictions.json` (the 2026-10-15 run) is preserved
+  unchanged rather than overwritten.
+* `shadow_score.py --as-of 2026-10-19` → **566 rows, awaiting 566, matured 0, graded 0,
+  accuracy `null`.** Correct: the stored 20-session US horizon matures ~**2026-11-13**, so nothing
+  has matured. Artifact: `data/foundation/dataset/shadow_scorecard.json`.
+* `market_capability.py --probe-db` → matrix written, live counts above.
+
+### Still owed (the next stretch, in order)
+
+1. **The schema extension the directive names, through the `prisma/**` push (the `schema.yml` lane).**
+   Additive only: `strategy`, `timeframe`, `referencePrice`, `features`/`sources` on
+   `ShadowPrediction`, a unique key that admits more than one strategy per asset-session, and a
+   separate, linked **`ShadowOutcome`** table so outcomes never mutate a prediction. Then point
+   `lib/queries.ts getShadowPredictions` and the preview screen at the outcome table (they already
+   render awaiting/matured/scored; only the source of `scored` moves), and give `shadow_score.py` a
+   `--write`.
+2. **One market-specific model per market the matrix shows is verifiable** (all five at swing), not
+   one model repainted five times — the next research step after the schema lands.
+3. **A bounded prospective canary** over the live lane once outcomes can be recorded.
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (thirty-sixth), **the boost harness was made correct before it was allowed to fit a market row, and it then ran out of its own declared budget: `verdict: null`, no result, a resumable checkpoint**
 **Branch `main`.** The harness repairs were pushed as `10169d2` and CI run **#302** (id
 39167887783) on that commit = **success**. The run itself is `boost_experiment.json` =
