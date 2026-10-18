@@ -1,11 +1,13 @@
 # Resume here
 
 ## 0. SESSION CHECKPOINT - 2026-10-18 (thirty-fifth), **every binary verdict was produced by a three-logit model on a two-label target — corrected, re-measured, NO-GO again**
-
-**Branch `main`, local suite 1193 OK** (was 1164; 29 new), `python -m compileall -q jobs` clean,
-`npx tsc --noEmit` clean, `npx eslint .` clean. No database access this stretch: one defect fixed,
-six research files edited, three runs in the registered order, one full suite. No dependency added,
-nothing installed, no production path touched.
+**Branch `main`, tree clean.** This checkpoint was pushed as `f918618`, and CI run **#299** (id
+39162913449) on that commit = **success**, both jobs green (`brain logic`, `types and lint`).
+Local suite **1193 OK** (was 1164;
+29 new), `python -m compileall -q jobs` clean, `npx tsc --noEmit` clean, `npx eslint .` clean. No
+database access this stretch: one defect fixed, six research files edited, three runs in the
+registered order, one full suite. No dependency added, nothing installed, no production path
+touched.
 
 ### The defect — and the fact that this file already carried the evidence for it
 
