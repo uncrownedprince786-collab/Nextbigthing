@@ -37,6 +37,11 @@ on:
       # `LANES` in tools/watchdog.py is the set it may dispatch, and a backup is not a data lane --
       # a failed one needs a person, not another 30 MB dump an hour later.
       - "cron backup"
+      # Listed for the same reason as a backup: so the watchdog reads the heartbeat right after
+      # the morning verdict lands. It cannot restart this one either -- `LANES` in
+      # tools/watchdog.py is the set it may dispatch and a health verdict is not a data lane, so
+      # re-running it would only re-read the same database.
+      - "cron daily audit"
     types: [completed]
   workflow_dispatch:
 

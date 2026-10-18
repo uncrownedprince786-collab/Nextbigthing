@@ -1,5 +1,55 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-18 (thirty-fourth), **B4 closed — and the B2 "one-line fix" does not exist**
+
+**Branch `main`, suite 1164 OK** (was 1163; one guard added).
+
+### B4: the composed health verdict is now scheduled
+
+`.github/workflows/cron-daily-audit.yml`, **`25 5 * * *`** UTC — after the nightly backup
+(04:40) and before the coverage snapshot (05:35), minute 25 unused by every other lane. Own
+concurrency group so it can never queue behind what it audits; `ref: main` plus the same
+prove-the-commit step every scheduled lane carries; one connection, per the pooler's 15-client
+ceiling; `set +e` so the summary is written even when the verdict is `fail`, then `exit $code`
+unmodified, and the JSON uploaded on `always()`.
+
+**It is expected to go red and stay red.** Today it reads `ok 13 / warn 2 / fail 1 → healthy:
+False, exit 1` — `jobRuns36h` fails because Reddit and Wikipedia are genuinely throttled, and
+`sourceCoverage` and `databaseSize` genuinely warn. A green badge over those checks would be the
+false all-clear the audit's own docstring exists to prevent, so the red is the deliverable.
+
+The watchdog guard forced the companion change: `cron-watchdog.yml` must name every `cron-*.yml`
+in its `workflow_run.workflows` or `test_the_workflow_runs_hourly_with_only_the_permission_it_needs`
+fails. It now lists `cron daily audit`, for the same reason it lists `cron backup` — so the
+heartbeat is read right after — and **cannot dispatch it**, because `LANES` in `tools/watchdog.py`
+is a fixed six-file set of data lanes. New guard `test_the_daily_audit_lane_is_scheduled_and_must_be_allowed_to_go_red`
+pins all of that: schedule, own group, `ref: main`, no `continue-on-error`, `exit $code`, and
+`cron-daily-audit.yml` absent from `LANES`.
+
+### B2 correction: passing `answered` through would mask, not fix
+
+An earlier checkpoint recorded the Google Trends `empty` row as a one-function-call fix. On
+reading it, **it is not a fix, and doing it would be a regression.** `jobs/signals.py:684` does
+set `run.answered`, but it comes from `covered_products()`, which counts products holding a row
+at the source's **already-stored** `periodEnd`. When `rows_written == 0` that `newest` is the
+*previous* run's, so `answered = 30` is stale coverage, not evidence that this run got a response.
+
+Both readings fit the same record: the provider answered and rewrote an identical week (row count
+unchanged → `rows_written 0`), **or** the provider returned nothing after `trends_signals` swallowed
+three attempts each and `continue`d (`jobs/signals.py:164`). Passing `answered` into
+`default_status` so `answered == asked` returns `ok` would therefore declare a silent host healthy
+— and would do it for **all five lanes**, not just Trends, since every one of them feeds
+`covered_products`. `default_status` returning `empty` on zero rows is currently the conservative
+and **correct** answer, and its docstring already says why.
+
+**Exact next executable action for B2:** give the runners a *response* count — products the
+provider actually returned data for this run, distinct from coverage over stored rows — set
+`run.answered` from that, and only then let `default_status` treat full-response-plus-zero-rows as
+`ok`. Until that instrumentation exists the Google Trends `empty` is ambiguous by construction and
+must stand. **B2 does not clear either way**: `jobRuns36h` still fails on `cron products:blockedx2`
+from external Reddit/Wikimedia 429s.
+
+
 ## 0. SESSION CHECKPOINT - 2026-10-18 (thirty-third), **the eligible set is exonerated — the linear family has nowhere left to stand**
 
 **Branch `main`, HEAD pushed, tree clean.** CI **run #296 on `d5060d3` = success** (workflow

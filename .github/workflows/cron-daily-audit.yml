@@ -1,0 +1,113 @@
+name: cron daily audit
+
+# The composed answer to "is the system healthy today".
+#
+# `jobs/audit.py` (workflow `cron audit`, every odd hour) answers a narrower question: is the
+# *stored data* covered and fresh. This one composes every owner that already exists --
+# `lib/health.ts` staleness rules, `ChunkRun` outcomes, `Coverage` gaps, `price_freshness`,
+# the dataset freeze digests and the brain manifests -- into a single verdict with one exit
+# code, which is the morning question the narrow lanes cannot answer. It re-derives nothing
+# that already has an owner, so the two workflows cannot disagree about what fresh means.
+#
+# Read-only, one connection, no network. The pooler accepts 15 session-mode clients and that
+# ceiling has broken runs in this project; this job opens exactly one connection and closes it,
+# so a monitoring lane can never be the reason a source lane runs out of room.
+#
+# The red is the deliverable. It exits 1 whenever any check is `fail`, which today it does,
+# because `jobRuns36h` is genuinely failing and `sourceCoverage` is genuinely stale. A workflow
+# that reported green over failing checks would be the false all-clear this project's own audit
+# docstring warns about -- so this lane is expected to stay red until B2 and B3 are clear, and
+# that red is the honest signal, not a bug to route around.
+on:
+  schedule:
+    # 05:25 UTC. Two reasons, both about what the verdict is read against: it lands after the
+    # nightly backup (04:40) and before the coverage snapshot (05:35), so it judges a database
+    # that has just been written and sealed rather than one mid-write -- the same reasoning
+    # `cron audit` uses for its odd hours. Minute 25 is unused by every other lane in the
+    # four-minute spread (05, 10, 20, 35, 40, 45, 50), so it never shares a slot.
+    - cron: "25 5 * * *"
+  workflow_dispatch:
+
+# Its own group, for the reason `cron audit` gives: an audit queued behind what it audits is
+# cancelled whenever the system is busiest, and reports health exactly when health is least
+# likely to hold. GitHub keeps one pending run per group, so sharing would also mean the next
+# source to arrive cancels this outright.
+concurrency:
+  group: nbt-daily-audit
+  cancel-in-progress: false
+
+jobs:
+  daily-audit:
+    name: is the system healthy today
+    runs-on: ubuntu-latest
+    # It is one connection, some file reads and arithmetic. If it has not finished in ten
+    # minutes the database is the finding, and hanging the monitor is worse than losing it.
+    timeout-minutes: 10
+    steps:
+      # `main` explicitly, and then proved. GitHub takes a scheduled workflow's file from the
+      # default branch and runs that branch's code, and `master` was 34 commits behind `main`
+      # as late as 2026-10-03 -- which is how two guards that read correctly in the working
+      # tree turned out never to have executed. An audit running old thresholds while
+      # reporting success is a false all-clear, so the step below proves the commit.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prove this run is executing main
+        run: |
+          head="$(git rev-parse HEAD)"
+          git fetch origin main --quiet
+          want="$(git rev-parse origin/main)"
+          echo "checked out $head"
+          echo "origin/main  $want"
+          if [ "$head" != "$want" ]; then
+            echo "this run is NOT executing main, refusing to continue"
+            exit 1
+          fi
+          echo "confirmed: this run is executing main"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      # `set +e` so the summary is written even when the verdict is `fail` -- otherwise the
+      # one run a day that matters most is the one with nothing in its summary. The original
+      # exit code is carried out at the end, unmodified.
+      - name: Compose the health verdict
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          set +e
+          out="$(python tools/daily_audit.py --json daily_audit.json 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## Daily audit"
+            echo
+            echo "exit code \`$code\`"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
+
+      # On always(), next to the verdict. The check table says which owner is unhappy; the raw
+      # JSON says what it measured, and it is the only thing left when the step above has
+      # already exited non-zero.
+      - name: Upload the audit record
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-audit
+          path: daily_audit.json
+          if-no-files-found: warn
+          retention-days: 30

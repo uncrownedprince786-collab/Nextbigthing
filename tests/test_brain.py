@@ -1599,6 +1599,47 @@ class WorkflowLanes(unittest.TestCase):
                 migrating.append(path.name)
         self.assertEqual(migrating, ["schema.yml"], f"migration is applied by {migrating}")
 
+    def test_the_daily_audit_lane_is_scheduled_and_must_be_allowed_to_go_red(self):
+        """The morning verdict runs daily, proves it is on `main`, and cannot swallow a failure.
+
+        Pinned because both ways this lane goes wrong are silent in review. A swallowed exit
+        code -- `continue-on-error`, or a `run` that does not end in `exit $code` -- turns a
+        failing health check into a green badge, which is exactly the false all-clear
+        `tools/daily_audit.py` was written to prevent: it currently exits 1, on purpose, because
+        `jobRuns36h` fails. And the lane being dispatchable by the watchdog would have a health
+        verdict re-running itself instead of reading the system.
+        """
+        import yaml
+
+        wf = yaml.safe_load(self._text("cron-daily-audit.yml"))
+        self.assertEqual(wf["name"], "cron daily audit")
+        self.assertEqual([c["cron"] for c in wf[True]["schedule"]], ["25 5 * * *"])
+        # Manual runs allowed, on top of the schedule.
+        self.assertIn("workflow_dispatch", wf[True])
+        # Its own group, never cancelled: an audit queued behind what it audits reports health
+        # exactly when health is least likely to hold.
+        self.assertEqual(wf["concurrency"]["group"], "nbt-daily-audit")
+        self.assertFalse(wf["concurrency"]["cancel-in-progress"])
+
+        run = wf["jobs"]["daily-audit"]
+        # A verdict computed from a stale branch reads as current, which is worse than none.
+        checkout = [s for s in run["steps"] if "checkout" in str(s.get("uses", ""))]
+        self.assertEqual(checkout[0]["with"]["ref"], "main")
+        # No step may opt out of the verdict, and the composing step must hand its code through.
+        self.assertNotIn("continue-on-error", run)
+        compose = [s for s in run["steps"] if s.get("name") == "Compose the health verdict"]
+        self.assertEqual(len(compose), 1)
+        self.assertTrue(compose[0]["run"].rstrip().endswith("exit $code"))
+        # The record survives a non-zero exit, because the failing run is the one worth reading.
+        upload = [s for s in run["steps"] if s.get("name") == "Upload the audit record"]
+        self.assertEqual(upload[0]["if"], "always()")
+
+        # The watchdog reads the heartbeat after this lane (enforced by the watchdog's own test)
+        # but must never dispatch it: `LANES` is the set of data lanes, and a health verdict is
+        # not one.
+        guard = code_only((ROOT / "tools" / "watchdog.py").read_text(encoding="utf-8"))
+        self.assertNotIn("cron-daily-audit.yml", guard)
+
     # The US regular session in UTC, both halves of the year. 09:30-16:00 New York is
     # 13:30-20:00 UTC on eastern daylight time and 14:30-21:00 UTC on eastern standard time, so
     # a schedule that must be post-close every day of the year has to clear 21:00.
