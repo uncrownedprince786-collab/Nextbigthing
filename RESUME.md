@@ -1,5 +1,22 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (closure pass 41, implementation branch)
+**Base:** `main` at `cbb3649f1d63545dbd12635b37dda4d7a9ecb6a4`.  
+**Working branch:** `closure/shadow-evidence-and-session-fix`. Changes are pushed to this branch; PR/CI verification is still pending.
+
+This bounded pass addresses two concrete defects from checkpoint 40:
+- `jobs/mirror.py` now declares `ShadowPrediction` before `ShadowOutcome`, keys predictions by their stable model/session identity, translates source asset IDs, maps existing destination prediction IDs, and remaps each outcome foreign key. Rows without a destination asset/parent are skipped and reported rather than attached incorrectly.
+- `jobs/reconcile.py` now considers newer shadow prediction/outcome evidence when deciding whether a standby is ahead, and copies both tables back with a 180-day window, parent before child.
+- `.github/workflows/cron-mirror.yml` now mirrors both shadow tables to each configured standby with a 180-day window.
+- `tools/research/shadow_predict.py` now chooses the newest stored `AssetFactor` session per market rather than forcing all five markets onto one global date; each prediction builds context and maturity from its own market session.
+- `tests/test_shadow_mirror.py` covers stable identity mapping, wrong-model/session non-matches, missing asset handling, outcome foreign-key translation, immutability of the source row and parent-before-child order.
+
+**Verification state:** implementation is on a separate branch. Automated CI, SQL runtime against real database tiers, deployed preview, and the live market-session query are not yet verified. Do not describe this pass as production-ready until CI and safe runtime verification succeed.
+
+**Existing constraints remain:** checkpoint 40 recorded primary database size 483.1/500 MB (~16.9 MB headroom) and intermittent quota/connection errors. Do not run universe-wide prediction writes or delete historical data. Five candidate models remain unapproved; all but the thin Commodity diagnostic were NO-GO, and Commodity's small population is not sufficient for production promotion. Continue bounded shadow recording only when the database is reachable and headroom permits; future outcome maturation is a separate evidence timeline, not a reason to pause independent engineering.
+
+**Next exact actions:** validate this branch with CI; fix any regression found; then merge only after green tests. After merge, verify the scheduled mirror/reconcile jobs, primary and each configured standby schema/parity, and the per-market live-session selection with read-only queries. Keep candidate inference in shadow mode; do not route NO-GO candidates into production trading decisions. Then finish the remaining runtime/sync/UI smoke checks without repeating the closed market-explorer work.
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (fortieth), **five per-market candidates were trained and are honest NO-GOs (only thin Commodity passes), a balanced canary recorded ten rows under their own artifacts, and headroom is down to 17 MB**
 **Branch `main`.** No dependency added, nothing installed, no schema change. Commits: `67edae6`
 (P1 web), `8abc12f` (P1 asset page), `19abed4` (P2 per-market models), `f854654` (P3 tooling),
