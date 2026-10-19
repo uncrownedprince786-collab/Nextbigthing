@@ -37,6 +37,9 @@ Two rules, both conservative, both stated before any prediction was made:
    prediction with all twenty invented is not a context-aware prediction with a caveat; it is a
    price-only prediction wearing a context-aware model's name, and its errors would be filed
    under the wrong candidate.
+3. **A stored close at or before the session must exist.** The outcome is a move from the close the
+   call was read from; with no close there is no base, and the row would mature into a record that
+   is neither right nor wrong. A live caller refuses it rather than storing it.
 
 Missing *optional* context -- an instrument with no press records, a reaction window not yet
 closed -- is ordinary and expected: those columns are null on more than 93% of the training rows
@@ -103,6 +106,8 @@ CRITICAL = (
     f"every feature the model saw on more than {1 - CRITICAL_NULL_SHARE:.0%} of training rows "
     "must be observed",
     "the macro block must be observed (20 of 44 inputs)",
+    "a stored close at or before the session must exist, because a call with no base price cannot "
+    "be scored later",
 )
 
 
@@ -133,7 +138,9 @@ def predict_one(model: dict, price: dict, ctx_block: dict | None, *,
                 asset_id: str, symbol: str, market: str, as_of: date,
                 horizon: int | None = None, strategy: str = "swing",
                 timeframe: str | None = None,
-                reference_price: float | None = None) -> dict:
+                reference_price: float | None = None,
+                reference_date: str | None = None,
+                require_reference_price: bool = False) -> dict:
     """One record, whatever the inputs were worth. Never raises on missing data.
 
     `horizon` defaults to the session count the named `strategy` implies (`shadow_markets`), so a
@@ -175,6 +182,11 @@ def predict_one(model: dict, price: dict, ctx_block: dict | None, *,
         missing_critical.append(f"{CRITICAL[0]}: {', '.join(hit)}")
     if ctx_status.get("macro") != "observed":
         missing_critical.append(CRITICAL[1])
+    # A recorded call with no base price is a claim that can never be scored: the outcome is a
+    # move from the close it was read from, and there is no close. A live caller refuses it rather
+    # than storing a row that will sit as neither right nor wrong forever.
+    if require_reference_price and reference_price is None:
+        missing_critical.append(CRITICAL[2])
 
     base = {
         "asOf": as_of.isoformat(), "assetId": asset_id, "symbol": symbol, "market": market,
@@ -182,7 +194,8 @@ def predict_one(model: dict, price: dict, ctx_block: dict | None, *,
         "featureSchema": model["featureSchema"], "datasetVersion": model["datasetVersion"],
         "approved": False,
         "strategy": strategy, "timeframe": timeframe or strategy,
-        "referencePrice": reference_price, "inputCutoff": as_of.isoformat(),
+        "referencePrice": reference_price, "referenceDate": reference_date or as_of.isoformat(),
+        "inputCutoff": as_of.isoformat(),
         "features": observed, "sources": ctx_status or None,
         "imputed": imputed, "imputedCount": len(imputed),
         "imputedExpected": expected, "imputedUnexpected": unexpected,
@@ -313,8 +326,16 @@ def live_rows(limit: int):
     cols = ", ".join(f'f."{c}"' for c in PRICE_COLUMNS)
     cur.execute(
         f'SELECT f."assetId", a.symbol, a."assetType", a.source, '
+        # The base an outcome is measured from: the most recent stored close at or before the
+        # session. `=` made this NULL whenever the factor session had no close of its own -- a
+        # weekend session, or an ingest that lags -- and a NULL base is a prediction that can never
+        # be scored. The close the call was read from is the last one on or before its session.
         '(SELECT s.close FROM "PriceSnapshot" s '
-        'WHERE s."assetId" = f."assetId" AND s.date = f."periodEnd") AS ref_close, '
+        'WHERE s."assetId" = f."assetId" AND s.date <= f."periodEnd" '
+        'ORDER BY s.date DESC LIMIT 1) AS ref_close, '
+        '(SELECT s.date FROM "PriceSnapshot" s '
+        'WHERE s."assetId" = f."assetId" AND s.date <= f."periodEnd" '
+        'ORDER BY s.date DESC LIMIT 1) AS ref_date, '
         + cols + " "
         'FROM "AssetFactor" f JOIN "Asset" a ON a.id = f."assetId" '
         'WHERE f."periodEnd" = %s ORDER BY a.symbol LIMIT %s', (newest, limit))
@@ -329,6 +350,8 @@ def live_rows(limit: int):
                     "market": mk.market_of(r["assetType"], r["source"]),
                     "referencePrice": (float(r["ref_close"])
                                        if r["ref_close"] is not None else None),
+                    "referenceDate": (r["ref_date"].isoformat()
+                                      if r["ref_date"] is not None else None),
                     "pit": {"f": {c: r.get(c) for c in PRICE_COLUMNS}}})
     return out, (newest.isoformat() if hasattr(newest, "isoformat") else str(newest))
 
@@ -442,7 +465,9 @@ def main() -> int:
                                    asset_id=r.get("assetId") or r["symbol"],
                                    symbol=r["symbol"], market=r["market"],
                                    as_of=as_of, strategy=a.strategy, timeframe=a.timeframe,
-                                   reference_price=r.get("referencePrice")))
+                                   reference_price=r.get("referencePrice"),
+                                   reference_date=r.get("referenceDate"),
+                                   require_reference_price=bool(a.live)))
 
     by_q = {q: sum(1 for x in records if x["quality"] == q) for q in (OK, DEGRADED, REFUSED)}
     by_p = {}

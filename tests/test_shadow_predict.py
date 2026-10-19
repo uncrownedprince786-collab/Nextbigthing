@@ -214,6 +214,31 @@ class TheCriticalSetComesFromTheModelsOwnExperience(unittest.TestCase):
         self.assertLess(sp.CRITICAL_NULL_SHARE, sp.ROUTINELY_ABSENT_NULL_SHARE)
 
 
+class ARecordedCallMustHaveABasePrice(unittest.TestCase):
+    """An outcome is a move from the close the call was read from. No close, no measurement."""
+
+    def test_a_live_call_with_no_reference_price_is_refused(self):
+        r = sp.predict_one(a_model(), FULL_PRICE, a_ctx_block(), asset_id="a1", symbol="AA",
+                           market="US", as_of=date(2026, 10, 18), reference_price=None,
+                           require_reference_price=True)
+        self.assertEqual(r["quality"], sp.REFUSED)
+        self.assertIsNone(r["predicted"])
+        self.assertTrue(any("base price" in m for m in r["missingCritical"]))
+
+    def test_the_same_call_with_a_reference_price_is_not_refused(self):
+        r = sp.predict_one(a_model(), FULL_PRICE, a_ctx_block(), asset_id="a1", symbol="AA",
+                           market="US", as_of=date(2026, 10, 18), reference_price=12.5,
+                           require_reference_price=True)
+        self.assertNotEqual(r["quality"], sp.REFUSED)
+        self.assertEqual(r["referencePrice"], 12.5)
+
+    def test_a_non_live_caller_is_not_made_to_produce_a_base(self):
+        # The dataset path is diagnostic and the price may legitimately be absent there; only a
+        # live call, which is the one that becomes evidence, refuses.
+        r = run(FULL_PRICE, a_ctx_block())          # reference_price defaults to None
+        self.assertNotEqual(r["quality"], sp.REFUSED)
+
+
 class ACanaryIsBalancedAcrossMarkets(unittest.TestCase):
     """A canary that takes the alphabet's first names measures the alphabet, not the markets."""
 
