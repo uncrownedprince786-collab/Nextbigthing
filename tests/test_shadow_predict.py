@@ -334,3 +334,58 @@ class ThePerMarketCandidatesAreRouted(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TheScheduledCanaryRespectsTheStoredSessionCap(unittest.TestCase):
+    def test_existing_rows_and_prior_inserts_share_one_market_session_budget(self):
+        from types import SimpleNamespace
+        from unittest import mock
+
+        counts = {("US", "2026-10-19"): 1}
+
+        class Cursor:
+            rowcount = 0
+            def execute(self, query, params=None):
+                if query.startswith('SELECT COUNT(*)'):
+                    self.result = {"n": counts.get(tuple(params), 0)}
+                    self.rowcount = -1
+                else:
+                    key = (params[3], params[0])
+                    counts[key] = counts.get(key, 0) + 1
+                    self.rowcount = 1
+            def fetchone(self):
+                return self.result
+            def close(self):
+                pass
+
+        class Connection:
+            def __init__(self):
+                self.cur = Cursor()
+                self.committed = False
+            def cursor(self):
+                return self.cur
+            def commit(self):
+                self.committed = True
+            def close(self):
+                pass
+
+        connection = Connection()
+        def record(asset_id, symbol):
+            return {
+                "asOf": "2026-10-19", "assetId": asset_id, "symbol": symbol, "market": "US",
+                "predicted": "UP", "scores": {"UP": 1.0}, "modelVersion": "candidate",
+                "modelSha256": "digest", "featureSchema": "v1", "datasetVersion": "v4",
+                "quality": "ok", "imputed": [], "imputedCount": 0, "missingCritical": None,
+                "contextStatus": None, "macroAsOf": None, "macroAgeDays": None,
+                "horizonSessions": 20, "maturesAfter": "2026-11-16", "strategy": "swing",
+                "timeframe": "swing", "referencePrice": 100.0, "features": {"r20": 0.1},
+                "sources": None, "inputCutoff": "2026-10-19", "runId": "test-run", "commit": "abc",
+            }
+
+        fake_nbt = SimpleNamespace(db=lambda: connection)
+        with mock.patch.dict(sys.modules, {"nbt": fake_nbt}):
+            result = sp.write_rows([record("a2", "MSFT"), record("a3", "NVDA")],
+                                   max_per_market_session=2)
+
+        self.assertEqual(result, {"written": 1, "status": "ok", "skippedByCap": 1})
+        self.assertEqual(counts[("US", "2026-10-19")], 2)
+        self.assertTrue(connection.committed)

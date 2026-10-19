@@ -1,5 +1,19 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (bounded shadow canary implementation; CI and first runtime run pending)
+
+**Branch:** `fix/scheduled-shadow-canary`, based on `f6980caa94a09cd781309c91f761591ed438d414`. This change adds a daily `cron shadow canary` with a successful-decision event fallback, separate concurrency, a read-only primary-size gate, and a DB-backed cap of two prediction rows per market/session across retries. It uses the existing per-market candidate artifacts and the existing live feature/context builder. It writes only `ShadowPrediction`; the existing scorer and mirror are untouched. It does not approve candidates or alter the production signal path.
+
+**Safety behaviour:** the workflow keeps 10 MB below the configured 500 MB primary tier. If the read-only capacity check cannot connect, the workflow fails visibly. If the configured reserve is reached, it runs inference dry-only and uploads diagnostics. Missing per-market artifacts or invalid/stale sessions still fail/skip according to the existing predictor rules. The canary is limited to the first two selected rows per market/session; the writer now enforces the same cap against already stored rows so a rerun cannot exceed it.
+
+**Not yet verified:** this branch has not yet passed CI or been run against the configured database; the primary's current size is therefore not claimed. A live Vercel smoke test remains unverified because this execution environment cannot resolve the live host. Candidate promotion remains NO-GO pending valid mature outcomes.
+
+**Exact next action:** run the focused shadow prediction tests and workflow guard in CI, then dispatch the canary once to verify the real capacity gate, inference and persisted-row cap before relying on its daily schedule.
+
+---
+
+# Resume here
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (forty-first), **shadow evidence now survives failover, each market is inferred on its own trading session under its own candidate, and the served candidate count is correct**
 **Branch `main`.** No dependency added, nothing installed, no schema change. Commits: `5ffa267`
 (mirror/reconcile carry shadow evidence by identity), `3850269` (the concurrent pass: reconcile

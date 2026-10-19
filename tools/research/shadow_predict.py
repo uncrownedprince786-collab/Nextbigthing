@@ -456,8 +456,8 @@ def live_rows(limit: int, *, max_session_lag: int = 2, lookback_days: int = 21):
     return rows, {m: d.isoformat() for m, d in chosen.items()}, skipped
 
 
-def write_rows(records: list[dict]) -> dict:
-    """Insert into ShadowPrediction. Returns what happened; never raises on a missing table."""
+def write_rows(records: list[dict], max_per_market_session: int = 0) -> dict:
+    """Insert predictions idempotently, optionally enforcing a DB-backed market/session cap."""
     try:
         sys.path.insert(0, str(ROOT / "jobs"))
         from nbt import db
@@ -467,7 +467,20 @@ def write_rows(records: list[dict]) -> dict:
         conn = db()
         cur = conn.cursor()
         n = 0
+        skipped_by_cap = 0
+        session_counts: dict[tuple[str, str], int] = {}
         for r in records:
+            key = (r["market"], r["asOf"])
+            if max_per_market_session > 0:
+                if key not in session_counts:
+                    cur.execute(
+                        'SELECT COUNT(*) AS n FROM "ShadowPrediction" '
+                        'WHERE "market" = %s AND "asOf" = %s', key)
+                    existing = cur.fetchone() or {"n": 0}
+                    session_counts[key] = int(existing["n"] if isinstance(existing, dict) else existing[0])
+                if session_counts[key] >= max_per_market_session:
+                    skipped_by_cap += 1
+                    continue
             cur.execute(
                 'INSERT INTO "ShadowPrediction" ("asOf","assetId","symbol","market","predicted",'
                 '"scores","modelVersion","modelSha256","featureSchema","datasetVersion",'
@@ -497,9 +510,12 @@ def write_rows(records: list[dict]) -> dict:
             # Count rows the database actually inserted. A conflict means the event was already
             # recorded, and reporting that as "written" would make a rerun look additive when the
             # whole point of the identity key is that it is not.
-            n += cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
+            inserted = cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
+            n += inserted
+            if max_per_market_session > 0:
+                session_counts[key] += inserted
         conn.commit()
-        return {"written": n, "status": "ok"}
+        return {"written": n, "status": "ok", "skippedByCap": skipped_by_cap}
     except Exception as e:                                    # noqa: BLE001
         return {"written": 0, "status": "failed", "reason": f"{type(e).__name__}: {e}"}
 
@@ -538,6 +554,9 @@ def main() -> int:
                     help="an identifier for this run, recorded with every row it writes")
     ap.add_argument("--commit", default=None,
                     help="the commit to record with the rows; defaults to this checkout's HEAD")
+    ap.add_argument("--max-per-market-session", type=int, default=0,
+                    help="when writing, never exceed this many rows per market/session across retries; "
+                         "0 leaves the writer uncapped (scheduled canary uses 2)")
     ap.add_argument("--write", action="store_true")
     ap.add_argument("--out", default=str(OUT))
     a = ap.parse_args()
@@ -628,7 +647,7 @@ def main() -> int:
             for r in writable:
                 r["runId"] = run_id
                 r["commit"] = commit
-            payload["write"] = write_rows(writable)
+            payload["write"] = write_rows(writable, max_per_market_session=a.max_per_market_session)
             payload["runId"] = run_id
             payload["commit"] = commit
         print(f"write: {payload['write']}")
