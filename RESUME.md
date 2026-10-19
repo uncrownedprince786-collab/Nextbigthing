@@ -1,5 +1,28 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (closure pass 42 merged)
+**Current main:** `3850269a88096823b3b27045c83ccd7a69c5435e`. PR [#3](https://github.com/uncrownedprince786-collab/Nextbigthing/pull/3) is merged. The older duplicate PR #2 was closed unmerged because the shadow-mirror implementation had already landed on main at `5ffa267`.
+
+### Closed in this pass
+- Main `5ffa267` includes shadow prediction/outcome replication with append-only semantics, stable prediction identity mapping across different UUIDs, JSON adaptation, 120-day scheduled mirroring and copy-back. Its commit report records 581 rows copied, 581/581 identity matches, byte-equal scores, and an idempotent rerun with 0 writes / 581 unchanged on primary -> Aiven. That is recorded evidence for those two tiers, not proof of parity for every configured database.
+- Commit `3850269` fixes the follow-up outcome-only gap: reconciliation now compares the newest `createdAt` across both `ShadowPrediction` and `ShadowOutcome`. A prediction can already exist on the primary while its later outcome is written to a standby; that outcome timestamp must trigger copy-back.
+- Commit `3850269` also changes live shadow inference to select the newest stored `AssetFactor` session independently per market. Each record carries its own `asOf`, context lookup date, reference close date and maturity.
+- Regression tests cover an outcome-only outage write and different US/Crypto latest sessions. The final pre-merge CI run `39237861426` passed both `brain logic` and `types and lint`; the Vercel preview check also passed before merge.
+
+### Still unverified before calling the product production-ready
+- The production Vercel deployment for `3850269` was still pending at the last check. Verify its final status and smoke-test the live site/API after it completes.
+- The market-session test uses a mocked database cursor; run the selector read-only against the real database and confirm US/PK/FX/Commodity/Crypto each use their own latest complete session.
+- The mirror's real end-to-end evidence so far is primary -> Aiven. Verify schema and parity for every currently configured database tier, including outcome-only reconciliation when safe.
+- Last recorded primary headroom was 16.9 MB with intermittent quota/connection failures. Recheck headroom read-only before any live write. Do not run universe-wide shadow writes and do not delete immutable historical price data.
+- All five per-market candidates remain unapproved: US, PK, FX and Crypto were NO-GO; Commodity's apparent pass is thin (8 symbols / ~756 independent windows). Keep candidate predictions in shadow mode; do not route them into production trading decisions or claim an edge. Prospective outcomes mature later, but independent engineering must continue.
+
+### Exact next actions
+1. Verify Vercel deployment for `3850269`; smoke-test homepage, markets, asset, predictions and API paths against the actual production URL.
+2. Run read-only per-market latest-session checks on the database and confirm source timestamps/reference closes are consistent.
+3. Check all configured database schemas and shadow-table parity; when a safe failover test is possible, verify an outcome-only standby write triggers reconciliation and remains append-only.
+4. Finish the remaining production-readiness checks for source freshness/sync health and database recovery without repeating the completed market explorer or the already-verified 581-row mirror test.
+5. Keep the existing production rule engine distinct from experimental brain candidates. Promotion waits for valid evidence, not for engineering closure.
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (closure pass 42, two remaining shadow correctness gaps)
 **Base:** `main` at `5ffa26730e20378bfd49280a787626fb5d310d52`, which already contains the shadow mirror/reconcile implementation.  
 **Branch:** `closure/outcome-reconcile-market-sessions`. PR: [#3](https://github.com/uncrownedprince786-collab/Nextbigthing/pull/3).
