@@ -215,6 +215,16 @@ def build(cur, as_of: date, limit: int, write: bool = False, conn=None) -> dict:
         if not mk.capability(market, "swing")["verifiable"]:
             rows.append(_unscorable(p, market, f"{market} swing is not verifiable from closes"))
             continue
+        # A call dated to a session the market does not trade has no origin: the close it was read
+        # from belongs to an earlier session, and the forward window starts from a day that printed
+        # nothing. Eight rows recorded before the per-market session fix carry a Sunday `asOf`
+        # (2026-10-18) for US/PK/FX/Commodity; scoring them would measure a move the market never
+        # made. They are reported unscorable and kept, not deleted -- the defect stays visible next
+        # to its fix.
+        if not mk.trades_on_market(market, a):
+            rows.append(_unscorable(p, market,
+                                    f"{a.isoformat()} is not a session {market} trades"))
+            continue
         bars = fwd.get(p["assetId"], [])
         base = closes.get(p["assetId"])
         s = score_one(p["predicted"], base, bars)

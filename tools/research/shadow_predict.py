@@ -60,7 +60,7 @@ import json
 import os
 import subprocess
 import sys
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -74,6 +74,7 @@ from context_features import ContextSource  # noqa: E402
 import shadow_markets as mk  # noqa: E402
 
 DEFAULT_MODEL = ROOT / "data" / "foundation" / "brain" / "brain-v2-context"
+DEFAULT_MODELS_ROOT = ROOT / "data" / "foundation" / "brain"
 DEFAULT_DS = ROOT / ".cache" / "foundation" / "dataset_v4"
 OUT = ROOT / "data" / "foundation" / "dataset" / "shadow_predictions.json"
 
@@ -108,6 +109,8 @@ CRITICAL = (
     "the macro block must be observed (20 of 44 inputs)",
     "a stored close at or before the session must exist, because a call with no base price cannot "
     "be scored later",
+    "the session must be one this market trades, because a call dated to a day the market is "
+    "closed is dated to a session that never happened",
 )
 
 
@@ -140,7 +143,8 @@ def predict_one(model: dict, price: dict, ctx_block: dict | None, *,
                 timeframe: str | None = None,
                 reference_price: float | None = None,
                 reference_date: str | None = None,
-                require_reference_price: bool = False) -> dict:
+                require_reference_price: bool = False,
+                require_trading_session: bool = False) -> dict:
     """One record, whatever the inputs were worth. Never raises on missing data.
 
     `horizon` defaults to the session count the named `strategy` implies (`shadow_markets`), so a
@@ -187,6 +191,12 @@ def predict_one(model: dict, price: dict, ctx_block: dict | None, *,
     # than storing a row that will sit as neither right nor wrong forever.
     if require_reference_price and reference_price is None:
         missing_critical.append(CRITICAL[2])
+    # A session a market does not trade is not a session. A weekday call dated to Saturday, or a
+    # US call dated to a day only crypto was open, would mature on a date the market never printed
+    # a close for -- an outcome measured against nothing. A caller that reads a live session asks
+    # for this; the check is per market, because the same date is a trading day for crypto.
+    if require_trading_session and not mk.trades_on_market(market, as_of):
+        missing_critical.append(CRITICAL[3])
 
     base = {
         "asOf": as_of.isoformat(), "assetId": asset_id, "symbol": symbol, "market": market,
@@ -222,6 +232,23 @@ def predict_one(model: dict, price: dict, ctx_block: dict | None, *,
             "quality": DEGRADED if unexpected else OK,
             "predicted": model["classes"][int(logits.argmax())],
             "scores": {c: round(float(p[i]), 6) for i, c in enumerate(model["classes"])}}
+
+
+def load_market_models(root: Path) -> dict[str, dict]:
+    """One candidate per market, loaded from `brain-v4-<market>` under `root`.
+
+    A market with no artifact is a hard stop for the whole run, not a fall back to the global
+    model: predicting US under `brain-v2-context` while recording the row as a per-market call is
+    the relabelling this project spent a session removing. Every artifact loads through
+    `load_model`, so each still has to be `productionApproved: false` to be served at all.
+    """
+    out: dict[str, dict] = {}
+    for m in mk.MARKETS:
+        d = root / f"brain-v4-{m.lower()}"
+        if not (d / "model.json").exists():
+            raise SystemExit(f"refusing: no per-market artifact at {d}")
+        out[m] = load_model(d)
+    return out
 
 
 def market_for_row(r: dict) -> str:
@@ -293,51 +320,37 @@ PRICE_COLUMNS = ("r1", "r5", "r20", "returnZ", "volumeRatio", "peerMedianR20", "
                  "triggerDirection", "atr14")
 
 
-def live_rows(limit: int):
-    """The newest stored factor session per market, read from the live database.
+def _as_date(v) -> date:
+    return v.date() if isinstance(v, datetime) else v
 
-    This is what makes a shadow prediction *prospective*. The frozen dataset ends at the last
-    session with a fully elapsed 20-session forward window, so predicting on its newest date
-    would be scoring rows whose outcome already exists -- a backtest wearing a shadow run's
-    name. The newest `AssetFactor` session has no matured outcome yet, which is the whole point.
 
-    `market` comes from `shadow_markets.market_of`, which reads `Asset.assetType` first and the
-    source second. The older derivation here (`source == 'psx'` -> PK else US) filed FX,
-    commodities and crypto under `US`; that is the defect this and the readiness report exist to
-    stop repeating. The reference close -- the base an outcome is measured from -- is read
-    alongside, so a stored prediction can be scored later without re-deriving what it saw.
+def _market_sessions(conn, floor: date) -> dict[str, list[date]]:
+    """{market: sessions, newest first}, from the factor table, since `floor`.
+
+    The factor table carries a row per asset per date, and the newest date is global. Only dates
+    this market actually trades are kept, so a Sunday factor row for US -- the row exists because
+    crypto traded -- is not offered as a US session.
     """
-    sys.path.insert(0, str(ROOT / "jobs"))
-    try:
-        from dotenv import load_dotenv
-        load_dotenv(ROOT / ".env")
-    except ImportError:
-        pass
-    from nbt import db
-
-    conn = db()
     cur = conn.cursor()
-    market_sql = """CASE
-        WHEN lower(a."assetType") = 'crypto' OR lower(coalesce(a.source, '')) LIKE '%paprika%'
-          OR lower(coalesce(a.source, '')) LIKE '%coingecko%' THEN 'Crypto'
-        WHEN lower(a."assetType") = 'forex' THEN 'FX'
-        WHEN lower(a."assetType") = 'commodity' THEN 'Commodity'
-        WHEN lower(coalesce(a.source, '')) = 'psx' THEN 'PK'
-        ELSE 'US' END"""
-    market_sql2 = market_sql.replace("a.", "a2.")
-    cur.execute(
-        f'SELECT max(f."periodEnd") AS d FROM "AssetFactor" f JOIN "Asset" a ON a.id = f."assetId" '
-        f'GROUP BY {market_sql}'
-    )
-    dates = [r["d"] for r in cur.fetchall() if r.get("d")]
-    if not dates:
-        cur.close()
-        conn.close()
-        raise SystemExit("no AssetFactor rows: nothing to predict from")
-    newest = max(dates)
+    cur.execute('SELECT DISTINCT f."periodEnd" d, a."assetType" t, a.source s '
+                'FROM "AssetFactor" f JOIN "Asset" a ON a.id = f."assetId" '
+                'WHERE f."periodEnd" >= %s', (floor,))
+    by_market: dict[str, set] = {}
+    for r in cur.fetchall():
+        d = _as_date(r["d"])
+        m = mk.market_of(r["t"], r["s"])
+        if mk.trades_on_market(m, d):
+            by_market.setdefault(m, set()).add(d)
+    cur.close()
+    return {m: sorted(ds, reverse=True) for m, ds in by_market.items()}
+
+
+def _rows_for_session(conn, session: date, market: str, limit: int) -> list[dict]:
+    """Price features for one market's session, read from the live database."""
     cols = ", ".join(f'f."{c}"' for c in PRICE_COLUMNS)
+    cur = conn.cursor()
     cur.execute(
-        f'SELECT f."assetId", f."periodEnd" AS factor_session, a.symbol, a."assetType", a.source, '
+        f'SELECT f."assetId", a.symbol, a."assetType", a.source, '
         # The base an outcome is measured from: the most recent stored close at or before the
         # session. `=` made this NULL whenever the factor session had no close of its own -- a
         # weekend session, or an ingest that lags -- and a NULL base is a prediction that can never
@@ -349,27 +362,98 @@ def live_rows(limit: int):
         'WHERE s."assetId" = f."assetId" AND s.date <= f."periodEnd" '
         'ORDER BY s.date DESC LIMIT 1) AS ref_date, '
         + cols + " "
-        f'FROM "AssetFactor" f JOIN "Asset" a ON a.id = f."assetId" '
-        f'JOIN (SELECT {market_sql2} AS market, max(f2."periodEnd") AS d '
-        f'FROM "AssetFactor" f2 JOIN "Asset" a2 ON a2.id = f2."assetId" '
-        f'GROUP BY market) latest ON latest.market = {market_sql} AND latest.d = f."periodEnd" '
-        'ORDER BY a.symbol LIMIT %s', (limit,))
+        'FROM "AssetFactor" f JOIN "Asset" a ON a.id = f."assetId" '
+        'WHERE f."periodEnd" = %s ORDER BY a.symbol LIMIT %s', (session, limit))
     rows = cur.fetchall()
     cur.close()
-    conn.close()
     out = []
     for r in rows:
-        session = r["factor_session"]
-        out.append({"asOf": session.isoformat() if hasattr(session, "isoformat") else str(session),
+        m = mk.market_of(r["assetType"], r["source"])
+        if m != market:
+            continue
+        out.append({"asOf": session.isoformat(),
                     "assetId": r["assetId"], "symbol": r["symbol"],
                     "assetType": r["assetType"],
-                    "market": mk.market_of(r["assetType"], r["source"]),
+                    "market": m,
                     "referencePrice": (float(r["ref_close"])
                                        if r["ref_close"] is not None else None),
                     "referenceDate": (r["ref_date"].isoformat()
                                       if r["ref_date"] is not None else None),
                     "pit": {"f": {c: r.get(c) for c in PRICE_COLUMNS}}})
-    return out, (newest.isoformat() if hasattr(newest, "isoformat") else str(newest))
+    return out
+
+
+def _choose_sessions(sessions: dict[str, list[date]], max_session_lag: int):
+    """Pick each market's newest session, or name it stale. Pure.
+
+    The reference date is the newest session *anywhere* (the most recent day any market traded),
+    and a market is skipped when its own newest session is more than `max_session_lag` of its
+    sessions behind it. On 2026-10-18 the newest anywhere is Sunday (crypto), US/PK/FX/Commodity
+    are 0 US sessions behind (the Friday-to-Sunday span holds no US session), and crypto is 0 --
+    so all five are served, each on its own date. A market whose ingest has stopped falls behind
+    and is skipped rather than filled from an old date.
+    """
+    newest_anywhere = max((ds[0] for ds in sessions.values() if ds), default=None)
+    chosen: dict[str, date] = {}
+    skipped: dict[str, int] = {}
+    for m in mk.MARKETS:
+        ds = sessions.get(m)
+        if not ds:
+            continue
+        lag = mk.sessions_between(ds[0], newest_anywhere, m) if newest_anywhere else 0
+        if lag > max_session_lag:
+            skipped[m] = lag
+        else:
+            chosen[m] = ds[0]
+    return chosen, skipped
+
+
+def live_rows(limit: int, *, max_session_lag: int = 2, lookback_days: int = 21):
+    """Each market's newest stored factor session, read from the live database.
+
+    This is what makes a shadow prediction *prospective*. The frozen dataset ends at the last
+    session with a fully elapsed 20-session forward window, so predicting on its newest date
+    would be scoring rows whose outcome already exists -- a backtest wearing a shadow run's
+    name. The newest `AssetFactor` session has no matured outcome yet, which is the whole point.
+
+    The session is chosen **per market**. Until now one global `max(periodEnd)` was used for all
+    five markets, which on 2026-10-18 (a Sunday) was a session only crypto traded -- so a US, PK,
+    FX or commodity call would have been dated to a day its market was closed, and its outcome
+    would have been measured against a close that never printed. A market whose newest session is
+    more than `max_session_lag` sessions behind the newest session anywhere is skipped and named,
+    rather than filled from a stale date.
+
+    `market` comes from `shadow_markets.market_of`, which reads `Asset.assetType` first and the
+    source second. The reference close -- the base an outcome is measured from -- is read
+    alongside, so a stored prediction can be scored later without re-deriving what it saw.
+
+    Returns `(rows, sessions)` where `sessions` is `{market: session iso}`.
+    """
+    sys.path.insert(0, str(ROOT / "jobs"))
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(ROOT / ".env")
+    except ImportError:
+        pass
+    from nbt import db
+
+    conn = db()
+    try:
+        cur = conn.cursor()
+        cur.execute('SELECT max("periodEnd") AS d FROM "AssetFactor"')
+        newest = _as_date((cur.fetchone() or {}).get("d"))
+        cur.close()
+        if not newest:
+            raise SystemExit("no AssetFactor rows: nothing to predict from")
+        sessions = _market_sessions(conn, newest - timedelta(days=lookback_days))
+        chosen, skipped = _choose_sessions(sessions, max_session_lag)
+        rows = []
+        for m in mk.MARKETS:
+            if m in chosen:
+                rows.extend(_rows_for_session(conn, chosen[m], m, limit))
+    finally:
+        conn.close()
+    return rows, {m: d.isoformat() for m, d in chosen.items()}, skipped
 
 
 def write_rows(records: list[dict]) -> dict:
@@ -428,6 +512,14 @@ def main() -> int:
                          "instead of the frozen dataset; this is what makes a "
                          "shadow prediction prospective")
     ap.add_argument("--model", default=str(DEFAULT_MODEL))
+    ap.add_argument("--per-market-models", action="store_true",
+                    help="route each market to its own candidate artifact "
+                         "brain-v4-<market> under --models-root; a market with no artifact "
+                         "refuses the run rather than falling back to the global model")
+    ap.add_argument("--models-root", default=str(DEFAULT_MODELS_ROOT))
+    ap.add_argument("--max-session-lag", type=int, default=2,
+                    help="in --live, skip a market whose newest factor session is more than this "
+                         "many of its own sessions behind the newest session anywhere (default 2)")
     ap.add_argument("--dataset", default=str(DEFAULT_DS))
     ap.add_argument("--prefix", default="examples-v4-context")
     ap.add_argument("--limit", type=int, default=20)
@@ -453,13 +545,26 @@ def main() -> int:
     model = load_model(Path(a.model))
     print(f"model {model['version']} sha {model['sha256'][:16]} "
           f"({len(model['features'])} features, approved=False)")
+    market_models = load_market_models(Path(a.models_root)) if a.per_market_models else None
+    if market_models:
+        print("per-market candidates: " + ", ".join(
+            f"{m}={market_models[m]['version']}" for m in mk.MARKETS))
     src = ContextSource.load()
     # A market filter has to see every market before it can keep one, so it ignores `--limit` and
     # pulls the whole session; the cap that matters is `--per-market`.
     pull = a.limit if not (a.market or a.per_market) else 200000
+    sessions: dict[str, str] = {}
+    skipped: dict[str, int] = {}
     if a.live:
-        rows, as_of_str = live_rows(pull)
-        print(f"live: newest AssetFactor session {as_of_str}, {len(rows)} assets")
+        rows, sessions, skipped = live_rows(pull, max_session_lag=a.max_session_lag)
+        for m, s in sessions.items():
+            print(f"live: {m} session {s}")
+        for m, lag in skipped.items():
+            print(f"live: skipping {m}: newest session {lag} sessions behind the newest anywhere "
+                  f"(stale input; a fill from an older date would be dated to the wrong session)")
+        if not rows:
+            raise SystemExit("no market had a fresh session: nothing to predict from")
+        as_of_str = max(sessions.values())
     else:
         if not a.as_of:
             raise SystemExit("pass --as-of or --live")
@@ -476,15 +581,17 @@ def main() -> int:
 
     records = []
     for r in rows:
-        row_as_of = date.fromisoformat(r.get("asOf", as_of_str))
+        row_as_of = date.fromisoformat(r["asOf"]) if r.get("asOf") else as_of
+        row_model = market_models[r["market"]] if market_models else model
         block = src.at(row_as_of, r["symbol"], r["market"])
-        records.append(predict_one(model, r["pit"]["f"], block,
+        records.append(predict_one(row_model, r["pit"]["f"], block,
                                    asset_id=r.get("assetId") or r["symbol"],
                                    symbol=r["symbol"], market=r["market"],
                                    as_of=row_as_of, strategy=a.strategy, timeframe=a.timeframe,
                                    reference_price=r.get("referencePrice"),
                                    reference_date=r.get("referenceDate"),
-                                   require_reference_price=bool(a.live)))
+                                   require_reference_price=bool(a.live),
+                                   require_trading_session=bool(a.live)))
 
     by_q = {q: sum(1 for x in records if x["quality"] == q) for q in (OK, DEGRADED, REFUSED)}
     by_p = {}
@@ -498,7 +605,13 @@ def main() -> int:
         "status": "experimental; the model is NOT production-approved and nothing here is a "
                   "trading signal",
         "asOf": as_of_str, "source": "live AssetFactor" if a.live else "dataset",
-        "model": model["version"], "modelSha256": model["sha256"],
+        "sessions": sessions or None,
+        "staleMarkets": (skipped or None),
+        "model": ("per-market candidates" if market_models else model["version"]),
+        "modelSha256": (None if market_models else model["sha256"]),
+        "models": ({m: {"version": market_models[m]["version"],
+                        "sha256": market_models[m]["sha256"]} for m in mk.MARKETS}
+                   if market_models else None),
         "strategy": a.strategy, "timeframe": a.timeframe or a.strategy,
         "criticalRules": list(CRITICAL),
         "byQuality": by_q, "byPredictedClass": by_p, "byMarket": by_m,

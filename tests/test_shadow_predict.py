@@ -266,5 +266,71 @@ class ACanaryIsBalancedAcrossMarkets(unittest.TestCase):
         self.assertEqual(sp.market_for_row({"assetType": "stock", "market": "US"}), "US")
 
 
+class ATradingSessionIsRequired(unittest.TestCase):
+    """A call dated to a day its market was closed is dated to a session that never happened, so it
+    can never be scored -- the same failure as a missing base, from the other side."""
+
+    def test_a_weekday_market_call_dated_to_a_weekend_is_refused(self):
+        r = sp.predict_one(a_model(), FULL_PRICE, a_ctx_block(), asset_id="a1", symbol="AAPL",
+                           market="US", as_of=date(2026, 9, 26),   # a Saturday
+                           reference_price=12.5, require_reference_price=True,
+                           require_trading_session=True)
+        self.assertEqual(r["quality"], sp.REFUSED)
+        self.assertIsNone(r["predicted"])
+        self.assertTrue(any("market is closed" in m or "trades" in m for m in r["missingCritical"]))
+
+    def test_the_same_call_on_a_trading_day_is_not_refused(self):
+        r = sp.predict_one(a_model(), FULL_PRICE, a_ctx_block(), asset_id="a1", symbol="AAPL",
+                           market="US", as_of=date(2026, 9, 25),   # a Friday
+                           reference_price=12.5, require_reference_price=True,
+                           require_trading_session=True)
+        self.assertNotEqual(r["quality"], sp.REFUSED)
+
+    def test_crypto_trades_on_the_weekend_so_the_same_date_is_fine(self):
+        r = sp.predict_one(a_model(), FULL_PRICE, a_ctx_block(), asset_id="c1", symbol="btc-bitcoin",
+                           market="Crypto", as_of=date(2026, 9, 26),
+                           reference_price=12.5, require_reference_price=True,
+                           require_trading_session=True)
+        self.assertNotEqual(r["quality"], sp.REFUSED)
+
+
+class SessionsAreChosenPerMarket(unittest.TestCase):
+    """One global `max(periodEnd)` was a session only crypto traded on 2026-10-18 (a Sunday); a US
+    call dated to it would have matured against a close that never printed."""
+
+    def test_each_market_gets_its_own_newest_session(self):
+        sessions = {
+            "US": [date(2026, 10, 16), date(2026, 10, 15)],
+            "Crypto": [date(2026, 10, 18), date(2026, 10, 17)],
+        }
+        chosen, skipped = sp._choose_sessions(sessions, 2)
+        self.assertEqual(chosen, {"US": date(2026, 10, 16), "Crypto": date(2026, 10, 18)})
+        self.assertEqual(skipped, {})
+
+    def test_a_market_that_has_fallen_behind_is_named_not_filled_from_an_old_date(self):
+        sessions = {
+            "US": [date(2026, 10, 16)],            # 4 US sessions before 2026-10-22
+            "Crypto": [date(2026, 10, 22)],
+        }
+        chosen, skipped = sp._choose_sessions(sessions, 2)
+        self.assertEqual(chosen, {"Crypto": date(2026, 10, 22)})
+        self.assertEqual(skipped, {"US": 4})
+
+
+class ThePerMarketCandidatesAreRouted(unittest.TestCase):
+    """Each market must be served by the artifact built for it, all still unapproved."""
+
+    def test_every_market_loads_its_own_candidate_and_none_is_approved(self):
+        models = sp.load_market_models(sp.DEFAULT_MODELS_ROOT)
+        self.assertEqual(sorted(models), sorted(sp.mk.MARKETS))
+        for m, model in models.items():
+            self.assertEqual(model["meta"]["productionApproved"], False)
+            self.assertEqual(model["version"], f"brain-v4-{m.lower()}")
+
+    def test_a_missing_artifact_refuses_rather_than_falling_back_to_the_global_model(self):
+        with self.assertRaises(SystemExit):
+            sp.load_market_models(sp.ROOT / "data" / "foundation" / "brain-nonexistent")
+
+
 if __name__ == "__main__":
     unittest.main()

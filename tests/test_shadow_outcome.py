@@ -69,10 +69,10 @@ def _bars(n: int, base: float, last: float) -> list[dict]:
     return out
 
 
-def _pred(pid="p1", market="US", horizon=20, predicted="UP"):
+def _pred(pid="p1", market="US", horizon=20, predicted="UP", as_of=None):
     return {"id": pid, "assetId": "a1", "symbol": "AAPL", "market": market,
             "predicted": predicted, "modelVersion": "brain-v2-context",
-            "asOf": date(2026, 10, 15), "horizonSessions": horizon,
+            "asOf": as_of or date(2026, 10, 15), "horizonSessions": horizon,
             "referencePrice": 100.0, "strategy": "swing", "timeframe": "swing"}
 
 
@@ -252,6 +252,21 @@ class BuildTest(unittest.TestCase):
         payload = ss.build(FakeCursor(), date(2026, 11, 20), 10)
         self.assertFalse(payload["rows"][0]["scorable"])
         self.assertIn("unknown market", payload["rows"][0]["reason"])
+
+    def test_a_call_dated_to_a_day_its_market_was_closed_is_unscorable(self):
+        # The eight rows recorded before the per-market session fix carry a Sunday (2026-10-18)
+        # asOf for US/PK/FX/Commodity. Scoring one would measure a move against a session the
+        # market never had, so it is refused and reported rather than graded.
+        self._patch([_pred(as_of=date(2026, 10, 18))], {"a1": 100.0},
+                    {"a1": _bars(20, 100.0, 130.0)})
+        payload = ss.build(FakeCursor(), date(2026, 11, 20), 10)
+        self.assertFalse(payload["rows"][0]["scorable"])
+        self.assertIn("not a session US trades", payload["rows"][0]["reason"])
+        # Crypto does trade that day, so the same date is fine for it.
+        self._patch([_pred(as_of=date(2026, 10, 18), market="Crypto")], {"a1": 100.0},
+                    {"a1": _bars(20, 100.0, 130.0)})
+        payload = ss.build(FakeCursor(), date(2026, 11, 20), 10)
+        self.assertTrue(payload["rows"][0]["scorable"])
 
     def test_build_never_mutates_the_prediction(self):
         pred = _pred()

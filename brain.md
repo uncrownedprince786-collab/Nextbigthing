@@ -6634,9 +6634,48 @@ reads rows that already exist:
       target. **A copy window shorter than the horizon is how an outcome arrives with nothing to
       point at.**
 
+<<<<<<< HEAD
 179. **A live shadow prediction uses the latest valid factor session of its own market, not the global latest date.** 2026-10-19.
 
     - Crypto can have a Sunday factor session while US, PSX, FX and commodities still have Friday as their latest complete session. A single `max(AssetFactor.periodEnd)` can therefore date an equity prediction on a day it did not trade. The row's `asOf`, contextual lookup, reference close and maturity must all be tied to that market's own selected session.
     - The query must select the maximum factor session grouped by the same market classification used by inference (`Crypto`, `FX`, `Commodity`, `PK`, `US`) and preserve that session per row. A prediction's date is part of its evidence, not a display label.
     - The fix is tested with different US and Crypto sessions. A mocked SQL-path test does not substitute for a read-only query against the actual database; runtime verification remains a release check.
+=======
+179. **A market's session is not the newest factor date; it is the newest date *that market* traded.** 2026-10-19.
+    Commit: `tools/research/shadow_predict.py` + `tools/research/shadow_score.py` (closure, item 2).
+
+    - **One global `max(periodEnd)` was a Sunday only crypto traded.** On 2026-10-18 the factor
+      table had rows for all five markets, so a US, PK, FX or commodity call would have been dated
+      to a day its market was closed -- and its outcome measured against a close that never
+      printed. The live reader now picks each market's own newest session that it trades (measured:
+      US/PK/FX/Commodity 2026-10-16, crypto 2026-10-18), and a market more than two of its own
+      sessions behind the newest anywhere is skipped and named. **A session is a fact about a
+      market, not about a table.**
+
+    - **Grouping `max(periodEnd)` by market is not enough; the date has to be one the market
+      trades.** The factor table carries a row for every asset on a day some market was open, so a
+      per-market maximum can still land on a Sunday for an equity market. The trading-day test is
+      reused from `shadow_markets.trades_on_market` (the same `jobs/sessions.py` rule), not
+      re-stated in SQL, so there is one session rule and not two. **A factor row is evidence that
+      a number was computed, not that the market traded.**
+
+    - **The eight rows already written keep their Sunday `asOf`, and the scorer now refuses to
+      grade them.** They are immutable evidence of the defect; deleting them would erase the only
+      record it happened. Instead `shadow_score` reports `"2026-10-18 is not a session US trades"`
+      as unscorable, so the mistake cannot be averaged into an accuracy later. **A wrong row is
+      neutralised where it is read, not where it is stored.**
+
+    - **Each market is served by the artifact built for it, or the run stops.** `--per-market-models`
+      routes US/PK/FX/Commodity/Crypto to `brain-v4-<market>`; a missing artifact refuses the whole
+      run rather than falling back to the global `brain-v2-context`, because predicting US under the
+      global model while recording the row as a per-market call is the relabelling this project
+      removed. Every artifact still has to be `productionApproved: false` to load at all, and
+      `capability(market).marketSpecific` stays `false` -- writing per-market calls is not the same
+      as claiming a per-market model has passed. **Serving a candidate and approving it are two
+      different acts, and only the first is happening.**
+
+    - **The corrected canary wrote eight new rows** (US/PK/FX/Commodity on 2026-10-16, per-market
+      models, each with a real base price); crypto on 2026-10-18 was already recorded and wrote
+      zero, which is the identity key doing its job across two different runs. Total 581 -> 589.
+>>>>>>> 6904205 (shadow: choose each market's own session; route per-market candidates)
 
