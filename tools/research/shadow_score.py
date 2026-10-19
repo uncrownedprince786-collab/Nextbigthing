@@ -49,42 +49,63 @@ sys.path.insert(0, str(ROOT / "tools" / "research"))
 
 import shadow_budget  # noqa: E402
 import shadow_markets as mk  # noqa: E402
+import make_dataset as md  # noqa: E402
 from make_dataset import LABEL_THRESHOLD_PCT, WINDOW, outcomes  # noqa: E402
 
 OUT = ROOT / "data" / "foundation" / "dataset" / "shadow_scorecard.json"
 LABEL_SESSIONS = 20
-SCORER_VERSION = "shadow-scorer-v1"
-SCORING_RULE = (f"label20 = UP when fwd20 >= +{LABEL_THRESHOLD_PCT}%, DOWN when <= "
-                f"-{LABEL_THRESHOLD_PCT}%, else FLAT; step {WINDOW} sessions")
+SCORER_VERSION = "shadow-scorer-v2"
 
 
-def forward_label(fwd20: float | None) -> str | None:
-    """The trained label from a 20-session forward return. `None` when the window is not closed."""
-    if fwd20 is None:
-        return None
-    if fwd20 >= LABEL_THRESHOLD_PCT:
-        return "UP"
-    if fwd20 <= -LABEL_THRESHOLD_PCT:
-        return "DOWN"
-    return "FLAT"
+def scoring_rule(horizon: int = LABEL_SESSIONS) -> str:
+    """The graded rule, written out, for the horizon in hand.
+
+    Stored on every outcome row so a result can be read years later without having to know which
+    version of this file produced it -- and so a scorer change that altered a threshold could never
+    pass unnoticed through rows that already carry the old wording.
+    """
+    th = md.label_threshold_pct(horizon)
+    return (f"label{horizon} = UP when fwd{horizon} >= +{th}%, DOWN when <= -{th}%, "
+            f"else FLAT; step {horizon} sessions")
 
 
-def score_one(predicted: str | None, base: float | None, bars: list[dict]) -> dict:
+SCORING_RULE = scoring_rule(LABEL_SESSIONS)
+
+
+def forward_label(fwd: float | None, horizon: int = LABEL_SESSIONS) -> str | None:
+    """The trained label for a forward return, from the one shared rule.
+
+    Delegates to `make_dataset.label_for` rather than restating the comparison, because the whole
+    point of this module reading `make_dataset` is that the scorer and the trainer cannot drift
+    apart about what UP means. The threshold scales with the horizon there; it is not fixed here.
+    """
+    return md.label_for(fwd, horizon)
+
+
+def score_one(predicted: str | None, base: float | None, bars: list[dict],
+              horizon: int = LABEL_SESSIONS) -> dict:
     """One prediction's realized outcome, using the shared forward-outcome rule.
 
     `bars` are the sessions strictly after the decision session, oldest first, as
-    `forward_bars` returns them.
+    `forward_bars` returns them. `horizon` selects which forward return is graded -- the same
+    number the prediction was recorded under, never one chosen here.
     """
     if base is None:
         return {"scorable": False, "reason": "no reference close stored for the decision session"}
     out = outcomes(float(base), bars)
-    f20 = out.get("fwd20")
-    label = forward_label(f20)
+    f = out.get(f"fwd{horizon}")
+    label = forward_label(f, horizon)
     return {
-        "scorable": f20 is not None,
-        "mature": bool(out.get("mature20")),
+        "scorable": f is not None,
+        "mature": bool(out.get(f"mature{horizon}")),
         "sessionsAvailable": out.get("sessionsAvailable"),
-        "fwd20": f20, "mfe": out.get("mfe"), "mae": out.get("mae"),
+        "horizonSessions": horizon,
+        "fwd": f,
+        # Kept so a reader that only ever knew about the 20-session scorecard still finds its
+        # field; it is the 20-session return whatever horizon was graded, and `fwd` is the one
+        # the outcome was decided on.
+        "fwd20": out.get("fwd20"),
+        "mfe": out.get("mfe"), "mae": out.get("mae"),
         "outcomeLabel": label,
         "correct": (None if label is None or predicted is None else label == predicted),
     }
@@ -245,9 +266,10 @@ def build(cur, as_of: date, limit: int, write: bool = False, conn=None,
             continue
         # A horizon with no fixed rule, or a market whose timeframe stored data cannot judge, is
         # reported unscorable rather than graded on a guess.
-        if horizon != LABEL_SESSIONS:
-            rows.append(_unscorable(p, market, f"only the {LABEL_SESSIONS}-session label is "
-                                               f"defined; this is a {horizon}-session horizon"))
+        if horizon not in md.HORIZONS:
+            rows.append(_unscorable(p, market,
+                                    f"no label rule is defined for a {horizon}-session horizon "
+                                    f"(defined: {', '.join(str(h) for h in md.HORIZONS)})"))
             continue
         if not mk.capability(market, "swing")["verifiable"]:
             rows.append(_unscorable(p, market, f"{market} swing is not verifiable from closes"))
@@ -264,7 +286,7 @@ def build(cur, as_of: date, limit: int, write: bool = False, conn=None,
             continue
         bars = fwd.get(p["assetId"], [])
         base = closes.get(p["assetId"])
-        s = score_one(p["predicted"], base, bars)
+        s = score_one(p["predicted"], base, bars, horizon)
         s.update({"id": p["id"], "symbol": p["symbol"], "market": market,
                   "predicted": p["predicted"], "asOf": a.isoformat(),
                   "sessionsElapsed": mk.sessions_between(a, as_of, market)})
@@ -275,12 +297,12 @@ def build(cur, as_of: date, limit: int, write: bool = False, conn=None,
             to_session = date.fromisoformat(to_session) if isinstance(to_session, str) else to_session
             finals.append({
                 "predictionId": p["id"], "final": True, "label": s["outcomeLabel"],
-                "fwdPct": s["fwd20"], "referencePrice": float(base),
+                "fwdPct": s["fwd"], "referencePrice": float(base),
                 "observedPrice": float(obs["close"]), "observedOn": to_session,
                 "fromSession": a, "toSession": to_session,
                 "sessionsElapsed": horizon, "horizonSessions": horizon,
                 "mfe": s["mfe"], "mae": s["mae"], "source": obs.get("source"),
-                "scoringRule": SCORING_RULE, "scorerVersion": SCORER_VERSION,
+                "scoringRule": scoring_rule(horizon), "scorerVersion": SCORER_VERSION,
                 "observedAt": datetime.now(timezone.utc)})
 
     result: dict = {

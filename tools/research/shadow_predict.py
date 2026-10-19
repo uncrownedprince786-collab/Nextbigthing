@@ -235,20 +235,36 @@ def predict_one(model: dict, price: dict, ctx_block: dict | None, *,
             "scores": {c: round(float(p[i]), 6) for i, c in enumerate(model["classes"])}}
 
 
-def load_market_models(root: Path) -> dict[str, dict]:
-    """One candidate per market, loaded from `brain-v4-<market>` under `root`.
+def load_market_models(root: Path, horizon: int = 20) -> dict[str, dict]:
+    """One candidate per market **for this horizon**, loaded from under `root`.
 
     A market with no artifact is a hard stop for the whole run, not a fall back to the global
     model: predicting US under `brain-v2-context` while recording the row as a per-market call is
     the relabelling this project spent a session removing. Every artifact loads through
     `load_model`, so each still has to be `productionApproved: false` to be served at all.
+
+    The horizon is part of which artifact is correct, not a label applied afterwards. A model
+    trained on `label20` answers a different question from one trained on `label5`, and serving
+    the 20-session candidate under a 5-session call would record a horizon the model was never
+    fitted for -- the same relabelling fault one level up. `brain-v4-<market>` is the 20-session
+    family; `brain-v5-h<N>-<market>` is the family for horizon N.
     """
     out: dict[str, dict] = {}
     for m in mk.MARKETS:
-        d = root / f"brain-v4-{m.lower()}"
+        name = (f"brain-v4-{m.lower()}" if horizon == 20
+                else f"brain-v5-h{horizon}-{m.lower()}")
+        d = root / name
         if not (d / "model.json").exists():
-            raise SystemExit(f"refusing: no per-market artifact at {d}")
-        out[m] = load_model(d)
+            raise SystemExit(f"refusing: no per-market artifact for a {horizon}-session "
+                             f"horizon at {d}")
+        loaded = load_model(d)
+        # The artifact says which horizon it was fitted for; a mismatch here is a wiring fault and
+        # must stop the run rather than be recorded as evidence.
+        trained_for = ((loaded.get("manifest") or {}).get("task") or {}).get("horizonSessions")
+        if trained_for is not None and int(trained_for) != int(horizon):
+            raise SystemExit(f"refusing: {d.name} was trained for a {trained_for}-session "
+                             f"horizon but this run records {horizon}-session calls")
+        out[m] = loaded
     return out
 
 
@@ -465,6 +481,15 @@ def write_rows(records: list[dict], max_per_market_session: int = 0, *,
     refuses when it is below `min_headroom_mb`, so the budget is enforced by the writer that spends
     it and not only by the workflow that happens to call it. The per-market/session cap counts the
     rows already stored and this run's inserts together, so it holds across retries.
+
+    **The cap is per market, session and horizon, not per market and session.** It budgets rows
+    against the free tier, and the unit it has to budget is the unit the identity key records: a
+    5-session call and a 20-session call on the same asset and session are two different
+    predictions and are stored as two rows. Counted without the horizon, the two rows an earlier
+    20-session canary left for 2026-10-16 filled the quota for that market and session outright,
+    and the first ten 5-session rows were refused with `skippedByCap: 10` -- a new horizon could
+    never be started while an old one held the session. Measured on 2026-10-19; the cap is still
+    two rows per market per session *per horizon*, so what it spends per horizon is unchanged.
     """
     try:
         sys.path.insert(0, str(ROOT / "jobs"))
@@ -479,14 +504,36 @@ def write_rows(records: list[dict], max_per_market_session: int = 0, *,
         cur = conn.cursor()
         n = 0
         skipped_by_cap = 0
-        session_counts: dict[tuple[str, str], int] = {}
+        skipped_already_matured = 0
+        today = date.today()
+        session_counts: dict[tuple[str, str, int], int] = {}
         for r in records:
-            key = (r["market"], r["asOf"])
+            # A prospective prediction is one whose answer is not yet knowable. If this row's
+            # horizon has already elapsed, the closes that decide it are either stored already or
+            # will be before anyone looks, and writing it would be recording a forecast of the
+            # past -- the one thing that would make every number on the scorecard worthless.
+            #
+            # This is not hypothetical. The features come from `AssetFactor`, whose newest session
+            # lags the calendar whenever an ingest is behind: on 2026-10-19 the newest US factor
+            # session was 2026-10-16, so a 1-session call would have been dated 2026-10-16 and
+            # matured on 2026-10-19 -- a session already stored. Over a 5-session horizon the same
+            # lag is harmless and the row is genuinely forward; over a short one it is not, and
+            # the difference is a date comparison rather than a judgement call.
+            #
+            # Strictly after today, not on or after: a maturity date of today is a session that
+            # may already have closed, and there is no cheap way to be sure from here. One day of
+            # caution costs a row and buys the whole claim.
+            matures = r.get("maturesAfter")
+            matures = date.fromisoformat(matures) if isinstance(matures, str) else matures
+            if matures is not None and matures <= today:
+                skipped_already_matured += 1
+                continue
+            key = (r["market"], r["asOf"], int(r["horizonSessions"]))
             if max_per_market_session > 0:
                 if key not in session_counts:
                     cur.execute(
                         'SELECT COUNT(*) AS n FROM "ShadowPrediction" '
-                        'WHERE "market" = %s AND "asOf" = %s', key)
+                        'WHERE "market" = %s AND "asOf" = %s AND "horizonSessions" = %s', key)
                     existing = cur.fetchone() or {"n": 0}
                     session_counts[key] = int(existing["n"] if isinstance(existing, dict) else existing[0])
                 if session_counts[key] >= max_per_market_session:
@@ -529,6 +576,10 @@ def write_rows(records: list[dict], max_per_market_session: int = 0, *,
         result = {"written": n, "status": "ok"}
         if max_per_market_session > 0:
             result["skippedByCap"] = skipped_by_cap
+        if skipped_already_matured:
+            # Named, not silent. A run that drops every row because the inputs are stale must not
+            # look like a run that had nothing to say.
+            result["skippedAlreadyMatured"] = skipped_already_matured
         return result
     except Exception as e:                                    # noqa: BLE001
         return {"written": 0, "status": "failed", "reason": f"{type(e).__name__}: {e}"}
@@ -581,7 +632,9 @@ def main() -> int:
     model = load_model(Path(a.model))
     print(f"model {model['version']} sha {model['sha256'][:16]} "
           f"({len(model['features'])} features, approved=False)")
-    market_models = load_market_models(Path(a.models_root)) if a.per_market_models else None
+    horizon = mk.STRATEGY_SESSIONS.get(a.strategy, 20)
+    market_models = (load_market_models(Path(a.models_root), horizon)
+                     if a.per_market_models else None)
     if market_models:
         print("per-market candidates: " + ", ".join(
             f"{m}={market_models[m]['version']}" for m in mk.MARKETS))

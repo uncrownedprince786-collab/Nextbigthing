@@ -63,7 +63,9 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "tools" / "foundation"))
+sys.path.insert(0, str(ROOT / "tools"))  # make_dataset, for the shared label rule
 
+import make_dataset as md  # noqa: E402  (the one shared label rule)
 import significance  # noqa: E402  (the gate's arithmetic, kept testable on its own)
 from baseline_experiment import CLASSES, EMBARGO, FEATURES, L2, LR, SEED, STEPS, metrics, predict  # noqa: E402
 from context_features import VERSION as CTX_VERSION  # noqa: E402
@@ -79,6 +81,19 @@ TRAIN_END = "2025-12-31"
 
 #: The model artifact directory name per market, so a path says which market it is.
 MARKET_DIR = {"US": "us", "PK": "pk", "FX": "fx", "Commodity": "commodity", "Crypto": "crypto"}
+
+
+def artifact_name(market: str, horizon: int = 20) -> str:
+    """The artifact family for a market and horizon.
+
+    20 sessions keeps `brain-v4-<market>` exactly as it is: those names are written into stored
+    `ShadowPrediction` rows, into every manifest the daily audit checks by digest, and into the
+    UI's model column, and renaming them would orphan all of it. A different horizon is a
+    different task -- different label, different threshold -- so it is a different family, not a
+    second model sharing a name with the first.
+    """
+    return (f"brain-v4-{MARKET_DIR[market]}" if horizon == 20
+            else f"brain-v5-h{horizon}-{MARKET_DIR[market]}")
 
 #: Fixed before the run. A candidate needs at least this much to fit and at least this much to
 #: score; a market under either is recorded as a limitation with its counts and no model is written.
@@ -118,11 +133,11 @@ def market_of_row(asset_type: str | None, market: str | None) -> str:
     return "PK" if (market or "").strip().upper() == "PK" else "US"
 
 
-def load(ds: Path, prefix: str = PREFIX) -> dict[str, dict]:
+def load(ds: Path, prefix: str = PREFIX, horizon: int = 20) -> dict[str, dict]:
     """Every usable row, grouped by market, in one pass over the versioned dataset.
 
     A row is usable exactly when `train_v2_context.load` would keep it: price features present, a
-    matured `label20` in CLASSES. The feature vector is assembled the same way -- a value from
+    matured `label{horizon}` in CLASSES. The feature vector is assembled the same way -- a value from
     `pit.f` or, failing that, `pit.ctx.f`; a direction word mapped to +/-1; an absent value kept as
     NaN so the training fold's mean can replace it after the split. Accumulating into
     `array('d')` per market rather than a list of lists keeps the whole dataset from becoming a
@@ -142,7 +157,15 @@ def load(ds: Path, prefix: str = PREFIX) -> dict[str, dict]:
                 r = json.loads(line)
                 pit = r.get("pit") or {}
                 p, o = pit.get("f"), r.get("outcome") or {}
-                if not p or o.get("label20") not in CLASSES or not o.get("mature20"):
+                # Derived rather than read, because the frozen dataset was assembled when only
+                # `label20` was written: every row carries `fwd1`, `fwd5` and `fwd20` (make_dataset
+                # HORIZONS), and a shorter label is that forward return put through the one shared
+                # rule. A stored label is preferred when the dataset has one, so a rebuilt dataset
+                # and this loader can never disagree about a row. `fwd{h} is None` is the maturity
+                # test, exactly as it is in `outcomes`.
+                fwd = o.get(f"fwd{horizon}")
+                label = o.get(f"label{horizon}") or md.label_for(fwd, horizon)
+                if not p or label not in CLASSES or fwd is None:
                     continue
                 c = (pit.get("ctx") or {}).get("f") or {}
                 row = []
@@ -164,7 +187,7 @@ def load(ds: Path, prefix: str = PREFIX) -> dict[str, dict]:
                 m = market_of_row(r.get("assetType"), r.get("market"))
                 b = per[m]
                 b["x"].extend(row)
-                b["y"].append(CLASSES.index(o["label20"]))
+                b["y"].append(CLASSES.index(label))
                 b["dates"].append(r["asOf"])
                 b["symbols"].add(r.get("symbol"))
                 b["assetTypes"][r.get("assetType")] += 1
@@ -231,7 +254,7 @@ def predict_matrix(model: dict, X: np.ndarray) -> np.ndarray:
     return Zb @ W
 
 
-def fit_market(name: str, b: dict, train_end: str) -> dict | None:
+def fit_market(name: str, b: dict, train_end: str, horizon: int = 20) -> dict | None:
     """Fit and evaluate one market, or return a limitation dict when it cannot be fitted.
 
     Returns a tuple-shaped dict with the model, the manifest and the in-process holdout labels, or
@@ -305,7 +328,10 @@ def fit_market(name: str, b: dict, train_end: str) -> dict | None:
     }
     verdict = "GO" if all(v[2] for v in checks.values()) else "NO-GO"
 
-    model_version = f"brain-v4-{MARKET_DIR[name]}"
+    # The 20-session family keeps the names it has, so every stored prediction, manifest and
+    # audit line that refers to `brain-v4-us` still refers to the same thing. A different horizon
+    # is a different task and gets its own family rather than a second model under one name.
+    model_version = artifact_name(name, horizon)
     model = {
         "modelVersion": model_version, "kind": "multinomial logistic regression",
         "classes": list(CLASSES), "features": ALL_FEATURES, "featureOrderMatters": True,
@@ -340,7 +366,9 @@ def fit_market(name: str, b: dict, train_end: str) -> dict | None:
                     "assetTypes": dict(b["assetTypes"]),
                     "contextShare": round(b["ctx"] / len(y), 4) if len(y) else 0.0,
                     "rowsCarryingADataQualityFlag": int(b["flagged"])},
-        "task": {"label": "label20", "classes": list(CLASSES), "horizonSessions": 20,
+        "task": {"label": f"label{horizon}", "classes": list(CLASSES),
+                 "horizonSessions": horizon,
+                 "labelThresholdPct": md.label_threshold_pct(horizon),
                  "thresholdPct": 2.0, "priceFeatures": list(FEATURES),
                  "contextFeatures": CTX_FEATURES, "featureCount": len(ALL_FEATURES),
                  "outcomeFieldsUsedAsFeatures": 0},
@@ -426,6 +454,10 @@ def main() -> int:
     ap.add_argument("--out", default=str(OUT_DIR))
     ap.add_argument("--brain", default=str(BRAIN_ROOT))
     ap.add_argument("--train-end", default=TRAIN_END)
+    ap.add_argument("--horizon", type=int, default=20, choices=sorted(md.HORIZONS),
+                    help="forward sessions the candidate is trained to call (default 20). A "
+                         "shorter horizon writes its own brain-v5-h<N>-<market> family and "
+                         "leaves the 20-session artifacts untouched")
     ap.add_argument("--verify", action="store_true",
                     help="load each written brain-v4-* artifact and re-predict a fixed matrix")
     a = ap.parse_args()
@@ -436,7 +468,7 @@ def main() -> int:
 
     ds = Path(a.dataset)
     print(f"loading {ds}")
-    per = load(ds)
+    per = load(ds, horizon=a.horizon)
     total = sum(b["rows"] for b in per.values())
     print(f"usable rows: {total:,}  across {len(MARKETS)} markets")
 
@@ -445,12 +477,12 @@ def main() -> int:
         b = per[name]
         print(f"\n{name}: {b['rows']:,} rows, {len(b['symbols'])} symbols, "
               f"context {b['ctx']:,}")
-        res = fit_market(name, b, a.train_end)
+        res = fit_market(name, b, a.train_end, a.horizon)
         if not res["trained"]:
             limitations[name] = res
             print(f"  NOT TRAINED - {res['reason']} (rows {res.get('rows')})")
             continue
-        brain_dir = brain_root / f"brain-v4-{MARKET_DIR[name]}"
+        brain_dir = brain_root / artifact_name(name, a.horizon)
         brain_dir.mkdir(parents=True, exist_ok=True)
         model_path = brain_dir / "model.json"
         text = json.dumps(res["model"], indent=1, sort_keys=True)
@@ -484,6 +516,8 @@ def main() -> int:
         "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "producedBy": "tools/research/train_v4_markets.py",
         "trainEnd": a.train_end, "embargoSessions": EMBARGO,
+        "horizonSessions": a.horizon,
+        "labelThresholdPct": md.label_threshold_pct(a.horizon),
         "markets": {
             name: ({
                 "trained": True, "modelVersion": r["model"]["modelVersion"],
@@ -499,7 +533,12 @@ def main() -> int:
         },
         "promotionRule": "no market is promoted on this evaluation; see each manifest.",
     }
-    (out_dir / "brain_v4_markets.json").write_text(json.dumps(aggregate, indent=1),
+    # One file per horizon. The 20-session run keeps writing `brain_v4_markets.json`, which the
+    # daily audit, brain.md and every earlier checkpoint refer to by name; a shorter horizon is a
+    # separate evaluation and must not overwrite the evidence for a different task.
+    agg_name = ("brain_v4_markets.json" if a.horizon == 20
+                else f"brain_v5_h{a.horizon}_markets.json")
+    (out_dir / agg_name).write_text(json.dumps(aggregate, indent=1),
                                                    encoding="utf-8")
 
     print("\n== per-market summary ==")
@@ -510,7 +549,10 @@ def main() -> int:
             continue
         print(f"  {name:<10} {r['model']['modelVersion']:<16} acc {r['accuracy']:.4f}  "
               f"{r['verdict']}  collapsed={r['collapse']['collapsed']}")
-    print(f"\nwrote artifacts under {brain_root} and {out_dir / 'brain_v4_markets.json'}")
+    # `agg_name`, not the literal: a 1-session run reported writing `brain_v4_markets.json` while
+    # correctly writing `brain_v5_h1_markets.json`, and a run that misreports where its evidence
+    # went is a run whose evidence nobody can find.
+    print(f"\nwrote artifacts under {brain_root} and {out_dir / agg_name}")
     return 0
 
 

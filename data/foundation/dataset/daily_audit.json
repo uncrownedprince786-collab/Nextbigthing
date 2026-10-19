@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-19T19:58:16+00:00",
+ "generatedAt": "2026-10-19T20:58:29+00:00",
  "version": "daily-audit-v1",
  "staleRulesReadFrom": "lib/health.ts + lib/decision.ts",
  "staleRules": {
@@ -8,7 +8,7 @@
   "QUOTES_STALE_AFTER_MINUTES": 60.0
  },
  "summary": {
-  "ok": 18,
+  "ok": 28,
   "warn": 5,
   "fail": 0,
   "unknown": 0
@@ -88,6 +88,96 @@
    }
   },
   {
+   "check": "artifact:brain-v5-h1-commodity",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "5cd22ab67dfd1b19",
+    "recorded": "5cd22ab67dfd1b19"
+   }
+  },
+  {
+   "check": "artifact:brain-v5-h1-crypto",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "b59828cb7f396014",
+    "recorded": "b59828cb7f396014"
+   }
+  },
+  {
+   "check": "artifact:brain-v5-h1-fx",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "2c9fe3927e3fcfb2",
+    "recorded": "2c9fe3927e3fcfb2"
+   }
+  },
+  {
+   "check": "artifact:brain-v5-h1-pk",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "5ac198c326d046ec",
+    "recorded": "5ac198c326d046ec"
+   }
+  },
+  {
+   "check": "artifact:brain-v5-h1-us",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "1fcddd37032c951e",
+    "recorded": "1fcddd37032c951e"
+   }
+  },
+  {
+   "check": "artifact:brain-v5-h5-commodity",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "9d279dd6bdbdb002",
+    "recorded": "9d279dd6bdbdb002"
+   }
+  },
+  {
+   "check": "artifact:brain-v5-h5-crypto",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "a2953a18428e4cae",
+    "recorded": "a2953a18428e4cae"
+   }
+  },
+  {
+   "check": "artifact:brain-v5-h5-fx",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "155e71bd36661ff5",
+    "recorded": "155e71bd36661ff5"
+   }
+  },
+  {
+   "check": "artifact:brain-v5-h5-pk",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "bfa2fc44ab4af138",
+    "recorded": "bfa2fc44ab4af138"
+   }
+  },
+  {
+   "check": "artifact:brain-v5-h5-us",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "177f993c9870415b",
+    "recorded": "177f993c9870415b"
+   }
+  },
+  {
    "check": "freeze:examples-v3-2026-10-16-local",
    "status": "ok",
    "detail": "status frozen for training, gates green True, 9 files",
@@ -143,31 +233,31 @@
   {
    "check": "newsFreshness",
    "status": "ok",
-   "detail": "newest headline 5.9h old (lib/health.ts calls the lane stale after 6.0h)",
+   "detail": "newest headline 2.0h old (lib/health.ts calls the lane stale after 6.0h)",
    "extra": null
   },
   {
    "check": "sourceCoverage",
    "status": "warn",
-   "detail": "2 source(s) outside: Reddit product mentions(stale x0.06), Google News RSS(partial x0.03)",
+   "detail": "2 source(s) outside: Reddit product mentions(stale x0.09), Google News RSS(partial x0.05)",
    "extra": null
   },
   {
    "check": "jobRuns36h",
    "status": "warn",
-   "detail": "79 slice(s) in 36h; needs attention: cron decision:blockedx1",
+   "detail": "78 slice(s) in 36h; needs attention: cron decision:blockedx1",
    "extra": null
   },
   {
    "check": "productRuns36h",
    "status": "warn",
-   "detail": "19 slice(s) in 36h; not ok: cron products:emptyx2",
+   "detail": "13 slice(s) in 36h; not ok: cron products:emptyx2",
    "extra": null
   },
   {
    "check": "shadowOutcomes",
    "status": "ok",
-   "detail": "589 prediction(s) from 6 model version(s); 0 scored; 0 matured and awaiting an outcome; earliest maturity 2026-11-05",
+   "detail": "599 prediction(s) from 11 model version(s); 0 scored; 0 matured and awaiting an outcome; earliest maturity 2026-10-23",
    "extra": {
     "matureAndUnscored": 0,
     "scored": 0
@@ -188,9 +278,9 @@
   {
    "check": "databaseSize",
    "status": "warn",
-   "detail": "483.5 MB of a 500 MB free tier (96.7%)",
+   "detail": "483.6 MB of a 500 MB free tier (96.7%)",
    "extra": {
-    "mb": "483.5"
+    "mb": "483.6"
    }
   }
  ]

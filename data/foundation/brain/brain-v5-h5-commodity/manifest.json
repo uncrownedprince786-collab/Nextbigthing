@@ -1,0 +1,301 @@
+{
+ "generatedAt": "2026-10-19T20:36:38+00:00",
+ "modelVersion": "brain-v5-h5-commodity",
+ "market": "Commodity",
+ "artifact": {
+  "path": "data/foundation/brain/brain-v5-h5-commodity/model.json",
+  "sha256": "9d279dd6bdbdb0029b7b4f80632a4e4284b0fa1641e3fde21fc32dca8bd225f2"
+ },
+ "producedBy": "tools/research/train_v4_markets.py",
+ "configurationImportedFrom": "tools/research/baseline_experiment.py",
+ "configurationSha256": "ba06d009dfc843b87ed48de29423215487748c800c5395cebd4b0e31075fad2d",
+ "contextProducerSha256": "a0c79e42791585320d0a60a0176f2554dbb1ccec8525f6fc1e8bbd0b2539a911",
+ "repoHead": "133d540329f755f31347399f0a6fc6f914231d80",
+ "theOneThingChanged": "the training population; features, target, horizon, split, embargo, seed, hyperparameters and imputation are brain-v2-context's",
+ "dataset": {
+  "prefix": "examples-v4-context",
+  "market": "Commodity",
+  "rows": 15123,
+  "trainRows": 13539,
+  "holdoutRows": 1424,
+  "distinctDecisionDates": 1891,
+  "holdoutDecisionDates": 178,
+  "symbols": 8,
+  "assetTypes": {
+   "commodity": 15123
+  },
+  "contextShare": 1.0,
+  "rowsCarryingADataQualityFlag": 459
+ },
+ "task": {
+  "label": "label5",
+  "classes": [
+   "DOWN",
+   "FLAT",
+   "UP"
+  ],
+  "horizonSessions": 5,
+  "labelThresholdPct": 1.0,
+  "thresholdPct": 2.0,
+  "priceFeatures": [
+   "atr14",
+   "drawdownPct",
+   "entryTrigger",
+   "peerMedianR20",
+   "peers",
+   "r1",
+   "r20",
+   "r5",
+   "rangePct",
+   "relStrength",
+   "returnZ",
+   "sma20",
+   "sma50",
+   "triggerDirection",
+   "volumeRatio"
+  ],
+  "contextFeatures": [
+   "macro_DGS10_chg",
+   "macro_DGS10_age",
+   "macro_T10Y2Y_chg",
+   "macro_T10Y2Y_age",
+   "macro_T10Y3M_chg",
+   "macro_T10Y3M_age",
+   "macro_DFF_chg",
+   "macro_DFF_age",
+   "macro_T10YIE_chg",
+   "macro_T10YIE_age",
+   "macro_VIXCLS_chg",
+   "macro_VIXCLS_age",
+   "macro_NFCI_chg",
+   "macro_NFCI_age",
+   "macro_DTWEXBGS_chg",
+   "macro_DTWEXBGS_age",
+   "macro_DCOILWTICO_chg",
+   "macro_DCOILWTICO_age",
+   "macro_ICSA_chg",
+   "macro_ICSA_age",
+   "ctx_mktEventsIn90d",
+   "ctx_mktDaysSinceEvent",
+   "ctx_ownEventsIn90d",
+   "ctx_ownDaysSinceEvent",
+   "ctx_mktPressIn90d",
+   "ctx_ownPressIn90d",
+   "ctx_maturedPriors",
+   "ctx_priorMedianFwd20",
+   "ctx_unresolvedScopeRecords"
+  ],
+  "featureCount": 44,
+  "outcomeFieldsUsedAsFeatures": 0
+ },
+ "hyperparameters": {
+  "seed": 20261015,
+  "steps": 400,
+  "learningRate": 0.5,
+  "l2": 0.0001,
+  "embargoSessions": 20
+ },
+ "acceptanceCriteria": {
+  "accuracyAboveHoldoutMajority": "strictly above the holdout's largest-class share",
+  "beatsThePriceOnlyModel": "strictly above the price-only fit on the same rows and split",
+  "notDegenerate": "no predicted class exceeds 0.7 of the holdout while being under half of it",
+  "bothDirectionsPredicted": "recall at least 0.2 for both DOWN and UP"
+ },
+ "criteriaPreRegisteredBeforeRun": false,
+ "criteriaProvenance": "written with this trainer in the same run as the numbers, mirrored from brain-v2-context and brain-v3-crypto; a pass is diagnostic and promotes nothing -- a frozen candidate's prospective stream decides",
+ "criteriaMet": {
+  "accuracyAboveHoldoutMajority": [
+   0.4431,
+   0.4473,
+   false,
+   {
+    "accuracy": 0.4431,
+    "baseline": 0.4473,
+    "n": 1424,
+    "lift": -0.0042,
+    "standardError": 0.0132,
+    "z": -0.32,
+    "requiredAccuracy": 0.469,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4431 vs a 0.4473 baseline on 1424 rows is -0.32 standard errors; does not clear the 0.4690 needed at one-sided 1.645"
+   }
+  ],
+  "beatsThePriceOnlyModel": [
+   0.4431,
+   0.4515,
+   false,
+   {
+    "onlyCandidateRight": 65,
+    "onlyOtherRight": 77,
+    "discordant": 142,
+    "z": -0.92,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 65 rows and wrong where it was right on 77; z = -0.92 against the 1.645 needed"
+   }
+  ],
+  "notDegenerate": [
+   true,
+   false,
+   false
+  ],
+  "bothDirectionsPredicted": [
+   {
+    "DOWN": 0.2483,
+    "UP": 0.7614
+   },
+   0.2,
+   true
+  ]
+ },
+ "nullShareByFeature": {
+  "atr14": 0.0,
+  "drawdownPct": 0.0,
+  "entryTrigger": 0.9121,
+  "peerMedianR20": 0.5001,
+  "peers": 0.0,
+  "r1": 0.0001,
+  "r20": 0.0001,
+  "r5": 0.0001,
+  "rangePct": 0.0,
+  "relStrength": 0.5001,
+  "returnZ": 0.0001,
+  "sma20": 0.0,
+  "sma50": 0.0,
+  "triggerDirection": 0.9121,
+  "volumeRatio": 0.1026,
+  "macro_DGS10_chg": 0.0,
+  "macro_DGS10_age": 0.0,
+  "macro_T10Y2Y_chg": 0.0,
+  "macro_T10Y2Y_age": 0.0,
+  "macro_T10Y3M_chg": 0.0,
+  "macro_T10Y3M_age": 0.0,
+  "macro_DFF_chg": 0.0,
+  "macro_DFF_age": 0.0,
+  "macro_T10YIE_chg": 0.0,
+  "macro_T10YIE_age": 0.0,
+  "macro_VIXCLS_chg": 0.0,
+  "macro_VIXCLS_age": 0.0,
+  "macro_NFCI_chg": 0.0,
+  "macro_NFCI_age": 0.0,
+  "macro_DTWEXBGS_chg": 0.0,
+  "macro_DTWEXBGS_age": 0.0,
+  "macro_DCOILWTICO_chg": 0.0,
+  "macro_DCOILWTICO_age": 0.0,
+  "macro_ICSA_chg": 0.0,
+  "macro_ICSA_age": 0.0,
+  "ctx_mktEventsIn90d": 0.0,
+  "ctx_mktDaysSinceEvent": 0.0508,
+  "ctx_ownEventsIn90d": 0.875,
+  "ctx_ownDaysSinceEvent": 0.8834,
+  "ctx_mktPressIn90d": 0.0,
+  "ctx_ownPressIn90d": 0.875,
+  "ctx_maturedPriors": 0.875,
+  "ctx_priorMedianFwd20": 0.8849,
+  "ctx_unresolvedScopeRecords": 0.0
+ },
+ "evaluation": {
+  "holdout": {
+   "from": "2026-01-02",
+   "to": "2026-09-17",
+   "rows": 1424,
+   "effectiveIndependentWindows": 71,
+   "pristine": false,
+   "exposure": "2026-01-01..2026-09-25 has been scored by the baseline experiment, the balanced experiment, brain-v2-context and brain-v3-crypto; diagnostic, never independent"
+  },
+  "accuracy": 0.4431,
+  "holdoutMajorityShare": 0.4473,
+  "marginOverHoldoutMajority": -0.0042,
+  "priceOnlyAccuracy": 0.4515,
+  "marginOverPriceOnly": -0.0084,
+  "perClass": {
+   "DOWN": {
+    "recall": 0.2483,
+    "precision": 0.4465
+   },
+   "FLAT": {
+    "recall": 0.0,
+    "precision": 0.0
+   },
+   "UP": {
+    "recall": 0.7614,
+    "precision": 0.4425
+   }
+  },
+  "predictedMix": {
+   "DOWN": 327,
+   "FLAT": 1,
+   "UP": 1096
+  },
+  "actualMix": {
+   "DOWN": 588,
+   "FLAT": 199,
+   "UP": 637
+  },
+  "confusion": {
+   "DOWN": {
+    "DOWN": 146,
+    "FLAT": 1,
+    "UP": 441
+   },
+   "FLAT": {
+    "DOWN": 29,
+    "FLAT": 0,
+    "UP": 170
+   },
+   "UP": {
+    "DOWN": 152,
+    "FLAT": 0,
+    "UP": 485
+   }
+  },
+  "degeneracy": {
+   "largestPredicted": {
+    "class": "UP",
+    "predictedShare": 0.7697,
+    "actualShare": 0.4473
+   },
+   "degenerate": true
+  },
+  "collapseAnalysis": {
+   "predictedShare": {
+    "DOWN": 0.2296,
+    "FLAT": 0.0007,
+    "UP": 0.7697
+   },
+   "actualShare": {
+    "DOWN": 0.4129,
+    "FLAT": 0.1397,
+    "UP": 0.4473
+   },
+   "predictedUp": 1096,
+   "predictedDown": 327,
+   "predictedFlat": 1,
+   "dominantPredictedClass": "UP",
+   "collapsed": true,
+   "note": "collapsed means one class takes >0.7 of the predictions while being <0.5 of the holdout, which is scoring by leaning on a class rather than reading direction"
+  },
+  "byYear": {
+   "2026": {
+    "n": 1424,
+    "accuracy": 0.4431,
+    "priceOnly": 0.4515,
+    "majority": 0.4473
+   }
+  }
+ },
+ "verdict": "NO-GO",
+ "eligibleForPromotion": false,
+ "promotionRule": "NOT promoted on this evaluation under any outcome; a pass licenses freezing the candidate and starting a prospective stream",
+ "limitations": [
+  "direction only; no execution-cost, spread or borrow data exists, so nothing here is a profitability claim.",
+  "the effective sample is rows / 20; the row count is not the sample size.",
+  "survivorship: the universe is today's registered assets.",
+  "the holdout is not pristine; see evaluation.holdout.exposure.",
+  "an absent feature takes the training fold's mean; the model cannot tell an imputed value from an observed one.",
+  "thin population: 8 symbols, so a pass could be a few names' behaviour rather than a market reading."
+ ]
+}

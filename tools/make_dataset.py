@@ -51,6 +51,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
+import math
 import subprocess
 import sys
 from datetime import date
@@ -119,6 +120,41 @@ def base_closes(cur, as_of: date) -> dict[str, float]:
     return {r["assetId"]: float(r["close"]) for r in cur.fetchall()}
 
 
+def label_threshold_pct(horizon: int) -> float:
+    """The move a `horizon`-session call has to clear to be UP or DOWN rather than FLAT.
+
+    **Why this is not one number for every horizon.** `LABEL_THRESHOLD_PCT` is 2%, and it was
+    chosen for the 20-session window. Reusing it at 5 sessions would not be a stricter rule, it
+    would be a different question: a 2% move is ordinary over a month and rare over a week, so
+    nearly every short call would come back FLAT and the label would be measuring the calendar
+    rather than the direction.
+
+    So the threshold scales with the square root of the horizon, which is how the spread of a
+    random walk's cumulative return grows. That is a textbook relationship, fixed here **before
+    any 5-session result was looked at**, and it is deliberately not a knob: there is no argument
+    to tune, and the 20-session value it is anchored to is the one this project has used from the
+    first row it stored.
+
+        1 session  -> 0.45%        5 sessions -> 1.0%        20 sessions -> 2.0%
+
+    At 20 it returns exactly `LABEL_THRESHOLD_PCT`, so `label20` is bit-for-bit the label it
+    always was and nothing already trained or stored changes meaning.
+    """
+    return round(LABEL_THRESHOLD_PCT * math.sqrt(horizon / float(WINDOW)), 2)
+
+
+def label_for(fwd: float | None, horizon: int) -> str | None:
+    """`UP`/`DOWN`/`FLAT` for a forward return, or `None` when the horizon has not elapsed.
+
+    `None` is not FLAT. A window that has not closed has no direction, and the one way this
+    project can lie to itself about a model is to read an unelapsed horizon as a flat outcome.
+    """
+    if fwd is None:
+        return None
+    t = label_threshold_pct(horizon)
+    return "UP" if fwd >= t else "DOWN" if fwd <= -t else "FLAT"
+
+
 def outcomes(base: float, bars: list[dict]) -> dict:
     """Forward returns, extremes and the categorical label. Immature horizons stay null."""
     closes = [float(b["close"]) for b in bars]
@@ -131,11 +167,13 @@ def outcomes(base: float, bars: list[dict]) -> dict:
         out["mae"] = round((min(closes) / base - 1) * 100, 4)
     else:
         out["mfe"] = out["mae"] = None
-    f20 = out.get("fwd20")
-    out["label20"] = (None if f20 is None else
-                      "UP" if f20 >= LABEL_THRESHOLD_PCT else
-                      "DOWN" if f20 <= -LABEL_THRESHOLD_PCT else "FLAT")
-    out["mature20"] = f20 is not None
+    # Every horizon is labelled, not just the longest. `fwd{h} is None` is already the maturity
+    # test -- a horizon short of its sessions stays null above -- so `mature{h}` is that fact
+    # named rather than a second rule that could drift from it.
+    for h in HORIZONS:
+        f = out.get(f"fwd{h}")
+        out[f"label{h}"] = label_for(f, h)
+        out[f"mature{h}"] = f is not None
     return out
 
 

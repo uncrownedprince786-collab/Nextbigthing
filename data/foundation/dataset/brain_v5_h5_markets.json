@@ -1,0 +1,429 @@
+{
+ "generatedAt": "2026-10-19T20:36:56+00:00",
+ "producedBy": "tools/research/train_v4_markets.py",
+ "trainEnd": "2025-12-31",
+ "embargoSessions": 20,
+ "horizonSessions": 5,
+ "labelThresholdPct": 1.0,
+ "markets": {
+  "US": {
+   "trained": true,
+   "modelVersion": "brain-v5-h5-us",
+   "artifact": {
+    "path": "data/foundation/brain/brain-v5-h5-us/model.json",
+    "sha256": "177f993c9870415bc9f8d28ebd05d0a6320cf6f7e6d2e7864bac964ac7d8f6a2"
+   },
+   "accuracy": 0.4301,
+   "holdoutMajorityShare": 0.4312,
+   "priceOnlyAccuracy": 0.4297,
+   "verdict": "NO-GO",
+   "checks": {
+    "accuracyAboveHoldoutMajority": [
+     0.4301,
+     0.4312,
+     false,
+     {
+      "accuracy": 0.4301,
+      "baseline": 0.4312,
+      "n": 49679,
+      "lift": -0.0011,
+      "standardError": 0.0022,
+      "z": -0.48,
+      "requiredAccuracy": 0.4349,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "0.4301 vs a 0.4312 baseline on 49679 rows is -0.48 standard errors; does not clear the 0.4349 needed at one-sided 1.645"
+     }
+    ],
+    "beatsThePriceOnlyModel": [
+     0.4301,
+     0.4297,
+     false,
+     {
+      "onlyCandidateRight": 477,
+      "onlyOtherRight": 453,
+      "discordant": 930,
+      "z": 0.75,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "the candidate was right where the other was wrong on 477 rows and wrong where it was right on 453; z = 0.75 against the 1.645 needed"
+     }
+    ],
+    "notDegenerate": [
+     true,
+     false,
+     false
+    ],
+    "bothDirectionsPredicted": [
+     {
+      "DOWN": 0.0086,
+      "UP": 0.9875
+     },
+     0.2,
+     false
+    ]
+   },
+   "predictedMix": {
+    "DOWN": 341,
+    "FLAT": 216,
+    "UP": 49122
+   },
+   "collapse": {
+    "predictedShare": {
+     "DOWN": 0.0069,
+     "FLAT": 0.0043,
+     "UP": 0.9888
+    },
+    "actualShare": {
+     "DOWN": 0.3969,
+     "FLAT": 0.1719,
+     "UP": 0.4312
+    },
+    "predictedUp": 49122,
+    "predictedDown": 341,
+    "predictedFlat": 216,
+    "dominantPredictedClass": "UP",
+    "collapsed": true,
+    "note": "collapsed means one class takes >0.7 of the predictions while being <0.5 of the holdout, which is scoring by leaning on a class rather than reading direction"
+   },
+   "freshProcessParity": 1.0
+  },
+  "PK": {
+   "trained": true,
+   "modelVersion": "brain-v5-h5-pk",
+   "artifact": {
+    "path": "data/foundation/brain/brain-v5-h5-pk/model.json",
+    "sha256": "bfa2fc44ab4af138803d9458cb7b17c472b30f40871b3ba7026e355ebcf2e5a5"
+   },
+   "accuracy": 0.3729,
+   "holdoutMajorityShare": 0.4699,
+   "priceOnlyAccuracy": 0.4629,
+   "verdict": "NO-GO",
+   "checks": {
+    "accuracyAboveHoldoutMajority": [
+     0.3729,
+     0.4699,
+     false,
+     {
+      "accuracy": 0.3729,
+      "baseline": 0.4699,
+      "n": 38333,
+      "lift": -0.097,
+      "standardError": 0.0025,
+      "z": -38.05,
+      "requiredAccuracy": 0.4741,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "0.3729 vs a 0.4699 baseline on 38333 rows is -38.05 standard errors; does not clear the 0.4741 needed at one-sided 1.645"
+     }
+    ],
+    "beatsThePriceOnlyModel": [
+     0.3729,
+     0.4629,
+     false,
+     {
+      "onlyCandidateRight": 10513,
+      "onlyOtherRight": 13961,
+      "discordant": 24474,
+      "z": -22.03,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "the candidate was right where the other was wrong on 10513 rows and wrong where it was right on 13961; z = -22.03 against the 1.645 needed"
+     }
+    ],
+    "notDegenerate": [
+     true,
+     false,
+     false
+    ],
+    "bothDirectionsPredicted": [
+     {
+      "DOWN": 0.0886,
+      "UP": 0.9244
+     },
+     0.2,
+     false
+    ]
+   },
+   "predictedMix": {
+    "DOWN": 3072,
+    "FLAT": 250,
+    "UP": 35011
+   },
+   "collapse": {
+    "predictedShare": {
+     "DOWN": 0.0801,
+     "FLAT": 0.0065,
+     "UP": 0.9133
+    },
+    "actualShare": {
+     "DOWN": 0.4699,
+     "FLAT": 0.1756,
+     "UP": 0.3545
+    },
+    "predictedUp": 35011,
+    "predictedDown": 3072,
+    "predictedFlat": 250,
+    "dominantPredictedClass": "UP",
+    "collapsed": true,
+    "note": "collapsed means one class takes >0.7 of the predictions while being <0.5 of the holdout, which is scoring by leaning on a class rather than reading direction"
+   },
+   "freshProcessParity": 1.0
+  },
+  "FX": {
+   "trained": true,
+   "modelVersion": "brain-v5-h5-fx",
+   "artifact": {
+    "path": "data/foundation/brain/brain-v5-h5-fx/model.json",
+    "sha256": "155e71bd36661ff546f4fa6d1ee9c1a56fd7e92e4a64a23a1cc3f5479b2827be"
+   },
+   "accuracy": 0.7419,
+   "holdoutMajorityShare": 0.7419,
+   "priceOnlyAccuracy": 0.7419,
+   "verdict": "NO-GO",
+   "checks": {
+    "accuracyAboveHoldoutMajority": [
+     0.7419,
+     0.7419,
+     false,
+     {
+      "accuracy": 0.7419,
+      "baseline": 0.7419,
+      "n": 4995,
+      "lift": 0.0,
+      "standardError": 0.0062,
+      "z": 0.0,
+      "requiredAccuracy": 0.7521,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "0.7419 vs a 0.7419 baseline on 4995 rows is 0.00 standard errors; does not clear the 0.7521 needed at one-sided 1.645"
+     }
+    ],
+    "beatsThePriceOnlyModel": [
+     0.7419,
+     0.7419,
+     false,
+     {
+      "onlyCandidateRight": 0,
+      "onlyOtherRight": 0,
+      "discordant": 0,
+      "enoughData": false,
+      "passes": false,
+      "why": "the two models answered every holdout row the same way"
+     }
+    ],
+    "notDegenerate": [
+     false,
+     false,
+     true
+    ],
+    "bothDirectionsPredicted": [
+     {
+      "DOWN": 0.0,
+      "UP": 0.0
+     },
+     0.2,
+     false
+    ]
+   },
+   "predictedMix": {
+    "DOWN": 0,
+    "FLAT": 4995,
+    "UP": 0
+   },
+   "collapse": {
+    "predictedShare": {
+     "DOWN": 0.0,
+     "FLAT": 1.0,
+     "UP": 0.0
+    },
+    "actualShare": {
+     "DOWN": 0.1277,
+     "FLAT": 0.7419,
+     "UP": 0.1303
+    },
+    "predictedUp": 0,
+    "predictedDown": 0,
+    "predictedFlat": 4995,
+    "dominantPredictedClass": "FLAT",
+    "collapsed": false,
+    "note": "collapsed means one class takes >0.7 of the predictions while being <0.5 of the holdout, which is scoring by leaning on a class rather than reading direction"
+   },
+   "freshProcessParity": 1.0
+  },
+  "Commodity": {
+   "trained": true,
+   "modelVersion": "brain-v5-h5-commodity",
+   "artifact": {
+    "path": "data/foundation/brain/brain-v5-h5-commodity/model.json",
+    "sha256": "9d279dd6bdbdb0029b7b4f80632a4e4284b0fa1641e3fde21fc32dca8bd225f2"
+   },
+   "accuracy": 0.4431,
+   "holdoutMajorityShare": 0.4473,
+   "priceOnlyAccuracy": 0.4515,
+   "verdict": "NO-GO",
+   "checks": {
+    "accuracyAboveHoldoutMajority": [
+     0.4431,
+     0.4473,
+     false,
+     {
+      "accuracy": 0.4431,
+      "baseline": 0.4473,
+      "n": 1424,
+      "lift": -0.0042,
+      "standardError": 0.0132,
+      "z": -0.32,
+      "requiredAccuracy": 0.469,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "0.4431 vs a 0.4473 baseline on 1424 rows is -0.32 standard errors; does not clear the 0.4690 needed at one-sided 1.645"
+     }
+    ],
+    "beatsThePriceOnlyModel": [
+     0.4431,
+     0.4515,
+     false,
+     {
+      "onlyCandidateRight": 65,
+      "onlyOtherRight": 77,
+      "discordant": 142,
+      "z": -0.92,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "the candidate was right where the other was wrong on 65 rows and wrong where it was right on 77; z = -0.92 against the 1.645 needed"
+     }
+    ],
+    "notDegenerate": [
+     true,
+     false,
+     false
+    ],
+    "bothDirectionsPredicted": [
+     {
+      "DOWN": 0.2483,
+      "UP": 0.7614
+     },
+     0.2,
+     true
+    ]
+   },
+   "predictedMix": {
+    "DOWN": 327,
+    "FLAT": 1,
+    "UP": 1096
+   },
+   "collapse": {
+    "predictedShare": {
+     "DOWN": 0.2296,
+     "FLAT": 0.0007,
+     "UP": 0.7697
+    },
+    "actualShare": {
+     "DOWN": 0.4129,
+     "FLAT": 0.1397,
+     "UP": 0.4473
+    },
+    "predictedUp": 1096,
+    "predictedDown": 327,
+    "predictedFlat": 1,
+    "dominantPredictedClass": "UP",
+    "collapsed": true,
+    "note": "collapsed means one class takes >0.7 of the predictions while being <0.5 of the holdout, which is scoring by leaning on a class rather than reading direction"
+   },
+   "freshProcessParity": 1.0
+  },
+  "Crypto": {
+   "trained": true,
+   "modelVersion": "brain-v5-h5-crypto",
+   "artifact": {
+    "path": "data/foundation/brain/brain-v5-h5-crypto/model.json",
+    "sha256": "a2953a18428e4caee2e923b9a84079fc3c962605347c3f8f4f18ac0f07d1c30f"
+   },
+   "accuracy": 0.4771,
+   "holdoutMajorityShare": 0.4741,
+   "priceOnlyAccuracy": 0.4739,
+   "verdict": "NO-GO",
+   "checks": {
+    "accuracyAboveHoldoutMajority": [
+     0.4771,
+     0.4741,
+     false,
+     {
+      "accuracy": 0.4771,
+      "baseline": 0.4741,
+      "n": 19220,
+      "lift": 0.003,
+      "standardError": 0.0036,
+      "z": 0.82,
+      "requiredAccuracy": 0.4801,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "0.4771 vs a 0.4741 baseline on 19220 rows is 0.82 standard errors; does not clear the 0.4801 needed at one-sided 1.645"
+     }
+    ],
+    "beatsThePriceOnlyModel": [
+     0.4771,
+     0.4739,
+     true,
+     {
+      "onlyCandidateRight": 147,
+      "onlyOtherRight": 85,
+      "discordant": 232,
+      "z": 4.0,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": true,
+      "why": "the candidate was right where the other was wrong on 147 rows and wrong where it was right on 85; z = 4.00 against the 1.645 needed"
+     }
+    ],
+    "notDegenerate": [
+     true,
+     false,
+     false
+    ],
+    "bothDirectionsPredicted": [
+     {
+      "DOWN": 0.9923,
+      "UP": 0.0162
+     },
+     0.2,
+     false
+    ]
+   },
+   "predictedMix": {
+    "DOWN": 18987,
+    "FLAT": 7,
+    "UP": 226
+   },
+   "collapse": {
+    "predictedShare": {
+     "DOWN": 0.9879,
+     "FLAT": 0.0004,
+     "UP": 0.0118
+    },
+    "actualShare": {
+     "DOWN": 0.4741,
+     "FLAT": 0.131,
+     "UP": 0.3948
+    },
+    "predictedUp": 226,
+    "predictedDown": 18987,
+    "predictedFlat": 7,
+    "dominantPredictedClass": "DOWN",
+    "collapsed": true,
+    "note": "collapsed means one class takes >0.7 of the predictions while being <0.5 of the holdout, which is scoring by leaning on a class rather than reading direction"
+   },
+   "freshProcessParity": 1.0
+  }
+ },
+ "promotionRule": "no market is promoted on this evaluation; see each manifest."
+}

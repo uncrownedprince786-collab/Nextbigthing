@@ -88,13 +88,33 @@ TIMEFRAMES: dict[str, dict] = {
     },
     "intraday": {
         "sessions": 1,
-        "judgedOn": "the same session's close",
+        "judgedOn": "the next session's close against the +/-0.45% label band",
         "dailyClosesCanJudge": True,
-        "why": "one session's close is stored, so a decision to the close can be scored from it",
+        "why": "one session forward, judged from the close after the decision session. The "
+               "description here used to read 'the same session's close', which was wrong in a "
+               "way worth naming: `matures_after(as_of, 1, market)` is the *next* session, and "
+               "`make_dataset.outcomes` measures `fwd1` from the first bar **strictly after** "
+               "`as_of`. Both the code paths agreed with each other and only the prose "
+               "disagreed, but a timeframe whose stated rule differs from its graded rule is "
+               "exactly how a scorer and a trainer drift apart. The +/-0.45% band is "
+               "`make_dataset.label_threshold_pct(1)`",
+    },
+    "short": {
+        "sessions": 5,
+        "judgedOn": "the 5-session forward return against the +/-1.0% label band",
+        "dailyClosesCanJudge": True,
+        "why": "a week of sessions, judged from stored closes exactly as the swing horizon is. "
+               "It exists because `swing` cannot be verified quickly: a call recorded today is "
+               "not gradeable for a month, so a month is the soonest anything prospective can be "
+               "measured at all. `make_dataset.HORIZONS` has carried `fwd5` on every row since "
+               "the first dataset was assembled -- this is that column labelled and used, not a "
+               "new kind of claim. The +/-1% band is `make_dataset.label_threshold_pct(5)`, "
+               "which scales the 20-session 2% by the square root of the horizon and was fixed "
+               "before any 5-session result was looked at",
     },
     "swing": {
         "sessions": 20,
-        "judgedOn": "the 20-session forward return against the +/-2% label band",
+        "judgedOn": "the 20-session forward return against the +/-2.0% label band",
         "dailyClosesCanJudge": True,
         "why": "the horizon the model was trained on; the label rule is fixed in tools/make_dataset",
     },

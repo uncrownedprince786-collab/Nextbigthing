@@ -6839,3 +6839,40 @@ reads rows that already exist:
     and never backfills it: **the monitor would have reported `0 scored` and a louder warning every
     day from the moment the lane started working.** **A count that merges "not yet" with "never"
     is not a count of anything, and it fails in the direction of looking busy.**
+
+187. **Every horizon the dataset could already grade had been there since the first row, and only
+    the longest one was ever labelled.** 2026-10-19. `make_dataset.HORIZONS` is `(1, 5, 20)` and
+    every assembled row carries `fwd1`, `fwd5` and `fwd20` -- 100% coverage on the frozen
+    `examples-v4-context` dataset. Only `fwd20` was turned into a categorical `label20`, so the
+    only thing any candidate was ever trained to call was a **twenty-session** move, and the only
+    prospective evidence the shadow lane could record took **a month** to become gradeable. The
+    project had been waiting on a clock it had the data to stop waiting on. `label5` is that
+    column labelled: same rule, same file, threshold scaled by the square root of the horizon
+    (2.0% at 20 -> **1.0% at 5**, 0.45% at 1), fixed before a single 5-session result was looked
+    at, and returning exactly 2.0 at 20 so `label20` is bit-for-bit what it always was.
+    **The shortest honest feedback loop is a property of the stored data, not of the model, and it
+    is worth measuring before assuming the wait is necessary.**
+
+188. **A one-session horizon is trainable, evaluable, and unusable here -- and the measurement
+    that says so is a date comparison.** The features come from `AssetFactor`, whose newest
+    session trails the calendar: on 2026-10-19 the newest US factor session was **2026-10-16**. A
+    1-session call dated to that session matures on the *next* one, 2026-10-19 -- a session whose
+    close was already stored. Recording it would have been a forecast of the past, and the whole
+    scorecard would have been worthless without anything in it looking wrong. `write_rows` now
+    refuses any row whose `maturesAfter` is not strictly after the write date and reports
+    `skippedAlreadyMatured`; run against the h1 candidates it refused **10 of 10**, and against
+    the h5 candidates it wrote **10 of 10**. The `brain-v5-h1-*` artifacts are kept as evaluated
+    evidence and the lane is **not** scheduled, because it would write nothing on every run.
+    **"Can the model be trained for this horizon" and "can a prediction at this horizon be
+    recorded before its answer exists" are different questions, and only the second one decides
+    whether a lane is real.**
+
+189. **A budget keyed to the wrong unit refuses the thing it was meant to allow.** The canary's
+    cap is two rows per market per session, counted against stored rows so it holds across
+    retries -- and it counted `(market, asOf)`. Two 20-session rows already existed for each
+    market on 2026-10-16, so the first ten 5-session rows came back `skippedByCap: 10`: a second
+    horizon could never be started while the first held the session. The identity key the table is
+    unique on already says what a prediction is -- model, digest, strategy, timeframe, asset,
+    session **and horizon** -- and the cap now counts the same unit. Still two rows per market per
+    session, per horizon. **A quota has to be keyed to the same thing the uniqueness constraint
+    is, or the two disagree about what one prediction is.**

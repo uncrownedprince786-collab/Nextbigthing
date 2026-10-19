@@ -339,7 +339,9 @@ class TheScheduledCanaryRespectsTheStoredSessionCap(unittest.TestCase):
     def test_existing_rows_and_prior_inserts_share_one_market_session_budget(self):
         from types import SimpleNamespace
         from unittest import mock
-        counts = {("US", "2026-10-19"): 1}
+        # Keyed by market, session AND horizon: the cap budgets the unit the identity key
+        # records, so a 20-session row does not spend a 5-session row's quota.
+        counts = {("US", "2026-10-19", 20): 1}
         class Cursor:
             rowcount = 0
             def execute(self, query, params=None):
@@ -351,7 +353,7 @@ class TheScheduledCanaryRespectsTheStoredSessionCap(unittest.TestCase):
                     self.result = {"n": counts.get(tuple(params), 0)}
                     self.rowcount = -1
                 else:
-                    key = (params[3], params[0])
+                    key = (params[3], params[0], params[17])
                     counts[key] = counts.get(key, 0) + 1
                     self.rowcount = 1
             def fetchone(self): return self.result
@@ -373,5 +375,87 @@ class TheScheduledCanaryRespectsTheStoredSessionCap(unittest.TestCase):
         with mock.patch.dict(sys.modules, {"nbt": SimpleNamespace(db=lambda: connection)}):
             result = sp.write_rows([record("a2","MSFT"),record("a3","NVDA")], max_per_market_session=2)
         self.assertEqual(result, {"written":1,"status":"ok","skippedByCap":1})
-        self.assertEqual(counts[("US","2026-10-19")],2)
+        self.assertEqual(counts[("US","2026-10-19",20)],2)
         self.assertTrue(connection.committed)
+
+
+class TheCapCountsHorizonsApart(unittest.TestCase):
+    """A new horizon must be able to start while an old one holds the session.
+
+    Measured 2026-10-19: the first ten 5-session rows were refused with `skippedByCap: 10`,
+    because two 20-session rows already existed for each market on 2026-10-16 and the cap counted
+    only (market, session). The two are different predictions -- the identity key says so -- and
+    budgeting them together meant no second horizon could ever be recorded.
+    """
+
+    def test_a_five_session_row_is_written_though_the_session_is_full_at_twenty(self):
+        import sys
+        from types import SimpleNamespace
+        from unittest import mock
+        counts = {("US", "2026-10-19", 20): 2}       # the 20-session budget is already spent
+        class Cursor:
+            rowcount = 0
+            def execute(self, query, params=None):
+                if query.startswith('SELECT pg_database_size'):
+                    self.result = {"mb": 100.0}
+                    self.rowcount = -1
+                elif query.startswith('SELECT COUNT(*)'):
+                    self.result = {"n": counts.get(tuple(params), 0)}
+                    self.rowcount = -1
+                else:
+                    key = (params[3], params[0], params[17])
+                    counts[key] = counts.get(key, 0) + 1
+                    self.rowcount = 1
+            def fetchone(self): return self.result
+            def close(self): pass
+        class Connection:
+            def __init__(self): self.cur = Cursor(); self.committed = False
+            def cursor(self): return self.cur
+            def commit(self): self.committed = True
+            def close(self): pass
+        connection = Connection()
+        row = {"asOf":"2026-10-19","assetId":"a9","symbol":"AA","market":"US",
+            "predicted":"UP","scores":{"UP":1.0},"modelVersion":"brain-v5-h5-us","modelSha256":"d",
+            "featureSchema":"v1","datasetVersion":"v4","quality":"ok","imputed":[],"imputedCount":0,
+            "missingCritical":None,"contextStatus":None,"macroAsOf":None,"macroAgeDays":None,
+            "horizonSessions":5,"maturesAfter":"2099-01-01","strategy":"short","timeframe":"short",
+            "referencePrice":100.0,"features":{"r20":0.1},"sources":None,"inputCutoff":"2026-10-19",
+            "runId":"t","commit":"abc"}
+        with mock.patch.dict(sys.modules, {"nbt": SimpleNamespace(db=lambda: connection)}):
+            result = sp.write_rows([row], max_per_market_session=2)
+        self.assertEqual(result["written"], 1)
+        self.assertEqual(result.get("skippedByCap"), 0)
+
+    def test_a_row_whose_horizon_has_already_elapsed_is_never_written(self):
+        """The prospective guard: ten 1-session rows were refused this way, none written."""
+        import sys
+        from types import SimpleNamespace
+        from unittest import mock
+        class Cursor:
+            rowcount = 0
+            def execute(self, query, params=None):
+                if query.startswith('SELECT pg_database_size'):
+                    self.result = {"mb": 100.0}; self.rowcount = -1
+                elif query.startswith('SELECT COUNT(*)'):
+                    self.result = {"n": 0}; self.rowcount = -1
+                else:
+                    raise AssertionError("an already-matured row reached the INSERT")
+            def fetchone(self): return self.result
+            def close(self): pass
+        class Connection:
+            def __init__(self): self.cur = Cursor(); self.committed = False
+            def cursor(self): return self.cur
+            def commit(self): self.committed = True
+            def close(self): pass
+        connection = Connection()
+        row = {"asOf":"2026-10-16","assetId":"a1","symbol":"AA","market":"US",
+            "predicted":"UP","scores":{"UP":1.0},"modelVersion":"brain-v5-h1-us","modelSha256":"d",
+            "featureSchema":"v1","datasetVersion":"v4","quality":"ok","imputed":[],"imputedCount":0,
+            "missingCritical":None,"contextStatus":None,"macroAsOf":None,"macroAgeDays":None,
+            "horizonSessions":1,"maturesAfter":"2000-01-01","strategy":"intraday",
+            "timeframe":"intraday","referencePrice":100.0,"features":{"r20":0.1},"sources":None,
+            "inputCutoff":"2026-10-16","runId":"t","commit":"abc"}
+        with mock.patch.dict(sys.modules, {"nbt": SimpleNamespace(db=lambda: connection)}):
+            result = sp.write_rows([row], max_per_market_session=2)
+        self.assertEqual(result["written"], 0)
+        self.assertEqual(result["skippedAlreadyMatured"], 1)

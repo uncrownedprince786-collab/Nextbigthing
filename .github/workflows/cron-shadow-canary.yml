@@ -72,6 +72,29 @@ jobs:
           if not allow:
               print("::warning::Shadow canary skipped: less than 10 MB of headroom remains under the 500 MB tier.")
           PY
+      # Two horizons, one pass, and the shorter one is why this lane is worth running at all.
+      #
+      # A `swing` call is judged over 20 sessions, so a row recorded today is not gradeable for a
+      # month: the lane could record evidence for weeks on end and never once prove that the
+      # scorer writes an outcome. `short` is 5 sessions -- a week -- and is the same kind of claim
+      # read from the same stored closes, under its own `brain-v5-h5-<market>` candidates fitted
+      # on `label5`. It closes the prediction-to-outcome loop inside the week instead of after it.
+      #
+      # The cap is per market, per session **and per horizon**, so running both spends two rows
+      # per market per session for each rather than two shared between them. Ten rows a horizon
+      # is about 11.6 KB; the headroom gate above still decides whether either runs at all.
+      - name: Infer and record at most two candidates per market/session (5-session horizon)
+        if: ${{ steps.capacity.outputs.allow_write == 'true' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: |
+          python tools/research/shadow_predict.py \
+            --live --per-market-models --per-market 2 --max-per-market-session 2 \
+            --strategy short --write --min-headroom-mb 8 \
+            --run-id "shadow-canary-h5-${{ github.run_id }}-${{ github.run_attempt }}" \
+            --commit "${{ github.sha }}" \
+            --out data/foundation/dataset/shadow-canary-h5-run.json
       - name: Infer and record at most two candidates per market/session
         if: ${{ steps.capacity.outputs.allow_write == 'true' }}
         env:
@@ -132,4 +155,5 @@ jobs:
           retention-days: 30
           path: |
             data/foundation/dataset/shadow-canary-run.json
+            data/foundation/dataset/shadow-canary-h5-run.json
             data/foundation/dataset/shadow_scorecard.json

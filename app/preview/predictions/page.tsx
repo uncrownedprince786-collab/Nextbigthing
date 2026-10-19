@@ -71,6 +71,49 @@ export default async function PredictionsPage() {
           </Card>
         </div>
 
+        {/* Per horizon, because the totals above are the only honest thing to say about the whole
+            table and the only useless thing to say about either lane. A 5-session call is judged
+            on the week after it against a +/-1% band; a 20-session call is judged on the month
+            after it against +/-2%. They mature weeks apart, so one number for "awaiting" hides
+            which of them anyone is actually waiting for, and the earliest date above belongs to
+            whichever lane is slowest. */}
+        {s.byHorizon.length > 1 ? (
+          <Section title="By forward horizon">
+            <Table
+              head={
+                <>
+                  <th className="px-3 py-2 text-right">Horizon</th>
+                  <th className="px-3 py-2 text-left">Models</th>
+                  <th className="px-3 py-2 text-right">Records</th>
+                  <th className="px-3 py-2 text-right">Awaiting</th>
+                  <th className="px-3 py-2 text-right">Matured, unscored</th>
+                  <th className="px-3 py-2 text-right">Scored</th>
+                  <th className="px-3 py-2 text-left">First result possible</th>
+                </>
+              }
+            >
+              {s.byHorizon.map((h) => (
+                <tr key={h.horizonSessions}>
+                  <td className="px-3 py-2 text-right">{h.horizonSessions}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{h.modelVersions.join(", ")}</td>
+                  <td className="px-3 py-2 text-right">{h.total}</td>
+                  <td className="px-3 py-2 text-right">{h.awaitingMaturity}</td>
+                  <td className="px-3 py-2 text-right">{h.maturedAwaitingOutcome}</td>
+                  <td className="px-3 py-2 text-right">{h.scored}</td>
+                  <td className="px-3 py-2">{fmt(h.earliestMaturity)}</td>
+                </tr>
+              ))}
+            </Table>
+            <Note>
+              Each row is a different question. A 5-session call asks where a name is a week from
+              its decision session and is graded against a ±1% band; a 20-session call asks about
+              the month after it, against ±2%. The bands are the same rule scaled by the square
+              root of the horizon, fixed before any result was looked at, and an accuracy is only
+              ever reported inside one of these rows — never across them.
+            </Note>
+          </Section>
+        ) : null}
+
         {s.scored === 0 ? (
           <Note>
             No accuracy is shown because no prediction has been scored yet. A percentage over zero

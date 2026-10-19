@@ -1,5 +1,109 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (forty-fifth), **the brain now makes calls that can be graded this week: a 5-session horizon trained, recorded in production and scheduled, with a guard that refuses any prediction whose answer already exists**
+**Branch `main`.** New: `tests/test_short_horizon.py`, `data/foundation/brain/brain-v5-h5-*`,
+`data/foundation/brain/brain-v5-h1-*`, `data/foundation/dataset/brain_v5_h5_markets.json`,
+`data/foundation/dataset/brain_v5_h1_markets.json`. Edited: `tools/make_dataset.py`,
+`tools/research/train_v4_markets.py`, `tools/research/shadow_score.py`,
+`tools/research/shadow_predict.py`, `tools/research/shadow_markets.py`,
+`.github/workflows/cron-shadow-canary.yml`, `lib/queries.ts`,
+`app/preview/predictions/page.tsx`, two tests, `brain.md`.
+
+No schema change, no dependency added, no row deleted, no existing artifact renamed or retrained.
+
+### The problem this closes
+Every stored prediction had a **20-session** horizon, so the earliest any of them could be graded
+was **2026-11-05**. The lane could record evidence for weeks and never once demonstrate that the
+scorer writes an outcome, and nothing could be learned from measured results inside a month.
+
+### 1. The data already supported shorter horizons
+`make_dataset.HORIZONS` is `(1, 5, 20)` and every assembled row carries `fwd1`, `fwd5`, `fwd20` --
+**100% coverage** on the frozen dataset. Only `fwd20` was ever labelled. `label_threshold_pct` now
+scales the band by the square root of the horizon, **fixed before any short-horizon result was
+looked at**: 2.0% at 20, **1.0% at 5**, 0.45% at 1, returning exactly `LABEL_THRESHOLD_PCT` at 20
+so `label20` is unchanged. `outcomes()` emits `label{h}`/`mature{h}` for every horizon, and
+`mature{h}` is asserted to be the same fact as `fwd{h} is not None` at every bar count 0..20.
+Class balance at the 5-session band, measured on 2025: **DOWN 38.2% / UP 40.4% / FLAT 21.4%** --
+better balanced than the 20-session label.
+
+### 2. Trained, chronologically, with the same recipe
+`train_v4_markets.py --horizon {1,5}` on the same frozen `examples-v4-context` dataset,
+`trainEnd 2025-12-31`, **20-session embargo**, holdout 2026-01-01..2026-09-25. Same features,
+seed, steps, L2 and imputation rule as the 20-session family. Each horizon writes its own artifact
+family (`brain-v5-h5-<market>`) and its own aggregate file; `brain-v4-*` is untouched. The
+predictor refuses to serve an artifact whose manifest horizon differs from the call's.
+
+| Market | h5 accuracy | majority | price-only | verdict |
+|---|---|---|---|---|
+| US | 0.4301 | 0.4312 | 0.4297 | NO-GO (collapsed) |
+| PK | 0.3729 | 0.4699 | 0.4629 | NO-GO (collapsed) |
+| FX | 0.7419 | 0.7419 | 0.7419 | NO-GO (degenerate: all FLAT) |
+| Commodity | 0.4431 | 0.4473 | 0.4515 | NO-GO |
+| Crypto | 0.4771 | 0.4741 | 0.4739 | NO-GO |
+
+h1 is the same picture (US 0.4092, PK 0.3735, FX 0.7425, Commodity 0.4221, Crypto 0.4549), all
+NO-GO. `freshProcessParity 1.0000` on all ten. **No candidate at any horizon beats its baseline by
+more than measurement error, and none is `productionApproved`.**
+
+### 3. The prospective guard, and why h1 is not scheduled
+`write_rows` now refuses any row whose `maturesAfter` is not **strictly after** the write date, and
+reports `skippedAlreadyMatured`. This is not hypothetical: `AssetFactor`'s newest US session on
+2026-10-19 was **2026-10-16**, so a 1-session call matures on 2026-10-19 -- a close already stored.
+Measured: the h1 run refused **10 of 10**; the h5 run wrote **10 of 10**. The `brain-v5-h1-*`
+artifacts are kept as evaluated evidence and the lane is **not** scheduled, because the factor lag
+means it would write nothing on every run. **h5 is the shortest horizon this pipeline can record
+honestly.**
+
+### 4. Real prospective predictions are in production now
+`shadow_predict.py --live --per-market-models --strategy short --per-market 2
+--max-per-market-session 2 --write --min-headroom-mb 8` wrote **10 rows** to the primary,
+`runId h5-first-133d540`: two per market, each market on its own session (US/PK/FX/Commodity
+2026-10-16, Crypto 2026-10-18), every row carrying its reference price, model version, digest,
+input cutoff and horizon. Predicted mix **UP 6 / FLAT 2 / DOWN 2** -- a real spread, unlike the
+20-session family's 585-of-589 UP. **All ten mature 2026-10-23.** A rerun wrote **0**
+(`skippedByCap: 10`), so the write is idempotent. `ShadowPrediction` is now 599 rows: 589 at
+horizon 20, 10 at horizon 5.
+
+**Cap defect found and fixed in the same run.** The first write returned `skippedByCap: 10`: the
+cap counted `(market, asOf)` while the table's identity key is model, digest, strategy, timeframe,
+asset, session **and horizon**, so two existing 20-session rows filled the session's whole quota
+and no second horizon could ever start. The cap now counts the horizon too -- still two rows per
+market per session, per horizon.
+
+### 5. Scorer and schedule
+`shadow_score.py` grades whatever horizon a row was recorded under (`md.HORIZONS`), reads the band
+from the shared rule rather than restating it, and stamps each outcome with the rule it used
+(`scorerVersion shadow-scorer-v2`). The existing `cron-shadow-canary.yml` gained **one step** for
+the 5-session horizon ahead of the 20-session one -- not a second workflow -- under the same
+headroom gate, concurrency group and artifact upload.
+
+### 6. UI
+`getShadowPredictions` returns `byHorizon`, and the predictions page shows a per-horizon table:
+records, awaiting, matured-unscored, scored and **first result possible**, per horizon, never
+summed. Verified in a real render against the live database: horizon 5 -> 10 records, first result
+**2026-10-23**; horizon 20 -> 589 records, first result **2026-11-05**.
+
+### Verification
+- Python **1420 OK** (+23 this session). `npm run test:web` **509 OK**. `tsc --noEmit` clean.
+  `eslint` clean. All workflow YAML parses.
+- `brain-v4-*` artifacts and `brain_v4_markets.json` byte-identical to before this session.
+
+### Still open
+- **No model has demonstrated predictive edge at any horizon.** Ten candidates, all NO-GO.
+- **No outcome has been written yet, and none can be until 2026-10-23.** The scorer's production
+  write path reaches its decision and reports `nothing-matured`; the INSERT itself is still
+  unproven in production, and it cannot be proven without an eligible row.
+- The first scheduled `cron shadow canary` run carrying the 5-session step has not yet been
+  observed.
+- The third database tier remains unreachable (`planLimitReached`) -- external.
+
+### The next real checkpoint
+**2026-10-23**: the ten 5-session rows mature. The canary's scorer step should write the first
+`ShadowOutcome` rows, the predictions page should show them under horizon 5, and the daily audit's
+`shadowOutcomes` check should report them as scored. That is the first measured prospective result
+this project will have had.
+
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (forty-fourth), **the capacity floor was refusing every shadow write, the promotion gate was passing noise, and "awaiting 589" was counting rows that can never score**
 **Branch `main`.** New: `tools/research/significance.py`, `tests/test_significance.py`. Edited:
 `jobs/run.py`, `jobs/retention.py`, `tools/research/train_v4_markets.py`,

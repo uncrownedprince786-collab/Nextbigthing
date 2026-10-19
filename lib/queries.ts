@@ -2153,7 +2153,8 @@ export async function getShadowPredictions(limit = 200) {
   });
   const all = await prisma.shadowPrediction.findMany({
     select: { id: true, maturesAfter: true, outcomeLabel: true, quality: true, predicted: true,
-              modelVersion: true, approved: true, market: true, strategy: true, timeframe: true },
+              modelVersion: true, approved: true, market: true, strategy: true, timeframe: true,
+              horizonSessions: true },
   });
   const finals = await prisma.shadowOutcome.findMany({
     where: { final: true },
@@ -2175,6 +2176,35 @@ export async function getShadowPredictions(limit = 200) {
     && r.maturesAfter <= today);
   const awaiting = all.filter((r) => !isScored(r)
     && (r.maturesAfter === null || r.maturesAfter > today));
+
+  /// The same three states, per forward horizon, because an accuracy that mixes horizons is not
+  /// an accuracy of anything.
+  ///
+  /// A 5-session call and a 20-session call are different questions graded against different
+  /// bands (`make_dataset.label_threshold_pct`: 1% and 2%), and they mature a month apart. Summed
+  /// into one row of counts, the short lane's first real results would arrive inside a total
+  /// dominated by long-horizon records that cannot be graded for weeks, and the page would show a
+  /// handful of measurements hidden in a pile of pending ones. Counted apart, each horizon's
+  /// evidence can be read for what it is -- and the earliest date anything can be known is stated
+  /// per horizon rather than as one number that belongs to whichever lane happens to be slowest.
+  const horizons = [...new Set(all.map((r) => r.horizonSessions))]
+    .filter((h): h is number => h !== null)
+    .sort((a, b) => a - b);
+  const byHorizon = horizons.map((h) => {
+    const rows = all.filter((r) => r.horizonSessions === h);
+    return {
+      horizonSessions: h,
+      total: rows.length,
+      scored: rows.filter(isScored).length,
+      maturedAwaitingOutcome: rows.filter(
+        (r) => !isScored(r) && r.maturesAfter !== null && r.maturesAfter <= today).length,
+      awaitingMaturity: rows.filter(
+        (r) => !isScored(r) && (r.maturesAfter === null || r.maturesAfter > today)).length,
+      earliestMaturity: rows.reduce<Date | null>(
+        (m, r) => (r.maturesAfter && (!m || r.maturesAfter < m) ? r.maturesAfter : m), null),
+      modelVersions: [...new Set(rows.map((r) => r.modelVersion))],
+    };
+  });
 
   const tally = <T extends string>(xs: (T | null)[]) =>
     xs.reduce<Record<string, number>>((a, k) => (k ? { ...a, [k]: (a[k] ?? 0) + 1 } : a), {});
@@ -2199,6 +2229,8 @@ export async function getShadowPredictions(limit = 200) {
     byPredictedClass: tally(all.map((r) => r.predicted)),
     byMarket: tally(all.map((r) => r.market)),
     byStrategy: tally(all.map((r) => r.strategy)),
+    /// Per horizon, never summed across them. See the comment where this is built.
+    byHorizon,
     modelVersions: [...new Set(all.map((r) => r.modelVersion))],
     /// Nothing here is approved, and the page says so rather than assuming it.
     anyApproved: all.some((r) => r.approved),
