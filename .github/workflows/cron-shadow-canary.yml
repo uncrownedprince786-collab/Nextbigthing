@@ -1,0 +1,96 @@
+name: cron shadow canary
+
+# Prospective candidate evidence only. This never publishes a signal or approves a model.
+# The DB-backed cap protects the whole market/session across retries, not just this invocation.
+on:
+  schedule:
+    - cron: "15 23 * * *"
+  workflow_run:
+    workflows:
+      - "cron decision"
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: nbt-shadow-canary
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  shadow:
+    name: bounded per-market prospective predictions
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Confirm the checked-out revision is current main
+        run: |
+          git fetch origin main --quiet
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install the pinned job dependencies
+        run: pip install -r requirements.txt
+      - name: Read primary database headroom without writing
+        id: capacity
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python - <<'PY'
+          import os
+          import psycopg
+          url = os.environ.get("DATABASE_URL", "").strip()
+          if not url:
+              raise SystemExit("DATABASE_URL is not configured; refusing shadow write")
+          with psycopg.connect(url, connect_timeout=10) as conn:
+              with conn.cursor() as cur:
+                  cur.execute("SELECT pg_database_size(current_database())")
+                  used = int(cur.fetchone()[0])
+          limit_bytes = 500_000_000
+          reserve_bytes = 10_000_000
+          print(f"primary database size: {used:,} bytes; write ceiling: {limit_bytes-reserve_bytes:,} bytes")
+          allow = used < limit_bytes - reserve_bytes
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"allow_write={'true' if allow else 'false'}\n")
+          if not allow:
+              print("::warning::Shadow canary skipped: less than 10 MB remains under the configured 500 MB tier.")
+          PY
+      - name: Infer and record at most two candidates per market/session
+        if: ${{ steps.capacity.outputs.allow_write == 'true' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python tools/research/shadow_predict.py \
+            --live --per-market-models --per-market 2 --max-per-market-session 2 \
+            --strategy swing --write \
+            --run-id "shadow-canary-${{ github.run_id }}-${{ github.run_attempt }}" \
+            --commit "${{ github.sha }}" \
+            --out data/foundation/dataset/shadow-canary-run.json
+      - name: Diagnose without writing when the database reserve is reached
+        if: ${{ steps.capacity.outputs.allow_write != 'true' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python tools/research/shadow_predict.py \
+            --live --per-market-models --per-market 2 --max-per-market-session 2 \
+            --strategy swing \
+            --run-id "shadow-canary-dry-${{ github.run_id }}" \
+            --commit "${{ github.sha }}" \
+            --out data/foundation/dataset/shadow-canary-run.json
+      - name: Preserve this run's evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shadow-canary-${{ github.run_id }}-${{ github.run_attempt }}
+          path: data/foundation/dataset/shadow-canary-run.json
+          if-no-files-found: warn
+          retention-days: 30

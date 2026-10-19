@@ -1,5 +1,19 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (bounded shadow canary implementation; CI and first runtime run pending)
+
+**Branch:** `fix/scheduled-shadow-canary-current`, based on current main at `be94d831efef61d79fa959d0fef4b8cf46c43bc1`. Adds a daily `cron shadow canary` plus a successful-decision event trigger, separate concurrency, a read-only primary-size gate, and a database-backed cap of two prediction rows per market/session across retries. It uses existing per-market candidate artifacts and the existing live feature/context builder. It writes only `ShadowPrediction`; existing scorer and mirror are untouched. It does not approve candidates or alter the production signal path.
+
+**Safety:** the workflow preserves a 10 MB reserve below the configured 500 MB primary tier. If the capacity check cannot connect, the workflow fails visibly. If the reserve is reached, it runs inference dry-only and uploads diagnostics. Missing per-market artifacts or invalid/stale sessions follow existing predictor rules. The writer enforces the cap against existing rows so retries cannot exceed it.
+
+**Not verified yet:** no CI result or live database run for this branch; primary size is not claimed. Live Vercel smoke tests remain unverified because this execution environment cannot resolve the host. Candidate promotion remains NO-GO pending mature outcomes.
+
+**Exact next action:** run focused shadow prediction tests and workflow guards in CI, then dispatch the canary once to verify the real capacity gate, inference and persisted-row cap before relying on the daily schedule.
+
+---
+
+# Resume here
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (forty-second), **the trading-health `cron decision:blocked` was a mislabelled intraday fetch and an append-only coverage table read as the present; the audit is now green on trading, with the remaining warnings named**
 **Branch `main`.** No dependency added, no schema change. Files: `tools/daily_audit.py`,
 `jobs/intraday.py`, `.github/workflows/cron-daily-audit.yml`, `.github/workflows/cron-decision.yml`,
