@@ -1,5 +1,93 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (forty-sixth), **the web pool moves to the transaction pooler, and nothing grades from a standby any more**
+**Branch `main`.** New: `tests/test_primary_only.py`. Edited: `lib/failover.ts`, `lib/db.ts`,
+`app/api/health/route.ts`, `jobs/nbt.py`, `tools/research/shadow_predict.py`,
+`tools/research/shadow_score.py`, `tools/db_probe.mjs`, `.env.example`, four tests, `RESUME.md`.
+
+No schema change, no dependency added, no workflow schedule changed, no row deleted.
+
+### 1. The 15-client ceiling was never a database limit
+Measured on the primary: `max_connections` **60**, Supavisor holding **7** server connections,
+`idle in transaction` **0** -- nothing leaks and Postgres is nowhere near full. The constraint is
+that Supavisor's **session** mode (port 5432) gives each client connection its own backend for as
+long as it stays open, so 15 server connections are 15 *clients*, shared by every warm serverless
+instance and every scheduled lane at once.
+
+The web pool now dials **6543**, the transaction pooler on the same host, where the backend returns
+to the pool at the end of each transaction -- which is the shape of this app's traffic: short
+reads, long gaps. `lib/failover.ts transactionPoolUrl` does the rewrite, beside `withEncryption`,
+because both answer "what string do we actually dial" and both have to be testable without Prisma's
+path aliases.
+
+**In code, not in the connection string**, because that string is one secret shared with the jobs
+and the jobs must stay in session mode: `prisma migrate deploy` takes a session-level advisory lock
+and `jobs/retention.py` runs `VACUUM` and `REINDEX CONCURRENTLY`, none of which survive a
+connection handed back between statements. `SUPABASE_POOL_MODE=session` rolls the web app back
+without deploying anything.
+
+**Raising the pool ceiling alongside it was wrong, and the measurement is in the code.** A cold
+sweep at concurrency 4 with `max: 10` returned **500** on `/events`, `/logbook`, `/marketplace`,
+`/methodology` and `/products`, all `Connection terminated unexpectedly`. The same sweep on session
+mode with `max: 2` returned **200 on all eight**; on transaction mode with `max: 2`, **200 on all
+twenty-one**. Connection establishment was never the problem -- ten concurrent connects complete in
+**1.27 s**. Transaction mode buys a shorter *hold*, not a bigger pool, so `max` stays 2.
+
+### 2. Prediction recording and grading are primary-only
+`nbt.primary_db()` connects to the primary and only the primary: three retries thirty seconds
+apart against a transient refusal, then a raised error. `shadow_predict` (both the live feature read
+and the writer) and `shadow_score` use it; `db()` keeps its failover for the ingest lanes, where
+`jobs/reconcile.py` copies rows back.
+
+**The failure this prevents is a green run, not a crash.** Aiven held **581** `ShadowPrediction`
+rows against the primary's **599**, and the 18 missing ones are every 5-session prediction maturing
+on 2026-10-23. A scorer that failed over would have read the standby's set, found none of them
+eligible, and reported **`nothing-matured`** -- an empty `ShadowOutcome`, a green workflow, and
+nothing anywhere saying the grading had not happened. Verified after the change: the scorer reads
+**599** rows (US 357, PK 225, Commodity 6, FX 6, Crypto 5) through the primary.
+
+### 3. The heartbeat says why it can disagree with the pages
+The failure path now returns `servedFrom: null` -- it reached no tier and must not name one -- and
+a note that this route always reads live and is never cached, so a 503 beside pages answering 200
+from their cached render is the two surfaces disagreeing correctly. That is what made both
+saturations look like an outage.
+
+### 4. Corrections
+- **The second saturation was not `cron audit`.** It ran 20:41:55 -> 20:42:59, seventeen minutes
+  before the failures. The cause was the 20:59 deployment invalidating every ISR entry, which made
+  the route sweep that followed 20 *cold* reads. `RESUME.md` and the record of commit `22de9a6`
+  are corrected above.
+- **Stale provider labels.** `DATABASE_URL_FALLBACK` is **Aiven**, not "the second Neon project";
+  `DATABASE_URL` is the Prisma tier. Fixed in `lib/db.ts`, `tools/db_probe.mjs` and `.env.example`,
+  which still opened by calling `DATABASE_URL` the Neon primary it stopped being on 2026-10-11.
+
+### 5. Not changed, because it is already done
+The directive asked for the US price matrix to go from four concurrent jobs to two. It already has
+`max-parallel: 2` over its four chunks, and `cron products` has `max-parallel: 1` over two. The
+earlier diagnosis that read "4 concurrent" counted matrix entries and missed the cap.
+
+**No workflow was put into a shared concurrency group.** The overlap figure that would have
+justified it does not survive checking: GitHub's `run_started_at` includes time a run spent
+*pending* on its own concurrency group, so the 13 "`cron watchdog` x `cron watchdog`" overlaps are
+that lane queueing correctly, not running twice. A shared group would also replace pending
+scheduled runs, which is the ingestion loss the directive warned against.
+
+### Verification
+- Python **1428 OK** (+8). `npm run test:web` **510 OK** (+2). `tsc --noEmit` clean. `eslint` clean.
+- Local, transaction mode, cold cache: **21 of 21 routes 200** at concurrency 4, zero server errors.
+- Production, **controlled serial sweep** (1.5 s apart): **21 of 21 routes 200**.
+- Production, **12 live database reads at concurrency 6**: all **200**, 2.0-4.7 s, no
+  `EMAXCONNSESSION`.
+
+### Still open
+- **No outcome has been graded.** The ten 5-session predictions mature **2026-10-23**; until one
+  does, the outcome INSERT remains unproven in production. `nothing-matured` today is correct.
+- **No model has demonstrated predictive edge.** All fifteen candidates across three horizons are
+  NO-GO and none is `productionApproved`. That verdict stands.
+- The exact client ceiling in transaction mode is not measured -- only that it comfortably exceeds
+  what broke session mode. The Prisma tier remains unreachable (`planLimitReached`), external.
+
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (forty-fifth), **the brain now makes calls that can be graded this week: a 5-session horizon trained, recorded in production and scheduled, with a guard that refuses any prediction whose answer already exists**
 **Branch `main`.** New: `tests/test_short_horizon.py`, `data/foundation/brain/brain-v5-h5-*`,
 `data/foundation/brain/brain-v5-h1-*`, `data/foundation/dataset/brain_v5_h5_markets.json`,
