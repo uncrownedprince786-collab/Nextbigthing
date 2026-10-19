@@ -324,6 +324,7 @@ def live_rows(limit: int):
         WHEN lower(a."assetType") = 'commodity' THEN 'Commodity'
         WHEN lower(coalesce(a.source, '')) = 'psx' THEN 'PK'
         ELSE 'US' END"""
+    market_sql2 = market_sql.replace("a.", "a2.")
     cur.execute(
         f'SELECT max(f."periodEnd") AS d FROM "AssetFactor" f JOIN "Asset" a ON a.id = f."assetId" '
         f'GROUP BY {market_sql}'
@@ -349,7 +350,7 @@ def live_rows(limit: int):
         'ORDER BY s.date DESC LIMIT 1) AS ref_date, '
         + cols + " "
         f'FROM "AssetFactor" f JOIN "Asset" a ON a.id = f."assetId" '
-        f'JOIN (SELECT {market_sql} AS market, max(f2."periodEnd") AS d '
+        f'JOIN (SELECT {market_sql2} AS market, max(f2."periodEnd") AS d '
         f'FROM "AssetFactor" f2 JOIN "Asset" a2 ON a2.id = f2."assetId" '
         f'GROUP BY market) latest ON latest.market = {market_sql} AND latest.d = f."periodEnd" '
         'ORDER BY a.symbol LIMIT %s', (limit,))
