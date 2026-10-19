@@ -68,6 +68,10 @@ TABLES: dict[str, tuple[str, ...]] = {
     # The macro gatekeeper's stored answers. Mirrored so a standby that takes over serves the same vetoes
     # as the primary; absent on a target the migration has not reached, in which case `copy_table` skips it.
     "MacroGate": ("assetId", "periodEnd"),
+    # Immutable candidate evidence. Parent rows are copied before child outcomes; prediction IDs
+    # are translated by the natural key when independently seeded databases have different UUIDs.
+    "ShadowPrediction": ("modelVersion", "modelSha256", "strategy", "timeframe", "assetId", "asOf", "horizonSessions"),
+    "ShadowOutcome": ("predictionId", "observedOn", "final"),
     # News coverage (brain.md rule 93). The standby held none, so a failover read every name as having no
     # coverage at all -- and the rule table, which can only *withdraw* evidence on coverage, would have
     # printed calls the primary qualified. Asset headlines only (the decision reads no other), keyed on
@@ -154,6 +158,8 @@ DATE_COLUMN = {
     "SignalLog": "issuedOn",
     "AssetThesis": "openedOn",
     "MacroGate": "periodEnd",
+    "ShadowPrediction": "asOf",
+    "ShadowOutcome": "observedOn",
     "News": "publishedAt",
     "HumanSignal": "periodEnd",
 }
@@ -211,7 +217,7 @@ def same_database(a: str, b: str) -> bool:
 
 def remap_row(
     row: dict, key_cols: tuple[str, ...], asset_map: dict, unmatched: set, product_map: dict | None = None,
-    table: str | None = None,
+    table: str | None = None, shadow_prediction_map: dict[str, str] | None = None,
 ) -> dict | None:
     """The row with `assetId` translated to the target's id, or None when it cannot be.
 
@@ -221,6 +227,13 @@ def remap_row(
     the wrong name.
     """
     out = dict(row)
+    if table == "ShadowOutcome":
+        source_prediction_id = out.get("predictionId")
+        target_prediction_id = (shadow_prediction_map or {}).get(source_prediction_id)
+        if target_prediction_id is None:
+            unmatched.add("prediction:" + str(source_prediction_id))
+            return None
+        out["predictionId"] = target_prediction_id
     if out.get("assetId") is not None:
         mapped = asset_map.get(out["assetId"])
         if mapped is None:
@@ -303,6 +316,51 @@ def build_asset_map(source_ids: dict, target_ids: dict) -> dict[str, str]:
     return {sid: by_identity[identity] for sid, identity in source_ids.items() if identity in by_identity}
 
 
+SHADOW_PREDICTION_KEY = (
+    "modelVersion", "modelSha256", "strategy", "timeframe", "assetId", "asOf", "horizonSessions"
+)
+
+
+def shadow_prediction_identity(row: dict, asset_id: str | None = None) -> tuple:
+    """The cross-database identity of a prediction, using the destination asset id when supplied."""
+    values = dict(row)
+    if asset_id is not None:
+        values["assetId"] = asset_id
+    return tuple(values[c] for c in SHADOW_PREDICTION_KEY)
+
+
+def build_shadow_prediction_map_from_rows(
+    source_rows: list[dict], target_rows: list[dict], asset_map: dict[str, str]
+) -> dict[str, str]:
+    """Map source prediction IDs to destination IDs without trusting independently generated UUIDs."""
+    target_by_identity = {shadow_prediction_identity(r): r["id"] for r in target_rows}
+    result = {}
+    for row in source_rows:
+        target_asset = asset_map.get(row["assetId"])
+        if target_asset is None:
+            continue
+        target_id = target_by_identity.get(shadow_prediction_identity(row, target_asset))
+        if target_id is not None:
+            result[row["id"]] = target_id
+    return result
+
+
+def build_shadow_prediction_map(src, dst, asset_map: dict[str, str]) -> dict[str, str]:
+    """Map source prediction IDs to matching destination rows by the canonical prediction identity."""
+    with src.cursor() as sc, dst.cursor() as dc:
+        source_columns = set(columns_of(sc, "ShadowPrediction"))
+        target_columns = set(columns_of(dc, "ShadowPrediction"))
+        needed = {"id", *SHADOW_PREDICTION_KEY}
+        if not needed.issubset(source_columns) or not needed.issubset(target_columns):
+            return {}
+        cols = ", ".join('"' + col + '"' for col in ("id", *SHADOW_PREDICTION_KEY))
+        sc.execute(f'SELECT {cols} FROM "ShadowPrediction"')
+        source_rows = sc.fetchall()
+        dc.execute(f'SELECT {cols} FROM "ShadowPrediction"')
+        target_rows = dc.fetchall()
+    return build_shadow_prediction_map_from_rows(source_rows, target_rows, asset_map)
+
+
 def product_identity(cur) -> dict[str, str]:
     """{product id: slug} for one database. The slug is unique, so it is the product's name across both."""
     cur.execute('SELECT id, slug FROM "Product"')
@@ -327,7 +385,8 @@ def columns_of(cur, table: str) -> list[str]:
 
 
 def copy_table(
-    src, dst, table: str, asset_map: dict, dry_run: bool, since: str | None = None, product_map: dict | None = None
+    src, dst, table: str, asset_map: dict, dry_run: bool, since: str | None = None,
+    product_map: dict | None = None, shadow_prediction_map: dict[str, str] | None = None,
 ) -> Tally:
     key = TABLES[table]
     tally = Tally()
@@ -361,7 +420,10 @@ def copy_table(
                 tally.read += len(batch)
                 out = []
                 for row in batch:
-                    mapped = remap_row(dict(zip(cols, row)) if not isinstance(row, dict) else row, key, asset_map, tally.unmatched_assets, product_map, table)
+                    mapped = remap_row(
+                        dict(zip(cols, row)) if not isinstance(row, dict) else row,
+                        key, asset_map, tally.unmatched_assets, product_map, table, shadow_prediction_map,
+                    )
                     if mapped is None:
                         tally.unmatched += 1
                     else:
@@ -427,12 +489,16 @@ def mirror_one(src_url: str, label: str, dst_url: str, chosen: list[str], dry: b
             pmap = build_product_map(product_identity(sc), product_identity(dc))
         print(f"  assets matched by (industry, symbol): {len(amap)}")
         print(("  DRY RUN, nothing written\n" if dry else "") + f"  {'table':14} {'read':>9} {'written':>9} {'unchanged':>10} {'unmatched':>10}")
+        shadow_prediction_map: dict[str, str] = {}
         for table in [t for t in chosen if t != "Asset"]:
             current = table
-            t = copy_table(src, dst, table, amap, dry, since, pmap)
+            # Refresh immediately before outcomes so parents copied in this run are included.
+            if table == "ShadowOutcome":
+                shadow_prediction_map = build_shadow_prediction_map(src, dst, amap)
+            t = copy_table(src, dst, table, amap, dry, since, pmap, shadow_prediction_map)
             print(f"  {table:14} {t.read:>9} {t.copied:>9} {t.unchanged:>10} {t.unmatched:>10}")
             if t.unmatched_assets:
-                print(f"      {len(t.unmatched_assets)} source asset(s) have no counterpart here, e.g. {sorted(t.unmatched_assets)[:3]}")
+                print(f"      {len(t.unmatched_assets)} source reference(s) have no counterpart here, e.g. {sorted(t.unmatched_assets)[:3]}")
         return True
     except Exception as e:  # noqa: BLE001
         # Names the table: the line used to say only "statement timeout", which left open which of
