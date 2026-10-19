@@ -6597,3 +6597,10 @@ reads rows that already exist:
       component, or a bare date will collapse them into one. **An identity key is a claim about what
       makes two things the same, and it should be stated in the same breath as the columns it uses.**
 
+178. **Shadow predictions and their outcomes are immutable evidence and must survive database failover.** 2026-10-19.
+
+    - `ShadowPrediction` must be mirrored before `ShadowOutcome`; an outcome is meaningless without its exact parent. Independently seeded databases can assign different UUIDs to the same asset and prediction, so asset IDs and outcome `predictionId` must be translated by stable natural identity. Never assume matching generated IDs across tiers.
+    - The mirror and reverse reconciliation both carry the shadow tables over a bounded 180-day window, which covers the 60-session candidate horizon and late scoring without turning every nightly run into a full-history copy. A row with no target asset or matching parent is skipped and reported, never attached by guess.
+    - The shadow producer must choose the newest valid stored factor session separately per market. One global maximum date can be a valid crypto session but a non-session for US/PK/FX/Commodity; a prediction must carry the session and context cutoff it actually used.
+    - These are data-integrity changes, not model promotion. Candidate models remain unapproved until evidence meets the fixed evaluation criteria. At low database headroom, preserve historical evidence and use bounded writes; do not delete history to make space.
+
