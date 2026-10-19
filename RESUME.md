@@ -1,5 +1,90 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (forty-seventh), **the Products section is retired, row-level security is on, and the exposure the last audit reported had already been fixed**
+**Deployed `a5ac93b`**, confirmed from production: `GET /api/health` -> `build a5ac93b`,
+`poolMode transaction`, `ok true`. Commits: `b867c7d`, `619e0b6`, `a5ac93b`.
+
+**This checkpoint covers a narrow slice of a very wide mandate. What was not attempted is listed
+at the end, and it is most of it.**
+
+### 1. The reported security exposure was not present
+Measured on the primary before changing anything: `anon` and `authenticated` hold **no grants on
+any table** in `public` (`information_schema.role_table_grants` returns zero rows for them), and
+the Data API answers an unauthenticated request with **401**. The broad DML-and-TRUNCATE exposure
+recorded in the mandate was corrected in an earlier session (brain.md rule 118) and is gone.
+
+What was missing was the **second line**: all 46 tables had `relrowsecurity = false` and **zero
+policies**, so the only thing between the Data API and every row was the absence of a grant --
+while `pg_default_acl` still carries a `supabase_admin`-owned entry that would grant `anon`
+`arwdDxtm` on tables **that role** creates. Every table today is `postgres`-owned and inherits the
+corrected `postgres` defaults, so nothing is exposed; that is a property of who has created tables
+so far, not a guarantee.
+
+`prisma/migrations/20261019230000_rls_backstop` enables RLS on **45** tables (all but
+`_prisma_migrations`) and writes 45 read-only policies for `nbt_phase2_reader_20261013`, the
+standing login with SELECT on 44 tables that rule 118 left for the owner to decide on -- an
+explicit policy rather than a silent revoke, guarded so the migration also applies where that role
+does not exist. `postgres` (the app, every job, `migrate deploy`), `service_role` and the Supabase
+admin roles all have `rolbypassrls`, so none of them notices: verified after applying, the scorer
+still reads all **599** predictions and `DecisionLog`'s **4,992** rows.
+
+**Applied *and* registered.** `jobs/schemacheck.py` refuses to run the data lanes when the checkout
+carries a migration the database has not, so pushing the folder without the `_prisma_migrations`
+row would have blocked every cron lane. Checksums match across the working tree, an LF
+normalisation and the git blob (`1347ac55...`), so `prisma migrate deploy` will see it applied and
+do nothing. `schemacheck` reports **38 in this checkout, 38 applied**.
+
+`tools/daily_audit.py` gains **`databaseExposure`**: a grant to `anon`/`authenticated` **FAILS**
+(those are the roles PostgREST runs as), a table without RLS **WARNS** (no grant means no exposure
+today, but it is the missing backstop). Current reading: **no grants, 0 tables without RLS**.
+
+### 2. The Products section is retired, its data is not
+Removed: the `/products` page, `ProductsCard`, the homepage band and the navigation entry. Verified
+in production -- the nav now reads Overview / Stocks / PSX / Crypto / Forex / Commodities /
+Logbook, `/products` answers **404**, and the served homepage contains neither the path nor the
+label.
+
+**Kept deliberately:** `Product`, `ProductSignal`, `ProductRegion`, `ProductAssetLink` and
+`MarketplaceItem`, the lanes that fill them, and **`/product/[slug]`**, which stays reachable from
+the "Products that touch this asset" panel on an asset page. That panel is asset context rather
+than the Products section, and orphaning its links to delete a route nobody asked me to delete
+would lose evidence for no gain.
+
+Three web-layer exports were orphaned by the removal and are gone: `getProducts` (queries.ts),
+`ProductCard` (ui.tsx) and `PRODUCT_STATUS_WORDS` (plain.ts). The repository's own "nothing built
+and unused" guard found each one.
+
+### 3. A bad push, and what caused it
+**`619e0b6` was pushed with a failing test and CI recorded the failure.** The guard above had
+caught `PRODUCT_STATUS_WORDS`; I had claimed `/product/[slug]` still needed it, and it does not --
+that page renders `p.status` raw at `page.tsx:218`. The push happened because the `pytest` in my
+command chain was piped to `tail`, so `&&` read `tail`'s exit code instead of pytest's. `a5ac93b`
+fixes the orphan and CI is green on it. **A test run whose exit code is swallowed by a pipe is not
+a test run.**
+
+### Verification
+- Python **1434 OK**, `npm run test:web` **513 OK**, `tsc --noEmit` clean, `eslint` clean,
+  `npm run build` clean (`/products` absent from the route list, `/product/[slug]` retained).
+- `tools/daily_audit.py`: **ok 29 warn 5 fail 0 -> healthy: True**.
+- Production, controlled serial sweep (1.5 s apart) on `a5ac93b`: **19 of 19 routes 200**.
+- Tiers re-measured: Supabase **484.0 MB** of 500 (96.8%), PG 17.11, `max_connections` 60; Aiven
+  **335.9 MB**, PG 18.6, `max_connections` 100, reachable and current; the Prisma tier
+  **unreachable** (`planLimitReached`), unchanged and external.
+
+### Not attempted in this session, and still open
+This is the honest list, not a summary of progress:
+- **No multi-database capacity architecture.** Nothing was moved to Aiven, no data-location or
+  routing layer exists, and Supabase is still at 96.8% of its tier with retention and the index
+  sweep as the only controls. The mandate's central ask is **not done**.
+- **No new UI beyond the Products removal.** The rest of the interface is unchanged.
+- **Phase 1 / Phase 2 data-foundation gates were not run**, and no PSX gap work was done.
+- **No training.** All fifteen candidates across three horizons remain NO-GO, which the mandate
+  directs be preserved, and nothing here changes that.
+- **No backup/restore verification this session.** The audit's `restoreRehearsalAge` still reads
+  one day, from the previous rehearsal.
+- **No outcome has been graded.** The ten 5-session predictions mature **2026-10-23**.
+
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (forty-sixth), **the web pool moves to the transaction pooler, and nothing grades from a standby any more**
 **Branch `main`.** New: `tests/test_primary_only.py`. Edited: `lib/failover.ts`, `lib/db.ts`,
 `app/api/health/route.ts`, `jobs/nbt.py`, `tools/research/shadow_predict.py`,
