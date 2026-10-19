@@ -294,7 +294,7 @@ PRICE_COLUMNS = ("r1", "r5", "r20", "returnZ", "volumeRatio", "peerMedianR20", "
 
 
 def live_rows(limit: int):
-    """The newest stored factor session, read from the live database.
+    """The newest stored factor session per market, read from the live database.
 
     This is what makes a shadow prediction *prospective*. The frozen dataset ends at the last
     session with a fully elapsed 20-session forward window, so predicting on its newest date
@@ -317,15 +317,27 @@ def live_rows(limit: int):
 
     conn = db()
     cur = conn.cursor()
-    cur.execute('SELECT max("periodEnd") AS d FROM "AssetFactor"')
-    newest = (cur.fetchone() or {}).get("d")
-    if not newest:
+    market_sql = """CASE
+        WHEN lower(a."assetType") = 'crypto' OR lower(coalesce(a.source, '')) LIKE '%paprika%'
+          OR lower(coalesce(a.source, '')) LIKE '%coingecko%' THEN 'Crypto'
+        WHEN lower(a."assetType") = 'forex' THEN 'FX'
+        WHEN lower(a."assetType") = 'commodity' THEN 'Commodity'
+        WHEN lower(coalesce(a.source, '')) = 'psx' THEN 'PK'
+        ELSE 'US' END"""
+    market_sql2 = market_sql.replace("a.", "a2.")
+    cur.execute(
+        f'SELECT max(f."periodEnd") AS d FROM "AssetFactor" f JOIN "Asset" a ON a.id = f."assetId" '
+        f'GROUP BY {market_sql}'
+    )
+    dates = [r["d"] for r in cur.fetchall() if r.get("d")]
+    if not dates:
         cur.close()
         conn.close()
         raise SystemExit("no AssetFactor rows: nothing to predict from")
+    newest = max(dates)
     cols = ", ".join(f'f."{c}"' for c in PRICE_COLUMNS)
     cur.execute(
-        f'SELECT f."assetId", a.symbol, a."assetType", a.source, '
+        f'SELECT f."assetId", f."periodEnd" AS factor_session, a.symbol, a."assetType", a.source, '
         # The base an outcome is measured from: the most recent stored close at or before the
         # session. `=` made this NULL whenever the factor session had no close of its own -- a
         # weekend session, or an ingest that lags -- and a NULL base is a prediction that can never
@@ -337,14 +349,18 @@ def live_rows(limit: int):
         'WHERE s."assetId" = f."assetId" AND s.date <= f."periodEnd" '
         'ORDER BY s.date DESC LIMIT 1) AS ref_date, '
         + cols + " "
-        'FROM "AssetFactor" f JOIN "Asset" a ON a.id = f."assetId" '
-        'WHERE f."periodEnd" = %s ORDER BY a.symbol LIMIT %s', (newest, limit))
+        f'FROM "AssetFactor" f JOIN "Asset" a ON a.id = f."assetId" '
+        f'JOIN (SELECT {market_sql2} AS market, max(f2."periodEnd") AS d '
+        f'FROM "AssetFactor" f2 JOIN "Asset" a2 ON a2.id = f2."assetId" '
+        f'GROUP BY market) latest ON latest.market = {market_sql} AND latest.d = f."periodEnd" '
+        'ORDER BY a.symbol LIMIT %s', (limit,))
     rows = cur.fetchall()
     cur.close()
     conn.close()
     out = []
     for r in rows:
-        out.append({"asOf": newest.isoformat() if hasattr(newest, "isoformat") else str(newest),
+        session = r["factor_session"]
+        out.append({"asOf": session.isoformat() if hasattr(session, "isoformat") else str(session),
                     "assetId": r["assetId"], "symbol": r["symbol"],
                     "assetType": r["assetType"],
                     "market": mk.market_of(r["assetType"], r["source"]),
@@ -460,11 +476,12 @@ def main() -> int:
 
     records = []
     for r in rows:
-        block = src.at(as_of, r["symbol"], r["market"])
+        row_as_of = date.fromisoformat(r.get("asOf", as_of_str))
+        block = src.at(row_as_of, r["symbol"], r["market"])
         records.append(predict_one(model, r["pit"]["f"], block,
                                    asset_id=r.get("assetId") or r["symbol"],
                                    symbol=r["symbol"], market=r["market"],
-                                   as_of=as_of, strategy=a.strategy, timeframe=a.timeframe,
+                                   as_of=row_as_of, strategy=a.strategy, timeframe=a.timeframe,
                                    reference_price=r.get("referencePrice"),
                                    reference_date=r.get("referenceDate"),
                                    require_reference_price=bool(a.live)))
