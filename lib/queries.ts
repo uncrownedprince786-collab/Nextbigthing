@@ -2162,6 +2162,10 @@ export async function getShadowPredictions(limit = 200) {
 
   const scoredIds = new Set(finals.map((f) => f.predictionId));
   const outcomeByPrediction = new Map(finals.map((f) => [f.predictionId, f]));
+  // Indexed once: the accuracy check below used `all.find` per outcome, which is one scan of the
+  // whole table for every scored row -- a cost that grows with the square of the evidence while
+  // every row here is served on a page render.
+  const predictedById = new Map(all.map((r) => [r.id, r.predicted]));
 
   // A row is scored if it has a final outcome, or (only then) a legacy label with no outcome row.
   const isScored = (r: { id: string; outcomeLabel: string | null }) =>
@@ -2178,8 +2182,8 @@ export async function getShadowPredictions(limit = 200) {
   // Descriptive accuracy over scored rows only, and only where a stored outcome carries a label.
   const graded = [...outcomeByPrediction.values()].filter((f) => f.label !== null);
   const correct = [...outcomeByPrediction.entries()].filter(([id, f]) => {
-    const p = all.find((r) => r.id === id);
-    return f.label !== null && p?.predicted != null && f.label === p.predicted;
+    const predicted = predictedById.get(id);
+    return f.label !== null && predicted != null && f.label === predicted;
   }).length;
 
   return {

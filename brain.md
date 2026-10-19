@@ -6634,13 +6634,6 @@ reads rows that already exist:
       target. **A copy window shorter than the horizon is how an outcome arrives with nothing to
       point at.**
 
-<<<<<<< HEAD
-179. **A live shadow prediction uses the latest valid factor session of its own market, not the global latest date.** 2026-10-19.
-
-    - Crypto can have a Sunday factor session while US, PSX, FX and commodities still have Friday as their latest complete session. A single `max(AssetFactor.periodEnd)` can therefore date an equity prediction on a day it did not trade. The row's `asOf`, contextual lookup, reference close and maturity must all be tied to that market's own selected session.
-    - The query must select the maximum factor session grouped by the same market classification used by inference (`Crypto`, `FX`, `Commodity`, `PK`, `US`) and preserve that session per row. A prediction's date is part of its evidence, not a display label.
-    - The fix is tested with different US and Crypto sessions. A mocked SQL-path test does not substitute for a read-only query against the actual database; runtime verification remains a release check.
-=======
 179. **A market's session is not the newest factor date; it is the newest date *that market* traded.** 2026-10-19.
     Commit: `tools/research/shadow_predict.py` + `tools/research/shadow_score.py` (closure, item 2).
 
@@ -6677,5 +6670,20 @@ reads rows that already exist:
     - **The corrected canary wrote eight new rows** (US/PK/FX/Commodity on 2026-10-16, per-market
       models, each with a real base price); crypto on 2026-10-18 was already recorded and wrote
       zero, which is the identity key doing its job across two different runs. Total 581 -> 589.
->>>>>>> 6904205 (shadow: choose each market's own session; route per-market candidates)
+
+180. **A stale sentence on a served page is a stale fact, and a per-render scan of the evidence is a cost that grows.** 2026-10-19.
+    Commit: `app/preview/page.tsx` + `app/preview/status/page.tsx` + `lib/queries.ts` (closure, item 3).
+
+    - **The overview and status screens still said "Four candidates ... all four are recorded
+      NO-GO".** Five candidates exist, one per market, and Commodity's local result is a
+      positive-but-thin GO that is not promoted. Both screens now say five and name Commodity, and
+      `tests/researchStatus.test.ts` fails if either drifts back. **Copy that names a count is
+      evidence; when the count changes and the copy does not, the page is lying in exactly the way
+      this project refuses to lie about prices.**
+
+    - **`getShadowPredictions` looked up each outcome's prediction with `all.find`, once per scored
+      row.** That is a scan of the whole prediction table for every row, on every render -- a cost
+      that grows with the square of the evidence. It is one `Map` built once now. **A reader that
+      gets slower every day it is kept is a reader that will one day be turned off.**
+
 

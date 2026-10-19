@@ -203,8 +203,10 @@ export default async function StatusPage() {
         <Card>
           <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed">
             <li>
-              <strong>No directional model is validated.</strong> Four candidates have been trained
-              and evaluated; all four are recorded NO-GO and none is approved for production.
+              <strong>No directional model is validated.</strong> Five candidates have been trained
+              and evaluated, one per market. Four are recorded NO-GO; Commodity&rsquo;s local result
+              is positive but rests on too few symbols to promote, so none is approved for
+              production.
             </li>
             <li>
               <strong>There are no user accounts.</strong> The watchlist and the preferences above

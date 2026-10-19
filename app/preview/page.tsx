@@ -9,9 +9,10 @@ import { getDataStamp, getShadowPredictions, getUpcoming } from "@/lib/queries";
 /// contract: six of the eight screens need no new query, and inventing a parallel data layer for
 /// them would be the duplication the brief warns against.
 ///
-/// What this screen deliberately does **not** show is a direction. Four model artifacts exist and
-/// all four are NO-GO, so there is nothing validated to headline. Saying that plainly is more
-/// useful than an empty panel implying something is coming.
+/// What this screen deliberately does **not** show is a direction. Five model artifacts exist, one
+/// per market; four are NO-GO and the fifth (Commodity) is a positive-but-thin result that is not
+/// promoted, so there is nothing validated to headline. Saying that plainly is more useful than an
+/// empty panel implying something is coming.
 export const revalidate = 900;
 export const metadata: Metadata = { title: "Overview" };
 
@@ -107,8 +108,9 @@ export default async function PreviewHome() {
       <Section title="Research status">
         <Card>
           <p className="text-sm leading-relaxed">
-            <strong>No directional model is validated.</strong> Four candidates have been trained
-            and evaluated; all four are recorded NO-GO and none is approved for production. This
+            <strong>No directional model is validated.</strong> Five candidates have been trained
+            and evaluated — one per market. Four are recorded NO-GO; Commodity&rsquo;s local result is
+            positive but rests on too few symbols to promote, so it is not approved either. This
             interface therefore shows what is measured — prices, ranges, volatility state, events
             and their context — and does not present a predicted direction.
           </p>
