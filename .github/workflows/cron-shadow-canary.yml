@@ -40,30 +40,37 @@ jobs:
           cache-dependency-path: requirements.txt
       - name: Install the pinned job dependencies
         run: pip install -r requirements.txt
+      # Reads the *primary* the writers read, through the project's own routing (jobs/nbt.py db():
+      # Supabase unless PRIMARY=neon), and measures with the same shadow_budget the writers use. The
+      # earlier version connected to DATABASE_URL directly, which is the Prisma tier the project
+      # cannot reach ("account has restrictions") -- so the gate failed before the lane ever wrote.
       - name: Read primary database headroom without writing
         id: capacity
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
           SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PRIMARY: ${{ vars.PRIMARY }}
+          PYTHONIOENCODING: utf-8
         run: |
           python - <<'PY'
           import os
-          import psycopg
-          url = os.environ.get("DATABASE_URL", "").strip()
-          if not url:
-              raise SystemExit("DATABASE_URL is not configured; refusing shadow write")
-          with psycopg.connect(url, connect_timeout=10) as conn:
-              with conn.cursor() as cur:
-                  cur.execute("SELECT pg_database_size(current_database())")
-                  used = int(cur.fetchone()[0])
-          limit_bytes = 500_000_000
-          reserve_bytes = 10_000_000
-          print(f"primary database size: {used:,} bytes; write ceiling: {limit_bytes-reserve_bytes:,} bytes")
-          allow = used < limit_bytes - reserve_bytes
+          import sys
+          from pathlib import Path
+          root = Path(".").resolve()
+          sys.path.insert(0, str(root / "tools" / "research"))
+          sys.path.insert(0, str(root / "jobs"))
+          import shadow_budget
+          from nbt import db
+          headroom, size = shadow_budget.headroom_mb(db())
+          reserve = 10.0  # MB kept back; above the writers' own floor so the gate trips first
+          print(f"primary database {size:,.1f} MB of a {shadow_budget.FREE_TIER_MB:.0f} MB plan; "
+                f"headroom {headroom:,.1f} MB; reserve {reserve:.0f} MB")
+          allow = headroom >= reserve
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
               out.write(f"allow_write={'true' if allow else 'false'}\n")
           if not allow:
-              print("::warning::Shadow canary skipped: less than 10 MB remains under the configured 500 MB tier.")
+              print("::warning::Shadow canary skipped: less than 10 MB of headroom remains under the 500 MB tier.")
           PY
       - name: Infer and record at most two candidates per market/session
         if: ${{ steps.capacity.outputs.allow_write == 'true' }}
@@ -73,7 +80,7 @@ jobs:
         run: |
           python tools/research/shadow_predict.py \
             --live --per-market-models --per-market 2 --max-per-market-session 2 \
-            --strategy swing --write \
+            --strategy swing --write --min-headroom-mb 8 \
             --run-id "shadow-canary-${{ github.run_id }}-${{ github.run_attempt }}" \
             --commit "${{ github.sha }}" \
             --out data/foundation/dataset/shadow-canary-run.json
@@ -89,11 +96,40 @@ jobs:
             --run-id "shadow-canary-dry-${{ github.run_id }}" \
             --commit "${{ github.sha }}" \
             --out data/foundation/dataset/shadow-canary-run.json
+      # The scorer runs in the same pass, so a row whose twenty-session horizon has matured is graded
+      # in the run that records the next one. It re-derives each prediction's base price and reads
+      # the sessions that followed; nothing matured is reported awaiting. `continue-on-error`, and
+      # idempotent (`ON CONFLICT (predictionId, observedOn, final) DO NOTHING`), because a scorer
+      # that cannot run must not fail the record it grades.
+      - name: Score predictions whose horizon has matured
+        if: always()
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PRIMARY: ${{ vars.PRIMARY }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          set +e
+          out="$(python tools/research/shadow_score.py --write --min-headroom-mb 8 2>&1)"
+          echo "$out"
+          {
+            echo "## Shadow outcomes"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+
       - name: Preserve this run's evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: shadow-canary-${{ github.run_id }}-${{ github.run_attempt }}
-          path: data/foundation/dataset/shadow-canary-run.json
           if-no-files-found: warn
           retention-days: 30
+          path: |
+            data/foundation/dataset/shadow-canary-run.json
+            data/foundation/dataset/shadow_scorecard.json

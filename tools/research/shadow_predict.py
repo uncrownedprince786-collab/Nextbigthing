@@ -71,6 +71,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "tools" / "foundation"))
 
 from context_features import ContextSource  # noqa: E402
+import shadow_budget  # noqa: E402
 import shadow_markets as mk  # noqa: E402
 
 DEFAULT_MODEL = ROOT / "data" / "foundation" / "brain" / "brain-v2-context"
@@ -456,8 +457,15 @@ def live_rows(limit: int, *, max_session_lag: int = 2, lookback_days: int = 21):
     return rows, {m: d.isoformat() for m, d in chosen.items()}, skipped
 
 
-def write_rows(records: list[dict], max_per_market_session: int = 0) -> dict:
-    """Insert predictions idempotently, optionally enforcing a DB-backed market/session cap."""
+def write_rows(records: list[dict], max_per_market_session: int = 0, *,
+               min_headroom_mb: float = shadow_budget.MIN_HEADROOM_MB) -> dict:
+    """Insert predictions idempotently, optionally enforcing a DB-backed market/session cap.
+
+    Before any insert this checks the store's headroom against the free-tier cap (shadow_budget) and
+    refuses when it is below `min_headroom_mb`, so the budget is enforced by the writer that spends
+    it and not only by the workflow that happens to call it. The per-market/session cap counts the
+    rows already stored and this run's inserts together, so it holds across retries.
+    """
     try:
         sys.path.insert(0, str(ROOT / "jobs"))
         from nbt import db
@@ -465,6 +473,9 @@ def write_rows(records: list[dict], max_per_market_session: int = 0) -> dict:
         return {"written": 0, "status": "unavailable", "reason": f"{type(e).__name__}: {e}"}
     try:
         conn = db()
+        refusal = shadow_budget.refuse_if_full(conn, min_headroom_mb)
+        if refusal:
+            return refusal
         cur = conn.cursor()
         n = 0
         skipped_by_cap = 0
@@ -561,6 +572,9 @@ def main() -> int:
                     help="when writing, never exceed this many rows per market/session across retries; "
                          "0 leaves the writer uncapped (scheduled canary uses 2)")
     ap.add_argument("--write", action="store_true")
+    ap.add_argument("--min-headroom-mb", type=float, default=shadow_budget.MIN_HEADROOM_MB,
+                    help="refuse to write when the database has less than this much room against "
+                         "the free-tier cap; 0 disables the check (see shadow_budget)")
     ap.add_argument("--out", default=str(OUT))
     a = ap.parse_args()
 
@@ -657,7 +671,8 @@ def main() -> int:
                 }
             else:
                 payload["write"] = write_rows(
-                    writable, max_per_market_session=a.max_per_market_session)
+                    writable, max_per_market_session=a.max_per_market_session,
+                    min_headroom_mb=a.min_headroom_mb)
             payload["runId"] = run_id
             payload["commit"] = commit
         print(f"write: {payload['write']}")

@@ -343,7 +343,11 @@ class TheScheduledCanaryRespectsTheStoredSessionCap(unittest.TestCase):
         class Cursor:
             rowcount = 0
             def execute(self, query, params=None):
-                if query.startswith('SELECT COUNT(*)'):
+                if query.startswith('SELECT pg_database_size'):
+                    # The headroom floor (shadow_budget) probes first; a store with room proceeds.
+                    self.result = {"mb": 100.0}
+                    self.rowcount = -1
+                elif query.startswith('SELECT COUNT(*)'):
                     self.result = {"n": counts.get(tuple(params), 0)}
                     self.rowcount = -1
                 else:

@@ -1,5 +1,42 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (forty-third), **the shadow canary now grades itself and cannot spend past the cap; its capacity gate read the one database the project cannot reach**
+**Branch `main`.** New: `tools/research/shadow_budget.py`, `tests/test_shadow_budget.py`. Edited:
+`tools/research/shadow_predict.py`, `tools/research/shadow_score.py`,
+`.github/workflows/cron-shadow-canary.yml`, `tests/test_shadow_predict.py`, `tests/test_shadow_outcome.py`.
+
+Built on top of the merged canary (`ce479a6`, PR #5) rather than duplicating it: an earlier attempt at
+a second `cron-shadow.yml` was discarded when `origin/main` moved. Three concrete fixes, no change to
+the bound or to candidate approval.
+
+### What changed
+- **The scorer runs in the same pass.** The canary recorded predictions and never graded them, so
+  `ShadowOutcome` would stay empty. `cron-shadow-canary.yml` now runs
+  `shadow_score.py --write --min-headroom-mb 8` after the write (`continue-on-error`, idempotent).
+- **The capacity gate now reads the primary.** It had connected with raw
+  `psycopg.connect(os.environ["DATABASE_URL"])` -- the Prisma tier the project cannot reach
+  (`account has restrictions`), the same reason the site routes through `jobs/nbt.py db()`. It now
+  reads via `db()` and measures with `shadow_budget.headroom_mb`, keeping 10 MB back.
+- **The floor belongs to the writer.** `shadow_budget.refuse_if_full` is called inside `write_rows`
+  and `write_outcomes`: a write with under 8 MB of headroom is refused with
+  `{"written": 0, "status": "refused"}` before the first INSERT, for any caller, not just the
+  workflow. `--min-headroom-mb` (default 8, 0 disables) exposes it.
+- `--max-per-market-session 2` (DB-backed, across retries) and `--per-market-models` are unchanged.
+
+### Evidence (read-only, against the primary)
+- Dry `--live --per-market-models --per-market 2 --max-per-market-session 2`: **10 rows, 2 per
+  market**, each on its own session (US/PK/FX/Commodity **2026-10-16**, Crypto **2026-10-18**).
+- Forced refusal `--write --min-headroom-mb 400`: `16.1 MB of headroom below the 400 MB floor
+  (database 484 MB of a 500 MB plan)`; exited non-zero; `ShadowPrediction` **589** (unchanged),
+  `ShadowOutcome` **0**.
+- Python suite **1313 OK** (+16). All workflow YAML parses.
+
+### Still open
+- First real `cron shadow canary` run still pending (event trigger after the next successful
+  `cron decision`, or 23:15 UTC); inspect its headroom, per-market sessions and inserted counts.
+- The third database remains unreachable; no parity claim. Vercel smoke test not run from here.
+- Candidates remain NO-GO; no shadow outcome has matured.
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (bounded shadow canary merged; branch CI green; main verification and first scheduled run pending)
 
 **Main commit:** `ce479a63997731b0ad9117e0146451656cce0e45`, merged from PR [#5](https://github.com/uncrownedprince786-collab/Nextbigthing/pull/5). The canary is now in `.github/workflows/cron-shadow-canary.yml`: daily at 23:15 UTC and after a successful `cron decision` run, with its own concurrency group. It uses `--live --per-market-models --per-market 2`, the current per-market candidate artifacts and live point-in-time/context builder, and writes only `ShadowPrediction`. Candidate approval and the live production signal path remain unchanged.

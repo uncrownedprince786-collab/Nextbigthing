@@ -6731,4 +6731,46 @@ reads rows that already exist:
       and a fetch stopped borrowing the decision's name. **The red was honest and so is the green:
       what changed is that the checks now ask the right question, not that the bar was lowered.**
 
+182. **A scheduled lane is only as useful as the two things it is missing: the scorer that closes the
+    loop and the floor under the cap it spends.** 2026-10-19. Files:
+    `.github/workflows/cron-shadow-canary.yml` + `tools/research/shadow_budget.py` (new) +
+    `tools/research/shadow_predict.py` + `tools/research/shadow_score.py`.
+
+    - **The canary recorded and never graded.** `cron-shadow-canary.yml` (merged in `ce479a6`) runs
+      `shadow_predict.py --live --per-market-models --per-market 2 --max-per-market-session 2`, which
+      is exactly the bounded recorder the storage policy asks for -- but it stops at the prediction.
+      Nothing ran `shadow_score.py` on a schedule, so `ShadowOutcome` would stay empty and the
+      prospective stream would never be graded. The scorer now runs in the same pass, after the
+      write, under `continue-on-error` and idempotent (`ON CONFLICT (predictionId, observedOn, final)
+      DO NOTHING`). **A stream that is recorded and never scored is a log, not evidence.**
+
+    - **The gate that guarded the cap could not reach the database.** The capacity step connected with
+      raw `psycopg.connect(os.environ["DATABASE_URL"])`, and `DATABASE_URL` is the Prisma tier the
+      project cannot reach (`account has restrictions`) -- the same reason the site routes through
+      `jobs/nbt.py db()` and prefers Supabase. As written the step would fail before the lane ever
+      wrote, turning every night red. It now reads the primary through `db()` and measures with the
+      same `shadow_budget.headroom_mb` the writers use, so the gate and the writers agree on the
+      number. **A capacity check is part of the write path and has to read the same database the
+      write does.**
+
+    - **The floor belongs to the writer, not to the workflow that happens to call it.** A cap enforced
+      only in YAML protects this one schedule; any other caller -- a manual run, a future lane --
+      would bypass it. `shadow_budget.refuse_if_full` is now called inside `write_rows` and
+      `write_outcomes` themselves: a shadow write with under 8 MB of headroom is refused with a
+      `{"written": 0, "status": "refused"}` payload before the first INSERT. The workflow's own gate
+      keeps 10 MB back, above the writer's floor, so the clean-skip path trips first and the writer
+      floor is the backstop. **A policy in a JSON file cannot refuse anything; only a writer can.**
+
+    - **The bound is DB-backed, and that is the right shape.** `--max-per-market-session 2` counts the
+      rows already stored and this run's inserts together, so two per market per session holds across
+      retries and across the event and scheduled triggers, not merely within one invocation. The
+      headroom floor and the session cap are different guarantees and the lane carries both.
+
+    - **Proven read-only against the primary, which the merge did not do.** The merge note recorded no
+      database connection by the new workflow. A dry run now produces exactly ten rows, two per
+      market, each on its own session (US/PK/FX/Commodity **2026-10-16**, Crypto **2026-10-18**). A
+      forced refusal (`--min-headroom-mb 400`) reported `16.1 MB of headroom below the 400 MB floor
+      (database 484 MB of a 500 MB plan)` and left `ShadowPrediction` at **589** rows, `ShadowOutcome`
+      at **0**. Python suite: **1313 OK** (+16).
+
 

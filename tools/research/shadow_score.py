@@ -47,6 +47,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(ROOT / "jobs"))
 sys.path.insert(0, str(ROOT / "tools" / "research"))
 
+import shadow_budget  # noqa: E402
 import shadow_markets as mk  # noqa: E402
 from make_dataset import LABEL_THRESHOLD_PCT, WINDOW, outcomes  # noqa: E402
 
@@ -188,7 +189,8 @@ def _unscorable(p, market, reason) -> dict:
             "scorable": False, "mature": False, "reason": reason}
 
 
-def build(cur, as_of: date, limit: int, write: bool = False, conn=None) -> dict:
+def build(cur, as_of: date, limit: int, write: bool = False, conn=None,
+          min_headroom_mb: float = shadow_budget.MIN_HEADROOM_MB) -> dict:
     """Read predictions, compute each one's realized outcome, and (optionally) write finals."""
     from make_dataset import base_closes
 
@@ -257,14 +259,22 @@ def build(cur, as_of: date, limit: int, write: bool = False, conn=None) -> dict:
         "rows": rows,
     }
     if write:
-        result["write"] = write_outcomes(cur, conn, finals)
+        result["write"] = write_outcomes(cur, conn, finals, min_headroom_mb)
     return result
 
 
-def write_outcomes(cur, conn, finals: list[dict]) -> dict:
-    """Insert final outcomes, idempotently. Returns what happened; never raises on a missing table."""
+def write_outcomes(cur, conn, finals: list[dict],
+                   min_headroom_mb: float = shadow_budget.MIN_HEADROOM_MB) -> dict:
+    """Insert final outcomes, idempotently. Returns what happened; never raises on a missing table.
+
+    Applies the same headroom floor as the prediction writer (shadow_budget): an outcome is small
+    and arrives only once its horizon matures, so this is a backstop, not a limit.
+    """
     if not finals:
         return {"written": 0, "status": "nothing-matured"}
+    refusal = shadow_budget.refuse_if_full(conn, min_headroom_mb)
+    if refusal:
+        return {**refusal, "eligible": len(finals)}
     n = 0
     try:
         for o in finals:
@@ -297,13 +307,17 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=2000)
     ap.add_argument("--write", action="store_true",
                     help="record final ShadowOutcome rows; without it this is a dry run")
+    ap.add_argument("--min-headroom-mb", type=float, default=shadow_budget.MIN_HEADROOM_MB,
+                    help="refuse to write outcomes when the database has less than this much room "
+                         "against the free-tier cap; 0 disables the check (see shadow_budget)")
     ap.add_argument("--out", default=str(OUT))
     a = ap.parse_args()
     as_of = date.fromisoformat(a.as_of)
 
     conn = db()
     cur = conn.cursor()
-    payload = build(cur, as_of, a.limit, write=a.write, conn=conn)
+    payload = build(cur, as_of, a.limit, write=a.write, conn=conn,
+                    min_headroom_mb=a.min_headroom_mb)
     cur.close()
     conn.close()
 

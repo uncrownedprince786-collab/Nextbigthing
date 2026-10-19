@@ -41,8 +41,26 @@ class FakeCursor:
     def fetchall(self):
         return []
 
+    # The headroom guard (shadow_budget) reads pg_database_size through the same cursor. A store
+    # that is largely empty leaves the writer free to proceed.
+    def fetchone(self):
+        return {"mb": 100.0}
+
     def close(self):
         self.closed = True
+
+
+class _GuardCursor:
+    """Just enough cursor for the headroom probe, which runs before any insert."""
+
+    def execute(self, sql, params=None):
+        return self
+
+    def fetchone(self):
+        return {"mb": 100.0}
+
+    def close(self):
+        pass
 
 
 class FakeConn:
@@ -50,6 +68,9 @@ class FakeConn:
         self.committed = 0
         self.rolled = 0
         self.fail = fail
+
+    def cursor(self):
+        return _GuardCursor()
 
     def commit(self):
         if self.fail:
