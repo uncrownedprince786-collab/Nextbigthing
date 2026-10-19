@@ -489,14 +489,20 @@ def mirror_one(src_url: str, label: str, dst_url: str, chosen: list[str], dry: b
             pmap = build_product_map(product_identity(sc), product_identity(dc))
         print(f"  assets matched by (industry, symbol): {len(amap)}")
         print(("  DRY RUN, nothing written\n" if dry else "") + f"  {'table':14} {'read':>9} {'written':>9} {'unchanged':>10} {'unmatched':>10}")
-        shadow_prediction_map: dict[str, str] = {}
-        for table in [t for t in chosen if t != "Asset"]:
+        # Copy parents and all independent tables first. The outcome map is built outside the
+        # per-table loop to keep database query count independent of table count and row count.
+        independent = [t for t in chosen if t not in ("Asset", "ShadowOutcome")]
+        for table in independent:
             current = table
-            # Refresh immediately before outcomes so parents copied in this run are included.
-            if table == "ShadowOutcome":
-                shadow_prediction_map = build_shadow_prediction_map(src, dst, amap)
-            t = copy_table(src, dst, table, amap, dry, since, pmap, shadow_prediction_map)
+            t = copy_table(src, dst, table, amap, dry, since, pmap)
             print(f"  {table:14} {t.read:>9} {t.copied:>9} {t.unchanged:>10} {t.unmatched:>10}")
+            if t.unmatched_assets:
+                print(f"      {len(t.unmatched_assets)} source reference(s) have no counterpart here, e.g. {sorted(t.unmatched_assets)[:3]}")
+        if "ShadowOutcome" in chosen:
+            current = "ShadowOutcome"
+            shadow_prediction_map = build_shadow_prediction_map(src, dst, amap)
+            t = copy_table(src, dst, "ShadowOutcome", amap, dry, since, pmap, shadow_prediction_map)
+            print(f"  {'ShadowOutcome':14} {t.read:>9} {t.copied:>9} {t.unchanged:>10} {t.unmatched:>10}")
             if t.unmatched_assets:
                 print(f"      {len(t.unmatched_assets)} source reference(s) have no counterpart here, e.g. {sorted(t.unmatched_assets)[:3]}")
         return True
