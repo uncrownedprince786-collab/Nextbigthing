@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from nbt import is_unreachable, primary_choice, standby_url  # noqa: E402
 
-TABLES_BACK = "PriceSnapshot,DecisionLog,SignalLog,AssetThesis,MacroGate,ShadowPrediction,ShadowOutcome"
+TABLES_BACK = "PriceSnapshot,DecisionLog,SignalLog,AssetThesis,MacroGate"
 SHADOW_WINDOW_DAYS = 180  # preserve 60-session candidate horizons and late final outcomes
 DECISION_WINDOW_DAYS = 40  # the mirror's own window: DecisionLog outcomes mature for a month
 PRICE_SLACK_DAYS = 3
