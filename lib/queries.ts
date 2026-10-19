@@ -1,6 +1,7 @@
 import { prisma, servingTier } from "@/lib/db";
 import { isConnectionFailure } from "@/lib/failover";
 import { marketOf, pickAnalog } from "@/lib/decisionInput";
+import { reduceMarketOverview, type MarketOverviewRow } from "@/lib/marketOverview";
 import { latestWindow } from "@/lib/rankingWindow";
 import { toSummary } from "@/lib/logbook";
 import { outcomeCounts } from "@/lib/outcome";
@@ -982,6 +983,78 @@ export async function getHealthReadings() {
     newestQuote,
     pool,
   };
+}
+
+/// Per-market totals for the market explorer: how many instruments, how many industries, and the
+/// newest stored close, factor session and live quote for each of the five markets, plus how many
+/// shadow predictions are recorded against it.
+///
+/// The five markets are the trading groups `lib/decisionInput.marketOf` already names (US, PK/FX,
+/// Commodity, Crypto), and every asset is bucketed by that same function rather than by the
+/// industry's `market` column — which is why crypto and commodities no longer hide inside US. An
+/// industry is filed under the market **most of its instruments actually trade in**, so the US
+/// "Crypto" industry reads under Crypto and an energy-commodities group reads under Commodity,
+/// instead of every one of them reading as a US listing.
+///
+/// Freshness here is a per-run fact and is read fresh each call; the *capability* of a market (what
+/// can be judged, and whether a market-specific model exists) is a separate contract served from
+/// `lib/marketCapability`, and the two are shown apart on the page on purpose. The bucketing itself
+/// lives in `lib/marketOverview`, so it holds no database import and the test lane runs it directly.
+export async function getMarketOverview(): Promise<MarketOverviewRow[]> {
+  const [assetGroups, closeGroups, factorGroups, industryRows] = await Promise.all([
+    prisma.$queryRaw<{ assetType: string; market: string | null; n: bigint | number }[]>`
+      SELECT a."assetType"::text AS "assetType", i.market::text AS market, count(*) AS n
+        FROM "Asset" a
+        LEFT JOIN "Industry" i ON i.id = a."industryId"
+       GROUP BY 1, 2`,
+    prisma.$queryRaw<{ assetType: string; market: string | null; newest: Date | null }[]>`
+      SELECT a."assetType"::text AS "assetType", i.market::text AS market, max(p.date) AS newest
+        FROM "Asset" a
+        LEFT JOIN "Industry" i ON i.id = a."industryId"
+        JOIN "PriceSnapshot" p ON p."assetId" = a.id
+       GROUP BY 1, 2`,
+    prisma
+      .$queryRaw<{ assetType: string; market: string | null; newest: Date | null }[]>`
+      SELECT a."assetType"::text AS "assetType", i.market::text AS market, max(f."periodEnd") AS newest
+        FROM "Asset" a
+        LEFT JOIN "Industry" i ON i.id = a."industryId"
+        JOIN "AssetFactor" f ON f."assetId" = a.id
+       GROUP BY 1, 2`
+      .catch(() => []),
+    prisma.$queryRaw<{ id: string; slug: string; name: string; market: string | null; assetType: string; n: bigint | number }[]>`
+      SELECT i.id, i.slug, i.name, i.market::text AS market, a."assetType"::text AS "assetType", count(*) AS n
+        FROM "Industry" i
+        JOIN "Asset" a ON a."industryId" = i.id
+       GROUP BY 1, 2, 3, 4, 5`,
+  ]);
+
+  let quoteGroups: { assetType: string; market: string | null; newest: Date | null }[] = [];
+  try {
+    quoteGroups = await prisma.$queryRaw`
+      SELECT a."assetType"::text AS "assetType", i.market::text AS market, max(q."quotedAt") AS newest
+        FROM "LiveQuote" q
+        JOIN "Asset" a ON a.id = q."assetId"
+        LEFT JOIN "Industry" i ON i.id = a."industryId"
+       GROUP BY 1, 2`;
+  } catch {
+    quoteGroups = [];
+  }
+  let predictionsByMarket = new Map<string, number>();
+  try {
+    const rows = await prisma.shadowPrediction.groupBy({ by: ["market"], _count: { _all: true } });
+    predictionsByMarket = new Map(rows.map((r) => [r.market, r._count._all]));
+  } catch {
+    predictionsByMarket = new Map();
+  }
+
+  return reduceMarketOverview({
+    assetGroups,
+    closeGroups,
+    factorGroups,
+    quoteGroups,
+    industryRows,
+    predictionsByMarket,
+  });
 }
 
 /// The start of each asset's current run of identical verdicts in the decision log: which verdict,

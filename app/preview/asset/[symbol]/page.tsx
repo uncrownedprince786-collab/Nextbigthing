@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, Empty, Note, Section, Table } from "@/components/ui";
 import { getAsset, getAssetFreshness, getAssetPrices, getLiveQuoteFor } from "@/lib/queries";
+import { marketOf } from "@/lib/decisionInput";
+import { MARKET_LABELS, canonicalMarket } from "@/lib/marketCapability";
 import { SaveButton } from "@/app/preview/watchlist/SaveButton";
 
 /// Screen 3 — asset detail.
@@ -42,6 +44,9 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
   const last = prices.length ? prices[prices.length - 1] : null;
   const changePct =
     first && last && first.close ? ((last.close / first.close - 1) * 100) : null;
+  const market = canonicalMarket(
+    marketOf({ assetType: asset.assetType, industry: asset.industry ?? null }),
+  );
 
   return (
     <>
@@ -49,7 +54,8 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
         <Card>
           <p className="text-sm">
             {asset.assetType}
-            {asset.industry ? <> · {asset.industry.name} · {asset.industry.market}</> : null}
+            {market ? <> · {MARKET_LABELS[market]}</> : null}
+            {asset.industry ? <> · {asset.industry.name}</> : null}
             {asset.currency ? <> · quoted in {asset.currency}</> : null}
           </p>
           <div className="mt-3">
@@ -85,6 +91,12 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
             </div>
           </div>
         </Card>
+        <Note>
+          Only daily closes are stored for this instrument, so there is no candlestick chart here:
+          a candle needs an open, a high and a low within a session, and this screen will not draw
+          bars the database does not hold. The table below is the stored closes, with the session
+          each belongs to.
+        </Note>
         <Note>
           <Link href={`/preview/asset/${encodeURIComponent(asset.symbol)}/research`}
                 className="underline underline-offset-2">

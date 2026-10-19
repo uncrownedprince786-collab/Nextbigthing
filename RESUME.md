@@ -1,5 +1,53 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (thirty-ninth), **the market explorer files crypto and commodities where they actually trade, and the bucketing is now a pure function with its own tests**
+**Branch `main`.** No dependency added, nothing installed, no production write, no schema change.
+`tsc --noEmit` and `eslint` clean on the changed TS. The web lane (`node --test tests/*.test.ts`)
+went **500 → 507** (**7 new** in `tests/marketOverview.test.ts`); the live counts below are a
+read-only probe of the primary.
+
+### The defect, and what "fixed" means here
+
+The explorer grouped assets by `Industry.market`, and that column only ever holds **US / PK / FX**.
+So the 76 coins under the US-flagged `crypto` industry and the commodity futures under US-flagged
+energy/metal industries were all counted and rendered as **US** — 357 instruments mislabelled, and
+the very thing the five-market framing exists to prevent. The instrument now decides its market, by
+the same rule the rest of the site already uses (`lib/decisionInput.marketOf`), so crypto reads
+under Crypto and a front-month future under Commodity regardless of which industry row it hangs off.
+
+| market | instruments | newest close | newest factor | newest live quote | predictions | industries |
+|---|---|---|---|---|---|---|
+| US | 281 | 2026-10-16 | 2026-10-18 | 2026-10-16 19:59 | 351 | 23 |
+| PK | 226 | 2026-10-16 | 2026-10-18 | — | 219 | 14 |
+| FX | 27 | 2026-10-16 | 2026-10-18 | 2026-10-19 00:03 | 0 | 3 |
+| Commodity | 8 | 2026-10-16 | 2026-10-18 | 2026-10-18 23:52 | 0 | 1 |
+| Crypto | 76 | 2026-10-18 | 2026-10-18 | 2026-10-18 23:58 | 1 | 1 |
+
+Predictions reconcile to the stored **571** (US 351 + PK 219 + Crypto 1). An industry is filed under
+the market **most of its instruments trade in**, so the mixed US "Energy Commodities" group (3
+futures, 2 funds) reads under Commodity and the statement `commodity assets live under US industries`
+is no longer a contradiction in the UI.
+
+### What changed since checkpoint 38
+
+| file | change |
+|---|---|
+| `lib/marketOverview.ts` (**new**, pure) | `reduceMarketOverview(groups) -> MarketOverviewRow[]` and `marketKeyFor`; no database import, so the test lane runs it directly. The five markets come out in `MARKET_ORDER` |
+| `lib/marketMarkets.ts` (**new**, pure) | the market vocabulary moved out of the capability file: `MarketName`, `MARKET_ORDER`, `MARKET_LABELS`, and `canonicalMarket` (the one place `PSX` ≡ `PK`) |
+| `lib/marketCapability.ts` (**rewritten**) | imports the capability artifact via the `@/` alias and re-exports the vocabulary, so pages have one import for both facts |
+| `lib/queries.ts getMarketOverview` | the four stored groups (assets, closes, factors, optional quotes + industries) are read here and handed to `reduceMarketOverview`; the industry query now carries `i.market` so a stock row is filed by its industry instead of guessed |
+| `app/preview/markets/page.tsx` (**rewritten**) | five markets in order, with **input freshness** and **prediction/outcome capability** shown as separate facts, a capability table, and per-market industry links |
+| `app/preview/markets/[slug]/page.tsx`, `app/preview/asset/[symbol]/page.tsx` | per-asset market via `marketOf` and a Market column; the asset page labels the market and says a candlestick chart is not supported because only daily closes are stored |
+| `tests/marketOverview.test.ts` (**new**) | the instrument decides the market, an unclassifiable row is dropped (never defaulted to US), the fixed order, crypto/commodity not folded into US, industry-dominant-market filing, `PSX`≠two-markets, newest-per-market with `null` when absent |
+
+### Still owed (unchanged order)
+
+1. **One market-specific model per verifiable market** — still none; every call is the single global
+   model wearing a market label. This is Priority 2 of the continuation.
+2. **Let the outcomes mature and score them** (~2026-11-13 for the earliest US cohort).
+3. **`boost-v1`** non-linear question (still `verdict: null`; do not rerun unchanged) and the DB
+   headroom re-measure (Priority 4).
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (thirty-eighth), **outcomes are recorded as their own table and predictions have an identity that can tell two events apart; the schema landed, a 5-row canary wrote and re-wrote nothing, and no outcome has matured yet**
 **Branch `main`.** The schema extension and the outcome path were pushed as **`477db17`**. No
 dependency added, nothing installed. CI on that commit: **tests** run `39176448098` = **success**,
