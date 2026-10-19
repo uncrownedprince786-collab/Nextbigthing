@@ -72,7 +72,9 @@ class LiveRowsUsePerMarketTradingSession(unittest.TestCase):
     def _run(self, sessions, session_rows, asset_rows, **kw):
         cur = _Cursor(max(sessions), session_rows, asset_rows)
         conn = _Conn(cur)
-        with patch.object(nbt, "db", return_value=conn):
+        # `primary_db`: a live call built from a standby's factor rows would be dated to a
+        # session the primary has already moved past, and recorded as if it were current.
+        with patch.object(nbt, "primary_db", return_value=conn):
             rows, chosen, skipped = shadow_predict.live_rows(200000, **kw)
         return rows, chosen, skipped, conn
 

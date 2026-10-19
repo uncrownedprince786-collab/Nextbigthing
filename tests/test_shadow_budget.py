@@ -98,6 +98,8 @@ class TheFloorRefusesOnlyWhenFull(unittest.TestCase):
 class ThePredictionWriterRespectsTheFloor(unittest.TestCase):
     def _install(self, conn):
         fake = types.ModuleType("nbt")
+        # The writer reaches the primary or fails; see nbt.primary_db.
+        fake.primary_db = lambda: conn
         fake.db = lambda: conn
         prev = sys.modules.get("nbt")
         sys.modules["nbt"] = fake

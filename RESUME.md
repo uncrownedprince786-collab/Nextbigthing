@@ -98,21 +98,29 @@ summed. Verified in a real render against the live database: horizon 5 -> 10 rec
 - The third database tier remains unreachable (`planLimitReached`) -- external.
 
 ### The pooler limit is now a measured, repeating fact, not a one-off
-It saturated **twice** on 2026-10-19, and the second time names the pattern. Supabase's free
-session pooler admits **15 clients in total**. At 20:05Z a long-running `cron news` held one for
-its whole run; at ~20:50Z `cron audit` (20:41Z, a database-heavy lane) overlapped a full 20-route
-smoke test. Both times: `FATAL: (EMAXCONNSESSION) max clients reached in session mode`,
-`/api/health` **503** with `the database could not be read`, `/asset/AAPL` **500**,
-`/api/signals` **503**, and ISR-cached pages still serving **200**. Both times it cleared itself --
-the second took about six minutes -- and the full 20-route sweep then returned **200** across the
-board with `ok:true, servedFrom: the primary`.
+**Corrected 2026-10-19, after checking the run times.** An earlier version of this section, and the
+message of commit `22de9a6`, blamed the second saturation on `cron audit`. That was wrong and the
+run log says so: `cron audit` ran **20:41:55 -> 20:42:59**, finishing about seventeen minutes
+before the failures began. No scheduled lane was running during the second incident. The two had
+**different proximate causes** and only the structural one is shared.
 
-Nothing here is a code defect: the failover matches the condition, the cache holds the pages up and
-the heartbeat reports honestly. What it is, precisely, is that **a 15-slot pooler shared between a
-scheduled database lane and a serverless front end has no room for a third concurrent reader**, and
-a verification run is a third concurrent reader. The practical consequence for anyone verifying
-this system: run one database-heavy check at a time, and read a 503 from `/api/health` during a
-scheduled lane as contention before reading it as an outage.
+Supabase's free session pooler admits **15 clients in total**, and in session mode a client
+connection owns a Postgres backend for as long as it stays open.
+
+- **~20:05Z, incident 1.** `cron news` ran **19:59:15 -> 20:13:34** and holds one slot for its
+  whole run through `jobs/nbt.Link`. Health recovered on the first poll after that run ended.
+- **~21:00Z, incident 2.** The `43eab22` deployment finished at ~20:59. **Every page here is ISR**
+  (`revalidate` 900 or 3600), so a deploy invalidates the lot: the 20-route sweep that followed was
+  20 *cold* renders, each a live read, each able to land on a fresh serverless instance opening its
+  own pool. CI never touches the production database, so the `tests` run at 20:59 is not a factor.
+
+Both answered `FATAL: (EMAXCONNSESSION) max clients reached in session mode`, with `/api/health`
+**503**, `/asset/AAPL` **500**, `/api/signals` **503**, and ISR-cached pages still serving **200**.
+Both cleared themselves; the second took about six minutes.
+
+Postgres itself was never the constraint: `max_connections` is **60**, Supavisor was holding
+**7**, and `idle in transaction` was **0** -- nothing leaks. The constraint is the pooler's client
+slots, which is why the fix in checkpoint 46 is a pooler *mode* change and not more capacity.
 
 ### The next real checkpoint
 **2026-10-23**: the ten 5-session rows mature. The canary's scorer step should write the first

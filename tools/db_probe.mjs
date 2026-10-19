@@ -25,7 +25,7 @@ const SATURATE = process.argv.includes("--saturate");
 
 const ENDPOINTS = [
   { env: "SUPABASE_DATABASE_URL", role: "primary (PRIMARY=supabase)" },
-  { env: "DATABASE_URL_FALLBACK", role: "standby 1, 'the second Neon project'" },
+  { env: "DATABASE_URL_FALLBACK", role: "standby 1, Aiven" },
   { env: "DATABASE_URL", role: "standby 2, 'Neon'" },
 ];
 

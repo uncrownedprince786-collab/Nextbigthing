@@ -452,9 +452,11 @@ def live_rows(limit: int, *, max_session_lag: int = 2, lookback_days: int = 21):
         load_dotenv(ROOT / ".env")
     except ImportError:
         pass
-    from nbt import db
+    # The primary, with no failover: a live call built from a standby's factor rows would be dated
+    # to a session the primary has already moved past, and recorded as if it were current.
+    from nbt import primary_db
 
-    conn = db()
+    conn = primary_db()
     try:
         cur = conn.cursor()
         cur.execute('SELECT max("periodEnd") AS d FROM "AssetFactor"')
@@ -493,11 +495,13 @@ def write_rows(records: list[dict], max_per_market_session: int = 0, *,
     """
     try:
         sys.path.insert(0, str(ROOT / "jobs"))
-        from nbt import db
+        from nbt import primary_db
     except Exception as e:                                    # noqa: BLE001
         return {"written": 0, "status": "unavailable", "reason": f"{type(e).__name__}: {e}"}
     try:
-        conn = db()
+        # The primary, with no failover: see `nbt.primary_db`. A prediction written to a standby is
+        # a prediction the scorer may never see, because the scorer reads the primary.
+        conn = primary_db()
         refusal = shadow_budget.refuse_if_full(conn, min_headroom_mb)
         if refusal:
             return refusal

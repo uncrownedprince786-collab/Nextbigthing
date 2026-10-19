@@ -235,7 +235,11 @@ def db():
         load_dotenv(ROOT / ".env")
     except ImportError:
         pass
-    from nbt import db as _db
+    # The primary, with no failover (`nbt.primary_db`). The scorer's whole job is to read the
+    # authoritative prediction set and grade what is eligible; a standby's copy lags the primary,
+    # so a failover here would silently under-report what has matured and write outcomes where the
+    # next run will not look for them.
+    from nbt import primary_db as _db
     return _db()
 
 

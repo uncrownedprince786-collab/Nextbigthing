@@ -3,6 +3,7 @@
 // The property worth most is that "stale" here means exactly what it means to the rule table, so the
 // health page and every decision on the site cannot disagree about whether a close is too old.
 
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DECISIONS_STALE_AFTER_DAYS, LANE_FOR, NEWS_STALE_AFTER_HOURS, assess, type HealthReadings } from "../lib/health.ts";
@@ -175,4 +176,17 @@ test("a market with no close at all is a problem, and every problem is reported,
     NOW,
   );
   assert.deepEqual(h.problems.map((p) => p.check).sort(), ["closes:Crypto", "closes:PSX", "news"]);
+});
+
+test("the heartbeat's failure path never claims a tier and never reports ok", async () => {
+  const src = readFileSync(new URL("../app/api/health/route.ts", import.meta.url), "utf8");
+  const fail = src.slice(src.indexOf("} catch"));
+  // The catch branch is the one that runs when no tier could be reached.
+  assert.match(fail, /ok: false/);
+  assert.match(fail, /servedFrom: null/, "a route that reached no tier must not name one");
+  assert.ok(!/ok: true/.test(fail), "the failure path must never report a healthy database");
+  assert.match(fail, /status: 503/);
+  assert.match(fail, /"Cache-Control": "no-store"/, "a cached heartbeat is not a heartbeat");
+  // It says why a 503 here can sit next to pages still answering 200.
+  assert.match(fail, /cached render/);
 });

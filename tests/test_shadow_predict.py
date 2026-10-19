@@ -372,7 +372,7 @@ class TheScheduledCanaryRespectsTheStoredSessionCap(unittest.TestCase):
                 "horizonSessions":20,"maturesAfter":"2026-11-16","strategy":"swing","timeframe":"swing",
                 "referencePrice":100.0,"features":{"r20":0.1},"sources":None,"inputCutoff":"2026-10-19",
                 "runId":"test-run","commit":"abc"}
-        with mock.patch.dict(sys.modules, {"nbt": SimpleNamespace(db=lambda: connection)}):
+        with mock.patch.dict(sys.modules, {"nbt": SimpleNamespace(primary_db=lambda: connection, db=lambda: connection)}):
             result = sp.write_rows([record("a2","MSFT"),record("a3","NVDA")], max_per_market_session=2)
         self.assertEqual(result, {"written":1,"status":"ok","skippedByCap":1})
         self.assertEqual(counts[("US","2026-10-19",20)],2)
@@ -421,7 +421,7 @@ class TheCapCountsHorizonsApart(unittest.TestCase):
             "horizonSessions":5,"maturesAfter":"2099-01-01","strategy":"short","timeframe":"short",
             "referencePrice":100.0,"features":{"r20":0.1},"sources":None,"inputCutoff":"2026-10-19",
             "runId":"t","commit":"abc"}
-        with mock.patch.dict(sys.modules, {"nbt": SimpleNamespace(db=lambda: connection)}):
+        with mock.patch.dict(sys.modules, {"nbt": SimpleNamespace(primary_db=lambda: connection, db=lambda: connection)}):
             result = sp.write_rows([row], max_per_market_session=2)
         self.assertEqual(result["written"], 1)
         self.assertEqual(result.get("skippedByCap"), 0)
@@ -455,7 +455,7 @@ class TheCapCountsHorizonsApart(unittest.TestCase):
             "horizonSessions":1,"maturesAfter":"2000-01-01","strategy":"intraday",
             "timeframe":"intraday","referencePrice":100.0,"features":{"r20":0.1},"sources":None,
             "inputCutoff":"2026-10-16","runId":"t","commit":"abc"}
-        with mock.patch.dict(sys.modules, {"nbt": SimpleNamespace(db=lambda: connection)}):
+        with mock.patch.dict(sys.modules, {"nbt": SimpleNamespace(primary_db=lambda: connection, db=lambda: connection)}):
             result = sp.write_rows([row], max_per_market_session=2)
         self.assertEqual(result["written"], 0)
         self.assertEqual(result["skippedAlreadyMatured"], 1)

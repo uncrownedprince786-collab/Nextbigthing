@@ -525,9 +525,48 @@ test("every endpoint is wrapped for encryption, the primary included", () => {
   assert.equal(withEncryption("postgres://h/db?sslmode=require"), "postgres://h/db?sslmode=require");
 });
 
-test("a Supabase primary gets two connections per instance; Neon keeps pg's default", async () => {
+test("a Supabase primary gets two connections per instance; others keep pg's default", async () => {
   const src = readFileSync(new URL("../lib/db.ts", import.meta.url), "utf8");
-  assert.match(src, /makeFailoverPool\(\{ connectionString: withEncryption\(url\), \.\.\.primaryLimits\(url\) \}, standbys\(url\)\)/);
+  // The pool is built from the *served* URL (the transaction pooler); the standbys keep the
+  // original one, because a standby is a different provider with a different pooler.
+  assert.match(src, /connectionString: withEncryption\(served\), \.\.\.primaryLimits\(served\)/);
+  assert.match(src, /standbys\(url\)/);
   assert.match(src, /databaseKey\(c\.url\) !== databaseKey\(primary\)/, "the primary is never its own standby");
-  assert.match(src, /hostname\.endsWith\("\.supabase\.com"\)\) return \{ max: 2,/);
+  // Two in either pooler mode. Raising it for transaction mode was measured and was worse: a cold
+  // sweep at concurrency 4 with max 10 returned 500 on five routes; with max 2 it returns 200.
+  assert.match(src, /return \{ max: 2, idleTimeoutMillis: 2_000, allowExitOnIdle: true \};/);
+  // The prose above `primaryLimits` names the ceiling that was tried and rejected, so this looks
+  // for a `return` that sets it rather than for the number anywhere in the file.
+  assert.ok(!/return \{ max: (?!2,)/.test(src), "raising the pool ceiling was measured and was worse");
+});
+
+test("the web pool reads Supabase through the transaction pooler, and only the web pool", async () => {
+  const { transactionPoolUrl } = await import("../lib/failover.ts");
+  // The session port is rewritten to the transaction port on a Supabase pooler host.
+  assert.equal(
+    transactionPoolUrl("postgres://u:p@aws-0-eu-west-2.pooler.supabase.com:5432/postgres", {}),
+    "postgres://u:p@aws-0-eu-west-2.pooler.supabase.com:6543/postgres",
+  );
+  // A string already naming the transaction port is left alone.
+  assert.equal(
+    transactionPoolUrl("postgres://u:p@aws-0-eu-west-2.pooler.supabase.com:6543/postgres", {}),
+    "postgres://u:p@aws-0-eu-west-2.pooler.supabase.com:6543/postgres",
+  );
+  // Any other provider, and the direct Supabase host, are untouched: only the pooler has two ports.
+  assert.equal(
+    transactionPoolUrl("postgres://u:p@x.h.aivencloud.com:17299/defaultdb", {}),
+    "postgres://u:p@x.h.aivencloud.com:17299/defaultdb",
+  );
+  assert.equal(
+    transactionPoolUrl("postgres://u:p@db.abc.supabase.co:5432/postgres", {}),
+    "postgres://u:p@db.abc.supabase.co:5432/postgres",
+  );
+  // The rollback is an environment variable, not a revert.
+  assert.equal(
+    transactionPoolUrl("postgres://u:p@aws-0-eu-west-2.pooler.supabase.com:5432/postgres",
+                       { SUPABASE_POOL_MODE: "session" }),
+    "postgres://u:p@aws-0-eu-west-2.pooler.supabase.com:5432/postgres",
+  );
+  // An unparseable string is pg's problem to report, not this function's.
+  assert.equal(transactionPoolUrl("not a url", {}), "not a url");
 });

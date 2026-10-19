@@ -28,7 +28,21 @@ export async function GET() {
     });
   } catch {
     return Response.json(
-      { ok: false, problems: [{ check: "database", lane: null, detail: "the database could not be read" }] },
+      {
+        ok: false,
+        // Never `servedFrom: "the primary"` here. This route reached no tier at all, and naming one
+        // would be the single most misleading thing the heartbeat could say.
+        servedFrom: null,
+        problems: [{ check: "database", lane: null, detail: "the database could not be read" }],
+        // Both 2026-10-19 saturations looked like an outage and were not one: every page kept
+        // answering 200 from the ISR cache (`revalidate` 900 or 3600) while this route, which is
+        // `no-store` and always reads live, answered 503. That is the two surfaces disagreeing
+        // correctly, and an operator who does not know it reads a 503 next to a working site and
+        // distrusts both. Said here once, rather than rediscovered each time.
+        note: "this route always reads the database live and is never cached, so a 503 here is a "
+          + "database that could not be reached. Pages may still be answering 200 from their "
+          + "cached render; that is not a contradiction and it is not proof the data is current.",
+      },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }

@@ -313,6 +313,54 @@ function describe(error: unknown): string {
     .slice(0, 120);
 }
 
+/// Supabase's **session** pooler (port 5432) and its **transaction** pooler (port 6543) are the
+/// same host, and only one of them is a sane place for a serverless front end to connect.
+///
+/// In session mode a client connection owns a Postgres backend for as long as it is open, so the
+/// pool's 15 server connections are 15 *clients*, shared by every warm serverless instance and
+/// every scheduled lane at once. In transaction mode the backend goes back to the pool at the end
+/// of each transaction, so the same 15 serve far more clients -- which is exactly the shape of
+/// this app's traffic: short reads, long gaps.
+///
+/// **The two measured outages this fixes, 2026-10-19.** At 20:05 UTC `cron news` held one session
+/// slot for its whole 14-minute run and the site's reads had to contend for what was left. At
+/// 21:00 a deployment invalidated every ISR entry (every page here is `revalidate` 900 or 3600),
+/// so a 20-route sweep became 20 *cold* renders, each a live read, each on a serverless instance
+/// opening its own pool. Both answered `FATAL: (EMAXCONNSESSION) max clients reached in session
+/// mode`. Postgres itself was never the constraint: `max_connections` is 60 and Supavisor was
+/// holding 7 of them.
+///
+/// This is done in code rather than by editing the deployment's connection string because that
+/// string is one secret shared with the jobs, and the jobs must stay in session mode -- `prisma
+/// migrate deploy` takes a session-level advisory lock, and `jobs/retention.py` runs `VACUUM` and
+/// `REINDEX CONCURRENTLY`, none of which survive a connection handed back between statements.
+/// Rewriting the port here moves the **web pool only** and leaves every other caller where it is.
+///
+/// `SUPABASE_POOL_MODE=session` puts the web pool back on 5432 without deploying new code, so the
+/// rollback for this change is an environment variable rather than a revert. Any other value,
+/// including unset, means transaction mode. Anything that is not a Supabase *pooler* host on the
+/// session port is returned untouched -- the direct host has only one port, and so does every
+/// other provider.
+export function transactionPoolUrl(
+  url: string,
+  env: Record<string, string | undefined> = process.env,
+): string {
+  if ((env.SUPABASE_POOL_MODE ?? "").trim().toLowerCase() === "session") return url;
+  try {
+    const u = new URL(url);
+    if (!u.hostname.endsWith(".pooler.supabase.com")) return url;
+    // Only the documented session port is rewritten. A string already naming 6543 is left as it
+    // is, and so is one naming anything else -- an unrecognised port is a deliberate choice by
+    // whoever set it, not something to second-guess.
+    if ((u.port || "5432") !== "5432") return url;
+    u.port = "6543";
+    return u.toString();
+  } catch {
+    // An unparseable string is pg's problem to report, not this function's.
+    return url;
+  }
+}
+
 /// The connection string, with encryption asked for when it did not say.
 ///
 /// Measured against the real Supabase pooler with the Node driver: with no mode at all the driver

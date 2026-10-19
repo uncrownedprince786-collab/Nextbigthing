@@ -168,6 +168,10 @@ class PredictWriteAccountTest(unittest.TestCase):
         cursor = FakeCursor(rowcount=rowcount)
         conn = FakeConn()
         conn.cursor = lambda: cursor
+        # `primary_db`, because the shadow writer must reach the authoritative primary or fail --
+        # a prediction stranded on a standby is one the scorer, which reads the primary, never sees.
+        # `db` stays on the stub so a caller that still wants failover is not silently broken here.
+        fake.primary_db = lambda: conn
         fake.db = lambda: conn
         prev = sys.modules.get("nbt")
         sys.modules["nbt"] = fake

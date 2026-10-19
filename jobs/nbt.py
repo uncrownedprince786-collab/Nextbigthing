@@ -465,6 +465,70 @@ def db():
         return conn
 
 
+#: Retries for `primary_db`, and the pause between them. The condition it is waiting out is a full
+#: Supavisor pool, which clears when whatever is holding the slots finishes -- measured twice on
+#: 2026-10-19 at under a minute and about six minutes. Three tries thirty seconds apart covers the
+#: first and fails honestly on the second, which is the right trade: a lane that waits ten minutes
+#: for a pooler is a lane holding a runner for ten minutes.
+PRIMARY_RETRIES = 3
+PRIMARY_RETRY_SECONDS = 30.0
+
+
+def primary_db(retries: int = PRIMARY_RETRIES, pause: float = PRIMARY_RETRY_SECONDS):
+    """A connection to the primary and **only** the primary. Never the standby.
+
+    Why failover is wrong for some callers
+    --------------------------------------
+    `db()` falls back to the standby when the primary refuses a connection, and for an ingest lane
+    that is right: the rows are written somewhere durable and `jobs/reconcile.py` copies them back.
+    For the shadow lane it is not, and the failure it produces is silent.
+
+    A standby holds whatever `jobs/mirror.py` last copied, which is up to a day behind. Measured
+    2026-10-19: the primary held **599** `ShadowPrediction` rows and Aiven held **581** -- the 18
+    missing ones included all ten of the 5-session predictions due to mature on 2026-10-23. A
+    scorer that failed over would have read the standby's prediction set, found none of them
+    eligible, and reported **`nothing-matured`** -- a green run, an empty `ShadowOutcome`, and no
+    indication anywhere that the grading it was scheduled to do had not happened. The same failover
+    on the writer would strand new predictions on a database the scorer may never read them from.
+
+    So this raises instead. A connection error here is an operational failure and has to look like
+    one; the next scheduled run grades the same rows, because the maturity test is a date and not a
+    clock, and the write is idempotent either way.
+
+    It retries first, because the condition is nearly always transient -- a full pooler clears when
+    the lane holding the slots finishes. `psycopg.OperationalError` is the only thing retried; a bad
+    credential or a missing database is raised at once rather than waited on three times.
+    """
+    name, primary = primary_choice()
+    if not primary:
+        raise KeyError(name)
+    last: Exception | None = None
+    for attempt in range(max(1, retries)):
+        try:
+            conn = _connect(primary)
+            global WRITING_TO
+            WRITING_TO = "primary"
+            return conn
+        except psycopg.OperationalError as e:
+            if not is_unreachable(e):
+                raise
+            last = e
+            if attempt < max(1, retries) - 1:
+                first = str(e).splitlines()[0][:120]
+                for marker in ("postgres://", "postgresql://"):
+                    if marker in first:
+                        first = first.split(marker)[0] + "<redacted>"
+                print(f"  the primary refused a connection ({first}); retrying in {pause:.0f}s "
+                      f"({attempt + 1} of {max(1, retries)})")
+                time.sleep(pause)
+    raise RuntimeError(
+        f"the primary ({name}) could not be reached after {max(1, retries)} attempts and this "
+        f"caller must not fall back to a standby: a standby's copy of the shadow tables lags the "
+        f"primary, so reading it would under-report what is eligible and writing it would strand "
+        f"the row. Last error: {str(last).splitlines()[0][:160] if last else 'unknown'}"
+    ) from last
+
+
 class Link:
     """A database connection that survives the server closing it.
 
