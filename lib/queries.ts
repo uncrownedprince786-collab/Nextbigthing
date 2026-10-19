@@ -82,12 +82,6 @@ export async function getAllIndustriesByBasis(basis: Basis) {
   return [...byIndustry.values()].flatMap((group) => latestWindow(group));
 }
 
-export async function getProducts(status?: string) {
-  return prisma.product.findMany({
-    where: status ? { status } : undefined,
-    orderBy: [{ demandScore: { sort: "desc", nulls: "last" } }, { name: "asc" }],
-  });
-}
 
 export async function getProduct(slug: string) {
   return prisma.product.findUnique({

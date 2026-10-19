@@ -51,12 +51,6 @@ export default function NotFound() {
           </span>
         </li>
         <li>
-          <Link href="/products" className="text-primary underline underline-offset-2">
-            Products
-          </Link>
-          <span className="text-muted-foreground"> — the consumer demand signals</span>
-        </li>
-        <li>
           <Link href="/methodology" className="text-primary underline underline-offset-2">
             Methodology
           </Link>

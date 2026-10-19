@@ -9,7 +9,6 @@ import {
   FINDING_WORDS,
   HORIZON_WORDS,
   METHOD_WORDS,
-  PRODUCT_STATUS_WORDS,
   SETUP_WORDS,
   THESIS_WORDS,
   targetsDisagree,
@@ -1850,80 +1849,6 @@ export function IntradayHealth({
     </Card>
   );
 }
-
-
-/// One product, scannable in a second.
-///
-/// Name, status, score, badge — and nothing else at the top level. The long grade explanation
-/// moved behind a disclosure because it is the reason the first screen of /products could not
-/// be read quickly: thirty cards each carrying a paragraph is thirty paragraphs, and the
-/// reader wanted the shape of the list.
-///
-/// `<details>` rather than React state so the card stays a server component, which keeps this
-/// page free of client JavaScript entirely.
-export function ProductCard({
-  product,
-  tone,
-}: {
-  tone: "up" | "warn" | "default";
-  product: {
-    id: string;
-    slug: string;
-    name: string;
-    category: string;
-    status: string;
-    demandScore: number | null;
-    confidence: string;
-    sourcesAnswered: number;
-    sourcesAgree: number;
-    confidenceNote: string | null;
-    summary: string;
-  };
-}) {
-  return (
-    <Card>
-      <Link href={`/product/${product.slug}`} className="block">
-        <div className="flex items-start justify-between gap-2">
-          {/* Product names are listing titles from an external feed and run past 150
-              characters with model numbers in them. */}
-          <h3 className="wrap-hard min-w-0 font-medium underline-offset-2 hover:underline">
-            {product.name}
-          </h3>
-          <Pill tone={tone}>{PRODUCT_STATUS_WORDS[product.status]?.label ?? product.status}</Pill>
-        </div>
-        <div className="mt-2 flex items-baseline justify-between gap-2">
-          <span className={`num text-lg font-semibold ${toneClass(product.demandScore)}`}>
-            {pct(product.demandScore)}
-          </span>
-          <ConfidenceBadge grade={product.confidence} />
-        </div>
-        <p className="text-muted-foreground mt-1 text-micro">
-          {product.category} · {product.sourcesAnswered} of 5 sources answered
-          {product.sourcesAnswered > 0 ? `, ${product.sourcesAgree} agree` : ""}
-        </p>
-      </Link>
-
-      {product.confidenceNote || product.summary ? (
-        <details className="group mt-2">
-          <summary className="text-muted-foreground hover:text-foreground -my-1 inline-flex min-h-11 cursor-pointer list-none items-center text-micro underline underline-offset-2 sm:my-0 sm:min-h-0">
-            Why this grade
-          </summary>
-          {product.confidenceNote ? (
-            <p className="text-muted-foreground mt-1.5 text-micro leading-relaxed">
-              {product.confidenceNote}
-            </p>
-          ) : null}
-          {product.summary ? (
-            <p className="text-muted-foreground mt-1.5 text-micro leading-relaxed">
-              {product.summary}
-            </p>
-          ) : null}
-        </details>
-      ) : null}
-    </Card>
-  );
-}
-
 
 /// Source health, for the reader.
 ///

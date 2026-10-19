@@ -29,7 +29,6 @@ const NAV = [
   { href: "/crypto", label: "Crypto" },
   { href: "/forex", label: "Forex" },
   { href: "/commodities", label: "Commodities" },
-  { href: "/products", label: "Products" },
   { href: "/logbook", label: "Logbook" },
 ];
 

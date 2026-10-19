@@ -16,7 +16,6 @@ import {
 import {
   getAllIndustriesByBasis,
   getFreshness,
-  getProducts,
   getIndustriesByMarket,
   getPricedAssetsByIndustry,
   rankingAsOf,
@@ -37,7 +36,6 @@ import {
 import { cachedDecisionRows, cachedSourceHealth } from "@/lib/cached";
 import { TopByClass } from "@/components/topByClass";
 import { WeeklyFocusBlock } from "@/components/weeklyFocusBlock";
-import { ProductsCard } from "@/components/productsCard";
 import { EVENT_SOON_DAYS } from "@/lib/decision";
 import { DecisionList, SectorBoard, WithheldList } from "@/components/decision";
 import { FilterChips } from "@/components/filters";
@@ -78,9 +76,6 @@ export const revalidate = 3600;
 const HOUR = { revalidate: 3600 } as const;
 
 const cachedFreshness = unstable_cache(getFreshness, ["freshness"], HOUR);
-// Products, for the band under the asset classes. Cached on the same hour as everything
-// else on this page so the overview is one snapshot rather than several.
-const cachedProducts = unstable_cache(() => getProducts(), ["products-all"], HOUR);
 const cachedIndustriesByMarket = unstable_cache(
   getIndustriesByMarket,
   ["industries-by-market"],
@@ -345,13 +340,12 @@ export default async function Home({
   const emptiedByFilter =
     scored.length > 0 && matching.length === 0 && Object.keys(current).length > 0;
 
-  const [byMarket, risers, sizeNow, pricedEntries, fresh, products] = await Promise.all([
+  const [byMarket, risers, sizeNow, pricedEntries, fresh] = await Promise.all([
     cachedIndustriesByMarket(),
     cachedRisers(),
     cachedSizeNow(),
     cachedPricedByIndustry(),
     cachedFreshness(),
-    cachedProducts(),
   ]);
   const pricedByIndustry = new Map(pricedEntries);
 
@@ -407,10 +401,6 @@ export default async function Home({
       <WeeklyFocusBlock rows={scored} />
 
       <TopByClass classes={ASSET_CLASSES} rows={scored} health={health} />
-
-      {/* Products are not assets and carry no entry, stop or market, so they get their own band
-          under the asset classes rather than a sixth cell in that grid. */}
-      <ProductsCard rows={products} />
 
       <div className="mt-8">
         <FilterChips groups={FILTERS} current={current} basePath="/" />
