@@ -10031,6 +10031,10 @@ class WritesFailOverAndComeBack(unittest.TestCase):
         class Cursor:
             def __init__(self):
                 self.query = ""
+            def __enter__(self):
+                return self
+            def __exit__(self, *_args):
+                return False
             def execute(self, query):
                 self.query = query
             def fetchone(self):
