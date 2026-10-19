@@ -172,6 +172,21 @@ jobs:
           python jobs/mirror.py --from-env "${{ steps.targets.outputs.from }}" --to-env "${{ steps.targets.outputs.names }}" \
             --tables News,HumanSignal --since "$since"
 
+      # Immutable model evidence is not derivable from later market data. Keep recent predictions and
+      # their outcomes on every tier; parents are copied before outcomes, and the mirror remaps each
+      # outcome's predictionId when independently seeded databases have different UUIDs.
+      - name: Shadow predictions and outcomes, a trailing 180 days
+        if: always() && steps.targets.outputs.any == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          since="$(date -u -d '180 days ago' +%Y-%m-%d)"
+          python jobs/mirror.py --from-env "${{ steps.targets.outputs.from }}" --to-env "${{ steps.targets.outputs.names }}" \\
+            --tables ShadowPrediction,ShadowOutcome --since "$since"
+
       # What a failover would serve, reported every night (brain.md rule 94): active assets a standby
       # lacks, and how far each standby's decision inputs lag the primary's. Not a gate on this run --
       # the site publishes no call from a standby read in any case -- but the gap is printed, not found.
