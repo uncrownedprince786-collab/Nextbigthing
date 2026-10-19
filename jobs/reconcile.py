@@ -62,21 +62,34 @@ def ahead(primary: dict, standby: dict) -> bool:
     return ss is not None and (ps is None or ss > ps)
 
 
+def max_created_at(conn, table: str):
+    """Newest creation timestamp in one append-only evidence table, or None before its migration."""
+    if table not in {"ShadowPrediction", "ShadowOutcome"}:
+        raise ValueError(f"unsupported evidence table: {table}")
+    try:
+        with conn.cursor() as cur:
+            cur.execute(f'SELECT max("createdAt") AS d FROM "{table}"')
+            return cur.fetchone()["d"]
+    except Exception:  # noqa: BLE001
+        # PostgreSQL marks a transaction failed after a missing-table error. Clear that state before
+        # reading the other evidence table, because the two migrations may not have landed together.
+        conn.rollback()
+        return None
+
+
 def maxima(conn) -> dict:
     with conn.cursor() as cur:
         cur.execute('SELECT max(date) AS price FROM "PriceSnapshot"')
         price = cur.fetchone()["price"]
         cur.execute('SELECT max("computedAt") AS decided FROM "DecisionLog"')
         decided = cur.fetchone()["decided"]
-        # `createdAt` rather than `asOf`: a row written during the outage is the thing being
-        # detected, and it may carry an older session. A table absent on either side -- a standby
-        # before the migration reached it -- reports null and is simply not ahead on this axis.
-        try:
-            cur.execute('SELECT max("createdAt") AS shadow FROM "ShadowPrediction"')
-            shadow = cur.fetchone()["shadow"]
-        except Exception:  # noqa: BLE001
-            conn.rollback()
-            shadow = None
+    # Both kinds of evidence matter: a prediction can be mirrored before an outage and its final
+    # outcome written only to the standby much later. Looking at predictions alone misses that
+    # write and leaves the primary's scorecard permanently behind.
+    shadow_prediction = max_created_at(conn, "ShadowPrediction")
+    shadow_outcome = max_created_at(conn, "ShadowOutcome")
+    shadow_values = [v for v in (shadow_prediction, shadow_outcome) if v is not None]
+    shadow = max(shadow_values) if shadow_values else None
     return {"price": price, "decided": decided, "shadow": shadow}
 
 
