@@ -39,7 +39,9 @@ the bound or to candidate approval.
   ~150-160 minutes old ("the lane runs every 15"). `cron live quotes` has had no run since
   10:58 UTC and the hourly watchdog's 12:45 run is also absent -- GitHub is dropping scheduled runs,
   which `cron-watchdog.yml` already documents; the mitigation is in place and did not get a turn
-  because its own schedule was dropped too. Not a code defect.
+  because its own schedule was dropped too. Not a code defect -- and **confirmed**: this push's
+  `workflow_run` events gave the watchdog a turn, it re-dispatched `cron live quotes`, and the next
+  read was `ok:true` with quotes **4 minutes** old.
 - **The most recent decision run failed, and the output is intact.** Run `39179686037`
   (2026-10-19T00:44Z) failed at `jobs/schemacheck.py` (a migration in the checkout ahead of the
   primary) and at `decide.mjs`. `schemacheck.py` now reports **37/37 applied** and `DecisionLog`
