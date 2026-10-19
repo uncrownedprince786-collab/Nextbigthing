@@ -6773,4 +6773,20 @@ reads rows that already exist:
       (database 484 MB of a 500 MB plan)` and left `ShadowPrediction` at **589** rows, `ShadowOutcome`
       at **0**. Python suite: **1313 OK** (+16).
 
+183. **A run's colour and its output's presence are independent facts, and a smoke test has to read
+    both.** 2026-10-19. `GET /api/health` on the deployed site answers **200** with `servedFrom: the
+    primary`, and `ok:false` for exactly one honest reason: `cron live quotes` has had no run since
+    10:58 UTC, so Commodity/Crypto/FX quotes were ~150 minutes old against a 15-minute lane. The
+    hourly watchdog's 12:45 run is missing too -- GitHub is dropping scheduled runs, the behaviour
+    `cron-watchdog.yml` documents, and the mitigation is in place and simply did not get a turn.
+    Nothing to fix in code. The second finding is the rule: decision run `39179686037`
+    (2026-10-19T00:44Z) is marked **failure** at `jobs/schemacheck.py` and `decide.mjs`, and
+    `DecisionLog` nonetheless holds **551** rows for 2026-10-19. The migration the checkout carried
+    had not been applied to the primary at that moment; it has been since (`schemacheck` now reports
+    37/37), so the red self-healed and no decision was lost. **Reading the run list and reading the
+    table are two different verifications, and a smoke test that does only one of them will call a
+    healthy output broken or a broken output healthy.** Standby parity the same night: Aiven holds
+    551/551 active assets and current decisions; the third tier is unreachable
+    (`planLimitReached`), which is recorded and not claimed away.
+
 

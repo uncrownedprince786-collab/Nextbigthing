@@ -31,10 +31,31 @@ the bound or to candidate approval.
   `ShadowOutcome` **0**.
 - Python suite **1313 OK** (+16). All workflow YAML parses.
 
+### Production verification (this session)
+- **Live API answers.** `GET https://nextbigthing-nu.vercel.app/api/health` -> **200**, valid JSON,
+  `servedFrom: the primary`. (An earlier PowerShell attempt returned a transient edge 503; `curl`
+  read the body and the route works.)
+- **`ok:false` for one real reason only: stale live quotes.** `quotes:Commodity/Crypto/FX` were
+  ~150-160 minutes old ("the lane runs every 15"). `cron live quotes` has had no run since
+  10:58 UTC and the hourly watchdog's 12:45 run is also absent -- GitHub is dropping scheduled runs,
+  which `cron-watchdog.yml` already documents; the mitigation is in place and did not get a turn
+  because its own schedule was dropped too. Not a code defect.
+- **The most recent decision run failed, and the output is intact.** Run `39179686037`
+  (2026-10-19T00:44Z) failed at `jobs/schemacheck.py` (a migration in the checkout ahead of the
+  primary) and at `decide.mjs`. `schemacheck.py` now reports **37/37 applied** and `DecisionLog`
+  holds **551** rows for 2026-10-19 (551-557 every day this week), so the migration has since been
+  applied, the failure has self-healed, and no decision was lost.
+- **Backup:** `cron-backup.yml` succeeded daily, latest 2026-10-19T10:14Z.
+- **Parity (`tools/standby_parity.py`):** the Aiven standby holds **551/551** active assets, 0 missing
+  news readings, `DecisionLog`/`HumanSignal` current to 2026-10-19, `PriceSnapshot` to 2026-10-18.
+  AssetSetup/AssetFactor/AssetAnalog lag (2026-10-13/12) by design -- they are not mirrored tables.
+  Exit 2 is that report, not a failure. The third tier (`DATABASE_URL`, Prisma) is unreachable
+  (`account has restrictions: planLimitReached`) -- external.
+
 ### Still open
 - First real `cron shadow canary` run still pending (event trigger after the next successful
   `cron decision`, or 23:15 UTC); inspect its headroom, per-market sessions and inserted counts.
-- The third database remains unreachable; no parity claim. Vercel smoke test not run from here.
+- The third database remains unreachable; no parity claim for it.
 - Candidates remain NO-GO; no shadow outcome has matured.
 
 ## 0. SESSION CHECKPOINT - 2026-10-19 (bounded shadow canary merged; branch CI green; main verification and first scheduled run pending)
