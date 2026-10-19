@@ -1,0 +1,314 @@
+{
+ "generatedAt": "2026-10-19T00:56:39+00:00",
+ "producedBy": "tools/research/train_v4_markets.py",
+ "trainEnd": "2025-12-31",
+ "embargoSessions": 20,
+ "markets": {
+  "US": {
+   "trained": true,
+   "modelVersion": "brain-v4-us",
+   "artifact": {
+    "path": "data/foundation/brain/brain-v4-us/model.json",
+    "sha256": "e9fd34c662452f869bfcd4650831f8f83f89349bbd6825b12ca481d3974571d9"
+   },
+   "accuracy": 0.4329,
+   "holdoutMajorityShare": 0.4336,
+   "priceOnlyAccuracy": 0.4303,
+   "verdict": "NO-GO",
+   "checks": {
+    "accuracyAboveHoldoutMajority": [
+     0.4329,
+     0.4336,
+     false
+    ],
+    "beatsThePriceOnlyModel": [
+     0.4329,
+     0.4303,
+     true
+    ],
+    "notDegenerate": [
+     true,
+     false,
+     false
+    ],
+    "bothDirectionsPredicted": [
+     {
+      "DOWN": 0.0044,
+      "UP": 0.994
+     },
+     0.2,
+     false
+    ]
+   },
+   "predictedMix": {
+    "DOWN": 219,
+    "FLAT": 21,
+    "UP": 49439
+   },
+   "collapse": {
+    "predictedShare": {
+     "DOWN": 0.0044,
+     "FLAT": 0.0004,
+     "UP": 0.9952
+    },
+    "actualShare": {
+     "DOWN": 0.405,
+     "FLAT": 0.1614,
+     "UP": 0.4336
+    },
+    "predictedUp": 49439,
+    "predictedDown": 219,
+    "predictedFlat": 21,
+    "dominantPredictedClass": "UP",
+    "collapsed": true,
+    "note": "collapsed means one class takes >0.7 of the predictions while being <0.5 of the holdout, which is scoring by leaning on a class rather than reading direction"
+   },
+   "freshProcessParity": 1.0
+  },
+  "PK": {
+   "trained": true,
+   "modelVersion": "brain-v4-pk",
+   "artifact": {
+    "path": "data/foundation/brain/brain-v4-pk/model.json",
+    "sha256": "8a93d8e2cbb95388e8a9f3f8bbb87793641086592642559e290d70ddd7791622"
+   },
+   "accuracy": 0.3631,
+   "holdoutMajorityShare": 0.5064,
+   "priceOnlyAccuracy": 0.4707,
+   "verdict": "NO-GO",
+   "checks": {
+    "accuracyAboveHoldoutMajority": [
+     0.3631,
+     0.5064,
+     false
+    ],
+    "beatsThePriceOnlyModel": [
+     0.3631,
+     0.4707,
+     false
+    ],
+    "notDegenerate": [
+     true,
+     false,
+     false
+    ],
+    "bothDirectionsPredicted": [
+     {
+      "DOWN": 0.0442,
+      "UP": 0.9711
+     },
+     0.2,
+     false
+    ]
+   },
+   "predictedMix": {
+    "DOWN": 1357,
+    "FLAT": 208,
+    "UP": 36768
+   },
+   "collapse": {
+    "predictedShare": {
+     "DOWN": 0.0354,
+     "FLAT": 0.0054,
+     "UP": 0.9592
+    },
+    "actualShare": {
+     "DOWN": 0.5064,
+     "FLAT": 0.1455,
+     "UP": 0.3481
+    },
+    "predictedUp": 36768,
+    "predictedDown": 1357,
+    "predictedFlat": 208,
+    "dominantPredictedClass": "UP",
+    "collapsed": true,
+    "note": "collapsed means one class takes >0.7 of the predictions while being <0.5 of the holdout, which is scoring by leaning on a class rather than reading direction"
+   },
+   "freshProcessParity": 1.0
+  },
+  "FX": {
+   "trained": true,
+   "modelVersion": "brain-v4-fx",
+   "artifact": {
+    "path": "data/foundation/brain/brain-v4-fx/model.json",
+    "sha256": "bef45635c8c1a7d9ff3b1751896533265387451cd738d4a0e839a59a11d089e3"
+   },
+   "accuracy": 0.7275,
+   "holdoutMajorityShare": 0.7289,
+   "priceOnlyAccuracy": 0.7289,
+   "verdict": "NO-GO",
+   "checks": {
+    "accuracyAboveHoldoutMajority": [
+     0.7275,
+     0.7289,
+     false
+    ],
+    "beatsThePriceOnlyModel": [
+     0.7275,
+     0.7289,
+     false
+    ],
+    "notDegenerate": [
+     false,
+     false,
+     true
+    ],
+    "bothDirectionsPredicted": [
+     {
+      "DOWN": 0.0,
+      "UP": 0.0
+     },
+     0.2,
+     false
+    ]
+   },
+   "predictedMix": {
+    "DOWN": 11,
+    "FLAT": 4984,
+    "UP": 0
+   },
+   "collapse": {
+    "predictedShare": {
+     "DOWN": 0.0022,
+     "FLAT": 0.9978,
+     "UP": 0.0
+    },
+    "actualShare": {
+     "DOWN": 0.1261,
+     "FLAT": 0.7289,
+     "UP": 0.1449
+    },
+    "predictedUp": 0,
+    "predictedDown": 11,
+    "predictedFlat": 4984,
+    "dominantPredictedClass": "FLAT",
+    "collapsed": false,
+    "note": "collapsed means one class takes >0.7 of the predictions while being <0.5 of the holdout, which is scoring by leaning on a class rather than reading direction"
+   },
+   "freshProcessParity": 1.0
+  },
+  "Commodity": {
+   "trained": true,
+   "modelVersion": "brain-v4-commodity",
+   "artifact": {
+    "path": "data/foundation/brain/brain-v4-commodity/model.json",
+    "sha256": "b086db96298595c80712ecbc2f415495133c645c19df7c2a005786897a8b2df7"
+   },
+   "accuracy": 0.4438,
+   "holdoutMajorityShare": 0.441,
+   "priceOnlyAccuracy": 0.4417,
+   "verdict": "GO",
+   "checks": {
+    "accuracyAboveHoldoutMajority": [
+     0.4438,
+     0.441,
+     true
+    ],
+    "beatsThePriceOnlyModel": [
+     0.4438,
+     0.4417,
+     true
+    ],
+    "notDegenerate": [
+     false,
+     false,
+     true
+    ],
+    "bothDirectionsPredicted": [
+     {
+      "DOWN": 0.3455,
+      "UP": 0.7293
+     },
+     0.2,
+     true
+    ]
+   },
+   "predictedMix": {
+    "DOWN": 431,
+    "FLAT": 1,
+    "UP": 992
+   },
+   "collapse": {
+    "predictedShare": {
+     "DOWN": 0.3027,
+     "FLAT": 0.0007,
+     "UP": 0.6966
+    },
+    "actualShare": {
+     "DOWN": 0.441,
+     "FLAT": 0.1594,
+     "UP": 0.3996
+    },
+    "predictedUp": 992,
+    "predictedDown": 431,
+    "predictedFlat": 1,
+    "dominantPredictedClass": "UP",
+    "collapsed": false,
+    "note": "collapsed means one class takes >0.7 of the predictions while being <0.5 of the holdout, which is scoring by leaning on a class rather than reading direction"
+   },
+   "freshProcessParity": 1.0
+  },
+  "Crypto": {
+   "trained": true,
+   "modelVersion": "brain-v4-crypto",
+   "artifact": {
+    "path": "data/foundation/brain/brain-v4-crypto/model.json",
+    "sha256": "0cd053395b6025e5ab7c513cb06fe01185070a0369a9f3c093ceb4f510e70dad"
+   },
+   "accuracy": 0.4736,
+   "holdoutMajorityShare": 0.4723,
+   "priceOnlyAccuracy": 0.472,
+   "verdict": "NO-GO",
+   "checks": {
+    "accuracyAboveHoldoutMajority": [
+     0.4736,
+     0.4723,
+     true
+    ],
+    "beatsThePriceOnlyModel": [
+     0.4736,
+     0.472,
+     true
+    ],
+    "notDegenerate": [
+     true,
+     false,
+     false
+    ],
+    "bothDirectionsPredicted": [
+     {
+      "DOWN": 0.9739,
+      "UP": 0.0337
+     },
+     0.2,
+     false
+    ]
+   },
+   "predictedMix": {
+    "DOWN": 18644,
+    "FLAT": 1,
+    "UP": 575
+   },
+   "collapse": {
+    "predictedShare": {
+     "DOWN": 0.97,
+     "FLAT": 0.0001,
+     "UP": 0.0299
+    },
+    "actualShare": {
+     "DOWN": 0.4723,
+     "FLAT": 0.1234,
+     "UP": 0.4043
+    },
+    "predictedUp": 575,
+    "predictedDown": 18644,
+    "predictedFlat": 1,
+    "dominantPredictedClass": "DOWN",
+    "collapsed": true,
+    "note": "collapsed means one class takes >0.7 of the predictions while being <0.5 of the holdout, which is scoring by leaning on a class rather than reading direction"
+   },
+   "freshProcessParity": 1.0
+  }
+ },
+ "promotionRule": "no market is promoted on this evaluation; see each manifest."
+}
