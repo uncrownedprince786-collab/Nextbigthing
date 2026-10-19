@@ -13,11 +13,15 @@ name: cron daily audit
 # ceiling has broken runs in this project; this job opens exactly one connection and closes it,
 # so a monitoring lane can never be the reason a source lane runs out of room.
 #
-# The red is the deliverable. It exits 1 whenever any check is `fail`, which today it does,
-# because `jobRuns36h` is genuinely failing and `sourceCoverage` is genuinely stale. A workflow
-# that reported green over failing checks would be the false all-clear this project's own audit
-# docstring warns about -- so this lane is expected to stay red until B2 and B3 are clear, and
-# that red is the honest signal, not a bug to route around.
+# The red is the deliverable. It exits 1 whenever any check is `fail`. Two of these checks were
+# corrected on 2026-10-19 because they were reading their own faults as outages: `sourceCoverage`
+# listed historical `Coverage` rows (and rows whose own status was `healthy`) as "sources
+# outside", and `jobRuns36h` failed on an intraday Yahoo throttle that had been mislabelled
+# `cron decision`. The trading verdict is now read from the decision's own freshness
+# (`decisionFreshness`, `DecisionLog`) and a separate `productRuns36h` keeps the non-trading
+# product lane visible without letting it fail trading. The lane still goes red on any `fail`,
+# and a green over a genuinely failing check remains the false all-clear this project's audit
+# docstring warns about -- so nothing here is allowed to swallow an exit code.
 on:
   schedule:
     # 05:25 UTC. Two reasons, both about what the verdict is read against: it lands after the

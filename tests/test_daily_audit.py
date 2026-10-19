@@ -81,5 +81,82 @@ class ABugIsNotAnOutage(unittest.TestCase):
         self.assertNotEqual(i, j)
 
 
+class OnlyTheLoudStatesFailATradingLane(unittest.TestCase):
+    """`jobRuns36h` used to fail on any status that was not ok. That made a provider's 429
+    (`blocked`), a partly-answered slice (`partial`) and a skipped one into system failures --
+    and it read the intraday fetch's Yahoo throttle as the *decision* lane failing."""
+
+    def _runs(self, *pairs):
+        return [{"job": j, "status": s, "n": n} for j, s, n in pairs]
+
+    def test_failed_and_empty_fail_a_trading_lane(self):
+        for state in ("failed", "empty"):
+            got = da.lane_check("jobRuns36h", self._runs(("cron crypto", state, 1)))
+            self.assertEqual(got["status"], da.FAIL, state)
+
+    def test_a_throttle_is_reported_and_does_not_fail(self):
+        got = da.lane_check("jobRuns36h", self._runs(("cron intraday", "blocked", 1)))
+        self.assertEqual(got["status"], da.WARN)
+        self.assertIn("cron intraday:blocked", got["detail"])
+
+    def test_partial_and_skipped_only_warn(self):
+        for state in ("partial", "skipped"):
+            got = da.lane_check("jobRuns36h", self._runs(("cron psx", state, 1)))
+            self.assertEqual(got["status"], da.WARN, state)
+
+    def test_an_all_ok_lane_is_ok(self):
+        got = da.lane_check("jobRuns36h", self._runs(("cron us prices", "ok", 4)))
+        self.assertEqual(got["status"], da.OK)
+
+
+class TheProductLaneIsSeparatedNotHidden(unittest.TestCase):
+
+    def test_a_product_failure_warns_and_is_named(self):
+        got = da.lane_check("productRuns36h",
+                            [{"job": "cron products", "status": "empty", "n": 1}], trading=False)
+        self.assertEqual(got["status"], da.WARN)
+        self.assertIn("cron products:empty", got["detail"])
+
+    def test_a_product_failure_never_fails_the_verdict(self):
+        got = da.lane_check("productRuns36h",
+                            [{"job": "cron products", "status": "blocked", "n": 4}], trading=False)
+        self.assertNotEqual(got["status"], da.FAIL)
+
+    def test_the_same_failure_in_a_trading_lane_is_a_failure(self):
+        # The split is the lane set, not a weaker judgement: the identical slice is a FAIL when
+        # it is a trading lane and a WARN when it is the product one.
+        row = {"job": "cron crypto", "status": "empty", "n": 1}
+        self.assertEqual(da.lane_check("jobRuns36h", [row])["status"], da.FAIL)
+
+    def test_no_product_runs_is_not_a_fault(self):
+        got = da.lane_check("productRuns36h", [], trading=False)
+        self.assertEqual(got["status"], da.OK)
+
+
+class TheCoverageCheckReadsOnlyTheNewestSnapshot(unittest.TestCase):
+    """The old query filtered `status <> 'ok'` over the whole append-only table, so it listed
+    historical rows -- and rows whose own status was `healthy`, since `healthy` is not `ok`."""
+
+    def test_the_query_pins_the_latest_run_and_only_unhealthy_rows(self):
+        src = (ROOT / "tools" / "daily_audit.py").read_text(encoding="utf-8")
+        self.assertIn('max("computedAt")', src)
+        self.assertIn("status <> 'healthy'", src)
+        self.assertNotIn("status <> 'ok'", src)
+
+
+class TheDecisionIsMeasuredByItsOwnRows(unittest.TestCase):
+
+    def test_the_decision_freshness_reads_decisionlog_and_health_ts_limit(self):
+        src = (ROOT / "tools" / "daily_audit.py").read_text(encoding="utf-8")
+        self.assertIn("decisionFreshness", src)
+        self.assertIn('max("periodEnd") d FROM "DecisionLog"', src)
+        self.assertIn("DECISIONS_STALE_AFTER_DAYS", src)
+
+    def test_the_intraday_fetch_is_not_written_as_the_decision_lane(self):
+        src = (ROOT / "jobs" / "intraday.py").read_text(encoding="utf-8")
+        self.assertIn('job="cron intraday"', src)
+        self.assertNotIn('job="cron decision"', src)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -912,10 +912,18 @@ def main() -> None:
 
     The lane's own work is untouched; this records that it ran, what it wrote and whether a
     provider throttled it, so `lib/health.ts` can see this lane at all.
+
+    It is labelled `cron intraday`, its own lane. It used to be written as `cron decision`,
+    which is the name of the workflow that happens to call it (the decision group runs this,
+    exactly as it runs horizons after it) -- and that mislabel was load bearing. The morning
+    audit reads `ChunkRun`, so a Yahoo 429 during this fetch was reported as the **decision**
+    lane being blocked, while `DecisionLog` was written on time and no decision was ever at
+    risk. Naming the lane after what it fetches is what stops a provider throttle reading as a
+    failed decision.
     """
     import runlog  # noqa: PLC0415 - imported here so the job still runs with no logger present
 
-    with runlog.lane_run(job="cron decision", source="Yahoo Finance chart API (intraday)", table="IntradayBar", date_col='ts'):
+    with runlog.lane_run(job="cron intraday", source="Yahoo Finance chart API (intraday)", table="IntradayBar", date_col='ts'):
         return _run()
 
 

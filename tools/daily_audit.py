@@ -44,6 +44,23 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 OK, WARN, FAIL, UNKNOWN = "ok", "warn", "fail", "unknown"
 
+# The lanes that are *not* trading. Nothing the site decides is read from the product-demand
+# lane, so a throttled Reddit must not fail the trading verdict -- and it must not be hidden
+# either, which is why it gets its own check (`productRuns36h`) rather than being dropped. This
+# is the one place the split is declared; every other lane is trading by default, so a new
+# trading lane is covered the day it writes its first ChunkRun row without an edit here.
+PRODUCT_LANES = frozenset({"cron products"})
+
+# How a slice's own `status` is read (jobs/runlog.py STATUSES). `failed` and `empty` are the
+# loud ones -- asked and got nothing, or errored -- and they are what fails a lane. `partial`
+# is "some answered", which runlog calls ordinary; `skipped` "carries no judgement about the
+# source"; and `blocked` is a provider that throttled us, which is a fact about the venue that
+# is retried later, not a fault of ours. None of the three is a system failure, and calling them
+# one is how a throttle on one provider reads as the whole stack being down.
+HARD_STATUSES = frozenset({"failed", "empty"})
+SOFT_STATUSES = frozenset({"partial", "skipped", "blocked"})
+DONE_STATUSES = frozenset({"ok", "complete", "done"})
+
 
 def check(name: str, status: str, detail: str, extra=None) -> dict:
     return {"check": name, "status": status, "detail": detail, "extra": extra}
@@ -130,6 +147,37 @@ def recovery_checks() -> list[dict]:
 
 # --- database checks, one connection -------------------------------------------------------------
 
+def lane_check(name: str, runs: list[dict], *, trading: bool = True) -> dict:
+    """One `ChunkRun` verdict over the slices of a lane set.
+
+    The judgement is split by severity on purpose. `failed`/`empty` are the loud states -- asked
+    and got nothing, or errored -- and they fail a **trading** lane. `partial`, `skipped` and
+    `blocked` are ordinary or external (see SOFT_STATUSES) and only ever warn; a provider that
+    throttled us is retried later and must be visible without reading as the stack being down.
+    Product slices never fail: they are not trading, and hiding them would be worse than
+    warning, so they get their own check that still names every unhappy slice.
+    """
+    def label(rows: list[dict]) -> str:
+        return ", ".join(f"{r['job']}:{r['status']}x{r['n']}" for r in rows)
+
+    total = sum(r["n"] for r in runs)
+    if not runs:
+        return check(name, WARN if trading else OK,
+                     "no trading job slices logged in 36 hours" if trading
+                     else "no product-lane slices logged in 36 hours")
+    hard = [r for r in runs if r["status"] in HARD_STATUSES]
+    soft = [r for r in runs if r["status"] in SOFT_STATUSES]
+    unexpected = [r for r in runs
+                  if r["status"] not in HARD_STATUSES | SOFT_STATUSES | DONE_STATUSES]
+    if hard or unexpected:
+        status = FAIL if (trading and hard) else WARN
+        return check(name, status,
+                     f"{total} slice(s) in 36h; not ok: {label(hard + unexpected)}")
+    if soft:
+        return check(name, WARN, f"{total} slice(s) in 36h; needs attention: {label(soft)}")
+    return check(name, OK, f"{total} slice(s) in 36h, every slice ok")
+
+
 def db_checks(conn, const: dict) -> list[dict]:
     out, cur = [], conn.cursor()
     today = date.today()
@@ -147,6 +195,19 @@ def db_checks(conn, const: dict) -> list[dict]:
     out.append(check("factorFreshness", OK if (flag is not None and flag <= 4) else WARN,
                      f"newest factor session {d} ({flag} days back)", {"lagDays": flag}))
 
+    # The decision is the site's primary output, so its own freshness is a trading fact and is
+    # measured directly. Before this, the only "cron decision" row in `ChunkRun` was the
+    # intraday fetch mislabelled as the decision lane, so a Yahoo throttle read as the decision
+    # failing while `DecisionLog` was current. lib/health.ts refuses a decision after
+    # DECISIONS_STALE_AFTER_DAYS, and this reads that same number rather than restating it.
+    cur.execute('SELECT max("periodEnd") d FROM "DecisionLog"')
+    d = cur.fetchone()["d"]
+    lag = (today - d).days if d else None
+    limit = int(const.get("DECISIONS_STALE_AFTER_DAYS", 2))
+    out.append(check("decisionFreshness", OK if (lag is not None and lag < limit) else FAIL,
+                     f"newest decision {d} ({lag} days back; lib/health.ts refuses at {limit})",
+                     {"lagDays": lag}))
+
     hours = const.get("NEWS_STALE_AFTER_HOURS", 6)
     cur.execute('SELECT max("publishedAt") t FROM "News"')
     t = cur.fetchone()["t"]
@@ -161,8 +222,18 @@ def db_checks(conn, const: dict) -> list[dict]:
                          f"newest headline {age_h:.1f}h old (lib/health.ts calls the lane stale "
                          f"after {hours}h)"))
 
+    # Only the newest snapshot. `Coverage` is append-only -- `jobs/audit.py` inserts one row per
+    # source every run -- so the earlier query, which kept every row whose status was not `ok`
+    # across the whole table, read history as if it were the present: it listed rows whose own
+    # `status` was `healthy` (because `healthy` is not `ok`) and rows from runs days old, and
+    # reported "8 sources outside" while every price feed was fresh. That is the same class of
+    # bug the freshness check above documents -- a monitoring fault wearing an outage's clothes.
+    # The latest run shares one `computedAt` (Postgres `now()` is the transaction stamp), so
+    # `computedAt = max(computedAt)` is exactly that run's rows, one per watched source.
     cur.execute("""SELECT source, status, round(("gapRatio")::numeric, 2) g FROM "Coverage"
-                   WHERE status <> 'ok' ORDER BY "gapRatio" DESC LIMIT 8""")
+                   WHERE "computedAt" = (SELECT max("computedAt") FROM "Coverage")
+                     AND status <> 'healthy'
+                   ORDER BY "gapRatio" DESC LIMIT 8""")
     bad = cur.fetchall()
     out.append(check("sourceCoverage", OK if not bad else WARN,
                      "every source within its expected interval" if not bad
@@ -172,16 +243,18 @@ def db_checks(conn, const: dict) -> list[dict]:
     # ChunkRun records one row per slice with `status` and `startedAt`; there is no finish
     # timestamp, which is the point -- runlog.py writes the row whether the slice succeeded or
     # not, so a missing row means nothing ran rather than something is still running.
+    #
+    # Trading and product are judged apart. The product-demand lane is the only one that is not
+    # trading (PRODUCT_LANES), so a week of throttled Reddit cannot turn the trading verdict red
+    # while its own rows are still on the page -- separated, never hidden.
     cur.execute("""SELECT job, status, count(*) n, max("startedAt") last FROM "ChunkRun"
                    WHERE "startedAt" > now() - interval '36 hours'
                    GROUP BY job, status ORDER BY job""")
     runs = cur.fetchall()
-    failed = [r for r in runs if r["status"] not in ("ok", "complete", "done")]
-    out.append(check("jobRuns36h", OK if (runs and not failed) else (FAIL if failed else WARN),
-                     f"{sum(r['n'] for r in runs)} slice(s) in 36h"
-                     + ("" if not failed else "; failing: "
-                        + ", ".join(f"{r['job']}:{r['status']}x{r['n']}" for r in failed))
-                     if runs else "no job slices logged in 36 hours"))
+    trading = [r for r in runs if r["job"] not in PRODUCT_LANES]
+    product = [r for r in runs if r["job"] in PRODUCT_LANES]
+    out.append(lane_check("jobRuns36h", trading))
+    out.append(lane_check("productRuns36h", product, trading=False))
 
     cur.execute("""SELECT count(*) n, count("outcomeLabel") done,
                    min("maturesAfter") soonest, count(DISTINCT "modelVersion") mv

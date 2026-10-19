@@ -4,7 +4,16 @@ name: cron decision
 # decision never depends on a 40+ minute monolith job finishing perfectly.
 #
 # It is read-only on prices. It reads the closes the price lanes have already committed and
-# writes the decision rows; it fetches nothing and it issues no DDL.
+# writes the decision rows; it issues no DDL.
+#
+# One fetch remains inside the group: `intraday` refreshes the current session's five-minute
+# bars, which `horizons` reads straight after. It is the exception the ordering rule forces --
+# the bars have to land in the same run that any target range is written from -- and it cannot
+# block the decision output. `intraday.py` returns 0 even when every request is throttled,
+# `jobs/run.py` continues past a failed step, and the decision rows are written by the
+# `decide` job that follows. A Yahoo 429 there costs the session's intraday bars, never the
+# day's decisions, which `DecisionLog` proves: it was current on every day the fetch was
+# blocked. Its own run record is `cron intraday`, not `cron decision` (see jobs/intraday.py).
 #
 # "Fetches nothing" was false between 2026-09 and 2026-10-06 and the lane paid for it. The
 # group carried `upcoming`, which calls yfinance once per Yahoo-sourced name with a forced

@@ -1,5 +1,48 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (forty-second), **the trading-health `cron decision:blocked` was a mislabelled intraday fetch and an append-only coverage table read as the present; the audit is now green on trading, with the remaining warnings named**
+**Branch `main`.** No dependency added, no schema change. Files: `tools/daily_audit.py`,
+`jobs/intraday.py`, `.github/workflows/cron-daily-audit.yml`, `.github/workflows/cron-decision.yml`,
+`tests/test_daily_audit.py`.
+
+### Diagnosis (measured read-only against the primary, 2026-10-19)
+- **`cron decision:blocked` was not the decision lane.** `jobs/intraday.py` wrapped its run as
+  `lane_run(job="cron decision", ...)`, so the *only* `cron decision` row in `ChunkRun` was a Yahoo
+  intraday fetch. The blocked row: `query1.finance.yahoo.com x31`, 0 rows, `cron decision`,
+  `2026-10-19 00:26 UTC`. `DecisionLog` was **newest `2026-10-19`, 4,992 rows** — the decision was
+  written every day the fetch was throttled.
+- **`sourceCoverage` read history as the present.** `Coverage` is append-only (one row per source
+  per `jobs/audit.py` run); the check kept `status <> 'ok'` across the whole table, which includes
+  rows whose own status is `healthy` and rows from runs days old. The latest snapshot
+  (`computedAt = max`) has **2** outside: `Reddit product mentions` (stale, product) and
+  `Google News RSS` (partial). Every price/market source is healthy.
+
+### What changed
+- `jobs/intraday.py`: run record relabelled `cron intraday`.
+- `tools/daily_audit.py`: `sourceCoverage` reads the latest `computedAt` snapshot and only
+  non-`healthy` rows; `jobRuns36h` split into trading vs product (`PRODUCT_LANES`) with
+  `failed`/`empty` → FAIL for trading and `partial`/`skipped`/`blocked` → WARN; new
+  `productRuns36h` (WARN, named, never fails trading); new `decisionFreshness` reading
+  `DecisionLog."periodEnd"` at `DECISIONS_STALE_AFTER_DAYS` (imported from `lib/health.ts`).
+- `cron-daily-audit.yml` + `cron-decision.yml` docstrings corrected.
+- `tests/test_daily_audit.py`: +15 tests (lane severity/split, coverage latest-snapshot query,
+  decision freshness, the intraday label).
+
+### Evidence
+- `python tools/daily_audit.py`: **`ok 18  warn 5  fail 0  ->  healthy: True`** (exit 0). Warnings,
+  all true: `sourceCoverage` (Reddit, news), `jobRuns36h` (`cron intraday:blocked`),
+  `productRuns36h` (`cron products:empty`), `databaseSize` (483.9 MB / 500 MB, 96.8%),
+  `restoreRehearsalCurrent` (one migration since the last rehearsal). No threshold was moved.
+- Python suite **1296 OK** (1281 → 1296). `tsc`/`eslint`/`test:web` unaffected by these files.
+
+### Still open (unchanged from checkpoint 41)
+- No scheduled producer for the shadow stream; the bounded 2/market/session lane is not yet built.
+- Vercel production URL not smoke-tested from here; the third database (`pooled.db.prisma.io`) is
+  unreachable (`account has restrictions`) so no parity claim for it.
+- **`cron decision:blocked` rows written before this change keep their old label** for up to 36h
+  (the label is fixed going forward, history is immutable and honest).
+- Primary headroom ~16.9 MB; candidates remain unapproved; no outcome has matured.
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (forty-first), **shadow evidence now survives failover, each market is inferred on its own trading session under its own candidate, and the served candidate count is correct**
 **Branch `main`.** No dependency added, nothing installed, no schema change. Commits: `5ffa267`
 (mirror/reconcile carry shadow evidence by identity), `3850269` (the concurrent pass: reconcile

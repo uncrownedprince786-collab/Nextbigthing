@@ -6686,4 +6686,49 @@ reads rows that already exist:
       that grows with the square of the evidence. It is one `Map` built once now. **A reader that
       gets slower every day it is kept is a reader that will one day be turned off.**
 
+181. **The trading-health failure was a monitor reading its own history, and a fetch named after the lane that called it.** 2026-10-19.
+    Commit: `tools/daily_audit.py` + `jobs/intraday.py` + `cron-daily-audit.yml` + `cron-decision.yml`.
+
+    - **`cron decision:blocked` was the intraday fetch, mislabelled.** `jobs/intraday.py` wrapped
+      its run in `lane_run(job="cron decision", ...)`, so the only `cron decision` row in
+      `ChunkRun` was a Yahoo intraday fetch — and a 31-request throttle (`query1.finance.yahoo.com
+      x31`, 0 rows) on 2026-10-19 read as the decision lane failing. `DecisionLog` was newest
+      **2026-10-19, 4,992 rows**: the decision was written every day the fetch was blocked. The
+      record now says `cron intraday`, its own lane. **A run row named after the workflow that
+      happens to call it is a false attribution waiting for a bad night, and a provider 429 is a
+      fact about the provider, never about the output that did not depend on it.**
+
+    - **`sourceCoverage` read an append-only table as if it were the present.** `Coverage` gets one
+      row per source per `jobs/audit.py` run; the check filtered `status <> 'ok'` across the whole
+      table. That kept rows whose own `status` was `healthy` (since `healthy` is not `ok`) and rows
+      from runs days old, and reported "8 sources outside" while every price feed was fresh. The
+      latest run shares one `computedAt` (Postgres `now()` is the transaction stamp), so
+      `computedAt = max(computedAt)` is exactly that run's snapshot: measured, **2** sources outside
+      — `Reddit product mentions` (stale, product) and `Google News RSS` (partial). **A monitor that
+      cannot tell a historical row from a current one reports history as an outage.**
+
+    - **One status vocabulary, split by severity and by lane, with nothing hidden.** `ChunkRun`
+      statuses read as `failed`/`empty` (asked and got nothing, or errored) → a trading-lane
+      **fail**; `partial`/`skipped`/`blocked` → a **warn** (runlog calls the first two ordinary or
+      judgement-free, and a block is retried later). The non-trading product lane is the only one
+      not in `PRODUCT_LANES`, and it gets its **own** `productRuns36h` check that warns and names
+      every unhappy slice — separated from the trading verdict, never dropped. **Gating product
+      health out of the trading verdict is not masking it as long as it is still on the page with a
+      name.**
+
+    - **The decision is measured by its own rows.** With the mislabel gone there was no direct
+      check on the site's primary output, so `decisionFreshness` was added: it reads the newest
+      `DecisionLog."periodEnd"` and refuses at `DECISIONS_STALE_AFTER_DAYS`, the same number
+      `lib/health.ts` uses — imported from the TypeScript, not restated. It is **0 days** old.
+      **A verdict about the decision lane should read the decisions, not a fetch that runs beside
+      them.**
+
+    - **The audit is green because the system is healthy, and the warnings that remain are true.**
+      `fail 0`, `healthy: true` (18 ok, 5 warn): `sourceCoverage` (Reddit, news), `jobRuns36h`
+      (`cron intraday:blocked`, the throttle), `productRuns36h` (`cron products:empty`),
+      `databaseSize` (483.9 MB / 500 MB, 96.8%) and `restoreRehearsalCurrent` (one migration since
+      the last rehearsal). No threshold was moved to get here; two checks stopped reading history
+      and a fetch stopped borrowing the decision's name. **The red was honest and so is the green:
+      what changed is that the checks now ask the right question, not that the bar was lowered.**
+
 
