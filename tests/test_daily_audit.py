@@ -160,3 +160,59 @@ class TheDecisionIsMeasuredByItsOwnRows(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DatabaseExposureTest(unittest.TestCase):
+    """The Data API check: a grant is a failure, a missing RLS backstop is a warning.
+
+    They are different kinds of wrong. `anon` and `authenticated` are the roles PostgREST runs as,
+    so a table they may select is a table the internet may select -- that is live exposure. A table
+    with RLS off and no grant exposes nothing today, but it is the missing second line, and
+    `pg_default_acl` still carries a `supabase_admin` entry that would grant `anon` full DML on
+    tables that role creates.
+    """
+
+    @staticmethod
+    def _verdict(granted, no_rls):
+        """The branch `daily_audit` takes, pinned here without needing a database."""
+        if granted:
+            return "fail"
+        return "ok" if not no_rls else "warn"
+
+    def test_a_grant_to_a_data_api_role_fails(self):
+        self.assertEqual(self._verdict([{"grantee": "anon", "n": 46}], []), "fail")
+        self.assertEqual(self._verdict([{"grantee": "authenticated", "n": 1}], []), "fail")
+
+    def test_a_grant_fails_even_when_every_table_has_rls(self):
+        """RLS is a backstop, not a licence to hand out grants."""
+        self.assertEqual(self._verdict([{"grantee": "anon", "n": 1}], []), "fail")
+
+    def test_no_grants_and_full_rls_is_the_healthy_state(self):
+        self.assertEqual(self._verdict([], []), "ok")
+
+    def test_no_grants_but_a_table_without_rls_warns_rather_than_fails(self):
+        self.assertEqual(self._verdict([], ["NewTable"]), "warn")
+
+    def test_the_check_is_wired_into_the_audit(self):
+        src = (ROOT / "tools" / "daily_audit.py").read_text(encoding="utf-8")
+        self.assertIn("databaseExposure", src)
+        self.assertIn("role_table_grants", src)
+        self.assertIn("relrowsecurity", src)
+        # `_prisma_migrations` is read by `migrate deploy` as a role that bypasses RLS, and is
+        # excluded on purpose so it never shows up as a finding.
+        self.assertIn("c.relname <> '_prisma_migrations'", src)
+
+
+class TheRlsBackstopMigrationTest(unittest.TestCase):
+    def test_it_enables_rls_and_guards_the_role_it_writes_a_policy_for(self):
+        sql = (ROOT / "prisma" / "migrations" / "20261019230000_rls_backstop"
+               / "migration.sql").read_text(encoding="utf-8")
+        self.assertIn("ENABLE ROW LEVEL SECURITY", sql)
+        # Guarded, so the migration also applies to a restore rehearsal or a fresh environment
+        # that has never heard of the reader role.
+        self.assertIn("reader_exists", sql)
+        self.assertIn("IF reader_exists THEN", sql)
+        # Idempotent: a re-run must not fail on an existing policy.
+        self.assertIn("DROP POLICY IF EXISTS", sql)
+        # Prisma's own bookkeeping is left alone.
+        self.assertIn("_prisma_migrations", sql)

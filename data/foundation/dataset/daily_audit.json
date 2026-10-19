@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-19T20:58:29+00:00",
+ "generatedAt": "2026-10-19T23:31:24+00:00",
  "version": "daily-audit-v1",
  "staleRulesReadFrom": "lib/health.ts + lib/decision.ts",
  "staleRules": {
@@ -8,7 +8,7 @@
   "QUOTES_STALE_AFTER_MINUTES": 60.0
  },
  "summary": {
-  "ok": 28,
+  "ok": 29,
   "warn": 5,
   "fail": 0,
   "unknown": 0
@@ -192,10 +192,11 @@
   {
    "check": "restoreRehearsalCurrent",
    "status": "warn",
-   "detail": "verified at schema 20261017150000_eventimpact_reindex; 1 migration(s) applied since",
+   "detail": "verified at schema 20261017150000_eventimpact_reindex; 2 migration(s) applied since",
    "extra": {
     "behind": [
-     "20261019120000_shadow_outcome"
+     "20261019120000_shadow_outcome",
+     "20261019230000_rls_backstop"
     ],
     "rows": "restore: VERIFIED: 44 tables, 1,335,379 rows, content digests equal"
    }
@@ -233,7 +234,7 @@
   {
    "check": "newsFreshness",
    "status": "ok",
-   "detail": "newest headline 2.0h old (lib/health.ts calls the lane stale after 6.0h)",
+   "detail": "newest headline 4.5h old (lib/health.ts calls the lane stale after 6.0h)",
    "extra": null
   },
   {
@@ -270,17 +271,27 @@
    "extra": null
   },
   {
+   "check": "databaseExposure",
+   "status": "ok",
+   "detail": "no anon/authenticated grants; 0 table(s) without RLS",
+   "extra": {
+    "granted": [],
+    "tablesWithoutRLS": 0,
+    "withoutRLS": []
+   }
+  },
+  {
    "check": "migrationsApplied",
    "status": "ok",
-   "detail": "37 applied; 0 pending",
+   "detail": "38 applied; 0 pending",
    "extra": null
   },
   {
    "check": "databaseSize",
    "status": "warn",
-   "detail": "483.6 MB of a 500 MB free tier (96.7%)",
+   "detail": "484.0 MB of a 500 MB free tier (96.8%)",
    "extra": {
-    "mb": "483.6"
+    "mb": "484.0"
    }
   }
  ]

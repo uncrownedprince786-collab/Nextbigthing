@@ -288,6 +288,38 @@ def db_checks(conn, const: dict) -> list[dict]:
     out.append(check("noApprovedShadowRecords", OK if approved == 0 else FAIL,
                      f"{approved} shadow record(s) marked approved"))
 
+    # What the Data API could reach, measured rather than assumed.
+    #
+    # Two facts, and the check fails on the first and warns on the second, because they are
+    # different kinds of wrong. A **grant** to `anon` or `authenticated` is live exposure: those are
+    # the roles PostgREST runs as, so a row they may select is a row the internet may select. A
+    # table with **RLS off** is not exposure on its own -- with no grant there is nothing to select
+    # -- but it is the missing second line, and `pg_default_acl` still carries a `supabase_admin`
+    # entry that would grant `anon` full DML on tables that role creates. One mistake should not be
+    # enough, so the day a table appears without RLS is a day worth hearing about.
+    cur.execute("""SELECT grantee, count(DISTINCT table_name) n
+                   FROM information_schema.role_table_grants
+                   WHERE table_schema = 'public' AND grantee IN ('anon', 'authenticated', 'PUBLIC')
+                   GROUP BY grantee ORDER BY grantee""")
+    granted = cur.fetchall()
+    cur.execute("""SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+                   WHERE n.nspname = 'public' AND c.relkind = 'r'
+                     AND c.relname <> '_prisma_migrations' AND NOT c.relrowsecurity
+                   ORDER BY c.relname""")
+    no_rls = [r["relname"] for r in cur.fetchall()]
+    if granted:
+        detail = "; ".join(f"{g['grantee']} can reach {g['n']} table(s)" for g in granted)
+        out.append(check("databaseExposure", FAIL,
+                         f"the Data API roles hold table grants: {detail}",
+                         {"granted": [dict(g) for g in granted], "tablesWithoutRLS": len(no_rls)}))
+    else:
+        named = ", ".join(no_rls[:4]) + ("..." if len(no_rls) > 4 else "")
+        out.append(check("databaseExposure", OK if not no_rls else WARN,
+                         (f"no anon/authenticated grants; {len(no_rls)} table(s) without RLS"
+                          + (f": {named}" if no_rls else "")),
+                         {"granted": [], "tablesWithoutRLS": len(no_rls),
+                          "withoutRLS": no_rls[:20]}))
+
     applied = set()
     cur.execute("SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL")
     applied = {r["migration_name"] for r in cur.fetchall()}
