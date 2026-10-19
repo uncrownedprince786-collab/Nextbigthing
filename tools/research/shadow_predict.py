@@ -515,7 +515,10 @@ def write_rows(records: list[dict], max_per_market_session: int = 0) -> dict:
             if max_per_market_session > 0:
                 session_counts[key] += inserted
         conn.commit()
-        return {"written": n, "status": "ok", "skippedByCap": skipped_by_cap}
+        result = {"written": n, "status": "ok"}
+        if max_per_market_session > 0:
+            result["skippedByCap"] = skipped_by_cap
+        return result
     except Exception as e:                                    # noqa: BLE001
         return {"written": 0, "status": "failed", "reason": f"{type(e).__name__}: {e}"}
 

@@ -44,6 +44,7 @@ jobs:
         id: capacity
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
           python - <<'PY'
           import os
@@ -68,6 +69,7 @@ jobs:
         if: ${{ steps.capacity.outputs.allow_write == 'true' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
           python tools/research/shadow_predict.py \
             --live --per-market-models --per-market 2 --max-per-market-session 2 \
@@ -79,6 +81,7 @@ jobs:
         if: ${{ steps.capacity.outputs.allow_write != 'true' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
           python tools/research/shadow_predict.py \
             --live --per-market-models --per-market 2 --max-per-market-session 2 \
