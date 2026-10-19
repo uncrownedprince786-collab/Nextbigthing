@@ -64,7 +64,7 @@ def maxima(conn) -> dict:
         decided = cur.fetchone()["decided"]
         # Old/mid-migration databases may not have the shadow tables yet. Their absence is
         # represented as None here; mirror.copy_table also skips absent tables safely.
-        cur.execute("SELECT to_regclass('ShadowPrediction') AS predictions, to_regclass('ShadowOutcome') AS outcomes")
+        cur.execute("SELECT to_regclass('\"ShadowPrediction\"') AS predictions, to_regclass('\"ShadowOutcome\"') AS outcomes")
         present = cur.fetchone()
         shadow_prediction = shadow_outcome = None
         if present["predictions"] is not None:
