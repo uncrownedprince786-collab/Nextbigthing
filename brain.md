@@ -6481,3 +6481,40 @@ reads rows that already exist:
       future to succeed is not a test of the present; it is a schedule, and the schedule says
       ~2026-11-13.**
 
+174. **A column that holds only three of five markets can classify all five wrongly and still look
+    complete; a heuristic that decides what a thing *is* belongs in a pure function with tests.**
+    2026-10-19.
+    Commit: `67edae6`. Web lane 500 → 507 (`tests/marketOverview.test.ts` new). tsc and eslint clean.
+
+    - **`Industry.market` is US/PK/FX, and the explorer read it as if it were the whole vocabulary.**
+      Crypto coins and commodity futures hang off *US-flagged* industries (the `crypto` industry, the
+      US energy/metal groups), so 357 instruments were counted and rendered as US — the exact
+      mislabelling the five-market split exists to prevent. The fix is not a sixth `market` value on
+      the industry; it is to let the **instrument** decide, by the rule the rest of the site already
+      uses. **When a source column enumerates a subset of what the reader believes it enumerates, the
+      missing values do not error — they silently join the default.** The 8 futures under "Energy
+      Commodities" and the 76 coins under "Crypto" had been US for as long as the page existed, and
+      nothing about the page looked wrong.
+
+    - **The decision moved out of the query and into a pure function, because a heuristic mixed into
+      SQL cannot be tested without a database.** `reduceMarketOverview(groups)` takes plain grouped
+      rows and returns the five markets; `getMarketOverview` only reads the database and hands it the
+      four groups. The bucketing is now checked under `node --test` with no DB, no server, no
+      network — the instrument decides, an unclassifiable row is dropped rather than defaulted to US,
+      and `PSX` is asserted to be the same market as `PK` and not a second one. **A rule that can
+      only be exercised against production is a rule that will only be exercised in production.**
+
+    - **Filing an industry under "the market most of its instruments trade in" needed the industry's
+      own `market`, not the instrument's.** A stock row's market cannot be inferred from `assetType`
+      alone — `stock` is shared by US and PK — so the first cut guessed `US` and filed every PSX
+      industry under the US. Carrying `i.market` into the composition group fixed it: a PSX bank
+      reads under PK. **The first version of a fallback is a default, and a default is where the
+      cases you did not think about go to hide.**
+
+    - **Capability and freshness are different facts and the page now shows them apart.** "Newest
+      close 2026-10-16" is what the store has; "this market has no market-specific model and its
+      swing outcome is judgeable on the shared label rule" is what can honestly be said. They come
+      from two contracts (`getMarketOverview` and `marketCapability`), go through two functions, and
+      are rendered as two blocks. Merging them is how a fresh price comes to look like a working
+      model. **A date and a model are not the same kind of claim, and the layout should say so.**
+
