@@ -650,7 +650,14 @@ def main() -> int:
             for r in writable:
                 r["runId"] = run_id
                 r["commit"] = commit
-            payload["write"] = write_rows(writable, max_per_market_session=a.max_per_market_session)
+            if not writable:
+                payload["write"] = {
+                    "written": 0, "status": "refused",
+                    "reason": "all candidate rows were refused by critical-input/session gates",
+                }
+            else:
+                payload["write"] = write_rows(
+                    writable, max_per_market_session=a.max_per_market_session)
             payload["runId"] = run_id
             payload["commit"] = commit
         print(f"write: {payload['write']}")
@@ -663,6 +670,9 @@ def main() -> int:
     print(f"  most-imputed row: {worst['symbol']} {worst['imputedCount']} of "
           f"{len(model['features'])} features imputed, quality {worst['quality']}")
     print(f"wrote {a.out}")
+    if a.write and payload.get("write", {}).get("status") != "ok":
+        print("shadow write did not complete successfully; see write status above", file=sys.stderr)
+        return 1
     return 0
 
 

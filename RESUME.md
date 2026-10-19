@@ -1,12 +1,12 @@
 # Resume here
 
-## 0. SESSION CHECKPOINT - 2026-10-19 (bounded shadow canary CI regressions fixed; rerun pending)
+## 0. SESSION CHECKPOINT - 2026-10-19 (bounded shadow canary CI regressions fixed; CI rerun passed; final write-failure signal added)
 
 **Branch:** `fix/scheduled-shadow-canary-current`, based on current main at `be94d831efef61d79fa959d0fef4b8cf46c43bc1`. Adds a daily `cron shadow canary` plus a successful-decision event trigger, separate concurrency, a read-only primary-size gate, and a database-backed cap of two prediction rows per market/session across retries. It uses existing per-market candidate artifacts and the existing live feature/context builder. It writes only `ShadowPrediction`; existing scorer and mirror are untouched. It does not approve candidates or alter the production signal path.
 
 **Safety:** the workflow preserves a 10 MB reserve below the configured 500 MB primary tier. If the capacity check cannot connect, the workflow fails visibly. If the reserve is reached, it runs inference dry-only and uploads diagnostics. Missing per-market artifacts or invalid/stale sessions follow existing predictor rules. The writer enforces the cap against existing rows so retries cannot exceed it.
 
-**CI finding and fix:** first PR check found the workflow-name watchdog guard, the lane writer environment contract, and two legacy writer-result shape assertions. The watchdog now observes the canary event, the workflow carries the expected standby connection environment without writing to it, and the uncapped writer keeps its prior result shape. A rerun is pending. No live database run has occurred; primary size is not claimed. Live Vercel smoke tests remain unverified because this execution environment cannot resolve the host. Candidate promotion remains NO-GO pending mature outcomes.
+**CI finding and fix:** first PR check found the workflow-name watchdog guard, the lane writer environment contract, and two legacy writer-result shape assertions. The watchdog now observes the canary event, the workflow carries the expected standby connection environment without writing to it, and the uncapped writer keeps its prior result shape. The CI rerun passed (1,297 Python tests, frontend types/lint). The final write-failure exit signal is a follow-up commit and requires one more CI pass. No live database run has occurred; primary size is not claimed. Live Vercel smoke tests remain unverified because this execution environment cannot resolve the host. Candidate promotion remains NO-GO pending mature outcomes.
 
 **Exact next action:** run focused shadow prediction tests and workflow guards in CI, then dispatch the canary once to verify the real capacity gate, inference and persisted-row cap before relying on the daily schedule.
 
