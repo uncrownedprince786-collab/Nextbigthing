@@ -10021,6 +10021,39 @@ class WritesFailOverAndComeBack(unittest.TestCase):
         self.assertFalse(reconcile.ahead({**same, "shadow": shadow},
                                          {**same, "shadow": None}))
 
+    def test_a_new_outcome_is_detected_even_when_its_prediction_is_old(self):
+        """The prediction can predate an outage; its later outcome is still a new write."""
+        sys.path.insert(0, str(ROOT / "jobs"))
+        import reconcile
+        from datetime import date, datetime
+        from unittest.mock import patch
+
+        class Cursor:
+            def __init__(self):
+                self.query = ""
+            def execute(self, query):
+                self.query = query
+            def fetchone(self):
+                if "PriceSnapshot" in self.query:
+                    return {"price": date(2026, 10, 16)}
+                return {"decided": datetime(2026, 10, 16, 22, 0)}
+
+        class Connection:
+            def cursor(self):
+                return Cursor()
+
+        prediction_created = datetime(2026, 10, 1, 9, 0)
+        outcome_created = datetime(2026, 10, 19, 9, 0)
+        with patch.object(reconcile, "max_created_at",
+                          side_effect=[prediction_created, outcome_created]):
+            latest = reconcile.maxima(Connection())
+        self.assertEqual(latest["shadow"], outcome_created)
+        primary = {"price": date(2026, 10, 16),
+                   "decided": datetime(2026, 10, 16, 22, 0),
+                   "shadow": prediction_created}
+        standby = {**primary, "shadow": latest["shadow"]}
+        self.assertTrue(reconcile.ahead(primary, standby))
+
     def test_every_lane_step_that_writes_can_reach_the_standby_and_the_mirror_copies_back_first(self):
         import yaml
 
