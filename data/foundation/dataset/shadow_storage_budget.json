@@ -1,0 +1,55 @@
+{
+ "generatedAt": "2026-10-19T00:00:00+00:00",
+ "producedBy": "measured on the primary with pg_database_size/pg_total_relation_size during checkpoint 39 (P4)",
+ "status": "measurement and recording policy; not a schema change and not an approval",
+ "database": {
+  "sizeMB": 483.1,
+  "freeTierLimitMB": 500,
+  "headroomMB": 16.9,
+  "note": "re-measured after the canary write; the checkpoint-38 reading was 473 MB / 27 MB, so the store grew ~10 MB on ongoing cron (PriceSnapshot/IntradayBar), not on the shadow rows."
+ },
+ "topTablesMB": {
+  "PriceSnapshot": 287.4,
+  "IntradayBar": 67.7,
+  "News": 21.5,
+  "EventImpact": 12.0,
+  "AssetSetup": 10.6,
+  "SetupTarget": 10.4,
+  "SignalLog": 7.0,
+  "AssetAnalog": 6.7,
+  "DecisionCall": 6.2,
+  "NewsLineage": 5.9,
+  "MoveAttribution": 5.8,
+  "HumanSignal": 4.2
+ },
+ "shadowTables": {
+  "ShadowPrediction": {"rows": 581, "totalKB": 656.0, "bytesPerRow": 1156},
+  "ShadowOutcome": {"rows": 0, "totalKB": 40.0, "bytesPerRow": null}
+ },
+ "storageCost": {
+  "perPredictionBytes": 1156,
+  "note": "includes the JSON columns features, sources and contextStatus, which is most of the row.",
+  "perOutcomeBytes": "unknown until a row exists; expected to be smaller (no feature vector), estimated under 400 bytes"
+ },
+ "growthEstimate": {
+  "fullUniverseDaily": {"rowsPerDay": 618, "MBPerDay": 0.68, "MBPerMonth": 20.7},
+  "withOutcomes": {"assumption": "an outcome of similar order to its prediction once matured",
+                   "MBPerDayUpperBound": 1.4},
+  "headroomAtFullUniverse": "~12 days of predictions alone before the 500 MB cap is met"
+ },
+ "boundedRecordingPolicy": {
+  "rule": "do not record the whole universe daily while headroom is under 25 MB",
+  "canary": "at most 2 rows per market per session (5 markets -> 10 rows, ~11.6 KB, ~0.35 MB/month)",
+  "why": "the measurement path needs a small, balanced, prospective stream it can score; it does not need every asset to prove the path works, and a full-universe stream would exhaust the free tier in about two weeks.",
+  "reclaiming": "the 16.9 MB cannot be recovered from the shadow tables (they are kilobytes); it would have to come from the large historical tables (PriceSnapshot 287 MB, IntradayBar 68 MB), which are immutable evidence and must not be deleted to make room. This is a plan/quota matter and is recorded as a blocker, not solved in code.",
+  "evidence": "the ten canary rows of runId canary-v4-markets consumed no measurable space (the whole table is 656 KB); the concern is the cadence, not the canary."
+ },
+ "predictionIdentity": {
+  "key": ["modelVersion", "modelSha256", "strategy", "timeframe", "assetId", "asOf", "horizonSessions"],
+  "canonicalUnit": "one prediction per asset, model, strategy, timeframe and horizon per session",
+  "retryIsIdempotent": "proven: re-running the canary's write reported written 0",
+  "distinctEventsSameDay": "distinguished only when strategy, timeframe or horizon differ",
+  "knownLimit": "asOf is a date, not a timestamp; a second call of the SAME strategy on the same session is the SAME event and is not recorded twice. If multiple intraday calls per session are ever needed, asOf must gain a time component or a slot key -- a bare date would collapse them into one.",
+  "schedulingGap": "the newest AssetFactor session is one calendar day for all markets, so a market closed that day (US/PK/FX/Commodity on the 2026-10-18 Sunday session) is given a non-trading session. The reference close fallback (last close at or before the session) makes the row scorable, but the live path should later choose each market's own newest trading session; recorded as an open item."
+ }
+}

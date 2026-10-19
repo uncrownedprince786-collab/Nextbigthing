@@ -1,5 +1,92 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (fortieth), **five per-market candidates were trained and are honest NO-GOs (only thin Commodity passes), a balanced canary recorded ten rows under their own artifacts, and headroom is down to 17 MB**
+**Branch `main`.** No dependency added, nothing installed, no schema change. Commits: `67edae6`
+(P1 web), `8abc12f` (P1 asset page), `19abed4` (P2 per-market models), `f854654` (P3 tooling),
+`8d52577` (P3 canary + base-price fix). All pushed; CI `tests` success on each (last run
+`39184377234`), no `schema` run (no `prisma/**` change). Local suite **1269 OK** (was 1251; **18
+new** across `tests/marketOverview.test.ts`, `tests/test_market_models.py` and additions to
+`tests/test_shadow_predict.py`), `compileall`/`tsc`/`eslint` clean.
+
+### Priority 1 - the frontend renders the real five-market data (was checkpoint 39)
+
+The market explorer grouped by `Industry.market`, which holds only US/PK/FX, so the 76 coins and the
+commodity futures rendered as US. The instrument now decides its market (`lib/decisionInput.marketOf`)
+and the bucketing is a pure, tested function (`lib/marketOverview.reduceMarketOverview`). Verified
+read-only on the primary: US 281 / PK 226 / FX 27 / Commodity 8 / Crypto 76; predictions US 351 /
+PK 219 / Crypto 1. The asset page states each market's capability (inputs / judgeable outcome / no
+market-specific model) as separate facts.
+
+### Priority 2 - one candidate per market, trained and evaluated, not one model relabelled (`19abed4`)
+
+`tools/research/train_v4_markets.py` generalises `brain-v3-crypto`: same 44 features, label, split,
+embargo, seed, steps, learning rate, L2 and imputation as `brain-v2-context`; the only thing that
+changes is the training population. Each market wrote its own artifact + manifest under
+`data/foundation/brain/brain-v4-<market>` with a sha256 over the model bytes and `marketSpecific`
+still false in the capability contract (the deployed path is unchanged). Every artifact re-loads in
+a fresh reader and reproduces the fitted labels (**parity 1.0000**).
+
+| market | train rows | accuracy | holdout majority | price-only | verdict | predicted mix |
+|---|---|---|---|---|---|---|
+| US | 515,683 | 0.4329 | 0.4336 | 0.4303 | NO-GO | UP 49,439 / DOWN 219 |
+| PK | 378,331 | 0.3631 | 0.5064 | 0.4707 | NO-GO | UP 36,768 / DOWN 1,357 |
+| FX | 52,840 | 0.7275 | 0.7289 | 0.7289 | NO-GO | FLAT 4,984 of 4,995 |
+| Commodity | 15,123 | 0.4438 | 0.4410 | 0.4417 | GO (thin) | UP 992 / DOWN 431 |
+| Crypto | 93,452 | 0.4736 | 0.4723 | 0.4720 | NO-GO | DOWN 18,644 / UP 575 |
+
+US, PK and Crypto collapse onto one class; FX scores by reading the true FLAT majority; only
+Commodity clears its checks and it is **8 symbols / ~756 independent windows**, which the manifest
+records as a thin-population limitation. **No candidate is promoted and none is
+`productionApproved`.** The acceptance checks were written with the trainer in the same run, so a
+pass is diagnostic, not pre-registered.
+
+### Priority 3 - a balanced canary under each market's own artifact (`f854654`, `8d52577`)
+
+`shadow_predict.py` gained `--market`/`--per-market` and `market_for_row`, so a call is recorded
+under the model built for its own market and a canary is balanced rather than alphabetical. Ten rows
+were written, `runId canary-v4-markets`, `commit f854654`, session **2026-10-18**, **2 rows per
+market**, all `quality ok`, features populated, `maturesAfter` per each market's own calendar (US/PK/
+FX/Commodity 2026-11-13, Crypto 2026-11-07). The canary exposed a real defect: the reference close
+was looked up with `date = periodEnd`, and on a Sunday session (when US/PK/FX/Commodity did not
+trade) that is NULL, so `referencePrice` stored NULL. Fixed to the **last close at or before the
+session**, and a live call with no base at all is now **refused** rather than written. The ten rows
+keep their NULL `referencePrice` (a prediction is not edited, and a re-run writes 0 - idempotency
+proven), and the scorer still measures them because it re-derives the base.
+
+Scorecard (`--as-of 2026-10-19`, dry and `--write`): **581 rows, awaiting 581, matured 0, graded 0,
+accuracy `null`**, `ShadowOutcome` **0**; `--write` returned `nothing-matured`. By market US 353 /
+PK 221 / Crypto 3 / Commodity 2 / FX 2.
+
+### Priority 4 - headroom, cost and a bounded recording policy
+
+`data/foundation/dataset/shadow_storage_budget.json`. Database **483.1 MB / 500 MB → 16.9 MB
+headroom** (checkpoint 38: 473 / 27; the ~10 MB growth is ongoing cron in `PriceSnapshot` 287 MB and
+`IntradayBar` 68 MB, not the shadow rows). A `ShadowPrediction` row is **~1,156 bytes**, so
+recording the whole 618-asset universe daily is **~0.68 MB/day (~21 MB/month)** and would meet the
+cap in about two weeks. Policy recorded: while headroom is under 25 MB, record a bounded canary
+(≤2 rows per market per session, ~0.35 MB/month), not the universe. The 17 MB cannot be reclaimed
+from the shadow tables; it would have to come from the large **immutable** historical tables, which
+must not be deleted to make room - recorded as a **blocker**, not solved in code. Identity review:
+one canonical prediction per asset/model/strategy/timeframe/horizon/**session**; retries proven
+idempotent; `asOf` is a date, so a second call of the same strategy on the same session is the same
+event and is not recorded twice (a real limit, with the exact column named).
+
+### Environment note (this stretch)
+
+The Prisma primary intermittently refused connections (`planLimitReached` / `EMAXCONNSESSION`)
+and reads fell back to the Neon standby (different size, older `AssetFactor` session). It was
+reachable again for the canary write. With **~17 MB headroom** and the primary flapping, no
+write-heavy job should run until the quota is resolved.
+
+### Still owed
+
+1. **Prospective maturation** (~2026-11-12/13): run `shadow_score.py --write`, read the per-market
+   scorecard, and only then is any accuracy figure real.
+2. **Each market's own newest trading session** rather than one calendar day for all (the Sunday
+   session above); the reference-close fallback covers the base, but the session choice is still
+   global.
+3. **`boost-v1`** non-linear question (still `verdict: null`; do not rerun unchanged).
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (thirty-ninth), **the market explorer files crypto and commodities where they actually trade, and the bucketing is now a pure function with its own tests**
 **Branch `main`.** No dependency added, nothing installed, no production write, no schema change.
 `tsc --noEmit` and `eslint` clean on the changed TS. The web lane (`node --test tests/*.test.ts`)

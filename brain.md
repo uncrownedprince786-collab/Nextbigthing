@@ -6518,3 +6518,82 @@ reads rows that already exist:
       are rendered as two blocks. Merging them is how a fresh price comes to look like a working
       model. **A date and a model are not the same kind of claim, and the layout should say so.**
 
+175. **Five models were trained instead of one relabelled, and four of them failed honestly. The
+    measured collapse is the result, not a reason to stop.** 2026-10-19.
+    Commit: `19abed4`. Five artifacts under `data/foundation/brain/brain-v4-<market>` plus
+    `brain_v4_markets.json`; suite 1251 → 1263; fresh-reader parity 1.0000 on all five.
+
+    - **The only thing that changed between markets is the training population.** Features, label,
+      split, embargo, seed, steps, learning rate, L2 and imputation are imported from
+      `brain-v2-context`; each market is a bucket by the instrument's own market. A "market-specific
+      model" that quietly changes the recipe is not one model per market, it is five experiments
+      wearing one name. **Holding the recipe fixed is what lets a difference between the markets be
+      read as the markets and not the code.**
+
+    - **Four of the five are NO-GO, and the numbers say why rather than that they are bad.** US
+      (0.4329 vs majority 0.4336) and PK (0.3631 vs 0.5064) and Crypto (0.4736 vs 0.4723) collapse
+      onto a single class; FX (0.7275 vs 0.7289) scores by reading the true FLAT majority; only
+      Commodity clears its checks (0.4438 vs 0.4410, price-only 0.4417). **A class-collapsed model
+      can be within a point of the majority and still be telling you it learned the base rate and
+      nothing else.** None was promoted and none is `productionApproved`.
+
+    - **The one pass is the one that should be trusted least.** Commodity clears every check on **8
+      symbols / ~756 independent windows**; the manifest carries that as a limitation and the
+      verdict is recorded as thin, not as a triumph. **The market that passes on the fewest
+      independent observations is the one most likely to be passing on noise, and the honest reading
+      is the sample size, not the verdict.**
+
+    - **The checks and the numbers came out of the same run, so they are diagnostic, not
+      pre-registered.** `criteriaPreRegisteredBeforeRun: False` is written into every manifest with
+      the note, because a criterion written after seeing the score is a description of the score.
+      The holdout `2026-01-01..2026-09-25` was already looked at while building v3 and is called
+      diagnostic here, never pristine. **A pass with no prior registration buys the right to try
+      again on data not yet seen, and nothing more.**
+
+176. **A prediction stored with no base price is a call that can never be scored, and the case that
+    exposes it is the session a market did not trade.** 2026-10-19.
+    Commit: `8d52577` (fix + canary; prep in `f854654`). Suite 1266 → 1269.
+
+    - **The canary's newest factor session was a Sunday.** Crypto trades; US/PK/FX/Commodity do not.
+      The reference close was looked up with `date = periodEnd`, which on that session is NULL, so
+      ten rows were written with `referencePrice` NULL. A dry run cannot see this — only actually
+      writing, then asking whether the row could ever be measured, does. **The bug that matters is
+      not the one that throws; it is the one that stores a plausible row that matures into nothing.**
+
+    - **The fix is to read the close the call was actually read from — the last close at or before
+      the session — and to refuse a live call that has no base at all.** Not the same-day close,
+      because the same day may not be a trading day; not a default price, because a default is a
+      number that will later be scored as if it were observed. **A base price is not a field to be
+      filled; it is the origin the outcome is measured from, and an outcome without an origin is not
+      an outcome.**
+
+    - **The ten already-written rows keep their NULL, on purpose.** A prediction is not edited after
+      the fact, and a re-run of the same event writes **0** (proven) — the identity key is what stops
+      a corrected duplicate from appearing. The scorer still measures them because it re-derives the
+      base from the close series, so the NULL is a gap in the stored row, not a bar to the evidence.
+      **Immutable means the defect stays visible next to its fix; that is the point of immutability,
+      and deleting the rows to tidy up would erase the only record that the path had ever done it.**
+
+177. **Seventeen megabytes of headroom is a recording policy, not a table-size problem.** 2026-10-19.
+    Commit: `8d52577` + `data/foundation/dataset/shadow_storage_budget.json`.
+
+    - **Database 483.1 MB / 500 MB, 16.9 MB free; a `ShadowPrediction` row is ~1,156 bytes.** At
+      that cost the whole 618-asset universe daily is ~0.68 MB/day (~21 MB/month) and meets the cap
+      in about two weeks. The ten-row canary is 656 KB for the entire table — **the concern is the
+      cadence, not the canary, and a policy that records everything until it runs out is not a
+      policy.**
+
+    - **The 17 MB is not in the shadow tables and cannot be taken from them.** It sits in
+      `PriceSnapshot` (287 MB) and `IntradayBar` (68 MB), which are evidence and are not deleted to
+      make room. That is a plan/quota matter, recorded as a blocker, not something to be solved by
+      quietly dropping history. **When the only way to make space is to delete what you are trying to
+      learn from, the answer is not the deletion.**
+
+    - **Identity is per asset/model/strategy/timeframe/horizon/session, and the retry is idempotent —
+      but `asOf` is a date, and that is a limit worth naming.** One canonical call per event; a retry
+      writes nothing (measured). A second call of the *same* strategy on the same session is the same
+      event and is not recorded twice; only a different strategy/timeframe/horizon is a different
+      event. If multiple intraday calls per session are ever needed, `asOf` must gain a time
+      component, or a bare date will collapse them into one. **An identity key is a claim about what
+      makes two things the same, and it should be stated in the same breath as the columns it uses.**
+
