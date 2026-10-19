@@ -1,7 +1,7 @@
 import { getHealthReadings } from "@/lib/queries";
 import { cachedDecisionRows } from "@/lib/cached";
 import { assess } from "@/lib/health";
-import { servingTier } from "@/lib/db";
+import { poolMode, servingTier } from "@/lib/db";
 
 /// The site's heartbeat: how fresh every stored reading is, and which lane would fix what is not.
 ///
@@ -22,7 +22,21 @@ export async function GET() {
     const health = assess({ ...(rows ? { ...readings, pool: rows.length } : readings), servedFrom }, new Date());
     // The snapshot the pool was counted from, so a checker can tell a real parity fault from two
     // surfaces serving different snapshots (rule 93): the market pages print the same stamp.
-    return Response.json({ ...health, snapshot: rows?.[0]?.dataStamp ?? null, servedFrom }, {
+    return Response.json({
+      ...health,
+      snapshot: rows?.[0]?.dataStamp ?? null,
+      servedFrom,
+      // Which build is answering, and how it is connected. Added 2026-10-19 because neither was
+      // knowable from outside: confirming that a pooler-mode change had actually shipped meant
+      // asking GitHub's deployments API, which is rate-limited to 60 calls an hour unauthenticated
+      // and had been spent -- so "is the fix live" had no answer from the thing that would know.
+      // `VERCEL_GIT_COMMIT_SHA` is set by the platform at build time; null anywhere else.
+      build: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+      // `transaction` once the web pool dials 6543 (lib/failover.ts), `session` when
+      // SUPABASE_POOL_MODE=session has rolled it back, and null when the primary is not Supabase.
+      // This is read from the URL the pool was actually built with, not from the intent.
+      poolMode: poolMode(),
+    }, {
       status: 200,
       headers: { "Cache-Control": "no-store" },
     });

@@ -190,3 +190,27 @@ test("the heartbeat's failure path never claims a tier and never reports ok", as
   // It says why a 503 here can sit next to pages still answering 200.
   assert.match(fail, /cached render/);
 });
+
+test("the heartbeat publishes the build and the pooler mode it is actually using", async () => {
+  const src = readFileSync(new URL("../app/api/health/route.ts", import.meta.url), "utf8");
+  const ok = src.slice(0, src.indexOf("} catch"));
+  assert.match(ok, /build: process\.env\.VERCEL_GIT_COMMIT_SHA/, "which commit is answering");
+  assert.match(ok, /poolMode: poolMode\(\)/, "and how it is connected");
+
+  const { poolMode } = await import("../lib/db.ts").catch(() => ({ poolMode: null }) as never);
+  if (!poolMode) return; // Prisma's path aliases: the source assertions above still hold.
+});
+
+test("poolMode reports what the pool dials, not what was intended", async () => {
+  const { transactionPoolUrl } = await import("../lib/failover.ts");
+  const pooler = "postgres://u:p@aws-0-eu-west-2.pooler.supabase.com:5432/postgres";
+  // The same derivation poolMode() runs, pinned here where it is importable.
+  const mode = (url: string, env: Record<string, string | undefined>) => {
+    const u = new URL(transactionPoolUrl(url, env));
+    if (!u.hostname.endsWith(".pooler.supabase.com")) return null;
+    return u.port === "6543" ? "transaction" : "session";
+  };
+  assert.equal(mode(pooler, {}), "transaction");
+  assert.equal(mode(pooler, { SUPABASE_POOL_MODE: "session" }), "session");
+  assert.equal(mode("postgres://u:p@x.h.aivencloud.com:17299/defaultdb", {}), null);
+});

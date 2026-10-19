@@ -124,6 +124,25 @@ function create() {
 /// kept on globalThis to avoid exhausting the pooler's client slots.
 export const prisma = globalForPrisma.prisma ?? create();
 
+/// Which Supabase pooler mode the app's pool was actually built with: `"transaction"` (port 6543),
+/// `"session"` (5432, i.e. `SUPABASE_POOL_MODE=session` or an unrecognised string), or `null` when
+/// the primary is not a Supabase pooler at all.
+///
+/// Read from the served URL rather than from the environment variable, so it reports what the pool
+/// is doing and not what someone meant it to do. `/api/health` publishes it, because a pooler-mode
+/// change that cannot be observed from outside cannot be verified after it ships.
+export function poolMode(): "transaction" | "session" | null {
+  const url = primaryUrl();
+  if (!url) return null;
+  try {
+    const u = new URL(transactionPoolUrl(url));
+    if (!u.hostname.endsWith(".pooler.supabase.com")) return null;
+    return u.port === "6543" ? "transaction" : "session";
+  } catch {
+    return null;
+  }
+}
+
 /// Which database tier the last read came from: "the primary", or a standby's name (brain.md rule 94).
 /// A standby holds mirrored prices, decisions and news but not the setups, factors and analogs a call is
 /// built from, which lag by a day or more; the lists publish no call from a standby read.
