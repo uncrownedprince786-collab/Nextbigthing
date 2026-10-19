@@ -64,6 +64,7 @@ ROOT = HERE.parent.parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "tools" / "foundation"))
 
+import significance  # noqa: E402  (the gate's arithmetic, kept testable on its own)
 from baseline_experiment import CLASSES, EMBARGO, FEATURES, L2, LR, SEED, STEPS, metrics, predict  # noqa: E402
 from context_features import VERSION as CTX_VERSION  # noqa: E402
 from shadow_markets import MARKETS  # noqa: E402  (the one order the five markets are named in)
@@ -276,11 +277,27 @@ def fit_market(name: str, b: dict, train_end: str) -> dict | None:
                        "majority": round(float(max((yt[sel] == i).mean()
                                                    for i in range(len(CLASSES)))), 4)}
 
+    # Both comparisons are now tested rather than compared, because a bare `>` cannot tell a real
+    # difference from a small one. See tools/research/significance.py for the measurement that
+    # prompted this: Commodity passed the old gate on a 0.0028 lift worth 0.21 standard errors.
+    #
+    # The two tests are different on purpose. The majority share is a constant derived from the
+    # holdout labels, so it is a one-sample proportion test; the price-only model answers the same
+    # rows as the candidate, so its errors are correlated with the candidate's and the paired
+    # McNemar test on the rows where they disagree is the one that does not understate the noise.
+    n_holdout = int(len(yt))
+    maj_test = significance.binomial_lift(int((yp == yt).sum()), n_holdout, majority)
+    both = np.asarray(yp == yt), np.asarray(yp_price == yt)
+    paired = significance.mcnemar(int((both[0] & ~both[1]).sum()),
+                                  int((~both[0] & both[1]).sum()))
+
     checks = {
-        "accuracyAboveHoldoutMajority": [m["accuracy"], round(majority, 4),
-                                         bool(m["accuracy"] > majority)],
-        "beatsThePriceOnlyModel": [m["accuracy"], m_price["accuracy"],
-                                   bool(m["accuracy"] > m_price["accuracy"])],
+        # The first two entries keep their old shape -- measured, compared-against, verdict -- so
+        # every existing reader of a manifest still finds the numbers where they were. The third
+        # is the test, and it is what the verdict now comes from.
+        "accuracyAboveHoldoutMajority": [m["accuracy"], round(majority, 4), maj_test["passes"],
+                                         maj_test],
+        "beatsThePriceOnlyModel": [m["accuracy"], m_price["accuracy"], paired["passes"], paired],
         "notDegenerate": [deg["degenerate"], False, not deg["degenerate"]],
         "bothDirectionsPredicted": [
             {"DOWN": m.get("recall_DOWN"), "UP": m.get("recall_UP")}, 0.2,

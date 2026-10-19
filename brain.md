@@ -6530,18 +6530,21 @@ reads rows that already exist:
       wearing one name. **Holding the recipe fixed is what lets a difference between the markets be
       read as the markets and not the code.**
 
-    - **Four of the five are NO-GO, and the numbers say why rather than that they are bad.** US
+    - **All five are NO-GO, and the numbers say why rather than that they are bad.** US
       (0.4329 vs majority 0.4336) and PK (0.3631 vs 0.5064) and Crypto (0.4736 vs 0.4723) collapse
-      onto a single class; FX (0.7275 vs 0.7289) scores by reading the true FLAT majority; only
-      Commodity clears its checks (0.4438 vs 0.4410, price-only 0.4417). **A class-collapsed model
-      can be within a point of the majority and still be telling you it learned the base rate and
-      nothing else.** None was promoted and none is `productionApproved`.
+      onto a single class; FX (0.7275 vs 0.7289) scores by reading the true FLAT majority;
+      Commodity (0.4438 vs 0.4410, price-only 0.4417) is inside its own measurement error.
+      **A class-collapsed model can be within a point of the majority and still be telling you it
+      learned the base rate and nothing else.** None was promoted and none is `productionApproved`.
 
-    - **The one pass is the one that should be trusted least.** Commodity clears every check on **8
-      symbols / ~756 independent windows**; the manifest carries that as a limitation and the
-      verdict is recorded as thin, not as a triumph. **The market that passes on the fewest
-      independent observations is the one most likely to be passing on noise, and the honest reading
-      is the sample size, not the verdict.**
+    - **Commodity read as a pass until the gate learned to count.** It cleared every check on **8
+      symbols / ~756 independent windows**, and the checks were `>` comparisons: 0.4438 beat 0.4410,
+      so GO. That lift is **four extra correct answers in 1,424** and **0.21 standard errors**; the
+      paired comparison against the price-only model is **113 rows to 110** out of 223 where the two
+      disagree, **z = 0.13**. Re-run on 2026-10-19 with `tools/research/significance.py` wired into
+      the gate, the weights came back **bit-identical** and the verdict came back **NO-GO**.
+      **The market that passes on the fewest independent observations is the one most likely to be
+      passing on noise, and a gate built out of `>` cannot tell you which it was.**
 
     - **The checks and the numbers came out of the same run, so they are diagnostic, not
       pre-registered.** `criteriaPreRegisteredBeforeRun: False` is written into every manifest with
@@ -6790,3 +6793,49 @@ reads rows that already exist:
     (`planLimitReached`), which is recorded and not claimed away.
 
 
+
+184. **A promotion gate built out of `>` will eventually pass noise, and it will say GO when it
+    does.** 2026-10-19. `train_v4_markets.py` asked `accuracy > majority` and
+    `accuracy > priceOnly`. Commodity answered 0.4438 against 0.4410 and 0.4417 and was recorded
+    **GO**; the daily audit printed that verdict next to the artifact digest every morning. The
+    standard error of a proportion at that rate on 1,424 holdout rows is **0.0132**, so the lift was
+    **0.21 standard errors** -- and the paired test against the price-only model, which answers the
+    *same* rows and therefore has correlated errors, is **113 to 110** on 223 discordant pairs,
+    **z = 0.13**. `tools/research/significance.py` now carries both tests: a one-sided normal
+    approximation to the binomial against the fixed baseline rate, and a continuity-corrected
+    McNemar for the paired comparison, each refusing to answer below 30 trials rather than
+    returning a decimal place with nothing behind it. Re-running the trainer wrote **bit-identical
+    weights** and flipped Commodity to **NO-GO**; the manifest now records the arithmetic, not just
+    the verdict. **The three markets the old gate refused were refused for being visibly worse, not
+    because the gate could measure -- it never could, and the one time a candidate landed inside the
+    noise it was called a pass.**
+
+185. **The run that churns the store hardest was the only one that never swept up after itself.**
+    2026-10-19. `jobs/run.py` `DAILY` ends with `retention`; `WEEKLY` did not. `WEEKLY` is the group
+    that refetches full price histories, and a refetch deletes an asset's `PriceSnapshot` rows and
+    writes them back, which leaves B-tree pages half empty. The weekly reconcile ran at 14:29 UTC;
+    by 19:30 `PriceSnapshot` had gone **287.4 MB -> 310.5 MB**, `PriceSnapshot_date_idx` sat at
+    **71.8%** leaf density and `IntradayBar_assetId_interval_ts_key` at **74.2%**, and the database
+    was at **492.4 MB of the 500 MB free tier (98.5%)**. That is **under
+    `shadow_budget.MIN_HEADROOM_MB`**, so the floor added at checkpoint 43 was refusing every shadow
+    write -- the safety control was working and the lane it protects was dead. `jobs/retention.py
+    --indexes-only` returned **9 MB** and deleted no row (492 -> 484 MB, headroom 16.5 MB), and
+    `retention` is now the last step of `WEEKLY` as well. `REINDEX_MIN_BYTES` dropped 8 MB -> 4 MB
+    in the same pass: `News_asset_url_key` was the **loosest index in the database at 63.5%** and
+    was being skipped for being 5.2 MB. **A capacity floor turns a storage problem into a silent
+    outage of whatever sits behind it, so the thing to watch is not the floor but the slope
+    approaching it.**
+
+186. **`scorable: False` was two different facts wearing one name.** 2026-10-19. `shadow_score.py`
+    reported **"awaiting 589"**, which read as 589 measurements the project was owed. A row whose
+    forward window has not closed will score the day it closes; a row with no stored reference
+    close, an unknown market, a horizon with no label rule, or an `asOf` its market does not trade
+    will **never** score. Both were `scorable: False` and both were counted as waiting. Split on
+    the `reason` field -- which only the permanent refusals ever set -- the real figure is **581
+    pending and 8 unscorable**, the 8 being the Sunday `asOf` rows the per-market session fix
+    already documents. `awaiting` keeps its old value so no existing reader changes its answer, and
+    `pending` / `unscorable` / `unscorableReasons` sit beneath it. The same pass found the audit
+    counting `scored` from the legacy `outcomeLabel` column while the scorer writes `ShadowOutcome`
+    and never backfills it: **the monitor would have reported `0 scored` and a louder warning every
+    day from the moment the lane started working.** **A count that merges "not yet" with "never"
+    is not a count of anything, and it fails in the direction of looking busy.**

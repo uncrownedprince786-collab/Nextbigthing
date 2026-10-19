@@ -98,15 +98,47 @@ def _tally(values) -> dict:
     return out
 
 
+def state_of(r: dict) -> str:
+    """`unscorable`, `pending` or `matured` -- which is not the same question as `scorable`.
+
+    `scorable` is false for two different reasons and the counts were reading them as one. A row
+    whose forward window is simply not closed yet has `fwd20 is None` and will score the day it
+    closes; a row with no stored reference close, an unknown market, a horizon with no label rule,
+    or an `asOf` the market does not trade will **never** score, however long anyone waits.
+
+    Both of the permanent cases -- and only those -- carry a `reason`: `_unscorable` sets one on
+    every branch, and `score_one` sets one when the base close is missing. So `reason` is the
+    discriminator, and it is read here rather than re-derived, which keeps this function honest
+    about exactly the cases the scorer itself refused.
+
+    Measured 2026-10-19: of 589 stored predictions, 576 carry no reference close (they predate the
+    `s.date <= f."periodEnd"` fix in `shadow_predict.py`) and can never be graded. Counting them as
+    "awaiting" reported 589 future measurements where only 13 exist.
+    """
+    if r.get("reason"):
+        return "unscorable"
+    if r.get("scorable") and r.get("mature"):
+        return "matured"
+    return "pending"
+
+
 def aggregate(rows: list[dict]) -> dict:
     """Counts by state, and an accuracy only over rows that actually matured and were graded."""
-    waiting = [r for r in rows if not r["scorable"] or not r["mature"]]
-    matured = [r for r in rows if r["scorable"] and r["mature"]]
+    states = [state_of(r) for r in rows]
+    pending = [r for r, s in zip(rows, states) if s == "pending"]
+    unscorable = [r for r, s in zip(rows, states) if s == "unscorable"]
+    matured = [r for r, s in zip(rows, states) if s == "matured"]
     graded = [r for r in matured if r["outcomeLabel"] is not None and r["predicted"] is not None]
     correct = sum(1 for r in graded if r["correct"])
     return {
         "total": len(rows),
-        "awaiting": len(waiting),
+        # Kept, and kept meaning exactly what it meant before -- everything not matured -- so no
+        # existing reader changes its answer. It is the sum of the two fields below it, which are
+        # the ones worth reading: only `pending` is a measurement anybody is still owed.
+        "awaiting": len(pending) + len(unscorable),
+        "pending": len(pending),
+        "unscorable": len(unscorable),
+        "unscorableReasons": _tally(r.get("reason") for r in unscorable),
         "matured": len(matured),
         "graded": len(graded),
         "byPredicted": _tally(r["predicted"] for r in rows),
@@ -124,10 +156,13 @@ def by_market(rows: list[dict]) -> dict:
     out: dict[str, dict] = {}
     for r in rows:
         m = r.get("market") or "?"
-        d = out.setdefault(m, {"total": 0, "awaiting": 0, "matured": 0, "graded": 0, "correct": 0})
+        d = out.setdefault(m, {"total": 0, "awaiting": 0, "pending": 0, "unscorable": 0,
+                               "matured": 0, "graded": 0, "correct": 0})
         d["total"] += 1
-        if not r["scorable"] or not r["mature"]:
+        state = state_of(r)
+        if state != "matured":
             d["awaiting"] += 1
+            d[state] += 1
         else:
             d["matured"] += 1
             if r.get("outcomeLabel") is not None and r.get("predicted") is not None:
@@ -325,11 +360,17 @@ def main() -> int:
     Path(a.out).write_text(json.dumps(payload, indent=1), encoding="utf-8")
     s = payload["summary"]
     mode = "write" if a.write else "dry run"
-    print(f"[{mode}] rows {s['total']}  awaiting {s['awaiting']}  matured {s['matured']}  "
+    print(f"[{mode}] rows {s['total']}  pending {s['pending']}  "
+          f"unscorable {s['unscorable']}  matured {s['matured']}  "
           f"graded {s['graded']}  accuracy {s['accuracy']}")
     for m, d in sorted(payload["byMarket"].items()):
-        print(f"  {m:10} total {d['total']:>4}  awaiting {d['awaiting']:>4}  "
-              f"matured {d['matured']:>4}  graded {d['graded']:>4}  correct {d['correct']:>4}")
+        print(f"  {m:10} total {d['total']:>4}  pending {d['pending']:>4}  "
+              f"unscorable {d['unscorable']:>4}  matured {d['matured']:>4}  "
+              f"graded {d['graded']:>4}  correct {d['correct']:>4}")
+    # Named, not just counted: an unscorable row is a defect with a cause, and the cause is the
+    # only part of it anyone can act on.
+    for reason, n in sorted(s["unscorableReasons"].items(), key=lambda kv: -kv[1]):
+        print(f"  unscorable: {n:>4}  {reason}")
     if a.write:
         print(f"write: {payload.get('write')}")
     print(f"wrote {a.out}")

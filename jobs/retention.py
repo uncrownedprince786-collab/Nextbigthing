@@ -146,7 +146,13 @@ NEVER_PRUNED = (
 #
 # Only indexes that are both large and loose are touched. A small index rebuilt nightly would cost
 # more in churn than the pages it returns.
-REINDEX_MIN_BYTES = 8 * 1024 * 1024
+#
+# 4 MB, lowered from 8 on 2026-10-19. At 8 MB the sweep looked at four indexes and rebuilt two;
+# `News_asset_url_key` was the loosest index in the database at **63.5%** leaf density and was
+# skipped for being 5.2 MB, which left about 1.5 MB of empty pages on a tier that was 98.5% full.
+# A threshold meant to avoid churning small indexes should not be the reason the loosest one is
+# never touched, and at 4 MB the sweep still ignores every index under a thousandth of the tier.
+REINDEX_MIN_BYTES = 4 * 1024 * 1024
 REINDEX_MAX_DENSITY = 75.0
 
 

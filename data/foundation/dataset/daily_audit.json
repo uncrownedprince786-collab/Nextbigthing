@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-18T01:53:06+00:00",
+ "generatedAt": "2026-10-19T19:58:16+00:00",
  "version": "daily-audit-v1",
  "staleRulesReadFrom": "lib/health.ts + lib/decision.ts",
  "staleRules": {
@@ -8,12 +8,12 @@
   "QUOTES_STALE_AFTER_MINUTES": 60.0
  },
  "summary": {
-  "ok": 13,
-  "warn": 2,
-  "fail": 1,
+  "ok": 18,
+  "warn": 5,
+  "fail": 0,
   "unknown": 0
  },
- "healthy": false,
+ "healthy": true,
  "checks": [
   {
    "check": "artifact:brain-v1",
@@ -43,6 +43,51 @@
    }
   },
   {
+   "check": "artifact:brain-v4-commodity",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "cbc3c884787ef36d",
+    "recorded": "cbc3c884787ef36d"
+   }
+  },
+  {
+   "check": "artifact:brain-v4-crypto",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "6e89773efaa9b4e3",
+    "recorded": "6e89773efaa9b4e3"
+   }
+  },
+  {
+   "check": "artifact:brain-v4-fx",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "9ec7fe1176aceb29",
+    "recorded": "9ec7fe1176aceb29"
+   }
+  },
+  {
+   "check": "artifact:brain-v4-pk",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "cd526172f7da0a50",
+    "recorded": "cd526172f7da0a50"
+   }
+  },
+  {
+   "check": "artifact:brain-v4-us",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "0e3e729155f986e2",
+    "recorded": "0e3e729155f986e2"
+   }
+  },
+  {
    "check": "freeze:examples-v3-2026-10-16-local",
    "status": "ok",
    "detail": "status frozen for training, gates green True, 9 files",
@@ -56,59 +101,76 @@
   },
   {
    "check": "restoreRehearsalCurrent",
-   "status": "ok",
-   "detail": "verified at schema 20261017150000_eventimpact_reindex; 0 migration(s) applied since",
+   "status": "warn",
+   "detail": "verified at schema 20261017150000_eventimpact_reindex; 1 migration(s) applied since",
    "extra": {
-    "behind": [],
+    "behind": [
+     "20261019120000_shadow_outcome"
+    ],
     "rows": "restore: VERIFIED: 44 tables, 1,335,379 rows, content digests equal"
    }
   },
   {
    "check": "restoreRehearsalAge",
    "status": "ok",
-   "detail": "last real restore rehearsal 0 days ago",
+   "detail": "last real restore rehearsal 1 days ago",
    "extra": null
   },
   {
    "check": "priceFreshness",
    "status": "ok",
-   "detail": "newest stored close 2026-10-16 (2 days back), 1,099,805 rows",
+   "detail": "newest stored close 2026-10-19 (1 days back), 1,126,025 rows",
    "extra": {
-    "lagDays": 2
+    "lagDays": 1
    }
   },
   {
    "check": "factorFreshness",
    "status": "ok",
-   "detail": "newest factor session 2026-10-16 (2 days back)",
+   "detail": "newest factor session 2026-10-18 (2 days back)",
    "extra": {
     "lagDays": 2
    }
   },
   {
+   "check": "decisionFreshness",
+   "status": "ok",
+   "detail": "newest decision 2026-10-19 (1 days back; lib/health.ts refuses at 2)",
+   "extra": {
+    "lagDays": 1
+   }
+  },
+  {
    "check": "newsFreshness",
    "status": "ok",
-   "detail": "newest headline 3.9h old (lib/health.ts calls the lane stale after 6.0h)",
+   "detail": "newest headline 5.9h old (lib/health.ts calls the lane stale after 6.0h)",
    "extra": null
   },
   {
    "check": "sourceCoverage",
    "status": "warn",
-   "detail": "8 source(s) outside: Yahoo Finance daily closes (Commodity)(stale x2.27), Yahoo Finance daily closes (Commodity)(stale x1.52), Google Trends product interest(healthy x1.43), Wikipedia product pageviews(healthy x1.43), Google Trends product interest(healthy x1.40), Wikipedia product pageviews(healthy x1.40), Google Trends product interest(healthy x1.40), Wikipedia product pageviews(healthy x1.40)",
+   "detail": "2 source(s) outside: Reddit product mentions(stale x0.06), Google News RSS(partial x0.03)",
    "extra": null
   },
   {
    "check": "jobRuns36h",
-   "status": "fail",
-   "detail": "100 slice(s) in 36h; failing: cron products:blockedx2, cron products:emptyx1",
+   "status": "warn",
+   "detail": "79 slice(s) in 36h; needs attention: cron decision:blockedx1",
+   "extra": null
+  },
+  {
+   "check": "productRuns36h",
+   "status": "warn",
+   "detail": "19 slice(s) in 36h; not ok: cron products:emptyx2",
    "extra": null
   },
   {
    "check": "shadowOutcomes",
    "status": "ok",
-   "detail": "566 prediction(s) from 1 model version(s); 0 scored; 0 matured and awaiting an outcome; earliest maturity 2026-11-16",
+   "detail": "589 prediction(s) from 6 model version(s); 0 scored; 0 matured and awaiting an outcome; earliest maturity 2026-11-05",
    "extra": {
-    "matureAndUnscored": 0
+    "matureAndUnscored": 0,
+    "scored": 0
    }
   },
   {
@@ -120,15 +182,15 @@
   {
    "check": "migrationsApplied",
    "status": "ok",
-   "detail": "36 applied; 0 pending",
+   "detail": "37 applied; 0 pending",
    "extra": null
   },
   {
    "check": "databaseSize",
    "status": "warn",
-   "detail": "460.2 MB of a 500 MB free tier (92.0%)",
+   "detail": "483.5 MB of a 500 MB free tier (96.7%)",
    "extra": {
-    "mb": "460.2"
+    "mb": "483.5"
    }
   }
  ]

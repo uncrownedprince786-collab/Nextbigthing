@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-19T01:04:33+00:00",
+ "generatedAt": "2026-10-19T19:53:09+00:00",
  "producedBy": "tools/research/train_v4_markets.py",
  "trainEnd": "2025-12-31",
  "embargoSessions": 20,
@@ -9,7 +9,7 @@
    "modelVersion": "brain-v4-us",
    "artifact": {
     "path": "data/foundation/brain/brain-v4-us/model.json",
-    "sha256": "8700924c82e0cfb9ea58dd79e5b012944fd36fc3d49134080eb58aa888c426e5"
+    "sha256": "0e3e729155f986e2d4ef3bf48bdba8a8187556b115b4858bf6baa7b87ca7a293"
    },
    "accuracy": 0.4329,
    "holdoutMajorityShare": 0.4336,
@@ -19,12 +19,35 @@
     "accuracyAboveHoldoutMajority": [
      0.4329,
      0.4336,
-     false
+     false,
+     {
+      "accuracy": 0.4329,
+      "baseline": 0.4336,
+      "n": 49679,
+      "lift": -0.0008,
+      "standardError": 0.0022,
+      "z": -0.34,
+      "requiredAccuracy": 0.4373,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "0.4329 vs a 0.4336 baseline on 49679 rows is -0.34 standard errors; does not clear the 0.4373 needed at one-sided 1.645"
+     }
     ],
     "beatsThePriceOnlyModel": [
      0.4329,
      0.4303,
-     true
+     true,
+     {
+      "onlyCandidateRight": 567,
+      "onlyOtherRight": 442,
+      "discordant": 1009,
+      "z": 3.9,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": true,
+      "why": "the candidate was right where the other was wrong on 567 rows and wrong where it was right on 442; z = 3.90 against the 1.645 needed"
+     }
     ],
     "notDegenerate": [
      true,
@@ -70,7 +93,7 @@
    "modelVersion": "brain-v4-pk",
    "artifact": {
     "path": "data/foundation/brain/brain-v4-pk/model.json",
-    "sha256": "92ab476570e504dbbe04fbc5ffa933d7163645f91f631a8198240ee030371543"
+    "sha256": "cd526172f7da0a50157f7878f74385288a9c32cfccedd336039b8de07db8d841"
    },
    "accuracy": 0.3631,
    "holdoutMajorityShare": 0.5064,
@@ -80,12 +103,35 @@
     "accuracyAboveHoldoutMajority": [
      0.3631,
      0.5064,
-     false
+     false,
+     {
+      "accuracy": 0.3631,
+      "baseline": 0.5064,
+      "n": 38333,
+      "lift": -0.1433,
+      "standardError": 0.0026,
+      "z": -56.14,
+      "requiredAccuracy": 0.5106,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "0.3631 vs a 0.5064 baseline on 38333 rows is -56.14 standard errors; does not clear the 0.5106 needed at one-sided 1.645"
+     }
     ],
     "beatsThePriceOnlyModel": [
      0.3631,
      0.4707,
-     false
+     false,
+     {
+      "onlyCandidateRight": 8424,
+      "onlyOtherRight": 12549,
+      "discordant": 20973,
+      "z": -28.48,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "the candidate was right where the other was wrong on 8424 rows and wrong where it was right on 12549; z = -28.48 against the 1.645 needed"
+     }
     ],
     "notDegenerate": [
      true,
@@ -131,7 +177,7 @@
    "modelVersion": "brain-v4-fx",
    "artifact": {
     "path": "data/foundation/brain/brain-v4-fx/model.json",
-    "sha256": "259618c0d8b559c1fb790673919cbef9cd6fe8255769b30acde5190b6b166f4f"
+    "sha256": "9ec7fe1176aceb29f5d3546f1fc5f84c16c1cc6bef65a87db9dae8604a9b1d3b"
    },
    "accuracy": 0.7275,
    "holdoutMajorityShare": 0.7289,
@@ -141,12 +187,35 @@
     "accuracyAboveHoldoutMajority": [
      0.7275,
      0.7289,
-     false
+     false,
+     {
+      "accuracy": 0.7275,
+      "baseline": 0.7289,
+      "n": 4995,
+      "lift": -0.0014,
+      "standardError": 0.0063,
+      "z": -0.22,
+      "requiredAccuracy": 0.7393,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "0.7275 vs a 0.7289 baseline on 4995 rows is -0.22 standard errors; does not clear the 0.7393 needed at one-sided 1.645"
+     }
     ],
     "beatsThePriceOnlyModel": [
      0.7275,
      0.7289,
-     false
+     false,
+     {
+      "onlyCandidateRight": 0,
+      "onlyOtherRight": 7,
+      "discordant": 7,
+      "z": -2.27,
+      "zRequired": 1.645,
+      "enoughData": false,
+      "passes": false,
+      "why": "only 7 rows separate the two models, under the 30 this approximation needs"
+     }
     ],
     "notDegenerate": [
      false,
@@ -192,22 +261,45 @@
    "modelVersion": "brain-v4-commodity",
    "artifact": {
     "path": "data/foundation/brain/brain-v4-commodity/model.json",
-    "sha256": "54eaaa1f3207e3f37e16075111cff83503bb0ab5fac8484bf2cd0626cf636560"
+    "sha256": "cbc3c884787ef36d7ade4f5369033928b08549c28e90ac06a41d5b3d82560e6e"
    },
    "accuracy": 0.4438,
    "holdoutMajorityShare": 0.441,
    "priceOnlyAccuracy": 0.4417,
-   "verdict": "GO",
+   "verdict": "NO-GO",
    "checks": {
     "accuracyAboveHoldoutMajority": [
      0.4438,
      0.441,
-     true
+     false,
+     {
+      "accuracy": 0.4438,
+      "baseline": 0.441,
+      "n": 1424,
+      "lift": 0.0028,
+      "standardError": 0.0132,
+      "z": 0.21,
+      "requiredAccuracy": 0.4627,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "0.4438 vs a 0.4410 baseline on 1424 rows is 0.21 standard errors; does not clear the 0.4627 needed at one-sided 1.645"
+     }
     ],
     "beatsThePriceOnlyModel": [
      0.4438,
      0.4417,
-     true
+     false,
+     {
+      "onlyCandidateRight": 113,
+      "onlyOtherRight": 110,
+      "discordant": 223,
+      "z": 0.13,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "the candidate was right where the other was wrong on 113 rows and wrong where it was right on 110; z = 0.13 against the 1.645 needed"
+     }
     ],
     "notDegenerate": [
      false,
@@ -253,7 +345,7 @@
    "modelVersion": "brain-v4-crypto",
    "artifact": {
     "path": "data/foundation/brain/brain-v4-crypto/model.json",
-    "sha256": "f6a3e91089e806edab75ccf37be8e7b30bc246a20e5ef64d1955268539eccbc0"
+    "sha256": "6e89773efaa9b4e34a9f704453edb55267281ee68499c6e704abb9abab65c7df"
    },
    "accuracy": 0.4736,
    "holdoutMajorityShare": 0.4723,
@@ -263,12 +355,35 @@
     "accuracyAboveHoldoutMajority": [
      0.4736,
      0.4723,
-     true
+     false,
+     {
+      "accuracy": 0.4736,
+      "baseline": 0.4723,
+      "n": 19220,
+      "lift": 0.0014,
+      "standardError": 0.0036,
+      "z": 0.38,
+      "requiredAccuracy": 0.4782,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "0.4736 vs a 0.4723 baseline on 19220 rows is 0.38 standard errors; does not clear the 0.4782 needed at one-sided 1.645"
+     }
     ],
     "beatsThePriceOnlyModel": [
      0.4736,
      0.472,
-     true
+     false,
+     {
+      "onlyCandidateRight": 228,
+      "onlyOtherRight": 196,
+      "discordant": 424,
+      "z": 1.51,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "the candidate was right where the other was wrong on 228 rows and wrong where it was right on 196; z = 1.51 against the 1.645 needed"
+     }
     ],
     "notDegenerate": [
      true,

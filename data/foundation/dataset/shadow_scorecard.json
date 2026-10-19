@@ -1,17 +1,25 @@
 {
- "generatedAt": "2026-10-19T01:13:07+00:00",
+ "generatedAt": "2026-10-19T19:40:48+00:00",
  "version": "shadow-scorecard-v1",
  "status": "assessment only; no prediction is modified and no promotion is implied",
- "asOf": "2026-10-19",
+ "asOf": "2026-10-20",
  "labelRule": "label20 = UP when fwd20 >= +2.0%, DOWN when <= -2.0%, else FLAT; step 20 sessions",
  "summary": {
-  "total": 581,
-  "awaiting": 581,
+  "total": 589,
+  "awaiting": 589,
+  "pending": 581,
+  "unscorable": 8,
+  "unscorableReasons": {
+   "2026-10-18 is not a session US trades": 2,
+   "2026-10-18 is not a session PK trades": 2,
+   "2026-10-18 is not a session FX trades": 2,
+   "2026-10-18 is not a session Commodity trades": 2
+  },
   "matured": 0,
   "graded": 0,
   "byPredicted": {
-   "UP": 579,
-   "FLAT": 2
+   "UP": 585,
+   "FLAT": 4
   },
   "byOutcome": {},
   "correct": 0,
@@ -20,15 +28,19 @@
  },
  "byMarket": {
   "US": {
-   "total": 353,
-   "awaiting": 353,
+   "total": 355,
+   "awaiting": 355,
+   "pending": 353,
+   "unscorable": 2,
    "matured": 0,
    "graded": 0,
    "correct": 0
   },
   "PK": {
-   "total": 221,
-   "awaiting": 221,
+   "total": 223,
+   "awaiting": 223,
+   "pending": 221,
+   "unscorable": 2,
    "matured": 0,
    "graded": 0,
    "correct": 0
@@ -36,20 +48,26 @@
   "Crypto": {
    "total": 3,
    "awaiting": 3,
+   "pending": 3,
+   "unscorable": 0,
    "matured": 0,
    "graded": 0,
    "correct": 0
   },
   "FX": {
-   "total": 2,
-   "awaiting": 2,
+   "total": 4,
+   "awaiting": 4,
+   "pending": 2,
+   "unscorable": 2,
    "matured": 0,
    "graded": 0,
    "correct": 0
   },
   "Commodity": {
-   "total": 2,
-   "awaiting": 2,
+   "total": 4,
+   "awaiting": 4,
+   "pending": 2,
+   "unscorable": 2,
    "matured": 0,
    "graded": 0,
    "correct": 0
@@ -70,7 +88,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -86,7 +104,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -102,12 +120,12 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -1.4807,
    "mae": -3.6286,
@@ -118,7 +136,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -134,15 +152,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.3552,
-   "mae": -0.3552,
+   "mae": -0.7278,
    "outcomeLabel": null,
    "correct": null,
    "id": "676a6d26-35c4-4946-9174-e69871300455",
@@ -150,7 +168,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -166,14 +184,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 1.1113,
+   "mfe": 1.4679,
    "mae": 1.1113,
    "outcomeLabel": null,
    "correct": null,
@@ -182,7 +200,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -198,7 +216,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -214,15 +232,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.3548,
-   "mae": -1.3548,
+   "mae": -2.6122,
    "outcomeLabel": null,
    "correct": null,
    "id": "6399d99d-857a-46b4-a348-5a39539a60d5",
@@ -230,12 +248,12 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -1.8981,
    "mae": -4.5538,
@@ -246,7 +264,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -262,7 +280,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -278,15 +296,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.0796,
-   "mae": -1.0796,
+   "mae": -1.1375,
    "outcomeLabel": null,
    "correct": null,
    "id": "0b1e9e8a-4b91-4dd9-b7c5-b50d841a8647",
@@ -294,7 +312,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -310,7 +328,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -326,15 +344,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -6.1596,
-   "mae": -10.0202,
+   "mae": -14.9427,
    "outcomeLabel": null,
    "correct": null,
    "id": "9ef131be-90c4-41c3-b9ef-ae915ca990e6",
@@ -342,14 +360,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 0.3026,
+   "mfe": 0.6051,
    "mae": 0.3026,
    "outcomeLabel": null,
    "correct": null,
@@ -358,7 +376,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -374,15 +392,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 4.1054,
-   "mae": 4.1054,
+   "mae": 2.0527,
    "outcomeLabel": null,
    "correct": null,
    "id": "65acd4a7-975c-4dff-a562-19887e1b779e",
@@ -390,14 +408,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 2.8328,
+   "mfe": 4.8407,
    "mae": 2.8328,
    "outcomeLabel": null,
    "correct": null,
@@ -406,15 +424,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.5249,
-   "mae": 0.5249,
+   "mae": -0.1177,
    "outcomeLabel": null,
    "correct": null,
    "id": "9556eeca-c271-4fa1-9aee-87533f3b3faf",
@@ -422,7 +440,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -438,15 +456,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.3363,
-   "mae": -0.3363,
+   "mae": -1.3788,
    "outcomeLabel": null,
    "correct": null,
    "id": "17e9c7c8-7390-4b9c-bb52-6e9a73c287dc",
@@ -454,7 +472,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -470,15 +488,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 1.2314,
-   "mae": 1.2314,
+   "mae": 0.4263,
    "outcomeLabel": null,
    "correct": null,
    "id": "635498d9-9f56-4146-b134-cb08dd35e65b",
@@ -486,15 +504,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.4967,
-   "mae": -0.4967,
+   "mae": -1.8628,
    "outcomeLabel": null,
    "correct": null,
    "id": "53ad41fb-ca37-480e-bdb6-303b49e03382",
@@ -502,15 +520,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -3.1478,
-   "mae": -6.0522,
+   "mae": -6.8161,
    "outcomeLabel": null,
    "correct": null,
    "id": "4a788eea-4b99-4083-a437-ff3b1a2d27cc",
@@ -518,7 +536,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -534,15 +552,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 5.2388,
-   "mae": 5.2388,
+   "mae": 5.0847,
    "outcomeLabel": null,
    "correct": null,
    "id": "871e9cd2-b25e-4820-9c0a-cc6a4ccf5230",
@@ -550,7 +568,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -566,7 +584,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -582,7 +600,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -598,7 +616,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -614,15 +632,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 2.0202,
-   "mae": 2.0202,
+   "mae": -0.7576,
    "outcomeLabel": null,
    "correct": null,
    "id": "3d555ea5-86cc-47b1-9d29-0d9fce973f82",
@@ -630,7 +648,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -646,14 +664,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -0.463,
+   "mfe": 11.1111,
    "mae": -0.463,
    "outcomeLabel": null,
    "correct": null,
@@ -662,7 +680,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -678,14 +696,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 1.0467,
+   "mfe": 1.3867,
    "mae": 1.0467,
    "outcomeLabel": null,
    "correct": null,
@@ -694,15 +712,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": 1.7274,
-   "mae": -4.5585,
+   "mae": -6.142,
    "outcomeLabel": null,
    "correct": null,
    "id": "f1af5612-0195-46b6-adf2-d7681d77308e",
@@ -710,7 +728,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -726,12 +744,12 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -2.2558,
    "mae": -7.4066,
@@ -742,15 +760,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 3.6532,
-   "mae": 3.6532,
+   "mae": -0.0606,
    "outcomeLabel": null,
    "correct": null,
    "id": "596bfbec-fcf9-497b-8715-5a1aaf4c810d",
@@ -758,7 +776,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -774,14 +792,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 0.1898,
+   "mfe": 0.4614,
    "mae": 0.1898,
    "outcomeLabel": null,
    "correct": null,
@@ -790,15 +808,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.2422,
-   "mae": -1.2422,
+   "mae": -2.1118,
    "outcomeLabel": null,
    "correct": null,
    "id": "dc1f0476-08b5-42e4-927b-b832ae0664aa",
@@ -806,15 +824,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.1788,
-   "mae": -1.1788,
+   "mae": -3.1434,
    "outcomeLabel": null,
    "correct": null,
    "id": "2c3fe94f-db73-4db5-9ac8-3309f9bea8c2",
@@ -822,7 +840,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -838,15 +856,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": 0.5112,
-   "mae": -0.2982,
+   "mae": -0.71,
    "outcomeLabel": null,
    "correct": null,
    "id": "3eec448a-da39-4883-b7bc-06fcd39abcd2",
@@ -854,15 +872,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.1667,
-   "mae": -1.1667,
+   "mae": -2.5,
    "outcomeLabel": null,
    "correct": null,
    "id": "dfd757bc-5d20-449e-af18-3df494d3592b",
@@ -870,15 +888,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -2.1963,
-   "mae": -2.1963,
+   "mae": -10.3453,
    "outcomeLabel": null,
    "correct": null,
    "id": "04ad91ac-d9bc-466c-a00b-3458e6160269",
@@ -886,7 +904,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -902,15 +920,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.2673,
-   "mae": -0.2673,
+   "mae": -0.3213,
    "outcomeLabel": null,
    "correct": null,
    "id": "677a33bf-77e4-4edb-8dc8-68d1466402f2",
@@ -918,15 +936,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": 1.3334,
-   "mae": -2.5867,
+   "mae": -3.2849,
    "outcomeLabel": null,
    "correct": null,
    "id": "71d85d2b-f00d-4b77-bc8f-caa62ac5ecd8",
@@ -934,14 +952,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 0.8037,
+   "mfe": 2.8469,
    "mae": 0.8037,
    "outcomeLabel": null,
    "correct": null,
@@ -950,7 +968,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -966,12 +984,12 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -0.818,
    "mae": -2.7431,
@@ -982,7 +1000,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -998,15 +1016,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.1471,
-   "mae": 0.1471,
+   "mae": -0.9559,
    "outcomeLabel": null,
    "correct": null,
    "id": "d18ec7fc-ae77-45f5-b258-9cd6ce0c6c4f",
@@ -1014,7 +1032,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1030,7 +1048,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1046,14 +1064,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -0.2152,
+   "mfe": 0.1972,
    "mae": -0.2152,
    "outcomeLabel": null,
    "correct": null,
@@ -1062,15 +1080,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.9396,
-   "mae": 0.9396,
+   "mae": 0.5397,
    "outcomeLabel": null,
    "correct": null,
    "id": "eb8a5777-d97d-46a0-85a2-17e5a2185ecf",
@@ -1078,15 +1096,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -4.1827,
-   "mae": -4.1827,
+   "mae": -7.6982,
    "outcomeLabel": null,
    "correct": null,
    "id": "584b52f6-07f3-4f23-b3fe-860294a130da",
@@ -1094,15 +1112,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -8.9406,
-   "mae": -17.0618,
+   "mae": -18.6175,
    "outcomeLabel": null,
    "correct": null,
    "id": "101f01ef-87a7-4092-85a4-f02ef9703a18",
@@ -1110,15 +1128,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.1667,
-   "mae": -0.1667,
+   "mae": -0.8333,
    "outcomeLabel": null,
    "correct": null,
    "id": "d9559e72-45a6-44b1-8761-110d68f79f81",
@@ -1126,12 +1144,12 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -0.3777,
    "mae": -1.0395,
@@ -1142,15 +1160,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 1.1792,
-   "mae": 1.1792,
+   "mae": -0.7075,
    "outcomeLabel": null,
    "correct": null,
    "id": "424188ea-531f-4e81-b748-eef2ff42e436",
@@ -1158,15 +1176,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.1926,
-   "mae": -1.1926,
+   "mae": -3.4812,
    "outcomeLabel": null,
    "correct": null,
    "id": "ea0b18a7-fc64-41e6-8f98-574d3cd3e1fd",
@@ -1174,14 +1192,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -1.7888,
+   "mfe": -1.4381,
    "mae": -1.7888,
    "outcomeLabel": null,
    "correct": null,
@@ -1190,15 +1208,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.9623,
-   "mae": -0.9623,
+   "mae": -2.9484,
    "outcomeLabel": null,
    "correct": null,
    "id": "d786af67-2edc-4d54-b0ee-ca3e7d65a408",
@@ -1206,7 +1224,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1222,15 +1240,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.3975,
-   "mae": 0.3975,
+   "mae": -0.0662,
    "outcomeLabel": null,
    "correct": null,
    "id": "33fe7444-a99c-4613-a1c5-1c9b3ba157d0",
@@ -1238,14 +1256,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 0.3288,
+   "mfe": 0.6165,
    "mae": 0.3288,
    "outcomeLabel": null,
    "correct": null,
@@ -1254,7 +1272,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1270,7 +1288,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1286,7 +1304,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1302,15 +1320,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -2.0993,
-   "mae": -2.0993,
+   "mae": -3.629,
    "outcomeLabel": null,
    "correct": null,
    "id": "27fd9650-16e3-4c93-a9e7-cfa42f2c4bb8",
@@ -1318,7 +1336,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1334,14 +1352,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
-   "mfe": -1.1291,
+   "mfe": -0.8849,
    "mae": -1.6079,
    "outcomeLabel": null,
    "correct": null,
@@ -1350,15 +1368,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.3876,
-   "mae": -0.3876,
+   "mae": -1.938,
    "outcomeLabel": null,
    "correct": null,
    "id": "1db0d5a8-bc0b-49e4-8481-ab6778d8c54e",
@@ -1366,15 +1384,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.1041,
-   "mae": -0.1041,
+   "mae": -0.9719,
    "outcomeLabel": null,
    "correct": null,
    "id": "9e0368bb-099b-4fa0-ad8c-054eaa9c7458",
@@ -1382,14 +1400,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -0.3894,
+   "mfe": 0.3894,
    "mae": -0.3894,
    "outcomeLabel": null,
    "correct": null,
@@ -1398,7 +1416,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1414,14 +1432,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
-   "mfe": -0.7688,
+   "mfe": -0.1517,
    "mae": -0.9171,
    "outcomeLabel": null,
    "correct": null,
@@ -1430,7 +1448,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1446,15 +1464,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.9946,
-   "mae": -0.9946,
+   "mae": -5.4142,
    "outcomeLabel": null,
    "correct": null,
    "id": "578464c4-a832-4e4c-b32b-b16d1b8c7018",
@@ -1462,7 +1480,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1478,15 +1496,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.9095,
-   "mae": 0.9095,
+   "mae": 0.492,
    "outcomeLabel": null,
    "correct": null,
    "id": "6c778b8f-98f2-4576-88f3-edc44e4b4193",
@@ -1494,7 +1512,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1510,12 +1528,12 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -1.2201,
    "mae": -1.446,
@@ -1526,7 +1544,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1542,7 +1560,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1558,7 +1576,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1574,7 +1592,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1590,7 +1608,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1606,15 +1624,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -0.9841,
-   "mae": -4.0258,
+   "mae": -5.9402,
    "outcomeLabel": null,
    "correct": null,
    "id": "73ca6ee2-4c8c-4b3a-a3ce-b26dd97f0e4a",
@@ -1622,14 +1640,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -3.9153,
+   "mfe": -2.2222,
    "mae": -3.9153,
    "outcomeLabel": null,
    "correct": null,
@@ -1638,15 +1656,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.5785,
-   "mae": 0.5785,
+   "mae": -1.1496,
    "outcomeLabel": null,
    "correct": null,
    "id": "63f1ec82-c573-451c-8793-121d15fbb274",
@@ -1654,15 +1672,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -3.1623,
-   "mae": -9.7173,
+   "mae": -14.7225,
    "outcomeLabel": null,
    "correct": null,
    "id": "3510263b-b6ab-43e9-b6ef-9c61b5777d24",
@@ -1670,7 +1688,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1686,7 +1704,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1702,15 +1720,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.1724,
-   "mae": -0.1724,
+   "mae": -0.8621,
    "outcomeLabel": null,
    "correct": null,
    "id": "332ca600-e78c-44ce-8457-de015a6cfcc5",
@@ -1718,7 +1736,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1734,7 +1752,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1750,7 +1768,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1766,7 +1784,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1782,14 +1800,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 0.3906,
+   "mfe": 0.625,
    "mae": 0.3906,
    "outcomeLabel": null,
    "correct": null,
@@ -1798,7 +1816,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1814,15 +1832,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.2949,
-   "mae": -0.2949,
+   "mae": -0.7221,
    "outcomeLabel": null,
    "correct": null,
    "id": "1c0a9b66-73c9-402b-8eed-84c8a5503878",
@@ -1830,7 +1848,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1846,7 +1864,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1862,14 +1880,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -0.6125,
+   "mfe": 0.4997,
    "mae": -0.6125,
    "outcomeLabel": null,
    "correct": null,
@@ -1878,7 +1896,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1894,15 +1912,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": 0.0862,
-   "mae": -1.742,
+   "mae": -1.9489,
    "outcomeLabel": null,
    "correct": null,
    "id": "f5c29a7c-2e91-444e-9590-b256e00a1bce",
@@ -1910,14 +1928,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
-   "mfe": -0.5085,
+   "mfe": 0.0565,
    "mae": -1.9774,
    "outcomeLabel": null,
    "correct": null,
@@ -1926,7 +1944,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1942,14 +1960,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 1.2924,
+   "mfe": 1.9839,
    "mae": 1.2924,
    "outcomeLabel": null,
    "correct": null,
@@ -1958,7 +1976,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -1974,15 +1992,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.3049,
-   "mae": -0.3049,
+   "mae": -1.5244,
    "outcomeLabel": null,
    "correct": null,
    "id": "0ed3b898-2972-4a9f-9488-fbdbeb4813d9",
@@ -1990,7 +2008,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2006,7 +2024,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2022,7 +2040,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2038,7 +2056,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2054,12 +2072,12 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 2,
+   "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -0.849,
    "mae": -1.9406,
@@ -2070,14 +2088,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -6.0918,
+   "mfe": -3.5614,
    "mae": -6.0918,
    "outcomeLabel": null,
    "correct": null,
@@ -2086,14 +2104,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 0.2208,
+   "mfe": 0.4415,
    "mae": 0.2208,
    "outcomeLabel": null,
    "correct": null,
@@ -2102,7 +2120,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2118,7 +2136,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2134,7 +2152,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2150,15 +2168,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.4711,
-   "mae": 0.4711,
+   "mae": -7.2438,
    "outcomeLabel": null,
    "correct": null,
    "id": "4be4848a-6247-47eb-86f6-42f0fdbf3f83",
@@ -2166,15 +2184,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.0572,
-   "mae": -1.0572,
+   "mae": -1.8657,
    "outcomeLabel": null,
    "correct": null,
    "id": "92786a9d-ad6f-490a-bf10-0be16a4cca9c",
@@ -2182,14 +2200,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -0.409,
+   "mfe": 3.1357,
    "mae": -0.409,
    "outcomeLabel": null,
    "correct": null,
@@ -2198,7 +2216,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2214,15 +2232,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.2193,
-   "mae": -0.2193,
+   "mae": -1.8476,
    "outcomeLabel": null,
    "correct": null,
    "id": "728c0b5c-662d-4fb4-9c49-78e9b4dc62cc",
@@ -2230,7 +2248,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2246,7 +2264,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2262,15 +2280,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 1.0307,
-   "mae": 1.0307,
+   "mae": -0.3748,
    "outcomeLabel": null,
    "correct": null,
    "id": "34958e06-c4b3-4ae1-93f5-3e57f2e9a015",
@@ -2278,7 +2296,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2294,7 +2312,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2310,14 +2328,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 9.9886,
+   "mfe": 21.0046,
    "mae": 9.9886,
    "outcomeLabel": null,
    "correct": null,
@@ -2326,7 +2344,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2342,7 +2360,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2358,15 +2376,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 1.5927,
-   "mae": 1.5927,
+   "mae": 0.2711,
    "outcomeLabel": null,
    "correct": null,
    "id": "9af8d300-1eed-49e3-af67-399d5f734a11",
@@ -2374,7 +2392,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2390,7 +2408,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2406,7 +2424,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2422,7 +2440,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2438,14 +2456,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 10.0,
+   "mfe": 14.3564,
    "mae": 10.0,
    "outcomeLabel": null,
    "correct": null,
@@ -2454,15 +2472,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.9009,
-   "mae": -0.9009,
+   "mae": -2.9279,
    "outcomeLabel": null,
    "correct": null,
    "id": "0d74b4d3-b414-4bd6-821b-8c3f265310eb",
@@ -2470,7 +2488,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2486,7 +2504,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2502,7 +2520,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2518,7 +2536,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2534,7 +2552,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2550,7 +2568,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2566,15 +2584,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.2907,
-   "mae": -0.2907,
+   "mae": -0.964,
    "outcomeLabel": null,
    "correct": null,
    "id": "2d897ab9-85c4-48b9-93ef-2929e17bb5ae",
@@ -2582,7 +2600,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2598,14 +2616,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -0.2512,
+   "mfe": 0.4396,
    "mae": -0.2512,
    "outcomeLabel": null,
    "correct": null,
@@ -2614,14 +2632,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 0.2126,
+   "mfe": 1.9133,
    "mae": 0.2126,
    "outcomeLabel": null,
    "correct": null,
@@ -2630,7 +2648,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2646,7 +2664,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2662,7 +2680,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2678,7 +2696,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2694,7 +2712,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2710,7 +2728,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2726,15 +2744,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.0985,
-   "mae": 0.0985,
+   "mae": -0.2516,
    "outcomeLabel": null,
    "correct": null,
    "id": "0566499a-8f30-49e8-974f-f68e08747fbf",
@@ -2742,7 +2760,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2758,15 +2776,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.4232,
-   "mae": -0.4232,
+   "mae": -1.3272,
    "outcomeLabel": null,
    "correct": null,
    "id": "c542afe1-0070-4a29-9610-52bbd2553d45",
@@ -2774,15 +2792,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.0375,
-   "mae": -0.0375,
+   "mae": -1.8135,
    "outcomeLabel": null,
    "correct": null,
    "id": "446d4d32-0032-4a4f-acd6-1b0eabef9334",
@@ -2790,15 +2808,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.1494,
-   "mae": -1.1494,
+   "mae": -3.0651,
    "outcomeLabel": null,
    "correct": null,
    "id": "24331c48-57c8-4c12-80fc-afbeaf213420",
@@ -2806,7 +2824,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2822,15 +2840,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.2114,
-   "mae": -0.2114,
+   "mae": -1.2685,
    "outcomeLabel": null,
    "correct": null,
    "id": "14c221a3-b3fe-4eac-b63a-a9fdd66341e0",
@@ -2838,15 +2856,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.5521,
-   "mae": -0.5521,
+   "mae": -1.8946,
    "outcomeLabel": null,
    "correct": null,
    "id": "9bb7d514-0825-4f82-9582-e495f560c2c7",
@@ -2854,15 +2872,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.6667,
-   "mae": 0.6667,
+   "mae": 0.4054,
    "outcomeLabel": null,
    "correct": null,
    "id": "0f7e2e6c-9bf3-4afd-993a-6d7c4bbd5293",
@@ -2870,7 +2888,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2886,14 +2904,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 0.0713,
+   "mfe": 0.2853,
    "mae": 0.0713,
    "outcomeLabel": null,
    "correct": null,
@@ -2902,7 +2920,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2918,7 +2936,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2926,7 +2944,7 @@
    "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -0.6143,
-   "mae": -3.7908,
+   "mae": -3.8208,
    "outcomeLabel": null,
    "correct": null,
    "id": "c7b93311-2c8d-48b3-b73e-1be6ecd24aec",
@@ -2934,15 +2952,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.2443,
-   "mae": -0.2443,
+   "mae": -0.3969,
    "outcomeLabel": null,
    "correct": null,
    "id": "ffed132e-27e6-4214-a1e0-92b45afa2cb6",
@@ -2950,15 +2968,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 1.0156,
-   "mae": 1.0156,
+   "mae": -0.6545,
    "outcomeLabel": null,
    "correct": null,
    "id": "466640d6-20dd-4fde-a94e-a5f23c7182d5",
@@ -2966,15 +2984,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.0,
-   "mae": 0.0,
+   "mae": -1.7857,
    "outcomeLabel": null,
    "correct": null,
    "id": "657237ee-3a6a-41ad-ac4d-c4cc1fed42da",
@@ -2982,7 +3000,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -2998,7 +3016,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3014,15 +3032,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.4147,
-   "mae": 0.4147,
+   "mae": -1.3278,
    "outcomeLabel": null,
    "correct": null,
    "id": "cb953330-06c8-4ee0-ae20-b4b3389c2237",
@@ -3030,15 +3048,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.3726,
-   "mae": 0.3726,
+   "mae": -0.6996,
    "outcomeLabel": null,
    "correct": null,
    "id": "7f11e48d-6040-4ee3-aa26-cf6c57d34cf5",
@@ -3046,14 +3064,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -0.1,
+   "mfe": 0.1,
    "mae": -0.1,
    "outcomeLabel": null,
    "correct": null,
@@ -3062,7 +3080,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3078,15 +3096,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.6976,
-   "mae": -0.6976,
+   "mae": -3.5184,
    "outcomeLabel": null,
    "correct": null,
    "id": "7d45c52b-84ed-47fc-ae8f-fdcdcd1ffb8c",
@@ -3094,15 +3112,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.8197,
-   "mae": -0.8197,
+   "mae": -6.8554,
    "outcomeLabel": null,
    "correct": null,
    "id": "e1c30844-a96c-49a1-9d29-d5d1830a5bf9",
@@ -3110,14 +3128,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -1.5409,
+   "mfe": 0.5845,
    "mae": -1.5409,
    "outcomeLabel": null,
    "correct": null,
@@ -3126,7 +3144,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3142,7 +3160,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3158,7 +3176,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3174,7 +3192,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3190,15 +3208,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.99,
-   "mae": -1.99,
+   "mae": -3.0348,
    "outcomeLabel": null,
    "correct": null,
    "id": "91cb8b46-a1b0-41db-8528-2cc88f828f0b",
@@ -3206,15 +3224,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.0049,
-   "mae": 0.0049,
+   "mae": -1.4188,
    "outcomeLabel": null,
    "correct": null,
    "id": "cf333bd0-7f3c-41e1-8b88-c1ff8c35aa1b",
@@ -3222,7 +3240,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3238,7 +3256,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3254,14 +3272,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 0.1924,
+   "mfe": 0.683,
    "mae": 0.1924,
    "outcomeLabel": null,
    "correct": null,
@@ -3270,7 +3288,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3286,7 +3304,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3302,7 +3320,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3318,7 +3336,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3326,7 +3344,7 @@
    "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -3.2635,
-   "mae": -10.8682,
+   "mae": -10.6861,
    "outcomeLabel": null,
    "correct": null,
    "id": "32a9baa5-d646-4f7c-9c39-ce5a9e2384f0",
@@ -3334,7 +3352,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3350,15 +3368,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 2.7416,
-   "mae": 2.7416,
+   "mae": 1.5955,
    "outcomeLabel": null,
    "correct": null,
    "id": "7dfcb1e3-8eed-4729-9898-5b4736557420",
@@ -3366,7 +3384,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3382,15 +3400,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.8756,
-   "mae": 0.8756,
+   "mae": -0.1562,
    "outcomeLabel": null,
    "correct": null,
    "id": "66f86e38-cb6a-4fb5-ab64-3a94bd31ebc0",
@@ -3398,15 +3416,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.7332,
-   "mae": -0.7332,
+   "mae": -1.6356,
    "outcomeLabel": null,
    "correct": null,
    "id": "38a7aede-bf09-4174-9298-3e897f4910f1",
@@ -3414,7 +3432,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3430,15 +3448,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.3386,
-   "mae": 0.3386,
+   "mae": 0.114,
    "outcomeLabel": null,
    "correct": null,
    "id": "e2b652ea-a769-4748-92d1-284d5d91882c",
@@ -3446,7 +3464,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3462,15 +3480,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.6233,
-   "mae": 0.6233,
+   "mae": 0.01,
    "outcomeLabel": null,
    "correct": null,
    "id": "7d26220e-f3fd-4637-9fee-822a642e3687",
@@ -3478,7 +3496,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3494,7 +3512,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3510,15 +3528,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 1.5683,
-   "mae": 1.5683,
+   "mae": 0.8336,
    "outcomeLabel": null,
    "correct": null,
    "id": "89cafa9e-69c8-4973-82c3-6b419caa7b5e",
@@ -3526,14 +3544,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 1.7146,
+   "mfe": 2.4022,
    "mae": 1.7146,
    "outcomeLabel": null,
    "correct": null,
@@ -3542,15 +3560,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.8966,
-   "mae": -1.8966,
+   "mae": -2.4138,
    "outcomeLabel": null,
    "correct": null,
    "id": "1ee32911-ff08-4303-908b-4204c15ad4d1",
@@ -3558,7 +3576,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3574,15 +3592,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.9605,
-   "mae": -0.9605,
+   "mae": -1.1258,
    "outcomeLabel": null,
    "correct": null,
    "id": "cae6934b-b412-4c1e-8498-1ac998b35bbf",
@@ -3590,7 +3608,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3606,7 +3624,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3622,7 +3640,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3638,7 +3656,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3654,15 +3672,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.389,
-   "mae": 0.389,
+   "mae": 0.1667,
    "outcomeLabel": null,
    "correct": null,
    "id": "4d22fcd9-f0c1-4942-8c06-2ca8add9f29f",
@@ -3670,15 +3688,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.0983,
-   "mae": 0.0983,
+   "mae": -0.207,
    "outcomeLabel": null,
    "correct": null,
    "id": "bc592167-cd05-4074-b278-037c89842237",
@@ -3686,7 +3704,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3702,7 +3720,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3718,15 +3736,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.8686,
-   "mae": 0.8686,
+   "mae": -0.6515,
    "outcomeLabel": null,
    "correct": null,
    "id": "956257d4-ab10-4131-bb95-baaa6e7c6afa",
@@ -3734,7 +3752,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3750,7 +3768,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3766,7 +3784,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3782,15 +3800,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.2171,
-   "mae": -0.2171,
+   "mae": -0.9407,
    "outcomeLabel": null,
    "correct": null,
    "id": "6219c556-b8e7-4915-95f0-d1e986189a21",
@@ -3798,7 +3816,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3814,14 +3832,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -2.0038,
+   "mfe": -1.5028,
    "mae": -2.0038,
    "outcomeLabel": null,
    "correct": null,
@@ -3830,15 +3848,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.0077,
-   "mae": -0.0077,
+   "mae": -1.0691,
    "outcomeLabel": null,
    "correct": null,
    "id": "669ba159-f8aa-4917-a308-71146173ef7b",
@@ -3846,7 +3864,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3862,14 +3880,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -2.8882,
+   "mfe": -2.3735,
    "mae": -2.8882,
    "outcomeLabel": null,
    "correct": null,
@@ -3878,15 +3896,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 1.3606,
-   "mae": 1.3606,
+   "mae": 0.9096,
    "outcomeLabel": null,
    "correct": null,
    "id": "96596327-e0d6-4d3b-acb2-15da6f3e3b22",
@@ -3894,14 +3912,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -0.6445,
+   "mfe": 0.0,
    "mae": -0.6445,
    "outcomeLabel": null,
    "correct": null,
@@ -3910,15 +3928,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.6101,
-   "mae": -1.6101,
+   "mae": -2.0127,
    "outcomeLabel": null,
    "correct": null,
    "id": "8ff8e041-fa80-4f56-b0fe-8bf1c9f438eb",
@@ -3926,15 +3944,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.6831,
-   "mae": 0.6831,
+   "mae": 0.1613,
    "outcomeLabel": null,
    "correct": null,
    "id": "024299d5-169e-485d-bfc8-3a88ed8ee58b",
@@ -3942,15 +3960,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.399,
-   "mae": 0.399,
+   "mae": -0.1866,
    "outcomeLabel": null,
    "correct": null,
    "id": "97603d8e-45dd-42a4-b442-844801065103",
@@ -3958,7 +3976,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3974,7 +3992,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -3990,7 +4008,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4006,7 +4024,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4022,7 +4040,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4038,15 +4056,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 1.2551,
-   "mae": 1.2551,
+   "mae": -0.1409,
    "outcomeLabel": null,
    "correct": null,
    "id": "2e578e49-4111-46e2-8fe4-2f2ed063a12e",
@@ -4054,7 +4072,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4070,14 +4088,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 0.3173,
+   "mfe": 5.536,
    "mae": 0.3173,
    "outcomeLabel": null,
    "correct": null,
@@ -4086,15 +4104,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 1.99,
-   "mae": 1.99,
+   "mae": 0.4975,
    "outcomeLabel": null,
    "correct": null,
    "id": "f19a4715-5ab1-49a8-98a2-1db0485a1062",
@@ -4102,7 +4120,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4118,7 +4136,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4134,15 +4152,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -10.0032,
-   "mae": -10.0032,
+   "mae": -18.9997,
    "outcomeLabel": null,
    "correct": null,
    "id": "89044b84-0c45-4084-acd2-d9bafd925755",
@@ -4150,15 +4168,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.098,
-   "mae": -1.098,
+   "mae": -3.7821,
    "outcomeLabel": null,
    "correct": null,
    "id": "1782b16b-10cc-4cbf-aaf5-b49c88e3eabb",
@@ -4166,7 +4184,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4182,7 +4200,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4198,14 +4216,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -1.7814,
+   "mfe": -1.2146,
    "mae": -1.7814,
    "outcomeLabel": null,
    "correct": null,
@@ -4214,15 +4232,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 6.9725,
-   "mae": 6.9725,
+   "mae": 3.945,
    "outcomeLabel": null,
    "correct": null,
    "id": "635d99e1-0c64-4591-97e4-15cc32a7c1c8",
@@ -4230,15 +4248,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.2266,
-   "mae": 0.2266,
+   "mae": -6.1556,
    "outcomeLabel": null,
    "correct": null,
    "id": "368ceff3-7e73-4e19-9229-47b946c95d7c",
@@ -4246,15 +4264,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 3.0457,
-   "mae": 3.0457,
+   "mae": 1.692,
    "outcomeLabel": null,
    "correct": null,
    "id": "54579f4e-0d51-4fce-8f8d-221a293116cc",
@@ -4262,7 +4280,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4278,7 +4296,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4294,7 +4312,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4310,7 +4328,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4326,7 +4344,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4342,15 +4360,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.2429,
-   "mae": -1.2429,
+   "mae": -3.6158,
    "outcomeLabel": null,
    "correct": null,
    "id": "d3f6c285-55f4-4b43-b3ac-68935c8b5309",
@@ -4358,7 +4376,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4374,15 +4392,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.5491,
-   "mae": -0.5491,
+   "mae": -1.6114,
    "outcomeLabel": null,
    "correct": null,
    "id": "7e6ec3bd-8154-4132-8a1b-28b1758667ef",
@@ -4390,15 +4408,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.7576,
-   "mae": 0.7576,
+   "mae": -0.7576,
    "outcomeLabel": null,
    "correct": null,
    "id": "aee04b5c-e270-4cae-91bc-346d8757fcb2",
@@ -4406,14 +4424,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -0.2516,
+   "mfe": 2.348,
    "mae": -0.2516,
    "outcomeLabel": null,
    "correct": null,
@@ -4422,15 +4440,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -9.9974,
-   "mae": -9.9974,
+   "mae": -18.1111,
    "outcomeLabel": null,
    "correct": null,
    "id": "abe765a0-3712-458c-bd40-289483ca9d1e",
@@ -4438,14 +4456,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -3.7402,
+   "mfe": -1.2889,
    "mae": -3.7402,
    "outcomeLabel": null,
    "correct": null,
@@ -4454,14 +4472,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -1.1029,
+   "mfe": 0.0,
    "mae": -1.1029,
    "outcomeLabel": null,
    "correct": null,
@@ -4470,7 +4488,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4486,15 +4504,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.799,
-   "mae": -0.799,
+   "mae": -3.9121,
    "outcomeLabel": null,
    "correct": null,
    "id": "98204435-3517-467c-8c82-50a587e0dd89",
@@ -4502,15 +4520,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.002,
-   "mae": -1.002,
+   "mae": -2.2483,
    "outcomeLabel": null,
    "correct": null,
    "id": "54806131-6423-41a4-b0d5-35761d287498",
@@ -4518,12 +4536,12 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.2113,
    "mae": 0.2113,
@@ -4534,7 +4552,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4550,7 +4568,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4566,7 +4584,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4582,7 +4600,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4598,15 +4616,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.0627,
-   "mae": -0.0627,
+   "mae": -1.3784,
    "outcomeLabel": null,
    "correct": null,
    "id": "8a12bb26-649b-42c2-8080-d828321c3cab",
@@ -4614,7 +4632,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4630,15 +4648,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.5879,
-   "mae": -1.5879,
+   "mae": -3.3695,
    "outcomeLabel": null,
    "correct": null,
    "id": "89137a85-c26e-4b74-ae61-41fdae17b752",
@@ -4646,7 +4664,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4662,12 +4680,12 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.8574,
    "mae": -0.8574,
@@ -4678,7 +4696,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4694,15 +4712,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.1835,
-   "mae": -0.1835,
+   "mae": -0.9174,
    "outcomeLabel": null,
    "correct": null,
    "id": "2306c630-9385-4cd5-9923-8372a5a3462b",
@@ -4710,15 +4728,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.079,
-   "mae": -0.079,
+   "mae": -0.4739,
    "outcomeLabel": null,
    "correct": null,
    "id": "76f6ac98-f5a3-4c1f-bf8d-37e39ef71d24",
@@ -4726,7 +4744,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4742,15 +4760,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.8417,
-   "mae": -0.8417,
+   "mae": -0.8961,
    "outcomeLabel": null,
    "correct": null,
    "id": "a63f43ad-82bb-4abe-a31c-5b6d4c9d84e8",
@@ -4758,7 +4776,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4774,7 +4792,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4790,15 +4808,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.7282,
-   "mae": -0.7282,
+   "mae": -1.7922,
    "outcomeLabel": null,
    "correct": null,
    "id": "6ea35fd7-a5f9-4791-8c57-b5d0b05225b1",
@@ -4806,7 +4824,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4822,15 +4840,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.1504,
-   "mae": -0.1504,
+   "mae": -0.3578,
    "outcomeLabel": null,
    "correct": null,
    "id": "cf106c69-6513-4160-8e19-4fba9f95418f",
@@ -4838,14 +4856,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 0.9297,
+   "mfe": 1.6439,
    "mae": 0.9297,
    "outcomeLabel": null,
    "correct": null,
@@ -4854,7 +4872,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4870,7 +4888,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4886,7 +4904,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4902,7 +4920,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4918,15 +4936,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 2.6087,
-   "mae": 2.6087,
+   "mae": 0.2899,
    "outcomeLabel": null,
    "correct": null,
    "id": "567dfaeb-2b81-421a-87b8-7593d6059d9f",
@@ -4934,15 +4952,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.4795,
-   "mae": -0.4795,
+   "mae": -0.691,
    "outcomeLabel": null,
    "correct": null,
    "id": "42754c3c-e1e3-421b-bdb5-3e2069b6b897",
@@ -4950,15 +4968,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.9855,
-   "mae": -0.9855,
+   "mae": -3.0185,
    "outcomeLabel": null,
    "correct": null,
    "id": "4409c390-8621-4cf9-8cc8-0248c3422cbe",
@@ -4966,7 +4984,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4982,7 +5000,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -4998,7 +5016,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5014,15 +5032,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -4.5503,
-   "mae": -4.5503,
+   "mae": -5.5346,
    "outcomeLabel": null,
    "correct": null,
    "id": "6faeed55-67a2-4964-8848-c69ad238e262",
@@ -5030,15 +5048,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -7.1232,
-   "mae": -7.1232,
+   "mae": -8.3987,
    "outcomeLabel": null,
    "correct": null,
    "id": "684cc2cf-fa0c-4504-8f11-3345d3d358f5",
@@ -5046,7 +5064,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5062,15 +5080,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.5528,
-   "mae": -0.5528,
+   "mae": -1.3488,
    "outcomeLabel": null,
    "correct": null,
    "id": "b484df15-61fe-4daf-9802-7c4b833fe35d",
@@ -5078,7 +5096,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5094,7 +5112,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5110,7 +5128,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5126,7 +5144,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5142,7 +5160,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5158,14 +5176,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -1.9505,
+   "mfe": -1.2378,
    "mae": -1.9505,
    "outcomeLabel": null,
    "correct": null,
@@ -5174,7 +5192,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5190,7 +5208,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5206,7 +5224,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5222,7 +5240,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5238,15 +5256,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 9.9865,
-   "mae": 9.9865,
+   "mae": 0.4049,
    "outcomeLabel": null,
    "correct": null,
    "id": "07b91d0d-8a6a-4a81-9ba8-bdb0cb812558",
@@ -5254,7 +5272,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5270,15 +5288,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.6124,
-   "mae": -0.6124,
+   "mae": -5.0636,
    "outcomeLabel": null,
    "correct": null,
    "id": "0af83039-3752-44e3-bebc-ddb2edc8680b",
@@ -5286,7 +5304,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5302,15 +5320,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.7149,
-   "mae": 0.7149,
+   "mae": -2.5835,
    "outcomeLabel": null,
    "correct": null,
    "id": "5e1ae3a3-708e-499d-8833-f7a05692c95b",
@@ -5318,7 +5336,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5334,15 +5352,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.1062,
-   "mae": -0.1062,
+   "mae": -4.2647,
    "outcomeLabel": null,
    "correct": null,
    "id": "367490f4-e48c-43a8-9daa-1c9772673f86",
@@ -5350,14 +5368,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -0.2241,
+   "mfe": 0.2308,
    "mae": -0.2241,
    "outcomeLabel": null,
    "correct": null,
@@ -5366,15 +5384,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.5936,
-   "mae": 0.5936,
+   "mae": 0.473,
    "outcomeLabel": null,
    "correct": null,
    "id": "79b9a331-2b4d-40bd-be74-c86a52da5274",
@@ -5382,15 +5400,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.653,
-   "mae": -0.653,
+   "mae": -1.2432,
    "outcomeLabel": null,
    "correct": null,
    "id": "113614c4-ba85-43da-a547-d60ef27ee011",
@@ -5398,15 +5416,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 1.3398,
-   "mae": 1.3398,
+   "mae": -0.7127,
    "outcomeLabel": null,
    "correct": null,
    "id": "44c9f2fc-0a6e-491a-890f-f363552a3ce5",
@@ -5414,15 +5432,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.4686,
-   "mae": -0.4686,
+   "mae": -1.9152,
    "outcomeLabel": null,
    "correct": null,
    "id": "cbbb310b-19c6-4d43-b853-c6d77cca1efb",
@@ -5430,7 +5448,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5446,7 +5464,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5462,7 +5480,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5478,14 +5496,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -0.0946,
+   "mfe": -0.0383,
    "mae": -0.0946,
    "outcomeLabel": null,
    "correct": null,
@@ -5494,7 +5512,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5510,15 +5528,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.0489,
-   "mae": 0.0489,
+   "mae": -0.1631,
    "outcomeLabel": null,
    "correct": null,
    "id": "9c7df9f0-8900-462c-8ef3-790b855cede4",
@@ -5526,7 +5544,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5542,15 +5560,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.8196,
-   "mae": 0.8196,
+   "mae": 0.5426,
    "outcomeLabel": null,
    "correct": null,
    "id": "b8954e3e-440c-4c57-95ea-02cf264d0d90",
@@ -5558,7 +5576,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5574,15 +5592,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 1.7733,
-   "mae": 1.7733,
+   "mae": 0.5078,
    "outcomeLabel": null,
    "correct": null,
    "id": "8f001f7d-be5f-43fd-b673-1c820349dd1f",
@@ -5590,7 +5608,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5606,7 +5624,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5622,15 +5640,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 1.6403,
-   "mae": 1.6403,
+   "mae": 0.4196,
    "outcomeLabel": null,
    "correct": null,
    "id": "d0a027cb-5576-454a-9e92-dd88d40f93c7",
@@ -5638,14 +5656,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 0.6729,
+   "mfe": 2.229,
    "mae": 0.6729,
    "outcomeLabel": null,
    "correct": null,
@@ -5654,15 +5672,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.4294,
-   "mae": -1.4294,
+   "mae": -3.0375,
    "outcomeLabel": null,
    "correct": null,
    "id": "4e50d58f-f5d8-4391-959b-2c2c6796b6f6",
@@ -5670,7 +5688,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5686,7 +5704,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5702,7 +5720,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5718,7 +5736,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5734,7 +5752,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5750,7 +5768,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5766,15 +5784,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.1259,
-   "mae": -0.1259,
+   "mae": -0.2517,
    "outcomeLabel": null,
    "correct": null,
    "id": "451ddc4e-d014-4b98-a696-4710f03e2003",
@@ -5782,15 +5800,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.5115,
-   "mae": -0.5115,
+   "mae": -1.023,
    "outcomeLabel": null,
    "correct": null,
    "id": "fdbc9742-9b7e-429a-8f83-d32f5393c7ef",
@@ -5798,14 +5816,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -1.0422,
+   "mfe": -0.9198,
    "mae": -1.0422,
    "outcomeLabel": null,
    "correct": null,
@@ -5814,7 +5832,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5830,14 +5848,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -0.044,
+   "mfe": 0.7038,
    "mae": -0.044,
    "outcomeLabel": null,
    "correct": null,
@@ -5846,7 +5864,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5862,7 +5880,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5878,7 +5896,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5894,7 +5912,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5910,7 +5928,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5926,15 +5944,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 3.9484,
-   "mae": 3.9484,
+   "mae": 3.8415,
    "outcomeLabel": null,
    "correct": null,
    "id": "120ebeb0-bbc1-49c2-b0bb-506143bf3796",
@@ -5942,7 +5960,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5958,7 +5976,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -5974,15 +5992,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 1.7102,
-   "mae": 1.7102,
+   "mae": -0.694,
    "outcomeLabel": null,
    "correct": null,
    "id": "37b7a59b-9a93-4719-8289-5e9d2d605813",
@@ -5990,15 +6008,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 6.6672,
-   "mae": 6.6672,
+   "mae": 6.3117,
    "outcomeLabel": null,
    "correct": null,
    "id": "70dd31b8-2d49-47dc-b0f4-a5052ac1c34c",
@@ -6006,7 +6024,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6022,7 +6040,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6038,15 +6056,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -5.4983,
-   "mae": -5.4983,
+   "mae": -9.9656,
    "outcomeLabel": null,
    "correct": null,
    "id": "120ef7b4-92e6-422f-8189-cbd29a6020b8",
@@ -6054,7 +6072,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6070,7 +6088,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6086,7 +6104,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6102,7 +6120,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6118,14 +6136,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 10.0005,
+   "mfe": 21.0004,
    "mae": 10.0005,
    "outcomeLabel": null,
    "correct": null,
@@ -6134,7 +6152,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6150,7 +6168,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6166,7 +6184,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6182,7 +6200,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6198,7 +6216,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6214,7 +6232,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6230,7 +6248,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6246,7 +6264,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6262,7 +6280,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6278,14 +6296,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -3.9367,
+   "mfe": -0.2995,
    "mae": -3.9367,
    "outcomeLabel": null,
    "correct": null,
@@ -6294,15 +6312,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.3678,
-   "mae": 0.3678,
+   "mae": -0.4111,
    "outcomeLabel": null,
    "correct": null,
    "id": "496beeec-c772-448c-8c5e-7f9a5199033a",
@@ -6310,15 +6328,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 3.8119,
-   "mae": 3.8119,
+   "mae": -0.1537,
    "outcomeLabel": null,
    "correct": null,
    "id": "7570a419-740d-4cb2-90fb-9d307795ab91",
@@ -6326,7 +6344,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6342,7 +6360,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6358,7 +6376,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6374,7 +6392,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6390,7 +6408,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6406,14 +6424,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 1.1893,
+   "mfe": 1.9068,
    "mae": 1.1893,
    "outcomeLabel": null,
    "correct": null,
@@ -6422,7 +6440,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6430,7 +6448,7 @@
    "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -1.1841,
-   "mae": -4.2125,
+   "mae": -4.1601,
    "outcomeLabel": null,
    "correct": null,
    "id": "efbcb3fa-02d6-457c-b777-c9b3f39d9e59",
@@ -6438,14 +6456,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 2.8355,
+   "mfe": 5.104,
    "mae": 2.8355,
    "outcomeLabel": null,
    "correct": null,
@@ -6454,7 +6472,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6470,15 +6488,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.1733,
-   "mae": -0.1733,
+   "mae": -0.1824,
    "outcomeLabel": null,
    "correct": null,
    "id": "0307eb67-a6d7-4a93-88cc-a493bb26a8f5",
@@ -6486,7 +6504,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6502,15 +6520,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -2.0377,
-   "mae": -2.0377,
+   "mae": -2.129,
    "outcomeLabel": null,
    "correct": null,
    "id": "b54f1546-31b8-4b54-a075-6b9297c16342",
@@ -6518,15 +6536,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.764,
-   "mae": 0.764,
+   "mae": -4.237,
    "outcomeLabel": null,
    "correct": null,
    "id": "94a20af7-bad0-41f6-ac21-6ed75e174697",
@@ -6534,14 +6552,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 3.0744,
+   "mfe": 4.867,
    "mae": 3.0744,
    "outcomeLabel": null,
    "correct": null,
@@ -6550,7 +6568,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6566,14 +6584,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 1.0849,
+   "mfe": 1.3376,
    "mae": 1.0849,
    "outcomeLabel": null,
    "correct": null,
@@ -6582,7 +6600,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6598,14 +6616,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -2.6517,
+   "mfe": -2.3611,
    "mae": -2.6517,
    "outcomeLabel": null,
    "correct": null,
@@ -6614,7 +6632,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6630,7 +6648,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6646,7 +6664,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6654,7 +6672,7 @@
    "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -6.7889,
-   "mae": -20.0129,
+   "mae": -20.4204,
    "outcomeLabel": null,
    "correct": null,
    "id": "387fc942-acf3-4cba-86fc-8906964696df",
@@ -6662,7 +6680,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6678,7 +6696,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6694,15 +6712,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.0547,
-   "mae": -1.0547,
+   "mae": -2.72,
    "outcomeLabel": null,
    "correct": null,
    "id": "3bef7217-6111-42e2-aeb5-2e04e850b157",
@@ -6710,15 +6728,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 9.9926,
-   "mae": 9.9926,
+   "mae": 4.9593,
    "outcomeLabel": null,
    "correct": null,
    "id": "c5335f8e-c324-4da1-9394-ac417c7ce46f",
@@ -6726,7 +6744,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6742,7 +6760,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6758,7 +6776,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6774,7 +6792,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6790,7 +6808,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6806,7 +6824,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6822,7 +6840,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6838,7 +6856,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6854,7 +6872,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6870,7 +6888,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6886,7 +6904,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6902,7 +6920,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6918,7 +6936,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6934,7 +6952,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6950,7 +6968,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6966,15 +6984,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.8587,
-   "mae": -1.8587,
+   "mae": -5.3235,
    "outcomeLabel": null,
    "correct": null,
    "id": "a2890498-cd2f-4b49-bc70-934f93232fbe",
@@ -6982,7 +7000,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -6998,15 +7016,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.2645,
-   "mae": -1.2645,
+   "mae": -2.3271,
    "outcomeLabel": null,
    "correct": null,
    "id": "e331af60-b334-4189-b0f6-c3c3730c9ab4",
@@ -7014,15 +7032,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.7117,
-   "mae": -0.7117,
+   "mae": -2.4673,
    "outcomeLabel": null,
    "correct": null,
    "id": "dd7776bd-5f41-4d56-b77e-6047cbbbfb63",
@@ -7030,15 +7048,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.2257,
-   "mae": 0.2257,
+   "mae": -1.0534,
    "outcomeLabel": null,
    "correct": null,
    "id": "9d7c4067-2bca-438b-b38a-407f3c90c472",
@@ -7046,7 +7064,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7062,15 +7080,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.15,
-   "mae": -0.15,
+   "mae": -0.9167,
    "outcomeLabel": null,
    "correct": null,
    "id": "d1ba69ec-053a-4701-a7d6-b43795600eec",
@@ -7078,7 +7096,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7094,7 +7112,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7110,15 +7128,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.7532,
-   "mae": -0.7532,
+   "mae": -2.5661,
    "outcomeLabel": null,
    "correct": null,
    "id": "9f0116fd-b138-4d48-b6f6-fead46e4d03a",
@@ -7126,7 +7144,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7142,15 +7160,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.0895,
-   "mae": -1.0895,
+   "mae": -8.2205,
    "outcomeLabel": null,
    "correct": null,
    "id": "b655203f-99d0-4f86-b88f-a677da4c184a",
@@ -7158,15 +7176,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.9498,
-   "mae": -1.9498,
+   "mae": -3.5256,
    "outcomeLabel": null,
    "correct": null,
    "id": "58a1656b-990c-43d1-90a2-e5d5efba8115",
@@ -7174,14 +7192,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 1.5067,
+   "mfe": 2.4537,
    "mae": 1.5067,
    "outcomeLabel": null,
    "correct": null,
@@ -7190,15 +7208,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.429,
-   "mae": 0.429,
+   "mae": -0.8795,
    "outcomeLabel": null,
    "correct": null,
    "id": "36389e6a-4fd1-4110-a05a-cb2cced8f1c8",
@@ -7206,7 +7224,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7222,14 +7240,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -0.9089,
+   "mfe": 1.7887,
    "mae": -0.9089,
    "outcomeLabel": null,
    "correct": null,
@@ -7238,7 +7256,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7254,7 +7272,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7270,7 +7288,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7286,7 +7304,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7302,15 +7320,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.8176,
-   "mae": 0.8176,
+   "mae": 0.6226,
    "outcomeLabel": null,
    "correct": null,
    "id": "94bf57a1-756a-4207-ba8f-be124e83b34c",
@@ -7318,7 +7336,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7334,7 +7352,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7342,7 +7360,7 @@
    "sessionsAvailable": 3,
    "fwd20": null,
    "mfe": -1.0744,
-   "mae": -2.944,
+   "mae": -2.9301,
    "outcomeLabel": null,
    "correct": null,
    "id": "f0110c48-bd6e-451f-8727-4e50ef5dd885",
@@ -7350,7 +7368,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7366,7 +7384,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7382,7 +7400,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7398,7 +7416,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7414,7 +7432,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7430,15 +7448,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.8412,
-   "mae": 0.8412,
+   "mae": 0.2629,
    "outcomeLabel": null,
    "correct": null,
    "id": "01877da2-2a1f-467a-a979-f12c153a11ba",
@@ -7446,15 +7464,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.111,
-   "mae": 0.111,
+   "mae": -0.4549,
    "outcomeLabel": null,
    "correct": null,
    "id": "d19b7626-459a-4bda-b48b-d39a4cb6d9e7",
@@ -7462,7 +7480,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7478,7 +7496,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7494,7 +7512,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7510,7 +7528,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7526,7 +7544,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7542,15 +7560,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.4167,
-   "mae": -0.4167,
+   "mae": -2.5,
    "outcomeLabel": null,
    "correct": null,
    "id": "5e9782fe-ddaf-477c-ad5a-bce0f0b12259",
@@ -7558,7 +7576,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7574,7 +7592,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7590,7 +7608,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7606,7 +7624,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7622,15 +7640,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.3812,
-   "mae": -0.3812,
+   "mae": -7.6239,
    "outcomeLabel": null,
    "correct": null,
    "id": "3fbcf07a-7963-484a-b2d9-1a303adefb2a",
@@ -7638,14 +7656,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 4.4987,
+   "mfe": 6.8123,
    "mae": 4.4987,
    "outcomeLabel": null,
    "correct": null,
@@ -7654,7 +7672,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7670,7 +7688,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7686,15 +7704,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.4778,
-   "mae": -0.4778,
+   "mae": -1.086,
    "outcomeLabel": null,
    "correct": null,
    "id": "b37d2a79-163b-44de-a118-bbfbbf376af1",
@@ -7702,14 +7720,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 1.1612,
+   "mfe": 2.7691,
    "mae": 1.1612,
    "outcomeLabel": null,
    "correct": null,
@@ -7718,7 +7736,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7734,7 +7752,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7750,7 +7768,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7766,7 +7784,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7782,7 +7800,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7798,7 +7816,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7814,15 +7832,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.4692,
-   "mae": 0.4692,
+   "mae": -3.6766,
    "outcomeLabel": null,
    "correct": null,
    "id": "c065d21e-cb3d-481a-bd28-649c8a056285",
@@ -7830,7 +7848,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7846,7 +7864,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7862,15 +7880,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.4149,
-   "mae": 0.4149,
+   "mae": -0.4149,
    "outcomeLabel": null,
    "correct": null,
    "id": "e5f29445-5129-4841-ae43-4eea37695320",
@@ -7878,15 +7896,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 2.0783,
-   "mae": 2.0783,
+   "mae": 0.7158,
    "outcomeLabel": null,
    "correct": null,
    "id": "5885ee08-10bf-4bbe-b06a-78b2b2fc565a",
@@ -7894,7 +7912,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7910,14 +7928,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 0.9323,
+   "mfe": 11.028,
    "mae": 0.9323,
    "outcomeLabel": null,
    "correct": null,
@@ -7926,7 +7944,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7942,7 +7960,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7958,15 +7976,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.9343,
-   "mae": -0.9343,
+   "mae": -4.4927,
    "outcomeLabel": null,
    "correct": null,
    "id": "a12166b9-10ad-4cc6-86f1-4f3e3043e485",
@@ -7974,7 +7992,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -7990,15 +8008,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.6598,
-   "mae": -1.6598,
+   "mae": -2.6279,
    "outcomeLabel": null,
    "correct": null,
    "id": "3c7f7c5c-e5b5-4b4c-801b-ca91b1bbb4d1",
@@ -8006,7 +8024,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8022,7 +8040,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8038,7 +8056,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8054,15 +8072,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.1656,
-   "mae": -1.1656,
+   "mae": -2.8392,
    "outcomeLabel": null,
    "correct": null,
    "id": "eb5e93ac-38e1-44eb-9e2d-ddb37e0d69df",
@@ -8070,7 +8088,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8086,7 +8104,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8102,7 +8120,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8118,7 +8136,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8134,7 +8152,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8150,15 +8168,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.6722,
-   "mae": -1.6722,
+   "mae": -3.3445,
    "outcomeLabel": null,
    "correct": null,
    "id": "00bae3e0-111f-4d2e-bc43-7bd796de90b1",
@@ -8166,15 +8184,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -1.012,
-   "mae": -1.012,
+   "mae": -1.4183,
    "outcomeLabel": null,
    "correct": null,
    "id": "1bf536c6-b037-4d01-b69d-b0a2062bf057",
@@ -8182,15 +8200,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.9192,
-   "mae": -0.9192,
+   "mae": -3.0479,
    "outcomeLabel": null,
    "correct": null,
    "id": "7a2f6180-3f94-4cb5-8b33-7f989bb36297",
@@ -8198,14 +8216,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -2.9735,
+   "mfe": 4.2663,
    "mae": -2.9735,
    "outcomeLabel": null,
    "correct": null,
@@ -8214,15 +8232,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -0.9322,
-   "mae": -0.9322,
+   "mae": -1.0593,
    "outcomeLabel": null,
    "correct": null,
    "id": "47306fbc-fb33-44a0-81fe-b4acc43b67e3",
@@ -8230,14 +8248,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 1.6225,
+   "mfe": 3.876,
    "mae": 1.6225,
    "outcomeLabel": null,
    "correct": null,
@@ -8246,7 +8264,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8262,7 +8280,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8278,7 +8296,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8294,7 +8312,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8310,15 +8328,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.4505,
-   "mae": 0.4505,
+   "mae": -1.3514,
    "outcomeLabel": null,
    "correct": null,
    "id": "b75913a6-7d49-4cd5-92fb-6f3553a8aaf9",
@@ -8326,7 +8344,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8342,7 +8360,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8358,14 +8376,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": 0.0752,
+   "mfe": 1.1287,
    "mae": 0.0752,
    "outcomeLabel": null,
    "correct": null,
@@ -8374,7 +8392,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8390,7 +8408,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8406,7 +8424,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8422,15 +8440,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.448,
-   "mae": 0.448,
+   "mae": -0.1266,
    "outcomeLabel": null,
    "correct": null,
    "id": "d17cb2da-aa13-4d60-8fa4-7182622d342e",
@@ -8438,7 +8456,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8454,7 +8472,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8470,14 +8488,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -1.3682,
+   "mfe": 0.8706,
    "mae": -1.3682,
    "outcomeLabel": null,
    "correct": null,
@@ -8486,15 +8504,15 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.4285,
-   "mae": 0.4285,
+   "mae": -0.132,
    "outcomeLabel": null,
    "correct": null,
    "id": "1e36570c-1bd4-49c9-b596-f020ed26d976",
@@ -8502,7 +8520,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8518,7 +8536,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8534,7 +8552,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8550,7 +8568,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8566,7 +8584,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8582,7 +8600,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8598,7 +8616,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8614,7 +8632,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8630,7 +8648,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8646,7 +8664,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8662,7 +8680,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8678,15 +8696,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.1367,
-   "mae": 0.1367,
+   "mae": -0.1888,
    "outcomeLabel": null,
    "correct": null,
    "id": "aeb8fc56-828a-4e63-9578-2c31e47fe7d2",
@@ -8694,14 +8712,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -2.2776,
+   "mfe": -0.9253,
    "mae": -2.2776,
    "outcomeLabel": null,
    "correct": null,
@@ -8710,7 +8728,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8726,7 +8744,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8742,7 +8760,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8758,7 +8776,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8774,7 +8792,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8790,7 +8808,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8806,7 +8824,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8822,7 +8840,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8838,7 +8856,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8854,15 +8872,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": -2.0408,
-   "mae": -2.0408,
+   "mae": -3.0612,
    "outcomeLabel": null,
    "correct": null,
    "id": "0f17663c-9bed-44e2-86ca-e1673c86742e",
@@ -8870,7 +8888,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8886,7 +8904,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8902,7 +8920,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8918,7 +8936,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8934,7 +8952,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8950,7 +8968,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8966,7 +8984,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8982,7 +9000,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -8998,15 +9016,15 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
    "mfe": 0.4833,
-   "mae": 0.4833,
+   "mae": -4.4466,
    "outcomeLabel": null,
    "correct": null,
    "id": "78b955cb-848b-4127-9cfc-52a36b538d8f",
@@ -9014,14 +9032,14 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -0.3939,
+   "mfe": 2.5735,
    "mae": -0.3939,
    "outcomeLabel": null,
    "correct": null,
@@ -9030,7 +9048,7 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -9046,7 +9064,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -9062,7 +9080,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -9078,7 +9096,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
@@ -9094,14 +9112,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-15",
-   "sessionsElapsed": 2
+   "sessionsElapsed": 3
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -1.9054,
+   "mfe": -1.1644,
    "mae": -1.9054,
    "outcomeLabel": null,
    "correct": null,
@@ -9110,6 +9128,22 @@
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-15",
+   "sessionsElapsed": 3
+  },
+  {
+   "scorable": false,
+   "mature": false,
+   "sessionsAvailable": 0,
+   "fwd20": null,
+   "mfe": null,
+   "mae": null,
+   "outcomeLabel": null,
+   "correct": null,
+   "id": "c5e3258c-0cf0-4848-990c-346449377870",
+   "symbol": "AA",
+   "market": "US",
+   "predicted": "UP",
+   "asOf": "2026-10-16",
    "sessionsElapsed": 2
   },
   {
@@ -9126,7 +9160,7 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-16",
-   "sessionsElapsed": 1
+   "sessionsElapsed": 2
   },
   {
    "scorable": false,
@@ -9142,7 +9176,23 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-16",
-   "sessionsElapsed": 1
+   "sessionsElapsed": 2
+  },
+  {
+   "scorable": false,
+   "mature": false,
+   "sessionsAvailable": 0,
+   "fwd20": null,
+   "mfe": null,
+   "mae": null,
+   "outcomeLabel": null,
+   "correct": null,
+   "id": "ec44cba3-d580-4e41-9edd-901e530b2585",
+   "symbol": "AAL",
+   "market": "US",
+   "predicted": "UP",
+   "asOf": "2026-10-16",
+   "sessionsElapsed": 2
   },
   {
    "scorable": false,
@@ -9158,14 +9208,14 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-16",
-   "sessionsElapsed": 1
+   "sessionsElapsed": 2
   },
   {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 1,
+   "sessionsAvailable": 2,
    "fwd20": null,
-   "mfe": -2.1802,
+   "mfe": -2.0899,
    "mae": -2.1802,
    "outcomeLabel": null,
    "correct": null,
@@ -9174,7 +9224,7 @@
    "market": "Crypto",
    "predicted": "UP",
    "asOf": "2026-10-16",
-   "sessionsElapsed": 3
+   "sessionsElapsed": 4
   },
   {
    "scorable": false,
@@ -9190,7 +9240,39 @@
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-16",
-   "sessionsElapsed": 1
+   "sessionsElapsed": 2
+  },
+  {
+   "scorable": false,
+   "mature": false,
+   "sessionsAvailable": 1,
+   "fwd20": null,
+   "mfe": -0.374,
+   "mae": -0.374,
+   "outcomeLabel": null,
+   "correct": null,
+   "id": "a3741719-7fa3-427d-b40e-345c8ce61d14",
+   "symbol": "ABL",
+   "market": "PK",
+   "predicted": "UP",
+   "asOf": "2026-10-16",
+   "sessionsElapsed": 2
+  },
+  {
+   "scorable": false,
+   "mature": false,
+   "sessionsAvailable": 1,
+   "fwd20": null,
+   "mfe": 0.3526,
+   "mae": 0.3526,
+   "outcomeLabel": null,
+   "correct": null,
+   "id": "6dd2e631-53f4-4c96-a804-ecbe0ed51a26",
+   "symbol": "ABOT",
+   "market": "PK",
+   "predicted": "UP",
+   "asOf": "2026-10-16",
+   "sessionsElapsed": 2
   },
   {
    "scorable": false,
@@ -9201,28 +9283,80 @@
    "mae": null,
    "outcomeLabel": null,
    "correct": null,
+   "id": "26c55e4c-aaad-4fad-917d-fba6b35af8c3",
+   "symbol": "AUDUSD",
+   "market": "FX",
+   "predicted": "FLAT",
+   "asOf": "2026-10-16",
+   "sessionsElapsed": 2
+  },
+  {
+   "scorable": false,
+   "mature": false,
+   "sessionsAvailable": 0,
+   "fwd20": null,
+   "mfe": null,
+   "mae": null,
+   "outcomeLabel": null,
+   "correct": null,
+   "id": "d7ac6ece-0a0f-4eb6-a3f2-9e228b44c271",
+   "symbol": "BZ=F",
+   "market": "Commodity",
+   "predicted": "UP",
+   "asOf": "2026-10-16",
+   "sessionsElapsed": 2
+  },
+  {
+   "scorable": false,
+   "mature": false,
+   "sessionsAvailable": 0,
+   "fwd20": null,
+   "mfe": null,
+   "mae": null,
+   "outcomeLabel": null,
+   "correct": null,
+   "id": "bb46c0aa-57e6-44b6-b630-d0b6edea5b43",
+   "symbol": "CL=F",
+   "market": "Commodity",
+   "predicted": "UP",
+   "asOf": "2026-10-16",
+   "sessionsElapsed": 2
+  },
+  {
+   "scorable": false,
+   "mature": false,
+   "sessionsAvailable": 0,
+   "fwd20": null,
+   "mfe": null,
+   "mae": null,
+   "outcomeLabel": null,
+   "correct": null,
+   "id": "8a02cd04-74c2-441a-8d96-71163271f77e",
+   "symbol": "EURGBP",
+   "market": "FX",
+   "predicted": "FLAT",
+   "asOf": "2026-10-16",
+   "sessionsElapsed": 2
+  },
+  {
    "id": "2a0f1038-8b1d-42e8-b5a6-7eff096efd3a",
    "symbol": "AA",
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-18",
-   "sessionsElapsed": 1
-  },
-  {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 0,
-   "fwd20": null,
-   "mfe": null,
-   "mae": null,
-   "outcomeLabel": null,
-   "correct": null,
+   "reason": "2026-10-18 is not a session US trades"
+  },
+  {
    "id": "e7e29c3b-8642-4d9a-ba8a-a3436367926b",
    "symbol": "AAL",
    "market": "US",
    "predicted": "UP",
    "asOf": "2026-10-18",
-   "sessionsElapsed": 1
+   "scorable": false,
+   "mature": false,
+   "reason": "2026-10-18 is not a session US trades"
   },
   {
    "scorable": false,
@@ -9238,39 +9372,27 @@
    "market": "Crypto",
    "predicted": "UP",
    "asOf": "2026-10-18",
-   "sessionsElapsed": 1
+   "sessionsElapsed": 2
   },
   {
-   "scorable": false,
-   "mature": false,
-   "sessionsAvailable": 0,
-   "fwd20": null,
-   "mfe": null,
-   "mae": null,
-   "outcomeLabel": null,
-   "correct": null,
    "id": "ce41b8a6-d2b8-4c11-a8dc-d1e2ebb079a9",
    "symbol": "ABL",
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-18",
-   "sessionsElapsed": 1
-  },
-  {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 0,
-   "fwd20": null,
-   "mfe": null,
-   "mae": null,
-   "outcomeLabel": null,
-   "correct": null,
+   "reason": "2026-10-18 is not a session PK trades"
+  },
+  {
    "id": "6be6202a-92d7-4846-8b13-a9e34ef4e973",
    "symbol": "ABOT",
    "market": "PK",
    "predicted": "UP",
    "asOf": "2026-10-18",
-   "sessionsElapsed": 1
+   "scorable": false,
+   "mature": false,
+   "reason": "2026-10-18 is not a session PK trades"
   },
   {
    "scorable": false,
@@ -9286,75 +9408,47 @@
    "market": "Crypto",
    "predicted": "UP",
    "asOf": "2026-10-18",
-   "sessionsElapsed": 1
+   "sessionsElapsed": 2
   },
   {
-   "scorable": false,
-   "mature": false,
-   "sessionsAvailable": 0,
-   "fwd20": null,
-   "mfe": null,
-   "mae": null,
-   "outcomeLabel": null,
-   "correct": null,
    "id": "d029ed36-2de4-48d8-b7a3-9cd9da3cfb21",
    "symbol": "AUDUSD",
    "market": "FX",
    "predicted": "FLAT",
    "asOf": "2026-10-18",
-   "sessionsElapsed": 1
-  },
-  {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 0,
-   "fwd20": null,
-   "mfe": null,
-   "mae": null,
-   "outcomeLabel": null,
-   "correct": null,
+   "reason": "2026-10-18 is not a session FX trades"
+  },
+  {
    "id": "916d3ff5-7eac-4aae-86ea-c82b85f3d1ad",
    "symbol": "BZ=F",
    "market": "Commodity",
    "predicted": "UP",
    "asOf": "2026-10-18",
-   "sessionsElapsed": 1
-  },
-  {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 0,
-   "fwd20": null,
-   "mfe": null,
-   "mae": null,
-   "outcomeLabel": null,
-   "correct": null,
+   "reason": "2026-10-18 is not a session Commodity trades"
+  },
+  {
    "id": "9156b554-07a1-4066-a3cc-6a4267a168ac",
    "symbol": "CL=F",
    "market": "Commodity",
    "predicted": "UP",
    "asOf": "2026-10-18",
-   "sessionsElapsed": 1
-  },
-  {
    "scorable": false,
    "mature": false,
-   "sessionsAvailable": 0,
-   "fwd20": null,
-   "mfe": null,
-   "mae": null,
-   "outcomeLabel": null,
-   "correct": null,
+   "reason": "2026-10-18 is not a session Commodity trades"
+  },
+  {
    "id": "2435e06b-dc5a-4d02-975f-dc6ca265be16",
    "symbol": "EURGBP",
    "market": "FX",
    "predicted": "FLAT",
    "asOf": "2026-10-18",
-   "sessionsElapsed": 1
+   "scorable": false,
+   "mature": false,
+   "reason": "2026-10-18 is not a session FX trades"
   }
- ],
- "write": {
-  "written": 0,
-  "status": "nothing-matured"
- }
+ ]
 }

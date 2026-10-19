@@ -305,11 +305,52 @@ class BuildTest(unittest.TestCase):
                 {"market": "PK", "scorable": False, "mature": False, "outcomeLabel": None,
                  "predicted": "UP", "correct": None}]
         m = ss.by_market(rows)
-        self.assertEqual(m["US"], {"total": 1, "awaiting": 0, "matured": 1, "graded": 1,
-                                   "correct": 1})
+        self.assertEqual(m["US"], {"total": 1, "awaiting": 0, "pending": 0, "unscorable": 0,
+                                   "matured": 1, "graded": 1, "correct": 1})
         self.assertEqual(m["PK"]["graded"], 1)
         self.assertEqual(m["PK"]["correct"], 0)
         self.assertEqual(m["PK"]["awaiting"], 1)
+        # No `reason`, so the third row is waiting for its horizon rather than refused.
+        self.assertEqual(m["PK"]["pending"], 1)
+        self.assertEqual(m["PK"]["unscorable"], 0)
+
+    def test_state_of_separates_a_refusal_from_an_unclosed_window(self):
+        """`scorable: False` is two different facts and only one of them is permanent."""
+        # Waiting for the horizon: no reason, so it will score the day the window closes.
+        self.assertEqual(ss.state_of({"scorable": False, "mature": False}), "pending")
+        # Refused: `_unscorable` and the missing-base branch of `score_one` both set a reason,
+        # and no later session supplies a close that was never stored.
+        self.assertEqual(
+            ss.state_of({"scorable": False, "mature": False,
+                         "reason": "no reference close stored for the decision session"}),
+            "unscorable")
+        self.assertEqual(ss.state_of({"scorable": True, "mature": True}), "matured")
+        # A matured row is never re-read as pending just because it has not been graded.
+        self.assertEqual(ss.state_of({"scorable": True, "mature": False}), "pending")
+
+    def test_aggregate_counts_unscorable_apart_and_keeps_awaiting_whole(self):
+        """`awaiting` keeps its old value; the split beneath it is what a reader should use."""
+        rows = [
+            {"market": "US", "scorable": True, "mature": True, "outcomeLabel": "UP",
+             "predicted": "UP", "correct": True},
+            {"market": "US", "scorable": False, "mature": False, "outcomeLabel": None,
+             "predicted": "UP", "correct": None},
+            {"market": "US", "scorable": False, "mature": False, "outcomeLabel": None,
+             "predicted": "UP", "correct": None,
+             "reason": "2026-10-18 is not a session US trades"},
+        ]
+        a = ss.aggregate(rows)
+        self.assertEqual(a["total"], 3)
+        self.assertEqual(a["matured"], 1)
+        self.assertEqual(a["pending"], 1)
+        self.assertEqual(a["unscorable"], 1)
+        # Unchanged for every existing reader: still "everything that has not matured".
+        self.assertEqual(a["awaiting"], a["pending"] + a["unscorable"])
+        self.assertEqual(a["awaiting"], 2)
+        self.assertEqual(a["unscorableReasons"],
+                         {"2026-10-18 is not a session US trades": 1})
+        # The three states partition the rows: nothing is counted twice or dropped.
+        self.assertEqual(a["matured"] + a["pending"] + a["unscorable"], a["total"])
 
 
 if __name__ == "__main__":

@@ -1,16 +1,16 @@
 {
- "generatedAt": "2026-10-19T01:04:19+00:00",
+ "generatedAt": "2026-10-19T19:52:33+00:00",
  "modelVersion": "brain-v4-commodity",
  "market": "Commodity",
  "artifact": {
   "path": "data/foundation/brain/brain-v4-commodity/model.json",
-  "sha256": "54eaaa1f3207e3f37e16075111cff83503bb0ab5fac8484bf2cd0626cf636560"
+  "sha256": "cbc3c884787ef36d7ade4f5369033928b08549c28e90ac06a41d5b3d82560e6e"
  },
  "producedBy": "tools/research/train_v4_markets.py",
  "configurationImportedFrom": "tools/research/baseline_experiment.py",
  "configurationSha256": "ba06d009dfc843b87ed48de29423215487748c800c5395cebd4b0e31075fad2d",
  "contextProducerSha256": "a0c79e42791585320d0a60a0176f2554dbb1ccec8525f6fc1e8bbd0b2539a911",
- "repoHead": "19abed437beeee561048c590e28e01e512a11ba2",
+ "repoHead": "2eb48302bc93d9f295c04334c119ff6653c50cf3",
  "theOneThingChanged": "the training population; features, target, horizon, split, embargo, seed, hyperparameters and imputation are brain-v2-context's",
  "dataset": {
   "prefix": "examples-v4-context",
@@ -106,12 +106,35 @@
   "accuracyAboveHoldoutMajority": [
    0.4438,
    0.441,
-   true
+   false,
+   {
+    "accuracy": 0.4438,
+    "baseline": 0.441,
+    "n": 1424,
+    "lift": 0.0028,
+    "standardError": 0.0132,
+    "z": 0.21,
+    "requiredAccuracy": 0.4627,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4438 vs a 0.4410 baseline on 1424 rows is 0.21 standard errors; does not clear the 0.4627 needed at one-sided 1.645"
+   }
   ],
   "beatsThePriceOnlyModel": [
    0.4438,
    0.4417,
-   true
+   false,
+   {
+    "onlyCandidateRight": 113,
+    "onlyOtherRight": 110,
+    "discordant": 223,
+    "z": 0.13,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 113 rows and wrong where it was right on 110; z = 0.13 against the 1.645 needed"
+   }
   ],
   "notDegenerate": [
    false,
@@ -263,7 +286,7 @@
    }
   }
  },
- "verdict": "GO",
+ "verdict": "NO-GO",
  "eligibleForPromotion": false,
  "promotionRule": "NOT promoted on this evaluation under any outcome; a pass licenses freezing the candidate and starting a prospective stream",
  "limitations": [

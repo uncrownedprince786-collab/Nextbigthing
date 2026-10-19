@@ -1,5 +1,99 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (forty-fourth), **the capacity floor was refusing every shadow write, the promotion gate was passing noise, and "awaiting 589" was counting rows that can never score**
+**Branch `main`.** New: `tools/research/significance.py`, `tests/test_significance.py`. Edited:
+`jobs/run.py`, `jobs/retention.py`, `tools/research/train_v4_markets.py`,
+`tools/research/shadow_score.py`, `tools/daily_audit.py`, `app/preview/predictions/page.tsx`,
+`tests/test_shadow_outcome.py`, the five `brain-v4-*` artifacts, `brain.md`.
+
+No schema change, no dependency added, no row deleted, no threshold moved to make anything green.
+
+### 1. The database was 98.5% full, so the shadow lane was already dead
+`shadow_budget.MIN_HEADROOM_MB` is 8. The primary was at **492.4 MB of the 500 MB free tier**, i.e.
+**7.6 MB of headroom** -- under the floor, so `refuse_if_full` was refusing every `ShadowPrediction`
+and `ShadowOutcome` write before the first INSERT. The safety control was working exactly as
+designed and the lane it guards could not run.
+
+**Cause, measured, not guessed.** `jobs/run.py` `DAILY` ends with `retention`; `WEEKLY` did not --
+and `WEEKLY` is the group that refetches full price histories. A refetch deletes an asset's
+`PriceSnapshot` rows and COPYs them back, and B-tree pages do not re-pack themselves. The weekly
+reconcile ran 2026-10-19T14:29Z; by 19:30 `PriceSnapshot` had gone **287.4 -> 310.5 MB**,
+`PriceSnapshot_date_idx` sat at **71.8%** leaf density and `IntradayBar_assetId_interval_ts_key` at
+**74.2%**, both loose, neither rebuilt.
+
+**Fix and evidence.** `jobs/retention.py --indexes-only` (REINDEX CONCURRENTLY, no lock, no delete)
+run against the primary: `PriceSnapshot_date_idx` 13.0 -> 7.8 MB, `IntradayBar_assetId_interval_ts_key`
+13.7 -> 10.1 MB, **database 492 -> 484 MB, +9 MB returned, no row deleted**. `retention` is now the
+last step of `WEEKLY` as well as `DAILY`. `REINDEX_MIN_BYTES` 8 MB -> 4 MB, because
+`News_asset_url_key` was the loosest index in the database (**63.5%**) and was being skipped for
+being 5.2 MB. Verified after: `headroom_mb` -> **16.5 MB**, `refuse_if_full` -> `None`. The writers
+are unblocked.
+
+### 2. The promotion gate was passing noise, and Commodity is now NO-GO
+The gate was `bool(accuracy > majority)` and `bool(accuracy > priceOnly)`. Commodity scored
+**0.4438** against a **0.4410** holdout majority on **1,424** rows and was recorded **GO** -- four
+extra correct answers, **0.21 standard errors**. The paired comparison against the price-only model
+is **113 rows to 110** out of 223 where they disagree, **z = 0.13**.
+
+`tools/research/significance.py` (new, 14 tests) carries both tests: a one-sided normal
+approximation to the binomial against the fixed baseline rate, and a **continuity-corrected
+McNemar** for the price-only comparison -- paired, because both models answer the same holdout rows
+and their errors are correlated. Both refuse below 30 trials rather than returning a verdict.
+
+Re-ran `train_v4_markets.py` on the frozen local dataset: **weights bit-identical** (only
+`trainedAt` and `status` changed), `freshProcessParity 1.0000` on all five markets, and Commodity
+flipped **GO -> NO-GO**. The manifests now record the whole calculation, not just the verdict.
+**All five markets are NO-GO; none is `productionApproved`.** The daily audit now prints
+`artifact:brain-v4-commodity ... verdict NO-GO`.
+
+### 3. "awaiting 589" was counting rows that can never be scored
+`shadow_score.py` merged two different facts into `scorable: False`: a window that has not closed
+yet, and a refusal that no later session can undo. Split on the `reason` field -- which only the
+permanent refusals set -- the honest figure is **581 pending, 8 unscorable**, the 8 being the Sunday
+`asOf` rows the per-market session fix already documents. `awaiting` keeps its old value and
+meaning; `pending`, `unscorable` and `unscorableReasons` sit beneath it, and `byMarket` carries the
+same split.
+
+**Second defect found in the same pass:** `tools/daily_audit.py` counted `scored` from the legacy
+`outcomeLabel` column, but `shadow_score.py --write` writes `ShadowOutcome` and never backfills it.
+The check would have reported **`0 scored` and a louder `matured and awaiting an outcome` warning
+every day from the moment the lane started working**. It now resolves a final `ShadowOutcome` first
+and falls back to the legacy column, which is the rule `lib/queries.ts` already used.
+
+### 4. The predictions table showed two distinct models as one row printed twice
+Measured on the deployed page: `2026-10-16 AA US swing UP 41.45` appeared **twice**. The two rows
+were `brain-v2-context` and `brain-v4-us` -- distinct records with distinct identities, rendered as
+an apparent double-write because the table had no Model column. Added **Model** and **Horizon**;
+verified in a real render against the live database (`localhost:3000/preview/predictions`), where
+the two rows now read `brain-v4-us` and `brain-v2-context`.
+
+### Verification
+- Python suite **1397 OK** (+16 this session). `npm run test:web` **509 OK**. `tsc --noEmit` clean.
+  `eslint` clean.
+- `tools/daily_audit.py`: **ok 18  warn 5  fail 0 -> healthy: True**. `databaseSize` **483.5 MB
+  (96.7%)**, down from 492.4 MB (98.5%).
+- Deployed smoke test, 21 routes on `https://nextbigthing-nu.vercel.app`: every page and
+  `/api/signals` **200**; `/api/quote` **400** without a symbol, which is its contract.
+  `/api/health` **200**, `ok:true`, `servedFrom: the primary`, quotes 13 minutes old.
+- Primary reachable, 37/37 migrations applied, `DecisionLog` newest **2026-10-19** (551 rows/day).
+
+### Still open
+- **No shadow outcome has matured and none can before 2026-11-05.** The earliest `maturesAfter` is
+  2026-11-05 (1 row), then 11-07 (2), 11-13 (20), 11-16 (566). `ShadowOutcome` is **0** and that is
+  correct, not a failure: `matured and awaiting an outcome` is **0**. The scorer's write path is
+  proven by tests and by a real read-only pass over all 589 rows; it has not yet had an eligible row
+  to write, and it cannot be made to have one without fabricating a horizon.
+- **No model has demonstrated predictive edge.** All five v4 candidates are NO-GO on a diagnostic,
+  non-independent holdout. Operational readiness and measured performance are separate results and
+  this is the second one: unproven.
+- First real scheduled `cron shadow canary` run still to be inspected; the writers are unblocked as
+  of this session, which they were not before it.
+- The third database tier (`DATABASE_URL`, Prisma) remains unreachable: `account has restrictions:
+  planLimitReached`. External, not worked around, not claimed healthy.
+- `cron decision:blocked x1` in the last 36h is the Yahoo intraday fetch; `be94d83` relabels it
+  `cron intraday` and the next decision run will carry the new label.
+
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (forty-third), **the shadow canary now grades itself and cannot spend past the cap; its capacity gate read the one database the project cannot reach**
 **Branch `main`.** New: `tools/research/shadow_budget.py`, `tests/test_shadow_budget.py`. Edited:
 `tools/research/shadow_predict.py`, `tools/research/shadow_score.py`,

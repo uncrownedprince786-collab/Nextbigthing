@@ -164,6 +164,21 @@ WEEKLY = [
     ("accuracy", []),
     ("audit", []),
     ("analysis", []),
+    # Last here for the same reason it is last in DAILY, and present here for a reason of its own.
+    #
+    # This group is the one that rewrites `PriceSnapshot` wholesale: `prices` and `psx` refetch
+    # full histories, and a refetch deletes an asset's rows and writes them back. B-tree pages do
+    # not re-pack themselves after that, so the single run that churns the store hardest was also
+    # the only one that never swept up behind itself -- DAILY ends with retention and WEEKLY did
+    # not.
+    #
+    # Measured 2026-10-19, which is what put this line here: the weekly reconcile ran at 14:29
+    # UTC; by 19:30 `PriceSnapshot` had gone from 287.4 MB to 310.5 MB, `PriceSnapshot_date_idx`
+    # sat at 71.8% leaf density and `IntradayBar_assetId_interval_ts_key` at 74.2% -- both loose,
+    # neither rebuilt. The database was at 492.4 MB of the 500 MB free tier (98.5%), which is
+    # under `shadow_budget.MIN_HEADROOM_MB`, so the shadow writers were refusing every write.
+    # Running `jobs/retention.py --indexes-only` by hand returned 9 MB and deleted no row.
+    ("retention", []),
 ]
 
 # The small groups. Every one of them is a selection over the steps DAILY and WEEKLY already

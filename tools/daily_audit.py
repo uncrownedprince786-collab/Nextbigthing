@@ -256,20 +256,32 @@ def db_checks(conn, const: dict) -> list[dict]:
     out.append(lane_check("jobRuns36h", trading))
     out.append(lane_check("productRuns36h", product, trading=False))
 
-    cur.execute("""SELECT count(*) n, count("outcomeLabel") done,
-                   min("maturesAfter") soonest, count(DISTINCT "modelVersion") mv
-                   FROM "ShadowPrediction" """)
+    # A prediction is scored when a **final `ShadowOutcome`** exists for it, or -- only for rows
+    # written before that table did -- when the legacy `outcomeLabel` column is set. Counting the
+    # legacy column alone, which this check used to do, would have reported `0 scored` and a
+    # growing `matured and awaiting an outcome` for ever once `shadow_score.py --write` started
+    # working: the scorer writes `ShadowOutcome` and does not backfill `outcomeLabel`. The lane
+    # would have come good and the monitor watching it would have raised a louder warning every
+    # day. `lib/queries.ts` already resolves the two sources this way and the two now agree.
+    scored_sql = """(EXISTS (SELECT 1 FROM "ShadowOutcome" o
+                             WHERE o."predictionId" = p.id AND o.final IS TRUE)
+                     OR p."outcomeLabel" IS NOT NULL)"""
+    cur.execute(f"""SELECT count(*) n,
+                    count(*) FILTER (WHERE {scored_sql}) done,
+                    min(p."maturesAfter") soonest,
+                    count(DISTINCT p."modelVersion") mv
+                    FROM "ShadowPrediction" p""")
     s = cur.fetchone()
     due = 0
     if s["n"]:
-        cur.execute("""SELECT count(*) n FROM "ShadowPrediction"
-                       WHERE "outcomeLabel" IS NULL AND "maturesAfter" <= current_date""")
+        cur.execute(f"""SELECT count(*) n FROM "ShadowPrediction" p
+                        WHERE NOT {scored_sql} AND p."maturesAfter" <= current_date""")
         due = cur.fetchone()["n"]
     out.append(check("shadowOutcomes", WARN if due else OK,
                      f"{s['n']} prediction(s) from {s['mv']} model version(s); "
                      f"{s['done']} scored; {due} matured and awaiting an outcome; "
                      f"earliest maturity {s['soonest']}",
-                     {"matureAndUnscored": due}))
+                     {"matureAndUnscored": due, "scored": s["done"]}))
 
     cur.execute("""SELECT count(*) n FROM "ShadowPrediction" WHERE approved IS TRUE""")
     approved = cur.fetchone()["n"]

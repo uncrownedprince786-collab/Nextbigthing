@@ -1,16 +1,16 @@
 {
- "generatedAt": "2026-10-19T01:04:16+00:00",
+ "generatedAt": "2026-10-19T19:52:28+00:00",
  "modelVersion": "brain-v4-fx",
  "market": "FX",
  "artifact": {
   "path": "data/foundation/brain/brain-v4-fx/model.json",
-  "sha256": "259618c0d8b559c1fb790673919cbef9cd6fe8255769b30acde5190b6b166f4f"
+  "sha256": "9ec7fe1176aceb29f5d3546f1fc5f84c16c1cc6bef65a87db9dae8604a9b1d3b"
  },
  "producedBy": "tools/research/train_v4_markets.py",
  "configurationImportedFrom": "tools/research/baseline_experiment.py",
  "configurationSha256": "ba06d009dfc843b87ed48de29423215487748c800c5395cebd4b0e31075fad2d",
  "contextProducerSha256": "a0c79e42791585320d0a60a0176f2554dbb1ccec8525f6fc1e8bbd0b2539a911",
- "repoHead": "19abed437beeee561048c590e28e01e512a11ba2",
+ "repoHead": "2eb48302bc93d9f295c04334c119ff6653c50cf3",
  "theOneThingChanged": "the training population; features, target, horizon, split, embargo, seed, hyperparameters and imputation are brain-v2-context's",
  "dataset": {
   "prefix": "examples-v4-context",
@@ -106,12 +106,35 @@
   "accuracyAboveHoldoutMajority": [
    0.7275,
    0.7289,
-   false
+   false,
+   {
+    "accuracy": 0.7275,
+    "baseline": 0.7289,
+    "n": 4995,
+    "lift": -0.0014,
+    "standardError": 0.0063,
+    "z": -0.22,
+    "requiredAccuracy": 0.7393,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.7275 vs a 0.7289 baseline on 4995 rows is -0.22 standard errors; does not clear the 0.7393 needed at one-sided 1.645"
+   }
   ],
   "beatsThePriceOnlyModel": [
    0.7275,
    0.7289,
-   false
+   false,
+   {
+    "onlyCandidateRight": 0,
+    "onlyOtherRight": 7,
+    "discordant": 7,
+    "z": -2.27,
+    "zRequired": 1.645,
+    "enoughData": false,
+    "passes": false,
+    "why": "only 7 rows separate the two models, under the 30 this approximation needs"
+   }
   ],
   "notDegenerate": [
    false,

@@ -108,7 +108,17 @@ export default async function PredictionsPage() {
                 <th className="px-3 py-2 text-left">Session</th>
                 <th className="px-3 py-2 text-left">Symbol</th>
                 <th className="px-3 py-2 text-left">Market</th>
+                {/* Without this column two different models reading the same asset on the same
+                    session render as one row printed twice. Measured on the deployed page:
+                    `2026-10-16 AA US swing UP 41.45` appeared twice, and the two rows were
+                    brain-v2-context and brain-v4-us -- distinct records with distinct identities,
+                    shown as an apparent double-write. The model is part of what a prediction is,
+                    so it is part of what the table says. */}
+                <th className="px-3 py-2 text-left">Model</th>
                 <th className="px-3 py-2 text-left">Strategy</th>
+                <th className="px-3 py-2 text-right" title="forward sessions the call is measured over">
+                  Horizon
+                </th>
                 <th className="px-3 py-2 text-left">Predicted</th>
                 <th className="px-3 py-2 text-right">Ref</th>
                 <th className="px-3 py-2 text-left">Quality</th>
@@ -130,9 +140,13 @@ export default async function PredictionsPage() {
                   <td className="px-3 py-2">{fmt(r.asOf)}</td>
                   <td className="px-3 py-2">{r.symbol}</td>
                   <td className="px-3 py-2">{r.market}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{r.modelVersion}</td>
                   <td className="px-3 py-2">
                     {r.strategy}
                     {r.timeframe && r.timeframe !== r.strategy ? `/${r.timeframe}` : ""}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {r.horizonSessions === null ? "—" : r.horizonSessions}
                   </td>
                   <td className="px-3 py-2">{r.predicted ?? "—"}</td>
                   <td className="px-3 py-2 text-right">

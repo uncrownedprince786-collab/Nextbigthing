@@ -160,13 +160,13 @@
    4.935431957244873
   ]
  },
- "status": "GO",
+ "status": "NO-GO",
  "trainSpan": {
   "embargoSessionsDropped": 20,
   "rows": 13539,
   "to": "2025-12-02"
  },
- "trainedAt": "2026-10-19T01:04:19+00:00",
+ "trainedAt": "2026-10-19T19:52:33+00:00",
  "weightShape": [
   45,
   3
