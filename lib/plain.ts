@@ -149,18 +149,6 @@ export type SimpleReadLines = {
   changes: string | null;
 };
 
-
-/// Product status in words, matching the group blurbs on /products.
-export const PRODUCT_STATUS_WORDS: Record<
-  string,
-  { label: string; tone: "up" | "warn" | "default" }
-> = {
-  rising: { label: "Rising", tone: "up" },
-  early: { label: "Early", tone: "warn" },
-  flat: { label: "Flat", tone: "default" },
-  unknown: { label: "No data", tone: "default" },
-};
-
 /// What a source's coverage status means to a reader, rather than to the audit job.
 ///
 /// The four words matter separately: a source that answered but is late is a different fault
