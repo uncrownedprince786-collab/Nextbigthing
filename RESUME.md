@@ -77,6 +77,31 @@ the two rows now read `brain-v4-us` and `brain-v2-context`.
   `/api/health` **200**, `ok:true`, `servedFrom: the primary`, quotes 13 minutes old.
 - Primary reachable, 37/37 migrations applied, `DecisionLog` newest **2026-10-19** (551 rows/day).
 
+### Incident during this session: the primary's session pooler filled, and the design held
+At 2026-10-19T20:05Z the Supabase primary began answering `FATAL: (EMAXCONNSESSION) max clients
+reached in session mode`. Supabase's free session pooler admits **15 clients in total**, and three
+things were asking at once: the `cron news` lane, which holds one connection for the hours it spends
+asking feeds (`jobs/nbt.py Link`, and it was `in_progress` from 19:59 to 20:11); every warm Vercel
+instance; and this session's own local verification runs, which were a material contributor and are
+named as one rather than blamed on the lane.
+
+What happened next is the part worth recording, because none of it needed a person:
+- `jobs/nbt.py db()` failed over to the Aiven standby and said so (`Writing to the standby`).
+  `is_unreachable` already matches `max clients reached` and `emaxconn`.
+- Every page kept serving. `/`, `/stocks`, `/preview/predictions`, `/preview/status` answered **200**
+  with real content throughout, from the ISR cache at `revalidate = 900`.
+- `/api/health` answered **503** with `the database could not be read` -- the documented behaviour,
+  and the one the watchdog treats as person-only.
+- It cleared itself. The database was readable again within about a minute (`servedFrom: the
+  primary`), and `ok` returned to `true` the poll after `cron news` completed. Final smoke test:
+  20 routes **200**, `ok:true`, `servedFrom: the primary`, quotes **2 minutes** old, `problems: []`.
+
+**No code change was made for this.** The failover matched, the cache held the pages up, the
+heartbeat reported honestly and the condition was transient. The residual fact is a free-tier limit,
+not a defect: a 15-slot session pooler shared between a lane that holds a connection for hours and a
+serverless front end has no headroom for a third concurrent reader, and a local verification run is
+a third concurrent reader.
+
 ### Still open
 - **No shadow outcome has matured and none can before 2026-11-05.** The earliest `maturesAfter` is
   2026-11-05 (1 row), then 11-07 (2), 11-13 (20), 11-16 (566). `ShadowOutcome` is **0** and that is

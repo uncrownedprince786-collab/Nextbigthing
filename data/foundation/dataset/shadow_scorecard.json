@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-19T19:40:48+00:00",
+ "generatedAt": "2026-10-19T20:03:53+00:00",
  "version": "shadow-scorecard-v1",
  "status": "assessment only; no prediction is modified and no promotion is implied",
  "asOf": "2026-10-20",
@@ -9450,5 +9450,9 @@
    "mature": false,
    "reason": "2026-10-18 is not a session FX trades"
   }
- ]
+ ],
+ "write": {
+  "written": 0,
+  "status": "nothing-matured"
+ }
 }
