@@ -47,13 +47,14 @@ class ThePrimary(unittest.TestCase):
             src = (ROOT / ".github" / "workflows" / wf).read_text(encoding="utf-8")
             self.assertIn('${PRIMARY_VAR:-supabase}', src, wf)
         mirror = (ROOT / ".github" / "workflows" / "cron-mirror.yml").read_text(encoding="utf-8")
-        self.assertEqual(len(re.findall(r'--from-env "\$\{\{ steps\.targets\.outputs\.from \}\}"', mirror)), 3)
+        # Four now: prices, decisions, news, and the shadow evidence copied back from a standby.
+        self.assertEqual(len(re.findall(r'--from-env "\$\{\{ steps\.targets\.outputs\.from \}\}"', mirror)), 4)
         self.assertNotIn("--from-env DATABASE_URL ", mirror)
 
     def test_reconcile_copies_back_into_the_chosen_primary(self):
         src = (ROOT / "jobs" / "reconcile.py").read_text(encoding="utf-8")
         self.assertIn("primary_name, primary_url = primary_choice()", src)
-        self.assertEqual(src.count('"--to-env", primary_name'), 2)
+        self.assertEqual(src.count('"--to-env", primary_name'), 3)
 
 
 class DiallingTheStandby(unittest.TestCase):

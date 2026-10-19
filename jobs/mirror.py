@@ -75,6 +75,17 @@ TABLES: dict[str, tuple[str, ...]] = {
     # from them, keyed on `(targetRef, periodEnd, windowDays)`, with `targetRef` translated with the asset.
     "News": ("assetId", "url"),
     "HumanSignal": ("targetRef", "periodEnd", "windowDays"),
+    # Shadow evidence. A prediction is an immutable claim and an outcome is a later observation, so
+    # both are copied append-only: an existing target row is never updated. That is what stops a
+    # stale copy from overwriting newer evidence if the two databases are ever read in the wrong
+    # order. `ShadowPrediction` has no foreign key (its `assetId` is a text pointer), and its
+    # natural key is the same identity the writer upserts on. `ShadowOutcome.predictionId` is a
+    # per-database UUID and is translated through that identity, exactly as `assetId` is translated
+    # through (industry slug, symbol) -- copying the UUID would either break the foreign key or, if
+    # one happened to exist, attach one prediction's outcome to another.
+    "ShadowPrediction": ("modelVersion", "modelSha256", "strategy", "timeframe", "assetId",
+                         "asOf", "horizonSessions"),
+    "ShadowOutcome": ("predictionId", "observedOn", "final"),
 }
 
 # The asset rows themselves (brain.md rule 94). The pool job adds names to the primary (26 discovered US
@@ -143,6 +154,17 @@ NULLED = {"News": ("industryId", "productId"), "HumanSignal": ("productId",)}
 # Tables whose `targetRef` is the asset id itself, translated with it.
 REF_IS_ASSET = {"HumanSignal"}
 
+# Append-only tables: a row that already exists on the target is left exactly as it is. Evidence
+# recorded once is not revised by a copy, so a standby that is ahead (an outcome written during an
+# outage) can never be pulled back to an older value by a later mirror run.
+APPEND_ONLY = {"ShadowPrediction", "ShadowOutcome"}
+
+# Columns that are per-database UUIDs pointing at a row this job translates through a natural key
+# rather than copying. `predictionId` is translated from the source prediction's identity to the
+# target's own id, which is the only way the foreign key can survive two independently seeded
+# databases.
+PREDICTION_LINK = {"ShadowOutcome": "predictionId"}
+
 # The date column each table is keyed on, for `--since`. A nightly mirror copies a trailing window
 # and not the whole history: six hundred thousand price rows rewritten every night would be the
 # redundant write this project has spent a session removing. The window for `DecisionLog` has to
@@ -156,6 +178,8 @@ DATE_COLUMN = {
     "MacroGate": "periodEnd",
     "News": "publishedAt",
     "HumanSignal": "periodEnd",
+    "ShadowPrediction": "asOf",
+    "ShadowOutcome": "observedOn",
 }
 
 # Rows per statement and per commit. Small enough that a dropped pooler connection costs one batch,
@@ -211,7 +235,7 @@ def same_database(a: str, b: str) -> bool:
 
 def remap_row(
     row: dict, key_cols: tuple[str, ...], asset_map: dict, unmatched: set, product_map: dict | None = None,
-    table: str | None = None,
+    table: str | None = None, prediction_map: dict | None = None,
 ) -> dict | None:
     """The row with `assetId` translated to the target's id, or None when it cannot be.
 
@@ -237,6 +261,16 @@ def remap_row(
             unmatched.add("product:" + str(out["productId"]))
             return None
         out["productId"] = mapped
+    # `predictionId` is a per-database UUID with a foreign key. Copied raw it would either violate
+    # that key or -- if an id happened to exist -- attach one prediction's outcome to another, which
+    # is the one way an outcome table can be silently wrong while looking intact.
+    link = PREDICTION_LINK.get(table or "")
+    if link and out.get(link) is not None:
+        mapped = (prediction_map or {}).get(out[link])
+        if mapped is None:
+            unmatched.add("prediction:" + str(out[link]))
+            return None
+        out[link] = mapped
     for col in NULLED.get(table or "", ()):
         if col in out:
             out[col] = None
@@ -261,20 +295,27 @@ def shared_columns(source_cols: list[str], target_cols: list[str], key: tuple[st
     return shared
 
 
-def upsert_sql(table: str, columns: list[str], key: tuple[str, ...], conflict_where: str | None = None) -> str:
+def upsert_sql(
+    table: str, columns: list[str], key: tuple[str, ...], conflict_where: str | None = None,
+    append_only: bool = False,
+) -> str:
     """INSERT ... ON CONFLICT (key) DO UPDATE ... WHERE changed, as text with psycopg placeholders.
 
     The WHERE is `IS DISTINCT FROM` for the reason the factor and decision upserts use it: a rerun
     that changes nothing must not rewrite the row, and half these columns are legitimately null so
     `<>` would skip a null-to-number change. It compares every non-key column, so a maturation
     that arrived on the source since the last run is carried and an unchanged row costs nothing.
+
+    `append_only` writes `DO NOTHING` instead: an evidence row that already exists on the target is
+    left exactly as it is. A prediction is an immutable claim and an outcome is a later observation,
+    so a copy is only ever allowed to add one.
     """
     q = lambda c: '"' + c.replace('"', '""') + '"'  # noqa: E731
     cols = ", ".join(q(c) for c in columns)
     marks = ", ".join(f"%({c})s" for c in columns)
     changing = [c for c in columns if c not in key]
     target = f'({", ".join(q(k) for k in key)})' + (f" WHERE {conflict_where}" if conflict_where else "")
-    if not changing:
+    if append_only or not changing:
         return f"INSERT INTO {q(table)} ({cols}) VALUES ({marks}) ON CONFLICT {target} DO NOTHING"
     sets = ", ".join(f"{q(c)} = EXCLUDED.{q(c)}" for c in changing)
     old = ", ".join(f"{q(table)}.{q(c)}" for c in changing)
@@ -315,6 +356,48 @@ def build_product_map(source_ids: dict, target_ids: dict) -> dict[str, str]:
     return {sid: by_slug[slug] for sid, slug in source_ids.items() if slug in by_slug}
 
 
+def prediction_identity(cur, since: str | None = None) -> dict[str, tuple]:
+    """{prediction id: its natural identity}, for one database.
+
+    The identity is the writer's own unique key minus `assetId`, which is per-database: the caller
+    supplies the target-side asset id when joining. `asOf` is normalised to text because a DATE and
+    a TIMESTAMP read back as different Python types on the two sides while naming the same session.
+
+    `since` bounds both sides to the same trailing window the copy uses, so the map is the size of
+    the window rather than the size of the whole table.
+    """
+    where = ' WHERE "asOf" >= %s' if since else ""
+    cur.execute(
+        'SELECT id, "assetId", "modelVersion", "modelSha256", "strategy", "timeframe", "asOf", '
+        '"horizonSessions" FROM "ShadowPrediction"' + where,
+        (since,) if since else None,
+    )
+    return {
+        r["id"]: (r["modelVersion"], r["modelSha256"], r["strategy"], r["timeframe"], r["assetId"],
+                  str(r["asOf"])[:10], int(r["horizonSessions"]))
+        for r in cur.fetchall()
+    }
+
+
+def build_prediction_map(source_ids: dict, target_ids: dict, asset_map: dict) -> dict[str, str]:
+    """{source prediction id: target prediction id}, joined on the writer's identity.
+
+    A source prediction whose asset has no target counterpart is left out: its outcome would have
+    nothing to point at, and forcing the link is how an outcome is filed against the wrong claim.
+    """
+    by_identity = {identity: tid for tid, identity in target_ids.items()}
+    out: dict[str, str] = {}
+    for sid, (mv, sha, strategy, timeframe, asset_id, as_of, horizon) in source_ids.items():
+        mapped_asset = asset_map.get(asset_id)
+        if mapped_asset is None:
+            continue
+        identity = (mv, sha, strategy, timeframe, mapped_asset, as_of, horizon)
+        target = by_identity.get(identity)
+        if target is not None:
+            out[sid] = target
+    return out
+
+
 def columns_of(cur, table: str) -> list[str]:
     cur.execute(
         """
@@ -326,8 +409,57 @@ def columns_of(cur, table: str) -> list[str]:
     return [r["column_name"] for r in cur.fetchall()]
 
 
+def json_columns(cur, table: str) -> set[str]:
+    """Columns the target stores as `json`/`jsonb`.
+
+    psycopg cannot adapt a Python dict to a `%s` placeholder on its own ("cannot adapt type
+    'dict'"), and the first shadow prediction -- which carries `scores`, `features`, `imputed` and
+    `sources` as objects -- failed the whole copy on exactly that. The values are wrapped in
+    `psycopg.types.json.Jsonb` before they are sent; the column list is read from the target so a
+    table with no JSON column pays nothing.
+    """
+    cur.execute(
+        """
+        SELECT column_name FROM information_schema.columns
+         WHERE table_schema = current_schema() AND table_name = %s
+           AND data_type IN ('json', 'jsonb')
+        """,
+        (table,),
+    )
+    return {r["column_name"] for r in cur.fetchall()}
+
+
+def adapt_json(row: dict, columns: set[str]) -> dict:
+    """The row with every JSON column wrapped for psycopg, so it reaches a `jsonb` column as JSON
+    rather than as the text `%s` would send (PostgreSQL has no assignment cast from `text`).
+
+    The source is read through a server-side cursor, so a JSON value arrives here as a string; it is
+    parsed and re-wrapped rather than double-encoded. A value already adapted, or a null, is left
+    alone."""
+    if not columns:
+        return row
+    import json
+
+    from psycopg.types.json import Jsonb
+
+    out = dict(row)
+    for c in columns:
+        v = out.get(c)
+        if v is None or isinstance(v, Jsonb):
+            continue
+        if isinstance(v, str):
+            try:
+                v = json.loads(v)
+            except ValueError:
+                continue
+        if isinstance(v, (dict, list)):
+            out[c] = Jsonb(v)
+    return out
+
+
 def copy_table(
-    src, dst, table: str, asset_map: dict, dry_run: bool, since: str | None = None, product_map: dict | None = None
+    src, dst, table: str, asset_map: dict, dry_run: bool, since: str | None = None,
+    product_map: dict | None = None, prediction_map: dict | None = None,
 ) -> Tally:
     key = TABLES[table]
     tally = Tally()
@@ -338,7 +470,8 @@ def copy_table(
             print(f"  {table:14} absent on one side, skipped")
             return tally
         cols = shared_columns(scols, tcols, key)
-        sql = upsert_sql(table, cols, key, CONFLICT_WHERE.get(table))
+        sql = upsert_sql(table, cols, key, CONFLICT_WHERE.get(table), table in APPEND_ONLY)
+        json_cols = json_columns(dc, table) & set(cols)
         conds = ([f'"{DATE_COLUMN[table]}" >= %s'] if since else []) + (['"assetId" IS NOT NULL'] if table in ASSET_ROWS_ONLY else [])
         where = (" WHERE " + " AND ".join(conds)) if conds else ""
         select = (
@@ -361,11 +494,11 @@ def copy_table(
                 tally.read += len(batch)
                 out = []
                 for row in batch:
-                    mapped = remap_row(dict(zip(cols, row)) if not isinstance(row, dict) else row, key, asset_map, tally.unmatched_assets, product_map, table)
+                    mapped = remap_row(dict(zip(cols, row)) if not isinstance(row, dict) else row, key, asset_map, tally.unmatched_assets, product_map, table, prediction_map)
                     if mapped is None:
                         tally.unmatched += 1
                     else:
-                        out.append(mapped)
+                        out.append(adapt_json(mapped, json_cols))
                 if out and not dry_run:
                     dc.execute(STATEMENT_CEILING)  # each batch is its own transaction on the target
                     dc.executemany(sql, out)
@@ -427,10 +560,28 @@ def mirror_one(src_url: str, label: str, dst_url: str, chosen: list[str], dry: b
             pmap = build_product_map(product_identity(sc), product_identity(dc))
         print(f"  assets matched by (industry, symbol): {len(amap)}")
         print(("  DRY RUN, nothing written\n" if dry else "") + f"  {'table':14} {'read':>9} {'written':>9} {'unchanged':>10} {'unmatched':>10}")
-        for table in [t for t in chosen if t != "Asset"]:
+        # A prediction must exist on the target before its outcome is copied: the foreign key is
+        # the whole reason `ShadowOutcome.predictionId` is translated rather than copied. A stable
+        # sort puts the prediction first, and the outcome is copied after the loop so the identity
+        # map can be read once, outside it.
+        rank = {"ShadowPrediction": 0, "ShadowOutcome": 1}
+        order = sorted((t for t in chosen if t != "Asset"), key=lambda t: rank.get(t, 0))
+        outcome_table = "ShadowOutcome" if "ShadowOutcome" in order else None
+        for table in [t for t in order if t != outcome_table]:
             current = table
             t = copy_table(src, dst, table, amap, dry, since, pmap)
             print(f"  {table:14} {t.read:>9} {t.copied:>9} {t.unchanged:>10} {t.unmatched:>10}")
+            if t.unmatched_assets:
+                print(f"      {len(t.unmatched_assets)} source asset(s) have no counterpart here, e.g. {sorted(t.unmatched_assets)[:3]}")
+        if outcome_table:
+            current = outcome_table
+            # Built after the predictions are in the target, so it includes the ones this run
+            # inserted rather than only the ones that were already there.
+            with src.cursor() as sc, dst.cursor() as dc:
+                pmap_pred = build_prediction_map(prediction_identity(sc, since), prediction_identity(dc, since), amap)
+            print(f"  predictions matched by identity: {len(pmap_pred)}")
+            t = copy_table(src, dst, outcome_table, amap, dry, since, pmap, pmap_pred)
+            print(f"  {outcome_table:14} {t.read:>9} {t.copied:>9} {t.unchanged:>10} {t.unmatched:>10}")
             if t.unmatched_assets:
                 print(f"      {len(t.unmatched_assets)} source asset(s) have no counterpart here, e.g. {sorted(t.unmatched_assets)[:3]}")
         return True

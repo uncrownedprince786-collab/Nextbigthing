@@ -7812,9 +7812,13 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
         # so a standby that took over without them would print verdicts the primary had refused.
         # News and its readings joined them on 2026-10-11 (rule 93): coverage can only withdraw evidence,
         # so a standby without it would print calls the primary refused.
+        # The two shadow tables joined them when per-market candidates began recording prospective
+        # evidence: an outage must not leave the primary's scorecard missing the calls that were
+        # recorded on the standby.
         self.assertEqual(
             set(m.TABLES),
-            {"DecisionLog", "PriceSnapshot", "SignalLog", "AssetThesis", "MacroGate", "News", "HumanSignal"},
+            {"DecisionLog", "PriceSnapshot", "SignalLog", "AssetThesis", "MacroGate", "News",
+             "HumanSignal", "ShadowPrediction", "ShadowOutcome"},
         )
         # Each is keyed on something a person would call the row's identity, never on the UUID.
         for table, key in m.TABLES.items():
@@ -7839,6 +7843,57 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
         """`DecisionLog`'s +1, +5 and +20 session maturations cannot be recomputed, and are what the
         scorecard learns from."""
         self.assertIn("DecisionLog", self.mirror().TABLES)
+
+    def test_shadow_evidence_is_copied_append_only_and_linked_by_natural_key(self):
+        """Two databases seeded separately give the same prediction different UUIDs. Copying
+        `predictionId` raw would break the foreign key or, worse, attach an outcome to another
+        claim. And a prediction is an immutable claim, so a copy may only add one."""
+        m = self.mirror()
+        self.assertEqual(m.APPEND_ONLY, {"ShadowPrediction", "ShadowOutcome"})
+        self.assertEqual(m.PREDICTION_LINK, {"ShadowOutcome": "predictionId"})
+        # The prediction key is the writer's own identity, so a retry of the same event collides.
+        self.assertEqual(
+            m.TABLES["ShadowPrediction"],
+            ("modelVersion", "modelSha256", "strategy", "timeframe", "assetId", "asOf", "horizonSessions"),
+        )
+        self.assertEqual(m.TABLES["ShadowOutcome"], ("predictionId", "observedOn", "final"))
+        # An append-only table must never be given an UPDATE branch.
+        sql = m.upsert_sql("ShadowPrediction", list(m.TABLES["ShadowPrediction"]) + ["predicted"],
+                           m.TABLES["ShadowPrediction"], None, True)
+        self.assertIn("DO NOTHING", sql)
+        self.assertNotIn("DO UPDATE", sql)
+        # Without the flag the same table would be updated, which is what a prediction must not be.
+        self.assertIn("DO UPDATE", m.upsert_sql(
+            "ShadowPrediction", list(m.TABLES["ShadowPrediction"]) + ["predicted"],
+            m.TABLES["ShadowPrediction"], None, False))
+
+    def test_an_outcome_is_linked_to_the_targets_own_prediction_id(self):
+        m = self.mirror()
+        src = {"p-src": ("brain-v4-us", "sha", "swing", "swing", "a-src", "2026-10-18", 20)}
+        dst = {"p-dst": ("brain-v4-us", "sha", "swing", "swing", "a-dst", "2026-10-18", 20)}
+        pmap = m.build_prediction_map(src, dst, {"a-src": "a-dst"})
+        self.assertEqual(pmap, {"p-src": "p-dst"})
+        unmatched: set = set()
+        row = m.remap_row({"predictionId": "p-src", "observedOn": "2026-11-13", "final": True},
+                          m.TABLES["ShadowOutcome"], {}, unmatched, None, "ShadowOutcome", pmap)
+        self.assertEqual(row["predictionId"], "p-dst")
+        self.assertEqual(unmatched, set())
+
+    def test_an_outcome_whose_prediction_the_target_lacks_is_dropped_not_forced(self):
+        m = self.mirror()
+        unmatched: set = set()
+        self.assertIsNone(m.remap_row({"predictionId": "gone", "observedOn": "2026-11-13"},
+                                      m.TABLES["ShadowOutcome"], {}, unmatched, None,
+                                      "ShadowOutcome", {}))
+        self.assertEqual(unmatched, {"prediction:gone"})
+
+    def test_a_prediction_whose_asset_the_target_lacks_has_no_identity_to_join_on(self):
+        m = self.mirror()
+        src = {"p-src": ("m", "sha", "swing", "swing", "a-src", "2026-10-18", 20)}
+        dst = {"p-dst": ("m", "sha", "swing", "swing", "a-dst", "2026-10-18", 20)}
+        # The asset map has no counterpart: the prediction is left out, so its outcome cannot be
+        # filed against a different claim on the target.
+        self.assertEqual(m.build_prediction_map(src, dst, {}), {})
 
     def test_main_refuses_to_copy_a_database_onto_itself_before_connecting(self):
         """`same_database` being correct is not the same as `main` calling it. This drives `main`
@@ -8025,6 +8080,9 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
             for n, tables in _re.findall(r"date -u -d '(\d+) days ago'[^\n]*\n(?:[^\n]*\n)*?[^\n]*--tables ([A-Za-z,]+)", text)
         }
         self.assertGreaterEqual(days["DecisionLog,SignalLog,AssetThesis,MacroGate"], 35)
+        # A shadow outcome points at a prediction made a horizon earlier, so the copy window has to
+        # reach past 20 sessions; 120 days is roughly six times that and is stated, not guessed.
+        self.assertGreaterEqual(days["ShadowPrediction,ShadowOutcome"], 90)
 
     def test_the_site_failover_and_the_nightly_writers_are_kept_apart(self):
         """A lane reaches a standby in exactly two ways: the write failover in jobs/nbt.py `db` (and its
@@ -9952,6 +10010,16 @@ class WritesFailOverAndComeBack(unittest.TestCase):
         # Normal life: the standby trails the primary until the nightly mirror.
         self.assertFalse(reconcile.ahead(same, {"price": date(2026, 10, 9), "decided": datetime(2026, 10, 9, 22, 0)}))
         self.assertFalse(reconcile.ahead(same, {"price": None, "decided": None}))
+        # A prediction written during the outage exists only on the standby, even when its session
+        # is older than the primary's newest price. Without this axis the copy-back would never run
+        # and the primary's scorecard would silently be missing those rows.
+        shadow = datetime(2026, 10, 19, 9, 0)
+        self.assertTrue(reconcile.ahead({**same, "shadow": None},
+                                        {**same, "shadow": shadow}))
+        self.assertFalse(reconcile.ahead({**same, "shadow": shadow},
+                                         {**same, "shadow": shadow}))
+        self.assertFalse(reconcile.ahead({**same, "shadow": shadow},
+                                         {**same, "shadow": None}))
 
     def test_every_lane_step_that_writes_can_reach_the_standby_and_the_mirror_copies_back_first(self):
         import yaml

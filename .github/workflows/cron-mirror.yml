@@ -175,6 +175,21 @@ jobs:
       # What a failover would serve, reported every night (brain.md rule 94): active assets a standby
       # lacks, and how far each standby's decision inputs lag the primary's. Not a gate on this run --
       # the site publishes no call from a standby read in any case -- but the gap is printed, not found.
+      - name: Shadow evidence, a trailing 120 days
+        if: always() && steps.targets.outputs.any == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_FALLBACK: ${{ secrets.DATABASE_URL_FALLBACK }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          # Append-only on the target, so a standby that is ahead is never pulled back. The window
+          # covers a 20-session horizon plus slack: an outcome observed today points at a prediction
+          # made about a month ago, and the prediction must be on the target before its outcome.
+          since="$(date -u -d '120 days ago' +%Y-%m-%d)"
+          python jobs/mirror.py --from-env "${{ steps.targets.outputs.from }}" --to-env "${{ steps.targets.outputs.names }}" \
+            --tables ShadowPrediction,ShadowOutcome --since "$since"
+
       - name: Standby parity
         if: always() && steps.targets.outputs.any == 'true'
         continue-on-error: true

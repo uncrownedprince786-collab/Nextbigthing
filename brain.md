@@ -6597,3 +6597,38 @@ reads rows that already exist:
       component, or a bare date will collapse them into one. **An identity key is a claim about what
       makes two things the same, and it should be stated in the same breath as the columns it uses.**
 
+178. **A UUID is not identity, and a copied outcome must be re-pointed at the target's own prediction.** 2026-10-19.
+    Commit: `jobs/mirror.py` + `jobs/reconcile.py` + `cron-mirror.yml` (closure, item 1).
+
+    - **Two independently seeded databases give the same claim two different ids.** The primary and
+      the standby hold the same 581 predictions with *disjoint* `id` values (measured): joined on
+      the writer's identity, 581/581 match and their `scores` JSON is byte-equal. Copying
+      `ShadowOutcome.predictionId` raw would either violate the foreign key or — worse — attach one
+      prediction's outcome to another prediction, which is the one way an outcome table can be
+      silently wrong while looking intact. **The link is translated through the identity, the same
+      move as `assetId` through (industry slug, symbol).**
+
+    - **Evidence is append-only on the target.** A prediction is an immutable claim and an outcome
+      is a later observation, so the copy uses `DO NOTHING`: a standby that recorded something the
+      primary has not — an outcome written during an outage — can never be pulled back to an older
+      value by a later mirror run. **A mirror that can overwrite newer evidence with an older copy
+      is a mirror that can lose the only record of what happened while the primary was down.** The
+      copy-back in `reconcile.py` gained the same two tables, and `ahead()` gained a third axis
+      (`max(ShadowPrediction.createdAt)`), so shadow evidence written only on a standby is
+      detected and returned; a maxim*um* that is equal on both sides is not ahead, which is the
+      normal state.
+
+    - **The source is a server-side cursor, so a JSON object arrives as a string.** The first real
+      copy failed on `cannot adapt type 'dict'` — the predictions carry `scores`, `features`,
+      `imputed` and `sources`. The column types are read from the target and the values are wrapped
+      with `psycopg.types.json.Jsonb` (parsing the string first, so nothing is double-encoded).
+      **A driver's convenience typing is not a schema contract: the target's column type is.**
+
+    - **The map is read once, outside the loop, and bounded by the same window the copy uses.**
+      Reading a prediction's identity inside the per-table loop would make a once-per-night query
+      scale with the number of tables; passing `since` keeps the map the size of the window rather
+      than the size of the whole table. The nightly lane copies a trailing 120 days — six times the
+      20-session horizon — so an outcome observed today always finds its prediction already on the
+      target. **A copy window shorter than the horizon is how an outcome arrives with nothing to
+      point at.**
+
