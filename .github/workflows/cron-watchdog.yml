@@ -42,6 +42,8 @@ on:
       # tools/watchdog.py is the set it may dispatch and a health verdict is not a data lane, so
       # re-running it would only re-read the same database.
       - "cron daily audit"
+      # Observe the shadow canary completion too; it is intentionally not in tools/watchdog.py LANES.
+      - "cron shadow canary"
     types: [completed]
   workflow_dispatch:
 
