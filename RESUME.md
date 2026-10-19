@@ -1,5 +1,17 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (bounded shadow canary merged; branch CI green; main verification and first scheduled run pending)
+
+**Main commit:** `ce479a63997731b0ad9117e0146451656cce0e45`, merged from PR [#5](https://github.com/uncrownedprince786-collab/Nextbigthing/pull/5). The canary is now in `.github/workflows/cron-shadow-canary.yml`: daily at 23:15 UTC and after a successful `cron decision` run, with its own concurrency group. It uses `--live --per-market-models --per-market 2`, the current per-market candidate artifacts and live point-in-time/context builder, and writes only `ShadowPrediction`. Candidate approval and the live production signal path remain unchanged.
+
+**Capacity and write safety:** read-only `pg_database_size(current_database())` check before writes; write ceiling 490,000,000 bytes under the configured 500,000,000-byte tier. If under the reserve, run inference without writes and upload the run report. The writer enforces at most two rows per market/session against existing stored rows as well as this run's inserts. DB write failures and batches where all rows are refused now exit nonzero. The workflow passes the configured standby URL only to satisfy the shared lane environment contract; it does not write to the standby. Existing mirror/reconcile and scorer are unchanged.
+
+**Verification:** first PR CI found four concrete regressions; they were fixed. The latest branch run `39258023690` passed: **1,297 Python tests**, TypeScript, decision-rule checks and ESLint. Main's post-merge CI run is `39258184747` and was queued at last check. Vercel deployment for the merge is pending. The public live-site smoke test could not be executed from this runtime because DNS resolution for `nextbigthing-nu.vercel.app` failed here. No database connection or write has yet been performed by the new workflow, so current primary size and persisted-row count are not claimed. Candidate models remain NO-GO pending valid mature outcomes.
+
+**Exact next action:** verify main CI and the production Vercel deployment, then inspect the first `cron shadow canary` run for measured database headroom, per-market session selection, candidate quality, and inserted-row counts. The event trigger should run after the next successful `cron decision`; the scheduled fallback is 23:15 UTC. If the reserve is reached, verify it performs a dry run and writes zero rows.
+
+---
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (bounded shadow canary CI regressions fixed; CI rerun passed; final write-failure signal added)
 
 **Branch:** `fix/scheduled-shadow-canary-current`, based on current main at `be94d831efef61d79fa959d0fef4b8cf46c43bc1`. Adds a daily `cron shadow canary` plus a successful-decision event trigger, separate concurrency, a read-only primary-size gate, and a database-backed cap of two prediction rows per market/session across retries. It uses existing per-market candidate artifacts and the existing live feature/context builder. It writes only `ShadowPrediction`; existing scorer and mirror are untouched. It does not approve candidates or alter the production signal path.
