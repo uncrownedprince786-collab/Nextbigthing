@@ -9,10 +9,11 @@ first, would serve the older figures; and the nightly mirror (primary to standby
 primary's older values over the standby's newer ones -- a DecisionLog outcome measured during the outage,
 for instance, overwritten with the null it had before.
 
-What. If the standby is ahead -- a newer price day, or a decision written after the primary's newest --
-the five tables jobs/mirror.py keeps (prices, the call log, signals, theses, vetoes) are copied standby to
-primary over the mirror's own windows, by natural key, never deleting. Derived tables (setups, factors,
-rankings) are not copied: the next decision run rebuilds them from the prices.
+What. If the standby is ahead -- a newer price day, decision, shadow prediction, or shadow outcome --
+the irreplaceable tables are copied standby to primary over bounded windows, by natural key, never deleting.
+ShadowPrediction is copied before ShadowOutcome, with the latter's predictionId mapped to the destination
+parent id. Derived tables (setups, factors, rankings) are not copied: the next decision run rebuilds them
+from the prices.
 
 Run by jobs/schemacheck.py at the start of every lane, and by cron-mirror.yml before its own copy. Cheap
 when there is nothing to do: two small queries on each side. Never fails a lane: if either side cannot
@@ -30,7 +31,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from nbt import is_unreachable, primary_choice, standby_url  # noqa: E402
 
-TABLES_BACK = "PriceSnapshot,DecisionLog,SignalLog,AssetThesis,MacroGate"
+TABLES_BACK = "PriceSnapshot,DecisionLog,SignalLog,AssetThesis,MacroGate,ShadowPrediction,ShadowOutcome"
+SHADOW_WINDOW_DAYS = 180  # preserve 60-session candidate horizons and late final outcomes
 DECISION_WINDOW_DAYS = 40  # the mirror's own window: DecisionLog outcomes mature for a month
 PRICE_SLACK_DAYS = 3
 
@@ -45,7 +47,13 @@ def ahead(primary: dict, standby: dict) -> bool:
     if sp is not None and (pp is None or sp > pp):
         return True
     sd, pd = standby.get("decided"), primary.get("decided")
-    return sd is not None and (pd is None or sd > pd)
+    if sd is not None and (pd is None or sd > pd):
+        return True
+    for key in ("shadow_prediction", "shadow_outcome"):
+        standby_value, primary_value = standby.get(key), primary.get(key)
+        if standby_value is not None and (primary_value is None or standby_value > primary_value):
+            return True
+    return False
 
 
 def maxima(conn) -> dict:
@@ -54,7 +62,19 @@ def maxima(conn) -> dict:
         price = cur.fetchone()["price"]
         cur.execute('SELECT max("computedAt") AS decided FROM "DecisionLog"')
         decided = cur.fetchone()["decided"]
-    return {"price": price, "decided": decided}
+        # Old/mid-migration databases may not have the shadow tables yet. Their absence is
+        # represented as None here; mirror.copy_table also skips absent tables safely.
+        cur.execute("SELECT to_regclass('ShadowPrediction') AS predictions, to_regclass('ShadowOutcome') AS outcomes")
+        present = cur.fetchone()
+        shadow_prediction = shadow_outcome = None
+        if present["predictions"] is not None:
+            cur.execute('SELECT max("createdAt") AS d FROM "ShadowPrediction"')
+            shadow_prediction = cur.fetchone()["d"]
+        if present["outcomes"] is not None:
+            cur.execute('SELECT max("createdAt") AS d FROM "ShadowOutcome"')
+            shadow_outcome = cur.fetchone()["d"]
+    return {"price": price, "decided": decided,
+            "shadow_prediction": shadow_prediction, "shadow_outcome": shadow_outcome}
 
 
 def main() -> int:
@@ -95,6 +115,10 @@ def main() -> int:
 
     ok = mirror.main(["--from-env", name, "--to-env", primary_name, "--tables", "PriceSnapshot", "--since", price_since]) == 0
     ok = mirror.main(["--from-env", name, "--to-env", primary_name, "--tables", TABLES_BACK.split(",", 1)[1], "--since", decision_since]) == 0 and ok
+    shadow_since = (date.today() - timedelta(days=SHADOW_WINDOW_DAYS)).isoformat()
+    # Predictions precede outcomes in this explicit order. Parent IDs are mapped to the primary's
+    # IDs before outcome rows are inserted; rows without a matching parent are reported and skipped.
+    ok = mirror.main(["--from-env", name, "--to-env", primary_name, "--tables", "ShadowPrediction,ShadowOutcome", "--since", shadow_since]) == 0 and ok
     print(f"  reconcile: copy back {'complete' if ok else 'INCOMPLETE -- the next lane will try again'}")
     return 0
 
