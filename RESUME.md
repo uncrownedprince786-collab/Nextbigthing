@@ -1,5 +1,54 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (forty-first), **shadow evidence now survives failover, each market is inferred on its own trading session under its own candidate, and the served candidate count is correct**
+**Branch `main`.** No dependency added, nothing installed, no schema change. Commits: `5ffa267`
+(mirror/reconcile carry shadow evidence by identity), `3850269` (the concurrent pass: reconcile
+detects outcome-only writes; a first per-market session maximum), `b7c7b40` (docs), `cca70e9`
+(the session fix below, rebased on top of those), `10d51fd` (served-copy fix). CI `tests` success on
+`5ffa267` (`39236603963`), `3850269`, `b7c7b40`, and `cca70e9` (`39239352748`). Local: Python suite
+**1281 OK**, `test:web` **509 OK**, `tsc`/`eslint` clean.
+
+### What landed, and the one thing it must not be read as
+- **Shadow evidence is carried across failover (item 1).** `ShadowPrediction`/`ShadowOutcome` are in
+  the nightly mirror and the copy-back, append-only on the target; `ShadowOutcome.predictionId` is
+  translated through the writer's identity, never copied raw. `ahead()` now compares the newest
+  `createdAt` across **both** shadow tables, so an outcome written only on a standby is detected.
+  Verified end-to-end primary -> Aiven: 581 written, rerun 0 written/581 unchanged, 581/581 matched
+  by identity across **disjoint** ids, scores JSON byte-equal. **That is evidence for those two
+  tiers, not a parity claim for every configured database.**
+- **Each market is inferred on its own trading session (item 2).** Measured live: US/PK/FX/Commodity
+  2026-10-16, Crypto 2026-10-18 (the 2026-10-18 factor rows for US/PK/FX/Commodity are a Sunday the
+  market did not trade). `--per-market-models` routes each market to `brain-v4-<market>`; a missing
+  artifact stops the run. A call dated to a non-trading session is refused, and `shadow_score`
+  refuses to grade the eight already-written Sunday rows (`"... is not a session US trades"`) while
+  keeping them. Candidates remain unapproved and `marketSpecific` stays false.
+- **The served copy is correct (item 3).** The overview and status screens said "Four candidates ...
+  all four are recorded NO-GO"; they now say five and name Commodity's thin result, with a guard test.
+  `getShadowPredictions` no longer scans the prediction table once per scored row.
+
+### Still unverified, i.e. not production-ready
+- The production Vercel deployment for the new head has **not** been smoke-tested against the live
+  URL; only the repo checks (tsc/eslint/test:web) are green. `next build` itself is the deploy's job.
+- The mirror has real evidence only for primary -> Aiven; the third configured database
+  (`DATABASE_URL`, `pooled.db.prisma.io`) is unreachable from here (`account has restrictions`).
+- No **outcome** has matured, so no accuracy exists; the prospective stream is the 589 stored rows
+  (581 awaiting, 8 held unscorable). This is expected and is not a blocker for the engineering.
+- Primary headroom was ~16.9 MB; the 10 new rows cost ~12 KB. No live headroom recheck has been run
+  since the writes.
+- There is still **no scheduled producer** for the shadow stream: `shadow_predict`/`shadow_score` are
+  run by hand. The nightly lane that exists mirrors and reconciles; it does not infer. Adding a
+  bounded (2/market/session) scheduled lane is the open scheduling question, not a completed change.
+
+### Exact next actions
+1. Smoke-test the deployed Vercel URL for the home, markets, asset, predictions and status paths;
+   fix any serving/rendering defect found there rather than in the repo.
+2. Recheck primary headroom read-only; only then decide whether a bounded scheduled shadow lane
+   (2 rows per market per session, idempotent) is affordable under the recording policy.
+3. Verify schema + shadow parity on every reachable tier, and confirm an outcome-only standby write
+   copies back (needs a matured outcome, which does not exist yet).
+4. Keep the production rule engine separate from the experimental candidates; promotion waits for
+   valid evidence, not for engineering closure.
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (closure pass 42 merged)
 **Current main:** `3850269a88096823b3b27045c83ccd7a69c5435e`. PR [#3](https://github.com/uncrownedprince786-collab/Nextbigthing/pull/3) is merged. The older duplicate PR #2 was closed unmerged because the shadow-mirror implementation had already landed on main at `5ffa267`.
 
