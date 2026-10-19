@@ -214,5 +214,32 @@ class TheCriticalSetComesFromTheModelsOwnExperience(unittest.TestCase):
         self.assertLess(sp.CRITICAL_NULL_SHARE, sp.ROUTINELY_ABSENT_NULL_SHARE)
 
 
+class ACanaryIsBalancedAcrossMarkets(unittest.TestCase):
+    """A canary that takes the alphabet's first names measures the alphabet, not the markets."""
+
+    def _rows(self):
+        # Deliberately: two US-first names, then the coin the stored market column calls US.
+        return [
+            {"symbol": "AA", "assetType": "stock", "market": "US"},
+            {"symbol": "AAL", "assetType": "stock", "market": "US"},
+            {"symbol": "AAPL", "assetType": "stock", "market": "US"},
+            {"symbol": "aave-new", "assetType": "crypto", "market": "US"},
+            {"symbol": "ABOT", "assetType": "stock", "market": "PK"},
+        ]
+
+    def test_per_market_keeps_at_most_n_in_row_order(self):
+        got = sp.select_rows(self._rows(), None, 2)
+        self.assertEqual([r["symbol"] for r in got], ["AA", "AAL", "aave-new", "ABOT"])
+
+    def test_a_market_filter_uses_the_derived_market_not_the_stored_one(self):
+        got = sp.select_rows(self._rows(), "Crypto", 0)
+        self.assertEqual([r["symbol"] for r in got], ["aave-new"])
+        self.assertEqual(got[0]["market"], "Crypto")
+
+    def test_a_stock_is_filed_by_its_stored_market(self):
+        self.assertEqual(sp.market_for_row({"assetType": "stock", "market": "PK"}), "PK")
+        self.assertEqual(sp.market_for_row({"assetType": "stock", "market": "US"}), "US")
+
+
 if __name__ == "__main__":
     unittest.main()

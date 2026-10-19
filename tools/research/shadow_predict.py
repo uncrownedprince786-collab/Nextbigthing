@@ -211,6 +211,43 @@ def predict_one(model: dict, price: dict, ctx_block: dict | None, *,
             "scores": {c: round(float(p[i]), 6) for i, c in enumerate(model["classes"])}}
 
 
+def market_for_row(r: dict) -> str:
+    """The market of a prediction row, from the same rule as everywhere else.
+
+    Live rows already carry the market from `shadow_markets.market_of`. Dataset rows carry the
+    stored `market` column (US/PK/FX only) and no `source`, so a `stock` there is `PK` only when
+    that column says so; crypto, forex and commodity are still read off the asset type, which is
+    why those no longer fall under US. One rule, reused by both paths.
+    """
+    m = mk.market_of(r.get("assetType"), r.get("source"))
+    if m == "US" and (r.get("market") or "").strip().upper() == "PK":
+        return "PK"
+    return m
+
+
+def select_rows(rows: list[dict], market: str | None, per_market: int) -> list[dict]:
+    """Normalise each row's market, then apply `--market` and `--per-market`.
+
+    Normalising first means the selectors work on the derived market, not the stored one, so a
+    coin is selectable as `Crypto` even though its stored row says `US`. `--per-market` keeps at
+    most N per market in the rows' own order, which is what makes a canary balanced instead of the
+    alphabet's first names.
+    """
+    for r in rows:
+        r["market"] = market_for_row(r)
+    if market:
+        rows = [r for r in rows if r["market"] == market]
+    if per_market:
+        kept, seen = [], {}
+        for r in rows:
+            m = r["market"]
+            if seen.get(m, 0) < per_market:
+                kept.append(r)
+                seen[m] = seen.get(m, 0) + 1
+        rows = kept
+    return rows
+
+
 def rows_at(ds: Path, as_of: str, prefix: str, limit: int):
     """Price features for one session, read from the built dataset.
 
@@ -355,6 +392,12 @@ def main() -> int:
     ap.add_argument("--dataset", default=str(DEFAULT_DS))
     ap.add_argument("--prefix", default="examples-v4-context")
     ap.add_argument("--limit", type=int, default=20)
+    ap.add_argument("--market", default=None, choices=sorted(mk.MARKETS),
+                    help="restrict to one market; pair with a per-market model artifact so a call "
+                         "is recorded under the model built for its own market")
+    ap.add_argument("--per-market", type=int, default=0,
+                    help="keep at most N rows per market, so a canary is balanced across markets "
+                         "instead of ordering the alphabet's first names")
     ap.add_argument("--strategy", default="swing", choices=sorted(mk.TIMEFRAMES),
                     help="the horizon profile this call is made under; the session count is "
                          "taken from shadow_markets, not guessed")
@@ -372,24 +415,32 @@ def main() -> int:
     print(f"model {model['version']} sha {model['sha256'][:16]} "
           f"({len(model['features'])} features, approved=False)")
     src = ContextSource.load()
+    # A market filter has to see every market before it can keep one, so it ignores `--limit` and
+    # pulls the whole session; the cap that matters is `--per-market`.
+    pull = a.limit if not (a.market or a.per_market) else 200000
     if a.live:
-        rows, as_of_str = live_rows(a.limit)
+        rows, as_of_str = live_rows(pull)
         print(f"live: newest AssetFactor session {as_of_str}, {len(rows)} assets")
     else:
         if not a.as_of:
             raise SystemExit("pass --as-of or --live")
         as_of_str = a.as_of
-        rows = rows_at(Path(a.dataset), a.as_of, a.prefix, a.limit)
+        rows = rows_at(Path(a.dataset), a.as_of, a.prefix, pull)
     if not rows:
         raise SystemExit(f"no rows with price features for {as_of_str}")
     as_of = date.fromisoformat(as_of_str)
 
+    # Normalise each row's market once, then apply the selectors.
+    rows = select_rows(rows, a.market, a.per_market)
+    if not rows:
+        raise SystemExit(f"no rows left after --market/--per-market for {as_of_str}")
+
     records = []
     for r in rows:
-        block = src.at(as_of, r["symbol"], r.get("market"))
+        block = src.at(as_of, r["symbol"], r["market"])
         records.append(predict_one(model, r["pit"]["f"], block,
                                    asset_id=r.get("assetId") or r["symbol"],
-                                   symbol=r["symbol"], market=r.get("market") or "",
+                                   symbol=r["symbol"], market=r["market"],
                                    as_of=as_of, strategy=a.strategy, timeframe=a.timeframe,
                                    reference_price=r.get("referencePrice")))
 

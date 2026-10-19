@@ -335,6 +335,11 @@ def fit_market(name: str, b: dict, train_end: str) -> dict | None:
                               "from brain-v2-context and brain-v3-crypto; a pass is diagnostic and "
                               "promotes nothing -- a frozen candidate's prospective stream decides",
         "criteriaMet": checks,
+        # The inference tool refuses to predict when a feature the model usually SAW is missing, so
+        # each market's own experience of a column has to travel with the artifact. Read over this
+        # market's rows, which is the only population the candidate knows.
+        "nullShareByFeature": {ALL_FEATURES[i]: round(float(np.isnan(X[:, i]).mean()), 4)
+                               for i in range(len(ALL_FEATURES))},
         "evaluation": {
             "holdout": {"from": str(dates[te][0]), "to": str(dates[te][-1]), "rows": m["n"],
                         "effectiveIndependentWindows": m["effectiveIndependentWindows"],
