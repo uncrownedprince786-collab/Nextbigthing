@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Card, Empty, Note, Section, Table } from "@/components/ui";
 import { getAsset, getAssetFreshness, getAssetPrices, getLiveQuoteFor } from "@/lib/queries";
 import { marketOf } from "@/lib/decisionInput";
-import { MARKET_LABELS, canonicalMarket } from "@/lib/marketCapability";
+import { MARKET_LABELS, canonicalMarket, capabilityFor, profileFor } from "@/lib/marketCapability";
 import { SaveButton } from "@/app/preview/watchlist/SaveButton";
 
 /// Screen 3 — asset detail.
@@ -47,6 +47,8 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
   const market = canonicalMarket(
     marketOf({ assetType: asset.assetType, industry: asset.industry ?? null }),
   );
+  const profile = market ? profileFor(market) : null;
+  const swing = market ? capabilityFor(market, "swing") : null;
 
   return (
     <>
@@ -97,6 +99,21 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
           bars the database does not hold. The table below is the stored closes, with the session
           each belongs to.
         </Note>
+        {profile && swing ? (
+          <Note>
+            <strong>{MARKET_LABELS[swing.market]} capability.</strong>{" "}
+            {swing.input.available ? "Inputs are available" : `Inputs are not available — ${swing.input.note}`}
+            {" "}({profile.sessionRule}; prices from {profile.priceSource}). A{" "}
+            {swing.timeframe} call over {swing.horizonSessions} sessions is{" "}
+            {swing.outcome.verifiable
+              ? `judgeable on ${swing.outcome.judgedOn}`
+              : `not judgeable here — ${swing.outcome.reason}`}
+            .{" "}
+            {swing.prediction.marketSpecific
+              ? "A market-specific model exists for this market."
+              : "No market-specific model exists: any call here comes from the single global model, not one built for this market."}
+          </Note>
+        ) : null}
         <Note>
           <Link href={`/preview/asset/${encodeURIComponent(asset.symbol)}/research`}
                 className="underline underline-offset-2">
