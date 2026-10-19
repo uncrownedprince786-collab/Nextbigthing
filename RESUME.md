@@ -1,5 +1,28 @@
 # Resume here
 
+## 0. SESSION CHECKPOINT - 2026-10-19 (closure pass 42, two remaining shadow correctness gaps)
+**Base:** `main` at `5ffa26730e20378bfd49280a787626fb5d310d52`, which already contains the shadow mirror/reconcile implementation.  
+**Branch:** `closure/outcome-reconcile-market-sessions`. PR: [#3](https://github.com/uncrownedprince786-collab/Nextbigthing/pull/3).
+
+### What is verified from the current code
+- Main commit `5ffa267` added `ShadowPrediction` and `ShadowOutcome` to the nightly mirror and reverse reconciliation, uses stable identity mapping for disjoint prediction UUIDs, adapts JSON values for PostgreSQL, and makes shadow evidence append-only on the target. Its commit report records a primary-to-Aiven copy of 581 rows, 581/581 identity matches, byte-equal scores, and a rerun with 0 writes / 581 unchanged. This is the recorded result of that commit; do not generalize it to every configured database until each tier is checked.
+- The follow-up inspection found a specific hole in `reconcile.py`: `ahead()` checked only `max(ShadowPrediction.createdAt)`. If the prediction had already reached the primary but its later outcome was written to the standby during an outage, no copy-back was triggered.
+- This branch changes reconciliation's shadow maximum to the newer of the prediction and outcome creation timestamps and adds a regression test for an outcome-only write.
+- `tools/research/shadow_predict.py` now chooses the newest `AssetFactor` session separately per market and carries each row's session into its context lookup, `asOf`, and maturity. A mocked query-path regression test checks a Friday US session alongside Sunday's Crypto session.
+- The latest code test run before the documentation-only update passed both CI jobs (`brain logic` and `types and lint`, run `39237387389`). Recheck CI for the final PR head and wait for Vercel preview before merge.
+
+### Release boundaries, not blockers for independent work
+- The five market candidates remain unapproved: US, PK, FX and Crypto were NO-GO; Commodity's apparent pass is thin (8 symbols / ~756 independent windows). Keep them in shadow mode. Do not route these candidates into production trading decisions.
+- Checkpoint 40 measured primary headroom at about 16.9 MB with intermittent quota/connection failures. Do not run a universe-wide shadow write or delete immutable historical prices. Verify current headroom read-only before any live canary.
+- Future outcome maturation is required for performance claims, not for completing the inference, storage, UI and sync engineering. Keep the prospective stream bounded and continue non-writing closure work.
+
+### Exact next actions
+1. Verify PR #3 CI and Vercel preview are green; fix any failure rather than repeating the prior audit.
+2. Merge the narrow changes only after those checks, then verify the merged SHA on `main`.
+3. Run read-only checks against each configured database tier to compare shadow table availability and prediction/outcome maxima. At the next safe mirror/reconcile run, verify parent-first, append-only counts and an outcome-only standby write is detected.
+4. Run the per-market session selector read-only against live `AssetFactor` / `PriceSnapshot` and confirm the selected `asOf` and reference close per market. Do not write a universe of predictions.
+5. Continue the actual production-readiness closeout: source freshness/sync health, deployed UI/API smoke checks, and safe recovery under DB quota limits. The experimental model candidates remain NO-GO; no false profitability or approval claims.
+
 ## 0. SESSION CHECKPOINT - 2026-10-19 (fortieth), **five per-market candidates were trained and are honest NO-GOs (only thin Commodity passes), a balanced canary recorded ten rows under their own artifacts, and headroom is down to 17 MB**
 **Branch `main`.** No dependency added, nothing installed, no schema change. Commits: `67edae6`
 (P1 web), `8abc12f` (P1 asset page), `19abed4` (P2 per-market models), `f854654` (P3 tooling),
