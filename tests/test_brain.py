@@ -7814,7 +7814,7 @@ class TheMirrorCopiesByNaturalKey(unittest.TestCase):
         # so a standby without it would print calls the primary refused.
         self.assertEqual(
             set(m.TABLES),
-            {"DecisionLog", "PriceSnapshot", "SignalLog", "AssetThesis", "MacroGate", "News", "HumanSignal"},
+            {"DecisionLog", "PriceSnapshot", "SignalLog", "AssetThesis", "MacroGate", "News", "HumanSignal", "ShadowPrediction", "ShadowOutcome"},
         )
         # Each is keyed on something a person would call the row's identity, never on the UUID.
         for table, key in m.TABLES.items():
