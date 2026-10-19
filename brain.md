@@ -6613,10 +6613,12 @@ reads rows that already exist:
       primary has not — an outcome written during an outage — can never be pulled back to an older
       value by a later mirror run. **A mirror that can overwrite newer evidence with an older copy
       is a mirror that can lose the only record of what happened while the primary was down.** The
-      copy-back in `reconcile.py` gained the same two tables, and `ahead()` gained a third axis
-      (`max(ShadowPrediction.createdAt)`), so shadow evidence written only on a standby is
-      detected and returned; a maxim*um* that is equal on both sides is not ahead, which is the
-      normal state.
+      copy-back in `reconcile.py` carries the same two tables, and `ahead()` compares the newest
+      creation time across **both** `ShadowPrediction` and `ShadowOutcome`. Prediction-only
+      timestamps are insufficient: the prediction may already exist on the primary while its final
+      outcome is written to the standby during an outage. The later outcome’s `createdAt` must itself
+      trigger copy-back, or the primary scorecard stays stale. A maximum equal on both sides is not
+      ahead, which is the normal state.
 
     - **The source is a server-side cursor, so a JSON object arrives as a string.** The first real
       copy failed on `cannot adapt type 'dict'` — the predictions carry `scores`, `features`,
@@ -6631,4 +6633,10 @@ reads rows that already exist:
       20-session horizon — so an outcome observed today always finds its prediction already on the
       target. **A copy window shorter than the horizon is how an outcome arrives with nothing to
       point at.**
+
+179. **A live shadow prediction uses the latest valid factor session of its own market, not the global latest date.** 2026-10-19.
+
+    - Crypto can have a Sunday factor session while US, PSX, FX and commodities still have Friday as their latest complete session. A single `max(AssetFactor.periodEnd)` can therefore date an equity prediction on a day it did not trade. The row's `asOf`, contextual lookup, reference close and maturity must all be tied to that market's own selected session.
+    - The query must select the maximum factor session grouped by the same market classification used by inference (`Crypto`, `FX`, `Commodity`, `PK`, `US`) and preserve that session per row. A prediction's date is part of its evidence, not a display label.
+    - The fix is tested with different US and Crypto sessions. A mocked SQL-path test does not substitute for a read-only query against the actual database; runtime verification remains a release check.
 
