@@ -41,6 +41,19 @@ export interface AssetCoverage {
   /// How many of the model's features were imputed, on a `feature-gap`. Named because "some
   /// inputs were missing" is the shrug this file exists to replace.
   imputedCount?: number;
+  /// Which *kind* of feature gap, because the two have different remedies and a page that
+  /// conflates them sends the reader looking for the wrong thing.
+  ///   small-industry — the peer features are absent because the asset's industry holds fewer
+  ///                    than `minPeers` stored assets. `jobs/factors.py` publishes a peer median
+  ///                    only at five peers or more, deliberately: below that the median is one or
+  ///                    two names and `relStrength` would describe a comparison never made. All
+  ///                    twelve of today's gaps are this, and the fix is to add assets to the
+  ///                    industry — no amount of price history will close it.
+  ///   missing-input  — some other input the model needs was not observed.
+  gapKind?: "small-industry" | "missing-input";
+  industry?: string;
+  industryMembers?: number;
+  peersNeeded?: number;
   horizons: Record<string, CoverageStatus>;
 }
 

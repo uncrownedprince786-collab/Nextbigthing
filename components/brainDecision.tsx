@@ -411,13 +411,28 @@ function PendingCard({
     // telling a reader their 1,960 sessions are "not enough history" would simply be false.
     const c = reason.coverage;
     const isFeatureGap = reason.status === "feature-gap";
+    const smallIndustry = c.gapKind === "small-industry";
     return (
       <Card>
         <div className="text-2xl font-semibold">
-          {isFeatureGap ? "Missing an input the model needs" : "Not enough history yet"}
+          {smallIndustry
+            ? "Too few comparable assets"
+            : isFeatureGap
+              ? "Missing an input the model needs"
+              : "Not enough history yet"}
         </div>
         <p className="text-muted-foreground mt-2 text-sm">
-          {isFeatureGap ? (
+          {smallIndustry ? (
+            <>
+              {symbol} has {c.bars.toLocaleString()} stored sessions, which is plenty — the gap is
+              not its history. The model reads every asset partly against its industry, and{" "}
+              {c.industry} holds only {c.industryMembers} tracked assets, which leaves{" "}
+              {(c.industryMembers ?? 1) - 1} to compare against where {c.peersNeeded} are needed.
+              Below that the &ldquo;industry move&rdquo; is one or two names, so rather than
+              publish a comparison that was never really made, the recorder declines to read this
+              asset at all.
+            </>
+          ) : isFeatureGap ? (
             <>
               {symbol} has {c.bars.toLocaleString()} stored sessions, which is enough history —
               but a reading also needs every input the model relied on while training, and{" "}
@@ -431,8 +446,9 @@ function PendingCard({
               {c.newest ? <> The newest stored session is {c.newest}.</> : null}
             </>
           )}{" "}
-          This is a gap in the stored data, not a judgement about the asset — once it is filled the
-          reading follows automatically.
+          {smallIndustry
+            ? " This is a limit of the tracked universe, not a judgement about the asset."
+            : " This is a gap in the stored data, not a judgement about the asset — once it is filled the reading follows automatically."}
         </p>
         <details className="border-border mt-3 rounded-lg border px-3 py-2">
           <summary className="cursor-pointer text-xs font-medium">What exactly is missing</summary>

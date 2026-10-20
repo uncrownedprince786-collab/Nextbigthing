@@ -117,6 +117,30 @@ def recorder_verdicts(report: Path) -> dict[str, dict]:
     return out
 
 
+#: Features whose absence is an industry-size consequence rather than a missing fetch. When one of
+#: these is what the recorder refused on, the remedy is to grow the industry group, not to backfill
+#: a bar -- and a registry that says "an input is missing" without saying which kind sends the
+#: owner looking for the wrong thing.
+PEER_FEATURES = ("peerMedianR20", "relStrength")
+
+
+def industry_sizes(cur) -> dict[str, dict]:
+    """Each asset's industry and how many stored assets share it.
+
+    Read because `jobs/factors.py` publishes a peer median only at MIN_PEERS = 5 or more, and that
+    is a deliberate rule rather than a defect: below five the median is one or two names, so
+    `relStrength` would describe a comparison that was never made. An asset in a four-member
+    industry therefore has no peer features and never will until the industry grows, which is a
+    different remedy from every other gap in this file.
+    """
+    cur.execute(
+        'SELECT a.symbol, i.name AS industry, '
+        '       count(*) OVER (PARTITION BY a."industryId") AS members '
+        'FROM "Asset" a JOIN "Industry" i ON i.id = a."industryId"')
+    return {r["symbol"]: {"industry": r["industry"], "members": int(r["members"])}
+            for r in cur.fetchall()}
+
+
 def build(cur, verdicts: dict[str, dict] | None = None) -> dict:
     # One pass for the per-asset facts. Counting and taking the extremes in SQL rather than
     # streaming half a million bars into Python: the registry needs three numbers per asset.
@@ -152,6 +176,13 @@ def build(cur, verdicts: dict[str, dict] | None = None) -> dict:
     for mkt, days in counted.items():
         need = max(1, int(QUORUM * totals.get(mkt, 1)))
         calendars[mkt] = sorted(d for d, n in days.items() if n >= need)
+
+    industries = industry_sizes(cur)
+    try:
+        sys.path.insert(0, str(ROOT / "jobs"))
+        from factors import MIN_PEERS
+    except ImportError:
+        MIN_PEERS = 5
 
     out: dict[str, dict] = {}
     by_status: dict[str, int] = defaultdict(int)
@@ -197,10 +228,28 @@ def build(cur, verdicts: dict[str, dict] | None = None) -> dict:
         if status == "feature-gap":
             missing = v.get("missingCritical") or []
             entry["imputedCount"] = v.get("imputedCount")
-            entry["why"] = (
-                f"the {bars} stored sessions are enough, but the recorder refuses this asset: "
-                + ("; ".join(missing) if missing
-                   else f"{v.get('imputedCount')} of the model's features are not observed"))
+            ind = industries.get(r["symbol"]) or {}
+            peers = max((ind.get("members") or 1) - 1, 0)
+            # Peer features missing while the industry is below the floor is the whole story, and
+            # it names its own fix. Said first, because "an input is missing" sends the owner
+            # looking for a bar that is already there.
+            if any(f in " ".join(missing) for f in PEER_FEATURES) and peers < MIN_PEERS:
+                entry["gapKind"] = "small-industry"
+                entry["industry"] = ind.get("industry")
+                entry["industryMembers"] = ind.get("members")
+                entry["peersNeeded"] = MIN_PEERS
+                entry["why"] = (
+                    f"the {bars} stored sessions are enough. {ind.get('industry')} holds "
+                    f"{ind.get('members')} stored assets, so this one has {peers} peers and a peer "
+                    f"median needs {MIN_PEERS} -- below that the median is one or two names and "
+                    f"relStrength would describe a comparison that was never made. The fix is to "
+                    f"add assets to this industry, not to backfill price history")
+            else:
+                entry["gapKind"] = "missing-input"
+                entry["why"] = (
+                    f"the {bars} stored sessions are enough, but the recorder refuses this asset: "
+                    + ("; ".join(missing) if missing
+                       else f"{v.get('imputedCount')} of the model's features are not observed"))
         elif status == "thin-history":
             entry["why"] = (f"{bars} stored sessions; a feature vector needs {FEATURE_WINDOW} "
                             f"because the longest lookback is sma50")
@@ -224,6 +273,13 @@ def build(cur, verdicts: dict[str, dict] | None = None) -> dict:
                           "signal_validation.json"),
         "marketCalendarSessions": {m: len(c) for m, c in calendars.items()},
         "assetsByStatus": dict(by_status),
+        "minPeers": MIN_PEERS,
+        "gapKinds": {
+            "small-industry": sum(1 for e in out.values()
+                                  if e.get("gapKind") == "small-industry"),
+            "missing-input": sum(1 for e in out.values()
+                                 if e.get("gapKind") == "missing-input"),
+        },
         "assets": out,
     }
 

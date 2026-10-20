@@ -98,7 +98,12 @@ test("the shipped registry classifies the known cases the way the page expects",
   // BA is the regression case: enough bars, still refused.
   assert.equal(raw.assets.BA?.status, "feature-gap");
   assert.ok((raw.assets.BA?.bars ?? 0) > 1000, "BA's history is long, which is the whole point");
-  assert.match(raw.assets.BA?.why ?? "", /peerMedianR20/);
+  // Asserted on the substance, not on a raw feature name: the wording now names the industry and
+  // the remedy, which is the point. Pinning the identifier would make improving the sentence a
+  // test failure.
+  assert.match(raw.assets.BA?.why ?? "", /industry/i);
+  assert.match(raw.assets.BA?.why ?? "", /are enough/,
+    "the card must not blame the history, which is 1,960 sessions long");
   // Every non-ready asset carries an explanation; that is the contract the card relies on.
   for (const [sym, a] of Object.entries(raw.assets)) {
     if (a.status !== "ready") {
@@ -107,4 +112,29 @@ test("the shipped registry classifies the known cases the way the page expects",
   }
   const { ready, total } = readyShare(raw);
   assert.ok(ready > 0 && ready < total, "a registry where everything or nothing is ready is a bug");
+});
+
+test("a small-industry gap is distinguished from a missing input", async () => {
+  // These have different remedies: one is closed by adding assets to the industry, the other by
+  // fixing a fetch. A page that conflates them tells the owner to backfill history that is
+  // already there — which is exactly what the first version of this card did.
+  const raw = JSON.parse(
+    await readFile(
+      new URL("../data/foundation/dataset/coverage_registry.json", import.meta.url), "utf-8"),
+  ) as CoverageRegistry & { minPeers: number; gapKinds: Record<string, number> };
+  const ba = raw.assets.BA;
+  assert.equal(ba?.gapKind, "small-industry");
+  assert.ok(ba?.industry, "the industry is named, since that is where the fix happens");
+  assert.ok(
+    (ba?.industryMembers ?? 0) - 1 < (ba?.peersNeeded ?? raw.minPeers),
+    "a small-industry gap must actually be below the peer floor",
+  );
+  assert.match(ba?.why ?? "", /add assets to this industry/);
+  // Every feature-gap asset is classified; an unclassified one would fall back to wording that
+  // blames the history.
+  for (const [sym, a] of Object.entries(raw.assets)) {
+    if (a.status === "feature-gap") {
+      assert.ok(a.gapKind, `${sym} is a feature gap with no kind`);
+    }
+  }
 });

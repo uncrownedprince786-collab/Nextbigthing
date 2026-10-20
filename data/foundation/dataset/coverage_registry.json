@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-20T15:08:12+00:00",
+ "generatedAt": "2026-10-20T15:19:07+00:00",
  "producedBy": "tools/foundation/coverage_registry.py",
  "featureWindowSessions": 50,
  "staleAfterSessions": 3,
@@ -29,6 +29,11 @@
   "ready": 606,
   "feature-gap": 12,
   "thin-history": 2
+ },
+ "minPeers": 5,
+ "gapKinds": {
+  "small-industry": 12,
+  "missing-input": 0
  },
  "assets": {
   "AA": {
@@ -941,7 +946,11 @@
     "60": "feature-gap"
    },
    "imputedCount": 4,
-   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+   "gapKind": "small-industry",
+   "industry": "Aerospace and Defence",
+   "industryMembers": 5,
+   "peersNeeded": 5,
+   "why": "the 1960 stored sessions are enough. Aerospace and Defence holds 5 stored assets, so this one has 4 peers and a peer median needs 5 -- below that the median is one or two names and relStrength would describe a comparison that was never made. The fix is to add assets to this industry, not to backfill price history"
   },
   "BAC": {
    "market": "US",
@@ -1699,7 +1708,11 @@
     "60": "feature-gap"
    },
    "imputedCount": 9,
-   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+   "gapKind": "small-industry",
+   "industry": "Industrial Metals",
+   "industryMembers": 3,
+   "peersNeeded": 5,
+   "why": "the 1960 stored sessions are enough. Industrial Metals holds 3 stored assets, so this one has 2 peers and a peer median needs 5 -- below that the median is one or two names and relStrength would describe a comparison that was never made. The fix is to add assets to this industry, not to backfill price history"
   },
   "COST": {
    "market": "US",
@@ -1729,7 +1742,11 @@
     "60": "feature-gap"
    },
    "imputedCount": 9,
-   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+   "gapKind": "small-industry",
+   "industry": "Industrial Metals",
+   "industryMembers": 3,
+   "peersNeeded": 5,
+   "why": "the 1960 stored sessions are enough. Industrial Metals holds 3 stored assets, so this one has 2 peers and a peer median needs 5 -- below that the median is one or two names and relStrength would describe a comparison that was never made. The fix is to add assets to this industry, not to backfill price history"
   },
   "CPHL": {
    "market": "PK",
@@ -1843,7 +1860,11 @@
     "60": "feature-gap"
    },
    "imputedCount": 9,
-   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+   "gapKind": "small-industry",
+   "industry": "Transport and Logistics",
+   "industryMembers": 5,
+   "peersNeeded": 5,
+   "why": "the 1960 stored sessions are enough. Transport and Logistics holds 5 stored assets, so this one has 4 peers and a peer median needs 5 -- below that the median is one or two names and relStrength would describe a comparison that was never made. The fix is to add assets to this industry, not to backfill price history"
   },
   "CTM": {
    "market": "PK",
@@ -2685,7 +2706,11 @@
     "60": "feature-gap"
    },
    "imputedCount": 9,
-   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+   "gapKind": "small-industry",
+   "industry": "Transport and Logistics",
+   "industryMembers": 5,
+   "peersNeeded": 5,
+   "why": "the 1960 stored sessions are enough. Transport and Logistics holds 5 stored assets, so this one has 4 peers and a peer median needs 5 -- below that the median is one or two names and relStrength would describe a comparison that was never made. The fix is to add assets to this industry, not to backfill price history"
   },
   "FECTC": {
    "market": "PK",
@@ -2981,7 +3006,11 @@
     "60": "feature-gap"
    },
    "imputedCount": 9,
-   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+   "gapKind": "small-industry",
+   "industry": "Aerospace and Defence",
+   "industryMembers": 5,
+   "peersNeeded": 5,
+   "why": "the 1960 stored sessions are enough. Aerospace and Defence holds 5 stored assets, so this one has 4 peers and a peer median needs 5 -- below that the median is one or two names and relStrength would describe a comparison that was never made. The fix is to add assets to this industry, not to backfill price history"
   },
   "GDL": {
    "market": "PK",
@@ -4341,7 +4370,11 @@
     "60": "feature-gap"
    },
    "imputedCount": 9,
-   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+   "gapKind": "small-industry",
+   "industry": "Aerospace and Defence",
+   "industryMembers": 5,
+   "peersNeeded": 5,
+   "why": "the 1960 stored sessions are enough. Aerospace and Defence holds 5 stored assets, so this one has 4 peers and a peer median needs 5 -- below that the median is one or two names and relStrength would describe a comparison that was never made. The fix is to add assets to this industry, not to backfill price history"
   },
   "LOTCHEM": {
    "market": "PK",
@@ -5225,7 +5258,11 @@
     "60": "feature-gap"
    },
    "imputedCount": 9,
-   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+   "gapKind": "small-industry",
+   "industry": "Aerospace and Defence",
+   "industryMembers": 5,
+   "peersNeeded": 5,
+   "why": "the 1960 stored sessions are enough. Aerospace and Defence holds 5 stored assets, so this one has 4 peers and a peer median needs 5 -- below that the median is one or two names and relStrength would describe a comparison that was never made. The fix is to add assets to this industry, not to backfill price history"
   },
   "NOK": {
    "market": "US",
@@ -5311,7 +5348,11 @@
     "60": "feature-gap"
    },
    "imputedCount": 9,
-   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+   "gapKind": "small-industry",
+   "industry": "Transport and Logistics",
+   "industryMembers": 5,
+   "peersNeeded": 5,
+   "why": "the 1960 stored sessions are enough. Transport and Logistics holds 5 stored assets, so this one has 4 peers and a peer median needs 5 -- below that the median is one or two names and relStrength would describe a comparison that was never made. The fix is to add assets to this industry, not to backfill price history"
   },
   "NU": {
    "market": "US",
@@ -6475,7 +6516,11 @@
     "60": "feature-gap"
    },
    "imputedCount": 9,
-   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+   "gapKind": "small-industry",
+   "industry": "Aerospace and Defence",
+   "industryMembers": 5,
+   "peersNeeded": 5,
+   "why": "the 1960 stored sessions are enough. Aerospace and Defence holds 5 stored assets, so this one has 4 peers and a peer median needs 5 -- below that the median is one or two names and relStrength would describe a comparison that was never made. The fix is to add assets to this industry, not to backfill price history"
   },
   "s-sonic": {
    "market": "Crypto",
@@ -7879,7 +7924,11 @@
     "60": "feature-gap"
    },
    "imputedCount": 9,
-   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+   "gapKind": "small-industry",
+   "industry": "Transport and Logistics",
+   "industryMembers": 5,
+   "peersNeeded": 5,
+   "why": "the 1960 stored sessions are enough. Transport and Logistics holds 5 stored assets, so this one has 4 peers and a peer median needs 5 -- below that the median is one or two names and relStrength would describe a comparison that was never made. The fix is to add assets to this industry, not to backfill price history"
   },
   "UPFL": {
    "market": "PK",
@@ -7909,7 +7958,11 @@
     "60": "feature-gap"
    },
    "imputedCount": 9,
-   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+   "gapKind": "small-industry",
+   "industry": "Transport and Logistics",
+   "industryMembers": 5,
+   "peersNeeded": 5,
+   "why": "the 1960 stored sessions are enough. Transport and Logistics holds 5 stored assets, so this one has 4 peers and a peer median needs 5 -- below that the median is one or two names and relStrength would describe a comparison that was never made. The fix is to add assets to this industry, not to backfill price history"
   },
   "USB": {
    "market": "US",
