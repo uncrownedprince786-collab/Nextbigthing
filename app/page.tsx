@@ -21,6 +21,7 @@ import {
   rankingAsOf,
 } from "@/lib/queries";
 import { todayISO } from "@/lib/decisionInput";
+import { marketHasValidatedSignal } from "@/lib/signalValidation";
 // The overview and the four class indexes read the same rows through the same verdict, so the
 // scoring, the ordering and the list-row shape live in one module rather than once per route.
 // A second copy of any of them is how two pages come to disagree about what a name is.
@@ -271,6 +272,18 @@ function DevelopingCard({ item }: { item: Scored }) {
   );
 }
 
+/// The five markets and the list each one opens on. The hrefs are the existing published list
+/// routes rather than new ones: those pages already show a market's instruments with their stored
+/// freshness, which is exactly the second step of the journey, so promoting the journey did not
+/// need them rebuilt.
+const MARKET_ENTRY = [
+  { market: "US", href: "/stocks", label: "Stocks", blurb: "US listings and ETFs" },
+  { market: "PK", href: "/psx", label: "PSX", blurb: "Pakistan Stock Exchange" },
+  { market: "Crypto", href: "/crypto", label: "Crypto", blurb: "Major coins" },
+  { market: "FX", href: "/forex", label: "Forex", blurb: "Currency pairs" },
+  { market: "Commodity", href: "/commodities", label: "Commodities", blurb: "Metals and energy" },
+] as const;
+
 export default async function Home({
   searchParams,
 }: {
@@ -398,6 +411,41 @@ export default async function Home({
           there anything to do today" -- where the browse block answers "what is in here". It reads
           the unfiltered `scored` for the same reason TopByClass does: a chip narrowing the lists
           below must not empty the one block that says what the site acted on. */}
+      {/* The journey starts here. Market -> asset -> trading style -> decision, promoted to the
+          public routes on 2026-10-20 under UI-CUTOVER-RUNBOOK-2026-10-18.
+          Above the readings below, because a reader arriving at the site is choosing where to
+          look before they are reading what was found. */}
+      <Section title="Choose a market">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {MARKET_ENTRY.map((m) => (
+            <Link
+              key={m.href}
+              href={m.href}
+              className="border-border hover:bg-muted rounded-lg border px-4 py-4 transition"
+            >
+              <div className="font-medium">{m.label}</div>
+              <div className="text-muted-foreground mt-1 text-xs">{m.blurb}</div>
+              <div className={`mt-2 text-xs ${
+                marketHasValidatedSignal(m.market)
+                  ? "text-amber-700 dark:text-amber-400"
+                  : "text-muted-foreground"}`}>
+                {marketHasValidatedSignal(m.market)
+                  ? "Validated signal"
+                  : "No validated signal"}
+              </div>
+            </Link>
+          ))}
+        </div>
+        <Note>
+          Pick a market, then an instrument, then the trading style you have in mind. A direction
+          is shown only where one has survived testing — today that is one lane, and the rest say
+          so rather than filling the space.{" "}
+          <Link href="/markets" className="underline underline-offset-2">
+            Compare the five markets →
+          </Link>
+        </Note>
+      </Section>
+
       <WeeklyFocusBlock rows={scored} />
 
       <TopByClass classes={ASSET_CLASSES} rows={scored} health={health} />

@@ -9,7 +9,7 @@ import {
   getPrefsSnapshot,
   prefsServerSnapshot,
   subscribePrefs,
-} from "../prefs";
+} from "@/lib/prefs";
 import type { WatchlistRow } from "../api/watchlist/route";
 import {
   getWatchlistSnapshot,

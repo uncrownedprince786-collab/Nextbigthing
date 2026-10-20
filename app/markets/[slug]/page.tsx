@@ -73,7 +73,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
               return (
                 <tr key={a.id}>
                   <td className="px-3 py-2 font-mono text-xs">
-                    <Link href={`/preview/asset/${encodeURIComponent(a.symbol)}`}
+                    <Link href={`/asset/${encodeURIComponent(a.symbol)}`}
                           className="underline underline-offset-2">
                       {a.symbol}
                     </Link>

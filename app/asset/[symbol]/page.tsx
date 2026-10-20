@@ -299,6 +299,17 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
         now lands on the list of groups rather than on a restatement of the panel above it.
         `scroll-mt-4` keeps the heading off the very top edge when it does.
       */}
+      {/* The next step of the journey, between the decision panel above and the measurements
+          below. A link rather than an inline panel because the style choice decides which horizon
+          is graded, and showing every horizon at once would present four different questions as
+          one answer. */}
+      <Note>
+        <Link href={`/asset/${encodeURIComponent(asset.symbol)}/decision`}
+              className="font-medium underline underline-offset-2">
+          Choose a trading style and forecast duration →
+        </Link>
+      </Note>
+
       <div id="detail" className="scroll-mt-4">
         <Section
           title="Details"

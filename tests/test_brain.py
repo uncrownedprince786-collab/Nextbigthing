@@ -5032,7 +5032,10 @@ class SqlSafety(unittest.TestCase):
     CLIENT_ALLOWED = (
         "app/error.tsx", "app/global-error.tsx", "components/LivePrice.tsx",
         "app/preview/watchlist/WatchlistClient.tsx", "app/preview/watchlist/SaveButton.tsx",
-        "app/preview/status/Preferences.tsx",
+        # Promoted out of /preview on 2026-10-20 with the rest of the journey (the cutover
+        # runbook). The path moved; the guarantee did not, so the entry moves with it rather
+        # than the file being quietly exempted by a wildcard.
+        "app/status/Preferences.tsx",
     )
 
     def test_nothing_is_exposed_to_the_browser(self):

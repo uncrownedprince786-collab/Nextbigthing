@@ -24,12 +24,15 @@ export const metadata: Metadata = {
 // those two words were promising.
 const NAV = [
   { href: "/", label: "Overview" },
+  { href: "/markets", label: "Markets" },
   { href: "/stocks", label: "Stocks" },
   { href: "/psx", label: "PSX" },
   { href: "/crypto", label: "Crypto" },
   { href: "/forex", label: "Forex" },
   { href: "/commodities", label: "Commodities" },
+  { href: "/predictions", label: "Predictions" },
   { href: "/logbook", label: "Logbook" },
+  { href: "/status", label: "Status" },
 ];
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

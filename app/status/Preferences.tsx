@@ -9,7 +9,7 @@ import {
   subscribePrefs,
   writePrefs,
   type Prefs,
-} from "../prefs";
+} from "@/lib/prefs";
 
 /// The preferences half of Screen 8, held in this browser for the same reason the watchlist is.
 ///

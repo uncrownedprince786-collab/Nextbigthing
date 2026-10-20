@@ -18,11 +18,11 @@ export const metadata: Metadata = {
 
 const NAV = [
   ["/preview", "Overview"],
-  ["/preview/markets", "Markets"],
+  ["/markets", "Markets"],
   ["/preview/news", "News & events"],
-  ["/preview/predictions", "Predictions"],
+  ["/predictions", "Predictions"],
   ["/preview/watchlist", "Watchlist"],
-  ["/preview/status", "Status"],
+  ["/status", "Status"],
   ["/", "← Live site"],
 ] as const;
 

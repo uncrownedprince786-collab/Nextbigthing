@@ -13,7 +13,7 @@ import {
   VALIDATION_REQUIREMENTS, VALIDATION_GENERATED_AT, VALIDATION_STATUS,
 } from "@/lib/signalValidation";
 
-/// Screen 4 — the end of the journey: market, asset, trading style, and what the brain says.
+/// The end of the journey: market, asset, trading style, and what the brain says.
 ///
 /// The screen is mostly a set of refusals, and that is the design rather than a shortfall.
 /// Three separate things all have to be true before a direction appears, and each fails on its own:
@@ -83,7 +83,7 @@ export default async function DecisionPage({
         <Empty>
           This asset is not classified into one of the five markets, so no trading style can be
           offered for it. Its stored data is on its{" "}
-          <Link href={`/preview/asset/${encodeURIComponent(asset.symbol)}`}
+          <Link href={`/asset/${encodeURIComponent(asset.symbol)}`}
                 className="text-primary underline underline-offset-2">research page</Link>.
         </Empty>
       </Section>
@@ -110,7 +110,7 @@ export default async function DecisionPage({
         <p className="text-muted-foreground text-sm">
           {MARKET_LABELS[market] ?? market} · stored close {day(fresh?.newest)}
           {fresh?.priceSource ? <> · {fresh.priceSource}</> : null} ·{" "}
-          <Link href={`/preview/asset/${encodeURIComponent(asset.symbol)}`}
+          <Link href={`/asset/${encodeURIComponent(asset.symbol)}`}
                 className="text-primary underline underline-offset-2">
             full research
           </Link>
@@ -138,7 +138,7 @@ export default async function DecisionPage({
             return (
               <Link
                 key={o.tf}
-                href={`/preview/asset/${encodeURIComponent(asset.symbol)}/decision?style=${o.tf}`}
+                href={`/asset/${encodeURIComponent(asset.symbol)}/decision?style=${o.tf}`}
                 className={`rounded-lg border px-3 py-3 text-sm transition ${
                   on ? "border-primary bg-primary/5" : "border-border hover:bg-muted"}`}
               >

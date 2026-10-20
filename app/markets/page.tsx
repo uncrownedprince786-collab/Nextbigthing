@@ -5,7 +5,11 @@ import { getMarketOverview } from "@/lib/queries";
 import { CAPABILITY, MARKET_LABELS, capabilityForMarket } from "@/lib/marketCapability";
 import { marketHasValidatedSignal, validatedHorizons } from "@/lib/signalValidation";
 
-/// Screen 2 — market explorer, the top of the browse path.
+/// Market selection — the second step of the journey, after the overview.
+///
+/// Promoted from /preview on 2026-10-20 under the cutover runbook. The old preview
+/// path 308-redirects here (next.config.ts), so links shared while it lived there
+/// still resolve.
 ///
 /// Five markets, because the instruments trade in five groups: US, Pakistan, foreign exchange,
 /// commodities and crypto. The list used to be drawn from each industry's `market` column, which
@@ -171,7 +175,7 @@ export default async function MarketsPage() {
                     <tr key={ind.id}>
                       <td className="px-3 py-2">
                         <Link
-                          href={`/preview/markets/${ind.slug}`}
+                          href={`/markets/${ind.slug}`}
                           className="underline underline-offset-2"
                         >
                           {ind.name}
