@@ -44,9 +44,14 @@ does not earn the word "profitable", and nothing downstream should print it.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 DATASET = ROOT / "data" / "foundation" / "dataset"
@@ -172,3 +177,97 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+def verify_lane(lane: dict, brain_root: Path, candidate: dict | None = None) -> list[str]:
+    """Every way a lane's badge could be backed by a different model than the one it names.
+
+    Returns a list of problems, empty when the lane and its artifact agree on every part of the
+    model's identity. A *list* rather than a boolean because when this fires, the useful output is
+    which field disagreed.
+
+    **The defect this exists to make impossible.** On 2026-10-20 the site printed `LONG / MEDIUM`
+    on the US five-session lane beside evidence from `validate_lift.json` -- a 6.3-point lift at a
+    blocked-bootstrap z of 8.98. That evidence was measured at a **2.0x** label band. The artifact
+    being served, `brain-v5-h5-us`, was trained at the default **1.0x**. The lane was keyed on
+    market, horizon and side alone, so the band was simply absent and nothing compared the two.
+
+    They were not near-duplicates. The served 1.0x model called UP on **271 of 271** US
+    instruments -- an always-UP predictor -- where the validated 2.0x model calls UP on 182 and
+    FLAT on 89. A confidence badge was printed beside another model's numbers for as long as that
+    went unnoticed, which was only until somebody happened to look at the predicted mix.
+
+    So this checks identity rather than plausibility, and it checks it against the artifact's own
+    manifest rather than against its directory name: a misnamed directory is exactly the case a
+    name check cannot catch.
+    """
+    problems: list[str] = []
+    name = lane.get("modelVersion")
+    if not name:
+        return [f"lane {lane.get('market')}/h{lane.get('horizonSessions')}/{lane.get('side')} "
+                f"names no modelVersion, so nothing can confirm what its badge refers to"]
+
+    man_path = brain_root / name / "manifest.json"
+    model_path = brain_root / name / "model.json"
+    if not man_path.exists():
+        return [f"{name}: no manifest at {man_path}"]
+    man = json.loads(man_path.read_text(encoding="utf-8"))
+    task = man.get("task") or {}
+
+    def differs(label: str, got, want) -> None:
+        if got != want:
+            problems.append(f"{name}: {label} is {got!r} but the lane says {want!r}")
+
+    differs("manifest modelVersion", man.get("modelVersion"), name)
+    differs("manifest market", man.get("market"), lane.get("market"))
+    differs("task horizonSessions", task.get("horizonSessions"), lane.get("horizonSessions"))
+    differs("task bandScale", task.get("bandScale"), lane.get("bandScale"))
+
+    # The threshold must be the shared rule at the lane's band, not a number typed in.
+    band = lane.get("bandScale")
+    horizon = lane.get("horizonSessions")
+    if isinstance(band, (int, float)) and isinstance(horizon, int):
+        import make_dataset as _md
+        expected = round(_md.label_threshold_pct(horizon) * band, 4)
+        if task.get("labelThresholdPct") != expected:
+            problems.append(
+                f"{name}: task labelThresholdPct is {task.get('labelThresholdPct')!r} but the "
+                f"shared rule at horizon {horizon} and band {band}x gives {expected!r}")
+
+    # The evidence must have been gathered at the band the artifact was trained at.
+    ev_band = (lane.get("evidence") or {}).get("bandScale")
+    if ev_band is not None and ev_band != task.get("bandScale"):
+        problems.append(
+            f"{name}: the evidence was measured at a {ev_band}x band but the artifact was "
+            f"trained at {task.get('bandScale')}x -- this is the 2026-10-20 defect")
+
+    # The bytes on disk must be the bytes the manifest signed.
+    if not model_path.exists():
+        problems.append(f"{name}: manifest exists but {model_path.name} does not")
+    else:
+        digest = hashlib.sha256(model_path.read_bytes()).hexdigest()
+        recorded = (man.get("artifact") or {}).get("sha256")
+        if recorded != digest:
+            problems.append(
+                f"{name}: model.json digest {digest[:16]} does not match the manifest's "
+                f"{str(recorded)[:16]}")
+
+    # Feature identity: the count the manifest claims must match the lists it names.
+    named = len(task.get("priceFeatures") or []) + len(task.get("contextFeatures") or [])
+    if task.get("featureCount") is not None and named and task["featureCount"] != named:
+        problems.append(
+            f"{name}: task featureCount is {task['featureCount']} but it names {named} features")
+
+    # And the candidate the evidence came from must resolve to this very artifact.
+    if candidate:
+        resolved = artifact_for(candidate)
+        if resolved != name:
+            problems.append(
+                f"{name}: the validated candidate {candidate} resolves to {resolved!r}, which is "
+                f"a different artifact from the one this lane names")
+
+    # A lane may not point at an artifact its own manifest marks approved for production: nothing
+    # here is, and a badge is not a promotion.
+    if man.get("productionApproved"):
+        problems.append(f"{name}: manifest claims productionApproved, which nothing here is")
+    return problems

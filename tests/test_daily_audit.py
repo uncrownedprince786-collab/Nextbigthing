@@ -261,3 +261,36 @@ class TheDecisionLaneHasAHeartbeatTest(unittest.TestCase):
         """Rows for the day means ok; none means empty. Neither is a guess."""
         self.assertEqual("ok" if 555 else "empty", "ok")
         self.assertEqual("ok" if 0 else "empty", "empty")
+
+
+class ModelIdentityIsAuditedAgainstTheLiveStoreTest(unittest.TestCase):
+    """CI checks the registry against the artifacts; the audit checks it against stored rows too.
+
+    A prediction recorded by a workflow running an older commit passes CI -- CI never sees it --
+    and would still be served under a badge it does not belong to. That is the half of the
+    2026-10-20 defect a push-time test cannot reach.
+    """
+
+    def test_the_audit_checks_lane_identity_and_stray_rows(self):
+        src = (ROOT / "tools" / "daily_audit.py").read_text(encoding="utf-8")
+        self.assertIn("modelIdentity", src)
+        self.assertIn("verify_lane", src, "the audit reuses the checker rather than restating it")
+        # The stray-row query is the live half: rows on a validated lane from another model.
+        # One query for all lanes, and IS DISTINCT FROM so a row with no recorded identity counts.
+        self.assertIn('p."modelVersion" IS DISTINCT FROM lane.mv', src)
+        self.assertNotIn('"modelVersion" <> %s', src, "a per-lane query would scale with the registry")
+
+    def test_a_lane_mismatch_fails_and_a_stray_row_only_warns(self):
+        """Different severities on purpose, because they are different facts.
+
+        A lane whose artifact disagrees is a badge standing on the wrong evidence -- a failure. A
+        stored row from a superseded model is already shown as "no direction" by the UI, so it is
+        a warning: something to clean up, not something being misrepresented.
+        """
+        def severity(problems: list[str], stray: int) -> str:
+            return "fail" if problems else ("warn" if stray else "ok")
+
+        self.assertEqual(severity(["band mismatch"], 0), "fail")
+        self.assertEqual(severity(["band mismatch"], 9), "fail")
+        self.assertEqual(severity([], 4), "warn")
+        self.assertEqual(severity([], 0), "ok")

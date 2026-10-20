@@ -290,6 +290,59 @@ def db_checks(conn, const: dict) -> list[dict]:
                      f"earliest maturity {s['soonest']}",
                      {"matureAndUnscored": due, "scored": s["done"]}))
 
+    # Every validated lane against the artifact its badge refers to, and against the predictions
+    # actually stored under it. `tests/test_model_identity.py` checks the first half on every
+    # push; this checks it against the live store too, because a prediction recorded by a workflow
+    # running an older commit would pass CI and still be served under a badge it does not belong
+    # to.
+    #
+    # The defect, 2026-10-20: the site printed LONG/MEDIUM citing evidence measured at a 2.0x
+    # label band while serving `brain-v5-h5-us`, trained at 1.0x. The served model called UP on
+    # 271 of 271 US instruments; the validated one calls UP on 182 of 271.
+    try:
+        import signal_validation as sigval
+
+        reg = json.loads((ROOT / "data" / "foundation" / "dataset" / "signal_validation.json")
+                         .read_text(encoding="utf-8"))
+        lift_path = ROOT / "data" / "foundation" / "dataset" / "validate_lift.json"
+        cand = (json.loads(lift_path.read_text(encoding="utf-8")).get("candidate")
+                if lift_path.exists() else None)
+        lanes = [lane for lane in reg.get("lanes", []) if lane.get("validated")]
+        problems: list[str] = []
+        for lane in lanes:
+            problems += sigval.verify_lane(lane, ROOT / "data" / "foundation" / "brain", cand)
+        # And the stored rows: anything recorded on a validated lane's market and horizon that did
+        # not come from that lane's artifact is shown as "no direction" by the UI, which is
+        # correct -- but worth naming, because it means the lane is being fed by a model it does
+        # not cover.
+        # One query for every lane, not one per lane: the registry is meant to grow, and a loop
+        # issuing a round trip per lane is how a daily check turns into a slow one.
+        #
+        # IS DISTINCT FROM, so a row that recorded no model version at all counts as stray. That
+        # is not a technicality -- a prediction with no identity is precisely the row that cannot
+        # be shown to belong to the lane serving it.
+        stray = 0
+        if lanes:
+            cur.execute(
+                'SELECT count(*) n FROM "ShadowPrediction" p '
+                'JOIN (SELECT unnest(%s::text[]) market, unnest(%s::int[]) h, '
+                '             unnest(%s::text[]) mv) lane '
+                '  ON p.market = lane.market AND p."horizonSessions" = lane.h '
+                'WHERE p."modelVersion" IS DISTINCT FROM lane.mv',
+                ([l["market"] for l in lanes],
+                 [l["horizonSessions"] for l in lanes],
+                 [l.get("modelVersion") for l in lanes]))
+            stray = (cur.fetchone() or {}).get("n") or 0
+        detail = (f"{len(lanes)} validated lane(s) match their artifacts"
+                  + (f"; {stray} stored row(s) on a validated lane come from another model and "
+                     f"are shown as no direction" if stray else ""))
+        out.append(check("modelIdentity", FAIL if problems else (WARN if stray else OK),
+                         "; ".join(problems) if problems else detail,
+                         {"lanes": len(lanes), "strayRows": stray, "problems": problems}))
+    except Exception as e:                                     # noqa: BLE001
+        out.append(check("modelIdentity", UNKNOWN,
+                         f"could not be checked: {type(e).__name__}: {str(e)[:120]}"))
+
     cur.execute("""SELECT count(*) n FROM "ShadowPrediction" WHERE approved IS TRUE""")
     approved = cur.fetchone()["n"]
     out.append(check("noApprovedShadowRecords", OK if approved == 0 else FAIL,

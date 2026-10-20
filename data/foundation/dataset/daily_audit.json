@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-20T13:49:07+00:00",
+ "generatedAt": "2026-10-20T14:24:36+00:00",
  "version": "daily-audit-v1",
  "staleRulesReadFrom": "lib/health.ts + lib/decision.ts",
  "staleRules": {
@@ -9,7 +9,7 @@
  },
  "summary": {
   "ok": 36,
-  "warn": 4,
+  "warn": 5,
   "fail": 0,
   "unknown": 0
  },
@@ -279,7 +279,7 @@
   {
    "check": "newsFreshness",
    "status": "ok",
-   "detail": "newest headline 2.0h old (lib/health.ts calls the lane stale after 6.0h)",
+   "detail": "newest headline 2.6h old (lib/health.ts calls the lane stale after 6.0h)",
    "extra": null
   },
   {
@@ -291,7 +291,7 @@
   {
    "check": "jobRuns36h",
    "status": "ok",
-   "detail": "79 slice(s) in 36h, every slice ok",
+   "detail": "78 slice(s) in 36h, every slice ok",
    "extra": null
   },
   {
@@ -307,6 +307,16 @@
    "extra": {
     "matureAndUnscored": 0,
     "scored": 0
+   }
+  },
+  {
+   "check": "modelIdentity",
+   "status": "warn",
+   "detail": "1 validated lane(s) match their artifacts; 4 stored row(s) on a validated lane come from another model and are shown as no direction",
+   "extra": {
+    "lanes": 1,
+    "strayRows": 4,
+    "problems": []
    }
   },
   {
