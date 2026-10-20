@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-18T23:41:13+00:00",
+ "generatedAt": "2026-10-20T09:36:06+00:00",
  "version": "market-capability-v1",
  "status": "reference table; it says what can be judged, not what is deployed",
  "markets": [
@@ -12,6 +12,7 @@
  "timeframes": {
   "scalp": 0,
   "intraday": 1,
+  "short": 5,
   "swing": 20,
   "position": 60
  },
@@ -73,7 +74,7 @@
    "market": "US",
    "timeframe": "intraday",
    "horizonSessions": 1,
-   "judgedOn": "the same session's close",
+   "judgedOn": "the next session's close against the +/-0.45% label band",
    "input": {
     "available": true,
     "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
@@ -84,17 +85,38 @@
    },
    "outcome": {
     "verifiable": true,
-    "judgedOn": "the same session's close",
-    "reason": "US: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; US on weekdays otherwise)."
+    "judgedOn": "the next session's close against the +/-0.45% label band",
+    "reason": "US: one session forward, judged from the close after the decision session. The description here used to read 'the same session's close', which was wrong in a way worth naming: `matures_after(as_of, 1, market)` is the *next* session, and `make_dataset.outcomes` measures `fwd1` from the first bar **strictly after** `as_of`. Both the code paths agreed with each other and only the prose disagreed, but a timeframe whose stated rule differs from its graded rule is exactly how a scorer and a trainer drift apart. The +/-0.45% band is `make_dataset.label_threshold_pct(1)`. Sessions are counted on this market's own calendar (crypto every day; US on weekdays otherwise)."
    },
    "verifiable": true,
-   "reason": "US: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; US on weekdays otherwise)."
+   "reason": "US: one session forward, judged from the close after the decision session. The description here used to read 'the same session's close', which was wrong in a way worth naming: `matures_after(as_of, 1, market)` is the *next* session, and `make_dataset.outcomes` measures `fwd1` from the first bar **strictly after** `as_of`. Both the code paths agreed with each other and only the prose disagreed, but a timeframe whose stated rule differs from its graded rule is exactly how a scorer and a trainer drift apart. The +/-0.45% band is `make_dataset.label_threshold_pct(1)`. Sessions are counted on this market's own calendar (crypto every day; US on weekdays otherwise)."
+  },
+  {
+   "market": "US",
+   "timeframe": "short",
+   "horizonSessions": 5,
+   "judgedOn": "the 5-session forward return against the +/-1.0% label band",
+   "input": {
+    "available": true,
+    "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
+   },
+   "prediction": {
+    "marketSpecific": false,
+    "note": "one global model is applied; the features are not tuned or validated per market, so this is a relabel and not a market-specific model"
+   },
+   "outcome": {
+    "verifiable": true,
+    "judgedOn": "the 5-session forward return against the +/-1.0% label band",
+    "reason": "US: a week of sessions, judged from stored closes exactly as the swing horizon is. It exists because `swing` cannot be verified quickly: a call recorded today is not gradeable for a month, so a month is the soonest anything prospective can be measured at all. `make_dataset.HORIZONS` has carried `fwd5` on every row since the first dataset was assembled -- this is that column labelled and used, not a new kind of claim. The +/-1% band is `make_dataset.label_threshold_pct(5)`, which scales the 20-session 2% by the square root of the horizon and was fixed before any 5-session result was looked at. Sessions are counted on this market's own calendar (crypto every day; US on weekdays otherwise)."
+   },
+   "verifiable": true,
+   "reason": "US: a week of sessions, judged from stored closes exactly as the swing horizon is. It exists because `swing` cannot be verified quickly: a call recorded today is not gradeable for a month, so a month is the soonest anything prospective can be measured at all. `make_dataset.HORIZONS` has carried `fwd5` on every row since the first dataset was assembled -- this is that column labelled and used, not a new kind of claim. The +/-1% band is `make_dataset.label_threshold_pct(5)`, which scales the 20-session 2% by the square root of the horizon and was fixed before any 5-session result was looked at. Sessions are counted on this market's own calendar (crypto every day; US on weekdays otherwise)."
   },
   {
    "market": "US",
    "timeframe": "swing",
    "horizonSessions": 20,
-   "judgedOn": "the 20-session forward return against the +/-2% label band",
+   "judgedOn": "the 20-session forward return against the +/-2.0% label band",
    "input": {
     "available": true,
     "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
@@ -105,7 +127,7 @@
    },
    "outcome": {
     "verifiable": true,
-    "judgedOn": "the 20-session forward return against the +/-2% label band",
+    "judgedOn": "the 20-session forward return against the +/-2.0% label band",
     "reason": "US: the horizon the model was trained on; the label rule is fixed in tools/make_dataset. Sessions are counted on this market's own calendar (crypto every day; US on weekdays otherwise)."
    },
    "verifiable": true,
@@ -157,7 +179,7 @@
    "market": "PK",
    "timeframe": "intraday",
    "horizonSessions": 1,
-   "judgedOn": "the same session's close",
+   "judgedOn": "the next session's close against the +/-0.45% label band",
    "input": {
     "available": true,
     "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
@@ -168,17 +190,38 @@
    },
    "outcome": {
     "verifiable": true,
-    "judgedOn": "the same session's close",
-    "reason": "PK: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; PK on weekdays otherwise)."
+    "judgedOn": "the next session's close against the +/-0.45% label band",
+    "reason": "PK: one session forward, judged from the close after the decision session. The description here used to read 'the same session's close', which was wrong in a way worth naming: `matures_after(as_of, 1, market)` is the *next* session, and `make_dataset.outcomes` measures `fwd1` from the first bar **strictly after** `as_of`. Both the code paths agreed with each other and only the prose disagreed, but a timeframe whose stated rule differs from its graded rule is exactly how a scorer and a trainer drift apart. The +/-0.45% band is `make_dataset.label_threshold_pct(1)`. Sessions are counted on this market's own calendar (crypto every day; PK on weekdays otherwise)."
    },
    "verifiable": true,
-   "reason": "PK: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; PK on weekdays otherwise)."
+   "reason": "PK: one session forward, judged from the close after the decision session. The description here used to read 'the same session's close', which was wrong in a way worth naming: `matures_after(as_of, 1, market)` is the *next* session, and `make_dataset.outcomes` measures `fwd1` from the first bar **strictly after** `as_of`. Both the code paths agreed with each other and only the prose disagreed, but a timeframe whose stated rule differs from its graded rule is exactly how a scorer and a trainer drift apart. The +/-0.45% band is `make_dataset.label_threshold_pct(1)`. Sessions are counted on this market's own calendar (crypto every day; PK on weekdays otherwise)."
+  },
+  {
+   "market": "PK",
+   "timeframe": "short",
+   "horizonSessions": 5,
+   "judgedOn": "the 5-session forward return against the +/-1.0% label band",
+   "input": {
+    "available": true,
+    "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
+   },
+   "prediction": {
+    "marketSpecific": false,
+    "note": "one global model is applied; the features are not tuned or validated per market, so this is a relabel and not a market-specific model"
+   },
+   "outcome": {
+    "verifiable": true,
+    "judgedOn": "the 5-session forward return against the +/-1.0% label band",
+    "reason": "PK: a week of sessions, judged from stored closes exactly as the swing horizon is. It exists because `swing` cannot be verified quickly: a call recorded today is not gradeable for a month, so a month is the soonest anything prospective can be measured at all. `make_dataset.HORIZONS` has carried `fwd5` on every row since the first dataset was assembled -- this is that column labelled and used, not a new kind of claim. The +/-1% band is `make_dataset.label_threshold_pct(5)`, which scales the 20-session 2% by the square root of the horizon and was fixed before any 5-session result was looked at. Sessions are counted on this market's own calendar (crypto every day; PK on weekdays otherwise)."
+   },
+   "verifiable": true,
+   "reason": "PK: a week of sessions, judged from stored closes exactly as the swing horizon is. It exists because `swing` cannot be verified quickly: a call recorded today is not gradeable for a month, so a month is the soonest anything prospective can be measured at all. `make_dataset.HORIZONS` has carried `fwd5` on every row since the first dataset was assembled -- this is that column labelled and used, not a new kind of claim. The +/-1% band is `make_dataset.label_threshold_pct(5)`, which scales the 20-session 2% by the square root of the horizon and was fixed before any 5-session result was looked at. Sessions are counted on this market's own calendar (crypto every day; PK on weekdays otherwise)."
   },
   {
    "market": "PK",
    "timeframe": "swing",
    "horizonSessions": 20,
-   "judgedOn": "the 20-session forward return against the +/-2% label band",
+   "judgedOn": "the 20-session forward return against the +/-2.0% label band",
    "input": {
     "available": true,
     "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
@@ -189,7 +232,7 @@
    },
    "outcome": {
     "verifiable": true,
-    "judgedOn": "the 20-session forward return against the +/-2% label band",
+    "judgedOn": "the 20-session forward return against the +/-2.0% label band",
     "reason": "PK: the horizon the model was trained on; the label rule is fixed in tools/make_dataset. Sessions are counted on this market's own calendar (crypto every day; PK on weekdays otherwise)."
    },
    "verifiable": true,
@@ -241,7 +284,7 @@
    "market": "FX",
    "timeframe": "intraday",
    "horizonSessions": 1,
-   "judgedOn": "the same session's close",
+   "judgedOn": "the next session's close against the +/-0.45% label band",
    "input": {
     "available": true,
     "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
@@ -252,17 +295,38 @@
    },
    "outcome": {
     "verifiable": true,
-    "judgedOn": "the same session's close",
-    "reason": "FX: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; FX on weekdays otherwise)."
+    "judgedOn": "the next session's close against the +/-0.45% label band",
+    "reason": "FX: one session forward, judged from the close after the decision session. The description here used to read 'the same session's close', which was wrong in a way worth naming: `matures_after(as_of, 1, market)` is the *next* session, and `make_dataset.outcomes` measures `fwd1` from the first bar **strictly after** `as_of`. Both the code paths agreed with each other and only the prose disagreed, but a timeframe whose stated rule differs from its graded rule is exactly how a scorer and a trainer drift apart. The +/-0.45% band is `make_dataset.label_threshold_pct(1)`. Sessions are counted on this market's own calendar (crypto every day; FX on weekdays otherwise)."
    },
    "verifiable": true,
-   "reason": "FX: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; FX on weekdays otherwise)."
+   "reason": "FX: one session forward, judged from the close after the decision session. The description here used to read 'the same session's close', which was wrong in a way worth naming: `matures_after(as_of, 1, market)` is the *next* session, and `make_dataset.outcomes` measures `fwd1` from the first bar **strictly after** `as_of`. Both the code paths agreed with each other and only the prose disagreed, but a timeframe whose stated rule differs from its graded rule is exactly how a scorer and a trainer drift apart. The +/-0.45% band is `make_dataset.label_threshold_pct(1)`. Sessions are counted on this market's own calendar (crypto every day; FX on weekdays otherwise)."
+  },
+  {
+   "market": "FX",
+   "timeframe": "short",
+   "horizonSessions": 5,
+   "judgedOn": "the 5-session forward return against the +/-1.0% label band",
+   "input": {
+    "available": true,
+    "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
+   },
+   "prediction": {
+    "marketSpecific": false,
+    "note": "one global model is applied; the features are not tuned or validated per market, so this is a relabel and not a market-specific model"
+   },
+   "outcome": {
+    "verifiable": true,
+    "judgedOn": "the 5-session forward return against the +/-1.0% label band",
+    "reason": "FX: a week of sessions, judged from stored closes exactly as the swing horizon is. It exists because `swing` cannot be verified quickly: a call recorded today is not gradeable for a month, so a month is the soonest anything prospective can be measured at all. `make_dataset.HORIZONS` has carried `fwd5` on every row since the first dataset was assembled -- this is that column labelled and used, not a new kind of claim. The +/-1% band is `make_dataset.label_threshold_pct(5)`, which scales the 20-session 2% by the square root of the horizon and was fixed before any 5-session result was looked at. Sessions are counted on this market's own calendar (crypto every day; FX on weekdays otherwise)."
+   },
+   "verifiable": true,
+   "reason": "FX: a week of sessions, judged from stored closes exactly as the swing horizon is. It exists because `swing` cannot be verified quickly: a call recorded today is not gradeable for a month, so a month is the soonest anything prospective can be measured at all. `make_dataset.HORIZONS` has carried `fwd5` on every row since the first dataset was assembled -- this is that column labelled and used, not a new kind of claim. The +/-1% band is `make_dataset.label_threshold_pct(5)`, which scales the 20-session 2% by the square root of the horizon and was fixed before any 5-session result was looked at. Sessions are counted on this market's own calendar (crypto every day; FX on weekdays otherwise)."
   },
   {
    "market": "FX",
    "timeframe": "swing",
    "horizonSessions": 20,
-   "judgedOn": "the 20-session forward return against the +/-2% label band",
+   "judgedOn": "the 20-session forward return against the +/-2.0% label band",
    "input": {
     "available": true,
     "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
@@ -273,7 +337,7 @@
    },
    "outcome": {
     "verifiable": true,
-    "judgedOn": "the 20-session forward return against the +/-2% label band",
+    "judgedOn": "the 20-session forward return against the +/-2.0% label band",
     "reason": "FX: the horizon the model was trained on; the label rule is fixed in tools/make_dataset. Sessions are counted on this market's own calendar (crypto every day; FX on weekdays otherwise)."
    },
    "verifiable": true,
@@ -325,7 +389,7 @@
    "market": "Commodity",
    "timeframe": "intraday",
    "horizonSessions": 1,
-   "judgedOn": "the same session's close",
+   "judgedOn": "the next session's close against the +/-0.45% label band",
    "input": {
     "available": true,
     "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
@@ -336,17 +400,38 @@
    },
    "outcome": {
     "verifiable": true,
-    "judgedOn": "the same session's close",
-    "reason": "Commodity: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; Commodity on weekdays otherwise)."
+    "judgedOn": "the next session's close against the +/-0.45% label band",
+    "reason": "Commodity: one session forward, judged from the close after the decision session. The description here used to read 'the same session's close', which was wrong in a way worth naming: `matures_after(as_of, 1, market)` is the *next* session, and `make_dataset.outcomes` measures `fwd1` from the first bar **strictly after** `as_of`. Both the code paths agreed with each other and only the prose disagreed, but a timeframe whose stated rule differs from its graded rule is exactly how a scorer and a trainer drift apart. The +/-0.45% band is `make_dataset.label_threshold_pct(1)`. Sessions are counted on this market's own calendar (crypto every day; Commodity on weekdays otherwise)."
    },
    "verifiable": true,
-   "reason": "Commodity: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; Commodity on weekdays otherwise)."
+   "reason": "Commodity: one session forward, judged from the close after the decision session. The description here used to read 'the same session's close', which was wrong in a way worth naming: `matures_after(as_of, 1, market)` is the *next* session, and `make_dataset.outcomes` measures `fwd1` from the first bar **strictly after** `as_of`. Both the code paths agreed with each other and only the prose disagreed, but a timeframe whose stated rule differs from its graded rule is exactly how a scorer and a trainer drift apart. The +/-0.45% band is `make_dataset.label_threshold_pct(1)`. Sessions are counted on this market's own calendar (crypto every day; Commodity on weekdays otherwise)."
+  },
+  {
+   "market": "Commodity",
+   "timeframe": "short",
+   "horizonSessions": 5,
+   "judgedOn": "the 5-session forward return against the +/-1.0% label band",
+   "input": {
+    "available": true,
+    "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
+   },
+   "prediction": {
+    "marketSpecific": false,
+    "note": "one global model is applied; the features are not tuned or validated per market, so this is a relabel and not a market-specific model"
+   },
+   "outcome": {
+    "verifiable": true,
+    "judgedOn": "the 5-session forward return against the +/-1.0% label band",
+    "reason": "Commodity: a week of sessions, judged from stored closes exactly as the swing horizon is. It exists because `swing` cannot be verified quickly: a call recorded today is not gradeable for a month, so a month is the soonest anything prospective can be measured at all. `make_dataset.HORIZONS` has carried `fwd5` on every row since the first dataset was assembled -- this is that column labelled and used, not a new kind of claim. The +/-1% band is `make_dataset.label_threshold_pct(5)`, which scales the 20-session 2% by the square root of the horizon and was fixed before any 5-session result was looked at. Sessions are counted on this market's own calendar (crypto every day; Commodity on weekdays otherwise)."
+   },
+   "verifiable": true,
+   "reason": "Commodity: a week of sessions, judged from stored closes exactly as the swing horizon is. It exists because `swing` cannot be verified quickly: a call recorded today is not gradeable for a month, so a month is the soonest anything prospective can be measured at all. `make_dataset.HORIZONS` has carried `fwd5` on every row since the first dataset was assembled -- this is that column labelled and used, not a new kind of claim. The +/-1% band is `make_dataset.label_threshold_pct(5)`, which scales the 20-session 2% by the square root of the horizon and was fixed before any 5-session result was looked at. Sessions are counted on this market's own calendar (crypto every day; Commodity on weekdays otherwise)."
   },
   {
    "market": "Commodity",
    "timeframe": "swing",
    "horizonSessions": 20,
-   "judgedOn": "the 20-session forward return against the +/-2% label band",
+   "judgedOn": "the 20-session forward return against the +/-2.0% label band",
    "input": {
     "available": true,
     "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
@@ -357,7 +442,7 @@
    },
    "outcome": {
     "verifiable": true,
-    "judgedOn": "the 20-session forward return against the +/-2% label band",
+    "judgedOn": "the 20-session forward return against the +/-2.0% label band",
     "reason": "Commodity: the horizon the model was trained on; the label rule is fixed in tools/make_dataset. Sessions are counted on this market's own calendar (crypto every day; Commodity on weekdays otherwise)."
    },
    "verifiable": true,
@@ -409,7 +494,7 @@
    "market": "Crypto",
    "timeframe": "intraday",
    "horizonSessions": 1,
-   "judgedOn": "the same session's close",
+   "judgedOn": "the next session's close against the +/-0.45% label band",
    "input": {
     "available": true,
     "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
@@ -420,17 +505,38 @@
    },
    "outcome": {
     "verifiable": true,
-    "judgedOn": "the same session's close",
-    "reason": "Crypto: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; Crypto on weekdays otherwise)."
+    "judgedOn": "the next session's close against the +/-0.45% label band",
+    "reason": "Crypto: one session forward, judged from the close after the decision session. The description here used to read 'the same session's close', which was wrong in a way worth naming: `matures_after(as_of, 1, market)` is the *next* session, and `make_dataset.outcomes` measures `fwd1` from the first bar **strictly after** `as_of`. Both the code paths agreed with each other and only the prose disagreed, but a timeframe whose stated rule differs from its graded rule is exactly how a scorer and a trainer drift apart. The +/-0.45% band is `make_dataset.label_threshold_pct(1)`. Sessions are counted on this market's own calendar (crypto every day; Crypto on weekdays otherwise)."
    },
    "verifiable": true,
-   "reason": "Crypto: one session's close is stored, so a decision to the close can be scored from it. Sessions are counted on this market's own calendar (crypto every day; Crypto on weekdays otherwise)."
+   "reason": "Crypto: one session forward, judged from the close after the decision session. The description here used to read 'the same session's close', which was wrong in a way worth naming: `matures_after(as_of, 1, market)` is the *next* session, and `make_dataset.outcomes` measures `fwd1` from the first bar **strictly after** `as_of`. Both the code paths agreed with each other and only the prose disagreed, but a timeframe whose stated rule differs from its graded rule is exactly how a scorer and a trainer drift apart. The +/-0.45% band is `make_dataset.label_threshold_pct(1)`. Sessions are counted on this market's own calendar (crypto every day; Crypto on weekdays otherwise)."
+  },
+  {
+   "market": "Crypto",
+   "timeframe": "short",
+   "horizonSessions": 5,
+   "judgedOn": "the 5-session forward return against the +/-1.0% label band",
+   "input": {
+    "available": true,
+    "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
+   },
+   "prediction": {
+    "marketSpecific": false,
+    "note": "one global model is applied; the features are not tuned or validated per market, so this is a relabel and not a market-specific model"
+   },
+   "outcome": {
+    "verifiable": true,
+    "judgedOn": "the 5-session forward return against the +/-1.0% label band",
+    "reason": "Crypto: a week of sessions, judged from stored closes exactly as the swing horizon is. It exists because `swing` cannot be verified quickly: a call recorded today is not gradeable for a month, so a month is the soonest anything prospective can be measured at all. `make_dataset.HORIZONS` has carried `fwd5` on every row since the first dataset was assembled -- this is that column labelled and used, not a new kind of claim. The +/-1% band is `make_dataset.label_threshold_pct(5)`, which scales the 20-session 2% by the square root of the horizon and was fixed before any 5-session result was looked at. Sessions are counted on this market's own calendar (crypto every day; Crypto on weekdays otherwise)."
+   },
+   "verifiable": true,
+   "reason": "Crypto: a week of sessions, judged from stored closes exactly as the swing horizon is. It exists because `swing` cannot be verified quickly: a call recorded today is not gradeable for a month, so a month is the soonest anything prospective can be measured at all. `make_dataset.HORIZONS` has carried `fwd5` on every row since the first dataset was assembled -- this is that column labelled and used, not a new kind of claim. The +/-1% band is `make_dataset.label_threshold_pct(5)`, which scales the 20-session 2% by the square root of the horizon and was fixed before any 5-session result was looked at. Sessions are counted on this market's own calendar (crypto every day; Crypto on weekdays otherwise)."
   },
   {
    "market": "Crypto",
    "timeframe": "swing",
    "horizonSessions": 20,
-   "judgedOn": "the 20-session forward return against the +/-2% label band",
+   "judgedOn": "the 20-session forward return against the +/-2.0% label band",
    "input": {
     "available": true,
     "note": "the factor/price tables carry rows for this market; freshness is a per-run fact reported elsewhere, not a property of the market"
@@ -441,7 +547,7 @@
    },
    "outcome": {
     "verifiable": true,
-    "judgedOn": "the 20-session forward return against the +/-2% label band",
+    "judgedOn": "the 20-session forward return against the +/-2.0% label band",
     "reason": "Crypto: the horizon the model was trained on; the label rule is fixed in tools/make_dataset. Sessions are counted on this market's own calendar (crypto every day; Crypto on weekdays otherwise)."
    },
    "verifiable": true,
@@ -470,28 +576,6 @@
   }
  ],
  "live": {
-  "status": "ok",
-  "byMarket": {
-   "US": {
-    "assets": 281,
-    "newestSession": "2026-10-16"
-   },
-   "PK": {
-    "assets": 226,
-    "newestSession": "2026-10-16"
-   },
-   "FX": {
-    "assets": 27,
-    "newestSession": "2026-10-16"
-   },
-   "Commodity": {
-    "assets": 8,
-    "newestSession": "2026-10-16"
-   },
-   "Crypto": {
-    "assets": 76,
-    "newestSession": "2026-10-16"
-   }
-  }
+  "status": "not probed"
  }
 }

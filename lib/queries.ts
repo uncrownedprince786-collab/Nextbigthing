@@ -2232,3 +2232,48 @@ export async function getShadowPredictions(limit = 200) {
       (m, r) => (r.maturesAfter && (!m || r.maturesAfter < m) ? r.maturesAfter : m), null),
   };
 }
+
+/// The newest recorded prediction for one asset at one forecast horizon, with its outcome if the
+/// horizon has elapsed and something has graded it.
+///
+/// **Read, never computed.** The web layer does not run a model: `brain.md` rule 5 is that the
+/// frontend reads the database and nothing else, and a card that inferred a direction here would
+/// be a second opinion that can disagree with the row the scorer will later grade. If no run has
+/// recorded this asset at this horizon, the honest answer is that none exists -- not a freshly
+/// invented one.
+///
+/// Returns `null` rather than throwing, so a decision screen can distinguish "nothing recorded"
+/// from "the store could not be read" by catching separately.
+export async function getAssetPrediction(symbol: string, horizonSessions: number) {
+  const row = await prisma.shadowPrediction.findFirst({
+    where: { symbol, horizonSessions },
+    orderBy: [{ asOf: "desc" }, { createdAt: "desc" }],
+    include: { outcomes: { where: { final: true }, orderBy: { observedOn: "desc" }, take: 1 } },
+  });
+  if (!row) return null;
+  return {
+    id: row.id,
+    asOf: row.asOf,
+    predicted: row.predicted,
+    quality: row.quality,
+    imputedCount: row.imputedCount,
+    modelVersion: row.modelVersion,
+    modelSha256: row.modelSha256,
+    referencePrice: row.referencePrice,
+    inputCutoff: row.inputCutoff,
+    horizonSessions: row.horizonSessions,
+    maturesAfter: row.maturesAfter,
+    strategy: row.strategy,
+    timeframe: row.timeframe,
+    market: row.market,
+    /// Present only once the horizon has elapsed and the scorer has written a final row.
+    outcome: row.outcomes[0]
+      ? {
+          label: row.outcomes[0].label,
+          fwdPct: row.outcomes[0].fwdPct,
+          observedOn: row.outcomes[0].observedOn,
+          scoringRule: row.outcomes[0].scoringRule,
+        }
+      : null,
+  };
+}

@@ -115,6 +115,16 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
           </Note>
         ) : null}
         <Note>
+          {/* The next step of the journey: market, asset, and now a trading style. Kept as a link
+              rather than folded into this page because the style choice decides which horizon is
+              graded, and a screen that showed every horizon at once would be showing four
+              different questions as one answer. */}
+          <Link href={`/preview/asset/${encodeURIComponent(asset.symbol)}/decision`}
+                className="font-medium underline underline-offset-2">
+            Choose a trading style and see the decision →
+          </Link>
+        </Note>
+        <Note>
           <Link href={`/preview/asset/${encodeURIComponent(asset.symbol)}/research`}
                 className="underline underline-offset-2">
             Research detail for this instrument →

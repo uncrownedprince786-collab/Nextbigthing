@@ -10,7 +10,7 @@
 // the research tools say `PK`. `canonicalMarket` is the single place they are reconciled.
 
 export type MarketName = "US" | "PK" | "FX" | "Commodity" | "Crypto";
-export type TimeframeName = "scalp" | "intraday" | "swing" | "position";
+export type TimeframeName = "scalp" | "intraday" | "short" | "swing" | "position";
 
 /// Fixed reading order for the five markets, so every screen lists them the same way.
 export const MARKET_ORDER: MarketName[] = ["US", "PK", "FX", "Commodity", "Crypto"];
@@ -44,3 +44,35 @@ export function canonicalMarket(siteMarket: string | null | undefined): MarketNa
       return null;
   }
 }
+
+/// The trading styles, shortest first, and how many sessions each is judged over.
+///
+/// These numbers are not a presentation choice: they are `shadow_markets.STRATEGY_SESSIONS`, the
+/// same map the predictor stamps on a row and the scorer grades against. Restating them here would
+/// let a screen offer "weekly" while the pipeline recorded something else, so the two are kept
+/// equal by `tests/marketMarkets.test.ts`, which reads the research artifact and fails if they
+/// drift.
+///
+/// `scalp` is 0 because it is a claim about minutes, which daily closes cannot order. It appears
+/// in the list so a reader can see it was considered and refused, rather than wondering why
+/// scalping is missing.
+export const TIMEFRAME_ORDER: TimeframeName[] = [
+  "scalp", "intraday", "short", "swing", "position",
+];
+
+export const TIMEFRAME_SESSIONS: Record<TimeframeName, number> = {
+  scalp: 0,
+  intraday: 1,
+  short: 5,
+  swing: 20,
+  position: 60,
+};
+
+/// How a style is named to a reader, with the horizon it implies rather than a trading slogan.
+export const TIMEFRAME_LABELS: Record<TimeframeName, string> = {
+  scalp: "Scalp",
+  intraday: "Intraday",
+  short: "Short swing",
+  swing: "Swing",
+  position: "Position",
+};

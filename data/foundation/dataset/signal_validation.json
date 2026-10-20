@@ -1,0 +1,60 @@
+{
+ "generatedAt": "2026-10-20T09:34:59+00:00",
+ "version": "signal-validation-v1",
+ "status": "what has survived testing, not what is deployed and not a profitability claim; no transaction cost is in any of these numbers",
+ "requirements": [
+  "a lift over a baseline knowable at the cutoff",
+  "survival of a date-blocked bootstrap, because rows are not independent",
+  "the same sign in walk-forward folds trained from scratch",
+  "a realised forward return in the direction claimed"
+ ],
+ "confidenceBands": [
+  {
+   "name": "MEDIUM",
+   "minZ": 5.0,
+   "why": "clears a blocked-bootstrap z of 5 and holds its sign in every walk-forward fold"
+  },
+  {
+   "name": "LOW",
+   "minZ": 2.0,
+   "why": "clears a blocked-bootstrap z of 2 but is thinner, or does not hold every fold"
+  }
+ ],
+ "highIsUnreachableFromBacktest": "HIGH is reserved for a lane with matured prospective outcomes; a holdout is still a backtest and this project does not print HIGH on one",
+ "lanes": [
+  {
+   "market": "US",
+   "horizonSessions": 5,
+   "side": "LONG",
+   "validated": true,
+   "confidence": "MEDIUM",
+   "why": "clears a blocked-bootstrap z of 5 and holds its sign in every walk-forward fold",
+   "evidence": {
+    "lift": 0.0628,
+    "blockedBootstrapZ": 8.98,
+    "ci95": [
+     0.0491,
+     0.0762
+    ],
+    "pBonferroni": 0.0,
+    "armsSearched": 90,
+    "walkForwardFolds": 5,
+    "walkForwardPositive": 5,
+    "holdoutRows": 49679,
+    "holdoutSessions": 178,
+    "source": "tools/research/validate_lift.py"
+   }
+  },
+  {
+   "market": "US",
+   "horizonSessions": 5,
+   "side": "SHORT",
+   "validated": false,
+   "confidence": null,
+   "why": "directional precision clears the base rate in every fold, and the realised 5-session return of the rows called DOWN was positive in four years of five (+1.38% 2023, +1.07% 2024, +1.70% 2025). The price rose after the model said fall; precision over a three-class label is not the price moving",
+   "evidence": {
+    "source": "tools/research/validate_lift.py, realised-return check"
+   }
+  }
+ ]
+}

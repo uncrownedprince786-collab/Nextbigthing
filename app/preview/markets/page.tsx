@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Card, Empty, Note, Section, Table } from "@/components/ui";
 import { getMarketOverview } from "@/lib/queries";
 import { CAPABILITY, MARKET_LABELS, capabilityForMarket } from "@/lib/marketCapability";
+import { marketHasValidatedSignal, validatedHorizons } from "@/lib/signalValidation";
 
 /// Screen 2 — market explorer, the top of the browse path.
 ///
@@ -59,9 +60,26 @@ export default async function MarketsPage() {
       {markets.map((m) => {
         const swing = capabilityForMarket(m.market).find((r) => r.timeframe === "swing") ?? null;
         const modelSpecific = swing?.prediction.marketSpecific ?? false;
+        // A fourth question, kept apart from the three above for the same reason they are kept
+        // apart from each other: whether anything here has survived testing. Being gradeable is
+        // not being proven, and a market can be fully covered by the data and still have no
+        // direction anyone should act on -- which is four of the five.
+        const proven = marketHasValidatedSignal(m.market);
+        const horizons = validatedHorizons(m.market);
         return (
           <Section key={m.market} title={m.label}>
             <Card>
+              <div className="mb-3 text-sm">
+                {proven ? (
+                  <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                    VALIDATED SIGNAL — {horizons.map((h) => `${h} sessions`).join(", ")}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground border-border rounded-full border px-3 py-1 text-xs">
+                    No validated directional signal
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
                   <div className="text-xs text-muted-foreground">Input — stored data</div>
