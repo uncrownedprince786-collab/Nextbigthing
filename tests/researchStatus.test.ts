@@ -10,7 +10,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const overview = readFileSync(new URL("../app/preview/page.tsx", import.meta.url), "utf8");
-const status = readFileSync(new URL("../app/preview/status/page.tsx", import.meta.url), "utf8");
+// Promoted out of /preview on 2026-10-20 with the rest of the journey (the cutover
+// runbook); the guarantees asserted below moved with the file, not away from it.
+const status = readFileSync(new URL("../app/status/page.tsx", import.meta.url), "utf8");
 
 test("the research-status copy states five candidates, one per market", () => {
   for (const [name, src] of [["overview", overview], ["status", status]] as const) {
