@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-20T09:34:59+00:00",
+ "generatedAt": "2026-10-20T13:38:09+00:00",
  "version": "signal-validation-v1",
  "status": "what has survived testing, not what is deployed and not a profitability claim; no transaction cost is in any of these numbers",
  "requirements": [
@@ -26,10 +26,13 @@
    "market": "US",
    "horizonSessions": 5,
    "side": "LONG",
+   "modelVersion": "brain-v5-h5b20-us",
+   "bandScale": 2.0,
    "validated": true,
    "confidence": "MEDIUM",
    "why": "clears a blocked-bootstrap z of 5 and holds its sign in every walk-forward fold",
    "evidence": {
+    "bandScale": 2.0,
     "lift": 0.0628,
     "blockedBootstrapZ": 8.98,
     "ci95": [
@@ -49,6 +52,8 @@
    "market": "US",
    "horizonSessions": 5,
    "side": "SHORT",
+   "modelVersion": "brain-v5-h5b20-us",
+   "bandScale": 2.0,
    "validated": false,
    "confidence": null,
    "why": "directional precision clears the base rate in every fold, and the realised 5-session return of the rows called DOWN was positive in four years of five (+1.38% 2023, +1.07% 2024, +1.70% 2025). The price rose after the model said fall; precision over a three-class label is not the price moving",

@@ -6,7 +6,7 @@ import {
   TIMEFRAME_LABELS, TIMEFRAME_ORDER, TIMEFRAME_SESSIONS, type TimeframeName,
 } from "@/lib/marketMarkets";
 import {
-  laneFor, sideOfClass, verdictFor,
+  laneFor, predictionIsCovered, sideOfClass, verdictFor,
   VALIDATION_GENERATED_AT, VALIDATION_REQUIREMENTS, VALIDATION_STATUS,
 } from "@/lib/signalValidation";
 
@@ -151,6 +151,23 @@ export async function BrainDecision({
               prediction has been recorded for {symbol} at {current.sessions} sessions. The site
               reads recorded predictions; it does not generate one on request, so what is shown is
               the same row the scorer will later grade.
+            </p>
+          </Card>
+        ) : !predictionIsCovered(current.verdict.lane, prediction.modelVersion) ? (
+          // The recorded prediction came from a different artifact than the one the evidence was
+          // gathered on. It is kept and will be graded; it is not shown as a validated call, and
+          // the badge is not printed beside somebody else's numbers.
+          <Card>
+            <div className="text-2xl font-semibold">No direction</div>
+            <p className="text-muted-foreground mt-2 text-sm">
+              The recorded prediction for {symbol} comes from{" "}
+              <strong className="font-mono text-xs">{prediction.modelVersion}</strong>, and the
+              evidence for this market and horizon was measured on{" "}
+              <strong className="font-mono text-xs">
+                {current.verdict.lane.modelVersion ?? "an unrecorded model"}
+              </strong>
+              . A confidence badge belongs to the model it was measured on, so none is shown. The
+              prediction is kept and will be graded.
             </p>
           </Card>
         ) : sideOfClass(prediction.predicted) !== current.verdict.side ? (

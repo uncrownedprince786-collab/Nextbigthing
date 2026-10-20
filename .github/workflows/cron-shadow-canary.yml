@@ -83,6 +83,27 @@ jobs:
       # The cap is per market, per session **and per horizon**, so running both spends two rows
       # per market per session for each rather than two shared between them. Ten rows a horizon
       # is about 11.6 KB; the headroom gate above still decides whether either runs at all.
+      # The validated lane, at full coverage. Everything below this step is a bounded research
+      # canary -- two rows per market per session, because an unvalidated lane should not spend
+      # the tier. This one is different: US over five sessions on the long side is the only lane
+      # whose direction has survived testing, and the site offers a direction for it, so it has to
+      # cover the market it claims. It covered 2 of 275 US instruments until 2026-10-20, which is
+      # why most assets showed "nothing recorded yet" under a market badged "validated".
+      #
+      # `--band-scale 2.0` is not optional here. The evidence was gathered at a 2.0x label band
+      # (`brain-v5-h5b20-us`); the default 1.0x artifact is a different model that called UP on
+      # 271 of 271 US instruments, and serving it under this lane's badge was the defect this
+      # flag closes. `load_market_models` re-checks the band against the artifact's own manifest.
+      #
+      # Cost: 271 rows at about 1.2 kB is ~0.33 MB a session, against 81 MB of writable headroom.
+      # The headroom gate above still decides whether it runs at all.
+      - name: Record the validated US five-session lane across the whole market
+        if: ${{ steps.capacity.outputs.allow_write == 'true' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: |
+          python tools/research/shadow_predict.py             --live --per-market-models --strategy short --band-scale 2.0             --market US --limit 400             --write --min-headroom-mb 8             --run-id "us-h5b20-${{ github.run_id }}-${{ github.run_attempt }}"             --commit "${{ github.sha }}"             --out data/foundation/dataset/shadow-us-h5b20-run.json
       - name: Infer and record at most two candidates per market/session (5-session horizon)
         if: ${{ steps.capacity.outputs.allow_write == 'true' }}
         env:
@@ -155,5 +176,6 @@ jobs:
           retention-days: 30
           path: |
             data/foundation/dataset/shadow-canary-run.json
+            data/foundation/dataset/shadow-us-h5b20-run.json
             data/foundation/dataset/shadow-canary-h5-run.json
             data/foundation/dataset/shadow_scorecard.json

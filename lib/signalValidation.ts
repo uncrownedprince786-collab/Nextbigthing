@@ -29,7 +29,7 @@ import {
 } from "./signalLanes.ts";
 
 export type { Confidence, Lane, LaneEvidence, Side, Verdict } from "./signalLanes.ts";
-export { sideOfClass } from "./signalLanes.ts";
+export { sideOfClass, predictionIsCovered } from "./signalLanes.ts";
 
 interface Raw {
   generatedAt: string;

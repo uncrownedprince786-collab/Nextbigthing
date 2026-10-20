@@ -70,6 +70,25 @@ def band_for(z: float, folds_positive: int, folds: int) -> tuple[str, str] | Non
     return None
 
 
+def artifact_for(candidate: dict) -> str:
+    """The artifact name the candidate's configuration produces.
+
+    Mirrors `train_v4_markets.artifact_name`, and exists because the two drifting apart was a
+    live defect: the evidence was gathered at a 2.0x band and the site served the 1.0x model,
+    under a lane that recorded neither. The band is part of the model's identity, so it is part
+    of what the registry names.
+    """
+    market = {"US": "us", "PK": "pk", "FX": "fx", "Commodity": "commodity",
+              "Crypto": "crypto"}[candidate["market"]]
+    horizon, band = candidate["horizon"], candidate.get("bandScale", 1.0)
+    if horizon == 20 and band == 1.0:
+        return f"brain-v4-{market}"
+    stem = f"brain-v5-h{horizon}"
+    if band != 1.0:
+        stem += f"b{int(round(band * 10))}"
+    return f"{stem}-{market}"
+
+
 def from_validate_lift(path: Path) -> list[dict]:
     """Read `validate_lift.json` into lane rows, one per side that survived."""
     if not path.exists():
@@ -83,7 +102,9 @@ def from_validate_lift(path: Path) -> list[dict]:
     if band is None:
         return []
     name, why = band
+    model_version = artifact_for(c)
     evidence = {
+        "bandScale": c.get("bandScale", 1.0),
         "lift": d["headline"]["lift"],
         "blockedBootstrapZ": boot["z"],
         "ci95": boot["ci95"],
@@ -98,9 +119,15 @@ def from_validate_lift(path: Path) -> list[dict]:
     # LONG only, and the reason is in the row rather than in a commit message nobody reads.
     return [{
         "market": c["market"], "horizonSessions": c["horizon"], "side": "LONG",
+        # The artifact the evidence belongs to. A recorded prediction from any other model is not
+        # covered by this lane, however similar its name, and the UI must refuse it.
+        "modelVersion": model_version,
+        "bandScale": c.get("bandScale", 1.0),
         "validated": True, "confidence": name, "why": why, "evidence": evidence,
     }, {
         "market": c["market"], "horizonSessions": c["horizon"], "side": "SHORT",
+        "modelVersion": model_version,
+        "bandScale": c.get("bandScale", 1.0),
         "validated": False, "confidence": None,
         "why": ("directional precision clears the base rate in every fold, and the realised "
                 "5-session return of the rows called DOWN was positive in four years of five "

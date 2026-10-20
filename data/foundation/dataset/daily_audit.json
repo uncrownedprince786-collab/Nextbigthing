@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-19T23:57:04+00:00",
+ "generatedAt": "2026-10-20T13:49:07+00:00",
  "version": "daily-audit-v1",
  "staleRulesReadFrom": "lib/health.ts + lib/decision.ts",
  "staleRules": {
@@ -8,8 +8,8 @@
   "QUOTES_STALE_AFTER_MINUTES": 60.0
  },
  "summary": {
-  "ok": 30,
-  "warn": 5,
+  "ok": 36,
+  "warn": 4,
   "fail": 0,
   "unknown": 0
  },
@@ -178,6 +178,51 @@
    }
   },
   {
+   "check": "artifact:brain-v5-h5b20-commodity",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "727665cd0582e880",
+    "recorded": "727665cd0582e880"
+   }
+  },
+  {
+   "check": "artifact:brain-v5-h5b20-crypto",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "71da14f17f1d3973",
+    "recorded": "71da14f17f1d3973"
+   }
+  },
+  {
+   "check": "artifact:brain-v5-h5b20-fx",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "65f05afdf7ff1a40",
+    "recorded": "65f05afdf7ff1a40"
+   }
+  },
+  {
+   "check": "artifact:brain-v5-h5b20-pk",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "3c2b82803d748a45",
+    "recorded": "3c2b82803d748a45"
+   }
+  },
+  {
+   "check": "artifact:brain-v5-h5b20-us",
+   "status": "ok",
+   "detail": "digest matches its manifest; verdict NO-GO, productionApproved False",
+   "extra": {
+    "sha256": "f7c943dac4ecbe92",
+    "recorded": "f7c943dac4ecbe92"
+   }
+  },
+  {
    "check": "freeze:examples-v3-2026-10-16-local",
    "status": "ok",
    "detail": "status frozen for training, gates green True, 9 files",
@@ -204,13 +249,13 @@
   {
    "check": "restoreRehearsalAge",
    "status": "ok",
-   "detail": "last real restore rehearsal 1 days ago",
+   "detail": "last real restore rehearsal 2 days ago",
    "extra": null
   },
   {
    "check": "priceFreshness",
    "status": "ok",
-   "detail": "newest stored close 2026-10-19 (1 days back), 1,126,025 rows",
+   "detail": "newest stored close 2026-10-19 (1 days back), 1,128,799 rows",
    "extra": {
     "lagDays": 1
    }
@@ -218,47 +263,47 @@
   {
    "check": "factorFreshness",
    "status": "ok",
-   "detail": "newest factor session 2026-10-18 (2 days back)",
-   "extra": {
-    "lagDays": 2
-   }
-  },
-  {
-   "check": "decisionFreshness",
-   "status": "ok",
-   "detail": "newest decision 2026-10-19 (1 days back; lib/health.ts refuses at 2)",
+   "detail": "newest factor session 2026-10-19 (1 days back)",
    "extra": {
     "lagDays": 1
    }
   },
   {
+   "check": "decisionFreshness",
+   "status": "ok",
+   "detail": "newest decision 2026-10-20 (0 days back; lib/health.ts refuses at 2)",
+   "extra": {
+    "lagDays": 0
+   }
+  },
+  {
    "check": "newsFreshness",
    "status": "ok",
-   "detail": "newest headline 1.4h old (lib/health.ts calls the lane stale after 6.0h)",
+   "detail": "newest headline 2.0h old (lib/health.ts calls the lane stale after 6.0h)",
    "extra": null
   },
   {
    "check": "sourceCoverage",
    "status": "warn",
-   "detail": "2 source(s) outside: Google News RSS(partial x0.13), Reddit product mentions(stale x0.10)",
+   "detail": "2 source(s) outside: Reddit product mentions(stale x0.05), Google News RSS(partial x0.03)",
    "extra": null
   },
   {
    "check": "jobRuns36h",
-   "status": "warn",
-   "detail": "79 slice(s) in 36h; needs attention: cron decision:blockedx1",
+   "status": "ok",
+   "detail": "79 slice(s) in 36h, every slice ok",
    "extra": null
   },
   {
    "check": "productRuns36h",
    "status": "warn",
-   "detail": "13 slice(s) in 36h; not ok: cron products:emptyx2",
+   "detail": "20 slice(s) in 36h; not ok: cron products:emptyx3",
    "extra": null
   },
   {
    "check": "shadowOutcomes",
    "status": "ok",
-   "detail": "599 prediction(s) from 11 model version(s); 0 scored; 0 matured and awaiting an outcome; earliest maturity 2026-10-23",
+   "detail": "890 prediction(s) from 12 model version(s); 0 scored; 0 matured and awaiting an outcome; earliest maturity 2026-10-23",
    "extra": {
     "matureAndUnscored": 0,
     "scored": 0
@@ -289,19 +334,19 @@
   {
    "check": "databaseSize",
    "status": "warn",
-   "detail": "486.3 MB of a 500 MB free tier (97.3%), the billed footprint",
+   "detail": "492.8 MB of a 500 MB free tier (98.6%), the billed footprint",
    "extra": {
-    "mb": 486.3
+    "mb": 492.8
    }
   },
   {
    "check": "databaseHeadroom",
    "status": "ok",
-   "detail": "78.8 MB writable (421.2 MB live, 65.1 MB reusable); writers refuse below 8 MB",
+   "detail": "81.5 MB writable (418.5 MB live, 74.4 MB reusable); writers refuse below 8 MB",
    "extra": {
-    "writableMB": 78.8,
-    "liveMB": 421.2,
-    "reusableMB": 65.1,
+    "writableMB": 81.5,
+    "liveMB": 418.5,
+    "reusableMB": 74.4,
     "floorMB": 8.0
    }
   }

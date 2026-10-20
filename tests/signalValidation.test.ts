@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import {
   laneFor as laneForIn, validatedSides as sidesIn,
   marketHasValidatedSignal as marketHasIn, verdictFor as verdictIn, sideOfClass,
-  type Lane,
+  predictionIsCovered as coveredIn, type Lane,
 } from "../lib/signalLanes.ts";
 import { TIMEFRAME_ORDER, TIMEFRAME_SESSIONS } from "../lib/marketMarkets.ts";
 
@@ -110,4 +110,34 @@ test("a recorded UP on the validated US five-session lane resolves to the side t
   if (v.kind !== "directional") return;
   assert.equal(sideOfClass("UP"), v.side, "an UP call is the LONG lane that survived");
   assert.notEqual(sideOfClass("DOWN"), v.side, "a DOWN call is not, and must stay suppressed");
+});
+
+test("a validated lane names the artifact its evidence was measured on", () => {
+  // The defect this pins: the lane was keyed on market, horizon and side alone, so the UI printed
+  // LONG / MEDIUM from brain-v5-h5-us beside numbers measured on brain-v5-h5b20-us. The two are
+  // different models -- the 1.0x band called UP on 271 of 271 US instruments, the validated 2.0x
+  // band on 182 of 271.
+  const lane = laneFor("US", 5, "LONG")!;
+  assert.ok(lane.modelVersion, "a lane without a model version covers nothing");
+  assert.equal(lane.modelVersion, "brain-v5-h5b20-us");
+  assert.equal(lane.bandScale, 2.0, "the band is part of the model's identity");
+});
+
+test("only a prediction from the validated artifact is covered by the lane", () => {
+  const lane = laneFor("US", 5, "LONG")!;
+  assert.equal(coveredIn(lane, "brain-v5-h5b20-us"), true);
+  // The model the site used to serve. Same market, same horizon, different band: not covered.
+  assert.equal(coveredIn(lane, "brain-v5-h5-us"), false);
+  assert.equal(coveredIn(lane, "brain-v4-us"), false);
+  assert.equal(coveredIn(lane, null), false);
+});
+
+test("a refused lane covers nothing, whatever model the prediction came from", () => {
+  const short = laneFor("US", 5, "SHORT")!;
+  assert.equal(short.validated, false);
+  assert.equal(coveredIn(short, "brain-v5-h5b20-us"), false, "a failed side is never covered");
+});
+
+test("an undefined lane covers nothing", () => {
+  assert.equal(coveredIn(undefined, "brain-v5-h5b20-us"), false);
 });

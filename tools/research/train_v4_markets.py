@@ -83,7 +83,7 @@ TRAIN_END = "2025-12-31"
 MARKET_DIR = {"US": "us", "PK": "pk", "FX": "fx", "Commodity": "commodity", "Crypto": "crypto"}
 
 
-def artifact_name(market: str, horizon: int = 20) -> str:
+def artifact_name(market: str, horizon: int = 20, band_scale: float = 1.0) -> str:
     """The artifact family for a market and horizon.
 
     20 sessions keeps `brain-v4-<market>` exactly as it is: those names are written into stored
@@ -91,9 +91,22 @@ def artifact_name(market: str, horizon: int = 20) -> str:
     UI's model column, and renaming them would orphan all of it. A different horizon is a
     different task -- different label, different threshold -- so it is a different family, not a
     second model sharing a name with the first.
+
+    The **band** is in the name for the same reason the horizon is, and it is there because
+    leaving it out was a live defect. `validate_lift.py` proved US / 5 sessions at a **2.0x** band
+    (2.0%); `brain-v5-h5-us` was trained at the default **1.0x** (1.0%) and was the artifact the
+    site served. The registry keyed its lane on market, horizon and side alone, so the UI printed
+    `LONG · MEDIUM` beside evidence gathered from a different model -- and the difference was not
+    cosmetic: the served model called UP on 271 of 271 US instruments, where the validated one
+    called UP on about 47%.
     """
-    return (f"brain-v4-{MARKET_DIR[market]}" if horizon == 20
-            else f"brain-v5-h{horizon}-{MARKET_DIR[market]}")
+    if horizon == 20 and band_scale == 1.0:
+        return f"brain-v4-{MARKET_DIR[market]}"
+    stem = f"brain-v5-h{horizon}"
+    if band_scale != 1.0:
+        # `b20` is the 2.0x band, which at a 5-session horizon is 2.0% rather than 1.0%.
+        stem += f"b{int(round(band_scale * 10))}"
+    return f"{stem}-{MARKET_DIR[market]}"
 
 #: Fixed before the run. A candidate needs at least this much to fit and at least this much to
 #: score; a market under either is recorded as a limitation with its counts and no model is written.
@@ -133,7 +146,8 @@ def market_of_row(asset_type: str | None, market: str | None) -> str:
     return "PK" if (market or "").strip().upper() == "PK" else "US"
 
 
-def load(ds: Path, prefix: str = PREFIX, horizon: int = 20) -> dict[str, dict]:
+def load(ds: Path, prefix: str = PREFIX, horizon: int = 20,
+         band_scale: float = 1.0) -> dict[str, dict]:
     """Every usable row, grouped by market, in one pass over the versioned dataset.
 
     A row is usable exactly when `train_v2_context.load` would keep it: price features present, a
@@ -164,7 +178,19 @@ def load(ds: Path, prefix: str = PREFIX, horizon: int = 20) -> dict[str, dict]:
                 # and this loader can never disagree about a row. `fwd{h} is None` is the maturity
                 # test, exactly as it is in `outcomes`.
                 fwd = o.get(f"fwd{horizon}")
-                label = o.get(f"label{horizon}") or md.label_for(fwd, horizon)
+                # Derived at the band this run is training for. A label stored in the dataset is
+                # only correct at scale 1.0 -- it was written with `make_dataset`'s own threshold
+                # -- so above that scale it must be recomputed, or the run trains on the default
+                # band while claiming the one it was asked for. That mistake produced
+                # `brain-v5-h5b20-*` artifacts whose accuracies were identical to the 1.0x run,
+                # which is how it was caught.
+                if band_scale == 1.0:
+                    label = o.get(f"label{horizon}") or md.label_for(fwd, horizon)
+                elif fwd is None:
+                    label = None
+                else:
+                    th = md.label_threshold_pct(horizon) * band_scale
+                    label = "UP" if fwd >= th else "DOWN" if fwd <= -th else "FLAT"
                 if not p or label not in CLASSES or fwd is None:
                     continue
                 c = (pit.get("ctx") or {}).get("f") or {}
@@ -254,7 +280,8 @@ def predict_matrix(model: dict, X: np.ndarray) -> np.ndarray:
     return Zb @ W
 
 
-def fit_market(name: str, b: dict, train_end: str, horizon: int = 20) -> dict | None:
+def fit_market(name: str, b: dict, train_end: str, horizon: int = 20,
+               band_scale: float = 1.0) -> dict | None:
     """Fit and evaluate one market, or return a limitation dict when it cannot be fitted.
 
     Returns a tuple-shaped dict with the model, the manifest and the in-process holdout labels, or
@@ -331,7 +358,7 @@ def fit_market(name: str, b: dict, train_end: str, horizon: int = 20) -> dict | 
     # The 20-session family keeps the names it has, so every stored prediction, manifest and
     # audit line that refers to `brain-v4-us` still refers to the same thing. A different horizon
     # is a different task and gets its own family rather than a second model under one name.
-    model_version = artifact_name(name, horizon)
+    model_version = artifact_name(name, horizon, band_scale)
     model = {
         "modelVersion": model_version, "kind": "multinomial logistic regression",
         "classes": list(CLASSES), "features": ALL_FEATURES, "featureOrderMatters": True,
@@ -368,7 +395,8 @@ def fit_market(name: str, b: dict, train_end: str, horizon: int = 20) -> dict | 
                     "rowsCarryingADataQualityFlag": int(b["flagged"])},
         "task": {"label": f"label{horizon}", "classes": list(CLASSES),
                  "horizonSessions": horizon,
-                 "labelThresholdPct": md.label_threshold_pct(horizon),
+                 "labelThresholdPct": round(md.label_threshold_pct(horizon) * band_scale, 4),
+                 "bandScale": band_scale,
                  "thresholdPct": 2.0, "priceFeatures": list(FEATURES),
                  "contextFeatures": CTX_FEATURES, "featureCount": len(ALL_FEATURES),
                  "outcomeFieldsUsedAsFeatures": 0},
@@ -454,6 +482,12 @@ def main() -> int:
     ap.add_argument("--out", default=str(OUT_DIR))
     ap.add_argument("--brain", default=str(BRAIN_ROOT))
     ap.add_argument("--train-end", default=TRAIN_END)
+    ap.add_argument("--band-scale", type=float, default=1.0,
+                    help="multiply the shared label threshold. 1.0 is make_dataset's own band; a "
+                         "candidate trained at a different band is a DIFFERENT MODEL answering a "
+                         "different question, so it gets its own artifact name and its own "
+                         "manifest. Serving one while citing another's evidence is the defect "
+                         "this flag exists to make impossible")
     ap.add_argument("--horizon", type=int, default=20, choices=sorted(md.HORIZONS),
                     help="forward sessions the candidate is trained to call (default 20). A "
                          "shorter horizon writes its own brain-v5-h<N>-<market> family and "
@@ -468,7 +502,7 @@ def main() -> int:
 
     ds = Path(a.dataset)
     print(f"loading {ds}")
-    per = load(ds, horizon=a.horizon)
+    per = load(ds, horizon=a.horizon, band_scale=a.band_scale)
     total = sum(b["rows"] for b in per.values())
     print(f"usable rows: {total:,}  across {len(MARKETS)} markets")
 
@@ -477,12 +511,12 @@ def main() -> int:
         b = per[name]
         print(f"\n{name}: {b['rows']:,} rows, {len(b['symbols'])} symbols, "
               f"context {b['ctx']:,}")
-        res = fit_market(name, b, a.train_end, a.horizon)
+        res = fit_market(name, b, a.train_end, a.horizon, a.band_scale)
         if not res["trained"]:
             limitations[name] = res
             print(f"  NOT TRAINED - {res['reason']} (rows {res.get('rows')})")
             continue
-        brain_dir = brain_root / artifact_name(name, a.horizon)
+        brain_dir = brain_root / artifact_name(name, a.horizon, a.band_scale)
         brain_dir.mkdir(parents=True, exist_ok=True)
         model_path = brain_dir / "model.json"
         text = json.dumps(res["model"], indent=1, sort_keys=True)
@@ -536,8 +570,11 @@ def main() -> int:
     # One file per horizon. The 20-session run keeps writing `brain_v4_markets.json`, which the
     # daily audit, brain.md and every earlier checkpoint refer to by name; a shorter horizon is a
     # separate evaluation and must not overwrite the evidence for a different task.
-    agg_name = ("brain_v4_markets.json" if a.horizon == 20
-                else f"brain_v5_h{a.horizon}_markets.json")
+    # One file per configuration, band included. Without the band in the name, a 2.0x run
+    # overwrote the 1.0x run's evidence -- two different models' results in one filename.
+    suffix = "" if a.band_scale == 1.0 else f"b{int(round(a.band_scale * 10))}"
+    agg_name = ("brain_v4_markets.json" if a.horizon == 20 and a.band_scale == 1.0
+                else f"brain_v5_h{a.horizon}{suffix}_markets.json")
     (out_dir / agg_name).write_text(json.dumps(aggregate, indent=1),
                                                    encoding="utf-8")
 

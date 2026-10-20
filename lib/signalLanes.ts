@@ -32,6 +32,15 @@ export interface Lane {
   market: string;
   horizonSessions: number;
   side: Side;
+  /// The artifact the evidence belongs to. A recorded prediction from any other model is not
+  /// covered by this lane, however similar its name. Dropping this was a live defect: the
+  /// evidence was gathered on a 2.0x-band model and the site served the 1.0x one under a lane
+  /// keyed on market, horizon and side alone, so the UI printed a confidence badge beside
+  /// numbers measured on something else.
+  modelVersion?: string;
+  /// The label band the candidate was trained and validated at, as a multiple of the shared
+  /// threshold. Part of the model's identity, not a presentation detail.
+  bandScale?: number;
   validated: boolean;
   confidence: Confidence | null;
   why: string;
@@ -50,6 +59,16 @@ export type Verdict =
   | { kind: "directional"; side: Side; confidence: Confidence; lane: Lane }
   | { kind: "refused"; lanes: Lane[] }
   | { kind: "untested" };
+
+/// Whether a recorded prediction is covered by the lane that validated this market and horizon.
+///
+/// The question the decision card must ask before it prints a badge, and the one it did not ask.
+/// A lane without a `modelVersion` predates this check and covers nothing -- `false`, not `true`,
+/// because an unrecorded identity is the case that went wrong.
+export function predictionIsCovered(lane: Lane | undefined, modelVersion: string | null): boolean {
+  if (!lane || !lane.validated || !lane.modelVersion || !modelVersion) return false;
+  return lane.modelVersion === modelVersion;
+}
 
 export function laneFor(
   lanes: readonly Lane[], market: string, horizonSessions: number, side: Side,

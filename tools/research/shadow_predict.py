@@ -235,7 +235,8 @@ def predict_one(model: dict, price: dict, ctx_block: dict | None, *,
             "scores": {c: round(float(p[i]), 6) for i, c in enumerate(model["classes"])}}
 
 
-def load_market_models(root: Path, horizon: int = 20) -> dict[str, dict]:
+def load_market_models(root: Path, horizon: int = 20,
+                       band_scale: float = 1.0) -> dict[str, dict]:
     """One candidate per market **for this horizon**, loaded from under `root`.
 
     A market with no artifact is a hard stop for the whole run, not a fall back to the global
@@ -251,19 +252,35 @@ def load_market_models(root: Path, horizon: int = 20) -> dict[str, dict]:
     """
     out: dict[str, dict] = {}
     for m in mk.MARKETS:
-        name = (f"brain-v4-{m.lower()}" if horizon == 20
-                else f"brain-v5-h{horizon}-{m.lower()}")
+        # The band is part of the artifact's identity: a candidate trained at a 2.0x band is a
+        # different model from the 1.0x one and answers a different question. Serving one while
+        # citing the other's evidence was a live defect -- the site showed LONG / MEDIUM from
+        # `brain-v5-h5-us` beside numbers measured on `brain-v5-h5b20-us`, and the two disagree
+        # in practice: the 1.0x model called UP on 271 of 271 US instruments.
+        if horizon == 20 and band_scale == 1.0:
+            name = f"brain-v4-{m.lower()}"
+        else:
+            stem = f"brain-v5-h{horizon}"
+            if band_scale != 1.0:
+                stem += f"b{int(round(band_scale * 10))}"
+            name = f"{stem}-{m.lower()}"
         d = root / name
         if not (d / "model.json").exists():
             raise SystemExit(f"refusing: no per-market artifact for a {horizon}-session "
-                             f"horizon at {d}")
+                             f"horizon at a {band_scale}x band: {d}")
         loaded = load_model(d)
-        # The artifact says which horizon it was fitted for; a mismatch here is a wiring fault and
-        # must stop the run rather than be recorded as evidence.
-        trained_for = ((loaded.get("manifest") or {}).get("task") or {}).get("horizonSessions")
+        # The artifact says which horizon and band it was fitted for; a mismatch here is a wiring
+        # fault and must stop the run rather than be recorded as evidence. Read from the manifest
+        # rather than inferred from the name, so a misnamed directory cannot pass.
+        task = (loaded.get("manifest") or {}).get("task") or {}
+        trained_for = task.get("horizonSessions")
         if trained_for is not None and int(trained_for) != int(horizon):
             raise SystemExit(f"refusing: {d.name} was trained for a {trained_for}-session "
                              f"horizon but this run records {horizon}-session calls")
+        trained_band = task.get("bandScale")
+        if trained_band is not None and float(trained_band) != float(band_scale):
+            raise SystemExit(f"refusing: {d.name} was trained at a {trained_band}x label band "
+                             f"but this run records {band_scale}x calls")
         out[m] = loaded
     return out
 
@@ -626,6 +643,10 @@ def main() -> int:
     ap.add_argument("--max-per-market-session", type=int, default=0,
                     help="when writing, never exceed this many rows per market/session across retries; "
                          "0 leaves the writer uncapped (scheduled canary uses 2)")
+    ap.add_argument("--band-scale", type=float, default=1.0,
+                    help="which label-band family to serve. The validated US 5-session lane is "
+                         "2.0 (brain-v5-h5b20-*); 1.0 is make_dataset's own band. The artifact's "
+                         "manifest is checked against this, so a mismatch stops the run")
     ap.add_argument("--write", action="store_true")
     ap.add_argument("--min-headroom-mb", type=float, default=shadow_budget.MIN_HEADROOM_MB,
                     help="refuse to write when the database has less than this much room against "
@@ -637,7 +658,7 @@ def main() -> int:
     print(f"model {model['version']} sha {model['sha256'][:16]} "
           f"({len(model['features'])} features, approved=False)")
     horizon = mk.STRATEGY_SESSIONS.get(a.strategy, 20)
-    market_models = (load_market_models(Path(a.models_root), horizon)
+    market_models = (load_market_models(Path(a.models_root), horizon, a.band_scale)
                      if a.per_market_models else None)
     if market_models:
         print("per-market candidates: " + ", ".join(
