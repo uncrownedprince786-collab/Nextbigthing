@@ -349,7 +349,11 @@ test("a writer reaches a standby only through the write failover, never through 
   // at one. Removing the names would make it possible to overwrite a standby, not harder.
   // db_probe.mjs names all three because reporting on each endpoint is the whole of it: it issues
   // SELECTs and closes, which the assertion below holds it to.
-  const allowed = new Set(["mirror.py", "schema_parity.py", "standby_parity.py", "nbt.py", "reconcile.py", "writer.mjs", "logic_audit.py", "schemacheck.py", "restore_db.py", "db_probe.mjs"]);
+  // migrate.mjs names the primary for the same reason restore_db.py names the standbys: to make
+  // sure the action cannot land on the wrong one. `prisma7.config.ts` points the CLI at
+  // DATABASE_URL, which is a standby, so running `prisma migrate deploy` by hand aims at a copy;
+  // this names the primary explicitly and refuses when none is set, rather than falling back.
+  const allowed = new Set(["mirror.py", "schema_parity.py", "standby_parity.py", "nbt.py", "reconcile.py", "writer.mjs", "logic_audit.py", "schemacheck.py", "restore_db.py", "db_probe.mjs", "migrate.mjs"]);
   for (const dir of ["jobs", "tools"]) {
     for (const name of readdirSync(new URL(`${dir}/`, root))) {
       if (!/\.(py|mjs|ts)$/.test(name)) continue;

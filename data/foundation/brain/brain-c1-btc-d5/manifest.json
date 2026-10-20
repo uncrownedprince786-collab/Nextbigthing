@@ -1,0 +1,291 @@
+{
+ "generatedAt": "2026-10-20T21:21:14.356468+00:00",
+ "modelVersion": "brain-c1-btc-d5",
+ "market": "Crypto",
+ "symbols": [
+  "BTCUSDT"
+ ],
+ "artifact": {
+  "file": "model.json",
+  "sha256": "fd49f2bfbdaa6e09c6b763e736c71d15c447a485e687c03a90d5254d763fada6",
+  "bytes": 3076
+ },
+ "producedBy": "tools/research/train_crypto_short.py",
+ "repoHead": "4e80b0c0b9c1d582cd7330876551ca444252394e",
+ "featureSchema": "crypto-intraday-f1",
+ "featureCount": 41,
+ "task": {
+  "classes": [
+   "DOWN",
+   "UP"
+  ],
+  "label": "sign of the forward close-to-close return",
+  "band": "none -- there is no FLAT class and no row is converted into a direction",
+  "horizonKey": "d5",
+  "interval": "4h",
+  "barsAhead": 30,
+  "minutesAhead": 7200
+ },
+ "corpus": {
+  "BTCUSDT": {
+   "bars": 20094,
+   "usableRows": 17744,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999204,
+    "first": "2017-08-17T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 8,
+    "missingBars": 16
+   }
+  }
+ },
+ "featureParityWithReference": {
+  "BTCUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.63897256142094e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  }
+ },
+ "rows": {
+  "train": 11893,
+  "validation": 2344,
+  "test": 2631,
+  "zeroMoveRowsDropped": 0
+ },
+ "split": {
+  "trainEnd": "2024-05-16T12:00:00+00:00",
+  "valEnd": "2025-08-03T04:00:00+00:00",
+  "embargoBars": 318,
+  "embargoMinutes": 76320,
+  "testFrom": "2025-08-03T08:00:00+00:00",
+  "testTo": "2026-10-20T16:00:00+00:00"
+ },
+ "chosenModel": "logistic",
+ "validation": {
+  "logisticAccuracy": 0.55418,
+  "gbmAccuracy": 0.54352,
+  "gbmRoundsKept": 22,
+  "gbmRoundsFitted": 52
+ },
+ "preRegisteredGates": {
+  "aboveTestMajority": "accuracy strictly above the test fold's own larger class",
+  "bothDirectionsPredicted": "neither predicted class above 0.80 of the test fold",
+  "bootstrapExcludesZero": "95% day-blocked bootstrap interval for (accuracy - majority) strictly above zero",
+  "walkForwardMajority": "above its own block majority in at least 4 of 5 chronological blocks"
+ },
+ "gates": {
+  "aboveTestMajority": false,
+  "bothDirectionsPredicted": true,
+  "bootstrapExcludesZero": false,
+  "walkForwardMajority": false
+ },
+ "gatesMet": false,
+ "acceptanceTarget": 0.9,
+ "acceptanceTargetMet": false,
+ "evaluation": {
+  "rows": 2631,
+  "accuracy": 0.51767,
+  "testMajority": 0.52832,
+  "testMajorityClass": "DOWN",
+  "marginOverMajority": -0.01064,
+  "alwaysUpAccuracy": 0.47168,
+  "actualUpRate": 0.47168,
+  "predictedUpShare": 0.68947,
+  "predictedDownShare": 0.31053,
+  "upRecall": 0.71958,
+  "downRecall": 0.33741,
+  "upPrecision": 0.49228,
+  "downPrecision": 0.57405,
+  "blockedBootstrap": {
+   "blocks": 439,
+   "draws": 2000,
+   "pointEstimate": -0.010642,
+   "ci95": [
+    -0.072305,
+    0.056213
+   ],
+   "sd": 0.032897,
+   "z": -0.3235,
+   "excludesZero": false
+  },
+  "walkForward": {
+   "blocks": [
+    {
+     "block": 0,
+     "rows": 526,
+     "accuracy": 0.45057,
+     "majority": 0.5057,
+     "above": false
+    },
+    {
+     "block": 1,
+     "rows": 526,
+     "accuracy": 0.55703,
+     "majority": 0.57605,
+     "above": false
+    },
+    {
+     "block": 2,
+     "rows": 526,
+     "accuracy": 0.47529,
+     "majority": 0.50951,
+     "above": false
+    },
+    {
+     "block": 3,
+     "rows": 526,
+     "accuracy": 0.54373,
+     "majority": 0.54183,
+     "above": true
+    },
+    {
+     "block": 4,
+     "rows": 527,
+     "accuracy": 0.56167,
+     "majority": 0.52751,
+     "above": true
+    }
+   ],
+   "blocksAboveMajority": 2,
+   "blocksScored": 5
+  },
+  "coverageCurve": [
+   {
+    "minMargin": 0.0,
+    "rows": 2631,
+    "coverage": 1.0,
+    "accuracy": 0.51767,
+    "majorityHere": 0.52832
+   },
+   {
+    "minMargin": 0.01,
+    "rows": 2440,
+    "coverage": 0.9274,
+    "accuracy": 0.51885,
+    "majorityHere": 0.52131
+   },
+   {
+    "minMargin": 0.02,
+    "rows": 2256,
+    "coverage": 0.85747,
+    "accuracy": 0.51906,
+    "majorityHere": 0.52261
+   },
+   {
+    "minMargin": 0.03,
+    "rows": 2052,
+    "coverage": 0.77993,
+    "accuracy": 0.52242,
+    "majorityHere": 0.52339
+   },
+   {
+    "minMargin": 0.05,
+    "rows": 1716,
+    "coverage": 0.65222,
+    "accuracy": 0.52564,
+    "majorityHere": 0.51632
+   },
+   {
+    "minMargin": 0.075,
+    "rows": 1328,
+    "coverage": 0.50475,
+    "accuracy": 0.53163,
+    "majorityHere": 0.50904
+   },
+   {
+    "minMargin": 0.1,
+    "rows": 967,
+    "coverage": 0.36754,
+    "accuracy": 0.53464,
+    "majorityHere": 0.50672
+   },
+   {
+    "minMargin": 0.15,
+    "rows": 444,
+    "coverage": 0.16876,
+    "accuracy": 0.50676,
+    "majorityHere": 0.51126
+   },
+   {
+    "minMargin": 0.2,
+    "rows": 152,
+    "coverage": 0.05777,
+    "accuracy": null,
+    "note": "under 200 rows, not reported"
+   }
+  ],
+  "calibration": [
+   {
+    "bucket": 0,
+    "rows": 263,
+    "meanPredicted": 0.37519,
+    "observedUpRate": 0.39544
+   },
+   {
+    "bucket": 1,
+    "rows": 263,
+    "meanPredicted": 0.44499,
+    "observedUpRate": 0.42966
+   },
+   {
+    "bucket": 2,
+    "rows": 263,
+    "meanPredicted": 0.48128,
+    "observedUpRate": 0.44487
+   },
+   {
+    "bucket": 3,
+    "rows": 263,
+    "meanPredicted": 0.50985,
+    "observedUpRate": 0.45627
+   },
+   {
+    "bucket": 4,
+    "rows": 263,
+    "meanPredicted": 0.53467,
+    "observedUpRate": 0.46008
+   },
+   {
+    "bucket": 5,
+    "rows": 264,
+    "meanPredicted": 0.56028,
+    "observedUpRate": 0.47348
+   },
+   {
+    "bucket": 6,
+    "rows": 262,
+    "meanPredicted": 0.58637,
+    "observedUpRate": 0.50382
+   },
+   {
+    "bucket": 7,
+    "rows": 263,
+    "meanPredicted": 0.61548,
+    "observedUpRate": 0.54753
+   },
+   {
+    "bucket": 8,
+    "rows": 263,
+    "meanPredicted": 0.65004,
+    "observedUpRate": 0.52091
+   },
+   {
+    "bucket": 9,
+    "rows": 264,
+    "meanPredicted": 0.70938,
+    "observedUpRate": 0.48485
+   }
+  ]
+ },
+ "linearOnTheSameTestRows": 0.51767,
+ "verdict": "NO-GO",
+ "limitations": [
+  "The test fold is a historical holdout. It is unseen by this fit, and it is still a backtest: no forecast in it was made before the data existed.",
+  "Direction only. No transaction cost, spread, funding or slippage is in any number here, and nothing here is a profitability claim.",
+  "Binance USDT pairs. The cross-venue check in the corpus manifest records how far these closes sit from a second exchange's."
+ ]
+}

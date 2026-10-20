@@ -4224,6 +4224,12 @@ class NoLookAhead(unittest.TestCase):
                 "records what a slice of a job did; its only date is the newest row that slice "
                 "stored, which is a fact about the fetch and not a claim about an asset"
             ),
+            "forecast_score.py": (
+                "grades a forecast only once its own declared horizon has passed -- the SQL filter "
+                "is `maturesAt <= now()` -- and reads the venue bar at that maturity instant "
+                "rather than the newest one, so a late run scores the window the forecast claimed "
+                "and `latenessMs` records how far past it the bar sat"
+            ),
             "mirror.py": (
                 "copies rows exactly as the primary stored them; the asset rows it inserts carry no "
                 "date and make no claim about a past moment"

@@ -44,6 +44,12 @@ on:
       - "cron daily audit"
       # Observe the shadow canary completion too; it is intentionally not in tools/watchdog.py LANES.
       - "cron shadow canary"
+      # And the forecast scorer, for the same reason as the backup and the daily audit: the
+      # watchdog reads the heartbeat after it, and `LANES` in tools/watchdog.py does not hold it,
+      # so a failed grading run is reported rather than re-dispatched. Re-running it would re-ask
+      # the same venue for the same bars; a run that failed because the venue was unreachable
+      # needs the next hour, not another attempt this minute.
+      - "cron forecast score"
     types: [completed]
   workflow_dispatch:
 

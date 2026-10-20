@@ -902,7 +902,7 @@ export async function getQuoteTarget(symbol: string) {
 /// asset is filed under the market the rule table gives it (`marketOf`), so "stale" here and "stale" on
 /// a decision are the same judgement. The quote read fails open: quotes are optional.
 export async function getHealthReadings() {
-  const [groups, decision, news, pool] = await Promise.all([
+  const [groups, decision, news, counts] = await Promise.all([
     // Grouped by each asset's own newest session too, so the names behind a market's newest bar can be
     // counted (rule 95) without one row per asset crossing the wire.
     prisma.$queryRaw<{ assetType: string; market: string | null; newest: Date | null; active: bigint | number }[]>`
@@ -917,8 +917,16 @@ export async function getHealthReadings() {
        GROUP BY 1, 2, 3`,
     prisma.decisionLog.aggregate({ _max: { periodEnd: true } }),
     prisma.news.aggregate({ _max: { publishedAt: true } }),
-    // The active pool (jobs/pool.py), which is what the market pages list and the page checker counts.
-    Promise.all([prisma.asset.count(), getLateColumns()]).then(([n, late]) => n - late.inactive.size),
+    // Two counts, not one. The **pool** (jobs/pool.py) is what the lists make calls from; the
+    // **registry** is every asset the database holds. They were the same number to this endpoint
+    // until 2026-10-21, when the class pages began listing the whole registry in a directory
+    // above the lists -- so a checker comparing listed names against the pool alone now reports
+    // the improvement as a parity failure. Both are published, and `tools/ui_audit.py` checks
+    // the pool is fully listed and nothing outside the registry is.
+    Promise.all([prisma.asset.count(), getLateColumns()]).then(([n, late]) => ({
+      pool: n - late.inactive.size,
+      registry: n,
+    })),
   ]);
   let newestQuote: Date | null = null;
   let quoteGroups: { assetType: string; market: string | null; newest: Date | null }[] = [];
@@ -975,7 +983,8 @@ export async function getHealthReadings() {
     newestDecision: decision._max.periodEnd ? decision._max.periodEnd.toISOString().slice(0, 10) : null,
     newestNews: news._max.publishedAt ?? null,
     newestQuote,
-    pool,
+    pool: counts.pool,
+    registry: counts.registry,
   };
 }
 
@@ -1734,6 +1743,58 @@ export async function getLateColumns(): Promise<{
       .catch(() => undefined),
   ]);
   return { atr, atrBaseline, inactive };
+}
+
+/// Every asset the active pool leaves out, with enough to list it: the market it belongs to, the
+/// reason the pool wrote down, and whether it has a stored close at all.
+///
+/// **Why a class index needs this.** `getDecisionRows` returns the active pool only, which is
+/// right -- a name under its market's liquidity floor has no call and belongs on no list of calls.
+/// But `/crypto` is also the place a reader looks a coin *up*, and 10 of the registry's 76 coins
+/// are outside the pool, so the page silently answered "that coin does not exist here" for every
+/// one of them. They are two different questions and the page now asks both: the lists are the
+/// pool, and the registry is complete underneath them.
+///
+/// Raw and fail-open, for the reason `getLateColumns` documents: `active` and `poolNote` are late
+/// columns, and a standby that predates them must answer "nobody is excluded" rather than throw.
+/// An empty answer is therefore indistinguishable from a complete pool, which is the safe way
+/// round -- it understates the registry rather than inventing exclusions.
+export async function getPoolExclusions(): Promise<
+  {
+    id: string;
+    symbol: string;
+    name: string;
+    assetType: string;
+    market: string | null;
+    note: string | null;
+    newestClose: Date | null;
+    closes: number;
+  }[]
+> {
+  try {
+    const rows = await prisma.$queryRaw<
+      {
+        id: string;
+        symbol: string;
+        name: string;
+        assetType: string;
+        market: string | null;
+        note: string | null;
+        newestClose: Date | null;
+        closes: bigint | number;
+      }[]
+    >`
+      SELECT a.id, a.symbol, a.name, a."assetType"::text AS "assetType", i.market,
+             a."poolNote" AS note,
+             (SELECT max(p.date) FROM "PriceSnapshot" p WHERE p."assetId" = a.id) AS "newestClose",
+             (SELECT count(*) FROM "PriceSnapshot" p WHERE p."assetId" = a.id) AS closes
+        FROM "Asset" a JOIN "Industry" i ON i.id = a."industryId"
+       WHERE NOT a.active
+       ORDER BY a.symbol`;
+    return rows.map((r) => ({ ...r, closes: Number(r.closes) }));
+  } catch {
+    return [];
+  }
 }
 
 /// What the decision rows were read from, as one comparable string (brain.md rule 93): the pool size,

@@ -192,10 +192,24 @@ def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
         for where, s in [*(("/", c) for c in cards.values()), *((f"/{k}", v) for k, v in states.items())]:
             if s.get("state") == "NO_READING" and (s.get("names") or "0") != "0":
                 failures.append(f"run state: {where} says {s.get('market') or where.strip('/')} has never been run, and health shows a decision run of {ran}")
+    # Pool parity, in both directions, against two numbers rather than one.
+    #
+    # Until 2026-10-21 the class pages listed exactly the active pool, so one equality covered
+    # both halves of the question. They now carry a directory of the **whole registry** above the
+    # lists -- without it, the ten crypto names outside the pool appeared nowhere on the site and
+    # /crypto answered "no such coin" for each. So the floor is the pool (every name that can
+    # carry a call is reachable) and the ceiling is the registry (nothing is listed that the
+    # database does not hold).
     pool = health.get("pool")
+    registry = health.get("registry")
     counts["listed"], counts["pool"] = len(listed), pool or 0
-    if isinstance(pool, int) and len(listed) != pool:
-        failures.append(f"pool parity: the market pages list {len(listed)} assets, the database holds {pool}")
+    counts["registry"] = registry or 0
+    if isinstance(pool, int) and len(listed) < pool:
+        failures.append(
+            f"pool parity: the market pages list {len(listed)} assets, under the {pool} in the active pool")
+    if isinstance(registry, int) and len(listed) > registry:
+        failures.append(
+            f"pool parity: the market pages list {len(listed)} assets, over the {registry} the database holds")
     # One snapshot: every market page and the health endpoint read the same cached rows (rule 93).
     snap = health.get("snapshot")
     if snap is not None or stamps:
@@ -203,6 +217,98 @@ def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
         if len(differing) > 1:
             failures.append(f"snapshot skew: the pages and /api/health serve {len(differing)} different snapshots: {differing[:3]}")
     return failures, counts
+
+
+#: The journey the crypto brain exists to serve, as URLs. Bitcoin is the lane that was built first
+#: and is checked at every window; two other coins are checked at one each, so a fault that is
+#: specific to Bitcoin's own model family is told apart from one in the shared path.
+JOURNEY_COINS = ["btc-bitcoin", "eth-ethereum", "xrp-xrp"]
+JOURNEY_WINDOWS = ["m5", "m15", "h1", "h4", "d1", "d5", "d20"]
+#: Every state the forecast panel is allowed to render. A page that shows none of them is the
+#: failure this check exists for: a blank where a direction or a named reason should be.
+#: The states `components/cryptoBrain.tsx` may render, as it stamps them on the panel. Read from
+#: `data-forecast=` rather than from the words on the page: the first version of this check matched
+#: the sentence "which way it goes", which also appears in the note above the picker explaining
+#: that a window is *not* a direction, so every page passed as a direction panel.
+JOURNEY_STATES = {"direction", "refused", "no-model", "no-source", "data", "error"}
+
+
+def check_crypto_journey(site: str, fetch, counts: dict[str, int]) -> list[str]:
+    """Home -> Crypto -> a coin -> a window -> that coin's chart and direction, walked for real.
+
+    The defect this is built against is not a 500. It is a page that renders, carries the picker,
+    and then says nothing underneath it -- which is what the old style picker did for every crypto
+    name on the site, and which every status code and every snapshot check reported as healthy.
+
+    So each check is about content: the coin list reaches the coin, the coin's page asks the
+    duration question before answering it, a chosen window lands on *that* coin and reaches one of
+    the six states the panel may render, and a direction is never printed without the chart and
+    the window it belongs to.
+    """
+    out: list[str] = []
+    try:
+        index = fetch(site + "/crypto")
+    except Exception as e:  # noqa: BLE001
+        return [f"/crypto: could not be read ({type(e).__name__})"]
+
+    linked = set(re.findall(r'href="/asset/([^"#?]+)"', index))
+    for coin in JOURNEY_COINS:
+        if coin not in linked:
+            out.append(f"/crypto: the coin list does not link {coin}")
+
+    for i, coin in enumerate(JOURNEY_COINS):
+        windows = JOURNEY_WINDOWS if i == 0 else JOURNEY_WINDOWS[:1]
+        try:
+            bare = fetch(f"{site}/asset/{coin}")
+        except Exception as e:  # noqa: BLE001
+            out.append(f"/asset/{coin}: could not be read ({type(e).__name__})")
+            continue
+        text = text_of(bare)
+        # The question has to be asked, and nothing may be answered before it is.
+        if "How long are you asking about" not in text:
+            out.append(f"/asset/{coin}: the page does not ask which window the reader means")
+        if "Choose a window above" not in text:
+            out.append(f"/asset/{coin}: a window was answered without being chosen")
+        # The distinction the whole panel was rebuilt around.
+        if "How long you are asking about is not which way it goes" not in text:
+            out.append(f"/asset/{coin}: the duration-is-not-direction note is missing")
+
+        for w in windows:
+            url = f"{site}/asset/{coin}?h={w}"
+            try:
+                html = fetch(url)
+            except Exception as e:  # noqa: BLE001
+                out.append(f"{url}: could not be read ({type(e).__name__})")
+                continue
+            t = text_of(html)
+            counts["journey"] = counts.get("journey", 0) + 1
+            # The answer must be about the coin that was asked about.
+            if f"/asset/{coin}?h=" not in html:
+                out.append(f"{url}: the picker on this page does not point back at {coin}")
+            low = t.lower()
+            m = re.search(r'data-forecast="([a-z-]+)"', html)
+            state = m.group(1) if m else None
+            if state not in JOURNEY_STATES:
+                out.append(f"{url}: the panel rendered none of its states -- a blank answer")
+                continue
+            if not re.search(rf'data-horizon="{w}"', html):
+                out.append(f"{url}: the panel answered a window other than {w}")
+            if state == "direction":
+                counts["directions"] = counts.get("directions", 0) + 1
+                d = re.search(r'data-direction="(UP|DOWN)"', html)
+                if not d:
+                    out.append(f"{url}: a direction panel with no direction in it")
+                # The word has to be *printed*, not only stamped on the wrapper. Matched as its
+                # own element rather than anywhere in the page text, because "UP" and "DOWN"
+                # both appear in the note above the picker explaining what an answer looks like,
+                # so a check against the page text would pass on a panel that printed nothing.
+                elif f">{d.group(1)}</" not in html:
+                    out.append(f"{url}: the panel says {d.group(1)} in its markup and prints no direction")
+                if "the shaded panel on the right is" not in low:
+                    out.append(f"{url}: a direction with no chart of the bars it was read from")
+                if "you asked about" not in low:
+                    out.append(f"{url}: a direction that does not restate the window it is for")
+    return out
 
 
 # After a revalidation the first visit to each page still receives its old HTML while the new one is
@@ -223,6 +329,12 @@ def warm(site: str) -> None:
             urllib.request.urlopen(urllib.request.Request(site + page, headers={"User-Agent": "nbt-ui-audit"}), timeout=60).read()
         except Exception:  # noqa: BLE001 - the audit proper reports an unreadable page
             pass
+
+
+def fetch_page(url: str) -> str:
+    return urllib.request.urlopen(
+        urllib.request.Request(url, headers={"User-Agent": "nbt-ui-audit"}), timeout=60
+    ).read().decode("utf-8", "replace")
 
 
 def main() -> int:
@@ -246,13 +358,20 @@ def main() -> int:
             failures, counts = audit(site)
         if tries:
             print(f"ui audit: re-read {tries} time(s) while pages finished re-rendering after a revalidation")
+        # The journey walk is run here rather than inside `audit`, which the unit tests drive with
+        # planted HTML for the row rules: those fixtures hold no crypto pages, and a check that
+        # fetched real ones from inside it would fail every one of them. This is a live-site check
+        # and it belongs on the live-site path.
+        failures.extend(check_crypto_journey(site, fetch_page, counts))
     except Exception as e:  # noqa: BLE001 - an unreadable site is its own answer
         print(f"ui audit: could not read {site} ({type(e).__name__})")
         return 2
     print(
         f"ui audit: {counts['rows']} rows on {len(PAGES)} pages, every price cell checked, "
         f"{counts['stars']} star markers, {counts['changes']} change sentences, "
-        f"{counts['listed']} of {counts['pool']} assets listed on the market pages"
+        f"{counts['listed']} listed on the market pages ({counts['pool']} in the pool, "
+        f"{counts.get('registry', 0)} in the registry), "
+        f"{counts.get('journey', 0)} crypto windows walked ({counts.get('directions', 0)} returned a direction)"
     )
     if failures:
         print(f"ui audit: {len(failures)} FAILED")

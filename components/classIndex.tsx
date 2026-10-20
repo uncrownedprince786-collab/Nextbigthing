@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Empty, Section } from "@/components/ui";
 import { WithheldList, DecisionList, SectorBoard } from "@/components/decision";
+import { AssetDirectory } from "@/components/assetDirectory";
 import { cachedDecisionRows, cachedSourceHealth } from "@/lib/cached";
+import { getPoolExclusions } from "@/lib/queries";
 import { loadOrDefer } from "@/lib/buildSafe";
 import { coverageLabelFor, todayISO } from "@/lib/decisionInput";
 import { outcomeStatusOf } from "@/lib/outcome";
@@ -29,7 +31,9 @@ import {
 /// question this page answers is "show me all of them". The waiting list, which is most of the
 /// names, opens collapsed: complete inside, and not the first thing on the page.
 export async function ClassIndex({ cls }: { cls: AssetClass }) {
-  const [rows, health] = await loadOrDefer(() => Promise.all([cachedDecisionRows(), cachedSourceHealth()]));
+  const [rows, health, excluded] = await loadOrDefer(() =>
+    Promise.all([cachedDecisionRows(), cachedSourceHealth(), getPoolExclusions()]),
+  );
   const today = todayISO();
 
   const all = scoreRows(rows, health, today);
@@ -63,6 +67,23 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
   const market = mine[0]?.market ?? null;
   const status = marketStatus(mine, all, health, market ? coverageLabelFor(market) : null);
 
+  // Matched on the class's own slug rather than on the row's market word, because the two
+  // vocabularies differ for exactly one class (`PSX` here, `PK` in the industry column) and a
+  // mismatch would quietly show an empty list rather than an error.
+  const ASSET_TYPE_OF: Record<string, string | null> = {
+    crypto: "crypto", forex: "forex", commodities: "commodity", stocks: null, psx: null,
+  };
+  const wantType = ASSET_TYPE_OF[cls.slug];
+  const NOUN: Record<string, string> = {
+    crypto: "coin", forex: "pair", commodities: "contract", stocks: "name", psx: "name",
+  };
+  const outOfPool = excluded.filter((a) =>
+    wantType !== null
+      ? a.assetType === wantType
+      : (a.assetType === "stock" || a.assetType === "etf") &&
+        (cls.slug === "psx" ? a.market === "PK" : a.market !== "PK"),
+  );
+
   return (
     <div className="space-y-2">
       <div>
@@ -72,6 +93,18 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
           {marketStatusLines(status).join(" ")} {outcomeStatusOf(rows[0]?.outcome ?? null).sentence} Readings, not advice.
         </p>
       </div>
+
+      {/* The complete list, first, flat and alphabetical. The analysis below it answers "what is
+          there to do today"; this answers "where is the one I came for", and before 2026-10-21
+          the page could only answer the first -- a name outside the active pool appeared nowhere
+          at all, which on /crypto was ten of seventy-six coins. */}
+      <AssetDirectory
+        noun={NOUN[cls.slug] ?? "name"}
+        rows={[
+          ...mine.map((s) => ({ symbol: s.row.symbol, name: s.row.name, inPool: true })),
+          ...outOfPool.map((a) => ({ symbol: a.symbol, name: a.name, inPool: false })),
+        ].sort((a, b) => a.name.localeCompare(b.name))}
+      />
 
       {mine.length === 0 ? (
         <Section title="Nothing stored yet">
@@ -161,6 +194,51 @@ export async function ClassIndex({ cls }: { cls: AssetClass }) {
           ) : null}
         </>
       )}
+
+      {/* The rest of the registry.
+
+          The lists above are the **active pool**, which is the right population for a list of
+          calls: a name under its market's liquidity floor has no call to make. It is the wrong
+          population for the other thing this page is -- the place a reader looks a name up. On
+          2026-10-21 ten of the seventy-six coins in the registry were outside the pool, and
+          /crypto answered "no such coin" for every one of them.
+
+          So the registry is completed here rather than by widening the pool, which would put
+          names with no call into the directions list. Each row says why it is out, in the pool
+          job's own words, and links to its page, where the stored history and the brain's own
+          read are unaffected by pool membership. */}
+      {outOfPool.length ? (
+        <details className="border-border bg-muted/30 mt-6 rounded-lg border px-4 py-1 text-sm sm:py-3">
+          <summary className="-my-1 cursor-pointer py-3 font-medium select-none sm:my-0 sm:py-0">
+            Also tracked, outside the pool: {outOfPool.length}{" "}
+            {outOfPool.length === 1 ? "name" : "names"}
+          </summary>
+          <p className="text-muted-foreground mt-2 text-sm">
+            These are in the registry and keep their stored history, and they are left out of the
+            lists above because they are under their market&apos;s liquidity floor. No call is made
+            for them; everything else on their own page still is.
+          </p>
+          <ul className="mt-3 mb-2 space-y-2">
+            {outOfPool.map((a) => (
+              <li key={a.id} className="border-border border-t pt-2 first:border-t-0 first:pt-0">
+                <Link
+                  href={`/asset/${encodeURIComponent(a.symbol)}`}
+                  className="font-medium underline underline-offset-2"
+                >
+                  {a.name}
+                </Link>{" "}
+                <span className="text-muted-foreground num text-xs">{a.symbol}</span>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  {a.note ?? "Out of the pool; the job recorded no reason."}{" "}
+                  {a.closes > 0
+                    ? `${a.closes.toLocaleString()} stored closes, newest ${new Date(a.newestClose!).toISOString().slice(0, 10)}.`
+                    : "No stored close."}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
 
       <p className="text-muted-foreground mt-8 text-xs">
         Every reading here is the same one the name&apos;s own page shows, from the rule table in{" "}

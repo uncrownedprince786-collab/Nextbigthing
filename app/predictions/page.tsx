@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Card, Empty, Note, Section, Table } from "@/components/ui";
 import { getShadowPredictions } from "@/lib/queries";
+import { ForecastRecord } from "@/components/forecastRecord";
 
 /// Screen 7 — recorded predictions and their outcomes.
 ///
@@ -207,6 +208,12 @@ export default async function PredictionsPage() {
           </Table>
         )}
       </Section>
+
+      {/* The second record, and never added to the first. Those rows are 20-session calls from
+          three-class models; these are minute-to-hour binary calls from a different family under
+          a different scoring rule, and one total over both would be two experiments counted as
+          one. */}
+      <ForecastRecord />
     </>
   );
 }

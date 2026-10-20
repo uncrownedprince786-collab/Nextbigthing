@@ -1,0 +1,1622 @@
+{
+ "generatedAt": "2026-10-20T22:36:08.539273+00:00",
+ "modelVersion": "brain-c1-crypto-d20",
+ "market": "Crypto",
+ "symbols": [
+  "AAVEUSDT",
+  "ADAUSDT",
+  "AEROUSDT",
+  "ALGOUSDT",
+  "APTUSDT",
+  "ARBUSDT",
+  "ASTERUSDT",
+  "ATOMUSDT",
+  "AVAXUSDT",
+  "BATUSDT",
+  "BCHUSDT",
+  "BNBUSDT",
+  "BTCUSDT",
+  "CAKEUSDT",
+  "CFXUSDT",
+  "CRVUSDT",
+  "DASHUSDT",
+  "DOGEUSDT",
+  "DOTUSDT",
+  "ENAUSDT",
+  "ETCUSDT",
+  "ETHUSDT",
+  "FETUSDT",
+  "FILUSDT",
+  "HBARUSDT",
+  "HYPEUSDT",
+  "ICPUSDT",
+  "INJUSDT",
+  "LINKUSDT",
+  "LTCUSDT",
+  "MORPHOUSDT",
+  "NEARUSDT",
+  "ONDOUSDT",
+  "OPUSDT",
+  "PENDLEUSDT",
+  "PENGUUSDT",
+  "PEPEUSDT",
+  "POLUSDT",
+  "PUMPUSDT",
+  "PYTHUSDT",
+  "QNTUSDT",
+  "RAYUSDT",
+  "RENDERUSDT",
+  "SUSDT",
+  "SEIUSDT",
+  "SHIBUSDT",
+  "SKYUSDT",
+  "SOLUSDT",
+  "STRKUSDT",
+  "STXUSDT",
+  "SUIUSDT",
+  "TAOUSDT",
+  "TIAUSDT",
+  "TRUMPUSDT",
+  "TRXUSDT",
+  "UNIUSDT",
+  "VETUSDT",
+  "VIRTUALUSDT",
+  "WLDUSDT",
+  "WLFIUSDT",
+  "XLMUSDT",
+  "XRPUSDT",
+  "XTZUSDT",
+  "ZECUSDT",
+  "ZROUSDT"
+ ],
+ "artifact": {
+  "file": "model.json",
+  "sha256": "c8fb46503eb3b6756c16bd85e7cc120ff3ec1442a713de57db954cd94230d2d2",
+  "bytes": 82092
+ },
+ "producedBy": "tools/research/train_crypto_short.py",
+ "repoHead": "4e80b0c0b9c1d582cd7330876551ca444252394e",
+ "featureSchema": "crypto-intraday-f1",
+ "featureCount": 41,
+ "task": {
+  "classes": [
+   "DOWN",
+   "UP"
+  ],
+  "label": "sign of the forward close-to-close return",
+  "band": "none -- there is no FLAT class and no row is converted into a direction",
+  "horizonKey": "d20",
+  "interval": "4h",
+  "barsAhead": 120,
+  "minutesAhead": 28800
+ },
+ "corpus": {
+  "AAVEUSDT": {
+   "bars": 13181,
+   "usableRows": 12893,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2020-10-15T00:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "ADAUSDT": {
+   "bars": 18643,
+   "usableRows": 16581,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999517,
+    "first": "2018-04-17T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 7,
+    "missingBars": 9
+   }
+  },
+  "AEROUSDT": {
+   "bars": 571,
+   "usableRows": 283,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2026-07-17T16:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "ALGOUSDT": {
+   "bars": 16065,
+   "usableRows": 15201,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999876,
+    "first": "2019-06-22T00:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 2,
+    "missingBars": 2
+   }
+  },
+  "APTUSDT": {
+   "bars": 8777,
+   "usableRows": 8489,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2022-10-19T00:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "ARBUSDT": {
+   "bars": 7844,
+   "usableRows": 7556,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2023-03-23T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "ASTERUSDT": {
+   "bars": 2276,
+   "usableRows": 1988,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-10-06T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "ATOMUSDT": {
+   "bars": 16386,
+   "usableRows": 15426,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999756,
+    "first": "2019-04-29T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 3,
+    "missingBars": 4
+   }
+  },
+  "AVAXUSDT": {
+   "bars": 13318,
+   "usableRows": 13030,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2020-09-22T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "BATUSDT": {
+   "bars": 16720,
+   "usableRows": 15521,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999701,
+    "first": "2019-03-04T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 4,
+    "missingBars": 5
+   }
+  },
+  "BCHUSDT": {
+   "bars": 15110,
+   "usableRows": 14534,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999934,
+    "first": "2019-11-28T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 1
+   }
+  },
+  "BNBUSDT": {
+   "bars": 19609,
+   "usableRows": 17259,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999185,
+    "first": "2017-11-06T00:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 8,
+    "missingBars": 16
+   }
+  },
+  "BTCUSDT": {
+   "bars": 20094,
+   "usableRows": 17744,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999204,
+    "first": "2017-08-17T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 8,
+    "missingBars": 16
+   }
+  },
+  "CAKEUSDT": {
+   "bars": 12418,
+   "usableRows": 12130,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2021-02-19T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "CFXUSDT": {
+   "bars": 12189,
+   "usableRows": 11901,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2021-03-29T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "CRVUSDT": {
+   "bars": 13546,
+   "usableRows": 13258,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2020-08-15T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "DASHUSDT": {
+   "bars": 16578,
+   "usableRows": 15426,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999759,
+    "first": "2019-03-28T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 3,
+    "missingBars": 4
+   }
+  },
+  "DOGEUSDT": {
+   "bars": 15984,
+   "usableRows": 15164,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999875,
+    "first": "2019-07-05T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 2,
+    "missingBars": 2
+   }
+  },
+  "DOTUSDT": {
+   "bars": 13524,
+   "usableRows": 13236,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2020-08-18T20:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "ENAUSDT": {
+   "bars": 5589,
+   "usableRows": 5301,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2024-04-02T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "ETCUSDT": {
+   "bars": 18308,
+   "usableRows": 16449,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999509,
+    "first": "2018-06-12T00:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 7,
+    "missingBars": 9
+   }
+  },
+  "ETHUSDT": {
+   "bars": 20094,
+   "usableRows": 17744,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999204,
+    "first": "2017-08-17T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 8,
+    "missingBars": 16
+   }
+  },
+  "FETUSDT": {
+   "bars": 16744,
+   "usableRows": 15521,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999701,
+    "first": "2019-02-28T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 4,
+    "missingBars": 5
+   }
+  },
+  "FILUSDT": {
+   "bars": 13177,
+   "usableRows": 12889,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2020-10-15T16:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "HBARUSDT": {
+   "bars": 15471,
+   "usableRows": 14895,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999935,
+    "first": "2019-09-29T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 1
+   }
+  },
+  "HYPEUSDT": {
+   "bars": 159,
+   "usableRows": 0,
+   "stepMs": 300000,
+   "excluded": "fewer bars than the feature window needs"
+  },
+  "ICPUSDT": {
+   "bars": 11933,
+   "usableRows": 11645,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2021-05-11T00:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "INJUSDT": {
+   "bars": 13144,
+   "usableRows": 12856,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2020-10-21T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "LINKUSDT": {
+   "bars": 17002,
+   "usableRows": 15562,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999706,
+    "first": "2019-01-16T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 4,
+    "missingBars": 5
+   }
+  },
+  "LTCUSDT": {
+   "bars": 19387,
+   "usableRows": 17037,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999175,
+    "first": "2017-12-13T00:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 8,
+    "missingBars": 16
+   }
+  },
+  "MORPHOUSDT": {
+   "bars": 2294,
+   "usableRows": 2006,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-10-03T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "NEARUSDT": {
+   "bars": 13186,
+   "usableRows": 12898,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2020-10-14T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "ONDOUSDT": {
+   "bars": 3344,
+   "usableRows": 3056,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-04-11T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "OPUSDT": {
+   "bars": 9615,
+   "usableRows": 9327,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2022-06-01T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "PENDLEUSDT": {
+   "bars": 7233,
+   "usableRows": 6945,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2023-07-03T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "PENGUUSDT": {
+   "bars": 4034,
+   "usableRows": 3746,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2024-12-17T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "PEPEUSDT": {
+   "bars": 7585,
+   "usableRows": 7297,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2023-05-05T16:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "POLUSDT": {
+   "bars": 4605,
+   "usableRows": 4317,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2024-09-13T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "PUMPUSDT": {
+   "bars": 2426,
+   "usableRows": 2138,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-09-11T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "PYTHUSDT": {
+   "bars": 5948,
+   "usableRows": 5660,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2024-02-02T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "QNTUSDT": {
+   "bars": 11458,
+   "usableRows": 11170,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2021-07-29T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "RAYUSDT": {
+   "bars": 11386,
+   "usableRows": 11098,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2021-08-10T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "RENDERUSDT": {
+   "bars": 4899,
+   "usableRows": 4611,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2024-07-26T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "SUSDT": {
+   "bars": 3855,
+   "usableRows": 3567,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-01-16T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "SEIUSDT": {
+   "bars": 6974,
+   "usableRows": 6686,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2023-08-15T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "SHIBUSDT": {
+   "bars": 11937,
+   "usableRows": 11649,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2021-05-10T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "SKYUSDT": {
+   "bars": 2391,
+   "usableRows": 2103,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-09-17T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "SOLUSDT": {
+   "bars": 13570,
+   "usableRows": 13282,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2020-08-11T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "STRKUSDT": {
+   "bars": 5840,
+   "usableRows": 5552,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2024-02-20T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "STXUSDT": {
+   "bars": 15315,
+   "usableRows": 14739,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999935,
+    "first": "2019-10-25T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 1
+   }
+  },
+  "SUIUSDT": {
+   "bars": 7598,
+   "usableRows": 7310,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2023-05-03T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "TAOUSDT": {
+   "bars": 5534,
+   "usableRows": 5246,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2024-04-11T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "TIAUSDT": {
+   "bars": 6511,
+   "usableRows": 6223,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2023-10-31T16:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "TRUMPUSDT": {
+   "bars": 3837,
+   "usableRows": 3549,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-01-19T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "TRXUSDT": {
+   "bars": 18312,
+   "usableRows": 16449,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999509,
+    "first": "2018-06-11T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 7,
+    "missingBars": 9
+   }
+  },
+  "UNIUSDT": {
+   "bars": 13349,
+   "usableRows": 13061,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2020-09-17T00:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "VETUSDT": {
+   "bars": 18052,
+   "usableRows": 16324,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999668,
+    "first": "2018-07-25T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 5,
+    "missingBars": 6
+   }
+  },
+  "VIRTUALUSDT": {
+   "bars": 3344,
+   "usableRows": 3056,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-04-11T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "WLDUSDT": {
+   "bars": 7107,
+   "usableRows": 6819,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2023-07-24T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "WLFIUSDT": {
+   "bars": 2486,
+   "usableRows": 2198,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-09-01T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "XLMUSDT": {
+   "bars": 18378,
+   "usableRows": 16449,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999511,
+    "first": "2018-05-31T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 7,
+    "missingBars": 9
+   }
+  },
+  "XRPUSDT": {
+   "bars": 18540,
+   "usableRows": 16478,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999515,
+    "first": "2018-05-04T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 7,
+    "missingBars": 9
+   }
+  },
+  "XTZUSDT": {
+   "bars": 15500,
+   "usableRows": 14924,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999935,
+    "first": "2019-09-24T08:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 1
+   }
+  },
+  "ZECUSDT": {
+   "bars": 16620,
+   "usableRows": 15468,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 0.999759,
+    "first": "2019-03-21T04:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 3,
+    "missingBars": 4
+   }
+  },
+  "ZROUSDT": {
+   "bars": 5114,
+   "usableRows": 4826,
+   "stepMs": 14400000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2024-06-20T12:00:00+00:00",
+    "last": "2026-10-20T16:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  }
+ },
+ "rowStride": 1,
+ "featureParityWithReference": {
+  "AAVEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.624927202069831e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ADAUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.356652800873414e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "AEROUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.7101467264828765e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ALGOUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.449873646892411e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "APTUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.358410970186958e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ARBUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.5182087281380774e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ASTERUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.445946770344701e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ATOMUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.424294419667456e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "AVAXUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.61307526787063e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "BATUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.722167386737854e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "BCHUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.3946313520145115e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "BNBUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.105979865614138e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "BTCUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.63897256142094e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "CAKEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.4996117520232826e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "CFXUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.4595949829067195e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "CRVUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.522322888505913e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "DASHUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.828835915599051e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "DOGEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.399029931921742e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "DOTUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.6147509959346115e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ENAUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.081365711739869e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ETCUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.687623035246463e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ETHUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.6902869983148665e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "FETUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.3130693220682886e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "FILUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.917470215566409e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "HBARUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.8527203896429117e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ICPUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.692538146408217e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "INJUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 4.9509030852278794e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "LINKUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.637461844717541e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "LTCUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.4038327588472446e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "MORPHOUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.3572913353220714e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "NEARUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.497173430830482e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ONDOUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.5606938077382015e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "OPUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.625235833573301e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "PENDLEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.791420482493754e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "PENGUUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.49635585257907e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "PEPEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.3447123676947744e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "POLUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.8751113887216515e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "PUMPUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.7077350421694825e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "PYTHUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.518882731493222e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "QNTUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.638764594455509e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "RAYUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.288733345987283e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "RENDERUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.534976366796121e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "SUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.6164278568762244e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "SEIUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.533187333250695e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "SHIBUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.12455698446143e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "SKYUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.423509267025217e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "SOLUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.8223123245249265e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "STRKUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.81040576792373e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "STXUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.5539159478921156e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "SUIUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 4.883577269319324e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "TAOUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.1492338758786796e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "TIAUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.515257026266876e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "TRUMPUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.169596376130498e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "TRXUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.612217873052673e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "UNIUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.601825644954458e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "VETUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.4336831586971665e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "VIRTUALUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.848870987074836e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "WLDUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.1425272230648395e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "WLFIUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.244809690663256e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "XLMUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.61209948556975e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "XRPUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.502812057894998e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "XTZUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.2009187495243e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ZECUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.439777474518524e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ZROUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.4947443436376917e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  }
+ },
+ "rows": {
+  "train": 435105,
+  "validation": 74391,
+  "test": 92288,
+  "zeroMoveRowsDropped": 647
+ },
+ "split": {
+  "trainEnd": "2025-04-22T16:00:00+00:00",
+  "valEnd": "2026-01-29T12:00:00+00:00",
+  "embargoBars": 408,
+  "embargoMinutes": 97920,
+  "testFrom": "2026-01-29T16:00:00+00:00",
+  "testTo": "2026-10-20T16:00:00+00:00"
+ },
+ "chosenModel": "gbm",
+ "validation": {
+  "logisticAccuracy": 0.50942,
+  "gbmAccuracy": 0.57843,
+  "gbmRoundsKept": 93,
+  "gbmRoundsFitted": 123
+ },
+ "preRegisteredGates": {
+  "aboveTestMajority": "accuracy strictly above the test fold's own larger class",
+  "bothDirectionsPredicted": "neither predicted class above 0.80 of the test fold",
+  "bootstrapExcludesZero": "95% day-blocked bootstrap interval for (accuracy - majority) strictly above zero",
+  "walkForwardMajority": "above its own block majority in at least 4 of 5 chronological blocks"
+ },
+ "gates": {
+  "aboveTestMajority": true,
+  "bothDirectionsPredicted": true,
+  "bootstrapExcludesZero": false,
+  "walkForwardMajority": false
+ },
+ "gatesMet": false,
+ "acceptanceTarget": 0.9,
+ "acceptanceTargetMet": false,
+ "evaluation": {
+  "rows": 92288,
+  "accuracy": 0.52469,
+  "testMajority": 0.503,
+  "testMajorityClass": "DOWN",
+  "marginOverMajority": 0.02169,
+  "alwaysUpAccuracy": 0.497,
+  "actualUpRate": 0.497,
+  "predictedUpShare": 0.39039,
+  "predictedDownShare": 0.60961,
+  "upRecall": 0.41457,
+  "downRecall": 0.63351,
+  "upPrecision": 0.52778,
+  "downPrecision": 0.52272,
+  "blockedBootstrap": {
+   "blocks": 245,
+   "draws": 2000,
+   "pointEstimate": 0.021693,
+   "ci95": [
+    -0.013425,
+    0.057357
+   ],
+   "sd": 0.018011,
+   "z": 1.2044,
+   "excludesZero": false
+  },
+  "walkForward": {
+   "blocks": [
+    {
+     "block": 0,
+     "rows": 18457,
+     "accuracy": 0.54435,
+     "majority": 0.51157,
+     "above": true
+    },
+    {
+     "block": 1,
+     "rows": 18458,
+     "accuracy": 0.53803,
+     "majority": 0.50607,
+     "above": true
+    },
+    {
+     "block": 2,
+     "rows": 18457,
+     "accuracy": 0.49076,
+     "majority": 0.53259,
+     "above": false
+    },
+    {
+     "block": 3,
+     "rows": 18458,
+     "accuracy": 0.5194,
+     "majority": 0.50471,
+     "above": true
+    },
+    {
+     "block": 4,
+     "rows": 18458,
+     "accuracy": 0.53094,
+     "majority": 0.53467,
+     "above": false
+    }
+   ],
+   "blocksAboveMajority": 3,
+   "blocksScored": 5
+  },
+  "coverageCurve": [
+   {
+    "minMargin": 0.0,
+    "rows": 92288,
+    "coverage": 1.0,
+    "accuracy": 0.52469,
+    "majorityHere": 0.503
+   },
+   {
+    "minMargin": 0.01,
+    "rows": 84161,
+    "coverage": 0.91194,
+    "accuracy": 0.52747,
+    "majorityHere": 0.5047
+   },
+   {
+    "minMargin": 0.02,
+    "rows": 76503,
+    "coverage": 0.82896,
+    "accuracy": 0.53049,
+    "majorityHere": 0.50759
+   },
+   {
+    "minMargin": 0.03,
+    "rows": 68511,
+    "coverage": 0.74236,
+    "accuracy": 0.53461,
+    "majorityHere": 0.51104
+   },
+   {
+    "minMargin": 0.05,
+    "rows": 49741,
+    "coverage": 0.53898,
+    "accuracy": 0.54673,
+    "majorityHere": 0.51016
+   },
+   {
+    "minMargin": 0.075,
+    "rows": 29388,
+    "coverage": 0.31844,
+    "accuracy": 0.55509,
+    "majorityHere": 0.51017
+   },
+   {
+    "minMargin": 0.1,
+    "rows": 15992,
+    "coverage": 0.17328,
+    "accuracy": 0.55015,
+    "majorityHere": 0.50319
+   },
+   {
+    "minMargin": 0.15,
+    "rows": 5859,
+    "coverage": 0.06349,
+    "accuracy": 0.50009,
+    "majorityHere": 0.54788
+   },
+   {
+    "minMargin": 0.2,
+    "rows": 1839,
+    "coverage": 0.01993,
+    "accuracy": 0.47417,
+    "majorityHere": 0.54377
+   }
+  ],
+  "calibration": [
+   {
+    "bucket": 0,
+    "rows": 9229,
+    "meanPredicted": 0.39631,
+    "observedUpRate": 0.4151
+   },
+   {
+    "bucket": 1,
+    "rows": 9229,
+    "meanPredicted": 0.42673,
+    "observedUpRate": 0.45444
+   },
+   {
+    "bucket": 2,
+    "rows": 9229,
+    "meanPredicted": 0.44254,
+    "observedUpRate": 0.47676
+   },
+   {
+    "bucket": 3,
+    "rows": 9228,
+    "meanPredicted": 0.45645,
+    "observedUpRate": 0.47681
+   },
+   {
+    "bucket": 4,
+    "rows": 9229,
+    "meanPredicted": 0.46984,
+    "observedUpRate": 0.51912
+   },
+   {
+    "bucket": 5,
+    "rows": 9229,
+    "meanPredicted": 0.48755,
+    "observedUpRate": 0.51837
+   },
+   {
+    "bucket": 6,
+    "rows": 9228,
+    "meanPredicted": 0.51058,
+    "observedUpRate": 0.52265
+   },
+   {
+    "bucket": 7,
+    "rows": 9229,
+    "meanPredicted": 0.54496,
+    "observedUpRate": 0.50038
+   },
+   {
+    "bucket": 8,
+    "rows": 9229,
+    "meanPredicted": 0.59116,
+    "observedUpRate": 0.57601
+   },
+   {
+    "bucket": 9,
+    "rows": 9229,
+    "meanPredicted": 0.66653,
+    "observedUpRate": 0.51035
+   }
+  ]
+ },
+ "linearOnTheSameTestRows": 0.51153,
+ "verdict": "NO-GO",
+ "limitations": [
+  "The test fold is a historical holdout. It is unseen by this fit, and it is still a backtest: no forecast in it was made before the data existed.",
+  "Direction only. No transaction cost, spread, funding or slippage is in any number here, and nothing here is a profitability claim.",
+  "Binance USDT pairs. The cross-venue check in the corpus manifest records how far these closes sit from a second exchange's."
+ ]
+}

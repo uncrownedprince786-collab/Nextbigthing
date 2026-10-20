@@ -29,6 +29,7 @@ import {
 } from "@/components/ui";
 import { DecisionPanel } from "@/components/decision";
 import { BrainDecision } from "@/components/brainDecision";
+import { CryptoBrain } from "@/components/cryptoBrain";
 import { pickTarget, targetForCall } from "@/lib/target";
 import { qualityGate } from "@/lib/quality";
 import { rankHeadlines } from "@/lib/newsRank";
@@ -126,9 +127,14 @@ export default async function AssetPage({
   params: Promise<{ symbol: string }>;
   // The trading style lives in the URL so the whole page stays a server component and every
   // state a reader can reach is a link they can share.
-  searchParams: Promise<{ style?: string }>;
+  //
+  // `h` is the crypto forecast duration (lib/cryptoHorizons) and `style` is the older trading
+  // style the other four markets still use. Two parameters rather than one reused name, because
+  // they are not the same question: `style` picks a horizon *and* implies how somebody trades,
+  // which is exactly the conflation the crypto panel was rebuilt to end.
+  searchParams: Promise<{ style?: string; h?: string }>;
 }) {
-  const { style: brainStyle } = await searchParams;
+  const { style: brainStyle, h: horizon } = await searchParams;
   const { symbol } = await params;
   const asset = await getAsset(decodeURIComponent(symbol));
   if (!asset) notFound();
@@ -313,8 +319,22 @@ export default async function AssetPage({
           not be confused with. The journey ends here rather than on a separate screen: a reader
           who has chosen an asset should not have to navigate away to find out what the model
           says about it. */}
+      {/* Crypto gets the duration picker and a model that answers it; the other four markets
+          keep the style picker until they have horizon-specific models of their own. The split is
+          on the mapped market, never on the symbol -- `marketOf` documents why a ticker is never
+          a market test. */}
       <div className="mt-8">
-        <BrainDecision symbol={asset.symbol} market={market} style={brainStyle} />
+        {market === "Crypto" ? (
+          <CryptoBrain
+            symbol={asset.symbol}
+            assetId={asset.id}
+            market={market}
+            name={asset.name}
+            horizon={horizon}
+          />
+        ) : (
+          <BrainDecision symbol={asset.symbol} market={market} style={brainStyle} />
+        )}
       </div>
 
       <div id="detail" className="scroll-mt-4">

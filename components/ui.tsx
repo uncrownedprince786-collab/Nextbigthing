@@ -56,11 +56,19 @@ export function Card({
   );
 }
 
+/// A `div`, not a `p`, and that is a fix rather than a preference.
+///
+/// It was a `<p>`, and several call sites pass more than one paragraph -- the band reading on
+/// `brainDecision`, the evidence and data notes on `cryptoBrain`. A `<p>` inside a `<p>` is
+/// invalid HTML: the browser closes the outer one at the inner tag, so the markup the client
+/// parses differs from the markup the server sent, React reports a hydration mismatch and
+/// re-renders the whole subtree. It renders identically either way, which is why it survived --
+/// the only visible symptom was an error in the console and a tree thrown away on every load.
 export function Note({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-warn bg-warn-bg mt-2 rounded border border-warn/25 px-3 py-2 text-xs leading-relaxed">
+    <div className="text-warn bg-warn-bg mt-2 rounded border border-warn/25 px-3 py-2 text-xs leading-relaxed">
       {children}
-    </p>
+    </div>
   );
 }
 

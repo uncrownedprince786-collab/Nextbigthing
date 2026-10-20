@@ -114,6 +114,7 @@ model Asset {
   decisions        DecisionLog[]
   macroGates       MacroGate[]
   liveQuote        LiveQuote?
+  forecasts        BrainForecast[]
 
   createdAt DateTime @default(now())
 
@@ -2068,4 +2069,97 @@ model ShadowOutcome {
   @@unique([predictionId, observedOn, final], map: "ShadowOutcome_predictionId_observedOn_final_key")
   @@index([final, label])
   @@index([observedOn])
+}
+
+/// A short-horizon directional forecast, as it was shown to a reader.
+///
+/// Separate from `ShadowPrediction` because the identity is different, not because the idea is.
+/// That table is keyed on a session date and a horizon counted in sessions; a forecast made at
+/// 14:35 UTC and one made at 14:40 are two claims about two windows on the same calendar day, and
+/// a `DATE` collapses them. The two tables must never be merged by a reader counting results:
+/// they are two experiments with two scoring rules.
+///
+/// **`asOf` is the close time of the newest bar the features were read from**, which is why every
+/// request inside one bar writes the same row: the unique key makes the repeat a no-op, so what is
+/// stored is exactly what the reader saw and the table grows with bars rather than with traffic.
+model BrainForecast {
+  id      String @id @default(dbgenerated("gen_random_uuid()::text"))
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  symbol  String
+  market  String
+
+  /// The horizon as the reader chose it ("m5" .. "d20"), and the same reach in minutes, which is
+  /// what `maturesAt` is computed from and what the scorer grades against.
+  horizonKey     String
+  horizonMinutes Int
+  /// Which corpus answered: "5m" or "4h". Part of the horizon's identity, so a model fitted on
+  /// one interval can never be found serving the other.
+  interval       String
+
+  // `timestamptz`, not Prisma's default `timestamp`. These are instants written by the request
+  // path, and the Node driver sends a JS Date with its local offset: in a column without a time
+  // zone Postgres drops that offset and keeps the wall clock, which stored a 22:45 UTC forecast
+  // as 17:45 on a host five hours ahead. `maturesAt` decides when a claim may be graded, so the
+  // drift is not cosmetic. See migration 20261021010000_brain_forecast_timestamptz.
+  asOf      DateTime @db.Timestamptz(3)
+  maturesAt DateTime @db.Timestamptz(3)
+
+  /// UP or DOWN. There is no third class: the model is binary and no row is converted.
+  direction      String
+  probUp         Float
+  /// LOW or MEDIUM, from the lane's measured evidence (lib/cryptoLanes.ts). Never HIGH: every
+  /// number behind it comes from a historical holdout, which is still a backtest.
+  confidence     String
+  referencePrice Float
+
+  modelVersion  String
+  modelSha256   String
+  featureSchema String
+  features      Json?
+
+  /// `ok` when every feature was observed, `degraded` when one was imputed because the venue that
+  /// answered does not publish it. `imputed` names them. A degraded forecast is marked, not hidden.
+  quality     String
+  imputed     Json?
+  venue       String
+  patchedFrom String?
+  barCount    Int
+  /// How old the newest bar was when the forecast was made, in milliseconds.
+  inputAgeMs  Int
+
+  createdAt DateTime               @default(now()) @db.Timestamptz(3)
+  outcome   BrainForecastOutcome?
+
+  @@unique([modelVersion, modelSha256, assetId, horizonKey, asOf], map: "BrainForecast_identity_key")
+  @@index([assetId, horizonKey, asOf(sort: Desc)])
+  @@index([maturesAt])
+  @@index([symbol, asOf(sort: Desc)])
+}
+
+/// What actually happened after a `BrainForecast`'s horizon.
+///
+/// Its own table, so grading never edits the claim it grades, and one row per forecast, so
+/// rerunning the scorer is idempotent. There is no interim mark: unlike a 20-session call there is
+/// nothing useful to say about a five-minute window halfway through it.
+model BrainForecastOutcome {
+  id         String        @id @default(dbgenerated("gen_random_uuid()::text"))
+  forecastId String        @unique
+  forecast   BrainForecast @relation(fields: [forecastId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  observedPrice Float
+  /// The close time of the bar the observed price came from, at or after `maturesAt`.
+  observedAt    DateTime @db.Timestamptz(3)
+  realisedPct   Float
+  actual        String
+  correct       Boolean
+  /// How far past maturity the observation was taken, so a late grading is visible rather than
+  /// silently treated as an on-time one.
+  latenessMs    Int
+  source        String
+  scorerVersion String
+  note          String?
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([observedAt])
 }

@@ -57,6 +57,7 @@ export interface HealthReadings {
   lanes?: { job: string; lastRun: Date | string | null; lastOk: Date | string | null }[];
   /// How many assets the universe holds, so a page that lists fewer can be caught (tools/ui_audit.py).
   pool?: number;
+  registry?: number;
   /// The tier this request read from: "the primary" or a standby's name (lib/db.ts `servingTier`).
   servedFrom?: string | null;
 }
@@ -94,7 +95,12 @@ export interface Health {
     markets: { market: Market; newest: string | null; ageMinutes: number | null; state: "current" | "late" | "closed" | "off" }[];
   };
   lanes: { job: string; lastRun: string | null; lastOk: string | null; minutesSinceOk: number | null }[];
+  /// The active pool: what the lists make calls from (jobs/pool.py).
   pool: number | null;
+  /// Every asset in the database, pooled or not. Published beside the pool because the class
+  /// pages list the whole registry and a checker comparing listed names against the pool alone
+  /// would read that completeness as a parity failure.
+  registry: number | null;
 }
 
 function dayAge(iso: string | null, now: Date): number | null {
@@ -233,5 +239,6 @@ export function assess(r: HealthReadings, now: Date): Health {
     },
     lanes,
     pool: r.pool ?? null,
+    registry: r.registry ?? null,
   };
 }

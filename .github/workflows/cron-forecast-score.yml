@@ -1,0 +1,89 @@
+name: cron forecast score
+
+# Grade the short-horizon forecasts whose window has closed.
+#
+# Its own lane, like every other source lane, so a venue outage here is a red *scoring* run next
+# to the green ones rather than a failure that takes crypto closes down with it.
+#
+# **Hourly, and the cadence does not affect the grades.** `jobs/forecast_score.py` fetches the bar
+# at each forecast's own maturity instant, not the newest bar, so a five-minute call graded an hour
+# late is still scored against the price five minutes after it was made -- `latenessMs` records the
+# distance and the job refuses anything beyond three intervals. What the cadence decides is only
+# how soon the site's prospective record catches up, and an hour is the right trade against a free
+# Actions budget already carrying twelve crypto runs a day.
+on:
+  schedule:
+    # Minute 25, a slot none of the other lanes use (crypto 05, news 20, audit 35, us-prices 50),
+    # so the free-tier pooler never takes two connection bursts in the same second.
+    - cron: "25 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: nbt-forecast-score
+  cancel-in-progress: false
+
+jobs:
+  score:
+    name: grade matured forecasts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # main, explicitly: GitHub takes a scheduled workflow's file from the default branch and by
+      # default checks out that same branch, which here is `master`. The same proof every other
+      # cron lane carries, for the same reason.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Prove this run is executing main
+        run: |
+          head="$(git rev-parse HEAD)"
+          git fetch origin main --quiet
+          want="$(git rev-parse origin/main)"
+          echo "checked out $head"
+          echo "origin/main  $want"
+          if [ "$head" != "$want" ]; then
+            echo "this run is NOT executing main, refusing to continue"
+            exit 1
+          fi
+          echo "confirmed: this run is executing main"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install job dependencies
+        run: pip install -r requirements.txt
+
+      # This lane checks the schema; it does not migrate it. Migration is one controlled path.
+      - name: Refuse to run against a schema that is behind
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PRIMARY: ${{ vars.PRIMARY }}
+          PYTHONIOENCODING: utf-8
+        run: python jobs/schemacheck.py
+
+      - name: Grade matured forecasts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          set +e
+          out="$(python jobs/forecast_score.py 2>&1)"
+          code=$?
+          echo "$out"
+          {
+            echo "## Forecast scoring"
+            echo
+            echo "exit code \`$code\`"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $code
