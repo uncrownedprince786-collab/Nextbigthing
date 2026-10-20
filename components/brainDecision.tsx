@@ -9,6 +9,8 @@ import {
   laneFor, predictionIsCovered, sideOfClass, verdictFor,
   VALIDATION_GENERATED_AT, VALIDATION_REQUIREMENTS, VALIDATION_STATUS,
 } from "@/lib/signalValidation";
+import { bandReadingFor, type BandVerdict } from "@/lib/bandReadings";
+import { asTimesIn, bandDirectionIsServable } from "@/lib/bandReading";
 
 /// The brain's half of an asset page: pick a trading style, get a direction or a reason there
 /// isn't one.
@@ -170,16 +172,25 @@ export async function BrainDecision({
               prediction is kept and will be graded.
             </p>
           </Card>
+        ) : prediction.predicted === "FLAT" ? (
+          <BandCard
+            symbol={symbol}
+            sessions={current.sessions}
+            asOf={prediction.asOf}
+            reading={bandReadingFor(
+              canon ?? market,
+              current.sessions,
+              prediction.modelVersion,
+            )}
+          />
         ) : sideOfClass(prediction.predicted) !== current.verdict.side ? (
           <Card>
             <div className="text-2xl font-semibold">No direction</div>
             <p className="text-muted-foreground mt-2 text-sm">
               The recorded prediction for {symbol} is{" "}
-              <strong>{prediction.predicted ?? "none"}</strong>
-              {prediction.predicted === "FLAT"
-                ? ", which is no move clearing the band rather than a direction."
-                : `, and only ${current.verdict.side} has survived testing on this market and horizon.`}{" "}
-              The prediction is kept and will be graded; it is not shown as a call.
+              <strong>{prediction.predicted ?? "none"}</strong>, and only{" "}
+              {current.verdict.side} has survived testing on this market and horizon. The
+              prediction is kept and will be graded; it is not shown as a call.
             </p>
           </Card>
         ) : (
@@ -263,5 +274,115 @@ export async function BrainDecision({
         ) : null}
       </Section>
     </div>
+  );
+}
+
+
+/// What an asset inside the band gets: the magnitude the brain actually claimed, with the rate at
+/// which that claim has held, and an explicit statement that no side is offered.
+///
+/// Three failure modes were available here and this avoids all three. Printing SHORT because the
+/// model did not say UP would be inventing a direction the model never gave. Printing "No
+/// direction" -- what the site did until now -- throws away a tested claim and reads as an outage.
+/// Printing "we expect it to stay inside the band" as a bare fact would overstate a call that is
+/// right about two times in five.
+///
+/// So the claim is shown *with its hit rate*, and the missing side is shown as the measured
+/// refusal it is. Numbers come from the reading for this very model version; a prediction from a
+/// model nothing has measured gets the honest `unmeasured` wording instead of another model's
+/// numbers.
+function BandCard({
+  symbol,
+  sessions,
+  asOf,
+  reading,
+}: {
+  symbol: string;
+  sessions: number;
+  asOf: Date | string | null;
+  reading: BandVerdict;
+}) {
+  if (reading.kind === "unmeasured") {
+    return (
+      <Card>
+        <div className="text-2xl font-semibold">No big move expected</div>
+        <p className="text-muted-foreground mt-2 text-sm">
+          The brain expects {symbol} to stay inside its band over the next {sessions} sessions,
+          so it offers no side. How often that call has held has not been measured for this
+          model, so no hit rate is shown — and none is borrowed from another model. The
+          prediction is kept and will be graded.
+        </p>
+      </Card>
+    );
+  }
+
+  const r = reading.reading;
+  const m = r.magnitude;
+  const hit = asTimesIn(m.precisionOnRowsCalledFlat);
+  const bounds = r.tests.blockedBootstrap?.ci95;
+  const ci = bounds && bounds.length === 2 ? bounds : null;
+  const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
+
+  return (
+    <>
+      <Card>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-3xl font-semibold tracking-tight">No big move expected</div>
+          <span className="border-border text-muted-foreground rounded-full border px-3 py-1 text-xs font-semibold tracking-wide">
+            NO SIDE
+          </span>
+        </div>
+        <p className="text-muted-foreground mt-3 text-sm">
+          Over {sessions} sessions the brain expects {symbol} to stay inside{" "}
+          <strong>±{m.thresholdPct}%</strong>
+          {asOf ? <> from {new Date(asOf).toISOString().slice(0, 10)}</> : null}. That is a claim
+          about <strong>size</strong>, not about direction.
+        </p>
+      </Card>
+
+      <Note>
+        <p>
+          <strong>How often that has held:</strong> about {hit.times} times in {hit.of}. On{" "}
+          {r.n.toLocaleString()} past readings this model called the same way,{" "}
+          {pct(m.precisionOnRowsCalledFlat)} really stayed inside the band, against{" "}
+          {pct(m.rateAcrossAllHoldoutRows)} for an average reading — a real edge of{" "}
+          {pct(m.lift)}, but one that is wrong more often than it is right. Treat it as a reason
+          to expect a quiet stretch, not as a promise of one.
+        </p>
+        {/* Read from the reading rather than written into the sentence. If a regenerated
+            artifact ever says GO, the paragraph below would otherwise go on asserting that the
+            direction came out as noise -- a false statement the card would have no way to notice.
+            The measurement drives the wording; the wording does not outlive the measurement. */}
+        {bandDirectionIsServable(r) ? (
+          <p className="mt-2">
+            <strong>Direction inside the band has now survived testing</strong> — a lift of{" "}
+            {(r.lift * 100).toFixed(2)} percentage points
+            {ci ? (
+              <>
+                , 95% interval [{(ci[0] * 100).toFixed(2)}, {(ci[1] * 100).toFixed(2)}]
+              </>
+            ) : null}
+            . A LOW-confidence side is not shown here yet: that needs each prediction to record
+            its own P(UP) − P(DOWN) margin, which the recorder does not yet store. Until it
+            does, this page states the magnitude only rather than guessing which of the two
+            sides this particular asset falls on.
+          </p>
+        ) : (
+          <p className="mt-2">
+            <strong>Why no LONG or SHORT:</strong> the direction inside the band was tested on
+            the same readings and came out as noise — {(r.lift * 100).toFixed(2)} percentage
+            points
+            {ci ? (
+              <>
+                , with a 95% interval of [{(ci[0] * 100).toFixed(2)},{" "}
+                {(ci[1] * 100).toFixed(2)}] points that spans zero
+              </>
+            ) : null}
+            . A side is withheld because it was measured and failed, not because nothing was
+            looked at.
+          </p>
+        )}
+      </Note>
+    </>
   );
 }

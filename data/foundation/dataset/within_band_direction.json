@@ -1,0 +1,88 @@
+{
+  "market": "US",
+  "horizonSessions": 5,
+  "bandScale": 2.0,
+  "modelVersion": "brain-v5-h5b20-us",
+  "artifactSha256": "f7c943dac4ecbe92fa48f0ce0d19e807eb52933ff2062d5ce57ec3ff38503146",
+  "population": "holdout rows the served artifact classifies FLAT, with a non-zero return",
+  "trainFlatRows": 333386,
+  "holdoutFlatRows": 25794,
+  "zeroReturnRowsExcluded": 25,
+  "n": 25769,
+  "baseline": {
+    "side": "UP",
+    "shareInTrainFold": 0.537,
+    "accuracyOnHoldout": 0.5168
+  },
+  "candidate": {
+    "rule": "sign(P(UP) - P(DOWN)) among FLAT rows",
+    "accuracy": 0.5164,
+    "predictedUp": 25550,
+    "predictedDown": 219
+  },
+  "lift": -0.0004,
+  "medianAbsMovePct": 2.5203,
+  "magnitude": {
+    "claim": "the move stays inside +/-2.0% over 5 sessions",
+    "thresholdPct": 2.0,
+    "precisionOnRowsCalledFlat": 0.4076,
+    "rateAcrossAllHoldoutRows": 0.336,
+    "lift": 0.0716,
+    "test": {
+      "accuracy": 0.4076,
+      "baseline": 0.336,
+      "n": 25794,
+      "lift": 0.0716,
+      "standardError": 0.0029,
+      "z": 24.35,
+      "requiredAccuracy": 0.3408,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": true,
+      "why": "0.4076 vs a 0.3360 baseline on 25794 rows is 24.35 standard errors; clears the 0.3408 needed at one-sided 1.645"
+    },
+    "holds": true
+  },
+  "tests": {
+    "vsFixedBaseline": {
+      "accuracy": 0.5164,
+      "baseline": 0.5168,
+      "n": 25769,
+      "lift": -0.0004,
+      "standardError": 0.0031,
+      "z": -0.14,
+      "requiredAccuracy": 0.5219,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "0.5164 vs a 0.5168 baseline on 25769 rows is -0.14 standard errors; does not clear the 0.5219 needed at one-sided 1.645"
+    },
+    "pairedAgainstBaseline": {
+      "onlyCandidateRight": 104,
+      "onlyOtherRight": 115,
+      "discordant": 219,
+      "z": -0.68,
+      "zRequired": 1.645,
+      "enoughData": true,
+      "passes": false,
+      "why": "the candidate was right where the other was wrong on 104 rows and wrong where it was right on 115; z = -0.68 against the 1.645 needed"
+    },
+    "blockedBootstrap": {
+      "lift": -0.0004,
+      "se": 0.0015,
+      "z": -0.29,
+      "ci95": [
+        -0.0033,
+        0.0025
+      ],
+      "sessions": 178,
+      "draws": 2000,
+      "pRaw": 0.761,
+      "armsSearched": 90,
+      "pBonferroni": 1.0
+    }
+  },
+  "verdict": "NO-GO",
+  "confidenceIfServed": "LOW",
+  "why": "a sub-band drift is a weak claim by construction, so it is served as LOW or not at all; nothing here licenses MEDIUM or HIGH"
+}

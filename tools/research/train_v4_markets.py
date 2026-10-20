@@ -161,8 +161,8 @@ def load(ds: Path, prefix: str = PREFIX, horizon: int = 20,
     if not files:
         raise SystemExit(f"no {prefix}-*.jsonl.gz in {ds}")
     per: dict[str, dict] = {
-        m: {"x": array.array("d"), "y": [], "dates": [], "symbols": set(),
-            "assetTypes": Counter(), "ctx": 0, "flagged": 0}
+        m: {"x": array.array("d"), "y": [], "fwd": array.array("d"), "dates": [],
+            "symbols": set(), "assetTypes": Counter(), "ctx": 0, "flagged": 0}
         for m in MARKETS
     }
     for f in files:
@@ -214,6 +214,12 @@ def load(ds: Path, prefix: str = PREFIX, horizon: int = 20,
                 b = per[m]
                 b["x"].extend(row)
                 b["y"].append(CLASSES.index(label))
+                # The forward return itself, not only the class it fell into. The class answers
+                # "did it clear the band"; the sign answers "which way did it go", and those are
+                # two different questions -- a FLAT row still moved somewhere. Keeping both is
+                # what lets `within_band_direction.py` ask the second one without a second pass
+                # over half a million rows or a second, divergent loader.
+                b["fwd"].append(float(fwd))
                 b["dates"].append(r["asOf"])
                 b["symbols"].add(r.get("symbol"))
                 b["assetTypes"][r.get("assetType")] += 1
@@ -222,6 +228,7 @@ def load(ds: Path, prefix: str = PREFIX, horizon: int = 20,
     for m, b in per.items():
         b["X"] = np.frombuffer(b["x"], dtype=np.float64).reshape(-1, len(ALL_FEATURES)).astype(np.float32)
         b["y"] = np.asarray(b["y"], dtype=np.int64)
+        b["fwd"] = np.frombuffer(b["fwd"], dtype=np.float64).astype(np.float32)
         b["dates"] = np.asarray(b["dates"])
         b["rows"] = int(len(b["y"]))
     return per
