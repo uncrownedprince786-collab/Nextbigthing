@@ -1,0 +1,8742 @@
+{
+ "generatedAt": "2026-10-20T15:08:12+00:00",
+ "producedBy": "tools/foundation/coverage_registry.py",
+ "featureWindowSessions": 50,
+ "staleAfterSessions": 3,
+ "quorum": 0.5,
+ "horizons": [
+  1,
+  5,
+  20,
+  60
+ ],
+ "statuses": [
+  "ready",
+  "thin-history",
+  "stale",
+  "no-history",
+  "feature-gap"
+ ],
+ "whatThisIsNot": "eligibility of the data, not permission to show a direction; a validated lane is a separate question answered by signal_validation.json",
+ "marketCalendarSessions": {
+  "PK": 2178,
+  "Crypto": 1812,
+  "FX": 2029,
+  "US": 1960,
+  "Commodity": 1963
+ },
+ "assetsByStatus": {
+  "ready": 606,
+  "feature-gap": 12,
+  "thin-history": 2
+ },
+ "assets": {
+  "AA": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AAL": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AAPL": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "aave-new": {
+   "market": "Crypto",
+   "bars": 2196,
+   "oldest": "2020-10-15",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ABBV": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ABL": {
+   "market": "PK",
+   "bars": 2126,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ABNB": {
+   "market": "US",
+   "bars": 1470,
+   "oldest": "2020-12-10",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ABOT": {
+   "market": "PK",
+   "bars": 2131,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ABT": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ACN": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ACPL": {
+   "market": "PK",
+   "bars": 2173,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ada-cardano": {
+   "market": "Crypto",
+   "bars": 2849,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ADBE": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ADI": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ADMM": {
+   "market": "PK",
+   "bars": 1756,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AEM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AEP": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "aero-aerodrome-finance": {
+   "market": "Crypto",
+   "bars": 987,
+   "oldest": "2024-02-06",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AGHA": {
+   "market": "PK",
+   "bars": 1477,
+   "oldest": "2020-11-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AGL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AGNC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AGP": {
+   "market": "PK",
+   "bars": 2131,
+   "oldest": "2018-03-05",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AGTL": {
+   "market": "PK",
+   "bars": 2147,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AHCL": {
+   "market": "PK",
+   "bars": 2020,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AHL": {
+   "market": "PK",
+   "bars": 2160,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AIG": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AIRLINK": {
+   "market": "PK",
+   "bars": 1259,
+   "oldest": "2021-09-22",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AKAM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AKBL": {
+   "market": "PK",
+   "bars": 2176,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AKDSL": {
+   "market": "PK",
+   "bars": 851,
+   "oldest": "2022-08-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "algo-algorand": {
+   "market": "Crypto",
+   "bars": 2677,
+   "oldest": "2019-06-22",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ALL": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ALTN": {
+   "market": "PK",
+   "bars": 1761,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AMAT": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AMD": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AMGN": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AMT": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AMTEX": {
+   "market": "PK",
+   "bars": 1128,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AMZN": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ANL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "APD": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "APL": {
+   "market": "PK",
+   "bars": 2176,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "apt-aptos": {
+   "market": "Crypto",
+   "bars": 1462,
+   "oldest": "2022-10-19",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "APTV": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "arb-arbitrum": {
+   "market": "Crypto",
+   "bars": 1307,
+   "oldest": "2023-03-23",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ARCTM": {
+   "market": "PK",
+   "bars": 1206,
+   "oldest": "2019-03-21",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ARM": {
+   "market": "US",
+   "bars": 777,
+   "oldest": "2023-09-14",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ARPL": {
+   "market": "PK",
+   "bars": 2085,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ASC": {
+   "market": "PK",
+   "bars": 2177,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ASL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ASML": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "aster-aster": {
+   "market": "Crypto",
+   "bars": 379,
+   "oldest": "2025-10-06",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ASTL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ASTM": {
+   "market": "PK",
+   "bars": 1774,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ASTS": {
+   "market": "US",
+   "bars": 1749,
+   "oldest": "2019-11-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ATLH": {
+   "market": "PK",
+   "bars": 1894,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "atom-cosmos": {
+   "market": "Crypto",
+   "bars": 2731,
+   "oldest": "2019-04-29",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ATRL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AU": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AUDUSD": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "avax-avalanche": {
+   "market": "Crypto",
+   "bars": 2219,
+   "oldest": "2020-09-22",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AVGO": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AVN": {
+   "market": "PK",
+   "bars": 2175,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "AXP": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BA": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "feature-gap",
+   "horizons": {
+    "1": "feature-gap",
+    "5": "feature-gap",
+    "20": "feature-gap",
+    "60": "feature-gap"
+   },
+   "imputedCount": 4,
+   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+  },
+  "BAC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BAFL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BAHL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BAPL": {
+   "market": "PK",
+   "bars": 1708,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "bat-basic-attention-token": {
+   "market": "Crypto",
+   "bars": 2787,
+   "oldest": "2019-03-04",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BBFL": {
+   "market": "PK",
+   "bars": 551,
+   "oldest": "2024-08-05",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "bch-bitcoin-cash": {
+   "market": "Crypto",
+   "bars": 2903,
+   "oldest": "2018-11-04",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BECO": {
+   "market": "PK",
+   "bars": 1690,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BERG": {
+   "market": "PK",
+   "bars": 1981,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BFAGRO": {
+   "market": "PK",
+   "bars": 401,
+   "oldest": "2025-03-07",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BFBIO": {
+   "market": "PK",
+   "bars": 498,
+   "oldest": "2024-10-21",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BHP": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BIFO": {
+   "market": "PK",
+   "bars": 2128,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BIPL": {
+   "market": "PK",
+   "bars": 2140,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BKNG": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BKR": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BLK": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BML": {
+   "market": "PK",
+   "bars": 717,
+   "oldest": "2023-11-27",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BMY": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "bnb-binance-coin": {
+   "market": "Crypto",
+   "bars": 2849,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BNL": {
+   "market": "PK",
+   "bars": 1471,
+   "oldest": "2020-09-08",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BOP": {
+   "market": "PK",
+   "bars": 2177,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BPL": {
+   "market": "PK",
+   "bars": 1663,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BSX": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "btc-bitcoin": {
+   "market": "Crypto",
+   "bars": 2907,
+   "oldest": "2018-11-04",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BTG": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BUXL": {
+   "market": "PK",
+   "bars": 1795,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BWA": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BWCL": {
+   "market": "PK",
+   "bars": 2169,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "BZ=F": {
+   "market": "Commodity",
+   "bars": 1963,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "C": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "cake-pancakeswap": {
+   "market": "Crypto",
+   "bars": 2069,
+   "oldest": "2021-02-19",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CAT": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CB": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CCI": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CDE": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CDNS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "cfx-conflux-network": {
+   "market": "Crypto",
+   "bars": 2031,
+   "oldest": "2021-03-29",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CHBL": {
+   "market": "PK",
+   "bars": 595,
+   "oldest": "2021-10-25",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CHCC": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "chip-usdai": {
+   "market": "Crypto",
+   "bars": 182,
+   "oldest": "2026-04-21",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CL": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CL=F": {
+   "market": "Commodity",
+   "bars": 1962,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CLF": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CLOV": {
+   "market": "PK",
+   "bars": 2164,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CMC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CMCSA": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CMG": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CMI": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CNERGY": {
+   "market": "PK",
+   "bars": 1927,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "COF": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "COLG": {
+   "market": "PK",
+   "bars": 1837,
+   "oldest": "2018-01-03",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "COP": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "COPX": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "feature-gap",
+   "horizons": {
+    "1": "feature-gap",
+    "5": "feature-gap",
+    "20": "feature-gap",
+    "60": "feature-gap"
+   },
+   "imputedCount": 9,
+   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+  },
+  "COST": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CPER": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "feature-gap",
+   "horizons": {
+    "1": "feature-gap",
+    "5": "feature-gap",
+    "20": "feature-gap",
+    "60": "feature-gap"
+   },
+   "imputedCount": 9,
+   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+  },
+  "CPHL": {
+   "market": "PK",
+   "bars": 1308,
+   "oldest": "2021-07-09",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CRM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "cro-cryptocom-chain": {
+   "market": "Crypto",
+   "bars": 1812,
+   "oldest": "2021-11-03",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "crv-curve-dao-token": {
+   "market": "Crypto",
+   "bars": 2257,
+   "oldest": "2020-08-15",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CRWD": {
+   "market": "US",
+   "bars": 1849,
+   "oldest": "2019-06-12",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CSAP": {
+   "market": "PK",
+   "bars": 2167,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CSCO": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CSX": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "feature-gap",
+   "horizons": {
+    "1": "feature-gap",
+    "5": "feature-gap",
+    "20": "feature-gap",
+    "60": "feature-gap"
+   },
+   "imputedCount": 9,
+   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+  },
+  "CTM": {
+   "market": "PK",
+   "bars": 2135,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CTVA": {
+   "market": "US",
+   "bars": 1861,
+   "oldest": "2019-05-24",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CVS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "CVX": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "D": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "dash-dash": {
+   "market": "Crypto",
+   "bars": 2763,
+   "oldest": "2019-03-28",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DBCI": {
+   "market": "PK",
+   "bars": 595,
+   "oldest": "2021-10-25",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DCL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DD": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DDOG": {
+   "market": "US",
+   "bars": 1780,
+   "oldest": "2019-09-19",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DE": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DEL": {
+   "market": "PK",
+   "bars": 1844,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DFML": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DFSM": {
+   "market": "PK",
+   "bars": 2168,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DG": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DGKC": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DHR": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DIS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DLL": {
+   "market": "PK",
+   "bars": 1486,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DLR": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DLTR": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DNCC": {
+   "market": "PK",
+   "bars": 1627,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DOCN": {
+   "market": "US",
+   "bars": 1400,
+   "oldest": "2021-03-24",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "doge-dogecoin": {
+   "market": "Crypto",
+   "bars": 2664,
+   "oldest": "2019-07-05",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DOL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "dot-polkadot": {
+   "market": "Crypto",
+   "bars": 2254,
+   "oldest": "2020-08-18",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DOW": {
+   "market": "US",
+   "bars": 1907,
+   "oldest": "2019-03-20",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DRI": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "drv7-derive": {
+   "market": "Crypto",
+   "bars": 145,
+   "oldest": "2026-05-28",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DSIL": {
+   "market": "PK",
+   "bars": 2169,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DSL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DUK": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "DVN": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ECL": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "EFERT": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ELV": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "EMR": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ena-ethena": {
+   "market": "Crypto",
+   "bars": 931,
+   "oldest": "2024-04-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ENGROH": {
+   "market": "PK",
+   "bars": 444,
+   "oldest": "2025-01-06",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "EOG": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "EPCL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "EPQL": {
+   "market": "PK",
+   "bars": 2173,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "EQIX": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "etc-ethereum-classic": {
+   "market": "Crypto",
+   "bars": 2907,
+   "oldest": "2018-11-04",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "eth-ethereum": {
+   "market": "Crypto",
+   "bars": 2907,
+   "oldest": "2018-11-04",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ETN": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "EURGBP": {
+   "market": "FX",
+   "bars": 2030,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "EURJPY": {
+   "market": "FX",
+   "bars": 2030,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "EURUSD": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "EXC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "F": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FABL": {
+   "market": "PK",
+   "bars": 2174,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FANG": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FATIMA": {
+   "market": "PK",
+   "bars": 2176,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FCCL": {
+   "market": "PK",
+   "bars": 2177,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FCEPL": {
+   "market": "PK",
+   "bars": 1931,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FCSC": {
+   "market": "PK",
+   "bars": 2164,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FCX": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FDPL": {
+   "market": "PK",
+   "bars": 1913,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FDX": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "feature-gap",
+   "horizons": {
+    "1": "feature-gap",
+    "5": "feature-gap",
+    "20": "feature-gap",
+    "60": "feature-gap"
+   },
+   "imputedCount": 9,
+   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+  },
+  "FECTC": {
+   "market": "PK",
+   "bars": 1976,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FEROZ": {
+   "market": "PK",
+   "bars": 2173,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "fetch-ai": {
+   "market": "Crypto",
+   "bars": 2791,
+   "oldest": "2019-02-28",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FFC": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FFL": {
+   "market": "PK",
+   "bars": 2177,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "fil-filecoin": {
+   "market": "Crypto",
+   "bars": 2196,
+   "oldest": "2020-10-15",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "flr-flare-network": {
+   "market": "Crypto",
+   "bars": 1285,
+   "oldest": "2023-04-14",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FLYNG": {
+   "market": "PK",
+   "bars": 2120,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FML": {
+   "market": "PK",
+   "bars": 1888,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FNEL": {
+   "market": "PK",
+   "bars": 2118,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FNV": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "FTNT": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GADT": {
+   "market": "PK",
+   "bars": 1846,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GAL": {
+   "market": "PK",
+   "bars": 846,
+   "oldest": "2023-05-19",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GATM": {
+   "market": "PK",
+   "bars": 2175,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GBPJPY": {
+   "market": "FX",
+   "bars": 2030,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GBPUSD": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GC=F": {
+   "market": "Commodity",
+   "bars": 1963,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GCIL": {
+   "market": "PK",
+   "bars": 974,
+   "oldest": "2022-11-14",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GCWL": {
+   "market": "PK",
+   "bars": 371,
+   "oldest": "2025-04-24",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GD": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "feature-gap",
+   "horizons": {
+    "1": "feature-gap",
+    "5": "feature-gap",
+    "20": "feature-gap",
+    "60": "feature-gap"
+   },
+   "imputedCount": 9,
+   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+  },
+  "GDL": {
+   "market": "PK",
+   "bars": 163,
+   "oldest": "2026-02-19",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GE": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GFI": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GFS": {
+   "market": "US",
+   "bars": 1248,
+   "oldest": "2021-10-28",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GGB": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GGL": {
+   "market": "PK",
+   "bars": 2177,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GHNI": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GILD": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GIS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GLAXO": {
+   "market": "PK",
+   "bars": 2176,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GLD": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GOOGL": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "grass-grass": {
+   "market": "Crypto",
+   "bars": 55,
+   "oldest": "2026-08-26",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "GWLC": {
+   "market": "PK",
+   "bars": 2153,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HAL": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HALEON": {
+   "market": "PK",
+   "bars": 1892,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HASCOL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "hbar-hedera-hashgraph": {
+   "market": "Crypto",
+   "bars": 2578,
+   "oldest": "2019-09-29",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HBL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HCA": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HCAR": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HD": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HG=F": {
+   "market": "Commodity",
+   "bars": 1963,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HIMS": {
+   "market": "US",
+   "bars": 1784,
+   "oldest": "2019-09-13",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HINO": {
+   "market": "PK",
+   "bars": 1928,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HINOON": {
+   "market": "PK",
+   "bars": 2166,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HIRAT": {
+   "market": "PK",
+   "bars": 2114,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HL": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HMB": {
+   "market": "PK",
+   "bars": 2151,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HMC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HMY": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HON": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HSY": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HTL": {
+   "market": "PK",
+   "bars": 2177,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HUBC": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HUBS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HUM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HUMNL": {
+   "market": "PK",
+   "bars": 2173,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "HUT": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "hype-hyperliquid": {
+   "market": "Crypto",
+   "bars": 257,
+   "oldest": "2026-02-05",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "IAU": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "IBLHL": {
+   "market": "PK",
+   "bars": 2143,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "IBM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ICIBL": {
+   "market": "PK",
+   "bars": 2175,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ICL": {
+   "market": "PK",
+   "bars": 2143,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "icp-internet-computer": {
+   "market": "Crypto",
+   "bars": 1989,
+   "oldest": "2021-05-10",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "IDRT": {
+   "market": "PK",
+   "bars": 814,
+   "oldest": "2018-01-03",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "IDYM": {
+   "market": "PK",
+   "bars": 1720,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ILP": {
+   "market": "PK",
+   "bars": 1863,
+   "oldest": "2019-04-05",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "IMS": {
+   "market": "PK",
+   "bars": 473,
+   "oldest": "2024-11-25",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "INDU": {
+   "market": "PK",
+   "bars": 2177,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "INIL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "inj-injective-protocol": {
+   "market": "Crypto",
+   "bars": 2190,
+   "oldest": "2020-10-21",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "INTC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "INTU": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "IOVA": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "IREN": {
+   "market": "US",
+   "bars": 1234,
+   "oldest": "2021-11-17",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ISL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ISRG": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ITANZ": {
+   "market": "PK",
+   "bars": 174,
+   "oldest": "2026-02-03",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ITTEFAQ": {
+   "market": "PK",
+   "bars": 2176,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ITUB": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ITW": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "JATM": {
+   "market": "PK",
+   "bars": 1626,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "JDMT": {
+   "market": "PK",
+   "bars": 1340,
+   "oldest": "2018-01-08",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "JNJ": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "JPM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "JSBL": {
+   "market": "PK",
+   "bars": 2106,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "JSCL": {
+   "market": "PK",
+   "bars": 2177,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KAPCO": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KEL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KGC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KHC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KLAC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KMB": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KMI": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KML": {
+   "market": "PK",
+   "bars": 1485,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KO": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KOHC": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KOHE": {
+   "market": "PK",
+   "bars": 1975,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KOHP": {
+   "market": "PK",
+   "bars": 1878,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KOHTM": {
+   "market": "PK",
+   "bars": 1069,
+   "oldest": "2018-01-11",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KOIL": {
+   "market": "PK",
+   "bars": 2078,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KOSM": {
+   "market": "PK",
+   "bars": 2175,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KR": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KSBP": {
+   "market": "PK",
+   "bars": 1861,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "KTML": {
+   "market": "PK",
+   "bars": 2077,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "LCI": {
+   "market": "PK",
+   "bars": 1902,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "LCID": {
+   "market": "US",
+   "bars": 1528,
+   "oldest": "2020-09-18",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "LEA": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "LIN": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "link-chainlink": {
+   "market": "Crypto",
+   "bars": 2834,
+   "oldest": "2019-01-16",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "LIVEN": {
+   "market": "PK",
+   "bars": 456,
+   "oldest": "2024-12-18",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "LLY": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "LMT": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "feature-gap",
+   "horizons": {
+    "1": "feature-gap",
+    "5": "feature-gap",
+    "20": "feature-gap",
+    "60": "feature-gap"
+   },
+   "imputedCount": 9,
+   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+  },
+  "LOTCHEM": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "LOW": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "LPL": {
+   "market": "PK",
+   "bars": 2146,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "LRCX": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "LSECL": {
+   "market": "PK",
+   "bars": 596,
+   "oldest": "2024-05-24",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "LSEVL": {
+   "market": "PK",
+   "bars": 803,
+   "oldest": "2023-06-27",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ltc-litecoin": {
+   "market": "Crypto",
+   "bars": 2907,
+   "oldest": "2018-11-04",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "LUCK": {
+   "market": "PK",
+   "bars": 2173,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "LULU": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MA": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MACTER": {
+   "market": "PK",
+   "bars": 1390,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MARA": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MARI": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MCB": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MCD": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MCHP": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MDB": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MDT": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MDTL": {
+   "market": "PK",
+   "bars": 2175,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MEBL": {
+   "market": "PK",
+   "bars": 2165,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MEHT": {
+   "market": "PK",
+   "bars": 993,
+   "oldest": "2018-01-30",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MET": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "met-meteora": {
+   "market": "Crypto",
+   "bars": 362,
+   "oldest": "2025-10-23",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "META": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MFFL": {
+   "market": "PK",
+   "bars": 1880,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MFL": {
+   "market": "PK",
+   "bars": 2124,
+   "oldest": "2018-02-13",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MGA": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MLCF": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MMM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MO": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "morpho-morpho": {
+   "market": "Crypto",
+   "bars": 600,
+   "oldest": "2025-02-27",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MPC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MPWR": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MQTM": {
+   "market": "PK",
+   "bars": 896,
+   "oldest": "2018-01-09",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MRK": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MRNA": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MRVL": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MSCL": {
+   "market": "PK",
+   "bars": 1332,
+   "oldest": "2018-06-11",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MSFT": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MSOT": {
+   "market": "PK",
+   "bars": 1485,
+   "oldest": "2018-01-03",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MT": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MTL": {
+   "market": "PK",
+   "bars": 2175,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MU": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MUGHAL": {
+   "market": "PK",
+   "bars": 2177,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "MUREB": {
+   "market": "PK",
+   "bars": 1917,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NATF": {
+   "market": "PK",
+   "bars": 2126,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NBIS": {
+   "market": "US",
+   "bars": 500,
+   "oldest": "2024-10-21",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NBP": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NCL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NCPL": {
+   "market": "PK",
+   "bars": 2177,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "near-near-protocol": {
+   "market": "Crypto",
+   "bars": 2197,
+   "oldest": "2020-10-14",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NEE": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NEM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NESTLE": {
+   "market": "PK",
+   "bars": 1739,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NET": {
+   "market": "US",
+   "bars": 1784,
+   "oldest": "2019-09-13",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NETSOL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NFLX": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NG=F": {
+   "market": "Commodity",
+   "bars": 1963,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NICL": {
+   "market": "PK",
+   "bars": 1794,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NKE": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NML": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NOC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "feature-gap",
+   "horizons": {
+    "1": "feature-gap",
+    "5": "feature-gap",
+    "20": "feature-gap",
+    "60": "feature-gap"
+   },
+   "imputedCount": 9,
+   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+  },
+  "NOK": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NOW": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NPL": {
+   "market": "PK",
+   "bars": 2151,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NRL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NRSL": {
+   "market": "PK",
+   "bars": 2166,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NSC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "feature-gap",
+   "horizons": {
+    "1": "feature-gap",
+    "5": "feature-gap",
+    "20": "feature-gap",
+    "60": "feature-gap"
+   },
+   "imputedCount": 9,
+   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+  },
+  "NU": {
+   "market": "US",
+   "bars": 1219,
+   "oldest": "2021-12-09",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NUE": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NVDA": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NVO": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NXPI": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "NZDUSD": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "O": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "OBOY": {
+   "market": "PK",
+   "bars": 1180,
+   "oldest": "2022-01-12",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "OCTOPUS": {
+   "market": "PK",
+   "bars": 1249,
+   "oldest": "2021-10-05",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "OGDC": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "OKE": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "OLPL": {
+   "market": "PK",
+   "bars": 2137,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ON": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ondo-ondo": {
+   "market": "Crypto",
+   "bars": 1002,
+   "oldest": "2024-01-22",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ONDS": {
+   "market": "US",
+   "bars": 1474,
+   "oldest": "2020-12-04",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "op-optimism": {
+   "market": "Crypto",
+   "bars": 1602,
+   "oldest": "2022-06-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ORCL": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "OTSU": {
+   "market": "PK",
+   "bars": 1517,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "OXY": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PA=F": {
+   "market": "Commodity",
+   "bars": 1961,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PAAS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PAKD": {
+   "market": "PK",
+   "bars": 1826,
+   "oldest": "2018-01-03",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PAKOXY": {
+   "market": "PK",
+   "bars": 2016,
+   "oldest": "2018-03-19",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PALL": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PANW": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PASL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PATH": {
+   "market": "US",
+   "bars": 1381,
+   "oldest": "2021-04-21",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PBR": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PCAR": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PCG": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PECO": {
+   "market": "PK",
+   "bars": 1219,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "pendle-pendle": {
+   "market": "Crypto",
+   "bars": 1205,
+   "oldest": "2023-07-03",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PENG": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "pengu-pudgy-penguins": {
+   "market": "Crypto",
+   "bars": 672,
+   "oldest": "2024-12-17",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PEP": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "pepe-pepe": {
+   "market": "Crypto",
+   "bars": 1264,
+   "oldest": "2023-05-05",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PFE": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PG": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PGR": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PH": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PIAHCLA": {
+   "market": "PK",
+   "bars": 595,
+   "oldest": "2024-05-27",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PIOC": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PKGP": {
+   "market": "PK",
+   "bars": 2090,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PL=F": {
+   "market": "Commodity",
+   "bars": 1962,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PLD": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PLTR": {
+   "market": "US",
+   "bars": 1520,
+   "oldest": "2020-09-30",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PNC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "POL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "pol-polygon-ecosystem-token": {
+   "market": "Crypto",
+   "bars": 776,
+   "oldest": "2024-09-04",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "POWER": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PPG": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PPL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PPLT": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PREMA": {
+   "market": "PK",
+   "bars": 2032,
+   "oldest": "2018-07-30",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PRET": {
+   "market": "PK",
+   "bars": 1340,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PRL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PRU": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PSO": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PSX": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PTC": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "pump-pumpfun": {
+   "market": "Crypto",
+   "bars": 462,
+   "oldest": "2025-07-15",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "PYPL": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "pyth-pyth-network": {
+   "market": "Crypto",
+   "bars": 991,
+   "oldest": "2024-02-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "QCOM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "qnt-quant": {
+   "market": "Crypto",
+   "bars": 1944,
+   "oldest": "2021-06-24",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "QTECH": {
+   "market": "PK",
+   "bars": 199,
+   "oldest": "2025-12-30",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "QUICE": {
+   "market": "PK",
+   "bars": 2171,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "RACE": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ray-raydium": {
+   "market": "Crypto",
+   "bars": 1897,
+   "oldest": "2021-08-10",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "RBLX": {
+   "market": "US",
+   "bars": 1410,
+   "oldest": "2021-03-10",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "REGN": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "RGEN": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "RGLD": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "RIO": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "RIVN": {
+   "market": "US",
+   "bars": 1239,
+   "oldest": "2021-11-10",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "RKT": {
+   "market": "US",
+   "bars": 1558,
+   "oldest": "2020-08-06",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "rndr-render-token": {
+   "market": "Crypto",
+   "bars": 978,
+   "oldest": "2024-02-15",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ROK": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ROST": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "RS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "RSG": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "RTX": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "feature-gap",
+   "horizons": {
+    "1": "feature-gap",
+    "5": "feature-gap",
+    "20": "feature-gap",
+    "60": "feature-gap"
+   },
+   "imputedCount": 9,
+   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+  },
+  "s-sonic": {
+   "market": "Crypto",
+   "bars": 642,
+   "oldest": "2025-01-16",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SAIF": {
+   "market": "PK",
+   "bars": 1899,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SAP": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SARC": {
+   "market": "PK",
+   "bars": 1380,
+   "oldest": "2018-01-03",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SAZEW": {
+   "market": "PK",
+   "bars": 2136,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SBL": {
+   "market": "PK",
+   "bars": 1618,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SBUX": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SCBPL": {
+   "market": "PK",
+   "bars": 1990,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SCCO": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SCHW": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SEARL": {
+   "market": "PK",
+   "bars": 2175,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "sei-sei": {
+   "market": "Crypto",
+   "bars": 1162,
+   "oldest": "2023-08-15",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SELECT": {
+   "market": "PK",
+   "bars": 69,
+   "oldest": "2026-07-13",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SERT": {
+   "market": "PK",
+   "bars": 1502,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SGPL": {
+   "market": "PK",
+   "bars": 1197,
+   "oldest": "2021-06-18",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SHDT": {
+   "market": "PK",
+   "bars": 1523,
+   "oldest": "2018-02-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SHEL": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SHEZ": {
+   "market": "PK",
+   "bars": 1794,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "shib-shiba-inu": {
+   "market": "Crypto",
+   "bars": 1989,
+   "oldest": "2021-05-10",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SHOP": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SHW": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SI=F": {
+   "market": "Commodity",
+   "bars": 1962,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SITC": {
+   "market": "PK",
+   "bars": 1871,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SIVR": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "sky-sky": {
+   "market": "Crypto",
+   "bars": 467,
+   "oldest": "2025-07-10",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SLB": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SLV": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SMCI": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SMR": {
+   "market": "US",
+   "bars": 1164,
+   "oldest": "2022-03-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SNAP": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SNBL": {
+   "market": "PK",
+   "bars": 2078,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SNDK": {
+   "market": "US",
+   "bars": 422,
+   "oldest": "2025-02-13",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SNGP": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SNOW": {
+   "market": "US",
+   "bars": 1530,
+   "oldest": "2020-09-16",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SNPS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SO": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SOFI": {
+   "market": "US",
+   "bars": 1455,
+   "oldest": "2021-01-04",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "sol-solana": {
+   "market": "Crypto",
+   "bars": 2261,
+   "oldest": "2020-08-11",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SOYASUP": {
+   "market": "PK",
+   "bars": 25,
+   "oldest": "2026-09-15",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "thin-history",
+   "horizons": {
+    "1": "thin-history",
+    "5": "thin-history",
+    "20": "thin-history",
+    "60": "thin-history"
+   },
+   "why": "25 stored sessions; a feature vector needs 50 because the longest lookback is sma50"
+  },
+  "SPAC1": {
+   "market": "PK",
+   "bars": 109,
+   "oldest": "2026-05-11",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SPCX": {
+   "market": "US",
+   "bars": 89,
+   "oldest": "2026-06-12",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SPG": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SPGI": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SPOT": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SPSL": {
+   "market": "PK",
+   "bars": 101,
+   "oldest": "2026-05-21",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SPWL": {
+   "market": "PK",
+   "bars": 2151,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "spx-spx6900": {
+   "market": "Crypto",
+   "bars": 406,
+   "oldest": "2025-09-09",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SRE": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SSGC": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "STL": {
+   "market": "PK",
+   "bars": 427,
+   "oldest": "2025-01-16",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "STLA": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "STLD": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "strk-starknet": {
+   "market": "Crypto",
+   "bars": 972,
+   "oldest": "2024-02-21",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "stx-stacks": {
+   "market": "Crypto",
+   "bars": 2552,
+   "oldest": "2019-10-25",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "STZ": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "sui-sui": {
+   "market": "Crypto",
+   "bars": 1266,
+   "oldest": "2023-05-03",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SURC": {
+   "market": "PK",
+   "bars": 1166,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SWKS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SYK": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SYM": {
+   "market": "PK",
+   "bars": 776,
+   "oldest": "2023-09-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SYS": {
+   "market": "PK",
+   "bars": 2170,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SYY": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "SZTM": {
+   "market": "PK",
+   "bars": 485,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "T": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "tao-bittensor": {
+   "market": "Crypto",
+   "bars": 922,
+   "oldest": "2024-04-11",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TATM": {
+   "market": "PK",
+   "bars": 1640,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TEAM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TELE": {
+   "market": "PK",
+   "bars": 2175,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TER": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TFC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TGT": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "THCCL": {
+   "market": "PK",
+   "bars": 2163,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "tia-celestia": {
+   "market": "Crypto",
+   "bars": 1084,
+   "oldest": "2023-11-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TISL": {
+   "market": "PK",
+   "bars": 40,
+   "oldest": "2026-08-24",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "thin-history",
+   "horizons": {
+    "1": "thin-history",
+    "5": "thin-history",
+    "20": "thin-history",
+    "60": "thin-history"
+   },
+   "why": "40 stored sessions; a feature vector needs 50 because the longest lookback is sma50"
+  },
+  "TJX": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TMO": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TMUS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TOMCL": {
+   "market": "PK",
+   "bars": 1538,
+   "oldest": "2020-08-03",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TOWL": {
+   "market": "PK",
+   "bars": 1683,
+   "oldest": "2018-01-03",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TPL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TPLT": {
+   "market": "PK",
+   "bars": 1491,
+   "oldest": "2020-08-10",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TREET": {
+   "market": "PK",
+   "bars": 2175,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TRG": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TRGP": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "trump-official-trump": {
+   "market": "Crypto",
+   "bars": 637,
+   "oldest": "2025-01-21",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TRV": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "trx-tron": {
+   "market": "Crypto",
+   "bars": 2849,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TSBL": {
+   "market": "PK",
+   "bars": 1070,
+   "oldest": "2018-01-03",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TSLA": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TSM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TSPL": {
+   "market": "PK",
+   "bars": 2103,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TTWO": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "TXN": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "UBER": {
+   "market": "US",
+   "bars": 1871,
+   "oldest": "2019-05-10",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "UBL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "UNH": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "uni-uniswap": {
+   "market": "Crypto",
+   "bars": 2224,
+   "oldest": "2020-09-17",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "UNITY": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "UNP": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "feature-gap",
+   "horizons": {
+    "1": "feature-gap",
+    "5": "feature-gap",
+    "20": "feature-gap",
+    "60": "feature-gap"
+   },
+   "imputedCount": 9,
+   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+  },
+  "UPFL": {
+   "market": "PK",
+   "bars": 1224,
+   "oldest": "2018-01-04",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "UPS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "feature-gap",
+   "horizons": {
+    "1": "feature-gap",
+    "5": "feature-gap",
+    "20": "feature-gap",
+    "60": "feature-gap"
+   },
+   "imputedCount": 9,
+   "why": "the 1960 stored sessions are enough, but the recorder refuses this asset: every feature the model saw on more than 90% of training rows must be observed: peerMedianR20, relStrength"
+  },
+  "USB": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDBDT": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDBRL": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDCAD": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDCHF": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDCNY": {
+   "market": "FX",
+   "bars": 2028,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "usdg-global-dollar": {
+   "market": "Crypto",
+   "bars": 715,
+   "oldest": "2024-11-04",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDIDR": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDINR": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDJPY": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDKRW": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDMXN": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDMYR": {
+   "market": "FX",
+   "bars": 2028,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDNOK": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDPHP": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDPKR": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDPLN": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDSEK": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDSGD": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDTHB": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDTRY": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "USDZAR": {
+   "market": "FX",
+   "bars": 2029,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "V": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "VALE": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "VEEV": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "vet-vechain": {
+   "market": "Crypto",
+   "bars": 2849,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "virtual-virtual-protocol": {
+   "market": "Crypto",
+   "bars": 557,
+   "oldest": "2025-04-11",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "VLO": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "VRTX": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "vvv-venice-token": {
+   "market": "Crypto",
+   "bars": 630,
+   "oldest": "2025-01-28",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "VZ": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "WAFI": {
+   "market": "PK",
+   "bars": 405,
+   "oldest": "2025-03-03",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "WAHDAT": {
+   "market": "PK",
+   "bars": 110,
+   "oldest": "2026-05-08",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "wbt-whitebit": {
+   "market": "Crypto",
+   "bars": 229,
+   "oldest": "2026-03-05",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "WDAY": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "WDC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "WFC": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "wld-worldcoin": {
+   "market": "Crypto",
+   "bars": 1184,
+   "oldest": "2023-07-24",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "wlfi-official-world-liberty-financial": {
+   "market": "Crypto",
+   "bars": 414,
+   "oldest": "2025-09-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "WM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "WMB": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "WMT": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "WPM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "WTL": {
+   "market": "PK",
+   "bars": 2178,
+   "oldest": "2018-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "XEL": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "xlm-stellar": {
+   "market": "Crypto",
+   "bars": 2849,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "xmr-monero": {
+   "market": "Crypto",
+   "bars": 727,
+   "oldest": "2024-10-23",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "XOM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "XP": {
+   "market": "US",
+   "bars": 1722,
+   "oldest": "2019-12-11",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "xrp-xrp": {
+   "market": "Crypto",
+   "bars": 2849,
+   "oldest": "2019-01-01",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "xtz-tezos": {
+   "market": "Crypto",
+   "bars": 2632,
+   "oldest": "2019-08-06",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "YUM": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ZAHID": {
+   "market": "PK",
+   "bars": 1310,
+   "oldest": "2018-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ZAL": {
+   "market": "PK",
+   "bars": 406,
+   "oldest": "2025-02-28",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "zec-zcash": {
+   "market": "Crypto",
+   "bars": 2770,
+   "oldest": "2019-03-21",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "zro-layerzero": {
+   "market": "Crypto",
+   "bars": 852,
+   "oldest": "2024-06-20",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ZS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ZTS": {
+   "market": "US",
+   "bars": 1960,
+   "oldest": "2019-01-02",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  },
+  "ZUMA": {
+   "market": "PK",
+   "bars": 245,
+   "oldest": "2025-10-24",
+   "newest": "2026-10-19",
+   "sessionsBehind": 0,
+   "status": "ready",
+   "horizons": {
+    "1": "ready",
+    "5": "ready",
+    "20": "ready",
+    "60": "ready"
+   }
+  }
+ },
+ "recorderReport": "C:\\Users\\NEW TECH\\dry.json"
+}

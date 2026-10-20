@@ -11,6 +11,9 @@ import {
 } from "@/lib/signalValidation";
 import { bandReadingFor, type BandVerdict } from "@/lib/bandReadings";
 import { asTimesIn, bandDirectionIsServable } from "@/lib/bandReading";
+import {
+  coverageReadyShare, whyNoReading, COVERAGE_GENERATED_AT,
+} from "@/lib/coverageRegistry";
 
 /// The brain's half of an asset page: pick a trading style, get a direction or a reason there
 /// isn't one.
@@ -146,15 +149,7 @@ export async function BrainDecision({
               ))}
           </>
         ) : !prediction ? (
-          <Card>
-            <div className="text-2xl font-semibold">Nothing recorded yet</div>
-            <p className="text-muted-foreground mt-2 text-sm">
-              This market and horizon carry a validated {current.verdict.side} signal, but no
-              prediction has been recorded for {symbol} at {current.sessions} sessions. The site
-              reads recorded predictions; it does not generate one on request, so what is shown is
-              the same row the scorer will later grade.
-            </p>
-          </Card>
+          <PendingCard symbol={symbol} sessions={current.sessions} side={current.verdict.side} />
         ) : !predictionIsCovered(current.verdict.lane, prediction.modelVersion) ? (
           // The recorded prediction came from a different artifact than the one the evidence was
           // gathered on. It is kept and will be graded; it is not shown as a validated call, and
@@ -384,5 +379,103 @@ function BandCard({
         )}
       </Note>
     </>
+  );
+}
+
+
+/// Why there is no recorded reading, specifically — in place of "Nothing recorded yet".
+///
+/// That sentence was true and useless: it covered an asset with 25 sessions of history, an asset
+/// whose newest bar is three weeks old, and an asset the recorder has simply not reached, without
+/// distinguishing them. Only the third is a wait; the first two are gaps, and a reader who is not
+/// told which is left to guess whether the site is broken.
+///
+/// The data half of the answer is precomputed per asset by
+/// `tools/foundation/coverage_registry.py`, so this is a lookup rather than four queries.
+function PendingCard({
+  symbol,
+  sessions,
+  side,
+}: {
+  symbol: string;
+  sessions: number;
+  side: string;
+}) {
+  const reason = whyNoReading(symbol, sessions);
+  const { ready, total } = coverageReadyShare();
+  const asOf = COVERAGE_GENERATED_AT.slice(0, 10);
+
+  if (reason.kind === "data") {
+    // A real gap, named with its number, because "insufficient data" on its own is the same shrug
+    // in different words. The heading splits by kind: a feature gap is not a short history, and
+    // telling a reader their 1,960 sessions are "not enough history" would simply be false.
+    const c = reason.coverage;
+    const isFeatureGap = reason.status === "feature-gap";
+    return (
+      <Card>
+        <div className="text-2xl font-semibold">
+          {isFeatureGap ? "Missing an input the model needs" : "Not enough history yet"}
+        </div>
+        <p className="text-muted-foreground mt-2 text-sm">
+          {isFeatureGap ? (
+            <>
+              {symbol} has {c.bars.toLocaleString()} stored sessions, which is enough history —
+              but a reading also needs every input the model relied on while training, and{" "}
+              {c.imputedCount ?? "some"} of its {" "}
+              inputs are not observed here. Rather than filling them with a training average and
+              calling the result a reading, the recorder refuses the row.
+            </>
+          ) : (
+            <>
+              No reading can be computed for {symbol}: {reason.why}.
+              {c.newest ? <> The newest stored session is {c.newest}.</> : null}
+            </>
+          )}{" "}
+          This is a gap in the stored data, not a judgement about the asset — once it is filled the
+          reading follows automatically.
+        </p>
+        <details className="border-border mt-3 rounded-lg border px-3 py-2">
+          <summary className="cursor-pointer text-xs font-medium">What exactly is missing</summary>
+          <p className="text-muted-foreground mt-2 text-xs">{reason.why}</p>
+        </details>
+        <p className="text-muted-foreground mt-2 text-xs">
+          {ready} of {total} assets can be read today; this is one of the {total - ready} that
+          cannot. Coverage measured {asOf}.
+        </p>
+      </Card>
+    );
+  }
+
+  if (reason.kind === "unknown") {
+    return (
+      <Card>
+        <div className="text-2xl font-semibold">Coverage not measured</div>
+        <p className="text-muted-foreground mt-2 text-sm">
+          {symbol} is not in the coverage table computed on {asOf}, so whether its history supports
+          a reading has not been established. That is a gap in the measurement rather than a
+          statement about the asset, and it is shown rather than guessed at.
+        </p>
+      </Card>
+    );
+  }
+
+  // Data-ready and unrecorded: the common case, and the one the old wording obscured most. With
+  // 618 of 620 assets data-ready, nearly every empty page on the site is this.
+  const c = reason.coverage;
+  return (
+    <Card>
+      <div className="text-2xl font-semibold">Reading pending</div>
+      <p className="text-muted-foreground mt-2 text-sm">
+        {symbol} has the history a reading needs — {c.bars.toLocaleString()} stored sessions
+        through {c.newest} — and this market and horizon carry a validated {side} signal. No
+        prediction row has been written for it yet. The site reads recorded predictions and does
+        not generate one on request, so what appears here will be the same row the scorer later
+        grades.
+      </p>
+      <p className="text-muted-foreground mt-2 text-xs">
+        {ready} of {total} assets are data-ready as of {asOf}, so an empty page here is a recording
+        gap rather than a data gap.
+      </p>
+    </Card>
   );
 }

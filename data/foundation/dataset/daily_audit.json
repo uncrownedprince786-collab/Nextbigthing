@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-20T14:24:36+00:00",
+ "generatedAt": "2026-10-20T15:11:51+00:00",
  "version": "daily-audit-v1",
  "staleRulesReadFrom": "lib/health.ts + lib/decision.ts",
  "staleRules": {
@@ -8,7 +8,7 @@
   "QUOTES_STALE_AFTER_MINUTES": 60.0
  },
  "summary": {
-  "ok": 36,
+  "ok": 37,
   "warn": 5,
   "fail": 0,
   "unknown": 0
@@ -279,7 +279,7 @@
   {
    "check": "newsFreshness",
    "status": "ok",
-   "detail": "newest headline 2.6h old (lib/health.ts calls the lane stale after 6.0h)",
+   "detail": "newest headline 3.4h old (lib/health.ts calls the lane stale after 6.0h)",
    "extra": null
   },
   {
@@ -291,7 +291,7 @@
   {
    "check": "jobRuns36h",
    "status": "ok",
-   "detail": "78 slice(s) in 36h, every slice ok",
+   "detail": "82 slice(s) in 36h, every slice ok",
    "extra": null
   },
   {
@@ -320,6 +320,22 @@
    }
   },
   {
+   "check": "coverageRegistry",
+   "status": "ok",
+   "detail": "620 assets, 14 not readable (feature-gap 12, thin-history 2); built 0d ago",
+   "extra": {
+    "ageDays": 0,
+    "assets": 620,
+    "byStatus": {
+     "ready": 606,
+     "feature-gap": 12,
+     "thin-history": 2
+    },
+    "driftVsLiveAssets": 0,
+    "recorderReportMerged": true
+   }
+  },
+  {
    "check": "noApprovedShadowRecords",
    "status": "ok",
    "detail": "0 shadow record(s) marked approved",
@@ -344,19 +360,19 @@
   {
    "check": "databaseSize",
    "status": "warn",
-   "detail": "492.8 MB of a 500 MB free tier (98.6%), the billed footprint",
+   "detail": "492.9 MB of a 500 MB free tier (98.6%), the billed footprint",
    "extra": {
-    "mb": 492.8
+    "mb": 492.9
    }
   },
   {
    "check": "databaseHeadroom",
    "status": "ok",
-   "detail": "81.5 MB writable (418.5 MB live, 74.4 MB reusable); writers refuse below 8 MB",
+   "detail": "81.2 MB writable (418.8 MB live, 74.1 MB reusable); writers refuse below 8 MB",
    "extra": {
-    "writableMB": 81.5,
-    "liveMB": 418.5,
-    "reusableMB": 74.4,
+    "writableMB": 81.2,
+    "liveMB": 418.8,
+    "reusableMB": 74.1,
     "floorMB": 8.0
    }
   }

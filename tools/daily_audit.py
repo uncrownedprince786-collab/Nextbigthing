@@ -343,6 +343,37 @@ def db_checks(conn, const: dict) -> list[dict]:
         out.append(check("modelIdentity", UNKNOWN,
                          f"could not be checked: {type(e).__name__}: {str(e)[:120]}"))
 
+    # The coverage registry explains every blank tile on the site, so a stale one explains them
+    # wrongly. It is a committed artifact read at build time, which means it goes stale silently:
+    # an asset that became readable, or stopped being readable, keeps its old wording until the
+    # registry is rebuilt. WARN rather than FAIL -- an out-of-date explanation is misleading, not
+    # a false direction -- and the age is stated so the drift is a number rather than a feeling.
+    try:
+        reg_path = ROOT / "data" / "foundation" / "dataset" / "coverage_registry.json"
+        reg = json.loads(reg_path.read_text(encoding="utf-8"))
+        built = datetime.fromisoformat(reg["generatedAt"])
+        age_days = (datetime.now(timezone.utc) - built).days
+        counts = reg.get("assetsByStatus") or {}
+        unreadable = sum(v for k, v in counts.items() if k != "ready")
+        # Against the live store, because a registry that never saw the recorder's verdicts calls
+        # a refused asset ready -- which is the defect this check exists for.
+        cur.execute('SELECT count(DISTINCT symbol) n FROM "Asset"')
+        live_assets = (cur.fetchone() or {}).get("n") or 0
+        drift = abs(live_assets - len(reg.get("assets") or {}))
+        stale = age_days > 7
+        out.append(check("coverageRegistry",
+                         WARN if (stale or drift) else OK,
+                         f"{len(reg.get('assets') or {})} assets, {unreadable} not readable "
+                         f"({', '.join(f'{k} {v}' for k, v in sorted(counts.items()) if k != 'ready') or 'none'}); "
+                         f"built {age_days}d ago"
+                         + (f"; {drift} asset(s) added or removed since" if drift else ""),
+                         {"ageDays": age_days, "assets": len(reg.get("assets") or {}),
+                          "byStatus": counts, "driftVsLiveAssets": drift,
+                          "recorderReportMerged": bool(reg.get("recorderReport"))}))
+    except Exception as e:                                     # noqa: BLE001
+        out.append(check("coverageRegistry", UNKNOWN,
+                         f"could not be read: {type(e).__name__}: {str(e)[:120]}"))
+
     cur.execute("""SELECT count(*) n FROM "ShadowPrediction" WHERE approved IS TRUE""")
     approved = cur.fetchone()["n"]
     out.append(check("noApprovedShadowRecords", OK if approved == 0 else FAIL,
