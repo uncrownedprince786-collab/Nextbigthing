@@ -83,16 +83,20 @@ test("every market a reader can browse has exactly one class claiming it", () =>
   }
 });
 
-test("the class is reachable: a slug, a route and a place in the nav", () => {
+test("the class is reachable: a slug, a route and a link a reader can follow", () => {
   // Three separate things had to be added for the page to exist and be findable, and a reader
   // cannot get to it if any one of them is missing. The route is the one that fails silently --
-  // a nav entry pointing at a path with no page is a 404 the build does not complain about.
+  // a link pointing at a path with no page is a 404 the build does not complain about.
   assert.match(classes, /slug: "commodities"/);
   assert.ok(
     existsSync(new URL("../app/commodities/page.tsx", import.meta.url)),
-    "the nav points at /commodities but no route renders it",
+    "something links to /commodities but no route renders it",
   );
-  assert.match(layout, /href: "\/commodities"/);
+  // The link moved out of the nav and onto the overview's market tiles on 2026-10-20: the five
+  // markets are the journey's second step, so they are chosen there rather than repeated in a
+  // ten-entry menu. The guarantee is unchanged -- a reader can still reach the page.
+  const home = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(home, /href: "\/commodities"/);
 });
 
 test("the stocks page no longer promises commodities it does not hold", () => {

@@ -22,15 +22,14 @@ export const metadata: Metadata = {
 // `/industry/psx-banks` under "Pakistan" -- so a reader who wanted "all the US names" landed on
 // nine of them and had no route to the rest. The class pages are the complete list, which is what
 // those two words were promising.
+/// The five markets are the journey's second step and the overview's own tiles lead to them, so
+/// they are not repeated here. What stays is the entry point and the supporting views a reader
+/// may want at any point. Ten entries is a menu; this is navigation.
 const NAV = [
   { href: "/", label: "Overview" },
   { href: "/markets", label: "Markets" },
-  { href: "/stocks", label: "Stocks" },
-  { href: "/psx", label: "PSX" },
-  { href: "/crypto", label: "Crypto" },
-  { href: "/forex", label: "Forex" },
-  { href: "/commodities", label: "Commodities" },
-  { href: "/predictions", label: "Predictions" },
+  { href: "/readings", label: "Readings" },
+  { href: "/predictions", label: "Track record" },
   { href: "/logbook", label: "Logbook" },
   { href: "/status", label: "Status" },
 ];

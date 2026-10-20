@@ -28,6 +28,7 @@ import {
   weakest,
 } from "@/components/ui";
 import { DecisionPanel } from "@/components/decision";
+import { BrainDecision } from "@/components/brainDecision";
 import { pickTarget, targetForCall } from "@/lib/target";
 import { qualityGate } from "@/lib/quality";
 import { rankHeadlines } from "@/lib/newsRank";
@@ -118,7 +119,16 @@ function Detail({
   );
 }
 
-export default async function AssetPage({ params }: { params: Promise<{ symbol: string }> }) {
+export default async function AssetPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ symbol: string }>;
+  // The trading style lives in the URL so the whole page stays a server component and every
+  // state a reader can reach is a link they can share.
+  searchParams: Promise<{ style?: string }>;
+}) {
+  const { style: brainStyle } = await searchParams;
   const { symbol } = await params;
   const asset = await getAsset(decodeURIComponent(symbol));
   if (!asset) notFound();
@@ -299,16 +309,13 @@ export default async function AssetPage({ params }: { params: Promise<{ symbol: 
         now lands on the list of groups rather than on a restatement of the panel above it.
         `scroll-mt-4` keeps the heading off the very top edge when it does.
       */}
-      {/* The next step of the journey, between the decision panel above and the measurements
-          below. A link rather than an inline panel because the style choice decides which horizon
-          is graded, and showing every horizon at once would present four different questions as
-          one answer. */}
-      <Note>
-        <Link href={`/asset/${encodeURIComponent(asset.symbol)}/decision`}
-              className="font-medium underline underline-offset-2">
-          Choose a trading style and forecast duration →
-        </Link>
-      </Note>
+      {/* The brain, on the same page as the instrument and directly under the rule table it must
+          not be confused with. The journey ends here rather than on a separate screen: a reader
+          who has chosen an asset should not have to navigate away to find out what the model
+          says about it. */}
+      <div className="mt-8">
+        <BrainDecision symbol={asset.symbol} market={market} style={brainStyle} />
+      </div>
 
       <div id="detail" className="scroll-mt-4">
         <Section

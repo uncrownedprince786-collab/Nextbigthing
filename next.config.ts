@@ -17,7 +17,12 @@ const nextConfig: NextConfig = {
   // not swallowed by the `/preview/asset/:symbol` rule beneath it.
   async redirects() {
     return [
-      { source: "/preview/asset/:symbol/decision", destination: "/asset/:symbol/decision", permanent: true },
+      // The decision moved onto the asset page itself on 2026-10-20: a reader who has chosen an
+      // instrument should not have to navigate away to see what the model says about it. Both the
+      // old preview path and the short-lived /decision route land on the asset page's brain
+      // section.
+      { source: "/preview/asset/:symbol/decision", destination: "/asset/:symbol", permanent: true },
+      { source: "/asset/:symbol/decision", destination: "/asset/:symbol", permanent: true },
       { source: "/preview/asset/:symbol/research", destination: "/asset/:symbol", permanent: true },
       { source: "/preview/asset/:symbol", destination: "/asset/:symbol", permanent: true },
       { source: "/preview/predictions", destination: "/predictions", permanent: true },

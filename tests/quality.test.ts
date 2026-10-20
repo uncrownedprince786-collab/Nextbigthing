@@ -44,7 +44,10 @@ test("a hand-built row with no gate is published, and every list reads the gate"
   assert.equal(isPublished({}), true);
   assert.equal(isPublished({ gate: { published: false, reasons: ["x"] } }), false);
   const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
-  for (const f of ["components/classIndex.tsx", "app/page.tsx"]) {
+  // `app/readings/page.tsx`, not `app/page.tsx`: the rule-table candidate lists moved off the
+  // root on 2026-10-20 so the overview could be the market choice rather than several hundred
+  // directional calls. The lists themselves are unchanged and so is the gate they must read.
+  for (const f of ["components/classIndex.tsx", "app/readings/page.tsx"]) {
     const src = read(f);
     assert.match(src, /action === "LONG" && isPublished\(s\)/, f);
     assert.match(src, /action === "SHORT" && isPublished\(s\)/, f);
