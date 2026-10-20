@@ -28,13 +28,24 @@ def _nows(text: str) -> str:
 
 
 class _Cur:
-    def __init__(self, mb, tuple_rows=False, rowcount=1):
+    """Answers the two reads the budget makes: the footprint, and the reusable free space.
+
+    `free_mb` defaults to 0, which is the shape every test here was written against -- a store
+    whose footprint is entirely live data. The headroom split (`shadow_budget.reusable_mb`) only
+    changes the answer when there is free space to find, so these keep testing the floor itself
+    rather than the measurement in front of it.
+    """
+
+    def __init__(self, mb, tuple_rows=False, rowcount=1, free_mb=0.0):
         self.mb, self.tuple_rows, self._rowcount = mb, tuple_rows, rowcount
+        self.free_mb = free_mb
         self.calls = []
         self.closed = False
+        self._last = "size"
 
     def execute(self, sql, params=None):
         self.calls.append((sql, params))
+        self._last = "free" if "pgstattuple" in sql else "size"
         return self
 
     @property
@@ -42,7 +53,8 @@ class _Cur:
         return self._rowcount
 
     def fetchone(self):
-        return (self.mb,) if self.tuple_rows else {"mb": self.mb}
+        value = self.free_mb if self._last == "free" else self.mb
+        return (value,) if self.tuple_rows else {"mb": value}
 
     def close(self):
         self.closed = True
@@ -112,8 +124,10 @@ class ThePredictionWriterRespectsTheFloor(unittest.TestCase):
         res = sp.write_rows([{"asOf": "2026-10-16"}])
         self.assertEqual(res["status"], "refused")
         self.assertEqual(res["written"], 0)
-        # Only the size probe ran; no INSERT statement was issued against the full store.
-        self.assertEqual(len(conn._cur.calls), 1)
+        # No INSERT was issued against the full store. Asserted on the statements rather than
+        # on how many ran: the budget now reads twice (footprint, then reusable free space), and
+        # what this test is about is that neither read was followed by a write.
+        self.assertFalse([s for s, _ in conn._cur.calls if "INSERT" in s.upper()])
 
     def test_a_store_with_room_writes_normally(self):
         conn = _Conn(100.0)
@@ -139,7 +153,7 @@ class TheOutcomeWriterRespectsTheFloor(unittest.TestCase):
         self.assertEqual(res["status"], "refused")
         self.assertEqual(res["eligible"], 1)
         # The refusal happens before any outcome INSERT.
-        self.assertEqual(len(conn._cur.calls), 1)
+        self.assertFalse([s for s, _ in conn._cur.calls if "INSERT" in s.upper()])
 
     def test_a_store_with_room_writes_the_outcome(self):
         conn = _Conn(100.0)
@@ -189,3 +203,71 @@ class TheScheduleStaysBounded(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WritableHeadroomTest(unittest.TestCase):
+    """Footprint and room-to-write are different questions, and conflating them cost real writes.
+
+    Measured on the primary 2026-10-19: `pg_database_size` read 486.0 MB of a 500 MB plan, so the
+    8 MB floor refused every shadow write. The same database held 64.7 MB of reusable free space,
+    leaving 79.2 MB a new row could land in without the footprint growing at all.
+    """
+
+    class _Cur:
+        def __init__(self, size, free, fail_free=False):
+            self.size, self.free, self.fail_free = size, free, fail_free
+            self.result = None
+        def execute(self, sql, params=None):
+            if "pg_database_size" in sql:
+                self.result = {"mb": self.size}
+            else:
+                if self.fail_free:
+                    raise RuntimeError("pgstattuple is not available")
+                self.result = {"mb": self.free}
+        def fetchone(self): return self.result
+        def close(self): pass
+
+    class _Conn:
+        def __init__(self, size, free, fail_free=False):
+            self.cur = WritableHeadroomTest._Cur(size, free, fail_free)
+        def cursor(self): return self.cur
+        def rollback(self): pass
+
+    def test_the_measured_production_case_is_not_refused(self):
+        conn = self._Conn(486.0, 64.7)
+        headroom, size = sb.headroom_mb(conn)
+        self.assertAlmostEqual(size, 486.0, places=1, msg="the footprint is still reported")
+        self.assertAlmostEqual(headroom, 78.7, places=1)
+        self.assertIsNone(sb.refuse_if_full(conn, sb.MIN_HEADROOM_MB))
+
+    def test_the_old_metric_would_have_refused_the_same_database(self):
+        """What the floor did before: 500 - 486 = 14, and with dead tuples counted it was under 8."""
+        self.assertLess(500 - 486.0, 50)
+        conn = self._Conn(496.0, 0.0)
+        self.assertIsNotNone(sb.refuse_if_full(conn, sb.MIN_HEADROOM_MB))
+
+    def test_a_genuinely_full_store_is_still_refused(self):
+        """Free space is not a licence: live data filling the plan still stops the writers."""
+        conn = self._Conn(499.0, 2.0)
+        refusal = sb.refuse_if_full(conn, sb.MIN_HEADROOM_MB)
+        self.assertIsNotNone(refusal)
+        self.assertEqual(refusal["written"], 0)
+        self.assertEqual(refusal["status"], "refused")
+
+    def test_unmeasurable_free_space_falls_back_to_the_pessimistic_number(self):
+        """No pgstattuple means no measurement, and an unmeasured byte counts as used."""
+        conn = self._Conn(486.0, 64.7, fail_free=True)
+        self.assertIsNone(sb.reusable_mb(conn))
+        headroom, size = sb.headroom_mb(conn)
+        self.assertAlmostEqual(headroom, 14.0, places=1)
+        self.assertAlmostEqual(size, 486.0, places=1)
+
+    def test_free_space_can_never_make_headroom_exceed_the_plan(self):
+        conn = self._Conn(100.0, 400.0)
+        headroom, _ = sb.headroom_mb(conn)
+        self.assertLessEqual(headroom, sb.FREE_TIER_MB)
+
+    def test_the_refusal_names_both_numbers(self):
+        refusal = sb.refuse_if_full(self._Conn(499.0, 1.0), sb.MIN_HEADROOM_MB)
+        self.assertIn("writable headroom", refusal["reason"])
+        self.assertIn("footprint", refusal["reason"])

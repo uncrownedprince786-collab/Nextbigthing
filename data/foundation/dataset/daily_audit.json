@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-19T23:31:24+00:00",
+ "generatedAt": "2026-10-19T23:57:04+00:00",
  "version": "daily-audit-v1",
  "staleRulesReadFrom": "lib/health.ts + lib/decision.ts",
  "staleRules": {
@@ -8,7 +8,7 @@
   "QUOTES_STALE_AFTER_MINUTES": 60.0
  },
  "summary": {
-  "ok": 29,
+  "ok": 30,
   "warn": 5,
   "fail": 0,
   "unknown": 0
@@ -234,19 +234,19 @@
   {
    "check": "newsFreshness",
    "status": "ok",
-   "detail": "newest headline 4.5h old (lib/health.ts calls the lane stale after 6.0h)",
+   "detail": "newest headline 1.4h old (lib/health.ts calls the lane stale after 6.0h)",
    "extra": null
   },
   {
    "check": "sourceCoverage",
    "status": "warn",
-   "detail": "2 source(s) outside: Reddit product mentions(stale x0.09), Google News RSS(partial x0.05)",
+   "detail": "2 source(s) outside: Google News RSS(partial x0.13), Reddit product mentions(stale x0.10)",
    "extra": null
   },
   {
    "check": "jobRuns36h",
    "status": "warn",
-   "detail": "78 slice(s) in 36h; needs attention: cron decision:blockedx1",
+   "detail": "79 slice(s) in 36h; needs attention: cron decision:blockedx1",
    "extra": null
   },
   {
@@ -289,9 +289,20 @@
   {
    "check": "databaseSize",
    "status": "warn",
-   "detail": "484.0 MB of a 500 MB free tier (96.8%)",
+   "detail": "486.3 MB of a 500 MB free tier (97.3%), the billed footprint",
    "extra": {
-    "mb": "484.0"
+    "mb": 486.3
+   }
+  },
+  {
+   "check": "databaseHeadroom",
+   "status": "ok",
+   "detail": "78.8 MB writable (421.2 MB live, 65.1 MB reusable); writers refuse below 8 MB",
+   "extra": {
+    "writableMB": 78.8,
+    "liveMB": 421.2,
+    "reusableMB": 65.1,
+    "floorMB": 8.0
    }
   }
  ]

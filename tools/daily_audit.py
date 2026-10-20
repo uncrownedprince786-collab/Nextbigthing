@@ -42,6 +42,13 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
+
+# The writers' own budget, imported rather than restated: the monitor and the thing it monitors
+# must not be able to disagree about what "full" means. That disagreement is exactly what let the
+# shadow lane sit refused for days while the audit reported a warning and nothing else.
+sys.path.insert(0, str(ROOT / "tools" / "research"))
+import shadow_budget  # noqa: E402
+
 OK, WARN, FAIL, UNKNOWN = "ok", "warn", "fail", "unknown"
 
 # The lanes that are *not* trading. Nothing the site decides is read from the product-demand
@@ -329,10 +336,43 @@ def db_checks(conn, const: dict) -> list[dict]:
                      f"{len(applied)} applied; {len(pending)} pending"
                      + ("" if not pending else ": " + ", ".join(pending))))
 
+    # Two numbers, because the store has two different problems and only one of them is urgent.
+    #
+    # `databaseSize` is the **footprint**: every page the database has extended into, which is what
+    # the provider bills and caps. It only falls when a table is rewritten or dropped, so it is a
+    # slow-moving number and a real ceiling.
+    #
+    # `databaseHeadroom` is **room to write**: the footprint minus the free space inside the heaps,
+    # which a new row lands in without the footprint growing at all. Measured 2026-10-19, the gap
+    # between them was the whole story -- 486.0 MB of footprint (97.2%, alarming) against 420.8 MB
+    # live and **79.2 MB writable**, with PriceSnapshot alone holding 39.1 MB of reusable space.
+    # The shadow lane had been refusing every write for days against an 8 MB floor on the footprint,
+    # for want of space that was already free.
+    #
+    # Reporting one without the other is how that happened, so both are reported.
     cur.execute("SELECT pg_database_size(current_database())/1048576.0 mb")
-    mb = cur.fetchone()["mb"]
+    mb = float(cur.fetchone()["mb"])
     out.append(check("databaseSize", OK if mb < 450 else (WARN if mb < 500 else FAIL),
-                     f"{mb:,.1f} MB of a 500 MB free tier ({mb/500:.1%})", {"mb": round(mb, 1)}))
+                     f"{mb:,.1f} MB of a 500 MB free tier ({mb/500:.1%}), the billed footprint",
+                     {"mb": round(mb, 1)}))
+
+    free = shadow_budget.reusable_mb(conn)
+    if free is None:
+        out.append(check("databaseHeadroom", UNKNOWN,
+                         "reusable free space could not be measured (pgstattuple unavailable), so "
+                         "the footprint above is the only figure and it reads pessimistically"))
+    else:
+        effective = max(0.0, mb - free)
+        headroom = 500 - effective
+        # The floor the writers actually enforce, named here so the monitor and the writer cannot
+        # disagree about when the store is full.
+        floor = shadow_budget.MIN_HEADROOM_MB
+        out.append(check("databaseHeadroom",
+                         OK if headroom >= 50 else (WARN if headroom >= floor else FAIL),
+                         f"{headroom:,.1f} MB writable ({effective:,.1f} MB live, {free:,.1f} MB "
+                         f"reusable); writers refuse below {floor:.0f} MB",
+                         {"writableMB": round(headroom, 1), "liveMB": round(effective, 1),
+                          "reusableMB": round(free, 1), "floorMB": floor}))
     cur.close()
     return out
 
