@@ -1,0 +1,76 @@
+{
+ "generatedAt": "2026-10-20T09:09:40+00:00",
+ "producedBy": "tools/research/validate_lift.py",
+ "candidate": {
+  "market": "US",
+  "horizon": 5,
+  "bandScale": 2.0,
+  "family": "logistic"
+ },
+ "headline": {
+  "rows": 49679,
+  "sessions": 178,
+  "lift": 0.0628
+ },
+ "blockedBootstrap": {
+  "draws": 2000,
+  "standardError": 0.007,
+  "z": 8.98,
+  "ci95": [
+   0.0491,
+   0.0762
+  ],
+  "pOneSided": 0.0,
+  "pBonferroni": 0.0,
+  "armsSearched": 90
+ },
+ "walkForward": [
+  {
+   "trainEnd": "2021-12-31",
+   "testYear": "2022",
+   "rows": 69617,
+   "sessions": 251,
+   "lift": 0.0617,
+   "bootSE": 0.0109,
+   "z": 5.65
+  },
+  {
+   "trainEnd": "2022-12-31",
+   "testYear": "2023",
+   "rows": 69525,
+   "sessions": 250,
+   "lift": 0.0106,
+   "bootSE": 0.0041,
+   "z": 2.56
+  },
+  {
+   "trainEnd": "2023-12-31",
+   "testYear": "2024",
+   "rows": 70308,
+   "sessions": 252,
+   "lift": 0.0132,
+   "bootSE": 0.0035,
+   "z": 3.73
+  },
+  {
+   "trainEnd": "2024-12-31",
+   "testYear": "2025",
+   "rows": 69750,
+   "sessions": 250,
+   "lift": 0.0458,
+   "bootSE": 0.0058,
+   "z": 7.93
+  },
+  {
+   "trainEnd": "2025-12-31",
+   "testYear": "2026",
+   "rows": 49679,
+   "sessions": 178,
+   "lift": 0.0628,
+   "bootSE": 0.0068,
+   "z": 9.29
+  }
+ ],
+ "survives": true,
+ "note": "the naive row-independent test reported z=24.05 on the same predictions; the difference is entirely that rows are not independent observations"
+}

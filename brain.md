@@ -6912,3 +6912,44 @@ reads rows that already exist:
     **A number that only moves because the question got easier is not an improvement.** The band
     sweep is the cheapest instrument this project has for telling those apart, and it should be
     run before any accuracy figure is believed.
+
+191. **The US five-session lift is real, it is long-side only, and the naive z of 24 was worth 9.**
+    2026-10-20. Rule 190 reported US / 5 sessions / 2.0% band at +5.1 points, `z = 24.05`. That z
+    came from a test assuming 49,679 independent trials. The holdout is **279 symbols on each of
+    178 sessions**, and a 5-session forward return computed daily shares four of its five days
+    with the next row, so the rows are nothing like independent.
+    `tools/research/validate_lift.py` resamples **whole sessions** instead, which carries every
+    within-day correlation with the day.
+
+    - **It survives.** Lift **+0.0628** against the ex-ante baseline, blocked-bootstrap
+      **SE 0.0070, z = 8.98**, 95% CI **[+0.0491, +0.0762]**, Bonferroni over the 90 arms it was
+      selected from **p < 0.0001**. Walk-forward, trained from scratch each fold: **+0.0617
+      (2022), +0.0106 (2023), +0.0132 (2024), +0.0458 (2025), +0.0628 (2026)** -- **positive in
+      five of five**, including 2022, a falling year. The naive test overstated it by about 2.7x
+      and did not invent it.
+
+    - **The baseline is the part to get right, and I got it wrong first.** The first version of
+      this file scored the model against the commonest class *within each session*. That is an
+      oracle -- it knows which way the market went that day -- and against it the model "lost" by
+      4.8 points in every fold. The sign flip was entirely the comparator. The honest baseline is
+      the one a person could have run on the morning: always predict the class commonest in the
+      data up to the cutoff. **A baseline that peeks is not a harder test, it is a different
+      question.**
+
+    - **Directional precision beats the base rate in ten of ten fold/side pairs**: UP by +4.1 to
+      +8.6 points, DOWN by +2.3 to +13.0.
+
+    - **And the short side is still not usable, which precision alone does not show.** The mean
+      realised 5-session return of the rows called **DOWN** is **+1.38% (2023), +1.07% (2024),
+      +1.70% (2025)** -- the price rose after the model said it would fall, in four of five years.
+      Beating the DOWN base rate of a three-class label is not the same as the price falling.
+      Meanwhile the rows called **UP** outrun the universe in all five years: **+1.23% against
+      +0.50% (2023), +0.79% against +0.38% (2024), +1.07% against +0.57% (2025), +0.70% against
+      +0.44% (2026)**, and in 2022 **-0.04% against -0.16%**.
+
+    So: a genuine long-side selection signal worth roughly **0.3 to 0.7 points of five-session
+    return over the universe**, consistent across five years and surviving blocked resampling,
+    walk-forward and multiplicity -- and **no usable short side**. It is not 90% accuracy and it
+    is not a profitability claim: no transaction cost, spread or borrow is in any of these
+    numbers. **A model may be worth listening to on one side of the market and worth ignoring on
+    the other, and an accuracy figure cannot tell you which.**
