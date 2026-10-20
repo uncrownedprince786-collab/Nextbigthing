@@ -357,6 +357,27 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           exit 0
 
+      # The decision lane's heartbeat. `lib/health.ts` watches ChunkRun for `cron decision`, and
+      # until now the only rows under that name came from jobs/intraday.py, mislabelled -- so a
+      # throttled Yahoo fetch read as the decision lane failing. `be94d83` corrected the label and
+      # left this lane with no run record at all: measured 2026-10-20, it succeeded at 01:04 UTC
+      # and wrote DecisionLog through 2026-10-20 while health reported 3,608 minutes since it was
+      # last OK. A heartbeat that is permanently stale cannot go from fine to broken.
+      #
+      # Recorded here and not around `decide.mjs`, because that job is deliberately Node-only --
+      # no setup-python, no pip install -- and putting a psycopg import in it would break the most
+      # important lane in the system in order to report on it. This job already has Python and the
+      # dependencies, and it runs after `decide`, so DecisionLog's own dated state answers the
+      # question the check actually asks: did the lane produce rows for today.
+      - name: Record the decision lane's run
+        if: always()
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          python jobs/runlog.py --record             --job 'cron decision' --source 'decision rules'             --table DecisionLog --date-col '"periodEnd"'
+
       - name: Write the day's audit to the logbook
         continue-on-error: true
         env:

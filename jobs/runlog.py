@@ -40,10 +40,12 @@ the same answer or a retry covers something the first run already did.
 from __future__ import annotations
 
 import os
+import sys
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timezone
+from pathlib import Path
 from typing import Any, Callable, Iterable, Sequence, TypeVar
 
 from nbt import db, now, primary_choice, throttled_since
@@ -407,8 +409,88 @@ def recent(limit: int = 40) -> Sequence[dict]:
         conn.close()
 
 
+def record_lane(argv: list[str]) -> int:
+    """`python jobs/runlog.py --record --job ... --table ... --date-col ...` writes one run row.
+
+    The decision lane is why this exists, and the shape of the problem decided the shape of the
+    answer. `lane_run` measures a lane from the outside by counting its table before and after,
+    which works for a lane this module can wrap -- a Python one. The decision rows are written by
+    `tools/decide.mjs`, and its workflow job is deliberately Node-only: no `setup-python`, no
+    `pip install`. Wrapping that step would have put a psycopg import in a job that has no
+    psycopg, so the heartbeat would have broken the most important lane in the system to report
+    on it.
+
+    What the health check actually asks is narrower than before-and-after: *did the decision lane
+    produce rows for today?* `DecisionLog` is dated, so its own state answers that after the fact,
+    from any job that does have Python -- `audit-log` runs after `decide` and already has both.
+
+    Status comes from the count for `--on` (default today): rows means `ok`, none means `empty`.
+    Neither is a guess, and `empty` is a real state the dashboard should show rather than a gap.
+
+    The defect this closes, measured 2026-10-20: `cron decision` succeeded at 01:04 UTC and wrote
+    `DecisionLog` through 2026-10-20, while `lib/health.ts` reported **3,608 minutes** since the
+    lane was last OK -- reading a row from 2026-10-19 that was really `jobs/intraday.py`'s,
+    mislabelled before `be94d83` corrected it. A heartbeat that is permanently stale cannot go
+    from fine to broken, so a real failure here would have changed nothing on the dashboard.
+    """
+    import argparse
+
+    # The lanes load this in their own entry points; a recorder invoked straight from a shell has
+    # none, and without it `db()` raises and the row is silently not written -- the exact failure
+    # this exists to prevent. In CI the variables come from the workflow's `env:`.
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+    except Exception:  # noqa: BLE001 - a missing .env is normal in CI
+        pass
+
+    ap = argparse.ArgumentParser(prog="runlog --record")
+    ap.add_argument("--record", action="store_true")
+    ap.add_argument("--job", required=True,
+                    help='the lane name lib/health.ts reads, e.g. "cron decision"')
+    ap.add_argument("--source", required=True, help="what produced the rows, for the run row")
+    ap.add_argument("--table", required=True, help="the dated table the lane writes")
+    ap.add_argument("--date-col", required=True,
+                    help='the date column, quoted if mixed case, e.g. '"periodEnd"'')
+    ap.add_argument("--on", default=None, help="the date to count (default: today, UTC)")
+    a = ap.parse_args(argv)
+
+    on = a.on or datetime.now(timezone.utc).date().isoformat()
+    try:
+        conn = db()
+    except Exception as e:  # noqa: BLE001 - a diagnostic must never fail the lane
+        print(f"  [runlog] no database, not recording {a.job}: {type(e).__name__}")
+        return 0
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f'SELECT count(*) AS n FROM "{a.table}" WHERE {a.date_col} = %s', (on,))
+            rows = (cur.fetchone() or {}).get("n") or 0
+            cur.execute(f'SELECT max({a.date_col}) AS newest FROM "{a.table}"')
+            newest = (cur.fetchone() or {}).get("newest")
+    except Exception as e:  # noqa: BLE001
+        print(f"  [runlog] could not count {a.table}: {type(e).__name__}")
+        conn.close()
+        return 0
+    finally:
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+    status = "ok" if rows else "empty"
+    note = f"{rows} rows in {a.table} for {on}; newest {newest}"
+    write(job=a.job, source=a.source, chunk="1/1", rows_written=rows, asked=0,
+          newest=newest, status=status, note=note, duration_ms=0)
+    print(f"  [runlog] {a.job}: {status} -- {note}")
+    return 0
+
+
 def main() -> None:
     """`python jobs/runlog.py` prints the recent rows, so a failure is readable without a UI."""
+    if "--record" in sys.argv[1:]:
+        raise SystemExit(record_lane(sys.argv[1:]))
     for row in recent():
         print(
             f"{row['startedAt']:%Y-%m-%d %H:%M}  {row['status']:<7} {row['job']:<16}"

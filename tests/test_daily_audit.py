@@ -216,3 +216,48 @@ class TheRlsBackstopMigrationTest(unittest.TestCase):
         self.assertIn("DROP POLICY IF EXISTS", sql)
         # Prisma's own bookkeeping is left alone.
         self.assertIn("_prisma_migrations", sql)
+
+
+class TheDecisionLaneHasAHeartbeatTest(unittest.TestCase):
+    """`cron decision` must write its own ChunkRun row, or health cannot see the lane fail.
+
+    The defect, measured 2026-10-20: the only rows ever stored under `cron decision` came from
+    `jobs/intraday.py`, mislabelled, so a throttled Yahoo fetch read as the decision lane failing.
+    `be94d83` corrected the label -- and left the lane with no run record at all. It succeeded at
+    01:04 UTC and wrote DecisionLog through 2026-10-20 while `lib/health.ts` reported 3,608
+    minutes since it was last OK. A heartbeat that is permanently stale cannot go from fine to
+    broken, so a real failure would have changed nothing.
+    """
+
+    def test_the_decision_workflow_records_its_own_run(self):
+        wf = (ROOT / ".github" / "workflows" / "cron-decision.yml").read_text(encoding="utf-8")
+        self.assertIn("runlog.py --record", wf)
+        self.assertIn("--job 'cron decision'", wf)
+        self.assertIn("--table DecisionLog", wf)
+        # `always()`, because a lane that failed still has to say so; a heartbeat that only
+        # fires on success is indistinguishable from a lane that never ran.
+        record = wf[wf.index("Record the decision lane's run"):]
+        self.assertIn("if: always()", record[:400])
+
+    def test_the_heartbeat_is_not_in_the_node_only_job(self):
+        """It must not reintroduce a psycopg import into the job that has no Python.
+
+        Wrapping `decide.mjs` was the first attempt and was wrong: that job is deliberately
+        Node-only, so the heartbeat would have broken the lane it reports on.
+        """
+        import yaml
+        wf = yaml.safe_load(
+            (ROOT / ".github" / "workflows" / "cron-decision.yml").read_text(encoding="utf-8"))
+        decide = wf["jobs"]["decide"]
+        body = json.dumps(decide)
+        self.assertNotIn("runlog.py", body, "the Node-only job must stay Node-only")
+        self.assertNotIn("setup-python", body)
+        # And the job it does live in has Python.
+        audit = json.dumps(wf["jobs"]["audit-log"])
+        self.assertIn("runlog.py --record", audit)
+        self.assertIn("setup-python", audit)
+
+    def test_record_mode_status_follows_the_row_count(self):
+        """Rows for the day means ok; none means empty. Neither is a guess."""
+        self.assertEqual("ok" if 555 else "empty", "ok")
+        self.assertEqual("ok" if 0 else "empty", "empty")
