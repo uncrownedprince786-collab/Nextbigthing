@@ -1,0 +1,5084 @@
+{
+ "generatedAt": "2026-10-20T00:54:27+00:00",
+ "producedBy": "tools/research/sweep.py",
+ "trainEnd": "2025-12-31",
+ "embargoSessions": 20,
+ "status": "measurement only; no candidate is promoted here",
+ "arms": [
+  {
+   "n": 49679,
+   "accuracy": 0.4301,
+   "majorityShare": 0.4312,
+   "predictedMix": {
+    "DOWN": 341,
+    "FLAT": 216,
+    "UP": 49122
+   },
+   "recall": {
+    "DOWN": 0.0086,
+    "FLAT": 0.0052,
+    "UP": 0.9875
+   },
+   "balancedAccuracy": 0.3338,
+   "vsMajority": {
+    "accuracy": 0.4301,
+    "baseline": 0.4312,
+    "n": 49679,
+    "lift": -0.0011,
+    "standardError": 0.0022,
+    "z": -0.48,
+    "requiredAccuracy": 0.4349,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4301 vs a 0.4312 baseline on 49679 rows is -0.48 standard errors; does not clear the 0.4349 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 477,
+    "onlyOtherRight": 453,
+    "discordant": 930,
+    "z": 0.75,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 477 rows and wrong where it was right on 453; z = 0.75 against the 1.645 needed"
+   },
+   "market": "US",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 460424,
+   "seconds": 62.8,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 49679,
+     "accuracy": 0.4301,
+     "minConfidence": 0.3369,
+     "majorityShareInSlice": 0.4312
+    },
+    {
+     "coverage": 0.5,
+     "n": 24839,
+     "accuracy": 0.446,
+     "minConfidence": 0.4946,
+     "majorityShareInSlice": 0.4453
+    },
+    {
+     "coverage": 0.25,
+     "n": 12419,
+     "accuracy": 0.475,
+     "minConfidence": 0.5326,
+     "majorityShareInSlice": 0.4745
+    },
+    {
+     "coverage": 0.1,
+     "n": 4967,
+     "accuracy": 0.4937,
+     "minConfidence": 0.5683,
+     "majorityShareInSlice": 0.4933
+    },
+    {
+     "coverage": 0.05,
+     "n": 2483,
+     "accuracy": 0.5135,
+     "minConfidence": 0.5892,
+     "majorityShareInSlice": 0.5131
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 49679,
+   "accuracy": 0.431,
+   "majorityShare": 0.4312,
+   "predictedMix": {
+    "DOWN": 109,
+    "FLAT": 0,
+    "UP": 49570
+   },
+   "recall": {
+    "DOWN": 0.0023,
+    "FLAT": 0.0,
+    "UP": 0.9974
+   },
+   "balancedAccuracy": 0.3332,
+   "vsMajority": {
+    "accuracy": 0.431,
+    "baseline": 0.4312,
+    "n": 49679,
+    "lift": -0.0002,
+    "standardError": 0.0022,
+    "z": -0.09,
+    "requiredAccuracy": 0.4349,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4310 vs a 0.4312 baseline on 49679 rows is -0.09 standard errors; does not clear the 0.4349 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 585,
+    "onlyOtherRight": 518,
+    "discordant": 1103,
+    "z": 1.99,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": true,
+    "why": "the candidate was right where the other was wrong on 585 rows and wrong where it was right on 518; z = 1.99 against the 1.645 needed"
+   },
+   "market": "US",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 460424,
+   "seconds": 60.8,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 49679,
+     "accuracy": 0.431,
+     "minConfidence": 0.3825,
+     "majorityShareInSlice": 0.4312
+    },
+    {
+     "coverage": 0.5,
+     "n": 24839,
+     "accuracy": 0.4443,
+     "minConfidence": 0.4314,
+     "majorityShareInSlice": 0.4443
+    },
+    {
+     "coverage": 0.25,
+     "n": 12419,
+     "accuracy": 0.4611,
+     "minConfidence": 0.45,
+     "majorityShareInSlice": 0.4611
+    },
+    {
+     "coverage": 0.1,
+     "n": 4967,
+     "accuracy": 0.4961,
+     "minConfidence": 0.4639,
+     "majorityShareInSlice": 0.4961
+    },
+    {
+     "coverage": 0.05,
+     "n": 2483,
+     "accuracy": 0.5183,
+     "minConfidence": 0.4718,
+     "majorityShareInSlice": 0.5183
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 49679,
+   "accuracy": 0.4112,
+   "majorityShare": 0.4312,
+   "predictedMix": {
+    "DOWN": 39189,
+    "FLAT": 595,
+    "UP": 9895
+   },
+   "recall": {
+    "DOWN": 0.801,
+    "FLAT": 0.0149,
+    "UP": 0.2105
+   },
+   "balancedAccuracy": 0.3421,
+   "vsMajority": {
+    "accuracy": 0.4112,
+    "baseline": 0.4312,
+    "n": 49679,
+    "lift": -0.02,
+    "standardError": 0.0022,
+    "z": -8.99,
+    "requiredAccuracy": 0.4349,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4112 vs a 0.4312 baseline on 49679 rows is -8.99 standard errors; does not clear the 0.4349 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 15586,
+    "onlyOtherRight": 16501,
+    "discordant": 32087,
+    "z": -5.1,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 15586 rows and wrong where it was right on 16501; z = -5.10 against the 1.645 needed"
+   },
+   "market": "US",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "mlp",
+   "featureSet": "all",
+   "trainRows": 460424,
+   "seconds": 20.8,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 49679,
+     "accuracy": 0.4112,
+     "minConfidence": 0.334,
+     "majorityShareInSlice": 0.4312
+    },
+    {
+     "coverage": 0.5,
+     "n": 24839,
+     "accuracy": 0.4043,
+     "minConfidence": 0.572,
+     "majorityShareInSlice": 0.4371
+    },
+    {
+     "coverage": 0.25,
+     "n": 12419,
+     "accuracy": 0.4146,
+     "minConfidence": 0.693,
+     "majorityShareInSlice": 0.4386
+    },
+    {
+     "coverage": 0.1,
+     "n": 4967,
+     "accuracy": 0.4226,
+     "minConfidence": 0.7954,
+     "majorityShareInSlice": 0.4445
+    },
+    {
+     "coverage": 0.05,
+     "n": 2483,
+     "accuracy": 0.4285,
+     "minConfidence": 0.8463,
+     "majorityShareInSlice": 0.4523
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 38333,
+   "accuracy": 0.3729,
+   "majorityShare": 0.4699,
+   "predictedMix": {
+    "DOWN": 3072,
+    "FLAT": 250,
+    "UP": 35011
+   },
+   "recall": {
+    "DOWN": 0.0886,
+    "FLAT": 0.0205,
+    "UP": 0.9244
+   },
+   "balancedAccuracy": 0.3445,
+   "vsMajority": {
+    "accuracy": 0.3729,
+    "baseline": 0.4699,
+    "n": 38333,
+    "lift": -0.097,
+    "standardError": 0.0025,
+    "z": -38.05,
+    "requiredAccuracy": 0.4741,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.3729 vs a 0.4699 baseline on 38333 rows is -38.05 standard errors; does not clear the 0.4741 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 10513,
+    "onlyOtherRight": 13961,
+    "discordant": 24474,
+    "z": -22.03,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 10513 rows and wrong where it was right on 13961; z = -22.03 against the 1.645 needed"
+   },
+   "market": "PK",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 335684,
+   "seconds": 43.1,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 38333,
+     "accuracy": 0.3729,
+     "minConfidence": 0.3364,
+     "majorityShareInSlice": 0.4699
+    },
+    {
+     "coverage": 0.5,
+     "n": 19166,
+     "accuracy": 0.3793,
+     "minConfidence": 0.5087,
+     "majorityShareInSlice": 0.4482
+    },
+    {
+     "coverage": 0.25,
+     "n": 9583,
+     "accuracy": 0.3498,
+     "minConfidence": 0.5466,
+     "majorityShareInSlice": 0.4927
+    },
+    {
+     "coverage": 0.1,
+     "n": 3833,
+     "accuracy": 0.3326,
+     "minConfidence": 0.5757,
+     "majorityShareInSlice": 0.526
+    },
+    {
+     "coverage": 0.05,
+     "n": 1916,
+     "accuracy": 0.3225,
+     "minConfidence": 0.5986,
+     "majorityShareInSlice": 0.5412
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 38333,
+   "accuracy": 0.4326,
+   "majorityShare": 0.4699,
+   "predictedMix": {
+    "DOWN": 21252,
+    "FLAT": 0,
+    "UP": 17081
+   },
+   "recall": {
+    "DOWN": 0.5691,
+    "FLAT": 0.0,
+    "UP": 0.4659
+   },
+   "balancedAccuracy": 0.345,
+   "vsMajority": {
+    "accuracy": 0.4326,
+    "baseline": 0.4699,
+    "n": 38333,
+    "lift": -0.0374,
+    "standardError": 0.0025,
+    "z": -14.65,
+    "requiredAccuracy": 0.4741,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4326 vs a 0.4699 baseline on 38333 rows is -14.65 standard errors; does not clear the 0.4741 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 5048,
+    "onlyOtherRight": 6210,
+    "discordant": 11258,
+    "z": -10.94,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 5048 rows and wrong where it was right on 6210; z = -10.94 against the 1.645 needed"
+   },
+   "market": "PK",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 335684,
+   "seconds": 44.6,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 38333,
+     "accuracy": 0.4326,
+     "minConfidence": 0.3854,
+     "majorityShareInSlice": 0.4699
+    },
+    {
+     "coverage": 0.5,
+     "n": 19166,
+     "accuracy": 0.4452,
+     "minConfidence": 0.4185,
+     "majorityShareInSlice": 0.4804
+    },
+    {
+     "coverage": 0.25,
+     "n": 9583,
+     "accuracy": 0.4493,
+     "minConfidence": 0.4332,
+     "majorityShareInSlice": 0.4762
+    },
+    {
+     "coverage": 0.1,
+     "n": 3833,
+     "accuracy": 0.4425,
+     "minConfidence": 0.4517,
+     "majorityShareInSlice": 0.4738
+    },
+    {
+     "coverage": 0.05,
+     "n": 1916,
+     "accuracy": 0.4248,
+     "minConfidence": 0.4659,
+     "majorityShareInSlice": 0.4875
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 38333,
+   "accuracy": 0.4671,
+   "majorityShare": 0.4699,
+   "predictedMix": {
+    "DOWN": 27685,
+    "FLAT": 544,
+    "UP": 10104
+   },
+   "recall": {
+    "DOWN": 0.7545,
+    "FLAT": 0.0398,
+    "UP": 0.2977
+   },
+   "balancedAccuracy": 0.364,
+   "vsMajority": {
+    "accuracy": 0.4671,
+    "baseline": 0.4699,
+    "n": 38333,
+    "lift": -0.0029,
+    "standardError": 0.0025,
+    "z": -1.13,
+    "requiredAccuracy": 0.4741,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4671 vs a 0.4699 baseline on 38333 rows is -1.13 standard errors; does not clear the 0.4741 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 4708,
+    "onlyOtherRight": 4548,
+    "discordant": 9256,
+    "z": 1.65,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": true,
+    "why": "the candidate was right where the other was wrong on 4708 rows and wrong where it was right on 4548; z = 1.65 against the 1.645 needed"
+   },
+   "market": "PK",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "mlp",
+   "featureSet": "all",
+   "trainRows": 335684,
+   "seconds": 9.9,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 38333,
+     "accuracy": 0.4671,
+     "minConfidence": 0.3363,
+     "majorityShareInSlice": 0.4699
+    },
+    {
+     "coverage": 0.5,
+     "n": 19166,
+     "accuracy": 0.5038,
+     "minConfidence": 0.502,
+     "majorityShareInSlice": 0.4929
+    },
+    {
+     "coverage": 0.25,
+     "n": 9583,
+     "accuracy": 0.5237,
+     "minConfidence": 0.58,
+     "majorityShareInSlice": 0.5045
+    },
+    {
+     "coverage": 0.1,
+     "n": 3833,
+     "accuracy": 0.5098,
+     "minConfidence": 0.6594,
+     "majorityShareInSlice": 0.5106
+    },
+    {
+     "coverage": 0.05,
+     "n": 1916,
+     "accuracy": 0.5052,
+     "minConfidence": 0.7042,
+     "majorityShareInSlice": 0.5297
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 4995,
+   "accuracy": 0.7419,
+   "majorityShare": 0.7419,
+   "predictedMix": {
+    "DOWN": 0,
+    "FLAT": 4995,
+    "UP": 0
+   },
+   "recall": {
+    "DOWN": 0.0,
+    "FLAT": 1.0,
+    "UP": 0.0
+   },
+   "balancedAccuracy": 0.3333,
+   "vsMajority": {
+    "accuracy": 0.7419,
+    "baseline": 0.7419,
+    "n": 4995,
+    "lift": 0.0,
+    "standardError": 0.0062,
+    "z": 0.0,
+    "requiredAccuracy": 0.7521,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.7419 vs a 0.7419 baseline on 4995 rows is 0.00 standard errors; does not clear the 0.7521 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 0,
+    "onlyOtherRight": 0,
+    "discordant": 0,
+    "enoughData": false,
+    "passes": false,
+    "why": "the two models answered every holdout row the same way"
+   },
+   "market": "FX",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 47305,
+   "seconds": 5.8,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 4995,
+     "accuracy": 0.7419,
+     "minConfidence": 0.3919,
+     "majorityShareInSlice": 0.7419
+    },
+    {
+     "coverage": 0.5,
+     "n": 2497,
+     "accuracy": 0.8186,
+     "minConfidence": 0.7691,
+     "majorityShareInSlice": 0.8186
+    },
+    {
+     "coverage": 0.25,
+     "n": 1248,
+     "accuracy": 0.891,
+     "minConfidence": 0.8096,
+     "majorityShareInSlice": 0.891
+    },
+    {
+     "coverage": 0.1,
+     "n": 499,
+     "accuracy": 0.9359,
+     "minConfidence": 0.8475,
+     "majorityShareInSlice": 0.9359
+    },
+    {
+     "coverage": 0.05,
+     "n": 249,
+     "accuracy": 0.9518,
+     "minConfidence": 0.8641,
+     "majorityShareInSlice": 0.9518
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 4995,
+   "accuracy": 0.7419,
+   "majorityShare": 0.7419,
+   "predictedMix": {
+    "DOWN": 0,
+    "FLAT": 4995,
+    "UP": 0
+   },
+   "recall": {
+    "DOWN": 0.0,
+    "FLAT": 1.0,
+    "UP": 0.0
+   },
+   "balancedAccuracy": 0.3333,
+   "vsMajority": {
+    "accuracy": 0.7419,
+    "baseline": 0.7419,
+    "n": 4995,
+    "lift": 0.0,
+    "standardError": 0.0062,
+    "z": 0.0,
+    "requiredAccuracy": 0.7521,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.7419 vs a 0.7419 baseline on 4995 rows is 0.00 standard errors; does not clear the 0.7521 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 0,
+    "onlyOtherRight": 0,
+    "discordant": 0,
+    "enoughData": false,
+    "passes": false,
+    "why": "the two models answered every holdout row the same way"
+   },
+   "market": "FX",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 47305,
+   "seconds": 5.0,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 4995,
+     "accuracy": 0.7419,
+     "minConfidence": 0.4447,
+     "majorityShareInSlice": 0.7419
+    },
+    {
+     "coverage": 0.5,
+     "n": 2497,
+     "accuracy": 0.835,
+     "minConfidence": 0.7316,
+     "majorityShareInSlice": 0.835
+    },
+    {
+     "coverage": 0.25,
+     "n": 1248,
+     "accuracy": 0.8405,
+     "minConfidence": 0.7494,
+     "majorityShareInSlice": 0.8405
+    },
+    {
+     "coverage": 0.1,
+     "n": 499,
+     "accuracy": 0.8277,
+     "minConfidence": 0.7614,
+     "majorityShareInSlice": 0.8277
+    },
+    {
+     "coverage": 0.05,
+     "n": 249,
+     "accuracy": 0.8273,
+     "minConfidence": 0.7626,
+     "majorityShareInSlice": 0.8273
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 4995,
+   "accuracy": 0.7409,
+   "majorityShare": 0.7419,
+   "predictedMix": {
+    "DOWN": 1,
+    "FLAT": 4984,
+    "UP": 10
+   },
+   "recall": {
+    "DOWN": 0.0016,
+    "FLAT": 0.9981,
+    "UP": 0.0015
+   },
+   "balancedAccuracy": 0.3337,
+   "vsMajority": {
+    "accuracy": 0.7409,
+    "baseline": 0.7419,
+    "n": 4995,
+    "lift": -0.001,
+    "standardError": 0.0062,
+    "z": -0.16,
+    "requiredAccuracy": 0.7521,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.7409 vs a 0.7419 baseline on 4995 rows is -0.16 standard errors; does not clear the 0.7521 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 2,
+    "onlyOtherRight": 7,
+    "discordant": 9,
+    "z": -1.33,
+    "zRequired": 1.645,
+    "enoughData": false,
+    "passes": false,
+    "why": "only 9 rows separate the two models, under the 30 this approximation needs"
+   },
+   "market": "FX",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "mlp",
+   "featureSet": "all",
+   "trainRows": 47305,
+   "seconds": 1.3,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 4995,
+     "accuracy": 0.7409,
+     "minConfidence": 0.3491,
+     "majorityShareInSlice": 0.7419
+    },
+    {
+     "coverage": 0.5,
+     "n": 2497,
+     "accuracy": 0.8178,
+     "minConfidence": 0.7654,
+     "majorityShareInSlice": 0.8178
+    },
+    {
+     "coverage": 0.25,
+     "n": 1248,
+     "accuracy": 0.8838,
+     "minConfidence": 0.8177,
+     "majorityShareInSlice": 0.8838
+    },
+    {
+     "coverage": 0.1,
+     "n": 499,
+     "accuracy": 0.8978,
+     "minConfidence": 0.8544,
+     "majorityShareInSlice": 0.8978
+    },
+    {
+     "coverage": 0.05,
+     "n": 249,
+     "accuracy": 0.8675,
+     "minConfidence": 0.8735,
+     "majorityShareInSlice": 0.8675
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 1424,
+   "accuracy": 0.4431,
+   "majorityShare": 0.4473,
+   "predictedMix": {
+    "DOWN": 327,
+    "FLAT": 1,
+    "UP": 1096
+   },
+   "recall": {
+    "DOWN": 0.2483,
+    "FLAT": 0.0,
+    "UP": 0.7614
+   },
+   "balancedAccuracy": 0.3366,
+   "vsMajority": {
+    "accuracy": 0.4431,
+    "baseline": 0.4473,
+    "n": 1424,
+    "lift": -0.0042,
+    "standardError": 0.0132,
+    "z": -0.32,
+    "requiredAccuracy": 0.469,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4431 vs a 0.4473 baseline on 1424 rows is -0.32 standard errors; does not clear the 0.4690 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 65,
+    "onlyOtherRight": 77,
+    "discordant": 142,
+    "z": -0.92,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 65 rows and wrong where it was right on 77; z = -0.92 against the 1.645 needed"
+   },
+   "market": "Commodity",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 13539,
+   "seconds": 1.6,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 1424,
+     "accuracy": 0.4431,
+     "minConfidence": 0.3401,
+     "majorityShareInSlice": 0.4473
+    },
+    {
+     "coverage": 0.5,
+     "n": 712,
+     "accuracy": 0.434,
+     "minConfidence": 0.4937,
+     "majorityShareInSlice": 0.4494
+    },
+    {
+     "coverage": 0.25,
+     "n": 356,
+     "accuracy": 0.4326,
+     "minConfidence": 0.5514,
+     "majorityShareInSlice": 0.486
+    },
+    {
+     "coverage": 0.1,
+     "n": 142,
+     "accuracy": 0.5141,
+     "minConfidence": 0.6317,
+     "majorityShareInSlice": 0.6338
+    },
+    {
+     "coverage": 0.05,
+     "n": 71,
+     "accuracy": 0.493,
+     "minConfidence": 0.7092,
+     "majorityShareInSlice": 0.6761
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 1424,
+   "accuracy": 0.4565,
+   "majorityShare": 0.4473,
+   "predictedMix": {
+    "DOWN": 231,
+    "FLAT": 0,
+    "UP": 1193
+   },
+   "recall": {
+    "DOWN": 0.1922,
+    "FLAT": 0.0,
+    "UP": 0.843
+   },
+   "balancedAccuracy": 0.3451,
+   "vsMajority": {
+    "accuracy": 0.4565,
+    "baseline": 0.4473,
+    "n": 1424,
+    "lift": 0.0091,
+    "standardError": 0.0132,
+    "z": 0.69,
+    "requiredAccuracy": 0.469,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4565 vs a 0.4473 baseline on 1424 rows is 0.69 standard errors; does not clear the 0.4690 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 138,
+    "onlyOtherRight": 131,
+    "discordant": 269,
+    "z": 0.37,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 138 rows and wrong where it was right on 131; z = 0.37 against the 1.645 needed"
+   },
+   "market": "Commodity",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 13539,
+   "seconds": 1.2,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 1424,
+     "accuracy": 0.4565,
+     "minConfidence": 0.3576,
+     "majorityShareInSlice": 0.4473
+    },
+    {
+     "coverage": 0.5,
+     "n": 712,
+     "accuracy": 0.4649,
+     "minConfidence": 0.4335,
+     "majorityShareInSlice": 0.4522
+    },
+    {
+     "coverage": 0.25,
+     "n": 356,
+     "accuracy": 0.4831,
+     "minConfidence": 0.4703,
+     "majorityShareInSlice": 0.4916
+    },
+    {
+     "coverage": 0.1,
+     "n": 142,
+     "accuracy": 0.5352,
+     "minConfidence": 0.4946,
+     "majorityShareInSlice": 0.5352
+    },
+    {
+     "coverage": 0.05,
+     "n": 71,
+     "accuracy": 0.6479,
+     "minConfidence": 0.5096,
+     "majorityShareInSlice": 0.6338
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 1424,
+   "accuracy": 0.4565,
+   "majorityShare": 0.4473,
+   "predictedMix": {
+    "DOWN": 72,
+    "FLAT": 0,
+    "UP": 1352
+   },
+   "recall": {
+    "DOWN": 0.0663,
+    "FLAT": 0.0,
+    "UP": 0.9592
+   },
+   "balancedAccuracy": 0.3418,
+   "vsMajority": {
+    "accuracy": 0.4565,
+    "baseline": 0.4473,
+    "n": 1424,
+    "lift": 0.0091,
+    "standardError": 0.0132,
+    "z": 0.69,
+    "requiredAccuracy": 0.469,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4565 vs a 0.4473 baseline on 1424 rows is 0.69 standard errors; does not clear the 0.4690 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 165,
+    "onlyOtherRight": 158,
+    "discordant": 323,
+    "z": 0.33,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 165 rows and wrong where it was right on 158; z = 0.33 against the 1.645 needed"
+   },
+   "market": "Commodity",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "mlp",
+   "featureSet": "all",
+   "trainRows": 13539,
+   "seconds": 0.4,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 1424,
+     "accuracy": 0.4565,
+     "minConfidence": 0.3615,
+     "majorityShareInSlice": 0.4473
+    },
+    {
+     "coverage": 0.5,
+     "n": 712,
+     "accuracy": 0.4677,
+     "minConfidence": 0.4355,
+     "majorityShareInSlice": 0.4593
+    },
+    {
+     "coverage": 0.25,
+     "n": 356,
+     "accuracy": 0.4916,
+     "minConfidence": 0.4574,
+     "majorityShareInSlice": 0.4747
+    },
+    {
+     "coverage": 0.1,
+     "n": 142,
+     "accuracy": 0.5282,
+     "minConfidence": 0.4795,
+     "majorityShareInSlice": 0.507
+    },
+    {
+     "coverage": 0.05,
+     "n": 71,
+     "accuracy": 0.493,
+     "minConfidence": 0.4941,
+     "majorityShareInSlice": 0.4789
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 19220,
+   "accuracy": 0.4771,
+   "majorityShare": 0.4741,
+   "predictedMix": {
+    "DOWN": 18987,
+    "FLAT": 7,
+    "UP": 226
+   },
+   "recall": {
+    "DOWN": 0.9923,
+    "FLAT": 0.0016,
+    "UP": 0.0162
+   },
+   "balancedAccuracy": 0.3367,
+   "vsMajority": {
+    "accuracy": 0.4771,
+    "baseline": 0.4741,
+    "n": 19220,
+    "lift": 0.003,
+    "standardError": 0.0036,
+    "z": 0.82,
+    "requiredAccuracy": 0.4801,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4771 vs a 0.4741 baseline on 19220 rows is 0.82 standard errors; does not clear the 0.4801 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 147,
+    "onlyOtherRight": 85,
+    "discordant": 232,
+    "z": 4.0,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": true,
+    "why": "the candidate was right where the other was wrong on 147 rows and wrong where it was right on 85; z = 4.00 against the 1.645 needed"
+   },
+   "market": "Crypto",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 72892,
+   "seconds": 9.3,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 19220,
+     "accuracy": 0.4771,
+     "minConfidence": 0.3502,
+     "majorityShareInSlice": 0.4741
+    },
+    {
+     "coverage": 0.5,
+     "n": 9610,
+     "accuracy": 0.4703,
+     "minConfidence": 0.5693,
+     "majorityShareInSlice": 0.4698
+    },
+    {
+     "coverage": 0.25,
+     "n": 4805,
+     "accuracy": 0.436,
+     "minConfidence": 0.6106,
+     "majorityShareInSlice": 0.4685
+    },
+    {
+     "coverage": 0.1,
+     "n": 1922,
+     "accuracy": 0.4157,
+     "minConfidence": 0.648,
+     "majorityShareInSlice": 0.5016
+    },
+    {
+     "coverage": 0.05,
+     "n": 961,
+     "accuracy": 0.3913,
+     "minConfidence": 0.6724,
+     "majorityShareInSlice": 0.5432
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 19220,
+   "accuracy": 0.4655,
+   "majorityShare": 0.4741,
+   "predictedMix": {
+    "DOWN": 18242,
+    "FLAT": 0,
+    "UP": 978
+   },
+   "recall": {
+    "DOWN": 0.9415,
+    "FLAT": 0.0,
+    "UP": 0.0482
+   },
+   "balancedAccuracy": 0.3299,
+   "vsMajority": {
+    "accuracy": 0.4655,
+    "baseline": 0.4741,
+    "n": 19220,
+    "lift": -0.0087,
+    "standardError": 0.0036,
+    "z": -2.41,
+    "requiredAccuracy": 0.4801,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4655 vs a 0.4741 baseline on 19220 rows is -2.41 standard errors; does not clear the 0.4801 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 387,
+    "onlyOtherRight": 549,
+    "discordant": 936,
+    "z": -5.26,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 387 rows and wrong where it was right on 549; z = -5.26 against the 1.645 needed"
+   },
+   "market": "Crypto",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 72892,
+   "seconds": 7.7,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 19220,
+     "accuracy": 0.4655,
+     "minConfidence": 0.4338,
+     "majorityShareInSlice": 0.4741
+    },
+    {
+     "coverage": 0.5,
+     "n": 9610,
+     "accuracy": 0.5087,
+     "minConfidence": 0.5134,
+     "majorityShareInSlice": 0.5087
+    },
+    {
+     "coverage": 0.25,
+     "n": 4805,
+     "accuracy": 0.517,
+     "minConfidence": 0.5314,
+     "majorityShareInSlice": 0.517
+    },
+    {
+     "coverage": 0.1,
+     "n": 1922,
+     "accuracy": 0.5645,
+     "minConfidence": 0.5449,
+     "majorityShareInSlice": 0.5645
+    },
+    {
+     "coverage": 0.05,
+     "n": 961,
+     "accuracy": 0.5494,
+     "minConfidence": 0.5503,
+     "majorityShareInSlice": 0.5494
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 19220,
+   "accuracy": 0.4733,
+   "majorityShare": 0.4741,
+   "predictedMix": {
+    "DOWN": 17127,
+    "FLAT": 0,
+    "UP": 2093
+   },
+   "recall": {
+    "DOWN": 0.9035,
+    "FLAT": 0.0,
+    "UP": 0.1136
+   },
+   "balancedAccuracy": 0.339,
+   "vsMajority": {
+    "accuracy": 0.4733,
+    "baseline": 0.4741,
+    "n": 19220,
+    "lift": -0.0009,
+    "standardError": 0.0036,
+    "z": -0.25,
+    "requiredAccuracy": 0.4801,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4733 vs a 0.4741 baseline on 19220 rows is -0.25 standard errors; does not clear the 0.4801 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 851,
+    "onlyOtherRight": 863,
+    "discordant": 1714,
+    "z": -0.27,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 851 rows and wrong where it was right on 863; z = -0.27 against the 1.645 needed"
+   },
+   "market": "Crypto",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "mlp",
+   "featureSet": "all",
+   "trainRows": 72892,
+   "seconds": 2.1,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 19220,
+     "accuracy": 0.4733,
+     "minConfidence": 0.3514,
+     "majorityShareInSlice": 0.4741
+    },
+    {
+     "coverage": 0.5,
+     "n": 9610,
+     "accuracy": 0.476,
+     "minConfidence": 0.7037,
+     "majorityShareInSlice": 0.4635
+    },
+    {
+     "coverage": 0.25,
+     "n": 4805,
+     "accuracy": 0.42,
+     "minConfidence": 0.8062,
+     "majorityShareInSlice": 0.4643
+    },
+    {
+     "coverage": 0.1,
+     "n": 1922,
+     "accuracy": 0.3455,
+     "minConfidence": 0.864,
+     "majorityShareInSlice": 0.5494
+    },
+    {
+     "coverage": 0.05,
+     "n": 961,
+     "accuracy": 0.2862,
+     "minConfidence": 0.8916,
+     "majorityShareInSlice": 0.6119
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 49679,
+   "accuracy": 0.412,
+   "majorityShare": 0.4166,
+   "predictedMix": {
+    "DOWN": 5125,
+    "FLAT": 0,
+    "UP": 44554
+   },
+   "recall": {
+    "DOWN": 0.1075,
+    "FLAT": 0.0,
+    "UP": 0.8864
+   },
+   "balancedAccuracy": 0.3313,
+   "vsMajority": {
+    "accuracy": 0.412,
+    "baseline": 0.4166,
+    "n": 49679,
+    "lift": -0.0046,
+    "standardError": 0.0022,
+    "z": -2.09,
+    "requiredAccuracy": 0.4203,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4120 vs a 0.4166 baseline on 49679 rows is -2.09 standard errors; does not clear the 0.4203 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 1894,
+    "onlyOtherRight": 2015,
+    "discordant": 3909,
+    "z": -1.92,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 1894 rows and wrong where it was right on 2015; z = -1.92 against the 1.645 needed"
+   },
+   "market": "US",
+   "horizon": 1,
+   "bandScale": 1.0,
+   "bandPct": 0.45,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 460424,
+   "seconds": 57.3,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 49679,
+     "accuracy": 0.412,
+     "minConfidence": 0.3624,
+     "majorityShareInSlice": 0.4166
+    },
+    {
+     "coverage": 0.5,
+     "n": 24839,
+     "accuracy": 0.4252,
+     "minConfidence": 0.4023,
+     "majorityShareInSlice": 0.4295
+    },
+    {
+     "coverage": 0.25,
+     "n": 12419,
+     "accuracy": 0.4338,
+     "minConfidence": 0.4199,
+     "majorityShareInSlice": 0.4363
+    },
+    {
+     "coverage": 0.1,
+     "n": 4967,
+     "accuracy": 0.4496,
+     "minConfidence": 0.433,
+     "majorityShareInSlice": 0.456
+    },
+    {
+     "coverage": 0.05,
+     "n": 2483,
+     "accuracy": 0.4374,
+     "minConfidence": 0.4393,
+     "majorityShareInSlice": 0.4555
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 49679,
+   "accuracy": 0.4336,
+   "majorityShare": 0.4336,
+   "predictedMix": {
+    "DOWN": 0,
+    "FLAT": 0,
+    "UP": 49679
+   },
+   "recall": {
+    "DOWN": 0.0,
+    "FLAT": 0.0,
+    "UP": 1.0
+   },
+   "balancedAccuracy": 0.3333,
+   "vsMajority": {
+    "accuracy": 0.4336,
+    "baseline": 0.4336,
+    "n": 49679,
+    "lift": 0.0,
+    "standardError": 0.0022,
+    "z": 0.0,
+    "requiredAccuracy": 0.4373,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4336 vs a 0.4336 baseline on 49679 rows is 0.00 standard errors; does not clear the 0.4373 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 623,
+    "onlyOtherRight": 460,
+    "discordant": 1083,
+    "z": 4.92,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": true,
+    "why": "the candidate was right where the other was wrong on 623 rows and wrong where it was right on 460; z = 4.92 against the 1.645 needed"
+   },
+   "market": "US",
+   "horizon": 20,
+   "bandScale": 1.0,
+   "bandPct": 2.0,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 460424,
+   "seconds": 58.7,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 49679,
+     "accuracy": 0.4336,
+     "minConfidence": 0.4283,
+     "majorityShareInSlice": 0.4336
+    },
+    {
+     "coverage": 0.5,
+     "n": 24839,
+     "accuracy": 0.4636,
+     "minConfidence": 0.4878,
+     "majorityShareInSlice": 0.4636
+    },
+    {
+     "coverage": 0.25,
+     "n": 12419,
+     "accuracy": 0.4776,
+     "minConfidence": 0.5059,
+     "majorityShareInSlice": 0.4776
+    },
+    {
+     "coverage": 0.1,
+     "n": 4967,
+     "accuracy": 0.4649,
+     "minConfidence": 0.5202,
+     "majorityShareInSlice": 0.4649
+    },
+    {
+     "coverage": 0.05,
+     "n": 2483,
+     "accuracy": 0.4688,
+     "minConfidence": 0.5288,
+     "majorityShareInSlice": 0.4688
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 38333,
+   "accuracy": 0.4364,
+   "majorityShare": 0.4372,
+   "predictedMix": {
+    "DOWN": 28959,
+    "FLAT": 0,
+    "UP": 9374
+   },
+   "recall": {
+    "DOWN": 0.7576,
+    "FLAT": 0.0,
+    "UP": 0.2936
+   },
+   "balancedAccuracy": 0.3504,
+   "vsMajority": {
+    "accuracy": 0.4364,
+    "baseline": 0.4372,
+    "n": 38333,
+    "lift": -0.0008,
+    "standardError": 0.0025,
+    "z": -0.32,
+    "requiredAccuracy": 0.4414,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4364 vs a 0.4372 baseline on 38333 rows is -0.32 standard errors; does not clear the 0.4414 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 4136,
+    "onlyOtherRight": 4147,
+    "discordant": 8283,
+    "z": -0.11,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 4136 rows and wrong where it was right on 4147; z = -0.11 against the 1.645 needed"
+   },
+   "market": "PK",
+   "horizon": 1,
+   "bandScale": 1.0,
+   "bandPct": 0.45,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 335684,
+   "seconds": 56.7,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 38333,
+     "accuracy": 0.4364,
+     "minConfidence": 0.3617,
+     "majorityShareInSlice": 0.4372
+    },
+    {
+     "coverage": 0.5,
+     "n": 19166,
+     "accuracy": 0.4596,
+     "minConfidence": 0.4053,
+     "majorityShareInSlice": 0.4612
+    },
+    {
+     "coverage": 0.25,
+     "n": 9583,
+     "accuracy": 0.4735,
+     "minConfidence": 0.4229,
+     "majorityShareInSlice": 0.4676
+    },
+    {
+     "coverage": 0.1,
+     "n": 3833,
+     "accuracy": 0.4782,
+     "minConfidence": 0.4364,
+     "majorityShareInSlice": 0.4693
+    },
+    {
+     "coverage": 0.05,
+     "n": 1916,
+     "accuracy": 0.4796,
+     "minConfidence": 0.4429,
+     "majorityShareInSlice": 0.476
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 38333,
+   "accuracy": 0.3939,
+   "majorityShare": 0.5064,
+   "predictedMix": {
+    "DOWN": 12401,
+    "FLAT": 0,
+    "UP": 25932
+   },
+   "recall": {
+    "DOWN": 0.3173,
+    "FLAT": 0.0,
+    "UP": 0.67
+   },
+   "balancedAccuracy": 0.3291,
+   "vsMajority": {
+    "accuracy": 0.3939,
+    "baseline": 0.5064,
+    "n": 38333,
+    "lift": -0.1125,
+    "standardError": 0.0026,
+    "z": -44.06,
+    "requiredAccuracy": 0.5106,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.3939 vs a 0.5064 baseline on 38333 rows is -44.06 standard errors; does not clear the 0.5106 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 6062,
+    "onlyOtherRight": 9005,
+    "discordant": 15067,
+    "z": -23.97,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 6062 rows and wrong where it was right on 9005; z = -23.97 against the 1.645 needed"
+   },
+   "market": "PK",
+   "horizon": 20,
+   "bandScale": 1.0,
+   "bandPct": 2.0,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 335684,
+   "seconds": 51.5,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 38333,
+     "accuracy": 0.3939,
+     "minConfidence": 0.3963,
+     "majorityShareInSlice": 0.5064
+    },
+    {
+     "coverage": 0.5,
+     "n": 19166,
+     "accuracy": 0.3933,
+     "minConfidence": 0.4238,
+     "majorityShareInSlice": 0.4751
+    },
+    {
+     "coverage": 0.25,
+     "n": 9583,
+     "accuracy": 0.4564,
+     "minConfidence": 0.4319,
+     "majorityShareInSlice": 0.4573
+    },
+    {
+     "coverage": 0.1,
+     "n": 3833,
+     "accuracy": 0.5307,
+     "minConfidence": 0.456,
+     "majorityShareInSlice": 0.5286
+    },
+    {
+     "coverage": 0.05,
+     "n": 1916,
+     "accuracy": 0.4123,
+     "minConfidence": 0.4666,
+     "majorityShareInSlice": 0.4838
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 4995,
+   "accuracy": 0.7425,
+   "majorityShare": 0.7425,
+   "predictedMix": {
+    "DOWN": 0,
+    "FLAT": 4995,
+    "UP": 0
+   },
+   "recall": {
+    "DOWN": 0.0,
+    "FLAT": 1.0,
+    "UP": 0.0
+   },
+   "balancedAccuracy": 0.3333,
+   "vsMajority": {
+    "accuracy": 0.7425,
+    "baseline": 0.7425,
+    "n": 4995,
+    "lift": 0.0,
+    "standardError": 0.0062,
+    "z": 0.0,
+    "requiredAccuracy": 0.7527,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.7425 vs a 0.7425 baseline on 4995 rows is 0.00 standard errors; does not clear the 0.7527 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 0,
+    "onlyOtherRight": 0,
+    "discordant": 0,
+    "enoughData": false,
+    "passes": false,
+    "why": "the two models answered every holdout row the same way"
+   },
+   "market": "FX",
+   "horizon": 1,
+   "bandScale": 1.0,
+   "bandPct": 0.45,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 47305,
+   "seconds": 6.3,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 4995,
+     "accuracy": 0.7425,
+     "minConfidence": 0.4315,
+     "majorityShareInSlice": 0.7425
+    },
+    {
+     "coverage": 0.5,
+     "n": 2497,
+     "accuracy": 0.8354,
+     "minConfidence": 0.7262,
+     "majorityShareInSlice": 0.8354
+    },
+    {
+     "coverage": 0.25,
+     "n": 1248,
+     "accuracy": 0.8774,
+     "minConfidence": 0.7521,
+     "majorityShareInSlice": 0.8774
+    },
+    {
+     "coverage": 0.1,
+     "n": 499,
+     "accuracy": 0.8878,
+     "minConfidence": 0.7545,
+     "majorityShareInSlice": 0.8878
+    },
+    {
+     "coverage": 0.05,
+     "n": 249,
+     "accuracy": 0.9036,
+     "minConfidence": 0.759,
+     "majorityShareInSlice": 0.9036
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 4995,
+   "accuracy": 0.7289,
+   "majorityShare": 0.7289,
+   "predictedMix": {
+    "DOWN": 0,
+    "FLAT": 4995,
+    "UP": 0
+   },
+   "recall": {
+    "DOWN": 0.0,
+    "FLAT": 1.0,
+    "UP": 0.0
+   },
+   "balancedAccuracy": 0.3333,
+   "vsMajority": {
+    "accuracy": 0.7289,
+    "baseline": 0.7289,
+    "n": 4995,
+    "lift": 0.0,
+    "standardError": 0.0063,
+    "z": 0.0,
+    "requiredAccuracy": 0.7393,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.7289 vs a 0.7289 baseline on 4995 rows is 0.00 standard errors; does not clear the 0.7393 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 0,
+    "onlyOtherRight": 0,
+    "discordant": 0,
+    "enoughData": false,
+    "passes": false,
+    "why": "the two models answered every holdout row the same way"
+   },
+   "market": "FX",
+   "horizon": 20,
+   "bandScale": 1.0,
+   "bandPct": 2.0,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 47305,
+   "seconds": 6.3,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 4995,
+     "accuracy": 0.7289,
+     "minConfidence": 0.4591,
+     "majorityShareInSlice": 0.7289
+    },
+    {
+     "coverage": 0.5,
+     "n": 2497,
+     "accuracy": 0.8298,
+     "minConfidence": 0.7152,
+     "majorityShareInSlice": 0.8298
+    },
+    {
+     "coverage": 0.25,
+     "n": 1248,
+     "accuracy": 0.851,
+     "minConfidence": 0.7414,
+     "majorityShareInSlice": 0.851
+    },
+    {
+     "coverage": 0.1,
+     "n": 499,
+     "accuracy": 0.8938,
+     "minConfidence": 0.7465,
+     "majorityShareInSlice": 0.8938
+    },
+    {
+     "coverage": 0.05,
+     "n": 249,
+     "accuracy": 0.8755,
+     "minConfidence": 0.7541,
+     "majorityShareInSlice": 0.8755
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 1424,
+   "accuracy": 0.4361,
+   "majorityShare": 0.4529,
+   "predictedMix": {
+    "DOWN": 139,
+    "FLAT": 0,
+    "UP": 1285
+   },
+   "recall": {
+    "DOWN": 0.0924,
+    "FLAT": 0.0,
+    "UP": 0.8853
+   },
+   "balancedAccuracy": 0.3259,
+   "vsMajority": {
+    "accuracy": 0.4361,
+    "baseline": 0.4529,
+    "n": 1424,
+    "lift": -0.0169,
+    "standardError": 0.0132,
+    "z": -1.28,
+    "requiredAccuracy": 0.4746,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4361 vs a 0.4529 baseline on 1424 rows is -1.28 standard errors; does not clear the 0.4746 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 131,
+    "onlyOtherRight": 145,
+    "discordant": 276,
+    "z": -0.78,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 131 rows and wrong where it was right on 145; z = -0.78 against the 1.645 needed"
+   },
+   "market": "Commodity",
+   "horizon": 1,
+   "bandScale": 1.0,
+   "bandPct": 0.45,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 13539,
+   "seconds": 1.5,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 1424,
+     "accuracy": 0.4361,
+     "minConfidence": 0.3609,
+     "majorityShareInSlice": 0.4529
+    },
+    {
+     "coverage": 0.5,
+     "n": 712,
+     "accuracy": 0.4607,
+     "minConfidence": 0.4251,
+     "majorityShareInSlice": 0.4649
+    },
+    {
+     "coverage": 0.25,
+     "n": 356,
+     "accuracy": 0.441,
+     "minConfidence": 0.4445,
+     "majorityShareInSlice": 0.4382
+    },
+    {
+     "coverage": 0.1,
+     "n": 142,
+     "accuracy": 0.4648,
+     "minConfidence": 0.4616,
+     "majorityShareInSlice": 0.4648
+    },
+    {
+     "coverage": 0.05,
+     "n": 71,
+     "accuracy": 0.4789,
+     "minConfidence": 0.4687,
+     "majorityShareInSlice": 0.4789
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 1424,
+   "accuracy": 0.4129,
+   "majorityShare": 0.441,
+   "predictedMix": {
+    "DOWN": 229,
+    "FLAT": 0,
+    "UP": 1195
+   },
+   "recall": {
+    "DOWN": 0.172,
+    "FLAT": 0.0,
+    "UP": 0.8436
+   },
+   "balancedAccuracy": 0.3385,
+   "vsMajority": {
+    "accuracy": 0.4129,
+    "baseline": 0.441,
+    "n": 1424,
+    "lift": -0.0281,
+    "standardError": 0.0132,
+    "z": -2.13,
+    "requiredAccuracy": 0.4627,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4129 vs a 0.4410 baseline on 1424 rows is -2.13 standard errors; does not clear the 0.4627 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 145,
+    "onlyOtherRight": 186,
+    "discordant": 331,
+    "z": -2.2,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 145 rows and wrong where it was right on 186; z = -2.20 against the 1.645 needed"
+   },
+   "market": "Commodity",
+   "horizon": 20,
+   "bandScale": 1.0,
+   "bandPct": 2.0,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 13539,
+   "seconds": 2.2,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 1424,
+     "accuracy": 0.4129,
+     "minConfidence": 0.3713,
+     "majorityShareInSlice": 0.441
+    },
+    {
+     "coverage": 0.5,
+     "n": 712,
+     "accuracy": 0.4565,
+     "minConfidence": 0.431,
+     "majorityShareInSlice": 0.441
+    },
+    {
+     "coverage": 0.25,
+     "n": 356,
+     "accuracy": 0.441,
+     "minConfidence": 0.4836,
+     "majorityShareInSlice": 0.4354
+    },
+    {
+     "coverage": 0.1,
+     "n": 142,
+     "accuracy": 0.5211,
+     "minConfidence": 0.5172,
+     "majorityShareInSlice": 0.5211
+    },
+    {
+     "coverage": 0.05,
+     "n": 71,
+     "accuracy": 0.5634,
+     "minConfidence": 0.5321,
+     "majorityShareInSlice": 0.5634
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 19220,
+   "accuracy": 0.4527,
+   "majorityShare": 0.4632,
+   "predictedMix": {
+    "DOWN": 16139,
+    "FLAT": 0,
+    "UP": 3081
+   },
+   "recall": {
+    "DOWN": 0.8407,
+    "FLAT": 0.0,
+    "UP": 0.1585
+   },
+   "balancedAccuracy": 0.3331,
+   "vsMajority": {
+    "accuracy": 0.4527,
+    "baseline": 0.4632,
+    "n": 19220,
+    "lift": -0.0106,
+    "standardError": 0.0036,
+    "z": -2.94,
+    "requiredAccuracy": 0.4691,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4527 vs a 0.4632 baseline on 19220 rows is -2.94 standard errors; does not clear the 0.4691 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 1200,
+    "onlyOtherRight": 1394,
+    "discordant": 2594,
+    "z": -3.79,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 1200 rows and wrong where it was right on 1394; z = -3.79 against the 1.645 needed"
+   },
+   "market": "Crypto",
+   "horizon": 1,
+   "bandScale": 1.0,
+   "bandPct": 0.45,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 72892,
+   "seconds": 12.3,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 19220,
+     "accuracy": 0.4527,
+     "minConfidence": 0.413,
+     "majorityShareInSlice": 0.4632
+    },
+    {
+     "coverage": 0.5,
+     "n": 9610,
+     "accuracy": 0.4752,
+     "minConfidence": 0.4664,
+     "majorityShareInSlice": 0.4733
+    },
+    {
+     "coverage": 0.25,
+     "n": 4805,
+     "accuracy": 0.5124,
+     "minConfidence": 0.4814,
+     "majorityShareInSlice": 0.5093
+    },
+    {
+     "coverage": 0.1,
+     "n": 1922,
+     "accuracy": 0.5016,
+     "minConfidence": 0.4991,
+     "majorityShareInSlice": 0.5021
+    },
+    {
+     "coverage": 0.05,
+     "n": 961,
+     "accuracy": 0.5286,
+     "minConfidence": 0.5103,
+     "majorityShareInSlice": 0.5286
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 19220,
+   "accuracy": 0.4723,
+   "majorityShare": 0.4723,
+   "predictedMix": {
+    "DOWN": 19220,
+    "FLAT": 0,
+    "UP": 0
+   },
+   "recall": {
+    "DOWN": 1.0,
+    "FLAT": 0.0,
+    "UP": 0.0
+   },
+   "balancedAccuracy": 0.3333,
+   "vsMajority": {
+    "accuracy": 0.4723,
+    "baseline": 0.4723,
+    "n": 19220,
+    "lift": 0.0,
+    "standardError": 0.0036,
+    "z": 0.0,
+    "requiredAccuracy": 0.4782,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4723 vs a 0.4723 baseline on 19220 rows is 0.00 standard errors; does not clear the 0.4782 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 41,
+    "onlyOtherRight": 35,
+    "discordant": 76,
+    "z": 0.57,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 41 rows and wrong where it was right on 35; z = 0.57 against the 1.645 needed"
+   },
+   "market": "Crypto",
+   "horizon": 20,
+   "bandScale": 1.0,
+   "bandPct": 2.0,
+   "family": "boost",
+   "featureSet": "all",
+   "trainRows": 72892,
+   "seconds": 9.8,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 19220,
+     "accuracy": 0.4723,
+     "minConfidence": 0.5105,
+     "majorityShareInSlice": 0.4723
+    },
+    {
+     "coverage": 0.5,
+     "n": 9610,
+     "accuracy": 0.5078,
+     "minConfidence": 0.5708,
+     "majorityShareInSlice": 0.5078
+    },
+    {
+     "coverage": 0.25,
+     "n": 4805,
+     "accuracy": 0.5515,
+     "minConfidence": 0.5767,
+     "majorityShareInSlice": 0.5515
+    },
+    {
+     "coverage": 0.1,
+     "n": 1922,
+     "accuracy": 0.5583,
+     "minConfidence": 0.5813,
+     "majorityShareInSlice": 0.5583
+    },
+    {
+     "coverage": 0.05,
+     "n": 961,
+     "accuracy": 0.5442,
+     "minConfidence": 0.5844,
+     "majorityShareInSlice": 0.5442
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 49679,
+   "accuracy": 0.4738,
+   "majorityShare": 0.4734,
+   "predictedMix": {
+    "DOWN": 332,
+    "FLAT": 0,
+    "UP": 49347
+   },
+   "recall": {
+    "DOWN": 0.0079,
+    "FLAT": 0.0,
+    "UP": 0.9936
+   },
+   "balancedAccuracy": 0.3338,
+   "vsMajority": {
+    "accuracy": 0.4738,
+    "baseline": 0.4734,
+    "n": 49679,
+    "lift": 0.0004,
+    "standardError": 0.0022,
+    "z": 0.19,
+    "requiredAccuracy": 0.4771,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4738 vs a 0.4734 baseline on 49679 rows is 0.19 standard errors; does not clear the 0.4771 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 458,
+    "onlyOtherRight": 423,
+    "discordant": 881,
+    "z": 1.15,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 458 rows and wrong where it was right on 423; z = 1.15 against the 1.645 needed"
+   },
+   "market": "US",
+   "horizon": 5,
+   "bandScale": 0.5,
+   "bandPct": 0.5,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 460424,
+   "seconds": 77.3,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 49679,
+     "accuracy": 0.4738,
+     "minConfidence": 0.3959,
+     "majorityShareInSlice": 0.4734
+    },
+    {
+     "coverage": 0.5,
+     "n": 24839,
+     "accuracy": 0.4834,
+     "minConfidence": 0.5489,
+     "majorityShareInSlice": 0.4833
+    },
+    {
+     "coverage": 0.25,
+     "n": 12419,
+     "accuracy": 0.484,
+     "minConfidence": 0.5749,
+     "majorityShareInSlice": 0.4839
+    },
+    {
+     "coverage": 0.1,
+     "n": 4967,
+     "accuracy": 0.4983,
+     "minConfidence": 0.5984,
+     "majorityShareInSlice": 0.4981
+    },
+    {
+     "coverage": 0.05,
+     "n": 2483,
+     "accuracy": 0.5179,
+     "minConfidence": 0.6121,
+     "majorityShareInSlice": 0.5175
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 49679,
+   "accuracy": 0.3862,
+   "majorityShare": 0.3892,
+   "predictedMix": {
+    "DOWN": 369,
+    "FLAT": 8877,
+    "UP": 40433
+   },
+   "recall": {
+    "DOWN": 0.0097,
+    "FLAT": 0.2412,
+    "UP": 0.8259
+   },
+   "balancedAccuracy": 0.3589,
+   "vsMajority": {
+    "accuracy": 0.3862,
+    "baseline": 0.3892,
+    "n": 49679,
+    "lift": -0.0029,
+    "standardError": 0.0022,
+    "z": -1.34,
+    "requiredAccuracy": 0.3928,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.3862 vs a 0.3892 baseline on 49679 rows is -1.34 standard errors; does not clear the 0.3928 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 1846,
+    "onlyOtherRight": 2112,
+    "discordant": 3958,
+    "z": -4.21,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 1846 rows and wrong where it was right on 2112; z = -4.21 against the 1.645 needed"
+   },
+   "market": "US",
+   "horizon": 5,
+   "bandScale": 1.5,
+   "bandPct": 1.5,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 460424,
+   "seconds": 60.3,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 49679,
+     "accuracy": 0.3862,
+     "minConfidence": 0.3346,
+     "majorityShareInSlice": 0.3892
+    },
+    {
+     "coverage": 0.5,
+     "n": 24839,
+     "accuracy": 0.4175,
+     "minConfidence": 0.443,
+     "majorityShareInSlice": 0.4137
+    },
+    {
+     "coverage": 0.25,
+     "n": 12419,
+     "accuracy": 0.4442,
+     "minConfidence": 0.4938,
+     "majorityShareInSlice": 0.442
+    },
+    {
+     "coverage": 0.1,
+     "n": 4967,
+     "accuracy": 0.4683,
+     "minConfidence": 0.5426,
+     "majorityShareInSlice": 0.4687
+    },
+    {
+     "coverage": 0.05,
+     "n": 2483,
+     "accuracy": 0.4881,
+     "minConfidence": 0.569,
+     "majorityShareInSlice": 0.4917
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 49679,
+   "accuracy": 0.3988,
+   "majorityShare": 0.3475,
+   "predictedMix": {
+    "DOWN": 291,
+    "FLAT": 25794,
+    "UP": 23594
+   },
+   "recall": {
+    "DOWN": 0.0083,
+    "FLAT": 0.6299,
+    "UP": 0.5313
+   },
+   "balancedAccuracy": 0.3898,
+   "vsMajority": {
+    "accuracy": 0.3988,
+    "baseline": 0.3475,
+    "n": 49679,
+    "lift": 0.0514,
+    "standardError": 0.0021,
+    "z": 24.05,
+    "requiredAccuracy": 0.351,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": true,
+    "why": "0.3988 vs a 0.3475 baseline on 49679 rows is 24.05 standard errors; clears the 0.3510 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 1623,
+    "onlyOtherRight": 1584,
+    "discordant": 3207,
+    "z": 0.67,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 1623 rows and wrong where it was right on 1584; z = 0.67 against the 1.645 needed"
+   },
+   "market": "US",
+   "horizon": 5,
+   "bandScale": 2.0,
+   "bandPct": 2.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 460424,
+   "seconds": 61.6,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 49679,
+     "accuracy": 0.3988,
+     "minConfidence": 0.3343,
+     "majorityShareInSlice": 0.3475
+    },
+    {
+     "coverage": 0.5,
+     "n": 24839,
+     "accuracy": 0.4333,
+     "minConfidence": 0.4581,
+     "majorityShareInSlice": 0.3466
+    },
+    {
+     "coverage": 0.25,
+     "n": 12419,
+     "accuracy": 0.4558,
+     "minConfidence": 0.5024,
+     "majorityShareInSlice": 0.3512
+    },
+    {
+     "coverage": 0.1,
+     "n": 4967,
+     "accuracy": 0.4687,
+     "minConfidence": 0.5426,
+     "majorityShareInSlice": 0.3771
+    },
+    {
+     "coverage": 0.05,
+     "n": 2483,
+     "accuracy": 0.4631,
+     "minConfidence": 0.5706,
+     "majorityShareInSlice": 0.3826
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 49679,
+   "accuracy": 0.4933,
+   "majorityShare": 0.4784,
+   "predictedMix": {
+    "DOWN": 194,
+    "FLAT": 38630,
+    "UP": 10855
+   },
+   "recall": {
+    "DOWN": 0.0065,
+    "FLAT": 0.8572,
+    "UP": 0.2964
+   },
+   "balancedAccuracy": 0.3867,
+   "vsMajority": {
+    "accuracy": 0.4933,
+    "baseline": 0.4784,
+    "n": 49679,
+    "lift": 0.0148,
+    "standardError": 0.0022,
+    "z": 6.62,
+    "requiredAccuracy": 0.4821,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": true,
+    "why": "0.4933 vs a 0.4784 baseline on 49679 rows is 6.62 standard errors; clears the 0.4821 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 784,
+    "onlyOtherRight": 839,
+    "discordant": 1623,
+    "z": -1.34,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 784 rows and wrong where it was right on 839; z = -1.34 against the 1.645 needed"
+   },
+   "market": "US",
+   "horizon": 5,
+   "bandScale": 3.0,
+   "bandPct": 3.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 460424,
+   "seconds": 61.6,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 49679,
+     "accuracy": 0.4933,
+     "minConfidence": 0.335,
+     "majorityShareInSlice": 0.4784
+    },
+    {
+     "coverage": 0.5,
+     "n": 24839,
+     "accuracy": 0.5826,
+     "minConfidence": 0.5568,
+     "majorityShareInSlice": 0.5756
+    },
+    {
+     "coverage": 0.25,
+     "n": 12419,
+     "accuracy": 0.6364,
+     "minConfidence": 0.6279,
+     "majorityShareInSlice": 0.6352
+    },
+    {
+     "coverage": 0.1,
+     "n": 4967,
+     "accuracy": 0.6636,
+     "minConfidence": 0.6794,
+     "majorityShareInSlice": 0.6626
+    },
+    {
+     "coverage": 0.05,
+     "n": 2483,
+     "accuracy": 0.6597,
+     "minConfidence": 0.7067,
+     "majorityShareInSlice": 0.6601
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 49679,
+   "accuracy": 0.5922,
+   "majorityShare": 0.594,
+   "predictedMix": {
+    "DOWN": 176,
+    "FLAT": 43412,
+    "UP": 6091
+   },
+   "recall": {
+    "DOWN": 0.0067,
+    "FLAT": 0.924,
+    "UP": 0.1935
+   },
+   "balancedAccuracy": 0.3747,
+   "vsMajority": {
+    "accuracy": 0.5922,
+    "baseline": 0.594,
+    "n": 49679,
+    "lift": -0.0018,
+    "standardError": 0.0022,
+    "z": -0.79,
+    "requiredAccuracy": 0.5976,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.5922 vs a 0.5940 baseline on 49679 rows is -0.79 standard errors; does not clear the 0.5976 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 449,
+    "onlyOtherRight": 550,
+    "discordant": 999,
+    "z": -3.16,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 449 rows and wrong where it was right on 550; z = -3.16 against the 1.645 needed"
+   },
+   "market": "US",
+   "horizon": 5,
+   "bandScale": 4.0,
+   "bandPct": 4.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 460424,
+   "seconds": 59.2,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 49679,
+     "accuracy": 0.5922,
+     "minConfidence": 0.3344,
+     "majorityShareInSlice": 0.594
+    },
+    {
+     "coverage": 0.5,
+     "n": 24839,
+     "accuracy": 0.7142,
+     "minConfidence": 0.6745,
+     "majorityShareInSlice": 0.714
+    },
+    {
+     "coverage": 0.25,
+     "n": 12419,
+     "accuracy": 0.7675,
+     "minConfidence": 0.7478,
+     "majorityShareInSlice": 0.7675
+    },
+    {
+     "coverage": 0.1,
+     "n": 4967,
+     "accuracy": 0.7828,
+     "minConfidence": 0.7956,
+     "majorityShareInSlice": 0.7826
+    },
+    {
+     "coverage": 0.05,
+     "n": 2483,
+     "accuracy": 0.7785,
+     "minConfidence": 0.8219,
+     "majorityShareInSlice": 0.7781
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 49679,
+   "accuracy": 0.7473,
+   "majorityShare": 0.7529,
+   "predictedMix": {
+    "DOWN": 175,
+    "FLAT": 47663,
+    "UP": 1841
+   },
+   "recall": {
+    "DOWN": 0.0081,
+    "FLAT": 0.976,
+    "UP": 0.0846
+   },
+   "balancedAccuracy": 0.3562,
+   "vsMajority": {
+    "accuracy": 0.7473,
+    "baseline": 0.7529,
+    "n": 49679,
+    "lift": -0.0057,
+    "standardError": 0.0019,
+    "z": -2.93,
+    "requiredAccuracy": 0.7561,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.7473 vs a 0.7529 baseline on 49679 rows is -2.93 standard errors; does not clear the 0.7561 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 200,
+    "onlyOtherRight": 181,
+    "discordant": 381,
+    "z": 0.92,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 200 rows and wrong where it was right on 181; z = 0.92 against the 1.645 needed"
+   },
+   "market": "US",
+   "horizon": 5,
+   "bandScale": 6.0,
+   "bandPct": 6.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 460424,
+   "seconds": 59.6,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 49679,
+     "accuracy": 0.7473,
+     "minConfidence": 0.3343,
+     "majorityShareInSlice": 0.7529
+    },
+    {
+     "coverage": 0.5,
+     "n": 24839,
+     "accuracy": 0.8657,
+     "minConfidence": 0.8362,
+     "majorityShareInSlice": 0.8657
+    },
+    {
+     "coverage": 0.25,
+     "n": 12419,
+     "accuracy": 0.9033,
+     "minConfidence": 0.8888,
+     "majorityShareInSlice": 0.9033
+    },
+    {
+     "coverage": 0.1,
+     "n": 4967,
+     "accuracy": 0.9118,
+     "minConfidence": 0.9191,
+     "majorityShareInSlice": 0.9118
+    },
+    {
+     "coverage": 0.05,
+     "n": 2483,
+     "accuracy": 0.9162,
+     "minConfidence": 0.9365,
+     "majorityShareInSlice": 0.9162
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 38333,
+   "accuracy": 0.4126,
+   "majorityShare": 0.5164,
+   "predictedMix": {
+    "DOWN": 3329,
+    "FLAT": 78,
+    "UP": 34926
+   },
+   "recall": {
+    "DOWN": 0.0955,
+    "FLAT": 0.0069,
+    "UP": 0.9219
+   },
+   "balancedAccuracy": 0.3415,
+   "vsMajority": {
+    "accuracy": 0.4126,
+    "baseline": 0.5164,
+    "n": 38333,
+    "lift": -0.1037,
+    "standardError": 0.0026,
+    "z": -40.65,
+    "requiredAccuracy": 0.5206,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4126 vs a 0.5164 baseline on 38333 rows is -40.65 standard errors; does not clear the 0.5206 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 11924,
+    "onlyOtherRight": 15545,
+    "discordant": 27469,
+    "z": -21.84,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 11924 rows and wrong where it was right on 15545; z = -21.84 against the 1.645 needed"
+   },
+   "market": "PK",
+   "horizon": 5,
+   "bandScale": 0.5,
+   "bandPct": 0.5,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 335684,
+   "seconds": 43.6,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 38333,
+     "accuracy": 0.4126,
+     "minConfidence": 0.3386,
+     "majorityShareInSlice": 0.5164
+    },
+    {
+     "coverage": 0.5,
+     "n": 19166,
+     "accuracy": 0.4156,
+     "minConfidence": 0.5477,
+     "majorityShareInSlice": 0.4902
+    },
+    {
+     "coverage": 0.25,
+     "n": 9583,
+     "accuracy": 0.3544,
+     "minConfidence": 0.587,
+     "majorityShareInSlice": 0.5573
+    },
+    {
+     "coverage": 0.1,
+     "n": 3833,
+     "accuracy": 0.3371,
+     "minConfidence": 0.6129,
+     "majorityShareInSlice": 0.5912
+    },
+    {
+     "coverage": 0.05,
+     "n": 1916,
+     "accuracy": 0.3278,
+     "minConfidence": 0.6284,
+     "majorityShareInSlice": 0.6086
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 38333,
+   "accuracy": 0.3422,
+   "majorityShare": 0.4261,
+   "predictedMix": {
+    "DOWN": 2441,
+    "FLAT": 1827,
+    "UP": 34065
+   },
+   "recall": {
+    "DOWN": 0.0741,
+    "FLAT": 0.0728,
+    "UP": 0.9172
+   },
+   "balancedAccuracy": 0.3547,
+   "vsMajority": {
+    "accuracy": 0.3422,
+    "baseline": 0.4261,
+    "n": 38333,
+    "lift": -0.0839,
+    "standardError": 0.0025,
+    "z": -33.24,
+    "requiredAccuracy": 0.4303,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.3422 vs a 0.4261 baseline on 38333 rows is -33.24 standard errors; does not clear the 0.4303 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 9132,
+    "onlyOtherRight": 11844,
+    "discordant": 20976,
+    "z": -18.72,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 9132 rows and wrong where it was right on 11844; z = -18.72 against the 1.645 needed"
+   },
+   "market": "PK",
+   "horizon": 5,
+   "bandScale": 1.5,
+   "bandPct": 1.5,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 335684,
+   "seconds": 43.4,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 38333,
+     "accuracy": 0.3422,
+     "minConfidence": 0.3337,
+     "majorityShareInSlice": 0.4261
+    },
+    {
+     "coverage": 0.5,
+     "n": 19166,
+     "accuracy": 0.3548,
+     "minConfidence": 0.4729,
+     "majorityShareInSlice": 0.4071
+    },
+    {
+     "coverage": 0.25,
+     "n": 9583,
+     "accuracy": 0.3424,
+     "minConfidence": 0.5125,
+     "majorityShareInSlice": 0.4463
+    },
+    {
+     "coverage": 0.1,
+     "n": 3833,
+     "accuracy": 0.3337,
+     "minConfidence": 0.546,
+     "majorityShareInSlice": 0.4735
+    },
+    {
+     "coverage": 0.05,
+     "n": 1916,
+     "accuracy": 0.3278,
+     "minConfidence": 0.5751,
+     "majorityShareInSlice": 0.4864
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 38333,
+   "accuracy": 0.3413,
+   "majorityShare": 0.3831,
+   "predictedMix": {
+    "DOWN": 1446,
+    "FLAT": 8101,
+    "UP": 28786
+   },
+   "recall": {
+    "DOWN": 0.0487,
+    "FLAT": 0.2624,
+    "UP": 0.8197
+   },
+   "balancedAccuracy": 0.3769,
+   "vsMajority": {
+    "accuracy": 0.3413,
+    "baseline": 0.3831,
+    "n": 38333,
+    "lift": -0.0418,
+    "standardError": 0.0025,
+    "z": -16.84,
+    "requiredAccuracy": 0.3872,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.3413 vs a 0.3831 baseline on 38333 rows is -16.84 standard errors; does not clear the 0.3872 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 7269,
+    "onlyOtherRight": 9536,
+    "discordant": 16805,
+    "z": -17.48,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 7269 rows and wrong where it was right on 9536; z = -17.48 against the 1.645 needed"
+   },
+   "market": "PK",
+   "horizon": 5,
+   "bandScale": 2.0,
+   "bandPct": 2.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 335684,
+   "seconds": 43.7,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 38333,
+     "accuracy": 0.3413,
+     "minConfidence": 0.3336,
+     "majorityShareInSlice": 0.3831
+    },
+    {
+     "coverage": 0.5,
+     "n": 19166,
+     "accuracy": 0.3472,
+     "minConfidence": 0.443,
+     "majorityShareInSlice": 0.3775
+    },
+    {
+     "coverage": 0.25,
+     "n": 9583,
+     "accuracy": 0.3531,
+     "minConfidence": 0.4805,
+     "majorityShareInSlice": 0.4013
+    },
+    {
+     "coverage": 0.1,
+     "n": 3833,
+     "accuracy": 0.3608,
+     "minConfidence": 0.519,
+     "majorityShareInSlice": 0.4161
+    },
+    {
+     "coverage": 0.05,
+     "n": 1916,
+     "accuracy": 0.3831,
+     "minConfidence": 0.5572,
+     "majorityShareInSlice": 0.4019
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 38333,
+   "accuracy": 0.4526,
+   "majorityShare": 0.4552,
+   "predictedMix": {
+    "DOWN": 504,
+    "FLAT": 26631,
+    "UP": 11198
+   },
+   "recall": {
+    "DOWN": 0.0203,
+    "FLAT": 0.7744,
+    "UP": 0.394
+   },
+   "balancedAccuracy": 0.3963,
+   "vsMajority": {
+    "accuracy": 0.4526,
+    "baseline": 0.4552,
+    "n": 38333,
+    "lift": -0.0026,
+    "standardError": 0.0025,
+    "z": -1.02,
+    "requiredAccuracy": 0.4594,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4526 vs a 0.4552 baseline on 38333 rows is -1.02 standard errors; does not clear the 0.4594 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 2759,
+    "onlyOtherRight": 3212,
+    "discordant": 5971,
+    "z": -5.85,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 2759 rows and wrong where it was right on 3212; z = -5.85 against the 1.645 needed"
+   },
+   "market": "PK",
+   "horizon": 5,
+   "bandScale": 3.0,
+   "bandPct": 3.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 335684,
+   "seconds": 46.0,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 38333,
+     "accuracy": 0.4526,
+     "minConfidence": 0.3359,
+     "majorityShareInSlice": 0.4552
+    },
+    {
+     "coverage": 0.5,
+     "n": 19166,
+     "accuracy": 0.5142,
+     "minConfidence": 0.4676,
+     "majorityShareInSlice": 0.5199
+    },
+    {
+     "coverage": 0.25,
+     "n": 9583,
+     "accuracy": 0.534,
+     "minConfidence": 0.5184,
+     "majorityShareInSlice": 0.5488
+    },
+    {
+     "coverage": 0.1,
+     "n": 3833,
+     "accuracy": 0.5369,
+     "minConfidence": 0.5726,
+     "majorityShareInSlice": 0.5667
+    },
+    {
+     "coverage": 0.05,
+     "n": 1916,
+     "accuracy": 0.5423,
+     "minConfidence": 0.6141,
+     "majorityShareInSlice": 0.5966
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 38333,
+   "accuracy": 0.5475,
+   "majorityShare": 0.5598,
+   "predictedMix": {
+    "DOWN": 283,
+    "FLAT": 34330,
+    "UP": 3720
+   },
+   "recall": {
+    "DOWN": 0.0123,
+    "FLAT": 0.9256,
+    "UP": 0.1328
+   },
+   "balancedAccuracy": 0.3569,
+   "vsMajority": {
+    "accuracy": 0.5475,
+    "baseline": 0.5598,
+    "n": 38333,
+    "lift": -0.0123,
+    "standardError": 0.0025,
+    "z": -4.85,
+    "requiredAccuracy": 0.564,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.5475 vs a 0.5598 baseline on 38333 rows is -4.85 standard errors; does not clear the 0.5640 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 697,
+    "onlyOtherRight": 899,
+    "discordant": 1596,
+    "z": -5.03,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 697 rows and wrong where it was right on 899; z = -5.03 against the 1.645 needed"
+   },
+   "market": "PK",
+   "horizon": 5,
+   "bandScale": 4.0,
+   "bandPct": 4.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 335684,
+   "seconds": 43.9,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 38333,
+     "accuracy": 0.5475,
+     "minConfidence": 0.3358,
+     "majorityShareInSlice": 0.5598
+    },
+    {
+     "coverage": 0.5,
+     "n": 19166,
+     "accuracy": 0.6394,
+     "minConfidence": 0.5605,
+     "majorityShareInSlice": 0.6489
+    },
+    {
+     "coverage": 0.25,
+     "n": 9583,
+     "accuracy": 0.6599,
+     "minConfidence": 0.6202,
+     "majorityShareInSlice": 0.6765
+    },
+    {
+     "coverage": 0.1,
+     "n": 3833,
+     "accuracy": 0.6781,
+     "minConfidence": 0.6743,
+     "majorityShareInSlice": 0.694
+    },
+    {
+     "coverage": 0.05,
+     "n": 1916,
+     "accuracy": 0.7218,
+     "minConfidence": 0.7088,
+     "majorityShareInSlice": 0.7213
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 38333,
+   "accuracy": 0.6973,
+   "majorityShare": 0.711,
+   "predictedMix": {
+    "DOWN": 149,
+    "FLAT": 36927,
+    "UP": 1257
+   },
+   "recall": {
+    "DOWN": 0.0098,
+    "FLAT": 0.9713,
+    "UP": 0.0378
+   },
+   "balancedAccuracy": 0.3396,
+   "vsMajority": {
+    "accuracy": 0.6973,
+    "baseline": 0.711,
+    "n": 38333,
+    "lift": -0.0137,
+    "standardError": 0.0023,
+    "z": -5.9,
+    "requiredAccuracy": 0.7148,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.6973 vs a 0.7110 baseline on 38333 rows is -5.90 standard errors; does not clear the 0.7148 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 130,
+    "onlyOtherRight": 213,
+    "discordant": 343,
+    "z": -4.43,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 130 rows and wrong where it was right on 213; z = -4.43 against the 1.645 needed"
+   },
+   "market": "PK",
+   "horizon": 5,
+   "bandScale": 6.0,
+   "bandPct": 6.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 335684,
+   "seconds": 43.9,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 38333,
+     "accuracy": 0.6973,
+     "minConfidence": 0.3364,
+     "majorityShareInSlice": 0.711
+    },
+    {
+     "coverage": 0.5,
+     "n": 19166,
+     "accuracy": 0.7913,
+     "minConfidence": 0.7132,
+     "majorityShareInSlice": 0.791
+    },
+    {
+     "coverage": 0.25,
+     "n": 9583,
+     "accuracy": 0.8067,
+     "minConfidence": 0.7677,
+     "majorityShareInSlice": 0.8057
+    },
+    {
+     "coverage": 0.1,
+     "n": 3833,
+     "accuracy": 0.809,
+     "minConfidence": 0.8131,
+     "majorityShareInSlice": 0.8064
+    },
+    {
+     "coverage": 0.05,
+     "n": 1916,
+     "accuracy": 0.8319,
+     "minConfidence": 0.8402,
+     "majorityShareInSlice": 0.8267
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 4995,
+   "accuracy": 0.4821,
+   "majorityShare": 0.5011,
+   "predictedMix": {
+    "DOWN": 836,
+    "FLAT": 4134,
+    "UP": 25
+   },
+   "recall": {
+    "DOWN": 0.2076,
+    "FLAT": 0.861,
+    "UP": 0.0054
+   },
+   "balancedAccuracy": 0.358,
+   "vsMajority": {
+    "accuracy": 0.4821,
+    "baseline": 0.5011,
+    "n": 4995,
+    "lift": -0.019,
+    "standardError": 0.0071,
+    "z": -2.69,
+    "requiredAccuracy": 0.5127,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4821 vs a 0.5011 baseline on 4995 rows is -2.69 standard errors; does not clear the 0.5127 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 195,
+    "onlyOtherRight": 307,
+    "discordant": 502,
+    "z": -4.95,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 195 rows and wrong where it was right on 307; z = -4.95 against the 1.645 needed"
+   },
+   "market": "FX",
+   "horizon": 5,
+   "bandScale": 0.5,
+   "bandPct": 0.5,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 47305,
+   "seconds": 6.0,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 4995,
+     "accuracy": 0.4821,
+     "minConfidence": 0.3372,
+     "majorityShareInSlice": 0.5011
+    },
+    {
+     "coverage": 0.5,
+     "n": 2497,
+     "accuracy": 0.5763,
+     "minConfidence": 0.4936,
+     "majorityShareInSlice": 0.5747
+    },
+    {
+     "coverage": 0.25,
+     "n": 1248,
+     "accuracy": 0.7019,
+     "minConfidence": 0.538,
+     "majorityShareInSlice": 0.7019
+    },
+    {
+     "coverage": 0.1,
+     "n": 499,
+     "accuracy": 0.7796,
+     "minConfidence": 0.6045,
+     "majorityShareInSlice": 0.7796
+    },
+    {
+     "coverage": 0.05,
+     "n": 249,
+     "accuracy": 0.7791,
+     "minConfidence": 0.6365,
+     "majorityShareInSlice": 0.7791
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 4995,
+   "accuracy": 0.8757,
+   "majorityShare": 0.8757,
+   "predictedMix": {
+    "DOWN": 0,
+    "FLAT": 4995,
+    "UP": 0
+   },
+   "recall": {
+    "DOWN": 0.0,
+    "FLAT": 1.0,
+    "UP": 0.0
+   },
+   "balancedAccuracy": 0.3333,
+   "vsMajority": {
+    "accuracy": 0.8757,
+    "baseline": 0.8757,
+    "n": 4995,
+    "lift": 0.0,
+    "standardError": 0.0047,
+    "z": 0.0,
+    "requiredAccuracy": 0.8834,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.8757 vs a 0.8757 baseline on 4995 rows is 0.00 standard errors; does not clear the 0.8834 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 0,
+    "onlyOtherRight": 0,
+    "discordant": 0,
+    "enoughData": false,
+    "passes": false,
+    "why": "the two models answered every holdout row the same way"
+   },
+   "market": "FX",
+   "horizon": 5,
+   "bandScale": 1.5,
+   "bandPct": 1.5,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 47305,
+   "seconds": 6.5,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 4995,
+     "accuracy": 0.8757,
+     "minConfidence": 0.6024,
+     "majorityShareInSlice": 0.8757
+    },
+    {
+     "coverage": 0.5,
+     "n": 2497,
+     "accuracy": 0.9275,
+     "minConfidence": 0.9011,
+     "majorityShareInSlice": 0.9275
+    },
+    {
+     "coverage": 0.25,
+     "n": 1248,
+     "accuracy": 0.9543,
+     "minConfidence": 0.9273,
+     "majorityShareInSlice": 0.9543
+    },
+    {
+     "coverage": 0.1,
+     "n": 499,
+     "accuracy": 0.9739,
+     "minConfidence": 0.943,
+     "majorityShareInSlice": 0.9739
+    },
+    {
+     "coverage": 0.05,
+     "n": 249,
+     "accuracy": 0.9799,
+     "minConfidence": 0.9494,
+     "majorityShareInSlice": 0.9799
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 4995,
+   "accuracy": 0.9361,
+   "majorityShare": 0.9361,
+   "predictedMix": {
+    "DOWN": 0,
+    "FLAT": 4995,
+    "UP": 0
+   },
+   "recall": {
+    "DOWN": 0.0,
+    "FLAT": 1.0,
+    "UP": 0.0
+   },
+   "balancedAccuracy": 0.3333,
+   "vsMajority": {
+    "accuracy": 0.9361,
+    "baseline": 0.9361,
+    "n": 4995,
+    "lift": 0.0,
+    "standardError": 0.0035,
+    "z": 0.0,
+    "requiredAccuracy": 0.9418,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.9361 vs a 0.9361 baseline on 4995 rows is 0.00 standard errors; does not clear the 0.9418 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 0,
+    "onlyOtherRight": 0,
+    "discordant": 0,
+    "enoughData": false,
+    "passes": false,
+    "why": "the two models answered every holdout row the same way"
+   },
+   "market": "FX",
+   "horizon": 5,
+   "bandScale": 2.0,
+   "bandPct": 2.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 47305,
+   "seconds": 6.0,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 4995,
+     "accuracy": 0.9361,
+     "minConfidence": 0.7517,
+     "majorityShareInSlice": 0.9361
+    },
+    {
+     "coverage": 0.5,
+     "n": 2497,
+     "accuracy": 0.9648,
+     "minConfidence": 0.9555,
+     "majorityShareInSlice": 0.9648
+    },
+    {
+     "coverage": 0.25,
+     "n": 1248,
+     "accuracy": 0.9784,
+     "minConfidence": 0.9692,
+     "majorityShareInSlice": 0.9784
+    },
+    {
+     "coverage": 0.1,
+     "n": 499,
+     "accuracy": 0.984,
+     "minConfidence": 0.9764,
+     "majorityShareInSlice": 0.984
+    },
+    {
+     "coverage": 0.05,
+     "n": 249,
+     "accuracy": 0.988,
+     "minConfidence": 0.9798,
+     "majorityShareInSlice": 0.988
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 4995,
+   "accuracy": 0.9868,
+   "majorityShare": 0.9868,
+   "predictedMix": {
+    "DOWN": 0,
+    "FLAT": 4995,
+    "UP": 0
+   },
+   "recall": {
+    "DOWN": 0.0,
+    "FLAT": 1.0,
+    "UP": 0.0
+   },
+   "balancedAccuracy": 0.3333,
+   "vsMajority": {
+    "accuracy": 0.9868,
+    "baseline": 0.9868,
+    "n": 4995,
+    "lift": 0.0,
+    "standardError": 0.0016,
+    "z": 0.0,
+    "requiredAccuracy": 0.9894,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.9868 vs a 0.9868 baseline on 4995 rows is 0.00 standard errors; does not clear the 0.9894 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 0,
+    "onlyOtherRight": 0,
+    "discordant": 0,
+    "enoughData": false,
+    "passes": false,
+    "why": "the two models answered every holdout row the same way"
+   },
+   "market": "FX",
+   "horizon": 5,
+   "bandScale": 3.0,
+   "bandPct": 3.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 47305,
+   "seconds": 6.0,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 4995,
+     "accuracy": 0.9868,
+     "minConfidence": 0.9217,
+     "majorityShareInSlice": 0.9868
+    },
+    {
+     "coverage": 0.5,
+     "n": 2497,
+     "accuracy": 0.9912,
+     "minConfidence": 0.9905,
+     "majorityShareInSlice": 0.9912
+    },
+    {
+     "coverage": 0.25,
+     "n": 1248,
+     "accuracy": 0.9928,
+     "minConfidence": 0.9938,
+     "majorityShareInSlice": 0.9928
+    },
+    {
+     "coverage": 0.1,
+     "n": 499,
+     "accuracy": 0.998,
+     "minConfidence": 0.9957,
+     "majorityShareInSlice": 0.998
+    },
+    {
+     "coverage": 0.05,
+     "n": 249,
+     "accuracy": 0.996,
+     "minConfidence": 0.9964,
+     "majorityShareInSlice": 0.996
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 4995,
+   "accuracy": 0.9988,
+   "majorityShare": 0.9988,
+   "predictedMix": {
+    "DOWN": 0,
+    "FLAT": 4995,
+    "UP": 0
+   },
+   "recall": {
+    "DOWN": 0.0,
+    "FLAT": 1.0,
+    "UP": 0.0
+   },
+   "balancedAccuracy": 0.3333,
+   "vsMajority": {
+    "accuracy": 0.9988,
+    "baseline": 0.9988,
+    "n": 4995,
+    "lift": 0.0,
+    "standardError": 0.0005,
+    "z": 0.0,
+    "requiredAccuracy": 0.9996,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.9988 vs a 0.9988 baseline on 4995 rows is 0.00 standard errors; does not clear the 0.9996 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 0,
+    "onlyOtherRight": 0,
+    "discordant": 0,
+    "enoughData": false,
+    "passes": false,
+    "why": "the two models answered every holdout row the same way"
+   },
+   "market": "FX",
+   "horizon": 5,
+   "bandScale": 4.0,
+   "bandPct": 4.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 47305,
+   "seconds": 6.2,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 4995,
+     "accuracy": 0.9988,
+     "minConfidence": 0.9698,
+     "majorityShareInSlice": 0.9988
+    },
+    {
+     "coverage": 0.5,
+     "n": 2497,
+     "accuracy": 0.9996,
+     "minConfidence": 0.9971,
+     "majorityShareInSlice": 0.9996
+    },
+    {
+     "coverage": 0.25,
+     "n": 1248,
+     "accuracy": 0.9992,
+     "minConfidence": 0.998,
+     "majorityShareInSlice": 0.9992
+    },
+    {
+     "coverage": 0.1,
+     "n": 499,
+     "accuracy": 1.0,
+     "minConfidence": 0.9987,
+     "majorityShareInSlice": 1.0
+    },
+    {
+     "coverage": 0.05,
+     "n": 249,
+     "accuracy": 1.0,
+     "minConfidence": 0.9991,
+     "majorityShareInSlice": 1.0
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 4995,
+   "accuracy": 1.0,
+   "majorityShare": 1.0,
+   "predictedMix": {
+    "DOWN": 0,
+    "FLAT": 4995,
+    "UP": 0
+   },
+   "recall": {
+    "DOWN": null,
+    "FLAT": 1.0,
+    "UP": null
+   },
+   "balancedAccuracy": 1.0,
+   "vsMajority": {
+    "accuracy": 1.0,
+    "baseline": 1.0,
+    "n": 4995,
+    "enoughData": false,
+    "passes": false,
+    "why": "the baseline rate is 1.0000, which leaves nothing to beat"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 0,
+    "onlyOtherRight": 0,
+    "discordant": 0,
+    "enoughData": false,
+    "passes": false,
+    "why": "the two models answered every holdout row the same way"
+   },
+   "market": "FX",
+   "horizon": 5,
+   "bandScale": 6.0,
+   "bandPct": 6.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 47305,
+   "seconds": 5.9,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 4995,
+     "accuracy": 1.0,
+     "minConfidence": 0.9885,
+     "majorityShareInSlice": 1.0
+    },
+    {
+     "coverage": 0.5,
+     "n": 2497,
+     "accuracy": 1.0,
+     "minConfidence": 0.9981,
+     "majorityShareInSlice": 1.0
+    },
+    {
+     "coverage": 0.25,
+     "n": 1248,
+     "accuracy": 1.0,
+     "minConfidence": 0.9987,
+     "majorityShareInSlice": 1.0
+    },
+    {
+     "coverage": 0.1,
+     "n": 499,
+     "accuracy": 1.0,
+     "minConfidence": 0.9991,
+     "majorityShareInSlice": 1.0
+    },
+    {
+     "coverage": 0.05,
+     "n": 249,
+     "accuracy": 1.0,
+     "minConfidence": 0.9994,
+     "majorityShareInSlice": 1.0
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 1424,
+   "accuracy": 0.4768,
+   "majorityShare": 0.4754,
+   "predictedMix": {
+    "DOWN": 363,
+    "FLAT": 0,
+    "UP": 1061
+   },
+   "recall": {
+    "DOWN": 0.2746,
+    "FLAT": 0.0,
+    "UP": 0.743
+   },
+   "balancedAccuracy": 0.3392,
+   "vsMajority": {
+    "accuracy": 0.4768,
+    "baseline": 0.4754,
+    "n": 1424,
+    "lift": 0.0014,
+    "standardError": 0.0132,
+    "z": 0.11,
+    "requiredAccuracy": 0.4972,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4768 vs a 0.4754 baseline on 1424 rows is 0.11 standard errors; does not clear the 0.4972 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 79,
+    "onlyOtherRight": 88,
+    "discordant": 167,
+    "z": -0.62,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 79 rows and wrong where it was right on 88; z = -0.62 against the 1.645 needed"
+   },
+   "market": "Commodity",
+   "horizon": 5,
+   "bandScale": 0.5,
+   "bandPct": 0.5,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 13539,
+   "seconds": 1.7,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 1424,
+     "accuracy": 0.4768,
+     "minConfidence": 0.4143,
+     "majorityShareInSlice": 0.4754
+    },
+    {
+     "coverage": 0.5,
+     "n": 712,
+     "accuracy": 0.4691,
+     "minConfidence": 0.5306,
+     "majorityShareInSlice": 0.4874
+    },
+    {
+     "coverage": 0.25,
+     "n": 356,
+     "accuracy": 0.4719,
+     "minConfidence": 0.5706,
+     "majorityShareInSlice": 0.5337
+    },
+    {
+     "coverage": 0.1,
+     "n": 142,
+     "accuracy": 0.493,
+     "minConfidence": 0.6477,
+     "majorityShareInSlice": 0.6479
+    },
+    {
+     "coverage": 0.05,
+     "n": 71,
+     "accuracy": 0.4789,
+     "minConfidence": 0.7253,
+     "majorityShareInSlice": 0.662
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 1424,
+   "accuracy": 0.4101,
+   "majorityShare": 0.4087,
+   "predictedMix": {
+    "DOWN": 314,
+    "FLAT": 70,
+    "UP": 1040
+   },
+   "recall": {
+    "DOWN": 0.2411,
+    "FLAT": 0.0912,
+    "UP": 0.7337
+   },
+   "balancedAccuracy": 0.3553,
+   "vsMajority": {
+    "accuracy": 0.4101,
+    "baseline": 0.4087,
+    "n": 1424,
+    "lift": 0.0014,
+    "standardError": 0.013,
+    "z": 0.11,
+    "requiredAccuracy": 0.4301,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4101 vs a 0.4087 baseline on 1424 rows is 0.11 standard errors; does not clear the 0.4301 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 66,
+    "onlyOtherRight": 71,
+    "discordant": 137,
+    "z": -0.34,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 66 rows and wrong where it was right on 71; z = -0.34 against the 1.645 needed"
+   },
+   "market": "Commodity",
+   "horizon": 5,
+   "bandScale": 1.5,
+   "bandPct": 1.5,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 13539,
+   "seconds": 1.6,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 1424,
+     "accuracy": 0.4101,
+     "minConfidence": 0.3363,
+     "majorityShareInSlice": 0.4087
+    },
+    {
+     "coverage": 0.5,
+     "n": 712,
+     "accuracy": 0.4129,
+     "minConfidence": 0.4624,
+     "majorityShareInSlice": 0.427
+    },
+    {
+     "coverage": 0.25,
+     "n": 356,
+     "accuracy": 0.4213,
+     "minConfidence": 0.5304,
+     "majorityShareInSlice": 0.4663
+    },
+    {
+     "coverage": 0.1,
+     "n": 142,
+     "accuracy": 0.5141,
+     "minConfidence": 0.6151,
+     "majorityShareInSlice": 0.5915
+    },
+    {
+     "coverage": 0.05,
+     "n": 71,
+     "accuracy": 0.493,
+     "minConfidence": 0.6924,
+     "majorityShareInSlice": 0.6056
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 1424,
+   "accuracy": 0.3778,
+   "majorityShare": 0.3757,
+   "predictedMix": {
+    "DOWN": 267,
+    "FLAT": 436,
+    "UP": 721
+   },
+   "recall": {
+    "DOWN": 0.2102,
+    "FLAT": 0.4035,
+    "UP": 0.5121
+   },
+   "balancedAccuracy": 0.3753,
+   "vsMajority": {
+    "accuracy": 0.3778,
+    "baseline": 0.3757,
+    "n": 1424,
+    "lift": 0.0021,
+    "standardError": 0.0128,
+    "z": 0.16,
+    "requiredAccuracy": 0.3968,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.3778 vs a 0.3757 baseline on 1424 rows is 0.16 standard errors; does not clear the 0.3968 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 58,
+    "onlyOtherRight": 53,
+    "discordant": 111,
+    "z": 0.38,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 58 rows and wrong where it was right on 53; z = 0.38 against the 1.645 needed"
+   },
+   "market": "Commodity",
+   "horizon": 5,
+   "bandScale": 2.0,
+   "bandPct": 2.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 13539,
+   "seconds": 1.6,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 1424,
+     "accuracy": 0.3778,
+     "minConfidence": 0.3356,
+     "majorityShareInSlice": 0.3757
+    },
+    {
+     "coverage": 0.5,
+     "n": 712,
+     "accuracy": 0.3904,
+     "minConfidence": 0.4407,
+     "majorityShareInSlice": 0.3904
+    },
+    {
+     "coverage": 0.25,
+     "n": 356,
+     "accuracy": 0.4045,
+     "minConfidence": 0.5039,
+     "majorityShareInSlice": 0.427
+    },
+    {
+     "coverage": 0.1,
+     "n": 142,
+     "accuracy": 0.4437,
+     "minConfidence": 0.5786,
+     "majorityShareInSlice": 0.5211
+    },
+    {
+     "coverage": 0.05,
+     "n": 71,
+     "accuracy": 0.4366,
+     "minConfidence": 0.6548,
+     "majorityShareInSlice": 0.5493
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 1424,
+   "accuracy": 0.4017,
+   "majorityShare": 0.4017,
+   "predictedMix": {
+    "DOWN": 187,
+    "FLAT": 917,
+    "UP": 320
+   },
+   "recall": {
+    "DOWN": 0.1481,
+    "FLAT": 0.6993,
+    "UP": 0.2523
+   },
+   "balancedAccuracy": 0.3665,
+   "vsMajority": {
+    "accuracy": 0.4017,
+    "baseline": 0.4017,
+    "n": 1424,
+    "lift": 0.0,
+    "standardError": 0.013,
+    "z": 0.0,
+    "requiredAccuracy": 0.4231,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4017 vs a 0.4017 baseline on 1424 rows is 0.00 standard errors; does not clear the 0.4231 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 37,
+    "onlyOtherRight": 29,
+    "discordant": 66,
+    "z": 0.86,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 37 rows and wrong where it was right on 29; z = 0.86 against the 1.645 needed"
+   },
+   "market": "Commodity",
+   "horizon": 5,
+   "bandScale": 3.0,
+   "bandPct": 3.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 13539,
+   "seconds": 1.6,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 1424,
+     "accuracy": 0.4017,
+     "minConfidence": 0.3356,
+     "majorityShareInSlice": 0.4017
+    },
+    {
+     "coverage": 0.5,
+     "n": 712,
+     "accuracy": 0.5056,
+     "minConfidence": 0.5,
+     "majorityShareInSlice": 0.4846
+    },
+    {
+     "coverage": 0.25,
+     "n": 356,
+     "accuracy": 0.5309,
+     "minConfidence": 0.5849,
+     "majorityShareInSlice": 0.5056
+    },
+    {
+     "coverage": 0.1,
+     "n": 142,
+     "accuracy": 0.4859,
+     "minConfidence": 0.6659,
+     "majorityShareInSlice": 0.5141
+    },
+    {
+     "coverage": 0.05,
+     "n": 71,
+     "accuracy": 0.4225,
+     "minConfidence": 0.7364,
+     "majorityShareInSlice": 0.507
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 1424,
+   "accuracy": 0.4719,
+   "majorityShare": 0.5133,
+   "predictedMix": {
+    "DOWN": 105,
+    "FLAT": 1141,
+    "UP": 178
+   },
+   "recall": {
+    "DOWN": 0.0746,
+    "FLAT": 0.814,
+    "UP": 0.1453
+   },
+   "balancedAccuracy": 0.3446,
+   "vsMajority": {
+    "accuracy": 0.4719,
+    "baseline": 0.5133,
+    "n": 1424,
+    "lift": -0.0414,
+    "standardError": 0.0132,
+    "z": -3.13,
+    "requiredAccuracy": 0.5351,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4719 vs a 0.5133 baseline on 1424 rows is -3.13 standard errors; does not clear the 0.5351 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 48,
+    "onlyOtherRight": 25,
+    "discordant": 73,
+    "z": 2.57,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": true,
+    "why": "the candidate was right where the other was wrong on 48 rows and wrong where it was right on 25; z = 2.57 against the 1.645 needed"
+   },
+   "market": "Commodity",
+   "horizon": 5,
+   "bandScale": 4.0,
+   "bandPct": 4.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 13539,
+   "seconds": 1.6,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 1424,
+     "accuracy": 0.4719,
+     "minConfidence": 0.3449,
+     "majorityShareInSlice": 0.5133
+    },
+    {
+     "coverage": 0.5,
+     "n": 712,
+     "accuracy": 0.5983,
+     "minConfidence": 0.5852,
+     "majorityShareInSlice": 0.618
+    },
+    {
+     "coverage": 0.25,
+     "n": 356,
+     "accuracy": 0.6742,
+     "minConfidence": 0.7083,
+     "majorityShareInSlice": 0.6966
+    },
+    {
+     "coverage": 0.1,
+     "n": 142,
+     "accuracy": 0.6761,
+     "minConfidence": 0.7684,
+     "majorityShareInSlice": 0.7183
+    },
+    {
+     "coverage": 0.05,
+     "n": 71,
+     "accuracy": 0.7324,
+     "minConfidence": 0.8235,
+     "majorityShareInSlice": 0.7606
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 1424,
+   "accuracy": 0.6138,
+   "majorityShare": 0.6819,
+   "predictedMix": {
+    "DOWN": 71,
+    "FLAT": 1279,
+    "UP": 74
+   },
+   "recall": {
+    "DOWN": 0.0098,
+    "FLAT": 0.8877,
+    "UP": 0.0402
+   },
+   "balancedAccuracy": 0.3126,
+   "vsMajority": {
+    "accuracy": 0.6138,
+    "baseline": 0.6819,
+    "n": 1424,
+    "lift": -0.0681,
+    "standardError": 0.0123,
+    "z": -5.52,
+    "requiredAccuracy": 0.7022,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.6138 vs a 0.6819 baseline on 1424 rows is -5.52 standard errors; does not clear the 0.7022 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 32,
+    "onlyOtherRight": 10,
+    "discordant": 42,
+    "z": 3.24,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": true,
+    "why": "the candidate was right where the other was wrong on 32 rows and wrong where it was right on 10; z = 3.24 against the 1.645 needed"
+   },
+   "market": "Commodity",
+   "horizon": 5,
+   "bandScale": 6.0,
+   "bandPct": 6.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 13539,
+   "seconds": 1.6,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 1424,
+     "accuracy": 0.6138,
+     "minConfidence": 0.3412,
+     "majorityShareInSlice": 0.6819
+    },
+    {
+     "coverage": 0.5,
+     "n": 712,
+     "accuracy": 0.7711,
+     "minConfidence": 0.7879,
+     "majorityShareInSlice": 0.7809
+    },
+    {
+     "coverage": 0.25,
+     "n": 356,
+     "accuracy": 0.8511,
+     "minConfidence": 0.8589,
+     "majorityShareInSlice": 0.8567
+    },
+    {
+     "coverage": 0.1,
+     "n": 142,
+     "accuracy": 0.8592,
+     "minConfidence": 0.9034,
+     "majorityShareInSlice": 0.8592
+    },
+    {
+     "coverage": 0.05,
+     "n": 71,
+     "accuracy": 0.8592,
+     "minConfidence": 0.9291,
+     "majorityShareInSlice": 0.8592
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 19220,
+   "accuracy": 0.509,
+   "majorityShare": 0.5059,
+   "predictedMix": {
+    "DOWN": 18970,
+    "FLAT": 1,
+    "UP": 249
+   },
+   "recall": {
+    "DOWN": 0.9914,
+    "FLAT": 0.0007,
+    "UP": 0.0175
+   },
+   "balancedAccuracy": 0.3365,
+   "vsMajority": {
+    "accuracy": 0.509,
+    "baseline": 0.5059,
+    "n": 19220,
+    "lift": 0.0031,
+    "standardError": 0.0036,
+    "z": 0.85,
+    "requiredAccuracy": 0.5119,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.5090 vs a 0.5059 baseline on 19220 rows is 0.85 standard errors; does not clear the 0.5119 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 156,
+    "onlyOtherRight": 90,
+    "discordant": 246,
+    "z": 4.14,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": true,
+    "why": "the candidate was right where the other was wrong on 156 rows and wrong where it was right on 90; z = 4.14 against the 1.645 needed"
+   },
+   "market": "Crypto",
+   "horizon": 5,
+   "bandScale": 0.5,
+   "bandPct": 0.5,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 72892,
+   "seconds": 9.5,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 19220,
+     "accuracy": 0.509,
+     "minConfidence": 0.3678,
+     "majorityShareInSlice": 0.5059
+    },
+    {
+     "coverage": 0.5,
+     "n": 9610,
+     "accuracy": 0.5011,
+     "minConfidence": 0.5883,
+     "majorityShareInSlice": 0.5006
+    },
+    {
+     "coverage": 0.25,
+     "n": 4805,
+     "accuracy": 0.4581,
+     "minConfidence": 0.6278,
+     "majorityShareInSlice": 0.4934
+    },
+    {
+     "coverage": 0.1,
+     "n": 1922,
+     "accuracy": 0.4402,
+     "minConfidence": 0.663,
+     "majorityShareInSlice": 0.5187
+    },
+    {
+     "coverage": 0.05,
+     "n": 961,
+     "accuracy": 0.3944,
+     "minConfidence": 0.6856,
+     "majorityShareInSlice": 0.5702
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 19220,
+   "accuracy": 0.4463,
+   "majorityShare": 0.4444,
+   "predictedMix": {
+    "DOWN": 18970,
+    "FLAT": 58,
+    "UP": 192
+   },
+   "recall": {
+    "DOWN": 0.9902,
+    "FLAT": 0.0061,
+    "UP": 0.0139
+   },
+   "balancedAccuracy": 0.3367,
+   "vsMajority": {
+    "accuracy": 0.4463,
+    "baseline": 0.4444,
+    "n": 19220,
+    "lift": 0.0019,
+    "standardError": 0.0036,
+    "z": 0.52,
+    "requiredAccuracy": 0.4503,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4463 vs a 0.4444 baseline on 19220 rows is 0.52 standard errors; does not clear the 0.4503 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 148,
+    "onlyOtherRight": 104,
+    "discordant": 252,
+    "z": 2.71,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": true,
+    "why": "the candidate was right where the other was wrong on 148 rows and wrong where it was right on 104; z = 2.71 against the 1.645 needed"
+   },
+   "market": "Crypto",
+   "horizon": 5,
+   "bandScale": 1.5,
+   "bandPct": 1.5,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 72892,
+   "seconds": 9.4,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 19220,
+     "accuracy": 0.4463,
+     "minConfidence": 0.3341,
+     "majorityShareInSlice": 0.4444
+    },
+    {
+     "coverage": 0.5,
+     "n": 9610,
+     "accuracy": 0.442,
+     "minConfidence": 0.5519,
+     "majorityShareInSlice": 0.4415
+    },
+    {
+     "coverage": 0.25,
+     "n": 4805,
+     "accuracy": 0.4148,
+     "minConfidence": 0.5949,
+     "majorityShareInSlice": 0.4437
+    },
+    {
+     "coverage": 0.1,
+     "n": 1922,
+     "accuracy": 0.4079,
+     "minConfidence": 0.6352,
+     "majorityShareInSlice": 0.4766
+    },
+    {
+     "coverage": 0.05,
+     "n": 961,
+     "accuracy": 0.3829,
+     "minConfidence": 0.6618,
+     "majorityShareInSlice": 0.5213
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 19220,
+   "accuracy": 0.4207,
+   "majorityShare": 0.4161,
+   "predictedMix": {
+    "DOWN": 18839,
+    "FLAT": 196,
+    "UP": 185
+   },
+   "recall": {
+    "DOWN": 0.986,
+    "FLAT": 0.024,
+    "UP": 0.0134
+   },
+   "balancedAccuracy": 0.3411,
+   "vsMajority": {
+    "accuracy": 0.4207,
+    "baseline": 0.4161,
+    "n": 19220,
+    "lift": 0.0045,
+    "standardError": 0.0036,
+    "z": 1.27,
+    "requiredAccuracy": 0.422,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4207 vs a 0.4161 baseline on 19220 rows is 1.27 standard errors; does not clear the 0.4220 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 213,
+    "onlyOtherRight": 263,
+    "discordant": 476,
+    "z": -2.25,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 213 rows and wrong where it was right on 263; z = -2.25 against the 1.645 needed"
+   },
+   "market": "Crypto",
+   "horizon": 5,
+   "bandScale": 2.0,
+   "bandPct": 2.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 72892,
+   "seconds": 9.3,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 19220,
+     "accuracy": 0.4207,
+     "minConfidence": 0.3394,
+     "majorityShareInSlice": 0.4161
+    },
+    {
+     "coverage": 0.5,
+     "n": 9610,
+     "accuracy": 0.4155,
+     "minConfidence": 0.5358,
+     "majorityShareInSlice": 0.4147
+    },
+    {
+     "coverage": 0.25,
+     "n": 4805,
+     "accuracy": 0.399,
+     "minConfidence": 0.5818,
+     "majorityShareInSlice": 0.4231
+    },
+    {
+     "coverage": 0.1,
+     "n": 1922,
+     "accuracy": 0.3913,
+     "minConfidence": 0.625,
+     "majorityShareInSlice": 0.4636
+    },
+    {
+     "coverage": 0.05,
+     "n": 961,
+     "accuracy": 0.3725,
+     "minConfidence": 0.6538,
+     "majorityShareInSlice": 0.4995
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 19220,
+   "accuracy": 0.3797,
+   "majorityShare": 0.3592,
+   "predictedMix": {
+    "DOWN": 17516,
+    "FLAT": 1532,
+    "UP": 172
+   },
+   "recall": {
+    "DOWN": 0.9308,
+    "FLAT": 0.1231,
+    "UP": 0.0122
+   },
+   "balancedAccuracy": 0.3554,
+   "vsMajority": {
+    "accuracy": 0.3797,
+    "baseline": 0.3592,
+    "n": 19220,
+    "lift": 0.0206,
+    "standardError": 0.0035,
+    "z": 5.94,
+    "requiredAccuracy": 0.3648,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": true,
+    "why": "0.3797 vs a 0.3592 baseline on 19220 rows is 5.94 standard errors; clears the 0.3648 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 612,
+    "onlyOtherRight": 799,
+    "discordant": 1411,
+    "z": -4.95,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 612 rows and wrong where it was right on 799; z = -4.95 against the 1.645 needed"
+   },
+   "market": "Crypto",
+   "horizon": 5,
+   "bandScale": 3.0,
+   "bandPct": 3.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 72892,
+   "seconds": 9.4,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 19220,
+     "accuracy": 0.3797,
+     "minConfidence": 0.3357,
+     "majorityShareInSlice": 0.3592
+    },
+    {
+     "coverage": 0.5,
+     "n": 9610,
+     "accuracy": 0.3802,
+     "minConfidence": 0.484,
+     "majorityShareInSlice": 0.3677
+    },
+    {
+     "coverage": 0.25,
+     "n": 4805,
+     "accuracy": 0.3757,
+     "minConfidence": 0.5316,
+     "majorityShareInSlice": 0.369
+    },
+    {
+     "coverage": 0.1,
+     "n": 1922,
+     "accuracy": 0.3788,
+     "minConfidence": 0.5796,
+     "majorityShareInSlice": 0.4022
+    },
+    {
+     "coverage": 0.05,
+     "n": 961,
+     "accuracy": 0.3611,
+     "minConfidence": 0.6124,
+     "majorityShareInSlice": 0.4391
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 19220,
+   "accuracy": 0.3738,
+   "majorityShare": 0.4273,
+   "predictedMix": {
+    "DOWN": 14825,
+    "FLAT": 4285,
+    "UP": 110
+   },
+   "recall": {
+    "DOWN": 0.807,
+    "FLAT": 0.2881,
+    "UP": 0.0063
+   },
+   "balancedAccuracy": 0.3671,
+   "vsMajority": {
+    "accuracy": 0.3738,
+    "baseline": 0.4273,
+    "n": 19220,
+    "lift": -0.0534,
+    "standardError": 0.0036,
+    "z": -14.98,
+    "requiredAccuracy": 0.4331,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.3738 vs a 0.4273 baseline on 19220 rows is -14.98 standard errors; does not clear the 0.4331 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 1125,
+    "onlyOtherRight": 2122,
+    "discordant": 3247,
+    "z": -17.48,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 1125 rows and wrong where it was right on 2122; z = -17.48 against the 1.645 needed"
+   },
+   "market": "Crypto",
+   "horizon": 5,
+   "bandScale": 4.0,
+   "bandPct": 4.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 72892,
+   "seconds": 9.6,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 19220,
+     "accuracy": 0.3738,
+     "minConfidence": 0.3351,
+     "majorityShareInSlice": 0.4273
+    },
+    {
+     "coverage": 0.5,
+     "n": 9610,
+     "accuracy": 0.3718,
+     "minConfidence": 0.4603,
+     "majorityShareInSlice": 0.3965
+    },
+    {
+     "coverage": 0.25,
+     "n": 4805,
+     "accuracy": 0.3827,
+     "minConfidence": 0.5096,
+     "majorityShareInSlice": 0.38
+    },
+    {
+     "coverage": 0.1,
+     "n": 1922,
+     "accuracy": 0.3918,
+     "minConfidence": 0.5623,
+     "majorityShareInSlice": 0.3642
+    },
+    {
+     "coverage": 0.05,
+     "n": 961,
+     "accuracy": 0.3892,
+     "minConfidence": 0.5967,
+     "majorityShareInSlice": 0.359
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 19220,
+   "accuracy": 0.5281,
+   "majorityShare": 0.5761,
+   "predictedMix": {
+    "DOWN": 5594,
+    "FLAT": 13585,
+    "UP": 41
+   },
+   "recall": {
+    "DOWN": 0.3731,
+    "FLAT": 0.7724,
+    "UP": 0.0036
+   },
+   "balancedAccuracy": 0.383,
+   "vsMajority": {
+    "accuracy": 0.5281,
+    "baseline": 0.5761,
+    "n": 19220,
+    "lift": -0.048,
+    "standardError": 0.0036,
+    "z": -13.46,
+    "requiredAccuracy": 0.5819,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.5281 vs a 0.5761 baseline on 19220 rows is -13.46 standard errors; does not clear the 0.5819 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 932,
+    "onlyOtherRight": 1803,
+    "discordant": 2735,
+    "z": -16.64,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 932 rows and wrong where it was right on 1803; z = -16.64 against the 1.645 needed"
+   },
+   "market": "Crypto",
+   "horizon": 5,
+   "bandScale": 6.0,
+   "bandPct": 6.0,
+   "family": "logistic",
+   "featureSet": "all",
+   "trainRows": 72892,
+   "seconds": 9.4,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 19220,
+     "accuracy": 0.5281,
+     "minConfidence": 0.3387,
+     "majorityShareInSlice": 0.5761
+    },
+    {
+     "coverage": 0.5,
+     "n": 9610,
+     "accuracy": 0.6057,
+     "minConfidence": 0.4793,
+     "majorityShareInSlice": 0.6314
+    },
+    {
+     "coverage": 0.25,
+     "n": 4805,
+     "accuracy": 0.6666,
+     "minConfidence": 0.5427,
+     "majorityShareInSlice": 0.6772
+    },
+    {
+     "coverage": 0.1,
+     "n": 1922,
+     "accuracy": 0.7216,
+     "minConfidence": 0.6111,
+     "majorityShareInSlice": 0.7237
+    },
+    {
+     "coverage": 0.05,
+     "n": 961,
+     "accuracy": 0.7534,
+     "minConfidence": 0.6599,
+     "majorityShareInSlice": 0.7607
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 49679,
+   "accuracy": 0.4318,
+   "majorityShare": 0.4312,
+   "predictedMix": {
+    "DOWN": 708,
+    "FLAT": 0,
+    "UP": 48971
+   },
+   "recall": {
+    "DOWN": 0.0173,
+    "FLAT": 0.0,
+    "UP": 0.9854
+   },
+   "balancedAccuracy": 0.3342,
+   "vsMajority": {
+    "accuracy": 0.4318,
+    "baseline": 0.4312,
+    "n": 49679,
+    "lift": 0.0006,
+    "standardError": 0.0022,
+    "z": 0.25,
+    "requiredAccuracy": 0.4349,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4318 vs a 0.4312 baseline on 49679 rows is 0.25 standard errors; does not clear the 0.4349 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 771,
+    "onlyOtherRight": 666,
+    "discordant": 1437,
+    "z": 2.74,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": true,
+    "why": "the candidate was right where the other was wrong on 771 rows and wrong where it was right on 666; z = 2.74 against the 1.645 needed"
+   },
+   "market": "US",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "boost",
+   "featureSet": "price",
+   "trainRows": 460424,
+   "seconds": 19.9,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 49679,
+     "accuracy": 0.4318,
+     "minConfidence": 0.3772,
+     "majorityShareInSlice": 0.4312
+    },
+    {
+     "coverage": 0.5,
+     "n": 24839,
+     "accuracy": 0.4464,
+     "minConfidence": 0.4256,
+     "majorityShareInSlice": 0.445
+    },
+    {
+     "coverage": 0.25,
+     "n": 12419,
+     "accuracy": 0.4626,
+     "minConfidence": 0.4484,
+     "majorityShareInSlice": 0.4626
+    },
+    {
+     "coverage": 0.1,
+     "n": 4967,
+     "accuracy": 0.5027,
+     "minConfidence": 0.4674,
+     "majorityShareInSlice": 0.5027
+    },
+    {
+     "coverage": 0.05,
+     "n": 2483,
+     "accuracy": 0.5457,
+     "minConfidence": 0.4803,
+     "majorityShareInSlice": 0.5457
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 38333,
+   "accuracy": 0.4528,
+   "majorityShare": 0.4699,
+   "predictedMix": {
+    "DOWN": 30861,
+    "FLAT": 0,
+    "UP": 7472
+   },
+   "recall": {
+    "DOWN": 0.8048,
+    "FLAT": 0.0,
+    "UP": 0.2103
+   },
+   "balancedAccuracy": 0.3384,
+   "vsMajority": {
+    "accuracy": 0.4528,
+    "baseline": 0.4699,
+    "n": 38333,
+    "lift": -0.0172,
+    "standardError": 0.0025,
+    "z": -6.73,
+    "requiredAccuracy": 0.4741,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4528 vs a 0.4699 baseline on 38333 rows is -6.73 standard errors; does not clear the 0.4741 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 2521,
+    "onlyOtherRight": 2909,
+    "discordant": 5430,
+    "z": -5.25,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 2521 rows and wrong where it was right on 2909; z = -5.25 against the 1.645 needed"
+   },
+   "market": "PK",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "boost",
+   "featureSet": "price",
+   "trainRows": 335684,
+   "seconds": 14.8,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 38333,
+     "accuracy": 0.4528,
+     "minConfidence": 0.3827,
+     "majorityShareInSlice": 0.4699
+    },
+    {
+     "coverage": 0.5,
+     "n": 19166,
+     "accuracy": 0.4685,
+     "minConfidence": 0.4293,
+     "majorityShareInSlice": 0.4813
+    },
+    {
+     "coverage": 0.25,
+     "n": 9583,
+     "accuracy": 0.4695,
+     "minConfidence": 0.4471,
+     "majorityShareInSlice": 0.4947
+    },
+    {
+     "coverage": 0.1,
+     "n": 3833,
+     "accuracy": 0.4553,
+     "minConfidence": 0.4653,
+     "majorityShareInSlice": 0.4939
+    },
+    {
+     "coverage": 0.05,
+     "n": 1916,
+     "accuracy": 0.464,
+     "minConfidence": 0.4765,
+     "majorityShareInSlice": 0.5151
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 4995,
+   "accuracy": 0.7419,
+   "majorityShare": 0.7419,
+   "predictedMix": {
+    "DOWN": 0,
+    "FLAT": 4995,
+    "UP": 0
+   },
+   "recall": {
+    "DOWN": 0.0,
+    "FLAT": 1.0,
+    "UP": 0.0
+   },
+   "balancedAccuracy": 0.3333,
+   "vsMajority": {
+    "accuracy": 0.7419,
+    "baseline": 0.7419,
+    "n": 4995,
+    "lift": 0.0,
+    "standardError": 0.0062,
+    "z": 0.0,
+    "requiredAccuracy": 0.7521,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.7419 vs a 0.7419 baseline on 4995 rows is 0.00 standard errors; does not clear the 0.7521 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 0,
+    "onlyOtherRight": 0,
+    "discordant": 0,
+    "enoughData": false,
+    "passes": false,
+    "why": "the two models answered every holdout row the same way"
+   },
+   "market": "FX",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "boost",
+   "featureSet": "price",
+   "trainRows": 47305,
+   "seconds": 1.6,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 4995,
+     "accuracy": 0.7419,
+     "minConfidence": 0.4252,
+     "majorityShareInSlice": 0.7419
+    },
+    {
+     "coverage": 0.5,
+     "n": 2497,
+     "accuracy": 0.8342,
+     "minConfidence": 0.7296,
+     "majorityShareInSlice": 0.8342
+    },
+    {
+     "coverage": 0.25,
+     "n": 1248,
+     "accuracy": 0.8397,
+     "minConfidence": 0.752,
+     "majorityShareInSlice": 0.8397
+    },
+    {
+     "coverage": 0.1,
+     "n": 499,
+     "accuracy": 0.8277,
+     "minConfidence": 0.7652,
+     "majorityShareInSlice": 0.8277
+    },
+    {
+     "coverage": 0.05,
+     "n": 249,
+     "accuracy": 0.8635,
+     "minConfidence": 0.7661,
+     "majorityShareInSlice": 0.8635
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 1424,
+   "accuracy": 0.4607,
+   "majorityShare": 0.4473,
+   "predictedMix": {
+    "DOWN": 235,
+    "FLAT": 0,
+    "UP": 1189
+   },
+   "recall": {
+    "DOWN": 0.2007,
+    "FLAT": 0.0,
+    "UP": 0.8446
+   },
+   "balancedAccuracy": 0.3484,
+   "vsMajority": {
+    "accuracy": 0.4607,
+    "baseline": 0.4473,
+    "n": 1424,
+    "lift": 0.0133,
+    "standardError": 0.0132,
+    "z": 1.01,
+    "requiredAccuracy": 0.469,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4607 vs a 0.4473 baseline on 1424 rows is 1.01 standard errors; does not clear the 0.4690 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 143,
+    "onlyOtherRight": 130,
+    "discordant": 273,
+    "z": 0.73,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 143 rows and wrong where it was right on 130; z = 0.73 against the 1.645 needed"
+   },
+   "market": "Commodity",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "boost",
+   "featureSet": "price",
+   "trainRows": 13539,
+   "seconds": 0.3,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 1424,
+     "accuracy": 0.4607,
+     "minConfidence": 0.3584,
+     "majorityShareInSlice": 0.4473
+    },
+    {
+     "coverage": 0.5,
+     "n": 712,
+     "accuracy": 0.4593,
+     "minConfidence": 0.4355,
+     "majorityShareInSlice": 0.4508
+    },
+    {
+     "coverage": 0.25,
+     "n": 356,
+     "accuracy": 0.4691,
+     "minConfidence": 0.4797,
+     "majorityShareInSlice": 0.4551
+    },
+    {
+     "coverage": 0.1,
+     "n": 142,
+     "accuracy": 0.5282,
+     "minConfidence": 0.5141,
+     "majorityShareInSlice": 0.5352
+    },
+    {
+     "coverage": 0.05,
+     "n": 71,
+     "accuracy": 0.6479,
+     "minConfidence": 0.5352,
+     "majorityShareInSlice": 0.6479
+    }
+   ],
+   "beatsBothBaselines": false
+  },
+  {
+   "n": 19220,
+   "accuracy": 0.468,
+   "majorityShare": 0.4741,
+   "predictedMix": {
+    "DOWN": 18934,
+    "FLAT": 0,
+    "UP": 286
+   },
+   "recall": {
+    "DOWN": 0.9785,
+    "FLAT": 0.0,
+    "UP": 0.0103
+   },
+   "balancedAccuracy": 0.3296,
+   "vsMajority": {
+    "accuracy": 0.468,
+    "baseline": 0.4741,
+    "n": 19220,
+    "lift": -0.0061,
+    "standardError": 0.0036,
+    "z": -1.7,
+    "requiredAccuracy": 0.4801,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "0.4680 vs a 0.4741 baseline on 19220 rows is -1.70 standard errors; does not clear the 0.4801 needed at one-sided 1.645"
+   },
+   "vsPriceOnly": {
+    "onlyCandidateRight": 117,
+    "onlyOtherRight": 230,
+    "discordant": 347,
+    "z": -6.01,
+    "zRequired": 1.645,
+    "enoughData": true,
+    "passes": false,
+    "why": "the candidate was right where the other was wrong on 117 rows and wrong where it was right on 230; z = -6.01 against the 1.645 needed"
+   },
+   "market": "Crypto",
+   "horizon": 5,
+   "bandScale": 1.0,
+   "bandPct": 1.0,
+   "family": "boost",
+   "featureSet": "price",
+   "trainRows": 72892,
+   "seconds": 2.6,
+   "selective": [
+    {
+     "coverage": 1.0,
+     "n": 19220,
+     "accuracy": 0.468,
+     "minConfidence": 0.4353,
+     "majorityShareInSlice": 0.4741
+    },
+    {
+     "coverage": 0.5,
+     "n": 9610,
+     "accuracy": 0.4787,
+     "minConfidence": 0.5688,
+     "majorityShareInSlice": 0.4787
+    },
+    {
+     "coverage": 0.25,
+     "n": 4805,
+     "accuracy": 0.4793,
+     "minConfidence": 0.5803,
+     "majorityShareInSlice": 0.4793
+    },
+    {
+     "coverage": 0.1,
+     "n": 1922,
+     "accuracy": 0.4792,
+     "minConfidence": 0.5877,
+     "majorityShareInSlice": 0.4792
+    },
+    {
+     "coverage": 0.05,
+     "n": 961,
+     "accuracy": 0.4922,
+     "minConfidence": 0.5911,
+     "majorityShareInSlice": 0.4922
+    }
+   ],
+   "beatsBothBaselines": false
+  }
+ ]
+}

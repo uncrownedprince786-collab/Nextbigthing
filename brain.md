@@ -6876,3 +6876,39 @@ reads rows that already exist:
     session **and horizon** -- and the cap now counts the same unit. Still two rows per market per
     session, per horizon. **A quota has to be keyed to the same thing the uniqueness constraint
     is, or the two disagree about what one prediction is.**
+
+190. **90% accuracy is reachable, costs nothing to reach, and is worth exactly nothing — and the
+    sweep measures that rather than arguing it.** 2026-10-20. Ninety arms across two sweeps
+    (`tools/research/sweep.py`, artifacts `sweep.json` and `sweep_balance.json`): five markets,
+    three horizons, four model families, seven label bands, two feature sets, one chronological
+    split with a 20-session embargo, each scored once.
+
+    **58 arm/coverage pairs reached ≥90% accuracy. Every one of them has a lift of exactly
+    `+0.0000` over the base rate of its own slice.** FX at a 2.0% band scores **0.9361**, at 3.0%
+    **0.9868**, at 6.0% **1.0000** — predicting FLAT on 100% of rows, balanced accuracy pinned at
+    **0.3333**, which is chance for three classes. Widen the deadband and the label stops asking a
+    question; accuracy then measures the width of the band and nothing else. The number is real,
+    reproducible, and empty, and the band column is where to look when one appears.
+
+    **The honest ceiling, measured on the same grid:** US, 5 sessions, 2.0% band, plain logistic
+    regression — **0.3988 against a 0.3475 base rate, +5.1 points at 24.1 standard errors on
+    49,679 rows**, balanced accuracy **0.3898** against 0.3333. Filtering to the quarter of
+    sessions the model is most confident about gives **0.4558 against a 0.3512 slice base rate,
+    +10.5 points on 12,419 rows**; the best single reading anywhere is **+11.1 points** (US, 3.0%
+    band, class-weighted, top 5%, n=2,483). That is a real research edge of roughly eight to
+    eleven points over the base rate at ten to twenty-five per cent coverage. It is not 90%, and
+    the distance between those two statements is the whole point of this rule.
+
+    **Two findings about where the limit is.** First, **zero of ninety arms beat the price-only
+    model** on a paired McNemar test: the 29 context features add nothing a linear model over the
+    15 price features does not already have, in every market, horizon and band tried. The
+    bottleneck is the feature set, not the model family — boosting and a two-layer network land
+    within noise of logistic regression everywhere. Second, **class weighting fixes a real defect
+    and does not move the verdict**: US at the 2.0% band had DOWN recall of **0.008** (291 calls
+    in 49,679 rows) — a model that could not say SHORT — and inverse-frequency weighting lifted
+    Commodity's DOWN recall 0.210 → 0.424 and US's balanced accuracy 0.3867 → 0.3968 at the 3.0%
+    band, while the paired comparison still failed everywhere.
+
+    **A number that only moves because the question got easier is not an improvement.** The band
+    sweep is the cheapest instrument this project has for telling those apart, and it should be
+    run before any accuracy figure is believed.
