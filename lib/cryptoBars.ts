@@ -63,6 +63,9 @@ export type BarResult =
 
 interface Venue {
   name: string;
+  /// Which order book this is. Two hosts serving one exchange share a family, so a gap is never
+  /// "patched" from a mirror of the series that already has the gap.
+  family: "binance" | "kraken" | "coinbase";
   /// Null when this venue cannot serve this instrument or this interval at all.
   url: (instrument: string, interval: Interval, limit: number) => string | null;
   parse: (payload: unknown, interval: Interval) => RawBar[];
@@ -82,6 +85,7 @@ function num(x: unknown): number {
 
 const BINANCE: Venue = {
   name: "Binance",
+  family: "binance",
   url: (sym, interval, limit) =>
     `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(sym)}` +
     `&interval=${interval === "5m" ? "5m" : "4h"}&limit=${Math.min(limit, 1000)}`,
@@ -105,8 +109,27 @@ const BINANCE: Venue = {
   imputes: [],
 };
 
+/// The same endpoint on Binance's public market-data host.
+///
+/// Not redundancy for its own sake. `api.binance.com` answers some regions with HTTP 451, and the
+/// serverless region a deployment lands in is not a thing this code chooses -- the project has
+/// already met this once, when Binance stopped answering GitHub's runners on 2026-09-29 and took
+/// the whole nightly lane red with it. `data-api.binance.vision` serves the identical klines
+/// payload from Binance's public data host, so the parse and the imputation list are the same and
+/// only the host differs.
+const BINANCE_VISION: Venue = {
+  name: "Binance (public data mirror)",
+  family: "binance",
+  url: (sym, interval, limit) =>
+    `https://data-api.binance.vision/api/v3/klines?symbol=${encodeURIComponent(sym)}` +
+    `&interval=${interval === "5m" ? "5m" : "4h"}&limit=${Math.min(limit, 1000)}`,
+  parse: BINANCE.parse,
+  imputes: [],
+};
+
 const COINBASE: Venue = {
   name: "Coinbase Exchange",
+  family: "coinbase",
   // 300 candles a request and no 4-hour granularity, so it backs the 5-minute series only. A
   // venue that cannot serve an interval says so here rather than returning a shorter window that
   // would fail the length check further down with a less useful reason.
@@ -145,6 +168,7 @@ const COINBASE: Venue = {
 
 const KRAKEN: Venue = {
   name: "Kraken",
+  family: "kraken",
   url: (pair, interval) =>
     `https://api.kraken.com/0/public/OHLC?pair=${encodeURIComponent(pair)}` +
     `&interval=${interval === "5m" ? 5 : 240}`,
@@ -186,7 +210,13 @@ export interface Instruments {
 /// The venue order for an instrument: depth first, then whatever can fill a hole.
 function chainFor(inst: Instruments): { venue: Venue; instrument: string }[] {
   const out: { venue: Venue; instrument: string }[] = [];
+  // Binance first and its public mirror second, because the klines payload carries taker-buy
+  // volume and a trade count and no other free venue does -- four of the forty-one features are
+  // imputed the moment the chain falls past them. Kraken then covers the coins Binance has
+  // delisted and serves the 4-hour interval Coinbase has no granularity for; Coinbase is last and
+  // 5-minute only.
   if (inst.binance) out.push({ venue: BINANCE, instrument: inst.binance });
+  if (inst.binance) out.push({ venue: BINANCE_VISION, instrument: inst.binance });
   if (inst.kraken) out.push({ venue: KRAKEN, instrument: inst.kraken });
   if (inst.coinbase) out.push({ venue: COINBASE, instrument: inst.coinbase });
   return out;
@@ -341,10 +371,13 @@ export async function windowFor(
     let patched = 0;
     const imputed = new Set(venue.imputes);
 
-    // One hole-filling pass from the next venue down. A second pass is not attempted: a window
-    // that two exchanges together cannot complete is a window to refuse, not one to keep patching.
-    if (missing.length > 0 && i + 1 < chain.length) {
-      const alt = chain[i + 1];
+    // One hole-filling pass from the next venue down that is a *different* order book. A mirror
+    // of the series that already has the hole cannot fill it, and asking it would spend a request
+    // to learn that. A second pass is not attempted either: a window two exchanges together
+    // cannot complete is a window to refuse, not one to keep patching.
+    const patchSource = chain.slice(i + 1).find((c) => c.venue.family !== venue.family);
+    if (missing.length > 0 && patchSource) {
+      const alt = patchSource;
       const altUrl = alt.venue.url(alt.instrument, interval, NEEDED + 80);
       if (altUrl) {
         try {
