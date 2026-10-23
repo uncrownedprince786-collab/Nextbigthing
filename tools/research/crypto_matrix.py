@@ -38,8 +38,16 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 sys.path.insert(0, str(HERE))
 
-from intraday_features import VERSION as FEATURE_VERSION  # noqa: E402
+from intraday_features import N_FEATURES as N_F1, VERSION as FEATURE_VERSION, WARMUP  # noqa: E402
 from intraday_matrix import build, verify_against_reference  # noqa: E402
+from market_context import (  # noqa: E402
+    CONTEXT_FEATURES,
+    VERSION as CONTEXT_VERSION,
+    context_for,
+)
+
+#: The coin whose bars are the market factor every other coin is read against.
+MARKET_SYMBOL = "BTCUSDT"
 
 CORPUS = ROOT / ".cache" / "foundation" / "intraday"
 CACHE = ROOT / ".cache" / "scratch" / "matrix"
@@ -49,8 +57,15 @@ def _corpus_path(symbol: str, interval: str) -> Path:
     return CORPUS / f"{symbol}-{interval}.jsonl.gz"
 
 
-def _key(symbols: list[str], interval: str, stride: int) -> str:
+def _key(symbols: list[str], interval: str, stride: int, context: bool = False) -> str:
     parts = [FEATURE_VERSION, interval, str(stride)]
+    if context:
+        # The factor's own bars are an input to every row, so the cache key has to cover the
+        # context definition and the factor's corpus as well as each coin's.
+        parts.append(CONTEXT_VERSION)
+        mp = _corpus_path(MARKET_SYMBOL, interval)
+        mst = mp.stat() if mp.exists() else None
+        parts.append(f"mkt:{mst.st_size if mst else 0}:{int(mst.st_mtime) if mst else 0}")
     for s in sorted(symbols):
         p = _corpus_path(s, interval)
         st = p.stat() if p.exists() else None
@@ -76,21 +91,46 @@ def _corpus_report(symbol: str, interval: str) -> dict:
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
 
-def _build_pool(symbols: list[str], interval: str, stride: int) -> dict:
-    """Exactly what `train_crypto_short.prepare` builds, with the same exclusions and parity check."""
+def _build_pool(symbols: list[str], interval: str, stride: int, context: bool = False) -> dict:
+    """Exactly what `train_crypto_short.prepare` builds, with the same exclusions and parity check.
+
+    With `context`, the market-factor block is appended to every row and a row the factor has no
+    bar for is dropped from `valid` -- not imputed. A context feature filled across an outage in
+    the factor's series would be a claim about what the market did while nobody was trading it.
+    """
+    mkt = None
+    if context:
+        mbars = _load_bars(MARKET_SYMBOL, interval)
+        mkt = {
+            "ts": np.asarray([b["ts"] for b in mbars], dtype=np.int64),
+            "c": np.asarray([b["c"] for b in mbars], dtype=np.float64),
+            "h": np.asarray([b["h"] for b in mbars], dtype=np.float64),
+            "l": np.asarray([b["l"] for b in mbars], dtype=np.float64),
+        }
+
     Xs, ts_all, close_all, sym_all = [], [], [], []
     corpora: dict[str, dict] = {}
     parity: dict[str, dict] = {}
     for s in symbols:
         bars = _load_bars(s, interval)
         X, ts, valid, step = build(bars)
+        if context and mkt is not None:
+            closes_all = np.asarray([b["c"] for b in bars], dtype=np.float64)
+            C, ctx_ok = context_for(ts, closes_all, mkt["ts"], mkt["c"], mkt["h"], mkt["l"],
+                                    WARMUP)
+            X = np.hstack([X, C]).astype(np.float32)
+            valid = valid & ctx_ok
         if not valid.any():
             corpora[s] = {"bars": len(bars), "usableRows": 0, "stepMs": int(step),
-                          "excluded": "fewer bars than the feature window needs",
+                          "excluded": "fewer bars than the feature window needs, or the market "
+                                      "factor has no bar inside it",
                           "_series": (ts, np.asarray([b["c"] for b in bars], dtype=np.float64),
                                       np.zeros(0, dtype=np.int64))}
             continue
-        parity[s] = verify_against_reference(bars, X, valid, sample=60)
+        # The parity check compares against `intraday_features.features_at`, which defines the 41
+        # f1 columns and knows nothing about the context block, so it is handed those columns
+        # only. The context block has its own definition and is checked by `test_market_context`.
+        parity[s] = verify_against_reference(bars, X[:, :N_F1], valid, sample=60)
         closes = np.asarray([b["c"] for b in bars], dtype=np.float64)
         keep = np.flatnonzero(valid)[:: max(1, stride)]
         Xs.append(X[keep])
@@ -149,17 +189,17 @@ def _load(path: Path) -> dict:
 
 
 def prepare_cached(symbols: list[str], interval: str, stride: int = 1,
-                   verbose: bool = True) -> dict:
+                   verbose: bool = True, context: bool = False) -> dict:
     """The pool, from cache when the corpus and the feature definition are unchanged."""
-    path = CACHE / f"{_key(symbols, interval, stride)}.npz"
+    path = CACHE / f"{_key(symbols, interval, stride, context)}.npz"
     if path.exists() and path.with_suffix(".meta.json").exists():
         if verbose:
             print(f"   matrix cache hit {path.name}", flush=True)
         return _load(path)
     if verbose:
         print(f"   building matrix for {len(symbols)} symbols at {interval} "
-              f"(stride {stride})", flush=True)
-    data = _build_pool(symbols, interval, stride)
+              f"(stride {stride}{', +market context' if context else ''})", flush=True)
+    data = _build_pool(symbols, interval, stride, context)
     _save(path, data, symbols)
     if verbose:
         worst = max((p["worstRelativeDiff"] for p in data["parity"].values()), default=0.0)
@@ -179,7 +219,9 @@ if __name__ == "__main__":
     ap.add_argument("--symbols", nargs="*", default=None)
     ap.add_argument("--interval", default="5m")
     ap.add_argument("--stride", type=int, default=1)
+    ap.add_argument("--context", action="store_true",
+                    help="append the market-factor block (market_context.py)")
     a = ap.parse_args()
     syms = a.symbols or symbols_with(a.interval)
-    d = prepare_cached(syms, a.interval, a.stride)
+    d = prepare_cached(syms, a.interval, a.stride, context=a.context)
     print(f"{len(d['ts']):,} rows, {d['X'].shape[1]} features, {len(d['corpora'])} symbols")

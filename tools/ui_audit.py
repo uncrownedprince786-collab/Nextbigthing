@@ -162,6 +162,11 @@ def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
             if own:
                 states[page.strip("/")] = own[0]
             listed.update(re.findall(r'href="/asset/([^"#?]+)"', html))
+            # Crypto names are reached at their own fast route, not at /asset. The property this
+            # check protects is reachability -- every name the database holds is on a market page
+            # -- and that is unchanged by which page a name's link points at, so both spellings
+            # count. Counting only /asset would have read the whole crypto market as missing.
+            listed.update(re.findall(r'href="/crypto/([^"#?]+)"', html))
             m = re.search(r'data-snapshot="([^"]*)"', html)
             if m:
                 stamps[page] = m.group(1)
@@ -238,6 +243,17 @@ JOURNEY_WINDOWS = ["m5", "m15", "h1", "h4", "d1", "d5", "d20"]
 #: shrug this audit exists to catch.
 JOURNEY_STATES = {"direction", "quiet", "refused", "no-model", "no-source", "data", "error"}
 
+#: The style each window belongs to, mirroring `lib/tradingStyles.ts`. The audit walks the journey
+#: the way a reader does -- style first, then the window inside it -- so a style that stopped
+#: offering a window would fail here rather than being walked around.
+STYLE_OF = {"m5": "scalp", "m15": "scalp", "h1": "intraday", "h4": "intraday",
+            "d1": "swing", "d5": "swing", "d20": "position"}
+
+#: Mirrors `lib/cryptoHorizons.ts`. Used to check the answer restates the window it is about.
+HORIZON_LABEL = {"m5": "Next 5 minutes", "m15": "Next 15 minutes", "h1": "Next hour",
+                 "h4": "Rest of today", "d1": "Next session", "d5": "This week",
+                 "d20": "Coming month"}
+
 
 def check_crypto_journey(site: str, fetch, counts: dict[str, int]) -> list[str]:
     """Home -> Crypto -> a coin -> a window -> that coin's chart and direction, walked for real.
@@ -257,30 +273,37 @@ def check_crypto_journey(site: str, fetch, counts: dict[str, int]) -> list[str]:
     except Exception as e:  # noqa: BLE001
         return [f"/crypto: could not be read ({type(e).__name__})"]
 
-    linked = set(re.findall(r'href="/asset/([^"#?]+)"', index))
+    # The market table links each coin at its own fast route. A price column is the reason the
+    # page exists, so its absence is a failure here rather than a cosmetic difference: a table of
+    # names with no prices is the old index wearing a new layout.
+    linked = set(re.findall(r'href="/crypto/([^"#?]+)"', index))
     for coin in JOURNEY_COINS:
         if coin not in linked:
-            out.append(f"/crypto: the coin list does not link {coin}")
+            out.append(f"/crypto: the market table does not link {coin}")
+    if index.count("$") < 20:
+        out.append("/crypto: the market table carries almost no prices")
 
     for i, coin in enumerate(JOURNEY_COINS):
         windows = JOURNEY_WINDOWS if i == 0 else JOURNEY_WINDOWS[:1]
         try:
-            bare = fetch(f"{site}/asset/{coin}")
+            bare = fetch(f"{site}/crypto/{coin}")
         except Exception as e:  # noqa: BLE001
-            out.append(f"/asset/{coin}: could not be read ({type(e).__name__})")
+            out.append(f"/crypto/{coin}: could not be read ({type(e).__name__})")
             continue
         text = text_of(bare)
         # The question has to be asked, and nothing may be answered before it is.
-        if "How long are you asking about" not in text:
-            out.append(f"/asset/{coin}: the page does not ask which window the reader means")
-        if "Choose a window above" not in text:
-            out.append(f"/asset/{coin}: a window was answered without being chosen")
-        # The distinction the whole panel was rebuilt around.
-        if "How long you are asking about is not which way it goes" not in text:
-            out.append(f"/asset/{coin}: the duration-is-not-direction note is missing")
+        if "How are you trading it" not in text:
+            out.append(f"/crypto/{coin}: the page does not ask how the reader is trading")
+        if "Pick how you are trading" not in text:
+            out.append(f"/crypto/{coin}: a window was answered without being chosen")
+        # Every style button prints the window it resolves to, which is the whole reason a style
+        # vocabulary is safe to offer at all.
+        for word in ("Scalping", "Intraday", "Swing", "Position"):
+            if word not in text:
+                out.append(f"/crypto/{coin}: the {word} style is missing from the picker")
 
         for w in windows:
-            url = f"{site}/asset/{coin}?h={w}"
+            url = f"{site}/crypto/{coin}?style={STYLE_OF.get(w, 'scalp')}&h={w}"
             try:
                 html = fetch(url)
             except Exception as e:  # noqa: BLE001
@@ -289,7 +312,7 @@ def check_crypto_journey(site: str, fetch, counts: dict[str, int]) -> list[str]:
             t = text_of(html)
             counts["journey"] = counts.get("journey", 0) + 1
             # The answer must be about the coin that was asked about.
-            if f"/asset/{coin}?h=" not in html:
+            if f"/crypto/{coin}?" not in html:
                 out.append(f"{url}: the picker on this page does not point back at {coin}")
             low = t.lower()
             m = re.search(r'data-forecast="([a-z-]+)"', html)
@@ -312,7 +335,7 @@ def check_crypto_journey(site: str, fetch, counts: dict[str, int]) -> list[str]:
                     out.append(f"{url}: the panel says {d.group(1)} in its markup and prints no direction")
                 if "the shaded panel on the right is" not in low:
                     out.append(f"{url}: a direction with no chart of the bars it was read from")
-                if "you asked about" not in low:
+                if HORIZON_LABEL[w].lower() not in low:
                     out.append(f"{url}: a direction that does not restate the window it is for")
             elif state == "quiet":
                 counts["quiet"] = counts.get("quiet", 0) + 1
@@ -325,7 +348,10 @@ def check_crypto_journey(site: str, fetch, counts: dict[str, int]) -> list[str]:
                     out.append(f"{url}: a silence with no chart of the bars it was read from")
                 # The failure this guards against is the one the whole floor could become: a page
                 # that stops answering and stops explaining, which reads identically to an outage.
-                if "why there is no direction" not in low:
+                # It has to say what produced the silence, in numbers. A panel that prints
+                # "no clear pattern" and stops is indistinguishable from an outage, which is the
+                # single thing a conviction floor must never be mistaken for.
+                if "from an even call" not in low or "floor" not in low:
                     out.append(f"{url}: a quiet panel that does not say why it is quiet")
     return out
 

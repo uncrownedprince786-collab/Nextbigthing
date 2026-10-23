@@ -47,6 +47,7 @@ import gbm  # noqa: E402
 from crypto_horizons import HORIZONS  # noqa: E402
 from crypto_matrix import prepare_cached, symbols_with  # noqa: E402
 from intraday_features import FEATURES  # noqa: E402
+from market_context import CONTEXT_FEATURES  # noqa: E402
 from train_crypto_short import fit_logistic, labels_for, logistic_proba, split  # noqa: E402
 
 OUT_DIR = ROOT / "data" / "foundation" / "dataset"
@@ -86,15 +87,43 @@ GRIDS: dict[str, list[dict]] = {
         {"depth": 5, "rounds": 600, "lr": 0.05, "l2": 2.0, "features": "all"},
         {"depth": 5, "rounds": 600, "lr": 0.05, "l2": 2.0, "features": "noflow"},
     ],
+    # Does showing the model what the rest of the market was doing help? Run on a matrix built
+    # with --context, so every configuration here is fitted and scored on the same rows.
+    "context": [
+        {"depth": 3, "rounds": 400, "lr": 0.05, "l2": 2.0, "features": "all"},
+        {"depth": 3, "rounds": 400, "lr": 0.05, "l2": 2.0, "features": "context"},
+        {"depth": 3, "rounds": 400, "lr": 0.05, "l2": 2.0, "features": "contextonly"},
+        {"depth": 5, "rounds": 600, "lr": 0.05, "l2": 2.0, "features": "context"},
+    ],
 }
 
 
+#: The full column order a context matrix carries: f1, then the market-factor block.
+ALL_WITH_CONTEXT = list(FEATURES) + list(CONTEXT_FEATURES)
+
+
 def feature_columns(which: str) -> tuple[list[int], list[str]]:
+    """Which columns a named feature set uses, out of a matrix that may carry the context block.
+
+    `all` is the forty-one of f1 and nothing else, whether or not the matrix has context columns
+    appended -- so "f1 against f1 plus context" is one matrix read two ways, on identical rows.
+    That matters more than it looks: context drops the rows the factor has no bar for, and
+    comparing a 41-feature fit on all rows against a 52-feature fit on fewer would be comparing
+    two different test sets and calling the difference a feature.
+    """
     if which == "all":
         return list(range(len(FEATURES))), list(FEATURES)
     if which == "noflow":
         keep = [i for i, f in enumerate(FEATURES) if f not in FLOW_FEATURES]
         return keep, [FEATURES[i] for i in keep]
+    if which == "context":
+        return list(range(len(ALL_WITH_CONTEXT))), list(ALL_WITH_CONTEXT)
+    if which == "contextonly":
+        # The factor block alone, as the control: if this scores like the full set, the coin's own
+        # bars are carrying nothing and the pooled model is a market-direction model wearing a
+        # coin's name.
+        base = len(FEATURES)
+        return list(range(base, base + len(CONTEXT_FEATURES))), list(CONTEXT_FEATURES)
     raise SystemExit(f"unknown feature set {which!r}")
 
 
@@ -155,6 +184,8 @@ def main() -> int:
     ap.add_argument("--grid", default="narrow", choices=list(GRIDS))
     ap.add_argument("--stride", type=int, default=None,
                     help="default: 1 for btc, 5 for the pooled fit (what the artifacts used)")
+    ap.add_argument("--context", action="store_true",
+                    help="build the matrix with the market-factor block appended")
     ap.add_argument("--verbose", type=int, default=0)
     a = ap.parse_args()
 
@@ -165,7 +196,7 @@ def main() -> int:
 
     print(f"== {a.tag} {a.horizon} ({h['label']}) on {len(symbols)} symbols at {interval}, "
           f"stride {stride}", flush=True)
-    data = prepare_cached(symbols, interval, stride)
+    data = prepare_cached(symbols, interval, stride, context=a.context)
     y, usable, _ = labels_for(data, h["bars"])
     ts = data["ts"]
     step_ms = next(iter(data["corpora"].values()))["stepMs"]
@@ -207,6 +238,7 @@ def main() -> int:
         "interval": interval,
         "symbols": symbols,
         "stride": stride,
+        "marketContext": bool(a.context),
         "rows": {"train": int(len(tr)), "validation": int(len(va))},
         "split": split_meta,
         "grid": a.grid,
