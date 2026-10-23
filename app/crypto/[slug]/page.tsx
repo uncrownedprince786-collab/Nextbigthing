@@ -8,6 +8,10 @@ import { coinPrice, coinSnapshot, compactUsd, signedPct } from "@/lib/cryptoMark
 import { recordForecast } from "@/lib/forecastStore";
 import { servingLane } from "@/lib/cryptoLanes";
 import { STYLES, styleFrom } from "@/lib/tradingStyles";
+import { LEVELS_CAVEATS, LEVELS_GENERATED_AT } from "@/lib/cryptoLevels";
+import { getTopNews } from "@/lib/queries";
+import { LiveCoinPrice } from "@/components/LiveCoinPrice";
+import { relativeTime } from "@/lib/format";
 
 /// One coin: the price, the style you are trading it on, and the direction for that window.
 ///
@@ -56,10 +60,22 @@ export default async function Page({
   // The forecast is the only expensive thing on this page, and it is only run when a window has
   // actually been asked for. A page that forecasts before being asked pays for a direction nobody
   // chose and makes the first load the slow one.
-  const forecast: Forecast | null = horizon ? await forecastFor(slug, horizon) : null;
+  // The forecast and the news go out together: both are independent of each other and of the
+  // snapshot already in hand, and running them in series would add the slower one's time to the
+  // faster one's for no reason.
+  const [forecast, news] = await Promise.all([
+    horizon ? forecastFor(slug, horizon) : Promise.resolve(null),
+    // A venue-only coin has no asset row, so there is no stored news for it and nothing to ask.
+    snap.assetId ? getTopNews(snap.assetId, 8).catch(() => []) : Promise.resolve([]),
+  ]);
+  // Recorded only where there is an asset row to key it on. A venue-only coin's forecast is a
+  // real forecast and it cannot enter the prospective record, so the page says so rather than
+  // implying it will be graded later.
   let stored: { stored: boolean; why?: string } | null = null;
-  if (forecast && (forecast.kind === "direction" || forecast.kind === "quiet")) {
-    stored = await recordForecast(snap.assetId, "Crypto", slug, forecast);
+  if (forecast && forecast.kind === "direction") {
+    stored = snap.assetId
+      ? await recordForecast(snap.assetId, "Crypto", slug, forecast)
+      : { stored: false, why: "this coin is not in the registry, so there is no row to key it on" };
   }
 
   const up = (snap.change24h ?? 0) >= 0;
@@ -81,17 +97,14 @@ export default async function Page({
           {snap.name} <span className="text-muted-foreground text-base">{snap.ticker}</span>
         </h1>
       </div>
-      <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
-        <span className="num text-4xl font-semibold tracking-tight">{coinPrice(snap.price)}</span>
-        {snap.change24h !== null ? (
-          <span
-            className={`num text-lg font-medium ${up ? "text-[var(--up)]" : "text-[var(--down)]"}`}
-          >
-            {snap.change24hAbs !== null ? `${up ? "+" : ""}${coinPrice(snap.change24hAbs).replace("$", "")} ` : ""}
-            ({signedPct(snap.change24h)})
-          </span>
-        ) : null}
-      </div>
+      {/* The price keeps itself current in the browser and flashes on every tick, so a reader
+          comparing it against the entry level below is comparing against now. */}
+      <LiveCoinPrice
+        slug={slug}
+        initialPrice={snap.price}
+        initialChange={snap.change24h}
+        initialChangeAbs={snap.change24hAbs}
+      />
       <p className="text-muted-foreground mt-1 text-xs">
         {snap.priceAt === "venue"
           ? "Live from the venue"
@@ -168,8 +181,8 @@ export default async function Page({
           data-forecast={forecast.kind}
           data-horizon={horizon}
           data-direction={forecast.kind === "direction" ? forecast.direction : undefined}
-          data-margin={forecast.kind === "quiet" ? forecast.margin.toFixed(4) : undefined}
-          data-floor={forecast.kind === "quiet" ? forecast.floor.toFixed(3) : undefined}
+          data-margin={forecast.kind === "direction" ? forecast.margin.toFixed(4) : undefined}
+          data-strength={forecast.kind === "direction" ? forecast.strength : undefined}
         >
           <Decision forecast={forecast} slug={slug} stored={stored} />
         </div>
@@ -182,6 +195,51 @@ export default async function Page({
         </p>
       )}
 
+      {news.length ? (
+        <section className="mt-8">
+          <h2 className="text-sm font-medium">Latest on {snap.name}</h2>
+          <ul className="border-border mt-2 divide-y divide-border overflow-hidden rounded-lg border">
+            {news.map((n) => (
+              <li key={n.id} className="hover:bg-muted/50 px-3 py-2.5">
+                <a href={n.url} target="_blank" rel="noopener noreferrer" className="block">
+                  <div className="text-sm hover:underline">{n.title}</div>
+                  <div className="text-muted-foreground mt-0.5 text-xs">
+                    {n.publisher}
+                    {/* How many desks carried the story, which is the difference between one
+                        outlet's take and something the whole market read. */}
+                    {n.outlets > 1 ? ` and ${n.outlets - 1} more` : ""} ·{" "}
+                    {relativeTime(n.publishedAt)}
+                  </div>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p className="text-muted-foreground mt-2 text-xs">
+            Headlines as published, newest first. Nothing here is read by the model — the
+            direction above is computed from price and order flow alone, and these are beside it
+            rather than behind it.
+          </p>
+        </section>
+      ) : null}
+
+      {horizon ? (
+        <details className="border-border mt-6 rounded-lg border px-4 py-3">
+          <summary className="cursor-pointer text-sm font-medium">
+            What the levels are and are not
+          </summary>
+          <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5 text-sm">
+            {LEVELS_CAVEATS.map((c) => (
+              <li key={c}>{c}</li>
+            ))}
+          </ul>
+          <p className="text-muted-foreground mt-2 text-xs">
+            {LEVELS_GENERATED_AT
+              ? `Distances measured ${LEVELS_GENERATED_AT.slice(0, 10)} on the training folds.`
+              : "No distances have been measured in this build, so no levels are shown."}
+          </p>
+        </details>
+      ) : null}
+
       <p className="text-muted-foreground mt-6 text-xs">
         Research, not advice. Direction only: no transaction cost, spread or funding is in any
         number here.{" "}
@@ -190,6 +248,32 @@ export default async function Page({
         </Link>
       </p>
     </main>
+  );
+}
+
+function Level({
+  label,
+  value,
+  note,
+  tone,
+}: {
+  label: string;
+  value: string;
+  note: string;
+  tone?: "up" | "down";
+}) {
+  return (
+    <div className="bg-background p-3">
+      <div className="text-muted-foreground text-xs tracking-wide uppercase">{label}</div>
+      <div
+        className={`num mt-0.5 text-lg font-semibold ${
+          tone === "up" ? "text-[var(--up)]" : tone === "down" ? "text-[var(--down)]" : ""
+        }`}
+      >
+        {value}
+      </div>
+      <div className="text-muted-foreground mt-0.5 text-xs">{note}</div>
+    </div>
   );
 }
 
@@ -214,54 +298,77 @@ function Decision({
 }) {
   const h = f.horizon;
 
-  if (f.kind === "direction" || f.kind === "quiet") {
+  if (f.kind === "direction") {
     const w = f.window;
-    const called = f.kind === "direction";
+    const strong = f.strength === "strong";
     const c = f.lane.conviction;
+    const lv = f.levels;
+    const band = f.measured;
     return (
       <>
         <div className="border-border rounded-lg border p-4">
-          <div className="text-muted-foreground text-xs tracking-wide uppercase">
-            {h.label}
-          </div>
+          <div className="text-muted-foreground text-xs tracking-wide uppercase">{h.label}</div>
           <div className="mt-1 flex flex-wrap items-center gap-3">
-            {called ? (
-              <span
-                className={`text-5xl font-semibold tracking-tight ${
-                  f.direction === "UP" ? "text-[var(--up)]" : "text-[var(--down)]"
-                }`}
-              >
-                {f.direction}
-              </span>
-            ) : (
-              <span className="text-muted-foreground text-3xl font-semibold tracking-tight">
-                No clear pattern
-              </span>
-            )}
-            {called ? (
-              <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
-                {f.confidence}
-              </span>
-            ) : null}
+            <span
+              className={`text-5xl font-semibold tracking-tight ${
+                f.direction === "UP" ? "text-[var(--up)]" : "text-[var(--down)]"
+              }`}
+            >
+              {f.direction}
+            </span>
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                strong
+                  ? "border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  : "border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+              }`}
+            >
+              {strong ? "STRONG" : "WEAK"}
+            </span>
+            <span className="text-muted-foreground num text-sm">
+              {(f.probUp * 100).toFixed(1)}% up · {(f.margin * 200).toFixed(1)} pts from even
+            </span>
           </div>
-          <p className="text-muted-foreground mt-2 text-sm">
-            {called ? (
-              <>
-                {c
-                  ? `Calls like this one were right ${(c.called.accuracy * 100).toFixed(1)}% of the time on ${c.called.rows.toLocaleString()} unseen rows, against ${(c.called.majorityHere * 100).toFixed(1)}% for naming one direction. The model speaks on about ${(c.called.coverage * 100).toFixed(0)} bars in 100.`
-                  : `Right ${(f.lane.evidence.accuracy * 100).toFixed(1)}% of the time on ${f.lane.evidence.testRows.toLocaleString()} unseen rows, against ${(f.lane.evidence.testMajority * 100).toFixed(1)}% for naming one direction.`}
-              </>
-            ) : (
-              <>
-                The model put this window {(f.margin * 200).toFixed(1)} points from an even call,
-                inside its {(f.floor * 200).toFixed(0)}-point floor.
-                {c
-                  ? ` When it does speak it is right ${(c.called.accuracy * 100).toFixed(1)}% of the time, on about ${(c.called.coverage * 100).toFixed(0)} bars in 100.`
-                  : ""}{" "}
-                Try another window, or the same one after the next bar.
-              </>
-            )}
+
+          {/* The three numbers a direction is unusable without. */}
+          {lv ? (
+            <div className="border-border mt-4 grid grid-cols-3 gap-px overflow-hidden rounded-lg border bg-border">
+              <Level label="Entry" value={coinPrice(lv.entry)} note="the close it was read from" />
+              <Level
+                label="Stop"
+                value={coinPrice(lv.stop)}
+                note={`${lv.stopPct.toFixed(2)}% away`}
+                tone={f.direction === "UP" ? "down" : "up"}
+              />
+              <Level
+                label="Target"
+                value={coinPrice(lv.target)}
+                note={`${lv.targetPct.toFixed(2)}% away · ${lv.rr.toFixed(1)}R`}
+                tone={f.direction === "UP" ? "up" : "down"}
+              />
+            </div>
+          ) : null}
+
+          <p className="text-muted-foreground mt-3 text-sm">
+            {strong
+              ? c
+                ? `Strong calls like this were right ${(c.called.accuracy * 100).toFixed(1)}% of the time on ${c.called.rows.toLocaleString()} unseen rows, against ${(c.called.majorityHere * 100).toFixed(1)}% for naming one direction. About ${(c.called.coverage * 100).toFixed(0)} bars in 100 are this strong.`
+                : `Right ${(f.lane.evidence.accuracy * 100).toFixed(1)}% of the time on ${f.lane.evidence.testRows.toLocaleString()} unseen rows, against ${(f.lane.evidence.testMajority * 100).toFixed(1)}% for naming one direction.`
+              : `This one is close to even. On the holdout, calls at least this confident were right ${band ? (band.accuracy * 100).toFixed(1) : (f.lane.evidence.accuracy * 100).toFixed(1)}% of the time${band ? ` (${band.rows.toLocaleString()} rows)` : ""}${c ? `, against ${(c.called.accuracy * 100).toFixed(1)}% for the strong band` : ""}. The direction is the model's; the thinness is too.`}
           </p>
+          {lv ? (
+            <p className="text-muted-foreground mt-2 text-xs">
+              Stop and target are {lv.stopAtr}× and {lv.targetAtr}× the coin&apos;s own 14-bar
+              range, picked for the best expected move over{" "}
+              {lv.measuredRows.toLocaleString()} past windows. Of the ones that went this way,{" "}
+              {(lv.targetFirstWhenRight * 100).toFixed(0)}% reached the target before the stop,{" "}
+              {(lv.stoppedWhenRight * 100).toFixed(0)}% were stopped first, and{" "}
+              {(lv.neitherWhenRight * 100).toFixed(0)}% closed the window with neither touched
+              {lv.neitherWhenRight > 0.5 ? " — most of them, so treat the target as a direction to lean, not an event to expect" : ""}
+              . A measurement of how far price travels, not a prediction: the model calls
+              direction only.
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-3">
@@ -271,7 +378,7 @@ function Decision({
             reference={f.referencePrice}
             horizonMinutes={h.minutes}
             horizonLabel={h.label}
-            direction={called ? f.direction : null}
+            direction={f.direction}
             symbol={slug}
           />
         </div>

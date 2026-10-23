@@ -11,6 +11,7 @@
 // "what can be read for this one", not an absence.
 
 import raw from "@/data/foundation/dataset/crypto_venue_map.json";
+import { pairForSlug } from "@/lib/cryptoUniverse";
 
 export interface VenueRow {
   slug: string;
@@ -53,8 +54,13 @@ export function venueRowFor(slug: string): VenueRow | null {
 /// the venue order, because that is a property of the venues and not of the coin.
 export function instrumentsFor(slug: string): { binance: string | null; coinbase: string | null; kraken: string | null } {
   const row = BY_SLUG.get(slug);
+  // A coin outside the registry has no row here and is still perfectly readable: the universe is
+  // the venue's own instrument list, so a pair found there is one Binance is trading right now.
+  // Coinbase and Kraken stay null for those -- their instrument names are not derivable from a
+  // Binance base asset, and guessing one produces a 400 that looks exactly like a geo-block.
+  const fallback = row ? null : pairForSlug(slug);
   return {
-    binance: row?.binance ?? null,
+    binance: row?.binance ?? fallback,
     coinbase: row?.coinbase ?? null,
     kraken: row?.kraken ?? null,
   };

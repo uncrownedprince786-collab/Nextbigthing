@@ -5050,6 +5050,12 @@ class SqlSafety(unittest.TestCase):
         # `fetch` at all, so `test_no_allowed_client_component_fetches_off_site` has nothing to
         # check on it.
         "components/CoinTable.tsx",
+        # The coin page's price. It has to update for the same reason the table's do, and for one
+        # more: the page prints an entry, a stop and a target computed from the close the model
+        # read, and a reader comparing those against a price struck when the page was rendered is
+        # comparing against the past. On a five-minute call the past is the whole horizon. Same
+        # rule as the rest -- no server module, no environment, one same-origin URL.
+        "components/LiveCoinPrice.tsx",
     )
 
     def test_nothing_is_exposed_to_the_browser(self):

@@ -1,0 +1,3620 @@
+{
+ "generatedAt": "2026-10-23T22:13:06.795137+00:00",
+ "producedBy": "tools/foundation/binance_universe.py",
+ "venue": "Binance spot, USDT quotes, TRADING status only",
+ "what": "every coin this site can price and forecast; a superset of the 76-coin registry, which is the set that also carries daily closes, market capitalisation and the rule table's reading",
+ "dropped": {
+  "notTrading": 214,
+  "notUsdt": 2966,
+  "leveraged": 1
+ },
+ "coins": 515,
+ "inRegistry": 65,
+ "assets": [
+  {
+   "pair": "0GUSDT",
+   "ticker": "0G",
+   "slug": "0g",
+   "name": "0G",
+   "inRegistry": false
+  },
+  {
+   "pair": "1000CATUSDT",
+   "ticker": "1000CAT",
+   "slug": "1000cat",
+   "name": "1000CAT",
+   "inRegistry": false
+  },
+  {
+   "pair": "1000CHEEMSUSDT",
+   "ticker": "1000CHEEMS",
+   "slug": "1000cheems",
+   "name": "1000CHEEMS",
+   "inRegistry": false
+  },
+  {
+   "pair": "1000SATSUSDT",
+   "ticker": "1000SATS",
+   "slug": "1000sats",
+   "name": "1000SATS",
+   "inRegistry": false
+  },
+  {
+   "pair": "1INCHUSDT",
+   "ticker": "1INCH",
+   "slug": "1inch",
+   "name": "1INCH",
+   "inRegistry": false
+  },
+  {
+   "pair": "1MBABYDOGEUSDT",
+   "ticker": "1MBABYDOGE",
+   "slug": "1mbabydoge",
+   "name": "1MBABYDOGE",
+   "inRegistry": false
+  },
+  {
+   "pair": "2ZUSDT",
+   "ticker": "2Z",
+   "slug": "2z",
+   "name": "2Z",
+   "inRegistry": false
+  },
+  {
+   "pair": "AAOIBUSDT",
+   "ticker": "AAOIB",
+   "slug": "aaoib",
+   "name": "AAOIB",
+   "inRegistry": false
+  },
+  {
+   "pair": "AAPLBUSDT",
+   "ticker": "AAPLB",
+   "slug": "aaplb",
+   "name": "AAPLB",
+   "inRegistry": false
+  },
+  {
+   "pair": "AAVEUSDT",
+   "ticker": "AAVE",
+   "slug": "aave-new",
+   "name": "Aave",
+   "inRegistry": true
+  },
+  {
+   "pair": "ACEUSDT",
+   "ticker": "ACE",
+   "slug": "ace",
+   "name": "ACE",
+   "inRegistry": false
+  },
+  {
+   "pair": "ACHUSDT",
+   "ticker": "ACH",
+   "slug": "ach",
+   "name": "ACH",
+   "inRegistry": false
+  },
+  {
+   "pair": "ACMUSDT",
+   "ticker": "ACM",
+   "slug": "acm",
+   "name": "ACM",
+   "inRegistry": false
+  },
+  {
+   "pair": "ACTUSDT",
+   "ticker": "ACT",
+   "slug": "act",
+   "name": "ACT",
+   "inRegistry": false
+  },
+  {
+   "pair": "ADAUSDT",
+   "ticker": "ADA",
+   "slug": "ada-cardano",
+   "name": "Cardano",
+   "inRegistry": true
+  },
+  {
+   "pair": "ADBEBUSDT",
+   "ticker": "ADBEB",
+   "slug": "adbeb",
+   "name": "ADBEB",
+   "inRegistry": false
+  },
+  {
+   "pair": "ADXUSDT",
+   "ticker": "ADX",
+   "slug": "adx",
+   "name": "ADX",
+   "inRegistry": false
+  },
+  {
+   "pair": "AEROUSDT",
+   "ticker": "AERO",
+   "slug": "aero-aerodrome-finance",
+   "name": "Aerodrome Finance",
+   "inRegistry": true
+  },
+  {
+   "pair": "AEVOUSDT",
+   "ticker": "AEVO",
+   "slug": "aevo",
+   "name": "AEVO",
+   "inRegistry": false
+  },
+  {
+   "pair": "AGLDUSDT",
+   "ticker": "AGLD",
+   "slug": "agld",
+   "name": "AGLD",
+   "inRegistry": false
+  },
+  {
+   "pair": "AGPUBUSDT",
+   "ticker": "AGPUB",
+   "slug": "agpub",
+   "name": "AGPUB",
+   "inRegistry": false
+  },
+  {
+   "pair": "AIGENSYNUSDT",
+   "ticker": "AIGENSYN",
+   "slug": "aigensyn",
+   "name": "AIGENSYN",
+   "inRegistry": false
+  },
+  {
+   "pair": "AIUSDT",
+   "ticker": "AI",
+   "slug": "ai",
+   "name": "AI",
+   "inRegistry": false
+  },
+  {
+   "pair": "AIXBTUSDT",
+   "ticker": "AIXBT",
+   "slug": "aixbt",
+   "name": "AIXBT",
+   "inRegistry": false
+  },
+  {
+   "pair": "ALABBUSDT",
+   "ticker": "ALABB",
+   "slug": "alabb",
+   "name": "ALABB",
+   "inRegistry": false
+  },
+  {
+   "pair": "ALGOUSDT",
+   "ticker": "ALGO",
+   "slug": "algo-algorand",
+   "name": "Algorand",
+   "inRegistry": true
+  },
+  {
+   "pair": "ALICEUSDT",
+   "ticker": "ALICE",
+   "slug": "alice",
+   "name": "ALICE",
+   "inRegistry": false
+  },
+  {
+   "pair": "ALLOUSDT",
+   "ticker": "ALLO",
+   "slug": "allo",
+   "name": "ALLO",
+   "inRegistry": false
+  },
+  {
+   "pair": "ALPINEUSDT",
+   "ticker": "ALPINE",
+   "slug": "alpine",
+   "name": "ALPINE",
+   "inRegistry": false
+  },
+  {
+   "pair": "ALTUSDT",
+   "ticker": "ALT",
+   "slug": "alt",
+   "name": "ALT",
+   "inRegistry": false
+  },
+  {
+   "pair": "AMATBUSDT",
+   "ticker": "AMATB",
+   "slug": "amatb",
+   "name": "AMATB",
+   "inRegistry": false
+  },
+  {
+   "pair": "AMCBUSDT",
+   "ticker": "AMCB",
+   "slug": "amcb",
+   "name": "AMCB",
+   "inRegistry": false
+  },
+  {
+   "pair": "AMDBUSDT",
+   "ticker": "AMDB",
+   "slug": "amdb",
+   "name": "AMDB",
+   "inRegistry": false
+  },
+  {
+   "pair": "AMPUSDT",
+   "ticker": "AMP",
+   "slug": "amp",
+   "name": "AMP",
+   "inRegistry": false
+  },
+  {
+   "pair": "AMZNBUSDT",
+   "ticker": "AMZNB",
+   "slug": "amznb",
+   "name": "AMZNB",
+   "inRegistry": false
+  },
+  {
+   "pair": "ANIMEUSDT",
+   "ticker": "ANIME",
+   "slug": "anime",
+   "name": "ANIME",
+   "inRegistry": false
+  },
+  {
+   "pair": "ANKRUSDT",
+   "ticker": "ANKR",
+   "slug": "ankr",
+   "name": "ANKR",
+   "inRegistry": false
+  },
+  {
+   "pair": "APEUSDT",
+   "ticker": "APE",
+   "slug": "ape",
+   "name": "APE",
+   "inRegistry": false
+  },
+  {
+   "pair": "API3USDT",
+   "ticker": "API3",
+   "slug": "api3",
+   "name": "API3",
+   "inRegistry": false
+  },
+  {
+   "pair": "APTUSDT",
+   "ticker": "APT",
+   "slug": "apt-aptos",
+   "name": "Aptos",
+   "inRegistry": true
+  },
+  {
+   "pair": "ARBUSDT",
+   "ticker": "ARB",
+   "slug": "arb-arbitrum",
+   "name": "Arbitrum",
+   "inRegistry": true
+  },
+  {
+   "pair": "ARKMUSDT",
+   "ticker": "ARKM",
+   "slug": "arkm",
+   "name": "ARKM",
+   "inRegistry": false
+  },
+  {
+   "pair": "ARKUSDT",
+   "ticker": "ARK",
+   "slug": "ark",
+   "name": "ARK",
+   "inRegistry": false
+  },
+  {
+   "pair": "ARMBUSDT",
+   "ticker": "ARMB",
+   "slug": "armb",
+   "name": "ARMB",
+   "inRegistry": false
+  },
+  {
+   "pair": "ARPAUSDT",
+   "ticker": "ARPA",
+   "slug": "arpa",
+   "name": "ARPA",
+   "inRegistry": false
+  },
+  {
+   "pair": "ARUSDT",
+   "ticker": "AR",
+   "slug": "ar",
+   "name": "AR",
+   "inRegistry": false
+  },
+  {
+   "pair": "ASMLBUSDT",
+   "ticker": "ASMLB",
+   "slug": "asmlb",
+   "name": "ASMLB",
+   "inRegistry": false
+  },
+  {
+   "pair": "ASRUSDT",
+   "ticker": "ASR",
+   "slug": "asr",
+   "name": "ASR",
+   "inRegistry": false
+  },
+  {
+   "pair": "ASTERUSDT",
+   "ticker": "ASTER",
+   "slug": "aster-aster",
+   "name": "Aster",
+   "inRegistry": true
+  },
+  {
+   "pair": "ASTRUSDT",
+   "ticker": "ASTR",
+   "slug": "astr",
+   "name": "ASTR",
+   "inRegistry": false
+  },
+  {
+   "pair": "ASTSBUSDT",
+   "ticker": "ASTSB",
+   "slug": "astsb",
+   "name": "ASTSB",
+   "inRegistry": false
+  },
+  {
+   "pair": "ATMUSDT",
+   "ticker": "ATM",
+   "slug": "atm",
+   "name": "ATM",
+   "inRegistry": false
+  },
+  {
+   "pair": "ATOMUSDT",
+   "ticker": "ATOM",
+   "slug": "atom-cosmos",
+   "name": "Cosmos",
+   "inRegistry": true
+  },
+  {
+   "pair": "ATUSDT",
+   "ticker": "AT",
+   "slug": "at",
+   "name": "AT",
+   "inRegistry": false
+  },
+  {
+   "pair": "AUCTIONUSDT",
+   "ticker": "AUCTION",
+   "slug": "auction",
+   "name": "AUCTION",
+   "inRegistry": false
+  },
+  {
+   "pair": "AUDIOUSDT",
+   "ticker": "AUDIO",
+   "slug": "audio",
+   "name": "AUDIO",
+   "inRegistry": false
+  },
+  {
+   "pair": "AUSDT",
+   "ticker": "A",
+   "slug": "a",
+   "name": "A",
+   "inRegistry": false
+  },
+  {
+   "pair": "AVAUSDT",
+   "ticker": "AVA",
+   "slug": "ava",
+   "name": "AVA",
+   "inRegistry": false
+  },
+  {
+   "pair": "AVAXUSDT",
+   "ticker": "AVAX",
+   "slug": "avax-avalanche",
+   "name": "Avalanche",
+   "inRegistry": true
+  },
+  {
+   "pair": "AVGOBUSDT",
+   "ticker": "AVGOB",
+   "slug": "avgob",
+   "name": "AVGOB",
+   "inRegistry": false
+  },
+  {
+   "pair": "AVNTUSDT",
+   "ticker": "AVNT",
+   "slug": "avnt",
+   "name": "AVNT",
+   "inRegistry": false
+  },
+  {
+   "pair": "AWEUSDT",
+   "ticker": "AWE",
+   "slug": "awe",
+   "name": "AWE",
+   "inRegistry": false
+  },
+  {
+   "pair": "AXLUSDT",
+   "ticker": "AXL",
+   "slug": "axl",
+   "name": "AXL",
+   "inRegistry": false
+  },
+  {
+   "pair": "AXSUSDT",
+   "ticker": "AXS",
+   "slug": "axs",
+   "name": "AXS",
+   "inRegistry": false
+  },
+  {
+   "pair": "AXTIBUSDT",
+   "ticker": "AXTIB",
+   "slug": "axtib",
+   "name": "AXTIB",
+   "inRegistry": false
+  },
+  {
+   "pair": "BABABUSDT",
+   "ticker": "BABAB",
+   "slug": "babab",
+   "name": "BABAB",
+   "inRegistry": false
+  },
+  {
+   "pair": "BABYUSDT",
+   "ticker": "BABY",
+   "slug": "baby",
+   "name": "BABY",
+   "inRegistry": false
+  },
+  {
+   "pair": "BANANAS31USDT",
+   "ticker": "BANANAS31",
+   "slug": "bananas31",
+   "name": "BANANAS31",
+   "inRegistry": false
+  },
+  {
+   "pair": "BANANAUSDT",
+   "ticker": "BANANA",
+   "slug": "banana",
+   "name": "BANANA",
+   "inRegistry": false
+  },
+  {
+   "pair": "BANDUSDT",
+   "ticker": "BAND",
+   "slug": "band",
+   "name": "BAND",
+   "inRegistry": false
+  },
+  {
+   "pair": "BANKUSDT",
+   "ticker": "BANK",
+   "slug": "bank",
+   "name": "BANK",
+   "inRegistry": false
+  },
+  {
+   "pair": "BARDUSDT",
+   "ticker": "BARD",
+   "slug": "bard",
+   "name": "BARD",
+   "inRegistry": false
+  },
+  {
+   "pair": "BARUSDT",
+   "ticker": "BAR",
+   "slug": "bar",
+   "name": "BAR",
+   "inRegistry": false
+  },
+  {
+   "pair": "BATUSDT",
+   "ticker": "BAT",
+   "slug": "bat-basic-attention-token",
+   "name": "Basic Attention Token",
+   "inRegistry": true
+  },
+  {
+   "pair": "BBBUSDT",
+   "ticker": "BBB",
+   "slug": "bbb",
+   "name": "BBB",
+   "inRegistry": false
+  },
+  {
+   "pair": "BBUSDT",
+   "ticker": "BB",
+   "slug": "bb",
+   "name": "BB",
+   "inRegistry": false
+  },
+  {
+   "pair": "BCHUSDT",
+   "ticker": "BCH",
+   "slug": "bch-bitcoin-cash",
+   "name": "Bitcoin Cash",
+   "inRegistry": true
+  },
+  {
+   "pair": "BEAMXUSDT",
+   "ticker": "BEAMX",
+   "slug": "beamx",
+   "name": "BEAMX",
+   "inRegistry": false
+  },
+  {
+   "pair": "BEBUSDT",
+   "ticker": "BEB",
+   "slug": "beb",
+   "name": "BEB",
+   "inRegistry": false
+  },
+  {
+   "pair": "BELUSDT",
+   "ticker": "BEL",
+   "slug": "bel",
+   "name": "BEL",
+   "inRegistry": false
+  },
+  {
+   "pair": "BERAUSDT",
+   "ticker": "BERA",
+   "slug": "bera",
+   "name": "BERA",
+   "inRegistry": false
+  },
+  {
+   "pair": "BFUSDUSDT",
+   "ticker": "BFUSD",
+   "slug": "bfusd",
+   "name": "BFUSD",
+   "inRegistry": false
+  },
+  {
+   "pair": "BICOUSDT",
+   "ticker": "BICO",
+   "slug": "bico",
+   "name": "BICO",
+   "inRegistry": false
+  },
+  {
+   "pair": "BIGTIMEUSDT",
+   "ticker": "BIGTIME",
+   "slug": "bigtime",
+   "name": "BIGTIME",
+   "inRegistry": false
+  },
+  {
+   "pair": "BIOUSDT",
+   "ticker": "BIO",
+   "slug": "bio",
+   "name": "BIO",
+   "inRegistry": false
+  },
+  {
+   "pair": "BLURUSDT",
+   "ticker": "BLUR",
+   "slug": "blur",
+   "name": "BLUR",
+   "inRegistry": false
+  },
+  {
+   "pair": "BMNRBUSDT",
+   "ticker": "BMNRB",
+   "slug": "bmnrb",
+   "name": "BMNRB",
+   "inRegistry": false
+  },
+  {
+   "pair": "BMTUSDT",
+   "ticker": "BMT",
+   "slug": "bmt",
+   "name": "BMT",
+   "inRegistry": false
+  },
+  {
+   "pair": "BNBUSDT",
+   "ticker": "BNB",
+   "slug": "bnb-binance-coin",
+   "name": "BNB",
+   "inRegistry": true
+  },
+  {
+   "pair": "BNCBUSDT",
+   "ticker": "BNCB",
+   "slug": "bncb",
+   "name": "BNCB",
+   "inRegistry": false
+  },
+  {
+   "pair": "BNSOLUSDT",
+   "ticker": "BNSOL",
+   "slug": "bnsol",
+   "name": "BNSOL",
+   "inRegistry": false
+  },
+  {
+   "pair": "BNTUSDT",
+   "ticker": "BNT",
+   "slug": "bnt",
+   "name": "BNT",
+   "inRegistry": false
+  },
+  {
+   "pair": "BOMEUSDT",
+   "ticker": "BOME",
+   "slug": "bome",
+   "name": "BOME",
+   "inRegistry": false
+  },
+  {
+   "pair": "BONKUSDT",
+   "ticker": "BONK",
+   "slug": "bonk",
+   "name": "BONK",
+   "inRegistry": false
+  },
+  {
+   "pair": "BOTBUSDT",
+   "ticker": "BOTB",
+   "slug": "botb",
+   "name": "BOTB",
+   "inRegistry": false
+  },
+  {
+   "pair": "BREVUSDT",
+   "ticker": "BREV",
+   "slug": "brev",
+   "name": "BREV",
+   "inRegistry": false
+  },
+  {
+   "pair": "BRKBBUSDT",
+   "ticker": "BRKBB",
+   "slug": "brkbb",
+   "name": "BRKBB",
+   "inRegistry": false
+  },
+  {
+   "pair": "BROCCOLI714USDT",
+   "ticker": "BROCCOLI714",
+   "slug": "broccoli714",
+   "name": "BROCCOLI714",
+   "inRegistry": false
+  },
+  {
+   "pair": "BTCUSDT",
+   "ticker": "BTC",
+   "slug": "btc-bitcoin",
+   "name": "Bitcoin",
+   "inRegistry": true
+  },
+  {
+   "pair": "BTTCUSDT",
+   "ticker": "BTTC",
+   "slug": "bttc",
+   "name": "BTTC",
+   "inRegistry": false
+  },
+  {
+   "pair": "C98USDT",
+   "ticker": "C98",
+   "slug": "c98",
+   "name": "C98",
+   "inRegistry": false
+  },
+  {
+   "pair": "CAKEUSDT",
+   "ticker": "CAKE",
+   "slug": "cake-pancakeswap",
+   "name": "PancakeSwap",
+   "inRegistry": true
+  },
+  {
+   "pair": "CATIUSDT",
+   "ticker": "CATI",
+   "slug": "cati",
+   "name": "CATI",
+   "inRegistry": false
+  },
+  {
+   "pair": "CBRSBUSDT",
+   "ticker": "CBRSB",
+   "slug": "cbrsb",
+   "name": "CBRSB",
+   "inRegistry": false
+  },
+  {
+   "pair": "CELOUSDT",
+   "ticker": "CELO",
+   "slug": "celo",
+   "name": "CELO",
+   "inRegistry": false
+  },
+  {
+   "pair": "CELRUSDT",
+   "ticker": "CELR",
+   "slug": "celr",
+   "name": "CELR",
+   "inRegistry": false
+  },
+  {
+   "pair": "CETUSUSDT",
+   "ticker": "CETUS",
+   "slug": "cetus",
+   "name": "CETUS",
+   "inRegistry": false
+  },
+  {
+   "pair": "CFGUSDT",
+   "ticker": "CFG",
+   "slug": "cfg",
+   "name": "CFG",
+   "inRegistry": false
+  },
+  {
+   "pair": "CFXUSDT",
+   "ticker": "CFX",
+   "slug": "cfx-conflux-network",
+   "name": "Conflux Network",
+   "inRegistry": true
+  },
+  {
+   "pair": "CGPTUSDT",
+   "ticker": "CGPT",
+   "slug": "cgpt",
+   "name": "CGPT",
+   "inRegistry": false
+  },
+  {
+   "pair": "CHIPUSDT",
+   "ticker": "CHIP",
+   "slug": "chip",
+   "name": "CHIP",
+   "inRegistry": false
+  },
+  {
+   "pair": "CHRUSDT",
+   "ticker": "CHR",
+   "slug": "chr",
+   "name": "CHR",
+   "inRegistry": false
+  },
+  {
+   "pair": "CHZUSDT",
+   "ticker": "CHZ",
+   "slug": "chz",
+   "name": "CHZ",
+   "inRegistry": false
+  },
+  {
+   "pair": "CITYUSDT",
+   "ticker": "CITY",
+   "slug": "city",
+   "name": "CITY",
+   "inRegistry": false
+  },
+  {
+   "pair": "CKBUSDT",
+   "ticker": "CKB",
+   "slug": "ckb",
+   "name": "CKB",
+   "inRegistry": false
+  },
+  {
+   "pair": "COHRBUSDT",
+   "ticker": "COHRB",
+   "slug": "cohrb",
+   "name": "COHRB",
+   "inRegistry": false
+  },
+  {
+   "pair": "COINBUSDT",
+   "ticker": "COINB",
+   "slug": "coinb",
+   "name": "COINB",
+   "inRegistry": false
+  },
+  {
+   "pair": "COMPUSDT",
+   "ticker": "COMP",
+   "slug": "comp",
+   "name": "COMP",
+   "inRegistry": false
+  },
+  {
+   "pair": "COOKIEUSDT",
+   "ticker": "COOKIE",
+   "slug": "cookie",
+   "name": "COOKIE",
+   "inRegistry": false
+  },
+  {
+   "pair": "COTIUSDT",
+   "ticker": "COTI",
+   "slug": "coti",
+   "name": "COTI",
+   "inRegistry": false
+  },
+  {
+   "pair": "COWUSDT",
+   "ticker": "COW",
+   "slug": "cow",
+   "name": "COW",
+   "inRegistry": false
+  },
+  {
+   "pair": "CRCLBUSDT",
+   "ticker": "CRCLB",
+   "slug": "crclb",
+   "name": "CRCLB",
+   "inRegistry": false
+  },
+  {
+   "pair": "CRDOBUSDT",
+   "ticker": "CRDOB",
+   "slug": "crdob",
+   "name": "CRDOB",
+   "inRegistry": false
+  },
+  {
+   "pair": "CRMBUSDT",
+   "ticker": "CRMB",
+   "slug": "crmb",
+   "name": "CRMB",
+   "inRegistry": false
+  },
+  {
+   "pair": "CRVUSDT",
+   "ticker": "CRV",
+   "slug": "crv-curve-dao-token",
+   "name": "Curve DAO Token",
+   "inRegistry": true
+  },
+  {
+   "pair": "CRWDBUSDT",
+   "ticker": "CRWDB",
+   "slug": "crwdb",
+   "name": "CRWDB",
+   "inRegistry": false
+  },
+  {
+   "pair": "CRWVBUSDT",
+   "ticker": "CRWVB",
+   "slug": "crwvb",
+   "name": "CRWVB",
+   "inRegistry": false
+  },
+  {
+   "pair": "CTKUSDT",
+   "ticker": "CTK",
+   "slug": "ctk",
+   "name": "CTK",
+   "inRegistry": false
+  },
+  {
+   "pair": "CTSIUSDT",
+   "ticker": "CTSI",
+   "slug": "ctsi",
+   "name": "CTSI",
+   "inRegistry": false
+  },
+  {
+   "pair": "CUSDT",
+   "ticker": "C",
+   "slug": "c",
+   "name": "C",
+   "inRegistry": false
+  },
+  {
+   "pair": "CVCUSDT",
+   "ticker": "CVC",
+   "slug": "cvc",
+   "name": "CVC",
+   "inRegistry": false
+  },
+  {
+   "pair": "CVXUSDT",
+   "ticker": "CVX",
+   "slug": "cvx",
+   "name": "CVX",
+   "inRegistry": false
+  },
+  {
+   "pair": "CYBERUSDT",
+   "ticker": "CYBER",
+   "slug": "cyber",
+   "name": "CYBER",
+   "inRegistry": false
+  },
+  {
+   "pair": "CYPHBUSDT",
+   "ticker": "CYPHB",
+   "slug": "cyphb",
+   "name": "CYPHB",
+   "inRegistry": false
+  },
+  {
+   "pair": "DASHUSDT",
+   "ticker": "DASH",
+   "slug": "dash-dash",
+   "name": "Dash",
+   "inRegistry": true
+  },
+  {
+   "pair": "DCRUSDT",
+   "ticker": "DCR",
+   "slug": "dcr",
+   "name": "DCR",
+   "inRegistry": false
+  },
+  {
+   "pair": "DELLBUSDT",
+   "ticker": "DELLB",
+   "slug": "dellb",
+   "name": "DELLB",
+   "inRegistry": false
+  },
+  {
+   "pair": "DEXEUSDT",
+   "ticker": "DEXE",
+   "slug": "dexe",
+   "name": "DEXE",
+   "inRegistry": false
+  },
+  {
+   "pair": "DGBUSDT",
+   "ticker": "DGB",
+   "slug": "dgb",
+   "name": "DGB",
+   "inRegistry": false
+  },
+  {
+   "pair": "DIAUSDT",
+   "ticker": "DIA",
+   "slug": "dia",
+   "name": "DIA",
+   "inRegistry": false
+  },
+  {
+   "pair": "DJTBUSDT",
+   "ticker": "DJTB",
+   "slug": "djtb",
+   "name": "DJTB",
+   "inRegistry": false
+  },
+  {
+   "pair": "DODOUSDT",
+   "ticker": "DODO",
+   "slug": "dodo",
+   "name": "DODO",
+   "inRegistry": false
+  },
+  {
+   "pair": "DOGEUSDT",
+   "ticker": "DOGE",
+   "slug": "doge-dogecoin",
+   "name": "Dogecoin",
+   "inRegistry": true
+  },
+  {
+   "pair": "DOGSUSDT",
+   "ticker": "DOGS",
+   "slug": "dogs",
+   "name": "DOGS",
+   "inRegistry": false
+  },
+  {
+   "pair": "DOLOUSDT",
+   "ticker": "DOLO",
+   "slug": "dolo",
+   "name": "DOLO",
+   "inRegistry": false
+  },
+  {
+   "pair": "DOTUSDT",
+   "ticker": "DOT",
+   "slug": "dot-polkadot",
+   "name": "Polkadot",
+   "inRegistry": true
+  },
+  {
+   "pair": "DRAMBUSDT",
+   "ticker": "DRAMB",
+   "slug": "dramb",
+   "name": "DRAMB",
+   "inRegistry": false
+  },
+  {
+   "pair": "DUSKUSDT",
+   "ticker": "DUSK",
+   "slug": "dusk",
+   "name": "DUSK",
+   "inRegistry": false
+  },
+  {
+   "pair": "DYDXUSDT",
+   "ticker": "DYDX",
+   "slug": "dydx",
+   "name": "DYDX",
+   "inRegistry": false
+  },
+  {
+   "pair": "DYMUSDT",
+   "ticker": "DYM",
+   "slug": "dym",
+   "name": "DYM",
+   "inRegistry": false
+  },
+  {
+   "pair": "EDENUSDT",
+   "ticker": "EDEN",
+   "slug": "eden",
+   "name": "EDEN",
+   "inRegistry": false
+  },
+  {
+   "pair": "EDUUSDT",
+   "ticker": "EDU",
+   "slug": "edu",
+   "name": "EDU",
+   "inRegistry": false
+  },
+  {
+   "pair": "EGLDUSDT",
+   "ticker": "EGLD",
+   "slug": "egld",
+   "name": "EGLD",
+   "inRegistry": false
+  },
+  {
+   "pair": "EIGENUSDT",
+   "ticker": "EIGEN",
+   "slug": "eigen",
+   "name": "EIGEN",
+   "inRegistry": false
+  },
+  {
+   "pair": "ENAUSDT",
+   "ticker": "ENA",
+   "slug": "ena-ethena",
+   "name": "Ethena",
+   "inRegistry": true
+  },
+  {
+   "pair": "ENJUSDT",
+   "ticker": "ENJ",
+   "slug": "enj",
+   "name": "ENJ",
+   "inRegistry": false
+  },
+  {
+   "pair": "ENSOUSDT",
+   "ticker": "ENSO",
+   "slug": "enso",
+   "name": "ENSO",
+   "inRegistry": false
+  },
+  {
+   "pair": "ENSUSDT",
+   "ticker": "ENS",
+   "slug": "ens",
+   "name": "ENS",
+   "inRegistry": false
+  },
+  {
+   "pair": "EPICUSDT",
+   "ticker": "EPIC",
+   "slug": "epic",
+   "name": "EPIC",
+   "inRegistry": false
+  },
+  {
+   "pair": "ERAUSDT",
+   "ticker": "ERA",
+   "slug": "era",
+   "name": "ERA",
+   "inRegistry": false
+  },
+  {
+   "pair": "ESPUSDT",
+   "ticker": "ESP",
+   "slug": "esp",
+   "name": "ESP",
+   "inRegistry": false
+  },
+  {
+   "pair": "ETCUSDT",
+   "ticker": "ETC",
+   "slug": "etc-ethereum-classic",
+   "name": "Ethereum Classic",
+   "inRegistry": true
+  },
+  {
+   "pair": "ETHFIUSDT",
+   "ticker": "ETHFI",
+   "slug": "ethfi",
+   "name": "ETHFI",
+   "inRegistry": false
+  },
+  {
+   "pair": "ETHUSDT",
+   "ticker": "ETH",
+   "slug": "eth-ethereum",
+   "name": "Ethereum",
+   "inRegistry": true
+  },
+  {
+   "pair": "EULUSDT",
+   "ticker": "EUL",
+   "slug": "eul",
+   "name": "EUL",
+   "inRegistry": false
+  },
+  {
+   "pair": "EURIUSDT",
+   "ticker": "EURI",
+   "slug": "euri",
+   "name": "EURI",
+   "inRegistry": false
+  },
+  {
+   "pair": "EURUSDT",
+   "ticker": "EUR",
+   "slug": "eur",
+   "name": "EUR",
+   "inRegistry": false
+  },
+  {
+   "pair": "EWYBUSDT",
+   "ticker": "EWYB",
+   "slug": "ewyb",
+   "name": "EWYB",
+   "inRegistry": false
+  },
+  {
+   "pair": "FDUSDUSDT",
+   "ticker": "FDUSD",
+   "slug": "fdusd",
+   "name": "FDUSD",
+   "inRegistry": false
+  },
+  {
+   "pair": "FETUSDT",
+   "ticker": "FET",
+   "slug": "fetch-ai",
+   "name": "Artificial Superintelligence Alliance",
+   "inRegistry": true
+  },
+  {
+   "pair": "FFUSDT",
+   "ticker": "FF",
+   "slug": "ff",
+   "name": "FF",
+   "inRegistry": false
+  },
+  {
+   "pair": "FIDAUSDT",
+   "ticker": "FIDA",
+   "slug": "fida",
+   "name": "FIDA",
+   "inRegistry": false
+  },
+  {
+   "pair": "FILUSDT",
+   "ticker": "FIL",
+   "slug": "fil-filecoin",
+   "name": "Filecoin",
+   "inRegistry": true
+  },
+  {
+   "pair": "FLNCBUSDT",
+   "ticker": "FLNCB",
+   "slug": "flncb",
+   "name": "FLNCB",
+   "inRegistry": false
+  },
+  {
+   "pair": "FLOKIUSDT",
+   "ticker": "FLOKI",
+   "slug": "floki",
+   "name": "FLOKI",
+   "inRegistry": false
+  },
+  {
+   "pair": "FLOWUSDT",
+   "ticker": "FLOW",
+   "slug": "flow",
+   "name": "FLOW",
+   "inRegistry": false
+  },
+  {
+   "pair": "FLUXUSDT",
+   "ticker": "FLUX",
+   "slug": "flux",
+   "name": "FLUX",
+   "inRegistry": false
+  },
+  {
+   "pair": "FOGOUSDT",
+   "ticker": "FOGO",
+   "slug": "fogo",
+   "name": "FOGO",
+   "inRegistry": false
+  },
+  {
+   "pair": "FORMUSDT",
+   "ticker": "FORM",
+   "slug": "form",
+   "name": "FORM",
+   "inRegistry": false
+  },
+  {
+   "pair": "FRAXUSDT",
+   "ticker": "FRAX",
+   "slug": "frax",
+   "name": "FRAX",
+   "inRegistry": false
+  },
+  {
+   "pair": "FTTUSDT",
+   "ticker": "FTT",
+   "slug": "ftt",
+   "name": "FTT",
+   "inRegistry": false
+  },
+  {
+   "pair": "FUSDT",
+   "ticker": "F",
+   "slug": "f",
+   "name": "F",
+   "inRegistry": false
+  },
+  {
+   "pair": "FWDIBUSDT",
+   "ticker": "FWDIB",
+   "slug": "fwdib",
+   "name": "FWDIB",
+   "inRegistry": false
+  },
+  {
+   "pair": "GALAUSDT",
+   "ticker": "GALA",
+   "slug": "gala",
+   "name": "GALA",
+   "inRegistry": false
+  },
+  {
+   "pair": "GASUSDT",
+   "ticker": "GAS",
+   "slug": "gas",
+   "name": "GAS",
+   "inRegistry": false
+  },
+  {
+   "pair": "GENIUSUSDT",
+   "ticker": "GENIUS",
+   "slug": "genius",
+   "name": "GENIUS",
+   "inRegistry": false
+  },
+  {
+   "pair": "GIGGLEUSDT",
+   "ticker": "GIGGLE",
+   "slug": "giggle",
+   "name": "GIGGLE",
+   "inRegistry": false
+  },
+  {
+   "pair": "GLMRUSDT",
+   "ticker": "GLMR",
+   "slug": "glmr",
+   "name": "GLMR",
+   "inRegistry": false
+  },
+  {
+   "pair": "GLMUSDT",
+   "ticker": "GLM",
+   "slug": "glm",
+   "name": "GLM",
+   "inRegistry": false
+  },
+  {
+   "pair": "GLWBUSDT",
+   "ticker": "GLWB",
+   "slug": "glwb",
+   "name": "GLWB",
+   "inRegistry": false
+  },
+  {
+   "pair": "GMEBUSDT",
+   "ticker": "GMEB",
+   "slug": "gmeb",
+   "name": "GMEB",
+   "inRegistry": false
+  },
+  {
+   "pair": "GMTUSDT",
+   "ticker": "GMT",
+   "slug": "gmt",
+   "name": "GMT",
+   "inRegistry": false
+  },
+  {
+   "pair": "GMXUSDT",
+   "ticker": "GMX",
+   "slug": "gmx",
+   "name": "GMX",
+   "inRegistry": false
+  },
+  {
+   "pair": "GNOUSDT",
+   "ticker": "GNO",
+   "slug": "gno",
+   "name": "GNO",
+   "inRegistry": false
+  },
+  {
+   "pair": "GNSUSDT",
+   "ticker": "GNS",
+   "slug": "gns",
+   "name": "GNS",
+   "inRegistry": false
+  },
+  {
+   "pair": "GOOGLBUSDT",
+   "ticker": "GOOGLB",
+   "slug": "googlb",
+   "name": "GOOGLB",
+   "inRegistry": false
+  },
+  {
+   "pair": "GPROBUSDT",
+   "ticker": "GPROB",
+   "slug": "gprob",
+   "name": "GPROB",
+   "inRegistry": false
+  },
+  {
+   "pair": "GPSUSDT",
+   "ticker": "GPS",
+   "slug": "gps",
+   "name": "GPS",
+   "inRegistry": false
+  },
+  {
+   "pair": "GRAMUSDT",
+   "ticker": "GRAM",
+   "slug": "gram",
+   "name": "GRAM",
+   "inRegistry": false
+  },
+  {
+   "pair": "GRTUSDT",
+   "ticker": "GRT",
+   "slug": "grt",
+   "name": "GRT",
+   "inRegistry": false
+  },
+  {
+   "pair": "GSBUSDT",
+   "ticker": "GSB",
+   "slug": "gsb",
+   "name": "GSB",
+   "inRegistry": false
+  },
+  {
+   "pair": "GTCUSDT",
+   "ticker": "GTC",
+   "slug": "gtc",
+   "name": "GTC",
+   "inRegistry": false
+  },
+  {
+   "pair": "GUNUSDT",
+   "ticker": "GUN",
+   "slug": "gun",
+   "name": "GUN",
+   "inRegistry": false
+  },
+  {
+   "pair": "GUSDT",
+   "ticker": "G",
+   "slug": "g",
+   "name": "G",
+   "inRegistry": false
+  },
+  {
+   "pair": "HAEDALUSDT",
+   "ticker": "HAEDAL",
+   "slug": "haedal",
+   "name": "HAEDAL",
+   "inRegistry": false
+  },
+  {
+   "pair": "HBARUSDT",
+   "ticker": "HBAR",
+   "slug": "hbar-hedera-hashgraph",
+   "name": "Hedera",
+   "inRegistry": true
+  },
+  {
+   "pair": "HEIUSDT",
+   "ticker": "HEI",
+   "slug": "hei",
+   "name": "HEI",
+   "inRegistry": false
+  },
+  {
+   "pair": "HEMIUSDT",
+   "ticker": "HEMI",
+   "slug": "hemi",
+   "name": "HEMI",
+   "inRegistry": false
+  },
+  {
+   "pair": "HIMSBUSDT",
+   "ticker": "HIMSB",
+   "slug": "himsb",
+   "name": "HIMSB",
+   "inRegistry": false
+  },
+  {
+   "pair": "HIVEUSDT",
+   "ticker": "HIVE",
+   "slug": "hive",
+   "name": "HIVE",
+   "inRegistry": false
+  },
+  {
+   "pair": "HMSTRUSDT",
+   "ticker": "HMSTR",
+   "slug": "hmstr",
+   "name": "HMSTR",
+   "inRegistry": false
+  },
+  {
+   "pair": "HOLOUSDT",
+   "ticker": "HOLO",
+   "slug": "holo",
+   "name": "HOLO",
+   "inRegistry": false
+  },
+  {
+   "pair": "HOMEUSDT",
+   "ticker": "HOME",
+   "slug": "home",
+   "name": "HOME",
+   "inRegistry": false
+  },
+  {
+   "pair": "HOODBUSDT",
+   "ticker": "HOODB",
+   "slug": "hoodb",
+   "name": "HOODB",
+   "inRegistry": false
+  },
+  {
+   "pair": "HOTUSDT",
+   "ticker": "HOT",
+   "slug": "hot",
+   "name": "HOT",
+   "inRegistry": false
+  },
+  {
+   "pair": "HPEBUSDT",
+   "ticker": "HPEB",
+   "slug": "hpeb",
+   "name": "HPEB",
+   "inRegistry": false
+  },
+  {
+   "pair": "HUMAUSDT",
+   "ticker": "HUMA",
+   "slug": "huma",
+   "name": "HUMA",
+   "inRegistry": false
+  },
+  {
+   "pair": "HYPERUSDT",
+   "ticker": "HYPER",
+   "slug": "hyper",
+   "name": "HYPER",
+   "inRegistry": false
+  },
+  {
+   "pair": "HYPEUSDT",
+   "ticker": "HYPE",
+   "slug": "hype-hyperliquid",
+   "name": "Hyperliquid",
+   "inRegistry": true
+  },
+  {
+   "pair": "IBMBUSDT",
+   "ticker": "IBMB",
+   "slug": "ibmb",
+   "name": "IBMB",
+   "inRegistry": false
+  },
+  {
+   "pair": "ICPUSDT",
+   "ticker": "ICP",
+   "slug": "icp-internet-computer",
+   "name": "Internet Computer",
+   "inRegistry": true
+  },
+  {
+   "pair": "IDUSDT",
+   "ticker": "ID",
+   "slug": "id",
+   "name": "ID",
+   "inRegistry": false
+  },
+  {
+   "pair": "ILVUSDT",
+   "ticker": "ILV",
+   "slug": "ilv",
+   "name": "ILV",
+   "inRegistry": false
+  },
+  {
+   "pair": "IMXUSDT",
+   "ticker": "IMX",
+   "slug": "imx",
+   "name": "IMX",
+   "inRegistry": false
+  },
+  {
+   "pair": "INITUSDT",
+   "ticker": "INIT",
+   "slug": "init",
+   "name": "INIT",
+   "inRegistry": false
+  },
+  {
+   "pair": "INJUSDT",
+   "ticker": "INJ",
+   "slug": "inj-injective-protocol",
+   "name": "Injective",
+   "inRegistry": true
+  },
+  {
+   "pair": "INTCBUSDT",
+   "ticker": "INTCB",
+   "slug": "intcb",
+   "name": "INTCB",
+   "inRegistry": false
+  },
+  {
+   "pair": "INTWBUSDT",
+   "ticker": "INTWB",
+   "slug": "intwb",
+   "name": "INTWB",
+   "inRegistry": false
+  },
+  {
+   "pair": "IOSTUSDT",
+   "ticker": "IOST",
+   "slug": "iost",
+   "name": "IOST",
+   "inRegistry": false
+  },
+  {
+   "pair": "IOTAUSDT",
+   "ticker": "IOTA",
+   "slug": "iota",
+   "name": "IOTA",
+   "inRegistry": false
+  },
+  {
+   "pair": "IOTXUSDT",
+   "ticker": "IOTX",
+   "slug": "iotx",
+   "name": "IOTX",
+   "inRegistry": false
+  },
+  {
+   "pair": "IOUSDT",
+   "ticker": "IO",
+   "slug": "io",
+   "name": "IO",
+   "inRegistry": false
+  },
+  {
+   "pair": "IQUSDT",
+   "ticker": "IQ",
+   "slug": "iq",
+   "name": "IQ",
+   "inRegistry": false
+  },
+  {
+   "pair": "IRENBUSDT",
+   "ticker": "IRENB",
+   "slug": "irenb",
+   "name": "IRENB",
+   "inRegistry": false
+  },
+  {
+   "pair": "JASMYUSDT",
+   "ticker": "JASMY",
+   "slug": "jasmy",
+   "name": "JASMY",
+   "inRegistry": false
+  },
+  {
+   "pair": "JOEUSDT",
+   "ticker": "JOE",
+   "slug": "joe",
+   "name": "JOE",
+   "inRegistry": false
+  },
+  {
+   "pair": "JPMBUSDT",
+   "ticker": "JPMB",
+   "slug": "jpmb",
+   "name": "JPMB",
+   "inRegistry": false
+  },
+  {
+   "pair": "JSTUSDT",
+   "ticker": "JST",
+   "slug": "jst",
+   "name": "JST",
+   "inRegistry": false
+  },
+  {
+   "pair": "JTOUSDT",
+   "ticker": "JTO",
+   "slug": "jto",
+   "name": "JTO",
+   "inRegistry": false
+  },
+  {
+   "pair": "JUPUSDT",
+   "ticker": "JUP",
+   "slug": "jup",
+   "name": "JUP",
+   "inRegistry": false
+  },
+  {
+   "pair": "JUVUSDT",
+   "ticker": "JUV",
+   "slug": "juv",
+   "name": "JUV",
+   "inRegistry": false
+  },
+  {
+   "pair": "KAIAUSDT",
+   "ticker": "KAIA",
+   "slug": "kaia",
+   "name": "KAIA",
+   "inRegistry": false
+  },
+  {
+   "pair": "KAITOUSDT",
+   "ticker": "KAITO",
+   "slug": "kaito",
+   "name": "KAITO",
+   "inRegistry": false
+  },
+  {
+   "pair": "KATUSDT",
+   "ticker": "KAT",
+   "slug": "kat",
+   "name": "KAT",
+   "inRegistry": false
+  },
+  {
+   "pair": "KAVAUSDT",
+   "ticker": "KAVA",
+   "slug": "kava",
+   "name": "KAVA",
+   "inRegistry": false
+  },
+  {
+   "pair": "KERNELUSDT",
+   "ticker": "KERNEL",
+   "slug": "kernel",
+   "name": "KERNEL",
+   "inRegistry": false
+  },
+  {
+   "pair": "KGSTUSDT",
+   "ticker": "KGST",
+   "slug": "kgst",
+   "name": "KGST",
+   "inRegistry": false
+  },
+  {
+   "pair": "KITEUSDT",
+   "ticker": "KITE",
+   "slug": "kite",
+   "name": "KITE",
+   "inRegistry": false
+  },
+  {
+   "pair": "KMNOUSDT",
+   "ticker": "KMNO",
+   "slug": "kmno",
+   "name": "KMNO",
+   "inRegistry": false
+  },
+  {
+   "pair": "KNCUSDT",
+   "ticker": "KNC",
+   "slug": "knc",
+   "name": "KNC",
+   "inRegistry": false
+  },
+  {
+   "pair": "KORUBUSDT",
+   "ticker": "KORUB",
+   "slug": "korub",
+   "name": "KORUB",
+   "inRegistry": false
+  },
+  {
+   "pair": "KSMUSDT",
+   "ticker": "KSM",
+   "slug": "ksm",
+   "name": "KSM",
+   "inRegistry": false
+  },
+  {
+   "pair": "KSTRBUSDT",
+   "ticker": "KSTRB",
+   "slug": "kstrb",
+   "name": "KSTRB",
+   "inRegistry": false
+  },
+  {
+   "pair": "LAUSDT",
+   "ticker": "LA",
+   "slug": "la",
+   "name": "LA",
+   "inRegistry": false
+  },
+  {
+   "pair": "LAYERUSDT",
+   "ticker": "LAYER",
+   "slug": "layer",
+   "name": "LAYER",
+   "inRegistry": false
+  },
+  {
+   "pair": "LAZIOUSDT",
+   "ticker": "LAZIO",
+   "slug": "lazio",
+   "name": "LAZIO",
+   "inRegistry": false
+  },
+  {
+   "pair": "LDOUSDT",
+   "ticker": "LDO",
+   "slug": "ldo",
+   "name": "LDO",
+   "inRegistry": false
+  },
+  {
+   "pair": "LINEAUSDT",
+   "ticker": "LINEA",
+   "slug": "linea",
+   "name": "LINEA",
+   "inRegistry": false
+  },
+  {
+   "pair": "LINKUSDT",
+   "ticker": "LINK",
+   "slug": "link-chainlink",
+   "name": "Chainlink",
+   "inRegistry": true
+  },
+  {
+   "pair": "LISTAUSDT",
+   "ticker": "LISTA",
+   "slug": "lista",
+   "name": "LISTA",
+   "inRegistry": false
+  },
+  {
+   "pair": "LITEBUSDT",
+   "ticker": "LITEB",
+   "slug": "liteb",
+   "name": "LITEB",
+   "inRegistry": false
+  },
+  {
+   "pair": "LLYBUSDT",
+   "ticker": "LLYB",
+   "slug": "llyb",
+   "name": "LLYB",
+   "inRegistry": false
+  },
+  {
+   "pair": "LPTUSDT",
+   "ticker": "LPT",
+   "slug": "lpt",
+   "name": "LPT",
+   "inRegistry": false
+  },
+  {
+   "pair": "LQTYUSDT",
+   "ticker": "LQTY",
+   "slug": "lqty",
+   "name": "LQTY",
+   "inRegistry": false
+  },
+  {
+   "pair": "LSKUSDT",
+   "ticker": "LSK",
+   "slug": "lsk",
+   "name": "LSK",
+   "inRegistry": false
+  },
+  {
+   "pair": "LTCUSDT",
+   "ticker": "LTC",
+   "slug": "ltc-litecoin",
+   "name": "Litecoin",
+   "inRegistry": true
+  },
+  {
+   "pair": "LUMIAUSDT",
+   "ticker": "LUMIA",
+   "slug": "lumia",
+   "name": "LUMIA",
+   "inRegistry": false
+  },
+  {
+   "pair": "LUNAUSDT",
+   "ticker": "LUNA",
+   "slug": "luna",
+   "name": "LUNA",
+   "inRegistry": false
+  },
+  {
+   "pair": "LUNCUSDT",
+   "ticker": "LUNC",
+   "slug": "lunc",
+   "name": "LUNC",
+   "inRegistry": false
+  },
+  {
+   "pair": "MAGICUSDT",
+   "ticker": "MAGIC",
+   "slug": "magic",
+   "name": "MAGIC",
+   "inRegistry": false
+  },
+  {
+   "pair": "MANAUSDT",
+   "ticker": "MANA",
+   "slug": "mana",
+   "name": "MANA",
+   "inRegistry": false
+  },
+  {
+   "pair": "MANTAUSDT",
+   "ticker": "MANTA",
+   "slug": "manta",
+   "name": "MANTA",
+   "inRegistry": false
+  },
+  {
+   "pair": "MANTRAUSDT",
+   "ticker": "MANTRA",
+   "slug": "mantra",
+   "name": "MANTRA",
+   "inRegistry": false
+  },
+  {
+   "pair": "MARSCOINUSDT",
+   "ticker": "MARSCOIN",
+   "slug": "marscoin",
+   "name": "MARSCOIN",
+   "inRegistry": false
+  },
+  {
+   "pair": "MASKUSDT",
+   "ticker": "MASK",
+   "slug": "mask",
+   "name": "MASK",
+   "inRegistry": false
+  },
+  {
+   "pair": "MAVUSDT",
+   "ticker": "MAV",
+   "slug": "mav",
+   "name": "MAV",
+   "inRegistry": false
+  },
+  {
+   "pair": "MBLUSDT",
+   "ticker": "MBL",
+   "slug": "mbl",
+   "name": "MBL",
+   "inRegistry": false
+  },
+  {
+   "pair": "MDBBUSDT",
+   "ticker": "MDBB",
+   "slug": "mdbb",
+   "name": "MDBB",
+   "inRegistry": false
+  },
+  {
+   "pair": "MEGAUSDT",
+   "ticker": "MEGA",
+   "slug": "mega",
+   "name": "MEGA",
+   "inRegistry": false
+  },
+  {
+   "pair": "MEMEUSDT",
+   "ticker": "MEME",
+   "slug": "meme",
+   "name": "MEME",
+   "inRegistry": false
+  },
+  {
+   "pair": "METABUSDT",
+   "ticker": "METAB",
+   "slug": "metab",
+   "name": "METAB",
+   "inRegistry": false
+  },
+  {
+   "pair": "METISUSDT",
+   "ticker": "METIS",
+   "slug": "metis",
+   "name": "METIS",
+   "inRegistry": false
+  },
+  {
+   "pair": "METUSDT",
+   "ticker": "MET",
+   "slug": "met",
+   "name": "MET",
+   "inRegistry": false
+  },
+  {
+   "pair": "MEUSDT",
+   "ticker": "ME",
+   "slug": "me",
+   "name": "ME",
+   "inRegistry": false
+  },
+  {
+   "pair": "MINAUSDT",
+   "ticker": "MINA",
+   "slug": "mina",
+   "name": "MINA",
+   "inRegistry": false
+  },
+  {
+   "pair": "MIRAUSDT",
+   "ticker": "MIRA",
+   "slug": "mira",
+   "name": "MIRA",
+   "inRegistry": false
+  },
+  {
+   "pair": "MITOUSDT",
+   "ticker": "MITO",
+   "slug": "mito",
+   "name": "MITO",
+   "inRegistry": false
+  },
+  {
+   "pair": "MMTUSDT",
+   "ticker": "MMT",
+   "slug": "mmt",
+   "name": "MMT",
+   "inRegistry": false
+  },
+  {
+   "pair": "MORPHOUSDT",
+   "ticker": "MORPHO",
+   "slug": "morpho-morpho",
+   "name": "Morpho",
+   "inRegistry": true
+  },
+  {
+   "pair": "MOVEUSDT",
+   "ticker": "MOVE",
+   "slug": "move",
+   "name": "MOVE",
+   "inRegistry": false
+  },
+  {
+   "pair": "MOVRUSDT",
+   "ticker": "MOVR",
+   "slug": "movr",
+   "name": "MOVR",
+   "inRegistry": false
+  },
+  {
+   "pair": "MRNABUSDT",
+   "ticker": "MRNAB",
+   "slug": "mrnab",
+   "name": "MRNAB",
+   "inRegistry": false
+  },
+  {
+   "pair": "MRVLBUSDT",
+   "ticker": "MRVLB",
+   "slug": "mrvlb",
+   "name": "MRVLB",
+   "inRegistry": false
+  },
+  {
+   "pair": "MSFTBUSDT",
+   "ticker": "MSFTB",
+   "slug": "msftb",
+   "name": "MSFTB",
+   "inRegistry": false
+  },
+  {
+   "pair": "MSTRBUSDT",
+   "ticker": "MSTRB",
+   "slug": "mstrb",
+   "name": "MSTRB",
+   "inRegistry": false
+  },
+  {
+   "pair": "MTLUSDT",
+   "ticker": "MTL",
+   "slug": "mtl",
+   "name": "MTL",
+   "inRegistry": false
+  },
+  {
+   "pair": "MUBARAKUSDT",
+   "ticker": "MUBARAK",
+   "slug": "mubarak",
+   "name": "MUBARAK",
+   "inRegistry": false
+  },
+  {
+   "pair": "MUBUSDT",
+   "ticker": "MUB",
+   "slug": "mub",
+   "name": "MUB",
+   "inRegistry": false
+  },
+  {
+   "pair": "MUUBUSDT",
+   "ticker": "MUUB",
+   "slug": "muub",
+   "name": "MUUB",
+   "inRegistry": false
+  },
+  {
+   "pair": "MVLLBUSDT",
+   "ticker": "MVLLB",
+   "slug": "mvllb",
+   "name": "MVLLB",
+   "inRegistry": false
+  },
+  {
+   "pair": "NBISBUSDT",
+   "ticker": "NBISB",
+   "slug": "nbisb",
+   "name": "NBISB",
+   "inRegistry": false
+  },
+  {
+   "pair": "NEARUSDT",
+   "ticker": "NEAR",
+   "slug": "near-near-protocol",
+   "name": "NEAR Protocol",
+   "inRegistry": true
+  },
+  {
+   "pair": "NEIROUSDT",
+   "ticker": "NEIRO",
+   "slug": "neiro",
+   "name": "NEIRO",
+   "inRegistry": false
+  },
+  {
+   "pair": "NEOUSDT",
+   "ticker": "NEO",
+   "slug": "neo",
+   "name": "NEO",
+   "inRegistry": false
+  },
+  {
+   "pair": "NEWTUSDT",
+   "ticker": "NEWT",
+   "slug": "newt",
+   "name": "NEWT",
+   "inRegistry": false
+  },
+  {
+   "pair": "NEXOUSDT",
+   "ticker": "NEXO",
+   "slug": "nexo",
+   "name": "NEXO",
+   "inRegistry": false
+  },
+  {
+   "pair": "NFLXBUSDT",
+   "ticker": "NFLXB",
+   "slug": "nflxb",
+   "name": "NFLXB",
+   "inRegistry": false
+  },
+  {
+   "pair": "NIGHTUSDT",
+   "ticker": "NIGHT",
+   "slug": "night",
+   "name": "NIGHT",
+   "inRegistry": false
+  },
+  {
+   "pair": "NILUSDT",
+   "ticker": "NIL",
+   "slug": "nil",
+   "name": "NIL",
+   "inRegistry": false
+  },
+  {
+   "pair": "NMRUSDT",
+   "ticker": "NMR",
+   "slug": "nmr",
+   "name": "NMR",
+   "inRegistry": false
+  },
+  {
+   "pair": "NOKBUSDT",
+   "ticker": "NOKB",
+   "slug": "nokb",
+   "name": "NOKB",
+   "inRegistry": false
+  },
+  {
+   "pair": "NOMUSDT",
+   "ticker": "NOM",
+   "slug": "nom",
+   "name": "NOM",
+   "inRegistry": false
+  },
+  {
+   "pair": "NOTUSDT",
+   "ticker": "NOT",
+   "slug": "not",
+   "name": "NOT",
+   "inRegistry": false
+  },
+  {
+   "pair": "NVDABUSDT",
+   "ticker": "NVDAB",
+   "slug": "nvdab",
+   "name": "NVDAB",
+   "inRegistry": false
+  },
+  {
+   "pair": "NXPCUSDT",
+   "ticker": "NXPC",
+   "slug": "nxpc",
+   "name": "NXPC",
+   "inRegistry": false
+  },
+  {
+   "pair": "OGNUSDT",
+   "ticker": "OGN",
+   "slug": "ogn",
+   "name": "OGN",
+   "inRegistry": false
+  },
+  {
+   "pair": "OGUSDT",
+   "ticker": "OG",
+   "slug": "og",
+   "name": "OG",
+   "inRegistry": false
+  },
+  {
+   "pair": "ONDOUSDT",
+   "ticker": "ONDO",
+   "slug": "ondo-ondo",
+   "name": "Ondo",
+   "inRegistry": true
+  },
+  {
+   "pair": "ONEUSDT",
+   "ticker": "ONE",
+   "slug": "one",
+   "name": "ONE",
+   "inRegistry": false
+  },
+  {
+   "pair": "ONGUSDT",
+   "ticker": "ONG",
+   "slug": "ong",
+   "name": "ONG",
+   "inRegistry": false
+  },
+  {
+   "pair": "ONTUSDT",
+   "ticker": "ONT",
+   "slug": "ont",
+   "name": "ONT",
+   "inRegistry": false
+  },
+  {
+   "pair": "OPENUSDT",
+   "ticker": "OPEN",
+   "slug": "open",
+   "name": "OPEN",
+   "inRegistry": false
+  },
+  {
+   "pair": "OPGUSDT",
+   "ticker": "OPG",
+   "slug": "opg",
+   "name": "OPG",
+   "inRegistry": false
+  },
+  {
+   "pair": "OPNUSDT",
+   "ticker": "OPN",
+   "slug": "opn",
+   "name": "OPN",
+   "inRegistry": false
+  },
+  {
+   "pair": "OPUSDT",
+   "ticker": "OP",
+   "slug": "op-optimism",
+   "name": "Optimism",
+   "inRegistry": true
+  },
+  {
+   "pair": "ORCAUSDT",
+   "ticker": "ORCA",
+   "slug": "orca",
+   "name": "ORCA",
+   "inRegistry": false
+  },
+  {
+   "pair": "ORCLBUSDT",
+   "ticker": "ORCLB",
+   "slug": "orclb",
+   "name": "ORCLB",
+   "inRegistry": false
+  },
+  {
+   "pair": "ORDIUSDT",
+   "ticker": "ORDI",
+   "slug": "ordi",
+   "name": "ORDI",
+   "inRegistry": false
+  },
+  {
+   "pair": "OSMOUSDT",
+   "ticker": "OSMO",
+   "slug": "osmo",
+   "name": "OSMO",
+   "inRegistry": false
+  },
+  {
+   "pair": "PARTIUSDT",
+   "ticker": "PARTI",
+   "slug": "parti",
+   "name": "PARTI",
+   "inRegistry": false
+  },
+  {
+   "pair": "PAXGUSDT",
+   "ticker": "PAXG",
+   "slug": "paxg",
+   "name": "PAXG",
+   "inRegistry": false
+  },
+  {
+   "pair": "PDDBUSDT",
+   "ticker": "PDDB",
+   "slug": "pddb",
+   "name": "PDDB",
+   "inRegistry": false
+  },
+  {
+   "pair": "PENDLEUSDT",
+   "ticker": "PENDLE",
+   "slug": "pendle-pendle",
+   "name": "Pendle",
+   "inRegistry": true
+  },
+  {
+   "pair": "PENGBUSDT",
+   "ticker": "PENGB",
+   "slug": "pengb",
+   "name": "PENGB",
+   "inRegistry": false
+  },
+  {
+   "pair": "PENGUUSDT",
+   "ticker": "PENGU",
+   "slug": "pengu-pudgy-penguins",
+   "name": "Pudgy Penguins",
+   "inRegistry": true
+  },
+  {
+   "pair": "PEOPLEUSDT",
+   "ticker": "PEOPLE",
+   "slug": "people",
+   "name": "PEOPLE",
+   "inRegistry": false
+  },
+  {
+   "pair": "PEPEUSDT",
+   "ticker": "PEPE",
+   "slug": "pepe-pepe",
+   "name": "Pepe",
+   "inRegistry": true
+  },
+  {
+   "pair": "PHAUSDT",
+   "ticker": "PHA",
+   "slug": "pha",
+   "name": "PHA",
+   "inRegistry": false
+  },
+  {
+   "pair": "PIXELUSDT",
+   "ticker": "PIXEL",
+   "slug": "pixel",
+   "name": "PIXEL",
+   "inRegistry": false
+  },
+  {
+   "pair": "PLTRBUSDT",
+   "ticker": "PLTRB",
+   "slug": "pltrb",
+   "name": "PLTRB",
+   "inRegistry": false
+  },
+  {
+   "pair": "PLUMEUSDT",
+   "ticker": "PLUME",
+   "slug": "plume",
+   "name": "PLUME",
+   "inRegistry": false
+  },
+  {
+   "pair": "PNUTUSDT",
+   "ticker": "PNUT",
+   "slug": "pnut",
+   "name": "PNUT",
+   "inRegistry": false
+  },
+  {
+   "pair": "POLUSDT",
+   "ticker": "POL",
+   "slug": "pol-polygon-ecosystem-token",
+   "name": "Polygon",
+   "inRegistry": true
+  },
+  {
+   "pair": "POLYXUSDT",
+   "ticker": "POLYX",
+   "slug": "polyx",
+   "name": "POLYX",
+   "inRegistry": false
+  },
+  {
+   "pair": "PORTALUSDT",
+   "ticker": "PORTAL",
+   "slug": "portal",
+   "name": "PORTAL",
+   "inRegistry": false
+  },
+  {
+   "pair": "PORTOUSDT",
+   "ticker": "PORTO",
+   "slug": "porto",
+   "name": "PORTO",
+   "inRegistry": false
+  },
+  {
+   "pair": "POWRUSDT",
+   "ticker": "POWR",
+   "slug": "powr",
+   "name": "POWR",
+   "inRegistry": false
+  },
+  {
+   "pair": "PROMUSDT",
+   "ticker": "PROM",
+   "slug": "prom",
+   "name": "PROM",
+   "inRegistry": false
+  },
+  {
+   "pair": "PROVEUSDT",
+   "ticker": "PROVE",
+   "slug": "prove",
+   "name": "PROVE",
+   "inRegistry": false
+  },
+  {
+   "pair": "PSGUSDT",
+   "ticker": "PSG",
+   "slug": "psg",
+   "name": "PSG",
+   "inRegistry": false
+  },
+  {
+   "pair": "PUMPUSDT",
+   "ticker": "PUMP",
+   "slug": "pump-pumpfun",
+   "name": "Pump.fun",
+   "inRegistry": true
+  },
+  {
+   "pair": "PUNDIXUSDT",
+   "ticker": "PUNDIX",
+   "slug": "pundix",
+   "name": "PUNDIX",
+   "inRegistry": false
+  },
+  {
+   "pair": "PYPLBUSDT",
+   "ticker": "PYPLB",
+   "slug": "pyplb",
+   "name": "PYPLB",
+   "inRegistry": false
+  },
+  {
+   "pair": "PYTHUSDT",
+   "ticker": "PYTH",
+   "slug": "pyth-pyth-network",
+   "name": "Pyth Network",
+   "inRegistry": true
+  },
+  {
+   "pair": "QCOMBUSDT",
+   "ticker": "QCOMB",
+   "slug": "qcomb",
+   "name": "QCOMB",
+   "inRegistry": false
+  },
+  {
+   "pair": "QIUSDT",
+   "ticker": "QI",
+   "slug": "qi",
+   "name": "QI",
+   "inRegistry": false
+  },
+  {
+   "pair": "QKCUSDT",
+   "ticker": "QKC",
+   "slug": "qkc",
+   "name": "QKC",
+   "inRegistry": false
+  },
+  {
+   "pair": "QNTBUSDT",
+   "ticker": "QNTB",
+   "slug": "qntb",
+   "name": "QNTB",
+   "inRegistry": false
+  },
+  {
+   "pair": "QNTUSDT",
+   "ticker": "QNT",
+   "slug": "qnt-quant",
+   "name": "Quant",
+   "inRegistry": true
+  },
+  {
+   "pair": "QQQBUSDT",
+   "ticker": "QQQB",
+   "slug": "qqqb",
+   "name": "QQQB",
+   "inRegistry": false
+  },
+  {
+   "pair": "QTUMUSDT",
+   "ticker": "QTUM",
+   "slug": "qtum",
+   "name": "QTUM",
+   "inRegistry": false
+  },
+  {
+   "pair": "QUICKUSDT",
+   "ticker": "QUICK",
+   "slug": "quick",
+   "name": "QUICK",
+   "inRegistry": false
+  },
+  {
+   "pair": "RADUSDT",
+   "ticker": "RAD",
+   "slug": "rad",
+   "name": "RAD",
+   "inRegistry": false
+  },
+  {
+   "pair": "RAREUSDT",
+   "ticker": "RARE",
+   "slug": "rare",
+   "name": "RARE",
+   "inRegistry": false
+  },
+  {
+   "pair": "RAYUSDT",
+   "ticker": "RAY",
+   "slug": "ray-raydium",
+   "name": "Raydium",
+   "inRegistry": true
+  },
+  {
+   "pair": "RDDTBUSDT",
+   "ticker": "RDDTB",
+   "slug": "rddtb",
+   "name": "RDDTB",
+   "inRegistry": false
+  },
+  {
+   "pair": "REDUSDT",
+   "ticker": "RED",
+   "slug": "red",
+   "name": "RED",
+   "inRegistry": false
+  },
+  {
+   "pair": "RENDERUSDT",
+   "ticker": "RENDER",
+   "slug": "rndr-render-token",
+   "name": "Render",
+   "inRegistry": true
+  },
+  {
+   "pair": "REQUSDT",
+   "ticker": "REQ",
+   "slug": "req",
+   "name": "REQ",
+   "inRegistry": false
+  },
+  {
+   "pair": "RESOLVUSDT",
+   "ticker": "RESOLV",
+   "slug": "resolv",
+   "name": "RESOLV",
+   "inRegistry": false
+  },
+  {
+   "pair": "REUSDT",
+   "ticker": "RE",
+   "slug": "re",
+   "name": "RE",
+   "inRegistry": false
+  },
+  {
+   "pair": "REZUSDT",
+   "ticker": "REZ",
+   "slug": "rez",
+   "name": "REZ",
+   "inRegistry": false
+  },
+  {
+   "pair": "RIFUSDT",
+   "ticker": "RIF",
+   "slug": "rif",
+   "name": "RIF",
+   "inRegistry": false
+  },
+  {
+   "pair": "RKLBBUSDT",
+   "ticker": "RKLBB",
+   "slug": "rklbb",
+   "name": "RKLBB",
+   "inRegistry": false
+  },
+  {
+   "pair": "RLCUSDT",
+   "ticker": "RLC",
+   "slug": "rlc",
+   "name": "RLC",
+   "inRegistry": false
+  },
+  {
+   "pair": "RLUSDUSDT",
+   "ticker": "RLUSD",
+   "slug": "rlusd",
+   "name": "RLUSD",
+   "inRegistry": false
+  },
+  {
+   "pair": "ROBOUSDT",
+   "ticker": "ROBO",
+   "slug": "robo",
+   "name": "ROBO",
+   "inRegistry": false
+  },
+  {
+   "pair": "RONINUSDT",
+   "ticker": "RONIN",
+   "slug": "ronin",
+   "name": "RONIN",
+   "inRegistry": false
+  },
+  {
+   "pair": "ROSEUSDT",
+   "ticker": "ROSE",
+   "slug": "rose",
+   "name": "ROSE",
+   "inRegistry": false
+  },
+  {
+   "pair": "RPLUSDT",
+   "ticker": "RPL",
+   "slug": "rpl",
+   "name": "RPL",
+   "inRegistry": false
+  },
+  {
+   "pair": "RSRUSDT",
+   "ticker": "RSR",
+   "slug": "rsr",
+   "name": "RSR",
+   "inRegistry": false
+  },
+  {
+   "pair": "RUNEUSDT",
+   "ticker": "RUNE",
+   "slug": "rune",
+   "name": "RUNE",
+   "inRegistry": false
+  },
+  {
+   "pair": "RVNUSDT",
+   "ticker": "RVN",
+   "slug": "rvn",
+   "name": "RVN",
+   "inRegistry": false
+  },
+  {
+   "pair": "RWUSDUSDT",
+   "ticker": "RWUSD",
+   "slug": "rwusd",
+   "name": "RWUSD",
+   "inRegistry": false
+  },
+  {
+   "pair": "SAGAUSDT",
+   "ticker": "SAGA",
+   "slug": "saga",
+   "name": "SAGA",
+   "inRegistry": false
+  },
+  {
+   "pair": "SAHARAUSDT",
+   "ticker": "SAHARA",
+   "slug": "sahara",
+   "name": "SAHARA",
+   "inRegistry": false
+  },
+  {
+   "pair": "SANDUSDT",
+   "ticker": "SAND",
+   "slug": "sand",
+   "name": "SAND",
+   "inRegistry": false
+  },
+  {
+   "pair": "SANTOSUSDT",
+   "ticker": "SANTOS",
+   "slug": "santos",
+   "name": "SANTOS",
+   "inRegistry": false
+  },
+  {
+   "pair": "SAPIENUSDT",
+   "ticker": "SAPIEN",
+   "slug": "sapien",
+   "name": "SAPIEN",
+   "inRegistry": false
+  },
+  {
+   "pair": "SCRUSDT",
+   "ticker": "SCR",
+   "slug": "scr",
+   "name": "SCR",
+   "inRegistry": false
+  },
+  {
+   "pair": "SCUSDT",
+   "ticker": "SC",
+   "slug": "sc",
+   "name": "SC",
+   "inRegistry": false
+  },
+  {
+   "pair": "SECZBUSDT",
+   "ticker": "SECZB",
+   "slug": "seczb",
+   "name": "SECZB",
+   "inRegistry": false
+  },
+  {
+   "pair": "SEIUSDT",
+   "ticker": "SEI",
+   "slug": "sei-sei",
+   "name": "Sei",
+   "inRegistry": true
+  },
+  {
+   "pair": "SENTUSDT",
+   "ticker": "SENT",
+   "slug": "sent",
+   "name": "SENT",
+   "inRegistry": false
+  },
+  {
+   "pair": "SFPUSDT",
+   "ticker": "SFP",
+   "slug": "sfp",
+   "name": "SFP",
+   "inRegistry": false
+  },
+  {
+   "pair": "SHAZBUSDT",
+   "ticker": "SHAZB",
+   "slug": "shazb",
+   "name": "SHAZB",
+   "inRegistry": false
+  },
+  {
+   "pair": "SHELLUSDT",
+   "ticker": "SHELL",
+   "slug": "shell",
+   "name": "SHELL",
+   "inRegistry": false
+  },
+  {
+   "pair": "SHIBUSDT",
+   "ticker": "SHIB",
+   "slug": "shib-shiba-inu",
+   "name": "Shiba Inu",
+   "inRegistry": true
+  },
+  {
+   "pair": "SIGNUSDT",
+   "ticker": "SIGN",
+   "slug": "sign",
+   "name": "SIGN",
+   "inRegistry": false
+  },
+  {
+   "pair": "SKHYBUSDT",
+   "ticker": "SKHYB",
+   "slug": "skhyb",
+   "name": "SKHYB",
+   "inRegistry": false
+  },
+  {
+   "pair": "SKLUSDT",
+   "ticker": "SKL",
+   "slug": "skl",
+   "name": "SKL",
+   "inRegistry": false
+  },
+  {
+   "pair": "SKYUSDT",
+   "ticker": "SKY",
+   "slug": "sky-sky",
+   "name": "Sky",
+   "inRegistry": true
+  },
+  {
+   "pair": "SLPUSDT",
+   "ticker": "SLP",
+   "slug": "slp",
+   "name": "SLP",
+   "inRegistry": false
+  },
+  {
+   "pair": "SMCIBUSDT",
+   "ticker": "SMCIB",
+   "slug": "smcib",
+   "name": "SMCIB",
+   "inRegistry": false
+  },
+  {
+   "pair": "SMHBUSDT",
+   "ticker": "SMHB",
+   "slug": "smhb",
+   "name": "SMHB",
+   "inRegistry": false
+  },
+  {
+   "pair": "SNDKBUSDT",
+   "ticker": "SNDKB",
+   "slug": "sndkb",
+   "name": "SNDKB",
+   "inRegistry": false
+  },
+  {
+   "pair": "SNXUSDT",
+   "ticker": "SNX",
+   "slug": "snx",
+   "name": "SNX",
+   "inRegistry": false
+  },
+  {
+   "pair": "SNXXBUSDT",
+   "ticker": "SNXXB",
+   "slug": "snxxb",
+   "name": "SNXXB",
+   "inRegistry": false
+  },
+  {
+   "pair": "SOLUSDT",
+   "ticker": "SOL",
+   "slug": "sol-solana",
+   "name": "Solana",
+   "inRegistry": true
+  },
+  {
+   "pair": "SOLVUSDT",
+   "ticker": "SOLV",
+   "slug": "solv",
+   "name": "SOLV",
+   "inRegistry": false
+  },
+  {
+   "pair": "SOMIUSDT",
+   "ticker": "SOMI",
+   "slug": "somi",
+   "name": "SOMI",
+   "inRegistry": false
+  },
+  {
+   "pair": "SOPHUSDT",
+   "ticker": "SOPH",
+   "slug": "soph",
+   "name": "SOPH",
+   "inRegistry": false
+  },
+  {
+   "pair": "SOXLBUSDT",
+   "ticker": "SOXLB",
+   "slug": "soxlb",
+   "name": "SOXLB",
+   "inRegistry": false
+  },
+  {
+   "pair": "SOXSBUSDT",
+   "ticker": "SOXSB",
+   "slug": "soxsb",
+   "name": "SOXSB",
+   "inRegistry": false
+  },
+  {
+   "pair": "SPCXBUSDT",
+   "ticker": "SPCXB",
+   "slug": "spcxb",
+   "name": "SPCXB",
+   "inRegistry": false
+  },
+  {
+   "pair": "SPELLUSDT",
+   "ticker": "SPELL",
+   "slug": "spell",
+   "name": "SPELL",
+   "inRegistry": false
+  },
+  {
+   "pair": "SPKUSDT",
+   "ticker": "SPK",
+   "slug": "spk",
+   "name": "SPK",
+   "inRegistry": false
+  },
+  {
+   "pair": "SPYBUSDT",
+   "ticker": "SPYB",
+   "slug": "spyb",
+   "name": "SPYB",
+   "inRegistry": false
+  },
+  {
+   "pair": "SQQQBUSDT",
+   "ticker": "SQQQB",
+   "slug": "sqqqb",
+   "name": "SQQQB",
+   "inRegistry": false
+  },
+  {
+   "pair": "SSVUSDT",
+   "ticker": "SSV",
+   "slug": "ssv",
+   "name": "SSV",
+   "inRegistry": false
+  },
+  {
+   "pair": "STEEMUSDT",
+   "ticker": "STEEM",
+   "slug": "steem",
+   "name": "STEEM",
+   "inRegistry": false
+  },
+  {
+   "pair": "STOUSDT",
+   "ticker": "STO",
+   "slug": "sto",
+   "name": "STO",
+   "inRegistry": false
+  },
+  {
+   "pair": "STRAXUSDT",
+   "ticker": "STRAX",
+   "slug": "strax",
+   "name": "STRAX",
+   "inRegistry": false
+  },
+  {
+   "pair": "STRKUSDT",
+   "ticker": "STRK",
+   "slug": "strk-starknet",
+   "name": "Starknet",
+   "inRegistry": true
+  },
+  {
+   "pair": "STXBUSDT",
+   "ticker": "STXB",
+   "slug": "stxb",
+   "name": "STXB",
+   "inRegistry": false
+  },
+  {
+   "pair": "STXUSDT",
+   "ticker": "STX",
+   "slug": "stx-stacks",
+   "name": "Stacks",
+   "inRegistry": true
+  },
+  {
+   "pair": "SUIUSDT",
+   "ticker": "SUI",
+   "slug": "sui-sui",
+   "name": "Sui",
+   "inRegistry": true
+  },
+  {
+   "pair": "SUNUSDT",
+   "ticker": "SUN",
+   "slug": "sun",
+   "name": "SUN",
+   "inRegistry": false
+  },
+  {
+   "pair": "SUPERUSDT",
+   "ticker": "SUPER",
+   "slug": "super",
+   "name": "SUPER",
+   "inRegistry": false
+  },
+  {
+   "pair": "SUSDT",
+   "ticker": "S",
+   "slug": "s-sonic",
+   "name": "Sonic",
+   "inRegistry": true
+  },
+  {
+   "pair": "SUSHIUSDT",
+   "ticker": "SUSHI",
+   "slug": "sushi",
+   "name": "SUSHI",
+   "inRegistry": false
+  },
+  {
+   "pair": "SXTUSDT",
+   "ticker": "SXT",
+   "slug": "sxt",
+   "name": "SXT",
+   "inRegistry": false
+  },
+  {
+   "pair": "SYNUSDT",
+   "ticker": "SYN",
+   "slug": "syn",
+   "name": "SYN",
+   "inRegistry": false
+  },
+  {
+   "pair": "TAOUSDT",
+   "ticker": "TAO",
+   "slug": "tao-bittensor",
+   "name": "Bittensor",
+   "inRegistry": true
+  },
+  {
+   "pair": "TFUELUSDT",
+   "ticker": "TFUEL",
+   "slug": "tfuel",
+   "name": "TFUEL",
+   "inRegistry": false
+  },
+  {
+   "pair": "THETAUSDT",
+   "ticker": "THETA",
+   "slug": "theta",
+   "name": "THETA",
+   "inRegistry": false
+  },
+  {
+   "pair": "THEUSDT",
+   "ticker": "THE",
+   "slug": "the",
+   "name": "THE",
+   "inRegistry": false
+  },
+  {
+   "pair": "TIAUSDT",
+   "ticker": "TIA",
+   "slug": "tia-celestia",
+   "name": "Celestia",
+   "inRegistry": true
+  },
+  {
+   "pair": "TKOUSDT",
+   "ticker": "TKO",
+   "slug": "tko",
+   "name": "TKO",
+   "inRegistry": false
+  },
+  {
+   "pair": "TLMUSDT",
+   "ticker": "TLM",
+   "slug": "tlm",
+   "name": "TLM",
+   "inRegistry": false
+  },
+  {
+   "pair": "TMFBUSDT",
+   "ticker": "TMFB",
+   "slug": "tmfb",
+   "name": "TMFB",
+   "inRegistry": false
+  },
+  {
+   "pair": "TNSRUSDT",
+   "ticker": "TNSR",
+   "slug": "tnsr",
+   "name": "TNSR",
+   "inRegistry": false
+  },
+  {
+   "pair": "TOWNSUSDT",
+   "ticker": "TOWNS",
+   "slug": "towns",
+   "name": "TOWNS",
+   "inRegistry": false
+  },
+  {
+   "pair": "TQQQBUSDT",
+   "ticker": "TQQQB",
+   "slug": "tqqqb",
+   "name": "TQQQB",
+   "inRegistry": false
+  },
+  {
+   "pair": "TRBUSDT",
+   "ticker": "TRB",
+   "slug": "trb",
+   "name": "TRB",
+   "inRegistry": false
+  },
+  {
+   "pair": "TREEUSDT",
+   "ticker": "TREE",
+   "slug": "tree",
+   "name": "TREE",
+   "inRegistry": false
+  },
+  {
+   "pair": "TRUMPUSDT",
+   "ticker": "TRUMP",
+   "slug": "trump-official-trump",
+   "name": "OFFICIAL TRUMP",
+   "inRegistry": true
+  },
+  {
+   "pair": "TRXUSDT",
+   "ticker": "TRX",
+   "slug": "trx-tron",
+   "name": "TRON",
+   "inRegistry": true
+  },
+  {
+   "pair": "TSLABUSDT",
+   "ticker": "TSLAB",
+   "slug": "tslab",
+   "name": "TSLAB",
+   "inRegistry": false
+  },
+  {
+   "pair": "TSMBUSDT",
+   "ticker": "TSMB",
+   "slug": "tsmb",
+   "name": "TSMB",
+   "inRegistry": false
+  },
+  {
+   "pair": "TSTUSDT",
+   "ticker": "TST",
+   "slug": "tst",
+   "name": "TST",
+   "inRegistry": false
+  },
+  {
+   "pair": "TURBOUSDT",
+   "ticker": "TURBO",
+   "slug": "turbo",
+   "name": "TURBO",
+   "inRegistry": false
+  },
+  {
+   "pair": "TURTLEUSDT",
+   "ticker": "TURTLE",
+   "slug": "turtle",
+   "name": "TURTLE",
+   "inRegistry": false
+  },
+  {
+   "pair": "TUSDT",
+   "ticker": "T",
+   "slug": "t",
+   "name": "T",
+   "inRegistry": false
+  },
+  {
+   "pair": "TUSDUSDT",
+   "ticker": "TUSD",
+   "slug": "tusd",
+   "name": "TUSD",
+   "inRegistry": false
+  },
+  {
+   "pair": "TUTUSDT",
+   "ticker": "TUT",
+   "slug": "tut",
+   "name": "TUT",
+   "inRegistry": false
+  },
+  {
+   "pair": "TWTUSDT",
+   "ticker": "TWT",
+   "slug": "twt",
+   "name": "TWT",
+   "inRegistry": false
+  },
+  {
+   "pair": "UMAUSDT",
+   "ticker": "UMA",
+   "slug": "uma",
+   "name": "UMA",
+   "inRegistry": false
+  },
+  {
+   "pair": "UNIUSDT",
+   "ticker": "UNI",
+   "slug": "uni-uniswap",
+   "name": "Uniswap",
+   "inRegistry": true
+  },
+  {
+   "pair": "USARBUSDT",
+   "ticker": "USARB",
+   "slug": "usarb",
+   "name": "USARB",
+   "inRegistry": false
+  },
+  {
+   "pair": "USD1USDT",
+   "ticker": "USD1",
+   "slug": "usd1",
+   "name": "USD1",
+   "inRegistry": false
+  },
+  {
+   "pair": "USDCUSDT",
+   "ticker": "USDC",
+   "slug": "usdc",
+   "name": "USDC",
+   "inRegistry": false
+  },
+  {
+   "pair": "USDEBUSDT",
+   "ticker": "USDEB",
+   "slug": "usdeb",
+   "name": "USDEB",
+   "inRegistry": false
+  },
+  {
+   "pair": "USDEUSDT",
+   "ticker": "USDE",
+   "slug": "usde",
+   "name": "USDE",
+   "inRegistry": false
+  },
+  {
+   "pair": "USDSUSDT",
+   "ticker": "USDS",
+   "slug": "usds",
+   "name": "USDS",
+   "inRegistry": false
+  },
+  {
+   "pair": "USTCUSDT",
+   "ticker": "USTC",
+   "slug": "ustc",
+   "name": "USTC",
+   "inRegistry": false
+  },
+  {
+   "pair": "USUALUSDT",
+   "ticker": "USUAL",
+   "slug": "usual",
+   "name": "USUAL",
+   "inRegistry": false
+  },
+  {
+   "pair": "UUSDT",
+   "ticker": "U",
+   "slug": "u",
+   "name": "U",
+   "inRegistry": false
+  },
+  {
+   "pair": "UVXYBUSDT",
+   "ticker": "UVXYB",
+   "slug": "uvxyb",
+   "name": "UVXYB",
+   "inRegistry": false
+  },
+  {
+   "pair": "VANAUSDT",
+   "ticker": "VANA",
+   "slug": "vana",
+   "name": "VANA",
+   "inRegistry": false
+  },
+  {
+   "pair": "VELODROMEUSDT",
+   "ticker": "VELODROME",
+   "slug": "velodrome",
+   "name": "VELODROME",
+   "inRegistry": false
+  },
+  {
+   "pair": "VETUSDT",
+   "ticker": "VET",
+   "slug": "vet-vechain",
+   "name": "VeChain",
+   "inRegistry": true
+  },
+  {
+   "pair": "VIRTUALUSDT",
+   "ticker": "VIRTUAL",
+   "slug": "virtual-virtual-protocol",
+   "name": "Virtuals Protocol",
+   "inRegistry": true
+  },
+  {
+   "pair": "VSTBUSDT",
+   "ticker": "VSTB",
+   "slug": "vstb",
+   "name": "VSTB",
+   "inRegistry": false
+  },
+  {
+   "pair": "VTHOUSDT",
+   "ticker": "VTHO",
+   "slug": "vtho",
+   "name": "VTHO",
+   "inRegistry": false
+  },
+  {
+   "pair": "WALUSDT",
+   "ticker": "WAL",
+   "slug": "wal",
+   "name": "WAL",
+   "inRegistry": false
+  },
+  {
+   "pair": "WAXPUSDT",
+   "ticker": "WAXP",
+   "slug": "waxp",
+   "name": "WAXP",
+   "inRegistry": false
+  },
+  {
+   "pair": "WBETHUSDT",
+   "ticker": "WBETH",
+   "slug": "wbeth",
+   "name": "WBETH",
+   "inRegistry": false
+  },
+  {
+   "pair": "WBTCUSDT",
+   "ticker": "WBTC",
+   "slug": "wbtc",
+   "name": "WBTC",
+   "inRegistry": false
+  },
+  {
+   "pair": "WCTUSDT",
+   "ticker": "WCT",
+   "slug": "wct",
+   "name": "WCT",
+   "inRegistry": false
+  },
+  {
+   "pair": "WDCBUSDT",
+   "ticker": "WDCB",
+   "slug": "wdcb",
+   "name": "WDCB",
+   "inRegistry": false
+  },
+  {
+   "pair": "WENBUSDT",
+   "ticker": "WENB",
+   "slug": "wenb",
+   "name": "WENB",
+   "inRegistry": false
+  },
+  {
+   "pair": "WIFUSDT",
+   "ticker": "WIF",
+   "slug": "wif",
+   "name": "WIF",
+   "inRegistry": false
+  },
+  {
+   "pair": "WINUSDT",
+   "ticker": "WIN",
+   "slug": "win",
+   "name": "WIN",
+   "inRegistry": false
+  },
+  {
+   "pair": "WLDUSDT",
+   "ticker": "WLD",
+   "slug": "wld-worldcoin",
+   "name": "Worldcoin",
+   "inRegistry": true
+  },
+  {
+   "pair": "WLFIUSDT",
+   "ticker": "WLFI",
+   "slug": "wlfi-official-world-liberty-financial",
+   "name": "Official World Liberty Financial",
+   "inRegistry": true
+  },
+  {
+   "pair": "WOOUSDT",
+   "ticker": "WOO",
+   "slug": "woo",
+   "name": "WOO",
+   "inRegistry": false
+  },
+  {
+   "pair": "WUSDT",
+   "ticker": "W",
+   "slug": "w",
+   "name": "W",
+   "inRegistry": false
+  },
+  {
+   "pair": "XAIUSDT",
+   "ticker": "XAI",
+   "slug": "xai",
+   "name": "XAI",
+   "inRegistry": false
+  },
+  {
+   "pair": "XAUTUSDT",
+   "ticker": "XAUT",
+   "slug": "xaut",
+   "name": "XAUT",
+   "inRegistry": false
+  },
+  {
+   "pair": "XECUSDT",
+   "ticker": "XEC",
+   "slug": "xec",
+   "name": "XEC",
+   "inRegistry": false
+  },
+  {
+   "pair": "XLMUSDT",
+   "ticker": "XLM",
+   "slug": "xlm-stellar",
+   "name": "Stellar",
+   "inRegistry": true
+  },
+  {
+   "pair": "XNOUSDT",
+   "ticker": "XNO",
+   "slug": "xno",
+   "name": "XNO",
+   "inRegistry": false
+  },
+  {
+   "pair": "XPLUSDT",
+   "ticker": "XPL",
+   "slug": "xpl",
+   "name": "XPL",
+   "inRegistry": false
+  },
+  {
+   "pair": "XRPUSDT",
+   "ticker": "XRP",
+   "slug": "xrp-xrp",
+   "name": "XRP",
+   "inRegistry": true
+  },
+  {
+   "pair": "XTZUSDT",
+   "ticker": "XTZ",
+   "slug": "xtz-tezos",
+   "name": "Tezos",
+   "inRegistry": true
+  },
+  {
+   "pair": "XUSDUSDT",
+   "ticker": "XUSD",
+   "slug": "xusd",
+   "name": "XUSD",
+   "inRegistry": false
+  },
+  {
+   "pair": "XVGUSDT",
+   "ticker": "XVG",
+   "slug": "xvg",
+   "name": "XVG",
+   "inRegistry": false
+  },
+  {
+   "pair": "XVSUSDT",
+   "ticker": "XVS",
+   "slug": "xvs",
+   "name": "XVS",
+   "inRegistry": false
+  },
+  {
+   "pair": "YBUSDT",
+   "ticker": "YB",
+   "slug": "yb",
+   "name": "YB",
+   "inRegistry": false
+  },
+  {
+   "pair": "YFIUSDT",
+   "ticker": "YFI",
+   "slug": "yfi",
+   "name": "YFI",
+   "inRegistry": false
+  },
+  {
+   "pair": "YGGUSDT",
+   "ticker": "YGG",
+   "slug": "ygg",
+   "name": "YGG",
+   "inRegistry": false
+  },
+  {
+   "pair": "ZAMAUSDT",
+   "ticker": "ZAMA",
+   "slug": "zama",
+   "name": "ZAMA",
+   "inRegistry": false
+  },
+  {
+   "pair": "ZBTUSDT",
+   "ticker": "ZBT",
+   "slug": "zbt",
+   "name": "ZBT",
+   "inRegistry": false
+  },
+  {
+   "pair": "ZECUSDT",
+   "ticker": "ZEC",
+   "slug": "zec-zcash",
+   "name": "Zcash",
+   "inRegistry": true
+  },
+  {
+   "pair": "ZENUSDT",
+   "ticker": "ZEN",
+   "slug": "zen",
+   "name": "ZEN",
+   "inRegistry": false
+  },
+  {
+   "pair": "ZILUSDT",
+   "ticker": "ZIL",
+   "slug": "zil",
+   "name": "ZIL",
+   "inRegistry": false
+  },
+  {
+   "pair": "ZKCUSDT",
+   "ticker": "ZKC",
+   "slug": "zkc",
+   "name": "ZKC",
+   "inRegistry": false
+  },
+  {
+   "pair": "ZKPUSDT",
+   "ticker": "ZKP",
+   "slug": "zkp",
+   "name": "ZKP",
+   "inRegistry": false
+  },
+  {
+   "pair": "ZKUSDT",
+   "ticker": "ZK",
+   "slug": "zk",
+   "name": "ZK",
+   "inRegistry": false
+  },
+  {
+   "pair": "ZMBUSDT",
+   "ticker": "ZMB",
+   "slug": "zmb",
+   "name": "ZMB",
+   "inRegistry": false
+  },
+  {
+   "pair": "ZROUSDT",
+   "ticker": "ZRO",
+   "slug": "zro-layerzero",
+   "name": "LayerZero",
+   "inRegistry": true
+  },
+  {
+   "pair": "ZRXUSDT",
+   "ticker": "ZRX",
+   "slug": "zrx",
+   "name": "ZRX",
+   "inRegistry": false
+  },
+  {
+   "pair": "\u5e01\u5b89\u4eba\u751fUSDT",
+   "ticker": "\u5e01\u5b89\u4eba\u751f",
+   "slug": "\u5e01\u5b89\u4eba\u751f",
+   "name": "\u5e01\u5b89\u4eba\u751f",
+   "inRegistry": false
+  },
+  {
+   "pair": "\u725b\u6765USDT",
+   "ticker": "\u725b\u6765",
+   "slug": "\u725b\u6765",
+   "name": "\u725b\u6765",
+   "inRegistry": false
+  }
+ ]
+}

@@ -166,7 +166,17 @@ def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
             # check protects is reachability -- every name the database holds is on a market page
             # -- and that is unchanged by which page a name's link points at, so both spellings
             # count. Counting only /asset would have read the whole crypto market as missing.
-            listed.update(re.findall(r'href="/crypto/([^"#?]+)"', html))
+            #
+            # Two populations live on /crypto now. A registry coin keeps its CoinPaprika slug and
+            # has a hyphen in it (`btc-bitcoin`); a coin the venue trades and the registry has
+            # never collected is addressed by its bare ticker (`1inch`). Only the first kind is a
+            # database asset, so only the first kind is counted against the registry ceiling --
+            # the second is counted on its own, because listing 450 coins the database does not
+            # hold is the feature and must not read as the pool overflowing.
+            crypto_links = set(re.findall(r'href="/crypto/([^"#?]+)"', html))
+            listed.update(s for s in crypto_links if "-" in s)
+            counts["venueOnly"] = counts.get("venueOnly", 0) + len(
+                [s for s in crypto_links if "-" not in s])
             m = re.search(r'data-snapshot="([^"]*)"', html)
             if m:
                 stamps[page] = m.group(1)
@@ -236,12 +246,10 @@ JOURNEY_WINDOWS = ["m5", "m15", "h1", "h4", "d1", "d5", "d20"]
 #: the sentence "which way it goes", which also appears in the note above the picker explaining
 #: that a window is *not* a direction, so every page passed as a direction panel.
 #:
-#: `quiet` is a working panel, not a failure: the model read the window and its probability fell
-#: inside the lane's conviction floor, so the page says it sees no pattern. It is checked harder
-#: than the refusals below it -- it must print the margin and the floor that produced the silence
-#: and still draw the bars it read -- because a silence with no number behind it is exactly the
-#: shrug this audit exists to catch.
-JOURNEY_STATES = {"direction", "quiet", "refused", "no-model", "no-source", "data", "error"}
+#: There is no `quiet` state any more. Every window a lane can answer gets a direction, and how
+#: much the model is saying rides on the call as `data-strength` rather than replacing it -- so a
+#: panel that prints no direction is a failure again, which is what this set is for.
+JOURNEY_STATES = {"direction", "refused", "no-model", "no-source", "data", "error"}
 
 #: The style each window belongs to, mirroring `lib/tradingStyles.ts`. The audit walks the journey
 #: the way a reader does -- style first, then the window inside it -- so a style that stopped
@@ -324,6 +332,20 @@ def check_crypto_journey(site: str, fetch, counts: dict[str, int]) -> list[str]:
                 out.append(f"{url}: the panel answered a window other than {w}")
             if state == "direction":
                 counts["directions"] = counts.get("directions", 0) + 1
+                # A direction that does not say how strong it is reads as the same claim on the
+                # bar the model is surest about and on the one it is closest to even on, which is
+                # the whole reason the strength rides on the call rather than gating it.
+                m2 = re.search(r'data-strength="(strong|weak)"', html)
+                if not m2:
+                    out.append(f"{url}: a direction with no strength on it")
+                else:
+                    counts[m2.group(1)] = counts.get(m2.group(1), 0) + 1
+                    if m2.group(1).upper() not in html:
+                        out.append(f"{url}: the panel says {m2.group(1)} in its markup and does not print it")
+                # Entry, stop and target, or the page is a word with no way to act on it.
+                for word in ("entry", "stop", "target"):
+                    if word not in low:
+                        out.append(f"{url}: a direction with no {word} level")
                 d = re.search(r'data-direction="(UP|DOWN)"', html)
                 if not d:
                     out.append(f"{url}: a direction panel with no direction in it")
@@ -337,22 +359,6 @@ def check_crypto_journey(site: str, fetch, counts: dict[str, int]) -> list[str]:
                     out.append(f"{url}: a direction with no chart of the bars it was read from")
                 if HORIZON_LABEL[w].lower() not in low:
                     out.append(f"{url}: a direction that does not restate the window it is for")
-            elif state == "quiet":
-                counts["quiet"] = counts.get("quiet", 0) + 1
-                if not re.search(r'data-margin="[0-9.]+"', html) or not re.search(
-                        r'data-floor="[0-9.]+"', html):
-                    out.append(f"{url}: a quiet panel that does not say how far from even it was")
-                if "no clear pattern" not in low:
-                    out.append(f"{url}: a quiet panel that does not say it has no answer")
-                if "the shaded panel on the right is" not in low:
-                    out.append(f"{url}: a silence with no chart of the bars it was read from")
-                # The failure this guards against is the one the whole floor could become: a page
-                # that stops answering and stops explaining, which reads identically to an outage.
-                # It has to say what produced the silence, in numbers. A panel that prints
-                # "no clear pattern" and stops is indistinguishable from an outage, which is the
-                # single thing a conviction floor must never be mistaken for.
-                if "from an even call" not in low or "floor" not in low:
-                    out.append(f"{url}: a quiet panel that does not say why it is quiet")
     return out
 
 
@@ -415,10 +421,11 @@ def main() -> int:
         f"ui audit: {counts['rows']} rows on {len(PAGES)} pages, every price cell checked, "
         f"{counts['stars']} star markers, {counts['changes']} change sentences, "
         f"{counts['listed']} listed on the market pages ({counts['pool']} in the pool, "
-        f"{counts.get('registry', 0)} in the registry), "
+        f"{counts.get('registry', 0)} in the registry, "
+        f"{counts.get('venueOnly', 0)} more the venue trades), "
         f"{counts.get('journey', 0)} crypto windows walked "
-        f"({counts.get('directions', 0)} returned a direction, "
-        f"{counts.get('quiet', 0)} said there was no clear pattern)"
+        f"({counts.get('directions', 0)} returned a direction: "
+        f"{counts.get('strong', 0)} strong, {counts.get('weak', 0)} weak)"
     )
     if failures:
         print(f"ui audit: {len(failures)} FAILED")

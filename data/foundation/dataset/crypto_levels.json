@@ -1,0 +1,771 @@
+{
+ "generatedAt": "2026-10-23T21:55:43.766685+00:00",
+ "producedBy": "tools/research/crypto_levels.py",
+ "unit": "ATR(14) at the decision bar, as a fraction of price",
+ "measuredOn": "the training and validation folds only; the test fold is not read here",
+ "whatThisIsNot": [
+  "Not a prediction. The brain predicts the sign of the forward return and nothing else; these distances are what the market has done, not what it will do.",
+  "Not a backtest and not a profitability claim. No transaction cost, spread, funding or slippage is in any number here.",
+  "The hit rates are measured on rows where the direction turned out correct. A direction is right about half the time, so the unconditional rate is lower and is not what these numbers say."
+ ],
+ "candidates": [
+  {
+   "stopAtr": 0.5,
+   "targetAtr": 0.75
+  },
+  {
+   "stopAtr": 0.5,
+   "targetAtr": 1.0
+  },
+  {
+   "stopAtr": 0.75,
+   "targetAtr": 1.0
+  },
+  {
+   "stopAtr": 0.75,
+   "targetAtr": 1.5
+  },
+  {
+   "stopAtr": 1.0,
+   "targetAtr": 1.0
+  },
+  {
+   "stopAtr": 1.0,
+   "targetAtr": 1.5
+  },
+  {
+   "stopAtr": 1.0,
+   "targetAtr": 2.0
+  },
+  {
+   "stopAtr": 1.5,
+   "targetAtr": 2.0
+  }
+ ],
+ "families": {
+  "btc": {
+   "m5": {
+    "rows": 356325,
+    "interval": "5m",
+    "barsAhead": 1,
+    "minutesAhead": 5,
+    "favourableExcursionAtr": {
+     "p25": 0.2055,
+     "median": 0.4414,
+     "p75": 0.7877,
+     "p90": 1.2355
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.7877,
+     "median": -0.4414,
+     "p75": -0.2055,
+     "p90": -0.0787
+    },
+    "finalMoveAtr": {
+     "median": 0.4414,
+     "p75": 0.7877,
+     "p90": 1.2355
+    },
+    "medianAtrPctOfPrice": 0.1392,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.26984,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.73016
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.16089,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.83911
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.16089,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.83911
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.06099,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.93901
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.16089,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.83911
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.06099,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.93901
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.02636,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.97364
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.02636,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.97364
+     }
+    }
+   },
+   "m15": {
+    "rows": 356319,
+    "interval": "5m",
+    "barsAhead": 3,
+    "minutesAhead": 15,
+    "favourableExcursionAtr": {
+     "p25": 0.5387,
+     "median": 0.9459,
+     "p75": 1.5274,
+     "p90": 2.3201
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.5055,
+     "median": -0.1371,
+     "p75": 0.2057,
+     "p90": 0.5618
+    },
+    "finalMoveAtr": {
+     "median": 0.7571,
+     "p75": 1.3578,
+     "p90": 2.1486
+    },
+    "medianAtrPctOfPrice": 0.1392,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.57731,
+      "stoppedWithoutReachingTarget": 0.08027,
+      "touchedBoth": 0.03901,
+      "neither": 0.30341
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.44423,
+      "stoppedWithoutReachingTarget": 0.09316,
+      "touchedBoth": 0.02613,
+      "neither": 0.43649
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.45691,
+      "stoppedWithoutReachingTarget": 0.0442,
+      "touchedBoth": 0.01345,
+      "neither": 0.48544
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.25173,
+      "stoppedWithoutReachingTarget": 0.05088,
+      "touchedBoth": 0.00677,
+      "neither": 0.69062
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.46298,
+      "stoppedWithoutReachingTarget": 0.02043,
+      "touchedBoth": 0.00738,
+      "neither": 0.50921
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.25459,
+      "stoppedWithoutReachingTarget": 0.0239,
+      "touchedBoth": 0.00391,
+      "neither": 0.7176
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.14069,
+      "stoppedWithoutReachingTarget": 0.02558,
+      "touchedBoth": 0.00224,
+      "neither": 0.8315
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.14201,
+      "stoppedWithoutReachingTarget": 0.00645,
+      "touchedBoth": 0.00091,
+      "neither": 0.85063
+     }
+    }
+   },
+   "h1": {
+    "rows": 356292,
+    "interval": "5m",
+    "barsAhead": 12,
+    "minutesAhead": 60,
+    "favourableExcursionAtr": {
+     "p25": 1.3199,
+     "median": 2.1564,
+     "p75": 3.4407,
+     "p90": 5.3175
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.1375,
+     "median": 0.3671,
+     "p75": 0.9581,
+     "p90": 1.6472
+    },
+    "finalMoveAtr": {
+     "median": 1.4419,
+     "p75": 2.6651,
+     "p90": 4.399
+    },
+    "medianAtrPctOfPrice": 0.1392,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.55144,
+      "stoppedWithoutReachingTarget": 0.0781,
+      "touchedBoth": 0.35702,
+      "neither": 0.01344
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.53104,
+      "stoppedWithoutReachingTarget": 0.12122,
+      "touchedBoth": 0.3139,
+      "neither": 0.03383
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.6185,
+      "stoppedWithoutReachingTarget": 0.09815,
+      "touchedBoth": 0.22645,
+      "neither": 0.05691
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.52696,
+      "stoppedWithoutReachingTarget": 0.15825,
+      "touchedBoth": 0.16634,
+      "neither": 0.14844
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.68382,
+      "stoppedWithoutReachingTarget": 0.0756,
+      "touchedBoth": 0.16112,
+      "neither": 0.07945
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.57492,
+      "stoppedWithoutReachingTarget": 0.11834,
+      "touchedBoth": 0.11838,
+      "neither": 0.18835
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.45641,
+      "stoppedWithoutReachingTarget": 0.15005,
+      "touchedBoth": 0.08668,
+      "neither": 0.30687
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.498,
+      "stoppedWithoutReachingTarget": 0.07622,
+      "touchedBoth": 0.04509,
+      "neither": 0.3807
+     }
+    }
+   },
+   "h4": {
+    "rows": 356184,
+    "interval": "5m",
+    "barsAhead": 48,
+    "minutesAhead": 240,
+    "favourableExcursionAtr": {
+     "p25": 2.9006,
+     "median": 4.7877,
+     "p75": 7.9596,
+     "p90": 12.7824
+    },
+    "adverseExcursionAtr": {
+     "p25": 0.3252,
+     "median": 1.1522,
+     "p75": 2.378,
+     "p90": 4.0014
+    },
+    "finalMoveAtr": {
+     "median": 2.8465,
+     "p75": 5.5735,
+     "p90": 9.9038
+    },
+    "medianAtrPctOfPrice": 0.1392,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.30438,
+      "stoppedWithoutReachingTarget": 0.01442,
+      "touchedBoth": 0.68107,
+      "neither": 0.00013
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.30403,
+      "stoppedWithoutReachingTarget": 0.0268,
+      "touchedBoth": 0.6687,
+      "neither": 0.00048
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.38203,
+      "stoppedWithoutReachingTarget": 0.02607,
+      "touchedBoth": 0.59069,
+      "neither": 0.00121
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.37698,
+      "stoppedWithoutReachingTarget": 0.06177,
+      "touchedBoth": 0.55499,
+      "neither": 0.00626
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.45501,
+      "stoppedWithoutReachingTarget": 0.02494,
+      "touchedBoth": 0.51771,
+      "neither": 0.00233
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.44731,
+      "stoppedWithoutReachingTarget": 0.05799,
+      "touchedBoth": 0.48467,
+      "neither": 0.01004
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.43187,
+      "stoppedWithoutReachingTarget": 0.09961,
+      "touchedBoth": 0.44304,
+      "neither": 0.02548
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.5431,
+      "stoppedWithoutReachingTarget": 0.0812,
+      "touchedBoth": 0.33181,
+      "neither": 0.04389
+     }
+    }
+   }
+  },
+  "crypto": {
+   "m5": {
+    "rows": 1167874,
+    "interval": "5m",
+    "barsAhead": 1,
+    "minutesAhead": 5,
+    "favourableExcursionAtr": {
+     "p25": 0.1944,
+     "median": 0.4364,
+     "p75": 0.7691,
+     "p90": 1.1867
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.7691,
+     "median": -0.4364,
+     "p75": -0.1944,
+     "p90": 0.0
+    },
+    "finalMoveAtr": {
+     "median": 0.4364,
+     "p75": 0.7691,
+     "p90": 1.1867
+    },
+    "medianAtrPctOfPrice": 0.2768,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.25976,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.74024
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.15046,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.84954
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.15046,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.84954
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.05146,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.94854
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.15046,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.84954
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.05146,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.94854
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01985,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98015
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01985,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98015
+     }
+    }
+   },
+   "m15": {
+    "rows": 1167844,
+    "interval": "5m",
+    "barsAhead": 3,
+    "minutesAhead": 15,
+    "favourableExcursionAtr": {
+     "p25": 0.5217,
+     "median": 0.9237,
+     "p75": 1.4779,
+     "p90": 2.1875
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.5,
+     "median": -0.1134,
+     "p75": 0.1958,
+     "p90": 0.549
+    },
+    "finalMoveAtr": {
+     "median": 0.7368,
+     "p75": 1.3216,
+     "p90": 2.0422
+    },
+    "medianAtrPctOfPrice": 0.2768,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.56958,
+      "stoppedWithoutReachingTarget": 0.08146,
+      "touchedBoth": 0.03401,
+      "neither": 0.31494
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.43445,
+      "stoppedWithoutReachingTarget": 0.09296,
+      "touchedBoth": 0.02252,
+      "neither": 0.45007
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.44662,
+      "stoppedWithoutReachingTarget": 0.04316,
+      "touchedBoth": 0.01035,
+      "neither": 0.49987
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.23861,
+      "stoppedWithoutReachingTarget": 0.04868,
+      "touchedBoth": 0.00483,
+      "neither": 0.70788
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.45171,
+      "stoppedWithoutReachingTarget": 0.0191,
+      "touchedBoth": 0.00526,
+      "neither": 0.52393
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.241,
+      "stoppedWithoutReachingTarget": 0.02193,
+      "touchedBoth": 0.00244,
+      "neither": 0.73463
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.12522,
+      "stoppedWithoutReachingTarget": 0.02307,
+      "touchedBoth": 0.00129,
+      "neither": 0.85042
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.12609,
+      "stoppedWithoutReachingTarget": 0.0049,
+      "touchedBoth": 0.00042,
+      "neither": 0.86858
+     }
+    }
+   },
+   "h1": {
+    "rows": 1167707,
+    "interval": "5m",
+    "barsAhead": 12,
+    "minutesAhead": 60,
+    "favourableExcursionAtr": {
+     "p25": 1.3125,
+     "median": 2.1212,
+     "p75": 3.2849,
+     "p90": 4.8387
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.1186,
+     "median": 0.359,
+     "p75": 0.9248,
+     "p90": 1.5556
+    },
+    "finalMoveAtr": {
+     "median": 1.4412,
+     "p75": 2.6102,
+     "p90": 4.1311
+    },
+    "medianAtrPctOfPrice": 0.2768,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.55954,
+      "stoppedWithoutReachingTarget": 0.08104,
+      "touchedBoth": 0.3467,
+      "neither": 0.01272
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.53965,
+      "stoppedWithoutReachingTarget": 0.12373,
+      "touchedBoth": 0.30401,
+      "neither": 0.03261
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.63103,
+      "stoppedWithoutReachingTarget": 0.10134,
+      "touchedBoth": 0.21263,
+      "neither": 0.055
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.53846,
+      "stoppedWithoutReachingTarget": 0.16197,
+      "touchedBoth": 0.15201,
+      "neither": 0.14757
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.69616,
+      "stoppedWithoutReachingTarget": 0.07796,
+      "touchedBoth": 0.1475,
+      "neither": 0.07838
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.58661,
+      "stoppedWithoutReachingTarget": 0.1216,
+      "touchedBoth": 0.10386,
+      "neither": 0.18794
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.4634,
+      "stoppedWithoutReachingTarget": 0.15351,
+      "touchedBoth": 0.07194,
+      "neither": 0.31114
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.50193,
+      "stoppedWithoutReachingTarget": 0.07674,
+      "touchedBoth": 0.03341,
+      "neither": 0.38792
+     }
+    }
+   },
+   "h4": {
+    "rows": 1167151,
+    "interval": "5m",
+    "barsAhead": 48,
+    "minutesAhead": 240,
+    "favourableExcursionAtr": {
+     "p25": 2.911,
+     "median": 4.6667,
+     "p75": 7.2893,
+     "p90": 11.0
+    },
+    "adverseExcursionAtr": {
+     "p25": 0.3176,
+     "median": 1.12,
+     "p75": 2.2703,
+     "p90": 3.6975
+    },
+    "finalMoveAtr": {
+     "median": 2.8651,
+     "p75": 5.3614,
+     "p90": 8.8065
+    },
+    "medianAtrPctOfPrice": 0.2768,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.30877,
+      "stoppedWithoutReachingTarget": 0.01413,
+      "touchedBoth": 0.67697,
+      "neither": 0.00013
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.30852,
+      "stoppedWithoutReachingTarget": 0.02615,
+      "touchedBoth": 0.66495,
+      "neither": 0.00038
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.3888,
+      "stoppedWithoutReachingTarget": 0.02568,
+      "touchedBoth": 0.58467,
+      "neither": 0.00085
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.38533,
+      "stoppedWithoutReachingTarget": 0.06115,
+      "touchedBoth": 0.5492,
+      "neither": 0.00433
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.46352,
+      "stoppedWithoutReachingTarget": 0.02487,
+      "touchedBoth": 0.50995,
+      "neither": 0.00166
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.45799,
+      "stoppedWithoutReachingTarget": 0.05829,
+      "touchedBoth": 0.47654,
+      "neither": 0.00719
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.44527,
+      "stoppedWithoutReachingTarget": 0.10151,
+      "touchedBoth": 0.43331,
+      "neither": 0.0199
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.56143,
+      "stoppedWithoutReachingTarget": 0.08469,
+      "touchedBoth": 0.31716,
+      "neither": 0.03672
+     }
+    }
+   }
+  }
+ }
+}

@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { CoinTable, type Row } from "@/components/CoinTable";
-import { coinPrice, compactUsd, marketTable, signedPct } from "@/lib/cryptoMarket";
+import { compactUsd, marketTable } from "@/lib/cryptoMarket";
+import {
+  UNIVERSE_GENERATED_AT,
+  UNIVERSE_IN_REGISTRY,
+  UNIVERSE_SIZE,
+} from "@/lib/cryptoUniverse";
 
 /// The crypto market, as a table.
 ///
@@ -31,18 +36,18 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 export default async function Page() {
   const m = await marketTable();
+  // The numbers go across raw and the table formats them. It has to anyway -- the prices it
+  // repaints every two seconds arrive as numbers -- and two formatters would be two roundings.
   const rows: Row[] = m.coins.map((c) => ({
     rank: c.rank,
     slug: c.slug,
     name: c.name,
     ticker: c.ticker,
-    price: coinPrice(c.price),
+    price: c.price,
     change24h: c.change24h,
-    change24hText: signedPct(c.change24h),
     change7d: c.change7d,
-    change7dText: signedPct(c.change7d),
-    marketCap: compactUsd(c.marketCap),
-    volume24h: compactUsd(c.volume24h),
+    marketCap: c.marketCap,
+    volume24h: c.volume24h,
     tradable: c.tradable,
   }));
 
@@ -84,7 +89,12 @@ export default async function Page() {
       ) : null}
 
       <p className="text-muted-foreground mt-2 text-xs">
-        Shares are of the coins listed here, not of the whole market. Research, not advice.
+        {UNIVERSE_SIZE} coins the venue trades, every one of which can be asked for a direction.{" "}
+        {UNIVERSE_IN_REGISTRY} of them also carry a market capitalisation, daily history and the
+        rule table&apos;s reading; the other {UNIVERSE_SIZE - UNIVERSE_IN_REGISTRY} have a price, a
+        change and a direction, and their capitalisation column is an em dash because nothing here
+        knows it. Shares above are of the coins listed here, not of the whole market. Instrument
+        list checked {UNIVERSE_GENERATED_AT.slice(0, 10)}. Research, not advice.
       </p>
     </main>
   );

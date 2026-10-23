@@ -13,9 +13,9 @@
 import { prisma } from "@/lib/db";
 import { featureMap, type Forecast } from "@/lib/cryptoForecast";
 
-/// A forecast that reached the model: either a direction the page printed, or a silence it
-/// printed instead. Both are stored, and `called` is what tells them apart.
-export type Recordable = Extract<Forecast, { kind: "direction" | "quiet" }>;
+/// A forecast that reached the model. Every one of them is a direction now; `called` records
+/// whether it cleared its lane's conviction floor.
+export type Recordable = Extract<Forecast, { kind: "direction" }>;
 
 /// Store a forecast, returning whether it is now in the record.
 ///
@@ -23,17 +23,17 @@ export type Recordable = Extract<Forecast, { kind: "direction" | "quiet" }>;
 /// forecast is a claim made at an instant and a second write of the same claim must not be able
 /// to change the first.
 ///
-/// An uncalled row is written with the same care as a called one. The silence is the product of a
-/// threshold, and a threshold that is never checked against what happened after it is a guess
-/// that has been promoted to a rule -- so the lean, the floor it fell inside and the whole feature
-/// vector are all kept, and the scorer grades it like any other row.
+/// `called` means the probability cleared the lane's conviction floor, not that a direction was
+/// shown -- every window shows one. It is kept because the floor is a threshold, and a threshold
+/// that is never checked against what happened after it is a guess promoted to a rule: grading
+/// the two bands apart is the only way to find out whether the floor is still worth anything.
 export async function recordForecast(
   assetId: string,
   market: string,
   slug: string,
   f: Recordable,
 ): Promise<{ stored: boolean; why?: string }> {
-  const called = f.kind === "direction";
+  const called = f.strength === "strong";
   try {
     const res = await prisma.brainForecast.createMany({
       data: [
@@ -46,13 +46,13 @@ export async function recordForecast(
           interval: f.horizon.interval,
           asOf: f.asOf,
           maturesAt: f.maturesAt,
-          direction: f.kind === "direction" ? f.direction : f.lean,
+          direction: f.direction,
           probUp: f.probUp,
           called,
           convictionFloor: f.lane.conviction?.floor ?? null,
-          // A silence carries no confidence band: the bands are measured on called rows, and
-          // labelling an uncalled row LOW would make it look like a weak call rather than none.
-          confidence: f.kind === "direction" ? f.confidence : "NONE",
+          // The lane's band for a call that cleared the floor; WEAK for one that did not, so a
+          // graded row says which population it belonged to without recomputing the threshold.
+          confidence: called ? f.confidence : "WEAK",
           referencePrice: f.referencePrice,
           modelVersion: f.lane.modelVersion,
           modelSha256: f.lane.modelSha256,
@@ -93,10 +93,10 @@ export interface TrackRecord {
   /// Matured but not yet graded by the scorer -- a gap in the scoring, not in the forecasting.
   awaitingScore: number;
   accuracy: number | null;
-  /// The same counts over the bars the brain stayed quiet on, graded against the lean it did not
-  /// print. Never mixed into `accuracy`: it is the check on the floor, not a claim about the
-  /// brain. A quiet rate near a half is the floor doing its job; one well above the called rate
-  /// would mean the floor is throwing away the model's better calls.
+  /// The same counts over the calls that did NOT clear the lane's floor. Never mixed into
+  /// `accuracy` above: both are shown on the page, but they are two different bands and a rate
+  /// over the pair would describe neither. A weak rate near a half is the floor doing its job; one
+  /// level with the strong rate would mean the floor is no longer separating anything.
   quietGraded: number;
   quietCorrect: number;
   firstAt: Date | null;

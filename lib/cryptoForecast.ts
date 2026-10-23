@@ -19,6 +19,7 @@ import { HORIZONS, maturesAt, type Horizon, type HorizonKey } from "@/lib/crypto
 import { accuracyAtMargin, servingLane, speaks, type Lane } from "@/lib/cryptoLanes";
 import { assertSchema, probabilityUp, type Artifact } from "@/lib/cryptoModel";
 import { featuresAt, FEATURES, contiguous, WARMUP } from "@/lib/intradayFeatures";
+import { levelsFor, type Levels } from "@/lib/cryptoLevels";
 import { hasIntradaySource, instrumentsFor, venueRowFor } from "@/lib/cryptoVenues";
 
 const MODELS = models as unknown as Record<string, Artifact>;
@@ -32,30 +33,24 @@ export type Forecast =
       /// P(UP) from the artifact. Printed as a margin, never as a precision claim.
       probUp: number;
       confidence: "LOW" | "MEDIUM";
+      /// How far from even the probability is, and whether that clears the lane's own floor.
+      ///
+      /// **Every window now gets a direction.** The model is binary and its output is a sign;
+      /// withholding that sign on the bars it is least sure about was the honest *presentation*
+      /// of a thin edge, and it is not what this is for -- a direction you cannot get when the
+      /// model is unsure is a direction you cannot plan around. So the sign is always printed and
+      /// the uncertainty is attached to it instead of replacing it: `strong` is a call that
+      /// cleared the floor the holdout measured, `weak` is one that did not, and each carries the
+      /// accuracy measured on its own band so the two are never read as the same claim.
+      strength: "strong" | "weak";
+      margin: number;
+      floor: number;
       /// How often a call in this confidence band was right on the test fold, if the band held
       /// enough rows to say. Null is an absence, not a zero.
       measured: { accuracy: number; coverage: number; rows: number } | null;
-      referencePrice: number;
-      asOf: Date;
-      maturesAt: Date;
-      window: BarWindow;
-      features: number[];
-    }
-  | {
-      /// The window was read, the model scored it, and it came back near-indifferent.
-      ///
-      /// This is a *result*, not a failure, and it is deliberately not merged with the refusals
-      /// above: everything worked. The model's probability landed inside its lane's conviction
-      /// floor, which on the holdout is where its calls were worth least, so the honest answer is
-      /// that it sees no pattern here rather than a direction it does not mean. The lean is
-      /// carried anyway -- a reader is entitled to see the number that produced the silence.
-      kind: "quiet";
-      horizon: Horizon;
-      lane: Lane;
-      lean: "UP" | "DOWN";
-      probUp: number;
-      margin: number;
-      floor: number;
+      /// Where to act, where to be wrong, and where to take it off -- sized from the coin's own
+      /// recent range. Null when the window has no measured level table.
+      levels: Levels | null;
       referencePrice: number;
       asOf: Date;
       maturesAt: Date;
@@ -154,22 +149,7 @@ export async function forecastFor(
 
   const margin = Math.abs(probUp - 0.5);
   const asOf = new Date(w.asOfMs);
-  if (!speaks(lane, probUp)) {
-    return {
-      kind: "quiet",
-      horizon,
-      lane,
-      lean: probUp >= 0.5 ? "UP" : "DOWN",
-      probUp,
-      margin,
-      floor: lane.conviction?.floor ?? 0,
-      referencePrice: w.referencePrice,
-      asOf,
-      maturesAt: maturesAt(asOf, horizon),
-      window: w,
-      features: x,
-    };
-  }
+  const direction: "UP" | "DOWN" = probUp >= 0.5 ? "UP" : "DOWN";
   return {
     kind: "direction",
     horizon,
@@ -177,10 +157,14 @@ export async function forecastFor(
     // Binary and nothing else. A probability on the line goes DOWN rather than being refused:
     // the model was fitted with that boundary and the test fold was scored with it, so serving a
     // different rule would be serving a model nothing measured.
-    direction: probUp >= 0.5 ? "UP" : "DOWN",
+    direction,
     probUp,
     confidence: lane.confidence === "MEDIUM" ? "MEDIUM" : "LOW",
+    strength: speaks(lane, probUp) ? "strong" : "weak",
+    margin,
+    floor: lane.conviction?.floor ?? 0,
     measured: accuracyAtMargin(lane, margin),
+    levels: levelsFor(lane, horizon.key, direction, w.referencePrice, x),
     referencePrice: w.referencePrice,
     asOf,
     maturesAt: maturesAt(asOf, horizon),

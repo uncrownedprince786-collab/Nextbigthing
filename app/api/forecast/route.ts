@@ -62,63 +62,6 @@ export async function GET(request: Request) {
   }
 
   const f = await forecastFor(asset.symbol, h);
-  if (f.kind === "quiet") {
-    // Everything worked and the answer is that there is no answer. Recorded like a call, and
-    // returned with the number that produced the silence, so a caller can tell this apart from a
-    // venue outage without parsing a sentence.
-    const storedQuiet = await recordForecast(asset.id, market, asset.symbol, f);
-    return NextResponse.json({
-      symbol: asset.symbol,
-      name: asset.name,
-      horizon: { key: f.horizon.key, label: f.horizon.label, minutes: f.horizon.minutes },
-      state: "quiet",
-      direction: null,
-      lean: f.lean,
-      probUp: Number(f.probUp.toFixed(6)),
-      margin: Number(f.margin.toFixed(6)),
-      convictionFloor: f.floor,
-      why: `the model put this window ${(f.margin * 200).toFixed(1)} points from an even call, ` +
-        `inside the ${(f.floor * 200).toFixed(0)}-point floor this lane clears before it prints a ` +
-        `direction`,
-      referencePrice: f.referencePrice,
-      asOf: f.asOf.toISOString(),
-      maturesAt: f.maturesAt.toISOString(),
-      model: {
-        version: f.lane.modelVersion,
-        sha256: f.lane.modelSha256,
-        featureSchema: f.lane.featureSchema,
-        family: f.lane.family,
-        trainedOn: f.lane.trainedOn,
-      },
-      conviction: f.lane.conviction
-        ? {
-            floor: f.lane.conviction.floor,
-            calledAccuracy: f.lane.conviction.called.accuracy,
-            calledCoverage: f.lane.conviction.called.coverage,
-            calledMajority: f.lane.conviction.called.majorityHere,
-            ungatedAccuracy: f.lane.conviction.ungatedAccuracy,
-          }
-        : null,
-      data: {
-        venue: f.window.venue,
-        patchedFrom: f.window.patchedFrom,
-        bars: f.window.bars.length,
-        interval: f.horizon.interval,
-        newestBarAgeMs: Math.round(f.window.ageMs),
-        quality: f.window.quality,
-        imputed: f.window.imputed,
-        fetchedAt: f.window.fetchedAt,
-        checks: f.window.checks,
-      },
-      features: featureMap(f.features),
-      recorded: storedQuiet.stored,
-      recordedNote: storedQuiet.why ?? null,
-      servedInMs: Date.now() - started,
-      disclaimer:
-        "Research, not advice. Direction only, with no transaction cost, spread or funding in " +
-        "any number here, and every accuracy figure is measured on a historical holdout.",
-    });
-  }
   if (f.kind !== "direction") {
     // A refusal is an answer and carries its reason, so a caller can tell an untested window from
     // a venue outage without reading the page.
@@ -146,6 +89,13 @@ export async function GET(request: Request) {
     direction: f.direction,
     probUp: Number(f.probUp.toFixed(6)),
     confidence: f.confidence,
+    // Every window answers. `strength` is how much the model is saying, not whether it said it:
+    // `strong` cleared the floor the holdout measured, `weak` did not, and the accuracy under
+    // `conviction` is measured on the strong band alone.
+    strength: f.strength,
+    margin: Number(f.margin.toFixed(6)),
+    convictionFloor: f.floor,
+    levels: f.levels,
     referencePrice: f.referencePrice,
     asOf: f.asOf.toISOString(),
     maturesAt: f.maturesAt.toISOString(),
@@ -169,8 +119,8 @@ export async function GET(request: Request) {
       acceptanceTarget: f.lane.acceptanceTarget,
       acceptanceTargetMet: f.lane.acceptanceTargetMet,
     },
-    // What the lane scores on the rows it actually speaks on, which is the population this
-    // direction belongs to. Null for a lane that answers every bar.
+    // What the lane scores on its strong band, which is the population a strong call belongs to.
+    // Null for a lane with no measured floor.
     conviction: f.lane.conviction
       ? {
           floor: f.lane.conviction.floor,
