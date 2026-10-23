@@ -124,7 +124,9 @@ Conviction will not rescue them — see §2 on why a floor may not promote a ref
   Harmless to the models, wrong in the record.
 - `.claude/launch.json` still carries the unrelated pre-existing change. Left alone, again.
 - A pooled `flow` sweep (what the three taker features are actually worth, for a Coinbase
-  fallback) was running when this was written and is not in the repository.
+  fallback) was started and stopped unfinished: one configuration on 645,329 rows ran for over an
+  hour, and the question it answers stopped mattering the moment the Binance mirror came back
+  reachable. Worth running if the chain ever falls past Binance again; not worth five hours now.
 
 ## 7. Where the new things are
 
