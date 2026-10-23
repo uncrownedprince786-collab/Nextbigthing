@@ -1,0 +1,1987 @@
+{
+ "generatedAt": "2026-10-23T20:03:21.322084+00:00",
+ "producedBy": "tools/research/crypto_conviction.py",
+ "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
+ "ladder": [
+  0.0,
+  0.01,
+  0.02,
+  0.03,
+  0.04,
+  0.05,
+  0.06,
+  0.075,
+  0.1,
+  0.125,
+  0.15
+ ],
+ "minValidationCoverage": 0.1,
+ "minTestCoverage": 0.05,
+ "preRegisteredGates": {
+  "aboveCalledMajority": "accuracy on called rows strictly above those rows' own larger class",
+  "bothDirectionsCalled": "neither direction above 0.80 of the calls made",
+  "bootstrapExcludesZero": "95% day-blocked bootstrap for (accuracy - majority) over called rows, strictly above zero",
+  "walkForwardMajority": "above its own block majority in at least 4 of 5 chronological blocks of called rows",
+  "testCoverageHeld": "speaks on at least 5% of the test fold"
+ },
+ "limitations": [
+  "The floor is a selection rule on a historical holdout. Coverage out of sample is a measurement on that holdout, not a guarantee about how often the live brain speaks.",
+  "Direction only. No transaction cost, spread, funding or slippage is in any number here, and nothing here is a profitability claim."
+ ],
+ "lanes": [
+  {
+   "family": "btc",
+   "horizon": "m5",
+   "modelVersion": "brain-c1-btc-m5",
+   "interval": "5m",
+   "symbols": [
+    "BTCUSDT"
+   ],
+   "stride": 1,
+   "split": {
+    "trainEnd": "2025-08-09T11:45:00+00:00",
+    "valEnd": "2026-03-16T04:20:00+00:00",
+    "embargoBars": 289,
+    "embargoMinutes": 1445,
+    "testFrom": "2026-03-16T04:25:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00"
+   },
+   "rows": {
+    "validation": 62483,
+    "test": 62759
+   },
+   "chosenFloor": 0.04,
+   "validationCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 62483,
+     "coverage": 1.0,
+     "accuracy": 0.51712,
+     "majorityHere": 0.50094,
+     "marginOverMajority": 0.01618,
+     "upShareCalled": 0.51344,
+     "upRate": 0.49906
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 43034,
+     "coverage": 0.68873,
+     "accuracy": 0.52375,
+     "majorityHere": 0.50067,
+     "marginOverMajority": 0.02307,
+     "upShareCalled": 0.53091,
+     "upRate": 0.50067
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 25649,
+     "coverage": 0.4105,
+     "accuracy": 0.53101,
+     "majorityHere": 0.50099,
+     "marginOverMajority": 0.03002,
+     "upShareCalled": 0.567,
+     "upRate": 0.50099
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 14957,
+     "coverage": 0.23938,
+     "accuracy": 0.53975,
+     "majorityHere": 0.50057,
+     "marginOverMajority": 0.03918,
+     "upShareCalled": 0.62332,
+     "upRate": 0.50057
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 7335,
+     "coverage": 0.11739,
+     "accuracy": 0.54438,
+     "majorityHere": 0.51466,
+     "marginOverMajority": 0.02972,
+     "upShareCalled": 0.72952,
+     "upRate": 0.51466
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 2215,
+     "coverage": 0.03545,
+     "accuracy": 0.54763,
+     "majorityHere": 0.54853,
+     "marginOverMajority": -0.0009,
+     "upShareCalled": 0.93499,
+     "upRate": 0.54853
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 592,
+     "coverage": 0.00947,
+     "accuracy": 0.54561,
+     "majorityHere": 0.54561,
+     "marginOverMajority": 0.0,
+     "upShareCalled": 1.0,
+     "upRate": 0.54561
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 104,
+     "coverage": 0.00166,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    }
+   ],
+   "testCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 62759,
+     "coverage": 1.0,
+     "accuracy": 0.51535,
+     "majorityHere": 0.50141,
+     "marginOverMajority": 0.01394,
+     "upShareCalled": 0.49056,
+     "upRate": 0.49859
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 42924,
+     "coverage": 0.68395,
+     "accuracy": 0.52283,
+     "majorityHere": 0.50135,
+     "marginOverMajority": 0.02148,
+     "upShareCalled": 0.50023,
+     "upRate": 0.49865
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 24881,
+     "coverage": 0.39645,
+     "accuracy": 0.52791,
+     "majorityHere": 0.50046,
+     "marginOverMajority": 0.02745,
+     "upShareCalled": 0.53141,
+     "upRate": 0.50046
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 14110,
+     "coverage": 0.22483,
+     "accuracy": 0.53607,
+     "majorityHere": 0.50702,
+     "marginOverMajority": 0.02906,
+     "upShareCalled": 0.59362,
+     "upRate": 0.50702
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 6838,
+     "coverage": 0.10896,
+     "accuracy": 0.54343,
+     "majorityHere": 0.51784,
+     "marginOverMajority": 0.02559,
+     "upShareCalled": 0.7062,
+     "upRate": 0.51784
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 2081,
+     "coverage": 0.03316,
+     "accuracy": 0.56031,
+     "majorityHere": 0.5507,
+     "marginOverMajority": 0.00961,
+     "upShareCalled": 0.93272,
+     "upRate": 0.5507
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 629,
+     "coverage": 0.01002,
+     "accuracy": 0.59777,
+     "majorityHere": 0.59777,
+     "marginOverMajority": 0.0,
+     "upShareCalled": 1.0,
+     "upRate": 0.59777
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 137,
+     "coverage": 0.00218,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    }
+   ],
+   "ungatedOnTest": {
+    "minMargin": 0.0,
+    "rows": 62759,
+    "coverage": 1.0,
+    "accuracy": 0.51535,
+    "majorityHere": 0.50141,
+    "marginOverMajority": 0.01394,
+    "upShareCalled": 0.49056,
+    "upRate": 0.49859,
+    "blockedBootstrap": {
+     "blocks": 219,
+     "draws": 2000,
+     "pointEstimate": 0.013942,
+     "ci95": [
+      0.008764,
+      0.019756
+     ],
+     "sd": 0.00282,
+     "z": 4.9434,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 12551,
+       "accuracy": 0.52171,
+       "majority": 0.50147,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 12552,
+       "accuracy": 0.5086,
+       "majority": 0.50661,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 12552,
+       "accuracy": 0.51689,
+       "majority": 0.50112,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 12552,
+       "accuracy": 0.5153,
+       "majority": 0.50542,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 12552,
+       "accuracy": 0.51426,
+       "majority": 0.50239,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "gatedOnTest": {
+    "minMargin": 0.04,
+    "rows": 6838,
+    "coverage": 0.10896,
+    "accuracy": 0.54343,
+    "majorityHere": 0.51784,
+    "marginOverMajority": 0.02559,
+    "upShareCalled": 0.7062,
+    "upRate": 0.51784,
+    "blockedBootstrap": {
+     "blocks": 219,
+     "draws": 2000,
+     "pointEstimate": 0.025592,
+     "ci95": [
+      0.013115,
+      0.039149
+     ],
+     "sd": 0.006491,
+     "z": 3.9426,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 1367,
+       "accuracy": 0.54938,
+       "majority": 0.54133,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 1368,
+       "accuracy": 0.53728,
+       "majority": 0.51389,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 1367,
+       "accuracy": 0.54938,
+       "majority": 0.515,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 1368,
+       "accuracy": 0.52778,
+       "majority": 0.50292,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 1368,
+       "accuracy": 0.55336,
+       "majority": 0.51608,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "serveGated": true
+  },
+  {
+   "family": "btc",
+   "horizon": "m15",
+   "modelVersion": "brain-c1-btc-m15",
+   "interval": "5m",
+   "symbols": [
+    "BTCUSDT"
+   ],
+   "stride": 1,
+   "split": {
+    "trainEnd": "2025-08-09T11:45:00+00:00",
+    "valEnd": "2026-03-16T04:20:00+00:00",
+    "embargoBars": 291,
+    "embargoMinutes": 1455,
+    "testFrom": "2026-03-16T04:25:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00"
+   },
+   "rows": {
+    "validation": 62655,
+    "test": 62923
+   },
+   "chosenFloor": 0.06,
+   "validationCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 62655,
+     "coverage": 1.0,
+     "accuracy": 0.52797,
+     "majorityHere": 0.50421,
+     "marginOverMajority": 0.02377,
+     "upShareCalled": 0.52036,
+     "upRate": 0.49579
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 51472,
+     "coverage": 0.82151,
+     "accuracy": 0.53369,
+     "majorityHere": 0.5034,
+     "marginOverMajority": 0.03029,
+     "upShareCalled": 0.52535,
+     "upRate": 0.4966
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 40797,
+     "coverage": 0.65114,
+     "accuracy": 0.54078,
+     "majorityHere": 0.50202,
+     "marginOverMajority": 0.03875,
+     "upShareCalled": 0.5335,
+     "upRate": 0.49798
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 31242,
+     "coverage": 0.49864,
+     "accuracy": 0.54788,
+     "majorityHere": 0.50016,
+     "marginOverMajority": 0.04772,
+     "upShareCalled": 0.54398,
+     "upRate": 0.50016
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 23073,
+     "coverage": 0.36825,
+     "accuracy": 0.55346,
+     "majorityHere": 0.50262,
+     "marginOverMajority": 0.05084,
+     "upShareCalled": 0.56014,
+     "upRate": 0.50262
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 16479,
+     "coverage": 0.26301,
+     "accuracy": 0.56017,
+     "majorityHere": 0.50234,
+     "marginOverMajority": 0.05783,
+     "upShareCalled": 0.57673,
+     "upRate": 0.50234
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 11294,
+     "coverage": 0.18026,
+     "accuracy": 0.56021,
+     "majorityHere": 0.50673,
+     "marginOverMajority": 0.05348,
+     "upShareCalled": 0.60174,
+     "upRate": 0.50673
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 5866,
+     "coverage": 0.09362,
+     "accuracy": 0.56597,
+     "majorityHere": 0.5196,
+     "marginOverMajority": 0.04637,
+     "upShareCalled": 0.64951,
+     "upRate": 0.5196
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 1513,
+     "coverage": 0.02415,
+     "accuracy": 0.5651,
+     "majorityHere": 0.53206,
+     "marginOverMajority": 0.03305,
+     "upShareCalled": 0.72637,
+     "upRate": 0.53206
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 267,
+     "coverage": 0.00426,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 42,
+     "coverage": 0.00067,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    }
+   ],
+   "testCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 62923,
+     "coverage": 1.0,
+     "accuracy": 0.52696,
+     "majorityHere": 0.50304,
+     "marginOverMajority": 0.02392,
+     "upShareCalled": 0.48534,
+     "upRate": 0.49696
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 51861,
+     "coverage": 0.8242,
+     "accuracy": 0.53057,
+     "majorityHere": 0.50151,
+     "marginOverMajority": 0.02906,
+     "upShareCalled": 0.48435,
+     "upRate": 0.49849
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 41431,
+     "coverage": 0.65844,
+     "accuracy": 0.53675,
+     "majorityHere": 0.5003,
+     "marginOverMajority": 0.03645,
+     "upShareCalled": 0.48816,
+     "upRate": 0.5003
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 32018,
+     "coverage": 0.50884,
+     "accuracy": 0.54444,
+     "majorityHere": 0.50166,
+     "marginOverMajority": 0.04279,
+     "upShareCalled": 0.49185,
+     "upRate": 0.50166
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 23668,
+     "coverage": 0.37614,
+     "accuracy": 0.55087,
+     "majorityHere": 0.50406,
+     "marginOverMajority": 0.04681,
+     "upShareCalled": 0.5011,
+     "upRate": 0.50406
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 16821,
+     "coverage": 0.26733,
+     "accuracy": 0.55674,
+     "majorityHere": 0.50609,
+     "marginOverMajority": 0.05065,
+     "upShareCalled": 0.51549,
+     "upRate": 0.50609
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 11591,
+     "coverage": 0.18421,
+     "accuracy": 0.56552,
+     "majorityHere": 0.50971,
+     "marginOverMajority": 0.05582,
+     "upShareCalled": 0.53162,
+     "upRate": 0.50971
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 6009,
+     "coverage": 0.0955,
+     "accuracy": 0.57497,
+     "majorityHere": 0.52072,
+     "marginOverMajority": 0.05425,
+     "upShareCalled": 0.56998,
+     "upRate": 0.52072
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 1439,
+     "coverage": 0.02287,
+     "accuracy": 0.60459,
+     "majorityHere": 0.55247,
+     "marginOverMajority": 0.05212,
+     "upShareCalled": 0.69771,
+     "upRate": 0.55247
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 259,
+     "coverage": 0.00412,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 47,
+     "coverage": 0.00075,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    }
+   ],
+   "ungatedOnTest": {
+    "minMargin": 0.0,
+    "rows": 62923,
+    "coverage": 1.0,
+    "accuracy": 0.52696,
+    "majorityHere": 0.50304,
+    "marginOverMajority": 0.02392,
+    "upShareCalled": 0.48534,
+    "upRate": 0.49696,
+    "blockedBootstrap": {
+     "blocks": 219,
+     "draws": 2000,
+     "pointEstimate": 0.023918,
+     "ci95": [
+      0.016869,
+      0.031562
+     ],
+     "sd": 0.003775,
+     "z": 6.3359,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 12584,
+       "accuracy": 0.54029,
+       "majority": 0.50127,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 12585,
+       "accuracy": 0.52348,
+       "majority": 0.50886,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 12584,
+       "accuracy": 0.52479,
+       "majority": 0.50723,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 12585,
+       "accuracy": 0.52769,
+       "majority": 0.50266,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 12585,
+       "accuracy": 0.51855,
+       "majority": 0.50226,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "gatedOnTest": {
+    "minMargin": 0.06,
+    "rows": 11591,
+    "coverage": 0.18421,
+    "accuracy": 0.56552,
+    "majorityHere": 0.50971,
+    "marginOverMajority": 0.05582,
+    "upShareCalled": 0.53162,
+    "upRate": 0.50971,
+    "blockedBootstrap": {
+     "blocks": 219,
+     "draws": 2000,
+     "pointEstimate": 0.055819,
+     "ci95": [
+      0.042632,
+      0.068177
+     ],
+     "sd": 0.00672,
+     "z": 8.3061,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 2318,
+       "accuracy": 0.57895,
+       "majority": 0.52071,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 2318,
+       "accuracy": 0.55134,
+       "majority": 0.50259,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 2318,
+       "accuracy": 0.56773,
+       "majority": 0.50259,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 2318,
+       "accuracy": 0.56557,
+       "majority": 0.50906,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 2319,
+       "accuracy": 0.56404,
+       "majority": 0.51876,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "serveGated": true
+  },
+  {
+   "family": "btc",
+   "horizon": "h1",
+   "modelVersion": "brain-c1-btc-h1",
+   "interval": "5m",
+   "symbols": [
+    "BTCUSDT"
+   ],
+   "stride": 1,
+   "split": {
+    "trainEnd": "2025-08-09T11:45:00+00:00",
+    "valEnd": "2026-03-16T04:20:00+00:00",
+    "embargoBars": 300,
+    "embargoMinutes": 1500,
+    "testFrom": "2026-03-16T04:25:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00"
+   },
+   "rows": {
+    "validation": 62676,
+    "test": 62960
+   },
+   "chosenFloor": 0.06,
+   "validationCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 62676,
+     "coverage": 1.0,
+     "accuracy": 0.52499,
+     "majorityHere": 0.50102,
+     "marginOverMajority": 0.02396,
+     "upShareCalled": 0.59468,
+     "upRate": 0.49898
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 52809,
+     "coverage": 0.84257,
+     "accuracy": 0.52932,
+     "majorityHere": 0.5006,
+     "marginOverMajority": 0.02873,
+     "upShareCalled": 0.61224,
+     "upRate": 0.5006
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 42809,
+     "coverage": 0.68302,
+     "accuracy": 0.5337,
+     "majorityHere": 0.50373,
+     "marginOverMajority": 0.02997,
+     "upShareCalled": 0.63533,
+     "upRate": 0.50373
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 33121,
+     "coverage": 0.52845,
+     "accuracy": 0.54153,
+     "majorityHere": 0.51104,
+     "marginOverMajority": 0.03049,
+     "upShareCalled": 0.66293,
+     "upRate": 0.51104
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 23921,
+     "coverage": 0.38166,
+     "accuracy": 0.54981,
+     "majorityHere": 0.51758,
+     "marginOverMajority": 0.03223,
+     "upShareCalled": 0.68977,
+     "upRate": 0.51758
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 15585,
+     "coverage": 0.24866,
+     "accuracy": 0.5608,
+     "majorityHere": 0.51941,
+     "marginOverMajority": 0.04139,
+     "upShareCalled": 0.72159,
+     "upRate": 0.51941
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 9232,
+     "coverage": 0.1473,
+     "accuracy": 0.57463,
+     "majorityHere": 0.52502,
+     "marginOverMajority": 0.04961,
+     "upShareCalled": 0.74112,
+     "upRate": 0.52502
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 2372,
+     "coverage": 0.03785,
+     "accuracy": 0.5898,
+     "majorityHere": 0.5527,
+     "marginOverMajority": 0.0371,
+     "upShareCalled": 0.72766,
+     "upRate": 0.5527
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 37,
+     "coverage": 0.00059,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    }
+   ],
+   "testCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 62960,
+     "coverage": 1.0,
+     "accuracy": 0.52672,
+     "majorityHere": 0.50265,
+     "marginOverMajority": 0.02406,
+     "upShareCalled": 0.54277,
+     "upRate": 0.50265
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 53076,
+     "coverage": 0.84301,
+     "accuracy": 0.52988,
+     "majorityHere": 0.50113,
+     "marginOverMajority": 0.02875,
+     "upShareCalled": 0.54966,
+     "upRate": 0.50113
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 43262,
+     "coverage": 0.68713,
+     "accuracy": 0.53386,
+     "majorityHere": 0.50095,
+     "marginOverMajority": 0.03292,
+     "upShareCalled": 0.56336,
+     "upRate": 0.50095
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 33295,
+     "coverage": 0.52883,
+     "accuracy": 0.53723,
+     "majorityHere": 0.50038,
+     "marginOverMajority": 0.03685,
+     "upShareCalled": 0.58045,
+     "upRate": 0.50038
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 23975,
+     "coverage": 0.3808,
+     "accuracy": 0.54807,
+     "majorityHere": 0.50257,
+     "marginOverMajority": 0.04551,
+     "upShareCalled": 0.59729,
+     "upRate": 0.50257
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 15157,
+     "coverage": 0.24074,
+     "accuracy": 0.5569,
+     "majorityHere": 0.5129,
+     "marginOverMajority": 0.04401,
+     "upShareCalled": 0.63469,
+     "upRate": 0.5129
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 8452,
+     "coverage": 0.13424,
+     "accuracy": 0.57454,
+     "majorityHere": 0.5213,
+     "marginOverMajority": 0.05324,
+     "upShareCalled": 0.64671,
+     "upRate": 0.5213
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 2145,
+     "coverage": 0.03407,
+     "accuracy": 0.5958,
+     "majorityHere": 0.54592,
+     "marginOverMajority": 0.04988,
+     "upShareCalled": 0.64149,
+     "upRate": 0.54592
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 13,
+     "coverage": 0.00021,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    }
+   ],
+   "ungatedOnTest": {
+    "minMargin": 0.0,
+    "rows": 62960,
+    "coverage": 1.0,
+    "accuracy": 0.52672,
+    "majorityHere": 0.50265,
+    "marginOverMajority": 0.02406,
+    "upShareCalled": 0.54277,
+    "upRate": 0.50265,
+    "blockedBootstrap": {
+     "blocks": 219,
+     "draws": 2000,
+     "pointEstimate": 0.024063,
+     "ci95": [
+      0.011734,
+      0.035965
+     ],
+     "sd": 0.006168,
+     "z": 3.9015,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 12592,
+       "accuracy": 0.53375,
+       "majority": 0.505,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 12592,
+       "accuracy": 0.5197,
+       "majority": 0.51271,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 12592,
+       "accuracy": 0.52367,
+       "majority": 0.50341,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 12592,
+       "accuracy": 0.53844,
+       "majority": 0.51128,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 12592,
+       "accuracy": 0.51803,
+       "majority": 0.50627,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "gatedOnTest": {
+    "minMargin": 0.06,
+    "rows": 8452,
+    "coverage": 0.13424,
+    "accuracy": 0.57454,
+    "majorityHere": 0.5213,
+    "marginOverMajority": 0.05324,
+    "upShareCalled": 0.64671,
+    "upRate": 0.5213,
+    "blockedBootstrap": {
+     "blocks": 215,
+     "draws": 2000,
+     "pointEstimate": 0.053242,
+     "ci95": [
+      0.025693,
+      0.084345
+     ],
+     "sd": 0.015441,
+     "z": 3.4481,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 1690,
+       "accuracy": 0.59408,
+       "majority": 0.52189,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 1690,
+       "accuracy": 0.55917,
+       "majority": 0.52722,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 1691,
+       "accuracy": 0.59077,
+       "majority": 0.52395,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 1690,
+       "accuracy": 0.60355,
+       "majority": 0.50178,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 1691,
+       "accuracy": 0.52513,
+       "majority": 0.53164,
+       "above": false
+      }
+     ],
+     "blocksAboveMajority": 4,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "serveGated": true
+  },
+  {
+   "family": "crypto",
+   "horizon": "m5",
+   "modelVersion": "brain-c1-crypto-m5",
+   "interval": "5m",
+   "symbols": [
+    "AAVEUSDT",
+    "ADAUSDT",
+    "ALGOUSDT",
+    "APTUSDT",
+    "ARBUSDT",
+    "ATOMUSDT",
+    "AVAXUSDT",
+    "BCHUSDT",
+    "BNBUSDT",
+    "BTCUSDT",
+    "DOGEUSDT",
+    "DOTUSDT",
+    "ETCUSDT",
+    "ETHUSDT",
+    "FILUSDT",
+    "HBARUSDT",
+    "INJUSDT",
+    "LINKUSDT",
+    "LTCUSDT",
+    "NEARUSDT",
+    "OPUSDT",
+    "PEPEUSDT",
+    "SEIUSDT",
+    "SHIBUSDT",
+    "SOLUSDT",
+    "SUIUSDT",
+    "TIAUSDT",
+    "TRXUSDT",
+    "UNIUSDT",
+    "XLMUSDT",
+    "XRPUSDT"
+   ],
+   "stride": 5,
+   "split": {
+    "trainEnd": "2026-05-03T07:20:00+00:00",
+    "valEnd": "2026-07-27T14:30:00+00:00",
+    "embargoBars": 289,
+    "embargoMinutes": 1445,
+    "testFrom": "2026-07-27T14:35:00+00:00",
+    "testTo": "2026-10-20T22:00:00+00:00"
+   },
+   "rows": {
+    "validation": 130229,
+    "test": 134193
+   },
+   "chosenFloor": 0.06,
+   "validationCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 130229,
+     "coverage": 1.0,
+     "accuracy": 0.53784,
+     "majorityHere": 0.5029,
+     "marginOverMajority": 0.03494,
+     "upShareCalled": 0.45838,
+     "upRate": 0.4971
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 96284,
+     "coverage": 0.73934,
+     "accuracy": 0.55027,
+     "majorityHere": 0.50226,
+     "marginOverMajority": 0.048,
+     "upShareCalled": 0.4511,
+     "upRate": 0.49774
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 67470,
+     "coverage": 0.51809,
+     "accuracy": 0.56376,
+     "majorityHere": 0.50178,
+     "marginOverMajority": 0.06198,
+     "upShareCalled": 0.45102,
+     "upRate": 0.49822
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 45847,
+     "coverage": 0.35205,
+     "accuracy": 0.57869,
+     "majorityHere": 0.50372,
+     "marginOverMajority": 0.07497,
+     "upShareCalled": 0.45645,
+     "upRate": 0.49628
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 30704,
+     "coverage": 0.23577,
+     "accuracy": 0.59732,
+     "majorityHere": 0.50717,
+     "marginOverMajority": 0.09015,
+     "upShareCalled": 0.46118,
+     "upRate": 0.49283
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 21013,
+     "coverage": 0.16135,
+     "accuracy": 0.61372,
+     "majorityHere": 0.51035,
+     "marginOverMajority": 0.10336,
+     "upShareCalled": 0.45477,
+     "upRate": 0.48965
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 14499,
+     "coverage": 0.11133,
+     "accuracy": 0.63087,
+     "majorityHere": 0.51245,
+     "marginOverMajority": 0.11842,
+     "upShareCalled": 0.46065,
+     "upRate": 0.48755
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 7986,
+     "coverage": 0.06132,
+     "accuracy": 0.66504,
+     "majorityHere": 0.50463,
+     "marginOverMajority": 0.16041,
+     "upShareCalled": 0.53281,
+     "upRate": 0.50463
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 2876,
+     "coverage": 0.02208,
+     "accuracy": 0.72288,
+     "majorityHere": 0.5459,
+     "marginOverMajority": 0.17698,
+     "upShareCalled": 0.65334,
+     "upRate": 0.5459
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 1262,
+     "coverage": 0.00969,
+     "accuracy": 0.77813,
+     "majorityHere": 0.57686,
+     "marginOverMajority": 0.20127,
+     "upShareCalled": 0.66878,
+     "upRate": 0.57686
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 724,
+     "coverage": 0.00556,
+     "accuracy": 0.79696,
+     "majorityHere": 0.5663,
+     "marginOverMajority": 0.23066,
+     "upShareCalled": 0.63674,
+     "upRate": 0.5663
+    }
+   ],
+   "testCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 134193,
+     "coverage": 1.0,
+     "accuracy": 0.53143,
+     "majorityHere": 0.50199,
+     "marginOverMajority": 0.02944,
+     "upShareCalled": 0.45515,
+     "upRate": 0.49801
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 97901,
+     "coverage": 0.72955,
+     "accuracy": 0.54103,
+     "majorityHere": 0.50244,
+     "marginOverMajority": 0.03859,
+     "upShareCalled": 0.44596,
+     "upRate": 0.49756
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 67207,
+     "coverage": 0.50082,
+     "accuracy": 0.55265,
+     "majorityHere": 0.50114,
+     "marginOverMajority": 0.05151,
+     "upShareCalled": 0.44829,
+     "upRate": 0.49886
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 44452,
+     "coverage": 0.33125,
+     "accuracy": 0.56585,
+     "majorityHere": 0.50454,
+     "marginOverMajority": 0.0613,
+     "upShareCalled": 0.45971,
+     "upRate": 0.50454
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 29234,
+     "coverage": 0.21785,
+     "accuracy": 0.58398,
+     "majorityHere": 0.50578,
+     "marginOverMajority": 0.0782,
+     "upShareCalled": 0.47164,
+     "upRate": 0.50578
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 19731,
+     "coverage": 0.14703,
+     "accuracy": 0.60321,
+     "majorityHere": 0.50829,
+     "marginOverMajority": 0.09493,
+     "upShareCalled": 0.48137,
+     "upRate": 0.50829
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 13652,
+     "coverage": 0.10173,
+     "accuracy": 0.61932,
+     "majorityHere": 0.51436,
+     "marginOverMajority": 0.10497,
+     "upShareCalled": 0.50432,
+     "upRate": 0.51436
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 7618,
+     "coverage": 0.05677,
+     "accuracy": 0.64833,
+     "majorityHere": 0.52993,
+     "marginOverMajority": 0.1184,
+     "upShareCalled": 0.58808,
+     "upRate": 0.52993
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 2834,
+     "coverage": 0.02112,
+     "accuracy": 0.69901,
+     "majorityHere": 0.58574,
+     "marginOverMajority": 0.11327,
+     "upShareCalled": 0.71242,
+     "upRate": 0.58574
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 1343,
+     "coverage": 0.01001,
+     "accuracy": 0.74907,
+     "majorityHere": 0.62249,
+     "marginOverMajority": 0.12658,
+     "upShareCalled": 0.72748,
+     "upRate": 0.62249
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 856,
+     "coverage": 0.00638,
+     "accuracy": 0.7535,
+     "majorityHere": 0.61916,
+     "marginOverMajority": 0.13435,
+     "upShareCalled": 0.71145,
+     "upRate": 0.61916
+    }
+   ],
+   "ungatedOnTest": {
+    "minMargin": 0.0,
+    "rows": 134193,
+    "coverage": 1.0,
+    "accuracy": 0.53143,
+    "majorityHere": 0.50199,
+    "marginOverMajority": 0.02944,
+    "upShareCalled": 0.45515,
+    "upRate": 0.49801,
+    "blockedBootstrap": {
+     "blocks": 86,
+     "draws": 2000,
+     "pointEstimate": 0.029435,
+     "ci95": [
+      0.024338,
+      0.034549
+     ],
+     "sd": 0.002614,
+     "z": 11.2589,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 26838,
+       "accuracy": 0.54266,
+       "majority": 0.50656,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 26839,
+       "accuracy": 0.53214,
+       "majority": 0.50259,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 26838,
+       "accuracy": 0.52731,
+       "majority": 0.50179,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 26839,
+       "accuracy": 0.52401,
+       "majority": 0.50292,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 26839,
+       "accuracy": 0.53102,
+       "majority": 0.50714,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "gatedOnTest": {
+    "minMargin": 0.06,
+    "rows": 13652,
+    "coverage": 0.10173,
+    "accuracy": 0.61932,
+    "majorityHere": 0.51436,
+    "marginOverMajority": 0.10497,
+    "upShareCalled": 0.50432,
+    "upRate": 0.51436,
+    "blockedBootstrap": {
+     "blocks": 86,
+     "draws": 2000,
+     "pointEstimate": 0.104966,
+     "ci95": [
+      0.091655,
+      0.118195
+     ],
+     "sd": 0.006873,
+     "z": 15.2713,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 2730,
+       "accuracy": 0.64652,
+       "majority": 0.50842,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 2730,
+       "accuracy": 0.65421,
+       "majority": 0.51392,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 2731,
+       "accuracy": 0.60015,
+       "majority": 0.50165,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 2730,
+       "accuracy": 0.59377,
+       "majority": 0.51941,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 2731,
+       "accuracy": 0.60198,
+       "majority": 0.53167,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "serveGated": true
+  },
+  {
+   "family": "crypto",
+   "horizon": "m15",
+   "modelVersion": "brain-c1-crypto-m15",
+   "interval": "5m",
+   "symbols": [
+    "AAVEUSDT",
+    "ADAUSDT",
+    "ALGOUSDT",
+    "APTUSDT",
+    "ARBUSDT",
+    "ATOMUSDT",
+    "AVAXUSDT",
+    "BCHUSDT",
+    "BNBUSDT",
+    "BTCUSDT",
+    "DOGEUSDT",
+    "DOTUSDT",
+    "ETCUSDT",
+    "ETHUSDT",
+    "FILUSDT",
+    "HBARUSDT",
+    "INJUSDT",
+    "LINKUSDT",
+    "LTCUSDT",
+    "NEARUSDT",
+    "OPUSDT",
+    "PEPEUSDT",
+    "SEIUSDT",
+    "SHIBUSDT",
+    "SOLUSDT",
+    "SUIUSDT",
+    "TIAUSDT",
+    "TRXUSDT",
+    "UNIUSDT",
+    "XLMUSDT",
+    "XRPUSDT"
+   ],
+   "stride": 5,
+   "split": {
+    "trainEnd": "2026-05-03T07:20:00+00:00",
+    "valEnd": "2026-07-27T14:30:00+00:00",
+    "embargoBars": 291,
+    "embargoMinutes": 1455,
+    "testFrom": "2026-07-27T14:35:00+00:00",
+    "testTo": "2026-10-20T22:00:00+00:00"
+   },
+   "rows": {
+    "validation": 137427,
+    "test": 140730
+   },
+   "chosenFloor": 0.05,
+   "validationCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 137427,
+     "coverage": 1.0,
+     "accuracy": 0.53076,
+     "majorityHere": 0.50483,
+     "marginOverMajority": 0.02593,
+     "upShareCalled": 0.41661,
+     "upRate": 0.49517
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 106044,
+     "coverage": 0.77164,
+     "accuracy": 0.53764,
+     "majorityHere": 0.50606,
+     "marginOverMajority": 0.03158,
+     "upShareCalled": 0.3975,
+     "upRate": 0.49394
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 77844,
+     "coverage": 0.56644,
+     "accuracy": 0.54422,
+     "majorityHere": 0.50735,
+     "marginOverMajority": 0.03687,
+     "upShareCalled": 0.38505,
+     "upRate": 0.49265
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 53841,
+     "coverage": 0.39178,
+     "accuracy": 0.55346,
+     "majorityHere": 0.50809,
+     "marginOverMajority": 0.04537,
+     "upShareCalled": 0.37828,
+     "upRate": 0.49191
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 34524,
+     "coverage": 0.25122,
+     "accuracy": 0.5619,
+     "majorityHere": 0.5093,
+     "marginOverMajority": 0.0526,
+     "upShareCalled": 0.38339,
+     "upRate": 0.4907
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 20722,
+     "coverage": 0.15079,
+     "accuracy": 0.57335,
+     "majorityHere": 0.50608,
+     "marginOverMajority": 0.06727,
+     "upShareCalled": 0.39649,
+     "upRate": 0.49392
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 12021,
+     "coverage": 0.08747,
+     "accuracy": 0.59205,
+     "majorityHere": 0.50012,
+     "marginOverMajority": 0.09192,
+     "upShareCalled": 0.41644,
+     "upRate": 0.50012
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 4837,
+     "coverage": 0.0352,
+     "accuracy": 0.62746,
+     "majorityHere": 0.5092,
+     "marginOverMajority": 0.11826,
+     "upShareCalled": 0.47695,
+     "upRate": 0.5092
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 950,
+     "coverage": 0.00691,
+     "accuracy": 0.70737,
+     "majorityHere": 0.55789,
+     "marginOverMajority": 0.14947,
+     "upShareCalled": 0.58526,
+     "upRate": 0.55789
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 200,
+     "coverage": 0.00146,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 75,
+     "coverage": 0.00055,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    }
+   ],
+   "testCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 140730,
+     "coverage": 1.0,
+     "accuracy": 0.52465,
+     "majorityHere": 0.50077,
+     "marginOverMajority": 0.02388,
+     "upShareCalled": 0.41122,
+     "upRate": 0.50077
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 107628,
+     "coverage": 0.76478,
+     "accuracy": 0.53118,
+     "majorityHere": 0.50042,
+     "marginOverMajority": 0.03076,
+     "upShareCalled": 0.39327,
+     "upRate": 0.49958
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 78156,
+     "coverage": 0.55536,
+     "accuracy": 0.53718,
+     "majorityHere": 0.50122,
+     "marginOverMajority": 0.03597,
+     "upShareCalled": 0.37961,
+     "upRate": 0.49878
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 53159,
+     "coverage": 0.37774,
+     "accuracy": 0.5445,
+     "majorityHere": 0.50033,
+     "marginOverMajority": 0.04417,
+     "upShareCalled": 0.3739,
+     "upRate": 0.49967
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 34020,
+     "coverage": 0.24174,
+     "accuracy": 0.55112,
+     "majorityHere": 0.50071,
+     "marginOverMajority": 0.05041,
+     "upShareCalled": 0.38416,
+     "upRate": 0.50071
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 20504,
+     "coverage": 0.1457,
+     "accuracy": 0.55862,
+     "majorityHere": 0.50005,
+     "marginOverMajority": 0.05857,
+     "upShareCalled": 0.40085,
+     "upRate": 0.50005
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 11878,
+     "coverage": 0.0844,
+     "accuracy": 0.57089,
+     "majorityHere": 0.50286,
+     "marginOverMajority": 0.06802,
+     "upShareCalled": 0.4265,
+     "upRate": 0.50286
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 4755,
+     "coverage": 0.03379,
+     "accuracy": 0.58822,
+     "majorityHere": 0.52093,
+     "marginOverMajority": 0.0673,
+     "upShareCalled": 0.4898,
+     "upRate": 0.52093
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 838,
+     "coverage": 0.00595,
+     "accuracy": 0.63604,
+     "majorityHere": 0.52864,
+     "marginOverMajority": 0.1074,
+     "upShareCalled": 0.61098,
+     "upRate": 0.52864
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 157,
+     "coverage": 0.00112,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 52,
+     "coverage": 0.00037,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    }
+   ],
+   "ungatedOnTest": {
+    "minMargin": 0.0,
+    "rows": 140730,
+    "coverage": 1.0,
+    "accuracy": 0.52465,
+    "majorityHere": 0.50077,
+    "marginOverMajority": 0.02388,
+    "upShareCalled": 0.41122,
+    "upRate": 0.50077,
+    "blockedBootstrap": {
+     "blocks": 86,
+     "draws": 2000,
+     "pointEstimate": 0.023883,
+     "ci95": [
+      0.014891,
+      0.032758
+     ],
+     "sd": 0.004582,
+     "z": 5.2122,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 28146,
+       "accuracy": 0.53279,
+       "majority": 0.50906,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 28146,
+       "accuracy": 0.53087,
+       "majority": 0.50568,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 28146,
+       "accuracy": 0.51567,
+       "majority": 0.50078,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 28146,
+       "accuracy": 0.51702,
+       "majority": 0.51439,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 28146,
+       "accuracy": 0.5269,
+       "majority": 0.5064,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "gatedOnTest": {
+    "minMargin": 0.05,
+    "rows": 20504,
+    "coverage": 0.1457,
+    "accuracy": 0.55862,
+    "majorityHere": 0.50005,
+    "marginOverMajority": 0.05857,
+    "upShareCalled": 0.40085,
+    "upRate": 0.50005,
+    "blockedBootstrap": {
+     "blocks": 86,
+     "draws": 2000,
+     "pointEstimate": 0.058574,
+     "ci95": [
+      0.042648,
+      0.073269
+     ],
+     "sd": 0.008042,
+     "z": 7.2839,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 4100,
+       "accuracy": 0.58171,
+       "majority": 0.51854,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 4101,
+       "accuracy": 0.57474,
+       "majority": 0.50012,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 4101,
+       "accuracy": 0.54792,
+       "majority": 0.50817,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 4101,
+       "accuracy": 0.53645,
+       "majority": 0.52353,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 4101,
+       "accuracy": 0.5523,
+       "majority": 0.50329,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "serveGated": true
+  }
+ ]
+}

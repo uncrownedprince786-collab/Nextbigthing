@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-20T23:29:22.432013+00:00",
+ "generatedAt": "2026-10-23T20:07:21.548560+00:00",
  "producedBy": "tools/research/crypto_lanes.py",
  "status": "what has survived testing on a historical holdout, not what has been proven forward and not a profitability claim; no transaction cost, spread or funding is in any number here",
  "highIsUnreachableFromBacktest": "a badge never reads HIGH: every number here comes from a holdout, which is still a backtest. HIGH is reserved for a lane whose prospective forecasts have matured and held, which none has yet.",
@@ -11,6 +11,7 @@
   "above its own block majority in at least four of five chronological blocks",
   "the test fold is after the training and validation folds in time, with an embargo of the feature window plus the horizon between them"
  ],
+ "conviction": "a lane with a floor answers only when the model's probability is at least that far from even, and says it sees nothing otherwise. The floor is chosen on the validation fold and the gated lane is then measured once on the test fold, against the called rows' own majority. Coverage travels with every accuracy here: 'right more often on fewer bars' is only a result when both numbers are shown.",
  "families": [
   "btc",
   "crypto"
@@ -113,6 +114,127 @@
       "note": "under 200 rows, not reported"
      }
     ]
+   },
+   "conviction": {
+    "floor": 0.04,
+    "chosenOn": "the validation fold, before the test fold was read",
+    "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
+    "called": {
+     "accuracy": 0.54343,
+     "coverage": 0.10896,
+     "rows": 6838,
+     "majorityHere": 0.51784,
+     "marginOverMajority": 0.02559,
+     "bootstrapCi95": [
+      0.013115,
+      0.039149
+     ],
+     "walkForwardAbove": 5,
+     "walkForwardBlocks": 5,
+     "upShareCalled": 0.7062
+    },
+    "ungatedAccuracy": 0.51535,
+    "testCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 62759,
+      "coverage": 1.0,
+      "accuracy": 0.51535,
+      "majorityHere": 0.50141,
+      "marginOverMajority": 0.01394,
+      "upShareCalled": 0.49056,
+      "upRate": 0.49859
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 42924,
+      "coverage": 0.68395,
+      "accuracy": 0.52283,
+      "majorityHere": 0.50135,
+      "marginOverMajority": 0.02148,
+      "upShareCalled": 0.50023,
+      "upRate": 0.49865
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 24881,
+      "coverage": 0.39645,
+      "accuracy": 0.52791,
+      "majorityHere": 0.50046,
+      "marginOverMajority": 0.02745,
+      "upShareCalled": 0.53141,
+      "upRate": 0.50046
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 14110,
+      "coverage": 0.22483,
+      "accuracy": 0.53607,
+      "majorityHere": 0.50702,
+      "marginOverMajority": 0.02906,
+      "upShareCalled": 0.59362,
+      "upRate": 0.50702
+     },
+     {
+      "minMargin": 0.04,
+      "rows": 6838,
+      "coverage": 0.10896,
+      "accuracy": 0.54343,
+      "majorityHere": 0.51784,
+      "marginOverMajority": 0.02559,
+      "upShareCalled": 0.7062,
+      "upRate": 0.51784
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 2081,
+      "coverage": 0.03316,
+      "accuracy": 0.56031,
+      "majorityHere": 0.5507,
+      "marginOverMajority": 0.00961,
+      "upShareCalled": 0.93272,
+      "upRate": 0.5507
+     },
+     {
+      "minMargin": 0.06,
+      "rows": 629,
+      "coverage": 0.01002,
+      "accuracy": 0.59777,
+      "majorityHere": 0.59777,
+      "marginOverMajority": 0.0,
+      "upShareCalled": 1.0,
+      "upRate": 0.59777
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 137,
+      "coverage": 0.00218,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.125,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     }
+    ],
+    "measuredAt": "2026-10-23T20:03:21.322084+00:00"
    },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
@@ -217,6 +339,133 @@
      }
     ]
    },
+   "conviction": {
+    "floor": 0.06,
+    "chosenOn": "the validation fold, before the test fold was read",
+    "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
+    "called": {
+     "accuracy": 0.56552,
+     "coverage": 0.18421,
+     "rows": 11591,
+     "majorityHere": 0.50971,
+     "marginOverMajority": 0.05582,
+     "bootstrapCi95": [
+      0.042632,
+      0.068177
+     ],
+     "walkForwardAbove": 5,
+     "walkForwardBlocks": 5,
+     "upShareCalled": 0.53162
+    },
+    "ungatedAccuracy": 0.52696,
+    "testCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 62923,
+      "coverage": 1.0,
+      "accuracy": 0.52696,
+      "majorityHere": 0.50304,
+      "marginOverMajority": 0.02392,
+      "upShareCalled": 0.48534,
+      "upRate": 0.49696
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 51861,
+      "coverage": 0.8242,
+      "accuracy": 0.53057,
+      "majorityHere": 0.50151,
+      "marginOverMajority": 0.02906,
+      "upShareCalled": 0.48435,
+      "upRate": 0.49849
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 41431,
+      "coverage": 0.65844,
+      "accuracy": 0.53675,
+      "majorityHere": 0.5003,
+      "marginOverMajority": 0.03645,
+      "upShareCalled": 0.48816,
+      "upRate": 0.5003
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 32018,
+      "coverage": 0.50884,
+      "accuracy": 0.54444,
+      "majorityHere": 0.50166,
+      "marginOverMajority": 0.04279,
+      "upShareCalled": 0.49185,
+      "upRate": 0.50166
+     },
+     {
+      "minMargin": 0.04,
+      "rows": 23668,
+      "coverage": 0.37614,
+      "accuracy": 0.55087,
+      "majorityHere": 0.50406,
+      "marginOverMajority": 0.04681,
+      "upShareCalled": 0.5011,
+      "upRate": 0.50406
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 16821,
+      "coverage": 0.26733,
+      "accuracy": 0.55674,
+      "majorityHere": 0.50609,
+      "marginOverMajority": 0.05065,
+      "upShareCalled": 0.51549,
+      "upRate": 0.50609
+     },
+     {
+      "minMargin": 0.06,
+      "rows": 11591,
+      "coverage": 0.18421,
+      "accuracy": 0.56552,
+      "majorityHere": 0.50971,
+      "marginOverMajority": 0.05582,
+      "upShareCalled": 0.53162,
+      "upRate": 0.50971
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 6009,
+      "coverage": 0.0955,
+      "accuracy": 0.57497,
+      "majorityHere": 0.52072,
+      "marginOverMajority": 0.05425,
+      "upShareCalled": 0.56998,
+      "upRate": 0.52072
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 1439,
+      "coverage": 0.02287,
+      "accuracy": 0.60459,
+      "majorityHere": 0.55247,
+      "marginOverMajority": 0.05212,
+      "upShareCalled": 0.69771,
+      "upRate": 0.55247
+     },
+     {
+      "minMargin": 0.125,
+      "rows": 259,
+      "coverage": 0.00412,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 47,
+      "coverage": 0.00075,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     }
+    ],
+    "measuredAt": "2026-10-23T20:03:21.322084+00:00"
+   },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
    "trainingRows": 293452,
@@ -319,6 +568,130 @@
       "note": "under 200 rows, not reported"
      }
     ]
+   },
+   "conviction": {
+    "floor": 0.06,
+    "chosenOn": "the validation fold, before the test fold was read",
+    "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
+    "called": {
+     "accuracy": 0.57454,
+     "coverage": 0.13424,
+     "rows": 8452,
+     "majorityHere": 0.5213,
+     "marginOverMajority": 0.05324,
+     "bootstrapCi95": [
+      0.025693,
+      0.084345
+     ],
+     "walkForwardAbove": 4,
+     "walkForwardBlocks": 5,
+     "upShareCalled": 0.64671
+    },
+    "ungatedAccuracy": 0.52672,
+    "testCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 62960,
+      "coverage": 1.0,
+      "accuracy": 0.52672,
+      "majorityHere": 0.50265,
+      "marginOverMajority": 0.02406,
+      "upShareCalled": 0.54277,
+      "upRate": 0.50265
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 53076,
+      "coverage": 0.84301,
+      "accuracy": 0.52988,
+      "majorityHere": 0.50113,
+      "marginOverMajority": 0.02875,
+      "upShareCalled": 0.54966,
+      "upRate": 0.50113
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 43262,
+      "coverage": 0.68713,
+      "accuracy": 0.53386,
+      "majorityHere": 0.50095,
+      "marginOverMajority": 0.03292,
+      "upShareCalled": 0.56336,
+      "upRate": 0.50095
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 33295,
+      "coverage": 0.52883,
+      "accuracy": 0.53723,
+      "majorityHere": 0.50038,
+      "marginOverMajority": 0.03685,
+      "upShareCalled": 0.58045,
+      "upRate": 0.50038
+     },
+     {
+      "minMargin": 0.04,
+      "rows": 23975,
+      "coverage": 0.3808,
+      "accuracy": 0.54807,
+      "majorityHere": 0.50257,
+      "marginOverMajority": 0.04551,
+      "upShareCalled": 0.59729,
+      "upRate": 0.50257
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 15157,
+      "coverage": 0.24074,
+      "accuracy": 0.5569,
+      "majorityHere": 0.5129,
+      "marginOverMajority": 0.04401,
+      "upShareCalled": 0.63469,
+      "upRate": 0.5129
+     },
+     {
+      "minMargin": 0.06,
+      "rows": 8452,
+      "coverage": 0.13424,
+      "accuracy": 0.57454,
+      "majorityHere": 0.5213,
+      "marginOverMajority": 0.05324,
+      "upShareCalled": 0.64671,
+      "upRate": 0.5213
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 2145,
+      "coverage": 0.03407,
+      "accuracy": 0.5958,
+      "majorityHere": 0.54592,
+      "marginOverMajority": 0.04988,
+      "upShareCalled": 0.64149,
+      "upRate": 0.54592
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 13,
+      "coverage": 0.00021,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.125,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     }
+    ],
+    "measuredAt": "2026-10-23T20:03:21.322084+00:00"
    },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
@@ -423,6 +796,7 @@
      }
     ]
    },
+   "conviction": null,
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
    "trainingRows": 293509,
@@ -526,6 +900,7 @@
      }
     ]
    },
+   "conviction": null,
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
    "trainingRows": 12084,
@@ -629,6 +1004,7 @@
      }
     ]
    },
+   "conviction": null,
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
    "trainingRows": 11893,
@@ -732,6 +1108,7 @@
      }
     ]
    },
+   "conviction": null,
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
    "trainingRows": 11198,
@@ -864,6 +1241,139 @@
       "note": "under 200 rows, not reported"
      }
     ]
+   },
+   "conviction": {
+    "floor": 0.06,
+    "chosenOn": "the validation fold, before the test fold was read",
+    "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
+    "called": {
+     "accuracy": 0.61932,
+     "coverage": 0.10173,
+     "rows": 13652,
+     "majorityHere": 0.51436,
+     "marginOverMajority": 0.10497,
+     "bootstrapCi95": [
+      0.091655,
+      0.118195
+     ],
+     "walkForwardAbove": 5,
+     "walkForwardBlocks": 5,
+     "upShareCalled": 0.50432
+    },
+    "ungatedAccuracy": 0.53143,
+    "testCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 134193,
+      "coverage": 1.0,
+      "accuracy": 0.53143,
+      "majorityHere": 0.50199,
+      "marginOverMajority": 0.02944,
+      "upShareCalled": 0.45515,
+      "upRate": 0.49801
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 97901,
+      "coverage": 0.72955,
+      "accuracy": 0.54103,
+      "majorityHere": 0.50244,
+      "marginOverMajority": 0.03859,
+      "upShareCalled": 0.44596,
+      "upRate": 0.49756
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 67207,
+      "coverage": 0.50082,
+      "accuracy": 0.55265,
+      "majorityHere": 0.50114,
+      "marginOverMajority": 0.05151,
+      "upShareCalled": 0.44829,
+      "upRate": 0.49886
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 44452,
+      "coverage": 0.33125,
+      "accuracy": 0.56585,
+      "majorityHere": 0.50454,
+      "marginOverMajority": 0.0613,
+      "upShareCalled": 0.45971,
+      "upRate": 0.50454
+     },
+     {
+      "minMargin": 0.04,
+      "rows": 29234,
+      "coverage": 0.21785,
+      "accuracy": 0.58398,
+      "majorityHere": 0.50578,
+      "marginOverMajority": 0.0782,
+      "upShareCalled": 0.47164,
+      "upRate": 0.50578
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 19731,
+      "coverage": 0.14703,
+      "accuracy": 0.60321,
+      "majorityHere": 0.50829,
+      "marginOverMajority": 0.09493,
+      "upShareCalled": 0.48137,
+      "upRate": 0.50829
+     },
+     {
+      "minMargin": 0.06,
+      "rows": 13652,
+      "coverage": 0.10173,
+      "accuracy": 0.61932,
+      "majorityHere": 0.51436,
+      "marginOverMajority": 0.10497,
+      "upShareCalled": 0.50432,
+      "upRate": 0.51436
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 7618,
+      "coverage": 0.05677,
+      "accuracy": 0.64833,
+      "majorityHere": 0.52993,
+      "marginOverMajority": 0.1184,
+      "upShareCalled": 0.58808,
+      "upRate": 0.52993
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 2834,
+      "coverage": 0.02112,
+      "accuracy": 0.69901,
+      "majorityHere": 0.58574,
+      "marginOverMajority": 0.11327,
+      "upShareCalled": 0.71242,
+      "upRate": 0.58574
+     },
+     {
+      "minMargin": 0.125,
+      "rows": 1343,
+      "coverage": 0.01001,
+      "accuracy": 0.74907,
+      "majorityHere": 0.62249,
+      "marginOverMajority": 0.12658,
+      "upShareCalled": 0.72748,
+      "upRate": 0.62249
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 856,
+      "coverage": 0.00638,
+      "accuracy": 0.7535,
+      "majorityHere": 0.61916,
+      "marginOverMajority": 0.13435,
+      "upShareCalled": 0.71145,
+      "upRate": 0.61916
+     }
+    ],
+    "measuredAt": "2026-10-23T20:03:21.322084+00:00"
    },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
@@ -998,6 +1508,133 @@
      }
     ]
    },
+   "conviction": {
+    "floor": 0.05,
+    "chosenOn": "the validation fold, before the test fold was read",
+    "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
+    "called": {
+     "accuracy": 0.55862,
+     "coverage": 0.1457,
+     "rows": 20504,
+     "majorityHere": 0.50005,
+     "marginOverMajority": 0.05857,
+     "bootstrapCi95": [
+      0.042648,
+      0.073269
+     ],
+     "walkForwardAbove": 5,
+     "walkForwardBlocks": 5,
+     "upShareCalled": 0.40085
+    },
+    "ungatedAccuracy": 0.52465,
+    "testCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 140730,
+      "coverage": 1.0,
+      "accuracy": 0.52465,
+      "majorityHere": 0.50077,
+      "marginOverMajority": 0.02388,
+      "upShareCalled": 0.41122,
+      "upRate": 0.50077
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 107628,
+      "coverage": 0.76478,
+      "accuracy": 0.53118,
+      "majorityHere": 0.50042,
+      "marginOverMajority": 0.03076,
+      "upShareCalled": 0.39327,
+      "upRate": 0.49958
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 78156,
+      "coverage": 0.55536,
+      "accuracy": 0.53718,
+      "majorityHere": 0.50122,
+      "marginOverMajority": 0.03597,
+      "upShareCalled": 0.37961,
+      "upRate": 0.49878
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 53159,
+      "coverage": 0.37774,
+      "accuracy": 0.5445,
+      "majorityHere": 0.50033,
+      "marginOverMajority": 0.04417,
+      "upShareCalled": 0.3739,
+      "upRate": 0.49967
+     },
+     {
+      "minMargin": 0.04,
+      "rows": 34020,
+      "coverage": 0.24174,
+      "accuracy": 0.55112,
+      "majorityHere": 0.50071,
+      "marginOverMajority": 0.05041,
+      "upShareCalled": 0.38416,
+      "upRate": 0.50071
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 20504,
+      "coverage": 0.1457,
+      "accuracy": 0.55862,
+      "majorityHere": 0.50005,
+      "marginOverMajority": 0.05857,
+      "upShareCalled": 0.40085,
+      "upRate": 0.50005
+     },
+     {
+      "minMargin": 0.06,
+      "rows": 11878,
+      "coverage": 0.0844,
+      "accuracy": 0.57089,
+      "majorityHere": 0.50286,
+      "marginOverMajority": 0.06802,
+      "upShareCalled": 0.4265,
+      "upRate": 0.50286
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 4755,
+      "coverage": 0.03379,
+      "accuracy": 0.58822,
+      "majorityHere": 0.52093,
+      "marginOverMajority": 0.0673,
+      "upShareCalled": 0.4898,
+      "upRate": 0.52093
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 838,
+      "coverage": 0.00595,
+      "accuracy": 0.63604,
+      "majorityHere": 0.52864,
+      "marginOverMajority": 0.1074,
+      "upShareCalled": 0.61098,
+      "upRate": 0.52864
+     },
+     {
+      "minMargin": 0.125,
+      "rows": 157,
+      "coverage": 0.00112,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 52,
+      "coverage": 0.00037,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     }
+    ],
+    "measuredAt": "2026-10-23T20:03:21.322084+00:00"
+   },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
    "trainingRows": 671531,
@@ -1131,6 +1768,7 @@
      }
     ]
    },
+   "conviction": null,
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
    "trainingRows": 689267,
@@ -1264,6 +1902,7 @@
      }
     ]
    },
+   "conviction": null,
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
    "trainingRows": 698804,
@@ -1431,6 +2070,7 @@
      }
     ]
    },
+   "conviction": null,
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
    "trainingRows": 448325,
@@ -1598,6 +2238,7 @@
      }
     ]
    },
+   "conviction": null,
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
    "trainingRows": 446256,
@@ -1765,6 +2406,7 @@
      }
     ]
    },
+   "conviction": null,
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
    "trainingRows": 435105,
@@ -1772,5 +2414,6 @@
   }
  ],
  "servableLanes": 5,
+ "gatedLanes": 5,
  "totalLanes": 14
 }

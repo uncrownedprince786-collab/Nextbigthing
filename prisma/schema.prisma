@@ -2106,8 +2106,21 @@ model BrainForecast {
   maturesAt DateTime @db.Timestamptz(3)
 
   /// UP or DOWN. There is no third class: the model is binary and no row is converted.
+  ///
+  /// On a row with `called = false` this is the model's *lean*, not a call: it is stored because
+  /// a silence whose underlying number is thrown away cannot be audited, and because grading the
+  /// uncalled rows too is the only way to find out whether the floor was worth imposing.
   direction      String
   probUp         Float
+  /// Whether this forecast was shown as a direction.
+  ///
+  /// False when the probability fell inside the lane's conviction floor and the page said it saw
+  /// no pattern. Defaulted true so every row written before the floors existed reads as what it
+  /// was -- a call -- rather than being silently reclassified by a schema change.
+  called          Boolean @default(true)
+  /// The floor in force when this forecast was made, or null for a lane that had none. Stored per
+  /// row because a later change to the floor must not reinterpret what an earlier page showed.
+  convictionFloor Float?
   /// LOW or MEDIUM, from the lane's measured evidence (lib/cryptoLanes.ts). Never HIGH: every
   /// number behind it comes from a historical holdout, which is still a backtest.
   confidence     String
@@ -2135,6 +2148,9 @@ model BrainForecast {
   @@index([assetId, horizonKey, asOf(sort: Desc)])
   @@index([maturesAt])
   @@index([symbol, asOf(sort: Desc)])
+  /// The record page counts called and uncalled rows separately per horizon, and every one of
+  /// those counts is a filter on exactly these two columns.
+  @@index([called, horizonKey])
 }
 
 /// What actually happened after a `BrainForecast`'s horizon.

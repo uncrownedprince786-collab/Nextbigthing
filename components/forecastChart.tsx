@@ -28,7 +28,11 @@ export function ForecastChart({
   reference: number;
   horizonMinutes: number;
   horizonLabel: string;
-  direction: "UP" | "DOWN";
+  /// Null when the model read this window and did not call it: the bars and the horizon are drawn
+  /// exactly as they are, and nothing is drawn into the shaded panel. A flat arrow would be a
+  /// third claim -- "sideways" -- that the binary model never makes, and no arrow at all is the
+  /// only honest picture of a silence.
+  direction: "UP" | "DOWN" | null;
   symbol: string;
   show?: number;
   width?: number;
@@ -77,7 +81,9 @@ export function ForecastChart({
   const last = series[series.length - 1];
   const change = (last.c / first.c - 1) * 100;
   const stroke = change >= 0 ? "var(--up)" : "var(--down)";
-  const arrow = direction === "UP" ? "var(--up)" : "var(--down)";
+  const arrow = direction === null
+    ? "currentColor"
+    : direction === "UP" ? "var(--up)" : "var(--down)";
   const xNow = xOf(series.length - 1);
   const xEnd = xOf(columns - 1);
   const yNow = yOf(reference);
@@ -96,7 +102,10 @@ export function ForecastChart({
         role="img"
         aria-label={
           `${symbol}: ${series.length} bars to ${hhmm(last.ts + stepMs)} UTC at ` +
-          `${plainPrice(last.c)}, with a ${direction} call over ${horizonLabel.toLowerCase()}`
+          `${plainPrice(last.c)}, ` +
+          (direction === null
+            ? `with no call over ${horizonLabel.toLowerCase()}`
+            : `with a ${direction} call over ${horizonLabel.toLowerCase()}`)
         }
       >
         {/* The horizon, as the part of the picture that has not happened yet. */}
@@ -122,16 +131,20 @@ export function ForecastChart({
           strokeDasharray="3 3"
           opacity="0.45"
         />
-        <line x1={xNow} y1={yNow} x2={xEnd} y2={yEnd} stroke={arrow} strokeWidth="2" />
-        <circle cx={xNow} cy={yNow} r="3" fill={arrow} />
-        <polygon
-          points={
-            direction === "UP"
-              ? `${xEnd},${yEnd} ${xEnd - 7},${yEnd + 4} ${xEnd - 7},${yEnd - 4}`
-              : `${xEnd},${yEnd} ${xEnd - 7},${yEnd - 4} ${xEnd - 7},${yEnd + 4}`
-          }
-          fill={arrow}
-        />
+        <circle cx={xNow} cy={yNow} r="3" fill={arrow} opacity={direction === null ? 0.5 : 1} />
+        {direction === null ? null : (
+          <>
+            <line x1={xNow} y1={yNow} x2={xEnd} y2={yEnd} stroke={arrow} strokeWidth="2" />
+            <polygon
+              points={
+                direction === "UP"
+                  ? `${xEnd},${yEnd} ${xEnd - 7},${yEnd + 4} ${xEnd - 7},${yEnd - 4}`
+                  : `${xEnd},${yEnd} ${xEnd - 7},${yEnd - 4} ${xEnd - 7},${yEnd + 4}`
+              }
+              fill={arrow}
+            />
+          </>
+        )}
       </svg>
       <figcaption className="text-muted-foreground num mt-1 flex flex-wrap justify-between gap-x-3 text-[11px]">
         <span>
@@ -146,7 +159,10 @@ export function ForecastChart({
       </figcaption>
       <p className="text-muted-foreground mt-1 text-[11px]">
         The shaded panel on the right is {horizonLabel.toLowerCase()} — the window the direction is
-        about. The arrow is a sign, not a size: the model predicts which way, never how far.
+        about.{" "}
+        {direction === null
+          ? "It is empty because the model made no call over it. These are the bars it read, and they are drawn whether or not it had anything to say about them."
+          : "The arrow is a sign, not a size: the model predicts which way, never how far."}
       </p>
     </figure>
   );

@@ -230,7 +230,13 @@ JOURNEY_WINDOWS = ["m5", "m15", "h1", "h4", "d1", "d5", "d20"]
 #: `data-forecast=` rather than from the words on the page: the first version of this check matched
 #: the sentence "which way it goes", which also appears in the note above the picker explaining
 #: that a window is *not* a direction, so every page passed as a direction panel.
-JOURNEY_STATES = {"direction", "refused", "no-model", "no-source", "data", "error"}
+#:
+#: `quiet` is a working panel, not a failure: the model read the window and its probability fell
+#: inside the lane's conviction floor, so the page says it sees no pattern. It is checked harder
+#: than the refusals below it -- it must print the margin and the floor that produced the silence
+#: and still draw the bars it read -- because a silence with no number behind it is exactly the
+#: shrug this audit exists to catch.
+JOURNEY_STATES = {"direction", "quiet", "refused", "no-model", "no-source", "data", "error"}
 
 
 def check_crypto_journey(site: str, fetch, counts: dict[str, int]) -> list[str]:
@@ -308,6 +314,19 @@ def check_crypto_journey(site: str, fetch, counts: dict[str, int]) -> list[str]:
                     out.append(f"{url}: a direction with no chart of the bars it was read from")
                 if "you asked about" not in low:
                     out.append(f"{url}: a direction that does not restate the window it is for")
+            elif state == "quiet":
+                counts["quiet"] = counts.get("quiet", 0) + 1
+                if not re.search(r'data-margin="[0-9.]+"', html) or not re.search(
+                        r'data-floor="[0-9.]+"', html):
+                    out.append(f"{url}: a quiet panel that does not say how far from even it was")
+                if "no clear pattern" not in low:
+                    out.append(f"{url}: a quiet panel that does not say it has no answer")
+                if "the shaded panel on the right is" not in low:
+                    out.append(f"{url}: a silence with no chart of the bars it was read from")
+                # The failure this guards against is the one the whole floor could become: a page
+                # that stops answering and stops explaining, which reads identically to an outage.
+                if "why there is no direction" not in low:
+                    out.append(f"{url}: a quiet panel that does not say why it is quiet")
     return out
 
 
@@ -371,7 +390,9 @@ def main() -> int:
         f"{counts['stars']} star markers, {counts['changes']} change sentences, "
         f"{counts['listed']} listed on the market pages ({counts['pool']} in the pool, "
         f"{counts.get('registry', 0)} in the registry), "
-        f"{counts.get('journey', 0)} crypto windows walked ({counts.get('directions', 0)} returned a direction)"
+        f"{counts.get('journey', 0)} crypto windows walked "
+        f"({counts.get('directions', 0)} returned a direction, "
+        f"{counts.get('quiet', 0)} said there was no clear pattern)"
     )
     if failures:
         print(f"ui audit: {len(failures)} FAILED")

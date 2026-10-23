@@ -13,17 +13,27 @@
 import { prisma } from "@/lib/db";
 import { featureMap, type Forecast } from "@/lib/cryptoForecast";
 
+/// A forecast that reached the model: either a direction the page printed, or a silence it
+/// printed instead. Both are stored, and `called` is what tells them apart.
+export type Recordable = Extract<Forecast, { kind: "direction" | "quiet" }>;
+
 /// Store a forecast, returning whether it is now in the record.
 ///
 /// Idempotent: the same bar writes once. `skipDuplicates` rather than an update, because a
 /// forecast is a claim made at an instant and a second write of the same claim must not be able
 /// to change the first.
+///
+/// An uncalled row is written with the same care as a called one. The silence is the product of a
+/// threshold, and a threshold that is never checked against what happened after it is a guess
+/// that has been promoted to a rule -- so the lean, the floor it fell inside and the whole feature
+/// vector are all kept, and the scorer grades it like any other row.
 export async function recordForecast(
   assetId: string,
   market: string,
   slug: string,
-  f: Extract<Forecast, { kind: "direction" }>,
+  f: Recordable,
 ): Promise<{ stored: boolean; why?: string }> {
+  const called = f.kind === "direction";
   try {
     const res = await prisma.brainForecast.createMany({
       data: [
@@ -36,9 +46,13 @@ export async function recordForecast(
           interval: f.horizon.interval,
           asOf: f.asOf,
           maturesAt: f.maturesAt,
-          direction: f.direction,
+          direction: f.kind === "direction" ? f.direction : f.lean,
           probUp: f.probUp,
-          confidence: f.confidence,
+          called,
+          convictionFloor: f.lane.conviction?.floor ?? null,
+          // A silence carries no confidence band: the bands are measured on called rows, and
+          // labelling an uncalled row LOW would make it look like a weak call rather than none.
+          confidence: f.kind === "direction" ? f.confidence : "NONE",
           referencePrice: f.referencePrice,
           modelVersion: f.lane.modelVersion,
           modelSha256: f.lane.modelSha256,
@@ -58,12 +72,20 @@ export async function recordForecast(
     // second and later views of the same page inside one bar -- not a failure.
     return { stored: true, why: res.count === 0 ? "already recorded for this bar" : undefined };
   } catch (e) {
-    return { stored: false, why: e instanceof Error ? e.message.split("\n")[0] : "write failed" };
+    // Prisma's connection errors lead with a blank line, and the first line of one of those is
+    // the empty string -- which rendered as "could not be written to the record ()" on the page,
+    // a sentence that tells a reader the write failed and then withholds the only useful part.
+    const first = e instanceof Error
+      ? e.message.split("\n").map((l) => l.trim()).find((l) => l.length > 0)
+      : undefined;
+    return { stored: false, why: first ?? "write failed" };
   }
 }
 
 export interface TrackRecord {
-  /// Forecasts whose horizon has matured and that have been graded.
+  /// Forecasts whose horizon has matured and that have been graded. **Called rows only**: the
+  /// rate below is how often the brain was right when it spoke, which is the only rate a reader
+  /// can act on.
   graded: number;
   correct: number;
   /// Forecasts made but not yet mature. Counted separately so a rate is never computed over them.
@@ -71,6 +93,12 @@ export interface TrackRecord {
   /// Matured but not yet graded by the scorer -- a gap in the scoring, not in the forecasting.
   awaitingScore: number;
   accuracy: number | null;
+  /// The same counts over the bars the brain stayed quiet on, graded against the lean it did not
+  /// print. Never mixed into `accuracy`: it is the check on the floor, not a claim about the
+  /// brain. A quiet rate near a half is the floor doing its job; one well above the called rate
+  /// would mean the floor is throwing away the model's better calls.
+  quietGraded: number;
+  quietCorrect: number;
   firstAt: Date | null;
   newestAt: Date | null;
 }
@@ -89,18 +117,23 @@ export async function trackRecord(
   // Counted in the database, never scanned here. A five-minute window produces a row per bar, so
   // one coin and one horizon reaches six figures inside a year -- pulling those into Node to add
   // them up is the shape `getAssetFreshness` exists to stop, on the page least able to afford it.
-  const where = { assetId, horizonKey };
-  const [total, graded, correct, pending, span] = await Promise.all([
+  const where = { assetId, horizonKey, called: true };
+  const quiet = { assetId, horizonKey, called: false };
+  const [total, graded, correct, pending, span, quietGraded, quietCorrect] = await Promise.all([
     prisma.brainForecast.count({ where }),
     prisma.brainForecast.count({ where: { ...where, outcome: { isNot: null } } }),
     prisma.brainForecast.count({ where: { ...where, outcome: { is: { correct: true } } } }),
     prisma.brainForecast.count({ where: { ...where, outcome: { is: null }, maturesAt: { gt: now } } }),
-    prisma.brainForecast.aggregate({ where, _min: { asOf: true }, _max: { asOf: true } }),
+    prisma.brainForecast.aggregate({ where: { assetId, horizonKey }, _min: { asOf: true }, _max: { asOf: true } }),
+    prisma.brainForecast.count({ where: { ...quiet, outcome: { isNot: null } } }),
+    prisma.brainForecast.count({ where: { ...quiet, outcome: { is: { correct: true } } } }),
   ]);
   return {
     graded,
     correct,
     pending,
+    quietGraded,
+    quietCorrect,
     // Matured and unscored is what is left over, which is the only one of the four that cannot be
     // asked for directly without a second index: it is total minus the two that are accounted for.
     awaitingScore: total - graded - pending,
@@ -111,32 +144,47 @@ export async function trackRecord(
 }
 
 /// The whole prospective record across every coin and horizon, for the record page.
+///
+/// Every count here is over **called** forecasts, except `quiet*`, which are the bars the brain
+/// read and said nothing about. The two are never added together: a rate over both would be a
+/// rate over a population no reader was ever shown, and the point of the split is that the
+/// headline number is the one that was actually claimed.
 export async function forecastTotals(now: Date = new Date()): Promise<{
   forecasts: number;
   graded: number;
   correct: number;
   pending: number;
   awaitingScore: number;
+  quiet: number;
+  quietGraded: number;
+  quietCorrect: number;
   byHorizon: { horizonKey: string; forecasts: number; graded: number; correct: number }[];
 }> {
   // Grouped in the database for the same reason as above: this page is prerendered every fifteen
   // minutes and must cost the same when the table holds a thousand rows and when it holds a
   // million.
-  const [total, graded, correct, pending, perHorizon, perHorizonGraded, perHorizonCorrect] =
-    await Promise.all([
-      prisma.brainForecast.count(),
-      prisma.brainForecast.count({ where: { outcome: { isNot: null } } }),
-      prisma.brainForecast.count({ where: { outcome: { is: { correct: true } } } }),
-      prisma.brainForecast.count({ where: { outcome: { is: null }, maturesAt: { gt: now } } }),
-      prisma.brainForecast.groupBy({ by: ["horizonKey"], _count: { _all: true } }),
+  const called = { called: true };
+  const [
+    total, graded, correct, pending,
+    quiet, quietGraded, quietCorrect,
+    perHorizon, perHorizonGraded, perHorizonCorrect,
+  ] = await Promise.all([
+      prisma.brainForecast.count({ where: called }),
+      prisma.brainForecast.count({ where: { ...called, outcome: { isNot: null } } }),
+      prisma.brainForecast.count({ where: { ...called, outcome: { is: { correct: true } } } }),
+      prisma.brainForecast.count({ where: { ...called, outcome: { is: null }, maturesAt: { gt: now } } }),
+      prisma.brainForecast.count({ where: { called: false } }),
+      prisma.brainForecast.count({ where: { called: false, outcome: { isNot: null } } }),
+      prisma.brainForecast.count({ where: { called: false, outcome: { is: { correct: true } } } }),
+      prisma.brainForecast.groupBy({ by: ["horizonKey"], where: called, _count: { _all: true } }),
       prisma.brainForecast.groupBy({
         by: ["horizonKey"],
-        where: { outcome: { isNot: null } },
+        where: { ...called, outcome: { isNot: null } },
         _count: { _all: true },
       }),
       prisma.brainForecast.groupBy({
         by: ["horizonKey"],
-        where: { outcome: { is: { correct: true } } },
+        where: { ...called, outcome: { is: { correct: true } } },
         _count: { _all: true },
       }),
     ]);
@@ -148,6 +196,9 @@ export async function forecastTotals(now: Date = new Date()): Promise<{
     correct,
     pending,
     awaitingScore: total - graded - pending,
+    quiet,
+    quietGraded,
+    quietCorrect,
     byHorizon: perHorizon.map((r) => ({
       horizonKey: r.horizonKey,
       forecasts: r._count._all,

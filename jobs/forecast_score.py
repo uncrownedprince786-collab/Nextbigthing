@@ -228,17 +228,33 @@ def main(argv: list[str]) -> int:
 
         # The record as it now stands, printed so a run's summary carries the number the site
         # shows rather than only the delta this run made.
+        #
+        # Split on `called`, and never summed. A row with `called = false` is a bar the brain read
+        # and said nothing about: it is graded here against the lean it did not print, because a
+        # conviction floor that is never checked against what followed it is a guess wearing a
+        # rule's clothes. But it was not a claim, and folding it into one rate would report a
+        # number no reader was ever shown.
         total = rows(cur, '''
-            SELECT count(*) AS forecasts,
+            SELECT f.called,
+                   count(*) AS forecasts,
                    count(o.id) AS graded,
                    count(*) FILTER (WHERE o.correct) AS correct
               FROM "BrainForecast" f
               LEFT JOIN "BrainForecastOutcome" o ON o."forecastId" = f.id
-        ''')[0]
-        g = int(total["graded"] or 0)
-        c = int(total["correct"] or 0)
-        rate = f"{c / g * 100:.1f}%" if g else "no rate yet"
-        print(f"  record: {total['forecasts']} forecasts, {g} graded, {c} right ({rate})")
+             GROUP BY f.called
+        ''')
+        by_called = {bool(r["called"]): r for r in total}
+        for flag, label in ((True, "called"), (False, "stayed quiet")):
+            r = by_called.get(flag)
+            if not r:
+                print(f"  record ({label}): none")
+                continue
+            g = int(r["graded"] or 0)
+            c = int(r["correct"] or 0)
+            rate = f"{c / g * 100:.1f}%" if g else "no rate yet"
+            kind = "right" if flag else "where the unprinted lean was right"
+            print(f"  record ({label}): {r['forecasts']} forecasts, {g} graded, "
+                  f"{c} {kind} ({rate})")
     finally:
         cur.close()
         conn.close()

@@ -37,7 +37,9 @@ export async function ForecastRecord() {
           <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-4">
             <Card>
               <div className="text-2xl font-semibold">{totals.forecasts.toLocaleString()}</div>
-              <div className="text-muted-foreground text-sm">recorded, one per coin per window per bar</div>
+              <div className="text-muted-foreground text-sm">
+                directions called, one per coin per window per bar
+              </div>
             </Card>
             <Card>
               <div className="text-2xl font-semibold">{totals.pending.toLocaleString()}</div>
@@ -90,7 +92,21 @@ export async function ForecastRecord() {
       )}
 
       <Note>
-        <p>
+        {totals ? (
+          <p>
+            <strong>And the bars it read and said nothing about.</strong>{" "}
+            {totals.quiet.toLocaleString()} window
+            {totals.quiet === 1 ? " was" : "s were"} read and left uncalled, because the model&apos;s
+            probability fell inside its lane&apos;s conviction floor.{" "}
+            {totals.quietGraded > 0
+              ? `${totals.quietGraded.toLocaleString()} of those have matured, and the lean that was not printed would have been right ${totals.quietCorrect.toLocaleString()} time${totals.quietCorrect === 1 ? "" : "s"}.`
+              : "None has matured yet."}{" "}
+            These are kept apart from every count above and never added into a rate: a silence was
+            not a claim, and the only reason to grade one is to find out whether staying quiet was
+            the right choice.
+          </p>
+        ) : null}
+        <p className="mt-2">
           <strong>What is licensed to answer.</strong>{" "}
           {servable.length === 0
             ? "No window has passed its gates, so no direction is served anywhere on the site."

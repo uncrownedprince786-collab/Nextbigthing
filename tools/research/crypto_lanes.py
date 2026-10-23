@@ -24,6 +24,18 @@ Never HIGH. Everything here is measured on a historical holdout, which is a back
 carefully it is split, and no forecast in it was made before its own data existed. MEDIUM needs
 the lane to pass every gate, hold a lower bootstrap bound of at least one point over the majority,
 and be above majority in all five walk-forward blocks. Everything else that passes is LOW.
+
+Conviction
+----------
+`crypto_conviction.json`, when it exists, carries each lane's margin floor -- the point below
+which the model's own probability says it is near-indifferent and the brain should say so rather
+than name a direction. It is merged onto the lane here rather than read separately by the web
+layer, for the same reason the weights are filtered by the verdict: the permission to speak, the
+threshold for speaking and the evidence behind both are one decision and belong in one file.
+
+A floor is attached **only** to a lane that is already servable and whose gated form passed its
+own gates on the test fold. Conviction can quiet a lane that passed; it can never promote one that
+did not, and a lane with no entry keeps answering on every bar exactly as before.
 """
 
 from __future__ import annotations
@@ -45,6 +57,44 @@ OUT = ROOT / "data" / "foundation" / "dataset"
 #: A lane must clear this much of a lower bootstrap bound over the test majority, and be above
 #: majority in every walk-forward block, before a badge may read MEDIUM rather than LOW.
 MEDIUM_MIN_LOWER_BOUND = 0.01
+
+CONVICTION = OUT / "crypto_conviction.json"
+
+
+def conviction_table() -> dict[tuple[str, str], dict]:
+    """`(family, horizon) -> the lane's measured conviction block`, or empty when none was run.
+
+    Absence is a normal state, not an error: the floors are produced by a separate measurement and
+    a repository without them serves every lane ungated, which is what it did before they existed.
+    """
+    if not CONVICTION.exists():
+        return {}
+    doc = json.loads(CONVICTION.read_text(encoding="utf-8"))
+    out: dict[tuple[str, str], dict] = {}
+    for l in doc.get("lanes", []):
+        if not l.get("serveGated"):
+            continue
+        g = l["gatedOnTest"]
+        out[(l["family"], l["horizon"])] = {
+            "floor": l["chosenFloor"],
+            "chosenOn": "the validation fold, before the test fold was read",
+            "rule": doc["rule"],
+            "called": {
+                "accuracy": g["accuracy"],
+                "coverage": g["coverage"],
+                "rows": g["rows"],
+                "majorityHere": g["majorityHere"],
+                "marginOverMajority": g["marginOverMajority"],
+                "bootstrapCi95": g["blockedBootstrap"]["ci95"],
+                "walkForwardAbove": g["walkForward"]["blocksAboveMajority"],
+                "walkForwardBlocks": g["walkForward"]["blocksScored"],
+                "upShareCalled": g["upShareCalled"],
+            },
+            "ungatedAccuracy": l["ungatedOnTest"]["accuracy"],
+            "testCurve": l["testCurve"],
+            "measuredAt": doc["generatedAt"],
+        }
+    return out
 
 
 def confidence_of(m: dict) -> str:
@@ -88,6 +138,7 @@ def main() -> int:
     lanes = []
     models: dict[str, dict] = {}
     families: set[str] = set()
+    convictions = conviction_table()
     for d in sorted(BRAIN_ROOT.glob("brain-c1-*")):
         mf = d / "manifest.json"
         if not mf.exists():
@@ -132,6 +183,8 @@ def main() -> int:
                 "chosenModel": m.get("chosenModel"),
                 "coverageCurve": ev["coverageCurve"],
             },
+            # A refused lane never carries a floor: there is nothing to quiet.
+            "conviction": convictions.get((family, key)) if servable else None,
             "acceptanceTarget": m.get("acceptanceTarget"),
             "acceptanceTargetMet": m.get("acceptanceTargetMet"),
             "trainingRows": m["rows"]["train"],
@@ -163,9 +216,16 @@ def main() -> int:
             "the test fold is after the training and validation folds in time, with an embargo "
             "of the feature window plus the horizon between them",
         ],
+        "conviction":
+            "a lane with a floor answers only when the model's probability is at least that far "
+            "from even, and says it sees nothing otherwise. The floor is chosen on the validation "
+            "fold and the gated lane is then measured once on the test fold, against the called "
+            "rows' own majority. Coverage travels with every accuracy here: 'right more often on "
+            "fewer bars' is only a result when both numbers are shown.",
         "families": sorted(families),
         "lanes": lanes,
         "servableLanes": len(passing),
+        "gatedLanes": sum(1 for l in lanes if l.get("conviction")),
         "totalLanes": len(lanes),
     }
     OUT.mkdir(parents=True, exist_ok=True)
@@ -177,10 +237,13 @@ def main() -> int:
     for l in lanes:
         mark = f"{l['confidence']}" if l["servable"] else "refused"
         e = l["evidence"]
+        c = l.get("conviction")
+        gated = (f"  | floor {c['floor']:.3f}: {c['called']['accuracy']:.4f} "
+                 f"on {c['called']['coverage']:.1%}" if c else "")
         print(f"  {l['family']:>6} {l['horizon']:>3}  acc {e['accuracy']:.4f} "
               f"maj {e['testMajority']:.4f} margin {e['marginOverMajority']:+.4f} "
               f"ci [{e['bootstrapCi95'][0]:+.4f},{e['bootstrapCi95'][1]:+.4f}] "
-              f"wf {e['walkForwardAbove']}/{e['walkForwardBlocks']}  {mark}")
+              f"wf {e['walkForwardAbove']}/{e['walkForwardBlocks']}  {mark}{gated}")
     print(f"wrote crypto_models.json: {len(models)} models, {size // 1024} KB")
     return 0
 

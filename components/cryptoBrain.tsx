@@ -4,6 +4,7 @@ import { ForecastChart } from "@/components/forecastChart";
 import { forecastFor, type Forecast } from "@/lib/cryptoForecast";
 import { HORIZON_GROUPS, HORIZONS, horizonFrom, type HorizonKey } from "@/lib/cryptoHorizons";
 import {
+  CONVICTION_RULE,
   HIGH_IS_UNREACHABLE,
   LANES_GENERATED_AT,
   LANE_REQUIREMENTS,
@@ -57,8 +58,11 @@ export async function CryptoBrain({
   // Written down before it is rendered, so the stored row is the row the reader sees. A failure
   // here never costs the reader the forecast; it costs the forecast its place in the record, and
   // the card says so.
+  // A silence is recorded exactly like a call. It is the only way the floor that produced it can
+  // be checked later against what the market actually did, and a threshold nobody can check is a
+  // guess that has been promoted to a rule.
   let stored: { stored: boolean; why?: string } | null = null;
-  if (forecast && forecast.kind === "direction") {
+  if (forecast && (forecast.kind === "direction" || forecast.kind === "quiet")) {
     stored = await recordForecast(assetId, market, symbol, forecast);
   }
   const record = chosen ? await trackRecord(assetId, chosen.key).catch(() => null) : null;
@@ -80,6 +84,16 @@ export async function CryptoBrain({
           <em>Next 5 minutes</em> asks what the next five minutes do. The answer to that is{" "}
           <strong>UP</strong> or <strong>DOWN</strong>, and a short window is just as likely to
           come back UP as a long one. Nothing here is advice, a position size or a trade.
+        </Note>
+
+        {/* Said before the buttons, because a reader who clicks and gets "no clear pattern" with
+            no warning reads it as the site failing rather than as the answer. */}
+        <Note>
+          <strong>It will not always have an answer.</strong> On the windows it is licensed for,
+          the model answers only when its own probability is far enough from even — about one bar
+          in ten on the holdout. The rest of the time it says it sees no pattern, which is a
+          result and not an outage: on the test folds those were the bars its calls were worth
+          least.
         </Note>
 
         <p className="mt-4 text-sm font-medium">How long are you asking about?</p>
@@ -121,6 +135,12 @@ export async function CryptoBrain({
             data-forecast={forecast!.kind}
             data-horizon={chosen.key}
             data-direction={forecast!.kind === "direction" ? forecast!.direction : undefined}
+            /* A quiet panel is a working panel, and the audit has to be able to tell it from a
+               venue failure that also prints no direction. */
+            data-margin={
+              forecast!.kind === "quiet" ? forecast!.margin.toFixed(4) : undefined
+            }
+            data-floor={forecast!.kind === "quiet" ? forecast!.floor.toFixed(3) : undefined}
           >
             <ForecastBody
               forecast={forecast!}
@@ -141,6 +161,11 @@ export async function CryptoBrain({
               <li key={r}>{r}</li>
             ))}
           </ul>
+          {CONVICTION_RULE ? (
+            <p className="text-muted-foreground mt-2 text-sm">
+              <strong>And when it may speak at all.</strong> {CONVICTION_RULE}
+            </p>
+          ) : null}
           <p className="text-muted-foreground mt-2 text-xs">
             {HIGH_IS_UNREACHABLE} Lane table computed {LANES_GENERATED_AT.slice(0, 10)}.
           </p>
@@ -285,6 +310,17 @@ function ForecastBody({
     );
   }
 
+  if (forecast.kind === "quiet") {
+    return (
+      <QuietBody
+        forecast={forecast}
+        symbol={symbol}
+        stored={stored}
+        record={record}
+      />
+    );
+  }
+
   const f = forecast;
   const e = f.lane.evidence;
   const w = f.window;
@@ -362,6 +398,24 @@ function ForecastBody({
           project set as its historical acceptance target — that target has not been met and
           nothing here is presented as though it had.
         </p>
+        {f.lane.conviction ? (
+          <p className="mt-2">
+            <strong>It cleared its floor to say this.</strong> This lane prints nothing until its
+            probability is at least{" "}
+            {(f.lane.conviction.floor * 200).toFixed(0)} points from even; today&apos;s is{" "}
+            {marginPts}. On the test fold the{" "}
+            {(f.lane.conviction.called.coverage * 100).toFixed(1)}% of rows that cleared the same
+            floor were right {(f.lane.conviction.called.accuracy * 100).toFixed(2)}% of the time
+            against a {(f.lane.conviction.called.majorityHere * 100).toFixed(2)}% largest class
+            among them, with a day-blocked interval of [
+            {(f.lane.conviction.called.bootstrapCi95[0] * 100).toFixed(2)},{" "}
+            {(f.lane.conviction.called.bootstrapCi95[1] * 100).toFixed(2)}] points and{" "}
+            {f.lane.conviction.called.walkForwardAbove} of{" "}
+            {f.lane.conviction.called.walkForwardBlocks} chronological blocks above their own
+            majority. The headline figure above is the same model answering every row, and both
+            are shown because the second is what the first was traded for.
+          </p>
+        ) : null}
         {f.measured ? (
           <p className="mt-2">
             <strong>On calls as confident as this one.</strong> Today&apos;s margin is {marginPts}{" "}
@@ -406,6 +460,120 @@ function ForecastBody({
   );
 }
 
+/// The model read the window and did not call it.
+///
+/// This is the state the conviction floor exists to produce, and it is rendered as a finding
+/// rather than as an apology. The lane's own holdout says where its calls were worth something:
+/// the `floor` is the distance from even below which they were not, and a reader who is shown a
+/// direction anyway is being handed the model's least reliable output dressed as its output.
+///
+/// Three numbers make it a finding rather than a shrug: how far from even today's probability
+/// actually is, how often the lane is right **when it does speak**, and how often that is. Without
+/// the third, "right 62% of the time" is a claim about a filter nobody can size.
+function QuietBody({
+  forecast: f,
+  symbol,
+  stored,
+  record,
+}: {
+  forecast: Extract<Forecast, { kind: "quiet" }>;
+  symbol: string;
+  stored: { stored: boolean; why?: string } | null;
+  record: Awaited<ReturnType<typeof trackRecord>> | null;
+}) {
+  const h = f.horizon;
+  const w = f.window;
+  const c = f.lane.conviction;
+  const marginPts = (f.margin * 200).toFixed(1);
+  const floorPts = (f.floor * 200).toFixed(0);
+  const when = (d: Date) => d.toISOString().slice(0, 16).replace("T", " ") + " UTC";
+  const ageSec = Math.round(w.ageMs / 1000);
+
+  return (
+    <>
+      <div className="border-border grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-2">
+        <div className="bg-background p-4">
+          <div className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+            You asked about
+          </div>
+          <div className="mt-1 text-xl font-semibold">{h.label}</div>
+          <p className="text-muted-foreground mt-1 text-xs">
+            {h.lead}, from {plainPrice(f.referencePrice)} at {when(f.asOf)}.
+          </p>
+        </div>
+        <div className="bg-background p-4">
+          <div className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+            Which way it goes
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <span className="text-muted-foreground text-3xl font-semibold tracking-tight">
+              No clear pattern
+            </span>
+          </div>
+          <p className="text-muted-foreground mt-1 text-xs">
+            The model read this window and did not call it.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <ForecastChart
+          bars={w.bars}
+          stepMs={w.stepMs}
+          reference={f.referencePrice}
+          horizonMinutes={h.minutes}
+          horizonLabel={h.label}
+          direction={null}
+          symbol={symbol}
+        />
+      </div>
+
+      <Note>
+        <p>
+          <strong>Why there is no direction.</strong> {f.lane.modelVersion} put this window{" "}
+          {marginPts} points from an even call, which is inside the {floorPts}-point floor this
+          lane has to clear before it prints anything. The floor was chosen on a validation fold,
+          before the test fold was read, and it is the whole mechanism: below it the model is
+          telling you it cannot separate the two outcomes here, and printing{" "}
+          <strong>{f.lean}</strong> anyway would be putting a word on a coin flip.
+        </p>
+        {c ? (
+          <p className="mt-2">
+            <strong>What it is like when it does speak.</strong> On{" "}
+            {c.called.rows.toLocaleString()} unseen rows — the{" "}
+            {(c.called.coverage * 100).toFixed(1)}% of the test fold that cleared this same floor —
+            it was right {(c.called.accuracy * 100).toFixed(2)}% of the time, against{" "}
+            {(c.called.majorityHere * 100).toFixed(2)}% for naming the larger direction among just
+            those rows. Answering every row instead, it scored{" "}
+            {(c.ungatedAccuracy * 100).toFixed(2)}%. That gap is what the silence buys, and the
+            coverage is what it costs: roughly {(c.called.coverage * 100).toFixed(0)} bars in 100
+            get an answer.
+          </p>
+        ) : null}
+        <p className="mt-2">
+          <strong>This is not an outage.</strong> {w.bars.length} consecutive {h.interval} bars
+          from {w.venue} were fetched and read, the newest closing{" "}
+          {ageSec < 90 ? `${ageSec} seconds` : `${Math.round(ageSec / 60)} minutes`} ago, and every
+          feature was computed.{" "}
+          {w.quality === "ok"
+            ? "Every input the model was trained on was observed."
+            : `Inputs ${w.imputed.join(", ")} are not published by that venue and were set to their neutral value.`}{" "}
+          A different window on the same coin may well get an answer; try another duration above,
+          or the same one after the next bar closes.
+        </p>
+        <p className="mt-2">
+          <strong>Recorded.</strong>{" "}
+          {stored?.stored
+            ? `This silence is in the record too, with the lean it did not print, and will be graded once ${when(f.maturesAt)} has passed — so the floor can be checked against what actually happened rather than taken on trust.`
+            : `This could not be written to the record (${stored?.why ?? "unknown"}), so it will not appear in the score later.`}
+        </p>
+      </Note>
+
+      {record ? <RecordCard record={record} label={h.label} /> : null}
+    </>
+  );
+}
+
 /// What this coin and window have actually done since forecasts started being recorded.
 ///
 /// Kept strictly apart from the holdout numbers above. The holdout is a backtest, however
@@ -418,8 +586,9 @@ function RecordCard({
   record: Awaited<ReturnType<typeof trackRecord>>;
   label: string;
 }) {
-  const { graded, correct, pending, awaitingScore, accuracy, firstAt } = record;
-  if (graded + pending + awaitingScore === 0) {
+  const { graded, correct, pending, awaitingScore, accuracy, firstAt, quietGraded, quietCorrect } =
+    record;
+  if (graded + pending + awaitingScore + quietGraded === 0) {
     return (
       <Note>
         <strong>Prospective record: none yet.</strong> This is the first forecast recorded for{" "}
@@ -444,6 +613,15 @@ function RecordCard({
         </>
       )}{" "}
       {pending} still inside their window and {awaitingScore} matured but not yet graded.
+      {quietGraded > 0 ? (
+        <>
+          {" "}
+          Separately, {quietGraded} bar{quietGraded === 1 ? " was" : "s were"} read and left
+          uncalled, and the lean {quietGraded === 1 ? "it" : "they"} did not print would have been
+          right {quietCorrect} time{quietCorrect === 1 ? "" : "s"}. That is never added to the rate
+          above — it is the check on the floor, not a claim the site made.
+        </>
+      ) : null}
       {firstAt ? ` Recording started ${firstAt.toISOString().slice(0, 16).replace("T", " ")} UTC.` : ""}{" "}
       This is forward evidence and the only kind that is not a backtest.
     </Note>

@@ -1,0 +1,426 @@
+{
+ "generatedAt": "2026-10-23T20:22:45.672416+00:00",
+ "producedBy": "tools/research/crypto_capacity.py",
+ "measuredOn": "the validation fold only; the test fold is not read by this file",
+ "tag": "btc",
+ "horizon": "m5",
+ "interval": "5m",
+ "symbols": [
+  "BTCUSDT"
+ ],
+ "stride": 1,
+ "rows": {
+  "train": 292675,
+  "validation": 62483
+ },
+ "split": {
+  "trainEnd": "2025-08-09T11:45:00+00:00",
+  "valEnd": "2026-03-16T04:20:00+00:00",
+  "embargoBars": 289,
+  "embargoMinutes": 1445,
+  "testFrom": "2026-03-16T04:25:00+00:00",
+  "testTo": "2026-10-20T20:55:00+00:00"
+ },
+ "grid": "narrow",
+ "results": [
+  {
+   "depth": 6,
+   "rounds": 800,
+   "lr": 0.03,
+   "l2": 4.0,
+   "features": "all",
+   "fitSeconds": 660.2,
+   "roundsKept": 51,
+   "roundsFitted": 91,
+   "validationAccuracy": 0.51894,
+   "validationMajority": 0.50094,
+   "marginOverMajority": 0.018,
+   "convictionCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 62483,
+     "coverage": 1.0,
+     "accuracy": 0.51894,
+     "majorityHere": 0.50094,
+     "upShareCalled": 0.52778
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 43691,
+     "coverage": 0.69925,
+     "accuracy": 0.52391,
+     "majorityHere": 0.50127,
+     "upShareCalled": 0.54261
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 25884,
+     "coverage": 0.41426,
+     "accuracy": 0.53272,
+     "majorityHere": 0.50066,
+     "upShareCalled": 0.55834
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 14552,
+     "coverage": 0.2329,
+     "accuracy": 0.53752,
+     "majorityHere": 0.50069,
+     "upShareCalled": 0.57587
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 7268,
+     "coverage": 0.11632,
+     "accuracy": 0.54362,
+     "majorityHere": 0.50413,
+     "upShareCalled": 0.64103
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 2782,
+     "coverage": 0.04452,
+     "accuracy": 0.55823,
+     "majorityHere": 0.53091,
+     "upShareCalled": 0.79871
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 1043,
+     "coverage": 0.01669,
+     "accuracy": 0.55705,
+     "majorityHere": 0.54938,
+     "upShareCalled": 0.9233
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 253,
+     "coverage": 0.00405,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 25,
+     "coverage": 0.0004,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 1,
+     "coverage": 2e-05,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    }
+   ],
+   "featureCount": 41
+  },
+  {
+   "depth": 4,
+   "rounds": 600,
+   "lr": 0.05,
+   "l2": 2.0,
+   "features": "all",
+   "fitSeconds": 146.4,
+   "roundsKept": 35,
+   "roundsFitted": 75,
+   "validationAccuracy": 0.51712,
+   "validationMajority": 0.50094,
+   "marginOverMajority": 0.01618,
+   "convictionCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 62483,
+     "coverage": 1.0,
+     "accuracy": 0.51712,
+     "majorityHere": 0.50094,
+     "upShareCalled": 0.51344
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 43034,
+     "coverage": 0.68873,
+     "accuracy": 0.52375,
+     "majorityHere": 0.50067,
+     "upShareCalled": 0.53091
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 25649,
+     "coverage": 0.4105,
+     "accuracy": 0.53101,
+     "majorityHere": 0.50099,
+     "upShareCalled": 0.567
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 14957,
+     "coverage": 0.23938,
+     "accuracy": 0.53975,
+     "majorityHere": 0.50057,
+     "upShareCalled": 0.62332
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 7335,
+     "coverage": 0.11739,
+     "accuracy": 0.54438,
+     "majorityHere": 0.51466,
+     "upShareCalled": 0.72952
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 2215,
+     "coverage": 0.03545,
+     "accuracy": 0.54763,
+     "majorityHere": 0.54853,
+     "upShareCalled": 0.93499
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 592,
+     "coverage": 0.00947,
+     "accuracy": 0.54561,
+     "majorityHere": 0.54561,
+     "upShareCalled": 1.0
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 104,
+     "coverage": 0.00166,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    }
+   ],
+   "featureCount": 41
+  },
+  {
+   "depth": 5,
+   "rounds": 600,
+   "lr": 0.05,
+   "l2": 2.0,
+   "features": "all",
+   "fitSeconds": 279.0,
+   "roundsKept": 30,
+   "roundsFitted": 70,
+   "validationAccuracy": 0.51667,
+   "validationMajority": 0.50094,
+   "marginOverMajority": 0.01573,
+   "convictionCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 62483,
+     "coverage": 1.0,
+     "accuracy": 0.51667,
+     "majorityHere": 0.50094,
+     "upShareCalled": 0.51971
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 42821,
+     "coverage": 0.68532,
+     "accuracy": 0.52287,
+     "majorityHere": 0.50015,
+     "upShareCalled": 0.53859
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 24825,
+     "coverage": 0.39731,
+     "accuracy": 0.53164,
+     "majorityHere": 0.50199,
+     "upShareCalled": 0.55887
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 13759,
+     "coverage": 0.2202,
+     "accuracy": 0.54088,
+     "majorityHere": 0.50055,
+     "upShareCalled": 0.58878
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 6367,
+     "coverage": 0.1019,
+     "accuracy": 0.54767,
+     "majorityHere": 0.50966,
+     "upShareCalled": 0.67332
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 1898,
+     "coverage": 0.03038,
+     "accuracy": 0.5627,
+     "majorityHere": 0.549,
+     "upShareCalled": 0.87987
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 635,
+     "coverage": 0.01016,
+     "accuracy": 0.55276,
+     "majorityHere": 0.55591,
+     "upShareCalled": 0.9811
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 143,
+     "coverage": 0.00229,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 7,
+     "coverage": 0.00011,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    }
+   ],
+   "featureCount": 41
+  },
+  {
+   "depth": 3,
+   "rounds": 300,
+   "lr": 0.05,
+   "l2": 2.0,
+   "features": "all",
+   "fitSeconds": 206.8,
+   "roundsKept": 37,
+   "roundsFitted": 77,
+   "validationAccuracy": 0.51584,
+   "validationMajority": 0.50094,
+   "marginOverMajority": 0.0149,
+   "convictionCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 62483,
+     "coverage": 1.0,
+     "accuracy": 0.51584,
+     "majorityHere": 0.50094,
+     "upShareCalled": 0.50188
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 40844,
+     "coverage": 0.65368,
+     "accuracy": 0.52559,
+     "majorityHere": 0.5,
+     "upShareCalled": 0.51643
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 25451,
+     "coverage": 0.40733,
+     "accuracy": 0.52835,
+     "majorityHere": 0.5001,
+     "upShareCalled": 0.57778
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 14911,
+     "coverage": 0.23864,
+     "accuracy": 0.53611,
+     "majorityHere": 0.50272,
+     "upShareCalled": 0.64764
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 6754,
+     "coverage": 0.10809,
+     "accuracy": 0.54086,
+     "majorityHere": 0.5114,
+     "upShareCalled": 0.78309
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 1643,
+     "coverage": 0.0263,
+     "accuracy": 0.52222,
+     "majorityHere": 0.52161,
+     "upShareCalled": 0.99939
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 191,
+     "coverage": 0.00306,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 rows, not reported"
+    }
+   ],
+   "featureCount": 41
+  }
+ ]
+}

@@ -16,7 +16,7 @@
 import models from "@/data/foundation/dataset/crypto_models.json";
 import { windowFor, type BarWindow } from "@/lib/cryptoBars";
 import { HORIZONS, maturesAt, type Horizon, type HorizonKey } from "@/lib/cryptoHorizons";
-import { accuracyAtMargin, servingLane, type Lane } from "@/lib/cryptoLanes";
+import { accuracyAtMargin, servingLane, speaks, type Lane } from "@/lib/cryptoLanes";
 import { assertSchema, probabilityUp, type Artifact } from "@/lib/cryptoModel";
 import { featuresAt, FEATURES, contiguous, WARMUP } from "@/lib/intradayFeatures";
 import { hasIntradaySource, instrumentsFor, venueRowFor } from "@/lib/cryptoVenues";
@@ -35,6 +35,27 @@ export type Forecast =
       /// How often a call in this confidence band was right on the test fold, if the band held
       /// enough rows to say. Null is an absence, not a zero.
       measured: { accuracy: number; coverage: number; rows: number } | null;
+      referencePrice: number;
+      asOf: Date;
+      maturesAt: Date;
+      window: BarWindow;
+      features: number[];
+    }
+  | {
+      /// The window was read, the model scored it, and it came back near-indifferent.
+      ///
+      /// This is a *result*, not a failure, and it is deliberately not merged with the refusals
+      /// above: everything worked. The model's probability landed inside its lane's conviction
+      /// floor, which on the holdout is where its calls were worth least, so the honest answer is
+      /// that it sees no pattern here rather than a direction it does not mean. The lean is
+      /// carried anyway -- a reader is entitled to see the number that produced the silence.
+      kind: "quiet";
+      horizon: Horizon;
+      lane: Lane;
+      lean: "UP" | "DOWN";
+      probUp: number;
+      margin: number;
+      floor: number;
       referencePrice: number;
       asOf: Date;
       maturesAt: Date;
@@ -133,6 +154,22 @@ export async function forecastFor(
 
   const margin = Math.abs(probUp - 0.5);
   const asOf = new Date(w.asOfMs);
+  if (!speaks(lane, probUp)) {
+    return {
+      kind: "quiet",
+      horizon,
+      lane,
+      lean: probUp >= 0.5 ? "UP" : "DOWN",
+      probUp,
+      margin,
+      floor: lane.conviction?.floor ?? 0,
+      referencePrice: w.referencePrice,
+      asOf,
+      maturesAt: maturesAt(asOf, horizon),
+      window: w,
+      features: x,
+    };
+  }
   return {
     kind: "direction",
     horizon,

@@ -40,6 +40,43 @@ export interface LaneEvidence {
   }[];
 }
 
+/// The point below which this lane says nothing.
+///
+/// A model's probability is also a statement about its own indifference, and on every lane that
+/// has one, the rows furthest from even are the rows it reads best. `floor` is how far from 0.5
+/// the probability must be before a direction is printed; `called` is what the lane scored on the
+/// test rows it would have spoken on, measured against **those rows' own** majority, with the
+/// coverage beside it because "right more often on fewer bars" is only a result when both numbers
+/// are shown.
+///
+/// Null is the normal older state: that lane answers on every bar, as all of them did before.
+export interface LaneConviction {
+  floor: number;
+  chosenOn: string;
+  rule: string;
+  called: {
+    accuracy: number;
+    coverage: number;
+    rows: number;
+    majorityHere: number;
+    marginOverMajority: number;
+    bootstrapCi95: [number, number];
+    walkForwardAbove: number;
+    walkForwardBlocks: number;
+    upShareCalled: number;
+  };
+  /// What the same model scored answering on every test row, so the trade is visible.
+  ungatedAccuracy: number;
+  testCurve: {
+    minMargin: number;
+    rows: number;
+    coverage: number;
+    accuracy: number | null;
+    majorityHere?: number;
+  }[];
+  measuredAt: string;
+}
+
 export interface Lane {
   family: string;
   horizon: HorizonKey;
@@ -53,6 +90,7 @@ export interface Lane {
   confidence: LaneConfidence;
   why: string | null;
   evidence: LaneEvidence;
+  conviction: LaneConviction | null;
   acceptanceTarget: number | null;
   acceptanceTargetMet: boolean | null;
   trainingRows: number;
@@ -64,9 +102,11 @@ interface Table {
   status: string;
   highIsUnreachableFromBacktest: string;
   requirements: string[];
+  conviction?: string;
   families: string[];
   lanes: Lane[];
   servableLanes: number;
+  gatedLanes?: number;
   totalLanes: number;
 }
 
@@ -76,7 +116,18 @@ export const LANES_GENERATED_AT = TABLE.generatedAt;
 export const LANES_STATUS = TABLE.status;
 export const LANE_REQUIREMENTS = TABLE.requirements;
 export const HIGH_IS_UNREACHABLE = TABLE.highIsUnreachableFromBacktest;
+export const CONVICTION_RULE = TABLE.conviction ?? null;
 export const LANES: readonly Lane[] = TABLE.lanes;
+
+/// Does this lane's probability clear its own floor?
+///
+/// True when the lane has no floor, because a lane without one answers on every bar -- the same
+/// behaviour every lane had before the floors existed, and the reason adding one to a single lane
+/// does not change any other.
+export function speaks(lane: Lane, probUp: number): boolean {
+  const floor = lane.conviction?.floor ?? 0;
+  return Math.abs(probUp - 0.5) >= floor;
+}
 
 /// Which model family answers for a coin.
 ///
