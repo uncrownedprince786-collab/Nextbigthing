@@ -71,7 +71,9 @@ sys.path.insert(0, str(HERE))
 
 import gbm  # noqa: E402
 from crypto_horizons import HORIZONS, ORDER, horizons_for  # noqa: E402
-from intraday_features import FEATURES, N_FEATURES, VERSION as FEATURE_VERSION, WARMUP  # noqa: E402
+from crypto_matrix import prepare_cached  # noqa: E402
+from intraday_features import FEATURES, VERSION as FEATURE_VERSION, WARMUP  # noqa: E402
+from market_context import CONTEXT_FEATURES, VERSION as CONTEXT_VERSION  # noqa: E402
 from intraday_matrix import build, verify_against_reference  # noqa: E402
 
 CORPUS = ROOT / ".cache" / "foundation" / "intraday"
@@ -491,13 +493,22 @@ def compact_tree(node: dict) -> dict:
 
 
 def write_artifact(tag: str, key: str, res: dict, data: dict, symbols: list[str]) -> dict:
+    """Write the model and its manifest.
+
+    `res["rowStride"]` is set by the caller from the run's own argument. It used to be read as
+    `res.get("stride", 1)` off a dict that never carried the key, so every pooled manifest in the
+    repository records a stride of 1 for a fit that actually used 5. The models are unaffected --
+    the stride only ever thinned the training sample -- but the record was wrong, and a corpus
+    record that cannot be trusted is worth less than no record.
+    """
     name = f"brain-c1-{tag}-{key}"
     d = BRAIN_ROOT / name
     d.mkdir(parents=True, exist_ok=True)
+    feature_names = res["featureNames"]
     model = {
         "modelVersion": name,
-        "featureSchema": FEATURE_VERSION,
-        "features": FEATURES,
+        "featureSchema": res["featureSchema"],
+        "features": feature_names,
         "warmupBars": WARMUP,
         "interval": res["interval"],
         "barsAhead": res["barsAhead"],
@@ -521,8 +532,8 @@ def write_artifact(tag: str, key: str, res: dict, data: dict, symbols: list[str]
                      "bytes": len(text.encode("utf-8"))},
         "producedBy": "tools/research/train_crypto_short.py",
         "repoHead": repo_head(),
-        "featureSchema": FEATURE_VERSION,
-        "featureCount": N_FEATURES,
+        "featureSchema": res["featureSchema"],
+        "featureCount": len(feature_names),
         "task": {
             "classes": ["DOWN", "UP"],
             "label": "sign of the forward close-to-close return",
@@ -534,7 +545,7 @@ def write_artifact(tag: str, key: str, res: dict, data: dict, symbols: list[str]
         },
         "corpus": {s: {k: v for k, v in m.items() if not k.startswith("_")}
                    for s, m in data["corpora"].items()},
-        "rowStride": res.get("stride", 1),
+        "rowStride": res["rowStride"],
         "featureParityWithReference": data["parity"],
         "rows": res["rows"],
         "split": res["split"],
@@ -570,24 +581,38 @@ def main() -> int:
                     help="keep every Nth usable row; for a pooled fit over many coins")
     ap.add_argument("--rounds", type=int, default=400)
     ap.add_argument("--depth", type=int, default=3)
+    ap.add_argument("--context", action="store_true",
+                    help="fit on the market-factor block as well (tools/research/market_context.py)")
     ap.add_argument("--verbose", type=int, default=0)
     a = ap.parse_args()
 
     keys = [k for k in a.horizons if k in HORIZONS]
     summary = {"generatedAt": datetime.now(timezone.utc).isoformat(), "tag": a.tag,
-               "symbols": a.symbols, "repoHead": repo_head(), "horizons": {}}
+               "symbols": a.symbols, "repoHead": repo_head(), "rowStride": a.stride,
+               "marketContext": bool(a.context), "horizons": {}}
 
     for interval in sorted({HORIZONS[k]["interval"] for k in keys}):
         here = [k for k in keys if k in horizons_for(interval)]
         print(f"\n== {interval} corpus for {', '.join(a.symbols)}: {', '.join(here)}", flush=True)
         t0 = time.time()
-        data = prepare(a.symbols, interval, stride=a.stride)
+        # Through the cache. `crypto_matrix.prepare_cached` builds exactly what `prepare` below
+        # builds -- the same exclusions, the same stride, the same parity check against
+        # `intraday_features.features_at` -- and keys the result on the content of every corpus
+        # file that went into it, so an edited feature definition or a recollected coin produces a
+        # different matrix rather than a stale one. Rebuilding thirty coins' features from JSONL
+        # on every run was most of a fit's wall clock, and it is the same matrix every time.
+        data = prepare_cached(a.symbols, interval, stride=a.stride, context=a.context)
         print(f"   {len(data['ts']):,} usable rows in {time.time() - t0:.1f}s "
-              f"(parity worst {max(p['worstRelativeDiff'] for p in data['parity'].values()):.2g})",
+              f"(parity worst {max((p['worstRelativeDiff'] for p in data['parity'].values()), default=0):.2g})",
               flush=True)
         for key in here:
             print(f"   -- {key} ({HORIZONS[key]['label']})", flush=True)
             res = train_one(data, key, a.tag, a.rounds, a.depth, verbose=a.verbose)
+            res["rowStride"] = a.stride
+            res["featureSchema"] = (f"{FEATURE_VERSION}+{CONTEXT_VERSION}" if a.context
+                                    else FEATURE_VERSION)
+            res["featureNames"] = (list(FEATURES) + list(CONTEXT_FEATURES) if a.context
+                                   else list(FEATURES))
             if not res.get("trained"):
                 print(f"      not trained: {res['reason']}")
                 summary["horizons"][key] = res
