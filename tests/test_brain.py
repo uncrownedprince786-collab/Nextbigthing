@@ -5042,6 +5042,14 @@ class SqlSafety(unittest.TestCase):
         # runbook). The path moved; the guarantee did not, so the entry moves with it rather
         # than the file being quietly exempted by a wildcard.
         "app/status/Preferences.tsx",
+        # The crypto market table's search and column sort. The rows are rendered on the server
+        # and handed to it as props; the only thing the browser does is hide the ones that do not
+        # match what was typed, and reorder the rest. There is no server-rendered form of that --
+        # a filter that round-trips is a page load per keystroke -- and it is held to the same
+        # no-server-value rule as the others: no database module, no environment, and it makes no
+        # `fetch` at all, so `test_no_allowed_client_component_fetches_off_site` has nothing to
+        # check on it.
+        "components/CoinTable.tsx",
     )
 
     def test_nothing_is_exposed_to_the_browser(self):

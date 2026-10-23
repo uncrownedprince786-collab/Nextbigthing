@@ -1,29 +1,91 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { ClassIndex } from "@/components/classIndex";
-import { classBySlug } from "@/lib/assetClass";
+import { CoinTable, type Row } from "@/components/CoinTable";
+import { coinPrice, compactUsd, marketTable, signedPct } from "@/lib/cryptoMarket";
 
-/// The crypto index.
+/// The crypto market, as a table.
 ///
-/// A four line route on purpose. Everything that renders is in `ClassIndex`, and everything that
-/// differs between the four classes is data in `ASSET_CLASSES` -- which is what keeps `/crypto`
-/// from quietly sorting differently to `/stocks` after someone fixes one of them.
+/// **What this replaced.** `/crypto` used to render `ClassIndex` -- the same component the four
+/// other asset classes use -- which asks the database one question per reading per coin and prints
+/// a paragraph above each block. It was the same page as `/stocks` with different rows, and what a
+/// reader opening a crypto index wants is the thing every exchange shows them: price, what it did
+/// today, what it did this week, how big it is, how much traded. Those are columns.
 ///
-/// Its own path rather than a `[slug]` segment, because these four are the site's top level
-/// browse and a reader is meant to be able to type them. A dynamic segment would also accept
-/// `/anything` and have to 404 it at render time, after the queries had already run.
-export const revalidate = 3600;
+/// Two reads behind the whole page (`lib/cryptoMarket.ts`): one SQL statement and one bulk ticker
+/// call. It is cached for a minute rather than an hour, because a price column that is an hour old
+/// is not a price column.
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Crypto",
-  description:
-    "Every coin the site covers, with one reading each.",
+  description: "Every coin covered, with a live price and a direction behind each one.",
 };
 
-export default function Page() {
-  const cls = classBySlug("crypto");
-  // Unreachable while ASSET_CLASSES holds this slug, and a 404 rather than a throw if it ever
-  // stops: a missing class is a page that does not exist, not a server fault.
-  if (!cls) notFound();
-  return <ClassIndex cls={cls} />;
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-muted-foreground text-xs">{label}</div>
+      <div className="num mt-0.5 text-sm font-semibold">{value}</div>
+    </div>
+  );
+}
+
+export default async function Page() {
+  const m = await marketTable();
+  const rows: Row[] = m.coins.map((c) => ({
+    rank: c.rank,
+    slug: c.slug,
+    name: c.name,
+    ticker: c.ticker,
+    price: coinPrice(c.price),
+    change24h: c.change24h,
+    change24hText: signedPct(c.change24h),
+    change7d: c.change7d,
+    change7dText: signedPct(c.change7d),
+    marketCap: compactUsd(c.marketCap),
+    volume24h: compactUsd(c.volume24h),
+    tradable: c.tradable,
+  }));
+
+  return (
+    <main className="mx-auto w-full max-w-6xl px-4 py-6">
+      <h1 className="text-xl font-semibold">Crypto</h1>
+
+      <div className="border-border mt-3 grid grid-cols-2 gap-4 rounded-lg border px-4 py-3 sm:grid-cols-5">
+        <Stat label="Coins" value={m.coins.length.toLocaleString()} />
+        <Stat label="Market cap" value={compactUsd(m.totalMarketCap)} />
+        <Stat label="Volume (24h)" value={compactUsd(m.totalVolume24h)} />
+        <Stat
+          label="BTC share"
+          value={m.dominance.btc === null ? "—" : `${m.dominance.btc.toFixed(1)}%`}
+        />
+        <Stat
+          label="ETH share"
+          value={m.dominance.eth === null ? "—" : `${m.dominance.eth.toFixed(1)}%`}
+        />
+      </div>
+
+      <div className="mt-4">
+        <CoinTable rows={rows} />
+      </div>
+
+      {/* One line, and only when it is not true that the prices are live. A banner that is always
+          there is a banner nobody reads, and the fact worth printing is the exception. */}
+      {!m.venueOk ? (
+        <p className="text-muted-foreground mt-3 text-xs">
+          The venue did not answer, so every price here is the last stored close
+          {m.coins[0]?.closeDate ? ` (${m.coins[0].closeDate.toISOString().slice(0, 10)})` : ""} and
+          the 24h column is blank.
+        </p>
+      ) : m.liveRows < m.coins.length ? (
+        <p className="text-muted-foreground mt-3 text-xs">
+          {m.liveRows} of {m.coins.length} prices are live from the venue; the rest are the last
+          stored close.
+        </p>
+      ) : null}
+
+      <p className="text-muted-foreground mt-2 text-xs">
+        Shares are of the coins listed here, not of the whole market. Research, not advice.
+      </p>
+    </main>
+  );
 }
