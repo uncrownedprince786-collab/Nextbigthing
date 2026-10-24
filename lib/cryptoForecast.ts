@@ -17,12 +17,16 @@ import models from "@/data/foundation/dataset/crypto_models.json";
 import { windowFor, type BarWindow } from "@/lib/cryptoBars";
 import { HORIZONS, maturesAt, type Horizon, type HorizonKey } from "@/lib/cryptoHorizons";
 import { accuracyAtMargin, servingLane, speaks, type Lane } from "@/lib/cryptoLanes";
-import { assertSchema, probabilityUp, type Artifact } from "@/lib/cryptoModel";
+import { assertSchema, probabilityUp, wantsContext, type Artifact } from "@/lib/cryptoModel";
+import { contextAt, CONTEXT_FEATURES } from "@/lib/marketContext";
 import { featuresAt, FEATURES, contiguous, WARMUP } from "@/lib/intradayFeatures";
 import { levelsFor, type Levels } from "@/lib/cryptoLevels";
 import { hasIntradaySource, instrumentsFor, venueRowFor } from "@/lib/cryptoVenues";
 
 const MODELS = models as unknown as Record<string, Artifact>;
+
+/// The coin whose bars are the market factor. Mirrors `crypto_matrix.MARKET_SYMBOL`.
+const MARKET_SLUG = "btc-bitcoin";
 
 export type Forecast =
   | {
@@ -129,8 +133,8 @@ export async function forecastFor(
       tried: [{ venue: w.venue, outcome: "window spans a gap" }],
     };
   }
-  const x = featuresAt(w.bars, last);
-  if (!x) {
+  const base = featuresAt(w.bars, last);
+  if (!base) {
     return {
       kind: "data",
       horizon,
@@ -138,6 +142,46 @@ export async function forecastFor(
       why: `only ${w.bars.length} bars are available where ${WARMUP + 1} are needed`,
       tried: [{ venue: w.venue, outcome: "short window" }],
     };
+  }
+
+  // A model fitted with the market factor has to be served it. Bitcoin's window is fetched
+  // alongside the coin's -- one extra venue call, and for Bitcoin itself no call at all, since
+  // the factor series *is* the window already in hand.
+  //
+  // A missing or misaligned factor window is a refusal, never an imputation. Every other
+  // imputation on this page is a feature a venue does not publish and whose neutral value the
+  // training fold's mean stands for; a context vector built from a factor window that does not
+  // reach the decision instant is a set of numbers about a different moment, which no neutral
+  // value represents.
+  let x = base;
+  if (wantsContext(artifact)) {
+    let mkt = w.bars;
+    if (slug !== MARKET_SLUG) {
+      const got2 = await windowFor(instrumentsFor(MARKET_SLUG), horizon.interval, nowMs);
+      if (!got2.ok) {
+        return {
+          kind: "data",
+          horizon,
+          lane,
+          why: `this model reads what the rest of the market is doing, and Bitcoin's bars could ` +
+            `not be fetched: ${got2.why}`,
+          tried: got2.tried,
+        };
+      }
+      mkt = got2.window.bars;
+    }
+    const ctx = contextAt(w.bars, last, mkt);
+    if (!ctx) {
+      return {
+        kind: "data",
+        horizon,
+        lane,
+        why: `Bitcoin's bars do not line up with this coin's over the window the model reads, ` +
+          `so the market-context inputs could not be computed`,
+        tried: [{ venue: w.venue, outcome: "factor window does not cover the decision instant" }],
+      };
+    }
+    x = [...base, ...ctx];
   }
 
   let probUp: number;
@@ -180,8 +224,12 @@ export async function forecastFor(
 /// that was already degraded.
 export function featureMap(x: number[]): Record<string, number> {
   const out: Record<string, number> = {};
-  FEATURES.forEach((name, i) => {
-    out[name] = Number(x[i].toFixed(8));
+  // The context block rides on the end of the vector when the model reads it, so the names have
+  // to as well -- a stored row whose last eleven values had no names would be a feature vector
+  // nobody could reproduce a forecast from, which is the whole reason it is stored.
+  const names = x.length > FEATURES.length ? [...FEATURES, ...CONTEXT_FEATURES] : FEATURES;
+  names.forEach((name, i) => {
+    if (i < x.length) out[name] = Number(x[i].toFixed(8));
   });
   return out;
 }

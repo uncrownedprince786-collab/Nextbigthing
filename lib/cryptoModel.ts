@@ -19,7 +19,8 @@
 
 // Relative, not aliased: the test lane runs under `node --test` with no bundler to resolve `@/`,
 // and this module has to be exercisable there. Same split as lib/signalValidation and signalLanes.
-import { FEATURE_VERSION } from "./intradayFeatures.ts";
+import { CONTEXT_VERSION, N_CONTEXT } from "./marketContext.ts";
+import { FEATURE_VERSION, FEATURES } from "./intradayFeatures.ts";
 
 export interface GbmLeaf {
   leaf: number;
@@ -119,11 +120,36 @@ export function probabilityUp(artifact: Artifact, x: number[]): number {
 /// being fed a *different* schema. They are different failures: the first is a drifting
 /// transliteration, the second is an artifact from before a feature was added, and only the second
 /// survives a green test suite.
+/// The schema with the market factor appended, as `train_crypto_short.py` writes it.
+const WITH_CONTEXT = `${FEATURE_VERSION}+${CONTEXT_VERSION}`;
+
+/// What this build can compute. An artifact naming anything else is refused rather than served a
+/// feature vector of the wrong width -- which would score, and be wrong.
+const KNOWN_SCHEMAS = new Set([FEATURE_VERSION, WITH_CONTEXT]);
+
 export function assertSchema(artifact: Artifact): void {
-  if (artifact.featureSchema !== FEATURE_VERSION) {
+  if (!KNOWN_SCHEMAS.has(artifact.featureSchema)) {
     throw new Error(
       `model ${artifact.modelVersion} was trained on feature schema ` +
-        `${artifact.featureSchema}; this build computes ${FEATURE_VERSION}`,
+        `${artifact.featureSchema}; this build computes ${[...KNOWN_SCHEMAS].join(" or ")}`,
     );
   }
+  // The schema name and the width have to agree. They are written by the same line of the trainer,
+  // so a disagreement means the artifact was edited or assembled by something else -- and a model
+  // scored on a vector of the wrong length does not fail, it returns a number.
+  const expected = FEATURES.length + (artifact.featureSchema === WITH_CONTEXT ? N_CONTEXT : 0);
+  if (artifact.features.length !== expected) {
+    throw new Error(
+      `model ${artifact.modelVersion} names schema ${artifact.featureSchema}, which is ` +
+        `${expected} features, and carries ${artifact.features.length}`,
+    );
+  }
+}
+
+/// Does this artifact read the market-factor block as well as the coin's own bars?
+///
+/// Decided from the schema string the trainer stamped on it rather than from the feature count,
+/// because a count is a coincidence waiting to happen and a name is a statement.
+export function wantsContext(artifact: Artifact): boolean {
+  return artifact.featureSchema === WITH_CONTEXT;
 }
