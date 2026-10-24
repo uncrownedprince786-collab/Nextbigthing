@@ -45,6 +45,14 @@ export function withDeadline<T>(work: Promise<T>, ms: number, fallback: T): Prom
 /// than the page.
 export const REGISTRY_DEADLINE_MS = 2500;
 
+/// The coin page's own budget for its single asset row.
+///
+/// Longer than the market table's, because it is one row by an indexed column rather than a
+/// lateral join over the whole table, and because what is lost when it expires is much larger: the
+/// market table loses a column, the coin page loses its news, its forward record, and its ability
+/// to write the forecast down at all.
+const SNAPSHOT_DEADLINE_MS = 6000;
+
 export interface CoinRow {
   rank: number;
   slug: string;
@@ -342,6 +350,13 @@ export interface CoinSnapshot {
   closeDate: Date | null;
   tradable: boolean;
   inRegistry: boolean;
+  /// Why there is no `assetId`, when there is none.
+  ///
+  /// `missing` is a coin the registry genuinely does not hold. `unread` is a coin whose row could
+  /// not be fetched in time -- a different fact entirely, and one the page must not describe as
+  /// the first. It said "this coin is not in the registry" about **Bitcoin**, on a render where a
+  /// saturated pooler missed its deadline, and silently stopped recording the forecast.
+  registryRead: "ok" | "missing" | "unread";
 }
 
 /// Everything the top of a coin page needs, in one SQL statement and one ticker call.
@@ -364,6 +379,11 @@ export async function coinSnapshot(slug: string): Promise<CoinSnapshot | null> {
   // Same trade as the market table: the venue answers the page, the registry decorates it. A
   // coin that is in the registry but whose row could not be read this second renders exactly like
   // a venue-only coin rather than as a 404.
+  // One row by an indexed column, so a generous budget costs nothing when the database is
+  // healthy and buys the difference between "no news for this coin" and a correct page when it
+  // is busy. `timedOut` is a sentinel rather than null: null means the row is not there, and the
+  // two must not be confused.
+  const TIMED_OUT = Symbol("registry read timed out");
   const [found, tickers] = await Promise.all([
     withDeadline(
       prisma.asset.findFirst({
@@ -378,17 +398,18 @@ export async function coinSnapshot(slug: string): Promise<CoinSnapshot | null> {
           select: { close: true, date: true, marketCap: true },
         },
       },
-      }),
-      REGISTRY_DEADLINE_MS,
-      null,
+      }).catch(() => TIMED_OUT as unknown as null),
+      SNAPSHOT_DEADLINE_MS,
+      TIMED_OUT as unknown as null,
     ),
     bulkTicker(),
   ]);
+  const unread = (found as unknown) === TIMED_OUT;
 
   // A venue-only coin has no asset row. That is not a missing page -- it is a coin the registry
   // has never collected. It gets everything the venue knows and nothing the registry would have
   // added, and `assetId` is empty so the caller knows there is nothing to record against.
-  if (!found) {
+  if (!found || unread) {
     if (!u) return null;
     const t0 = tickerOf(u, tickers);
     return {
@@ -407,6 +428,7 @@ export async function coinSnapshot(slug: string): Promise<CoinSnapshot | null> {
       closeDate: null,
       tradable: true,
       inRegistry: false,
+      registryRead: unread ? "unread" : "missing",
     };
   }
   const newest = found.snapshots[0] ?? null;
@@ -438,6 +460,7 @@ export async function coinSnapshot(slug: string): Promise<CoinSnapshot | null> {
     closeDate: a.lastDate ?? null,
     tradable: Boolean(pair || u || (row && (row.coinbase || row.kraken))),
     inRegistry: true,
+    registryRead: "ok",
   };
 }
 

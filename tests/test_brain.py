@@ -4234,6 +4234,15 @@ class NoLookAhead(unittest.TestCase):
                 "copies rows exactly as the primary stored them; the asset rows it inserts carry no "
                 "date and make no claim about a past moment"
             ),
+            "crypto_news.py": (
+                "stores headlines under the publication time the publisher's own feed gave them, "
+                "and computes no state: there is no reading, no window and no claim about a past "
+                "moment for hindsight to leak into. Nothing the model reads comes from this table"
+            ),
+            "news_images.py": (
+                "fills in a picture for a headline already stored. It writes `imageUrl` and the "
+                "instant it looked, and touches no dated claim"
+            ),
         }
         writers = set()
         for path in sorted((ROOT / "jobs").glob("*.py")):

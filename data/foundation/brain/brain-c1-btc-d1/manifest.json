@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-20T21:21:05.821214+00:00",
+ "generatedAt": "2026-10-24T10:15:13.634638+00:00",
  "modelVersion": "brain-c1-btc-d1",
  "market": "Crypto",
  "symbols": [
@@ -7,13 +7,13 @@
  ],
  "artifact": {
   "file": "model.json",
-  "sha256": "99b03049ec062d66dee1fc16f1f6498ac2dfa5640c4b6bf64381e116973d875f",
-  "bytes": 3093
+  "sha256": "bbe020571951ccd91445c259bb14229589d4ac2a1d7bb94eede6a0c2dc0f544f",
+  "bytes": 3645
  },
  "producedBy": "tools/research/train_crypto_short.py",
- "repoHead": "4e80b0c0b9c1d582cd7330876551ca444252394e",
- "featureSchema": "crypto-intraday-f1",
- "featureCount": 41,
+ "repoHead": "f657f992e4dd0889475b40b94ecd295d28f70179",
+ "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+ "featureCount": 52,
  "task": {
   "classes": [
    "DOWN",
@@ -42,6 +42,7 @@
    }
   }
  },
+ "rowStride": 1,
  "featureParityWithReference": {
   "BTCUSDT": {
    "checked": 60,
@@ -66,10 +67,10 @@
  },
  "chosenModel": "logistic",
  "validation": {
-  "logisticAccuracy": 0.54603,
-  "gbmAccuracy": 0.51351,
-  "gbmRoundsKept": 15,
-  "gbmRoundsFitted": 45
+  "logisticAccuracy": 0.54645,
+  "gbmAccuracy": 0.53463,
+  "gbmRoundsKept": 13,
+  "gbmRoundsFitted": 43
  },
  "preRegisteredGates": {
   "aboveTestMajority": "accuracy strictly above the test fold's own larger class",
@@ -88,28 +89,28 @@
  "acceptanceTargetMet": false,
  "evaluation": {
   "rows": 2655,
-  "accuracy": 0.53032,
+  "accuracy": 0.52881,
   "testMajority": 0.51073,
   "testMajorityClass": "UP",
-  "marginOverMajority": 0.01959,
+  "marginOverMajority": 0.01808,
   "alwaysUpAccuracy": 0.51073,
   "actualUpRate": 0.51073,
-  "predictedUpShare": 0.66629,
-  "predictedDownShare": 0.33371,
-  "upRecall": 0.69248,
+  "predictedUpShare": 0.66478,
+  "predictedDownShare": 0.33522,
+  "upRecall": 0.68953,
   "downRecall": 0.36105,
-  "upPrecision": 0.53081,
-  "downPrecision": 0.52935,
+  "upPrecision": 0.52975,
+  "downPrecision": 0.52697,
   "blockedBootstrap": {
    "blocks": 443,
    "draws": 2000,
-   "pointEstimate": 0.019586,
+   "pointEstimate": 0.018079,
    "ci95": [
-    -0.013187,
-    0.053485
+    -0.015055,
+    0.052478
    ],
-   "sd": 0.017221,
-   "z": 1.1373,
+   "sd": 0.017321,
+   "z": 1.0438,
    "excludesZero": false
   },
   "walkForward": {
@@ -124,7 +125,7 @@
     {
      "block": 1,
      "rows": 531,
-     "accuracy": 0.55367,
+     "accuracy": 0.54802,
      "majority": 0.52542,
      "above": true
     },
@@ -138,7 +139,7 @@
     {
      "block": 3,
      "rows": 531,
-     "accuracy": 0.49906,
+     "accuracy": 0.49718,
      "majority": 0.50471,
      "above": false
     },
@@ -158,50 +159,50 @@
     "minMargin": 0.0,
     "rows": 2655,
     "coverage": 1.0,
-    "accuracy": 0.53032,
+    "accuracy": 0.52881,
     "majorityHere": 0.51073
    },
    {
     "minMargin": 0.01,
-    "rows": 2320,
-    "coverage": 0.87382,
-    "accuracy": 0.53491,
-    "majorityHere": 0.51336
+    "rows": 2322,
+    "coverage": 0.87458,
+    "accuracy": 0.53402,
+    "majorityHere": 0.51464
    },
    {
     "minMargin": 0.02,
-    "rows": 1973,
-    "coverage": 0.74313,
-    "accuracy": 0.54587,
-    "majorityHere": 0.52002
+    "rows": 1978,
+    "coverage": 0.74501,
+    "accuracy": 0.5455,
+    "majorityHere": 0.51972
    },
    {
     "minMargin": 0.03,
-    "rows": 1627,
-    "coverage": 0.61281,
-    "accuracy": 0.55255,
-    "majorityHere": 0.53104
+    "rows": 1624,
+    "coverage": 0.61168,
+    "accuracy": 0.55234,
+    "majorityHere": 0.53017
    },
    {
     "minMargin": 0.05,
     "rows": 1084,
     "coverage": 0.40829,
-    "accuracy": 0.55812,
-    "majorityHere": 0.54613
+    "accuracy": 0.55904,
+    "majorityHere": 0.5452
    },
    {
     "minMargin": 0.075,
-    "rows": 552,
-    "coverage": 0.20791,
-    "accuracy": 0.55072,
-    "majorityHere": 0.56884
+    "rows": 551,
+    "coverage": 0.20753,
+    "accuracy": 0.54991,
+    "majorityHere": 0.56987
    },
    {
     "minMargin": 0.1,
-    "rows": 233,
-    "coverage": 0.08776,
-    "accuracy": 0.56652,
-    "majorityHere": 0.58798
+    "rows": 236,
+    "coverage": 0.08889,
+    "accuracy": 0.57203,
+    "majorityHere": 0.58898
    },
    {
     "minMargin": 0.15,
@@ -222,66 +223,66 @@
    {
     "bucket": 0,
     "rows": 266,
-    "meanPredicted": 0.43144,
-    "observedUpRate": 0.45865
+    "meanPredicted": 0.43123,
+    "observedUpRate": 0.46241
    },
    {
     "bucket": 1,
     "rows": 265,
-    "meanPredicted": 0.46678,
-    "observedUpRate": 0.46038
+    "meanPredicted": 0.46658,
+    "observedUpRate": 0.44906
    },
    {
     "bucket": 2,
     "rows": 266,
-    "meanPredicted": 0.48641,
+    "meanPredicted": 0.48632,
     "observedUpRate": 0.47744
    },
    {
     "bucket": 3,
     "rows": 265,
-    "meanPredicted": 0.50309,
-    "observedUpRate": 0.50189
+    "meanPredicted": 0.50293,
+    "observedUpRate": 0.49811
    },
    {
     "bucket": 4,
     "rows": 265,
-    "meanPredicted": 0.51714,
-    "observedUpRate": 0.46792
+    "meanPredicted": 0.51712,
+    "observedUpRate": 0.47547
    },
    {
     "bucket": 5,
     "rows": 266,
-    "meanPredicted": 0.53027,
+    "meanPredicted": 0.53021,
     "observedUpRate": 0.50376
    },
    {
     "bucket": 6,
     "rows": 265,
-    "meanPredicted": 0.54514,
-    "observedUpRate": 0.55849
+    "meanPredicted": 0.54509,
+    "observedUpRate": 0.56604
    },
    {
     "bucket": 7,
     "rows": 266,
     "meanPredicted": 0.56117,
-    "observedUpRate": 0.54135
+    "observedUpRate": 0.53759
    },
    {
     "bucket": 8,
     "rows": 265,
-    "meanPredicted": 0.58146,
-    "observedUpRate": 0.54717
+    "meanPredicted": 0.58148,
+    "observedUpRate": 0.55094
    },
    {
     "bucket": 9,
     "rows": 266,
-    "meanPredicted": 0.61885,
-    "observedUpRate": 0.59023
+    "meanPredicted": 0.61891,
+    "observedUpRate": 0.58647
    }
   ]
  },
- "linearOnTheSameTestRows": 0.53032,
+ "linearOnTheSameTestRows": 0.52881,
  "verdict": "NO-GO",
  "limitations": [
   "The test fold is a historical holdout. It is unseen by this fit, and it is still a backtest: no forecast in it was made before the data existed.",

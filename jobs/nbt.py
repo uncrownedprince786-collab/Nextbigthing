@@ -120,6 +120,17 @@ HOST_DELAY = {
     "api.coinpaprika.com": 1.5,
     "hn.algolia.com": 1.0,
     "news.google.com": 2.0,
+    # The crypto publishers' own RSS, read by jobs/crypto_news.py. One request per publisher per
+    # run -- seven in total -- so the delay almost never binds; it is declared because an
+    # undeclared host silently takes the 1.0s default that nobody chose, and because these are
+    # newsrooms' own servers rather than an API built to be polled.
+    "www.coindesk.com": 2.0,
+    "cointelegraph.com": 2.0,
+    "decrypt.co": 2.0,
+    "www.theblock.co": 2.0,
+    "news.bitcoin.com": 2.0,
+    "cryptoslate.com": 2.0,
+    "beincrypto.com": 2.0,
     "data.sec.gov": 0.5,
     # The exchange's own file server. It answers quickly and a full backfill is a few
     # hundred small files, but it is a national exchange rather than a CDN, so it gets

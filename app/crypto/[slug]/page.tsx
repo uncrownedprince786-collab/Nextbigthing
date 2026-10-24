@@ -90,7 +90,15 @@ export default async function Page({
   if (forecast && forecast.kind === "direction") {
     stored = snap.assetId
       ? await recordForecast(snap.assetId, "Crypto", slug, forecast)
-      : { stored: false, why: "this coin is not in the registry, so there is no row to key it on" };
+      : {
+          stored: false,
+          // Two different facts, and conflating them told a reader that Bitcoin is not a coin
+          // this site covers, on a render where the database was merely busy.
+          why:
+            snap.registryRead === "unread"
+              ? "the registry could not be read in time, so this forecast is not in the record"
+              : "this coin is not in the registry, so there is no row to key it on",
+        };
   }
 
   const u = universeCoin(slug);

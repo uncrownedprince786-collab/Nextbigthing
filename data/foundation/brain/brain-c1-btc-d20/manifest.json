@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-20T21:21:18.826324+00:00",
+ "generatedAt": "2026-10-24T10:15:22.241985+00:00",
  "modelVersion": "brain-c1-btc-d20",
  "market": "Crypto",
  "symbols": [
@@ -7,13 +7,13 @@
  ],
  "artifact": {
   "file": "model.json",
-  "sha256": "472d2e299f9156bb579d92c3794c9bf2d20c9327bda9965b59db71e223bde99b",
-  "bytes": 54354
+  "sha256": "0e98087766fac60f92601d1dae90a02c72ca7bd155316a1866366fb4da03989d",
+  "bytes": 68049
  },
  "producedBy": "tools/research/train_crypto_short.py",
- "repoHead": "4e80b0c0b9c1d582cd7330876551ca444252394e",
- "featureSchema": "crypto-intraday-f1",
- "featureCount": 41,
+ "repoHead": "f657f992e4dd0889475b40b94ecd295d28f70179",
+ "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+ "featureCount": 52,
  "task": {
   "classes": [
    "DOWN",
@@ -42,6 +42,7 @@
    }
   }
  },
+ "rowStride": 1,
  "featureParityWithReference": {
   "BTCUSDT": {
    "checked": 60,
@@ -68,8 +69,8 @@
  "validation": {
   "logisticAccuracy": 0.50932,
   "gbmAccuracy": 0.54215,
-  "gbmRoundsKept": 1,
-  "gbmRoundsFitted": 31
+  "gbmRoundsKept": 2,
+  "gbmRoundsFitted": 32
  },
  "preRegisteredGates": {
   "aboveTestMajority": "accuracy strictly above the test fold's own larger class",
@@ -184,17 +185,17 @@
    },
    {
     "minMargin": 0.05,
-    "rows": 2479,
-    "coverage": 0.9756,
-    "accuracy": 0.45704,
-    "majorityHere": 0.54296
+    "rows": 2464,
+    "coverage": 0.9697,
+    "accuracy": 0.45942,
+    "majorityHere": 0.54058
    },
    {
     "minMargin": 0.075,
-    "rows": 347,
-    "coverage": 0.13656,
-    "accuracy": 0.5245,
-    "majorityHere": 0.5245
+    "rows": 521,
+    "coverage": 0.20504,
+    "accuracy": 0.3762,
+    "majorityHere": 0.6238
    },
    {
     "minMargin": 0.1,
@@ -221,33 +222,33 @@
   "calibration": [
    {
     "bucket": 0,
-    "rows": 62,
-    "meanPredicted": 0.53977,
-    "observedUpRate": 0.20968
+    "rows": 99,
+    "meanPredicted": 0.53975,
+    "observedUpRate": 0.20202
    },
    {
-    "bucket": 2,
-    "rows": 550,
-    "meanPredicted": 0.55259,
-    "observedUpRate": 0.20545
+    "bucket": 3,
+    "rows": 777,
+    "meanPredicted": 0.56006,
+    "observedUpRate": 0.46332
    },
    {
     "bucket": 5,
-    "rows": 713,
-    "meanPredicted": 0.56177,
-    "observedUpRate": 0.36466
+    "rows": 590,
+    "meanPredicted": 0.56852,
+    "observedUpRate": 0.54915
    },
    {
-    "bucket": 8,
-    "rows": 900,
-    "meanPredicted": 0.56595,
-    "observedUpRate": 0.64222
+    "bucket": 7,
+    "rows": 554,
+    "meanPredicted": 0.57057,
+    "observedUpRate": 0.44404
    },
    {
     "bucket": 9,
-    "rows": 316,
-    "meanPredicted": 0.58021,
-    "observedUpRate": 0.57595
+    "rows": 521,
+    "meanPredicted": 0.57918,
+    "observedUpRate": 0.3762
    }
   ]
  },

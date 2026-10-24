@@ -1,606 +1,166 @@
 {
- "generatedAt": "2026-10-20T22:36:42.241083+00:00",
+ "generatedAt": "2026-10-24T10:15:22.792270+00:00",
  "tag": "crypto",
  "symbols": [
   "AAVEUSDT",
   "ADAUSDT",
+  "AEROUSDT",
   "ALGOUSDT",
   "APTUSDT",
   "ARBUSDT",
+  "ASTERUSDT",
   "ATOMUSDT",
   "AVAXUSDT",
+  "BATUSDT",
   "BCHUSDT",
   "BNBUSDT",
   "BTCUSDT",
+  "CAKEUSDT",
+  "CFXUSDT",
+  "CRVUSDT",
+  "DASHUSDT",
   "DOGEUSDT",
   "DOTUSDT",
+  "ENAUSDT",
   "ETCUSDT",
   "ETHUSDT",
+  "FETUSDT",
   "FILUSDT",
   "HBARUSDT",
+  "HYPEUSDT",
+  "ICPUSDT",
   "INJUSDT",
   "LINKUSDT",
   "LTCUSDT",
+  "MORPHOUSDT",
   "NEARUSDT",
+  "ONDOUSDT",
   "OPUSDT",
+  "PENDLEUSDT",
+  "PENGUUSDT",
   "PEPEUSDT",
+  "POLUSDT",
+  "PUMPUSDT",
+  "PYTHUSDT",
+  "QNTUSDT",
+  "RAYUSDT",
+  "RENDERUSDT",
   "SEIUSDT",
   "SHIBUSDT",
+  "SKYUSDT",
   "SOLUSDT",
+  "STRKUSDT",
+  "STXUSDT",
   "SUIUSDT",
+  "SUSDT",
+  "TAOUSDT",
   "TIAUSDT",
+  "TRUMPUSDT",
   "TRXUSDT",
   "UNIUSDT",
+  "VETUSDT",
+  "VIRTUALUSDT",
+  "WLDUSDT",
+  "WLFIUSDT",
   "XLMUSDT",
-  "XRPUSDT"
+  "XRPUSDT",
+  "XTZUSDT",
+  "ZECUSDT",
+  "ZROUSDT"
  ],
- "repoHead": "4e80b0c0b9c1d582cd7330876551ca444252394e",
+ "repoHead": "f657f992e4dd0889475b40b94ecd295d28f70179",
+ "rowStride": 1,
+ "marketContext": true,
  "horizons": {
-  "m5": {
-   "horizon": "m5",
+  "d1": {
+   "horizon": "d1",
    "trained": true,
-   "interval": "5m",
-   "barsAhead": 1,
-   "minutesAhead": 5,
+   "interval": "4h",
+   "barsAhead": 6,
+   "minutesAhead": 1440,
    "chosenModel": "gbm",
-   "fitSeconds": 1358.3,
+   "fitSeconds": 346.6,
    "rows": {
-    "train": 645329,
-    "validation": 130229,
-    "test": 134193,
-    "zeroMoveRowsDropped": 102668
+    "train": 448325,
+    "validation": 81302,
+    "test": 98927,
+    "zeroMoveRowsDropped": 3560
    },
    "split": {
-    "trainEnd": "2026-05-03T07:20:00+00:00",
-    "valEnd": "2026-07-27T14:30:00+00:00",
-    "embargoBars": 289,
-    "embargoMinutes": 1445,
-    "testFrom": "2026-07-27T14:35:00+00:00",
-    "testTo": "2026-10-20T22:00:00+00:00"
+    "trainEnd": "2025-04-22T16:00:00+00:00",
+    "valEnd": "2026-01-29T12:00:00+00:00",
+    "embargoBars": 294,
+    "embargoMinutes": 70560,
+    "testFrom": "2026-01-29T16:00:00+00:00",
+    "testTo": "2026-10-20T16:00:00+00:00"
    },
    "validation": {
-    "logisticAccuracy": 0.53471,
-    "gbmAccuracy": 0.53784,
-    "gbmRoundsKept": 237,
-    "gbmRoundsFitted": 250
+    "logisticAccuracy": 0.50293,
+    "gbmAccuracy": 0.52371,
+    "gbmRoundsKept": 78,
+    "gbmRoundsFitted": 108
    },
    "evaluation": {
-    "rows": 134193,
-    "accuracy": 0.53143,
-    "testMajority": 0.50199,
+    "rows": 98927,
+    "accuracy": 0.53033,
+    "testMajority": 0.52291,
     "testMajorityClass": "DOWN",
-    "marginOverMajority": 0.02944,
-    "alwaysUpAccuracy": 0.49801,
-    "actualUpRate": 0.49801,
-    "predictedUpShare": 0.45515,
-    "predictedDownShare": 0.54485,
-    "upRecall": 0.48653,
-    "downRecall": 0.57598,
-    "upPrecision": 0.53234,
-    "downPrecision": 0.53067,
+    "marginOverMajority": 0.00742,
+    "alwaysUpAccuracy": 0.47709,
+    "actualUpRate": 0.47709,
+    "predictedUpShare": 0.35469,
+    "predictedDownShare": 0.64531,
+    "upRecall": 0.37949,
+    "downRecall": 0.66795,
+    "upPrecision": 0.51046,
+    "downPrecision": 0.54125,
     "blockedBootstrap": {
-     "blocks": 86,
+     "blocks": 264,
      "draws": 2000,
-     "pointEstimate": 0.029435,
+     "pointEstimate": 0.00742,
      "ci95": [
-      0.024338,
-      0.034549
+      -0.026305,
+      0.040536
      ],
-     "sd": 0.002614,
-     "z": 11.2589,
-     "excludesZero": true
-    },
-    "walkForward": {
-     "blocks": [
-      {
-       "block": 0,
-       "rows": 26838,
-       "accuracy": 0.53674,
-       "majority": 0.50805,
-       "above": true
-      },
-      {
-       "block": 1,
-       "rows": 26839,
-       "accuracy": 0.52316,
-       "majority": 0.50084,
-       "above": true
-      },
-      {
-       "block": 2,
-       "rows": 26838,
-       "accuracy": 0.51677,
-       "majority": 0.5016,
-       "above": true
-      },
-      {
-       "block": 3,
-       "rows": 26839,
-       "accuracy": 0.55118,
-       "majority": 0.50322,
-       "above": true
-      },
-      {
-       "block": 4,
-       "rows": 26839,
-       "accuracy": 0.5293,
-       "majority": 0.50207,
-       "above": true
-      }
-     ],
-     "blocksAboveMajority": 5,
-     "blocksScored": 5
-    },
-    "coverageCurve": [
-     {
-      "minMargin": 0.0,
-      "rows": 134193,
-      "coverage": 1.0,
-      "accuracy": 0.53143,
-      "majorityHere": 0.50199
-     },
-     {
-      "minMargin": 0.01,
-      "rows": 97901,
-      "coverage": 0.72955,
-      "accuracy": 0.54103,
-      "majorityHere": 0.50244
-     },
-     {
-      "minMargin": 0.02,
-      "rows": 67207,
-      "coverage": 0.50082,
-      "accuracy": 0.55265,
-      "majorityHere": 0.50114
-     },
-     {
-      "minMargin": 0.03,
-      "rows": 44452,
-      "coverage": 0.33125,
-      "accuracy": 0.56585,
-      "majorityHere": 0.50454
-     },
-     {
-      "minMargin": 0.05,
-      "rows": 19731,
-      "coverage": 0.14703,
-      "accuracy": 0.60321,
-      "majorityHere": 0.50829
-     },
-     {
-      "minMargin": 0.075,
-      "rows": 7618,
-      "coverage": 0.05677,
-      "accuracy": 0.64833,
-      "majorityHere": 0.52993
-     },
-     {
-      "minMargin": 0.1,
-      "rows": 2834,
-      "coverage": 0.02112,
-      "accuracy": 0.69901,
-      "majorityHere": 0.58574
-     },
-     {
-      "minMargin": 0.15,
-      "rows": 856,
-      "coverage": 0.00638,
-      "accuracy": 0.7535,
-      "majorityHere": 0.61916
-     },
-     {
-      "minMargin": 0.2,
-      "rows": 153,
-      "coverage": 0.00114,
-      "accuracy": null,
-      "note": "under 200 rows, not reported"
-     }
-    ],
-    "calibration": [
-     {
-      "bucket": 0,
-      "rows": 13420,
-      "meanPredicted": 0.43402,
-      "observedUpRate": 0.42086
-     },
-     {
-      "bucket": 1,
-      "rows": 13419,
-      "meanPredicted": 0.46558,
-      "observedUpRate": 0.4715
-     },
-     {
-      "bucket": 2,
-      "rows": 13419,
-      "meanPredicted": 0.4775,
-      "observedUpRate": 0.46315
-     },
-     {
-      "bucket": 3,
-      "rows": 13419,
-      "meanPredicted": 0.48594,
-      "observedUpRate": 0.4867
-     },
-     {
-      "bucket": 4,
-      "rows": 13419,
-      "meanPredicted": 0.49328,
-      "observedUpRate": 0.49191
-     },
-     {
-      "bucket": 5,
-      "rows": 13420,
-      "meanPredicted": 0.50038,
-      "observedUpRate": 0.50052
-     },
-     {
-      "bucket": 6,
-      "rows": 13419,
-      "meanPredicted": 0.50803,
-      "observedUpRate": 0.50451
-     },
-     {
-      "bucket": 7,
-      "rows": 13419,
-      "meanPredicted": 0.51733,
-      "observedUpRate": 0.51353
-     },
-     {
-      "bucket": 8,
-      "rows": 13419,
-      "meanPredicted": 0.53081,
-      "observedUpRate": 0.53096
-     },
-     {
-      "bucket": 9,
-      "rows": 13420,
-      "meanPredicted": 0.57204,
-      "observedUpRate": 0.59642
-     }
-    ]
-   },
-   "linearOnTheSameTestRows": 0.52913,
-   "gates": {
-    "aboveTestMajority": true,
-    "bothDirectionsPredicted": true,
-    "bootstrapExcludesZero": true,
-    "walkForwardMajority": true
-   },
-   "gatesMet": true,
-   "acceptanceTarget": 0.9,
-   "acceptanceTargetMet": false,
-   "artifact": {
-    "modelVersion": "brain-c1-crypto-m5",
-    "sha256": "712eef5ecd72bc91efce8a2b6861889a8dea69c2d7f66d573dd3e15812d29f1f"
-   }
-  },
-  "m15": {
-   "horizon": "m15",
-   "trained": true,
-   "interval": "5m",
-   "barsAhead": 3,
-   "minutesAhead": 15,
-   "chosenModel": "gbm",
-   "fitSeconds": 1141.0,
-   "rows": {
-    "train": 671531,
-    "validation": 137427,
-    "test": 140730,
-    "zeroMoveRowsDropped": 62468
-   },
-   "split": {
-    "trainEnd": "2026-05-03T07:20:00+00:00",
-    "valEnd": "2026-07-27T14:30:00+00:00",
-    "embargoBars": 291,
-    "embargoMinutes": 1455,
-    "testFrom": "2026-07-27T14:35:00+00:00",
-    "testTo": "2026-10-20T22:00:00+00:00"
-   },
-   "validation": {
-    "logisticAccuracy": 0.52827,
-    "gbmAccuracy": 0.53076,
-    "gbmRoundsKept": 223,
-    "gbmRoundsFitted": 250
-   },
-   "evaluation": {
-    "rows": 140730,
-    "accuracy": 0.52465,
-    "testMajority": 0.50077,
-    "testMajorityClass": "UP",
-    "marginOverMajority": 0.02388,
-    "alwaysUpAccuracy": 0.50077,
-    "actualUpRate": 0.50077,
-    "predictedUpShare": 0.41122,
-    "predictedDownShare": 0.58878,
-    "upRecall": 0.43597,
-    "downRecall": 0.6136,
-    "upPrecision": 0.5309,
-    "downPrecision": 0.52028,
-    "blockedBootstrap": {
-     "blocks": 86,
-     "draws": 2000,
-     "pointEstimate": 0.023883,
-     "ci95": [
-      0.014891,
-      0.032758
-     ],
-     "sd": 0.004582,
-     "z": 5.2122,
-     "excludesZero": true
-    },
-    "walkForward": {
-     "blocks": [
-      {
-       "block": 0,
-       "rows": 28146,
-       "accuracy": 0.52775,
-       "majority": 0.50181,
-       "above": true
-      },
-      {
-       "block": 1,
-       "rows": 28146,
-       "accuracy": 0.52238,
-       "majority": 0.50682,
-       "above": true
-      },
-      {
-       "block": 2,
-       "rows": 28146,
-       "accuracy": 0.51712,
-       "majority": 0.50231,
-       "above": true
-      },
-      {
-       "block": 3,
-       "rows": 28146,
-       "accuracy": 0.53077,
-       "majority": 0.50039,
-       "above": true
-      },
-      {
-       "block": 4,
-       "rows": 28146,
-       "accuracy": 0.52523,
-       "majority": 0.50387,
-       "above": true
-      }
-     ],
-     "blocksAboveMajority": 5,
-     "blocksScored": 5
-    },
-    "coverageCurve": [
-     {
-      "minMargin": 0.0,
-      "rows": 140730,
-      "coverage": 1.0,
-      "accuracy": 0.52465,
-      "majorityHere": 0.50077
-     },
-     {
-      "minMargin": 0.01,
-      "rows": 107628,
-      "coverage": 0.76478,
-      "accuracy": 0.53118,
-      "majorityHere": 0.50042
-     },
-     {
-      "minMargin": 0.02,
-      "rows": 78156,
-      "coverage": 0.55536,
-      "accuracy": 0.53718,
-      "majorityHere": 0.50122
-     },
-     {
-      "minMargin": 0.03,
-      "rows": 53159,
-      "coverage": 0.37774,
-      "accuracy": 0.5445,
-      "majorityHere": 0.50033
-     },
-     {
-      "minMargin": 0.05,
-      "rows": 20504,
-      "coverage": 0.1457,
-      "accuracy": 0.55862,
-      "majorityHere": 0.50005
-     },
-     {
-      "minMargin": 0.075,
-      "rows": 4755,
-      "coverage": 0.03379,
-      "accuracy": 0.58822,
-      "majorityHere": 0.52093
-     },
-     {
-      "minMargin": 0.1,
-      "rows": 838,
-      "coverage": 0.00595,
-      "accuracy": 0.63604,
-      "majorityHere": 0.52864
-     },
-     {
-      "minMargin": 0.15,
-      "rows": 52,
-      "coverage": 0.00037,
-      "accuracy": null,
-      "note": "under 200 rows, not reported"
-     },
-     {
-      "minMargin": 0.2,
-      "rows": 4,
-      "coverage": 3e-05,
-      "accuracy": null,
-      "note": "under 200 rows, not reported"
-     }
-    ],
-    "calibration": [
-     {
-      "bucket": 0,
-      "rows": 14073,
-      "meanPredicted": 0.43682,
-      "observedUpRate": 0.45378
-     },
-     {
-      "bucket": 1,
-      "rows": 14073,
-      "meanPredicted": 0.45983,
-      "observedUpRate": 0.47069
-     },
-     {
-      "bucket": 2,
-      "rows": 14073,
-      "meanPredicted": 0.47123,
-      "observedUpRate": 0.47943
-     },
-     {
-      "bucket": 3,
-      "rows": 14073,
-      "meanPredicted": 0.48044,
-      "observedUpRate": 0.48248
-     },
-     {
-      "bucket": 4,
-      "rows": 14073,
-      "meanPredicted": 0.48884,
-      "observedUpRate": 0.49243
-     },
-     {
-      "bucket": 5,
-      "rows": 14073,
-      "meanPredicted": 0.49687,
-      "observedUpRate": 0.50146
-     },
-     {
-      "bucket": 6,
-      "rows": 14073,
-      "meanPredicted": 0.50539,
-      "observedUpRate": 0.50991
-     },
-     {
-      "bucket": 7,
-      "rows": 14073,
-      "meanPredicted": 0.51545,
-      "observedUpRate": 0.51894
-     },
-     {
-      "bucket": 8,
-      "rows": 14073,
-      "meanPredicted": 0.52899,
-      "observedUpRate": 0.53201
-     },
-     {
-      "bucket": 9,
-      "rows": 14073,
-      "meanPredicted": 0.55871,
-      "observedUpRate": 0.56655
-     }
-    ]
-   },
-   "linearOnTheSameTestRows": 0.52486,
-   "gates": {
-    "aboveTestMajority": true,
-    "bothDirectionsPredicted": true,
-    "bootstrapExcludesZero": true,
-    "walkForwardMajority": true
-   },
-   "gatesMet": true,
-   "acceptanceTarget": 0.9,
-   "acceptanceTargetMet": false,
-   "artifact": {
-    "modelVersion": "brain-c1-crypto-m15",
-    "sha256": "0627f93777166501d3d91d7bcfa36e7490f10023c13b5211c356d564f0aea4d5"
-   }
-  },
-  "h1": {
-   "horizon": "h1",
-   "trained": true,
-   "interval": "5m",
-   "barsAhead": 12,
-   "minutesAhead": 60,
-   "chosenModel": "gbm",
-   "fitSeconds": 293.3,
-   "rows": {
-    "train": 689267,
-    "validation": 143652,
-    "test": 146080,
-    "zeroMoveRowsDropped": 32803
-   },
-   "split": {
-    "trainEnd": "2026-05-03T07:20:00+00:00",
-    "valEnd": "2026-07-27T14:30:00+00:00",
-    "embargoBars": 300,
-    "embargoMinutes": 1500,
-    "testFrom": "2026-07-27T14:35:00+00:00",
-    "testTo": "2026-10-20T22:00:00+00:00"
-   },
-   "validation": {
-    "logisticAccuracy": 0.51939,
-    "gbmAccuracy": 0.52367,
-    "gbmRoundsKept": 39,
-    "gbmRoundsFitted": 69
-   },
-   "evaluation": {
-    "rows": 146080,
-    "accuracy": 0.52058,
-    "testMajority": 0.50463,
-    "testMajorityClass": "UP",
-    "marginOverMajority": 0.01595,
-    "alwaysUpAccuracy": 0.50463,
-    "actualUpRate": 0.50463,
-    "predictedUpShare": 0.3964,
-    "predictedDownShare": 0.6036,
-    "upRecall": 0.41775,
-    "downRecall": 0.62535,
-    "upPrecision": 0.53181,
-    "downPrecision": 0.51321,
-    "blockedBootstrap": {
-     "blocks": 86,
-     "draws": 2000,
-     "pointEstimate": 0.01595,
-     "ci95": [
-      -0.001749,
-      0.034045
-     ],
-     "sd": 0.00932,
-     "z": 1.7115,
+     "sd": 0.017005,
+     "z": 0.4363,
      "excludesZero": false
     },
     "walkForward": {
      "blocks": [
       {
        "block": 0,
-       "rows": 29216,
-       "accuracy": 0.52081,
-       "majority": 0.50257,
+       "rows": 19785,
+       "accuracy": 0.52226,
+       "majority": 0.5207,
        "above": true
       },
       {
        "block": 1,
-       "rows": 29216,
-       "accuracy": 0.52334,
-       "majority": 0.50958,
+       "rows": 19785,
+       "accuracy": 0.53889,
+       "majority": 0.52848,
        "above": true
       },
       {
        "block": 2,
-       "rows": 29216,
-       "accuracy": 0.51564,
-       "majority": 0.50527,
+       "rows": 19786,
+       "accuracy": 0.52335,
+       "majority": 0.51506,
        "above": true
       },
       {
        "block": 3,
-       "rows": 29216,
-       "accuracy": 0.52707,
-       "majority": 0.5038,
+       "rows": 19785,
+       "accuracy": 0.5352,
+       "majority": 0.52469,
        "above": true
       },
       {
        "block": 4,
-       "rows": 29216,
-       "accuracy": 0.51605,
-       "majority": 0.50195,
+       "rows": 19786,
+       "accuracy": 0.53194,
+       "majority": 0.52562,
        "above": true
       }
      ],
@@ -610,64 +170,64 @@
     "coverageCurve": [
      {
       "minMargin": 0.0,
-      "rows": 146080,
+      "rows": 98927,
       "coverage": 1.0,
-      "accuracy": 0.52058,
-      "majorityHere": 0.50463
+      "accuracy": 0.53033,
+      "majorityHere": 0.52291
      },
      {
       "minMargin": 0.01,
-      "rows": 97389,
-      "coverage": 0.66668,
-      "accuracy": 0.52588,
-      "majorityHere": 0.50065
+      "rows": 84558,
+      "coverage": 0.85475,
+      "accuracy": 0.53391,
+      "majorityHere": 0.52537
      },
      {
       "minMargin": 0.02,
-      "rows": 56207,
-      "coverage": 0.38477,
-      "accuracy": 0.52712,
-      "majorityHere": 0.5046
+      "rows": 69835,
+      "coverage": 0.70592,
+      "accuracy": 0.53684,
+      "majorityHere": 0.52776
      },
      {
       "minMargin": 0.03,
-      "rows": 27370,
-      "coverage": 0.18736,
-      "accuracy": 0.53237,
-      "majorityHere": 0.51103
+      "rows": 54237,
+      "coverage": 0.54825,
+      "accuracy": 0.53917,
+      "majorityHere": 0.53167
      },
      {
       "minMargin": 0.05,
-      "rows": 2555,
-      "coverage": 0.01749,
-      "accuracy": 0.53542,
-      "majorityHere": 0.53659
+      "rows": 24711,
+      "coverage": 0.24979,
+      "accuracy": 0.52835,
+      "majorityHere": 0.53405
      },
      {
       "minMargin": 0.075,
-      "rows": 237,
-      "coverage": 0.00162,
-      "accuracy": 0.5865,
-      "majorityHere": 0.5865
+      "rows": 6063,
+      "coverage": 0.06129,
+      "accuracy": 0.46594,
+      "majorityHere": 0.53373
      },
      {
       "minMargin": 0.1,
-      "rows": 0,
-      "coverage": 0.0,
-      "accuracy": null,
-      "note": "under 200 rows, not reported"
+      "rows": 1770,
+      "coverage": 0.01789,
+      "accuracy": 0.49661,
+      "majorityHere": 0.50508
      },
      {
       "minMargin": 0.15,
-      "rows": 0,
-      "coverage": 0.0,
-      "accuracy": null,
-      "note": "under 200 rows, not reported"
+      "rows": 465,
+      "coverage": 0.0047,
+      "accuracy": 0.48817,
+      "majorityHere": 0.51183
      },
      {
       "minMargin": 0.2,
-      "rows": 0,
-      "coverage": 0.0,
+      "rows": 129,
+      "coverage": 0.0013,
       "accuracy": null,
       "note": "under 200 rows, not reported"
      }
@@ -675,67 +235,67 @@
     "calibration": [
      {
       "bucket": 0,
-      "rows": 14608,
-      "meanPredicted": 0.46225,
-      "observedUpRate": 0.46844
+      "rows": 9893,
+      "meanPredicted": 0.43792,
+      "observedUpRate": 0.44658
      },
      {
       "bucket": 1,
-      "rows": 14608,
-      "meanPredicted": 0.47229,
-      "observedUpRate": 0.47871
+      "rows": 9890,
+      "meanPredicted": 0.45176,
+      "observedUpRate": 0.42659
      },
      {
       "bucket": 2,
-      "rows": 14607,
-      "meanPredicted": 0.47953,
-      "observedUpRate": 0.48655
+      "rows": 9895,
+      "meanPredicted": 0.46098,
+      "observedUpRate": 0.45771
      },
      {
       "bucket": 3,
-      "rows": 14609,
-      "meanPredicted": 0.48554,
-      "observedUpRate": 0.48717
+      "rows": 9893,
+      "meanPredicted": 0.46957,
+      "observedUpRate": 0.45396
      },
      {
       "bucket": 4,
-      "rows": 14604,
-      "meanPredicted": 0.49134,
-      "observedUpRate": 0.48856
+      "rows": 9892,
+      "meanPredicted": 0.47825,
+      "observedUpRate": 0.47604
      },
      {
       "bucket": 5,
-      "rows": 14612,
-      "meanPredicted": 0.49692,
-      "observedUpRate": 0.51095
+      "rows": 9893,
+      "meanPredicted": 0.48835,
+      "observedUpRate": 0.47539
      },
      {
       "bucket": 6,
-      "rows": 14602,
-      "meanPredicted": 0.50289,
-      "observedUpRate": 0.51781
+      "rows": 9893,
+      "meanPredicted": 0.50088,
+      "observedUpRate": 0.4951
      },
      {
       "bucket": 7,
-      "rows": 14614,
-      "meanPredicted": 0.50944,
-      "observedUpRate": 0.53736
+      "rows": 9892,
+      "meanPredicted": 0.51761,
+      "observedUpRate": 0.51668
      },
      {
       "bucket": 8,
-      "rows": 14596,
-      "meanPredicted": 0.51779,
-      "observedUpRate": 0.5348
+      "rows": 9893,
+      "meanPredicted": 0.5414,
+      "observedUpRate": 0.53735
      },
      {
       "bucket": 9,
-      "rows": 14620,
-      "meanPredicted": 0.53752,
-      "observedUpRate": 0.53598
+      "rows": 9893,
+      "meanPredicted": 0.5852,
+      "observedUpRate": 0.48549
      }
     ]
    },
-   "linearOnTheSameTestRows": 0.5206,
+   "linearOnTheSameTestRows": 0.52793,
    "gates": {
     "aboveTestMajority": true,
     "bothDirectionsPredicted": true,
@@ -745,120 +305,176 @@
    "gatesMet": false,
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
+   "rowStride": 1,
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "featureNames": [
+    "r1",
+    "r3",
+    "r6",
+    "r12",
+    "r24",
+    "r48",
+    "r96",
+    "r288",
+    "vol12",
+    "vol48",
+    "vol288",
+    "rz12",
+    "rz48",
+    "pos12",
+    "pos48",
+    "pos288",
+    "ema12d",
+    "ema48d",
+    "ema288d",
+    "atr14",
+    "atrRatio",
+    "rsi14",
+    "vol_r48",
+    "vol_r288",
+    "tbi1",
+    "tbi12",
+    "tbi48",
+    "tsz48",
+    "body",
+    "upWick",
+    "dnWick",
+    "body12",
+    "persist6",
+    "persist24",
+    "skew48",
+    "d24hHigh",
+    "d24hLow",
+    "todSin",
+    "todCos",
+    "dowSin",
+    "dowCos",
+    "mktR1",
+    "mktR12",
+    "mktR48",
+    "mktR288",
+    "mktVol48",
+    "mktPos288",
+    "relR1",
+    "relR12",
+    "relR48",
+    "beta48",
+    "corr48"
+   ],
    "artifact": {
-    "modelVersion": "brain-c1-crypto-h1",
-    "sha256": "78e554b0d0f701bb57a2b808f188116d0527c2849b70fce625b5963101dddd97"
+    "modelVersion": "brain-c1-crypto-d1",
+    "sha256": "cd81d3c836fdd57215e06333955dc315fdd49481e02804c61c390dcd5e110e28"
    }
   },
-  "h4": {
-   "horizon": "h4",
+  "d5": {
+   "horizon": "d5",
    "trained": true,
-   "interval": "5m",
-   "barsAhead": 48,
-   "minutesAhead": 240,
+   "interval": "4h",
+   "barsAhead": 30,
+   "minutesAhead": 7200,
    "chosenModel": "gbm",
-   "fitSeconds": 119.6,
+   "fitSeconds": 277.9,
    "rows": {
-    "train": 698804,
-    "validation": 146694,
-    "test": 148911,
-    "zeroMoveRowsDropped": 16639
+    "train": 446256,
+    "validation": 79949,
+    "test": 97841,
+    "zeroMoveRowsDropped": 1580
    },
    "split": {
-    "trainEnd": "2026-05-03T07:20:00+00:00",
-    "valEnd": "2026-07-27T14:30:00+00:00",
-    "embargoBars": 336,
-    "embargoMinutes": 1680,
-    "testFrom": "2026-07-27T14:35:00+00:00",
-    "testTo": "2026-10-20T22:00:00+00:00"
+    "trainEnd": "2025-04-22T16:00:00+00:00",
+    "valEnd": "2026-01-29T12:00:00+00:00",
+    "embargoBars": 318,
+    "embargoMinutes": 76320,
+    "testFrom": "2026-01-29T16:00:00+00:00",
+    "testTo": "2026-10-20T16:00:00+00:00"
    },
    "validation": {
-    "logisticAccuracy": 0.50551,
-    "gbmAccuracy": 0.52388,
+    "logisticAccuracy": 0.51479,
+    "gbmAccuracy": 0.56046,
     "gbmRoundsKept": 1,
     "gbmRoundsFitted": 31
    },
    "evaluation": {
-    "rows": 148911,
-    "accuracy": 0.50347,
-    "testMajority": 0.50395,
-    "testMajorityClass": "UP",
-    "marginOverMajority": -0.00048,
-    "alwaysUpAccuracy": 0.50395,
-    "actualUpRate": 0.50395,
-    "predictedUpShare": 0.02958,
-    "predictedDownShare": 0.97042,
-    "upRecall": 0.03671,
-    "downRecall": 0.97766,
-    "upPrecision": 0.62543,
-    "downPrecision": 0.49975,
+    "rows": 97841,
+    "accuracy": 0.53748,
+    "testMajority": 0.53748,
+    "testMajorityClass": "DOWN",
+    "marginOverMajority": 0.0,
+    "alwaysUpAccuracy": 0.46252,
+    "actualUpRate": 0.46252,
+    "predictedUpShare": 0.0,
+    "predictedDownShare": 1.0,
+    "upRecall": 0.0,
+    "downRecall": 1.0,
+    "upPrecision": 0.0,
+    "downPrecision": 0.53748,
     "blockedBootstrap": {
-     "blocks": 86,
+     "blocks": 260,
      "draws": 2000,
-     "pointEstimate": -0.000484,
+     "pointEstimate": 0.0,
      "ci95": [
-      -0.050945,
-      0.047565
+      0.0,
+      0.0
      ],
-     "sd": 0.025413,
-     "z": -0.019,
+     "sd": 0.0,
+     "z": null,
      "excludesZero": false
     },
     "walkForward": {
      "blocks": [
       {
        "block": 0,
-       "rows": 29782,
-       "accuracy": 0.5132,
-       "majority": 0.50561,
-       "above": true
+       "rows": 19568,
+       "accuracy": 0.53777,
+       "majority": 0.53777,
+       "above": false
       },
       {
        "block": 1,
-       "rows": 29782,
-       "accuracy": 0.4948,
-       "majority": 0.51252,
+       "rows": 19568,
+       "accuracy": 0.55253,
+       "majority": 0.55253,
        "above": false
       },
       {
        "block": 2,
-       "rows": 29782,
-       "accuracy": 0.49513,
-       "majority": 0.51078,
+       "rows": 19568,
+       "accuracy": 0.51053,
+       "majority": 0.51053,
        "above": false
       },
       {
        "block": 3,
-       "rows": 29782,
-       "accuracy": 0.50416,
-       "majority": 0.50413,
-       "above": true
+       "rows": 19568,
+       "accuracy": 0.54104,
+       "majority": 0.54104,
+       "above": false
       },
       {
        "block": 4,
-       "rows": 29783,
-       "accuracy": 0.51006,
-       "majority": 0.50206,
-       "above": true
+       "rows": 19569,
+       "accuracy": 0.54556,
+       "majority": 0.54556,
+       "above": false
       }
      ],
-     "blocksAboveMajority": 3,
+     "blocksAboveMajority": 0,
      "blocksScored": 5
     },
     "coverageCurve": [
      {
       "minMargin": 0.0,
-      "rows": 148911,
+      "rows": 97841,
       "coverage": 1.0,
-      "accuracy": 0.50347,
-      "majorityHere": 0.50395
+      "accuracy": 0.53748,
+      "majorityHere": 0.53748
      },
      {
       "minMargin": 0.01,
-      "rows": 3796,
-      "coverage": 0.02549,
-      "accuracy": 0.56533,
-      "majorityHere": 0.56533
+      "rows": 44246,
+      "coverage": 0.45222,
+      "accuracy": 0.55765,
+      "majorityHere": 0.55765
      },
      {
       "minMargin": 0.02,
@@ -912,50 +528,32 @@
     ],
     "calibration": [
      {
-      "bucket": 0,
-      "rows": 3796,
-      "meanPredicted": 0.48911,
-      "observedUpRate": 0.43467
-     },
-     {
-      "bucket": 1,
-      "rows": 23271,
-      "meanPredicted": 0.49288,
-      "observedUpRate": 0.53367
-     },
-     {
-      "bucket": 3,
-      "rows": 31864,
-      "meanPredicted": 0.49302,
-      "observedUpRate": 0.50358
-     },
-     {
       "bucket": 4,
-      "rows": 4883,
-      "meanPredicted": 0.49332,
-      "observedUpRate": 0.45157
-     },
-     {
-      "bucket": 6,
-      "rows": 28954,
-      "meanPredicted": 0.49487,
-      "observedUpRate": 0.48926
+      "rows": 44246,
+      "meanPredicted": 0.48914,
+      "observedUpRate": 0.44235
      },
      {
       "bucket": 7,
-      "rows": 21752,
-      "meanPredicted": 0.49561,
-      "observedUpRate": 0.46396
+      "rows": 32364,
+      "meanPredicted": 0.4932,
+      "observedUpRate": 0.49697
+     },
+     {
+      "bucket": 8,
+      "rows": 8496,
+      "meanPredicted": 0.49517,
+      "observedUpRate": 0.51248
      },
      {
       "bucket": 9,
-      "rows": 34391,
-      "meanPredicted": 0.49678,
-      "observedUpRate": 0.53694
+      "rows": 12735,
+      "meanPredicted": 0.49791,
+      "observedUpRate": 0.4117
      }
     ]
    },
-   "linearOnTheSameTestRows": 0.51326,
+   "linearOnTheSameTestRows": 0.52337,
    "gates": {
     "aboveTestMajority": false,
     "bothDirectionsPredicted": false,
@@ -965,9 +563,359 @@
    "gatesMet": false,
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
+   "rowStride": 1,
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "featureNames": [
+    "r1",
+    "r3",
+    "r6",
+    "r12",
+    "r24",
+    "r48",
+    "r96",
+    "r288",
+    "vol12",
+    "vol48",
+    "vol288",
+    "rz12",
+    "rz48",
+    "pos12",
+    "pos48",
+    "pos288",
+    "ema12d",
+    "ema48d",
+    "ema288d",
+    "atr14",
+    "atrRatio",
+    "rsi14",
+    "vol_r48",
+    "vol_r288",
+    "tbi1",
+    "tbi12",
+    "tbi48",
+    "tsz48",
+    "body",
+    "upWick",
+    "dnWick",
+    "body12",
+    "persist6",
+    "persist24",
+    "skew48",
+    "d24hHigh",
+    "d24hLow",
+    "todSin",
+    "todCos",
+    "dowSin",
+    "dowCos",
+    "mktR1",
+    "mktR12",
+    "mktR48",
+    "mktR288",
+    "mktVol48",
+    "mktPos288",
+    "relR1",
+    "relR12",
+    "relR48",
+    "beta48",
+    "corr48"
+   ],
    "artifact": {
-    "modelVersion": "brain-c1-crypto-h4",
-    "sha256": "9665eda9758eeaa3fc9bc4f7cb057e0c56b41c4093e69f483db8dee4cfb6ef48"
+    "modelVersion": "brain-c1-crypto-d5",
+    "sha256": "6c604dadd905b37b3190b7f67f794447665738058f96eb7632d3bff4c38c9aad"
+   }
+  },
+  "d20": {
+   "horizon": "d20",
+   "trained": true,
+   "interval": "4h",
+   "barsAhead": 120,
+   "minutesAhead": 28800,
+   "chosenModel": "gbm",
+   "fitSeconds": 425.6,
+   "rows": {
+    "train": 435105,
+    "validation": 74391,
+    "test": 92288,
+    "zeroMoveRowsDropped": 647
+   },
+   "split": {
+    "trainEnd": "2025-04-22T16:00:00+00:00",
+    "valEnd": "2026-01-29T12:00:00+00:00",
+    "embargoBars": 408,
+    "embargoMinutes": 97920,
+    "testFrom": "2026-01-29T16:00:00+00:00",
+    "testTo": "2026-10-20T16:00:00+00:00"
+   },
+   "validation": {
+    "logisticAccuracy": 0.53562,
+    "gbmAccuracy": 0.62157,
+    "gbmRoundsKept": 36,
+    "gbmRoundsFitted": 66
+   },
+   "evaluation": {
+    "rows": 92288,
+    "accuracy": 0.53198,
+    "testMajority": 0.503,
+    "testMajorityClass": "DOWN",
+    "marginOverMajority": 0.02897,
+    "alwaysUpAccuracy": 0.497,
+    "actualUpRate": 0.497,
+    "predictedUpShare": 0.23455,
+    "predictedDownShare": 0.76545,
+    "upRecall": 0.26511,
+    "downRecall": 0.79565,
+    "upPrecision": 0.56177,
+    "downPrecision": 0.52285,
+    "blockedBootstrap": {
+     "blocks": 245,
+     "draws": 2000,
+     "pointEstimate": 0.028975,
+     "ci95": [
+      0.003552,
+      0.055906
+     ],
+     "sd": 0.013125,
+     "z": 2.2076,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 18457,
+       "accuracy": 0.53719,
+       "majority": 0.51157,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 18458,
+       "accuracy": 0.55553,
+       "majority": 0.50607,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 18457,
+       "accuracy": 0.48518,
+       "majority": 0.53259,
+       "above": false
+      },
+      {
+       "block": 3,
+       "rows": 18458,
+       "accuracy": 0.53754,
+       "majority": 0.50471,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 18458,
+       "accuracy": 0.54443,
+       "majority": 0.53467,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 4,
+     "blocksScored": 5
+    },
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 92288,
+      "coverage": 1.0,
+      "accuracy": 0.53198,
+      "majorityHere": 0.503
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 85677,
+      "coverage": 0.92837,
+      "accuracy": 0.53541,
+      "majorityHere": 0.50801
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 79029,
+      "coverage": 0.85633,
+      "accuracy": 0.53978,
+      "majorityHere": 0.50798
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 72723,
+      "coverage": 0.788,
+      "accuracy": 0.5446,
+      "majorityHere": 0.51589
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 48103,
+      "coverage": 0.52123,
+      "accuracy": 0.5324,
+      "majorityHere": 0.5067
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 25149,
+      "coverage": 0.27251,
+      "accuracy": 0.46722,
+      "majorityHere": 0.56619
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 9159,
+      "coverage": 0.09924,
+      "accuracy": 0.49995,
+      "majorityHere": 0.54995
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 2957,
+      "coverage": 0.03204,
+      "accuracy": 0.48833,
+      "majorityHere": 0.51167
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 2153,
+      "coverage": 0.02333,
+      "accuracy": 0.49373,
+      "majorityHere": 0.50627
+     }
+    ],
+    "calibration": [
+     {
+      "bucket": 0,
+      "rows": 8541,
+      "meanPredicted": 0.39724,
+      "observedUpRate": 0.54806
+     },
+     {
+      "bucket": 1,
+      "rows": 9899,
+      "meanPredicted": 0.41816,
+      "observedUpRate": 0.58056
+     },
+     {
+      "bucket": 2,
+      "rows": 8866,
+      "meanPredicted": 0.43469,
+      "observedUpRate": 0.45421
+     },
+     {
+      "bucket": 3,
+      "rows": 7605,
+      "meanPredicted": 0.44522,
+      "observedUpRate": 0.38264
+     },
+     {
+      "bucket": 4,
+      "rows": 11117,
+      "meanPredicted": 0.45073,
+      "observedUpRate": 0.37573
+     },
+     {
+      "bucket": 5,
+      "rows": 9307,
+      "meanPredicted": 0.45774,
+      "observedUpRate": 0.40185
+     },
+     {
+      "bucket": 6,
+      "rows": 9239,
+      "meanPredicted": 0.47417,
+      "observedUpRate": 0.55688
+     },
+     {
+      "bucket": 7,
+      "rows": 9254,
+      "meanPredicted": 0.49642,
+      "observedUpRate": 0.54009
+     },
+     {
+      "bucket": 8,
+      "rows": 9208,
+      "meanPredicted": 0.53176,
+      "observedUpRate": 0.56473
+     },
+     {
+      "bucket": 9,
+      "rows": 9252,
+      "meanPredicted": 0.62448,
+      "observedUpRate": 0.56658
+     }
+    ]
+   },
+   "linearOnTheSameTestRows": 0.5157,
+   "gates": {
+    "aboveTestMajority": true,
+    "bothDirectionsPredicted": true,
+    "bootstrapExcludesZero": true,
+    "walkForwardMajority": true
+   },
+   "gatesMet": true,
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "rowStride": 1,
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "featureNames": [
+    "r1",
+    "r3",
+    "r6",
+    "r12",
+    "r24",
+    "r48",
+    "r96",
+    "r288",
+    "vol12",
+    "vol48",
+    "vol288",
+    "rz12",
+    "rz48",
+    "pos12",
+    "pos48",
+    "pos288",
+    "ema12d",
+    "ema48d",
+    "ema288d",
+    "atr14",
+    "atrRatio",
+    "rsi14",
+    "vol_r48",
+    "vol_r288",
+    "tbi1",
+    "tbi12",
+    "tbi48",
+    "tsz48",
+    "body",
+    "upWick",
+    "dnWick",
+    "body12",
+    "persist6",
+    "persist24",
+    "skew48",
+    "d24hHigh",
+    "d24hLow",
+    "todSin",
+    "todCos",
+    "dowSin",
+    "dowCos",
+    "mktR1",
+    "mktR12",
+    "mktR48",
+    "mktR288",
+    "mktVol48",
+    "mktPos288",
+    "relR1",
+    "relR12",
+    "relR48",
+    "beta48",
+    "corr48"
+   ],
+   "artifact": {
+    "modelVersion": "brain-c1-crypto-d20",
+    "sha256": "fa574be9566a23e0b003099914c2c56e9ab65850ebb36d6074356001b40efbb0"
    }
   }
  }
