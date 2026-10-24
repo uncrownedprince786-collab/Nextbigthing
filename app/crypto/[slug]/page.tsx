@@ -4,8 +4,14 @@ import { notFound } from "next/navigation";
 import { ForecastChart } from "@/components/forecastChart";
 import { forecastFor, type Forecast } from "@/lib/cryptoForecast";
 import { HORIZONS, isHorizonKey, type HorizonKey } from "@/lib/cryptoHorizons";
-import { coinPrice, coinSnapshot, compactUsd, signedPct } from "@/lib/cryptoMarket";
-import { recordForecast } from "@/lib/forecastStore";
+import {
+  coinPrice,
+  coinSnapshot,
+  compactUsd,
+  REGISTRY_DEADLINE_MS,
+  withDeadline,
+} from "@/lib/cryptoMarket";
+import { recordForecast, trackRecord } from "@/lib/forecastStore";
 import { servingLane } from "@/lib/cryptoLanes";
 import { STYLES, styleFrom } from "@/lib/tradingStyles";
 import { universeCoin } from "@/lib/cryptoUniverse";
@@ -65,12 +71,17 @@ export default async function Page({
   // The forecast and the news go out together: both are independent of each other and of the
   // snapshot already in hand, and running them in series would add the slower one's time to the
   // faster one's for no reason.
-  const [forecast, news] = await Promise.all([
+  const [forecast, news, record] = await Promise.all([
     horizon ? forecastFor(slug, horizon) : Promise.resolve(null),
     // A venue-only coin has no asset row, so there is no stored news for it and nothing to ask.
     // Seven days. A fortnight-old headline beside a fifteen-minute direction is clutter
     // that buries the items a reader could actually act on.
     snap.assetId ? getTopNews(snap.assetId, 8, 7).catch(() => []) : Promise.resolve([]),
+    // The only evidence on this page that is not a backtest. Asked for only once a window has
+    // been chosen, because a record is per horizon and there is nothing to report before then.
+    snap.assetId && horizon
+      ? withDeadline(trackRecord(snap.assetId, horizon), REGISTRY_DEADLINE_MS, null)
+      : Promise.resolve(null),
   ]);
   // Recorded only where there is an asset row to key it on. A venue-only coin's forecast is a
   // real forecast and it cannot enter the prospective record, so the page says so rather than
@@ -196,6 +207,7 @@ export default async function Page({
           data-strength={forecast.kind === "direction" ? forecast.strength : undefined}
         >
           <Decision forecast={forecast} slug={slug} stored={stored} />
+          {record ? <LiveRecord record={record} label={HORIZONS[horizon].label} /> : null}
         </div>
       ) : style ? (
         <p className="text-muted-foreground mt-4 text-sm">Pick a window to get a direction.</p>
@@ -310,6 +322,73 @@ function Level({
         {value}
       </div>
       <div className="text-muted-foreground mt-0.5 text-xs">{note}</div>
+    </div>
+  );
+}
+
+/// What this coin and window have actually done since forecasts started being recorded.
+///
+/// Kept strictly apart from every holdout number above it. The holdout is a backtest however
+/// carefully it is split -- no forecast in it was made before its own data existed -- and this is
+/// the only evidence on the page that was. It is also, for now, much smaller, so it says how
+/// small rather than printing a rate over a handful: thirty graded results before a percentage
+/// appears, which is the same bar the rest of the site holds itself to.
+function LiveRecord({
+  record,
+  label,
+}: {
+  record: Awaited<ReturnType<typeof trackRecord>>;
+  label: string;
+}) {
+  const { graded, correct, pending, awaitingScore, accuracy, quietGraded, quietCorrect, gradedUp } =
+    record;
+  if (graded + pending + awaitingScore + quietGraded === 0) return null;
+  const allGraded = graded + quietGraded;
+  const upRate = allGraded > 0 ? gradedUp / allGraded : null;
+  // A base rate far from even means the graded window was a one-way market, and a balanced model
+  // scores near 50% in one whatever it knows. Flagged rather than left for a reader to infer.
+  const skewed = upRate !== null && Math.abs(upRate - 0.5) > 0.2;
+  return (
+    <div className="border-border mt-3 rounded-lg border px-4 py-3 text-sm">
+      <span className="font-medium">Forward record, {label.toLowerCase()}.</span>{" "}
+      <span className="text-muted-foreground">
+        {graded >= 30 && accuracy !== null ? (
+          <>
+            {correct} of {graded} matured strong calls were right,{" "}
+            <strong>{(accuracy * 100).toFixed(1)}%</strong>.
+          </>
+        ) : (
+          <>
+            {graded} matured so far{graded > 0 ? `, ${correct} right` : ""} — under the 30 this
+            site needs before it prints a rate.
+          </>
+        )}{" "}
+        {pending} still inside their window.
+        {upRate !== null ? (
+          <>
+            {" "}
+            Of those {allGraded} windows, {(upRate * 100).toFixed(0)}% actually went up
+            {skewed ? (
+              <strong>
+                {" "}
+                — so this was a one-way stretch, and a rate measured in one says more about the
+                market than about the model
+              </strong>
+            ) : null}
+            .
+          </>
+        ) : null}
+        {quietGraded > 0 ? (
+          <>
+            {" "}
+            Separately, {quietGraded} weak call{quietGraded === 1 ? "" : "s"} matured and{" "}
+            {quietCorrect} went the way it leaned — never added to the rate above, because the two
+            are different claims.
+          </>
+        ) : null}{" "}
+        Every forecast is written down before its window closes and graded after, so this is the
+        one number here that is not a backtest.
+      </span>
     </div>
   );
 }

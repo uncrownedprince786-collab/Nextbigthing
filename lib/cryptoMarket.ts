@@ -31,7 +31,7 @@ import { UNIVERSE, universeCoin } from "@/lib/cryptoUniverse";
 /// does not refuse quickly: it hangs and then reports a connection timeout. `.catch()` alone
 /// turns that into a fallback *after* the full wait, which is how an optional read came to be the
 /// slowest thing on a page that does not need it. This bounds the wait instead.
-function withDeadline<T>(work: Promise<T>, ms: number, fallback: T): Promise<T> {
+export function withDeadline<T>(work: Promise<T>, ms: number, fallback: T): Promise<T> {
   return Promise.race([
     work.catch(() => fallback),
     new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
@@ -43,7 +43,7 @@ function withDeadline<T>(work: Promise<T>, ms: number, fallback: T): Promise<T> 
 /// Long enough that a healthy pooler always answers -- the query itself measures 193-324 ms --
 /// and short enough that a saturated one costs a reader a market-capitalisation column rather
 /// than the page.
-const REGISTRY_DEADLINE_MS = 2500;
+export const REGISTRY_DEADLINE_MS = 2500;
 
 export interface CoinRow {
   rank: number;
@@ -540,7 +540,3 @@ export function coinPrice(value: number | null | undefined): string {
   })}`;
 }
 
-export function signedPct(value: number | null | undefined, digits = 2): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
-  return `${value >= 0 ? "+" : ""}${value.toFixed(digits)}%`;
-}

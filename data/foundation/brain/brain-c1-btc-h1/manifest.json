@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-20T22:00:30.890190+00:00",
+ "generatedAt": "2026-10-24T02:26:00.736257+00:00",
  "modelVersion": "brain-c1-btc-h1",
  "market": "Crypto",
  "symbols": [
@@ -7,13 +7,13 @@
  ],
  "artifact": {
   "file": "model.json",
-  "sha256": "2cf469fc35bce65115df221f182a955e2a75d16fbcfa8bc2a7f6243443ecdb9a",
-  "bytes": 70704
+  "sha256": "9d0c125af64d61e2abcd9a7a9ca8a56b96897dcd320e08ffb0d75907611fe73c",
+  "bytes": 85420
  },
  "producedBy": "tools/research/train_crypto_short.py",
- "repoHead": "4e80b0c0b9c1d582cd7330876551ca444252394e",
- "featureSchema": "crypto-intraday-f1",
- "featureCount": 41,
+ "repoHead": "ca50a323ef0a95de6beaf5a4f421894a9aa72bf1",
+ "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+ "featureCount": 52,
  "task": {
   "classes": [
    "DOWN",
@@ -51,6 +51,7 @@
    }
   }
  },
+ "rowStride": 1,
  "featureParityWithReference": {
   "BTCUSDT": {
    "checked": 60,
@@ -75,7 +76,7 @@
  },
  "chosenModel": "gbm",
  "validation": {
-  "logisticAccuracy": 0.52277,
+  "logisticAccuracy": 0.52285,
   "gbmAccuracy": 0.52499,
   "gbmRoundsKept": 52,
   "gbmRoundsFitted": 82
@@ -249,7 +250,7 @@
    {
     "bucket": 3,
     "rows": 6296,
-    "meanPredicted": 0.48617,
+    "meanPredicted": 0.48616,
     "observedUpRate": 0.49158
    },
    {
@@ -290,7 +291,7 @@
    }
   ]
  },
- "linearOnTheSameTestRows": 0.52726,
+ "linearOnTheSameTestRows": 0.52738,
  "verdict": "GO",
  "limitations": [
   "The test fold is a historical holdout. It is unseen by this fit, and it is still a backtest: no forecast in it was made before the data existed.",

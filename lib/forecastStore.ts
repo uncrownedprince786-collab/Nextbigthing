@@ -99,6 +99,16 @@ export interface TrackRecord {
   /// level with the strong rate would mean the floor is no longer separating anything.
   quietGraded: number;
   quietCorrect: number;
+  /// How many of the graded windows actually went UP.
+  ///
+  /// **Accuracy without this is unreadable.** Forecasts are written when somebody opens a page,
+  /// so the prospective sample is clustered into whatever hours the site was being used -- not
+  /// spread evenly across market conditions the way a holdout is. A stretch of hours in which
+  /// 85% of five-minute windows fell is a stretch in which a balanced model scores near 50% while
+  /// a model that says DOWN to everything scores 85%, and neither number means what it looks
+  /// like. So the base rate of the graded sample travels with the rate, exactly as coverage
+  /// travels with every accuracy figure on this site.
+  gradedUp: number;
   firstAt: Date | null;
   newestAt: Date | null;
 }
@@ -119,7 +129,8 @@ export async function trackRecord(
   // them up is the shape `getAssetFreshness` exists to stop, on the page least able to afford it.
   const where = { assetId, horizonKey, called: true };
   const quiet = { assetId, horizonKey, called: false };
-  const [total, graded, correct, pending, span, quietGraded, quietCorrect] = await Promise.all([
+  const [total, graded, correct, pending, span, quietGraded, quietCorrect, gradedUp] =
+    await Promise.all([
     prisma.brainForecast.count({ where }),
     prisma.brainForecast.count({ where: { ...where, outcome: { isNot: null } } }),
     prisma.brainForecast.count({ where: { ...where, outcome: { is: { correct: true } } } }),
@@ -127,6 +138,9 @@ export async function trackRecord(
     prisma.brainForecast.aggregate({ where: { assetId, horizonKey }, _min: { asOf: true }, _max: { asOf: true } }),
     prisma.brainForecast.count({ where: { ...quiet, outcome: { isNot: null } } }),
     prisma.brainForecast.count({ where: { ...quiet, outcome: { is: { correct: true } } } }),
+    prisma.brainForecast.count({
+      where: { assetId, horizonKey, outcome: { is: { actual: "UP" } } },
+    }),
   ]);
   return {
     graded,
@@ -134,6 +148,7 @@ export async function trackRecord(
     pending,
     quietGraded,
     quietCorrect,
+    gradedUp,
     // Matured and unscored is what is left over, which is the only one of the four that cannot be
     // asked for directly without a second index: it is total minus the two that are accounted for.
     awaitingScore: total - graded - pending,
