@@ -11,6 +11,7 @@ import { STYLES, styleFrom } from "@/lib/tradingStyles";
 import { LEVELS_CAVEATS, LEVELS_GENERATED_AT } from "@/lib/cryptoLevels";
 import { getTopNews } from "@/lib/queries";
 import { LiveCoinPrice } from "@/components/LiveCoinPrice";
+import { BarClock } from "@/components/BarClock";
 import { relativeTime } from "@/lib/format";
 
 /// One coin: the price, the style you are trading it on, and the direction for that window.
@@ -78,7 +79,6 @@ export default async function Page({
       : { stored: false, why: "this coin is not in the registry, so there is no row to key it on" };
   }
 
-  const up = (snap.change24h ?? 0) >= 0;
   const href = (q: Record<string, string>) =>
     `/crypto/${encodeURIComponent(slug)}?${new URLSearchParams(q).toString()}`;
 
@@ -307,7 +307,13 @@ function Decision({
     return (
       <>
         <div className="border-border rounded-lg border p-4">
-          <div className="text-muted-foreground text-xs tracking-wide uppercase">{h.label}</div>
+          <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 text-xs tracking-wide uppercase">
+            <span>{h.label}</span>
+            {/* How long this call is current for. A verdict read from the last closed bar sits
+                beside a price that ticks every two seconds, and without this a reader cannot tell
+                which of the two they are looking at. */}
+            <BarClock asOfMs={f.asOf.getTime()} stepMs={w.stepMs} />
+          </div>
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <span
               className={`text-5xl font-semibold tracking-tight ${

@@ -92,6 +92,12 @@ export function LiveCoinPrice({
   }, [slug]);
 
   const up = (change ?? 0) >= 0;
+  // open = price / (1 + pct/100), so the move is price - open. Guarded against a -100% print.
+  const open = price !== null && change !== null && 1 + change / 100 > 0
+    ? price / (1 + change / 100)
+    : null;
+  const abs = open !== null && price !== null ? price - open : null;
+  const decimals = price !== null && Math.abs(price) >= 1000 ? 2 : 4;
   return (
     <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
       <span
@@ -107,11 +113,11 @@ export function LiveCoinPrice({
       </span>
       {change !== null ? (
         <span className={`num text-lg font-medium ${up ? "text-[var(--up)]" : "text-[var(--down)]"}`}>
-          {initialChangeAbs !== null && price !== null && initialPrice !== null
-            ? `${up ? "+" : ""}${(price - (initialPrice - initialChangeAbs)).toFixed(
-                Math.abs(price) >= 1000 ? 2 : 4,
-              )} `
-            : ""}
+          {/* Derived from the price and the percentage rather than carried separately. The two
+              arrive from different calls at different ages, and a stored absolute change beside a
+              freshly polled price drifts apart within a minute -- which showed as a positive
+              number next to a negative percentage. One number cannot disagree with itself. */}
+          {abs !== null ? `${abs >= 0 ? "+" : ""}${abs.toFixed(decimals)} ` : ""}
           ({up ? "+" : ""}
           {change.toFixed(2)}%)
         </span>

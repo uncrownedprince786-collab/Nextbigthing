@@ -5056,6 +5056,12 @@ class SqlSafety(unittest.TestCase):
         # comparing against the past. On a five-minute call the past is the whole horizon. Same
         # rule as the rest -- no server module, no environment, one same-origin URL.
         "components/LiveCoinPrice.tsx",
+        # The countdown under a direction, and the refresh when the bar it was read from closes.
+        # A direction is current for one bar and then it is history, and a server-rendered page
+        # cannot tell a reader which of those they are looking at -- the clock is the whole reason
+        # this one is a client component. It reaches no server value and makes no `fetch` of its
+        # own; `router.refresh()` is the framework re-rendering the route it is already on.
+        "components/BarClock.tsx",
     )
 
     def test_nothing_is_exposed_to_the_browser(self):

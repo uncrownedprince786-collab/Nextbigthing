@@ -39,7 +39,11 @@ function withDeadline<T>(work: Promise<T>, ms: number, fallback: T): Promise<T> 
 }
 
 /// How long either page will wait for the registry before rendering without it.
-const REGISTRY_DEADLINE_MS = 1200;
+///
+/// Long enough that a healthy pooler always answers -- the query itself measures 193-324 ms --
+/// and short enough that a saturated one costs a reader a market-capitalisation column rather
+/// than the page.
+const REGISTRY_DEADLINE_MS = 2500;
 
 export interface CoinRow {
   rank: number;
