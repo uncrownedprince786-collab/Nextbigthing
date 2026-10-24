@@ -48,8 +48,9 @@ export interface Levels {
   /// of them, and a reader who is not told that will read a target as a thing that usually
   /// happens.
   neitherWhenRight: number;
-  /// Expected move in ATR units from this pair, on rows that went the right way. The number the
-  /// pair was chosen by, carried so the choice can be read rather than taken on trust.
+  /// Net expectancy per unit of risk, measured on the validation fold with the fee charged. The
+  /// number the pair was chosen by, carried so the choice can be read rather than taken on trust.
+  /// Negative means these levels lost money there, which the page says in those words.
   expectedAtr: number;
   measuredRows: number;
 }
@@ -66,6 +67,19 @@ interface Pair {
 interface HorizonLevels {
   rows: number;
   note?: string;
+  /// The pair `crypto_backtest.py` found best on the validation fold, net of costs, together
+  /// with what it did there. Absent until that sweep has been run for this lane.
+  servedPair?: {
+    stopAtr: number;
+    targetAtr: number;
+    netExpectancyR: number;
+    grossExpectancyR: number;
+    meanCostInR: number;
+    winRate: number;
+    profitFactor: number | null;
+    trades: number;
+    fold: string;
+  };
   favourableExcursionAtr?: { p25: number; median: number; p75: number; p90: number };
   adverseExcursionAtr?: { p25: number; median: number; p75: number; p90: number };
   medianAtrPctOfPrice?: number;
@@ -84,36 +98,41 @@ const DOC = table as unknown as Doc;
 export const LEVELS_GENERATED_AT = DOC.generatedAt;
 export const LEVELS_CAVEATS = DOC.whatThisIsNot;
 
-/// The expected move in ATR units from one pair, on the rows that went the right way.
-///
-/// `p(target first) x target - p(stopped first) x stop`. The rows that touched both, and the rows
-/// that touched neither before the window closed, contribute nothing: which of the two came first
-/// is not recorded, and a window that closes flat is a scratch.
-function expected(p: Pair): number {
-  return (
-    p.reachedTargetWithoutTouchingStop * p.targetAtr -
-    p.stoppedWithoutReachingTarget * p.stopAtr
-  );
-}
+/// A retail taker round trip on a major venue, in basis points of notional. Reported, not used
+/// to choose: the choice is now a measurement that already has the cost inside it.
+export const COST_BPS = 10;
 
-/// Which stop/target pair to serve, chosen once rather than per request.
+/// Which stop/target pair to serve, and why it is no longer chosen here.
 ///
-/// The rule: of the measured pairs, the one with the highest expected move above.
+/// **The first two rules were both wrong, and the backtest is what found it.** Ranking by hit
+/// rate picked the tightest pair on the ladder, because a target half an ATR away is reached more
+/// often than one two ATR away, necessarily -- it produced a fifteen-minute target 0.05% from
+/// entry. Ranking by expected move per unit of risk after costs looked right and was still wrong,
+/// for a subtler reason: the hit rates in `pairs` are measured **on the rows that went the right
+/// way**, and a trade is taken on every call, right or wrong. Optimising a conditional quantity
+/// and living with the unconditional one picked 0.75/1.5 for the pooled hour, where the realised
+/// net expectancy was worse than three other pairs on the same ladder.
 ///
-/// Not the highest hit rate, which was the first rule here and was wrong. Hit rate alone always
-/// picks the tightest pair on the ladder -- a target half an ATR away is reached more often than
-/// one two ATR away, necessarily -- and on a fifteen-minute Bitcoin call that produced a target
-/// 0.05% from entry, which is inside the spread and is not a trade. And not the highest
-/// reward-to-risk either: a 1:4 pair reached one time in nine is worse than a 1:1.5 reached half
-/// the time, and picking on R alone turns a level table into a lottery ticket with a good ratio.
-/// Expected value is the quantity that balances the two, so it is the one that chooses.
+/// So the pair is chosen by `tools/research/crypto_backtest.py`, which simulates every candidate
+/// bar by bar on the **validation** fold -- entry at the close, stop and target walked forward,
+/// a bar touching both scored as a loss, the fee charged on every trade -- and writes the winner
+/// into `servedPair`. Chosen on validation, because choosing on the holdout is fitting the one
+/// thing kept back for measuring.
+///
+/// `pairs` is still read, for the hit rates the page prints beside the levels. It is no longer
+/// read to decide anything.
 function bestPair(h: HorizonLevels | undefined): Pair | null {
   if (!h?.pairs) return null;
-  let best: Pair | null = null;
-  for (const p of Object.values(h.pairs)) {
-    if (!best || expected(p) > expected(best)) best = p;
+  const served = h.servedPair;
+  if (served) {
+    const exact = Object.values(h.pairs).find(
+      (p) => p.stopAtr === served.stopAtr && p.targetAtr === served.targetAtr,
+    );
+    if (exact) return exact;
   }
-  return best;
+  // No backtested choice for this lane yet: serve nothing rather than a pair chosen by a rule
+  // that has now been measured and found wanting twice.
+  return null;
 }
 
 /// The levels for one call, or null when this window has no measured table.
@@ -152,7 +171,7 @@ export function levelsFor(
     targetFirstWhenRight: pair.reachedTargetWithoutTouchingStop,
     stoppedWhenRight: pair.stoppedWithoutReachingTarget,
     neitherWhenRight: pair.neither,
-    expectedAtr: expected(pair),
+    expectedAtr: h.servedPair?.netExpectancyR ?? 0,
     measuredRows: h.rows,
   };
 }

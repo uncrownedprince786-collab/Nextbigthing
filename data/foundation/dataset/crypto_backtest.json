@@ -1,0 +1,55 @@
+{
+ "generatedAt": "2026-10-24T22:54:53.082743+00:00",
+ "producedBy": "tools/research/crypto_backtest.py",
+ "tag": "crypto",
+ "horizon": "d20",
+ "band": "all",
+ "fold": "test",
+ "stopAtr": 8.0,
+ "targetAtr": 16.0,
+ "rewardToRisk": 2.0,
+ "convictionFloor": 0.0,
+ "costBps": 10.0,
+ "meanCostInR": 0.006,
+ "allPairs": null,
+ "split": {
+  "trainEnd": "2025-04-22T16:00:00+00:00",
+  "valEnd": "2026-01-29T12:00:00+00:00",
+  "embargoBars": 408,
+  "embargoMinutes": 97920,
+  "testFrom": "2026-01-29T16:00:00+00:00",
+  "testTo": "2026-10-20T16:00:00+00:00"
+ },
+ "symbols": 65,
+ "grossOfCosts": {
+  "label": "before costs",
+  "trades": 92288,
+  "winRate": 0.50155,
+  "breakEvenWinRate": 0.33333,
+  "expectancyR": -0.00902,
+  "totalR": -832.2,
+  "profitFactor": 0.9742,
+  "maxDrawdownR": 2142.59,
+  "sharpePerTrade": -0.0106,
+  "bestR": 2.0,
+  "worstR": -1.0
+ },
+ "netOfCosts": {
+  "label": "after 10.0bp round trip",
+  "trades": 92288,
+  "winRate": 0.4999,
+  "breakEvenWinRate": 0.33333,
+  "expectancyR": -0.01506,
+  "totalR": -1389.81,
+  "profitFactor": 0.9572,
+  "maxDrawdownR": 2251.93,
+  "sharpePerTrade": -0.0177,
+  "bestR": 1.999,
+  "worstR": -1.043
+ },
+ "whatThisIsNot": [
+  "Not a live track record: no call in it was made before its data existed.",
+  "No slippage, no funding, no partial fills and no liquidity check. A target reached on a coin with no depth is not a trade anyone could have taken.",
+  "A bar that touches both the stop and the target is scored as a loss, because a bar does not record which came first."
+ ]
+}

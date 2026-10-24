@@ -71,6 +71,12 @@ ATR_COLUMN = FEATURES.index("atr14")
 CANDIDATES = [
     (0.5, 0.75), (0.5, 1.0), (0.75, 1.0), (0.75, 1.5),
     (1.0, 1.0), (1.0, 1.5), (1.0, 2.0), (1.5, 2.0),
+    # Wider rungs, added after the first sweep came back monotone in the stop width: every
+    # candidate was net-negative and the widest was least so, because the fee is a fixed
+    # fraction of notional and shrinks in R as the stop grows. A ladder whose best entry is its
+    # last entry has not been measured, it has been truncated.
+    (2.0, 3.0), (2.0, 4.0), (3.0, 4.0), (3.0, 6.0), (4.0, 8.0), (6.0, 12.0),
+    (8.0, 16.0), (10.0, 20.0), (15.0, 30.0),
 ]
 
 
