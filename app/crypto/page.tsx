@@ -55,6 +55,9 @@ export default async function Page() {
     marketCap: c.marketCap,
     volume24h: c.volume24h,
     tradable: c.tradable,
+    logo: c.logo,
+    isNew: !c.inRegistry,
+    pegged: c.pegged,
   }));
 
   return (

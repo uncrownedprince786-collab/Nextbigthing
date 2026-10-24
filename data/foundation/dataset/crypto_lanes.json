@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-24T11:13:44.460467+00:00",
+ "generatedAt": "2026-10-24T20:13:18.456504+00:00",
  "producedBy": "tools/research/crypto_lanes.py",
  "status": "what has survived testing on a historical holdout, not what has been proven forward and not a profitability claim; no transaction cost, spread or funding is in any number here",
  "highIsUnreachableFromBacktest": "a badge never reads HIGH: every number here comes from a holdout, which is still a backtest. HIGH is reserved for a lane whose prospective forecasts have matured and held, which none has yet.",
@@ -231,7 +231,7 @@
       "note": "under 500 called rows, not reported"
      }
     ],
-    "measuredAt": "2026-10-24T11:05:26.199604+00:00"
+    "measuredAt": "2026-10-24T20:10:14.774161+00:00"
    },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
@@ -461,7 +461,7 @@
       "note": "under 500 called rows, not reported"
      }
     ],
-    "measuredAt": "2026-10-24T11:05:26.199604+00:00"
+    "measuredAt": "2026-10-24T20:10:14.774161+00:00"
    },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
@@ -688,7 +688,7 @@
       "note": "under 500 called rows, not reported"
      }
     ],
-    "measuredAt": "2026-10-24T11:05:26.199604+00:00"
+    "measuredAt": "2026-10-24T20:10:14.774161+00:00"
    },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
@@ -1418,7 +1418,7 @@
       "upRate": 0.51935
      }
     ],
-    "measuredAt": "2026-10-24T11:05:26.199604+00:00"
+    "measuredAt": "2026-10-24T20:10:14.774161+00:00"
    },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
@@ -1732,7 +1732,7 @@
       "upRate": 0.48079
      }
     ],
-    "measuredAt": "2026-10-24T11:05:26.199604+00:00"
+    "measuredAt": "2026-10-24T20:10:14.774161+00:00"
    },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
@@ -2037,7 +2037,7 @@
       "note": "under 500 called rows, not reported"
      }
     ],
-    "measuredAt": "2026-10-24T11:05:26.199604+00:00"
+    "measuredAt": "2026-10-24T20:10:14.774161+00:00"
    },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,

@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 import { Card, Note, Section } from "@/components/ui";
 import { getFreshness, getMarketOverview } from "@/lib/queries";
 import { marketHasValidatedSignal, validatedHorizons } from "@/lib/signalValidation";
+import { UNIVERSE_SIZE } from "@/lib/cryptoUniverse";
 
 /// The overview — the first step of the journey, and deliberately small.
 ///
@@ -42,7 +43,7 @@ const cachedFreshness = unstable_cache(getFreshness, ["freshness-home"], HOUR);
 const MARKETS = [
   { key: "US", href: "/stocks", label: "Stocks", blurb: "US listings and funds" },
   { key: "PK", href: "/psx", label: "PSX", blurb: "Pakistan Stock Exchange" },
-  { key: "Crypto", href: "/crypto", label: "Crypto", blurb: "Major coins" },
+  { key: "Crypto", href: "/crypto", label: "Crypto", blurb: "Every coin three venues trade" },
   { key: "FX", href: "/forex", label: "Forex", blurb: "Currency pairs" },
   { key: "Commodity", href: "/commodities", label: "Commodities", blurb: "Metals and energy" },
 ] as const;
@@ -79,7 +80,11 @@ export default async function HomePage() {
           {MARKETS.map((m) => {
             const proven = marketHasValidatedSignal(m.key);
             const horizons = validatedHorizons(m.key);
-            const n = counts.get(m.key);
+            // Crypto is counted from the venues' own instrument lists, not from the stored
+            // registry. The registry is the 76 coins the daily job collects closes for; the
+            // crypto pages serve every coin a venue trades, and the card said 76 while the page
+            // behind it listed 2,324.
+            const n = m.key === "Crypto" ? UNIVERSE_SIZE : counts.get(m.key);
             return (
               <Link
                 key={m.key}

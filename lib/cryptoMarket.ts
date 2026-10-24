@@ -73,6 +73,10 @@ export interface CoinRow {
   /// False for a coin the venue trades and the registry has never heard of: live price and a
   /// direction, but no market capitalisation, no daily history and no stored verdict.
   inRegistry: boolean;
+  /// The coin's own mark, where a second source was matched to it. Null draws a lettered tile.
+  logo: string | null;
+  /// Pegged to a dollar or an ounce. Listed, priced, and never offered as a direction.
+  pegged: boolean;
 }
 
 export interface MarketTable {
@@ -244,7 +248,7 @@ export async function marketTable(): Promise<MarketTable> {
   // capped at two connections that times out under load. A market table that 500s because a
   // capitalisation column could not be read is a market table nobody can use; one that renders
   // without that column is the same page with one fewer number in it.
-  const [rows, tickers] = await Promise.all([
+  const [rows, tickers, paprika] = await Promise.all([
     withDeadline(
       prisma.$queryRaw<Row[]>`
       SELECT a.symbol, a.name,
@@ -266,6 +270,7 @@ export async function marketTable(): Promise<MarketTable> {
       [] as Row[],
     ),
     bulkTicker(),
+    paprikaSnapshot(),
   ]);
 
   // The registry's rows, keyed by slug, merged onto the universe below.
@@ -279,10 +284,15 @@ export async function marketTable(): Promise<MarketTable> {
     // the one beside it. Comparing a live price against a stored close is the right comparison --
     // both are prices of the same coin -- and comparing a stored close against a stored close when
     // the venue is down is still the right one.
+    // The second source first, because it has one for 1,133 coins where the registry has one
+    // for 76; the stored close is the fallback, not the other way round.
+    const pap = u.paprikaId ? paprika.get(u.paprikaId) : undefined;
     const week =
-      price !== null && r?.weekAgoClose && r.weekAgoClose > 0
-        ? (price / r.weekAgoClose - 1) * 100
-        : null;
+      pap?.pct7d !== undefined && pap?.pct7d !== null
+        ? pap.pct7d
+        : price !== null && r?.weekAgoClose && r.weekAgoClose > 0
+          ? (price / r.weekAgoClose - 1) * 100
+          : null;
     return {
       rank: 0,
       slug: u.slug,
@@ -292,9 +302,11 @@ export async function marketTable(): Promise<MarketTable> {
       priceAt: t ? "venue" : (r?.lastClose ?? null) !== null ? "close" : null,
       change24h: t && Number.isFinite(t.changePct) ? t.changePct : null,
       change7d: week,
-      // The universe's figure first: it covers 1,186 coins against the registry's 76, and it
-      // was only attached where a second source's price agreed with the venue's.
-      marketCap: u.marketCap ?? r?.marketCap ?? null,
+      // Live where the second source has it, then the committed figure, then the registry's.
+      // All three are the same quantity; they differ only in how old they are.
+      marketCap: pap?.marketCap ?? u.marketCap ?? r?.marketCap ?? null,
+      logo: u.paprikaId ? `https://static.coinpaprika.com/coin/${u.paprikaId}/logo.png` : null,
+      pegged: u.pegged,
       volume24h: t && Number.isFinite(t.quoteVolume) ? t.quoteVolume : null,
       // Every coin in the universe has klines by construction, so every one can be asked for a
       // direction.
@@ -508,6 +520,55 @@ const priceSnapshot = memoised(1500, async (): Promise<Map<string, number>> => {
     }
   }
   return m;
+});
+
+/// CoinPaprika's own snapshot: a live market capitalisation and a seven-day change, by its id.
+///
+/// **Why the seven-day column was empty for most of the market.** It was computed from a stored
+/// close seven days old, and only the 76 coins in the registry have stored closes -- so 2,248 of
+/// 2,324 rows printed an em dash in that column. No venue publishes a seven-day change; the
+/// 24-hour ticker is 24 hours by definition.
+///
+/// This is one request for 2,000 coins, which covers 1,133 of ours. Keyed by CoinPaprika's own
+/// id rather than by ticker, because a ticker is not an identifier -- that is the whole lesson of
+/// `crypto_universe.py`, and the ids were matched there by price agreement, so a row read through
+/// one is a row about this coin.
+///
+/// Five minutes of cache. A seven-day change that is five minutes old is a seven-day change; the
+/// price beside it is two seconds old and comes from the venue.
+interface PaprikaRow {
+  pct7d: number | null;
+  marketCap: number | null;
+}
+
+const paprikaSnapshot = memoised(300_000, async (): Promise<Map<string, PaprikaRow>> => {
+  const out = new Map<string, PaprikaRow>();
+  try {
+    const res = await fetch("https://api.coinpaprika.com/v1/tickers?quotes=USD", {
+      headers: { "User-Agent": "nextbigthing" },
+      next: { revalidate: 300 },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return out;
+    const body: unknown = await res.json();
+    if (!Array.isArray(body)) return out;
+    for (const r of body) {
+      const x = r as Record<string, unknown>;
+      const id = typeof x.id === "string" ? x.id : null;
+      const usd = (x.quotes as Record<string, Record<string, unknown>> | undefined)?.USD;
+      if (!id || !usd) continue;
+      const pct = Number(usd.percent_change_7d);
+      const cap = Number(usd.market_cap);
+      out.set(id, {
+        pct7d: Number.isFinite(pct) ? pct : null,
+        marketCap: Number.isFinite(cap) && cap > 0 ? cap : null,
+      });
+    }
+  } catch {
+    // An absence, never a zero: the column simply stays blank for this render.
+    return out;
+  }
+  return out;
 });
 
 export async function livePrices(): Promise<Record<string, LivePrice>> {

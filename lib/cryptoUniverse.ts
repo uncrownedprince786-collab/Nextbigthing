@@ -35,6 +35,12 @@ export interface UniverseCoin {
   /// CoinPaprika's own id for the matched coin, which is also where its logo lives. Null where no
   /// match was made, and the pages draw a lettered placeholder rather than a broken image.
   paprikaId: string | null;
+  /// Pegged to something rather than priced by its own supply and demand -- a stablecoin, or a
+  /// gold token. Still listed, because readers look up what USDC is doing; never offered as a
+  /// direction, because a model fitted on assets that move has nothing to say about one
+  /// engineered not to, and a 0.668 probability on a coin designed to print 1.0000 is reading
+  /// rounding dust.
+  pegged: boolean;
   /// How far the second source's price sat from the venue's, in percent. The cross-venue audit:
   /// a drifted feed or a stale pair shows up here as a number.
   priceDisagreementPct: number | null;

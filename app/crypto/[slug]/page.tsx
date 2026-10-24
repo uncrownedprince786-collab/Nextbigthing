@@ -17,6 +17,7 @@ import { STYLES, styleFrom } from "@/lib/tradingStyles";
 import { universeCoin } from "@/lib/cryptoUniverse";
 import { NewsCards } from "@/components/NewsCards";
 import { LEVELS_CAVEATS, LEVELS_GENERATED_AT } from "@/lib/cryptoLevels";
+import { tradeMath } from "@/lib/tradeMath";
 import { getTopNews } from "@/lib/queries";
 import { LiveCoinPrice } from "@/components/LiveCoinPrice";
 import { BarClock } from "@/components/BarClock";
@@ -216,7 +217,7 @@ export default async function Page({
             forecast.kind === "direction" ? (forecast.strength ?? "unbanded") : undefined
           }
         >
-          <Decision forecast={forecast} slug={slug} stored={stored} />
+          <Decision forecast={forecast} slug={slug} ticker={snap.ticker} stored={stored} />
           {record ? <LiveRecord record={record} label={HORIZONS[horizon].label} /> : null}
         </div>
       ) : style ? (
@@ -378,10 +379,12 @@ function Stat({ label, value }: { label: string; value: string }) {
 function Decision({
   forecast: f,
   slug,
+  ticker,
   stored,
 }: {
   forecast: Forecast;
   slug: string;
+  ticker: string;
   stored: { stored: boolean; why?: string } | null;
 }) {
   const h = f.horizon;
@@ -395,6 +398,14 @@ function Decision({
     const c = f.lane.conviction;
     const lv = f.levels;
     const band = f.measured;
+    // The win rate this call's own band actually achieved: the conviction band when the lane has
+    // one and this call cleared it, else the coverage-curve band at today's margin, else the
+    // lane's headline. Each is a measurement on the rows this call belongs to.
+    const winRate =
+      f.strength === "strong" && f.lane.conviction
+        ? f.lane.conviction.called.accuracy
+        : (band?.accuracy ?? f.lane.evidence.accuracy);
+    const math = lv ? tradeMath(lv.entry, lv.stop, lv.target, winRate) : null;
     return (
       <>
         <div className="border-border rounded-lg border p-4">
@@ -455,6 +466,52 @@ function Decision({
                 : `Right ${(f.lane.evidence.accuracy * 100).toFixed(1)}% of the time on ${f.lane.evidence.testRows.toLocaleString()} unseen rows, against ${(f.lane.evidence.testMajority * 100).toFixed(1)}% for naming one direction.`
               : `This one is close to even. On the holdout, calls at least this confident were right ${band ? (band.accuracy * 100).toFixed(1) : (f.lane.evidence.accuracy * 100).toFixed(1)}% of the time${band ? ` (${band.rows.toLocaleString()} rows)` : ""}${c ? `, against ${(c.called.accuracy * 100).toFixed(1)}% for the strong band` : ""}. The direction is the model's; the thinness is too.`}
           </p>
+          {/* The arithmetic that decides whether the edge survives the levels. A 64% win rate and
+              an upside-down reward-to-risk lose money together, and the threshold is the only
+              number that says so. */}
+          {math ? (
+            <div className="border-border mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-4">
+              <Level
+                label="Needs to win"
+                value={`${(math.breakEven * 100).toFixed(1)}%`}
+                note={`to break even at ${math.rr.toFixed(1)}R`}
+              />
+              <Level
+                label="Measured"
+                value={`${(math.measured * 100).toFixed(1)}%`}
+                note="on this band of the holdout"
+                tone={math.edge > 0 ? "up" : "down"}
+              />
+              <Level
+                label="Edge"
+                value={`${math.edge >= 0 ? "+" : ""}${(math.edge * 100).toFixed(1)} pts`}
+                note={math.edge > 0 ? "above break-even" : "below break-even"}
+                tone={math.edge > 0 ? "up" : "down"}
+              />
+              <Level
+                label="Size ceiling"
+                value={`${(math.kelly * 100).toFixed(1)}%`}
+                note="Kelly, capped at 25%"
+              />
+            </div>
+          ) : null}
+          {math ? (
+            <p className="text-muted-foreground mt-2 text-xs">
+              Expectancy {math.expectancy >= 0 ? "+" : ""}
+              {math.expectancy.toFixed(3)} per unit risked, before costs — and the costs are the
+              point at this distance: the stop is {lv ? lv.stopPct.toFixed(2) : "—"}% away, and a
+              taker fee plus spread on most venues is a meaningful fraction of that. Risking $100
+              here is{" "}
+              {lv
+                ? (100 * math.unitsPerDollarRisked).toLocaleString("en-US", {
+                    maximumFractionDigits:
+                      100 * math.unitsPerDollarRisked >= 1000 ? 0 : 4,
+                  })
+                : "—"}{" "}
+              units of {ticker}. The size ceiling is Kelly on a win rate estimated from a holdout, shown
+              to make clear how small an honest position is — not as a recommendation.
+            </p>
+          ) : null}
           {lv ? (
             <p className="text-muted-foreground mt-2 text-xs">
               Stop and target are {lv.stopAtr}× and {lv.targetAtr}× the coin&apos;s own 14-bar

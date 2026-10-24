@@ -37,16 +37,39 @@ export interface Row {
   marketCap: number | null;
   volume24h: number | null;
   tradable: boolean;
+  logo: string | null;
+  /// Pegged to a dollar or an ounce. Marked in the table so a reader knows why its row never
+  /// moves, and never shown on a signal board.
+  pegged: boolean;
+  /// True for a coin the registry has never collected -- which, on a venue, means newly listed
+  /// far more often than not. It is the honest version of "new": we know when *we* first saw it,
+  /// not when it was created.
+  isNew: boolean;
 }
 
-type Tab = "all" | "gainers" | "losers";
+/// What the brain is calling for the most-traded coins, fetched when a signal tab is opened.
+interface Signal {
+  slug: string;
+  direction: "UP" | "DOWN";
+  strength: "strong" | "weak" | null;
+  probUp: number;
+  marginPts: number;
+}
+
+type Tab = "all" | "gainers" | "losers" | "bullish" | "bearish" | "new";
 type SortKey = "rank" | "name" | "price" | "change24h" | "change7d" | "marketCap" | "volume24h";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "all", label: "All coins" },
   { key: "gainers", label: "Top gainers" },
   { key: "losers", label: "Top losers" },
+  { key: "bullish", label: "Brain: up" },
+  { key: "bearish", label: "Brain: down" },
+  { key: "new", label: "Newly listed" },
 ];
+
+/// The two tabs that need a direction rather than a price.
+const SIGNAL_TABS: Tab[] = ["bullish", "bearish"];
 
 function compactUsd(v: number | null): string {
   if (v === null || !Number.isFinite(v)) return "—";
@@ -86,6 +109,8 @@ export function CoinTable({ rows }: { rows: Row[] }) {
   // The live layer sits on top of the server's rows rather than replacing them: a coin the venue
   // stops answering for keeps the price the page was rendered with instead of blanking.
   const [live, setLive] = React.useState<Record<string, { p: number; c: number | null }>>({});
+  const [signals, setSignals] = React.useState<Signal[] | null>(null);
+  const [signalState, setSignalState] = React.useState<"idle" | "loading" | "failed">("idle");
   const [flash, setFlash] = React.useState<Record<string, "up" | "down">>({});
   const prev = React.useRef<Record<string, number>>({});
 
@@ -153,6 +178,42 @@ export function CoinTable({ rows }: { rows: Row[] }) {
     };
   }, []);
 
+  // Asked for only when a reader opens one of the two tabs that needs it, and only once: a
+  // direction cannot change faster than the bar it was read from, and scoring forty coins is
+  // forty venue calls.
+  // The in-flight guard is a ref, not state, and `signalState` is deliberately NOT a dependency.
+  //
+  // It was both: the effect set `signalState` and listed it, so changing it re-ran the effect,
+  // whose cleanup set `alive = false` and cancelled the fetch that was still in the air. The
+  // request completed, the response was thrown away, and the tab sat on "Reading the last closed
+  // bar..." for ever while the endpoint it was waiting for answered correctly every time.
+  const asked = React.useRef(false);
+  React.useEffect(() => {
+    if (!SIGNAL_TABS.includes(tab) || asked.current) return;
+    asked.current = true;
+    let alive = true;
+    void (async () => {
+      setSignalState("loading");
+      try {
+        const res = await fetch("/api/crypto/signals?h=m15", { cache: "no-store" });
+        if (!res.ok) throw new Error(String(res.status));
+        const body = (await res.json()) as { signals?: Signal[] };
+        if (!alive) return;
+        setSignals(body.signals ?? []);
+        setSignalState("idle");
+      } catch {
+        if (alive) {
+          setSignalState("failed");
+          // Let a later visit try again rather than pinning the failure for the session.
+          asked.current = false;
+        }
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [tab]);
+
   const merged = React.useMemo(
     () =>
       rows.map((r) => {
@@ -173,7 +234,7 @@ export function CoinTable({ rows }: { rows: Row[] }) {
         )
       : merged;
 
-    if (tab !== "all") {
+    if (tab === "gainers" || tab === "losers") {
       // A coin with no 24-hour figure is not a zero mover, it is an unknown one, so it is left
       // out of both boards rather than parked in the middle of them.
       const movers = out.filter((r) => r.change24h !== null);
@@ -181,6 +242,23 @@ export function CoinTable({ rows }: { rows: Row[] }) {
         tab === "gainers" ? b.change24h! - a.change24h! : a.change24h! - b.change24h!,
       );
       return out.slice(0, 25);
+    }
+
+    if (tab === "new") {
+      // Ordered by volume, because a newly listed coin nobody trades is not an opportunity.
+      return out
+        .filter((r) => r.isNew)
+        .sort((a, b) => (b.volume24h ?? 0) - (a.volume24h ?? 0))
+        .slice(0, 50);
+    }
+
+    if (SIGNAL_TABS.includes(tab)) {
+      if (!signals) return [];
+      const want = tab === "bullish" ? "UP" : "DOWN";
+      const order = new Map(
+        signals.filter((s) => s.direction === want).map((s, i) => [s.slug, i]),
+      );
+      return out.filter((r) => order.has(r.slug)).sort((a, b) => order.get(a.slug)! - order.get(b.slug)!);
     }
 
     const num = (r: Row, k: SortKey): number | string =>
@@ -203,7 +281,12 @@ export function CoinTable({ rows }: { rows: Row[] }) {
       if (x === y) return a.rank - b.rank;
       return (x < y ? -1 : 1) * (desc ? -1 : 1);
     });
-  }, [merged, q, tab, sort, desc]);
+  }, [merged, q, tab, sort, desc, signals]);
+
+  const signalOf = React.useMemo(
+    () => new Map((signals ?? []).map((s) => [s.slug, s])),
+    [signals],
+  );
 
   const head = (k: SortKey, label: string, align = "text-right") => (
     <th className={`px-3 py-2 ${align} font-medium`}>
@@ -275,15 +358,50 @@ export function CoinTable({ rows }: { rows: Row[] }) {
           <tbody>
             {shown.slice(0, limit).map((r, i) => {
               const lit = flash[r.slug];
+              const sig = SIGNAL_TABS.includes(tab) ? signalOf.get(r.slug) : undefined;
               return (
                 <tr key={r.slug} className="border-border hover:bg-muted/50 border-b last:border-0">
                   <td className="text-muted-foreground num px-3 py-2.5 text-left">
                     {tab === "all" ? r.rank : i + 1}
                   </td>
                   <td className="px-3 py-2.5">
-                    <a href={`/crypto/${r.slug}`} className="hover:underline">
-                      <span className="font-medium">{r.name}</span>{" "}
-                      <span className="text-muted-foreground text-xs">{r.ticker}</span>
+                    <a href={`/crypto/${r.slug}`} className="flex items-center gap-2 hover:underline">
+                      {r.logo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={r.logo}
+                          alt=""
+                          width={18}
+                          height={18}
+                          loading="lazy"
+                          className="h-[18px] w-[18px] shrink-0 rounded-full"
+                        />
+                      ) : (
+                        <span className="bg-muted text-muted-foreground flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[9px] font-semibold">
+                          {r.ticker.slice(0, 1)}
+                        </span>
+                      )}
+                      <span className="truncate">
+                        <span className="font-medium">{r.name}</span>{" "}
+                        <span className="text-muted-foreground text-xs">{r.ticker}</span>
+                        {r.pegged ? (
+                          <span className="text-muted-foreground ml-1.5 rounded border border-border px-1 py-0.5 text-[9px] tracking-wide uppercase">
+                            pegged
+                          </span>
+                        ) : null}
+                      </span>
+                      {sig ? (
+                        <span
+                          className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                            sig.direction === "UP"
+                              ? "bg-[var(--up)]/15 text-[var(--up)]"
+                              : "bg-[var(--down)]/15 text-[var(--down)]"
+                          }`}
+                        >
+                          {sig.direction}
+                          {sig.strength === "strong" ? " ·  STRONG" : ""}
+                        </span>
+                      ) : null}
                     </a>
                   </td>
                   {/* The flash is the point of the live layer: a column of numbers that changes
@@ -315,7 +433,15 @@ export function CoinTable({ rows }: { rows: Row[] }) {
             {shown.length === 0 ? (
               <tr>
                 <td colSpan={7} className="text-muted-foreground px-3 py-6 text-center">
-                  No coin here matches “{q}”.
+                  {SIGNAL_TABS.includes(tab)
+                    ? signalState === "loading"
+                      ? "Reading the last closed bar for the forty most-traded coins…"
+                      : signalState === "failed"
+                        ? "The directions could not be read just now."
+                        : `No coin in the top forty is being called ${tab === "bullish" ? "up" : "down"} over the next fifteen minutes.`
+                    : tab === "new"
+                      ? "No newly listed coin is in this list."
+                      : `No coin here matches “${q}”.`}
                 </td>
               </tr>
             ) : null}
@@ -328,7 +454,13 @@ export function CoinTable({ rows }: { rows: Row[] }) {
             ? shown.length === rows.length
               ? `${Math.min(limit, shown.length)} of ${rows.length} coins`
               : `${Math.min(limit, shown.length)} of ${shown.length} matching ${rows.length} coins`
-            : `${shown.length} biggest ${tab === "gainers" ? "risers" : "fallers"} over 24 hours`}
+            : tab === "gainers" || tab === "losers"
+              ? `${shown.length} biggest ${tab === "gainers" ? "risers" : "fallers"} over 24 hours`
+              : tab === "new"
+                ? `${shown.length} coins the venue lists and the registry has not collected, by volume`
+                : `${shown.length} of the forty most-traded coins called ${tab === "bullish" ? "up" : "down"} over the next fifteen minutes${
+                    signals ? `, ${signals.filter((s) => s.strength === "strong").length} of them strongly` : ""
+                  }`}
           {Object.keys(live).length > 0 ? " · prices live" : ""}
         </p>
         {shown.length > limit ? (

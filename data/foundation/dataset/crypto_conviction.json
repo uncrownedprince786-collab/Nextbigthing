@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-24T11:05:26.199604+00:00",
+ "generatedAt": "2026-10-24T20:10:14.774161+00:00",
  "producedBy": "tools/research/crypto_conviction.py",
  "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
  "ladder": [

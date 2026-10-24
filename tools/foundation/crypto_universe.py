@@ -67,6 +67,22 @@ VENUE_IDENTITY_TOLERANCE = 0.05
 #: by orders of magnitude, not by percentages.
 PRICE_TOLERANCE = 0.10
 
+#: Names that mark a coin as pegged to something rather than priced by its own supply and demand.
+PEGGED_WORDS = ("stable", "tether", "usd coin", "dollar", "pax gold", "tokenized gold")
+
+#: Tickers that are pegged and whose name does not say so.
+PEGGED_TICKERS = {
+    "USDC", "USDT", "USD1", "FDUSD", "TUSD", "RLUSD", "USDP", "DAI", "BUSD", "USDS", "PYUSD",
+    "USDE", "USDQ", "XUSD", "AEUR", "EURI", "RWUSD", "BFUSD", "XAUT", "PAXG", "USDD", "FRAX",
+    "LUSD", "GUSD", "USDJ", "SUSD", "CUSD", "EURC", "EURS", "USDG", "USDX", "USDF",
+}
+
+#: How close to a dollar a price has to be before the coin is treated as pegged whatever it is
+#: called. This is the test that catches the ones nobody listed: a direction model fitted on
+#: assets that move has nothing to say about one that is engineered not to, and a 0.668
+#: probability on a coin whose whole design is to print 1.0000 is reading rounding dust.
+PEG_BAND = 0.02
+
 #: Leveraged tokens and other wrappers whose price is a rebalancing rule, not an asset. A
 #: direction model fitted on spot behaviour has no business being pointed at one.
 LEVERAGED = re.compile(r"(\d+L|\d+S|UP|DOWN|BULL|BEAR)$")
@@ -235,7 +251,7 @@ def main() -> int:
     assets = []
     stats = {"binance": 0, "mexc": 0, "gate": 0, "withMarketCap": 0,
              "priceChecked": 0, "priceDisagreed": 0,
-             "venuesDroppedAsDifferentAsset": 0, "servingVenueReassigned": 0}
+             "venuesDroppedAsDifferentAsset": 0, "servingVenueReassigned": 0, "pegged": 0}
     excluded: list[dict] = []
     for base in bases:
         # Binance first: its klines are the only free ones carrying taker-buy volume and a trade
@@ -296,6 +312,16 @@ def main() -> int:
         if cand:
             stats["withMarketCap"] += 1
 
+        name_l = ((known_name := (registry.get(base) or {}).get("name"))
+                  or (cand["name"] if cand else base)).lower()
+        pegged = (
+            base in PEGGED_TICKERS
+            or any(w in name_l for w in PEGGED_WORDS)
+            or (price is not None and price > 0 and abs(price - 1.0) <= PEG_BAND)
+        )
+        if pegged:
+            stats["pegged"] += 1
+
         known = registry.get(base)
         # Every venue quoting *this* asset, so the bar fetcher can fall past one that is down --
         # and only those, so it can never fall through to a different token's bars.
@@ -314,6 +340,9 @@ def main() -> int:
             "rank": cand["rank"] if cand and cand["rank"] < 10**6 else None,
             "paprikaId": cand["id"] if cand else None,
             "priceDisagreementPct": round(diff * 100, 4) if diff is not None else None,
+            # A stablecoin is still listed -- readers look up what USDC is doing -- but it is
+            # never offered as a direction. The brain is fitted on assets that move.
+            "pegged": pegged,
         })
 
     doc = {
@@ -337,6 +366,7 @@ def main() -> int:
     print(f"  venues: {stats['binance']} binance, {stats['mexc']} mexc, {stats['gate']} gate")
     print(f"  market caps on {stats['withMarketCap']}; price checked on {stats['priceChecked']}, "
           f"{stats['priceDisagreed']} refused for disagreeing")
+    print(f"  {stats['pegged']} coins marked pegged (never offered as a direction)")
     print(f"  {stats['venuesDroppedAsDifferentAsset']} venue listings dropped as a different "
           f"asset sharing a ticker, across {len(excluded)} tickers; "
           f"{stats['servingVenueReassigned']} coins reassigned to a venue that agreed")
