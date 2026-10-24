@@ -212,7 +212,9 @@ export default async function Page({
           data-horizon={horizon}
           data-direction={forecast.kind === "direction" ? forecast.direction : undefined}
           data-margin={forecast.kind === "direction" ? forecast.margin.toFixed(4) : undefined}
-          data-strength={forecast.kind === "direction" ? forecast.strength : undefined}
+          data-strength={
+            forecast.kind === "direction" ? (forecast.strength ?? "unbanded") : undefined
+          }
         >
           <Decision forecast={forecast} slug={slug} stored={stored} />
           {record ? <LiveRecord record={record} label={HORIZONS[horizon].label} /> : null}
@@ -387,6 +389,9 @@ function Decision({
   if (f.kind === "direction") {
     const w = f.window;
     const strong = f.strength === "strong";
+    // A lane with no measured floor has no banding to report, so it carries its own
+    // confidence grade instead of a word nothing measured.
+    const banded = f.strength !== null;
     const c = f.lane.conviction;
     const lv = f.levels;
     const band = f.measured;
@@ -410,12 +415,12 @@ function Decision({
             </span>
             <span
               className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                strong
+                banded && strong
                   ? "border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                   : "border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
               }`}
             >
-              {strong ? "STRONG" : "WEAK"}
+              {banded ? (strong ? "STRONG" : "WEAK") : f.confidence}
             </span>
             <span className="text-muted-foreground num text-sm">
               {(f.probUp * 100).toFixed(1)}% up · {(f.margin * 200).toFixed(1)} pts from even
@@ -442,7 +447,9 @@ function Decision({
           ) : null}
 
           <p className="text-muted-foreground mt-3 text-sm">
-            {strong
+            {!banded
+              ? `Right ${(f.lane.evidence.accuracy * 100).toFixed(1)}% of the time on ${f.lane.evidence.testRows.toLocaleString()} unseen rows, against ${(f.lane.evidence.testMajority * 100).toFixed(1)}% for naming one direction. This window has no strong/weak banding: its gated form did not beat the majority among the rows it would have spoken on, so every call here is reported the same way.`
+              : strong
               ? c
                 ? `Strong calls like this were right ${(c.called.accuracy * 100).toFixed(1)}% of the time on ${c.called.rows.toLocaleString()} unseen rows, against ${(c.called.majorityHere * 100).toFixed(1)}% for naming one direction. About ${(c.called.coverage * 100).toFixed(0)} bars in 100 are this strong.`
                 : `Right ${(f.lane.evidence.accuracy * 100).toFixed(1)}% of the time on ${f.lane.evidence.testRows.toLocaleString()} unseen rows, against ${(f.lane.evidence.testMajority * 100).toFixed(1)}% for naming one direction.`

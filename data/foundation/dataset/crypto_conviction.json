@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-23T20:03:21.322084+00:00",
+ "generatedAt": "2026-10-24T11:05:26.199604+00:00",
  "producedBy": "tools/research/crypto_conviction.py",
  "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
  "ladder": [
@@ -31,754 +31,6 @@
  "lanes": [
   {
    "family": "btc",
-   "horizon": "m5",
-   "modelVersion": "brain-c1-btc-m5",
-   "interval": "5m",
-   "symbols": [
-    "BTCUSDT"
-   ],
-   "stride": 1,
-   "split": {
-    "trainEnd": "2025-08-09T11:45:00+00:00",
-    "valEnd": "2026-03-16T04:20:00+00:00",
-    "embargoBars": 289,
-    "embargoMinutes": 1445,
-    "testFrom": "2026-03-16T04:25:00+00:00",
-    "testTo": "2026-10-20T20:55:00+00:00"
-   },
-   "rows": {
-    "validation": 62483,
-    "test": 62759
-   },
-   "chosenFloor": 0.04,
-   "validationCurve": [
-    {
-     "minMargin": 0.0,
-     "rows": 62483,
-     "coverage": 1.0,
-     "accuracy": 0.51712,
-     "majorityHere": 0.50094,
-     "marginOverMajority": 0.01618,
-     "upShareCalled": 0.51344,
-     "upRate": 0.49906
-    },
-    {
-     "minMargin": 0.01,
-     "rows": 43034,
-     "coverage": 0.68873,
-     "accuracy": 0.52375,
-     "majorityHere": 0.50067,
-     "marginOverMajority": 0.02307,
-     "upShareCalled": 0.53091,
-     "upRate": 0.50067
-    },
-    {
-     "minMargin": 0.02,
-     "rows": 25649,
-     "coverage": 0.4105,
-     "accuracy": 0.53101,
-     "majorityHere": 0.50099,
-     "marginOverMajority": 0.03002,
-     "upShareCalled": 0.567,
-     "upRate": 0.50099
-    },
-    {
-     "minMargin": 0.03,
-     "rows": 14957,
-     "coverage": 0.23938,
-     "accuracy": 0.53975,
-     "majorityHere": 0.50057,
-     "marginOverMajority": 0.03918,
-     "upShareCalled": 0.62332,
-     "upRate": 0.50057
-    },
-    {
-     "minMargin": 0.04,
-     "rows": 7335,
-     "coverage": 0.11739,
-     "accuracy": 0.54438,
-     "majorityHere": 0.51466,
-     "marginOverMajority": 0.02972,
-     "upShareCalled": 0.72952,
-     "upRate": 0.51466
-    },
-    {
-     "minMargin": 0.05,
-     "rows": 2215,
-     "coverage": 0.03545,
-     "accuracy": 0.54763,
-     "majorityHere": 0.54853,
-     "marginOverMajority": -0.0009,
-     "upShareCalled": 0.93499,
-     "upRate": 0.54853
-    },
-    {
-     "minMargin": 0.06,
-     "rows": 592,
-     "coverage": 0.00947,
-     "accuracy": 0.54561,
-     "majorityHere": 0.54561,
-     "marginOverMajority": 0.0,
-     "upShareCalled": 1.0,
-     "upRate": 0.54561
-    },
-    {
-     "minMargin": 0.075,
-     "rows": 104,
-     "coverage": 0.00166,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
-    },
-    {
-     "minMargin": 0.1,
-     "rows": 0,
-     "coverage": 0.0,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
-    },
-    {
-     "minMargin": 0.125,
-     "rows": 0,
-     "coverage": 0.0,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
-    },
-    {
-     "minMargin": 0.15,
-     "rows": 0,
-     "coverage": 0.0,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
-    }
-   ],
-   "testCurve": [
-    {
-     "minMargin": 0.0,
-     "rows": 62759,
-     "coverage": 1.0,
-     "accuracy": 0.51535,
-     "majorityHere": 0.50141,
-     "marginOverMajority": 0.01394,
-     "upShareCalled": 0.49056,
-     "upRate": 0.49859
-    },
-    {
-     "minMargin": 0.01,
-     "rows": 42924,
-     "coverage": 0.68395,
-     "accuracy": 0.52283,
-     "majorityHere": 0.50135,
-     "marginOverMajority": 0.02148,
-     "upShareCalled": 0.50023,
-     "upRate": 0.49865
-    },
-    {
-     "minMargin": 0.02,
-     "rows": 24881,
-     "coverage": 0.39645,
-     "accuracy": 0.52791,
-     "majorityHere": 0.50046,
-     "marginOverMajority": 0.02745,
-     "upShareCalled": 0.53141,
-     "upRate": 0.50046
-    },
-    {
-     "minMargin": 0.03,
-     "rows": 14110,
-     "coverage": 0.22483,
-     "accuracy": 0.53607,
-     "majorityHere": 0.50702,
-     "marginOverMajority": 0.02906,
-     "upShareCalled": 0.59362,
-     "upRate": 0.50702
-    },
-    {
-     "minMargin": 0.04,
-     "rows": 6838,
-     "coverage": 0.10896,
-     "accuracy": 0.54343,
-     "majorityHere": 0.51784,
-     "marginOverMajority": 0.02559,
-     "upShareCalled": 0.7062,
-     "upRate": 0.51784
-    },
-    {
-     "minMargin": 0.05,
-     "rows": 2081,
-     "coverage": 0.03316,
-     "accuracy": 0.56031,
-     "majorityHere": 0.5507,
-     "marginOverMajority": 0.00961,
-     "upShareCalled": 0.93272,
-     "upRate": 0.5507
-    },
-    {
-     "minMargin": 0.06,
-     "rows": 629,
-     "coverage": 0.01002,
-     "accuracy": 0.59777,
-     "majorityHere": 0.59777,
-     "marginOverMajority": 0.0,
-     "upShareCalled": 1.0,
-     "upRate": 0.59777
-    },
-    {
-     "minMargin": 0.075,
-     "rows": 137,
-     "coverage": 0.00218,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
-    },
-    {
-     "minMargin": 0.1,
-     "rows": 0,
-     "coverage": 0.0,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
-    },
-    {
-     "minMargin": 0.125,
-     "rows": 0,
-     "coverage": 0.0,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
-    },
-    {
-     "minMargin": 0.15,
-     "rows": 0,
-     "coverage": 0.0,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
-    }
-   ],
-   "ungatedOnTest": {
-    "minMargin": 0.0,
-    "rows": 62759,
-    "coverage": 1.0,
-    "accuracy": 0.51535,
-    "majorityHere": 0.50141,
-    "marginOverMajority": 0.01394,
-    "upShareCalled": 0.49056,
-    "upRate": 0.49859,
-    "blockedBootstrap": {
-     "blocks": 219,
-     "draws": 2000,
-     "pointEstimate": 0.013942,
-     "ci95": [
-      0.008764,
-      0.019756
-     ],
-     "sd": 0.00282,
-     "z": 4.9434,
-     "excludesZero": true
-    },
-    "walkForward": {
-     "blocks": [
-      {
-       "block": 0,
-       "rows": 12551,
-       "accuracy": 0.52171,
-       "majority": 0.50147,
-       "above": true
-      },
-      {
-       "block": 1,
-       "rows": 12552,
-       "accuracy": 0.5086,
-       "majority": 0.50661,
-       "above": true
-      },
-      {
-       "block": 2,
-       "rows": 12552,
-       "accuracy": 0.51689,
-       "majority": 0.50112,
-       "above": true
-      },
-      {
-       "block": 3,
-       "rows": 12552,
-       "accuracy": 0.5153,
-       "majority": 0.50542,
-       "above": true
-      },
-      {
-       "block": 4,
-       "rows": 12552,
-       "accuracy": 0.51426,
-       "majority": 0.50239,
-       "above": true
-      }
-     ],
-     "blocksAboveMajority": 5,
-     "blocksScored": 5
-    },
-    "gates": {
-     "aboveCalledMajority": true,
-     "bothDirectionsCalled": true,
-     "bootstrapExcludesZero": true,
-     "walkForwardMajority": true,
-     "testCoverageHeld": true
-    },
-    "gatesMet": true,
-    "why": null
-   },
-   "gatedOnTest": {
-    "minMargin": 0.04,
-    "rows": 6838,
-    "coverage": 0.10896,
-    "accuracy": 0.54343,
-    "majorityHere": 0.51784,
-    "marginOverMajority": 0.02559,
-    "upShareCalled": 0.7062,
-    "upRate": 0.51784,
-    "blockedBootstrap": {
-     "blocks": 219,
-     "draws": 2000,
-     "pointEstimate": 0.025592,
-     "ci95": [
-      0.013115,
-      0.039149
-     ],
-     "sd": 0.006491,
-     "z": 3.9426,
-     "excludesZero": true
-    },
-    "walkForward": {
-     "blocks": [
-      {
-       "block": 0,
-       "rows": 1367,
-       "accuracy": 0.54938,
-       "majority": 0.54133,
-       "above": true
-      },
-      {
-       "block": 1,
-       "rows": 1368,
-       "accuracy": 0.53728,
-       "majority": 0.51389,
-       "above": true
-      },
-      {
-       "block": 2,
-       "rows": 1367,
-       "accuracy": 0.54938,
-       "majority": 0.515,
-       "above": true
-      },
-      {
-       "block": 3,
-       "rows": 1368,
-       "accuracy": 0.52778,
-       "majority": 0.50292,
-       "above": true
-      },
-      {
-       "block": 4,
-       "rows": 1368,
-       "accuracy": 0.55336,
-       "majority": 0.51608,
-       "above": true
-      }
-     ],
-     "blocksAboveMajority": 5,
-     "blocksScored": 5
-    },
-    "gates": {
-     "aboveCalledMajority": true,
-     "bothDirectionsCalled": true,
-     "bootstrapExcludesZero": true,
-     "walkForwardMajority": true,
-     "testCoverageHeld": true
-    },
-    "gatesMet": true,
-    "why": null
-   },
-   "serveGated": true
-  },
-  {
-   "family": "btc",
-   "horizon": "m15",
-   "modelVersion": "brain-c1-btc-m15",
-   "interval": "5m",
-   "symbols": [
-    "BTCUSDT"
-   ],
-   "stride": 1,
-   "split": {
-    "trainEnd": "2025-08-09T11:45:00+00:00",
-    "valEnd": "2026-03-16T04:20:00+00:00",
-    "embargoBars": 291,
-    "embargoMinutes": 1455,
-    "testFrom": "2026-03-16T04:25:00+00:00",
-    "testTo": "2026-10-20T20:55:00+00:00"
-   },
-   "rows": {
-    "validation": 62655,
-    "test": 62923
-   },
-   "chosenFloor": 0.06,
-   "validationCurve": [
-    {
-     "minMargin": 0.0,
-     "rows": 62655,
-     "coverage": 1.0,
-     "accuracy": 0.52797,
-     "majorityHere": 0.50421,
-     "marginOverMajority": 0.02377,
-     "upShareCalled": 0.52036,
-     "upRate": 0.49579
-    },
-    {
-     "minMargin": 0.01,
-     "rows": 51472,
-     "coverage": 0.82151,
-     "accuracy": 0.53369,
-     "majorityHere": 0.5034,
-     "marginOverMajority": 0.03029,
-     "upShareCalled": 0.52535,
-     "upRate": 0.4966
-    },
-    {
-     "minMargin": 0.02,
-     "rows": 40797,
-     "coverage": 0.65114,
-     "accuracy": 0.54078,
-     "majorityHere": 0.50202,
-     "marginOverMajority": 0.03875,
-     "upShareCalled": 0.5335,
-     "upRate": 0.49798
-    },
-    {
-     "minMargin": 0.03,
-     "rows": 31242,
-     "coverage": 0.49864,
-     "accuracy": 0.54788,
-     "majorityHere": 0.50016,
-     "marginOverMajority": 0.04772,
-     "upShareCalled": 0.54398,
-     "upRate": 0.50016
-    },
-    {
-     "minMargin": 0.04,
-     "rows": 23073,
-     "coverage": 0.36825,
-     "accuracy": 0.55346,
-     "majorityHere": 0.50262,
-     "marginOverMajority": 0.05084,
-     "upShareCalled": 0.56014,
-     "upRate": 0.50262
-    },
-    {
-     "minMargin": 0.05,
-     "rows": 16479,
-     "coverage": 0.26301,
-     "accuracy": 0.56017,
-     "majorityHere": 0.50234,
-     "marginOverMajority": 0.05783,
-     "upShareCalled": 0.57673,
-     "upRate": 0.50234
-    },
-    {
-     "minMargin": 0.06,
-     "rows": 11294,
-     "coverage": 0.18026,
-     "accuracy": 0.56021,
-     "majorityHere": 0.50673,
-     "marginOverMajority": 0.05348,
-     "upShareCalled": 0.60174,
-     "upRate": 0.50673
-    },
-    {
-     "minMargin": 0.075,
-     "rows": 5866,
-     "coverage": 0.09362,
-     "accuracy": 0.56597,
-     "majorityHere": 0.5196,
-     "marginOverMajority": 0.04637,
-     "upShareCalled": 0.64951,
-     "upRate": 0.5196
-    },
-    {
-     "minMargin": 0.1,
-     "rows": 1513,
-     "coverage": 0.02415,
-     "accuracy": 0.5651,
-     "majorityHere": 0.53206,
-     "marginOverMajority": 0.03305,
-     "upShareCalled": 0.72637,
-     "upRate": 0.53206
-    },
-    {
-     "minMargin": 0.125,
-     "rows": 267,
-     "coverage": 0.00426,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
-    },
-    {
-     "minMargin": 0.15,
-     "rows": 42,
-     "coverage": 0.00067,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
-    }
-   ],
-   "testCurve": [
-    {
-     "minMargin": 0.0,
-     "rows": 62923,
-     "coverage": 1.0,
-     "accuracy": 0.52696,
-     "majorityHere": 0.50304,
-     "marginOverMajority": 0.02392,
-     "upShareCalled": 0.48534,
-     "upRate": 0.49696
-    },
-    {
-     "minMargin": 0.01,
-     "rows": 51861,
-     "coverage": 0.8242,
-     "accuracy": 0.53057,
-     "majorityHere": 0.50151,
-     "marginOverMajority": 0.02906,
-     "upShareCalled": 0.48435,
-     "upRate": 0.49849
-    },
-    {
-     "minMargin": 0.02,
-     "rows": 41431,
-     "coverage": 0.65844,
-     "accuracy": 0.53675,
-     "majorityHere": 0.5003,
-     "marginOverMajority": 0.03645,
-     "upShareCalled": 0.48816,
-     "upRate": 0.5003
-    },
-    {
-     "minMargin": 0.03,
-     "rows": 32018,
-     "coverage": 0.50884,
-     "accuracy": 0.54444,
-     "majorityHere": 0.50166,
-     "marginOverMajority": 0.04279,
-     "upShareCalled": 0.49185,
-     "upRate": 0.50166
-    },
-    {
-     "minMargin": 0.04,
-     "rows": 23668,
-     "coverage": 0.37614,
-     "accuracy": 0.55087,
-     "majorityHere": 0.50406,
-     "marginOverMajority": 0.04681,
-     "upShareCalled": 0.5011,
-     "upRate": 0.50406
-    },
-    {
-     "minMargin": 0.05,
-     "rows": 16821,
-     "coverage": 0.26733,
-     "accuracy": 0.55674,
-     "majorityHere": 0.50609,
-     "marginOverMajority": 0.05065,
-     "upShareCalled": 0.51549,
-     "upRate": 0.50609
-    },
-    {
-     "minMargin": 0.06,
-     "rows": 11591,
-     "coverage": 0.18421,
-     "accuracy": 0.56552,
-     "majorityHere": 0.50971,
-     "marginOverMajority": 0.05582,
-     "upShareCalled": 0.53162,
-     "upRate": 0.50971
-    },
-    {
-     "minMargin": 0.075,
-     "rows": 6009,
-     "coverage": 0.0955,
-     "accuracy": 0.57497,
-     "majorityHere": 0.52072,
-     "marginOverMajority": 0.05425,
-     "upShareCalled": 0.56998,
-     "upRate": 0.52072
-    },
-    {
-     "minMargin": 0.1,
-     "rows": 1439,
-     "coverage": 0.02287,
-     "accuracy": 0.60459,
-     "majorityHere": 0.55247,
-     "marginOverMajority": 0.05212,
-     "upShareCalled": 0.69771,
-     "upRate": 0.55247
-    },
-    {
-     "minMargin": 0.125,
-     "rows": 259,
-     "coverage": 0.00412,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
-    },
-    {
-     "minMargin": 0.15,
-     "rows": 47,
-     "coverage": 0.00075,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
-    }
-   ],
-   "ungatedOnTest": {
-    "minMargin": 0.0,
-    "rows": 62923,
-    "coverage": 1.0,
-    "accuracy": 0.52696,
-    "majorityHere": 0.50304,
-    "marginOverMajority": 0.02392,
-    "upShareCalled": 0.48534,
-    "upRate": 0.49696,
-    "blockedBootstrap": {
-     "blocks": 219,
-     "draws": 2000,
-     "pointEstimate": 0.023918,
-     "ci95": [
-      0.016869,
-      0.031562
-     ],
-     "sd": 0.003775,
-     "z": 6.3359,
-     "excludesZero": true
-    },
-    "walkForward": {
-     "blocks": [
-      {
-       "block": 0,
-       "rows": 12584,
-       "accuracy": 0.54029,
-       "majority": 0.50127,
-       "above": true
-      },
-      {
-       "block": 1,
-       "rows": 12585,
-       "accuracy": 0.52348,
-       "majority": 0.50886,
-       "above": true
-      },
-      {
-       "block": 2,
-       "rows": 12584,
-       "accuracy": 0.52479,
-       "majority": 0.50723,
-       "above": true
-      },
-      {
-       "block": 3,
-       "rows": 12585,
-       "accuracy": 0.52769,
-       "majority": 0.50266,
-       "above": true
-      },
-      {
-       "block": 4,
-       "rows": 12585,
-       "accuracy": 0.51855,
-       "majority": 0.50226,
-       "above": true
-      }
-     ],
-     "blocksAboveMajority": 5,
-     "blocksScored": 5
-    },
-    "gates": {
-     "aboveCalledMajority": true,
-     "bothDirectionsCalled": true,
-     "bootstrapExcludesZero": true,
-     "walkForwardMajority": true,
-     "testCoverageHeld": true
-    },
-    "gatesMet": true,
-    "why": null
-   },
-   "gatedOnTest": {
-    "minMargin": 0.06,
-    "rows": 11591,
-    "coverage": 0.18421,
-    "accuracy": 0.56552,
-    "majorityHere": 0.50971,
-    "marginOverMajority": 0.05582,
-    "upShareCalled": 0.53162,
-    "upRate": 0.50971,
-    "blockedBootstrap": {
-     "blocks": 219,
-     "draws": 2000,
-     "pointEstimate": 0.055819,
-     "ci95": [
-      0.042632,
-      0.068177
-     ],
-     "sd": 0.00672,
-     "z": 8.3061,
-     "excludesZero": true
-    },
-    "walkForward": {
-     "blocks": [
-      {
-       "block": 0,
-       "rows": 2318,
-       "accuracy": 0.57895,
-       "majority": 0.52071,
-       "above": true
-      },
-      {
-       "block": 1,
-       "rows": 2318,
-       "accuracy": 0.55134,
-       "majority": 0.50259,
-       "above": true
-      },
-      {
-       "block": 2,
-       "rows": 2318,
-       "accuracy": 0.56773,
-       "majority": 0.50259,
-       "above": true
-      },
-      {
-       "block": 3,
-       "rows": 2318,
-       "accuracy": 0.56557,
-       "majority": 0.50906,
-       "above": true
-      },
-      {
-       "block": 4,
-       "rows": 2319,
-       "accuracy": 0.56404,
-       "majority": 0.51876,
-       "above": true
-      }
-     ],
-     "blocksAboveMajority": 5,
-     "blocksScored": 5
-    },
-    "gates": {
-     "aboveCalledMajority": true,
-     "bothDirectionsCalled": true,
-     "bootstrapExcludesZero": true,
-     "walkForwardMajority": true,
-     "testCoverageHeld": true
-    },
-    "gatesMet": true,
-    "why": null
-   },
-   "serveGated": true
-  },
-  {
-   "family": "btc",
    "horizon": "h1",
    "modelVersion": "brain-c1-btc-h1",
    "interval": "5m",
@@ -786,6 +38,7 @@
     "BTCUSDT"
    ],
    "stride": 1,
+   "marketContext": true,
    "split": {
     "trainEnd": "2025-08-09T11:45:00+00:00",
     "valEnd": "2026-03-16T04:20:00+00:00",
@@ -822,13 +75,13 @@
     },
     {
      "minMargin": 0.02,
-     "rows": 42809,
-     "coverage": 0.68302,
-     "accuracy": 0.5337,
-     "majorityHere": 0.50373,
+     "rows": 42811,
+     "coverage": 0.68305,
+     "accuracy": 0.53367,
+     "majorityHere": 0.5037,
      "marginOverMajority": 0.02997,
-     "upShareCalled": 0.63533,
-     "upRate": 0.50373
+     "upShareCalled": 0.63535,
+     "upRate": 0.5037
     },
     {
      "minMargin": 0.03,
@@ -1152,337 +405,296 @@
    "serveGated": true
   },
   {
-   "family": "crypto",
-   "horizon": "m5",
-   "modelVersion": "brain-c1-crypto-m5",
+   "family": "btc",
+   "horizon": "m15",
+   "modelVersion": "brain-c1-btc-m15",
    "interval": "5m",
    "symbols": [
-    "AAVEUSDT",
-    "ADAUSDT",
-    "ALGOUSDT",
-    "APTUSDT",
-    "ARBUSDT",
-    "ATOMUSDT",
-    "AVAXUSDT",
-    "BCHUSDT",
-    "BNBUSDT",
-    "BTCUSDT",
-    "DOGEUSDT",
-    "DOTUSDT",
-    "ETCUSDT",
-    "ETHUSDT",
-    "FILUSDT",
-    "HBARUSDT",
-    "INJUSDT",
-    "LINKUSDT",
-    "LTCUSDT",
-    "NEARUSDT",
-    "OPUSDT",
-    "PEPEUSDT",
-    "SEIUSDT",
-    "SHIBUSDT",
-    "SOLUSDT",
-    "SUIUSDT",
-    "TIAUSDT",
-    "TRXUSDT",
-    "UNIUSDT",
-    "XLMUSDT",
-    "XRPUSDT"
+    "BTCUSDT"
    ],
-   "stride": 5,
+   "stride": 1,
+   "marketContext": true,
    "split": {
-    "trainEnd": "2026-05-03T07:20:00+00:00",
-    "valEnd": "2026-07-27T14:30:00+00:00",
-    "embargoBars": 289,
-    "embargoMinutes": 1445,
-    "testFrom": "2026-07-27T14:35:00+00:00",
-    "testTo": "2026-10-20T22:00:00+00:00"
+    "trainEnd": "2025-08-09T11:45:00+00:00",
+    "valEnd": "2026-03-16T04:20:00+00:00",
+    "embargoBars": 291,
+    "embargoMinutes": 1455,
+    "testFrom": "2026-03-16T04:25:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00"
    },
    "rows": {
-    "validation": 130229,
-    "test": 134193
+    "validation": 62655,
+    "test": 62923
    },
    "chosenFloor": 0.06,
    "validationCurve": [
     {
      "minMargin": 0.0,
-     "rows": 130229,
+     "rows": 62655,
      "coverage": 1.0,
-     "accuracy": 0.53784,
-     "majorityHere": 0.5029,
-     "marginOverMajority": 0.03494,
-     "upShareCalled": 0.45838,
-     "upRate": 0.4971
+     "accuracy": 0.52842,
+     "majorityHere": 0.50421,
+     "marginOverMajority": 0.02421,
+     "upShareCalled": 0.51911,
+     "upRate": 0.49579
     },
     {
      "minMargin": 0.01,
-     "rows": 96284,
-     "coverage": 0.73934,
-     "accuracy": 0.55027,
-     "majorityHere": 0.50226,
-     "marginOverMajority": 0.048,
-     "upShareCalled": 0.4511,
-     "upRate": 0.49774
+     "rows": 51352,
+     "coverage": 0.8196,
+     "accuracy": 0.53318,
+     "majorityHere": 0.50352,
+     "marginOverMajority": 0.02966,
+     "upShareCalled": 0.52421,
+     "upRate": 0.49648
     },
     {
      "minMargin": 0.02,
-     "rows": 67470,
-     "coverage": 0.51809,
-     "accuracy": 0.56376,
-     "majorityHere": 0.50178,
-     "marginOverMajority": 0.06198,
-     "upShareCalled": 0.45102,
-     "upRate": 0.49822
+     "rows": 40601,
+     "coverage": 0.64801,
+     "accuracy": 0.53949,
+     "majorityHere": 0.50124,
+     "marginOverMajority": 0.03825,
+     "upShareCalled": 0.53169,
+     "upRate": 0.49876
     },
     {
      "minMargin": 0.03,
-     "rows": 45847,
-     "coverage": 0.35205,
-     "accuracy": 0.57869,
-     "majorityHere": 0.50372,
-     "marginOverMajority": 0.07497,
-     "upShareCalled": 0.45645,
-     "upRate": 0.49628
+     "rows": 30915,
+     "coverage": 0.49342,
+     "accuracy": 0.54572,
+     "majorityHere": 0.50112,
+     "marginOverMajority": 0.04461,
+     "upShareCalled": 0.54624,
+     "upRate": 0.49888
     },
     {
      "minMargin": 0.04,
-     "rows": 30704,
-     "coverage": 0.23577,
-     "accuracy": 0.59732,
-     "majorityHere": 0.50717,
-     "marginOverMajority": 0.09015,
-     "upShareCalled": 0.46118,
-     "upRate": 0.49283
+     "rows": 22745,
+     "coverage": 0.36302,
+     "accuracy": 0.55146,
+     "majorityHere": 0.50213,
+     "marginOverMajority": 0.04933,
+     "upShareCalled": 0.56456,
+     "upRate": 0.50213
     },
     {
      "minMargin": 0.05,
-     "rows": 21013,
-     "coverage": 0.16135,
-     "accuracy": 0.61372,
-     "majorityHere": 0.51035,
-     "marginOverMajority": 0.10336,
-     "upShareCalled": 0.45477,
-     "upRate": 0.48965
+     "rows": 16308,
+     "coverage": 0.26028,
+     "accuracy": 0.55537,
+     "majorityHere": 0.50374,
+     "marginOverMajority": 0.05163,
+     "upShareCalled": 0.58499,
+     "upRate": 0.50374
     },
     {
      "minMargin": 0.06,
-     "rows": 14499,
-     "coverage": 0.11133,
-     "accuracy": 0.63087,
-     "majorityHere": 0.51245,
-     "marginOverMajority": 0.11842,
-     "upShareCalled": 0.46065,
-     "upRate": 0.48755
+     "rows": 11276,
+     "coverage": 0.17997,
+     "accuracy": 0.55667,
+     "majorityHere": 0.5078,
+     "marginOverMajority": 0.04886,
+     "upShareCalled": 0.60952,
+     "upRate": 0.5078
     },
     {
      "minMargin": 0.075,
-     "rows": 7986,
-     "coverage": 0.06132,
-     "accuracy": 0.66504,
-     "majorityHere": 0.50463,
-     "marginOverMajority": 0.16041,
-     "upShareCalled": 0.53281,
-     "upRate": 0.50463
+     "rows": 5853,
+     "coverage": 0.09342,
+     "accuracy": 0.56074,
+     "majorityHere": 0.52213,
+     "marginOverMajority": 0.03861,
+     "upShareCalled": 0.65488,
+     "upRate": 0.52213
     },
     {
      "minMargin": 0.1,
-     "rows": 2876,
-     "coverage": 0.02208,
-     "accuracy": 0.72288,
-     "majorityHere": 0.5459,
-     "marginOverMajority": 0.17698,
-     "upShareCalled": 0.65334,
-     "upRate": 0.5459
+     "rows": 1423,
+     "coverage": 0.02271,
+     "accuracy": 0.57063,
+     "majorityHere": 0.52424,
+     "marginOverMajority": 0.04638,
+     "upShareCalled": 0.68798,
+     "upRate": 0.52424
     },
     {
      "minMargin": 0.125,
-     "rows": 1262,
-     "coverage": 0.00969,
-     "accuracy": 0.77813,
-     "majorityHere": 0.57686,
-     "marginOverMajority": 0.20127,
-     "upShareCalled": 0.66878,
-     "upRate": 0.57686
+     "rows": 194,
+     "coverage": 0.0031,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
     },
     {
      "minMargin": 0.15,
-     "rows": 724,
-     "coverage": 0.00556,
-     "accuracy": 0.79696,
-     "majorityHere": 0.5663,
-     "marginOverMajority": 0.23066,
-     "upShareCalled": 0.63674,
-     "upRate": 0.5663
+     "rows": 19,
+     "coverage": 0.0003,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
     }
    ],
    "testCurve": [
     {
      "minMargin": 0.0,
-     "rows": 134193,
+     "rows": 62923,
      "coverage": 1.0,
-     "accuracy": 0.53143,
-     "majorityHere": 0.50199,
-     "marginOverMajority": 0.02944,
-     "upShareCalled": 0.45515,
-     "upRate": 0.49801
+     "accuracy": 0.52625,
+     "majorityHere": 0.50304,
+     "marginOverMajority": 0.0232,
+     "upShareCalled": 0.48402,
+     "upRate": 0.49696
     },
     {
      "minMargin": 0.01,
-     "rows": 97901,
-     "coverage": 0.72955,
-     "accuracy": 0.54103,
-     "majorityHere": 0.50244,
-     "marginOverMajority": 0.03859,
-     "upShareCalled": 0.44596,
-     "upRate": 0.49756
+     "rows": 51711,
+     "coverage": 0.82181,
+     "accuracy": 0.5319,
+     "majorityHere": 0.50103,
+     "marginOverMajority": 0.03086,
+     "upShareCalled": 0.4823,
+     "upRate": 0.49897
     },
     {
      "minMargin": 0.02,
-     "rows": 67207,
-     "coverage": 0.50082,
-     "accuracy": 0.55265,
-     "majorityHere": 0.50114,
-     "marginOverMajority": 0.05151,
-     "upShareCalled": 0.44829,
-     "upRate": 0.49886
+     "rows": 41229,
+     "coverage": 0.65523,
+     "accuracy": 0.53766,
+     "majorityHere": 0.50033,
+     "marginOverMajority": 0.03733,
+     "upShareCalled": 0.48531,
+     "upRate": 0.49967
     },
     {
      "minMargin": 0.03,
-     "rows": 44452,
-     "coverage": 0.33125,
-     "accuracy": 0.56585,
-     "majorityHere": 0.50454,
-     "marginOverMajority": 0.0613,
-     "upShareCalled": 0.45971,
-     "upRate": 0.50454
+     "rows": 31543,
+     "coverage": 0.5013,
+     "accuracy": 0.54434,
+     "majorityHere": 0.50243,
+     "marginOverMajority": 0.04191,
+     "upShareCalled": 0.49263,
+     "upRate": 0.50243
     },
     {
      "minMargin": 0.04,
-     "rows": 29234,
-     "coverage": 0.21785,
-     "accuracy": 0.58398,
-     "majorityHere": 0.50578,
-     "marginOverMajority": 0.0782,
-     "upShareCalled": 0.47164,
-     "upRate": 0.50578
+     "rows": 23241,
+     "coverage": 0.36936,
+     "accuracy": 0.55295,
+     "majorityHere": 0.50243,
+     "marginOverMajority": 0.05051,
+     "upShareCalled": 0.5045,
+     "upRate": 0.50243
     },
     {
      "minMargin": 0.05,
-     "rows": 19731,
-     "coverage": 0.14703,
-     "accuracy": 0.60321,
-     "majorityHere": 0.50829,
-     "marginOverMajority": 0.09493,
-     "upShareCalled": 0.48137,
-     "upRate": 0.50829
+     "rows": 16577,
+     "coverage": 0.26345,
+     "accuracy": 0.55649,
+     "majorityHere": 0.50359,
+     "marginOverMajority": 0.0529,
+     "upShareCalled": 0.52579,
+     "upRate": 0.50359
     },
     {
      "minMargin": 0.06,
-     "rows": 13652,
-     "coverage": 0.10173,
-     "accuracy": 0.61932,
-     "majorityHere": 0.51436,
-     "marginOverMajority": 0.10497,
-     "upShareCalled": 0.50432,
-     "upRate": 0.51436
+     "rows": 11335,
+     "coverage": 0.18014,
+     "accuracy": 0.56312,
+     "majorityHere": 0.51169,
+     "marginOverMajority": 0.05143,
+     "upShareCalled": 0.54592,
+     "upRate": 0.51169
     },
     {
      "minMargin": 0.075,
-     "rows": 7618,
-     "coverage": 0.05677,
-     "accuracy": 0.64833,
-     "majorityHere": 0.52993,
-     "marginOverMajority": 0.1184,
-     "upShareCalled": 0.58808,
-     "upRate": 0.52993
+     "rows": 5846,
+     "coverage": 0.09291,
+     "accuracy": 0.57732,
+     "majorityHere": 0.52292,
+     "marginOverMajority": 0.0544,
+     "upShareCalled": 0.57988,
+     "upRate": 0.52292
     },
     {
      "minMargin": 0.1,
-     "rows": 2834,
-     "coverage": 0.02112,
-     "accuracy": 0.69901,
-     "majorityHere": 0.58574,
-     "marginOverMajority": 0.11327,
-     "upShareCalled": 0.71242,
-     "upRate": 0.58574
+     "rows": 1346,
+     "coverage": 0.02139,
+     "accuracy": 0.60698,
+     "majorityHere": 0.54309,
+     "marginOverMajority": 0.06389,
+     "upShareCalled": 0.6523,
+     "upRate": 0.54309
     },
     {
      "minMargin": 0.125,
-     "rows": 1343,
-     "coverage": 0.01001,
-     "accuracy": 0.74907,
-     "majorityHere": 0.62249,
-     "marginOverMajority": 0.12658,
-     "upShareCalled": 0.72748,
-     "upRate": 0.62249
+     "rows": 199,
+     "coverage": 0.00316,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
     },
     {
      "minMargin": 0.15,
-     "rows": 856,
-     "coverage": 0.00638,
-     "accuracy": 0.7535,
-     "majorityHere": 0.61916,
-     "marginOverMajority": 0.13435,
-     "upShareCalled": 0.71145,
-     "upRate": 0.61916
+     "rows": 22,
+     "coverage": 0.00035,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
     }
    ],
    "ungatedOnTest": {
     "minMargin": 0.0,
-    "rows": 134193,
+    "rows": 62923,
     "coverage": 1.0,
-    "accuracy": 0.53143,
-    "majorityHere": 0.50199,
-    "marginOverMajority": 0.02944,
-    "upShareCalled": 0.45515,
-    "upRate": 0.49801,
+    "accuracy": 0.52625,
+    "majorityHere": 0.50304,
+    "marginOverMajority": 0.0232,
+    "upShareCalled": 0.48402,
+    "upRate": 0.49696,
     "blockedBootstrap": {
-     "blocks": 86,
+     "blocks": 219,
      "draws": 2000,
-     "pointEstimate": 0.029435,
+     "pointEstimate": 0.023203,
      "ci95": [
-      0.024338,
-      0.034549
+      0.016221,
+      0.030776
      ],
-     "sd": 0.002614,
-     "z": 11.2589,
+     "sd": 0.003712,
+     "z": 6.2511,
      "excludesZero": true
     },
     "walkForward": {
      "blocks": [
       {
        "block": 0,
-       "rows": 26838,
-       "accuracy": 0.54266,
-       "majority": 0.50656,
+       "rows": 12584,
+       "accuracy": 0.53886,
+       "majority": 0.50127,
        "above": true
       },
       {
        "block": 1,
-       "rows": 26839,
-       "accuracy": 0.53214,
-       "majority": 0.50259,
+       "rows": 12585,
+       "accuracy": 0.52396,
+       "majority": 0.50886,
        "above": true
       },
       {
        "block": 2,
-       "rows": 26838,
-       "accuracy": 0.52731,
-       "majority": 0.50179,
+       "rows": 12584,
+       "accuracy": 0.51963,
+       "majority": 0.50723,
        "above": true
       },
       {
        "block": 3,
-       "rows": 26839,
-       "accuracy": 0.52401,
-       "majority": 0.50292,
+       "rows": 12585,
+       "accuracy": 0.52833,
+       "majority": 0.50266,
        "above": true
       },
       {
        "block": 4,
-       "rows": 26839,
-       "accuracy": 0.53102,
-       "majority": 0.50714,
+       "rows": 12585,
+       "accuracy": 0.52046,
+       "majority": 0.50226,
        "above": true
       }
      ],
@@ -1501,60 +713,1330 @@
    },
    "gatedOnTest": {
     "minMargin": 0.06,
-    "rows": 13652,
-    "coverage": 0.10173,
-    "accuracy": 0.61932,
-    "majorityHere": 0.51436,
-    "marginOverMajority": 0.10497,
-    "upShareCalled": 0.50432,
-    "upRate": 0.51436,
+    "rows": 11335,
+    "coverage": 0.18014,
+    "accuracy": 0.56312,
+    "majorityHere": 0.51169,
+    "marginOverMajority": 0.05143,
+    "upShareCalled": 0.54592,
+    "upRate": 0.51169,
     "blockedBootstrap": {
-     "blocks": 86,
+     "blocks": 219,
      "draws": 2000,
-     "pointEstimate": 0.104966,
+     "pointEstimate": 0.051434,
      "ci95": [
-      0.091655,
-      0.118195
+      0.037876,
+      0.065079
      ],
-     "sd": 0.006873,
-     "z": 15.2713,
+     "sd": 0.006983,
+     "z": 7.3656,
      "excludesZero": true
     },
     "walkForward": {
      "blocks": [
       {
        "block": 0,
-       "rows": 2730,
-       "accuracy": 0.64652,
-       "majority": 0.50842,
+       "rows": 2267,
+       "accuracy": 0.58359,
+       "majority": 0.52139,
        "above": true
       },
       {
        "block": 1,
-       "rows": 2730,
-       "accuracy": 0.65421,
-       "majority": 0.51392,
+       "rows": 2267,
+       "accuracy": 0.55227,
+       "majority": 0.50596,
        "above": true
       },
       {
        "block": 2,
-       "rows": 2731,
-       "accuracy": 0.60015,
-       "majority": 0.50165,
+       "rows": 2267,
+       "accuracy": 0.56021,
+       "majority": 0.50596,
        "above": true
       },
       {
        "block": 3,
-       "rows": 2730,
-       "accuracy": 0.59377,
-       "majority": 0.51941,
+       "rows": 2267,
+       "accuracy": 0.56198,
+       "majority": 0.51037,
        "above": true
       },
       {
        "block": 4,
-       "rows": 2731,
-       "accuracy": 0.60198,
-       "majority": 0.53167,
+       "rows": 2267,
+       "accuracy": 0.55757,
+       "majority": 0.51478,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "serveGated": true
+  },
+  {
+   "family": "btc",
+   "horizon": "m5",
+   "modelVersion": "brain-c1-btc-m5",
+   "interval": "5m",
+   "symbols": [
+    "BTCUSDT"
+   ],
+   "stride": 1,
+   "marketContext": true,
+   "split": {
+    "trainEnd": "2025-08-09T11:45:00+00:00",
+    "valEnd": "2026-03-16T04:20:00+00:00",
+    "embargoBars": 289,
+    "embargoMinutes": 1445,
+    "testFrom": "2026-03-16T04:25:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00"
+   },
+   "rows": {
+    "validation": 62483,
+    "test": 62759
+   },
+   "chosenFloor": 0.04,
+   "validationCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 62483,
+     "coverage": 1.0,
+     "accuracy": 0.51584,
+     "majorityHere": 0.50094,
+     "marginOverMajority": 0.0149,
+     "upShareCalled": 0.50188,
+     "upRate": 0.49906
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 40844,
+     "coverage": 0.65368,
+     "accuracy": 0.52559,
+     "majorityHere": 0.5,
+     "marginOverMajority": 0.02559,
+     "upShareCalled": 0.51643,
+     "upRate": 0.5
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 25451,
+     "coverage": 0.40733,
+     "accuracy": 0.52835,
+     "majorityHere": 0.5001,
+     "marginOverMajority": 0.02825,
+     "upShareCalled": 0.57778,
+     "upRate": 0.4999
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 14911,
+     "coverage": 0.23864,
+     "accuracy": 0.53611,
+     "majorityHere": 0.50272,
+     "marginOverMajority": 0.0334,
+     "upShareCalled": 0.64764,
+     "upRate": 0.50272
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 6754,
+     "coverage": 0.10809,
+     "accuracy": 0.54086,
+     "majorityHere": 0.5114,
+     "marginOverMajority": 0.02946,
+     "upShareCalled": 0.78309,
+     "upRate": 0.5114
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 1643,
+     "coverage": 0.0263,
+     "accuracy": 0.52222,
+     "majorityHere": 0.52161,
+     "marginOverMajority": 0.00061,
+     "upShareCalled": 0.99939,
+     "upRate": 0.52161
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 191,
+     "coverage": 0.00306,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    }
+   ],
+   "testCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 62759,
+     "coverage": 1.0,
+     "accuracy": 0.51572,
+     "majorityHere": 0.50141,
+     "marginOverMajority": 0.01431,
+     "upShareCalled": 0.47834,
+     "upRate": 0.49859
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 40655,
+     "coverage": 0.6478,
+     "accuracy": 0.52294,
+     "majorityHere": 0.50323,
+     "marginOverMajority": 0.0197,
+     "upShareCalled": 0.48887,
+     "upRate": 0.49677
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 24492,
+     "coverage": 0.39025,
+     "accuracy": 0.52834,
+     "majorityHere": 0.50241,
+     "marginOverMajority": 0.02593,
+     "upShareCalled": 0.54961,
+     "upRate": 0.50241
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 13817,
+     "coverage": 0.22016,
+     "accuracy": 0.53702,
+     "majorityHere": 0.50937,
+     "marginOverMajority": 0.02765,
+     "upShareCalled": 0.62163,
+     "upRate": 0.50937
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 5978,
+     "coverage": 0.09525,
+     "accuracy": 0.55202,
+     "majorityHere": 0.52258,
+     "marginOverMajority": 0.02944,
+     "upShareCalled": 0.77016,
+     "upRate": 0.52258
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 1492,
+     "coverage": 0.02377,
+     "accuracy": 0.5744,
+     "majorityHere": 0.5744,
+     "marginOverMajority": 0.0,
+     "upShareCalled": 1.0,
+     "upRate": 0.5744
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 236,
+     "coverage": 0.00376,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 1,
+     "coverage": 2e-05,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 0,
+     "coverage": 0.0,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    }
+   ],
+   "ungatedOnTest": {
+    "minMargin": 0.0,
+    "rows": 62759,
+    "coverage": 1.0,
+    "accuracy": 0.51572,
+    "majorityHere": 0.50141,
+    "marginOverMajority": 0.01431,
+    "upShareCalled": 0.47834,
+    "upRate": 0.49859,
+    "blockedBootstrap": {
+     "blocks": 219,
+     "draws": 2000,
+     "pointEstimate": 0.014309,
+     "ci95": [
+      0.009411,
+      0.019834
+     ],
+     "sd": 0.002725,
+     "z": 5.251,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 12551,
+       "accuracy": 0.5198,
+       "majority": 0.50147,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 12552,
+       "accuracy": 0.51044,
+       "majority": 0.50661,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 12552,
+       "accuracy": 0.51593,
+       "majority": 0.50112,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 12552,
+       "accuracy": 0.51649,
+       "majority": 0.50542,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 12552,
+       "accuracy": 0.51593,
+       "majority": 0.50239,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "gatedOnTest": {
+    "minMargin": 0.04,
+    "rows": 5978,
+    "coverage": 0.09525,
+    "accuracy": 0.55202,
+    "majorityHere": 0.52258,
+    "marginOverMajority": 0.02944,
+    "upShareCalled": 0.77016,
+    "upRate": 0.52258,
+    "blockedBootstrap": {
+     "blocks": 219,
+     "draws": 2000,
+     "pointEstimate": 0.029441,
+     "ci95": [
+      0.017285,
+      0.042348
+     ],
+     "sd": 0.006384,
+     "z": 4.6118,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 1195,
+       "accuracy": 0.57406,
+       "majority": 0.54644,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 1196,
+       "accuracy": 0.53177,
+       "majority": 0.52258,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 1195,
+       "accuracy": 0.55565,
+       "majority": 0.50879,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 1196,
+       "accuracy": 0.53679,
+       "majority": 0.51003,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 1196,
+       "accuracy": 0.56187,
+       "majority": 0.52508,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "serveGated": true
+  },
+  {
+   "family": "crypto",
+   "horizon": "d20",
+   "modelVersion": "brain-c1-crypto-d20",
+   "interval": "4h",
+   "symbols": [
+    "AAVEUSDT",
+    "ADAUSDT",
+    "AEROUSDT",
+    "ALGOUSDT",
+    "APTUSDT",
+    "ARBUSDT",
+    "ASTERUSDT",
+    "ATOMUSDT",
+    "AVAXUSDT",
+    "BATUSDT",
+    "BCHUSDT",
+    "BNBUSDT",
+    "BTCUSDT",
+    "CAKEUSDT",
+    "CFXUSDT",
+    "CRVUSDT",
+    "DASHUSDT",
+    "DOGEUSDT",
+    "DOTUSDT",
+    "ENAUSDT",
+    "ETCUSDT",
+    "ETHUSDT",
+    "FETUSDT",
+    "FILUSDT",
+    "HBARUSDT",
+    "HYPEUSDT",
+    "ICPUSDT",
+    "INJUSDT",
+    "LINKUSDT",
+    "LTCUSDT",
+    "MORPHOUSDT",
+    "NEARUSDT",
+    "ONDOUSDT",
+    "OPUSDT",
+    "PENDLEUSDT",
+    "PENGUUSDT",
+    "PEPEUSDT",
+    "POLUSDT",
+    "PUMPUSDT",
+    "PYTHUSDT",
+    "QNTUSDT",
+    "RAYUSDT",
+    "RENDERUSDT",
+    "SEIUSDT",
+    "SHIBUSDT",
+    "SKYUSDT",
+    "SOLUSDT",
+    "STRKUSDT",
+    "STXUSDT",
+    "SUIUSDT",
+    "SUSDT",
+    "TAOUSDT",
+    "TIAUSDT",
+    "TRUMPUSDT",
+    "TRXUSDT",
+    "UNIUSDT",
+    "VETUSDT",
+    "VIRTUALUSDT",
+    "WLDUSDT",
+    "WLFIUSDT",
+    "XLMUSDT",
+    "XRPUSDT",
+    "XTZUSDT",
+    "ZECUSDT",
+    "ZROUSDT"
+   ],
+   "stride": 1,
+   "marketContext": true,
+   "split": {
+    "trainEnd": "2025-04-22T16:00:00+00:00",
+    "valEnd": "2026-01-29T12:00:00+00:00",
+    "embargoBars": 408,
+    "embargoMinutes": 97920,
+    "testFrom": "2026-01-29T16:00:00+00:00",
+    "testTo": "2026-10-20T16:00:00+00:00"
+   },
+   "rows": {
+    "validation": 74391,
+    "test": 92288
+   },
+   "chosenFloor": 0.1,
+   "validationCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 74391,
+     "coverage": 1.0,
+     "accuracy": 0.62157,
+     "majorityHere": 0.6194,
+     "marginOverMajority": 0.00216,
+     "upShareCalled": 0.09306,
+     "upRate": 0.3806
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 72197,
+     "coverage": 0.97051,
+     "accuracy": 0.62421,
+     "majorityHere": 0.61841,
+     "marginOverMajority": 0.0058,
+     "upShareCalled": 0.08293,
+     "upRate": 0.38159
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 68878,
+     "coverage": 0.92589,
+     "accuracy": 0.6233,
+     "majorityHere": 0.615,
+     "marginOverMajority": 0.0083,
+     "upShareCalled": 0.07701,
+     "upRate": 0.385
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 65221,
+     "coverage": 0.87673,
+     "accuracy": 0.62327,
+     "majorityHere": 0.61669,
+     "marginOverMajority": 0.00658,
+     "upShareCalled": 0.06782,
+     "upRate": 0.38331
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 59355,
+     "coverage": 0.79788,
+     "accuracy": 0.62015,
+     "majorityHere": 0.61811,
+     "marginOverMajority": 0.00204,
+     "upShareCalled": 0.05069,
+     "upRate": 0.38189
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 52739,
+     "coverage": 0.70894,
+     "accuracy": 0.62201,
+     "majorityHere": 0.62309,
+     "marginOverMajority": -0.00108,
+     "upShareCalled": 0.03843,
+     "upRate": 0.37691
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 47015,
+     "coverage": 0.632,
+     "accuracy": 0.61232,
+     "majorityHere": 0.61246,
+     "marginOverMajority": -0.00015,
+     "upShareCalled": 0.03018,
+     "upRate": 0.38754
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 39222,
+     "coverage": 0.52724,
+     "accuracy": 0.59732,
+     "majorityHere": 0.595,
+     "marginOverMajority": 0.00232,
+     "upShareCalled": 0.02205,
+     "upRate": 0.405
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 12765,
+     "coverage": 0.17159,
+     "accuracy": 0.55981,
+     "majorityHere": 0.55198,
+     "marginOverMajority": 0.00783,
+     "upShareCalled": 0.03228,
+     "upRate": 0.44802
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 556,
+     "coverage": 0.00747,
+     "accuracy": 0.36331,
+     "majorityHere": 0.72122,
+     "marginOverMajority": -0.35791,
+     "upShareCalled": 0.22122,
+     "upRate": 0.72122
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 73,
+     "coverage": 0.00098,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    }
+   ],
+   "testCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 92288,
+     "coverage": 1.0,
+     "accuracy": 0.53198,
+     "majorityHere": 0.503,
+     "marginOverMajority": 0.02897,
+     "upShareCalled": 0.23455,
+     "upRate": 0.497
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 85677,
+     "coverage": 0.92837,
+     "accuracy": 0.53541,
+     "majorityHere": 0.50801,
+     "marginOverMajority": 0.02739,
+     "upShareCalled": 0.221,
+     "upRate": 0.49199
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 79029,
+     "coverage": 0.85633,
+     "accuracy": 0.53978,
+     "majorityHere": 0.50798,
+     "marginOverMajority": 0.0318,
+     "upShareCalled": 0.21441,
+     "upRate": 0.49202
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 72723,
+     "coverage": 0.788,
+     "accuracy": 0.5446,
+     "majorityHere": 0.51589,
+     "marginOverMajority": 0.02871,
+     "upShareCalled": 0.19919,
+     "upRate": 0.48411
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 65030,
+     "coverage": 0.70464,
+     "accuracy": 0.54741,
+     "majorityHere": 0.52417,
+     "marginOverMajority": 0.02324,
+     "upShareCalled": 0.17517,
+     "upRate": 0.47583
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 48103,
+     "coverage": 0.52123,
+     "accuracy": 0.5324,
+     "majorityHere": 0.5067,
+     "marginOverMajority": 0.02569,
+     "upShareCalled": 0.19267,
+     "upRate": 0.4933
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 31855,
+     "coverage": 0.34517,
+     "accuracy": 0.47738,
+     "majorityHere": 0.55853,
+     "marginOverMajority": -0.08115,
+     "upShareCalled": 0.22854,
+     "upRate": 0.55853
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 25149,
+     "coverage": 0.27251,
+     "accuracy": 0.46722,
+     "majorityHere": 0.56619,
+     "marginOverMajority": -0.09897,
+     "upShareCalled": 0.2381,
+     "upRate": 0.56619
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 9159,
+     "coverage": 0.09924,
+     "accuracy": 0.49995,
+     "majorityHere": 0.54995,
+     "marginOverMajority": -0.05001,
+     "upShareCalled": 0.48182,
+     "upRate": 0.54995
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 3597,
+     "coverage": 0.03898,
+     "accuracy": 0.50876,
+     "majorityHere": 0.50626,
+     "marginOverMajority": 0.0025,
+     "upShareCalled": 0.91632,
+     "upRate": 0.50626
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 2957,
+     "coverage": 0.03204,
+     "accuracy": 0.48833,
+     "majorityHere": 0.51167,
+     "marginOverMajority": -0.02333,
+     "upShareCalled": 1.0,
+     "upRate": 0.48833
+    }
+   ],
+   "ungatedOnTest": {
+    "minMargin": 0.0,
+    "rows": 92288,
+    "coverage": 1.0,
+    "accuracy": 0.53198,
+    "majorityHere": 0.503,
+    "marginOverMajority": 0.02897,
+    "upShareCalled": 0.23455,
+    "upRate": 0.497,
+    "blockedBootstrap": {
+     "blocks": 245,
+     "draws": 2000,
+     "pointEstimate": 0.028975,
+     "ci95": [
+      0.003552,
+      0.055906
+     ],
+     "sd": 0.013125,
+     "z": 2.2076,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 18457,
+       "accuracy": 0.6306,
+       "majority": 0.62654,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 18458,
+       "accuracy": 0.38374,
+       "majority": 0.6589,
+       "above": false
+      },
+      {
+       "block": 2,
+       "rows": 18457,
+       "accuracy": 0.62578,
+       "majority": 0.79915,
+       "above": false
+      },
+      {
+       "block": 3,
+       "rows": 18458,
+       "accuracy": 0.55802,
+       "majority": 0.52519,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 18458,
+       "accuracy": 0.46175,
+       "majority": 0.72657,
+       "above": false
+      }
+     ],
+     "blocksAboveMajority": 2,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": false,
+     "testCoverageHeld": true
+    },
+    "gatesMet": false,
+    "why": null
+   },
+   "gatedOnTest": {
+    "minMargin": 0.1,
+    "rows": 9159,
+    "coverage": 0.09924,
+    "accuracy": 0.49995,
+    "majorityHere": 0.54995,
+    "marginOverMajority": -0.05001,
+    "upShareCalled": 0.48182,
+    "upRate": 0.54995,
+    "blockedBootstrap": {
+     "blocks": 124,
+     "draws": 2000,
+     "pointEstimate": -0.050005,
+     "ci95": [
+      -0.13367,
+      0.032183
+     ],
+     "sd": 0.043161,
+     "z": -1.1586,
+     "excludesZero": false
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 1831,
+       "accuracy": 0.31895,
+       "majority": 0.68869,
+       "above": false
+      },
+      {
+       "block": 1,
+       "rows": 1832,
+       "accuracy": 0.42904,
+       "majority": 0.55622,
+       "above": false
+      },
+      {
+       "block": 2,
+       "rows": 1832,
+       "accuracy": 0.71561,
+       "majority": 0.53384,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 1832,
+       "accuracy": 0.56987,
+       "majority": 0.5726,
+       "above": false
+      },
+      {
+       "block": 4,
+       "rows": 1832,
+       "accuracy": 0.46616,
+       "majority": 0.53384,
+       "above": false
+      }
+     ],
+     "blocksAboveMajority": 1,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": false,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": false,
+     "testCoverageHeld": true
+    },
+    "gatesMet": false,
+    "why": null
+   },
+   "serveGated": false
+  },
+  {
+   "family": "crypto",
+   "horizon": "h1",
+   "modelVersion": "brain-c1-crypto-h1",
+   "interval": "5m",
+   "symbols": [
+    "AAVEUSDT",
+    "ADAUSDT",
+    "AEROUSDT",
+    "AIUSDT",
+    "ALGOUSDT",
+    "ALTUSDT",
+    "APTUSDT",
+    "ARBUSDT",
+    "ARKUSDT",
+    "ASTERUSDT",
+    "ATOMUSDT",
+    "AVAUSDT",
+    "AVAXUSDT",
+    "BATUSDT",
+    "BCHUSDT",
+    "BMTUSDT",
+    "BNBUSDT",
+    "BONKUSDT",
+    "BTCUSDT",
+    "CAKEUSDT",
+    "CFXUSDT",
+    "COTIUSDT",
+    "CRVUSDT",
+    "DASHUSDT",
+    "DOGEUSDT",
+    "DOTUSDT",
+    "ERAUSDT",
+    "ETCUSDT",
+    "ETHFIUSDT",
+    "ETHUSDT",
+    "FILUSDT",
+    "GRAMUSDT",
+    "GTCUSDT",
+    "HBARUSDT",
+    "INITUSDT",
+    "INJUSDT",
+    "IOSTUSDT",
+    "LINKUSDT",
+    "LTCUSDT",
+    "MITOUSDT",
+    "MORPHOUSDT",
+    "MUBARAKUSDT",
+    "NEARUSDT",
+    "ONDOUSDT",
+    "OPUSDT",
+    "PENDLEUSDT",
+    "PENGUUSDT",
+    "PEPEUSDT",
+    "PHAUSDT",
+    "POLUSDT",
+    "PUMPUSDT",
+    "PYTHUSDT",
+    "QNTUSDT",
+    "RAYUSDT",
+    "RENDERUSDT",
+    "REZUSDT",
+    "SEIUSDT",
+    "SHIBUSDT",
+    "SKYUSDT",
+    "SOLUSDT",
+    "SOPHUSDT",
+    "STRKUSDT",
+    "STXUSDT",
+    "SUIUSDT",
+    "SUSDT",
+    "TAOUSDT",
+    "TIAUSDT",
+    "TRUMPUSDT",
+    "TRXUSDT",
+    "UNIUSDT",
+    "VETUSDT",
+    "VIRTUALUSDT",
+    "WLDUSDT",
+    "WLFIUSDT",
+    "XLMUSDT",
+    "XRPUSDT",
+    "XTZUSDT",
+    "ZAMAUSDT",
+    "ZECUSDT"
+   ],
+   "stride": 10,
+   "marketContext": true,
+   "split": {
+    "trainEnd": "2026-03-23T17:30:00+00:00",
+    "valEnd": "2026-07-08T13:20:00+00:00",
+    "embargoBars": 300,
+    "embargoMinutes": 1500,
+    "testFrom": "2026-07-08T13:25:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00"
+   },
+   "rows": {
+    "validation": 221446,
+    "test": 224898
+   },
+   "chosenFloor": 0.04,
+   "validationCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 221446,
+     "coverage": 1.0,
+     "accuracy": 0.52793,
+     "majorityHere": 0.51149,
+     "marginOverMajority": 0.01645,
+     "upShareCalled": 0.39727,
+     "upRate": 0.48851
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 161804,
+     "coverage": 0.73067,
+     "accuracy": 0.53551,
+     "majorityHere": 0.51288,
+     "marginOverMajority": 0.02263,
+     "upShareCalled": 0.37133,
+     "upRate": 0.48712
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 109791,
+     "coverage": 0.49579,
+     "accuracy": 0.54169,
+     "majorityHere": 0.51338,
+     "marginOverMajority": 0.02832,
+     "upShareCalled": 0.35317,
+     "upRate": 0.48662
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 69381,
+     "coverage": 0.31331,
+     "accuracy": 0.5478,
+     "majorityHere": 0.51634,
+     "marginOverMajority": 0.03146,
+     "upShareCalled": 0.34311,
+     "upRate": 0.48366
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 40652,
+     "coverage": 0.18358,
+     "accuracy": 0.55877,
+     "majorityHere": 0.51995,
+     "marginOverMajority": 0.03882,
+     "upShareCalled": 0.34198,
+     "upRate": 0.48005
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 21698,
+     "coverage": 0.09798,
+     "accuracy": 0.56991,
+     "majorityHere": 0.52055,
+     "marginOverMajority": 0.04936,
+     "upShareCalled": 0.35805,
+     "upRate": 0.47945
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 10475,
+     "coverage": 0.0473,
+     "accuracy": 0.59599,
+     "majorityHere": 0.51742,
+     "marginOverMajority": 0.07857,
+     "upShareCalled": 0.39074,
+     "upRate": 0.48258
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 3270,
+     "coverage": 0.01477,
+     "accuracy": 0.63609,
+     "majorityHere": 0.50214,
+     "marginOverMajority": 0.13394,
+     "upShareCalled": 0.46177,
+     "upRate": 0.49786
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 430,
+     "coverage": 0.00194,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 82,
+     "coverage": 0.00037,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 16,
+     "coverage": 7e-05,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    }
+   ],
+   "testCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 224898,
+     "coverage": 1.0,
+     "accuracy": 0.52721,
+     "majorityHere": 0.50228,
+     "marginOverMajority": 0.02493,
+     "upShareCalled": 0.35672,
+     "upRate": 0.49772
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 166026,
+     "coverage": 0.73823,
+     "accuracy": 0.53504,
+     "majorityHere": 0.50645,
+     "marginOverMajority": 0.02859,
+     "upShareCalled": 0.3185,
+     "upRate": 0.49355
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 113980,
+     "coverage": 0.50681,
+     "accuracy": 0.54388,
+     "majorityHere": 0.51183,
+     "marginOverMajority": 0.03205,
+     "upShareCalled": 0.28364,
+     "upRate": 0.48817
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 72812,
+     "coverage": 0.32376,
+     "accuracy": 0.55208,
+     "majorityHere": 0.51728,
+     "marginOverMajority": 0.0348,
+     "upShareCalled": 0.25861,
+     "upRate": 0.48272
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 43000,
+     "coverage": 0.1912,
+     "accuracy": 0.56249,
+     "majorityHere": 0.52277,
+     "marginOverMajority": 0.03972,
+     "upShareCalled": 0.24665,
+     "upRate": 0.47723
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 22949,
+     "coverage": 0.10204,
+     "accuracy": 0.57528,
+     "majorityHere": 0.53092,
+     "marginOverMajority": 0.04436,
+     "upShareCalled": 0.24123,
+     "upRate": 0.46908
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 10560,
+     "coverage": 0.04695,
+     "accuracy": 0.59754,
+     "majorityHere": 0.5339,
+     "marginOverMajority": 0.06364,
+     "upShareCalled": 0.2572,
+     "upRate": 0.4661
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 2682,
+     "coverage": 0.01193,
+     "accuracy": 0.63721,
+     "majorityHere": 0.5481,
+     "marginOverMajority": 0.08911,
+     "upShareCalled": 0.30089,
+     "upRate": 0.4519
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 217,
+     "coverage": 0.00096,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 38,
+     "coverage": 0.00017,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 4,
+     "coverage": 2e-05,
+     "accuracy": null,
+     "note": "under 500 called rows, not reported"
+    }
+   ],
+   "ungatedOnTest": {
+    "minMargin": 0.0,
+    "rows": 224898,
+    "coverage": 1.0,
+    "accuracy": 0.52721,
+    "majorityHere": 0.50228,
+    "marginOverMajority": 0.02493,
+    "upShareCalled": 0.35672,
+    "upRate": 0.49772,
+    "blockedBootstrap": {
+     "blocks": 105,
+     "draws": 2000,
+     "pointEstimate": 0.024927,
+     "ci95": [
+      0.017243,
+      0.032452
+     ],
+     "sd": 0.003922,
+     "z": 6.3558,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 44979,
+       "accuracy": 0.54063,
+       "majority": 0.51388,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 44980,
+       "accuracy": 0.52819,
+       "majority": 0.50674,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 44979,
+       "accuracy": 0.522,
+       "majority": 0.51255,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 44980,
+       "accuracy": 0.51783,
+       "majority": 0.50462,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 44980,
+       "accuracy": 0.52739,
+       "majority": 0.50796,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "gatedOnTest": {
+    "minMargin": 0.04,
+    "rows": 43000,
+    "coverage": 0.1912,
+    "accuracy": 0.56249,
+    "majorityHere": 0.52277,
+    "marginOverMajority": 0.03972,
+    "upShareCalled": 0.24665,
+    "upRate": 0.47723,
+    "blockedBootstrap": {
+     "blocks": 105,
+     "draws": 2000,
+     "pointEstimate": 0.039721,
+     "ci95": [
+      0.027523,
+      0.052205
+     ],
+     "sd": 0.006134,
+     "z": 6.4756,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 8600,
+       "accuracy": 0.57988,
+       "majority": 0.5243,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 8600,
+       "accuracy": 0.58419,
+       "majority": 0.53977,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 8600,
+       "accuracy": 0.54047,
+       "majority": 0.50035,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 8600,
+       "accuracy": 0.53477,
+       "majority": 0.51151,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 8600,
+       "accuracy": 0.57314,
+       "majority": 0.5386,
        "above": true
       }
      ],
@@ -1581,318 +2063,379 @@
    "symbols": [
     "AAVEUSDT",
     "ADAUSDT",
+    "AEROUSDT",
+    "AIUSDT",
     "ALGOUSDT",
+    "ALTUSDT",
     "APTUSDT",
     "ARBUSDT",
+    "ARKUSDT",
+    "ASTERUSDT",
     "ATOMUSDT",
+    "AVAUSDT",
     "AVAXUSDT",
+    "BATUSDT",
     "BCHUSDT",
+    "BMTUSDT",
     "BNBUSDT",
+    "BONKUSDT",
     "BTCUSDT",
+    "CAKEUSDT",
+    "CFXUSDT",
+    "COTIUSDT",
+    "CRVUSDT",
+    "DASHUSDT",
     "DOGEUSDT",
     "DOTUSDT",
+    "ERAUSDT",
     "ETCUSDT",
+    "ETHFIUSDT",
     "ETHUSDT",
     "FILUSDT",
+    "GRAMUSDT",
+    "GTCUSDT",
     "HBARUSDT",
+    "INITUSDT",
     "INJUSDT",
+    "IOSTUSDT",
     "LINKUSDT",
     "LTCUSDT",
+    "MITOUSDT",
+    "MORPHOUSDT",
+    "MUBARAKUSDT",
     "NEARUSDT",
+    "ONDOUSDT",
     "OPUSDT",
+    "PENDLEUSDT",
+    "PENGUUSDT",
     "PEPEUSDT",
+    "PHAUSDT",
+    "POLUSDT",
+    "PUMPUSDT",
+    "PYTHUSDT",
+    "QNTUSDT",
+    "RAYUSDT",
+    "RENDERUSDT",
+    "REZUSDT",
     "SEIUSDT",
     "SHIBUSDT",
+    "SKYUSDT",
     "SOLUSDT",
+    "SOPHUSDT",
+    "STRKUSDT",
+    "STXUSDT",
     "SUIUSDT",
+    "SUSDT",
+    "TAOUSDT",
     "TIAUSDT",
+    "TRUMPUSDT",
     "TRXUSDT",
     "UNIUSDT",
+    "VETUSDT",
+    "VIRTUALUSDT",
+    "WLDUSDT",
+    "WLFIUSDT",
     "XLMUSDT",
-    "XRPUSDT"
+    "XRPUSDT",
+    "XTZUSDT",
+    "ZAMAUSDT",
+    "ZECUSDT"
    ],
-   "stride": 5,
+   "stride": 10,
+   "marketContext": true,
    "split": {
-    "trainEnd": "2026-05-03T07:20:00+00:00",
-    "valEnd": "2026-07-27T14:30:00+00:00",
+    "trainEnd": "2026-03-23T17:30:00+00:00",
+    "valEnd": "2026-07-08T13:20:00+00:00",
     "embargoBars": 291,
     "embargoMinutes": 1455,
-    "testFrom": "2026-07-27T14:35:00+00:00",
-    "testTo": "2026-10-20T22:00:00+00:00"
+    "testFrom": "2026-07-08T13:25:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00"
    },
    "rows": {
-    "validation": 137427,
-    "test": 140730
+    "validation": 209366,
+    "test": 214718
    },
-   "chosenFloor": 0.05,
+   "chosenFloor": 0.06,
    "validationCurve": [
     {
      "minMargin": 0.0,
-     "rows": 137427,
+     "rows": 209366,
      "coverage": 1.0,
-     "accuracy": 0.53076,
-     "majorityHere": 0.50483,
-     "marginOverMajority": 0.02593,
-     "upShareCalled": 0.41661,
-     "upRate": 0.49517
-    },
-    {
-     "minMargin": 0.01,
-     "rows": 106044,
-     "coverage": 0.77164,
-     "accuracy": 0.53764,
-     "majorityHere": 0.50606,
-     "marginOverMajority": 0.03158,
-     "upShareCalled": 0.3975,
-     "upRate": 0.49394
-    },
-    {
-     "minMargin": 0.02,
-     "rows": 77844,
-     "coverage": 0.56644,
-     "accuracy": 0.54422,
-     "majorityHere": 0.50735,
-     "marginOverMajority": 0.03687,
-     "upShareCalled": 0.38505,
-     "upRate": 0.49265
-    },
-    {
-     "minMargin": 0.03,
-     "rows": 53841,
-     "coverage": 0.39178,
-     "accuracy": 0.55346,
-     "majorityHere": 0.50809,
-     "marginOverMajority": 0.04537,
-     "upShareCalled": 0.37828,
-     "upRate": 0.49191
-    },
-    {
-     "minMargin": 0.04,
-     "rows": 34524,
-     "coverage": 0.25122,
-     "accuracy": 0.5619,
-     "majorityHere": 0.5093,
-     "marginOverMajority": 0.0526,
-     "upShareCalled": 0.38339,
-     "upRate": 0.4907
-    },
-    {
-     "minMargin": 0.05,
-     "rows": 20722,
-     "coverage": 0.15079,
-     "accuracy": 0.57335,
+     "accuracy": 0.53667,
      "majorityHere": 0.50608,
-     "marginOverMajority": 0.06727,
-     "upShareCalled": 0.39649,
+     "marginOverMajority": 0.03059,
+     "upShareCalled": 0.44422,
      "upRate": 0.49392
     },
     {
+     "minMargin": 0.01,
+     "rows": 165636,
+     "coverage": 0.79113,
+     "accuracy": 0.54523,
+     "majorityHere": 0.50609,
+     "marginOverMajority": 0.03914,
+     "upShareCalled": 0.43332,
+     "upRate": 0.49391
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 125135,
+     "coverage": 0.59769,
+     "accuracy": 0.55326,
+     "majorityHere": 0.50717,
+     "marginOverMajority": 0.04609,
+     "upShareCalled": 0.42579,
+     "upRate": 0.49283
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 90654,
+     "coverage": 0.43299,
+     "accuracy": 0.56448,
+     "majorityHere": 0.50691,
+     "marginOverMajority": 0.05757,
+     "upShareCalled": 0.42417,
+     "upRate": 0.49309
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 63604,
+     "coverage": 0.30379,
+     "accuracy": 0.57657,
+     "majorityHere": 0.50407,
+     "marginOverMajority": 0.0725,
+     "upShareCalled": 0.42785,
+     "upRate": 0.49593
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 43801,
+     "coverage": 0.20921,
+     "accuracy": 0.58932,
+     "majorityHere": 0.50284,
+     "marginOverMajority": 0.08648,
+     "upShareCalled": 0.43702,
+     "upRate": 0.49716
+    },
+    {
      "minMargin": 0.06,
-     "rows": 12021,
-     "coverage": 0.08747,
-     "accuracy": 0.59205,
-     "majorityHere": 0.50012,
-     "marginOverMajority": 0.09192,
-     "upShareCalled": 0.41644,
-     "upRate": 0.50012
+     "rows": 29939,
+     "coverage": 0.143,
+     "accuracy": 0.60159,
+     "majorityHere": 0.50329,
+     "marginOverMajority": 0.0983,
+     "upShareCalled": 0.45683,
+     "upRate": 0.49671
     },
     {
      "minMargin": 0.075,
-     "rows": 4837,
-     "coverage": 0.0352,
-     "accuracy": 0.62746,
-     "majorityHere": 0.5092,
-     "marginOverMajority": 0.11826,
-     "upShareCalled": 0.47695,
-     "upRate": 0.5092
+     "rows": 17337,
+     "coverage": 0.08281,
+     "accuracy": 0.62087,
+     "majorityHere": 0.50228,
+     "marginOverMajority": 0.11859,
+     "upShareCalled": 0.47678,
+     "upRate": 0.49772
     },
     {
      "minMargin": 0.1,
-     "rows": 950,
-     "coverage": 0.00691,
-     "accuracy": 0.70737,
-     "majorityHere": 0.55789,
-     "marginOverMajority": 0.14947,
-     "upShareCalled": 0.58526,
-     "upRate": 0.55789
+     "rows": 7790,
+     "coverage": 0.03721,
+     "accuracy": 0.66149,
+     "majorityHere": 0.51053,
+     "marginOverMajority": 0.15096,
+     "upShareCalled": 0.47394,
+     "upRate": 0.48947
     },
     {
      "minMargin": 0.125,
-     "rows": 200,
-     "coverage": 0.00146,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
+     "rows": 3851,
+     "coverage": 0.01839,
+     "accuracy": 0.70995,
+     "majorityHere": 0.5048,
+     "marginOverMajority": 0.20514,
+     "upShareCalled": 0.46274,
+     "upRate": 0.4952
     },
     {
      "minMargin": 0.15,
-     "rows": 75,
-     "coverage": 0.00055,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
+     "rows": 2012,
+     "coverage": 0.00961,
+     "accuracy": 0.76988,
+     "majorityHere": 0.50398,
+     "marginOverMajority": 0.2659,
+     "upShareCalled": 0.45875,
+     "upRate": 0.49602
     }
    ],
    "testCurve": [
     {
      "minMargin": 0.0,
-     "rows": 140730,
+     "rows": 214718,
      "coverage": 1.0,
-     "accuracy": 0.52465,
-     "majorityHere": 0.50077,
-     "marginOverMajority": 0.02388,
-     "upShareCalled": 0.41122,
-     "upRate": 0.50077
+     "accuracy": 0.53458,
+     "majorityHere": 0.50191,
+     "marginOverMajority": 0.03267,
+     "upShareCalled": 0.42313,
+     "upRate": 0.49809
     },
     {
      "minMargin": 0.01,
-     "rows": 107628,
-     "coverage": 0.76478,
-     "accuracy": 0.53118,
-     "majorityHere": 0.50042,
-     "marginOverMajority": 0.03076,
-     "upShareCalled": 0.39327,
-     "upRate": 0.49958
+     "rows": 169360,
+     "coverage": 0.78876,
+     "accuracy": 0.54299,
+     "majorityHere": 0.50381,
+     "marginOverMajority": 0.03918,
+     "upShareCalled": 0.40611,
+     "upRate": 0.49619
     },
     {
      "minMargin": 0.02,
-     "rows": 78156,
-     "coverage": 0.55536,
-     "accuracy": 0.53718,
-     "majorityHere": 0.50122,
-     "marginOverMajority": 0.03597,
-     "upShareCalled": 0.37961,
-     "upRate": 0.49878
+     "rows": 127473,
+     "coverage": 0.59368,
+     "accuracy": 0.55158,
+     "majorityHere": 0.50502,
+     "marginOverMajority": 0.04656,
+     "upShareCalled": 0.39347,
+     "upRate": 0.49498
     },
     {
      "minMargin": 0.03,
-     "rows": 53159,
-     "coverage": 0.37774,
-     "accuracy": 0.5445,
-     "majorityHere": 0.50033,
-     "marginOverMajority": 0.04417,
-     "upShareCalled": 0.3739,
-     "upRate": 0.49967
+     "rows": 91893,
+     "coverage": 0.42797,
+     "accuracy": 0.56104,
+     "majorityHere": 0.50585,
+     "marginOverMajority": 0.05519,
+     "upShareCalled": 0.38854,
+     "upRate": 0.49415
     },
     {
      "minMargin": 0.04,
-     "rows": 34020,
-     "coverage": 0.24174,
-     "accuracy": 0.55112,
-     "majorityHere": 0.50071,
-     "marginOverMajority": 0.05041,
-     "upShareCalled": 0.38416,
-     "upRate": 0.50071
+     "rows": 63721,
+     "coverage": 0.29677,
+     "accuracy": 0.57082,
+     "majorityHere": 0.50691,
+     "marginOverMajority": 0.0639,
+     "upShareCalled": 0.39186,
+     "upRate": 0.49309
     },
     {
      "minMargin": 0.05,
-     "rows": 20504,
-     "coverage": 0.1457,
-     "accuracy": 0.55862,
-     "majorityHere": 0.50005,
-     "marginOverMajority": 0.05857,
-     "upShareCalled": 0.40085,
-     "upRate": 0.50005
+     "rows": 43534,
+     "coverage": 0.20275,
+     "accuracy": 0.58692,
+     "majorityHere": 0.50969,
+     "marginOverMajority": 0.07723,
+     "upShareCalled": 0.3984,
+     "upRate": 0.49031
     },
     {
      "minMargin": 0.06,
-     "rows": 11878,
-     "coverage": 0.0844,
-     "accuracy": 0.57089,
-     "majorityHere": 0.50286,
-     "marginOverMajority": 0.06802,
-     "upShareCalled": 0.4265,
-     "upRate": 0.50286
+     "rows": 29807,
+     "coverage": 0.13882,
+     "accuracy": 0.60543,
+     "majorityHere": 0.50911,
+     "marginOverMajority": 0.09632,
+     "upShareCalled": 0.41477,
+     "upRate": 0.49089
     },
     {
      "minMargin": 0.075,
-     "rows": 4755,
-     "coverage": 0.03379,
-     "accuracy": 0.58822,
-     "majorityHere": 0.52093,
-     "marginOverMajority": 0.0673,
-     "upShareCalled": 0.4898,
-     "upRate": 0.52093
+     "rows": 17209,
+     "coverage": 0.08015,
+     "accuracy": 0.63118,
+     "majorityHere": 0.51305,
+     "marginOverMajority": 0.11814,
+     "upShareCalled": 0.43808,
+     "upRate": 0.48695
     },
     {
      "minMargin": 0.1,
-     "rows": 838,
-     "coverage": 0.00595,
-     "accuracy": 0.63604,
-     "majorityHere": 0.52864,
-     "marginOverMajority": 0.1074,
-     "upShareCalled": 0.61098,
-     "upRate": 0.52864
+     "rows": 7925,
+     "coverage": 0.03691,
+     "accuracy": 0.67281,
+     "majorityHere": 0.51571,
+     "marginOverMajority": 0.1571,
+     "upShareCalled": 0.45211,
+     "upRate": 0.48429
     },
     {
      "minMargin": 0.125,
-     "rows": 157,
-     "coverage": 0.00112,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
+     "rows": 3972,
+     "coverage": 0.0185,
+     "accuracy": 0.72432,
+     "majorityHere": 0.51737,
+     "marginOverMajority": 0.20695,
+     "upShareCalled": 0.44512,
+     "upRate": 0.48263
     },
     {
      "minMargin": 0.15,
-     "rows": 52,
-     "coverage": 0.00037,
-     "accuracy": null,
-     "note": "under 500 called rows, not reported"
+     "rows": 2030,
+     "coverage": 0.00945,
+     "accuracy": 0.75961,
+     "majorityHere": 0.51921,
+     "marginOverMajority": 0.24039,
+     "upShareCalled": 0.43744,
+     "upRate": 0.48079
     }
    ],
    "ungatedOnTest": {
     "minMargin": 0.0,
-    "rows": 140730,
+    "rows": 214718,
     "coverage": 1.0,
-    "accuracy": 0.52465,
-    "majorityHere": 0.50077,
-    "marginOverMajority": 0.02388,
-    "upShareCalled": 0.41122,
-    "upRate": 0.50077,
+    "accuracy": 0.53458,
+    "majorityHere": 0.50191,
+    "marginOverMajority": 0.03267,
+    "upShareCalled": 0.42313,
+    "upRate": 0.49809,
     "blockedBootstrap": {
-     "blocks": 86,
+     "blocks": 105,
      "draws": 2000,
-     "pointEstimate": 0.023883,
+     "pointEstimate": 0.032671,
      "ci95": [
-      0.014891,
-      0.032758
+      0.027548,
+      0.037907
      ],
-     "sd": 0.004582,
-     "z": 5.2122,
+     "sd": 0.00266,
+     "z": 12.2811,
      "excludesZero": true
     },
     "walkForward": {
      "blocks": [
       {
        "block": 0,
-       "rows": 28146,
-       "accuracy": 0.53279,
-       "majority": 0.50906,
+       "rows": 42943,
+       "accuracy": 0.54663,
+       "majority": 0.51203,
        "above": true
       },
       {
        "block": 1,
-       "rows": 28146,
-       "accuracy": 0.53087,
-       "majority": 0.50568,
+       "rows": 42944,
+       "accuracy": 0.54478,
+       "majority": 0.50897,
        "above": true
       },
       {
        "block": 2,
-       "rows": 28146,
-       "accuracy": 0.51567,
-       "majority": 0.50078,
+       "rows": 42943,
+       "accuracy": 0.53024,
+       "majority": 0.50667,
        "above": true
       },
       {
        "block": 3,
-       "rows": 28146,
-       "accuracy": 0.51702,
-       "majority": 0.51439,
+       "rows": 42944,
+       "accuracy": 0.5261,
+       "majority": 0.50671,
        "above": true
       },
       {
        "block": 4,
-       "rows": 28146,
-       "accuracy": 0.5269,
-       "majority": 0.5064,
+       "rows": 42944,
+       "accuracy": 0.52517,
+       "majority": 0.50196,
        "above": true
       }
      ],
@@ -1910,61 +2453,532 @@
     "why": null
    },
    "gatedOnTest": {
-    "minMargin": 0.05,
-    "rows": 20504,
-    "coverage": 0.1457,
-    "accuracy": 0.55862,
-    "majorityHere": 0.50005,
-    "marginOverMajority": 0.05857,
-    "upShareCalled": 0.40085,
-    "upRate": 0.50005,
+    "minMargin": 0.06,
+    "rows": 29807,
+    "coverage": 0.13882,
+    "accuracy": 0.60543,
+    "majorityHere": 0.50911,
+    "marginOverMajority": 0.09632,
+    "upShareCalled": 0.41477,
+    "upRate": 0.49089,
     "blockedBootstrap": {
-     "blocks": 86,
+     "blocks": 105,
      "draws": 2000,
-     "pointEstimate": 0.058574,
+     "pointEstimate": 0.09632,
      "ci95": [
-      0.042648,
-      0.073269
+      0.086513,
+      0.105356
      ],
-     "sd": 0.008042,
-     "z": 7.2839,
+     "sd": 0.004852,
+     "z": 19.8526,
      "excludesZero": true
     },
     "walkForward": {
      "blocks": [
       {
        "block": 0,
-       "rows": 4100,
-       "accuracy": 0.58171,
-       "majority": 0.51854,
+       "rows": 5961,
+       "accuracy": 0.63412,
+       "majority": 0.52223,
        "above": true
       },
       {
        "block": 1,
-       "rows": 4101,
-       "accuracy": 0.57474,
-       "majority": 0.50012,
+       "rows": 5961,
+       "accuracy": 0.61147,
+       "majority": 0.51736,
        "above": true
       },
       {
        "block": 2,
-       "rows": 4101,
-       "accuracy": 0.54792,
-       "majority": 0.50817,
+       "rows": 5962,
+       "accuracy": 0.60399,
+       "majority": 0.5005,
        "above": true
       },
       {
        "block": 3,
-       "rows": 4101,
-       "accuracy": 0.53645,
-       "majority": 0.52353,
+       "rows": 5961,
+       "accuracy": 0.58312,
+       "majority": 0.50294,
        "above": true
       },
       {
        "block": 4,
-       "rows": 4101,
-       "accuracy": 0.5523,
-       "majority": 0.50329,
+       "rows": 5962,
+       "accuracy": 0.59443,
+       "majority": 0.50352,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "serveGated": true
+  },
+  {
+   "family": "crypto",
+   "horizon": "m5",
+   "modelVersion": "brain-c1-crypto-m5",
+   "interval": "5m",
+   "symbols": [
+    "AAVEUSDT",
+    "ADAUSDT",
+    "AEROUSDT",
+    "AIUSDT",
+    "ALGOUSDT",
+    "ALTUSDT",
+    "APTUSDT",
+    "ARBUSDT",
+    "ARKUSDT",
+    "ASTERUSDT",
+    "ATOMUSDT",
+    "AVAUSDT",
+    "AVAXUSDT",
+    "BATUSDT",
+    "BCHUSDT",
+    "BMTUSDT",
+    "BNBUSDT",
+    "BONKUSDT",
+    "BTCUSDT",
+    "CAKEUSDT",
+    "CFXUSDT",
+    "COTIUSDT",
+    "CRVUSDT",
+    "DASHUSDT",
+    "DOGEUSDT",
+    "DOTUSDT",
+    "ERAUSDT",
+    "ETCUSDT",
+    "ETHFIUSDT",
+    "ETHUSDT",
+    "FILUSDT",
+    "GRAMUSDT",
+    "GTCUSDT",
+    "HBARUSDT",
+    "INITUSDT",
+    "INJUSDT",
+    "IOSTUSDT",
+    "LINKUSDT",
+    "LTCUSDT",
+    "MITOUSDT",
+    "MORPHOUSDT",
+    "MUBARAKUSDT",
+    "NEARUSDT",
+    "ONDOUSDT",
+    "OPUSDT",
+    "PENDLEUSDT",
+    "PENGUUSDT",
+    "PEPEUSDT",
+    "PHAUSDT",
+    "POLUSDT",
+    "PUMPUSDT",
+    "PYTHUSDT",
+    "QNTUSDT",
+    "RAYUSDT",
+    "RENDERUSDT",
+    "REZUSDT",
+    "SEIUSDT",
+    "SHIBUSDT",
+    "SKYUSDT",
+    "SOLUSDT",
+    "SOPHUSDT",
+    "STRKUSDT",
+    "STXUSDT",
+    "SUIUSDT",
+    "SUSDT",
+    "TAOUSDT",
+    "TIAUSDT",
+    "TRUMPUSDT",
+    "TRXUSDT",
+    "UNIUSDT",
+    "VETUSDT",
+    "VIRTUALUSDT",
+    "WLDUSDT",
+    "WLFIUSDT",
+    "XLMUSDT",
+    "XRPUSDT",
+    "XTZUSDT",
+    "ZAMAUSDT",
+    "ZECUSDT"
+   ],
+   "stride": 10,
+   "marketContext": true,
+   "split": {
+    "trainEnd": "2026-03-23T17:30:00+00:00",
+    "valEnd": "2026-07-08T13:20:00+00:00",
+    "embargoBars": 289,
+    "embargoMinutes": 1445,
+    "testFrom": "2026-07-08T13:25:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00"
+   },
+   "rows": {
+    "validation": 191745,
+    "test": 199681
+   },
+   "chosenFloor": 0.075,
+   "validationCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 191745,
+     "coverage": 1.0,
+     "accuracy": 0.54454,
+     "majorityHere": 0.50433,
+     "marginOverMajority": 0.04021,
+     "upShareCalled": 0.4764,
+     "upRate": 0.49567
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 151408,
+     "coverage": 0.78963,
+     "accuracy": 0.55474,
+     "majorityHere": 0.50427,
+     "marginOverMajority": 0.05047,
+     "upShareCalled": 0.47152,
+     "upRate": 0.49573
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 115756,
+     "coverage": 0.6037,
+     "accuracy": 0.56736,
+     "majorityHere": 0.50433,
+     "marginOverMajority": 0.06303,
+     "upShareCalled": 0.47084,
+     "upRate": 0.49567
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 86742,
+     "coverage": 0.45238,
+     "accuracy": 0.58337,
+     "majorityHere": 0.5049,
+     "marginOverMajority": 0.07847,
+     "upShareCalled": 0.47233,
+     "upRate": 0.4951
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 64937,
+     "coverage": 0.33866,
+     "accuracy": 0.5969,
+     "majorityHere": 0.50529,
+     "marginOverMajority": 0.09161,
+     "upShareCalled": 0.47318,
+     "upRate": 0.49471
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 49470,
+     "coverage": 0.258,
+     "accuracy": 0.61077,
+     "majorityHere": 0.50627,
+     "marginOverMajority": 0.10451,
+     "upShareCalled": 0.47415,
+     "upRate": 0.49373
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 38588,
+     "coverage": 0.20125,
+     "accuracy": 0.62278,
+     "majorityHere": 0.50868,
+     "marginOverMajority": 0.1141,
+     "upShareCalled": 0.47354,
+     "upRate": 0.49132
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 27226,
+     "coverage": 0.14199,
+     "accuracy": 0.63748,
+     "majorityHere": 0.50709,
+     "marginOverMajority": 0.13039,
+     "upShareCalled": 0.47895,
+     "upRate": 0.49291
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 15595,
+     "coverage": 0.08133,
+     "accuracy": 0.66592,
+     "majorityHere": 0.50311,
+     "marginOverMajority": 0.16281,
+     "upShareCalled": 0.50305,
+     "upRate": 0.49689
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 9029,
+     "coverage": 0.04709,
+     "accuracy": 0.69177,
+     "majorityHere": 0.50371,
+     "marginOverMajority": 0.18806,
+     "upShareCalled": 0.52974,
+     "upRate": 0.50371
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 5260,
+     "coverage": 0.02743,
+     "accuracy": 0.72414,
+     "majorityHere": 0.51635,
+     "marginOverMajority": 0.20779,
+     "upShareCalled": 0.54582,
+     "upRate": 0.51635
+    }
+   ],
+   "testCurve": [
+    {
+     "minMargin": 0.0,
+     "rows": 199681,
+     "coverage": 1.0,
+     "accuracy": 0.53745,
+     "majorityHere": 0.50419,
+     "marginOverMajority": 0.03325,
+     "upShareCalled": 0.4615,
+     "upRate": 0.49581
+    },
+    {
+     "minMargin": 0.01,
+     "rows": 155515,
+     "coverage": 0.77882,
+     "accuracy": 0.54709,
+     "majorityHere": 0.50415,
+     "marginOverMajority": 0.04293,
+     "upShareCalled": 0.45481,
+     "upRate": 0.49585
+    },
+    {
+     "minMargin": 0.02,
+     "rows": 116103,
+     "coverage": 0.58144,
+     "accuracy": 0.56007,
+     "majorityHere": 0.50411,
+     "marginOverMajority": 0.05596,
+     "upShareCalled": 0.45321,
+     "upRate": 0.49589
+    },
+    {
+     "minMargin": 0.03,
+     "rows": 85018,
+     "coverage": 0.42577,
+     "accuracy": 0.57409,
+     "majorityHere": 0.50466,
+     "marginOverMajority": 0.06943,
+     "upShareCalled": 0.45563,
+     "upRate": 0.49534
+    },
+    {
+     "minMargin": 0.04,
+     "rows": 62406,
+     "coverage": 0.31253,
+     "accuracy": 0.59015,
+     "majorityHere": 0.50614,
+     "marginOverMajority": 0.08401,
+     "upShareCalled": 0.46087,
+     "upRate": 0.49386
+    },
+    {
+     "minMargin": 0.05,
+     "rows": 47081,
+     "coverage": 0.23578,
+     "accuracy": 0.60511,
+     "majorityHere": 0.50674,
+     "marginOverMajority": 0.09836,
+     "upShareCalled": 0.46509,
+     "upRate": 0.49326
+    },
+    {
+     "minMargin": 0.06,
+     "rows": 36606,
+     "coverage": 0.18332,
+     "accuracy": 0.62077,
+     "majorityHere": 0.50713,
+     "marginOverMajority": 0.11364,
+     "upShareCalled": 0.46801,
+     "upRate": 0.49287
+    },
+    {
+     "minMargin": 0.075,
+     "rows": 26130,
+     "coverage": 0.13086,
+     "accuracy": 0.64244,
+     "majorityHere": 0.50597,
+     "marginOverMajority": 0.13647,
+     "upShareCalled": 0.47463,
+     "upRate": 0.49403
+    },
+    {
+     "minMargin": 0.1,
+     "rows": 15308,
+     "coverage": 0.07666,
+     "accuracy": 0.67814,
+     "majorityHere": 0.50072,
+     "marginOverMajority": 0.17742,
+     "upShareCalled": 0.49935,
+     "upRate": 0.49928
+    },
+    {
+     "minMargin": 0.125,
+     "rows": 9128,
+     "coverage": 0.04571,
+     "accuracy": 0.71352,
+     "majorityHere": 0.51019,
+     "marginOverMajority": 0.20333,
+     "upShareCalled": 0.5287,
+     "upRate": 0.51019
+    },
+    {
+     "minMargin": 0.15,
+     "rows": 5505,
+     "coverage": 0.02757,
+     "accuracy": 0.74496,
+     "majorityHere": 0.51935,
+     "marginOverMajority": 0.22561,
+     "upShareCalled": 0.54296,
+     "upRate": 0.51935
+    }
+   ],
+   "ungatedOnTest": {
+    "minMargin": 0.0,
+    "rows": 199681,
+    "coverage": 1.0,
+    "accuracy": 0.53745,
+    "majorityHere": 0.50419,
+    "marginOverMajority": 0.03325,
+    "upShareCalled": 0.4615,
+    "upRate": 0.49581,
+    "blockedBootstrap": {
+     "blocks": 105,
+     "draws": 2000,
+     "pointEstimate": 0.033253,
+     "ci95": [
+      0.028833,
+      0.037682
+     ],
+     "sd": 0.002307,
+     "z": 14.4166,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 39936,
+       "accuracy": 0.55469,
+       "majority": 0.5144,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 39936,
+       "accuracy": 0.54477,
+       "majority": 0.50083,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 39936,
+       "accuracy": 0.52947,
+       "majority": 0.50238,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 39936,
+       "accuracy": 0.52945,
+       "majority": 0.50033,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 39937,
+       "accuracy": 0.52886,
+       "majority": 0.50469,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "gates": {
+     "aboveCalledMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "testCoverageHeld": true
+    },
+    "gatesMet": true,
+    "why": null
+   },
+   "gatedOnTest": {
+    "minMargin": 0.075,
+    "rows": 26130,
+    "coverage": 0.13086,
+    "accuracy": 0.64244,
+    "majorityHere": 0.50597,
+    "marginOverMajority": 0.13647,
+    "upShareCalled": 0.47463,
+    "upRate": 0.49403,
+    "blockedBootstrap": {
+     "blocks": 105,
+     "draws": 2000,
+     "pointEstimate": 0.136471,
+     "ci95": [
+      0.127034,
+      0.146318
+     ],
+     "sd": 0.004948,
+     "z": 27.5822,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 5226,
+       "accuracy": 0.67796,
+       "majority": 0.51933,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 5226,
+       "accuracy": 0.6393,
+       "majority": 0.51129,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 5226,
+       "accuracy": 0.63414,
+       "majority": 0.50115,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 5226,
+       "accuracy": 0.63758,
+       "majority": 0.50459,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 5226,
+       "accuracy": 0.62323,
+       "majority": 0.50421,
        "above": true
       }
      ],

@@ -1,49 +1,97 @@
 {
- "generatedAt": "2026-10-20T23:26:06.019541+00:00",
+ "generatedAt": "2026-10-24T10:56:56.791663+00:00",
  "modelVersion": "brain-c1-crypto-h1",
  "market": "Crypto",
  "symbols": [
   "AAVEUSDT",
   "ADAUSDT",
+  "AEROUSDT",
+  "AIUSDT",
   "ALGOUSDT",
+  "ALTUSDT",
   "APTUSDT",
   "ARBUSDT",
+  "ARKUSDT",
+  "ASTERUSDT",
   "ATOMUSDT",
+  "AVAUSDT",
   "AVAXUSDT",
+  "BATUSDT",
   "BCHUSDT",
+  "BMTUSDT",
   "BNBUSDT",
+  "BONKUSDT",
   "BTCUSDT",
+  "CAKEUSDT",
+  "CFXUSDT",
+  "COTIUSDT",
+  "CRVUSDT",
+  "DASHUSDT",
   "DOGEUSDT",
   "DOTUSDT",
+  "ERAUSDT",
   "ETCUSDT",
+  "ETHFIUSDT",
   "ETHUSDT",
   "FILUSDT",
+  "GRAMUSDT",
+  "GTCUSDT",
   "HBARUSDT",
+  "INITUSDT",
   "INJUSDT",
+  "IOSTUSDT",
   "LINKUSDT",
   "LTCUSDT",
+  "MITOUSDT",
+  "MORPHOUSDT",
+  "MUBARAKUSDT",
   "NEARUSDT",
+  "ONDOUSDT",
   "OPUSDT",
+  "PENDLEUSDT",
+  "PENGUUSDT",
   "PEPEUSDT",
+  "PHAUSDT",
+  "POLUSDT",
+  "PUMPUSDT",
+  "PYTHUSDT",
+  "QNTUSDT",
+  "RAYUSDT",
+  "RENDERUSDT",
+  "REZUSDT",
   "SEIUSDT",
   "SHIBUSDT",
+  "SKYUSDT",
   "SOLUSDT",
+  "SOPHUSDT",
+  "STRKUSDT",
+  "STXUSDT",
   "SUIUSDT",
+  "SUSDT",
+  "TAOUSDT",
   "TIAUSDT",
+  "TRUMPUSDT",
   "TRXUSDT",
   "UNIUSDT",
+  "VETUSDT",
+  "VIRTUALUSDT",
+  "WLDUSDT",
+  "WLFIUSDT",
   "XLMUSDT",
-  "XRPUSDT"
+  "XRPUSDT",
+  "XTZUSDT",
+  "ZAMAUSDT",
+  "ZECUSDT"
  ],
  "artifact": {
   "file": "model.json",
-  "sha256": "78e554b0d0f701bb57a2b808f188116d0527c2849b70fce625b5963101dddd97",
-  "bytes": 65570
+  "sha256": "8ac3bea8ebee7157a3d677af88ffd45b4f6d7f41a48ad6d694a9e051e23ed180",
+  "bytes": 104349
  },
  "producedBy": "tools/research/train_crypto_short.py",
- "repoHead": "4e80b0c0b9c1d582cd7330876551ca444252394e",
- "featureSchema": "crypto-intraday-f1",
- "featureCount": 41,
+ "repoHead": "918ff2500609e01a314f00d53bf19fb8d3ae4889",
+ "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+ "featureCount": 52,
  "task": {
   "classes": [
    "DOWN",
@@ -59,7 +107,7 @@
  "corpus": {
   "AAVEUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -73,7 +121,7 @@
   },
   "ADAUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -85,9 +133,37 @@
     "missingBars": 0
    }
   },
+  "AEROUSDT": {
+   "bars": 28284,
+   "usableRows": 2714,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2026-07-17T16:00:00+00:00",
+    "last": "2026-10-23T20:55:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "AIUSDT": {
+   "bars": 155519,
+   "usableRows": 15433,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T00:50:00+00:00",
+    "last": "2026-10-24T00:40:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "ALGOUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -99,9 +175,23 @@
     "missingBars": 0
    }
   },
+  "ALTUSDT": {
+   "bars": 155519,
+   "usableRows": 15432,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T01:25:00+00:00",
+    "last": "2026-10-24T01:15:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "APTUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -115,7 +205,7 @@
   },
   "ARBUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15522,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -127,9 +217,37 @@
     "missingBars": 0
    }
   },
+  "ARKUSDT": {
+   "bars": 155519,
+   "usableRows": 15433,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T00:55:00+00:00",
+    "last": "2026-10-24T00:45:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "ASTERUSDT": {
+   "bars": 110124,
+   "usableRows": 10898,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-10-06T12:00:00+00:00",
+    "last": "2026-10-23T20:55:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "ATOMUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -141,9 +259,23 @@
     "missingBars": 0
    }
   },
+  "AVAUSDT": {
+   "bars": 155519,
+   "usableRows": 15432,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T01:40:00+00:00",
+    "last": "2026-10-24T01:30:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "AVAXUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -155,9 +287,23 @@
     "missingBars": 0
    }
   },
+  "BATUSDT": {
+   "bars": 420463,
+   "usableRows": 41903,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 0.999962,
+    "first": "2022-10-24T21:10:00+00:00",
+    "last": "2026-10-23T21:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 16
+   }
+  },
   "BCHUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -169,9 +315,23 @@
     "missingBars": 0
    }
   },
+  "BMTUSDT": {
+   "bars": 155519,
+   "usableRows": 15433,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T00:40:00+00:00",
+    "last": "2026-10-24T00:30:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "BNBUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -183,9 +343,23 @@
     "missingBars": 0
    }
   },
+  "BONKUSDT": {
+   "bars": 155519,
+   "usableRows": 15432,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T01:15:00+00:00",
+    "last": "2026-10-24T01:05:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "BTCUSDT": {
    "bars": 420463,
-   "usableRows": 83978,
+   "usableRows": 41989,
    "stepMs": 300000,
    "manifest": {
     "completeness": 0.999962,
@@ -206,9 +380,79 @@
     }
    }
   },
+  "CAKEUSDT": {
+   "bars": 420463,
+   "usableRows": 41902,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 0.999962,
+    "first": "2022-10-24T21:20:00+00:00",
+    "last": "2026-10-23T21:10:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 16
+   }
+  },
+  "CFXUSDT": {
+   "bars": 420463,
+   "usableRows": 41902,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 0.999962,
+    "first": "2022-10-24T21:35:00+00:00",
+    "last": "2026-10-23T21:25:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 16
+   }
+  },
+  "COTIUSDT": {
+   "bars": 155519,
+   "usableRows": 15432,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T01:45:00+00:00",
+    "last": "2026-10-24T01:35:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "CRVUSDT": {
+   "bars": 420463,
+   "usableRows": 41902,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 0.999962,
+    "first": "2022-10-24T21:45:00+00:00",
+    "last": "2026-10-23T21:35:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 16
+   }
+  },
+  "DASHUSDT": {
+   "bars": 420463,
+   "usableRows": 41902,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 0.999962,
+    "first": "2022-10-24T22:00:00+00:00",
+    "last": "2026-10-23T21:50:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 16
+   }
+  },
   "DOGEUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -222,7 +466,7 @@
   },
   "DOTUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -234,9 +478,23 @@
     "missingBars": 0
    }
   },
+  "ERAUSDT": {
+   "bars": 133454,
+   "usableRows": 13226,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-07-17T15:30:00+00:00",
+    "last": "2026-10-24T00:35:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "ETCUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -248,9 +506,23 @@
     "missingBars": 0
    }
   },
+  "ETHFIUSDT": {
+   "bars": 155519,
+   "usableRows": 15431,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T01:55:00+00:00",
+    "last": "2026-10-24T01:45:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "ETHUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -264,7 +536,7 @@
   },
   "FILUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -276,9 +548,37 @@
     "missingBars": 0
    }
   },
+  "GRAMUSDT": {
+   "bars": 32743,
+   "usableRows": 3155,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2026-07-02T08:00:00+00:00",
+    "last": "2026-10-24T00:30:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "GTCUSDT": {
+   "bars": 155519,
+   "usableRows": 15432,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T01:00:00+00:00",
+    "last": "2026-10-24T00:50:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "HBARUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15522,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -290,9 +590,23 @@
     "missingBars": 0
    }
   },
+  "INITUSDT": {
+   "bars": 155519,
+   "usableRows": 15432,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T01:05:00+00:00",
+    "last": "2026-10-24T00:55:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "INJUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15522,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -304,9 +618,23 @@
     "missingBars": 0
    }
   },
+  "IOSTUSDT": {
+   "bars": 155519,
+   "usableRows": 15432,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T01:35:00+00:00",
+    "last": "2026-10-24T01:25:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "LINKUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -320,7 +648,7 @@
   },
   "LTCUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -332,9 +660,51 @@
     "missingBars": 0
    }
   },
+  "MITOUSDT": {
+   "bars": 121086,
+   "usableRows": 11988,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-08-29T15:30:00+00:00",
+    "last": "2026-10-24T01:55:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "MORPHOUSDT": {
+   "bars": 110967,
+   "usableRows": 10980,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-10-03T15:00:00+00:00",
+    "last": "2026-10-23T22:10:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "MUBARAKUSDT": {
+   "bars": 155519,
+   "usableRows": 15431,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T02:10:00+00:00",
+    "last": "2026-10-24T02:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "NEARUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -346,9 +716,23 @@
     "missingBars": 0
    }
   },
+  "ONDOUSDT": {
+   "bars": 161380,
+   "usableRows": 16022,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-04-11T14:00:00+00:00",
+    "last": "2026-10-23T22:15:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "OPUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15522,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -360,9 +744,37 @@
     "missingBars": 0
    }
   },
+  "PENDLEUSDT": {
+   "bars": 348053,
+   "usableRows": 34689,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2023-07-03T10:00:00+00:00",
+    "last": "2026-10-23T22:20:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "PENGUUSDT": {
+   "bars": 194504,
+   "usableRows": 19334,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2024-12-17T14:00:00+00:00",
+    "last": "2026-10-23T22:35:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "PEPEUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -374,9 +786,121 @@
     "missingBars": 0
    }
   },
+  "PHAUSDT": {
+   "bars": 155519,
+   "usableRows": 15432,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T01:10:00+00:00",
+    "last": "2026-10-24T01:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "POLUSDT": {
+   "bars": 221914,
+   "usableRows": 22074,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2024-09-13T10:00:00+00:00",
+    "last": "2026-10-23T22:45:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "PUMPUSDT": {
+   "bars": 117341,
+   "usableRows": 11617,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-09-11T12:30:00+00:00",
+    "last": "2026-10-23T22:50:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "PYTHUSDT": {
+   "bars": 286404,
+   "usableRows": 28523,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2024-02-02T12:00:00+00:00",
+    "last": "2026-10-23T22:55:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "QNTUSDT": {
+   "bars": 420463,
+   "usableRows": 41900,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 0.999962,
+    "first": "2022-10-24T23:15:00+00:00",
+    "last": "2026-10-23T23:05:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 16
+   }
+  },
+  "RAYUSDT": {
+   "bars": 420463,
+   "usableRows": 41900,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 0.999962,
+    "first": "2022-10-24T23:35:00+00:00",
+    "last": "2026-10-23T23:25:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 16
+   }
+  },
+  "RENDERUSDT": {
+   "bars": 236062,
+   "usableRows": 23488,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2024-07-26T08:00:00+00:00",
+    "last": "2026-10-23T23:45:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "REZUSDT": {
+   "bars": 155519,
+   "usableRows": 15431,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T02:00:00+00:00",
+    "last": "2026-10-24T01:50:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "SEIUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15522,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -390,7 +914,7 @@
   },
   "SHIBUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -402,9 +926,23 @@
     "missingBars": 0
    }
   },
+  "SKYUSDT": {
+   "bars": 115681,
+   "usableRows": 11450,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-09-17T08:00:00+00:00",
+    "last": "2026-10-24T00:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "SOLUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -416,9 +954,51 @@
     "missingBars": 0
    }
   },
+  "SOPHUSDT": {
+   "bars": 147893,
+   "usableRows": 14669,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-28T13:00:00+00:00",
+    "last": "2026-10-24T01:20:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "STRKUSDT": {
+   "bars": 281222,
+   "usableRows": 28004,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2024-02-20T13:00:00+00:00",
+    "last": "2026-10-24T00:05:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "STXUSDT": {
+   "bars": 420463,
+   "usableRows": 41899,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 0.999962,
+    "first": "2022-10-25T00:25:00+00:00",
+    "last": "2026-10-24T00:15:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 16
+   }
+  },
   "SUIUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -430,9 +1010,37 @@
     "missingBars": 0
    }
   },
+  "SUSDT": {
+   "bars": 185952,
+   "usableRows": 18477,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-01-16T08:00:00+00:00",
+    "last": "2026-10-23T23:55:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "TAOUSDT": {
+   "bars": 266551,
+   "usableRows": 26536,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2024-04-11T12:00:00+00:00",
+    "last": "2026-10-24T00:30:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "TIAUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15522,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -444,9 +1052,23 @@
     "missingBars": 0
    }
   },
+  "TRUMPUSDT": {
+   "bars": 185091,
+   "usableRows": 18390,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-01-19T08:30:00+00:00",
+    "last": "2026-10-24T00:40:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "TRXUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -460,7 +1082,7 @@
   },
   "UNIUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -472,9 +1094,65 @@
     "missingBars": 0
    }
   },
+  "VETUSDT": {
+   "bars": 420463,
+   "usableRows": 41898,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 0.999962,
+    "first": "2022-10-25T00:55:00+00:00",
+    "last": "2026-10-24T00:45:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 16
+   }
+  },
+  "VIRTUALUSDT": {
+   "bars": 161413,
+   "usableRows": 16022,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-04-11T14:00:00+00:00",
+    "last": "2026-10-24T01:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "WLDUSDT": {
+   "bars": 342050,
+   "usableRows": 34085,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2023-07-24T09:00:00+00:00",
+    "last": "2026-10-24T01:05:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "WLFIUSDT": {
+   "bars": 120245,
+   "usableRows": 11904,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-09-01T13:00:00+00:00",
+    "last": "2026-10-24T01:20:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "XLMUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -488,7 +1166,7 @@
   },
   "XRPUSDT": {
    "bars": 155519,
-   "usableRows": 31047,
+   "usableRows": 15523,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -499,37 +1177,109 @@
     "gapRuns": 0,
     "missingBars": 0
    }
+  },
+  "XTZUSDT": {
+   "bars": 420463,
+   "usableRows": 41897,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 0.999962,
+    "first": "2022-10-25T01:35:00+00:00",
+    "last": "2026-10-24T01:25:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 16
+   }
+  },
+  "ZAMAUSDT": {
+   "bars": 75894,
+   "usableRows": 7469,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2026-02-02T13:00:00+00:00",
+    "last": "2026-10-24T01:25:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "ZECUSDT": {
+   "bars": 420463,
+   "usableRows": 41897,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 0.999962,
+    "first": "2022-10-25T01:50:00+00:00",
+    "last": "2026-10-24T01:40:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 1,
+    "missingBars": 16
+   }
   }
  },
- "rowStride": 1,
+ "rowStride": 10,
  "featureParityWithReference": {
   "AAVEUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.555111311651835e-08,
+   "worstRelativeDiff": 5.738372628035503e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "ADAUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.7001244246394883e-08,
+   "worstRelativeDiff": 5.530336276145741e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "AEROUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.609412019091983e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "AIUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.883188785117474e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "ALGOUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.116993960849931e-08,
+   "worstRelativeDiff": 5.1991655302804596e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ALTUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.6663206936994876e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "APTUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.448718496361245e-08,
+   "worstRelativeDiff": 5.463048509937642e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "ARBUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.175785207403838e-08,
+   "worstRelativeDiff": 5.386109313771793e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ARKUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.458448064094457e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ASTERUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.570280800287799e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -539,21 +1289,45 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "AVAUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.576896622430237e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "AVAXUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.7729312036878644e-08,
+   "worstRelativeDiff": 5.1875678949827824e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "BATUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.3997287756502297e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "BCHUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.466977185181832e-08,
+   "worstRelativeDiff": 5.266987453209391e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "BMTUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.3479792887015165e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "BNBUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.358811325663288e-08,
+   "worstRelativeDiff": 5.913695307089253e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "BONKUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.633348746382409e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -563,123 +1337,339 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "CAKEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.63678341310312e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "CFXUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.4736385651667863e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "COTIUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.383342381244954e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "CRVUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.749930160495116e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "DASHUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.3985504889208476e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "DOGEUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.831489506276347e-08,
+   "worstRelativeDiff": 5.779297371427575e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "DOTUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.8435438793417774e-08,
+   "worstRelativeDiff": 5.697475205810126e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ERAUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.496468758802861e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "ETCUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.9071871152236546e-08,
+   "worstRelativeDiff": 5.305427191158581e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ETHFIUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.837497084496924e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "ETHUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.358754594549518e-08,
+   "worstRelativeDiff": 5.747914246841436e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "FILUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.590275251576492e-08,
+   "worstRelativeDiff": 5.592037555118748e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "GRAMUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.5326112942317455e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "GTCUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.2817111029776737e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "HBARUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.6089875576799484e-08,
+   "worstRelativeDiff": 5.2827422207582784e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "INITUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.642082539172276e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "INJUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.355803551773294e-08,
+   "worstRelativeDiff": 5.554456542032733e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "IOSTUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.5742539980826645e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "LINKUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.829967440778882e-08,
+   "worstRelativeDiff": 5.831891351328063e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "LTCUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.7655358873562976e-08,
+   "worstRelativeDiff": 5.588062287256697e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "MITOUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.769509205212214e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "MORPHOUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.629695050651423e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "MUBARAKUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.1322582259369146e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "NEARUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.747480647902177e-08,
+   "worstRelativeDiff": 5.734469115313076e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ONDOUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.3386781773099623e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "OPUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 4.934502617352442e-08,
+   "worstRelativeDiff": 5.609988049825282e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "PENDLEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.627033098801272e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "PENGUUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.649827799677379e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "PEPEUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.452626109595065e-08,
+   "worstRelativeDiff": 5.424742319058838e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "PHAUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.222003383734541e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "POLUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.3781149055984664e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "PUMPUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.7232990742171106e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "PYTHUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.380353569614247e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "QNTUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.897640894128222e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "RAYUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.653951052772181e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "RENDERUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.716847764766588e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "REZUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.666975023845485e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "SEIUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.9004159797252217e-08,
+   "worstRelativeDiff": 5.676917125235965e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "SHIBUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.3835421821554776e-08,
+   "worstRelativeDiff": 5.50898465615543e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "SKYUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.044701963086636e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "SOLUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.753357608592253e-08,
+   "worstRelativeDiff": 5.63688042491535e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "SOPHUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.3799613074115903e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "STRKUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.1776528201510385e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "STXUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.785301965455298e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "SUIUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.213767392939973e-08,
+   "worstRelativeDiff": 5.7041161697246516e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "SUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.493577132335691e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "TAOUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.314888500502281e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "TIAUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.478620282786498e-08,
+   "worstRelativeDiff": 5.623446476068115e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "TRUMPUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.7219799849803543e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "TRXUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.6276000473113754e-08,
+   "worstRelativeDiff": 5.238584709427491e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "UNIUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.6955616720816125e-08,
+   "worstRelativeDiff": 5.511675195393e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "VETUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.833701936841337e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "VIRTUALUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.10995247429192e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "WLDUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.613432008533111e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "WLFIUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.3986748476885655e-08,
    "tolerance": 2e-06,
    "ok": true
   },
   "XLMUSDT": {
    "checked": 60,
-   "worstRelativeDiff": 5.827100415464205e-08,
+   "worstRelativeDiff": 5.519163392232473e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -688,28 +1678,46 @@
    "worstRelativeDiff": 5.559062388836419e-08,
    "tolerance": 2e-06,
    "ok": true
+  },
+  "XTZUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.3541499620399184e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ZAMAUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.8328803906132453e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ZECUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.525833347987293e-08,
+   "tolerance": 2e-06,
+   "ok": true
   }
  },
  "rows": {
-  "train": 689267,
-  "validation": 143652,
-  "test": 146080,
-  "zeroMoveRowsDropped": 32803
+  "train": 1063710,
+  "validation": 221446,
+  "test": 224898,
+  "zeroMoveRowsDropped": 65854
  },
  "split": {
-  "trainEnd": "2026-05-03T07:20:00+00:00",
-  "valEnd": "2026-07-27T14:30:00+00:00",
+  "trainEnd": "2026-03-23T17:30:00+00:00",
+  "valEnd": "2026-07-08T13:20:00+00:00",
   "embargoBars": 300,
   "embargoMinutes": 1500,
-  "testFrom": "2026-07-27T14:35:00+00:00",
-  "testTo": "2026-10-20T22:00:00+00:00"
+  "testFrom": "2026-07-08T13:25:00+00:00",
+  "testTo": "2026-10-20T20:55:00+00:00"
  },
  "chosenModel": "gbm",
  "validation": {
-  "logisticAccuracy": 0.51939,
-  "gbmAccuracy": 0.52367,
-  "gbmRoundsKept": 39,
-  "gbmRoundsFitted": 69
+  "logisticAccuracy": 0.5244,
+  "gbmAccuracy": 0.52793,
+  "gbmRoundsKept": 115,
+  "gbmRoundsFitted": 145
  },
  "preRegisteredGates": {
   "aboveTestMajority": "accuracy strictly above the test fold's own larger class",
@@ -720,73 +1728,73 @@
  "gates": {
   "aboveTestMajority": true,
   "bothDirectionsPredicted": true,
-  "bootstrapExcludesZero": false,
+  "bootstrapExcludesZero": true,
   "walkForwardMajority": true
  },
- "gatesMet": false,
+ "gatesMet": true,
  "acceptanceTarget": 0.9,
  "acceptanceTargetMet": false,
  "evaluation": {
-  "rows": 146080,
-  "accuracy": 0.52058,
-  "testMajority": 0.50463,
-  "testMajorityClass": "UP",
-  "marginOverMajority": 0.01595,
-  "alwaysUpAccuracy": 0.50463,
-  "actualUpRate": 0.50463,
-  "predictedUpShare": 0.3964,
-  "predictedDownShare": 0.6036,
-  "upRecall": 0.41775,
-  "downRecall": 0.62535,
-  "upPrecision": 0.53181,
-  "downPrecision": 0.51321,
+  "rows": 224898,
+  "accuracy": 0.52721,
+  "testMajority": 0.50228,
+  "testMajorityClass": "DOWN",
+  "marginOverMajority": 0.02493,
+  "alwaysUpAccuracy": 0.49772,
+  "actualUpRate": 0.49772,
+  "predictedUpShare": 0.35672,
+  "predictedDownShare": 0.64328,
+  "upRecall": 0.3834,
+  "downRecall": 0.66971,
+  "upPrecision": 0.53494,
+  "downPrecision": 0.52292,
   "blockedBootstrap": {
-   "blocks": 86,
+   "blocks": 105,
    "draws": 2000,
-   "pointEstimate": 0.01595,
+   "pointEstimate": 0.024927,
    "ci95": [
-    -0.001749,
-    0.034045
+    0.017243,
+    0.032452
    ],
-   "sd": 0.00932,
-   "z": 1.7115,
-   "excludesZero": false
+   "sd": 0.003922,
+   "z": 6.3558,
+   "excludesZero": true
   },
   "walkForward": {
    "blocks": [
     {
      "block": 0,
-     "rows": 29216,
-     "accuracy": 0.52081,
-     "majority": 0.50257,
+     "rows": 44979,
+     "accuracy": 0.53383,
+     "majority": 0.50241,
      "above": true
     },
     {
      "block": 1,
-     "rows": 29216,
-     "accuracy": 0.52334,
-     "majority": 0.50958,
+     "rows": 44980,
+     "accuracy": 0.53166,
+     "majority": 0.50145,
      "above": true
     },
     {
      "block": 2,
-     "rows": 29216,
-     "accuracy": 0.51564,
-     "majority": 0.50527,
+     "rows": 44979,
+     "accuracy": 0.52224,
+     "majority": 0.50201,
      "above": true
     },
     {
      "block": 3,
-     "rows": 29216,
-     "accuracy": 0.52707,
-     "majority": 0.5038,
+     "rows": 44980,
+     "accuracy": 0.52717,
+     "majority": 0.50207,
      "above": true
     },
     {
      "block": 4,
-     "rows": 29216,
-     "accuracy": 0.51605,
-     "majority": 0.50195,
+     "rows": 44980,
+     "accuracy": 0.52114,
+     "majority": 0.50347,
      "above": true
     }
    ],
@@ -796,57 +1804,57 @@
   "coverageCurve": [
    {
     "minMargin": 0.0,
-    "rows": 146080,
+    "rows": 224898,
     "coverage": 1.0,
-    "accuracy": 0.52058,
-    "majorityHere": 0.50463
+    "accuracy": 0.52721,
+    "majorityHere": 0.50228
    },
    {
     "minMargin": 0.01,
-    "rows": 97389,
-    "coverage": 0.66668,
-    "accuracy": 0.52588,
-    "majorityHere": 0.50065
+    "rows": 166026,
+    "coverage": 0.73823,
+    "accuracy": 0.53504,
+    "majorityHere": 0.50645
    },
    {
     "minMargin": 0.02,
-    "rows": 56207,
-    "coverage": 0.38477,
-    "accuracy": 0.52712,
-    "majorityHere": 0.5046
+    "rows": 113980,
+    "coverage": 0.50681,
+    "accuracy": 0.54388,
+    "majorityHere": 0.51183
    },
    {
     "minMargin": 0.03,
-    "rows": 27370,
-    "coverage": 0.18736,
-    "accuracy": 0.53237,
-    "majorityHere": 0.51103
+    "rows": 72812,
+    "coverage": 0.32376,
+    "accuracy": 0.55208,
+    "majorityHere": 0.51728
    },
    {
     "minMargin": 0.05,
-    "rows": 2555,
-    "coverage": 0.01749,
-    "accuracy": 0.53542,
-    "majorityHere": 0.53659
+    "rows": 22949,
+    "coverage": 0.10204,
+    "accuracy": 0.57528,
+    "majorityHere": 0.53092
    },
    {
     "minMargin": 0.075,
-    "rows": 237,
-    "coverage": 0.00162,
-    "accuracy": 0.5865,
-    "majorityHere": 0.5865
+    "rows": 2682,
+    "coverage": 0.01193,
+    "accuracy": 0.63721,
+    "majorityHere": 0.5481
    },
    {
     "minMargin": 0.1,
-    "rows": 0,
-    "coverage": 0.0,
-    "accuracy": null,
-    "note": "under 200 rows, not reported"
+    "rows": 217,
+    "coverage": 0.00096,
+    "accuracy": 0.78341,
+    "majorityHere": 0.57604
    },
    {
     "minMargin": 0.15,
-    "rows": 0,
-    "coverage": 0.0,
+    "rows": 4,
+    "coverage": 2e-05,
     "accuracy": null,
     "note": "under 200 rows, not reported"
    },
@@ -861,68 +1869,68 @@
   "calibration": [
    {
     "bucket": 0,
-    "rows": 14608,
-    "meanPredicted": 0.46225,
-    "observedUpRate": 0.46844
+    "rows": 22490,
+    "meanPredicted": 0.44142,
+    "observedUpRate": 0.43286
    },
    {
     "bucket": 1,
-    "rows": 14608,
-    "meanPredicted": 0.47229,
-    "observedUpRate": 0.47871
+    "rows": 22490,
+    "meanPredicted": 0.46047,
+    "observedUpRate": 0.46919
    },
    {
     "bucket": 2,
-    "rows": 14607,
-    "meanPredicted": 0.47953,
-    "observedUpRate": 0.48655
+    "rows": 22490,
+    "meanPredicted": 0.47083,
+    "observedUpRate": 0.4711
    },
    {
     "bucket": 3,
-    "rows": 14609,
-    "meanPredicted": 0.48554,
-    "observedUpRate": 0.48717
+    "rows": 22489,
+    "meanPredicted": 0.479,
+    "observedUpRate": 0.48046
    },
    {
     "bucket": 4,
-    "rows": 14604,
-    "meanPredicted": 0.49134,
-    "observedUpRate": 0.48856
+    "rows": 22490,
+    "meanPredicted": 0.48628,
+    "observedUpRate": 0.4932
    },
    {
     "bucket": 5,
-    "rows": 14612,
-    "meanPredicted": 0.49692,
-    "observedUpRate": 0.51095
+    "rows": 22490,
+    "meanPredicted": 0.49332,
+    "observedUpRate": 0.5048
    },
    {
     "bucket": 6,
-    "rows": 14602,
-    "meanPredicted": 0.50289,
-    "observedUpRate": 0.51781
+    "rows": 22489,
+    "meanPredicted": 0.50054,
+    "observedUpRate": 0.50754
    },
    {
     "bucket": 7,
-    "rows": 14614,
-    "meanPredicted": 0.50944,
-    "observedUpRate": 0.53736
+    "rows": 22490,
+    "meanPredicted": 0.50874,
+    "observedUpRate": 0.52072
    },
    {
     "bucket": 8,
-    "rows": 14596,
-    "meanPredicted": 0.51779,
-    "observedUpRate": 0.5348
+    "rows": 22490,
+    "meanPredicted": 0.51948,
+    "observedUpRate": 0.53259
    },
    {
     "bucket": 9,
-    "rows": 14620,
-    "meanPredicted": 0.53752,
-    "observedUpRate": 0.53598
+    "rows": 22490,
+    "meanPredicted": 0.54282,
+    "observedUpRate": 0.56474
    }
   ]
  },
- "linearOnTheSameTestRows": 0.5206,
- "verdict": "NO-GO",
+ "linearOnTheSameTestRows": 0.52635,
+ "verdict": "GO",
  "limitations": [
   "The test fold is a historical holdout. It is unseen by this fit, and it is still a backtest: no forecast in it was made before the data existed.",
   "Direction only. No transaction cost, spread, funding or slippage is in any number here, and nothing here is a profitability claim.",

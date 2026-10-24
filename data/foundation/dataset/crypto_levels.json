@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-23T21:55:43.766685+00:00",
+ "generatedAt": "2026-10-24T11:13:05.630308+00:00",
  "producedBy": "tools/research/crypto_levels.py",
  "unit": "ATR(14) at the decision bar, as a fraction of price",
  "measuredOn": "the training and validation folds only; the test fold is not read here",
@@ -403,366 +403,906 @@
       "neither": 0.04389
      }
     }
+   },
+   "d1": {
+    "rows": 14453,
+    "interval": "4h",
+    "barsAhead": 6,
+    "minutesAhead": 1440,
+    "favourableExcursionAtr": {
+     "p25": 0.6573,
+     "median": 1.1837,
+     "p75": 2.0666,
+     "p90": 3.3836
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.2489,
+     "median": 0.0515,
+     "p75": 0.3676,
+     "p90": 0.749
+    },
+    "finalMoveAtr": {
+     "median": 0.8709,
+     "p75": 1.7464,
+     "p90": 3.0647
+    },
+    "medianAtrPctOfPrice": 1.6442,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.60686,
+      "stoppedWithoutReachingTarget": 0.0878,
+      "touchedBoth": 0.09209,
+      "neither": 0.21324
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.50744,
+      "stoppedWithoutReachingTarget": 0.10897,
+      "touchedBoth": 0.07092,
+      "neither": 0.31267
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.53906,
+      "stoppedWithoutReachingTarget": 0.06047,
+      "touchedBoth": 0.0393,
+      "neither": 0.36117
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.36338,
+      "stoppedWithoutReachingTarget": 0.07742,
+      "touchedBoth": 0.02235,
+      "neither": 0.53684
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.55732,
+      "stoppedWithoutReachingTarget": 0.03141,
+      "touchedBoth": 0.02103,
+      "neither": 0.39023
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.37376,
+      "stoppedWithoutReachingTarget": 0.04048,
+      "touchedBoth": 0.01197,
+      "neither": 0.57379
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.25538,
+      "stoppedWithoutReachingTarget": 0.04456,
+      "touchedBoth": 0.00789,
+      "neither": 0.69217
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.25988,
+      "stoppedWithoutReachingTarget": 0.01501,
+      "touchedBoth": 0.00339,
+      "neither": 0.72172
+     }
+    }
+   },
+   "d5": {
+    "rows": 14237,
+    "interval": "4h",
+    "barsAhead": 30,
+    "minutesAhead": 7200,
+    "favourableExcursionAtr": {
+     "p25": 1.994,
+     "median": 3.4408,
+     "p75": 5.6606,
+     "p90": 8.7682
+    },
+    "adverseExcursionAtr": {
+     "p25": 0.0757,
+     "median": 0.6108,
+     "p75": 1.4041,
+     "p90": 2.445
+    },
+    "finalMoveAtr": {
+     "median": 2.235,
+     "p75": 4.4929,
+     "p90": 7.5194
+    },
+    "medianAtrPctOfPrice": 1.6438,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.45101,
+      "stoppedWithoutReachingTarget": 0.034,
+      "touchedBoth": 0.51373,
+      "neither": 0.00126
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.44707,
+      "stoppedWithoutReachingTarget": 0.06125,
+      "touchedBoth": 0.48648,
+      "neither": 0.0052
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.54569,
+      "stoppedWithoutReachingTarget": 0.05605,
+      "touchedBoth": 0.38786,
+      "neither": 0.0104
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.51837,
+      "stoppedWithoutReachingTarget": 0.11498,
+      "touchedBoth": 0.32893,
+      "neither": 0.03772
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.62745,
+      "stoppedWithoutReachingTarget": 0.05071,
+      "touchedBoth": 0.3061,
+      "neither": 0.01573
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.59043,
+      "stoppedWithoutReachingTarget": 0.09995,
+      "touchedBoth": 0.25687,
+      "neither": 0.05275
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.53726,
+      "stoppedWithoutReachingTarget": 0.14533,
+      "touchedBoth": 0.21149,
+      "neither": 0.10592
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.61481,
+      "stoppedWithoutReachingTarget": 0.09482,
+      "touchedBoth": 0.13395,
+      "neither": 0.15642
+     }
+    }
+   },
+   "d20": {
+    "rows": 13452,
+    "interval": "4h",
+    "barsAhead": 120,
+    "minutesAhead": 28800,
+    "favourableExcursionAtr": {
+     "p25": 4.489,
+     "median": 7.8035,
+     "p75": 13.8358,
+     "p90": 21.1548
+    },
+    "adverseExcursionAtr": {
+     "p25": 0.55,
+     "median": 1.7856,
+     "p75": 3.7461,
+     "p90": 5.9282
+    },
+    "finalMoveAtr": {
+     "median": 4.9911,
+     "p75": 10.5635,
+     "p90": 18.2544
+    },
+    "medianAtrPctOfPrice": 1.6499,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.23788,
+      "stoppedWithoutReachingTarget": 0.00535,
+      "touchedBoth": 0.75676,
+      "neither": 0.0
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.23788,
+      "stoppedWithoutReachingTarget": 0.00929,
+      "touchedBoth": 0.75282,
+      "neither": 0.0
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.29706,
+      "stoppedWithoutReachingTarget": 0.00929,
+      "touchedBoth": 0.69365,
+      "neither": 0.0
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.29683,
+      "stoppedWithoutReachingTarget": 0.02609,
+      "touchedBoth": 0.67685,
+      "neither": 0.00022
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.35244,
+      "stoppedWithoutReachingTarget": 0.00929,
+      "touchedBoth": 0.63827,
+      "neither": 0.0
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.35192,
+      "stoppedWithoutReachingTarget": 0.0258,
+      "touchedBoth": 0.62177,
+      "neither": 0.00052
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.34976,
+      "stoppedWithoutReachingTarget": 0.04921,
+      "touchedBoth": 0.59835,
+      "neither": 0.00268
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.44462,
+      "stoppedWithoutReachingTarget": 0.04654,
+      "touchedBoth": 0.50349,
+      "neither": 0.00535
+     }
+    }
    }
   },
   "crypto": {
    "m5": {
-    "rows": 1167874,
+    "rows": 1338759,
     "interval": "5m",
     "barsAhead": 1,
     "minutesAhead": 5,
     "favourableExcursionAtr": {
-     "p25": 0.1944,
-     "median": 0.4364,
-     "p75": 0.7691,
-     "p90": 1.1867
+     "p25": 0.1842,
+     "median": 0.4375,
+     "p75": 0.7918,
+     "p90": 1.2353
     },
     "adverseExcursionAtr": {
-     "p25": -0.7691,
-     "median": -0.4364,
-     "p75": -0.1944,
+     "p25": -0.7918,
+     "median": -0.4375,
+     "p75": -0.1842,
      "p90": 0.0
     },
     "finalMoveAtr": {
-     "median": 0.4364,
-     "p75": 0.7691,
-     "p90": 1.1867
+     "median": 0.4375,
+     "p75": 0.7918,
+     "p90": 1.2353
     },
-    "medianAtrPctOfPrice": 0.2768,
+    "medianAtrPctOfPrice": 0.3121,
     "pairs": {
      "0.5/0.75": {
       "stopAtr": 0.5,
       "targetAtr": 0.75,
-      "reachedTargetWithoutTouchingStop": 0.25976,
+      "reachedTargetWithoutTouchingStop": 0.27218,
       "stoppedWithoutReachingTarget": 0.0,
       "touchedBoth": 0.0,
-      "neither": 0.74024
+      "neither": 0.72782
      },
      "0.5/1.0": {
       "stopAtr": 0.5,
       "targetAtr": 1.0,
-      "reachedTargetWithoutTouchingStop": 0.15046,
+      "reachedTargetWithoutTouchingStop": 0.16224,
       "stoppedWithoutReachingTarget": 0.0,
       "touchedBoth": 0.0,
-      "neither": 0.84954
+      "neither": 0.83776
      },
      "0.75/1.0": {
       "stopAtr": 0.75,
       "targetAtr": 1.0,
-      "reachedTargetWithoutTouchingStop": 0.15046,
+      "reachedTargetWithoutTouchingStop": 0.16224,
       "stoppedWithoutReachingTarget": 0.0,
       "touchedBoth": 0.0,
-      "neither": 0.84954
+      "neither": 0.83776
      },
      "0.75/1.5": {
       "stopAtr": 0.75,
       "targetAtr": 1.5,
-      "reachedTargetWithoutTouchingStop": 0.05146,
+      "reachedTargetWithoutTouchingStop": 0.05911,
       "stoppedWithoutReachingTarget": 0.0,
       "touchedBoth": 0.0,
-      "neither": 0.94854
+      "neither": 0.94089
      },
      "1.0/1.0": {
       "stopAtr": 1.0,
       "targetAtr": 1.0,
-      "reachedTargetWithoutTouchingStop": 0.15046,
+      "reachedTargetWithoutTouchingStop": 0.16224,
       "stoppedWithoutReachingTarget": 0.0,
       "touchedBoth": 0.0,
-      "neither": 0.84954
+      "neither": 0.83776
      },
      "1.0/1.5": {
       "stopAtr": 1.0,
       "targetAtr": 1.5,
-      "reachedTargetWithoutTouchingStop": 0.05146,
+      "reachedTargetWithoutTouchingStop": 0.05911,
       "stoppedWithoutReachingTarget": 0.0,
       "touchedBoth": 0.0,
-      "neither": 0.94854
+      "neither": 0.94089
      },
      "1.0/2.0": {
       "stopAtr": 1.0,
       "targetAtr": 2.0,
-      "reachedTargetWithoutTouchingStop": 0.01985,
+      "reachedTargetWithoutTouchingStop": 0.02429,
       "stoppedWithoutReachingTarget": 0.0,
       "touchedBoth": 0.0,
-      "neither": 0.98015
+      "neither": 0.97571
      },
      "1.5/2.0": {
       "stopAtr": 1.5,
       "targetAtr": 2.0,
-      "reachedTargetWithoutTouchingStop": 0.01985,
+      "reachedTargetWithoutTouchingStop": 0.02429,
       "stoppedWithoutReachingTarget": 0.0,
       "touchedBoth": 0.0,
-      "neither": 0.98015
+      "neither": 0.97571
      }
     }
    },
    "m15": {
-    "rows": 1167844,
+    "rows": 1338724,
     "interval": "5m",
     "barsAhead": 3,
     "minutesAhead": 15,
     "favourableExcursionAtr": {
-     "p25": 0.5217,
-     "median": 0.9237,
-     "p75": 1.4779,
-     "p90": 2.1875
+     "p25": 0.5316,
+     "median": 0.9459,
+     "p75": 1.5287,
+     "p90": 2.2735
     },
     "adverseExcursionAtr": {
-     "p25": -0.5,
-     "median": -0.1134,
-     "p75": 0.1958,
-     "p90": 0.549
+     "p25": -0.5091,
+     "median": -0.1014,
+     "p75": 0.1867,
+     "p90": 0.56
     },
     "finalMoveAtr": {
-     "median": 0.7368,
-     "p75": 1.3216,
-     "p90": 2.0422
+     "median": 0.7584,
+     "p75": 1.3659,
+     "p90": 2.1212
     },
-    "medianAtrPctOfPrice": 0.2768,
+    "medianAtrPctOfPrice": 0.3121,
     "pairs": {
      "0.5/0.75": {
       "stopAtr": 0.5,
       "targetAtr": 0.75,
-      "reachedTargetWithoutTouchingStop": 0.56958,
-      "stoppedWithoutReachingTarget": 0.08146,
-      "touchedBoth": 0.03401,
-      "neither": 0.31494
+      "reachedTargetWithoutTouchingStop": 0.57741,
+      "stoppedWithoutReachingTarget": 0.08204,
+      "touchedBoth": 0.03704,
+      "neither": 0.30351
      },
      "0.5/1.0": {
       "stopAtr": 0.5,
       "targetAtr": 1.0,
-      "reachedTargetWithoutTouchingStop": 0.43445,
-      "stoppedWithoutReachingTarget": 0.09296,
-      "touchedBoth": 0.02252,
-      "neither": 0.45007
+      "reachedTargetWithoutTouchingStop": 0.44611,
+      "stoppedWithoutReachingTarget": 0.09411,
+      "touchedBoth": 0.02497,
+      "neither": 0.43481
      },
      "0.75/1.0": {
       "stopAtr": 0.75,
       "targetAtr": 1.0,
-      "reachedTargetWithoutTouchingStop": 0.44662,
-      "stoppedWithoutReachingTarget": 0.04316,
-      "touchedBoth": 0.01035,
-      "neither": 0.49987
+      "reachedTargetWithoutTouchingStop": 0.45875,
+      "stoppedWithoutReachingTarget": 0.04626,
+      "touchedBoth": 0.01232,
+      "neither": 0.48266
      },
      "0.75/1.5": {
       "stopAtr": 0.75,
       "targetAtr": 1.5,
-      "reachedTargetWithoutTouchingStop": 0.23861,
-      "stoppedWithoutReachingTarget": 0.04868,
-      "touchedBoth": 0.00483,
-      "neither": 0.70788
+      "reachedTargetWithoutTouchingStop": 0.25261,
+      "stoppedWithoutReachingTarget": 0.05253,
+      "touchedBoth": 0.00605,
+      "neither": 0.68881
      },
      "1.0/1.0": {
       "stopAtr": 1.0,
       "targetAtr": 1.0,
-      "reachedTargetWithoutTouchingStop": 0.45171,
-      "stoppedWithoutReachingTarget": 0.0191,
-      "touchedBoth": 0.00526,
-      "neither": 0.52393
+      "reachedTargetWithoutTouchingStop": 0.46431,
+      "stoppedWithoutReachingTarget": 0.02149,
+      "touchedBoth": 0.00676,
+      "neither": 0.50743
      },
      "1.0/1.5": {
       "stopAtr": 1.0,
       "targetAtr": 1.5,
-      "reachedTargetWithoutTouchingStop": 0.241,
-      "stoppedWithoutReachingTarget": 0.02193,
-      "touchedBoth": 0.00244,
-      "neither": 0.73463
+      "reachedTargetWithoutTouchingStop": 0.25543,
+      "stoppedWithoutReachingTarget": 0.02503,
+      "touchedBoth": 0.00323,
+      "neither": 0.71631
      },
      "1.0/2.0": {
       "stopAtr": 1.0,
       "targetAtr": 2.0,
-      "reachedTargetWithoutTouchingStop": 0.12522,
-      "stoppedWithoutReachingTarget": 0.02307,
-      "touchedBoth": 0.00129,
-      "neither": 0.85042
+      "reachedTargetWithoutTouchingStop": 0.13722,
+      "stoppedWithoutReachingTarget": 0.02645,
+      "touchedBoth": 0.00181,
+      "neither": 0.83452
      },
      "1.5/2.0": {
       "stopAtr": 1.5,
       "targetAtr": 2.0,
-      "reachedTargetWithoutTouchingStop": 0.12609,
-      "stoppedWithoutReachingTarget": 0.0049,
-      "touchedBoth": 0.00042,
-      "neither": 0.86858
+      "reachedTargetWithoutTouchingStop": 0.13832,
+      "stoppedWithoutReachingTarget": 0.00653,
+      "touchedBoth": 0.00071,
+      "neither": 0.85444
      }
     }
    },
    "h1": {
-    "rows": 1167707,
+    "rows": 1338577,
     "interval": "5m",
     "barsAhead": 12,
     "minutesAhead": 60,
     "favourableExcursionAtr": {
-     "p25": 1.3125,
-     "median": 2.1212,
-     "p75": 3.2849,
-     "p90": 4.8387
+     "p25": 1.3434,
+     "median": 2.1842,
+     "p75": 3.3905,
+     "p90": 5.0105
     },
     "adverseExcursionAtr": {
-     "p25": -0.1186,
+     "p25": -0.1058,
      "median": 0.359,
-     "p75": 0.9248,
-     "p90": 1.5556
+     "p75": 0.9519,
+     "p90": 1.6211
     },
     "finalMoveAtr": {
-     "median": 1.4412,
-     "p75": 2.6102,
-     "p90": 4.1311
+     "median": 1.4774,
+     "p75": 2.6923,
+     "p90": 4.2704
     },
-    "medianAtrPctOfPrice": 0.2768,
+    "medianAtrPctOfPrice": 0.3121,
     "pairs": {
      "0.5/0.75": {
       "stopAtr": 0.5,
       "targetAtr": 0.75,
-      "reachedTargetWithoutTouchingStop": 0.55954,
-      "stoppedWithoutReachingTarget": 0.08104,
-      "touchedBoth": 0.3467,
-      "neither": 0.01272
+      "reachedTargetWithoutTouchingStop": 0.55569,
+      "stoppedWithoutReachingTarget": 0.07873,
+      "touchedBoth": 0.35348,
+      "neither": 0.0121
      },
      "0.5/1.0": {
       "stopAtr": 0.5,
       "targetAtr": 1.0,
-      "reachedTargetWithoutTouchingStop": 0.53965,
-      "stoppedWithoutReachingTarget": 0.12373,
-      "touchedBoth": 0.30401,
-      "neither": 0.03261
+      "reachedTargetWithoutTouchingStop": 0.53701,
+      "stoppedWithoutReachingTarget": 0.1202,
+      "touchedBoth": 0.31201,
+      "neither": 0.03078
      },
      "0.75/1.0": {
       "stopAtr": 0.75,
       "targetAtr": 1.0,
-      "reachedTargetWithoutTouchingStop": 0.63103,
-      "stoppedWithoutReachingTarget": 0.10134,
-      "touchedBoth": 0.21263,
-      "neither": 0.055
+      "reachedTargetWithoutTouchingStop": 0.62614,
+      "stoppedWithoutReachingTarget": 0.09967,
+      "touchedBoth": 0.22288,
+      "neither": 0.05131
      },
      "0.75/1.5": {
       "stopAtr": 0.75,
       "targetAtr": 1.5,
-      "reachedTargetWithoutTouchingStop": 0.53846,
-      "stoppedWithoutReachingTarget": 0.16197,
-      "touchedBoth": 0.15201,
-      "neither": 0.14757
+      "reachedTargetWithoutTouchingStop": 0.53936,
+      "stoppedWithoutReachingTarget": 0.16004,
+      "touchedBoth": 0.16251,
+      "neither": 0.13809
      },
      "1.0/1.0": {
       "stopAtr": 1.0,
       "targetAtr": 1.0,
-      "reachedTargetWithoutTouchingStop": 0.69616,
-      "stoppedWithoutReachingTarget": 0.07796,
-      "touchedBoth": 0.1475,
-      "neither": 0.07838
+      "reachedTargetWithoutTouchingStop": 0.69143,
+      "stoppedWithoutReachingTarget": 0.07733,
+      "touchedBoth": 0.15759,
+      "neither": 0.07365
      },
      "1.0/1.5": {
       "stopAtr": 1.0,
       "targetAtr": 1.5,
-      "reachedTargetWithoutTouchingStop": 0.58661,
-      "stoppedWithoutReachingTarget": 0.1216,
-      "touchedBoth": 0.10386,
-      "neither": 0.18794
+      "reachedTargetWithoutTouchingStop": 0.58865,
+      "stoppedWithoutReachingTarget": 0.1217,
+      "touchedBoth": 0.11322,
+      "neither": 0.17643
      },
      "1.0/2.0": {
       "stopAtr": 1.0,
       "targetAtr": 2.0,
-      "reachedTargetWithoutTouchingStop": 0.4634,
-      "stoppedWithoutReachingTarget": 0.15351,
-      "touchedBoth": 0.07194,
-      "neither": 0.31114
+      "reachedTargetWithoutTouchingStop": 0.47077,
+      "stoppedWithoutReachingTarget": 0.15435,
+      "touchedBoth": 0.08057,
+      "neither": 0.2943
      },
      "1.5/2.0": {
       "stopAtr": 1.5,
       "targetAtr": 2.0,
-      "reachedTargetWithoutTouchingStop": 0.50193,
-      "stoppedWithoutReachingTarget": 0.07674,
-      "touchedBoth": 0.03341,
-      "neither": 0.38792
+      "reachedTargetWithoutTouchingStop": 0.51231,
+      "stoppedWithoutReachingTarget": 0.07955,
+      "touchedBoth": 0.03903,
+      "neither": 0.36911
      }
     }
    },
    "h4": {
-    "rows": 1167151,
+    "rows": 1337978,
     "interval": "5m",
     "barsAhead": 48,
     "minutesAhead": 240,
     "favourableExcursionAtr": {
-     "p25": 2.911,
-     "median": 4.6667,
-     "p75": 7.2893,
-     "p90": 11.0
+     "p25": 2.9836,
+     "median": 4.78,
+     "p75": 7.4891,
+     "p90": 11.297
     },
     "adverseExcursionAtr": {
-     "p25": 0.3176,
-     "median": 1.12,
-     "p75": 2.2703,
-     "p90": 3.6975
+     "p25": 0.3125,
+     "median": 1.1538,
+     "p75": 2.3333,
+     "p90": 3.8182
     },
     "finalMoveAtr": {
-     "median": 2.8651,
-     "p75": 5.3614,
-     "p90": 8.8065
+     "median": 2.9474,
+     "p75": 5.4937,
+     "p90": 9.0
     },
-    "medianAtrPctOfPrice": 0.2768,
+    "medianAtrPctOfPrice": 0.3122,
     "pairs": {
      "0.5/0.75": {
       "stopAtr": 0.5,
       "targetAtr": 0.75,
-      "reachedTargetWithoutTouchingStop": 0.30877,
-      "stoppedWithoutReachingTarget": 0.01413,
-      "touchedBoth": 0.67697,
-      "neither": 0.00013
+      "reachedTargetWithoutTouchingStop": 0.30632,
+      "stoppedWithoutReachingTarget": 0.01376,
+      "touchedBoth": 0.67977,
+      "neither": 0.00015
      },
      "0.5/1.0": {
       "stopAtr": 0.5,
       "targetAtr": 1.0,
-      "reachedTargetWithoutTouchingStop": 0.30852,
-      "stoppedWithoutReachingTarget": 0.02615,
-      "touchedBoth": 0.66495,
-      "neither": 0.00038
+      "reachedTargetWithoutTouchingStop": 0.30606,
+      "stoppedWithoutReachingTarget": 0.02538,
+      "touchedBoth": 0.66816,
+      "neither": 0.0004
      },
      "0.75/1.0": {
       "stopAtr": 0.75,
       "targetAtr": 1.0,
-      "reachedTargetWithoutTouchingStop": 0.3888,
-      "stoppedWithoutReachingTarget": 0.02568,
-      "touchedBoth": 0.58467,
-      "neither": 0.00085
+      "reachedTargetWithoutTouchingStop": 0.38356,
+      "stoppedWithoutReachingTarget": 0.02495,
+      "touchedBoth": 0.59066,
+      "neither": 0.00083
      },
      "0.75/1.5": {
       "stopAtr": 0.75,
       "targetAtr": 1.5,
-      "reachedTargetWithoutTouchingStop": 0.38533,
-      "stoppedWithoutReachingTarget": 0.06115,
-      "touchedBoth": 0.5492,
-      "neither": 0.00433
+      "reachedTargetWithoutTouchingStop": 0.38038,
+      "stoppedWithoutReachingTarget": 0.05875,
+      "touchedBoth": 0.55686,
+      "neither": 0.00401
      },
      "1.0/1.0": {
       "stopAtr": 1.0,
       "targetAtr": 1.0,
-      "reachedTargetWithoutTouchingStop": 0.46352,
-      "stoppedWithoutReachingTarget": 0.02487,
-      "touchedBoth": 0.50995,
-      "neither": 0.00166
+      "reachedTargetWithoutTouchingStop": 0.45647,
+      "stoppedWithoutReachingTarget": 0.02418,
+      "touchedBoth": 0.51775,
+      "neither": 0.0016
      },
      "1.0/1.5": {
       "stopAtr": 1.0,
       "targetAtr": 1.5,
-      "reachedTargetWithoutTouchingStop": 0.45799,
-      "stoppedWithoutReachingTarget": 0.05829,
-      "touchedBoth": 0.47654,
-      "neither": 0.00719
+      "reachedTargetWithoutTouchingStop": 0.45149,
+      "stoppedWithoutReachingTarget": 0.05618,
+      "touchedBoth": 0.48575,
+      "neither": 0.00658
      },
      "1.0/2.0": {
       "stopAtr": 1.0,
       "targetAtr": 2.0,
-      "reachedTargetWithoutTouchingStop": 0.44527,
-      "stoppedWithoutReachingTarget": 0.10151,
-      "touchedBoth": 0.43331,
-      "neither": 0.0199
+      "reachedTargetWithoutTouchingStop": 0.43996,
+      "stoppedWithoutReachingTarget": 0.09811,
+      "touchedBoth": 0.44381,
+      "neither": 0.01812
      },
      "1.5/2.0": {
       "stopAtr": 1.5,
       "targetAtr": 2.0,
-      "reachedTargetWithoutTouchingStop": 0.56143,
-      "stoppedWithoutReachingTarget": 0.08469,
-      "touchedBoth": 0.31716,
-      "neither": 0.03672
+      "reachedTargetWithoutTouchingStop": 0.55533,
+      "stoppedWithoutReachingTarget": 0.08275,
+      "touchedBoth": 0.32844,
+      "neither": 0.03348
+     }
+    }
+   },
+   "d1": {
+    "rows": 532142,
+    "interval": "4h",
+    "barsAhead": 6,
+    "minutesAhead": 1440,
+    "favourableExcursionAtr": {
+     "p25": 0.7192,
+     "median": 1.2277,
+     "p75": 1.9936,
+     "p90": 3.0435
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.2723,
+     "median": 0.0576,
+     "p75": 0.4091,
+     "p90": 0.7883
+    },
+    "finalMoveAtr": {
+     "median": 0.9095,
+     "p75": 1.6844,
+     "p90": 2.7275
+    },
+    "medianAtrPctOfPrice": 2.8559,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.62911,
+      "stoppedWithoutReachingTarget": 0.09798,
+      "touchedBoth": 0.10493,
+      "neither": 0.16798
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.52786,
+      "stoppedWithoutReachingTarget": 0.12411,
+      "touchedBoth": 0.0788,
+      "neither": 0.26923
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.56509,
+      "stoppedWithoutReachingTarget": 0.06883,
+      "touchedBoth": 0.04157,
+      "neither": 0.32451
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.3686,
+      "stoppedWithoutReachingTarget": 0.0867,
+      "touchedBoth": 0.0237,
+      "neither": 0.521
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.58481,
+      "stoppedWithoutReachingTarget": 0.03699,
+      "touchedBoth": 0.02185,
+      "neither": 0.35635
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.3798,
+      "stoppedWithoutReachingTarget": 0.04634,
+      "touchedBoth": 0.0125,
+      "neither": 0.56137
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.24123,
+      "stoppedWithoutReachingTarget": 0.05149,
+      "touchedBoth": 0.00735,
+      "neither": 0.69994
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.24631,
+      "stoppedWithoutReachingTarget": 0.01524,
+      "touchedBoth": 0.00226,
+      "neither": 0.73619
+     }
+    }
+   },
+   "d5": {
+    "rows": 527319,
+    "interval": "4h",
+    "barsAhead": 30,
+    "minutesAhead": 7200,
+    "favourableExcursionAtr": {
+     "p25": 2.0074,
+     "median": 3.2813,
+     "p75": 5.3019,
+     "p90": 8.1434
+    },
+    "adverseExcursionAtr": {
+     "p25": 0.0935,
+     "median": 0.6487,
+     "p75": 1.4345,
+     "p90": 2.4063
+    },
+    "finalMoveAtr": {
+     "median": 2.119,
+     "p75": 4.0339,
+     "p90": 6.6655
+    },
+    "medianAtrPctOfPrice": 2.8527,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.43502,
+      "stoppedWithoutReachingTarget": 0.03563,
+      "touchedBoth": 0.52798,
+      "neither": 0.00137
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.43184,
+      "stoppedWithoutReachingTarget": 0.06215,
+      "touchedBoth": 0.50146,
+      "neither": 0.00456
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.53101,
+      "stoppedWithoutReachingTarget": 0.05745,
+      "touchedBoth": 0.40229,
+      "neither": 0.00925
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.50643,
+      "stoppedWithoutReachingTarget": 0.11428,
+      "touchedBoth": 0.34546,
+      "neither": 0.03383
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.61437,
+      "stoppedWithoutReachingTarget": 0.0516,
+      "touchedBoth": 0.31892,
+      "neither": 0.0151
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.58074,
+      "stoppedWithoutReachingTarget": 0.09938,
+      "touchedBoth": 0.27115,
+      "neither": 0.04873
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.5279,
+      "stoppedWithoutReachingTarget": 0.14687,
+      "touchedBoth": 0.22366,
+      "neither": 0.10157
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.61691,
+      "stoppedWithoutReachingTarget": 0.10034,
+      "touchedBoth": 0.13465,
+      "neither": 0.1481
+     }
+    }
+   },
+   "d20": {
+    "rows": 509954,
+    "interval": "4h",
+    "barsAhead": 120,
+    "minutesAhead": 28800,
+    "favourableExcursionAtr": {
+     "p25": 4.5672,
+     "median": 7.4667,
+     "p75": 12.0845,
+     "p90": 19.202
+    },
+    "adverseExcursionAtr": {
+     "p25": 0.5721,
+     "median": 1.6808,
+     "p75": 3.3918,
+     "p90": 5.5882
+    },
+    "finalMoveAtr": {
+     "median": 4.5444,
+     "p75": 8.6897,
+     "p90": 14.9509
+    },
+    "medianAtrPctOfPrice": 2.8599,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.23178,
+      "stoppedWithoutReachingTarget": 0.00439,
+      "touchedBoth": 0.76383,
+      "neither": 0.0
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.23175,
+      "stoppedWithoutReachingTarget": 0.00873,
+      "touchedBoth": 0.75949,
+      "neither": 3e-05
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.29441,
+      "stoppedWithoutReachingTarget": 0.00865,
+      "touchedBoth": 0.69683,
+      "neither": 0.00011
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.29372,
+      "stoppedWithoutReachingTarget": 0.02299,
+      "touchedBoth": 0.68249,
+      "neither": 0.0008
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.3546,
+      "stoppedWithoutReachingTarget": 0.00849,
+      "touchedBoth": 0.63664,
+      "neither": 0.00026
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.35345,
+      "stoppedWithoutReachingTarget": 0.02237,
+      "touchedBoth": 0.62276,
+      "neither": 0.00142
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.35079,
+      "stoppedWithoutReachingTarget": 0.04321,
+      "touchedBoth": 0.60193,
+      "neither": 0.00407
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.45591,
+      "stoppedWithoutReachingTarget": 0.03936,
+      "touchedBoth": 0.49681,
+      "neither": 0.00792
      }
     }
    }

@@ -46,7 +46,10 @@ export type Forecast =
       /// the uncertainty is attached to it instead of replacing it: `strong` is a call that
       /// cleared the floor the holdout measured, `weak` is one that did not, and each carries the
       /// accuracy measured on its own band so the two are never read as the same claim.
-      strength: "strong" | "weak";
+      /// Null on a lane with no measured floor. There is no strong/weak banding to report
+      /// there, and defaulting to "strong" labelled every `crypto d20` call as the model's best
+      /// -- a claim nothing measured. An absence is printed as an absence.
+      strength: "strong" | "weak" | null;
       margin: number;
       floor: number;
       /// How often a call in this confidence band was right on the test fold, if the band held
@@ -204,7 +207,7 @@ export async function forecastFor(
     direction,
     probUp,
     confidence: lane.confidence === "MEDIUM" ? "MEDIUM" : "LOW",
-    strength: speaks(lane, probUp) ? "strong" : "weak",
+    strength: lane.conviction ? (speaks(lane, probUp) ? "strong" : "weak") : null,
     margin,
     floor: lane.conviction?.floor ?? 0,
     measured: accuracyAtMargin(lane, margin),

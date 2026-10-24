@@ -228,11 +228,18 @@ def main() -> int:
     # not the model's output, but they are reported beside it, and measuring them over a different
     # set of rows than the model was trained on would make the two describe different markets.
     for tag in ("btc", "crypto"):
-        cfg = training_config(tag, "m5")
-        symbols, stride = cfg["symbols"], cfg["stride"]
-        print(f"== {tag} ({len(symbols)} symbols, stride {stride})", flush=True)
-        doc["families"][tag] = measure(tag, symbols, stride,
-                                       [k for k in a.horizons if HORIZONS[k]["interval"] == "5m"])
+        print(f"== {tag}", flush=True)
+        # Both intervals. The session horizons read the 4-hour corpus and were left out of the
+        # first version of this file, which gave `crypto d20` a direction the page could not put
+        # an entry, a stop or a target under -- a call with nowhere to act on it.
+        here = {}
+        for interval in ("5m", "4h"):
+            keys = [k for k in a.horizons if HORIZONS[k]["interval"] == interval]
+            if not keys:
+                continue
+            cfg_i = training_config(tag, keys[0])
+            here.update(measure(tag, cfg_i["symbols"], cfg_i["stride"], keys))
+        doc["families"][tag] = here
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(doc, indent=1), encoding="utf-8")
     print(f"\nwrote {OUT}")

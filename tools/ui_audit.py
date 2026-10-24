@@ -425,12 +425,14 @@ def check_crypto_journey(site: str, fetch, counts: dict[str, int]) -> list[str]:
                 # A direction that does not say how strong it is reads as the same claim on the
                 # bar the model is surest about and on the one it is closest to even on, which is
                 # the whole reason the strength rides on the call rather than gating it.
-                m2 = re.search(r'data-strength="(strong|weak)"', html)
+                # `unbanded` is a lane with no measured floor: there is no strong/weak to
+                # report, and the panel prints the lane's own confidence grade instead.
+                m2 = re.search(r'data-strength="(strong|weak|unbanded)"', html)
                 if not m2:
                     out.append(f"{url}: a direction with no strength on it")
                 else:
                     counts[m2.group(1)] = counts.get(m2.group(1), 0) + 1
-                    if m2.group(1).upper() not in html:
+                    if m2.group(1) != "unbanded" and m2.group(1).upper() not in html:
                         out.append(f"{url}: the panel says {m2.group(1)} in its markup and does not print it")
                 # Entry, stop and target, or the page is a word with no way to act on it.
                 for word in ("entry", "stop", "target"):

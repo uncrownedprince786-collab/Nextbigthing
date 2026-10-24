@@ -1,29 +1,18 @@
 {
- "generatedAt": "2026-10-24T10:10:21.884688+00:00",
+ "generatedAt": "2026-10-24T10:55:58.980186+00:00",
  "producedBy": "tools/foundation/price_audit.py",
- "coinsChecked": 1291,
+ "coinsChecked": 1274,
  "comparedAcross": "the venues that list each coin, plus CoinPaprika where its ticker is unambiguous there",
  "noQuoteFromServingVenue": [],
  "spreadPct": {
-  "median": 0.2893,
-  "p90": 1.6078,
-  "p99": 817.8012,
-  "max": 34054163.9646
+  "median": 0.2953,
+  "p90": 1.617,
+  "p99": 432.8933,
+  "max": 2592027.6264
  },
  "threshold": 2.0,
- "beyondThreshold": 106,
+ "beyondThreshold": 103,
  "worst": [
-  {
-   "slug": "nyan",
-   "ticker": "NYAN",
-   "servedBy": "gate",
-   "servedPrice": 0.0004804,
-   "quotes": {
-    "gate": 0.0004804,
-    "coinpaprika": 1.4e-09
-   },
-   "spreadPct": 34054163.9646
-  },
   {
    "slug": "hold",
    "ticker": "HOLD",
@@ -31,9 +20,9 @@
    "servedPrice": 7.014e-06,
    "quotes": {
     "gate": 7.014e-06,
-    "coinpaprika": 0.1818135263
+    "coinpaprika": 0.1818118317
    },
-   "spreadPct": 2592051.7871
+   "spreadPct": 2592027.6264
   },
   {
    "slug": "buck",
@@ -42,65 +31,53 @@
    "servedPrice": 0.0003618,
    "quotes": {
     "gate": 0.0003618,
-    "coinpaprika": 0.9987709527
+    "coinpaprika": 0.9985957386
    },
-   "spreadPct": 275956.0953
+   "spreadPct": 275907.6668
   },
   {
    "slug": "ctx",
    "ticker": "CTX",
    "servedBy": "mexc",
-   "servedPrice": 0.000412,
+   "servedPrice": 0.000407,
    "quotes": {
-    "mexc": 0.000412,
-    "coinpaprika": 0.5153921341
+    "mexc": 0.000407,
+    "coinpaprika": 0.5153034322
    },
-   "spreadPct": 124995.1782
-  },
-  {
-   "slug": "rats",
-   "ticker": "RATS",
-   "servedBy": "mexc",
-   "servedPrice": 1.912e-05,
-   "quotes": {
-    "mexc": 1.912e-05,
-    "gate": 1.9216e-05,
-    "coinpaprika": 2.63e-08
-   },
-   "spreadPct": 72879.9351
+   "spreadPct": 126510.1799
   },
   {
    "slug": "uxlink",
    "ticker": "UXLINK",
    "servedBy": "gate",
-   "servedPrice": 0.0003154,
+   "servedPrice": 0.0003058,
    "quotes": {
-    "gate": 0.0003154,
-    "coinpaprika": 0.0990937128
+    "gate": 0.0003058,
+    "coinpaprika": 0.0992813135
    },
-   "spreadPct": 31318.4251
+   "spreadPct": 32366.0934
+  },
+  {
+   "slug": "sys",
+   "ticker": "SYS",
+   "servedBy": "mexc",
+   "servedPrice": 0.001848,
+   "quotes": {
+    "mexc": 0.001848,
+    "coinpaprika": 0.1299080747
+   },
+   "spreadPct": 6929.6577
   },
   {
    "slug": "xpx",
    "ticker": "XPX",
    "servedBy": "mexc",
-   "servedPrice": 0.000136,
+   "servedPrice": 0.00012771,
    "quotes": {
-    "mexc": 0.000136,
-    "coinpaprika": 2.284e-06
+    "mexc": 0.00012771,
+    "coinpaprika": 2.281e-06
    },
-   "spreadPct": 5854.5801
-  },
-  {
-   "slug": "wxt",
-   "ticker": "WXT",
-   "servedBy": "mexc",
-   "servedPrice": 0.018074,
-   "quotes": {
-    "mexc": 0.018074,
-    "coinpaprika": 0.0004162277
-   },
-   "spreadPct": 4242.3343
+   "spreadPct": 5498.8852
   }
  ]
 }
