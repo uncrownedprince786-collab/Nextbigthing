@@ -724,6 +724,39 @@ export async function getRecentMarketNews(days = 7, take = 240) {
   }));
 }
 
+interface NewsRow {
+  id: string;
+  title: string;
+  url: string;
+  publisher: string;
+  publishedAt: Date;
+  lineageId: string | null;
+  isOriginal: boolean;
+  imageUrl?: string | null;
+}
+
+/// Does this database have `News.imageUrl` yet?
+///
+/// Asked once per process and remembered. Code and a migration do not land at the same instant,
+/// and a deploy that selects a column the database does not have yet throws -- which the caller
+/// turns into "this coin has no news", a whole section vanishing over a column that only adds a
+/// picture.
+///
+/// Probed rather than caught per request on purpose. A failed query is not free: it burns a
+/// round trip on a pooler capped at two connections, on every render, for as long as the two are
+/// out of step. One probe answers it for the life of the process, and the answer flips to true by
+/// itself the next time the process starts after the migration.
+let imageColumn: Promise<boolean> | null = null;
+function newsHasImageColumn(): Promise<boolean> {
+  if (!imageColumn) {
+    imageColumn = prisma.news
+      .findFirst({ select: { imageUrl: true } })
+      .then(() => true)
+      .catch(() => false);
+  }
+  return imageColumn;
+}
+
 /// Two queries, not a join. `News.lineageId` is an indexed `String?` and not a Prisma relation
 /// — `jobs/lineage.py` assigns it, and making it a foreign key would mean a migration to read a
 /// count. So the stories the window actually references are fetched by id and attached here.
@@ -736,15 +769,18 @@ export async function getTopNews(assetId: string, take = 12, maxAgeDays?: number
     maxAgeDays === undefined
       ? undefined
       : new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000);
-  const items = await prisma.news.findMany({
-    where: since ? { assetId, publishedAt: { gte: since } } : { assetId },
+  const where = since ? { assetId, publishedAt: { gte: since } } : { assetId };
+  const base = {
+    id: true, title: true, url: true, publisher: true, publishedAt: true,
+    lineageId: true, isOriginal: true,
+  } as const;
+  const withImage = await newsHasImageColumn();
+  const items = (await prisma.news.findMany({
+    where,
     orderBy: { publishedAt: "desc" },
     take,
-    select: {
-      id: true, title: true, url: true, publisher: true, publishedAt: true,
-      lineageId: true, isOriginal: true,
-    },
-  });
+    select: withImage ? { ...base, imageUrl: true } : base,
+  })) as NewsRow[];
 
   const ids = [...new Set(items.map((n) => n.lineageId).filter((v): v is string => !!v))];
   const counts = ids.length
@@ -758,13 +794,12 @@ export async function getTopNews(assetId: string, take = 12, maxAgeDays?: number
       )
     : new Map<string, number>();
 
-  // A row whose story is missing counts as one outlet rather than none: the row exists, so at
-  // least one desk carried it, and 0 here would read as "nobody published this".
   return items.map((n) => ({
     ...n,
     outlets: (n.lineageId ? counts.get(n.lineageId) : null) ?? 1,
   }));
 }
+
 
 /// ---------------------------------------------------------------------------
 /// The decision panel: one asset's read, and the same read across every asset.

@@ -304,6 +304,19 @@ model News {
   source      String
   createdAt   DateTime  @default(now())
 
+  /// The article's own `og:image`, where its page publishes one.
+  ///
+  /// A headline with a picture is read and a list of blue links is skimmed past, and the coin's
+  /// own logo beside nine items is the same picture nine times.
+  imageUrl       String?
+  /// When the article's page was last looked at for an image.
+  ///
+  /// This is the column that makes filling `imageUrl` affordable. An article that publishes no
+  /// `og:image` has to be remembered as having none, or every run re-fetches every article that
+  /// will never have one: a checked-at with a null url is a settled answer, not an unattempted
+  /// one.
+  imageCheckedAt DateTime? @db.Timestamptz(3)
+
   /// Which story this item belongs to, assigned by jobs/lineage.py.
   ///
   /// One report syndicated to twenty outlets is one piece of information, and counting it as
@@ -323,6 +336,8 @@ model News {
   @@index([assetId])
   @@index([productId])
   @@index([lineageId])
+  /// The image job asks for recent items nobody has looked at yet, which is exactly this.
+  @@index([imageCheckedAt, publishedAt(sort: Desc)])
 }
 
 /// One story, as distinct from the items that carry it.

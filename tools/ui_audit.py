@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import os
 import re
+from pathlib import Path
 import sys
 import urllib.request
 
@@ -234,6 +235,91 @@ def audit(site: str, fetch=None) -> tuple[list[str], dict[str, int]]:
     return failures, counts
 
 
+
+#: How far a price printed on a trending card may sit from the venue's own quote before it is a
+#: failure rather than elapsed time.
+#:
+#: Three percent, and the number is set by the cache rather than by the market. The page serves
+#: a ticker snapshot up to twelve seconds old by design, and the cards are *chosen* for being the
+#: day's biggest movers -- so the coins this check looks at are exactly the ones that travel
+#: furthest in twelve seconds. A 1% bound caught BMT, up 29% on the day, moving 1.33% between the
+#: render and the check: a true reading of a stale-by-design price, not a fault.
+#:
+#: What it still catches is the fault worth catching, which is not off by a percent: a card
+#: pairing one coin's name with another coin's price, a venue mapped to the wrong instrument, or
+#: a ticker collision. Those are off by multiples.
+TRENDING_PRICE_TOLERANCE = 3.0
+
+
+def check_trending(html: str) -> list[str]:
+    """The trending cards print a real price for the coin they name.
+
+    The cards are the most prominent numbers on the site and the most easily wrong: they are
+    chosen by a ranking, drawn from a different payload than the table, and labelled by a name
+    that comes from a third source. A card that pairs one coin's name with another coin's price
+    is wrong in a way that no status code and no snapshot check would ever report.
+    """
+    import json
+    import urllib.request
+
+    out: list[str] = []
+    start = html.find("Trending")
+    end = html.find("All coins")
+    if start == -1 or end == -1 or end <= start:
+        return ["/crypto: no trending section"]
+    seg = html[start:end]
+    slugs = list(dict.fromkeys(re.findall(r'href="/crypto/([a-z0-9\-]+)"', seg)))
+    if len(slugs) < 5:
+        return [f"/crypto: the trending section shows {len(slugs)} cards"]
+
+    path = Path(__file__).resolve().parent.parent / "data" / "foundation" / "dataset" / "crypto_universe.json"
+    if not path.exists():
+        return []
+    uni = {a["slug"]: a for a in json.loads(path.read_text(encoding="utf-8"))["assets"]}
+    text = TAG.sub(" ", seg)
+    text = re.sub(r"\s+", " ", text)
+
+    for slug in slugs[:5]:
+        a = uni.get(slug)
+        if not a:
+            out.append(f"/crypto: trending card {slug} is not in the universe")
+            continue
+        m = re.search(re.escape(a["name"]) + r"\s*\$([0-9,.]+)", text)
+        if not m:
+            out.append(f"/crypto: trending card {slug} prints no price beside its name")
+            continue
+        shown = float(m.group(1).replace(",", ""))
+        venue, inst = a["venue"], a["instrument"]
+        try:
+            if venue == "gate":
+                url = f"https://api.gateio.ws/api/v4/spot/tickers?currency_pair={inst}"
+                live = float(json.loads(_fetch(url))[0]["last"])
+            elif venue == "mexc":
+                url = f"https://api.mexc.com/api/v3/ticker/price?symbol={inst}"
+                live = float(json.loads(_fetch(url))["price"])
+            else:
+                url = f"https://data-api.binance.vision/api/v3/ticker/price?symbol={inst}"
+                live = float(json.loads(_fetch(url))["price"])
+        except Exception:  # noqa: BLE001 - an unreachable venue is not a page fault
+            continue
+        if live <= 0:
+            continue
+        diff = abs(shown - live) / live * 100
+        if diff > TRENDING_PRICE_TOLERANCE:
+            out.append(
+                f"/crypto: trending card {slug} shows {shown} where {venue} quotes {live} "
+                f"({diff:.2f}% apart)")
+    return out
+
+
+def _fetch(url: str) -> bytes:
+    import urllib.request
+
+    return urllib.request.urlopen(
+        urllib.request.Request(url, headers={"User-Agent": "nbt-ui-audit"}), timeout=20
+    ).read()
+
+
 #: The journey the crypto brain exists to serve, as URLs. Bitcoin is the lane that was built first
 #: and is checked at every window; two other coins are checked at one each, so a fault that is
 #: specific to Bitcoin's own model family is told apart from one in the shared path.
@@ -288,6 +374,10 @@ def check_crypto_journey(site: str, fetch, counts: dict[str, int]) -> list[str]:
     for coin in JOURNEY_COINS:
         if coin not in linked:
             out.append(f"/crypto: the market table does not link {coin}")
+    # Here rather than in `audit`, which the unit tests drive with stub pages that carry no
+    # trending section and should not be failed for it. This walk is only ever given the real
+    # site, which is also the only place a venue can be reached to check a price against.
+    out.extend(check_trending(index))
     if index.count("$") < 20:
         out.append("/crypto: the market table carries almost no prices")
 

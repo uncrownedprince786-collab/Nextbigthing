@@ -15,11 +15,11 @@ import { recordForecast, trackRecord } from "@/lib/forecastStore";
 import { servingLane } from "@/lib/cryptoLanes";
 import { STYLES, styleFrom } from "@/lib/tradingStyles";
 import { universeCoin } from "@/lib/cryptoUniverse";
+import { NewsCards } from "@/components/NewsCards";
 import { LEVELS_CAVEATS, LEVELS_GENERATED_AT } from "@/lib/cryptoLevels";
 import { getTopNews } from "@/lib/queries";
 import { LiveCoinPrice } from "@/components/LiveCoinPrice";
 import { BarClock } from "@/components/BarClock";
-import { relativeTime } from "@/lib/format";
 
 /// One coin: the price, the style you are trading it on, and the direction for that window.
 ///
@@ -218,58 +218,20 @@ export default async function Page({
         </p>
       )}
 
-      {news.length ? (
-        <section className="mt-8">
-          <h2 className="text-sm font-medium">Latest on {snap.name}</h2>
-          <ul className="border-border mt-2 divide-y divide-border overflow-hidden rounded-lg border">
-            {news.map((n) => (
-              <li key={n.id} className="hover:bg-muted/50 px-3 py-2.5">
-                <a
-                  href={n.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-start gap-3"
-                >
-                  {/* The coin's own logo rather than the article's. The stored rows carry a title,
-                      a url and a publisher and no image, and the honest options were this or a
-                      third-party favicon service -- which would hand a reader's address to a
-                      company they did not ask to talk to, for a 16-pixel picture. */}
-                  {logo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={logo}
-                      alt=""
-                      width={28}
-                      height={28}
-                      loading="lazy"
-                      className="mt-0.5 h-7 w-7 shrink-0 rounded-full"
-                    />
-                  ) : (
-                    <span className="bg-muted text-muted-foreground mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
-                      {snap.ticker.slice(0, 1)}
-                    </span>
-                  )}
-                  <span className="min-w-0">
-                    <span className="block text-sm hover:underline">{n.title}</span>
-                    <span className="text-muted-foreground mt-0.5 block text-xs">
-                      {n.publisher}
-                      {/* How many desks carried the story, which is the difference between one
-                          outlet's take and something the whole market read. */}
-                      {n.outlets > 1 ? ` and ${n.outlets - 1} more` : ""} ·{" "}
-                      {relativeTime(n.publishedAt)}
-                    </span>
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ul>
-          <p className="text-muted-foreground mt-2 text-xs">
-            The last seven days only, newest first. Nothing here is read by the model — the
-            direction above is computed from price and order flow alone, and these are beside it
-            rather than behind it.
-          </p>
-        </section>
-      ) : null}
+      <NewsCards
+        items={news.map((n) => ({
+          id: n.id,
+          title: n.title,
+          url: n.url,
+          publisher: n.publisher,
+          publishedAt: n.publishedAt,
+          outlets: n.outlets,
+          imageUrl: n.imageUrl ?? null,
+        }))}
+        name={snap.name}
+        fallbackLogo={logo}
+        ticker={snap.ticker}
+      />
 
       {horizon ? (
         <details className="border-border mt-6 rounded-lg border px-4 py-3">
