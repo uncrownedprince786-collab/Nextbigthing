@@ -58,7 +58,8 @@ ROOT = HERE.parent.parent
 sys.path.insert(0, str(HERE))
 
 from crypto_horizons import HORIZONS, ORDER  # noqa: E402
-from crypto_matrix import prepare_cached, symbols_with  # noqa: E402
+from crypto_matrix import prepare_cached  # noqa: E402
+from crypto_conviction import training_config  # noqa: E402
 from intraday_features import FEATURES  # noqa: E402
 from train_crypto_short import split  # noqa: E402
 
@@ -104,7 +105,8 @@ def measure(tag: str, symbols: list[str], stride: int, horizons: list[str]) -> d
     out: dict[str, dict] = {}
     for interval in sorted({HORIZONS[k]["interval"] for k in horizons}):
         here = [k for k in horizons if HORIZONS[k]["interval"] == interval]
-        data = prepare_cached(symbols, interval, stride)
+        data = prepare_cached(symbols, interval, stride,
+                              context=training_config(tag, here[0])["context"])
         X, ts = data["X"], data["ts"]
         atr = X[:, ATR_COLUMN].astype(np.float64)   # already a fraction of price
         step_ms = next(iter(data["corpora"].values()))["stepMs"]
@@ -222,9 +224,13 @@ def main() -> int:
         "candidates": [{"stopAtr": s, "targetAtr": t} for s, t in CANDIDATES],
         "families": {},
     }
-    for tag, symbols, stride in (("btc", ["BTCUSDT"], 1),
-                                 ("crypto", symbols_with("5m"), 5)):
-        print(f"== {tag} ({len(symbols)} symbols)", flush=True)
+    # The same pool and stride the lane was fitted on, read off its manifest. These distances are
+    # not the model's output, but they are reported beside it, and measuring them over a different
+    # set of rows than the model was trained on would make the two describe different markets.
+    for tag in ("btc", "crypto"):
+        cfg = training_config(tag, "m5")
+        symbols, stride = cfg["symbols"], cfg["stride"]
+        print(f"== {tag} ({len(symbols)} symbols, stride {stride})", flush=True)
         doc["families"][tag] = measure(tag, symbols, stride,
                                        [k for k in a.horizons if HORIZONS[k]["interval"] == "5m"])
     OUT.parent.mkdir(parents=True, exist_ok=True)

@@ -55,7 +55,7 @@ sys.path.insert(0, str(HERE))
 
 import gbm  # noqa: E402
 from crypto_horizons import HORIZONS  # noqa: E402
-from crypto_matrix import prepare_cached, symbols_with  # noqa: E402
+from crypto_matrix import prepare_cached  # noqa: E402
 from train_crypto_short import (  # noqa: E402
     day_blocked_bootstrap,
     labels_for,
@@ -178,12 +178,30 @@ def measure(p: np.ndarray, y: np.ndarray, ts: np.ndarray, floor: float) -> dict:
             "gates": checks, "gatesMet": all(checks.values()), "why": None}
 
 
+def training_config(tag: str, horizon: str) -> dict:
+    """The pool, stride and feature set the artifact was actually fitted on.
+
+    Read off its manifest rather than assumed. The floors are measured by re-scoring the model on
+    its own validation and test folds, and a fold is only the same fold if the matrix behind it is
+    built the same way -- a different stride is different rows, and a different feature set is a
+    different width. Hardcoding "stride 5, no context" was right for one afternoon and silently
+    wrong the moment the pool grew.
+    """
+    mf = BRAIN_ROOT / f"brain-c1-{tag}-{horizon}" / "manifest.json"
+    m = json.loads(mf.read_text(encoding="utf-8"))
+    return {
+        "symbols": m["symbols"],
+        "stride": int(m.get("rowStride") or 1),
+        "context": "+" in str(m.get("featureSchema", "")),
+    }
+
+
 def lane_rows(tag: str, horizon: str) -> dict:
     h = HORIZONS[horizon]
     interval = h["interval"]
-    symbols = ["BTCUSDT"] if tag == "btc" else symbols_with(interval)
-    stride = 1 if tag == "btc" else 5
-    data = prepare_cached(symbols, interval, stride)
+    cfg = training_config(tag, horizon)
+    symbols, stride = cfg["symbols"], cfg["stride"]
+    data = prepare_cached(symbols, interval, stride, context=cfg["context"])
     y, usable, _ = labels_for(data, h["bars"])
     ts = data["ts"]
     step_ms = next(iter(data["corpora"].values()))["stepMs"]
@@ -195,7 +213,8 @@ def lane_rows(tag: str, horizon: str) -> dict:
     te = te[np.argsort(ts[te], kind="stable")]
     va = va[np.argsort(ts[va], kind="stable")]
     return {"data": data, "y": y, "ts": ts, "va": va, "te": te, "split": split_meta,
-            "symbols": symbols, "stride": stride, "interval": interval}
+            "symbols": symbols, "stride": stride, "interval": interval,
+            "context": cfg["context"]}
 
 
 def run_lane(tag: str, horizon: str, verbose: bool = True) -> dict:
@@ -237,6 +256,7 @@ def run_lane(tag: str, horizon: str, verbose: bool = True) -> dict:
         "interval": r["interval"],
         "symbols": r["symbols"],
         "stride": r["stride"],
+        "marketContext": r["context"],
         "split": r["split"],
         "rows": {"validation": int(len(r["va"])), "test": int(len(r["te"]))},
         "chosenFloor": floor,
