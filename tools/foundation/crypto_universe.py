@@ -45,6 +45,21 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 OUT = ROOT / "data" / "foundation" / "dataset" / "crypto_universe.json"
 VENUE_MAP = ROOT / "data" / "foundation" / "dataset" / "crypto_venue_map.json"
 
+#: How far two venues' quotes for the "same" ticker may sit apart before they are judged to be
+#: two different assets.
+#:
+#: **This is not a tolerance, it is an identity test.** A ticker is not a unique identifier across
+#: exchanges: `ELON` is 2.8e-08 on MEXC and 0.049 on Gate, `QI` is 0.0022 on Binance and 0.00022
+#: on MEXC, `WXT` differs by a factor of forty. Those are not disagreements about a price, they
+#: are different tokens that happen to share three letters.
+#:
+#: Treating them as one coin is not a display bug. `lib/cryptoBars.ts` falls through the venues in
+#: `on` to patch a gap, so a hole in one token's five-minute history would be filled with another
+#: token's bars -- a window that is structurally perfect and describes two different assets, which
+#: scores and returns a number. Five percent is wide enough that two honest books on a thin coin
+#: still match and narrow enough that nothing above has a chance of passing.
+VENUE_IDENTITY_TOLERANCE = 0.05
+
 #: How far a second source's USD price may sit from the venue's before the match is refused.
 #:
 #: Ten percent. Wide enough that a quote taken seconds apart on a volatile coin still matches, and
@@ -219,7 +234,9 @@ def main() -> int:
     bases = sorted(set(b) | set(m) | set(g))
     assets = []
     stats = {"binance": 0, "mexc": 0, "gate": 0, "withMarketCap": 0,
-             "priceChecked": 0, "priceDisagreed": 0}
+             "priceChecked": 0, "priceDisagreed": 0,
+             "venuesDroppedAsDifferentAsset": 0, "servingVenueReassigned": 0}
+    excluded: list[dict] = []
     for base in bases:
         # Binance first: its klines are the only free ones carrying taker-buy volume and a trade
         # count, and a coin served from anywhere else imputes four of the forty-one features.
@@ -229,9 +246,49 @@ def main() -> int:
             venue, inst, price = "mexc", m[base]["pair"], m[base]["price"]
         else:
             venue, inst, price = "gate", g[base]["pair"], g[base]["price"]
-        stats[venue] += 1
 
         cand, diff = match(base, price, caps.get(base.upper(), []))
+
+        # Which venues are quoting *this* asset, as opposed to a different one with the same
+        # ticker. Decided against the third source where its ticker is unambiguous, and against
+        # the serving venue otherwise.
+        listed = {k: v[base]["price"] for k, v in (("binance", b), ("mexc", m), ("gate", g))
+                  if base in v}
+        reference = cand["price"] if cand else price
+        same, different = {}, {}
+        for k, v in (("binance", b), ("mexc", m), ("gate", g)):
+            if base not in v:
+                continue
+            q = v[base]["price"]
+            if reference and q and abs(q - reference) / reference <= VENUE_IDENTITY_TOLERANCE:
+                same[k] = v[base]["pair"]
+            elif q is None:
+                # No quote to judge on. Kept only when it is the venue we are serving from, so an
+                # unquoted mirror can never be used to patch a gap it cannot be checked against.
+                (same if k == venue else different)[k] = v[base]["pair"]
+            else:
+                different[k] = v[base]["pair"]
+
+        if different:
+            stats["venuesDroppedAsDifferentAsset"] += len(different)
+            excluded.append({
+                "ticker": base,
+                "servedBy": venue,
+                "kept": sorted(same),
+                "dropped": {k: {"pair": pr, "price": listed.get(k)} for k, pr in different.items()},
+                "reference": reference,
+                "referenceFrom": "coinpaprika" if cand else venue,
+            })
+
+        # If the serving venue is the one that disagreed, serve from a venue that did not.
+        if venue not in same and same:
+            for k in ("binance", "mexc", "gate"):
+                if k in same:
+                    venue, inst = k, same[k]
+                    price = listed.get(k)
+                    stats["servingVenueReassigned"] += 1
+                    break
+        stats[venue] += 1
         if diff is not None:
             stats["priceChecked"] += 1
             if cand is None:
@@ -240,9 +297,9 @@ def main() -> int:
             stats["withMarketCap"] += 1
 
         known = registry.get(base)
-        # Every venue the coin is on, so the bar fetcher can fall past one that is down.
-        on = {k: v[base]["pair"] for k, v in (("binance", b), ("mexc", m), ("gate", g))
-              if base in v}
+        # Every venue quoting *this* asset, so the bar fetcher can fall past one that is down --
+        # and only those, so it can never fall through to a different token's bars.
+        on = same or {venue: inst}
         assets.append({
             "ticker": base,
             # A registry coin keeps its CoinPaprika slug so every existing link still works; a
@@ -269,6 +326,8 @@ def main() -> int:
                 "a ticker shared by two coins gets no figure rather than the wrong one.",
         "coins": len(assets),
         "stats": stats,
+        "venueIdentityTolerancePct": VENUE_IDENTITY_TOLERANCE * 100,
+        "differentAssetSharingATicker": excluded,
         "assets": assets,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
@@ -278,6 +337,12 @@ def main() -> int:
     print(f"  venues: {stats['binance']} binance, {stats['mexc']} mexc, {stats['gate']} gate")
     print(f"  market caps on {stats['withMarketCap']}; price checked on {stats['priceChecked']}, "
           f"{stats['priceDisagreed']} refused for disagreeing")
+    print(f"  {stats['venuesDroppedAsDifferentAsset']} venue listings dropped as a different "
+          f"asset sharing a ticker, across {len(excluded)} tickers; "
+          f"{stats['servingVenueReassigned']} coins reassigned to a venue that agreed")
+    for e in excluded[:10]:
+        print(f"    {e['ticker']:<10} serve {e['servedBy']:<8} keep {','.join(e['kept']) or '-':<16} "
+              f"drop {','.join(e['dropped'])}")
     return 0
 
 
