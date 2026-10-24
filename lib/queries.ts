@@ -728,9 +728,16 @@ export async function getRecentMarketNews(days = 7, take = 240) {
 /// — `jobs/lineage.py` assigns it, and making it a foreign key would mean a migration to read a
 /// count. So the stories the window actually references are fetched by id and attached here.
 /// Two round trips against a free-tier endpoint is the cheaper of the two prices.
-export async function getTopNews(assetId: string, take = 12) {
+export async function getTopNews(assetId: string, take = 12, maxAgeDays?: number) {
+  // `maxAgeDays` is opt-in so nothing that already calls this changes behaviour. The crypto coin
+  // page passes seven: a fortnight-old headline beside a fifteen-minute direction is not context,
+  // it is clutter that makes the fresh items harder to find.
+  const since =
+    maxAgeDays === undefined
+      ? undefined
+      : new Date(Date.now() - maxAgeDays * 24 * 60 * 60 * 1000);
   const items = await prisma.news.findMany({
-    where: { assetId },
+    where: since ? { assetId, publishedAt: { gte: since } } : { assetId },
     orderBy: { publishedAt: "desc" },
     take,
     select: {

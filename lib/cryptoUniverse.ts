@@ -14,21 +14,37 @@
 // `inRegistry` is on every row so a page can tell the two apart rather than discovering the
 // difference by finding a null.
 
-import raw from "@/data/foundation/dataset/binance_universe.json";
+import raw from "@/data/foundation/dataset/crypto_universe.json";
 
 export interface UniverseCoin {
-  pair: string;
   ticker: string;
   slug: string;
   name: string;
+  /// The venue that serves this coin's bars first. Binance wherever it is listed, because it is
+  /// the only free source carrying taker-buy volume and a trade count.
+  venue: "binance" | "mexc" | "gate";
+  /// That venue's own name for the pair. `BTCUSDT` on Binance and MEXC, `BTC_USDT` on Gate.
+  instrument: string;
+  /// Every venue that lists it, so the bar fetcher can fall past one that is down.
+  on: { binance?: string; mexc?: string; gate?: string };
   inRegistry: boolean;
+  /// From CoinPaprika, attached only where its USD price agreed with the venue's. Null is an
+  /// absence -- a ticker shared by two coins gets no figure rather than the wrong one.
+  marketCap: number | null;
+  rank: number | null;
+  /// CoinPaprika's own id for the matched coin, which is also where its logo lives. Null where no
+  /// match was made, and the pages draw a lettered placeholder rather than a broken image.
+  paprikaId: string | null;
+  /// How far the second source's price sat from the venue's, in percent. The cross-venue audit:
+  /// a drifted feed or a stale pair shows up here as a number.
+  priceDisagreementPct: number | null;
 }
 
 interface Doc {
   generatedAt: string;
-  venue: string;
+  venues: string;
   coins: number;
-  inRegistry: number;
+  stats: Record<string, number>;
   assets: UniverseCoin[];
 }
 
@@ -37,7 +53,8 @@ const DOC = raw as unknown as Doc;
 export const UNIVERSE: readonly UniverseCoin[] = DOC.assets;
 export const UNIVERSE_GENERATED_AT = DOC.generatedAt;
 export const UNIVERSE_SIZE = DOC.coins;
-export const UNIVERSE_IN_REGISTRY = DOC.inRegistry;
+export const UNIVERSE_STATS = DOC.stats;
+export const UNIVERSE_VENUES = DOC.venues;
 
 const BY_SLUG = new Map(DOC.assets.map((a) => [a.slug, a]));
 
@@ -45,12 +62,18 @@ export function universeCoin(slug: string): UniverseCoin | null {
   return BY_SLUG.get(slug) ?? null;
 }
 
-/// The Binance pair for a slug, from the committed universe and never derived.
+/// Every venue instrument for a slug, from the committed universe and never derived.
 ///
-/// Deriving it -- uppercase the slug, append USDT -- is wrong for every registry coin whose slug
+/// Deriving one -- uppercase the slug, append USDT -- is wrong for every registry coin whose slug
 /// is CoinPaprika's (`fetch-ai` is FET, `pol-polygon-ecosystem-token` is POL) and fails as an HTTP
-/// 400, which on a free endpoint looks exactly like a geo-block. So the mapping is a lookup in a
-/// file a tool wrote from the venue's own instrument list.
-export function pairForSlug(slug: string): string | null {
-  return BY_SLUG.get(slug)?.pair ?? null;
+/// 400, which on a free endpoint looks exactly like a geo-block. And Gate spells the same pair
+/// differently again (`BTC_USDT`). So the mapping is a lookup in a file a tool wrote from each
+/// venue's own instrument list.
+export function instrumentsForSlug(slug: string): {
+  binance: string | null;
+  mexc: string | null;
+  gate: string | null;
+} {
+  const on = BY_SLUG.get(slug)?.on ?? {};
+  return { binance: on.binance ?? null, mexc: on.mexc ?? null, gate: on.gate ?? null };
 }

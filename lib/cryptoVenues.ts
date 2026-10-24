@@ -11,7 +11,7 @@
 // "what can be read for this one", not an absence.
 
 import raw from "@/data/foundation/dataset/crypto_venue_map.json";
-import { pairForSlug } from "@/lib/cryptoUniverse";
+import { instrumentsForSlug } from "@/lib/cryptoUniverse";
 
 export interface VenueRow {
   slug: string;
@@ -52,22 +52,33 @@ export function venueRowFor(slug: string): VenueRow | null {
 
 /// The instruments the bar fetcher should try, in no particular order -- `lib/cryptoBars.ts` owns
 /// the venue order, because that is a property of the venues and not of the coin.
-export function instrumentsFor(slug: string): { binance: string | null; coinbase: string | null; kraken: string | null } {
+export function instrumentsFor(slug: string): {
+  binance: string | null;
+  coinbase: string | null;
+  kraken: string | null;
+  mexc: string | null;
+  gate: string | null;
+} {
   const row = BY_SLUG.get(slug);
-  // A coin outside the registry has no row here and is still perfectly readable: the universe is
-  // the venue's own instrument list, so a pair found there is one Binance is trading right now.
-  // Coinbase and Kraken stay null for those -- their instrument names are not derivable from a
-  // Binance base asset, and guessing one produces a 400 that looks exactly like a geo-block.
-  const fallback = row ? null : pairForSlug(slug);
+  // The registry's map is the authority where it has an entry, and the universe fills in the rest
+  // -- which is now most of the coins. Coinbase and Kraken stay null outside the registry: their
+  // instrument names are not derivable from a base asset, and guessing one produces a 400 that
+  // looks exactly like a geo-block.
+  const u = instrumentsForSlug(slug);
   return {
-    binance: row?.binance ?? fallback,
+    binance: row?.binance ?? u.binance,
     coinbase: row?.coinbase ?? null,
     kraken: row?.kraken ?? null,
+    mexc: u.mexc,
+    gate: u.gate,
   };
 }
 
 /// True when some venue can serve this coin's bars at all.
 export function hasIntradaySource(slug: string): boolean {
   const i = instrumentsFor(slug);
-  return Boolean(i.binance || i.coinbase || i.kraken);
+  // All five. MEXC and Gate were added to the chain and not to this check, which made every coin
+  // only they list answer "no venue in the chain lists this coin" -- on a page that had just
+  // fetched that coin's live price from one of them.
+  return Boolean(i.binance || i.coinbase || i.kraken || i.mexc || i.gate);
 }

@@ -65,7 +65,7 @@ interface Venue {
   name: string;
   /// Which order book this is. Two hosts serving one exchange share a family, so a gap is never
   /// "patched" from a mirror of the series that already has the gap.
-  family: "binance" | "kraken" | "coinbase";
+  family: "binance" | "kraken" | "coinbase" | "mexc" | "gate";
   /// Null when this venue cannot serve this instrument or this interval at all.
   url: (instrument: string, interval: Interval, limit: number) => string | null;
   parse: (payload: unknown, interval: Interval) => RawBar[];
@@ -201,10 +201,84 @@ const KRAKEN: Venue = {
   imputes: ["tbi1", "tbi12", "tbi48"],
 };
 
+
+/// MEXC. 1,458 USDT pairs, about a thousand of which Binance does not list.
+///
+/// The klines payload is Binance's first six fields in the same order with a different tail, so
+/// the parse is nearly the same -- and what the tail is missing is the point: MEXC publishes no
+/// taker-buy volume and no trade count, so four of the forty-one features are imputed and a
+/// forecast served from here is marked degraded. That is the honest trade for a coin that is
+/// otherwise unreachable: a degraded direction on a named basis, or no direction at all.
+const MEXC: Venue = {
+  name: "MEXC",
+  family: "mexc",
+  url: (sym, interval, limit) =>
+    `https://api.mexc.com/api/v3/klines?symbol=${encodeURIComponent(sym)}` +
+    `&interval=${interval === "5m" ? "5m" : "4h"}&limit=${Math.min(limit, 1000)}`,
+  parse: (payload) => {
+    if (!Array.isArray(payload)) return [];
+    return payload.map((k) => {
+      const a = k as unknown[];
+      const v = num(a[5]);
+      return {
+        ts: num(a[0]),
+        o: num(a[1]),
+        h: num(a[2]),
+        l: num(a[3]),
+        c: num(a[4]),
+        v,
+        closeMs: num(a[6]),
+        n: 0,
+        tb: v / 2,
+      };
+    });
+  },
+  imputes: ["tbi1", "tbi12", "tbi48", "tsz48"],
+};
+
+/// Gate. 1,604 tradeable USDT pairs and the widest tail of the three.
+///
+/// Its candlestick row is **not** in the order every other venue uses -- it is
+/// `[seconds, quoteVolume, close, high, low, open, baseVolume, windowClosed]`, with the close
+/// before the high and the open fifth. Read positionally against a Binance-shaped parser it
+/// yields a series that is structurally valid and completely wrong, which is the kind of fault
+/// that produces a plausible forecast rather than an error. The order is written out here so the
+/// next reader does not have to rediscover it.
+const GATE: Venue = {
+  name: "Gate",
+  family: "gate",
+  url: (pair, interval, limit) =>
+    `https://api.gateio.ws/api/v4/spot/candlesticks?currency_pair=${encodeURIComponent(pair)}` +
+    `&interval=${interval === "5m" ? "5m" : "4h"}&limit=${Math.min(limit, 1000)}`,
+  parse: (payload, interval) => {
+    if (!Array.isArray(payload)) return [];
+    const step = STEP_MS[interval];
+    return payload.map((k) => {
+      const a = k as unknown[];
+      const ts = num(a[0]) * 1000;
+      const v = num(a[6]);
+      return {
+        ts,
+        o: num(a[5]),
+        h: num(a[3]),
+        l: num(a[4]),
+        c: num(a[2]),
+        v,
+        closeMs: ts + step,
+        n: 0,
+        tb: v / 2,
+      };
+    });
+  },
+  imputes: ["tbi1", "tbi12", "tbi48", "tsz48"],
+};
+
 export interface Instruments {
   binance: string | null;
   coinbase: string | null;
   kraken: string | null;
+  mexc: string | null;
+  gate: string | null;
 }
 
 /// The venue order for an instrument: depth first, then whatever can fill a hole.
@@ -219,6 +293,12 @@ function chainFor(inst: Instruments): { venue: Venue; instrument: string }[] {
   if (inst.binance) out.push({ venue: BINANCE_VISION, instrument: inst.binance });
   if (inst.kraken) out.push({ venue: KRAKEN, instrument: inst.kraken });
   if (inst.coinbase) out.push({ venue: COINBASE, instrument: inst.coinbase });
+  // MEXC and Gate last, and only for the coins the three above do not carry at all -- which is
+  // about 1,800 of the 2,324 in the universe. Neither publishes order flow, so a window from
+  // either imputes four features and is marked degraded; that is why they sit below the venues
+  // that do rather than above them on breadth.
+  if (inst.mexc) out.push({ venue: MEXC, instrument: inst.mexc });
+  if (inst.gate) out.push({ venue: GATE, instrument: inst.gate });
   return out;
 }
 

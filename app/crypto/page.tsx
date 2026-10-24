@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { CoinTable, type Row } from "@/components/CoinTable";
+import { TrendingCoins } from "@/components/TrendingCoins";
+import { trending } from "@/lib/cryptoTrending";
 import { compactUsd, marketTable } from "@/lib/cryptoMarket";
 import {
   UNIVERSE_GENERATED_AT,
-  UNIVERSE_IN_REGISTRY,
   UNIVERSE_SIZE,
+  UNIVERSE_STATS,
+  UNIVERSE_VENUES,
 } from "@/lib/cryptoUniverse";
 
 /// The crypto market, as a table.
@@ -36,6 +39,9 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 export default async function Page() {
   const m = await marketTable();
+  // Chosen from the rows already in hand, so this costs ten sparkline fetches and no second pass
+  // over the market.
+  const hot = await trending(m.coins).catch(() => []);
   // The numbers go across raw and the table formats them. It has to anyway -- the prices it
   // repaints every two seconds arrive as numbers -- and two formatters would be two roundings.
   const rows: Row[] = m.coins.map((c) => ({
@@ -69,7 +75,11 @@ export default async function Page() {
         />
       </div>
 
-      <div className="mt-4">
+      <div className="mt-6">
+        <TrendingCoins coins={hot} />
+      </div>
+
+      <div className="mt-6">
         <CoinTable rows={rows} />
       </div>
 
@@ -89,12 +99,13 @@ export default async function Page() {
       ) : null}
 
       <p className="text-muted-foreground mt-2 text-xs">
-        {UNIVERSE_SIZE} coins the venue trades, every one of which can be asked for a direction.{" "}
-        {UNIVERSE_IN_REGISTRY} of them also carry a market capitalisation, daily history and the
-        rule table&apos;s reading; the other {UNIVERSE_SIZE - UNIVERSE_IN_REGISTRY} have a price, a
-        change and a direction, and their capitalisation column is an em dash because nothing here
-        knows it. Shares above are of the coins listed here, not of the whole market. Instrument
-        list checked {UNIVERSE_GENERATED_AT.slice(0, 10)}. Research, not advice.
+        {UNIVERSE_SIZE.toLocaleString()} coins across {UNIVERSE_VENUES.toLowerCase()}, every
+        one of which can be asked for a direction. {UNIVERSE_STATS.withMarketCap?.toLocaleString()}{" "}
+        carry a market capitalisation, matched to a second source only where its price agreed with
+        the venue&apos;s to within 10% — {UNIVERSE_STATS.priceDisagreed} were refused for
+        disagreeing, and an em dash in that column is an absence rather than a zero. Shares above
+        are of the coins listed here, not of the whole market. Instrument lists checked{" "}
+        {UNIVERSE_GENERATED_AT.slice(0, 10)}. Research, not advice.
       </p>
     </main>
   );

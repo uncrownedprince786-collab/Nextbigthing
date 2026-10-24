@@ -96,18 +96,9 @@ interface Ticker {
   low: number;
 }
 
-/// The ticker a coin is known by, from its venue pair with the quote currency removed.
-///
-/// `BTCUSDT` -> `BTC`. Read from the pair rather than the slug because the slug is CoinPaprika's
-/// and does not always agree -- `fetch-ai` is FET, `pol-polygon-ecosystem-token` is POL -- and a
-/// table that prints a symbol nobody trades under is a table a reader cannot search.
-function tickerOf(slug: string, pair: string | null): string {
-  if (pair) return pair.replace(/(USDT|USDC|USD|BUSD)$/, "") || pair;
-  const head = slug.split("-")[0];
-  return head.toUpperCase();
-}
-
-const HOST = "https://data-api.binance.vision";
+const BINANCE = "https://data-api.binance.vision";
+const MEXC = "https://api.mexc.com";
+const GATE = "https://api.gateio.ws";
 
 /// A value fetched at most once per TTL per process, with concurrent callers sharing one flight.
 ///
@@ -143,63 +134,93 @@ function memoised<T>(ttlMs: number, load: () => Promise<T>): () => Promise<T> {
 
 
 
-/// Every pair's 24-hour statistics, in one request, cached.
+/// Every venue's 24-hour statistics, in one request each, cached and merged.
 ///
-/// **Why the whole exchange and not the 515 we want.** Naming the symbols produces a URL of about
-/// seven kilobytes, and Binance answers that with `414 Request-URI Too Large` -- so the filtered
-/// form silently returned nothing the moment the universe grew past the registry. The unfiltered
-/// call is one request for about 1,400 pairs; the ones we do not list are dropped on parse, which
-/// costs a loop and no round trips.
+/// Keyed by `venue:instrument`, because the same coin is `BTCUSDT` on two venues and `BTC_USDT`
+/// on the third, and a map keyed on the bare pair would have Gate silently overwriting Binance.
 ///
-/// `type=MINI` halves the payload (1.0 MB against 1.9 MB) by omitting the bid/ask book and the
-/// weighted average, none of which is printed anywhere. `priceChangePercent` goes with it, so the
-/// change is computed from `lastPrice` against `openPrice`, which is the same arithmetic Binance
-/// was doing.
+/// **Why the whole exchange and not the pairs we want.** Naming 515 symbols produces a URL of
+/// about seven kilobytes and Binance answers it with `414 Request-URI Too Large` -- so the
+/// filtered form silently returned nothing the moment the universe grew. The unfiltered calls are
+/// one request per venue for every pair it lists; the ones we do not list are dropped on parse,
+/// which costs a loop and no round trips.
 ///
-/// Fifteen seconds of shared cache in front of it. A page render and the next hundred renders
-/// become one upstream call, which is what keeps a 515-row table from being 515 rows of latency;
-/// the per-second freshness a reader sees comes from `livePrices` below, which is a tenth of the
-/// bytes and is cached for two.
+/// `type=MINI` halves Binance's payload by omitting the bid/ask book and the weighted average,
+/// none of which is printed anywhere. `priceChangePercent` goes with it, so the change is
+/// computed from `lastPrice` against `openPrice` -- the same arithmetic Binance was doing.
 ///
-/// Returns an empty map rather than throwing. A market table that renders without a 24-hour
-/// column is a worse page; one that 500s because a public endpoint rate-limited us is not a page.
+/// A venue that does not answer contributes nothing and the other two still render. One exchange
+/// being unreachable should cost a reader the coins only that exchange lists, not the page.
 const tickerSnapshot = memoised(12_000, async (): Promise<Map<string, Ticker>> => {
   const out = new Map<string, Ticker>();
-  try {
-    const res = await fetch(`${HOST}/api/v3/ticker/24hr?type=MINI`, {
-      headers: { "User-Agent": "nextbigthing" },
-      next: { revalidate: 15 },
-      signal: AbortSignal.timeout(12000),
+  const put = (venue: string, inst: string, last: number, open: number,
+               high: number, low: number, quoteVolume: number) => {
+    if (!Number.isFinite(last) || last <= 0) return;
+    out.set(`${venue}:${inst}`, {
+      lastPrice: last,
+      changePct: Number.isFinite(open) && open > 0 ? (last / open - 1) * 100 : NaN,
+      quoteVolume,
+      change: Number.isFinite(open) ? last - open : NaN,
+      high,
+      low,
     });
-    if (!res.ok) return out;
-    const body: unknown = await res.json();
-    if (!Array.isArray(body)) return out;
-    for (const r of body) {
-      const t = r as Record<string, unknown>;
-      const sym = typeof t.symbol === "string" ? t.symbol : null;
-      const last = Number(t.lastPrice);
-      const open = Number(t.openPrice);
-      if (!sym || !Number.isFinite(last) || last <= 0) continue;
-      out.set(sym, {
-        lastPrice: last,
-        changePct: Number.isFinite(open) && open > 0 ? (last / open - 1) * 100 : NaN,
-        quoteVolume: Number(t.quoteVolume),
-        change: Number.isFinite(open) ? last - open : NaN,
-        high: Number(t.highPrice),
-        low: Number(t.lowPrice),
+  };
+
+  const grab = async (url: string): Promise<unknown[]> => {
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": "nextbigthing" },
+        next: { revalidate: 15 },
+        signal: AbortSignal.timeout(12000),
       });
+      if (!res.ok) return [];
+      const body: unknown = await res.json();
+      return Array.isArray(body) ? body : [];
+    } catch {
+      return [];
     }
-  } catch {
-    // Named as an absence by the caller (`venueOk`), never as a zero.
-    return out;
+  };
+
+  const [bin, mex, gat] = await Promise.all([
+    grab(`${BINANCE}/api/v3/ticker/24hr?type=MINI`),
+    grab(`${MEXC}/api/v3/ticker/24hr`),
+    grab(`${GATE}/api/v4/spot/tickers`),
+  ]);
+
+  for (const r of bin) {
+    const x = r as Record<string, unknown>;
+    if (typeof x.symbol !== "string") continue;
+    put("binance", x.symbol, Number(x.lastPrice), Number(x.openPrice),
+        Number(x.highPrice), Number(x.lowPrice), Number(x.quoteVolume));
+  }
+  for (const r of mex) {
+    const x = r as Record<string, unknown>;
+    if (typeof x.symbol !== "string") continue;
+    put("mexc", x.symbol, Number(x.lastPrice), Number(x.openPrice),
+        Number(x.highPrice), Number(x.lowPrice), Number(x.quoteVolume));
+  }
+  for (const r of gat) {
+    const x = r as Record<string, unknown>;
+    if (typeof x.currency_pair !== "string") continue;
+    // Gate publishes the change as a percentage and no open, so the open is reconstructed from
+    // the pair it does publish. Same number, arrived at from the other side.
+    const last = Number(x.last);
+    const pct = Number(x.change_percentage);
+    const open = Number.isFinite(pct) && 1 + pct / 100 > 0 ? last / (1 + pct / 100) : NaN;
+    put("gate", x.currency_pair, last, open, Number(x.high_24h), Number(x.low_24h),
+        Number(x.quote_volume));
   }
   return out;
 });
 
-/// The 24-hour snapshot. Takes no arguments: the call is unfiltered and the whole exchange comes
-/// back, so there is nothing to pass.
+/// The 24-hour snapshot across every venue, keyed `venue:instrument`.
 async function bulkTicker(): Promise<Map<string, Ticker>> {
   return tickerSnapshot();
+}
+
+/// This coin's row out of that snapshot, from whichever venue serves it.
+function tickerOf(u: { venue: string; instrument: string }, m: Map<string, Ticker>) {
+  return m.get(`${u.venue}:${u.instrument}`);
 }
 
 /// Every coin the venue trades, ranked, with a live price and whatever the registry knows.
@@ -244,7 +265,7 @@ export async function marketTable(): Promise<MarketTable> {
 
   const built: CoinRow[] = UNIVERSE.map((u) => {
     const r = stored.get(u.slug);
-    const t = tickers.get(u.pair);
+    const t = tickerOf(u, tickers);
     const price = t?.lastPrice ?? r?.lastClose ?? null;
     // Seven days is measured from whichever price is being shown, so the column is consistent with
     // the one beside it. Comparing a live price against a stored close is the right comparison --
@@ -263,7 +284,9 @@ export async function marketTable(): Promise<MarketTable> {
       priceAt: t ? "venue" : (r?.lastClose ?? null) !== null ? "close" : null,
       change24h: t && Number.isFinite(t.changePct) ? t.changePct : null,
       change7d: week,
-      marketCap: r?.marketCap ?? null,
+      // The universe's figure first: it covers 1,186 coins against the registry's 76, and it
+      // was only attached where a second source's price agreed with the venue's.
+      marketCap: u.marketCap ?? r?.marketCap ?? null,
       volume24h: t && Number.isFinite(t.quoteVolume) ? t.quoteVolume : null,
       // Every coin in the universe has klines by construction, so every one can be asked for a
       // direction.
@@ -329,7 +352,7 @@ export interface CoinSnapshot {
 export async function coinSnapshot(slug: string): Promise<CoinSnapshot | null> {
   const u = universeCoin(slug);
   const row = VENUE_ROWS.find((v) => v.slug === slug) ?? null;
-  const pair = row?.binance ?? u?.pair ?? null;
+  const pair = row?.binance ?? u?.on.binance ?? u?.instrument ?? null;
   if (!row && !u) return null;
 
   // The typed client, not `$queryRaw`. The slug here is a URL path segment -- the one piece of
@@ -367,7 +390,7 @@ export async function coinSnapshot(slug: string): Promise<CoinSnapshot | null> {
   // added, and `assetId` is empty so the caller knows there is nothing to record against.
   if (!found) {
     if (!u) return null;
-    const t0 = tickers.get(u.pair);
+    const t0 = tickerOf(u, tickers);
     return {
       assetId: "",
       slug: u.slug,
@@ -380,7 +403,7 @@ export async function coinSnapshot(slug: string): Promise<CoinSnapshot | null> {
       high24h: t0 && Number.isFinite(t0.high) ? t0.high : null,
       low24h: t0 && Number.isFinite(t0.low) ? t0.low : null,
       volume24h: t0 && Number.isFinite(t0.quoteVolume) ? t0.quoteVolume : null,
-      marketCap: null,
+      marketCap: u.marketCap,
       closeDate: null,
       tradable: true,
       inRegistry: false,
@@ -395,12 +418,15 @@ export async function coinSnapshot(slug: string): Promise<CoinSnapshot | null> {
     lastDate: newest?.date ?? null,
     marketCap: newest?.marketCap ?? null,
   };
-  const t = pair ? tickers.get(pair) : undefined;
+  // A registry coin is still looked up through the universe, because the universe knows which
+  // venue is actually serving it -- the registry only ever recorded a Binance pair, and a coin
+  // Binance has since delisted is served from MEXC or Gate now.
+  const t = u ? tickerOf(u, tickers) : undefined;
   return {
     assetId: a.id,
     slug: a.symbol,
     name: a.name,
-    ticker: tickerOf(a.symbol, pair),
+    ticker: u?.ticker ?? a.symbol.split("-")[0].toUpperCase(),
     price: t?.lastPrice ?? a.lastClose ?? null,
     priceAt: t ? "venue" : a.lastClose !== null ? "close" : null,
     change24h: t && Number.isFinite(t.changePct) ? t.changePct : null,
@@ -408,9 +434,9 @@ export async function coinSnapshot(slug: string): Promise<CoinSnapshot | null> {
     high24h: t && Number.isFinite(t.high) ? t.high : null,
     low24h: t && Number.isFinite(t.low) ? t.low : null,
     volume24h: t && Number.isFinite(t.quoteVolume) ? t.quoteVolume : null,
-    marketCap: a.marketCap ?? null,
+    marketCap: u?.marketCap ?? a.marketCap ?? null,
     closeDate: a.lastDate ?? null,
-    tradable: Boolean(pair || (row && (row.coinbase || row.kraken))),
+    tradable: Boolean(pair || u || (row && (row.coinbase || row.kraken))),
     inRegistry: true,
   };
 }
@@ -428,23 +454,35 @@ export interface LivePrice {
 /// slug it is looking at and should not have to carry the venue map to use this.
 const priceSnapshot = memoised(1500, async (): Promise<Map<string, number>> => {
   const m = new Map<string, number>();
-  try {
-    const res = await fetch(`${HOST}/api/v3/ticker/price`, {
-      headers: { "User-Agent": "nextbigthing" },
-      next: { revalidate: 2 },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return m;
-    const body: unknown = await res.json();
-    if (!Array.isArray(body)) return m;
-    for (const r of body) {
+  const grab = async (url: string): Promise<unknown[]> => {
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": "nextbigthing" },
+        next: { revalidate: 2 },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) return [];
+      const body: unknown = await res.json();
+      return Array.isArray(body) ? body : [];
+    } catch {
+      return [];
+    }
+  };
+  // The last trade only. Binance and MEXC publish a price-only endpoint that is a fraction of the
+  // 24-hour payload, which is what makes a two-second poll affordable; Gate has no equivalent, so
+  // its prices come from the twelve-second snapshot and are at most that old. Said here rather
+  // than hidden, because "live" meaning two different things on one page should be written down.
+  const [bin, mex] = await Promise.all([
+    grab(`${BINANCE}/api/v3/ticker/price`),
+    grab(`${MEXC}/api/v3/ticker/price`),
+  ]);
+  for (const [venue, rows] of [["binance", bin], ["mexc", mex]] as const) {
+    for (const r of rows) {
       const row = r as Record<string, unknown>;
       const sym = typeof row.symbol === "string" ? row.symbol : null;
       const v = Number(row.price);
-      if (sym && Number.isFinite(v) && v > 0) m.set(sym, v);
+      if (sym && Number.isFinite(v) && v > 0) m.set(`${venue}:${sym}`, v);
     }
-  } catch {
-    return m;
   }
   return m;
 });
@@ -461,8 +499,8 @@ export async function livePrices(): Promise<Record<string, LivePrice>> {
 
   const out: Record<string, LivePrice> = {};
   for (const u of UNIVERSE) {
-    const p = prices.get(u.pair);
-    const s = stats.get(u.pair);
+    const p = prices.get(`${u.venue}:${u.instrument}`);
+    const s = tickerOf(u, stats);
     const last = p ?? s?.lastPrice;
     if (last === undefined) continue;
     out[u.slug] = {

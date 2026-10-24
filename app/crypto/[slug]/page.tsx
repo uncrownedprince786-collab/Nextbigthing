@@ -8,6 +8,7 @@ import { coinPrice, coinSnapshot, compactUsd, signedPct } from "@/lib/cryptoMark
 import { recordForecast } from "@/lib/forecastStore";
 import { servingLane } from "@/lib/cryptoLanes";
 import { STYLES, styleFrom } from "@/lib/tradingStyles";
+import { universeCoin } from "@/lib/cryptoUniverse";
 import { LEVELS_CAVEATS, LEVELS_GENERATED_AT } from "@/lib/cryptoLevels";
 import { getTopNews } from "@/lib/queries";
 import { LiveCoinPrice } from "@/components/LiveCoinPrice";
@@ -67,7 +68,9 @@ export default async function Page({
   const [forecast, news] = await Promise.all([
     horizon ? forecastFor(slug, horizon) : Promise.resolve(null),
     // A venue-only coin has no asset row, so there is no stored news for it and nothing to ask.
-    snap.assetId ? getTopNews(snap.assetId, 8).catch(() => []) : Promise.resolve([]),
+    // Seven days. A fortnight-old headline beside a fifteen-minute direction is clutter
+    // that buries the items a reader could actually act on.
+    snap.assetId ? getTopNews(snap.assetId, 8, 7).catch(() => []) : Promise.resolve([]),
   ]);
   // Recorded only where there is an asset row to key it on. A venue-only coin's forecast is a
   // real forecast and it cannot enter the prospective record, so the page says so rather than
@@ -79,6 +82,10 @@ export default async function Page({
       : { stored: false, why: "this coin is not in the registry, so there is no row to key it on" };
   }
 
+  const u = universeCoin(slug);
+  const logo = u?.paprikaId
+    ? `https://static.coinpaprika.com/coin/${u.paprikaId}/logo.png`
+    : null;
   const href = (q: Record<string, string>) =>
     `/crypto/${encodeURIComponent(slug)}?${new URLSearchParams(q).toString()}`;
 
@@ -93,7 +100,11 @@ export default async function Page({
 
       {/* The price, first and large, because it is what the page is opened for. */}
       <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <h1 className="text-2xl font-semibold">
+        <h1 className="flex items-center gap-2 text-2xl font-semibold">
+          {logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logo} alt="" width={28} height={28} className="h-7 w-7 rounded-full" />
+          ) : null}
           {snap.name} <span className="text-muted-foreground text-base">{snap.ticker}</span>
         </h1>
       </div>
@@ -201,21 +212,47 @@ export default async function Page({
           <ul className="border-border mt-2 divide-y divide-border overflow-hidden rounded-lg border">
             {news.map((n) => (
               <li key={n.id} className="hover:bg-muted/50 px-3 py-2.5">
-                <a href={n.url} target="_blank" rel="noopener noreferrer" className="block">
-                  <div className="text-sm hover:underline">{n.title}</div>
-                  <div className="text-muted-foreground mt-0.5 text-xs">
-                    {n.publisher}
-                    {/* How many desks carried the story, which is the difference between one
-                        outlet's take and something the whole market read. */}
-                    {n.outlets > 1 ? ` and ${n.outlets - 1} more` : ""} ·{" "}
-                    {relativeTime(n.publishedAt)}
-                  </div>
+                <a
+                  href={n.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start gap-3"
+                >
+                  {/* The coin's own logo rather than the article's. The stored rows carry a title,
+                      a url and a publisher and no image, and the honest options were this or a
+                      third-party favicon service -- which would hand a reader's address to a
+                      company they did not ask to talk to, for a 16-pixel picture. */}
+                  {logo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={logo}
+                      alt=""
+                      width={28}
+                      height={28}
+                      loading="lazy"
+                      className="mt-0.5 h-7 w-7 shrink-0 rounded-full"
+                    />
+                  ) : (
+                    <span className="bg-muted text-muted-foreground mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
+                      {snap.ticker.slice(0, 1)}
+                    </span>
+                  )}
+                  <span className="min-w-0">
+                    <span className="block text-sm hover:underline">{n.title}</span>
+                    <span className="text-muted-foreground mt-0.5 block text-xs">
+                      {n.publisher}
+                      {/* How many desks carried the story, which is the difference between one
+                          outlet's take and something the whole market read. */}
+                      {n.outlets > 1 ? ` and ${n.outlets - 1} more` : ""} ·{" "}
+                      {relativeTime(n.publishedAt)}
+                    </span>
+                  </span>
                 </a>
               </li>
             ))}
           </ul>
           <p className="text-muted-foreground mt-2 text-xs">
-            Headlines as published, newest first. Nothing here is read by the model — the
+            The last seven days only, newest first. Nothing here is read by the model — the
             direction above is computed from price and order flow alone, and these are beside it
             rather than behind it.
           </p>
