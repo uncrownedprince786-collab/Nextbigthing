@@ -248,7 +248,7 @@ export async function marketTable(): Promise<MarketTable> {
   // capped at two connections that times out under load. A market table that 500s because a
   // capitalisation column could not be read is a market table nobody can use; one that renders
   // without that column is the same page with one fewer number in it.
-  const [rows, tickers, paprika, weeks] = await Promise.all([
+  const [rows, tickers, paprika, weeks, klineWeeks] = await Promise.all([
     withDeadline(
       prisma.$queryRaw<Row[]>`
       SELECT a.symbol, a.name,
@@ -272,6 +272,7 @@ export async function marketTable(): Promise<MarketTable> {
     bulkTicker(),
     paprikaSnapshot(),
     weekSnapshot(),
+    klineWeek(),
   ]);
 
   // The registry's rows, keyed by slug, merged onto the universe below.
@@ -301,9 +302,11 @@ export async function marketTable(): Promise<MarketTable> {
         ? venueWeek
         : pap?.pct7d !== undefined && pap?.pct7d !== null
           ? pap.pct7d
-          : price !== null && r?.weekAgoClose && r.weekAgoClose > 0
-            ? (price / r.weekAgoClose - 1) * 100
-            : null;
+          : klineWeeks.get(u.slug) !== undefined
+            ? klineWeeks.get(u.slug)!
+            : price !== null && r?.weekAgoClose && r.weekAgoClose > 0
+              ? (price / r.weekAgoClose - 1) * 100
+              : null;
     return {
       rank: 0,
       slug: u.slug,
@@ -603,6 +606,71 @@ const weekSnapshot = memoised(300_000, async (): Promise<Map<string, number>> =>
       // An absence for this batch, never a zero. The chain in `marketTable` falls through.
     }
   }));
+  return out;
+});
+
+/// Seven-day change computed from a coin's own daily candles, for the coins no bulk source covers.
+///
+/// Binance's rolling ticker handles its own 514 instruments in a few calls, and CoinPaprika
+/// covers most of the rest. What was left over were coins listed only on MEXC or Gate that no
+/// tracker indexes -- and the first fix for those was to drop them from the boards, which is
+/// hiding a number rather than finding it. The number is not missing: every coin in the universe
+/// has candles by construction, because that is what put it in the universe.
+///
+/// So this asks the venue for eight daily candles and takes the move across seven of them. One
+/// call per coin, which is why it runs only for the coins still lacking a figure after the two
+/// bulk sources, with a small concurrency limit so a hundred stragglers do not open a hundred
+/// sockets. Ten-minute memo: a seven-day change does not move meaningfully inside ten minutes.
+const klineWeek = memoised(600_000, async (): Promise<Map<string, number>> => {
+  const out = new Map<string, number>();
+  const [binance, paprika] = await Promise.all([weekSnapshot(), paprikaSnapshot()]);
+
+  const need = UNIVERSE.filter((u) => {
+    if (u.on?.binance && binance.has(`binance:${u.on.binance}`)) return false;
+    const pap = u.paprikaId ? paprika.get(u.paprikaId) : undefined;
+    return pap?.pct7d === undefined || pap?.pct7d === null;
+  });
+
+  const one = async (u: (typeof UNIVERSE)[number]): Promise<void> => {
+    const mexc = u.on?.mexc;
+    const gate = u.on?.gate;
+    const url = mexc
+      ? `${MEXC}/api/v3/klines?symbol=${mexc}&interval=1d&limit=8`
+      : gate
+        ? `${GATE}/api/v4/spot/candlesticks?currency_pair=${gate}&interval=1d&limit=8`
+        : null;
+    if (!url) return;
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": "nextbigthing" },
+        next: { revalidate: 600 },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) return;
+      const body: unknown = await res.json();
+      if (!Array.isArray(body) || body.length < 2) return;
+      // Binance-shaped rows put close at index 4. Gate's candlestick row is
+      // [ts, quoteVolume, close, high, low, open, baseVolume, closed] -- close is third, and
+      // reading index 4 there would silently take the low. That transposition has bitten this
+      // repository once already in the bar collector.
+      const closeOf = (row: unknown): number =>
+        Number(Array.isArray(row) ? (mexc ? row[4] : row[2]) : NaN);
+      const first = closeOf(body[0]);
+      const last = closeOf(body[body.length - 1]);
+      if (Number.isFinite(first) && first > 0 && Number.isFinite(last) && last > 0) {
+        out.set(u.slug, (last / first - 1) * 100);
+      }
+    } catch {
+      // One coin's absence, never a zero and never the whole map's.
+    }
+  };
+
+  // Bounded workers rather than Promise.all over the lot: these are two venues that rate-limit.
+  const queue = [...need];
+  const workers = Array.from({ length: 8 }, async () => {
+    for (let u = queue.pop(); u; u = queue.pop()) await one(u);
+  });
+  await Promise.all(workers);
   return out;
 });
 
