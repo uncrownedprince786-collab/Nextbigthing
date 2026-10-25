@@ -835,11 +835,13 @@
     "binance": "AAOIBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 6768530.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "applied-optoelectronics-bstocks-tokenized-stock"
   },
   {
    "ticker": "AAOION",
@@ -867,11 +869,13 @@
     "binance": "AAPLBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5353629.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "apple-bstocks-tokenized-stock"
   },
   {
    "ticker": "AAPLG",
@@ -900,11 +904,13 @@
     "gate": "AAPLON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9800553.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "apple-ondo-tokenized-stock"
   },
   {
    "ticker": "AAPLX",
@@ -1116,11 +1122,13 @@
     "gate": "ABTON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1408401.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "abbott-ondo-tokenized-stock"
   },
   {
    "ticker": "ABTX",
@@ -1234,11 +1242,13 @@
     "mexc": "ACNUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7453179.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "solidus-aitech"
   },
   {
    "ticker": "ACN1",
@@ -1267,11 +1277,13 @@
     "gate": "ACNON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1407292.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "accenture-ondo-tokenized-stock"
   },
   {
    "ticker": "ACNX",
@@ -1705,11 +1717,13 @@
     "binance": "AGPUBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3709891.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "axe-compute-bstocks-tokenized-stock"
   },
   {
    "ticker": "AGRO",
@@ -1787,11 +1801,13 @@
     "gate": "AIA_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7117454.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "aia"
   },
   {
    "ticker": "AIC",
@@ -2003,11 +2019,13 @@
     "gate": "AIR_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1413283.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "airian"
   },
   {
    "ticker": "AIRDROP",
@@ -2152,11 +2170,13 @@
     "mexc": "AKITAUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1149627.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "akita-inu-5"
   },
   {
    "ticker": "AKT",
@@ -2387,11 +2407,13 @@
     "gate": "ALIGN_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 6868443.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "aligned"
   },
   {
    "ticker": "ALKIMI",
@@ -2554,11 +2576,13 @@
     "binance": "AMATBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 8708183.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "applied-materials-bstocks-tokenized-stock"
   },
   {
    "ticker": "AMATG",
@@ -2669,11 +2693,13 @@
     "gate": "AMDON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 8421279.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "amd-ondo-tokenized-stock"
   },
   {
    "ticker": "AME",
@@ -2783,11 +2809,13 @@
     "binance": "AMZNBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3267467.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "amazon-bstocks-tokenized-stock"
   },
   {
    "ticker": "AMZNG",
@@ -2816,11 +2844,13 @@
     "gate": "AMZNON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7126538.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "amazon-ondo-tokenized-stock"
   },
   {
    "ticker": "AMZNX",
@@ -2833,11 +2863,13 @@
     "gate": "AMZNX_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9240289.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "amazon-xstock"
   },
   {
    "ticker": "ANAVI",
@@ -3387,11 +3419,13 @@
     "gate": "ARGUS_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 6481623.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "argus-2"
   },
   {
    "ticker": "ARIA",
@@ -3456,11 +3490,13 @@
     "binance": "ARMBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1786759.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "arm-bstocks-tokenized-stock"
   },
   {
    "ticker": "ARMG",
@@ -3488,11 +3524,13 @@
     "mexc": "ARMONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2872106.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "arm-holdings-plc-ondo-tokenized-stock"
   },
   {
    "ticker": "ARPA",
@@ -3650,11 +3688,13 @@
     "gate": "ASK_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2045809.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "permission-coin"
   },
   {
    "ticker": "ASM",
@@ -3682,11 +3722,13 @@
     "binance": "ASMLBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1190202.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "asml-bstocks-tokenized-stock"
   },
   {
    "ticker": "ASMLON",
@@ -3698,11 +3740,13 @@
     "mexc": "ASMLONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3198288.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "asml-holding-nv-ondo-tokenized-stock"
   },
   {
    "ticker": "ASP",
@@ -3834,11 +3878,13 @@
     "binance": "ASTSBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1805815.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "ast-spacemobile-bstocks-tokenized-stock"
   },
   {
    "ticker": "ASTSON",
@@ -3850,11 +3896,13 @@
     "mexc": "ASTSONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3269480.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "ast-spacemobile-ondo-tokenized"
   },
   {
    "ticker": "AT",
@@ -4271,11 +4319,13 @@
     "gate": "AVGOON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4202874.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "broadcom-ondo-tokenized-stock"
   },
   {
    "ticker": "AVGOX",
@@ -4287,11 +4337,13 @@
     "gate": "AVGOX_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7051411.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "broadcom-xstock"
   },
   {
    "ticker": "AVL",
@@ -4487,11 +4539,13 @@
     "binance": "AXTIBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3024097.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "axt-bstocks-tokenized-stock"
   },
   {
    "ticker": "AXTIG",
@@ -4683,11 +4737,13 @@
     "binance": "BABABUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 8569455.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "alibaba-bstocks-tokenized-stock"
   },
   {
    "ticker": "BABAON",
@@ -4700,11 +4756,13 @@
     "gate": "BABAON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2363606.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "alibaba-ondo-tokenized-stock"
   },
   {
    "ticker": "BABI",
@@ -4815,11 +4873,13 @@
     "gate": "BADGER_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5904522.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": 34.4493,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "badger-dao"
   },
   {
    "ticker": "BAN",
@@ -4921,11 +4981,13 @@
     "mexc": "BAONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1156330.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "boeing-ondo-tokenized-stock"
   },
   {
    "ticker": "BAR",
@@ -5005,11 +5067,13 @@
     "mexc": "BASECATUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9559842.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "basecat"
   },
   {
    "ticker": "BASED",
@@ -5087,11 +5151,13 @@
     "mexc": "BATONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5359708.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "baton-3"
   },
   {
    "ticker": "BATTERY",
@@ -5169,11 +5235,13 @@
     "binance": "BBBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1455243.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "blackberry-bstocks-tokenized-stock"
   },
   {
    "ticker": "BBT",
@@ -5348,11 +5416,13 @@
     "mexc": "BEAMUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1598850.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": 22.2541,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "beam"
   },
   {
    "ticker": "BEAMX",
@@ -5401,11 +5471,13 @@
     "binance": "BEBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4374434.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "bloom-energy-bstocks-tokenized-stock"
   },
   {
    "ticker": "BEEFI",
@@ -5467,11 +5539,13 @@
     "gate": "BELIEVE_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2057362.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "ben-pasternak"
   },
   {
    "ticker": "BELLS",
@@ -5484,11 +5558,13 @@
     "gate": "BELLS_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1272856.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "bellscoin"
   },
   {
    "ticker": "BELONG",
@@ -5532,11 +5608,13 @@
     "mexc": "BEMUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9704478.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "bem-2"
   },
   {
    "ticker": "BEN",
@@ -5960,11 +6038,13 @@
     "gate": "BLD_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3714582.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "agoric"
   },
   {
    "ticker": "BLEND",
@@ -5977,11 +6057,13 @@
     "gate": "BLEND_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9689662.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "fluent-network"
   },
   {
    "ticker": "BLESS",
@@ -6010,11 +6092,13 @@
     "gate": "BLKDIGON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4779862.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "ondo-diversified-growrth-powered-by-blackrock"
   },
   {
    "ticker": "BLKGRWON",
@@ -6026,11 +6110,13 @@
     "gate": "BLKGRWON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7886800.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "ondo-high-growth-powered-by-blackrock"
   },
   {
    "ticker": "BLKHION",
@@ -6042,11 +6128,13 @@
     "gate": "BLKHION_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4357255.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "ondo-high-income-powered-by-blackrock"
   },
   {
    "ticker": "BLKON",
@@ -6058,11 +6146,13 @@
     "mexc": "BLKONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1959661.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "blackrock-inc-ondo-tokenized-stock"
   },
   {
    "ticker": "BLUAI",
@@ -6107,11 +6197,13 @@
     "mexc": "BLUECHIPUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3907050.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "blue-chip-4"
   },
   {
    "ticker": "BLUM",
@@ -6173,11 +6265,13 @@
     "binance": "BMNRBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 10111430.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "bitmine-immersion-technologies-bstocks-tokenized-stock"
   },
   {
    "ticker": "BMNRON",
@@ -6189,11 +6283,13 @@
     "mexc": "BMNRONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 6840065.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "bitmine-immersion-technologies-ondo-tokenized-stocks"
   },
   {
    "ticker": "BMT",
@@ -6344,11 +6440,13 @@
     "gate": "BOBA_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9402125.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "boba-network"
   },
   {
    "ticker": "BOBER",
@@ -6376,11 +6474,13 @@
     "mexc": "BOBOUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4747975.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "bobo-coin-2"
   },
   {
    "ticker": "BOME",
@@ -6480,11 +6580,13 @@
     "gate": "BOOP_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1322073.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "boop-4"
   },
   {
    "ticker": "BORA",
@@ -6512,11 +6614,13 @@
     "mexc": "BORDRUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1548318.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "bordrless"
   },
   {
    "ticker": "BOS",
@@ -6545,11 +6649,13 @@
     "gate": "BOSON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3140808.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "boson-protocol"
   },
   {
    "ticker": "BOTB",
@@ -6644,11 +6750,13 @@
     "gate": "BRAINON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4463602.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "ondo-ai-leaders-portfolio"
   },
   {
    "ticker": "BRETT",
@@ -6694,11 +6802,13 @@
     "mexc": "BREWUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3075408.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "brew"
   },
   {
    "ticker": "BRI",
@@ -7419,11 +7529,13 @@
     "gate": "CAGA_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1402733.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "crypto-asset-governance-alliance"
   },
   {
    "ticker": "CAKE",
@@ -7731,11 +7843,13 @@
     "binance": "CBRSBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5572883.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "cerebras-bstocks-tokenized-stock"
   },
   {
    "ticker": "CBRSG",
@@ -8034,11 +8148,13 @@
     "gate": "CGN_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4669160.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "cygnus-2"
   },
   {
    "ticker": "CGPT",
@@ -8087,11 +8203,13 @@
     "gate": "CHECK_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3184270.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "checkmate-2"
   },
   {
    "ticker": "CHEEL",
@@ -8375,11 +8493,13 @@
     "mexc": "CLAUDIAUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2860803.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "claudia-2"
   },
   {
    "ticker": "CLAUS",
@@ -8391,11 +8511,13 @@
     "mexc": "CLAUSUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3968302.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "claus-2"
   },
   {
    "ticker": "CLND",
@@ -8490,11 +8612,13 @@
     "mexc": "CMC20USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5576290.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "coinmarketcap-20-index-dtf"
   },
   {
    "ticker": "CMCSAX",
@@ -8622,11 +8746,13 @@
     "binance": "COHRBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 8356291.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "coherent-bstocks-tokenized-stock"
   },
   {
    "ticker": "COHRON",
@@ -8638,11 +8764,13 @@
     "mexc": "COHRONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1239630.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "coherent-ondo-tokenized"
   },
   {
    "ticker": "COINB",
@@ -8707,11 +8835,13 @@
     "gate": "COINON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7894269.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "coinbase-ondo-tokenized-stock"
   },
   {
    "ticker": "COINX",
@@ -8872,11 +9002,13 @@
     "mexc": "COPXONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1384552.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "global-x-copper-miners-etf-ondo-tokenized-etf"
   },
   {
    "ticker": "COQ",
@@ -8971,11 +9103,13 @@
     "mexc": "COSTONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1301768.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "costco-ondo-tokenized-stock"
   },
   {
    "ticker": "COTI",
@@ -9548,11 +9682,13 @@
     "binance": "CRWVBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1991867.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "coreweave-bstocks-tokenized-stock"
   },
   {
    "ticker": "CRWVG",
@@ -9631,11 +9767,13 @@
     "gate": "CSCOON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2709420.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "cisco-systems-ondo-tokenized-stock"
   },
   {
    "ticker": "CSCOX",
@@ -9930,11 +10068,13 @@
     "gate": "CVXON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3032926.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "chevron-ondo-tokenized-stock"
   },
   {
    "ticker": "CWAR",
@@ -10509,11 +10649,13 @@
     "mexc": "DEODUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9991258.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "decentrawood"
   },
   {
    "ticker": "DEP",
@@ -10807,11 +10949,13 @@
     "mexc": "DISONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1108666.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "disney-ondo-tokenized-stock"
   },
   {
    "ticker": "DJI6930",
@@ -10839,11 +10983,13 @@
     "binance": "DJTBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1332251.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "trump-media-technology-group-cord-bstocks-tokenized-stock"
   },
   {
    "ticker": "DKA",
@@ -10871,11 +11017,13 @@
     "gate": "DL_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1448732.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "dill"
   },
   {
    "ticker": "DMC",
@@ -11141,11 +11289,13 @@
     "mexc": "DOPEUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3206451.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "doge-pepe-4"
   },
   {
    "ticker": "DOS",
@@ -11242,11 +11392,13 @@
     "mexc": "DRAMONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1972692.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "roundhill-memory-etf-ondo-tokenized"
   },
   {
    "ticker": "DRB",
@@ -11290,11 +11442,13 @@
     "mexc": "DRGUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3916252.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "dragonswap"
   },
   {
    "ticker": "DRIFT",
@@ -11341,11 +11495,13 @@
     "gate": "DSYNC_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 6735277.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "destra-network"
   },
   {
    "ticker": "DTEC",
@@ -11440,11 +11596,13 @@
     "mexc": "DVOUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4090375.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "divo"
   },
   {
    "ticker": "DXCT",
@@ -11874,11 +12032,13 @@
     "mexc": "EMBLEMUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2661820.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "agent-hustle-2"
   },
   {
    "ticker": "EMC",
@@ -12076,11 +12236,13 @@
     "mexc": "EQIXONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1539685.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "equinix-ondo-tokenized-stock"
   },
   {
    "ticker": "EQTY",
@@ -12160,11 +12322,13 @@
     "gate": "ESE_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3201722.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "eesee"
   },
   {
    "ticker": "ESP",
@@ -12466,11 +12630,13 @@
     "binance": "EWYBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9567172.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "ishares-msci-south-korea-etf-bstocks-tokenized-stock"
   },
   {
    "ticker": "EWYG",
@@ -12581,11 +12747,13 @@
     "gate": "FAR_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3013147.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "farcana"
   },
   {
    "ticker": "FARM",
@@ -12746,11 +12914,13 @@
     "gate": "FEG_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2803291.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "feg-token-2"
   },
   {
    "ticker": "FET",
@@ -13082,11 +13252,13 @@
     "mexc": "FLORKUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2759317.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": 85.2674,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "flork-3"
   },
   {
    "ticker": "FLOW",
@@ -13134,11 +13306,13 @@
     "gate": "FLT_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1490160.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "fluence-2"
   },
   {
    "ticker": "FLUID",
@@ -13406,11 +13580,13 @@
     "gate": "FOXSY_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3124654.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "foxsy-ai"
   },
   {
    "ticker": "FOXY",
@@ -13472,11 +13648,13 @@
     "mexc": "FRONGUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2237065.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "frong"
   },
   {
    "ticker": "FRTS",
@@ -13739,11 +13917,13 @@
     "gate": "GAFI_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1236317.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "gamefi"
   },
   {
    "ticker": "GAG",
@@ -14001,11 +14181,13 @@
     "gate": "GEMS_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1273573.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "gems-vip"
   },
   {
    "ticker": "GENIUS",
@@ -14054,11 +14236,13 @@
     "mexc": "GEONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1366629.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "general-electric-ondo-tokenized-stock"
   },
   {
    "ticker": "GEVON",
@@ -14269,11 +14453,13 @@
     "mexc": "GLDONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3655278.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "spdr-gold-shares-ondo-tokenized"
   },
   {
    "ticker": "GLDX",
@@ -14352,11 +14538,13 @@
     "binance": "GLWBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1690359.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "corning-bstocks-tokenized-stock"
   },
   {
    "ticker": "GLWG",
@@ -14432,11 +14620,13 @@
     "binance": "GMEBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 6772227.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "gamestop-bstocks-tokenized-stock"
   },
   {
    "ticker": "GMEE",
@@ -14497,11 +14687,13 @@
     "gate": "GMRT_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5019804.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "gamer-tag"
   },
   {
    "ticker": "GMRX",
@@ -15085,11 +15277,13 @@
     "mexc": "GSTOCKUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5474266.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "gstock"
   },
   {
    "ticker": "GSTOCKBSC",
@@ -15399,11 +15593,13 @@
     "mexc": "HANDLUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1603280.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "handl-pay"
   },
   {
    "ticker": "HANDY",
@@ -15829,11 +16025,13 @@
     "mexc": "HMMUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5390778.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "thinking-cat"
   },
   {
    "ticker": "HMND",
@@ -16045,11 +16243,13 @@
     "binance": "HOODBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5439118.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "robinhood-bstocks-tokenized-stock"
   },
   {
    "ticker": "HOODG",
@@ -16078,11 +16278,13 @@
     "gate": "HOODON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3692626.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "robinhood-markets-ondo-tokenized-stock"
   },
   {
    "ticker": "HOODX",
@@ -16329,11 +16531,13 @@
     "gate": "HTM_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4479060.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "hatom"
   },
   {
    "ticker": "HTR",
@@ -16467,11 +16671,13 @@
     "gate": "IAUON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 6215869.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "ishares-gold-trust-ondo-tokenized-stock"
   },
   {
    "ticker": "IBMB",
@@ -16515,11 +16721,13 @@
     "mexc": "IBMONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2732199.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "ibm-ondo-tokenized-stock"
   },
   {
    "ticker": "IBVM",
@@ -16632,11 +16840,13 @@
     "gate": "IDOS_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2080163.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "idos"
   },
   {
    "ticker": "IEFAON",
@@ -16667,11 +16877,13 @@
     "gate": "IKA_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4827688.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "ika"
   },
   {
    "ticker": "ILV",
@@ -16800,11 +17012,13 @@
     "gate": "INC_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7295067.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": 196.0571,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "world-assets"
   },
   {
    "ticker": "INDEX",
@@ -16816,11 +17030,13 @@
     "mexc": "INDEXUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5267859.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "the-index"
   },
   {
    "ticker": "INIT",
@@ -16953,11 +17169,13 @@
     "binance": "INTWBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3278781.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "graniteshares-2x-long-intc-etf-bstocks-tokenized-stock"
   },
   {
    "ticker": "INTWG",
@@ -17140,11 +17358,13 @@
     "binance": "IRENBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3576348.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "iren-limited-bstocks-tokenized-stock"
   },
   {
    "ticker": "IRENON",
@@ -17156,11 +17376,13 @@
     "mexc": "IRENONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2184477.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "iren-ondo-tokenized-stock"
   },
   {
    "ticker": "IRON",
@@ -17400,11 +17622,13 @@
     "mexc": "JEANPHILUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3371752.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "jean-phil"
   },
   {
    "ticker": "JELLYJELLY",
@@ -17481,11 +17705,13 @@
     "mexc": "JIMOTHYUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1907980.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "jimothy-the-raccoon"
   },
   {
    "ticker": "JMDT",
@@ -17596,11 +17822,13 @@
     "gate": "JPMON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2756775.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "jpmorgan-chase-ondo-tokenized-stock"
   },
   {
    "ticker": "JST",
@@ -17664,11 +17892,13 @@
     "mexc": "JUGGERNAUTUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3579669.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "the-juggernaut"
   },
   {
    "ticker": "JUP",
@@ -17920,11 +18150,13 @@
     "gate": "KDA_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3176657.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": 449.7296,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "kadena"
   },
   {
    "ticker": "KDK",
@@ -17936,11 +18168,13 @@
     "gate": "KDK_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1256920.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "kodiak-finance"
   },
   {
    "ticker": "KDX",
@@ -18036,11 +18270,13 @@
     "binance": "KGSTUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7801926.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "kyrgyz-som-stablecoin"
   },
   {
    "ticker": "KII",
@@ -18086,11 +18322,13 @@
     "mexc": "KIMCHIUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7023283.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "aura-final-boss-2"
   },
   {
    "ticker": "KISHU",
@@ -18239,11 +18477,13 @@
     "gate": "KOMA_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9258529.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "koma-inu"
   },
   {
    "ticker": "KONET",
@@ -18255,11 +18495,13 @@
     "gate": "KONET_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5658954.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "konet"
   },
   {
    "ticker": "KOON",
@@ -18271,11 +18513,13 @@
     "gate": "KOON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4190587.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "coca-cola-ondo-tokenized-stock"
   },
   {
    "ticker": "KORUB",
@@ -18369,11 +18613,13 @@
     "mexc": "KSKDUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4309131.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "kaskad"
   },
   {
    "ticker": "KSM",
@@ -18499,11 +18745,13 @@
     "gate": "KYO_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4701397.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "kyo"
   },
   {
    "ticker": "KYVE",
@@ -18515,11 +18763,13 @@
     "gate": "KYVE_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1997759.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "kyve-network"
   },
   {
    "ticker": "KZEN",
@@ -19133,11 +19383,13 @@
     "gate": "LLYON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5590973.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "eli-lilly-ondo-tokenized-stock"
   },
   {
    "ticker": "LLYX",
@@ -19149,11 +19401,13 @@
     "gate": "LLYX_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1110318.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "eli-lilly-xstock"
   },
   {
    "ticker": "LM",
@@ -19181,11 +19435,13 @@
     "gate": "LMTON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4530900.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "lockheed-ondo-tokenized-stock"
   },
   {
    "ticker": "LMTS",
@@ -19246,11 +19502,13 @@
     "mexc": "LNQUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4164750.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "linqai"
   },
   {
    "ticker": "LOA",
@@ -19360,11 +19618,13 @@
     "gate": "LOULOU_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1734331.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "loulou"
   },
   {
    "ticker": "LPT",
@@ -19744,11 +20004,13 @@
     "gate": "LWP_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1981855.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "lumiwave-protocol"
   },
   {
    "ticker": "LYN",
@@ -19874,11 +20136,13 @@
     "gate": "MAG7XON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 8377436.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "ondo-magnificent-7-and-crypto-portfolio"
   },
   {
    "ticker": "MAGIC",
@@ -20076,11 +20340,13 @@
     "gate": "MAON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1367904.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "mastercard-ondo-tokenized-stock"
   },
   {
    "ticker": "MAP",
@@ -20310,11 +20576,13 @@
     "gate": "MAVIA_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 6262514.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "heroes-of-mavia"
   },
   {
    "ticker": "MAX",
@@ -20495,11 +20763,13 @@
     "mexc": "MCNUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1135326.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "mcncoin"
   },
   {
    "ticker": "MCTP",
@@ -20947,11 +21217,13 @@
     "gate": "MEZO_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3680139.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "mezo"
   },
   {
    "ticker": "MF",
@@ -21075,11 +21347,13 @@
     "gate": "MILO_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1477156.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "milo-inu"
   },
   {
    "ticker": "MIN",
@@ -21125,11 +21399,13 @@
     "mexc": "MINIMAUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2544427.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "minima"
   },
   {
    "ticker": "MINIMAXG",
@@ -21455,11 +21731,13 @@
     "mexc": "MOEWUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1358516.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "moew"
   },
   {
    "ticker": "MOG",
@@ -21505,11 +21783,13 @@
     "mexc": "MOOUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1538870.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "memory-cow-moo"
   },
   {
    "ticker": "MOODENG",
@@ -21690,11 +21970,13 @@
     "binance": "MRNABUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2025391.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "moderna-bstocks-tokenized-stock"
   },
   {
    "ticker": "MRNAON",
@@ -21722,11 +22004,13 @@
     "binance": "MRVLBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7949903.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "marvell-technology-bstocks-tokenized-stock"
   },
   {
    "ticker": "MRVLG",
@@ -21772,11 +22056,13 @@
     "binance": "MSFTBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4037391.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "microsoft-bstocks-tokenized-stock"
   },
   {
    "ticker": "MSFTG",
@@ -21805,11 +22091,13 @@
     "gate": "MSFTON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 8802252.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "microsoft-ondo-tokenized-stock"
   },
   {
    "ticker": "MSOL",
@@ -22090,11 +22378,13 @@
     "gate": "MUSEBOOK_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1302461.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "musebook"
   },
   {
    "ticker": "MUUB",
@@ -22205,11 +22495,13 @@
     "mexc": "MWXTUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9144834.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "mwx-token"
   },
   {
    "ticker": "MX",
@@ -22518,11 +22810,13 @@
     "gate": "NAWS_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2171965.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "naws-ai"
   },
   {
    "ticker": "NBISB",
@@ -22568,11 +22862,13 @@
     "mexc": "NBISONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3824201.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "nebius-group-ondo-tokenized"
   },
   {
    "ticker": "NBLU",
@@ -22616,11 +22912,13 @@
     "gate": "NBT_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2688718.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "nanobyte"
   },
   {
    "ticker": "NC",
@@ -22782,11 +23080,13 @@
     "gate": "NERO_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3802308.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "nero-chain"
   },
   {
    "ticker": "NES",
@@ -22880,11 +23180,13 @@
     "gate": "NETX_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4343280.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "netx"
   },
   {
    "ticker": "NEURO",
@@ -23012,11 +23314,13 @@
     "binance": "NFLXBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2066876.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "netflix-bstocks-tokenized-stock"
   },
   {
    "ticker": "NFLXG",
@@ -23060,11 +23364,13 @@
     "gate": "NFLXX_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2171595.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "netflix-xstock"
   },
   {
    "ticker": "NFP",
@@ -23193,11 +23499,13 @@
     "gate": "NIZA_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1713123.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "niza-global-2"
   },
   {
    "ticker": "NKEON",
@@ -23209,11 +23517,13 @@
     "mexc": "NKEONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1178432.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "nike-ondo-tokenized-stock"
   },
   {
    "ticker": "NKN",
@@ -23241,11 +23551,13 @@
     "mexc": "NLSUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3160941.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "nolus"
   },
   {
    "ticker": "NMR",
@@ -23326,11 +23638,13 @@
     "binance": "NOKBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2370304.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "nokia-bstocks-tokenized-stock"
   },
   {
    "ticker": "NOKON",
@@ -23427,11 +23741,13 @@
     "mexc": "NOWONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1799725.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "servicenow-ondo-tokenized-stock"
   },
   {
    "ticker": "NPC",
@@ -23589,11 +23905,13 @@
     "gate": "NUMI_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9088565.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "numine-token"
   },
   {
    "ticker": "NUTS",
@@ -23707,11 +24025,13 @@
     "mexc": "NVOONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2120076.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "novo-nordisk-ondo-tokenized-stock"
   },
   {
    "ticker": "NXPC",
@@ -23874,11 +24194,13 @@
     "gate": "OBT_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1895934.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "orbiter-finance"
   },
   {
    "ticker": "OCTA",
@@ -23924,11 +24246,13 @@
     "mexc": "OFTUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5169563.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "onfa"
   },
   {
    "ticker": "OG",
@@ -24499,11 +24823,13 @@
     "binance": "ORCLBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5284375.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "oracle-bstocks-tokenized-stock"
   },
   {
    "ticker": "ORCLG",
@@ -24531,11 +24857,13 @@
     "mexc": "ORCLONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3956058.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "oracle-ondo-tokenized-stock"
   },
   {
    "ticker": "ORDER",
@@ -24877,11 +25205,13 @@
     "mexc": "P2PUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2292829.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "sentinel"
   },
   {
    "ticker": "PAAL",
@@ -24926,11 +25256,13 @@
     "gate": "PACK_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4055724.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "hashpack"
   },
   {
    "ticker": "PACT",
@@ -24942,11 +25274,13 @@
     "gate": "PACT_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 6010053.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "pact-2"
   },
   {
    "ticker": "PAID",
@@ -24974,11 +25308,13 @@
     "mexc": "PAIRUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1204943.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "pair"
   },
   {
    "ticker": "PAL",
@@ -25055,11 +25391,13 @@
     "mexc": "PANWONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3029378.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "palo-alto-networks-ondo-tokenized-stock"
   },
   {
    "ticker": "PAPARAZZI",
@@ -25071,11 +25409,13 @@
     "gate": "PAPARAZZI_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1794887.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "paparazzi-token"
   },
   {
    "ticker": "PART",
@@ -25087,11 +25427,13 @@
     "mexc": "PARTUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2943489.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "particl"
   },
   {
    "ticker": "PARTI",
@@ -25138,11 +25480,13 @@
     "mexc": "PAYAIUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 6838111.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "payai-network-2"
   },
   {
    "ticker": "PBRON",
@@ -25154,11 +25498,13 @@
     "mexc": "PBRONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3177549.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "petrobras-ondo-tokenized-stock"
   },
   {
    "ticker": "PBTC35A",
@@ -25186,11 +25532,13 @@
     "binance": "PDDBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2053895.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "pdd-holdings-bstocks-tokenized-stock"
   },
   {
    "ticker": "PDDON",
@@ -25403,11 +25751,13 @@
     "mexc": "PEPUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 8324274.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "pepecoin-network"
   },
   {
    "ticker": "PEPE",
@@ -25470,11 +25820,13 @@
     "gate": "PEPON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2249053.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "pepsico-ondo-tokenized-stock"
   },
   {
    "ticker": "PEPPER",
@@ -25486,11 +25838,13 @@
     "mexc": "PEPPERUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4201136.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "pepper"
   },
   {
    "ticker": "PEPX",
@@ -25550,11 +25904,13 @@
     "gate": "PGON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2917072.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "procter-gamble-ondo-tokenized-stock"
   },
   {
    "ticker": "PGPT",
@@ -25779,11 +26135,13 @@
     "gate": "PIPEDOG_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 6272578.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "pipedog"
   },
   {
    "ticker": "PIPPIN",
@@ -25911,11 +26269,13 @@
     "mexc": "PLEARNUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1715879.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "plearn"
   },
   {
    "ticker": "PLIAN",
@@ -25991,11 +26351,13 @@
     "binance": "PLTRBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1704876.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "palantir-technologies-bstocks-tokenized-stock"
   },
   {
    "ticker": "PLTRG",
@@ -26024,11 +26386,13 @@
     "gate": "PLTRON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2869886.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "palantir-technologies-ondo-tokenized-stock"
   },
   {
    "ticker": "PLUGON",
@@ -26139,11 +26503,13 @@
     "mexc": "PNICUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2560793.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "phoenic-token"
   },
   {
    "ticker": "PNUT",
@@ -26550,11 +26916,13 @@
     "gate": "PRCL_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5483339.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "parcl"
   },
   {
    "ticker": "PRIME",
@@ -26582,11 +26950,13 @@
     "mexc": "PRIORSUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 6609977.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "priors-agent"
   },
   {
    "ticker": "PRL",
@@ -26889,11 +27259,13 @@
     "gate": "PUNDIAI_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2655796.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "pundi-aifx"
   },
   {
    "ticker": "PUNDIX",
@@ -27070,11 +27442,13 @@
     "mexc": "PYPLONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1190607.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "paypal-ondo-tokenized-stock"
   },
   {
    "ticker": "PYR",
@@ -27170,11 +27544,13 @@
     "gate": "QAIT_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 6617714.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "sealcoin"
   },
   {
    "ticker": "QANX",
@@ -27234,11 +27610,13 @@
     "binance": "QCOMBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2628911.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "qualcomm-bstocks-tokenized-stock"
   },
   {
    "ticker": "QCOMG",
@@ -27266,11 +27644,13 @@
     "mexc": "QCOMONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2557132.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "qualcomm-ondo-tokenized-stock"
   },
   {
    "ticker": "QI",
@@ -27449,11 +27829,13 @@
     "binance": "QQQBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1311478.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "invesco-qqq-trust-bstocks-tokenized-stock"
   },
   {
    "ticker": "QQQG",
@@ -27565,11 +27947,13 @@
     "gate": "QUAI_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 8479686.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "quai-network"
   },
   {
    "ticker": "QUBIC",
@@ -27615,11 +27999,13 @@
     "mexc": "QUIDUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7890550.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "squid-3"
   },
   {
    "ticker": "R2",
@@ -28364,11 +28750,13 @@
     "mexc": "RICEUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4847828.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "rice-ai"
   },
   {
    "ticker": "RIF",
@@ -28526,11 +28914,13 @@
     "mexc": "RIZEUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 8932318.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "rize"
   },
   {
    "ticker": "RJV",
@@ -28558,11 +28948,13 @@
     "binance": "RKLBBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 8858550.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "rocket-lab-bstocks-tokenized-stock"
   },
   {
    "ticker": "RKLBON",
@@ -28574,11 +28966,13 @@
     "mexc": "RKLBONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1439945.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "rocket-lab-ondo-tokenized"
   },
   {
    "ticker": "RLC",
@@ -28643,11 +29037,13 @@
     "gate": "RNBW_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3271223.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "rainbow-3-2"
   },
   {
    "ticker": "ROA",
@@ -28659,11 +29055,13 @@
     "gate": "ROA_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2688472.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "roaland-core"
   },
   {
    "ticker": "ROAM",
@@ -29432,11 +29830,13 @@
     "gate": "SBUXON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1956324.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "starbucks-ondo-tokenized-stock"
   },
   {
    "ticker": "SC",
@@ -29515,11 +29915,13 @@
     "gate": "SCOR_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2763935.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "scor"
   },
   {
    "ticker": "SCR",
@@ -29630,11 +30032,13 @@
     "binance": "SECZBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1158192.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "securitize-bstocks-tokenized-stock"
   },
   {
    "ticker": "SEDA",
@@ -29881,11 +30285,13 @@
     "mexc": "SHIDOUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1284791.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "shido-2"
   },
   {
    "ticker": "SHIRO",
@@ -30012,11 +30418,13 @@
     "gate": "SI_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9581167.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "super-inu-2"
   },
   {
    "ticker": "SIGN",
@@ -30094,11 +30502,13 @@
     "mexc": "SINGULARRYUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7677264.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "singularry"
   },
   {
    "ticker": "SIREN",
@@ -30513,11 +30923,13 @@
     "mexc": "SMCIONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1657873.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "super-micro-computer-ondo-tokenized-stock"
   },
   {
    "ticker": "SMHB",
@@ -30529,11 +30941,13 @@
     "binance": "SMHBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1629636.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "vaneck-semiconductor-etf-bstocks-tokenized-stock"
   },
   {
    "ticker": "SMHG",
@@ -30665,11 +31079,13 @@
     "mexc": "SNDKONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4312062.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "sandisk-ondo-tokenized"
   },
   {
    "ticker": "SNEK",
@@ -30730,11 +31146,13 @@
     "mexc": "SNOWONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1879703.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "snowflake-ondo-tokenized-stock"
   },
   {
    "ticker": "SNPT",
@@ -30830,11 +31248,13 @@
     "binance": "SNXXBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7683746.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "tradr-2x-long-sndk-etf-bstocks-tokenized-stock"
   },
   {
    "ticker": "SNXXG",
@@ -31168,11 +31588,13 @@
     "binance": "SOXSBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1909303.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "direxion-semiconductor-bear-3x-etf-bstocks-tokenized-stock"
   },
   {
    "ticker": "SOXSG",
@@ -31466,11 +31888,13 @@
     "mexc": "SPLDUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4989181.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "splendor"
   },
   {
    "ticker": "SPO",
@@ -32018,11 +32442,13 @@
     "mexc": "STONKEXUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3247140.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "the-stonks-exchange"
   },
   {
    "ticker": "STONKS",
@@ -32034,11 +32460,13 @@
     "mexc": "STONKSUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1170365.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "stonks-9"
   },
   {
    "ticker": "STOP",
@@ -32403,11 +32831,13 @@
     "gate": "SUPRA_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5928416.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "supra"
   },
   {
    "ticker": "SUSD",
@@ -32470,11 +32900,13 @@
     "gate": "SVL_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5018375.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "slash-vision-labs"
   },
   {
    "ticker": "SVN",
@@ -32600,11 +33032,13 @@
     "gate": "SWCH_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2613271.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "swisscheese"
   },
   {
    "ticker": "SWELL",
@@ -32732,11 +33166,13 @@
     "mexc": "SYSUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2110074.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": 7078.1967,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "syscoin"
   },
   {
    "ticker": "T",
@@ -32964,11 +33400,13 @@
     "mexc": "TATSUUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1459665.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "tatsu"
   },
   {
    "ticker": "TAUR",
@@ -33128,11 +33566,13 @@
     "mexc": "TENDIESUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3245997.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "tendies-2"
   },
   {
    "ticker": "TET",
@@ -33246,11 +33686,13 @@
     "gate": "THQ_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 8849797.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "theoriq"
   },
   {
    "ticker": "TIA",
@@ -33462,11 +33904,13 @@
     "gate": "TNK_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1620435.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "trac-network"
   },
   {
    "ticker": "TNSR",
@@ -33578,11 +34022,13 @@
     "mexc": "TORCHUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7968010.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "torch"
   },
   {
    "ticker": "TORN",
@@ -33743,11 +34189,13 @@
     "gate": "TQQQX_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4491962.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "tqqq-xstock"
   },
   {
    "ticker": "TRA",
@@ -34023,11 +34471,13 @@
     "gate": "TRUF_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1755782.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "truflation"
   },
   {
    "ticker": "TRUMP",
@@ -34122,11 +34572,13 @@
     "gate": "TRWA_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1377915.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "tharwa"
   },
   {
    "ticker": "TRX",
@@ -34226,11 +34678,13 @@
     "binance": "TSMBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9320194.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "tsmc-bstocks-tokenized-stock"
   },
   {
    "ticker": "TSMON",
@@ -34242,11 +34696,13 @@
     "mexc": "TSMONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 6120834.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "taiwan-semiconductor-manufacturing-ondo-tokenized-stock"
   },
   {
    "ticker": "TST",
@@ -34612,11 +35068,13 @@
     "mexc": "UBIKUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5162028.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "ubik"
   },
   {
    "ticker": "UCN",
@@ -34647,11 +35105,13 @@
     "gate": "UDAO_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1245657.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "udao"
   },
   {
    "ticker": "UDS",
@@ -34778,11 +35238,13 @@
     "gate": "UNHON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1316214.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "unitedhealth-ondo-tokenized-stock"
   },
   {
    "ticker": "UNHX",
@@ -35416,11 +35878,13 @@
     "gate": "VARA_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2910631.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "vara-network"
   },
   {
    "ticker": "VATRENI",
@@ -35766,11 +36230,13 @@
     "gate": "VNO_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1359418.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "veno-finance"
   },
   {
    "ticker": "VOID",
@@ -35847,11 +36313,13 @@
     "mexc": "VOWUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9800916.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "vow"
   },
   {
    "ticker": "VOXEL",
@@ -36076,11 +36544,13 @@
     "gate": "VTIX_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1823193.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "vanguard-xstock"
   },
   {
    "ticker": "VVS",
@@ -36426,11 +36896,13 @@
     "binance": "WDCBUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2609448.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "western-digital-bstocks-tokenized-stock"
   },
   {
    "ticker": "WDCG",
@@ -36653,11 +37125,13 @@
     "mexc": "WHUFUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4375379.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "whuffie"
   },
   {
    "ticker": "WHY",
@@ -36841,11 +37315,13 @@
     "mexc": "WMTONUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2430403.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "walmart-ondo-tokenized-stock"
   },
   {
    "ticker": "WMTX",
@@ -37390,11 +37866,13 @@
     "mexc": "XENUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1796505.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "xen-crypto"
   },
   {
    "ticker": "XEP",
@@ -37454,11 +37932,13 @@
     "mexc": "XGZUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 5014859.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "goldzip-gold"
   },
   {
    "ticker": "XL1",
@@ -37505,11 +37985,13 @@
     "mexc": "XMNUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1342078.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "xmoney-2"
   },
   {
    "ticker": "XMR",
@@ -37766,11 +38248,13 @@
     "mexc": "XPXUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1479041.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "proximax"
   },
   {
    "ticker": "XR",
@@ -37897,11 +38381,13 @@
     "gate": "XSWAP_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1758398.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "xswap-2"
   },
   {
    "ticker": "XT",
@@ -38015,11 +38501,13 @@
     "gate": "XU3O8_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 9054829.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "uranium"
   },
   {
    "ticker": "XUSD",
@@ -38250,11 +38738,13 @@
     "gate": "YLD5ON_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 3520771.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "ondo-5-targeted-income-tr-portfolio"
   },
   {
    "ticker": "YLD8ON",
@@ -38282,11 +38772,13 @@
     "mexc": "YOMUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 1301908.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "yom"
   },
   {
    "ticker": "YVE",
@@ -38473,11 +38965,13 @@
     "mexc": "ZEPHUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 2773977.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "zephyr-protocol"
   },
   {
    "ticker": "ZEREBRO",
@@ -38773,11 +39267,13 @@
     "mexc": "ZOOMUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 4168583.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "coinzoom-token"
   },
   {
    "ticker": "ZOON",
@@ -38957,11 +39453,13 @@
     "mexc": "ZZZUSDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 7158207.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "zzz-2"
   },
   {
    "ticker": "\u54c8\u57fa\u7c73",
@@ -39024,11 +39522,13 @@
     "gate": "\u6211\u8e0f\u9a6c\u6765\u4e86_USDT"
    },
    "inRegistry": false,
-   "marketCap": null,
+   "marketCap": 8791534.0,
    "rank": null,
    "paprikaId": null,
    "priceDisagreementPct": null,
-   "pegged": false
+   "pegged": false,
+   "marketCapSource": "coingecko",
+   "coingeckoId": "wo-ta-ma-laile"
   },
   {
    "ticker": "\u65fa\u67f4",
@@ -39098,5 +39598,5 @@
    "pegged": false
   }
  ],
- "marketCapEnrichedAt": "2026-10-25T13:31:24.887299+00:00"
+ "marketCapEnrichedAt": "2026-10-25T13:36:28.683426+00:00"
 }
