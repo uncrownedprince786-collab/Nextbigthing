@@ -210,7 +210,23 @@ def main() -> int:
                 line.append(f"{k} {mark}{acc}")
             print(f"  {i:>3}/{len(coins)}  {sym:<14} " + "  ".join(line), flush=True)
 
-    # The list.
+    # Merged into whatever is already on disk, rather than replacing it.
+    #
+    # A run narrowed to one lane or a handful of coins is the normal way this gets used while a
+    # retrain is in flight, and the first version of this file overwrote the whole document each
+    # time -- so certifying the nine coins a reader had asked about silently discarded the twenty
+    # certified an hour earlier. Verdicts are keyed by coin and lane, so a later run replaces
+    # exactly what it re-measured and leaves the rest standing.
+    merged: dict[str, dict] = {}
+    if OUT.exists():
+        try:
+            merged = json.loads(OUT.read_text(encoding="utf-8")).get("coins", {}) or {}
+        except (OSError, ValueError):
+            merged = {}
+    for sym, lanes_r in results.items():
+        merged.setdefault(sym, {}).update(lanes_r)
+    results = merged
+
     per_lane: dict[str, list[str]] = {}
     for sym, lanes_r in results.items():
         for key, r in lanes_r.items():
