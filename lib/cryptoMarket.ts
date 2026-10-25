@@ -248,7 +248,7 @@ export async function marketTable(): Promise<MarketTable> {
   // capped at two connections that times out under load. A market table that 500s because a
   // capitalisation column could not be read is a market table nobody can use; one that renders
   // without that column is the same page with one fewer number in it.
-  const [rows, tickers, paprika] = await Promise.all([
+  const [rows, tickers, paprika, weeks] = await Promise.all([
     withDeadline(
       prisma.$queryRaw<Row[]>`
       SELECT a.symbol, a.name,
@@ -271,6 +271,7 @@ export async function marketTable(): Promise<MarketTable> {
     ),
     bulkTicker(),
     paprikaSnapshot(),
+    weekSnapshot(),
   ]);
 
   // The registry's rows, keyed by slug, merged onto the universe below.
@@ -287,12 +288,22 @@ export async function marketTable(): Promise<MarketTable> {
     // The second source first, because it has one for 1,133 coins where the registry has one
     // for 76; the stored close is the fallback, not the other way round.
     const pap = u.paprikaId ? paprika.get(u.paprikaId) : undefined;
+    // The venue first, then the second source, then the registry's stored close.
+    //
+    // Reordered: Paprika used to come first and was the only live source, so when it was slow the
+    // column emptied for everyone except the 76 coins the registry holds a week-old close for.
+    // The venue's own rolling window is both the more reliable source and the more honest one --
+    // it is the move on the book the price beside it was read from, rather than a third party's
+    // view of some other venue.
+    const venueWeek = u.on?.binance ? weeks.get(`binance:${u.on.binance}`) : undefined;
     const week =
-      pap?.pct7d !== undefined && pap?.pct7d !== null
-        ? pap.pct7d
-        : price !== null && r?.weekAgoClose && r.weekAgoClose > 0
-          ? (price / r.weekAgoClose - 1) * 100
-          : null;
+      venueWeek !== undefined
+        ? venueWeek
+        : pap?.pct7d !== undefined && pap?.pct7d !== null
+          ? pap.pct7d
+          : price !== null && r?.weekAgoClose && r.weekAgoClose > 0
+            ? (price / r.weekAgoClose - 1) * 100
+            : null;
     return {
       rank: 0,
       slug: u.slug,
@@ -540,6 +551,60 @@ interface PaprikaRow {
   pct7d: number | null;
   marketCap: number | null;
 }
+
+/// Seven-day change read from the venue that prices the coin, keyed `venue:instrument`.
+///
+/// **This exists because the column was blank for most of the table whenever one upstream was
+/// slow.** Seven-day change had exactly one source -- CoinPaprika, live, with no committed
+/// fallback -- while the market cap beside it falls back to a figure stored in the universe. So a
+/// rate-limited or timed-out Paprika call emptied the whole column, and the registry's own
+/// `weekAgoClose` covers 76 coins out of 2,320.
+///
+/// Binance publishes a rolling-window ticker, so a seven-day change for every Binance instrument
+/// costs a handful of calls and is computed from the same book the price beside it comes from.
+/// That is a better number than Paprika's as well as a more reliable one: it is the venue's own
+/// move over the window, not a third party's view of a different venue's.
+///
+/// MEXC and Gate publish 24-hour tickers only, so their coins still fall through to Paprika.
+/// Those are 29 of the top 100 by market cap, and the fallback chain below handles them -- but
+/// the 71 that are Binance's no longer depend on anyone else being up.
+const weekSnapshot = memoised(300_000, async (): Promise<Map<string, number>> => {
+  const out = new Map<string, number>();
+  const symbols = [...new Set(
+    UNIVERSE.map((u) => u.on?.binance).filter((s): s is string => typeof s === "string"),
+  )];
+  // The endpoint caps a request at 100 symbols and weights it by the number asked for, so the
+  // batches are deliberate rather than one enormous call.
+  const batches: string[][] = [];
+  for (let i = 0; i < symbols.length; i += 100) batches.push(symbols.slice(i, i + 100));
+
+  await Promise.all(batches.map(async (batch) => {
+    try {
+      const q = encodeURIComponent(JSON.stringify(batch));
+      const res = await fetch(`${BINANCE}/api/v3/ticker?symbols=${q}&windowSize=7d`, {
+        headers: { "User-Agent": "nextbigthing" },
+        next: { revalidate: 300 },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) return;
+      const body: unknown = await res.json();
+      if (!Array.isArray(body)) return;
+      for (const r of body) {
+        const x = r as Record<string, unknown>;
+        const sym = typeof x.symbol === "string" ? x.symbol : null;
+        const pct = Number(x.priceChangePercent);
+        // An open of zero would make the percentage meaningless rather than large.
+        const open = Number(x.openPrice);
+        if (sym && Number.isFinite(pct) && Number.isFinite(open) && open > 0) {
+          out.set(`binance:${sym}`, pct);
+        }
+      }
+    } catch {
+      // An absence for this batch, never a zero. The chain in `marketTable` falls through.
+    }
+  }));
+  return out;
+});
 
 const paprikaSnapshot = memoised(300_000, async (): Promise<Map<string, PaprikaRow>> => {
   const out = new Map<string, PaprikaRow>();

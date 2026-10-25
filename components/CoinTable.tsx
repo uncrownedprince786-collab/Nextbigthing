@@ -68,6 +68,39 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "new", label: "Newly listed" },
 ];
 
+/// Dollars of 24-hour volume a coin needs before it may appear on the gainers, losers or newly
+/// listed boards.
+///
+/// Set at a quarter of a million because that is roughly where a coin stops being a single
+/// participant's book. Below it a 24-hour percentage is not a market move -- it is one trade
+/// against an empty order book, and the coins producing them are the same ones no data source
+/// tracks, which is why their seven-day and market-cap cells were blank. The floor removes the
+/// blanks and the noise in one go, because they were always the same coins.
+///
+/// The main "All coins" board is not filtered: it is sorted by market capitalisation, so these
+/// coins sit far below the hundred rows rendered and never reach a reader anyway.
+const MIN_BOARD_VOLUME = 250_000;
+
+/// Whether every column this table prints has a value for this coin.
+///
+/// The gainers, losers and newly listed boards are curated lists, and a curated list has no
+/// business carrying a row it cannot describe. Sorting 2,320 coins by 24-hour percentage pulls
+/// up tokens no data source tracks -- MEZO, DEOD, MBK, YVE -- whose seven-day and market-cap
+/// cells came out blank, and tokenised equities like SNDKB and MSTRB which have no circulating
+/// crypto supply and therefore no market capitalisation at all. The blank was not a bug to be
+/// filled in; those numbers do not exist for those instruments.
+///
+/// So they are not listed here. "All coins" still carries every one of them, sorted by
+/// capitalisation, where the long tail belongs and where nothing claims to be a highlight.
+function complete(r: Row): boolean {
+  return (
+    (r.volume24h ?? 0) >= MIN_BOARD_VOLUME &&
+    r.marketCap !== null &&
+    r.change7d !== null &&
+    r.price !== null
+  );
+}
+
 /// The two tabs that need a direction rather than a price.
 const SIGNAL_TABS: Tab[] = ["bullish", "bearish"];
 
@@ -237,7 +270,15 @@ export function CoinTable({ rows }: { rows: Row[] }) {
     if (tab === "gainers" || tab === "losers") {
       // A coin with no 24-hour figure is not a zero mover, it is an unknown one, so it is left
       // out of both boards rather than parked in the middle of them.
-      const movers = out.filter((r) => r.change24h !== null);
+      //
+      // The volume floor is the other half, and it is what fixes the blank cells rather than
+      // hiding them. Sorting 2,320 coins purely by 24-hour percentage fills both boards with
+      // tokens nobody trades -- MEZO, XPX, KRAFT, OKAI -- whose moves are one print on a dead
+      // book and which no data source tracks, so their 7-day and market-cap cells were empty.
+      // The emptiness was the honest half of the problem; the dishonest half was calling a
+      // $40,000-a-day token a "top gainer" at all. A board whose entries cannot be traded is
+      // not a shorter board than it should be, it is a wrong one.
+      const movers = out.filter((r) => r.change24h !== null && complete(r));
       out = movers.sort((a, b) =>
         tab === "gainers" ? b.change24h! - a.change24h! : a.change24h! - b.change24h!,
       );
@@ -245,9 +286,10 @@ export function CoinTable({ rows }: { rows: Row[] }) {
     }
 
     if (tab === "new") {
-      // Ordered by volume, because a newly listed coin nobody trades is not an opportunity.
+      // Ordered by volume, because a newly listed coin nobody trades is not an opportunity --
+      // and held to the same floor, for the same reason.
       return out
-        .filter((r) => r.isNew)
+        .filter((r) => r.isNew && complete(r))
         .sort((a, b) => (b.volume24h ?? 0) - (a.volume24h ?? 0))
         .slice(0, 50);
     }
