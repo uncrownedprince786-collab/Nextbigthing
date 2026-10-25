@@ -1376,6 +1376,17 @@
       "touchedBoth": 0.0,
       "neither": 0.99999
      }
+    },
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.03269,
+     "grossExpectancyR": 0.03203,
+     "meanCostInR": 0.0647,
+     "winRate": 0.54693,
+     "profitFactor": 0.5023,
+     "trades": 23065,
+     "fold": "validation"
     }
    },
    "m15": {
