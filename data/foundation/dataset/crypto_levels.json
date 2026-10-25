@@ -240,6 +240,17 @@
       "touchedBoth": 0.0,
       "neither": 0.99999
      }
+    },
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.04383,
+     "grossExpectancyR": 0.00056,
+     "meanCostInR": 0.0444,
+     "winRate": 0.24919,
+     "profitFactor": 0.1578,
+     "trades": 6754,
+     "fold": "validation"
     }
    },
    "m15": {
@@ -402,6 +413,17 @@
       "touchedBoth": 0.0,
       "neither": 0.99997
      }
+    },
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.05544,
+     "grossExpectancyR": 0.00305,
+     "meanCostInR": 0.0585,
+     "winRate": 0.31261,
+     "profitFactor": 0.244,
+     "trades": 11276,
+     "fold": "validation"
     }
    },
    "h1": {
@@ -564,6 +586,17 @@
       "touchedBoth": 0.0,
       "neither": 0.99934
      }
+    },
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.04374,
+     "grossExpectancyR": 0.0047,
+     "meanCostInR": 0.0484,
+     "winRate": 0.45613,
+     "profitFactor": 0.5395,
+     "trades": 9232,
+     "fold": "validation"
     }
    },
    "h4": {
@@ -1549,6 +1582,17 @@
       "touchedBoth": 0.0,
       "neither": 0.99995
      }
+    },
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.04811,
+     "grossExpectancyR": 0.03349,
+     "meanCostInR": 0.0816,
+     "winRate": 0.54878,
+     "profitFactor": 0.517,
+     "trades": 24108,
+     "fold": "validation"
     }
    },
    "h1": {

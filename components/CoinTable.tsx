@@ -58,6 +58,11 @@ interface Signal {
   asOf: string;
   maturesAt: string;
   floor: number;
+  /// Which window this call belongs to. The board reads every servable window and keeps each
+  /// coin's strongest clearing call, so two rows can be about different lengths of time and the
+  /// row has to say which.
+  horizon?: string;
+  horizonMinutes?: number;
 }
 
 type Tab = "all" | "gainers" | "losers" | "recommended" | "new";
@@ -513,7 +518,12 @@ export function CoinTable({ rows }: { rows: Row[] }) {
                             for. So the badge carries the window, and the conviction is what
                             being on this board means at all.
                           */}
-                          {sig.direction} · 15m
+                          {sig.direction}
+                          {sig.horizonMinutes
+                            ? ` · ${sig.horizonMinutes < 60
+                                ? `${sig.horizonMinutes}m`
+                                : `${sig.horizonMinutes / 60}h`}`
+                            : ""}
                         </span>
                       ) : null}
                       {sig ? (
@@ -564,7 +574,7 @@ export function CoinTable({ rows }: { rows: Row[] }) {
                       : signalState === "failed"
                         ? "The directions could not be read just now."
                         : WATCHLIST.length
-                          ? `None of the ${WATCHLIST.length} coins on the watchlist clears its confidence floor on this bar. Each was read; none is recommended — which is most bars, by design, because a coin only clears its floor about one bar in nine.`
+                          ? `None of the ${WATCHLIST.length} watched coins clears its confidence floor on this bar, over any window. Each was read at five minutes, fifteen and the hour; none is recommended — which is most bars, by design, because a coin clears its floor about one bar in nine.`
                           : "No coin in the top forty clears the confidence floor on this bar. The brain read every one of them and recommends none — which is most bars, by design, because it only speaks on about one in nine."
                     : tab === "new"
                       ? "No newly listed coin is in this list."
@@ -585,9 +595,9 @@ export function CoinTable({ rows }: { rows: Row[] }) {
               ? `${shown.length} biggest ${tab === "gainers" ? "risers" : "fallers"} over 24 hours`
               : tab === "new"
                 ? `${shown.length} coins the venue lists and the registry has not collected, by volume`
-                : `${shown.length} of ${WATCHLIST.length || 40} watched coins recommended over the next fifteen minutes${
-                    signals ? `, all ${WATCHLIST.length || signals.length} read` : ""
-                  } · gated calls measured 61.3% on the holdout`}
+                : `${shown.length} of ${WATCHLIST.length || 40} watched coins recommended${
+                    signals ? `, every window read for each` : ""
+                  } · each row shows the window its call covers · gated calls measured 61-64% on the holdout`}
           {Object.keys(live).length > 0 ? " · prices live" : ""}
         </p>
         {shown.length > limit ? (

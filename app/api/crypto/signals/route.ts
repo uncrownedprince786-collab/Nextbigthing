@@ -31,10 +31,21 @@ const BATCH = 8;
 export async function GET(request: Request) {
   const started = Date.now();
   const url = new URL(request.url);
-  const raw = (url.searchParams.get("h") || "m15").trim();
-  const h: HorizonKey = (["m5", "m15", "h1"] as const).includes(raw as "m5")
-    ? (raw as HorizonKey)
-    : "m15";
+  const raw = (url.searchParams.get("h") || "any").trim();
+  const ALL: HorizonKey[] = ["m5", "m15", "h1"];
+  /// Which windows to read.
+  ///
+  /// **"any" is the default, and it is the question the board is actually asked.** A reader
+  /// wants to know whether the brain is confident about their coin *right now*, not whether it
+  /// happens to be confident over the one window the endpoint was hardcoded to. Scoring a single
+  /// horizon meant a coin the model called strongly over five minutes was absent from a board
+  /// reading fifteen, with nothing to say it had been looked at.
+  ///
+  /// Each coin is read over every servable window and keeps its strongest call that clears that
+  /// window's own floor -- so the board answers "is there anything here", and the row says which
+  /// window the answer belongs to.
+  const horizons: HorizonKey[] = ALL.includes(raw as HorizonKey) ? [raw as HorizonKey] : ALL;
+  const h: HorizonKey = horizons[horizons.length - 1];
 
   const market = await marketTable().catch(() => null);
   if (!market) {
@@ -60,6 +71,9 @@ export async function GET(request: Request) {
     strength: "strong" | "weak" | null;
     probUp: number;
     marginPts: number;
+    /// Which window this call belongs to, because the board now mixes them.
+    horizon: HorizonKey;
+    horizonMinutes: number;
     /// The bar the call was read from, and the instant it is answerable.
     ///
     /// Without these a reader is shown a direction with no idea what window it covers or when it
@@ -74,9 +88,21 @@ export async function GET(request: Request) {
   for (let i = 0; i < pick.length; i += BATCH) {
     const slice = pick.slice(i, i + BATCH);
     const got = await Promise.all(
-      slice.map((c) =>
-        forecastFor(c.slug, h).catch(() => null),
-      ),
+      slice.map(async (c) => {
+        // Every window for this coin, keeping the strongest call that cleared its own floor --
+        // and falling back to the strongest lean when none did, so the row still carries a
+        // direction for the coin's own page to explain.
+        const reads = await Promise.all(
+          horizons.map((hz) => forecastFor(c.slug, hz).catch(() => null)),
+        );
+        const directions = reads.filter(
+          (f): f is Extract<typeof f, { kind: "direction" }> => !!f && f.kind === "direction",
+        );
+        if (directions.length === 0) return null;
+        const strong = directions.filter((f) => f.strength === "strong");
+        const pool = strong.length > 0 ? strong : directions;
+        return pool.reduce((best, f) => (f.margin > best.margin ? f : best));
+      }),
     );
     got.forEach((f, k) => {
       if (!f || f.kind !== "direction") return;
@@ -95,6 +121,8 @@ export async function GET(request: Request) {
         asOf: f.asOf.toISOString(),
         maturesAt: f.maturesAt.toISOString(),
         floor: f.floor,
+        horizon: f.horizon.key,
+        horizonMinutes: f.horizon.minutes,
       });
     });
   }
