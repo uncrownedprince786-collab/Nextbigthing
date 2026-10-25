@@ -98,6 +98,43 @@ TRAIN_SHARE, VAL_SHARE = 0.70, 0.15
 SEED = 11
 
 
+#: Where the universe builder records which tickers are dollar-pegged.
+UNIVERSE = ROOT / "data" / "foundation" / "dataset" / "crypto_universe.json"
+
+
+def drop_pegged(symbols: list[str]) -> list[str]:
+    """Remove dollar-pegged coins from a training pool.
+
+    A stablecoin's five-minute direction is not a market opinion, it is oscillation in the fourth
+    decimal of a dollar. The model can be genuinely, repeatably right about it -- a peg really does
+    mean-revert -- and that is exactly what makes it dangerous: those rows arrive at the top of the
+    conviction tail, on moves around 0.01% of price, which is a fiftieth of the round-trip fee.
+
+    This is the second time. RLUSD, FDUSD and USDC once came out as the strongest signals on the
+    board at p=0.668, which is why `pegged` exists on the universe in the first place. The serving
+    path has honoured it since; the training pool never did, because the pool is built by globbing
+    the bar cache and the flag was never consulted. BFUSD and RWUSD were in the 140-coin pool.
+
+    Missing or unreadable universe file is not fatal: the pool passes through unfiltered and says
+    so, because a training run that dies over a metadata file is worse than one that trains on two
+    stablecoins and tells you.
+    """
+    try:
+        assets = json.loads(UNIVERSE.read_text(encoding="utf-8"))["assets"]
+    except (OSError, KeyError, ValueError) as e:
+        print(f"   ! could not read {UNIVERSE.name} ({e}); pool not filtered for pegs", flush=True)
+        return symbols
+    pegged = {a["ticker"].upper() for a in assets if a.get("pegged")}
+    kept, dropped = [], []
+    for s in symbols:
+        # Pool symbols are venue instruments ("BFUSDUSDT"); the flag is on the bare ticker.
+        base = s.upper()[:-4] if s.upper().endswith("USDT") else s.upper()
+        (dropped if base in pegged else kept).append(s)
+    if dropped:
+        print(f"   dropped {len(dropped)} pegged: {', '.join(dropped)}", flush=True)
+    return kept
+
+
 def repo_head() -> str:
     try:
         return subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True,
@@ -597,7 +634,12 @@ def main() -> int:
     ap.add_argument("--context", action="store_true",
                     help="fit on the market-factor block as well (tools/research/market_context.py)")
     ap.add_argument("--verbose", type=int, default=0)
+    ap.add_argument("--keep-pegged", action="store_true",
+                    help="train on dollar-pegged coins too; off by default, see drop_pegged()")
     a = ap.parse_args()
+
+    if not a.keep_pegged:
+        a.symbols = drop_pegged(a.symbols)
 
     keys = [k for k in a.horizons if k in HORIZONS]
     summary = {"generatedAt": datetime.now(timezone.utc).isoformat(), "tag": a.tag,

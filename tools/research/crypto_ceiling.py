@@ -85,6 +85,16 @@ MIN_ROWS = 200
 TARGET = 0.90
 
 
+def pegged_tickers() -> set[str]:
+    """Bare tickers the universe builder flagged as dollar-pegged, or an empty set."""
+    p = ROOT / "data" / "foundation" / "dataset" / "crypto_universe.json"
+    try:
+        return {a["ticker"].upper()
+                for a in json.loads(p.read_text(encoding="utf-8"))["assets"] if a.get("pegged")}
+    except (OSError, KeyError, ValueError):
+        return set()
+
+
 def tail(p: np.ndarray, y: np.ndarray, coverage: float) -> dict:
     """Accuracy over the `coverage` most confident rows, with the base rate it must beat."""
     n_rows = len(y)
@@ -185,6 +195,7 @@ def run_lane(tag: str, horizon: str, per_coin: bool) -> dict:
     if per_coin:
         ids, names = symbol_ids(r["data"])
         te_ids = ids[r["te"]]
+        pegged = pegged_tickers()
         for i, sym in enumerate(names):
             m = te_ids == i
             n = int(m.sum())
@@ -195,9 +206,15 @@ def run_lane(tag: str, horizon: str, per_coin: bool) -> dict:
             c_curve = curve(cp, cy)
             acc, cov = best_accuracy(c_curve)
             ung = c_curve[0]
+            base = sym.upper()[:-4] if sym.upper().endswith("USDT") else sym.upper()
             coins.append({
                 "symbol": sym,
                 "rows": n,
+                # A pegged coin at the top of this table is not a find. Its direction is
+                # oscillation in the fourth decimal of a dollar, and a peg genuinely does
+                # mean-revert, so the model can be both very sure and very right about moves worth
+                # a fiftieth of the fee. Marked here so the table cannot be read as a result.
+                "pegged": base in pegged,
                 "ungatedAccuracy": ung.get("accuracy"),
                 "ungatedMajority": ung.get("majorityHere"),
                 "bestAccuracy": acc,
@@ -213,7 +230,8 @@ def run_lane(tag: str, horizon: str, per_coin: bool) -> dict:
         for c in scored[:10]:
             print(f"      {c['symbol']:<16} ungated {c['ungatedAccuracy']:.4f}  "
                   f"best {c['bestAccuracy']:.4f} at {c['bestAtCoverage']:.3%} "
-                  f"of its {c['rows']:,} rows", flush=True)
+                  f"of its {c['rows']:,} rows"
+                  f"{'   <- PEGGED, not a tradable direction' if c['pegged'] else ''}", flush=True)
 
     return {
         "family": tag,
