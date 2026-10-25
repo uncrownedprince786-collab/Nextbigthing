@@ -1,0 +1,48 @@
+{
+ "generatedAt": "2026-10-25T11:48:41.347306+00:00",
+ "producedBy": "tools/research/crypto_certify.py",
+ "what": "per-coin, per-horizon verdict. A coin absent from a lane's list is served no direction on that lane at all -- not a weaker one.",
+ "gates": {
+  "aboveOwnMajority": "accuracy above the larger class of that coin's called rows",
+  "bothDirectionsCalled": "neither direction above 0.80 of its calls",
+  "bootstrapExcludesZero": "95% day-blocked CI for (accuracy - majority) above zero",
+  "walkForwardMajority": "above its own block majority in 4 of 5 chronological blocks",
+  "enoughCalledRows": "at least 500 called rows on the test fold"
+ },
+ "minCalledRows": 500,
+ "scoreStride": 1,
+ "certifiedByLane": {
+  "crypto:m15": [
+   "BTCUSDT"
+  ]
+ },
+ "coins": {
+  "BTCUSDT": {
+   "crypto:m15": {
+    "testRows": 62923,
+    "called": 62923,
+    "coverage": 1.0,
+    "accuracy": 0.52745,
+    "ownMajority": 0.50304,
+    "edgeOverMajority": 0.02441,
+    "upRate": 0.49696,
+    "upShareCalled": 0.49623,
+    "bootstrapCi95": [
+     0.016898,
+     0.032066
+    ],
+    "walkForward": "5/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": true,
+    "why": null,
+    "convictionFloor": 0.0
+   }
+  }
+ }
+}
