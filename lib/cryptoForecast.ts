@@ -23,6 +23,7 @@ import { featuresAt, FEATURES, contiguous, WARMUP } from "@/lib/intradayFeatures
 import { levelsFor, type Levels } from "@/lib/cryptoLevels";
 import {
   certificationOf,
+  floorFor,
   laneMeasured,
   refusalReason,
   type CoinVerdict,
@@ -237,6 +238,7 @@ export async function forecastFor(
   }
 
   const margin = Math.abs(probUp - 0.5);
+  const ownFloor = floorFor(lane.family, slug, key);
   const asOf = new Date(w.asOfMs);
   const direction: "UP" | "DOWN" = probUp >= 0.5 ? "UP" : "DOWN";
   return {
@@ -249,10 +251,29 @@ export async function forecastFor(
     direction,
     probUp,
     confidence: lane.confidence === "MEDIUM" ? "MEDIUM" : "LOW",
-    strength: lane.conviction ? (speaks(lane, probUp) ? "strong" : "weak") : null,
+    // This coin's own floor where one was measured, the lane's otherwise.
+    //
+    // The lane floor is chosen over 140 coins at once and the liquid majors all sit below it --
+    // Bitcoin's own floor is 0.050 against a pooled 0.075, so under the pooled rule Bitcoin
+    // almost never speaks, and the board filled with small caps instead. Serving each coin at
+    // its own measured floor is what lets a reader ask about the coin they care about and get
+    // the answer that was actually measured for it.
+    strength: ownFloor
+      ? margin >= ownFloor.floor
+        ? "strong"
+        : "weak"
+      : lane.conviction
+        ? speaks(lane, probUp)
+          ? "strong"
+          : "weak"
+        : null,
     margin,
-    floor: lane.conviction?.floor ?? 0,
-    measured: accuracyAtMargin(lane, margin),
+    floor: ownFloor ? ownFloor.floor : (lane.conviction?.floor ?? 0),
+    // The rate measured for THIS coin at THIS floor, not the pool's at a floor it never meets.
+    measured:
+      ownFloor && ownFloor.accuracy !== null
+        ? { accuracy: ownFloor.accuracy, coverage: ownFloor.coverage, rows: cert.verdict?.called ?? 0 }
+        : accuracyAtMargin(lane, margin),
     levels: levelsFor(lane, horizon.key, direction, w.referencePrice, x),
     // Non-null by construction: an uncertified coin returned above and never reaches here. The
     // fallback exists only so a lane the sweep has not covered yet still type-checks.

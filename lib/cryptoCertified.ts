@@ -71,6 +71,30 @@ export function verdictFor(
   return DOC.coins?.[symbol]?.[`${family}:${horizon}`] ?? null;
 }
 
+/// The floor this coin's own calls must clear, or null when it has no measured one.
+///
+/// **A pooled floor silences the coins a reader most wants.** The five-minute lane's floor is
+/// 0.100 and the fifteen-minute lane's is 0.075, both chosen over 140 coins at once -- and every
+/// one of the liquid majors sits below them: Bitcoin's own floor is 0.050, Ethereum's 0.050,
+/// Solana's 0.050. That is not the model being worse on them, it is what a more efficient market
+/// looks like. A major's probabilities cluster nearer a half because its price already reflects
+/// more, while a volatile small cap throws wide margins readily, and a single threshold tuned on
+/// the mixture admits the small caps and mutes the majors.
+///
+/// So each coin is served at the floor chosen on **its own validation rows** and measured once on
+/// its own test rows -- the same discipline the lane floor follows, at the resolution the
+/// decision is actually made at. The accuracy printed beside a call is then the accuracy measured
+/// for that coin at that floor, rather than the pool's at a floor this coin never meets.
+export function floorFor(
+  family: string,
+  slug: string,
+  horizon: HorizonKey,
+): { floor: number; accuracy: number | null; coverage: number } | null {
+  const v = verdictFor(family, slug, horizon);
+  if (!v || !v.certified || typeof v.convictionFloor !== "number") return null;
+  return { floor: v.convictionFloor, accuracy: v.accuracy, coverage: v.coverage };
+}
+
 export type CertificationState = "certified" | "refused" | "unmeasured";
 
 /// Has the sweep covered this lane at all?
