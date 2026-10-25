@@ -91,26 +91,22 @@ const MIN_BOARD_VOLUME = 250_000;
 
 /// The coins the recommend board is restricted to, by slug.
 ///
-/// A watchlist, asked for directly: show these and nothing else. It is a presentation filter and
-/// not a claim -- every one of the 140 coins is still read, certified and scored exactly as
-/// before, and each coin's own page answers for it. This decides which of them reach one board.
+/// These three are what survived the gates for scalping, and the list is deliberately short
+/// rather than deliberately complete. Nine coins were asked for; six do not belong on a board
+/// headed "recommends" and the reasons differ:
 ///
-/// Two of the nine are shown with a caveat the board cannot carry on its own. DOT and ADA are
-/// certified -- the brain reads them, DOT at 67.4% over five minutes -- but their spread eats
-/// half or more of a typical move at the short windows, so a call on them is right more often
-/// than it is profitable. They are listed because they were asked for; the coin's own page is
-/// where the cost shows.
+///   * ETH, XRP, LINK and AVAX are refused outright -- their edge sits inside the range
+///     resampling the days could produce by chance, and LINK beat its own base rate in one
+///     stretch of five. The brain cannot read them at these windows.
+///   * ADA and DOT are read well -- DOT at 67.4% over five minutes -- and are still absent,
+///     because a round trip eats half or more of a typical move at scalping lengths. Right more
+///     often than profitable is not the same as profitable.
 ///
-/// Empty means no restriction, which is how the board behaves for anyone who has not set one.
+/// Every one of the nine is still scored, certified and served on its own page with its own
+/// numbers. This decides only which reach this board.
 const WATCHLIST: string[] = [
   "btc-bitcoin",
-  "eth-ethereum",
   "sol-solana",
-  "xrp-xrp",
-  "ada-cardano",
-  "link-chainlink",
-  "avax-avalanche",
-  "dot-polkadot",
   "sui-sui",
 ];
 
@@ -279,8 +275,11 @@ export function CoinTable({ rows }: { rows: Row[] }) {
       try {
         // Name the coins, so the endpoint scores nine rather than forty and the tab stops
         // spending most of its time on rows the watchlist then discards.
+        // Scalping only: the five- and fifteen-minute windows, which are the ones these three
+        // coins passed. Asking for the hour as well would put a call on the board that the
+        // scalping board is not about.
         const qs = WATCHLIST.length ? `&coins=${WATCHLIST.join(",")}` : "";
-        const res = await fetch(`/api/crypto/signals?h=any${qs}`, { cache: "no-store" });
+        const res = await fetch(`/api/crypto/signals?h=scalp${qs}`, { cache: "no-store" });
         if (!res.ok) throw new Error(String(res.status));
         const body = (await res.json()) as { signals?: Signal[] };
         if (!alive) return;

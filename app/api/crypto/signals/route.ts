@@ -44,7 +44,13 @@ export async function GET(request: Request) {
   /// Each coin is read over every servable window and keeps its strongest call that clears that
   /// window's own floor -- so the board answers "is there anything here", and the row says which
   /// window the answer belongs to.
-  const horizons: HorizonKey[] = ALL.includes(raw as HorizonKey) ? [raw as HorizonKey] : ALL;
+  //: "scalp" is the pair a scalping board asks about; "any" is every servable window.
+  const SCALP: HorizonKey[] = ["m5", "m15"];
+  const horizons: HorizonKey[] = ALL.includes(raw as HorizonKey)
+    ? [raw as HorizonKey]
+    : raw === "scalp"
+      ? SCALP
+      : ALL;
   const h: HorizonKey = horizons[horizons.length - 1];
 
   const market = await marketTable().catch(() => null);
