@@ -1,65 +1,114 @@
 {
- "generatedAt": "2026-10-24T11:04:28.289458+00:00",
+ "generatedAt": "2026-10-25T14:02:18.508912+00:00",
  "modelVersion": "brain-c1-crypto-h4",
  "market": "Crypto",
  "symbols": [
   "AAVEUSDT",
+  "ACEUSDT",
   "ADAUSDT",
   "AEROUSDT",
   "AIUSDT",
   "ALGOUSDT",
   "ALTUSDT",
+  "AMPUSDT",
+  "APEUSDT",
   "APTUSDT",
   "ARBUSDT",
+  "ARKMUSDT",
   "ARKUSDT",
+  "ARUSDT",
   "ASTERUSDT",
   "ATOMUSDT",
   "AVAUSDT",
   "AVAXUSDT",
+  "BABYUSDT",
   "BATUSDT",
   "BCHUSDT",
+  "BEAMXUSDT",
+  "BFUSDUSDT",
   "BMTUSDT",
   "BNBUSDT",
+  "BOMEUSDT",
   "BONKUSDT",
+  "BREVUSDT",
   "BTCUSDT",
   "CAKEUSDT",
   "CFXUSDT",
+  "CHIPUSDT",
+  "COMPUSDT",
   "COTIUSDT",
   "CRVUSDT",
+  "CVXUSDT",
   "DASHUSDT",
+  "DEXEUSDT",
   "DOGEUSDT",
   "DOTUSDT",
+  "DYMUSDT",
+  "EIGENUSDT",
   "ERAUSDT",
   "ETCUSDT",
   "ETHFIUSDT",
   "ETHUSDT",
   "FILUSDT",
+  "FLOKIUSDT",
+  "GIGGLEUSDT",
   "GRAMUSDT",
   "GTCUSDT",
   "HBARUSDT",
+  "HUMAUSDT",
+  "HYPERUSDT",
+  "IDUSDT",
   "INITUSDT",
   "INJUSDT",
   "IOSTUSDT",
+  "IOUSDT",
+  "JASMYUSDT",
+  "JSTUSDT",
+  "JTOUSDT",
+  "JUPUSDT",
+  "KATUSDT",
+  "KERNELUSDT",
+  "KITEUSDT",
+  "KMNOUSDT",
+  "LAUSDT",
+  "LDOUSDT",
   "LINKUSDT",
   "LTCUSDT",
+  "LUMIAUSDT",
+  "MARSCOINUSDT",
+  "MEGAUSDT",
   "MITOUSDT",
   "MORPHOUSDT",
   "MUBARAKUSDT",
   "NEARUSDT",
+  "NEIROUSDT",
+  "NIGHTUSDT",
+  "NILUSDT",
   "ONDOUSDT",
+  "ONEUSDT",
   "OPUSDT",
+  "ORCAUSDT",
+  "OSMOUSDT",
+  "PARTIUSDT",
   "PENDLEUSDT",
   "PENGUUSDT",
   "PEPEUSDT",
   "PHAUSDT",
+  "PLUMEUSDT",
   "POLUSDT",
+  "PROMUSDT",
   "PUMPUSDT",
   "PYTHUSDT",
   "QNTUSDT",
   "RAYUSDT",
   "RENDERUSDT",
   "REZUSDT",
+  "RLCUSDT",
+  "RUNEUSDT",
+  "RWUSDUSDT",
+  "SANDUSDT",
   "SEIUSDT",
+  "SENTUSDT",
   "SHIBUSDT",
   "SKYUSDT",
   "SOLUSDT",
@@ -68,28 +117,40 @@
   "STXUSDT",
   "SUIUSDT",
   "SUSDT",
+  "SYNUSDT",
   "TAOUSDT",
   "TIAUSDT",
+  "TRBUSDT",
+  "TREEUSDT",
   "TRUMPUSDT",
   "TRXUSDT",
   "UNIUSDT",
+  "VELODROMEUSDT",
   "VETUSDT",
   "VIRTUALUSDT",
+  "WBTCUSDT",
+  "WCTUSDT",
+  "WIFUSDT",
   "WLDUSDT",
   "WLFIUSDT",
+  "WUSDT",
   "XLMUSDT",
+  "XPLUSDT",
   "XRPUSDT",
   "XTZUSDT",
   "ZAMAUSDT",
-  "ZECUSDT"
+  "ZECUSDT",
+  "ZENUSDT",
+  "ZKCUSDT",
+  "ZKUSDT"
  ],
  "artifact": {
   "file": "model.json",
-  "sha256": "7fe16743f9aa4f34052d781dc274475dc574e96c7b2bb085428d7735e9c55d69",
-  "bytes": 82014
+  "sha256": "0c0965707f9d5f3adc22e3dcd5845ddc39b6e324f032aa7e576b03ccfd5336b4",
+  "bytes": 3994
  },
  "producedBy": "tools/research/train_crypto_short.py",
- "repoHead": "918ff2500609e01a314f00d53bf19fb8d3ae4889",
+ "repoHead": "49fde4316ec7081395cba4ba34266f3375e3e011",
  "featureSchema": "crypto-intraday-f1+crypto-market-c1",
  "featureCount": 52,
  "task": {
@@ -107,7 +168,7 @@
  "corpus": {
   "AAVEUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -119,9 +180,23 @@
     "missingBars": 0
    }
   },
+  "ACEUSDT": {
+   "bars": 155519,
+   "usableRows": 9637,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T12:05:00+00:00",
+    "last": "2026-10-24T11:55:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "ADAUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -135,7 +210,7 @@
   },
   "AEROUSDT": {
    "bars": 28284,
-   "usableRows": 2714,
+   "usableRows": 1696,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -149,7 +224,7 @@
   },
   "AIUSDT": {
    "bars": 155519,
-   "usableRows": 15433,
+   "usableRows": 9646,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -163,7 +238,7 @@
   },
   "ALGOUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -177,7 +252,7 @@
   },
   "ALTUSDT": {
    "bars": 155519,
-   "usableRows": 15432,
+   "usableRows": 9645,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -189,9 +264,37 @@
     "missingBars": 0
    }
   },
+  "AMPUSDT": {
+   "bars": 155519,
+   "usableRows": 9639,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T09:15:00+00:00",
+    "last": "2026-10-24T09:05:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "APEUSDT": {
+   "bars": 155519,
+   "usableRows": 9636,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T13:25:00+00:00",
+    "last": "2026-10-24T13:15:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "APTUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -205,7 +308,7 @@
   },
   "ARBUSDT": {
    "bars": 155519,
-   "usableRows": 15522,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -217,9 +320,23 @@
     "missingBars": 0
    }
   },
+  "ARKMUSDT": {
+   "bars": 155519,
+   "usableRows": 9644,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T02:25:00+00:00",
+    "last": "2026-10-24T02:15:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "ARKUSDT": {
    "bars": 155519,
-   "usableRows": 15433,
+   "usableRows": 9646,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -231,9 +348,23 @@
     "missingBars": 0
    }
   },
+  "ARUSDT": {
+   "bars": 155519,
+   "usableRows": 9638,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T11:15:00+00:00",
+    "last": "2026-10-24T11:05:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "ASTERUSDT": {
    "bars": 110124,
-   "usableRows": 10898,
+   "usableRows": 6811,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -247,7 +378,7 @@
   },
   "ATOMUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -261,7 +392,7 @@
   },
   "AVAUSDT": {
    "bars": 155519,
-   "usableRows": 15432,
+   "usableRows": 9645,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -275,7 +406,7 @@
   },
   "AVAXUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -287,9 +418,23 @@
     "missingBars": 0
    }
   },
+  "BABYUSDT": {
+   "bars": 155519,
+   "usableRows": 9636,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T14:00:00+00:00",
+    "last": "2026-10-24T13:50:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "BATUSDT": {
    "bars": 420463,
-   "usableRows": 41903,
+   "usableRows": 26189,
    "stepMs": 300000,
    "manifest": {
     "completeness": 0.999962,
@@ -303,7 +448,7 @@
   },
   "BCHUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -315,9 +460,37 @@
     "missingBars": 0
    }
   },
+  "BEAMXUSDT": {
+   "bars": 155519,
+   "usableRows": 9644,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T02:30:00+00:00",
+    "last": "2026-10-24T02:20:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "BFUSDUSDT": {
+   "bars": 125714,
+   "usableRows": 7782,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-08-13T14:00:00+00:00",
+    "last": "2026-10-24T02:05:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "BMTUSDT": {
    "bars": 155519,
-   "usableRows": 15433,
+   "usableRows": 9646,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -331,7 +504,7 @@
   },
   "BNBUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -343,9 +516,23 @@
     "missingBars": 0
    }
   },
+  "BOMEUSDT": {
+   "bars": 155519,
+   "usableRows": 9639,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T09:55:00+00:00",
+    "last": "2026-10-24T09:45:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "BONKUSDT": {
    "bars": 155519,
-   "usableRows": 15432,
+   "usableRows": 9645,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -357,9 +544,23 @@
     "missingBars": 0
    }
   },
+  "BREVUSDT": {
+   "bars": 83809,
+   "usableRows": 5154,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2026-01-06T14:00:00+00:00",
+    "last": "2026-10-24T14:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "BTCUSDT": {
    "bars": 420463,
-   "usableRows": 41989,
+   "usableRows": 26243,
    "stepMs": 300000,
    "manifest": {
     "completeness": 0.999962,
@@ -382,7 +583,7 @@
   },
   "CAKEUSDT": {
    "bars": 420463,
-   "usableRows": 41902,
+   "usableRows": 26189,
    "stepMs": 300000,
    "manifest": {
     "completeness": 0.999962,
@@ -396,7 +597,7 @@
   },
   "CFXUSDT": {
    "bars": 420463,
-   "usableRows": 41902,
+   "usableRows": 26189,
    "stepMs": 300000,
    "manifest": {
     "completeness": 0.999962,
@@ -408,9 +609,37 @@
     "missingBars": 16
    }
   },
+  "CHIPUSDT": {
+   "bars": 53438,
+   "usableRows": 3264,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2026-04-21T13:30:00+00:00",
+    "last": "2026-10-24T02:35:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "COMPUSDT": {
+   "bars": 155519,
+   "usableRows": 9636,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T13:30:00+00:00",
+    "last": "2026-10-24T13:20:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "COTIUSDT": {
    "bars": 155519,
-   "usableRows": 15432,
+   "usableRows": 9645,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -424,7 +653,7 @@
   },
   "CRVUSDT": {
    "bars": 420463,
-   "usableRows": 41902,
+   "usableRows": 26189,
    "stepMs": 300000,
    "manifest": {
     "completeness": 0.999962,
@@ -436,9 +665,23 @@
     "missingBars": 16
    }
   },
+  "CVXUSDT": {
+   "bars": 155519,
+   "usableRows": 9637,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T12:15:00+00:00",
+    "last": "2026-10-24T12:05:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "DASHUSDT": {
    "bars": 420463,
-   "usableRows": 41902,
+   "usableRows": 26189,
    "stepMs": 300000,
    "manifest": {
     "completeness": 0.999962,
@@ -450,9 +693,23 @@
     "missingBars": 16
    }
   },
+  "DEXEUSDT": {
+   "bars": 155519,
+   "usableRows": 9636,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T14:15:00+00:00",
+    "last": "2026-10-24T14:05:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "DOGEUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -466,7 +723,7 @@
   },
   "DOTUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -478,9 +735,37 @@
     "missingBars": 0
    }
   },
+  "DYMUSDT": {
+   "bars": 155519,
+   "usableRows": 9636,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T13:00:00+00:00",
+    "last": "2026-10-24T12:50:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "EIGENUSDT": {
+   "bars": 155519,
+   "usableRows": 9644,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T02:50:00+00:00",
+    "last": "2026-10-24T02:40:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "ERAUSDT": {
    "bars": 133454,
-   "usableRows": 13226,
+   "usableRows": 8267,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -494,7 +779,7 @@
   },
   "ETCUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -508,7 +793,7 @@
   },
   "ETHFIUSDT": {
    "bars": 155519,
-   "usableRows": 15431,
+   "usableRows": 9645,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -522,7 +807,7 @@
   },
   "ETHUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -536,7 +821,7 @@
   },
   "FILUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -548,9 +833,37 @@
     "missingBars": 0
    }
   },
+  "FLOKIUSDT": {
+   "bars": 155519,
+   "usableRows": 9639,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T09:30:00+00:00",
+    "last": "2026-10-24T09:20:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "GIGGLEUSDT": {
+   "bars": 104914,
+   "usableRows": 6474,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-10-25T06:00:00+00:00",
+    "last": "2026-10-24T12:45:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "GRAMUSDT": {
    "bars": 32743,
-   "usableRows": 3155,
+   "usableRows": 1972,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -564,7 +877,7 @@
   },
   "GTCUSDT": {
    "bars": 155519,
-   "usableRows": 15432,
+   "usableRows": 9645,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -578,7 +891,7 @@
   },
   "HBARUSDT": {
    "bars": 155519,
-   "usableRows": 15522,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -590,9 +903,51 @@
     "missingBars": 0
    }
   },
+  "HUMAUSDT": {
+   "bars": 148588,
+   "usableRows": 9204,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-26T13:00:00+00:00",
+    "last": "2026-10-24T11:15:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "HYPERUSDT": {
+   "bars": 155519,
+   "usableRows": 9637,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T12:25:00+00:00",
+    "last": "2026-10-24T12:15:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "IDUSDT": {
+   "bars": 155519,
+   "usableRows": 9638,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T11:20:00+00:00",
+    "last": "2026-10-24T11:10:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "INITUSDT": {
    "bars": 155519,
-   "usableRows": 15432,
+   "usableRows": 9645,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -606,7 +961,7 @@
   },
   "INJUSDT": {
    "bars": 155519,
-   "usableRows": 15522,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -620,7 +975,7 @@
   },
   "IOSTUSDT": {
    "bars": 155519,
-   "usableRows": 15432,
+   "usableRows": 9645,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -632,9 +987,163 @@
     "missingBars": 0
    }
   },
+  "IOUSDT": {
+   "bars": 155519,
+   "usableRows": 9636,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T13:10:00+00:00",
+    "last": "2026-10-24T13:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "JASMYUSDT": {
+   "bars": 155519,
+   "usableRows": 9636,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T13:45:00+00:00",
+    "last": "2026-10-24T13:35:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "JSTUSDT": {
+   "bars": 155519,
+   "usableRows": 9639,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T09:35:00+00:00",
+    "last": "2026-10-24T09:25:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "JTOUSDT": {
+   "bars": 155519,
+   "usableRows": 9637,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T12:45:00+00:00",
+    "last": "2026-10-24T12:35:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "JUPUSDT": {
+   "bars": 155519,
+   "usableRows": 9639,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T10:10:00+00:00",
+    "last": "2026-10-24T10:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "KATUSDT": {
+   "bars": 63368,
+   "usableRows": 3876,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2026-03-18T13:00:00+00:00",
+    "last": "2026-10-24T13:35:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "KERNELUSDT": {
+   "bars": 155519,
+   "usableRows": 9637,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T12:10:00+00:00",
+    "last": "2026-10-24T12:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "KITEUSDT": {
+   "bars": 102233,
+   "usableRows": 6306,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-11-03T13:00:00+00:00",
+    "last": "2026-10-24T12:20:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "KMNOUSDT": {
+   "bars": 154329,
+   "usableRows": 9563,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-06T15:00:00+00:00",
+    "last": "2026-10-24T11:40:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "LAUSDT": {
+   "bars": 135776,
+   "usableRows": 8410,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-07-09T16:00:00+00:00",
+    "last": "2026-10-24T02:35:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "LDOUSDT": {
+   "bars": 155519,
+   "usableRows": 9638,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T11:00:00+00:00",
+    "last": "2026-10-24T10:50:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "LINKUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -648,7 +1157,7 @@
   },
   "LTCUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -660,9 +1169,51 @@
     "missingBars": 0
    }
   },
+  "LUMIAUSDT": {
+   "bars": 155519,
+   "usableRows": 9639,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T09:10:00+00:00",
+    "last": "2026-10-24T09:00:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "MARSCOINUSDT": {
+   "bars": 14272,
+   "usableRows": 816,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2026-09-04T13:00:00+00:00",
+    "last": "2026-10-24T02:15:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "MEGAUSDT": {
+   "bars": 50872,
+   "usableRows": 3104,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2026-04-30T11:00:00+00:00",
+    "last": "2026-10-24T02:15:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "MITOUSDT": {
    "bars": 121086,
-   "usableRows": 11988,
+   "usableRows": 7493,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -676,7 +1227,7 @@
   },
   "MORPHOUSDT": {
    "bars": 110967,
-   "usableRows": 10980,
+   "usableRows": 6863,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -690,7 +1241,7 @@
   },
   "MUBARAKUSDT": {
    "bars": 155519,
-   "usableRows": 15431,
+   "usableRows": 9645,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -704,7 +1255,7 @@
   },
   "NEARUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -716,9 +1267,51 @@
     "missingBars": 0
    }
   },
+  "NEIROUSDT": {
+   "bars": 155519,
+   "usableRows": 9636,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T13:35:00+00:00",
+    "last": "2026-10-24T13:25:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "NIGHTUSDT": {
+   "bars": 65302,
+   "usableRows": 4001,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2026-03-11T15:30:00+00:00",
+    "last": "2026-10-24T09:15:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "NILUSDT": {
+   "bars": 155519,
+   "usableRows": 9644,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T03:00:00+00:00",
+    "last": "2026-10-24T02:50:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "ONDOUSDT": {
    "bars": 161380,
-   "usableRows": 16022,
+   "usableRows": 10014,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -730,9 +1323,23 @@
     "missingBars": 0
    }
   },
+  "ONEUSDT": {
+   "bars": 155519,
+   "usableRows": 9637,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T11:40:00+00:00",
+    "last": "2026-10-24T11:30:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "OPUSDT": {
    "bars": 155519,
-   "usableRows": 15522,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -744,9 +1351,51 @@
     "missingBars": 0
    }
   },
+  "ORCAUSDT": {
+   "bars": 155519,
+   "usableRows": 9637,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T12:35:00+00:00",
+    "last": "2026-10-24T12:25:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "OSMOUSDT": {
+   "bars": 155519,
+   "usableRows": 9637,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T11:55:00+00:00",
+    "last": "2026-10-24T11:45:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "PARTIUSDT": {
+   "bars": 155519,
+   "usableRows": 9637,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T12:50:00+00:00",
+    "last": "2026-10-24T12:40:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "PENDLEUSDT": {
    "bars": 348053,
-   "usableRows": 34689,
+   "usableRows": 21681,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -760,7 +1409,7 @@
   },
   "PENGUUSDT": {
    "bars": 194504,
-   "usableRows": 19334,
+   "usableRows": 12084,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -774,7 +1423,7 @@
   },
   "PEPEUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -788,7 +1437,7 @@
   },
   "PHAUSDT": {
    "bars": 155519,
-   "usableRows": 15432,
+   "usableRows": 9645,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -800,9 +1449,23 @@
     "missingBars": 0
    }
   },
+  "PLUMEUSDT": {
+   "bars": 124347,
+   "usableRows": 7691,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-08-18T15:00:00+00:00",
+    "last": "2026-10-24T09:10:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "POLUSDT": {
    "bars": 221914,
-   "usableRows": 22074,
+   "usableRows": 13797,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -814,9 +1477,23 @@
     "missingBars": 0
    }
   },
+  "PROMUSDT": {
+   "bars": 155519,
+   "usableRows": 9636,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T13:15:00+00:00",
+    "last": "2026-10-24T13:05:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "PUMPUSDT": {
    "bars": 117341,
-   "usableRows": 11617,
+   "usableRows": 7261,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -830,7 +1507,7 @@
   },
   "PYTHUSDT": {
    "bars": 286404,
-   "usableRows": 28523,
+   "usableRows": 17827,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -844,7 +1521,7 @@
   },
   "QNTUSDT": {
    "bars": 420463,
-   "usableRows": 41900,
+   "usableRows": 26188,
    "stepMs": 300000,
    "manifest": {
     "completeness": 0.999962,
@@ -858,7 +1535,7 @@
   },
   "RAYUSDT": {
    "bars": 420463,
-   "usableRows": 41900,
+   "usableRows": 26188,
    "stepMs": 300000,
    "manifest": {
     "completeness": 0.999962,
@@ -872,7 +1549,7 @@
   },
   "RENDERUSDT": {
    "bars": 236062,
-   "usableRows": 23488,
+   "usableRows": 14680,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -886,7 +1563,7 @@
   },
   "REZUSDT": {
    "bars": 155519,
-   "usableRows": 15431,
+   "usableRows": 9645,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -898,9 +1575,65 @@
     "missingBars": 0
    }
   },
+  "RLCUSDT": {
+   "bars": 155519,
+   "usableRows": 9639,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T10:15:00+00:00",
+    "last": "2026-10-24T10:05:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "RUNEUSDT": {
+   "bars": 155519,
+   "usableRows": 9644,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T02:35:00+00:00",
+    "last": "2026-10-24T02:25:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "RWUSDUSDT": {
+   "bars": 3100,
+   "usableRows": 118,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2026-10-13T08:00:00+00:00",
+    "last": "2026-10-24T02:15:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "SANDUSDT": {
+   "bars": 155519,
+   "usableRows": 9639,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T09:45:00+00:00",
+    "last": "2026-10-24T09:35:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "SEIUSDT": {
    "bars": 155519,
-   "usableRows": 15522,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -912,9 +1645,23 @@
     "missingBars": 0
    }
   },
+  "SENTUSDT": {
+   "bars": 79151,
+   "usableRows": 4866,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2026-01-22T13:00:00+00:00",
+    "last": "2026-10-24T08:50:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "SHIBUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -928,7 +1675,7 @@
   },
   "SKYUSDT": {
    "bars": 115681,
-   "usableRows": 11450,
+   "usableRows": 7156,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -942,7 +1689,7 @@
   },
   "SOLUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -956,7 +1703,7 @@
   },
   "SOPHUSDT": {
    "bars": 147893,
-   "usableRows": 14669,
+   "usableRows": 9168,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -970,7 +1717,7 @@
   },
   "STRKUSDT": {
    "bars": 281222,
-   "usableRows": 28004,
+   "usableRows": 17502,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -984,7 +1731,7 @@
   },
   "STXUSDT": {
    "bars": 420463,
-   "usableRows": 41899,
+   "usableRows": 26187,
    "stepMs": 300000,
    "manifest": {
     "completeness": 0.999962,
@@ -998,7 +1745,7 @@
   },
   "SUIUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -1012,7 +1759,7 @@
   },
   "SUSDT": {
    "bars": 185952,
-   "usableRows": 18477,
+   "usableRows": 11548,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -1024,9 +1771,23 @@
     "missingBars": 0
    }
   },
+  "SYNUSDT": {
+   "bars": 155519,
+   "usableRows": 9636,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T13:55:00+00:00",
+    "last": "2026-10-24T13:45:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "TAOUSDT": {
    "bars": 266551,
-   "usableRows": 26536,
+   "usableRows": 16585,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -1040,7 +1801,7 @@
   },
   "TIAUSDT": {
    "bars": 155519,
-   "usableRows": 15522,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -1052,9 +1813,37 @@
     "missingBars": 0
    }
   },
+  "TRBUSDT": {
+   "bars": 155519,
+   "usableRows": 9638,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T11:35:00+00:00",
+    "last": "2026-10-24T11:25:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "TREEUSDT": {
+   "bars": 130123,
+   "usableRows": 8052,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-07-29T14:00:00+00:00",
+    "last": "2026-10-24T09:30:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "TRUMPUSDT": {
    "bars": 185091,
-   "usableRows": 18390,
+   "usableRows": 11494,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -1068,7 +1857,7 @@
   },
   "TRXUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -1082,7 +1871,7 @@
   },
   "UNIUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -1094,9 +1883,23 @@
     "missingBars": 0
    }
   },
+  "VELODROMEUSDT": {
+   "bars": 155519,
+   "usableRows": 9639,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T09:05:00+00:00",
+    "last": "2026-10-24T08:55:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "VETUSDT": {
    "bars": 420463,
-   "usableRows": 41898,
+   "usableRows": 26187,
    "stepMs": 300000,
    "manifest": {
     "completeness": 0.999962,
@@ -1110,7 +1913,7 @@
   },
   "VIRTUALUSDT": {
    "bars": 161413,
-   "usableRows": 16022,
+   "usableRows": 10014,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -1122,9 +1925,51 @@
     "missingBars": 0
    }
   },
+  "WBTCUSDT": {
+   "bars": 155519,
+   "usableRows": 9638,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T11:05:00+00:00",
+    "last": "2026-10-24T10:55:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "WCTUSDT": {
+   "bars": 155519,
+   "usableRows": 9640,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T08:55:00+00:00",
+    "last": "2026-10-24T08:45:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "WIFUSDT": {
+   "bars": 155519,
+   "usableRows": 9639,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T10:00:00+00:00",
+    "last": "2026-10-24T09:50:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "WLDUSDT": {
    "bars": 342050,
-   "usableRows": 34085,
+   "usableRows": 21303,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -1138,7 +1983,7 @@
   },
   "WLFIUSDT": {
    "bars": 120245,
-   "usableRows": 11904,
+   "usableRows": 7440,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -1150,9 +1995,23 @@
     "missingBars": 0
    }
   },
+  "WUSDT": {
+   "bars": 155519,
+   "usableRows": 9644,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T02:55:00+00:00",
+    "last": "2026-10-24T02:45:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "XLMUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -1164,9 +2023,23 @@
     "missingBars": 0
    }
   },
+  "XPLUSDT": {
+   "bars": 113343,
+   "usableRows": 7008,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-09-25T13:00:00+00:00",
+    "last": "2026-10-24T02:10:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
   "XRPUSDT": {
    "bars": 155519,
-   "usableRows": 15523,
+   "usableRows": 9702,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -1180,7 +2053,7 @@
   },
   "XTZUSDT": {
    "bars": 420463,
-   "usableRows": 41897,
+   "usableRows": 26186,
    "stepMs": 300000,
    "manifest": {
     "completeness": 0.999962,
@@ -1194,7 +2067,7 @@
   },
   "ZAMAUSDT": {
    "bars": 75894,
-   "usableRows": 7469,
+   "usableRows": 4668,
    "stepMs": 300000,
    "manifest": {
     "completeness": 1.0,
@@ -1208,7 +2081,7 @@
   },
   "ZECUSDT": {
    "bars": 420463,
-   "usableRows": 41897,
+   "usableRows": 26186,
    "stepMs": 300000,
    "manifest": {
     "completeness": 0.999962,
@@ -1219,13 +2092,61 @@
     "gapRuns": 1,
     "missingBars": 16
    }
+  },
+  "ZENUSDT": {
+   "bars": 155519,
+   "usableRows": 9638,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T10:35:00+00:00",
+    "last": "2026-10-24T10:25:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "ZKCUSDT": {
+   "bars": 116309,
+   "usableRows": 7188,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-09-15T14:00:00+00:00",
+    "last": "2026-10-24T10:20:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
+  },
+  "ZKUSDT": {
+   "bars": 155519,
+   "usableRows": 9638,
+   "stepMs": 300000,
+   "manifest": {
+    "completeness": 1.0,
+    "first": "2025-05-02T10:25:00+00:00",
+    "last": "2026-10-24T10:15:00+00:00",
+    "rejected": {},
+    "conflictingDuplicates": 0,
+    "gapRuns": 0,
+    "missingBars": 0
+   }
   }
  },
- "rowStride": 10,
+ "rowStride": 16,
  "featureParityWithReference": {
   "AAVEUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.738372628035503e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ACEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.413455096383228e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -1259,6 +2180,18 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "AMPUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.179115384458727e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "APEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.564368166712756e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "APTUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.463048509937642e-08,
@@ -1271,9 +2204,21 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "ARKMUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.431890208388203e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "ARKUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.458448064094457e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ARUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.2378246096055224e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -1301,6 +2246,12 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "BABYUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.496114547130856e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "BATUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.3997287756502297e-08,
@@ -1310,6 +2261,18 @@
   "BCHUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.266987453209391e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "BEAMXUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.6781087560799744e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "BFUSDUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.381766259405558e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -1325,9 +2288,21 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "BOMEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.305290943171386e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "BONKUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.633348746382409e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "BREVUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.777743928677704e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -1349,6 +2324,18 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "CHIPUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.523566422266148e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "COMPUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.527896495480129e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "COTIUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.383342381244954e-08,
@@ -1361,9 +2348,21 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "CVXUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.679216677484237e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "DASHUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.3985504889208476e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "DEXEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.429518935320831e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -1376,6 +2375,18 @@
   "DOTUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.697475205810126e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "DYMUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.707917479571664e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "EIGENUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.580184879557706e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -1409,6 +2420,18 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "FLOKIUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.720370368509971e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "GIGGLEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.0167637177820164e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "GRAMUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.5326112942317455e-08,
@@ -1424,6 +2447,24 @@
   "HBARUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.2827422207582784e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "HUMAUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.469391523897382e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "HYPERUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.142962073615071e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "IDUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.76663844736698e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -1445,6 +2486,72 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "IOUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.889019326943028e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "JASMYUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.7206859051222434e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "JSTUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.469665521655918e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "JTOUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.2595908385079475e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "JUPUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.7524043901571265e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "KATUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.731631122067471e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "KERNELUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.1959489914596374e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "KITEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.493527654765793e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "KMNOUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.6426464420183764e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "LAUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.463296907224033e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "LDOUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.6939171428811855e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "LINKUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.831891351328063e-08,
@@ -1454,6 +2561,24 @@
   "LTCUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.588062287256697e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "LUMIAUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.5287753817881755e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "MARSCOINUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.001601513434167e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "MEGAUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.570175739525493e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -1481,15 +2606,57 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "NEIROUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.2557757346946805e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "NIGHTUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.308141796065657e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "NILUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.695637534617457e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "ONDOUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.3386781773099623e-08,
    "tolerance": 2e-06,
    "ok": true
   },
+  "ONEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.255602930137443e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "OPUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.609988049825282e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ORCAUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.5452037133045795e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "OSMOUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.874966232890526e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "PARTIUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.576680359141061e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -1517,9 +2684,21 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "PLUMEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.4949533165982656e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "POLUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.3781149055984664e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "PROMUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.297044205641585e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -1559,9 +2738,39 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "RLCUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.785813458944902e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "RUNEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.685378984081715e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "RWUSDUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.859607723038496e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "SANDUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.884762750620013e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "SEIUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.676917125235965e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "SENTUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.625357703572e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -1613,6 +2822,12 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "SYNUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.688741356965077e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "TAOUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.314888500502281e-08,
@@ -1622,6 +2837,18 @@
   "TIAUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.623446476068115e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "TRBUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.66371210403164e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "TREEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.43583412838228e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -1643,6 +2870,12 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "VELODROMEUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.3668703320784047e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "VETUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.833701936841337e-08,
@@ -1652,6 +2885,24 @@
   "VIRTUALUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.10995247429192e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "WBTCUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.8455561574978994e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "WCTUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.253161455271095e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "WIFUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.485662473762495e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -1667,9 +2918,21 @@
    "tolerance": 2e-06,
    "ok": true
   },
+  "WUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.2517258445448025e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
   "XLMUSDT": {
    "checked": 60,
    "worstRelativeDiff": 5.519163392232473e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "XPLUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.7339792534559875e-08,
    "tolerance": 2e-06,
    "ok": true
   },
@@ -1696,28 +2959,46 @@
    "worstRelativeDiff": 5.525833347987293e-08,
    "tolerance": 2e-06,
    "ok": true
+  },
+  "ZENUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.4169441058964854e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ZKCUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.797576361636059e-08,
+   "tolerance": 2e-06,
+   "ok": true
+  },
+  "ZKUSDT": {
+   "checked": 60,
+   "worstRelativeDiff": 5.663808542625655e-08,
+   "tolerance": 2e-06,
+   "ok": true
   }
  },
  "rows": {
-  "train": 1083334,
-  "validation": 227520,
-  "test": 230472,
-  "zeroMoveRowsDropped": 33772
+  "train": 1025352,
+  "validation": 215030,
+  "test": 218899,
+  "zeroMoveRowsDropped": 40192
  },
  "split": {
-  "trainEnd": "2026-03-23T17:30:00+00:00",
-  "valEnd": "2026-07-08T13:20:00+00:00",
+  "trainEnd": "2026-04-21T05:25:00+00:00",
+  "valEnd": "2026-07-22T08:40:00+00:00",
   "embargoBars": 336,
   "embargoMinutes": 1680,
-  "testFrom": "2026-07-08T13:25:00+00:00",
+  "testFrom": "2026-07-22T08:45:00+00:00",
   "testTo": "2026-10-20T20:55:00+00:00"
  },
- "chosenModel": "gbm",
+ "chosenModel": "logistic",
  "validation": {
-  "logisticAccuracy": 0.52157,
-  "gbmAccuracy": 0.52334,
-  "gbmRoundsKept": 45,
-  "gbmRoundsFitted": 75
+  "logisticAccuracy": 0.52242,
+  "gbmAccuracy": 0.52095,
+  "gbmRoundsKept": 60,
+  "gbmRoundsFitted": 90
  },
  "preRegisteredGates": {
   "aboveTestMajority": "accuracy strictly above the test fold's own larger class",
@@ -1728,73 +3009,73 @@
  "gates": {
   "aboveTestMajority": true,
   "bothDirectionsPredicted": true,
-  "bootstrapExcludesZero": false,
+  "bootstrapExcludesZero": true,
   "walkForwardMajority": true
  },
- "gatesMet": false,
+ "gatesMet": true,
  "acceptanceTarget": 0.9,
  "acceptanceTargetMet": false,
  "evaluation": {
-  "rows": 230472,
-  "accuracy": 0.51368,
-  "testMajority": 0.50376,
+  "rows": 218899,
+  "accuracy": 0.52155,
+  "testMajority": 0.50495,
   "testMajorityClass": "DOWN",
-  "marginOverMajority": 0.00992,
-  "alwaysUpAccuracy": 0.49624,
-  "actualUpRate": 0.49624,
-  "predictedUpShare": 0.23084,
-  "predictedDownShare": 0.76916,
-  "upRecall": 0.24258,
-  "downRecall": 0.78073,
-  "upPrecision": 0.52148,
-  "downPrecision": 0.51133,
+  "marginOverMajority": 0.0166,
+  "alwaysUpAccuracy": 0.49505,
+  "actualUpRate": 0.49505,
+  "predictedUpShare": 0.23368,
+  "predictedDownShare": 0.76632,
+  "upRecall": 0.25278,
+  "downRecall": 0.78505,
+  "upPrecision": 0.53552,
+  "downPrecision": 0.51729,
   "blockedBootstrap": {
-   "blocks": 105,
+   "blocks": 91,
    "draws": 2000,
-   "pointEstimate": 0.009919,
+   "pointEstimate": 0.016601,
    "ci95": [
-    -0.003583,
-    0.022722
+    0.002742,
+    0.031519
    ],
-   "sd": 0.006836,
-   "z": 1.4509,
-   "excludesZero": false
+   "sd": 0.007416,
+   "z": 2.2385,
+   "excludesZero": true
   },
   "walkForward": {
    "blocks": [
     {
      "block": 0,
-     "rows": 46094,
-     "accuracy": 0.51527,
-     "majority": 0.50757,
+     "rows": 43779,
+     "accuracy": 0.52582,
+     "majority": 0.506,
      "above": true
     },
     {
      "block": 1,
-     "rows": 46094,
-     "accuracy": 0.51297,
-     "majority": 0.50004,
+     "rows": 43780,
+     "accuracy": 0.5193,
+     "majority": 0.50089,
      "above": true
     },
     {
      "block": 2,
-     "rows": 46095,
-     "accuracy": 0.51101,
-     "majority": 0.50333,
+     "rows": 43780,
+     "accuracy": 0.52145,
+     "majority": 0.50991,
      "above": true
     },
     {
      "block": 3,
-     "rows": 46094,
-     "accuracy": 0.51577,
-     "majority": 0.50306,
+     "rows": 43780,
+     "accuracy": 0.52266,
+     "majority": 0.50235,
      "above": true
     },
     {
      "block": 4,
-     "rows": 46095,
-     "accuracy": 0.51335,
-     "majority": 0.50487,
+     "rows": 43780,
+     "accuracy": 0.51852,
+     "majority": 0.5056,
      "above": true
     }
    ],
@@ -1804,133 +3085,133 @@
   "coverageCurve": [
    {
     "minMargin": 0.0,
-    "rows": 230472,
+    "rows": 218899,
     "coverage": 1.0,
-    "accuracy": 0.51368,
-    "majorityHere": 0.50376
+    "accuracy": 0.52155,
+    "majorityHere": 0.50495
    },
    {
     "minMargin": 0.01,
-    "rows": 171618,
-    "coverage": 0.74464,
-    "accuracy": 0.5195,
-    "majorityHere": 0.50508
+    "rows": 176582,
+    "coverage": 0.80668,
+    "accuracy": 0.52651,
+    "majorityHere": 0.50815
    },
    {
     "minMargin": 0.02,
-    "rows": 118597,
-    "coverage": 0.51458,
-    "accuracy": 0.53251,
-    "majorityHere": 0.51617
+    "rows": 136695,
+    "coverage": 0.62447,
+    "accuracy": 0.531,
+    "majorityHere": 0.51079
    },
    {
     "minMargin": 0.03,
-    "rows": 70912,
-    "coverage": 0.30768,
-    "accuracy": 0.54279,
-    "majorityHere": 0.52908
+    "rows": 101695,
+    "coverage": 0.46457,
+    "accuracy": 0.53468,
+    "majorityHere": 0.51606
    },
    {
     "minMargin": 0.05,
-    "rows": 9630,
-    "coverage": 0.04178,
-    "accuracy": 0.58193,
-    "majorityHere": 0.54964
+    "rows": 48655,
+    "coverage": 0.22227,
+    "accuracy": 0.53838,
+    "majorityHere": 0.52952
    },
    {
     "minMargin": 0.075,
-    "rows": 679,
-    "coverage": 0.00295,
-    "accuracy": 0.65538,
-    "majorityHere": 0.65538
+    "rows": 15830,
+    "coverage": 0.07232,
+    "accuracy": 0.54473,
+    "majorityHere": 0.54643
    },
    {
     "minMargin": 0.1,
-    "rows": 0,
-    "coverage": 0.0,
-    "accuracy": null,
-    "note": "under 200 rows, not reported"
+    "rows": 5205,
+    "coverage": 0.02378,
+    "accuracy": 0.56772,
+    "majorityHere": 0.56695
    },
    {
     "minMargin": 0.15,
-    "rows": 0,
-    "coverage": 0.0,
-    "accuracy": null,
-    "note": "under 200 rows, not reported"
+    "rows": 1119,
+    "coverage": 0.00511,
+    "accuracy": 0.59249,
+    "majorityHere": 0.5916
    },
    {
     "minMargin": 0.2,
-    "rows": 0,
-    "coverage": 0.0,
-    "accuracy": null,
-    "note": "under 200 rows, not reported"
+    "rows": 389,
+    "coverage": 0.00178,
+    "accuracy": 0.58869,
+    "majorityHere": 0.59126
    }
   ],
   "calibration": [
    {
     "bucket": 0,
-    "rows": 23048,
-    "meanPredicted": 0.45096,
-    "observedUpRate": 0.43514
+    "rows": 21890,
+    "meanPredicted": 0.40755,
+    "observedUpRate": 0.45751
    },
    {
     "bucket": 1,
-    "rows": 23047,
-    "meanPredicted": 0.46159,
-    "observedUpRate": 0.47117
+    "rows": 21890,
+    "meanPredicted": 0.44122,
+    "observedUpRate": 0.47186
    },
    {
     "bucket": 2,
-    "rows": 23047,
-    "meanPredicted": 0.46796,
-    "observedUpRate": 0.47985
+    "rows": 21890,
+    "meanPredicted": 0.45397,
+    "observedUpRate": 0.47232
    },
    {
     "bucket": 3,
-    "rows": 23047,
-    "meanPredicted": 0.4739,
-    "observedUpRate": 0.48618
+    "rows": 21890,
+    "meanPredicted": 0.46366,
+    "observedUpRate": 0.48196
    },
    {
     "bucket": 4,
-    "rows": 23045,
-    "meanPredicted": 0.4798,
-    "observedUpRate": 0.51456
+    "rows": 21889,
+    "meanPredicted": 0.47227,
+    "observedUpRate": 0.48819
    },
    {
     "bucket": 5,
-    "rows": 23049,
-    "meanPredicted": 0.48565,
-    "observedUpRate": 0.51955
+    "rows": 21890,
+    "meanPredicted": 0.48058,
+    "observedUpRate": 0.49388
    },
    {
     "bucket": 6,
-    "rows": 23047,
-    "meanPredicted": 0.49171,
-    "observedUpRate": 0.50427
+    "rows": 21890,
+    "meanPredicted": 0.48907,
+    "observedUpRate": 0.4963
    },
    {
     "bucket": 7,
-    "rows": 23047,
-    "meanPredicted": 0.49856,
-    "observedUpRate": 0.50093
+    "rows": 21890,
+    "meanPredicted": 0.49842,
+    "observedUpRate": 0.50562
    },
    {
     "bucket": 8,
-    "rows": 23047,
-    "meanPredicted": 0.50721,
-    "observedUpRate": 0.49829
+    "rows": 21890,
+    "meanPredicted": 0.5097,
+    "observedUpRate": 0.51434
    },
    {
     "bucket": 9,
-    "rows": 23048,
-    "meanPredicted": 0.52649,
-    "observedUpRate": 0.5525
+    "rows": 21890,
+    "meanPredicted": 0.5313,
+    "observedUpRate": 0.56852
    }
   ]
  },
- "linearOnTheSameTestRows": 0.51913,
- "verdict": "NO-GO",
+ "linearOnTheSameTestRows": 0.52155,
+ "verdict": "GO",
  "limitations": [
   "The test fold is a historical holdout. It is unseen by this fit, and it is still a backtest: no forecast in it was made before the data existed.",
   "Direction only. No transaction cost, spread, funding or slippage is in any number here, and nothing here is a profitability claim.",

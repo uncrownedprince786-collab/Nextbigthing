@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-25T11:48:41.347306+00:00",
+ "generatedAt": "2026-10-25T13:12:03.726427+00:00",
  "producedBy": "tools/research/crypto_certify.py",
  "what": "per-coin, per-horizon verdict. A coin absent from a lane's list is served no direction on that lane at all -- not a weaker one.",
  "gates": {
@@ -12,24 +12,30 @@
  "minCalledRows": 500,
  "scoreStride": 1,
  "certifiedByLane": {
-  "crypto:m15": [
-   "BTCUSDT"
+  "crypto:h1": [
+   "BTCUSDT",
+   "SUIUSDT"
+  ],
+  "crypto:m5": [
+   "ADAUSDT",
+   "BTCUSDT",
+   "TRUMPUSDT"
   ]
  },
  "coins": {
   "BTCUSDT": {
-   "crypto:m15": {
-    "testRows": 62923,
-    "called": 62923,
+   "crypto:h1": {
+    "testRows": 62960,
+    "called": 62960,
     "coverage": 1.0,
-    "accuracy": 0.52745,
-    "ownMajority": 0.50304,
-    "edgeOverMajority": 0.02441,
-    "upRate": 0.49696,
-    "upShareCalled": 0.49623,
+    "accuracy": 0.52498,
+    "ownMajority": 0.50265,
+    "edgeOverMajority": 0.02233,
+    "upRate": 0.50265,
+    "upShareCalled": 0.51674,
     "bootstrapCi95": [
-     0.016898,
-     0.032066
+     0.009798,
+     0.034596
     ],
     "walkForward": "5/5",
     "gates": {
@@ -42,6 +48,1124 @@
     "certified": true,
     "why": null,
     "convictionFloor": 0.0
+   },
+   "crypto:m5": {
+    "testRows": 62759,
+    "called": 4618,
+    "coverage": 0.07358,
+    "accuracy": 0.53746,
+    "ownMajority": 0.51408,
+    "edgeOverMajority": 0.02339,
+    "upRate": 0.51408,
+    "upShareCalled": 0.59853,
+    "bootstrapCi95": [
+     0.00407,
+     0.041789
+    ],
+    "walkForward": "5/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": true,
+    "why": null,
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 62483,
+      "coverage": 1.0,
+      "accuracy": 0.52808
+     },
+     {
+      "floor": 0.01,
+      "rows": 43212,
+      "coverage": 0.69158,
+      "accuracy": 0.53353
+     },
+     {
+      "floor": 0.02,
+      "rows": 27030,
+      "coverage": 0.4326,
+      "accuracy": 0.54432
+     },
+     {
+      "floor": 0.03,
+      "rows": 15495,
+      "coverage": 0.24799,
+      "accuracy": 0.55198
+     },
+     {
+      "floor": 0.04,
+      "rows": 8582,
+      "coverage": 0.13735,
+      "accuracy": 0.56304
+     },
+     {
+      "floor": 0.05,
+      "rows": 4665,
+      "coverage": 0.07466,
+      "accuracy": 0.56677
+     },
+     {
+      "floor": 0.06,
+      "rows": 2517,
+      "coverage": 0.04028,
+      "accuracy": 0.5733
+     },
+     {
+      "floor": 0.075,
+      "rows": 1113,
+      "coverage": 0.01781,
+      "accuracy": 0.55076
+     },
+     {
+      "floor": 0.09,
+      "rows": 538,
+      "coverage": 0.00861,
+      "accuracy": 0.58364
+     },
+     {
+      "floor": 0.1,
+      "rows": 352,
+      "coverage": 0.00563,
+      "accuracy": 0.57955
+     },
+     {
+      "floor": 0.125,
+      "rows": 124,
+      "coverage": 0.00198,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 53,
+      "coverage": 0.00085,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.05,
+    "floorSource": "coin"
+   }
+  },
+  "ETHUSDT": {
+   "crypto:h1": {
+    "testRows": 23252,
+    "called": 23252,
+    "coverage": 1.0,
+    "accuracy": 0.51854,
+    "ownMajority": 0.51079,
+    "edgeOverMajority": 0.00774,
+    "upRate": 0.51079,
+    "upShareCalled": 0.47592,
+    "bootstrapCi95": [
+     -0.013554,
+     0.025943
+    ],
+    "walkForward": "2/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": false,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero, walkForwardMajority failed",
+    "convictionFloor": 0.0
+   },
+   "crypto:m5": {
+    "testRows": 23182,
+    "called": 1946,
+    "coverage": 0.08394,
+    "accuracy": 0.52364,
+    "ownMajority": 0.52055,
+    "edgeOverMajority": 0.00308,
+    "upRate": 0.52055,
+    "upShareCalled": 0.50976,
+    "bootstrapCi95": [
+     -0.030145,
+     0.035757
+    ],
+    "walkForward": "1/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": false,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero, walkForwardMajority failed",
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 22939,
+      "coverage": 1.0,
+      "accuracy": 0.51759
+     },
+     {
+      "floor": 0.01,
+      "rows": 15740,
+      "coverage": 0.68617,
+      "accuracy": 0.52414
+     },
+     {
+      "floor": 0.02,
+      "rows": 9867,
+      "coverage": 0.43014,
+      "accuracy": 0.52883
+     },
+     {
+      "floor": 0.03,
+      "rows": 5669,
+      "coverage": 0.24713,
+      "accuracy": 0.53466
+     },
+     {
+      "floor": 0.04,
+      "rows": 3044,
+      "coverage": 0.1327,
+      "accuracy": 0.54271
+     },
+     {
+      "floor": 0.05,
+      "rows": 1637,
+      "coverage": 0.07136,
+      "accuracy": 0.5504
+     },
+     {
+      "floor": 0.06,
+      "rows": 828,
+      "coverage": 0.0361,
+      "accuracy": 0.54227
+     },
+     {
+      "floor": 0.075,
+      "rows": 316,
+      "coverage": 0.01378,
+      "accuracy": 0.53797
+     },
+     {
+      "floor": 0.09,
+      "rows": 98,
+      "coverage": 0.00427,
+      "accuracy": null
+     },
+     {
+      "floor": 0.1,
+      "rows": 53,
+      "coverage": 0.00231,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 4,
+      "coverage": 0.00017,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.05,
+    "floorSource": "coin"
+   }
+  },
+  "SOLUSDT": {
+   "crypto:h1": {
+    "testRows": 22988,
+    "called": 22988,
+    "coverage": 1.0,
+    "accuracy": 0.52662,
+    "ownMajority": 0.51088,
+    "edgeOverMajority": 0.01575,
+    "upRate": 0.51088,
+    "upShareCalled": 0.4277,
+    "bootstrapCi95": [
+     -0.008249,
+     0.038783
+    ],
+    "walkForward": "3/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": false,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero, walkForwardMajority failed",
+    "convictionFloor": 0.0
+   },
+   "crypto:m5": {
+    "testRows": 22356,
+    "called": 2146,
+    "coverage": 0.09599,
+    "accuracy": 0.53961,
+    "ownMajority": 0.51817,
+    "edgeOverMajority": 0.02144,
+    "upRate": 0.51817,
+    "upShareCalled": 0.46226,
+    "bootstrapCi95": [
+     -0.010556,
+     0.054197
+    ],
+    "walkForward": "4/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero failed",
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 22002,
+      "coverage": 1.0,
+      "accuracy": 0.51873
+     },
+     {
+      "floor": 0.01,
+      "rows": 15585,
+      "coverage": 0.70834,
+      "accuracy": 0.52525
+     },
+     {
+      "floor": 0.02,
+      "rows": 10191,
+      "coverage": 0.46319,
+      "accuracy": 0.53008
+     },
+     {
+      "floor": 0.03,
+      "rows": 6285,
+      "coverage": 0.28566,
+      "accuracy": 0.53906
+     },
+     {
+      "floor": 0.04,
+      "rows": 3620,
+      "coverage": 0.16453,
+      "accuracy": 0.54144
+     },
+     {
+      "floor": 0.05,
+      "rows": 2043,
+      "coverage": 0.09286,
+      "accuracy": 0.54234
+     },
+     {
+      "floor": 0.06,
+      "rows": 1147,
+      "coverage": 0.05213,
+      "accuracy": 0.54926
+     },
+     {
+      "floor": 0.075,
+      "rows": 491,
+      "coverage": 0.02232,
+      "accuracy": 0.54175
+     },
+     {
+      "floor": 0.09,
+      "rows": 209,
+      "coverage": 0.0095,
+      "accuracy": 0.48804
+     },
+     {
+      "floor": 0.1,
+      "rows": 110,
+      "coverage": 0.005,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 13,
+      "coverage": 0.00059,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 2,
+      "coverage": 9e-05,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.05,
+    "floorSource": "coin"
+   }
+  },
+  "XRPUSDT": {
+   "crypto:h1": {
+    "testRows": 23089,
+    "called": 23089,
+    "coverage": 1.0,
+    "accuracy": 0.51657,
+    "ownMajority": 0.5076,
+    "edgeOverMajority": 0.00897,
+    "upRate": 0.5076,
+    "upShareCalled": 0.43189,
+    "bootstrapCi95": [
+     -0.019403,
+     0.034502
+    ],
+    "walkForward": "3/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": false,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero, walkForwardMajority failed",
+    "convictionFloor": 0.0
+   },
+   "crypto:m5": {
+    "testRows": 22560,
+    "called": 1302,
+    "coverage": 0.05771,
+    "accuracy": 0.54071,
+    "ownMajority": 0.52304,
+    "edgeOverMajority": 0.01767,
+    "upRate": 0.52304,
+    "upShareCalled": 0.50768,
+    "bootstrapCi95": [
+     -0.011306,
+     0.047319
+    ],
+    "walkForward": "3/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": false,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero, walkForwardMajority failed",
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 22212,
+      "coverage": 1.0,
+      "accuracy": 0.51297
+     },
+     {
+      "floor": 0.01,
+      "rows": 16206,
+      "coverage": 0.72961,
+      "accuracy": 0.51981
+     },
+     {
+      "floor": 0.02,
+      "rows": 11006,
+      "coverage": 0.4955,
+      "accuracy": 0.52108
+     },
+     {
+      "floor": 0.03,
+      "rows": 6932,
+      "coverage": 0.31208,
+      "accuracy": 0.52842
+     },
+     {
+      "floor": 0.04,
+      "rows": 4060,
+      "coverage": 0.18278,
+      "accuracy": 0.52217
+     },
+     {
+      "floor": 0.05,
+      "rows": 2336,
+      "coverage": 0.10517,
+      "accuracy": 0.52954
+     },
+     {
+      "floor": 0.06,
+      "rows": 1347,
+      "coverage": 0.06064,
+      "accuracy": 0.52487
+     },
+     {
+      "floor": 0.075,
+      "rows": 634,
+      "coverage": 0.02854,
+      "accuracy": 0.54416
+     },
+     {
+      "floor": 0.09,
+      "rows": 281,
+      "coverage": 0.01265,
+      "accuracy": 0.54448
+     },
+     {
+      "floor": 0.1,
+      "rows": 148,
+      "coverage": 0.00666,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 36,
+      "coverage": 0.00162,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 3,
+      "coverage": 0.00014,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.06,
+    "floorSource": "coin"
+   }
+  },
+  "ADAUSDT": {
+   "crypto:h1": {
+    "testRows": 22506,
+    "called": 22506,
+    "coverage": 1.0,
+    "accuracy": 0.5275,
+    "ownMajority": 0.5024,
+    "edgeOverMajority": 0.0251,
+    "upRate": 0.5024,
+    "upShareCalled": 0.38323,
+    "bootstrapCi95": [
+     -0.002937,
+     0.050647
+    ],
+    "walkForward": "4/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero failed",
+    "convictionFloor": 0.0
+   },
+   "crypto:m5": {
+    "testRows": 20906,
+    "called": 1266,
+    "coverage": 0.06056,
+    "accuracy": 0.57978,
+    "ownMajority": 0.50316,
+    "edgeOverMajority": 0.07662,
+    "upRate": 0.50316,
+    "upShareCalled": 0.43207,
+    "bootstrapCi95": [
+     0.040625,
+     0.109622
+    ],
+    "walkForward": "5/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": true,
+    "why": null,
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 19745,
+      "coverage": 1.0,
+      "accuracy": 0.53548
+     },
+     {
+      "floor": 0.01,
+      "rows": 15227,
+      "coverage": 0.77118,
+      "accuracy": 0.54075
+     },
+     {
+      "floor": 0.02,
+      "rows": 11107,
+      "coverage": 0.56252,
+      "accuracy": 0.54749
+     },
+     {
+      "floor": 0.03,
+      "rows": 7812,
+      "coverage": 0.39564,
+      "accuracy": 0.5608
+     },
+     {
+      "floor": 0.04,
+      "rows": 5337,
+      "coverage": 0.2703,
+      "accuracy": 0.56811
+     },
+     {
+      "floor": 0.05,
+      "rows": 3645,
+      "coverage": 0.1846,
+      "accuracy": 0.57723
+     },
+     {
+      "floor": 0.06,
+      "rows": 2482,
+      "coverage": 0.1257,
+      "accuracy": 0.57695
+     },
+     {
+      "floor": 0.075,
+      "rows": 1421,
+      "coverage": 0.07197,
+      "accuracy": 0.58973
+     },
+     {
+      "floor": 0.09,
+      "rows": 791,
+      "coverage": 0.04006,
+      "accuracy": 0.58786
+     },
+     {
+      "floor": 0.1,
+      "rows": 507,
+      "coverage": 0.02568,
+      "accuracy": 0.58383
+     },
+     {
+      "floor": 0.125,
+      "rows": 136,
+      "coverage": 0.00689,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 28,
+      "coverage": 0.00142,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.075,
+    "floorSource": "coin"
+   }
+  },
+  "LINKUSDT": {
+   "crypto:h1": {
+    "testRows": 23094,
+    "called": 23094,
+    "coverage": 1.0,
+    "accuracy": 0.51546,
+    "ownMajority": 0.50641,
+    "edgeOverMajority": 0.00905,
+    "upRate": 0.50641,
+    "upShareCalled": 0.39867,
+    "bootstrapCi95": [
+     -0.015317,
+     0.033881
+    ],
+    "walkForward": "2/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": false,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero, walkForwardMajority failed",
+    "convictionFloor": 0.0
+   },
+   "crypto:m5": {
+    "testRows": 22698,
+    "called": 1473,
+    "coverage": 0.0649,
+    "accuracy": 0.50102,
+    "ownMajority": 0.51324,
+    "edgeOverMajority": -0.01222,
+    "upRate": 0.51324,
+    "upShareCalled": 0.41616,
+    "bootstrapCi95": [
+     -0.045254,
+     0.020995
+    ],
+    "walkForward": "1/5",
+    "gates": {
+     "aboveOwnMajority": false,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": false,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "aboveOwnMajority, bootstrapExcludesZero, walkForwardMajority failed",
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 21621,
+      "coverage": 1.0,
+      "accuracy": 0.51936
+     },
+     {
+      "floor": 0.01,
+      "rows": 16067,
+      "coverage": 0.74312,
+      "accuracy": 0.52399
+     },
+     {
+      "floor": 0.02,
+      "rows": 11060,
+      "coverage": 0.51154,
+      "accuracy": 0.53002
+     },
+     {
+      "floor": 0.03,
+      "rows": 7227,
+      "coverage": 0.33426,
+      "accuracy": 0.53411
+     },
+     {
+      "floor": 0.04,
+      "rows": 4539,
+      "coverage": 0.20993,
+      "accuracy": 0.53822
+     },
+     {
+      "floor": 0.05,
+      "rows": 2802,
+      "coverage": 0.1296,
+      "accuracy": 0.54604
+     },
+     {
+      "floor": 0.06,
+      "rows": 1750,
+      "coverage": 0.08094,
+      "accuracy": 0.56057
+     },
+     {
+      "floor": 0.075,
+      "rows": 845,
+      "coverage": 0.03908,
+      "accuracy": 0.57633
+     },
+     {
+      "floor": 0.09,
+      "rows": 410,
+      "coverage": 0.01896,
+      "accuracy": 0.59268
+     },
+     {
+      "floor": 0.1,
+      "rows": 257,
+      "coverage": 0.01189,
+      "accuracy": 0.55642
+     },
+     {
+      "floor": 0.125,
+      "rows": 56,
+      "coverage": 0.00259,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 11,
+      "coverage": 0.00051,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.06,
+    "floorSource": "coin"
+   }
+  },
+  "AVAXUSDT": {
+   "crypto:h1": {
+    "testRows": 23001,
+    "called": 23001,
+    "coverage": 1.0,
+    "accuracy": 0.52489,
+    "ownMajority": 0.50824,
+    "edgeOverMajority": 0.01665,
+    "upRate": 0.50824,
+    "upShareCalled": 0.37598,
+    "bootstrapCi95": [
+     -0.009769,
+     0.042184
+    ],
+    "walkForward": "4/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero failed",
+    "convictionFloor": 0.0
+   },
+   "crypto:m5": {
+    "testRows": 22436,
+    "called": 1753,
+    "coverage": 0.07813,
+    "accuracy": 0.51854,
+    "ownMajority": 0.50542,
+    "edgeOverMajority": 0.01312,
+    "upRate": 0.50542,
+    "upShareCalled": 0.4073,
+    "bootstrapCi95": [
+     -0.017367,
+     0.041436
+    ],
+    "walkForward": "3/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": false,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero, walkForwardMajority failed",
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 21513,
+      "coverage": 1.0,
+      "accuracy": 0.51801
+     },
+     {
+      "floor": 0.01,
+      "rows": 16218,
+      "coverage": 0.75387,
+      "accuracy": 0.52769
+     },
+     {
+      "floor": 0.02,
+      "rows": 11415,
+      "coverage": 0.53061,
+      "accuracy": 0.53482
+     },
+     {
+      "floor": 0.03,
+      "rows": 7664,
+      "coverage": 0.35625,
+      "accuracy": 0.54319
+     },
+     {
+      "floor": 0.04,
+      "rows": 4970,
+      "coverage": 0.23102,
+      "accuracy": 0.55312
+     },
+     {
+      "floor": 0.05,
+      "rows": 3204,
+      "coverage": 0.14893,
+      "accuracy": 0.55868
+     },
+     {
+      "floor": 0.06,
+      "rows": 2097,
+      "coverage": 0.09748,
+      "accuracy": 0.57129
+     },
+     {
+      "floor": 0.075,
+      "rows": 1125,
+      "coverage": 0.05229,
+      "accuracy": 0.58933
+     },
+     {
+      "floor": 0.09,
+      "rows": 607,
+      "coverage": 0.02822,
+      "accuracy": 0.6112
+     },
+     {
+      "floor": 0.1,
+      "rows": 379,
+      "coverage": 0.01762,
+      "accuracy": 0.63588
+     },
+     {
+      "floor": 0.125,
+      "rows": 109,
+      "coverage": 0.00507,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 25,
+      "coverage": 0.00116,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.06,
+    "floorSource": "coin"
+   }
+  },
+  "DOTUSDT": {
+   "crypto:h1": {
+    "testRows": 21680,
+    "called": 21680,
+    "coverage": 1.0,
+    "accuracy": 0.52288,
+    "ownMajority": 0.503,
+    "edgeOverMajority": 0.01988,
+    "upRate": 0.503,
+    "upShareCalled": 0.34506,
+    "bootstrapCi95": [
+     -0.008713,
+     0.046074
+    ],
+    "walkForward": "4/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero failed",
+    "convictionFloor": 0.0
+   }
+  },
+  "SUIUSDT": {
+   "crypto:h1": {
+    "testRows": 23066,
+    "called": 23066,
+    "coverage": 1.0,
+    "accuracy": 0.5303,
+    "ownMajority": 0.50243,
+    "edgeOverMajority": 0.02788,
+    "upRate": 0.50243,
+    "upShareCalled": 0.37774,
+    "bootstrapCi95": [
+     0.004329,
+     0.050718
+    ],
+    "walkForward": "5/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": true,
+    "why": null,
+    "convictionFloor": 0.0
+   },
+   "crypto:m5": {
+    "testRows": 22554,
+    "called": 1440,
+    "coverage": 0.06385,
+    "accuracy": 0.50694,
+    "ownMajority": 0.52639,
+    "edgeOverMajority": -0.01944,
+    "upRate": 0.52639,
+    "upShareCalled": 0.4375,
+    "bootstrapCi95": [
+     -0.055517,
+     0.015499
+    ],
+    "walkForward": "1/5",
+    "gates": {
+     "aboveOwnMajority": false,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": false,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "aboveOwnMajority, bootstrapExcludesZero, walkForwardMajority failed",
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 22225,
+      "coverage": 1.0,
+      "accuracy": 0.51388
+     },
+     {
+      "floor": 0.01,
+      "rows": 16097,
+      "coverage": 0.72427,
+      "accuracy": 0.51879
+     },
+     {
+      "floor": 0.02,
+      "rows": 10751,
+      "coverage": 0.48373,
+      "accuracy": 0.5286
+     },
+     {
+      "floor": 0.03,
+      "rows": 6698,
+      "coverage": 0.30137,
+      "accuracy": 0.53837
+     },
+     {
+      "floor": 0.04,
+      "rows": 4012,
+      "coverage": 0.18052,
+      "accuracy": 0.53838
+     },
+     {
+      "floor": 0.05,
+      "rows": 2405,
+      "coverage": 0.10821,
+      "accuracy": 0.5501
+     },
+     {
+      "floor": 0.06,
+      "rows": 1418,
+      "coverage": 0.0638,
+      "accuracy": 0.55571
+     },
+     {
+      "floor": 0.075,
+      "rows": 647,
+      "coverage": 0.02911,
+      "accuracy": 0.57187
+     },
+     {
+      "floor": 0.09,
+      "rows": 298,
+      "coverage": 0.01341,
+      "accuracy": 0.57718
+     },
+     {
+      "floor": 0.1,
+      "rows": 162,
+      "coverage": 0.00729,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 35,
+      "coverage": 0.00157,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 3,
+      "coverage": 0.00013,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.06,
+    "floorSource": "coin"
+   }
+  },
+  "TRUMPUSDT": {
+   "crypto:m5": {
+    "testRows": 23909,
+    "called": 2488,
+    "coverage": 0.10406,
+    "accuracy": 0.59646,
+    "ownMajority": 0.50201,
+    "edgeOverMajority": 0.09445,
+    "upRate": 0.49799,
+    "upShareCalled": 0.46584,
+    "bootstrapCi95": [
+     0.071486,
+     0.117095
+    ],
+    "walkForward": "5/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": true,
+    "why": null,
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 24188,
+      "coverage": 1.0,
+      "accuracy": 0.53146
+     },
+     {
+      "floor": 0.01,
+      "rows": 19077,
+      "coverage": 0.7887,
+      "accuracy": 0.53882
+     },
+     {
+      "floor": 0.02,
+      "rows": 14381,
+      "coverage": 0.59455,
+      "accuracy": 0.54405
+     },
+     {
+      "floor": 0.03,
+      "rows": 10436,
+      "coverage": 0.43145,
+      "accuracy": 0.55117
+     },
+     {
+      "floor": 0.04,
+      "rows": 7517,
+      "coverage": 0.31077,
+      "accuracy": 0.55275
+     },
+     {
+      "floor": 0.05,
+      "rows": 5430,
+      "coverage": 0.22449,
+      "accuracy": 0.55912
+     },
+     {
+      "floor": 0.06,
+      "rows": 3896,
+      "coverage": 0.16107,
+      "accuracy": 0.55801
+     },
+     {
+      "floor": 0.075,
+      "rows": 2312,
+      "coverage": 0.09558,
+      "accuracy": 0.56661
+     },
+     {
+      "floor": 0.09,
+      "rows": 1384,
+      "coverage": 0.05722,
+      "accuracy": 0.56864
+     },
+     {
+      "floor": 0.1,
+      "rows": 975,
+      "coverage": 0.04031,
+      "accuracy": 0.5641
+     },
+     {
+      "floor": 0.125,
+      "rows": 353,
+      "coverage": 0.01459,
+      "accuracy": 0.55807
+     },
+     {
+      "floor": 0.15,
+      "rows": 92,
+      "coverage": 0.0038,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.075,
+    "floorSource": "coin"
    }
   }
  }
