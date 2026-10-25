@@ -267,19 +267,31 @@ def main() -> int:
         if not aligned.any():
             continue
         local = kept[rows_local][aligned]
-        bars = meta.get("_bars")
         # Highs and lows come from the stored series; the matrix keeps closes only, so they are
-        # read back from the corpus once per symbol.
+        # read back from the corpus once per symbol and kept as **arrays**.
+        #
+        # **The parsed bars used to be cached instead, and that was a 21 GB bug.** Holding the
+        # JSON as a list of dicts costs roughly 500 bytes a bar against 24 for three float64s,
+        # so 140 coins of 300,000 bars each committed about 15 GB of page file and the sweep
+        # paged itself to a standstill -- 0% of a core with the disk at 321% busy, which looks
+        # exactly like a slow job and is not one. The dicts are parsed, read, and dropped inside
+        # this block; only the three arrays survive.
         import gzip
-        path = ROOT / ".cache" / "foundation" / "intraday" / f"{_s}-{h['interval']}.jsonl.gz"
-        if bars is None:
+        cached = meta.get("_ohlc")
+        if cached is None:
+            path = ROOT / ".cache" / "foundation" / "intraday" / f"{_s}-{h['interval']}.jsonl.gz"
+            c_l, h_l, l_l = [], [], []
             with gzip.open(path, "rt", encoding="utf-8") as fh:
-                raw = [json.loads(line) for line in fh]
-            meta["_bars"] = raw
-            bars = raw
-        close = np.asarray([b["c"] for b in bars], dtype=np.float64)
-        high = np.asarray([b["h"] for b in bars], dtype=np.float64)
-        low = np.asarray([b["l"] for b in bars], dtype=np.float64)
+                for line in fh:
+                    if not line.strip():
+                        continue
+                    b = json.loads(line)
+                    c_l.append(b["c"]); h_l.append(b["h"]); l_l.append(b["l"])
+            cached = (np.asarray(c_l, dtype=np.float64),
+                      np.asarray(h_l, dtype=np.float64),
+                      np.asarray(l_l, dtype=np.float64))
+            meta["_ohlc"] = cached
+        close, high, low = cached
 
         pr = p[sel][aligned]
         atr_frac = data["X"][te[sel][aligned], ATR_COLUMN].astype(np.float64)
