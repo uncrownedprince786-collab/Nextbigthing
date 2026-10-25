@@ -98,10 +98,6 @@ const DOC = table as unknown as Doc;
 export const LEVELS_GENERATED_AT = DOC.generatedAt;
 export const LEVELS_CAVEATS = DOC.whatThisIsNot;
 
-/// A retail taker round trip on a major venue, in basis points of notional. Reported, not used
-/// to choose: the choice is now a measurement that already has the cost inside it.
-export const COST_BPS = 10;
-
 /// Which stop/target pair to serve, and why it is no longer chosen here.
 ///
 /// **The first two rules were both wrong, and the backtest is what found it.** Ranking by hit

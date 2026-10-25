@@ -18,6 +18,12 @@ import { universeCoin } from "@/lib/cryptoUniverse";
 import { NewsCards } from "@/components/NewsCards";
 import { LEVELS_CAVEATS, LEVELS_GENERATED_AT } from "@/lib/cryptoLevels";
 import { tradeMath } from "@/lib/tradeMath";
+import {
+  breakEvenFeeBps,
+  strategyFor,
+  STRATEGY_COST_BPS,
+  STRATEGY_GENERATED_AT,
+} from "@/lib/cryptoStrategy";
 import { getTopNews } from "@/lib/queries";
 import { LiveCoinPrice } from "@/components/LiveCoinPrice";
 import { BarClock } from "@/components/BarClock";
@@ -257,7 +263,11 @@ export default async function Page({
           <p className="text-muted-foreground mt-2 text-xs">
             {LEVELS_GENERATED_AT
               ? `Distances measured ${LEVELS_GENERATED_AT.slice(0, 10)} on the training folds.`
-              : "No distances have been measured in this build, so no levels are shown."}
+              : "No distances have been measured in this build, so no levels are shown."}{" "}
+            The stop and target are chosen by simulating every candidate pair bar by bar on the
+            validation fold and serving the one with the best result after fees, then measuring
+            that one once on the holdout — swept {STRATEGY_GENERATED_AT.slice(0, 10)}. Choosing
+            on the holdout would be fitting the only fold kept back for measuring.
           </p>
         </details>
       ) : null}
@@ -406,6 +416,11 @@ function Decision({
         ? f.lane.conviction.called.accuracy
         : (band?.accuracy ?? f.lane.evidence.accuracy);
     const math = lv ? tradeMath(lv.entry, lv.stop, lv.target, winRate) : null;
+    // What following this lane would actually have done, fee included. Without it the page shows
+    // a win rate next to a stop and a target and lets a reader draw the only conclusion those
+    // three things support -- which the measurement contradicts.
+    const strat = strategyFor(f.lane.family, h.key);
+    const beFee = strat ? breakEvenFeeBps(strat, STRATEGY_COST_BPS) : null;
     return (
       <>
         <div className="border-border rounded-lg border p-4">
@@ -493,6 +508,47 @@ function Decision({
                 value={`${(math.kelly * 100).toFixed(1)}%`}
                 note="Kelly, capped at 25%"
               />
+            </div>
+          ) : null}
+          {/* The measured result of following this lane, which the four tiles above cannot show:
+              they are arithmetic on one call, and this is what every call did. */}
+          {strat ? (
+            <div
+              className={`mt-3 rounded-lg border px-3 py-2.5 text-xs ${
+                strat.test.netExpectancyR > 0
+                  ? "border-emerald-500/40 bg-emerald-500/5"
+                  : "border-amber-500/40 bg-amber-500/5"
+              }`}
+            >
+              <strong>
+                Followed mechanically on the holdout, this lane{" "}
+                {strat.test.netExpectancyR > 0 ? "made" : "lost"}{" "}
+                {Math.abs(strat.test.netExpectancyR).toFixed(4)}R per trade after fees.
+              </strong>{" "}
+              <span className="text-muted-foreground">
+                {strat.test.trades.toLocaleString()} trades on rows the model never saw, entering
+                at the close and charging {STRATEGY_COST_BPS} basis points a round trip: win rate{" "}
+                {(strat.test.winRate * 100).toFixed(1)}% against{" "}
+                {(strat.test.breakEvenWinRate * 100).toFixed(1)}% needed, profit factor{" "}
+                {strat.test.profitFactor?.toFixed(3) ?? "—"}. Before the fee it was{" "}
+                {strat.test.grossExpectancyR >= 0 ? "+" : ""}
+                {strat.test.grossExpectancyR.toFixed(4)}R — the direction is real and the fee is{" "}
+                {strat.test.meanCostInR.toFixed(3)}R of it.
+                {beFee !== null ? (
+                  <>
+                    {" "}
+                    It turns positive below a <strong>
+                      {beFee.toFixed(1)} basis point
+                    </strong>{" "}
+                    round trip, which a maker order on a volume tier can reach and a retail taker
+                    cannot.
+                  </>
+                ) : (
+                  " Its edge is negative before fees too, so no fee makes it work."
+                )}{" "}
+                The accuracy above is unaffected by any of this; it is a different question, and
+                this one had never been asked.
+              </span>
             </div>
           ) : null}
           {math ? (
