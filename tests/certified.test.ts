@@ -129,3 +129,60 @@ test("an uncertified coin is not quietly given an accuracy to display", () => {
       `${coin} ${lane}: certified=${v.certified} but gates say ${allPassed}`);
   }
 });
+
+// The verdict file keys on venue instruments (LINKUSDT) and the site routes on slugs
+// (link-chainlink). An earlier resolver uppercased the slug and appended USDT, giving
+// LINK-CHAINLINKUSDT -- which matches nothing, so every coin read as unmeasured and the serving
+// path refused the whole site while the models were fine. A lookup that can fail silently and
+// disable everything deserves a test that fails loudly.
+test("every certified coin is reachable from its own slug", () => {
+  const universe = JSON.parse(readFileSync(
+    new URL("../data/foundation/dataset/crypto_universe.json", import.meta.url), "utf8"));
+  type Coin = { slug: string; ticker: string; on?: Record<string, string> };
+  const bySymbol = new Map<string, Coin>();
+  for (const c of universe.assets as Coin[]) {
+    const inst = c.on?.binance ?? c.on?.mexc;
+    const sym = inst ? inst.toUpperCase() : `${(c.ticker ?? "").toUpperCase()}USDT`;
+    if (sym && !bySymbol.has(sym)) bySymbol.set(sym, c);
+  }
+
+  const certified = Object.keys(COINS);
+  assert.ok(certified.length > 0, "no certified coins to check");
+
+  let reachable = 0;
+  const unreachable: string[] = [];
+  for (const sym of certified) {
+    if (bySymbol.has(sym)) reachable++;
+    else unreachable.push(sym);
+  }
+  // Every symbol the sweep measured came from the bar corpus, and every coin in the corpus is in
+  // the universe, so anything unreachable is a key mismatch rather than a missing coin.
+  assert.equal(unreachable.length, 0,
+    `${unreachable.length} certified coins cannot be reached from any slug: ` +
+    unreachable.slice(0, 8).join(", "));
+  assert.ok(reachable >= certified.length,
+    `only ${reachable} of ${certified.length} certified coins resolve`);
+});
+
+test("the slug of a known coin resolves to the symbol the sweep used", () => {
+  const universe = JSON.parse(readFileSync(
+    new URL("../data/foundation/dataset/crypto_universe.json", import.meta.url), "utf8"));
+  type Coin = { slug: string; ticker: string; on?: Record<string, string> };
+  const bySlug = new Map((universe.assets as Coin[]).map((c) => [c.slug, c]));
+  // The shape that broke: a slug whose name differs from its ticker.
+  for (const [slug, want] of [
+    ["link-chainlink", "LINKUSDT"],
+    ["btc-bitcoin", "BTCUSDT"],
+    ["sol-solana", "SOLUSDT"],
+    ["ada-cardano", "ADAUSDT"],
+  ] as const) {
+    const c = bySlug.get(slug);
+    if (!c) continue;
+    const inst = c.on?.binance ?? c.on?.mexc;
+    const got = inst ? inst.toUpperCase() : `${c.ticker.toUpperCase()}USDT`;
+    assert.equal(got, want, `${slug} resolved to ${got}, not ${want}`);
+    // And naive string surgery must NOT produce it, or the test proves nothing.
+    assert.notEqual(`${slug.toUpperCase()}USDT`, want,
+      `${slug} would resolve by accident; pick a harder case`);
+  }
+});

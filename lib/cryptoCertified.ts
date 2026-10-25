@@ -22,6 +22,7 @@
 
 import raw from "@/data/foundation/dataset/crypto_certified.json";
 import type { HorizonKey } from "@/lib/cryptoHorizons";
+import { universeCoin } from "@/lib/cryptoUniverse";
 
 export interface CoinVerdict {
   /// Rows of the holdout this coin contributed, and how many cleared the lane's floor.
@@ -60,14 +61,36 @@ export const CERTIFY_GATES = DOC.gates;
 export const CERTIFY_MIN_CALLED = DOC.minCalledRows;
 
 /// `null` when this coin and lane have not been measured, which is not the same as failing.
+/// The verdict file keys on the venue instrument -- LINKUSDT -- and the site routes on the slug,
+/// link-chainlink. The two are not related by string surgery and an earlier version of this
+/// function pretended they were: it uppercased the slug and appended USDT, producing
+/// LINK-CHAINLINKUSDT, which matches nothing.
+///
+/// **That silently disabled the entire gate.** Every coin resolved to no verdict, every verdict
+/// read as "not measured", and once the lane had been swept the serving path refused every coin
+/// on the site -- each page printing "this coin was not measured on its own in the last sweep"
+/// about coins that had in fact been measured and passed. The lookup failed, not the model.
+///
+/// The universe is the one place that knows both, so it does the translation. A slug it does not
+/// hold has no instrument and therefore no verdict, which is a genuine absence rather than a
+/// mistyped key.
+function symbolFor(slug: string): string | null {
+  const coin = universeCoin(slug);
+  if (!coin) return null;
+  // Prefer the venue instrument the corpus is keyed by; fall back to the bare ticker, which is
+  // how the research tools name a coin when they build the pool from the bar cache.
+  const inst = coin.on?.binance ?? coin.on?.mexc ?? null;
+  if (inst) return inst.toUpperCase();
+  return coin.ticker ? `${coin.ticker.toUpperCase()}USDT` : null;
+}
+
 export function verdictFor(
   family: string,
   slug: string,
   horizon: HorizonKey,
 ): CoinVerdict | null {
-  const symbol = slug.toUpperCase().endsWith("USDT")
-    ? slug.toUpperCase()
-    : `${slug.toUpperCase()}USDT`;
+  const symbol = symbolFor(slug);
+  if (!symbol) return null;
   return DOC.coins?.[symbol]?.[`${family}:${horizon}`] ?? null;
 }
 
