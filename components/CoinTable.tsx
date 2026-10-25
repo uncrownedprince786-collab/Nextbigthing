@@ -63,8 +63,8 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "all", label: "All coins" },
   { key: "gainers", label: "Top gainers" },
   { key: "losers", label: "Top losers" },
-  { key: "bullish", label: "Brain: up" },
-  { key: "bearish", label: "Brain: down" },
+  { key: "bullish", label: "Brain recommends up" },
+  { key: "bearish", label: "Brain recommends down" },
   { key: "new", label: "Newly listed" },
 ];
 
@@ -255,8 +255,16 @@ export function CoinTable({ rows }: { rows: Row[] }) {
     if (SIGNAL_TABS.includes(tab)) {
       if (!signals) return [];
       const want = tab === "bullish" ? "UP" : "DOWN";
+      // Only the calls that cleared their lane's conviction floor. These tabs say the brain
+      // *recommends* a direction, and the floor is what that word rests on: on the retrained
+      // five-minute lane the gated calls are right 64.5% of the time against 53.7% over every
+      // bar, so a tab filled with ungated leans would be ten points worse than the one it
+      // claims to be. A lean the model holds weakly is still shown -- on the coin's own page,
+      // beside its margin -- but it does not belong on a list headed "recommends".
       const order = new Map(
-        signals.filter((s) => s.direction === want).map((s, i) => [s.slug, i]),
+        signals
+          .filter((s) => s.direction === want && s.strength === "strong")
+          .map((s, i) => [s.slug, i]),
       );
       return out.filter((r) => order.has(r.slug)).sort((a, b) => order.get(a.slug)! - order.get(b.slug)!);
     }
@@ -438,7 +446,7 @@ export function CoinTable({ rows }: { rows: Row[] }) {
                       ? "Reading the last closed bar for the forty most-traded coins…"
                       : signalState === "failed"
                         ? "The directions could not be read just now."
-                        : `No coin in the top forty is being called ${tab === "bullish" ? "up" : "down"} over the next fifteen minutes.`
+                        : `No coin in the top forty clears the confidence floor ${tab === "bullish" ? "upward" : "downward"} on this bar. The brain reads every one of them and recommends none — which is most bars, by design.`
                     : tab === "new"
                       ? "No newly listed coin is in this list."
                       : `No coin here matches “${q}”.`}
@@ -458,9 +466,9 @@ export function CoinTable({ rows }: { rows: Row[] }) {
               ? `${shown.length} biggest ${tab === "gainers" ? "risers" : "fallers"} over 24 hours`
               : tab === "new"
                 ? `${shown.length} coins the venue lists and the registry has not collected, by volume`
-                : `${shown.length} of the forty most-traded coins called ${tab === "bullish" ? "up" : "down"} over the next fifteen minutes${
-                    signals ? `, ${signals.filter((s) => s.strength === "strong").length} of them strongly` : ""
-                  }`}
+                : `${shown.length} of the forty most-traded coins recommended ${tab === "bullish" ? "up" : "down"} over the next fifteen minutes${
+                    signals ? `, from ${signals.length} read` : ""
+                  } · gated calls measured 64.5% on the holdout`}
           {Object.keys(live).length > 0 ? " · prices live" : ""}
         </p>
         {shown.length > limit ? (

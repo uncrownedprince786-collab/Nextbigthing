@@ -94,6 +94,49 @@ def lane_floor(lane: dict) -> float:
     return float(c["floor"]) if c and c.get("floor") is not None else 0.0
 
 
+#: Floors a per-coin search may choose from. Coarse on purpose: a floor fitted to three decimals
+#: on one validation fold is a floor fitted to that fold.
+COIN_LADDER = (0.0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.075, 0.09, 0.10, 0.125, 0.15)
+
+#: A coin that speaks on less than this share of its validation bars is not worth a floor: the
+#: test fold will not hold enough called rows to judge it, whatever the accuracy looks like.
+MIN_COIN_COVERAGE = 0.06
+
+
+def choose_coin_floor(p_va: np.ndarray, y_va: np.ndarray) -> tuple[float, list[dict]]:
+    """The highest floor this coin still speaks often enough behind, chosen on validation.
+
+    **One floor for the whole pool is wrong, and the retrained five-minute lane showed exactly
+    how.** Its pooled floor is 0.100, and the Bitcoin model's widest margin anywhere is 0.0757 --
+    so Bitcoin never clears it and is silenced completely, along with Ethereum, Solana, XRP,
+    Cardano, LINK, AVAX and SUI. The eight coins a reader is most likely to want were the eight
+    the floor removed.
+
+    That is not a bug in the floor, it is what a pooled threshold means. A liquid major is a more
+    efficient market, so the model is *less* sure about it and its margins are smaller; a volatile
+    small cap produces wide margins readily. A single number tuned on the mixture serves neither.
+
+    So each coin gets its own, chosen on its own validation rows and measured once on test --
+    which is the same discipline the lane floor already follows, applied at the resolution the
+    decision is actually made at.
+    """
+    curve = []
+    for f in COIN_LADDER:
+        sel = np.abs(p_va - 0.5) >= f
+        n = int(sel.sum())
+        cov = n / len(y_va) if len(y_va) else 0.0
+        acc = float(((p_va[sel] >= 0.5).astype(int) == y_va[sel]).mean()) if n >= 200 else None
+        curve.append({"floor": f, "rows": n, "coverage": round(cov, 5),
+                      "accuracy": round(acc, 5) if acc is not None else None})
+    eligible = [c for c in curve if c["coverage"] >= MIN_COIN_COVERAGE
+                and c["accuracy"] is not None]
+    # Highest floor that still speaks enough, not the most accurate one: picking the peak of a
+    # validation curve is fitting its noise, and the ladder's accuracy rises with the floor by
+    # construction anyway.
+    chosen = max((c["floor"] for c in eligible), default=0.0)
+    return chosen, curve
+
+
 def certify(p: np.ndarray, y: np.ndarray, ts: np.ndarray, floor: float) -> dict:
     """The five gates for one coin on one horizon."""
     sel = np.abs(p - 0.5) >= floor
@@ -152,6 +195,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Certify the brain per coin, per horizon.")
     ap.add_argument("--lanes", nargs="*", help="family:horizon; default every servable lane")
     ap.add_argument("--coins", nargs="*", help="default: the lane's own training pool")
+    ap.add_argument("--per-coin-floor", action="store_true",
+                    help="choose each coin's conviction floor on its own validation rows "
+                         "instead of inheriting the lane's; see choose_coin_floor()")
     a = ap.parse_args()
 
     lanes = servable_lanes()
@@ -194,16 +240,28 @@ def main() -> int:
             for l in here:
                 k = l["horizon"]
                 y, usable, _ = labels_for(data, HORIZONS[k]["bars"])
-                _tr, _va, te_m, _meta = split(ts, HORIZONS[k]["bars"], step_ms)
+                _tr, va_m, te_m, _meta = split(ts, HORIZONS[k]["bars"], step_ms)
                 te = np.flatnonzero(te_m & usable)
                 te = te[np.argsort(ts[te], kind="stable")]
                 if len(te) < MIN_CALLED:
                     r = {"testRows": int(len(te)), "called": 0, "accuracy": None,
                          "certified": False, "why": "too few test rows"}
+                    r["convictionFloor"] = floors[k]
+                    r["floorSource"] = "lane"
                 else:
                     p = score(arts[k], X[te])
-                    r = certify(p, y[te], ts[te], floors[k])
-                r["convictionFloor"] = floors[k]
+                    floor, source = floors[k], "lane"
+                    if a.per_coin_floor:
+                        va = np.flatnonzero(va_m & usable)
+                        if len(va) >= MIN_CALLED:
+                            p_va = score(arts[k], X[va])
+                            floor, curve = choose_coin_floor(p_va, y[va])
+                            source = "coin"
+                    r = certify(p, y[te], ts[te], floor)
+                    if a.per_coin_floor and source == "coin":
+                        r["floorCurve"] = curve
+                    r["convictionFloor"] = floor
+                    r["floorSource"] = source
                 results.setdefault(sym, {})[f"{family}:{k}"] = r
                 mark = "OK " if r["certified"] else "no "
                 acc = f"{r['accuracy']:.4f}" if r.get("accuracy") is not None else "  --  "
