@@ -54,10 +54,28 @@ OUT = ROOT / "data" / "foundation" / "dataset" / "crypto_tradable.json"
 
 #: One tick wider than this much of price and a round trip costs more than two ticks of edge,
 #: which is more than the model's whole measured margin on any lane here.
+#:
+#: Used only for the bar-level summary. The decision is made per horizon below, because a tick
+#: that swamps a five-minute move is irrelevant to a four-hour one.
 MAX_TICK_PCT = 0.05
 
 #: A typical move smaller than this many ticks means the model is reading the grid.
 MIN_MOVE_TICKS = 3.0
+
+#: The real test, and the one that decides a horizon.
+#:
+#: Getting in and out costs about two ticks -- you cross the spread both ways, and on these coins
+#: the spread is typically one tick. If that round trip eats more than this share of the move the
+#: horizon typically produces, there is nothing left to collect however good the direction is.
+#:
+#: A quarter is deliberately generous. The model's measured edge is a few percentage points of
+#: accuracy, not a doubling, so a cost of a quarter of the move is already most of the profit --
+#: but the statistical gates are the ones that should refuse a coin, and this only removes the
+#: horizons where no gate could rescue it.
+MAX_COST_SHARE_OF_MOVE = 0.25
+
+#: Windows to assess, in 5-minute bars. Mirrors crypto_horizons: m5, m15, h1, h4, d1.
+HORIZON_BARS = {"m5": 1, "m15": 3, "h1": 12, "h4": 48, "d1": 288}
 
 #: Bars that did not move at all. Above this share the series is mostly stationary.
 MAX_FLAT_SHARE = 0.25
@@ -115,11 +133,43 @@ def assess(symbol: str) -> dict:
     move_ticks = (median_move / tick) if tick > 0 else float("inf")
     bar_dollars = float(np.median(vol * close))
 
+    # Per horizon: how far does price actually travel over that window, and what share of it does
+    # the round trip eat? Measured from the series rather than scaled by a square-root rule --
+    # crypto trends and mean-reverts by turns, and neither obeys that rule closely enough to make
+    # a tradability decision on.
+    horizons: dict[str, dict] = {}
+    for name, n in HORIZON_BARS.items():
+        if len(close) <= n + 1:
+            horizons[name] = {"bars": n, "tradable": False, "why": "not enough history"}
+            continue
+        moved = np.abs(close[n:] - close[:-n])
+        med = float(np.median(moved))
+        med_ticks = (med / tick) if tick > 0 else float("inf")
+        med_pct = (med / price * 100) if price > 0 else 0.0
+        # Two ticks: cross the spread going in, cross it again coming out.
+        cost_share = (2 * tick / med) if med > 0 else float("inf")
+        why = []
+        if med_ticks < MIN_MOVE_TICKS:
+            why.append(f"the median move is {med_ticks:.1f} ticks")
+        if cost_share > MAX_COST_SHARE_OF_MOVE:
+            why.append(f"a round trip eats {cost_share:.0%} of the typical move")
+        if bar_dollars < MIN_BAR_DOLLARS:
+            why.append(f"a median bar trades ${bar_dollars:,.0f}")
+        horizons[name] = {
+            "bars": n,
+            "medianMove": med,
+            "medianMovePct": round(med_pct, 4),
+            "medianMoveTicks": round(med_ticks, 2),
+            "roundTripShareOfMove": round(cost_share, 4),
+            "tradable": not why,
+            "why": "; ".join(why) if why else None,
+        }
+
+    usable = [k for k, v in horizons.items() if v["tradable"]]
+
     problems = []
-    if tick_pct > MAX_TICK_PCT:
-        problems.append(f"one tick is {tick_pct:.3f}% of price")
-    if move_ticks < MIN_MOVE_TICKS:
-        problems.append(f"the median bar moves {move_ticks:.1f} ticks")
+    if not usable:
+        problems.append("no horizon where a round trip is worth taking")
     if flat_share > MAX_FLAT_SHARE:
         problems.append(f"{flat_share:.0%} of bars do not move at all")
     if bar_dollars < MIN_BAR_DOLLARS:
@@ -133,6 +183,12 @@ def assess(symbol: str) -> dict:
         "flatBarShare": round(flat_share, 5),
         "medianMoveTicks": round(move_ticks, 3),
         "medianBarDollars": round(bar_dollars, 2),
+        "horizons": horizons,
+        # The coin is tradable if ANY horizon works. Which ones is the useful part: a coin whose
+        # tick swamps a five-minute move can be perfectly sound over four hours, and refusing it
+        # outright -- as the first version of this file did -- throws away a real market over a
+        # mismatch between the coin's price grid and one choice of window.
+        "tradableHorizons": usable,
         "tradable": not problems,
         "why": "; ".join(problems) if problems else None,
     }
@@ -161,11 +217,9 @@ def main() -> int:
         if "medianPrice" not in r:
             print(f"   {mark}{r['symbol']:<14} {r['why']}", flush=True)
             continue
-        print(f"   {mark}{r['symbol']:<14} price {r['medianPrice']:>12,.6f}  "
-              f"tick {r['tickPctOfPrice']:>7.3f}% of price  "
-              f"move {r['medianMoveTicks']:>7.1f} ticks  "
-              f"flat {r['flatBarShare']:>5.1%}  "
-              f"${r['medianBarDollars']:>12,.0f}/bar"
+        print(f"   {mark}{r['symbol']:<14} tick {r['tickPctOfPrice']:>7.3f}%  "
+              f"${r['medianBarDollars']:>11,.0f}/bar  "
+              f"works on: {', '.join(r['tradableHorizons']) or 'nothing'}"
               + (f"   <- {r['why']}" if r["why"] else ""), flush=True)
 
     print(f"\n=== {len(rows) - len(bad)} of {len(rows)} tradable ===", flush=True)
