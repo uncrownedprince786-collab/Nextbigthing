@@ -54,6 +54,10 @@ interface Signal {
   strength: "strong" | "weak" | null;
   probUp: number;
   marginPts: number;
+  /// The close the call was read from, and the instant the window it covers ends.
+  asOf: string;
+  maturesAt: string;
+  floor: number;
 }
 
 type Tab = "all" | "gainers" | "losers" | "recommended" | "new";
@@ -465,8 +469,30 @@ export function CoinTable({ rows }: { rows: Row[] }) {
                               : "bg-[var(--down)]/15 text-[var(--down)]"
                           }`}
                         >
-                          {sig.direction}
-                          {sig.strength === "strong" ? " ·  STRONG" : ""}
+                          {/*
+                            The window, not the word "STRONG".
+                            **"STRONG" here and "medium" on the coin page were two different
+                            things wearing similar words.** This badge meant the call cleared its
+                            lane's conviction floor; the coin page's "medium" is the lane's
+                            standing evidence grade across its whole holdout. A reader saw
+                            UP · STRONG on the board, opened the coin, read "medium", and had no
+                            way to know those were answers to different questions. Neither word
+                            told them the one thing they actually needed -- how long the call is
+                            for. So the badge carries the window, and the conviction is what
+                            being on this board means at all.
+                          */}
+                          {sig.direction} · 15m
+                        </span>
+                      ) : null}
+                      {sig ? (
+                        <span
+                          className="text-muted-foreground shrink-0 text-[10px] tabular-nums"
+                          title={`Read from the bar that closed at ${new Date(sig.asOf).toUTCString()}; the window it covers ends at ${new Date(sig.maturesAt).toUTCString()}.`}
+                        >
+                          till {new Date(sig.maturesAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </span>
                       ) : null}
                     </a>

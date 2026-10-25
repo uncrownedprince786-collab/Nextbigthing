@@ -190,11 +190,23 @@ export default async function Page({
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {style.horizons.map((k) => {
               const lane = servingLane(slug, k);
+              // What this window's model scored on its holdout, not a grade word.
+              //
+              // **This said "direction · medium" while the market board said "UP · STRONG" for
+              // the same coin, and the two words meant unrelated things.** "Medium" is the
+              // lane's standing evidence grade over its entire test fold; "strong" on the board
+              // meant that one call cleared the lane's conviction floor. A reader moving between
+              // the two screens had no way to know they were answers to different questions, and
+              // neither word told them the number either claim rests on. So this prints the
+              // measured accuracy instead, which is the same quantity on both screens.
+              const gated = lane?.conviction?.called?.accuracy;
               const state = !lane
                 ? "not fitted"
                 : !lane.servable
                   ? "tested, refused"
-                  : `direction · ${lane.confidence.toLowerCase()}`;
+                  : gated
+                    ? `${(gated * 100).toFixed(1)}% when confident`
+                    : `${(lane.evidence.accuracy * 100).toFixed(1)}% on the holdout`;
               return (
                 <Link
                   key={k}

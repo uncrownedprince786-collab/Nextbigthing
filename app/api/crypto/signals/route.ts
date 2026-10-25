@@ -60,6 +60,15 @@ export async function GET(request: Request) {
     strength: "strong" | "weak" | null;
     probUp: number;
     marginPts: number;
+    /// The bar the call was read from, and the instant it is answerable.
+    ///
+    /// Without these a reader is shown a direction with no idea what window it covers or when it
+    /// stops being the current one -- the board said DOWN and the coin page, opened a bar later,
+    /// said something else, with nothing on either screen to explain that they were answers
+    /// about two different fifteen minutes.
+    asOf: string;
+    maturesAt: string;
+    floor: number;
   }[] = [];
 
   for (let i = 0; i < pick.length; i += BATCH) {
@@ -83,6 +92,9 @@ export async function GET(request: Request) {
         strength: f.strength,
         probUp: Number(f.probUp.toFixed(4)),
         marginPts: Number((f.margin * 200).toFixed(1)),
+        asOf: f.asOf.toISOString(),
+        maturesAt: f.maturesAt.toISOString(),
+        floor: f.floor,
       });
     });
   }
