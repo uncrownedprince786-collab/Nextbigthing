@@ -1,0 +1,115 @@
+{
+ "generatedAt": "2026-10-24T22:55:43.263004+00:00",
+ "producedBy": "tools/research/crypto_backtest.py, swept on validation and confirmed on test",
+ "costBps": 10,
+ "lanes": {
+  "crypto:m5": {
+   "band": "strong",
+   "stopAtr": 15.0,
+   "targetAtr": 30.0,
+   "chosenOn": "validation",
+   "validationNetR": -0.01072,
+   "test": {
+    "netExpectancyR": -0.0165,
+    "grossExpectancyR": 0.02208,
+    "winRate": 0.48923,
+    "breakEvenWinRate": 0.33333,
+    "profitFactor": 0.593,
+    "maxDrawdownR": 464.4,
+    "sharpePerTrade": -0.1679,
+    "trades": 26129,
+    "meanCostInR": 0.0386
+   }
+  },
+  "crypto:m15": {
+   "band": "strong",
+   "stopAtr": 15.0,
+   "targetAtr": 30.0,
+   "chosenOn": "validation",
+   "validationNetR": -0.01051,
+   "test": {
+    "netExpectancyR": -0.01623,
+    "grossExpectancyR": 0.01993,
+    "winRate": 0.51609,
+    "breakEvenWinRate": 0.33333,
+    "profitFactor": 0.7091,
+    "maxDrawdownR": 516.19,
+    "sharpePerTrade": -0.1133,
+    "trades": 29805,
+    "meanCostInR": 0.0362
+   }
+  },
+  "crypto:h1": {
+   "band": "strong",
+   "stopAtr": 15.0,
+   "targetAtr": 30.0,
+   "chosenOn": "validation",
+   "validationNetR": -0.01317,
+   "test": {
+    "netExpectancyR": -0.01633,
+    "grossExpectancyR": 0.01029,
+    "winRate": 0.52524,
+    "breakEvenWinRate": 0.33333,
+    "profitFactor": 0.811,
+    "maxDrawdownR": 718.66,
+    "sharpePerTrade": -0.0723,
+    "trades": 42999,
+    "meanCostInR": 0.0266
+   }
+  },
+  "crypto:d20": {
+   "band": "all",
+   "stopAtr": 8.0,
+   "targetAtr": 16.0,
+   "chosenOn": "validation",
+   "validationNetR": 0.11166,
+   "test": {
+    "netExpectancyR": -0.01506,
+    "grossExpectancyR": -0.00902,
+    "winRate": 0.4999,
+    "breakEvenWinRate": 0.33333,
+    "profitFactor": 0.9572,
+    "maxDrawdownR": 2251.93,
+    "sharpePerTrade": -0.0177,
+    "trades": 92288,
+    "meanCostInR": 0.006
+   }
+  },
+  "btc:m15": {
+   "band": "strong",
+   "stopAtr": 15.0,
+   "targetAtr": 30.0,
+   "chosenOn": "validation",
+   "validationNetR": -0.05544,
+   "test": {
+    "netExpectancyR": -0.06497,
+    "grossExpectancyR": 0.00322,
+    "winRate": 0.27667,
+    "breakEvenWinRate": 0.33333,
+    "profitFactor": 0.1875,
+    "maxDrawdownR": 736.49,
+    "sharpePerTrade": -0.5172,
+    "trades": 11335,
+    "meanCostInR": 0.0682
+   }
+  },
+  "btc:h1": {
+   "band": "strong",
+   "stopAtr": 15.0,
+   "targetAtr": 30.0,
+   "chosenOn": "validation",
+   "validationNetR": -0.04374,
+   "test": {
+    "netExpectancyR": -0.05058,
+    "grossExpectancyR": 0.00962,
+    "winRate": 0.42179,
+    "breakEvenWinRate": 0.33333,
+    "profitFactor": 0.483,
+    "maxDrawdownR": 427.88,
+    "sharpePerTrade": -0.2425,
+    "trades": 8452,
+    "meanCostInR": 0.0602
+   }
+  }
+ }
+}
