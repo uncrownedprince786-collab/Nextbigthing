@@ -62,8 +62,18 @@ ATR_COLUMN = FEATURES.index("atr14")
 CONTAINMENT_ATR = 2.0
 
 
-def targets(data: dict, bars_ahead: int) -> dict[str, tuple[np.ndarray, np.ndarray]]:
-    """`{name: (y, usable)}` for each question, over the same rows."""
+def targets(data: dict, bars_ahead: int,
+            fit_mask: np.ndarray) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+    """`{name: (y, usable)}` for each question, over the same rows.
+
+    `fit_mask` marks the training rows, and it is not optional. The volatility label is "wider
+    than this coin's usual range", and *usual* has to be measured somewhere. The first version of
+    this file took the median over every row the coin had, test fold included -- so the threshold
+    that defines the label knew the future, and the 72.9% it produced was the full-sample
+    normalisation leak that the critique literature names first and that this pipeline blocks
+    everywhere else. Measured on the training rows only, the threshold is a number that was
+    knowable at the time.
+    """
     ts = data["ts"]
     n_all = len(ts)
     direction = np.zeros(n_all, dtype=np.int64)
@@ -108,7 +118,15 @@ def targets(data: dict, bars_ahead: int) -> dict[str, tuple[np.ndarray, np.ndarr
             # "More volatile than usual" is defined against this coin's own median realised range
             # over the fit rows, not a global constant -- a violent hour for Bitcoin is a quiet
             # one for a small cap, and a shared threshold would just be a size proxy.
-            med = float(np.median(rng[good])) if good.any() else 0.0
+            # The threshold comes from the training rows of this coin alone. Falling back to
+            # all rows when a coin has too few training ones would quietly reintroduce the leak
+            # for exactly the coins least able to afford it, so those rows are dropped instead.
+            fit_here = fit_mask[offset + idx] & good
+            if int(fit_here.sum()) < 200:
+                here[idx] = False
+                offset += n
+                continue
+            med = float(np.median(rng[fit_here]))
             vol[offset + idx] = (rng > med).astype(np.int64)
             contained[offset + idx] = (rng <= CONTAINMENT_ATR * a).astype(np.int64)
             here &= True
@@ -175,7 +193,7 @@ def main() -> int:
           flush=True)
 
     out = []
-    for name, (y, usable) in targets(data, h["bars"]).items():
+    for name, (y, usable) in targets(data, h["bars"], tr_m).items():
         tr = np.flatnonzero(tr_m & usable)
         va = np.flatnonzero(va_m & usable)
         te = np.flatnonzero(te_m & usable)

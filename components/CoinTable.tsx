@@ -56,15 +56,14 @@ interface Signal {
   marginPts: number;
 }
 
-type Tab = "all" | "gainers" | "losers" | "bullish" | "bearish" | "new";
+type Tab = "all" | "gainers" | "losers" | "recommended" | "new";
 type SortKey = "rank" | "name" | "price" | "change24h" | "change7d" | "marketCap" | "volume24h";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "all", label: "All coins" },
   { key: "gainers", label: "Top gainers" },
   { key: "losers", label: "Top losers" },
-  { key: "bullish", label: "Brain recommends up" },
-  { key: "bearish", label: "Brain recommends down" },
+  { key: "recommended", label: "Brain recommends" },
   { key: "new", label: "Newly listed" },
 ];
 
@@ -102,7 +101,14 @@ function complete(r: Row): boolean {
 }
 
 /// The two tabs that need a direction rather than a price.
-const SIGNAL_TABS: Tab[] = ["bullish", "bearish"];
+/// One board, not two.
+///
+/// Up and down were separate tabs, which split a list that is already short -- the floor speaks
+/// on roughly one bar in nine, so forty coins yield a handful of calls and splitting them by
+/// sign regularly left one side empty and reading like a fault. The direction is a property of
+/// each call, not of the list, so it belongs in the row rather than in the tab. What a reader
+/// wants is one answer to one question: what is the brain sure about right now, and which way.
+const SIGNAL_TABS: Tab[] = ["recommended"];
 
 function compactUsd(v: number | null): string {
   if (v === null || !Number.isFinite(v)) return "—";
@@ -220,9 +226,18 @@ export function CoinTable({ rows }: { rows: Row[] }) {
   // whose cleanup set `alive = false` and cancelled the fetch that was still in the air. The
   // request completed, the response was thrown away, and the tab sat on "Reading the last closed
   // bar..." for ever while the endpoint it was waiting for answered correctly every time.
+  // Whether *either* signal tab is open, rather than which one.
+  //
+  // The effect below used to depend on `tab` itself, and the two are not the same thing: moving
+  // between "recommends up" and "recommends down" changed `tab`, so React tore the effect down
+  // and ran its cleanup, which set `alive = false` and discarded the in-flight request -- while
+  // `asked.current` stayed true, so no replacement was ever sent. The fetch returned 200, its
+  // body was thrown away, and both tabs sat on "Reading the last closed bar…" for the rest of the
+  // session. One request serves both tabs, so switching between them must not disturb it.
+  const needsSignals = SIGNAL_TABS.includes(tab);
   const asked = React.useRef(false);
   React.useEffect(() => {
-    if (!SIGNAL_TABS.includes(tab) || asked.current) return;
+    if (!needsSignals || asked.current) return;
     asked.current = true;
     let alive = true;
     void (async () => {
@@ -245,7 +260,7 @@ export function CoinTable({ rows }: { rows: Row[] }) {
     return () => {
       alive = false;
     };
-  }, [tab]);
+  }, [needsSignals]);
 
   const merged = React.useMemo(
     () =>
@@ -296,16 +311,18 @@ export function CoinTable({ rows }: { rows: Row[] }) {
 
     if (SIGNAL_TABS.includes(tab)) {
       if (!signals) return [];
-      const want = tab === "bullish" ? "UP" : "DOWN";
       // Only the calls that cleared their lane's conviction floor. These tabs say the brain
       // *recommends* a direction, and the floor is what that word rests on: on the retrained
       // five-minute lane the gated calls are right 64.5% of the time against 53.7% over every
       // bar, so a tab filled with ungated leans would be ten points worse than the one it
       // claims to be. A lean the model holds weakly is still shown -- on the coin's own page,
       // beside its margin -- but it does not belong on a list headed "recommends".
+      // Ordered by how far from even the probability sits, so the calls the brain is surest
+      // about are the ones a reader sees first -- regardless of which way they point.
       const order = new Map(
         signals
-          .filter((s) => s.direction === want && s.strength === "strong")
+          .filter((s) => s.strength === "strong")
+          .sort((x, y) => Math.abs(y.probUp - 0.5) - Math.abs(x.probUp - 0.5))
           .map((s, i) => [s.slug, i]),
       );
       return out.filter((r) => order.has(r.slug)).sort((a, b) => order.get(a.slug)! - order.get(b.slug)!);
@@ -488,7 +505,7 @@ export function CoinTable({ rows }: { rows: Row[] }) {
                       ? "Reading the last closed bar for the forty most-traded coins…"
                       : signalState === "failed"
                         ? "The directions could not be read just now."
-                        : `No coin in the top forty clears the confidence floor ${tab === "bullish" ? "upward" : "downward"} on this bar. The brain reads every one of them and recommends none — which is most bars, by design.`
+                        : "No coin in the top forty clears the confidence floor on this bar. The brain read every one of them and recommends none — which is most bars, by design, because it only speaks on about one in nine."
                     : tab === "new"
                       ? "No newly listed coin is in this list."
                       : `No coin here matches “${q}”.`}
@@ -508,9 +525,9 @@ export function CoinTable({ rows }: { rows: Row[] }) {
               ? `${shown.length} biggest ${tab === "gainers" ? "risers" : "fallers"} over 24 hours`
               : tab === "new"
                 ? `${shown.length} coins the venue lists and the registry has not collected, by volume`
-                : `${shown.length} of the forty most-traded coins recommended ${tab === "bullish" ? "up" : "down"} over the next fifteen minutes${
+                : `${shown.length} of the forty most-traded coins recommended over the next fifteen minutes${
                     signals ? `, from ${signals.length} read` : ""
-                  } · gated calls measured 64.5% on the holdout`}
+                  } · gated calls measured 61.3% on the holdout`}
           {Object.keys(live).length > 0 ? " · prices live" : ""}
         </p>
         {shown.length > limit ? (

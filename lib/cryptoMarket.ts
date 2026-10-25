@@ -501,13 +501,24 @@ export interface LivePrice {
 /// The one read behind `/api/crypto/prices`, which is the single same-origin URL the market table
 /// and the coin page poll. Keyed by slug rather than by venue pair, because a browser knows the
 /// slug it is looking at and should not have to carry the venue map to use this.
-const priceSnapshot = memoised(1500, async (): Promise<Map<string, number>> => {
+const priceSnapshot = memoised(1000, async (): Promise<Map<string, number>> => {
   const m = new Map<string, number>();
   const grab = async (url: string): Promise<unknown[]> => {
     try {
       const res = await fetch(url, {
         headers: { "User-Agent": "nextbigthing" },
-        next: { revalidate: 2 },
+        // `no-store`, not a short revalidate.
+        //
+        // **Two caches were stacking and the prices showed it.** This memo held a snapshot for
+        // 1.5 seconds and `next: { revalidate: 2 }` let Next's own fetch cache serve a body up
+        // to two seconds older underneath it, with the browser polling every two on top. Against
+        // Binance's live ticker the table ran a median 8.7 basis points out, p90 33, worst 229 --
+        // on a coin that moves a tenth of a percent in five minutes that is most of a bar.
+        //
+        // The venue mirror is not the problem: data-api.binance.vision and api.binance.com agree
+        // to 0.000 bp at the median across 3,131 symbols. It was ours. One cache is enough, and
+        // the memo is the one that bounds the upstream fan-in, so the HTTP layer keeps nothing.
+        cache: "no-store",
         signal: AbortSignal.timeout(8000),
       });
       if (!res.ok) return [];

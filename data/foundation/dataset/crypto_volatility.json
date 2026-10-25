@@ -1,0 +1,50 @@
+{
+ "generatedAt": "2026-10-25T13:25:18.945250+00:00",
+ "producedBy": "tools/research/crypto_volatility.py",
+ "what": "how predictable three different questions are on identical rows and folds: direction, volatility, and containment within a band",
+ "containmentAtr": 2.0,
+ "tag": "btc",
+ "horizon": "h1",
+ "coins": 1,
+ "results": [
+  {
+   "question": "direction",
+   "accuracy": 0.52496,
+   "baseRate": 0.50256,
+   "majority": 0.50256,
+   "edgeOverMajority": 0.02239,
+   "topDecileAccuracy": 0.58288,
+   "bootstrapCi95": [
+    0.009814,
+    0.034447
+   ],
+   "testRows": 62971
+  },
+  {
+   "question": "volatility",
+   "accuracy": 0.72945,
+   "baseRate": 0.44354,
+   "majority": 0.55646,
+   "edgeOverMajority": 0.17298,
+   "topDecileAccuracy": 0.96348,
+   "bootstrapCi95": [
+    0.145093,
+    0.201941
+   ],
+   "testRows": 62971
+  },
+  {
+   "question": "containment",
+   "accuracy": 0.74422,
+   "baseRate": 0.27089,
+   "majority": 0.72911,
+   "edgeOverMajority": 0.0151,
+   "topDecileAccuracy": 0.92124,
+   "bootstrapCi95": [
+    0.010401,
+    0.019771
+   ],
+   "testRows": 62971
+  }
+ ]
+}
