@@ -222,8 +222,12 @@ def prepare_cached(symbols: list[str], interval: str, stride: int = 1,
             print(f"   matrix cache hit {path.name}", flush=True)
         return _load(path)
     if verbose:
+        # Naming every block, because the log line is the only record of what a run actually
+        # fitted and "+market context" alone read identically with funding on and off.
+        blocks = "".join([", +market context" if context else "",
+                          ", +funding" if funding else ""])
         print(f"   building matrix for {len(symbols)} symbols at {interval} "
-              f"(stride {stride}{', +market context' if context else ''})", flush=True)
+              f"(stride {stride}{blocks})", flush=True)
     data = _build_pool(symbols, interval, stride, context, funding)
     _save(path, data, symbols)
     if verbose:
