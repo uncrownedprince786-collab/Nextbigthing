@@ -1,0 +1,65 @@
+{
+ "generatedAt": "2026-10-25T22:37:20.765809+00:00",
+ "producedBy": "tools/research/crypto_gate.py",
+ "question": "whether the direction model is more accurate on the rows a second model expects to be large moves",
+ "lane": "brain-c1-crypto-m5",
+ "gateAccuracy": 0.59198,
+ "gateBaseRate": 0.61431,
+ "bands": [
+  {
+   "band": 1.0,
+   "rows": 181765,
+   "directionAccuracy": 0.53765,
+   "baseRate": 0.50804,
+   "edge": 0.02962,
+   "bootstrapCi95": [
+    0.025204,
+    0.034068
+   ]
+  },
+  {
+   "band": 0.5,
+   "rows": 90882,
+   "directionAccuracy": 0.53036,
+   "baseRate": 0.50705,
+   "edge": 0.0233,
+   "bootstrapCi95": [
+    0.017306,
+    0.02924
+   ]
+  },
+  {
+   "band": 0.25,
+   "rows": 45441,
+   "directionAccuracy": 0.52897,
+   "baseRate": 0.5082,
+   "edge": 0.02077,
+   "bootstrapCi95": [
+    0.012711,
+    0.028741
+   ]
+  },
+  {
+   "band": 0.1,
+   "rows": 18176,
+   "directionAccuracy": 0.52608,
+   "baseRate": 0.50957,
+   "edge": 0.01651,
+   "bootstrapCi95": [
+    0.006076,
+    0.026939
+   ]
+  },
+  {
+   "band": 0.05,
+   "rows": 9088,
+   "directionAccuracy": 0.53158,
+   "baseRate": 0.51695,
+   "edge": 0.01463,
+   "bootstrapCi95": [
+    0.000452,
+    0.027298
+   ]
+  }
+ ]
+}
