@@ -45,6 +45,9 @@ from market_context import (  # noqa: E402
     VERSION as CONTEXT_VERSION,
     context_for,
 )
+from funding_features import (  # noqa: E402
+    FUNDING as FUNDING_DIR, FUNDING_FEATURES, VERSION as FUNDING_VERSION, funding_for,
+)
 
 #: The coin whose bars are the market factor every other coin is read against.
 MARKET_SYMBOL = "BTCUSDT"
@@ -57,7 +60,8 @@ def _corpus_path(symbol: str, interval: str) -> Path:
     return CORPUS / f"{symbol}-{interval}.jsonl.gz"
 
 
-def _key(symbols: list[str], interval: str, stride: int, context: bool = False) -> str:
+def _key(symbols: list[str], interval: str, stride: int, context: bool = False,
+         funding: bool = False) -> str:
     parts = [FEATURE_VERSION, interval, str(stride)]
     if context:
         # The factor's own bars are an input to every row, so the cache key has to cover the
@@ -66,6 +70,14 @@ def _key(symbols: list[str], interval: str, stride: int, context: bool = False) 
         mp = _corpus_path(MARKET_SYMBOL, interval)
         mst = mp.stat() if mp.exists() else None
         parts.append(f"mkt:{mst.st_size if mst else 0}:{int(mst.st_mtime) if mst else 0}")
+    if funding:
+        # The funding corpus is an input to every row of every coin that has one, so a key that
+        # ignored it would serve a cached matrix built before the rates were collected.
+        parts.append(FUNDING_VERSION)
+        for s in sorted(symbols):
+            fp = FUNDING_DIR / f"{s}-funding.jsonl.gz"
+            fst = fp.stat() if fp.exists() else None
+            parts.append(f"f:{s}:{fst.st_size if fst else 0}")
     for s in sorted(symbols):
         p = _corpus_path(s, interval)
         st = p.stat() if p.exists() else None
@@ -91,7 +103,8 @@ def _corpus_report(symbol: str, interval: str) -> dict:
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
 
-def _build_pool(symbols: list[str], interval: str, stride: int, context: bool = False) -> dict:
+def _build_pool(symbols: list[str], interval: str, stride: int, context: bool = False,
+                funding: bool = False) -> dict:
     """Exactly what `train_crypto_short.prepare` builds, with the same exclusions and parity check.
 
     With `context`, the market-factor block is appended to every row and a row the factor has no
@@ -120,6 +133,17 @@ def _build_pool(symbols: list[str], interval: str, stride: int, context: bool = 
                                     WARMUP)
             X = np.hstack([X, C]).astype(np.float32)
             valid = valid & ctx_ok
+        if funding:
+            # Appended after the context block, so the column order is f1 | c1 | funding and a
+            # model fitted with funding can never be served a vector without it -- the schema
+            # string records which blocks are present and `assertSchema` refuses a mismatch.
+            #
+            # Rows before this coin's first settlement are dropped rather than zero-filled: zero
+            # is a real and common funding rate, so imputing it for "no reading" would teach the
+            # model that an unknown and a flat market are the same state.
+            F, f_ok = funding_for(ts, s, int(step))
+            X = np.hstack([X, F]).astype(np.float32)
+            valid = valid & f_ok
         if not valid.any():
             corpora[s] = {"bars": len(bars), "usableRows": 0, "stepMs": int(step),
                           "excluded": "fewer bars than the feature window needs, or the market "
@@ -189,9 +213,10 @@ def _load(path: Path) -> dict:
 
 
 def prepare_cached(symbols: list[str], interval: str, stride: int = 1,
-                   verbose: bool = True, context: bool = False) -> dict:
+                   verbose: bool = True, context: bool = False,
+                   funding: bool = False) -> dict:
     """The pool, from cache when the corpus and the feature definition are unchanged."""
-    path = CACHE / f"{_key(symbols, interval, stride, context)}.npz"
+    path = CACHE / f"{_key(symbols, interval, stride, context, funding)}.npz"
     if path.exists() and path.with_suffix(".meta.json").exists():
         if verbose:
             print(f"   matrix cache hit {path.name}", flush=True)
@@ -199,7 +224,7 @@ def prepare_cached(symbols: list[str], interval: str, stride: int = 1,
     if verbose:
         print(f"   building matrix for {len(symbols)} symbols at {interval} "
               f"(stride {stride}{', +market context' if context else ''})", flush=True)
-    data = _build_pool(symbols, interval, stride, context)
+    data = _build_pool(symbols, interval, stride, context, funding)
     _save(path, data, symbols)
     if verbose:
         worst = max((p["worstRelativeDiff"] for p in data["parity"].values()), default=0.0)

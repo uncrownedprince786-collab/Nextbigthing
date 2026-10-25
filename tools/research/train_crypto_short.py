@@ -74,6 +74,7 @@ from crypto_horizons import HORIZONS, ORDER, horizons_for  # noqa: E402
 from crypto_matrix import prepare_cached  # noqa: E402
 from intraday_features import FEATURES, VERSION as FEATURE_VERSION, WARMUP  # noqa: E402
 from market_context import CONTEXT_FEATURES, VERSION as CONTEXT_VERSION  # noqa: E402
+from funding_features import FUNDING_FEATURES, VERSION as FUNDING_VERSION  # noqa: E402
 from intraday_matrix import build, verify_against_reference  # noqa: E402
 
 CORPUS = ROOT / ".cache" / "foundation" / "intraday"
@@ -634,6 +635,10 @@ def main() -> int:
     ap.add_argument("--context", action="store_true",
                     help="fit on the market-factor block as well (tools/research/market_context.py)")
     ap.add_argument("--verbose", type=int, default=0)
+    ap.add_argument("--funding", action="store_true",
+                    help="fit on the perpetual funding block as well "
+                         "(tools/research/funding_features.py). Coins with no perpetual lose "
+                         "their rows entirely, so the pool shrinks: 132 of 140 have one")
     ap.add_argument("--keep-pegged", action="store_true",
                     help="train on dollar-pegged coins too; off by default, see drop_pegged()")
     a = ap.parse_args()
@@ -644,7 +649,8 @@ def main() -> int:
     keys = [k for k in a.horizons if k in HORIZONS]
     summary = {"generatedAt": datetime.now(timezone.utc).isoformat(), "tag": a.tag,
                "symbols": a.symbols, "repoHead": repo_head(), "rowStride": a.stride,
-               "marketContext": bool(a.context), "horizons": {}}
+               "marketContext": bool(a.context), "funding": bool(a.funding),
+               "horizons": {}}
 
     for interval in sorted({HORIZONS[k]["interval"] for k in keys}):
         here = [k for k in keys if k in horizons_for(interval)]
@@ -656,7 +662,8 @@ def main() -> int:
         # file that went into it, so an edited feature definition or a recollected coin produces a
         # different matrix rather than a stale one. Rebuilding thirty coins' features from JSONL
         # on every run was most of a fit's wall clock, and it is the same matrix every time.
-        data = prepare_cached(a.symbols, interval, stride=a.stride, context=a.context)
+        data = prepare_cached(a.symbols, interval, stride=a.stride, context=a.context,
+                              funding=a.funding)
         print(f"   {len(data['ts']):,} usable rows in {time.time() - t0:.1f}s "
               f"(parity worst {max((p['worstRelativeDiff'] for p in data['parity'].values()), default=0):.2g})",
               flush=True)
@@ -664,10 +671,18 @@ def main() -> int:
             print(f"   -- {key} ({HORIZONS[key]['label']})", flush=True)
             res = train_one(data, key, a.tag, a.rounds, a.depth, verbose=a.verbose)
             res["rowStride"] = a.stride
-            res["featureSchema"] = (f"{FEATURE_VERSION}+{CONTEXT_VERSION}" if a.context
-                                    else FEATURE_VERSION)
-            res["featureNames"] = (list(FEATURES) + list(CONTEXT_FEATURES) if a.context
-                                   else list(FEATURES))
+            schema = FEATURE_VERSION
+            if a.context:
+                schema += f"+{CONTEXT_VERSION}"
+            if a.funding:
+                schema += f"+{FUNDING_VERSION}"
+            res["featureSchema"] = schema
+            names = list(FEATURES)
+            if a.context:
+                names += list(CONTEXT_FEATURES)
+            if a.funding:
+                names += list(FUNDING_FEATURES)
+            res["featureNames"] = names
             if not res.get("trained"):
                 print(f"      not trained: {res['reason']}")
                 summary["horizons"][key] = res
