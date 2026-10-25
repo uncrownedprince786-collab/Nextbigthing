@@ -423,9 +423,22 @@ def train_one(data: dict, key: str, tag: str, rounds: int, depth: int,
         return {"horizon": key, "trained": False,
                 "reason": f"below the data floor (train {len(tr)}, val {len(va)}, test {len(te)})"}
 
-    Xtr, ytr = X[tr].astype(np.float64), y[tr].astype(np.float64)
-    Xva, yva = X[va].astype(np.float64), y[va].astype(np.float64)
-    Xte, yte = X[te].astype(np.float64), y[te]
+    # The folds stay in the dtype the matrix is stored in, which is float32.
+    #
+    # They used to be cast to float64 here, and that cast was the single largest allocation in the
+    # run: on the 140-coin pool it made a 438 MB copy of the training fold so that `gbm.fit` could
+    # immediately cast it back to float32 and bin it into 55 MB of uint8 codes. Three full
+    # materialisations of the same numbers, two of them thrown away -- about 845 MB of peak for no
+    # arithmetic at all, on a machine with under 2 GB free. That is what drove the run into swap
+    # and held it at 42% of a core.
+    #
+    # Nothing about the fitted model changes. float32 -> float64 -> float32 is exact, so the GBM
+    # sees the identical values it saw before, and `fit_logistic` standardises into float64 itself,
+    # so its arithmetic is unchanged too -- it simply upcasts the rows it needs instead of being
+    # handed a second copy of all of them.
+    Xtr, ytr = X[tr], y[tr].astype(np.float64)
+    Xva, yva = X[va], y[va].astype(np.float64)
+    Xte, yte = X[te], y[te]
 
     t0 = time.time()
     lin = fit_logistic(Xtr, ytr)
