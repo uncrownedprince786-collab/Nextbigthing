@@ -259,6 +259,47 @@ function ForecastBody({
     );
   }
 
+  // The lane works; it does not work *here*. Kept apart from "refused" because they are two
+  // different facts and the reader is owed the difference: refused means the brain cannot read
+  // this horizon for anybody, this means it can, but it has not earned the right on this coin.
+  if (forecast.kind === "uncertified") {
+    const v = forecast.verdict;
+    return (
+      <>
+        <Card>
+          <div className="text-2xl font-semibold">
+            {forecast.unmeasured ? "Not measured on this coin" : "No direction for this coin"}
+          </div>
+          <p className="text-muted-foreground mt-2 text-sm">
+            {forecast.unmeasured ? (
+              <>
+                The {h.label.toLowerCase()} model earned a direction across the pool, but{" "}
+                {name} has not been measured on its own yet. A pooled accuracy is not a promise
+                about any one coin, so nothing is shown here until it has been checked.
+              </>
+            ) : (
+              <>
+                The {h.label.toLowerCase()} model earned a direction across the pool and did not
+                earn one on {name}: {forecast.why}. Nothing is served here — not a weaker call,
+                not a hedged one.
+              </>
+            )}
+          </p>
+        </Card>
+        {v && v.accuracy !== null ? (
+          <Note>
+            Measured on {v.called.toLocaleString()} of this coin&rsquo;s own{" "}
+            {v.testRows.toLocaleString()} unseen rows, it was right{" "}
+            {(v.accuracy * 100).toFixed(2)}% of the time against a{" "}
+            {((v.ownMajority ?? 0) * 100).toFixed(2)}% largest class
+            {v.walkForward ? `, and beat that base rate in ${v.walkForward} stretches` : null}.
+            That is this coin&rsquo;s own number, not the pool&rsquo;s.
+          </Note>
+        ) : null}
+      </>
+    );
+  }
+
   if (forecast.kind === "no-source") {
     const row = venueRowFor(symbol);
     return (

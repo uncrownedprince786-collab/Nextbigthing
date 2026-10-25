@@ -21,6 +21,12 @@ import { assertSchema, probabilityUp, wantsContext, type Artifact } from "@/lib/
 import { contextAt, CONTEXT_FEATURES } from "@/lib/marketContext";
 import { featuresAt, FEATURES, contiguous, WARMUP } from "@/lib/intradayFeatures";
 import { levelsFor, type Levels } from "@/lib/cryptoLevels";
+import {
+  certificationOf,
+  laneMeasured,
+  refusalReason,
+  type CoinVerdict,
+} from "@/lib/cryptoCertified";
 import { hasIntradaySource, instrumentsFor, venueRowFor } from "@/lib/cryptoVenues";
 
 const MODELS = models as unknown as Record<string, Artifact>;
@@ -63,9 +69,30 @@ export type Forecast =
       maturesAt: Date;
       window: BarWindow;
       features: number[];
+      /// What the per-coin sweep found about **this coin** on this lane, as opposed to the pool.
+      /// Always `certified` on a served direction -- the other two states do not get here -- but
+      /// carried so the page can print the coin's own measured rate instead of the pool's.
+      certification: CoinVerdict;
     }
   | { kind: "no-model"; horizon: Horizon; why: string }
   | { kind: "refused"; horizon: Horizon; lane: Lane; why: string }
+  /// The lane passed its gates over the pool, but **this coin** did not pass them on its own.
+  ///
+  /// A separate kind from `refused` because the two are different facts and a reader deserves to
+  /// know which: `refused` means the brain cannot read this horizon for anybody, `uncertified`
+  /// means it can, but not here. Nothing is shown either way -- a direction nobody checked on
+  /// this coin is a guess with a confident font, and that is the one thing this repository is for
+  /// not printing.
+  | {
+      kind: "uncertified";
+      horizon: Horizon;
+      lane: Lane;
+      why: string;
+      verdict: CoinVerdict | null;
+      /// True when the sweep has simply not covered this coin yet, which is not a failure. An
+      /// unmeasured coin and a measured-and-rejected one must never read as the same thing.
+      unmeasured: boolean;
+    }
   | { kind: "no-source"; horizon: Horizon; why: string }
   | { kind: "data"; horizon: Horizon; lane: Lane; why: string; tried: { venue: string; outcome: string }[] }
   | { kind: "error"; horizon: Horizon; why: string };
@@ -97,6 +124,21 @@ export async function forecastFor(
   }
   if (!lane.servable) {
     return { kind: "refused", horizon, lane, why: lane.why ?? "it did not pass its gates" };
+  }
+  // The lane passing over 140 coins does not mean it passes on this one. Checked before any bars
+  // are fetched, because a coin we will not speak about is not worth a venue round trip.
+  const cert = certificationOf(lane.family, slug, key);
+  if (laneMeasured(lane.family, key) && cert.state !== "certified") {
+    return {
+      kind: "uncertified",
+      horizon,
+      lane,
+      verdict: cert.verdict,
+      unmeasured: cert.state === "unmeasured",
+      why: cert.verdict
+        ? refusalReason(cert.verdict)
+        : "this coin was not measured on its own in the last sweep",
+    };
   }
   if (!hasIntradaySource(slug)) {
     const row = venueRowFor(slug);
@@ -212,6 +254,12 @@ export async function forecastFor(
     floor: lane.conviction?.floor ?? 0,
     measured: accuracyAtMargin(lane, margin),
     levels: levelsFor(lane, horizon.key, direction, w.referencePrice, x),
+    // Non-null by construction: an uncertified coin returned above and never reaches here. The
+    // fallback exists only so a lane the sweep has not covered yet still type-checks.
+    certification: cert.verdict ?? {
+      testRows: 0, called: 0, coverage: 0, convictionFloor: lane.conviction?.floor ?? 0,
+      accuracy: null, certified: true, why: "lane not yet swept per coin",
+    },
     referencePrice: w.referencePrice,
     asOf,
     maturesAt: maturesAt(asOf, horizon),
