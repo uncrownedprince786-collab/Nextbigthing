@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-25T13:25:18.945250+00:00",
+ "generatedAt": "2026-10-25T14:09:24.000431+00:00",
  "producedBy": "tools/research/crypto_volatility.py",
  "what": "how predictable three different questions are on identical rows and folds: direction, volatility, and containment within a band",
  "containmentAtr": 2.0,
@@ -22,14 +22,14 @@
   },
   {
    "question": "volatility",
-   "accuracy": 0.72945,
-   "baseRate": 0.44354,
-   "majority": 0.55646,
-   "edgeOverMajority": 0.17298,
-   "topDecileAccuracy": 0.96348,
+   "accuracy": 0.73334,
+   "baseRate": 0.43571,
+   "majority": 0.56429,
+   "edgeOverMajority": 0.16905,
+   "topDecileAccuracy": 0.96602,
    "bootstrapCi95": [
-    0.145093,
-    0.201941
+    0.142015,
+    0.197349
    ],
    "testRows": 62971
   },

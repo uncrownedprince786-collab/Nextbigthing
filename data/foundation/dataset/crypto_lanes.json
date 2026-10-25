@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-25T14:06:58.688254+00:00",
+ "generatedAt": "2026-10-25T23:55:04.897273+00:00",
  "producedBy": "tools/research/crypto_lanes.py",
  "status": "what has survived testing on a historical holdout, not what has been proven forward and not a profitability claim; no transaction cost, spread or funding is in any number here",
  "highIsUnreachableFromBacktest": "a badge never reads HIGH: every number here comes from a holdout, which is still a backtest. HIGH is reserved for a lane whose prospective forecasts have matured and held, which none has yet.",
@@ -13,10 +13,668 @@
  ],
  "conviction": "a lane with a floor answers only when the model's probability is at least that far from even, and says it sees nothing otherwise. The floor is chosen on the validation fold and the gated lane is then measured once on the test fold, against the called rows' own majority. Coverage travels with every accuracy here: 'right more often on fewer bars' is only a result when both numbers are shown.",
  "families": [
+  "ada",
+  "avax",
   "btc",
-  "crypto"
+  "crypto",
+  "dot",
+  "eth",
+  "link",
+  "sol",
+  "sui",
+  "xrp"
  ],
  "lanes": [
+  {
+   "family": "ada",
+   "horizon": "m5",
+   "horizonMinutes": 5,
+   "interval": "5m",
+   "modelVersion": "brain-c1-ada-m5",
+   "modelSha256": "d5f9e2c17d3904e19e1298ad87bdabcf30a8697f46b9e7cef94d90c451ec4adc",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "ADAUSDT"
+   ],
+   "servable": true,
+   "confidence": "LOW",
+   "why": null,
+   "evidence": {
+    "testRows": 20906,
+    "testFrom": "2026-08-01T00:40:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.52569,
+    "testMajority": 0.50234,
+    "marginOverMajority": 0.02334,
+    "bootstrapCi95": [
+     0.014975,
+     0.031736
+    ],
+    "bootstrapZ": 5.3913,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 4,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.44561,
+    "linearOnTheSameTestRows": 0.52406,
+    "chosenModel": "gbm",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 20906,
+      "coverage": 1.0,
+      "accuracy": 0.52569,
+      "majorityHere": 0.50234
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 15221,
+      "coverage": 0.72807,
+      "accuracy": 0.53104,
+      "majorityHere": 0.50516
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 9872,
+      "coverage": 0.47221,
+      "accuracy": 0.53485,
+      "majorityHere": 0.50547
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 5445,
+      "coverage": 0.26045,
+      "accuracy": 0.54509,
+      "majorityHere": 0.51001
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 1114,
+      "coverage": 0.05329,
+      "accuracy": 0.57271,
+      "majorityHere": 0.52873
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 153,
+      "coverage": 0.00732,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 17,
+      "coverage": 0.00081,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": {
+    "floor": 0.04,
+    "chosenOn": "the validation fold, before the test fold was read",
+    "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
+    "called": {
+     "accuracy": 0.54879,
+     "coverage": 0.12403,
+     "rows": 2593,
+     "majorityHere": 0.50058,
+     "marginOverMajority": 0.04821,
+     "bootstrapCi95": [
+      0.020929,
+      0.07518
+     ],
+     "walkForwardAbove": 4,
+     "walkForwardBlocks": 5,
+     "upShareCalled": 0.5322
+    },
+    "ungatedAccuracy": 0.52569,
+    "testCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 20906,
+      "coverage": 1.0,
+      "accuracy": 0.52569,
+      "majorityHere": 0.50234,
+      "marginOverMajority": 0.02334,
+      "upShareCalled": 0.44561,
+      "upRate": 0.49766
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 15221,
+      "coverage": 0.72807,
+      "accuracy": 0.53104,
+      "majorityHere": 0.50516,
+      "marginOverMajority": 0.02589,
+      "upShareCalled": 0.43703,
+      "upRate": 0.49484
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 9872,
+      "coverage": 0.47221,
+      "accuracy": 0.53485,
+      "majorityHere": 0.50547,
+      "marginOverMajority": 0.02938,
+      "upShareCalled": 0.44591,
+      "upRate": 0.49453
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 5445,
+      "coverage": 0.26045,
+      "accuracy": 0.54509,
+      "majorityHere": 0.51001,
+      "marginOverMajority": 0.03508,
+      "upShareCalled": 0.47328,
+      "upRate": 0.48999
+     },
+     {
+      "minMargin": 0.04,
+      "rows": 2593,
+      "coverage": 0.12403,
+      "accuracy": 0.54879,
+      "majorityHere": 0.50058,
+      "marginOverMajority": 0.04821,
+      "upShareCalled": 0.5322,
+      "upRate": 0.50058
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 1114,
+      "coverage": 0.05329,
+      "accuracy": 0.57271,
+      "majorityHere": 0.52873,
+      "marginOverMajority": 0.04399,
+      "upShareCalled": 0.64004,
+      "upRate": 0.52873
+     },
+     {
+      "minMargin": 0.06,
+      "rows": 497,
+      "coverage": 0.02377,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 153,
+      "coverage": 0.00732,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 17,
+      "coverage": 0.00081,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.125,
+      "rows": 1,
+      "coverage": 5e-05,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     }
+    ],
+    "measuredAt": "2026-10-25T23:53:26.032670+00:00"
+   },
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 101938,
+   "generatedAt": "2026-10-25T23:35:09.666250+00:00"
+  },
+  {
+   "family": "ada",
+   "horizon": "m15",
+   "horizonMinutes": 15,
+   "interval": "5m",
+   "modelVersion": "brain-c1-ada-m15",
+   "modelSha256": "d8e538a0d133ecbfe3d19617d98fecadfe9c3cb3be021509303930f5ca91068b",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "ADAUSDT"
+   ],
+   "servable": true,
+   "confidence": "MEDIUM",
+   "why": null,
+   "evidence": {
+    "testRows": 21857,
+    "testFrom": "2026-08-01T00:40:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.52651,
+    "testMajority": 0.5024,
+    "marginOverMajority": 0.02411,
+    "bootstrapCi95": [
+     0.014485,
+     0.033576
+    ],
+    "bootstrapZ": 4.9911,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 5,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.39223,
+    "linearOnTheSameTestRows": 0.52743,
+    "chosenModel": "gbm",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 21857,
+      "coverage": 1.0,
+      "accuracy": 0.52651,
+      "majorityHere": 0.5024
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 16340,
+      "coverage": 0.74759,
+      "accuracy": 0.53378,
+      "majorityHere": 0.50135
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 11654,
+      "coverage": 0.53319,
+      "accuracy": 0.5393,
+      "majorityHere": 0.50215
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 7305,
+      "coverage": 0.33422,
+      "accuracy": 0.54223,
+      "majorityHere": 0.50582
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 1490,
+      "coverage": 0.06817,
+      "accuracy": 0.56174,
+      "majorityHere": 0.50201
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 55,
+      "coverage": 0.00252,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": {
+    "floor": 0.04,
+    "chosenOn": "the validation fold, before the test fold was read",
+    "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
+    "called": {
+     "accuracy": 0.54909,
+     "coverage": 0.1729,
+     "rows": 3779,
+     "majorityHere": 0.50251,
+     "marginOverMajority": 0.04657,
+     "bootstrapCi95": [
+      0.028468,
+      0.065278
+     ],
+     "walkForwardAbove": 5,
+     "walkForwardBlocks": 5,
+     "upShareCalled": 0.27203
+    },
+    "ungatedAccuracy": 0.52651,
+    "testCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 21857,
+      "coverage": 1.0,
+      "accuracy": 0.52651,
+      "majorityHere": 0.5024,
+      "marginOverMajority": 0.02411,
+      "upShareCalled": 0.39223,
+      "upRate": 0.4976
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 16340,
+      "coverage": 0.74759,
+      "accuracy": 0.53378,
+      "majorityHere": 0.50135,
+      "marginOverMajority": 0.03244,
+      "upShareCalled": 0.37197,
+      "upRate": 0.49865
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 11654,
+      "coverage": 0.53319,
+      "accuracy": 0.5393,
+      "majorityHere": 0.50215,
+      "marginOverMajority": 0.03715,
+      "upShareCalled": 0.33782,
+      "upRate": 0.49785
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 7305,
+      "coverage": 0.33422,
+      "accuracy": 0.54223,
+      "majorityHere": 0.50582,
+      "marginOverMajority": 0.03641,
+      "upShareCalled": 0.29733,
+      "upRate": 0.49418
+     },
+     {
+      "minMargin": 0.04,
+      "rows": 3779,
+      "coverage": 0.1729,
+      "accuracy": 0.54909,
+      "majorityHere": 0.50251,
+      "marginOverMajority": 0.04657,
+      "upShareCalled": 0.27203,
+      "upRate": 0.49749
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 1490,
+      "coverage": 0.06817,
+      "accuracy": 0.56174,
+      "majorityHere": 0.50201,
+      "marginOverMajority": 0.05973,
+      "upShareCalled": 0.32282,
+      "upRate": 0.50201
+     },
+     {
+      "minMargin": 0.06,
+      "rows": 494,
+      "coverage": 0.0226,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 55,
+      "coverage": 0.00252,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.125,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     }
+    ],
+    "measuredAt": "2026-10-25T23:53:26.032670+00:00"
+   },
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 104831,
+   "generatedAt": "2026-10-25T23:36:08.812180+00:00"
+  },
+  {
+   "family": "avax",
+   "horizon": "m5",
+   "horizonMinutes": 5,
+   "interval": "5m",
+   "modelVersion": "brain-c1-avax-m5",
+   "modelSha256": "cbbff2adae33476c70af398050c6c44b18b5242cfeafa75e5bb453a99c0edeae",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "AVAXUSDT"
+   ],
+   "servable": true,
+   "confidence": "LOW",
+   "why": null,
+   "evidence": {
+    "testRows": 22436,
+    "testFrom": "2026-08-01T00:40:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.51337,
+    "testMajority": 0.50517,
+    "marginOverMajority": 0.0082,
+    "bootstrapCi95": [
+     8.9e-05,
+     0.015546
+    ],
+    "bootstrapZ": 2.0888,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 4,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.46497,
+    "linearOnTheSameTestRows": 0.51337,
+    "chosenModel": "logistic",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 22436,
+      "coverage": 1.0,
+      "accuracy": 0.51337,
+      "majorityHere": 0.50517
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 19679,
+      "coverage": 0.87712,
+      "accuracy": 0.51354,
+      "majorityHere": 0.50389
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 16916,
+      "coverage": 0.75397,
+      "accuracy": 0.51496,
+      "majorityHere": 0.50219
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 14046,
+      "coverage": 0.62605,
+      "accuracy": 0.51381,
+      "majorityHere": 0.50299
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 8589,
+      "coverage": 0.38282,
+      "accuracy": 0.51275,
+      "majorityHere": 0.50576
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 3152,
+      "coverage": 0.14049,
+      "accuracy": 0.51269,
+      "majorityHere": 0.50571
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 636,
+      "coverage": 0.02835,
+      "accuracy": 0.50629,
+      "majorityHere": 0.5
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 4,
+      "coverage": 0.00018,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 1,
+      "coverage": 4e-05,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": null,
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 90384,
+   "generatedAt": "2026-10-25T23:38:03.575268+00:00"
+  },
+  {
+   "family": "avax",
+   "horizon": "m15",
+   "horizonMinutes": 15,
+   "interval": "5m",
+   "modelVersion": "brain-c1-avax-m15",
+   "modelSha256": "6482f4b1c521fc2602fa3d7d6a6f1f6dc3e80e25a2c9ce58b17e1a8d15c9887a",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "AVAXUSDT"
+   ],
+   "servable": true,
+   "confidence": "LOW",
+   "why": null,
+   "evidence": {
+    "testRows": 22777,
+    "testFrom": "2026-08-01T00:40:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.52153,
+    "testMajority": 0.50226,
+    "marginOverMajority": 0.01927,
+    "bootstrapCi95": [
+     0.004685,
+     0.032558
+    ],
+    "bootstrapZ": 2.6861,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 4,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.37547,
+    "linearOnTheSameTestRows": 0.51754,
+    "chosenModel": "gbm",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 22777,
+      "coverage": 1.0,
+      "accuracy": 0.52153,
+      "majorityHere": 0.50226
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 16145,
+      "coverage": 0.70883,
+      "accuracy": 0.52357,
+      "majorityHere": 0.50034
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 10021,
+      "coverage": 0.43996,
+      "accuracy": 0.52121,
+      "majorityHere": 0.50464
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 5837,
+      "coverage": 0.25627,
+      "accuracy": 0.52013,
+      "majorityHere": 0.50882
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 1873,
+      "coverage": 0.08223,
+      "accuracy": 0.52856,
+      "majorityHere": 0.51789
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 219,
+      "coverage": 0.00961,
+      "accuracy": 0.55251,
+      "majorityHere": 0.50228
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": null,
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 97491,
+   "generatedAt": "2026-10-25T23:38:53.302276+00:00"
+  },
   {
    "family": "btc",
    "horizon": "m5",
@@ -231,7 +889,7 @@
       "note": "under 500 called rows, not reported"
      }
     ],
-    "measuredAt": "2026-10-25T14:05:10.327848+00:00"
+    "measuredAt": "2026-10-25T23:53:26.032670+00:00"
    },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
@@ -461,7 +1119,7 @@
       "note": "under 500 called rows, not reported"
      }
     ],
-    "measuredAt": "2026-10-25T14:05:10.327848+00:00"
+    "measuredAt": "2026-10-25T23:53:26.032670+00:00"
    },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
@@ -688,7 +1346,7 @@
       "note": "under 500 called rows, not reported"
      }
     ],
-    "measuredAt": "2026-10-25T14:05:10.327848+00:00"
+    "measuredAt": "2026-10-25T23:53:26.032670+00:00"
    },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
@@ -1479,7 +2137,7 @@
       "upRate": 0.51057
      }
     ],
-    "measuredAt": "2026-10-25T14:05:10.327848+00:00"
+    "measuredAt": "2026-10-25T23:53:26.032670+00:00"
    },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
@@ -1854,7 +2512,7 @@
       "upRate": 0.50815
      }
     ],
-    "measuredAt": "2026-10-25T14:05:10.327848+00:00"
+    "measuredAt": "2026-10-25T23:53:26.032670+00:00"
    },
    "acceptanceTarget": 0.9,
    "acceptanceTargetMet": false,
@@ -2850,9 +3508,1860 @@
    "acceptanceTargetMet": false,
    "trainingRows": 435105,
    "generatedAt": "2026-10-24T10:33:35.891594+00:00"
+  },
+  {
+   "family": "dot",
+   "horizon": "m5",
+   "horizonMinutes": 5,
+   "interval": "5m",
+   "modelVersion": "brain-c1-dot-m5",
+   "modelSha256": "e2be6d7b31a06f41054559594bf7ad7289ecc44a59452f96b321dc8e8e95de30",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "DOTUSDT"
+   ],
+   "servable": false,
+   "confidence": "NONE",
+   "why": "it beat its own block majority in only 3 of 5 chronological blocks",
+   "evidence": {
+    "testRows": 18202,
+    "testFrom": "2026-08-01T00:45:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.53478,
+    "testMajority": 0.50516,
+    "marginOverMajority": 0.02961,
+    "bootstrapCi95": [
+     0.015635,
+     0.044098
+    ],
+    "bootstrapZ": 3.9962,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 3,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.47517,
+    "linearOnTheSameTestRows": 0.54022,
+    "chosenModel": "gbm",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 18202,
+      "coverage": 1.0,
+      "accuracy": 0.53478,
+      "majorityHere": 0.50516
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 14960,
+      "coverage": 0.82189,
+      "accuracy": 0.54325,
+      "majorityHere": 0.50535
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 11894,
+      "coverage": 0.65344,
+      "accuracy": 0.55372,
+      "majorityHere": 0.50269
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 9099,
+      "coverage": 0.49989,
+      "accuracy": 0.56325,
+      "majorityHere": 0.50434
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 4905,
+      "coverage": 0.26948,
+      "accuracy": 0.58838,
+      "majorityHere": 0.5001
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 1808,
+      "coverage": 0.09933,
+      "accuracy": 0.61394,
+      "majorityHere": 0.52378
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 596,
+      "coverage": 0.03274,
+      "accuracy": 0.6745,
+      "majorityHere": 0.55537
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 29,
+      "coverage": 0.00159,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": null,
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 97161,
+   "generatedAt": "2026-10-25T23:43:01.834193+00:00"
+  },
+  {
+   "family": "dot",
+   "horizon": "m15",
+   "horizonMinutes": 15,
+   "interval": "5m",
+   "modelVersion": "brain-c1-dot-m15",
+   "modelSha256": "009e472d9f1122becf6526298a805adc4016059de808829c19b337415f426ef0",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "DOTUSDT"
+   ],
+   "servable": true,
+   "confidence": "LOW",
+   "why": null,
+   "evidence": {
+    "testRows": 20096,
+    "testFrom": "2026-08-01T00:45:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.52518,
+    "testMajority": 0.5001,
+    "marginOverMajority": 0.02508,
+    "bootstrapCi95": [
+     0.013692,
+     0.03668
+    ],
+    "bootstrapZ": 4.2543,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 4,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.41212,
+    "linearOnTheSameTestRows": 0.52548,
+    "chosenModel": "gbm",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 20096,
+      "coverage": 1.0,
+      "accuracy": 0.52518,
+      "majorityHere": 0.5001
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 15452,
+      "coverage": 0.76891,
+      "accuracy": 0.52886,
+      "majorityHere": 0.50201
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 11157,
+      "coverage": 0.55519,
+      "accuracy": 0.53285,
+      "majorityHere": 0.50202
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 7533,
+      "coverage": 0.37485,
+      "accuracy": 0.53538,
+      "majorityHere": 0.50697
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 2769,
+      "coverage": 0.13779,
+      "accuracy": 0.54388,
+      "majorityHere": 0.50921
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 481,
+      "coverage": 0.02394,
+      "accuracy": 0.57796,
+      "majorityHere": 0.54054
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 63,
+      "coverage": 0.00313,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": null,
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 101945,
+   "generatedAt": "2026-10-25T23:44:26.385612+00:00"
+  },
+  {
+   "family": "eth",
+   "horizon": "m5",
+   "horizonMinutes": 5,
+   "interval": "5m",
+   "modelVersion": "brain-c1-eth-m5",
+   "modelSha256": "80414530c388d51795906f4d17b779f488b34e02cf8cfc7c9f23740b9b582c57",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "ETHUSDT"
+   ],
+   "servable": true,
+   "confidence": "MEDIUM",
+   "why": null,
+   "evidence": {
+    "testRows": 23182,
+    "testFrom": "2026-08-01T00:40:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.5242,
+    "testMajority": 0.50004,
+    "marginOverMajority": 0.02416,
+    "bootstrapCi95": [
+     0.014475,
+     0.033506
+    ],
+    "bootstrapZ": 5.043,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 5,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.56665,
+    "linearOnTheSameTestRows": 0.52278,
+    "chosenModel": "gbm",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 23182,
+      "coverage": 1.0,
+      "accuracy": 0.5242,
+      "majorityHere": 0.50004
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 16344,
+      "coverage": 0.70503,
+      "accuracy": 0.52882,
+      "majorityHere": 0.50012
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 11392,
+      "coverage": 0.49142,
+      "accuracy": 0.5352,
+      "majorityHere": 0.50272
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 7836,
+      "coverage": 0.33802,
+      "accuracy": 0.54581,
+      "majorityHere": 0.50345
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 3265,
+      "coverage": 0.14084,
+      "accuracy": 0.55283,
+      "majorityHere": 0.5023
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 816,
+      "coverage": 0.0352,
+      "accuracy": 0.58701,
+      "majorityHere": 0.54657
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 134,
+      "coverage": 0.00578,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": {
+    "floor": 0.05,
+    "chosenOn": "the validation fold, before the test fold was read",
+    "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
+    "called": {
+     "accuracy": 0.55283,
+     "coverage": 0.14084,
+     "rows": 3265,
+     "majorityHere": 0.5023,
+     "marginOverMajority": 0.05054,
+     "bootstrapCi95": [
+      0.026746,
+      0.073447
+     ],
+     "walkForwardAbove": 5,
+     "walkForwardBlocks": 5,
+     "upShareCalled": 0.49893
+    },
+    "ungatedAccuracy": 0.5242,
+    "testCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 23182,
+      "coverage": 1.0,
+      "accuracy": 0.5242,
+      "majorityHere": 0.50004,
+      "marginOverMajority": 0.02416,
+      "upShareCalled": 0.56665,
+      "upRate": 0.49996
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 16344,
+      "coverage": 0.70503,
+      "accuracy": 0.52882,
+      "majorityHere": 0.50012,
+      "marginOverMajority": 0.0287,
+      "upShareCalled": 0.58731,
+      "upRate": 0.50012
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 11392,
+      "coverage": 0.49142,
+      "accuracy": 0.5352,
+      "majorityHere": 0.50272,
+      "marginOverMajority": 0.03248,
+      "upShareCalled": 0.59568,
+      "upRate": 0.49728
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 7836,
+      "coverage": 0.33802,
+      "accuracy": 0.54581,
+      "majorityHere": 0.50345,
+      "marginOverMajority": 0.04237,
+      "upShareCalled": 0.5878,
+      "upRate": 0.49655
+     },
+     {
+      "minMargin": 0.04,
+      "rows": 5230,
+      "coverage": 0.22561,
+      "accuracy": 0.55182,
+      "majorityHere": 0.50268,
+      "marginOverMajority": 0.04914,
+      "upShareCalled": 0.5543,
+      "upRate": 0.49732
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 3265,
+      "coverage": 0.14084,
+      "accuracy": 0.55283,
+      "majorityHere": 0.5023,
+      "marginOverMajority": 0.05054,
+      "upShareCalled": 0.49893,
+      "upRate": 0.4977
+     },
+     {
+      "minMargin": 0.06,
+      "rows": 1961,
+      "coverage": 0.08459,
+      "accuracy": 0.564,
+      "majorityHere": 0.50739,
+      "marginOverMajority": 0.0566,
+      "upShareCalled": 0.4258,
+      "upRate": 0.49261
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 816,
+      "coverage": 0.0352,
+      "accuracy": 0.58701,
+      "majorityHere": 0.54657,
+      "marginOverMajority": 0.04044,
+      "upShareCalled": 0.30515,
+      "upRate": 0.45343
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 134,
+      "coverage": 0.00578,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.125,
+      "rows": 8,
+      "coverage": 0.00035,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     }
+    ],
+    "measuredAt": "2026-10-25T23:53:26.032670+00:00"
+   },
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 108135,
+   "generatedAt": "2026-10-25T23:27:26.102143+00:00"
+  },
+  {
+   "family": "eth",
+   "horizon": "m15",
+   "horizonMinutes": 15,
+   "interval": "5m",
+   "modelVersion": "brain-c1-eth-m15",
+   "modelSha256": "2d8559a5e573fe3ecef537e98713abab57da5bc217928b4df5756162f8a9fb30",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "ETHUSDT"
+   ],
+   "servable": true,
+   "confidence": "MEDIUM",
+   "why": null,
+   "evidence": {
+    "testRows": 23240,
+    "testFrom": "2026-08-01T00:40:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.52814,
+    "testMajority": 0.50164,
+    "marginOverMajority": 0.02651,
+    "bootstrapCi95": [
+     0.016452,
+     0.035606
+    ],
+    "bootstrapZ": 5.4812,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 5,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.57788,
+    "linearOnTheSameTestRows": 0.53227,
+    "chosenModel": "gbm",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 23240,
+      "coverage": 1.0,
+      "accuracy": 0.52814,
+      "majorityHere": 0.50164
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 18586,
+      "coverage": 0.79974,
+      "accuracy": 0.53616,
+      "majorityHere": 0.50721
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 14431,
+      "coverage": 0.62096,
+      "accuracy": 0.54425,
+      "majorityHere": 0.50877
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 10887,
+      "coverage": 0.46846,
+      "accuracy": 0.55323,
+      "majorityHere": 0.5085
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 5485,
+      "coverage": 0.23602,
+      "accuracy": 0.5608,
+      "majorityHere": 0.50629
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 1643,
+      "coverage": 0.0707,
+      "accuracy": 0.57395,
+      "majorityHere": 0.51917
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 319,
+      "coverage": 0.01373,
+      "accuracy": 0.61129,
+      "majorityHere": 0.51724
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 7,
+      "coverage": 0.0003,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": {
+    "floor": 0.06,
+    "chosenOn": "the validation fold, before the test fold was read",
+    "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
+    "called": {
+     "accuracy": 0.56648,
+     "coverage": 0.15663,
+     "rows": 3640,
+     "majorityHere": 0.50769,
+     "marginOverMajority": 0.05879,
+     "bootstrapCi95": [
+      0.034218,
+      0.08518
+     ],
+     "walkForwardAbove": 4,
+     "walkForwardBlocks": 5,
+     "upShareCalled": 0.63297
+    },
+    "ungatedAccuracy": 0.52814,
+    "testCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 23240,
+      "coverage": 1.0,
+      "accuracy": 0.52814,
+      "majorityHere": 0.50164,
+      "marginOverMajority": 0.02651,
+      "upShareCalled": 0.57788,
+      "upRate": 0.50164
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 18586,
+      "coverage": 0.79974,
+      "accuracy": 0.53616,
+      "majorityHere": 0.50721,
+      "marginOverMajority": 0.02895,
+      "upShareCalled": 0.58905,
+      "upRate": 0.50721
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 14431,
+      "coverage": 0.62096,
+      "accuracy": 0.54425,
+      "majorityHere": 0.50877,
+      "marginOverMajority": 0.03548,
+      "upShareCalled": 0.59338,
+      "upRate": 0.50877
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 10887,
+      "coverage": 0.46846,
+      "accuracy": 0.55323,
+      "majorityHere": 0.5085,
+      "marginOverMajority": 0.04473,
+      "upShareCalled": 0.58841,
+      "upRate": 0.5085
+     },
+     {
+      "minMargin": 0.04,
+      "rows": 7828,
+      "coverage": 0.33683,
+      "accuracy": 0.55927,
+      "majorityHere": 0.50843,
+      "marginOverMajority": 0.05084,
+      "upShareCalled": 0.58789,
+      "upRate": 0.50843
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 5485,
+      "coverage": 0.23602,
+      "accuracy": 0.5608,
+      "majorityHere": 0.50629,
+      "marginOverMajority": 0.05451,
+      "upShareCalled": 0.61149,
+      "upRate": 0.50629
+     },
+     {
+      "minMargin": 0.06,
+      "rows": 3640,
+      "coverage": 0.15663,
+      "accuracy": 0.56648,
+      "majorityHere": 0.50769,
+      "marginOverMajority": 0.05879,
+      "upShareCalled": 0.63297,
+      "upRate": 0.50769
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 1643,
+      "coverage": 0.0707,
+      "accuracy": 0.57395,
+      "majorityHere": 0.51917,
+      "marginOverMajority": 0.05478,
+      "upShareCalled": 0.62995,
+      "upRate": 0.51917
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 319,
+      "coverage": 0.01373,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.125,
+      "rows": 79,
+      "coverage": 0.0034,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 7,
+      "coverage": 0.0003,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     }
+    ],
+    "measuredAt": "2026-10-25T23:53:26.032670+00:00"
+   },
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 108288,
+   "generatedAt": "2026-10-25T23:28:52.220620+00:00"
+  },
+  {
+   "family": "link",
+   "horizon": "m5",
+   "horizonMinutes": 5,
+   "interval": "5m",
+   "modelVersion": "brain-c1-link-m5",
+   "modelSha256": "c3a649e75a7c0fbeebebd30ff364eefbdda60311a9ecbfc02cfd8e78bc2e508b",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "LINKUSDT"
+   ],
+   "servable": false,
+   "confidence": "NONE",
+   "why": "a day-blocked bootstrap put its edge between -0.0003 and +0.0173, an interval that spans zero",
+   "evidence": {
+    "testRows": 22698,
+    "testFrom": "2026-08-01T00:40:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.51335,
+    "testMajority": 0.50454,
+    "marginOverMajority": 0.00881,
+    "bootstrapCi95": [
+     -0.000312,
+     0.017282
+    ],
+    "bootstrapZ": 1.9177,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 5,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.50498,
+    "linearOnTheSameTestRows": 0.51335,
+    "chosenModel": "logistic",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 22698,
+      "coverage": 1.0,
+      "accuracy": 0.51335,
+      "majorityHere": 0.50454
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 20427,
+      "coverage": 0.89995,
+      "accuracy": 0.51456,
+      "majorityHere": 0.50477
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 18193,
+      "coverage": 0.80152,
+      "accuracy": 0.51261,
+      "majorityHere": 0.50239
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 15906,
+      "coverage": 0.70077,
+      "accuracy": 0.51251,
+      "majorityHere": 0.50195
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 11202,
+      "coverage": 0.49352,
+      "accuracy": 0.51348,
+      "majorityHere": 0.50089
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 5459,
+      "coverage": 0.24051,
+      "accuracy": 0.50449,
+      "majorityHere": 0.51346
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 1570,
+      "coverage": 0.06917,
+      "accuracy": 0.49299,
+      "majorityHere": 0.51592
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 16,
+      "coverage": 0.0007,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": null,
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 89507,
+   "generatedAt": "2026-10-25T23:36:44.374735+00:00"
+  },
+  {
+   "family": "link",
+   "horizon": "m15",
+   "horizonMinutes": 15,
+   "interval": "5m",
+   "modelVersion": "brain-c1-link-m15",
+   "modelSha256": "cbec3cc756804dc61f5d4c282f40bf30994bc3418997dfd2b912cad539d789c9",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "LINKUSDT"
+   ],
+   "servable": true,
+   "confidence": "LOW",
+   "why": null,
+   "evidence": {
+    "testRows": 22931,
+    "testFrom": "2026-08-01T00:40:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.52047,
+    "testMajority": 0.50063,
+    "marginOverMajority": 0.01984,
+    "bootstrapCi95": [
+     0.009854,
+     0.029275
+    ],
+    "bootstrapZ": 4.0376,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 5,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.38921,
+    "linearOnTheSameTestRows": 0.51795,
+    "chosenModel": "gbm",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 22931,
+      "coverage": 1.0,
+      "accuracy": 0.52047,
+      "majorityHere": 0.50063
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 17127,
+      "coverage": 0.74689,
+      "accuracy": 0.52724,
+      "majorityHere": 0.50003
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 11547,
+      "coverage": 0.50355,
+      "accuracy": 0.53061,
+      "majorityHere": 0.50515
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 6743,
+      "coverage": 0.29406,
+      "accuracy": 0.5284,
+      "majorityHere": 0.50823
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 1298,
+      "coverage": 0.0566,
+      "accuracy": 0.5208,
+      "majorityHere": 0.50308
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 16,
+      "coverage": 0.0007,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": {
+    "floor": 0.04,
+    "chosenOn": "the validation fold, before the test fold was read",
+    "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
+    "called": {
+     "accuracy": 0.53469,
+     "coverage": 0.13955,
+     "rows": 3200,
+     "majorityHere": 0.50969,
+     "marginOverMajority": 0.025,
+     "bootstrapCi95": [
+      0.00267,
+      0.047773
+     ],
+     "walkForwardAbove": 5,
+     "walkForwardBlocks": 5,
+     "upShareCalled": 0.41687
+    },
+    "ungatedAccuracy": 0.52047,
+    "testCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 22931,
+      "coverage": 1.0,
+      "accuracy": 0.52047,
+      "majorityHere": 0.50063,
+      "marginOverMajority": 0.01984,
+      "upShareCalled": 0.38921,
+      "upRate": 0.49937
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 17127,
+      "coverage": 0.74689,
+      "accuracy": 0.52724,
+      "majorityHere": 0.50003,
+      "marginOverMajority": 0.02721,
+      "upShareCalled": 0.3599,
+      "upRate": 0.49997
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 11547,
+      "coverage": 0.50355,
+      "accuracy": 0.53061,
+      "majorityHere": 0.50515,
+      "marginOverMajority": 0.02546,
+      "upShareCalled": 0.331,
+      "upRate": 0.49485
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 6743,
+      "coverage": 0.29406,
+      "accuracy": 0.5284,
+      "majorityHere": 0.50823,
+      "marginOverMajority": 0.02017,
+      "upShareCalled": 0.34525,
+      "upRate": 0.49177
+     },
+     {
+      "minMargin": 0.04,
+      "rows": 3200,
+      "coverage": 0.13955,
+      "accuracy": 0.53469,
+      "majorityHere": 0.50969,
+      "marginOverMajority": 0.025,
+      "upShareCalled": 0.41687,
+      "upRate": 0.49031
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 1298,
+      "coverage": 0.0566,
+      "accuracy": 0.5208,
+      "majorityHere": 0.50308,
+      "marginOverMajority": 0.01772,
+      "upShareCalled": 0.46456,
+      "upRate": 0.50308
+     },
+     {
+      "minMargin": 0.06,
+      "rows": 438,
+      "coverage": 0.0191,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 16,
+      "coverage": 0.0007,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.125,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     }
+    ],
+    "measuredAt": "2026-10-25T23:53:26.032670+00:00"
+   },
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 96802,
+   "generatedAt": "2026-10-25T23:37:20.858352+00:00"
+  },
+  {
+   "family": "sol",
+   "horizon": "m5",
+   "horizonMinutes": 5,
+   "interval": "5m",
+   "modelVersion": "brain-c1-sol-m5",
+   "modelSha256": "01905e0f1a0ac7b50108f7905a9be21462b7eaab38f60f0de5a5f971d48edc5f",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "SOLUSDT"
+   ],
+   "servable": true,
+   "confidence": "LOW",
+   "why": null,
+   "evidence": {
+    "testRows": 22356,
+    "testFrom": "2026-08-01T00:40:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.51838,
+    "testMajority": 0.50049,
+    "marginOverMajority": 0.01789,
+    "bootstrapCi95": [
+     0.009137,
+     0.027043
+    ],
+    "bootstrapZ": 4.0302,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 5,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.52272,
+    "linearOnTheSameTestRows": 0.51838,
+    "chosenModel": "logistic",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 22356,
+      "coverage": 1.0,
+      "accuracy": 0.51838,
+      "majorityHere": 0.50049
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 15948,
+      "coverage": 0.71337,
+      "accuracy": 0.52188,
+      "majorityHere": 0.50602
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 10437,
+      "coverage": 0.46685,
+      "accuracy": 0.52927,
+      "majorityHere": 0.50618
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 6097,
+      "coverage": 0.27272,
+      "accuracy": 0.5401,
+      "majorityHere": 0.50746
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 1474,
+      "coverage": 0.06593,
+      "accuracy": 0.54817,
+      "majorityHere": 0.50746
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 144,
+      "coverage": 0.00644,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 20,
+      "coverage": 0.00089,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 2,
+      "coverage": 9e-05,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 1,
+      "coverage": 4e-05,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": {
+    "floor": 0.04,
+    "chosenOn": "the validation fold, before the test fold was read",
+    "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
+    "called": {
+     "accuracy": 0.54574,
+     "coverage": 0.14376,
+     "rows": 3214,
+     "majorityHere": 0.50902,
+     "marginOverMajority": 0.03671,
+     "bootstrapCi95": [
+      0.013689,
+      0.059935
+     ],
+     "walkForwardAbove": 5,
+     "walkForwardBlocks": 5,
+     "upShareCalled": 0.5084
+    },
+    "ungatedAccuracy": 0.51838,
+    "testCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 22356,
+      "coverage": 1.0,
+      "accuracy": 0.51838,
+      "majorityHere": 0.50049,
+      "marginOverMajority": 0.01789,
+      "upShareCalled": 0.52272,
+      "upRate": 0.49951
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 15948,
+      "coverage": 0.71337,
+      "accuracy": 0.52188,
+      "majorityHere": 0.50602,
+      "marginOverMajority": 0.01586,
+      "upShareCalled": 0.52866,
+      "upRate": 0.49398
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 10437,
+      "coverage": 0.46685,
+      "accuracy": 0.52927,
+      "majorityHere": 0.50618,
+      "marginOverMajority": 0.02309,
+      "upShareCalled": 0.53397,
+      "upRate": 0.49382
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 6097,
+      "coverage": 0.27272,
+      "accuracy": 0.5401,
+      "majorityHere": 0.50746,
+      "marginOverMajority": 0.03264,
+      "upShareCalled": 0.5342,
+      "upRate": 0.49254
+     },
+     {
+      "minMargin": 0.04,
+      "rows": 3214,
+      "coverage": 0.14376,
+      "accuracy": 0.54574,
+      "majorityHere": 0.50902,
+      "marginOverMajority": 0.03671,
+      "upShareCalled": 0.5084,
+      "upRate": 0.49098
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 1474,
+      "coverage": 0.06593,
+      "accuracy": 0.54817,
+      "majorityHere": 0.50746,
+      "marginOverMajority": 0.04071,
+      "upShareCalled": 0.46947,
+      "upRate": 0.49254
+     },
+     {
+      "minMargin": 0.06,
+      "rows": 589,
+      "coverage": 0.02635,
+      "accuracy": 0.54839,
+      "majorityHere": 0.51443,
+      "marginOverMajority": 0.03396,
+      "upShareCalled": 0.40068,
+      "upRate": 0.48557
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 144,
+      "coverage": 0.00644,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 20,
+      "coverage": 0.00089,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.125,
+      "rows": 4,
+      "coverage": 0.00018,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 2,
+      "coverage": 9e-05,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     }
+    ],
+    "measuredAt": "2026-10-25T23:53:26.032670+00:00"
+   },
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 105876,
+   "generatedAt": "2026-10-25T23:30:07.867534+00:00"
+  },
+  {
+   "family": "sol",
+   "horizon": "m15",
+   "horizonMinutes": 15,
+   "interval": "5m",
+   "modelVersion": "brain-c1-sol-m15",
+   "modelSha256": "a6aa1d2e74bdd2c07a864995af9639018a79214e62f3f6b5966582744fed5cf6",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "SOLUSDT"
+   ],
+   "servable": false,
+   "confidence": "NONE",
+   "why": "it beat its own block majority in only 3 of 5 chronological blocks",
+   "evidence": {
+    "testRows": 22753,
+    "testFrom": "2026-08-01T00:40:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.52323,
+    "testMajority": 0.50301,
+    "marginOverMajority": 0.02022,
+    "bootstrapCi95": [
+     0.009917,
+     0.03051
+    ],
+    "bootstrapZ": 3.8548,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 3,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.56419,
+    "linearOnTheSameTestRows": 0.5187,
+    "chosenModel": "gbm",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 22753,
+      "coverage": 1.0,
+      "accuracy": 0.52323,
+      "majorityHere": 0.50301
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 16151,
+      "coverage": 0.70984,
+      "accuracy": 0.53217,
+      "majorityHere": 0.50548
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 9735,
+      "coverage": 0.42786,
+      "accuracy": 0.53169,
+      "majorityHere": 0.50416
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 5077,
+      "coverage": 0.22314,
+      "accuracy": 0.53319,
+      "majorityHere": 0.50227
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 838,
+      "coverage": 0.03683,
+      "accuracy": 0.53222,
+      "majorityHere": 0.52625
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 95,
+      "coverage": 0.00418,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 5,
+      "coverage": 0.00022,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": null,
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 107019,
+   "generatedAt": "2026-10-25T23:30:56.714217+00:00"
+  },
+  {
+   "family": "sui",
+   "horizon": "m5",
+   "horizonMinutes": 5,
+   "interval": "5m",
+   "modelVersion": "brain-c1-sui-m5",
+   "modelSha256": "fc82c8aa561f7d9439f591740895aaf77747e4bda5f3ea75d924ac5063d7e7ca",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "SUIUSDT"
+   ],
+   "servable": true,
+   "confidence": "LOW",
+   "why": null,
+   "evidence": {
+    "testRows": 22554,
+    "testFrom": "2026-08-01T00:45:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.51844,
+    "testMajority": 0.50412,
+    "marginOverMajority": 0.01432,
+    "bootstrapCi95": [
+     0.007264,
+     0.021703
+    ],
+    "bootstrapZ": 3.8762,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 5,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.41434,
+    "linearOnTheSameTestRows": 0.51539,
+    "chosenModel": "gbm",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 22554,
+      "coverage": 1.0,
+      "accuracy": 0.51844,
+      "majorityHere": 0.50412
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 15117,
+      "coverage": 0.67026,
+      "accuracy": 0.52577,
+      "majorityHere": 0.5001
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 8660,
+      "coverage": 0.38397,
+      "accuracy": 0.52529,
+      "majorityHere": 0.50277
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 3725,
+      "coverage": 0.16516,
+      "accuracy": 0.53181,
+      "majorityHere": 0.51893
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 396,
+      "coverage": 0.01756,
+      "accuracy": 0.56818,
+      "majorityHere": 0.55808
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 16,
+      "coverage": 0.00071,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": null,
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 106819,
+   "generatedAt": "2026-10-25T23:45:44.490062+00:00"
+  },
+  {
+   "family": "sui",
+   "horizon": "m15",
+   "horizonMinutes": 15,
+   "interval": "5m",
+   "modelVersion": "brain-c1-sui-m15",
+   "modelSha256": "6d61e720c7befea39e49cd66f9f32cdffdfca2237d0b1d6e196b7c52856af952",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "SUIUSDT"
+   ],
+   "servable": true,
+   "confidence": "LOW",
+   "why": null,
+   "evidence": {
+    "testRows": 22832,
+    "testFrom": "2026-08-01T00:45:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.5233,
+    "testMajority": 0.50048,
+    "marginOverMajority": 0.02282,
+    "bootstrapCi95": [
+     0.008671,
+     0.036094
+    ],
+    "bootstrapZ": 3.2551,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 5,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.40062,
+    "linearOnTheSameTestRows": 0.52461,
+    "chosenModel": "gbm",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 22832,
+      "coverage": 1.0,
+      "accuracy": 0.5233,
+      "majorityHere": 0.50048
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 17786,
+      "coverage": 0.77899,
+      "accuracy": 0.53154,
+      "majorityHere": 0.50197
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 12644,
+      "coverage": 0.55378,
+      "accuracy": 0.53923,
+      "majorityHere": 0.5015
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 7141,
+      "coverage": 0.31276,
+      "accuracy": 0.54208,
+      "majorityHere": 0.50539
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 667,
+      "coverage": 0.02921,
+      "accuracy": 0.53823,
+      "majorityHere": 0.55022
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 54,
+      "coverage": 0.00237,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 2,
+      "coverage": 9e-05,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": null,
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 107530,
+   "generatedAt": "2026-10-25T23:46:51.964342+00:00"
+  },
+  {
+   "family": "xrp",
+   "horizon": "m5",
+   "horizonMinutes": 5,
+   "interval": "5m",
+   "modelVersion": "brain-c1-xrp-m5",
+   "modelSha256": "3afcb56497815fd1f8bbae0b36d799743b843f15f91a764cfd4fdd3c83eae14f",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "XRPUSDT"
+   ],
+   "servable": false,
+   "confidence": "NONE",
+   "why": "a day-blocked bootstrap put its edge between -0.0001 and +0.0160, an interval that spans zero",
+   "evidence": {
+    "testRows": 22560,
+    "testFrom": "2026-08-01T00:40:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.51498,
+    "testMajority": 0.50696,
+    "marginOverMajority": 0.00802,
+    "bootstrapCi95": [
+     -0.000132,
+     0.016
+    ],
+    "bootstrapZ": 1.9268,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 5,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.47442,
+    "linearOnTheSameTestRows": 0.51498,
+    "chosenModel": "logistic",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 22560,
+      "coverage": 1.0,
+      "accuracy": 0.51498,
+      "majorityHere": 0.50696
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 15450,
+      "coverage": 0.68484,
+      "accuracy": 0.52265,
+      "majorityHere": 0.50841
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 9258,
+      "coverage": 0.41037,
+      "accuracy": 0.52603,
+      "majorityHere": 0.50821
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 4745,
+      "coverage": 0.21033,
+      "accuracy": 0.53488,
+      "majorityHere": 0.50348
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 961,
+      "coverage": 0.0426,
+      "accuracy": 0.52653,
+      "majorityHere": 0.53382
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 186,
+      "coverage": 0.00824,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 44,
+      "coverage": 0.00195,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 8,
+      "coverage": 0.00035,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 5,
+      "coverage": 0.00022,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": null,
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 106608,
+   "generatedAt": "2026-10-25T23:31:55.893164+00:00"
+  },
+  {
+   "family": "xrp",
+   "horizon": "m15",
+   "horizonMinutes": 15,
+   "interval": "5m",
+   "modelVersion": "brain-c1-xrp-m15",
+   "modelSha256": "57f1eb6b2fe680b47ec13271019d197bab4982a4490d57cb9bb12f1507e147c1",
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "trainedOn": [
+    "XRPUSDT"
+   ],
+   "servable": true,
+   "confidence": "LOW",
+   "why": null,
+   "evidence": {
+    "testRows": 22855,
+    "testFrom": "2026-08-01T00:40:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00",
+    "accuracy": 0.51494,
+    "testMajority": 0.50133,
+    "marginOverMajority": 0.01361,
+    "bootstrapCi95": [
+     0.003921,
+     0.023469
+    ],
+    "bootstrapZ": 2.6936,
+    "bootstrapBlocks": 81,
+    "walkForwardAbove": 5,
+    "walkForwardBlocks": 5,
+    "predictedUpShare": 0.42367,
+    "linearOnTheSameTestRows": 0.52584,
+    "chosenModel": "gbm",
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 22855,
+      "coverage": 1.0,
+      "accuracy": 0.51494,
+      "majorityHere": 0.50133
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 16738,
+      "coverage": 0.73236,
+      "accuracy": 0.52312,
+      "majorityHere": 0.50197
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 11097,
+      "coverage": 0.48554,
+      "accuracy": 0.5324,
+      "majorityHere": 0.50122
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 6692,
+      "coverage": 0.2928,
+      "accuracy": 0.54453,
+      "majorityHere": 0.50658
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 1740,
+      "coverage": 0.07613,
+      "accuracy": 0.56552,
+      "majorityHere": 0.51092
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 189,
+      "coverage": 0.00827,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 13,
+      "coverage": 0.00057,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ]
+   },
+   "conviction": {
+    "floor": 0.04,
+    "chosenOn": "the validation fold, before the test fold was read",
+    "rule": "the highest margin floor at which the model still speaks on at least one validation bar in 10, chosen on the validation fold alone and then measured once on the test fold",
+    "called": {
+     "accuracy": 0.5533,
+     "coverage": 0.16172,
+     "rows": 3696,
+     "majorityHere": 0.51028,
+     "marginOverMajority": 0.04302,
+     "bootstrapCi95": [
+      0.020204,
+      0.066808
+     ],
+     "walkForwardAbove": 4,
+     "walkForwardBlocks": 5,
+     "upShareCalled": 0.38988
+    },
+    "ungatedAccuracy": 0.51494,
+    "testCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 22855,
+      "coverage": 1.0,
+      "accuracy": 0.51494,
+      "majorityHere": 0.50133,
+      "marginOverMajority": 0.01361,
+      "upShareCalled": 0.42367,
+      "upRate": 0.49867
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 16738,
+      "coverage": 0.73236,
+      "accuracy": 0.52312,
+      "majorityHere": 0.50197,
+      "marginOverMajority": 0.02115,
+      "upShareCalled": 0.40698,
+      "upRate": 0.50197
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 11097,
+      "coverage": 0.48554,
+      "accuracy": 0.5324,
+      "majorityHere": 0.50122,
+      "marginOverMajority": 0.03118,
+      "upShareCalled": 0.38929,
+      "upRate": 0.49878
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 6692,
+      "coverage": 0.2928,
+      "accuracy": 0.54453,
+      "majorityHere": 0.50658,
+      "marginOverMajority": 0.03796,
+      "upShareCalled": 0.37687,
+      "upRate": 0.49342
+     },
+     {
+      "minMargin": 0.04,
+      "rows": 3696,
+      "coverage": 0.16172,
+      "accuracy": 0.5533,
+      "majorityHere": 0.51028,
+      "marginOverMajority": 0.04302,
+      "upShareCalled": 0.38988,
+      "upRate": 0.48972
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 1740,
+      "coverage": 0.07613,
+      "accuracy": 0.56552,
+      "majorityHere": 0.51092,
+      "marginOverMajority": 0.0546,
+      "upShareCalled": 0.44655,
+      "upRate": 0.48908
+     },
+     {
+      "minMargin": 0.06,
+      "rows": 771,
+      "coverage": 0.03373,
+      "accuracy": 0.59144,
+      "majorityHere": 0.50713,
+      "marginOverMajority": 0.08431,
+      "upShareCalled": 0.54215,
+      "upRate": 0.50713
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 189,
+      "coverage": 0.00827,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 13,
+      "coverage": 0.00057,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.125,
+      "rows": 1,
+      "coverage": 4e-05,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 500 called rows, not reported"
+     }
+    ],
+    "measuredAt": "2026-10-25T23:53:26.032670+00:00"
+   },
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "trainingRows": 107457,
+   "generatedAt": "2026-10-25T23:33:13.000600+00:00"
   }
  ],
- "servableLanes": 8,
- "gatedLanes": 5,
- "totalLanes": 14
+ "servableLanes": 20,
+ "gatedLanes": 12,
+ "totalLanes": 30
 }

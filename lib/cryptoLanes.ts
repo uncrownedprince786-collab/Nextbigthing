@@ -129,27 +129,64 @@ export function speaks(lane: Lane, probUp: number): boolean {
   return Math.abs(probUp - 0.5) >= floor;
 }
 
+/// Coins fitted on their own bars alone, by slug.
+///
+/// **A dedicated model beats the pooled one on the coin it was fitted for, and the pooled result
+/// hid that.** A model trained on nine coins together scores 51.89% where the 140-coin pool
+/// scores 53.69%, so narrowing the pool looked settled -- but that is a pool of nine, not a
+/// model of one. Fitted alone, with its own floor, these coins beat what the pooled lane managed
+/// on them: ETH 56.65% at fifteen minutes where the pool refused it outright, XRP 55.33% and
+/// LINK 53.47% likewise refused, ADA 54.91%, SOL 54.57%.
+///
+/// Why it works here and not for a pool of nine: the pooled model spends eleven of its features
+/// on how a coin moves *relative to Bitcoin*, which for a coin fitted alone is still useful, and
+/// its remaining capacity on reconciling 140 different markets. One market gets all of it.
+///
+/// Each still needs 540 days of its own bars to be fitted at all, which is why this is a list
+/// rather than a rule.
+const OWN_MODEL: Record<string, string> = {
+  "btc-bitcoin": "btc",
+  "eth-ethereum": "eth",
+  "sol-solana": "sol",
+  "xrp-xrp": "xrp",
+  "ada-cardano": "ada",
+  "link-chainlink": "link",
+  "avax-avalanche": "avax",
+  "dot-polkadot": "dot",
+  "sui-sui": "sui",
+};
+
 /// Which model family answers for a coin.
 ///
-/// Bitcoin has its own, fitted on four years of its own bars; every other coin is answered by the
-/// pooled crypto family when one exists. A coin is never silently served Bitcoin's model: the
-/// family name is on the lane, on the artifact and on every stored forecast, so what answered is
-/// always visible.
+/// A coin with its own fitted model uses it; everything else is answered by the pooled crypto
+/// family. A coin is never silently served another coin's model: the family name is on the lane,
+/// on the artifact and on every stored forecast, so what answered is always visible, and
+/// `tests/laneRouting.test.ts` holds that to near-misses like wbtc-wrapped-bitcoin.
 export function familyFor(slug: string): string {
-  return slug === "btc-bitcoin" ? "btc" : "crypto";
+  return OWN_MODEL[slug] ?? "crypto";
 }
 
 export function laneFor(family: string, horizon: HorizonKey): Lane | null {
   return LANES.find((l) => l.family === family && l.horizon === horizon) ?? null;
 }
 
-/// The lane that will actually answer for this coin and horizon, following the one fallback the
-/// site allows: a coin with no family lane falls back to the pooled crypto lane, never the other
-/// way round, and never from one coin's model to another coin's.
+/// The lane that will actually answer for this coin and horizon.
+///
+/// The coin's own model where it has one **and that lane is servable**, the pooled lane
+/// otherwise, and the coin's own refused lane last so the page can explain the refusal rather
+/// than show nothing. The servable check matters: a dedicated lane that failed its gates is
+/// worse than the pooled lane that passed, and routing to it on the strength of the name alone
+/// would quietly downgrade the coin.
+///
+/// The fallback runs one way only. A coin is never handed another coin's model because one
+/// happens to exist.
 export function servingLane(slug: string, horizon: HorizonKey): Lane | null {
-  const own = laneFor(familyFor(slug), horizon);
-  if (own) return own;
-  return familyFor(slug) === "crypto" ? null : laneFor("crypto", horizon);
+  const family = familyFor(slug);
+  const own = laneFor(family, horizon);
+  if (own?.servable) return own;
+  const pooled = family === "crypto" ? null : laneFor("crypto", horizon);
+  if (pooled?.servable) return pooled;
+  return own ?? pooled;
 }
 
 export function lanesFor(slug: string): { horizon: HorizonKey; lane: Lane | null }[] {

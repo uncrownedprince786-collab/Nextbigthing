@@ -2405,6 +2405,191 @@
      }
     }
    }
+  },
+  "eth": {
+   "m5": {
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.03869,
+     "grossExpectancyR": 0.0004,
+     "meanCostInR": 0.0391,
+     "winRate": 0.25632,
+     "profitFactor": 0.1674,
+     "trades": 3164,
+     "fold": "validation"
+    }
+   },
+   "m15": {
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.04614,
+     "grossExpectancyR": -0.00246,
+     "meanCostInR": 0.0437,
+     "winRate": 0.33603,
+     "profitFactor": 0.2899,
+     "trades": 2967,
+     "fold": "validation"
+    }
+   }
+  },
+  "sol": {
+   "m5": {
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.03257,
+     "grossExpectancyR": -0.00073,
+     "meanCostInR": 0.0318,
+     "winRate": 0.28849,
+     "profitFactor": 0.2037,
+     "trades": 3196,
+     "fold": "validation"
+    }
+   }
+  },
+  "xrp": {
+   "m5": {
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.03976,
+     "grossExpectancyR": 0.00018,
+     "meanCostInR": 0.0399,
+     "winRate": 0.20466,
+     "profitFactor": 0.126,
+     "trades": 22212,
+     "fold": "validation"
+    }
+   },
+   "m15": {
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.03461,
+     "grossExpectancyR": 0.00237,
+     "meanCostInR": 0.037,
+     "winRate": 0.36796,
+     "profitFactor": 0.3544,
+     "trades": 3514,
+     "fold": "validation"
+    }
+   }
+  },
+  "ada": {
+   "m5": {
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.02216,
+     "grossExpectancyR": 0.004,
+     "meanCostInR": 0.0262,
+     "winRate": 0.37614,
+     "profitFactor": 0.3241,
+     "trades": 3068,
+     "fold": "validation"
+    }
+   },
+   "m15": {
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.02451,
+     "grossExpectancyR": 0.00206,
+     "meanCostInR": 0.0266,
+     "winRate": 0.43814,
+     "profitFactor": 0.4808,
+     "trades": 3823,
+     "fold": "validation"
+    }
+   }
+  },
+  "link": {
+   "m15": {
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.038,
+     "grossExpectancyR": -0.00238,
+     "meanCostInR": 0.0356,
+     "winRate": 0.36068,
+     "profitFactor": 0.3417,
+     "trades": 4120,
+     "fold": "validation"
+    }
+   }
+  },
+  "avax": {
+   "m5": {
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.02953,
+     "grossExpectancyR": 0.00118,
+     "meanCostInR": 0.0307,
+     "winRate": 0.29071,
+     "profitFactor": 0.2221,
+     "trades": 21513,
+     "fold": "validation"
+    }
+   },
+   "m15": {
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.02939,
+     "grossExpectancyR": 0.00138,
+     "meanCostInR": 0.0308,
+     "winRate": 0.38316,
+     "profitFactor": 0.4161,
+     "trades": 22061,
+     "fold": "validation"
+    }
+   }
+  },
+  "dot": {
+   "m15": {
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.02155,
+     "grossExpectancyR": 0.00394,
+     "meanCostInR": 0.0255,
+     "winRate": 0.49315,
+     "profitFactor": 0.5289,
+     "trades": 19412,
+     "fold": "validation"
+    }
+   }
+  },
+  "sui": {
+   "m5": {
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.0263,
+     "grossExpectancyR": -1e-05,
+     "meanCostInR": 0.0263,
+     "winRate": 0.29399,
+     "profitFactor": 0.2415,
+     "trades": 22225,
+     "fold": "validation"
+    }
+   },
+   "m15": {
+    "servedPair": {
+     "stopAtr": 15.0,
+     "targetAtr": 30.0,
+     "netExpectancyR": -0.02602,
+     "grossExpectancyR": 0.00037,
+     "meanCostInR": 0.0264,
+     "winRate": 0.38631,
+     "profitFactor": 0.441,
+     "trades": 22534,
+     "fold": "validation"
+    }
+   }
   }
  }
 }

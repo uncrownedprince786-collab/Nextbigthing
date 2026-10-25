@@ -106,7 +106,13 @@ const MIN_BOARD_VOLUME = 250_000;
 /// numbers. This decides only which reach this board.
 const WATCHLIST: string[] = [
   "btc-bitcoin",
+  "eth-ethereum",
   "sol-solana",
+  "xrp-xrp",
+  "ada-cardano",
+  "link-chainlink",
+  "avax-avalanche",
+  "dot-polkadot",
   "sui-sui",
 ];
 
@@ -355,18 +361,24 @@ export function CoinTable({ rows }: { rows: Row[] }) {
       // beside its margin -- but it does not belong on a list headed "recommends".
       // Ordered by how far from even the probability sits, so the calls the brain is surest
       // about are the ones a reader sees first -- regardless of which way they point.
-      // Watchlist first, then conviction. Restricting to the watchlist before the floor rather
-      // than after means the board answers "what about my coins" rather than "which of the
-      // market's best calls happen to be mine", which are different questions and the first is
-      // the one that was asked.
+      // **Every watched coin, every bar, whether or not it clears its floor.**
+      //
+      // The board was filtered to the calls that cleared, which made it correct and useless: a
+      // watchlist exists so a reader can see their coins in one place without hunting, and one
+      // that empties on most bars -- the floor speaks about one bar in nine -- is a page that is
+      // blank when it is most wanted. The filtering belongs on the *row*, not on the list.
+      //
+      // So the nine are always listed, ordered by conviction: the ones clearing their floor
+      // first, then the leans, each row carrying its own badge. A reader sees at a glance which
+      // of their coins the brain is actually sure about, and the ones it is not are present and
+      // visibly not recommended rather than missing with no explanation.
       const watched = WATCHLIST.length
         ? signals.filter((s) => WATCHLIST.includes(s.slug))
         : signals;
+      const rank = (s: Signal) =>
+        (s.strength === "strong" ? 1000 : 0) + Math.abs(s.probUp - 0.5);
       const order = new Map(
-        watched
-          .filter((s) => s.strength === "strong")
-          .sort((x, y) => Math.abs(y.probUp - 0.5) - Math.abs(x.probUp - 0.5))
-          .map((s, i) => [s.slug, i]),
+        [...watched].sort((x, y) => rank(y) - rank(x)).map((s, i) => [s.slug, i]),
       );
       return out.filter((r) => order.has(r.slug)).sort((a, b) => order.get(a.slug)! - order.get(b.slug)!);
     }
@@ -503,10 +515,21 @@ export function CoinTable({ rows }: { rows: Row[] }) {
                       {sig ? (
                         <span
                           className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
-                            sig.direction === "UP"
-                              ? "bg-[var(--up)]/15 text-[var(--up)]"
-                              : "bg-[var(--down)]/15 text-[var(--down)]"
+                            sig.strength === "strong"
+                              ? sig.direction === "UP"
+                                ? "bg-[var(--up)]/15 text-[var(--up)]"
+                                : "bg-[var(--down)]/15 text-[var(--down)]"
+                              : // A lean is not a recommendation and must not look like one.
+                                // The board lists every watched coin now, so most rows are
+                                // leans, and colouring them like calls would turn a dashboard
+                                // into nine recommendations the holdout does not support.
+                                "border-border text-muted-foreground border"
                           }`}
+                          title={
+                            sig.strength === "strong"
+                              ? `Clears its floor of ${(sig.floor * 200).toFixed(1)} points; recommended.`
+                              : `Leaning ${sig.direction.toLowerCase()} but under its floor of ${(sig.floor * 200).toFixed(1)} points — not a recommendation.`
+                          }
                         >
                           {/*
                             The window, not the word "STRONG".
@@ -526,6 +549,7 @@ export function CoinTable({ rows }: { rows: Row[] }) {
                                 ? `${sig.horizonMinutes}m`
                                 : `${sig.horizonMinutes / 60}h`}`
                             : ""}
+                          {sig.strength === "strong" ? " ✓" : ""}
                         </span>
                       ) : null}
                       {sig ? (
@@ -597,9 +621,9 @@ export function CoinTable({ rows }: { rows: Row[] }) {
               ? `${shown.length} biggest ${tab === "gainers" ? "risers" : "fallers"} over 24 hours`
               : tab === "new"
                 ? `${shown.length} coins the venue lists and the registry has not collected, by volume`
-                : `${shown.length} of ${WATCHLIST.length || 40} watched coins recommended${
-                    signals ? `, every window read for each` : ""
-                  } · each row shows the window its call covers · gated calls measured 61-64% on the holdout`}
+                : `${shown.length} watched coins · ${
+                    signals ? signals.filter((s) => s.strength === "strong").length : 0
+                  } recommended now (✓), the rest leaning but under their floor · each row shows the window its call covers`}
           {Object.keys(live).length > 0 ? " · prices live" : ""}
         </p>
         {shown.length > limit ? (

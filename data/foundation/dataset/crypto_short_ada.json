@@ -1,0 +1,601 @@
+{
+ "generatedAt": "2026-10-25T23:33:14.040412+00:00",
+ "tag": "ada",
+ "symbols": [
+  "ADAUSDT"
+ ],
+ "repoHead": "6c9011c5f7910d7c7375eca69a7fa53740ad506a",
+ "rowStride": 1,
+ "marketContext": true,
+ "funding": false,
+ "horizons": {
+  "m5": {
+   "horizon": "m5",
+   "trained": true,
+   "interval": "5m",
+   "barsAhead": 1,
+   "minutesAhead": 5,
+   "chosenModel": "gbm",
+   "fitSeconds": 99.7,
+   "rows": {
+    "train": 101938,
+    "validation": 19745,
+    "test": 20906,
+    "zeroMoveRowsDropped": 12125
+   },
+   "split": {
+    "trainEnd": "2026-05-12T04:15:00+00:00",
+    "valEnd": "2026-08-01T00:35:00+00:00",
+    "embargoBars": 289,
+    "embargoMinutes": 1445,
+    "testFrom": "2026-08-01T00:40:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00"
+   },
+   "validation": {
+    "logisticAccuracy": 0.52185,
+    "gbmAccuracy": 0.52844,
+    "gbmRoundsKept": 151,
+    "gbmRoundsFitted": 181
+   },
+   "evaluation": {
+    "rows": 20906,
+    "accuracy": 0.52569,
+    "testMajority": 0.50234,
+    "testMajorityClass": "DOWN",
+    "marginOverMajority": 0.02334,
+    "alwaysUpAccuracy": 0.49766,
+    "actualUpRate": 0.49766,
+    "predictedUpShare": 0.44561,
+    "predictedDownShare": 0.55439,
+    "upRecall": 0.47116,
+    "downRecall": 0.5797,
+    "upPrecision": 0.52619,
+    "downPrecision": 0.52528,
+    "blockedBootstrap": {
+     "blocks": 81,
+     "draws": 2000,
+     "pointEstimate": 0.023343,
+     "ci95": [
+      0.014975,
+      0.031736
+     ],
+     "sd": 0.00433,
+     "z": 5.3913,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 4181,
+       "accuracy": 0.55083,
+       "majority": 0.50993,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 4181,
+       "accuracy": 0.52499,
+       "majority": 0.50442,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 4181,
+       "accuracy": 0.52308,
+       "majority": 0.50275,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 4181,
+       "accuracy": 0.50777,
+       "majority": 0.50801,
+       "above": false
+      },
+      {
+       "block": 4,
+       "rows": 4182,
+       "accuracy": 0.52176,
+       "majority": 0.50813,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 4,
+     "blocksScored": 5
+    },
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 20906,
+      "coverage": 1.0,
+      "accuracy": 0.52569,
+      "majorityHere": 0.50234
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 15221,
+      "coverage": 0.72807,
+      "accuracy": 0.53104,
+      "majorityHere": 0.50516
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 9872,
+      "coverage": 0.47221,
+      "accuracy": 0.53485,
+      "majorityHere": 0.50547
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 5445,
+      "coverage": 0.26045,
+      "accuracy": 0.54509,
+      "majorityHere": 0.51001
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 1114,
+      "coverage": 0.05329,
+      "accuracy": 0.57271,
+      "majorityHere": 0.52873
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 153,
+      "coverage": 0.00732,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 17,
+      "coverage": 0.00081,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ],
+    "calibration": [
+     {
+      "bucket": 0,
+      "rows": 2091,
+      "meanPredicted": 0.45643,
+      "observedUpRate": 0.45194
+     },
+     {
+      "bucket": 1,
+      "rows": 2090,
+      "meanPredicted": 0.4711,
+      "observedUpRate": 0.45742
+     },
+     {
+      "bucket": 2,
+      "rows": 2091,
+      "meanPredicted": 0.47915,
+      "observedUpRate": 0.47441
+     },
+     {
+      "bucket": 3,
+      "rows": 2090,
+      "meanPredicted": 0.4861,
+      "observedUpRate": 0.4866
+     },
+     {
+      "bucket": 4,
+      "rows": 2091,
+      "meanPredicted": 0.4927,
+      "observedUpRate": 0.49928
+     },
+     {
+      "bucket": 5,
+      "rows": 2090,
+      "meanPredicted": 0.49967,
+      "observedUpRate": 0.49713
+     },
+     {
+      "bucket": 6,
+      "rows": 2091,
+      "meanPredicted": 0.50738,
+      "observedUpRate": 0.5165
+     },
+     {
+      "bucket": 7,
+      "rows": 2090,
+      "meanPredicted": 0.51615,
+      "observedUpRate": 0.5244
+     },
+     {
+      "bucket": 8,
+      "rows": 2091,
+      "meanPredicted": 0.52689,
+      "observedUpRate": 0.52654
+     },
+     {
+      "bucket": 9,
+      "rows": 2091,
+      "meanPredicted": 0.54897,
+      "observedUpRate": 0.54232
+     }
+    ]
+   },
+   "linearOnTheSameTestRows": 0.52406,
+   "gates": {
+    "aboveTestMajority": true,
+    "bothDirectionsPredicted": true,
+    "bootstrapExcludesZero": true,
+    "walkForwardMajority": true
+   },
+   "gatesMet": true,
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "rowStride": 1,
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "featureNames": [
+    "r1",
+    "r3",
+    "r6",
+    "r12",
+    "r24",
+    "r48",
+    "r96",
+    "r288",
+    "vol12",
+    "vol48",
+    "vol288",
+    "rz12",
+    "rz48",
+    "pos12",
+    "pos48",
+    "pos288",
+    "ema12d",
+    "ema48d",
+    "ema288d",
+    "atr14",
+    "atrRatio",
+    "rsi14",
+    "vol_r48",
+    "vol_r288",
+    "tbi1",
+    "tbi12",
+    "tbi48",
+    "tsz48",
+    "body",
+    "upWick",
+    "dnWick",
+    "body12",
+    "persist6",
+    "persist24",
+    "skew48",
+    "d24hHigh",
+    "d24hLow",
+    "todSin",
+    "todCos",
+    "dowSin",
+    "dowCos",
+    "mktR1",
+    "mktR12",
+    "mktR48",
+    "mktR288",
+    "mktVol48",
+    "mktPos288",
+    "relR1",
+    "relR12",
+    "relR48",
+    "beta48",
+    "corr48"
+   ],
+   "artifact": {
+    "modelVersion": "brain-c1-ada-m5",
+    "sha256": "d5f9e2c17d3904e19e1298ad87bdabcf30a8697f46b9e7cef94d90c451ec4adc"
+   }
+  },
+  "m15": {
+   "horizon": "m15",
+   "trained": true,
+   "interval": "5m",
+   "barsAhead": 3,
+   "minutesAhead": 15,
+   "chosenModel": "gbm",
+   "fitSeconds": 59.0,
+   "rows": {
+    "train": 104831,
+    "validation": 21005,
+    "test": 21857,
+    "zeroMoveRowsDropped": 6990
+   },
+   "split": {
+    "trainEnd": "2026-05-12T04:15:00+00:00",
+    "valEnd": "2026-08-01T00:35:00+00:00",
+    "embargoBars": 291,
+    "embargoMinutes": 1455,
+    "testFrom": "2026-08-01T00:40:00+00:00",
+    "testTo": "2026-10-20T20:55:00+00:00"
+   },
+   "validation": {
+    "logisticAccuracy": 0.51512,
+    "gbmAccuracy": 0.53049,
+    "gbmRoundsKept": 58,
+    "gbmRoundsFitted": 88
+   },
+   "evaluation": {
+    "rows": 21857,
+    "accuracy": 0.52651,
+    "testMajority": 0.5024,
+    "testMajorityClass": "DOWN",
+    "marginOverMajority": 0.02411,
+    "alwaysUpAccuracy": 0.4976,
+    "actualUpRate": 0.4976,
+    "predictedUpShare": 0.39223,
+    "predictedDownShare": 0.60777,
+    "upRecall": 0.41835,
+    "downRecall": 0.63364,
+    "upPrecision": 0.53074,
+    "downPrecision": 0.52379,
+    "blockedBootstrap": {
+     "blocks": 81,
+     "draws": 2000,
+     "pointEstimate": 0.024111,
+     "ci95": [
+      0.014485,
+      0.033576
+     ],
+     "sd": 0.004831,
+     "z": 4.9911,
+     "excludesZero": true
+    },
+    "walkForward": {
+     "blocks": [
+      {
+       "block": 0,
+       "rows": 4371,
+       "accuracy": 0.52734,
+       "majority": 0.5191,
+       "above": true
+      },
+      {
+       "block": 1,
+       "rows": 4371,
+       "accuracy": 0.52711,
+       "majority": 0.50423,
+       "above": true
+      },
+      {
+       "block": 2,
+       "rows": 4372,
+       "accuracy": 0.51532,
+       "majority": 0.50412,
+       "above": true
+      },
+      {
+       "block": 3,
+       "rows": 4371,
+       "accuracy": 0.53626,
+       "majority": 0.50629,
+       "above": true
+      },
+      {
+       "block": 4,
+       "rows": 4372,
+       "accuracy": 0.52653,
+       "majority": 0.50755,
+       "above": true
+      }
+     ],
+     "blocksAboveMajority": 5,
+     "blocksScored": 5
+    },
+    "coverageCurve": [
+     {
+      "minMargin": 0.0,
+      "rows": 21857,
+      "coverage": 1.0,
+      "accuracy": 0.52651,
+      "majorityHere": 0.5024
+     },
+     {
+      "minMargin": 0.01,
+      "rows": 16340,
+      "coverage": 0.74759,
+      "accuracy": 0.53378,
+      "majorityHere": 0.50135
+     },
+     {
+      "minMargin": 0.02,
+      "rows": 11654,
+      "coverage": 0.53319,
+      "accuracy": 0.5393,
+      "majorityHere": 0.50215
+     },
+     {
+      "minMargin": 0.03,
+      "rows": 7305,
+      "coverage": 0.33422,
+      "accuracy": 0.54223,
+      "majorityHere": 0.50582
+     },
+     {
+      "minMargin": 0.05,
+      "rows": 1490,
+      "coverage": 0.06817,
+      "accuracy": 0.56174,
+      "majorityHere": 0.50201
+     },
+     {
+      "minMargin": 0.075,
+      "rows": 55,
+      "coverage": 0.00252,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.1,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     },
+     {
+      "minMargin": 0.2,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null,
+      "note": "under 200 rows, not reported"
+     }
+    ],
+    "calibration": [
+     {
+      "bucket": 0,
+      "rows": 2186,
+      "meanPredicted": 0.4489,
+      "observedUpRate": 0.4602
+     },
+     {
+      "bucket": 1,
+      "rows": 2186,
+      "meanPredicted": 0.46222,
+      "observedUpRate": 0.48353
+     },
+     {
+      "bucket": 2,
+      "rows": 2185,
+      "meanPredicted": 0.47117,
+      "observedUpRate": 0.45263
+     },
+     {
+      "bucket": 3,
+      "rows": 2186,
+      "meanPredicted": 0.47973,
+      "observedUpRate": 0.48902
+     },
+     {
+      "bucket": 4,
+      "rows": 2185,
+      "meanPredicted": 0.48838,
+      "observedUpRate": 0.47185
+     },
+     {
+      "bucket": 5,
+      "rows": 2186,
+      "meanPredicted": 0.49569,
+      "observedUpRate": 0.49039
+     },
+     {
+      "bucket": 6,
+      "rows": 2186,
+      "meanPredicted": 0.50357,
+      "observedUpRate": 0.50366
+     },
+     {
+      "bucket": 7,
+      "rows": 2185,
+      "meanPredicted": 0.51267,
+      "observedUpRate": 0.52952
+     },
+     {
+      "bucket": 8,
+      "rows": 2186,
+      "meanPredicted": 0.5236,
+      "observedUpRate": 0.53477
+     },
+     {
+      "bucket": 9,
+      "rows": 2186,
+      "meanPredicted": 0.54292,
+      "observedUpRate": 0.56038
+     }
+    ]
+   },
+   "linearOnTheSameTestRows": 0.52743,
+   "gates": {
+    "aboveTestMajority": true,
+    "bothDirectionsPredicted": true,
+    "bootstrapExcludesZero": true,
+    "walkForwardMajority": true
+   },
+   "gatesMet": true,
+   "acceptanceTarget": 0.9,
+   "acceptanceTargetMet": false,
+   "rowStride": 1,
+   "featureSchema": "crypto-intraday-f1+crypto-market-c1",
+   "featureNames": [
+    "r1",
+    "r3",
+    "r6",
+    "r12",
+    "r24",
+    "r48",
+    "r96",
+    "r288",
+    "vol12",
+    "vol48",
+    "vol288",
+    "rz12",
+    "rz48",
+    "pos12",
+    "pos48",
+    "pos288",
+    "ema12d",
+    "ema48d",
+    "ema288d",
+    "atr14",
+    "atrRatio",
+    "rsi14",
+    "vol_r48",
+    "vol_r288",
+    "tbi1",
+    "tbi12",
+    "tbi48",
+    "tsz48",
+    "body",
+    "upWick",
+    "dnWick",
+    "body12",
+    "persist6",
+    "persist24",
+    "skew48",
+    "d24hHigh",
+    "d24hLow",
+    "todSin",
+    "todCos",
+    "dowSin",
+    "dowCos",
+    "mktR1",
+    "mktR12",
+    "mktR48",
+    "mktR288",
+    "mktVol48",
+    "mktPos288",
+    "relR1",
+    "relR12",
+    "relR48",
+    "beta48",
+    "corr48"
+   ],
+   "artifact": {
+    "modelVersion": "brain-c1-ada-m15",
+    "sha256": "d8e538a0d133ecbfe3d19617d98fecadfe9c3cb3be021509303930f5ca91068b"
+   }
+  }
+ }
+}
