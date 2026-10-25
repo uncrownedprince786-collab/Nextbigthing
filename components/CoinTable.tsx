@@ -84,6 +84,31 @@ const TABS: { key: Tab; label: string }[] = [
 /// coins sit far below the hundred rows rendered and never reach a reader anyway.
 const MIN_BOARD_VOLUME = 250_000;
 
+/// The coins the recommend board is restricted to, by slug.
+///
+/// A watchlist, asked for directly: show these and nothing else. It is a presentation filter and
+/// not a claim -- every one of the 140 coins is still read, certified and scored exactly as
+/// before, and each coin's own page answers for it. This decides which of them reach one board.
+///
+/// Two of the nine are shown with a caveat the board cannot carry on its own. DOT and ADA are
+/// certified -- the brain reads them, DOT at 67.4% over five minutes -- but their spread eats
+/// half or more of a typical move at the short windows, so a call on them is right more often
+/// than it is profitable. They are listed because they were asked for; the coin's own page is
+/// where the cost shows.
+///
+/// Empty means no restriction, which is how the board behaves for anyone who has not set one.
+const WATCHLIST: string[] = [
+  "btc-bitcoin",
+  "eth-ethereum",
+  "sol-solana",
+  "xrp-xrp",
+  "ada-cardano",
+  "link-chainlink",
+  "avax-avalanche",
+  "dot-polkadot",
+  "sui-sui",
+];
+
 /// Whether every column this table prints has a value for this coin.
 ///
 /// The gainers, losers and newly listed boards are curated lists, and a curated list has no
@@ -323,8 +348,15 @@ export function CoinTable({ rows }: { rows: Row[] }) {
       // beside its margin -- but it does not belong on a list headed "recommends".
       // Ordered by how far from even the probability sits, so the calls the brain is surest
       // about are the ones a reader sees first -- regardless of which way they point.
+      // Watchlist first, then conviction. Restricting to the watchlist before the floor rather
+      // than after means the board answers "what about my coins" rather than "which of the
+      // market's best calls happen to be mine", which are different questions and the first is
+      // the one that was asked.
+      const watched = WATCHLIST.length
+        ? signals.filter((s) => WATCHLIST.includes(s.slug))
+        : signals;
       const order = new Map(
-        signals
+        watched
           .filter((s) => s.strength === "strong")
           .sort((x, y) => Math.abs(y.probUp - 0.5) - Math.abs(x.probUp - 0.5))
           .map((s, i) => [s.slug, i]),
@@ -531,7 +563,9 @@ export function CoinTable({ rows }: { rows: Row[] }) {
                       ? "Reading the last closed bar for the forty most-traded coins…"
                       : signalState === "failed"
                         ? "The directions could not be read just now."
-                        : "No coin in the top forty clears the confidence floor on this bar. The brain read every one of them and recommends none — which is most bars, by design, because it only speaks on about one in nine."
+                        : WATCHLIST.length
+                          ? `None of the ${WATCHLIST.length} coins on the watchlist clears its confidence floor on this bar. Each was read; none is recommended — which is most bars, by design, because a coin only clears its floor about one bar in nine.`
+                          : "No coin in the top forty clears the confidence floor on this bar. The brain read every one of them and recommends none — which is most bars, by design, because it only speaks on about one in nine."
                     : tab === "new"
                       ? "No newly listed coin is in this list."
                       : `No coin here matches “${q}”.`}
@@ -551,8 +585,8 @@ export function CoinTable({ rows }: { rows: Row[] }) {
               ? `${shown.length} biggest ${tab === "gainers" ? "risers" : "fallers"} over 24 hours`
               : tab === "new"
                 ? `${shown.length} coins the venue lists and the registry has not collected, by volume`
-                : `${shown.length} of the forty most-traded coins recommended over the next fifteen minutes${
-                    signals ? `, from ${signals.length} read` : ""
+                : `${shown.length} of ${WATCHLIST.length || 40} watched coins recommended over the next fifteen minutes${
+                    signals ? `, all ${WATCHLIST.length || signals.length} read` : ""
                   } · gated calls measured 61.3% on the holdout`}
           {Object.keys(live).length > 0 ? " · prices live" : ""}
         </p>
