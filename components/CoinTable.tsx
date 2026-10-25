@@ -277,7 +277,10 @@ export function CoinTable({ rows }: { rows: Row[] }) {
     void (async () => {
       setSignalState("loading");
       try {
-        const res = await fetch("/api/crypto/signals?h=m15", { cache: "no-store" });
+        // Name the coins, so the endpoint scores nine rather than forty and the tab stops
+        // spending most of its time on rows the watchlist then discards.
+        const qs = WATCHLIST.length ? `&coins=${WATCHLIST.join(",")}` : "";
+        const res = await fetch(`/api/crypto/signals?h=any${qs}`, { cache: "no-store" });
         if (!res.ok) throw new Error(String(res.status));
         const body = (await res.json()) as { signals?: Signal[] };
         if (!alive) return;

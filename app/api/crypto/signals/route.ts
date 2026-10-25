@@ -52,13 +52,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "the market could not be read" }, { status: 503 });
   }
 
-  const pick = [...market.coins]
+  // An explicit list, when the caller has one.
+  //
+  // The board is a watchlist of nine coins and the endpoint was scoring the forty most-traded
+  // ones over three windows -- a hundred and twenty forecasts to display nine. Worse, the filter
+  // ran on the client, so the slowest part of the page was work whose results were discarded.
+  // With `coins` the caller names what it needs and the cost falls to twenty-seven.
+  const asked = (url.searchParams.get("coins") || "")
+    .split(",").map((s) => s.trim()).filter(Boolean);
+
+  const pick = asked.length
+    ? market.coins.filter((c) => asked.includes(c.slug))
+    : [...market.coins]
     // Pegged coins are excluded outright. A stablecoin is the most-traded thing on any venue, so
     // a board ranked by volume is otherwise most of the way to a list of dollar tokens -- and a
     // direction on one is noise with a probability attached.
-    .filter((c) => !c.pegged && (c.volume24h ?? 0) > 0)
-    .sort((a, b) => (b.volume24h ?? 0) - (a.volume24h ?? 0))
-    .slice(0, HOW_MANY);
+        .filter((c) => !c.pegged && (c.volume24h ?? 0) > 0)
+        .sort((a, b) => (b.volume24h ?? 0) - (a.volume24h ?? 0))
+        .slice(0, HOW_MANY);
 
   const out: {
     slug: string;
