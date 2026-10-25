@@ -80,6 +80,21 @@ def main() -> int:
     strat = load(STRATEGY).get("lanes", {})
     cost_bps = load(STRATEGY).get("costBps")
 
+    # Only lanes the current table still serves, and only those carrying a measured floor.
+    #
+    # The verdict file accumulates across runs on purpose, so a lane measured before a retrain
+    # keeps its rows until something re-measures them. That is right for resuming work and wrong
+    # here: `crypto h1` was refused on the retrained model -- over four fifths of its confident
+    # calls pointed one way -- and its stale verdicts were still being recommended, carrying
+    # "speaks on 100%" because they had been scored with no floor at all. A recommendation drawn
+    # from a lane the site will not serve is a recommendation for a direction nobody can act on.
+    lanes_doc = load(ROOT / "data" / "foundation" / "dataset" / "crypto_lanes.json")
+    live_lanes = {
+        f"{l['family']}:{l['horizon']}"
+        for l in lanes_doc.get("lanes", [])
+        if l.get("servable") and (l.get("conviction") or {}).get("floor") is not None
+    }
+
     if not cert:
         raise SystemExit("no certification verdicts; run tools/research/crypto_certify.py first")
 
@@ -90,6 +105,8 @@ def main() -> int:
         t = trad.get(sym, {})
         ok_h = set(t.get("tradableHorizons") or [])
         for lane_key, v in by_lane.items():
+            if lane_key not in live_lanes:
+                continue
             family, horizon = lane_key.split(":")
             why = []
             if not v.get("certified"):
