@@ -1,0 +1,659 @@
+{
+ "generatedAt": "2026-10-25T23:38:37.786432+00:00",
+ "producedBy": "tools/research/crypto_ninety.py",
+ "what": "the win rate reachable by moving the stop and target, and what each one earns -- a high hit rate and a profitable one are different requests",
+ "lane": "btc:m15",
+ "costBps": 10.0,
+ "targetWin": 0.9,
+ "convictionFloor": 0.06,
+ "pairs": [
+  {
+   "stopAtr": 0.5,
+   "targetAtr": 0.1,
+   "rewardToRisk": 0.2,
+   "winRate": 0.56259,
+   "breakEvenWinRate": 0.83333,
+   "netExpectancyR": -2.37019,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 0.5,
+   "targetAtr": 0.25,
+   "rewardToRisk": 0.5,
+   "winRate": 0.53974,
+   "breakEvenWinRate": 0.66667,
+   "netExpectancyR": -2.23524,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 0.5,
+   "targetAtr": 0.5,
+   "rewardToRisk": 1.0,
+   "winRate": 0.48249,
+   "breakEvenWinRate": 0.5,
+   "netExpectancyR": -2.08272,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 0.5,
+   "targetAtr": 1.0,
+   "rewardToRisk": 2.0,
+   "winRate": 0.39224,
+   "breakEvenWinRate": 0.33333,
+   "netExpectancyR": -1.94877,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 0.5,
+   "targetAtr": 2.0,
+   "rewardToRisk": 4.0,
+   "winRate": 0.35307,
+   "breakEvenWinRate": 0.2,
+   "netExpectancyR": -1.87573,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 0.5,
+   "targetAtr": 4.0,
+   "rewardToRisk": 8.0,
+   "winRate": 0.34971,
+   "breakEvenWinRate": 0.11111,
+   "netExpectancyR": -1.85673,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 0.5,
+   "targetAtr": 8.0,
+   "rewardToRisk": 16.0,
+   "winRate": 0.34918,
+   "breakEvenWinRate": 0.05882,
+   "netExpectancyR": -1.85981,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 0.5,
+   "targetAtr": 15.0,
+   "rewardToRisk": 30.0,
+   "winRate": 0.34918,
+   "breakEvenWinRate": 0.03226,
+   "netExpectancyR": -1.85874,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 0.5,
+   "targetAtr": 30.0,
+   "rewardToRisk": 60.0,
+   "winRate": 0.34918,
+   "breakEvenWinRate": 0.01639,
+   "netExpectancyR": -1.85889,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 1.0,
+   "targetAtr": 0.1,
+   "rewardToRisk": 0.1,
+   "winRate": 0.75712,
+   "breakEvenWinRate": 0.90909,
+   "netExpectancyR": -1.18512,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 1.0,
+   "targetAtr": 0.25,
+   "rewardToRisk": 0.25,
+   "winRate": 0.71204,
+   "breakEvenWinRate": 0.8,
+   "netExpectancyR": -1.1208,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 1.0,
+   "targetAtr": 0.5,
+   "rewardToRisk": 0.5,
+   "winRate": 0.63308,
+   "breakEvenWinRate": 0.66667,
+   "netExpectancyR": -1.04771,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 1.0,
+   "targetAtr": 1.0,
+   "rewardToRisk": 1.0,
+   "winRate": 0.5251,
+   "breakEvenWinRate": 0.5,
+   "netExpectancyR": -0.98807,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 1.0,
+   "targetAtr": 2.0,
+   "rewardToRisk": 2.0,
+   "winRate": 0.48161,
+   "breakEvenWinRate": 0.33333,
+   "netExpectancyR": -0.95384,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 1.0,
+   "targetAtr": 4.0,
+   "rewardToRisk": 4.0,
+   "winRate": 0.47746,
+   "breakEvenWinRate": 0.2,
+   "netExpectancyR": -0.94303,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 1.0,
+   "targetAtr": 8.0,
+   "rewardToRisk": 8.0,
+   "winRate": 0.47702,
+   "breakEvenWinRate": 0.11111,
+   "netExpectancyR": -0.94392,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 1.0,
+   "targetAtr": 15.0,
+   "rewardToRisk": 15.0,
+   "winRate": 0.47702,
+   "breakEvenWinRate": 0.0625,
+   "netExpectancyR": -0.94367,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 1.0,
+   "targetAtr": 30.0,
+   "rewardToRisk": 30.0,
+   "winRate": 0.47702,
+   "breakEvenWinRate": 0.03226,
+   "netExpectancyR": -0.94375,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 2.0,
+   "targetAtr": 0.1,
+   "rewardToRisk": 0.05,
+   "winRate": 0.86184,
+   "breakEvenWinRate": 0.95238,
+   "netExpectancyR": -0.58026,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 2.0,
+   "targetAtr": 0.25,
+   "rewardToRisk": 0.125,
+   "winRate": 0.80265,
+   "breakEvenWinRate": 0.88889,
+   "netExpectancyR": -0.55729,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 2.0,
+   "targetAtr": 0.5,
+   "rewardToRisk": 0.25,
+   "winRate": 0.71116,
+   "breakEvenWinRate": 0.8,
+   "netExpectancyR": -0.52709,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 2.0,
+   "targetAtr": 1.0,
+   "rewardToRisk": 0.5,
+   "winRate": 0.59718,
+   "breakEvenWinRate": 0.66667,
+   "netExpectancyR": -0.50266,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 2.0,
+   "targetAtr": 2.0,
+   "rewardToRisk": 1.0,
+   "winRate": 0.55007,
+   "breakEvenWinRate": 0.5,
+   "netExpectancyR": -0.48874,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 2.0,
+   "targetAtr": 4.0,
+   "rewardToRisk": 2.0,
+   "winRate": 0.54583,
+   "breakEvenWinRate": 0.33333,
+   "netExpectancyR": -0.48273,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 2.0,
+   "targetAtr": 8.0,
+   "rewardToRisk": 4.0,
+   "winRate": 0.54548,
+   "breakEvenWinRate": 0.2,
+   "netExpectancyR": -0.4831,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 2.0,
+   "targetAtr": 15.0,
+   "rewardToRisk": 7.5,
+   "winRate": 0.54548,
+   "breakEvenWinRate": 0.11765,
+   "netExpectancyR": -0.4832,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 2.0,
+   "targetAtr": 30.0,
+   "rewardToRisk": 15.0,
+   "winRate": 0.54548,
+   "breakEvenWinRate": 0.0625,
+   "netExpectancyR": -0.48324,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 4.0,
+   "targetAtr": 0.1,
+   "rewardToRisk": 0.025,
+   "winRate": 0.89457,
+   "breakEvenWinRate": 0.97561,
+   "netExpectancyR": -0.28214,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 4.0,
+   "targetAtr": 0.25,
+   "rewardToRisk": 0.0625,
+   "winRate": 0.82885,
+   "breakEvenWinRate": 0.94118,
+   "netExpectancyR": -0.27472,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 4.0,
+   "targetAtr": 0.5,
+   "rewardToRisk": 0.125,
+   "winRate": 0.7326,
+   "breakEvenWinRate": 0.88889,
+   "netExpectancyR": -0.26205,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 4.0,
+   "targetAtr": 1.0,
+   "rewardToRisk": 0.25,
+   "winRate": 0.61359,
+   "breakEvenWinRate": 0.8,
+   "netExpectancyR": -0.2537,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 4.0,
+   "targetAtr": 2.0,
+   "rewardToRisk": 0.5,
+   "winRate": 0.5663,
+   "breakEvenWinRate": 0.66667,
+   "netExpectancyR": -0.24687,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 4.0,
+   "targetAtr": 4.0,
+   "rewardToRisk": 1.0,
+   "winRate": 0.56171,
+   "breakEvenWinRate": 0.5,
+   "netExpectancyR": -0.24418,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 4.0,
+   "targetAtr": 8.0,
+   "rewardToRisk": 2.0,
+   "winRate": 0.56145,
+   "breakEvenWinRate": 0.33333,
+   "netExpectancyR": -0.24422,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 4.0,
+   "targetAtr": 15.0,
+   "rewardToRisk": 3.75,
+   "winRate": 0.56145,
+   "breakEvenWinRate": 0.21053,
+   "netExpectancyR": -0.24428,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 4.0,
+   "targetAtr": 30.0,
+   "rewardToRisk": 7.5,
+   "winRate": 0.56145,
+   "breakEvenWinRate": 0.11765,
+   "netExpectancyR": -0.2443,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 8.0,
+   "targetAtr": 0.1,
+   "rewardToRisk": 0.0125,
+   "winRate": 0.89872,
+   "breakEvenWinRate": 0.98765,
+   "netExpectancyR": -0.13967,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 8.0,
+   "targetAtr": 0.25,
+   "rewardToRisk": 0.0312,
+   "winRate": 0.83238,
+   "breakEvenWinRate": 0.9697,
+   "netExpectancyR": -0.13616,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 8.0,
+   "targetAtr": 0.5,
+   "rewardToRisk": 0.0625,
+   "winRate": 0.73524,
+   "breakEvenWinRate": 0.94118,
+   "netExpectancyR": -0.13034,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 8.0,
+   "targetAtr": 1.0,
+   "rewardToRisk": 0.125,
+   "winRate": 0.6157,
+   "breakEvenWinRate": 0.88889,
+   "netExpectancyR": -0.12623,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 8.0,
+   "targetAtr": 2.0,
+   "rewardToRisk": 0.25,
+   "winRate": 0.56798,
+   "breakEvenWinRate": 0.8,
+   "netExpectancyR": -0.12299,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 8.0,
+   "targetAtr": 4.0,
+   "rewardToRisk": 0.5,
+   "winRate": 0.56339,
+   "breakEvenWinRate": 0.66667,
+   "netExpectancyR": -0.12168,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 8.0,
+   "targetAtr": 8.0,
+   "rewardToRisk": 1.0,
+   "winRate": 0.56312,
+   "breakEvenWinRate": 0.5,
+   "netExpectancyR": -0.12166,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 8.0,
+   "targetAtr": 15.0,
+   "rewardToRisk": 1.875,
+   "winRate": 0.56312,
+   "breakEvenWinRate": 0.34783,
+   "netExpectancyR": -0.12169,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 8.0,
+   "targetAtr": 30.0,
+   "rewardToRisk": 3.75,
+   "winRate": 0.56312,
+   "breakEvenWinRate": 0.21053,
+   "netExpectancyR": -0.1217,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 15.0,
+   "targetAtr": 0.1,
+   "rewardToRisk": 0.0067,
+   "winRate": 0.8989,
+   "breakEvenWinRate": 0.99338,
+   "netExpectancyR": -0.07431,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 15.0,
+   "targetAtr": 0.25,
+   "rewardToRisk": 0.0167,
+   "winRate": 0.83255,
+   "breakEvenWinRate": 0.98361,
+   "netExpectancyR": -0.07241,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 15.0,
+   "targetAtr": 0.5,
+   "rewardToRisk": 0.0333,
+   "winRate": 0.73533,
+   "breakEvenWinRate": 0.96774,
+   "netExpectancyR": -0.06945,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 15.0,
+   "targetAtr": 1.0,
+   "rewardToRisk": 0.0667,
+   "winRate": 0.61579,
+   "breakEvenWinRate": 0.9375,
+   "netExpectancyR": -0.06738,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 15.0,
+   "targetAtr": 2.0,
+   "rewardToRisk": 0.1333,
+   "winRate": 0.56798,
+   "breakEvenWinRate": 0.88235,
+   "netExpectancyR": -0.06567,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 15.0,
+   "targetAtr": 4.0,
+   "rewardToRisk": 0.2667,
+   "winRate": 0.56339,
+   "breakEvenWinRate": 0.78947,
+   "netExpectancyR": -0.06496,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 15.0,
+   "targetAtr": 8.0,
+   "rewardToRisk": 0.5333,
+   "winRate": 0.56312,
+   "breakEvenWinRate": 0.65217,
+   "netExpectancyR": -0.06495,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 15.0,
+   "targetAtr": 15.0,
+   "rewardToRisk": 1.0,
+   "winRate": 0.56312,
+   "breakEvenWinRate": 0.5,
+   "netExpectancyR": -0.06497,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 15.0,
+   "targetAtr": 30.0,
+   "rewardToRisk": 2.0,
+   "winRate": 0.56312,
+   "breakEvenWinRate": 0.33333,
+   "netExpectancyR": -0.06497,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 30.0,
+   "targetAtr": 0.1,
+   "rewardToRisk": 0.0033,
+   "winRate": 0.89899,
+   "breakEvenWinRate": 0.99668,
+   "netExpectancyR": -0.0371,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 30.0,
+   "targetAtr": 0.25,
+   "rewardToRisk": 0.0083,
+   "winRate": 0.83255,
+   "breakEvenWinRate": 0.99174,
+   "netExpectancyR": -0.03618,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 30.0,
+   "targetAtr": 0.5,
+   "rewardToRisk": 0.0167,
+   "winRate": 0.73533,
+   "breakEvenWinRate": 0.98361,
+   "netExpectancyR": -0.03468,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 30.0,
+   "targetAtr": 1.0,
+   "rewardToRisk": 0.0333,
+   "winRate": 0.61579,
+   "breakEvenWinRate": 0.96774,
+   "netExpectancyR": -0.03366,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 30.0,
+   "targetAtr": 2.0,
+   "rewardToRisk": 0.0667,
+   "winRate": 0.56798,
+   "breakEvenWinRate": 0.9375,
+   "netExpectancyR": -0.03281,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 30.0,
+   "targetAtr": 4.0,
+   "rewardToRisk": 0.1333,
+   "winRate": 0.56339,
+   "breakEvenWinRate": 0.88235,
+   "netExpectancyR": -0.03245,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 30.0,
+   "targetAtr": 8.0,
+   "rewardToRisk": 0.2667,
+   "winRate": 0.56312,
+   "breakEvenWinRate": 0.78947,
+   "netExpectancyR": -0.03245,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 30.0,
+   "targetAtr": 15.0,
+   "rewardToRisk": 0.5,
+   "winRate": 0.56312,
+   "breakEvenWinRate": 0.66667,
+   "netExpectancyR": -0.03245,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 30.0,
+   "targetAtr": 30.0,
+   "rewardToRisk": 1.0,
+   "winRate": 0.56312,
+   "breakEvenWinRate": 0.5,
+   "netExpectancyR": -0.03246,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 60.0,
+   "targetAtr": 0.1,
+   "rewardToRisk": 0.0017,
+   "winRate": 0.89899,
+   "breakEvenWinRate": 0.99834,
+   "netExpectancyR": -0.01855,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 60.0,
+   "targetAtr": 0.25,
+   "rewardToRisk": 0.0042,
+   "winRate": 0.83255,
+   "breakEvenWinRate": 0.99585,
+   "netExpectancyR": -0.01809,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 60.0,
+   "targetAtr": 0.5,
+   "rewardToRisk": 0.0083,
+   "winRate": 0.73533,
+   "breakEvenWinRate": 0.99174,
+   "netExpectancyR": -0.01734,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 60.0,
+   "targetAtr": 1.0,
+   "rewardToRisk": 0.0167,
+   "winRate": 0.61579,
+   "breakEvenWinRate": 0.98361,
+   "netExpectancyR": -0.01683,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 60.0,
+   "targetAtr": 2.0,
+   "rewardToRisk": 0.0333,
+   "winRate": 0.56798,
+   "breakEvenWinRate": 0.96774,
+   "netExpectancyR": -0.0164,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 60.0,
+   "targetAtr": 4.0,
+   "rewardToRisk": 0.0667,
+   "winRate": 0.56339,
+   "breakEvenWinRate": 0.9375,
+   "netExpectancyR": -0.01623,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 60.0,
+   "targetAtr": 8.0,
+   "rewardToRisk": 0.1333,
+   "winRate": 0.56312,
+   "breakEvenWinRate": 0.88235,
+   "netExpectancyR": -0.01622,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 60.0,
+   "targetAtr": 15.0,
+   "rewardToRisk": 0.25,
+   "winRate": 0.56312,
+   "breakEvenWinRate": 0.8,
+   "netExpectancyR": -0.01623,
+   "trades": 11335
+  },
+  {
+   "stopAtr": 60.0,
+   "targetAtr": 30.0,
+   "rewardToRisk": 0.5,
+   "winRate": 0.56312,
+   "breakEvenWinRate": 0.66667,
+   "netExpectancyR": -0.01623,
+   "trades": 11335
+  }
+ ]
+}

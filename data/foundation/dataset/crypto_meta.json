@@ -1,0 +1,72 @@
+{
+ "generatedAt": "2026-10-25T23:46:42.997201+00:00",
+ "producedBy": "tools/research/crypto_meta.py",
+ "what": "a secondary model predicting whether each of the primary's calls wins its trade, which is a different target from the direction itself",
+ "lane": "brain-c1-eth-m15",
+ "stopAtr": 1.0,
+ "targetAtr": 1.5,
+ "convictionFloor": 0.0,
+ "allCallsWinRate": 0.48227,
+ "bands": [
+  {
+   "band": 1.0,
+   "trades": 23240,
+   "winRate": 0.48227,
+   "liftOverAll": 0.0,
+   "bootstrapCi95": [
+    -0.007578,
+    0.00742
+   ]
+  },
+  {
+   "band": 0.5,
+   "trades": 11620,
+   "winRate": 0.48967,
+   "liftOverAll": 0.0074,
+   "bootstrapCi95": [
+    -0.005123,
+    0.020141
+   ]
+  },
+  {
+   "band": 0.25,
+   "trades": 5810,
+   "winRate": 0.48623,
+   "liftOverAll": 0.00396,
+   "bootstrapCi95": [
+    -0.013249,
+    0.020902
+   ]
+  },
+  {
+   "band": 0.1,
+   "trades": 2324,
+   "winRate": 0.48709,
+   "liftOverAll": 0.00482,
+   "bootstrapCi95": [
+    -0.023082,
+    0.031856
+   ]
+  },
+  {
+   "band": 0.05,
+   "trades": 1162,
+   "winRate": 0.4759,
+   "liftOverAll": -0.00637,
+   "bootstrapCi95": [
+    -0.045177,
+    0.033353
+   ]
+  },
+  {
+   "band": 0.025,
+   "trades": 581,
+   "winRate": 0.43373,
+   "liftOverAll": -0.04854,
+   "bootstrapCi95": [
+    -0.096253,
+    0.005073
+   ]
+  }
+ ]
+}
