@@ -441,7 +441,11 @@ function Decision({
             {/* How long this call is current for. A verdict read from the last closed bar sits
                 beside a price that ticks every two seconds, and without this a reader cannot tell
                 which of the two they are looking at. */}
-            <BarClock asOfMs={f.asOf.getTime()} stepMs={w.stepMs} />
+            <BarClock
+              asOfMs={f.asOf.getTime()}
+              stepMs={w.stepMs}
+              horizonMinutes={h.minutes}
+            />
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <span

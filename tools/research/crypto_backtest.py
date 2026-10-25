@@ -204,6 +204,9 @@ def main() -> int:
                     help="score exactly this stop/target, e.g. 8/16 -- the way a pair chosen on "
                          "validation is then reported on the holdout without the holdout having "
                          "had any say in choosing it")
+    ap.add_argument("--write-served", action="store_true",
+                    help="write the winning pair into crypto_levels.json as servedPair, which is "
+                         "what the page serves an entry, stop and target from")
     ap.add_argument("--sweep", action="store_true",
                     help="score every candidate pair on this fold instead of the served one")
     a = ap.parse_args()
@@ -348,6 +351,39 @@ def main() -> int:
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(doc, indent=1), encoding="utf-8")
+
+    if a.write_served:
+        # The winning pair goes back into crypto_levels.json as `servedPair`, which is the only
+        # thing lib/cryptoLevels.ts will serve an entry, stop and target from.
+        #
+        # **Nothing wrote this field, so the page had no levels at all.** The sweep has always
+        # chosen a pair and printed it, and crypto_levels.py regenerates the levels file on every
+        # retrain -- so the pair was recomputed, reported, and then overwritten by the next run
+        # of the levels tool. A reader was shown a direction with no entry, no stop and nowhere
+        # to be wrong, which is not a usable call however accurate the direction is.
+        #
+        # Written only for the fold it was chosen on being validation: a pair picked on the
+        # holdout is a pair fitted to the one fold kept back for measuring.
+        if a.fold != "validation":
+            print("\n   ! --write-served ignored: the served pair must be "
+                  "chosen on the validation fold, not the holdout", flush=True)
+        else:
+            lv = json.loads(LEVELS.read_text(encoding="utf-8"))
+            fam = lv.setdefault("families", {}).setdefault(a.tag, {})
+            row = fam.setdefault(a.horizon, {})
+            row["servedPair"] = {
+                "stopAtr": stop_atr, "targetAtr": target_atr,
+                "netExpectancyR": net["expectancyR"],
+                "grossExpectancyR": gross["expectancyR"],
+                "meanCostInR": best["meanCostInR"],
+                "winRate": net["winRate"],
+                "profitFactor": net["profitFactor"],
+                "trades": net["trades"],
+                "fold": a.fold,
+            }
+            LEVELS.write_text(json.dumps(lv, indent=1), encoding="utf-8")
+            print(f"\n   wrote servedPair {stop_atr}/{target_atr} for "
+                  f"{a.tag}:{a.horizon} into {LEVELS.name}", flush=True)
 
     for m in (gross, net):
         print(f"\n   {m['label']}")

@@ -28,9 +28,19 @@ export function BarClock({
   asOfMs,
   /// The bar interval in milliseconds, so a 5-minute lane and a 4-hour one both count correctly.
   stepMs,
+  /// How far ahead this call reaches, in minutes.
+  ///
+  /// **The refresh and the window are not the same number and the page read as though they
+  /// were.** Both the five-minute and the fifteen-minute lanes are read off five-minute bars, so
+  /// both re-read every five minutes -- a reader comparing the two saw an identical countdown
+  /// and reasonably concluded one of them was wrong. What differs is how far each call reaches:
+  /// one is about the next five minutes, the other about the next fifteen. Printing only the
+  /// countdown told them when it would change and never what it covered.
+  horizonMinutes,
 }: {
   asOfMs: number;
   stepMs: number;
+  horizonMinutes?: number;
 }) {
   const router = useRouter();
   const [left, setLeft] = React.useState<number | null>(null);
@@ -65,7 +75,9 @@ export function BarClock({
     <span className="text-muted-foreground num text-xs normal-case">
       {left <= 0
         ? "reading the new bar…"
-        : `this call stands for ${mm > 0 ? `${mm}m ` : ""}${ss}s, then refreshes`}
+        : horizonMinutes
+          ? `covers the next ${horizonMinutes} minutes · re-reads in ${mm > 0 ? `${mm}m ` : ""}${ss}s`
+          : `this call stands for ${mm > 0 ? `${mm}m ` : ""}${ss}s, then refreshes`}
     </span>
   );
 }
