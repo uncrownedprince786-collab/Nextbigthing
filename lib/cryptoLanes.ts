@@ -183,8 +183,22 @@ export function laneFor(family: string, horizon: HorizonKey): Lane | null {
 export function servingLane(slug: string, horizon: HorizonKey): Lane | null {
   const family = familyFor(slug);
   const own = laneFor(family, horizon);
-  if (own?.servable) return own;
   const pooled = family === "crypto" ? null : laneFor("crypto", horizon);
+
+  // A lane is preferred only when it is servable **and carries a measured floor**.
+  //
+  // Checking `servable` alone was a silent downgrade. AVAX, DOT and SUI have their own lanes
+  // that pass the ungated gates and whose gated band then failed, so they carry no floor -- and
+  // the routing picked them over the pooled lane that does have one. Those coins were being
+  // served ungated calls at about 52% while a gated pooled lane sat unused at 61-64%. The name
+  // on the lane looked right and the number behind it was the worse of the two available.
+  //
+  // So the order is: this coin's own gated lane, then the pooled gated lane, then whatever
+  // exists so the page can explain a refusal rather than show nothing.
+  const gated = (l: Lane | null): boolean => !!l?.servable && !!l.conviction;
+  if (gated(own)) return own;
+  if (gated(pooled)) return pooled;
+  if (own?.servable) return own;
   if (pooled?.servable) return pooled;
   return own ?? pooled;
 }

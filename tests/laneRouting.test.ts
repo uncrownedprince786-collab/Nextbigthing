@@ -13,6 +13,7 @@ interface Lane {
   family: string;
   horizon: string;
   servable: boolean;
+  conviction?: { floor: number } | null;
   trainedOn?: string[];
   modelVersion: string;
 }
@@ -35,11 +36,14 @@ const OWN_MODEL: Record<string, string> = {
 const familyFor = (slug: string): string => OWN_MODEL[slug] ?? "crypto";
 const laneFor = (family: string, horizon: string): Lane | null =>
   ALL.find((l) => l.family === family && l.horizon === horizon) ?? null;
+const gated = (l: Lane | null): boolean => !!l?.servable && !!l.conviction;
 const servingLane = (slug: string, horizon: string): Lane | null => {
   const family = familyFor(slug);
   const own = laneFor(family, horizon);
-  if (own?.servable) return own;
   const pooled = family === "crypto" ? null : laneFor("crypto", horizon);
+  if (gated(own)) return own;
+  if (gated(pooled)) return pooled;
+  if (own?.servable) return own;
   if (pooled?.servable) return pooled;
   return own ?? pooled;
 };
@@ -131,23 +135,47 @@ test("a crypto coin never falls back to the Bitcoin family", () => {
   }
 });
 
-test("a coin uses its own lane when that lane is servable, and the pool otherwise", () => {
-  // "When one exists" was the old rule and it was wrong: a dedicated lane that failed its gates
-  // is worse than the pooled lane that passed, so routing on the name alone would quietly
-  // downgrade the coin. btc:h4 is exactly that case -- it exists, it is refused, and Bitcoin is
-  // correctly answered by crypto:h4 instead.
+test("a gated pooled lane beats an ungated lane of the coin's own", () => {
+  // The bug this guards: AVAX, DOT and SUI have their own lanes that pass the ungated gates and
+  // whose gated band then failed, so they carry no floor. Preferring them on `servable` alone
+  // served those coins ungated calls at about 52% while a gated pooled lane sat unused at
+  // 61-64% -- the right name on the lane and the worse of the two numbers behind it.
   for (const slug of Object.keys(OWN_MODEL)) {
     const family = familyFor(slug);
     for (const h of HORIZONS) {
       const own = laneFor(family, h);
+      const pooled = laneFor("crypto", h);
+      if (own?.servable && !own.conviction && gated(pooled)) {
+        const got = servingLane(slug, h);
+        assert.equal(got?.modelVersion, pooled!.modelVersion,
+          `${slug} at ${h} has an ungated own lane and a gated pool, and was served ` +
+          `${got?.modelVersion}`);
+      }
+    }
+  }
+});
+
+test("a coin uses its own gated lane first, then the pooled one, and never a third coin's", () => {
+  // The rule has tightened twice. It was "its own lane when one exists", which served refused
+  // lanes; then "when one is servable", which served ungated ones over gated pooled ones. It is
+  // now "when one is servable and carries a measured floor". What has never changed is the part
+  // that matters: whatever answers is either this coin's own or the pool's.
+  for (const slug of Object.keys(OWN_MODEL)) {
+    const family = familyFor(slug);
+    for (const h of HORIZONS) {
+      const own = laneFor(family, h);
+      const pooled = laneFor("crypto", h);
       const got = servingLane(slug, h);
       if (!got) continue;
-      if (own?.servable) {
-        assert.equal(got.modelVersion, own.modelVersion,
-          `${slug} at ${h} has a servable own lane but was served ${got.modelVersion}`);
-      } else if (got.servable) {
-        assert.equal(got.family, "crypto",
-          `${slug} at ${h} fell back to ${got.family}, which is neither its own nor the pool`);
+      assert.ok(got.family === family || got.family === "crypto",
+        `${slug} at ${h} was served ${got.modelVersion}, which is neither its own nor the pool`);
+      if (gated(own)) {
+        assert.equal(got.modelVersion, own!.modelVersion,
+          `${slug} at ${h} has a gated own lane but was served ${got.modelVersion}`);
+      } else if (gated(pooled)) {
+        assert.equal(got.modelVersion, pooled!.modelVersion,
+          `${slug} at ${h} has no gated own lane and a gated pool, but was served ` +
+          `${got.modelVersion}`);
       }
     }
   }
