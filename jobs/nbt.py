@@ -125,6 +125,11 @@ HOST_DELAY = {
     # one-second default. Binance publishes a weight budget rather than a rate, and 0.5s keeps
     # a 140-coin run inside it comfortably.
     "fapi.binance.com": 0.5,
+    # Binance's public data mirror, read by jobs/crypto_orderbook.py for depth snapshots. One
+    # call per coin per pass and the collector paces itself between coins, so this rarely binds
+    # -- declared because the depth endpoint carries a heavier weight than a ticker and because
+    # an undeclared host silently takes the one-second default nobody chose.
+    "data-api.binance.vision": 0.3,
     "hn.algolia.com": 1.0,
     "news.google.com": 2.0,
     # The crypto publishers' own RSS, read by jobs/crypto_news.py. One request per publisher per
