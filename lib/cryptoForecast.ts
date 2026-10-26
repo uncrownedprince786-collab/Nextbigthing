@@ -16,7 +16,7 @@
 import models from "@/data/foundation/dataset/crypto_models.json";
 import { windowFor, type BarWindow } from "@/lib/cryptoBars";
 import { HORIZONS, maturesAt, type Horizon, type HorizonKey } from "@/lib/cryptoHorizons";
-import { accuracyAtMargin, servingLane, speaks, type Lane } from "@/lib/cryptoLanes";
+import { accuracyAtMargin, laneFor, servingLane, speaks, type Lane } from "@/lib/cryptoLanes";
 import { assertSchema, probabilityUp, wantsContext, type Artifact } from "@/lib/cryptoModel";
 import { contextAt, CONTEXT_FEATURES } from "@/lib/marketContext";
 import { featuresAt, FEATURES, contiguous, WARMUP } from "@/lib/intradayFeatures";
@@ -115,20 +115,41 @@ export async function forecastFor(
   nowMs: number = Date.now(),
 ): Promise<Forecast> {
   const horizon = HORIZONS[key];
-  const lane = servingLane(slug, key);
-  if (!lane) {
+  const laneAt = servingLane(slug, key);
+  if (!laneAt) {
     return {
       kind: "no-model",
       horizon,
       why: `no model has been fitted for crypto over ${horizon.label.toLowerCase()}`,
     };
   }
-  if (!lane.servable) {
-    return { kind: "refused", horizon, lane, why: lane.why ?? "it did not pass its gates" };
+  if (!laneAt.servable) {
+    return { kind: "refused", horizon, lane: laneAt, why: laneAt.why ?? "it did not pass its gates" };
   }
   // The lane passing over 140 coins does not mean it passes on this one. Checked before any bars
   // are fetched, because a coin we will not speak about is not worth a venue round trip.
-  const cert = certificationOf(lane.family, slug, key);
+  // Where the coin's own lane refuses it, try the pooled lane before giving up.
+  //
+  // **A coin can be refused on one model and certified on another, and the first routing only
+  // ever asked one.** DOT is refused on dot:m15 and certified on crypto:m15 at 59.82%; SUI is
+  // refused on sui:m15 and certified on crypto:m15 at 54.53%. Both were being told no by a
+  // model while a model that reads them sat unused one lane over.
+  //
+  // The pooled lane is the only alternative tried, and only when it is itself servable and
+  // gated. A coin is never handed a third coin's model to find a yes -- that would be shopping
+  // for a verdict rather than using the one that fits.
+  let lane = laneAt;
+  let cert = certificationOf(lane.family, slug, key);
+  if (laneMeasured(lane.family, key) && cert.state !== "certified" && lane.family !== "crypto") {
+    const pooled = laneFor("crypto", key);
+    if (pooled?.servable && pooled.conviction) {
+      const pooledCert = certificationOf("crypto", slug, key);
+      if (pooledCert.state === "certified") {
+        lane = pooled;
+        cert = pooledCert;
+      }
+    }
+  }
   if (laneMeasured(lane.family, key) && cert.state !== "certified") {
     return {
       kind: "uncertified",

@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-26T01:32:03.000522+00:00",
+ "generatedAt": "2026-10-26T01:32:49.255226+00:00",
  "producedBy": "tools/research/crypto_certify.py",
  "what": "per-coin, per-horizon verdict. A coin absent from a lane's list is served no direction on that lane at all -- not a weaker one.",
  "gates": {
@@ -17,6 +17,12 @@
   ],
   "ada:m5": [
    "ADAUSDT"
+  ],
+  "btc:m15": [
+   "BTCUSDT"
+  ],
+  "btc:m5": [
+   "BTCUSDT"
   ],
   "crypto:h1": [
    "BTCUSDT",
@@ -432,6 +438,206 @@
      }
     ],
     "convictionFloor": 0.05,
+    "floorSource": "coin"
+   },
+   "btc:m5": {
+    "testRows": 62759,
+    "called": 5978,
+    "coverage": 0.09525,
+    "accuracy": 0.55202,
+    "ownMajority": 0.52258,
+    "edgeOverMajority": 0.02944,
+    "upRate": 0.52258,
+    "upShareCalled": 0.77016,
+    "bootstrapCi95": [
+     0.017285,
+     0.042348
+    ],
+    "walkForward": "5/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": true,
+    "why": null,
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 62483,
+      "coverage": 1.0,
+      "accuracy": 0.51584
+     },
+     {
+      "floor": 0.01,
+      "rows": 40844,
+      "coverage": 0.65368,
+      "accuracy": 0.52559
+     },
+     {
+      "floor": 0.02,
+      "rows": 25451,
+      "coverage": 0.40733,
+      "accuracy": 0.52835
+     },
+     {
+      "floor": 0.03,
+      "rows": 14911,
+      "coverage": 0.23864,
+      "accuracy": 0.53611
+     },
+     {
+      "floor": 0.04,
+      "rows": 6754,
+      "coverage": 0.10809,
+      "accuracy": 0.54086
+     },
+     {
+      "floor": 0.05,
+      "rows": 1643,
+      "coverage": 0.0263,
+      "accuracy": 0.52222
+     },
+     {
+      "floor": 0.06,
+      "rows": 191,
+      "coverage": 0.00306,
+      "accuracy": null
+     },
+     {
+      "floor": 0.075,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.09,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.1,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.04,
+    "floorSource": "coin"
+   },
+   "btc:m15": {
+    "testRows": 62923,
+    "called": 5846,
+    "coverage": 0.09291,
+    "accuracy": 0.57732,
+    "ownMajority": 0.52292,
+    "edgeOverMajority": 0.0544,
+    "upRate": 0.52292,
+    "upShareCalled": 0.57988,
+    "bootstrapCi95": [
+     0.038426,
+     0.071072
+    ],
+    "walkForward": "5/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": true,
+    "why": null,
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 62655,
+      "coverage": 1.0,
+      "accuracy": 0.52842
+     },
+     {
+      "floor": 0.01,
+      "rows": 51352,
+      "coverage": 0.8196,
+      "accuracy": 0.53318
+     },
+     {
+      "floor": 0.02,
+      "rows": 40601,
+      "coverage": 0.64801,
+      "accuracy": 0.53949
+     },
+     {
+      "floor": 0.03,
+      "rows": 30915,
+      "coverage": 0.49342,
+      "accuracy": 0.54572
+     },
+     {
+      "floor": 0.04,
+      "rows": 22745,
+      "coverage": 0.36302,
+      "accuracy": 0.55146
+     },
+     {
+      "floor": 0.05,
+      "rows": 16308,
+      "coverage": 0.26028,
+      "accuracy": 0.55537
+     },
+     {
+      "floor": 0.06,
+      "rows": 11276,
+      "coverage": 0.17997,
+      "accuracy": 0.55667
+     },
+     {
+      "floor": 0.075,
+      "rows": 5853,
+      "coverage": 0.09342,
+      "accuracy": 0.56074
+     },
+     {
+      "floor": 0.09,
+      "rows": 2620,
+      "coverage": 0.04182,
+      "accuracy": 0.56069
+     },
+     {
+      "floor": 0.1,
+      "rows": 1423,
+      "coverage": 0.02271,
+      "accuracy": 0.57063
+     },
+     {
+      "floor": 0.125,
+      "rows": 194,
+      "coverage": 0.0031,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 19,
+      "coverage": 0.0003,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.075,
     "floorSource": "coin"
    }
   },
