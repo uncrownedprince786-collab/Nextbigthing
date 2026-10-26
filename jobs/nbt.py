@@ -118,6 +118,13 @@ HOST_DELAY = {
     "en.wikipedia.org": 1.5,
     "api.coingecko.com": 6.0,
     "api.coinpaprika.com": 1.5,
+    # Binance's futures API, read by jobs/crypto_positioning.py for open interest, the
+    # long/short account ratio and the taker buy/sell ratio. Those endpoints keep about thirty
+    # days, so the job pages backwards through roughly twenty calls per coin per series and is
+    # the heaviest thing here by request count -- a declared gap rather than the unchosen
+    # one-second default. Binance publishes a weight budget rather than a rate, and 0.5s keeps
+    # a 140-coin run inside it comfortably.
+    "fapi.binance.com": 0.5,
     "hn.algolia.com": 1.0,
     "news.google.com": 2.0,
     # The crypto publishers' own RSS, read by jobs/crypto_news.py. One request per publisher per

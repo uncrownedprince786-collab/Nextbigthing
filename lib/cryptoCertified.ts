@@ -56,9 +56,11 @@ interface Doc {
 
 const DOC = raw as unknown as Doc;
 
-export const CERTIFIED_AT = DOC.generatedAt;
-export const CERTIFY_GATES = DOC.gates;
-export const CERTIFY_MIN_CALLED = DOC.minCalledRows;
+// CERTIFIED_AT, CERTIFY_GATES and CERTIFY_MIN_CALLED were exported here and consumed nowhere.
+// Speculative API on a module that decides whether a coin is served at all is worse than no
+// API: it reads as a contract the page keeps and does not, and `test_every_export_in_the_web
+// _layer_has_a_consumer` exists to stop exactly that. The document still carries all three; a
+// reader who needs them can export them at the point something uses them.
 
 /// `null` when this coin and lane have not been measured, which is not the same as failing.
 /// The verdict file keys on the venue instrument -- LINKUSDT -- and the site routes on the slug,
@@ -148,11 +150,7 @@ export function certificationOf(
   return { state: verdict.certified ? "certified" : "refused", verdict };
 }
 
-/// Every coin certified on a lane, for the list the reader is owed: these are the coins the brain
-/// has actually been checked on, as opposed to the ones it merely has a model for.
-export function certifiedCoins(family: string, horizon: HorizonKey): string[] {
-    return DOC.certifiedByLane?.[`${family}:${horizon}`] ?? [];
-}
+
 
 /// Why a refused coin was refused, in words a reader can act on rather than gate names.
 export function refusalReason(v: CoinVerdict): string {
