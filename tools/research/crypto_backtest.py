@@ -109,6 +109,41 @@ def served_levels(tag: str, horizon: str, cost_bps: float) -> tuple[float, float
     return (best[1], best[2]) if best else None
 
 
+def _reachable(tag: str, horizon: str) -> tuple[float, float] | None:
+    """`(favourable p90, adverse p90)` in ATR for this lane, or None when unmeasured.
+
+    The ceiling a candidate stop and target have to live under. Read from `crypto_levels.json`,
+    which measures on the training folds only -- so the bound on what is reachable is itself not
+    taken from the holdout.
+    """
+    try:
+        doc = json.loads(LEVELS.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    # This lane's own excursions, then the pooled lane's for the same horizon.
+    #
+    # The per-coin lanes have no measured excursions of their own -- crypto_levels.py walks the
+    # btc and crypto pools only -- and without a fallback the guard silently did nothing for
+    # exactly the lanes it was added for, handing them back the unbounded ladder and the 15/30
+    # corner again. Excursions are already in ATR units, which is what ATR normalisation is for:
+    # the pooled distance a fifteen-minute window travels is a sound ceiling for one coin's
+    # fifteen-minute window, and it is a ceiling rather than a served value.
+    for fam in (tag, "crypto"):
+        h = (doc.get("families", {}).get(fam) or {}).get(horizon)
+        if not h:
+            continue
+        fav = (h.get("favourableExcursionAtr") or {}).get("p90")
+        adv = (h.get("adverseExcursionAtr") or {}).get("p90")
+        if fav is None or adv is None:
+            continue
+        return float(fav), float(max(adv, fav))
+    return None
+    # An adverse p90 can come out at or below zero on a horizon where most windows go the
+    # predicted way immediately; a stop must still have somewhere to sit, so it floors at the
+    # favourable quantile rather than collapsing to nothing.
+    return float(fav), float(max(adv, fav))
+
+
 def lane_floor(tag: str, horizon: str) -> float:
     doc = json.loads(LANES.read_text(encoding="utf-8"))
     for l in doc["lanes"]:
@@ -191,7 +226,11 @@ def metrics(r: np.ndarray, rr: float, label: str) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Score the brain's own calls as trades, with costs.")
-    ap.add_argument("--tag", required=True, choices=["btc", "crypto"])
+    ap.add_argument("--tag", required=True,
+                    help="artifact family tag. Not a fixed list: a per-coin lane is its own "
+                         "family (eth, sol, ada...) and hardcoding btc/crypto meant the level "
+                         "sweep refused every one of them, so eight coins had a model, a floor "
+                         "and no entry, stop or target")
     ap.add_argument("--horizon", required=True, choices=list(HORIZONS))
     ap.add_argument("--cost-bps", type=float, default=DEFAULT_COST_BPS)
     ap.add_argument("--band", default="strong", choices=["strong", "all"],
@@ -218,7 +257,34 @@ def main() -> int:
         s, _, tg = a.pair.partition("/")
         pairs = [(float(s), float(tg))]
     elif a.sweep:
-        pairs = CANDIDATES
+        # Only pairs the window can actually reach.
+        #
+        # **The unrestricted sweep found a degenerate optimum and served it.** Net expectancy is
+        # measured in R and R *is* the stop distance, so widening the stop shrinks the fee in R
+        # without bound. The optimiser walked straight to 15 ATR / 30 ATR on a fifteen-minute
+        # lane whose typical favourable move is 0.97 ATR -- a target thirty-one times the move.
+        # Neither level is touched on 100.0% of trades: every one times out at the window close.
+        # Best number on the grid, and not a trade. The page was printing a stop 4.26% away and
+        # a target 8.51% away for a fifteen-minute scalp on Solana.
+        #
+        # So a candidate must be reachable: target inside the 90th percentile of the favourable
+        # excursion this horizon actually produces, stop inside the 90th of the adverse. Those
+        # come from crypto_levels.py, measured on the training folds, which is where the
+        # ladder's ceiling should have come from in the first place.
+        reach = _reachable(a.tag, a.horizon)
+        if reach is None:
+            pairs = CANDIDATES
+            print("   ! no measured excursions for this lane; sweeping the full ladder",
+                  flush=True)
+        else:
+            fav_p90, adv_p90 = reach
+            pairs = [(s, tg) for (s, tg) in CANDIDATES if tg <= fav_p90 and s <= adv_p90]
+            if not pairs:
+                # Nothing fits: take the tightest rung, not the widest. Falling back to the
+                # whole ladder here would restore the exact corner this guard exists to stop.
+                pairs = [min(CANDIDATES, key=lambda x: x[1])]
+            print(f"   reachable pairs: {len(pairs)} of {len(CANDIDATES)} "
+                  f"(target <= {fav_p90:.2f} ATR, stop <= {adv_p90:.2f} ATR at p90)", flush=True)
     else:
         lv = served_levels(a.tag, a.horizon, a.cost_bps)
         if lv is None:
