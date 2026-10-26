@@ -74,6 +74,7 @@ from crypto_horizons import HORIZONS, ORDER, horizons_for  # noqa: E402
 from crypto_matrix import prepare_cached  # noqa: E402
 from intraday_features import FEATURES, VERSION as FEATURE_VERSION, WARMUP  # noqa: E402
 from market_context import CONTEXT_FEATURES, VERSION as CONTEXT_VERSION  # noqa: E402
+from ffd_features import FFD_FEATURES, VERSION as FFD_VERSION  # noqa: E402
 from funding_features import FUNDING_FEATURES, VERSION as FUNDING_VERSION  # noqa: E402
 from triple_barrier import directional_barrier_labels, triple_barrier_labels  # noqa: E402
 from sample_uniqueness import weights_for  # noqa: E402
@@ -675,6 +676,10 @@ def main() -> int:
                          "not know what a trade is")
     ap.add_argument("--stop-atr", type=float, default=1.0)
     ap.add_argument("--target-atr", type=float, default=1.0)
+    ap.add_argument("--ffd", action="store_true",
+                    help="fit on the fractionally differenced price block as well "
+                         "(tools/research/ffd_features.py): the level information a return "
+                         "destroys, kept stationary at d=0.2")
     ap.add_argument("--funding", action="store_true",
                     help="fit on the perpetual funding block as well "
                          "(tools/research/funding_features.py). Coins with no perpetual lose "
@@ -703,7 +708,7 @@ def main() -> int:
         # different matrix rather than a stale one. Rebuilding thirty coins' features from JSONL
         # on every run was most of a fit's wall clock, and it is the same matrix every time.
         data = prepare_cached(a.symbols, interval, stride=a.stride, context=a.context,
-                              funding=a.funding)
+                              funding=a.funding, ffd=a.ffd)
         print(f"   {len(data['ts']):,} usable rows in {time.time() - t0:.1f}s "
               f"(parity worst {max((p['worstRelativeDiff'] for p in data['parity'].values()), default=0):.2g})",
               flush=True)
@@ -715,12 +720,16 @@ def main() -> int:
             schema = FEATURE_VERSION
             if a.context:
                 schema += f"+{CONTEXT_VERSION}"
+            if a.ffd:
+                schema += f"+{FFD_VERSION}"
             if a.funding:
                 schema += f"+{FUNDING_VERSION}"
             res["featureSchema"] = schema
             names = list(FEATURES)
             if a.context:
                 names += list(CONTEXT_FEATURES)
+            if a.ffd:
+                names += list(FFD_FEATURES)
             if a.funding:
                 names += list(FUNDING_FEATURES)
             res["featureNames"] = names

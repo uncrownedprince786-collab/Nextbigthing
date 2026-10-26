@@ -45,6 +45,7 @@ from market_context import (  # noqa: E402
     VERSION as CONTEXT_VERSION,
     context_for,
 )
+from ffd_features import FFD_FEATURES, VERSION as FFD_VERSION, ffd_for  # noqa: E402
 from funding_features import (  # noqa: E402
     FUNDING as FUNDING_DIR, FUNDING_FEATURES, VERSION as FUNDING_VERSION, funding_for,
 )
@@ -61,7 +62,7 @@ def _corpus_path(symbol: str, interval: str) -> Path:
 
 
 def _key(symbols: list[str], interval: str, stride: int, context: bool = False,
-         funding: bool = False) -> str:
+         funding: bool = False, ffd: bool = False) -> str:
     parts = [FEATURE_VERSION, interval, str(stride)]
     if context:
         # The factor's own bars are an input to every row, so the cache key has to cover the
@@ -70,6 +71,8 @@ def _key(symbols: list[str], interval: str, stride: int, context: bool = False,
         mp = _corpus_path(MARKET_SYMBOL, interval)
         mst = mp.stat() if mp.exists() else None
         parts.append(f"mkt:{mst.st_size if mst else 0}:{int(mst.st_mtime) if mst else 0}")
+    if ffd:
+        parts.append(FFD_VERSION)
     if funding:
         # The funding corpus is an input to every row of every coin that has one, so a key that
         # ignored it would serve a cached matrix built before the rates were collected.
@@ -104,7 +107,7 @@ def _corpus_report(symbol: str, interval: str) -> dict:
 
 
 def _build_pool(symbols: list[str], interval: str, stride: int, context: bool = False,
-                funding: bool = False) -> dict:
+                funding: bool = False, ffd: bool = False) -> dict:
     """Exactly what `train_crypto_short.prepare` builds, with the same exclusions and parity check.
 
     With `context`, the market-factor block is appended to every row and a row the factor has no
@@ -133,6 +136,13 @@ def _build_pool(symbols: list[str], interval: str, stride: int, context: bool = 
                                     WARMUP)
             X = np.hstack([X, C]).astype(np.float32)
             valid = valid & ctx_ok
+        if ffd:
+            # The memory the returns threw away: fractionally differenced log price at d=0.2,
+            # z-scored against its own trailing day so it is comparable across coins. Appended
+            # after the context block, before funding, and recorded in the schema string.
+            F, ffd_ok = ffd_for(np.asarray([b["c"] for b in bars], dtype=np.float64))
+            X = np.hstack([X, F]).astype(np.float32)
+            valid = valid & ffd_ok
         if funding:
             # Appended after the context block, so the column order is f1 | c1 | funding and a
             # model fitted with funding can never be served a vector without it -- the schema
@@ -221,9 +231,9 @@ def _load(path: Path) -> dict:
 
 def prepare_cached(symbols: list[str], interval: str, stride: int = 1,
                    verbose: bool = True, context: bool = False,
-                   funding: bool = False) -> dict:
+                   funding: bool = False, ffd: bool = False) -> dict:
     """The pool, from cache when the corpus and the feature definition are unchanged."""
-    path = CACHE / f"{_key(symbols, interval, stride, context, funding)}.npz"
+    path = CACHE / f"{_key(symbols, interval, stride, context, funding, ffd)}.npz"
     if path.exists() and path.with_suffix(".meta.json").exists():
         if verbose:
             print(f"   matrix cache hit {path.name}", flush=True)
@@ -232,10 +242,11 @@ def prepare_cached(symbols: list[str], interval: str, stride: int = 1,
         # Naming every block, because the log line is the only record of what a run actually
         # fitted and "+market context" alone read identically with funding on and off.
         blocks = "".join([", +market context" if context else "",
+                          ", +ffd" if ffd else "",
                           ", +funding" if funding else ""])
         print(f"   building matrix for {len(symbols)} symbols at {interval} "
               f"(stride {stride}{blocks})", flush=True)
-    data = _build_pool(symbols, interval, stride, context, funding)
+    data = _build_pool(symbols, interval, stride, context, funding, ffd)
     _save(path, data, symbols)
     if verbose:
         worst = max((p["worstRelativeDiff"] for p in data["parity"].values()), default=0.0)
