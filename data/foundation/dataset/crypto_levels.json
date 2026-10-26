@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-25T14:02:27.606720+00:00",
+ "generatedAt": "2026-10-26T01:26:48.999868+00:00",
  "producedBy": "tools/research/crypto_levels.py",
  "unit": "ATR(14) at the decision bar, as a fraction of price",
  "measuredOn": "the training and validation folds only; the test fold is not read here",
@@ -2408,6 +2408,166 @@
   },
   "eth": {
    "m5": {
+    "rows": 131368,
+    "interval": "5m",
+    "barsAhead": 1,
+    "minutesAhead": 5,
+    "favourableExcursionAtr": {
+     "p25": 0.1904,
+     "median": 0.4101,
+     "p75": 0.7367,
+     "p90": 1.1491
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.7367,
+     "median": -0.4101,
+     "p75": -0.1904,
+     "p90": -0.0749
+    },
+    "finalMoveAtr": {
+     "median": 0.4101,
+     "p75": 0.7367,
+     "p90": 1.1491
+    },
+    "medianAtrPctOfPrice": 0.2102,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.24291,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.75709
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13774,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86226
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13774,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86226
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.05013,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.94987
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13774,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86226
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.05013,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.94987
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.02157,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.97843
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.02157,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.97843
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.0063,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.9937
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.00257,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99743
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.00257,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99743
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00076,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99924
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 0.00027,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99973
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 5e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99995
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 1e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99999
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 0.0,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 1.0
+     }
+    },
     "servedPair": {
      "stopAtr": 1.0,
      "targetAtr": 1.0,
@@ -2421,6 +2581,166 @@
     }
    },
    "m15": {
+    "rows": 131364,
+    "interval": "5m",
+    "barsAhead": 3,
+    "minutesAhead": 15,
+    "favourableExcursionAtr": {
+     "p25": 0.5116,
+     "median": 0.8936,
+     "p75": 1.4356,
+     "p90": 2.1766
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.4768,
+     "median": -0.1312,
+     "p75": 0.1868,
+     "p90": 0.5095
+    },
+    "finalMoveAtr": {
+     "median": 0.7174,
+     "p75": 1.2793,
+     "p90": 2.0105
+    },
+    "medianAtrPctOfPrice": 0.2102,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.56188,
+      "stoppedWithoutReachingTarget": 0.07328,
+      "touchedBoth": 0.02983,
+      "neither": 0.33502
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.41891,
+      "stoppedWithoutReachingTarget": 0.08357,
+      "touchedBoth": 0.01953,
+      "neither": 0.47798
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.42914,
+      "stoppedWithoutReachingTarget": 0.03683,
+      "touchedBoth": 0.0093,
+      "neither": 0.52473
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.22503,
+      "stoppedWithoutReachingTarget": 0.04162,
+      "touchedBoth": 0.00451,
+      "neither": 0.72884
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.43398,
+      "stoppedWithoutReachingTarget": 0.01554,
+      "touchedBoth": 0.00447,
+      "neither": 0.54602
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.22738,
+      "stoppedWithoutReachingTarget": 0.01784,
+      "touchedBoth": 0.00216,
+      "neither": 0.75262
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.12113,
+      "stoppedWithoutReachingTarget": 0.01865,
+      "touchedBoth": 0.00136,
+      "neither": 0.85887
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.12207,
+      "stoppedWithoutReachingTarget": 0.00382,
+      "touchedBoth": 0.00042,
+      "neither": 0.87369
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.04178,
+      "stoppedWithoutReachingTarget": 0.00118,
+      "touchedBoth": 0.00011,
+      "neither": 0.95694
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.01808,
+      "stoppedWithoutReachingTarget": 0.00121,
+      "touchedBoth": 8e-05,
+      "neither": 0.98063
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.01815,
+      "stoppedWithoutReachingTarget": 0.00021,
+      "touchedBoth": 1e-05,
+      "neither": 0.98163
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00556,
+      "stoppedWithoutReachingTarget": 0.00022,
+      "touchedBoth": 0.0,
+      "neither": 0.99422
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 0.00239,
+      "stoppedWithoutReachingTarget": 0.00014,
+      "touchedBoth": 0.0,
+      "neither": 0.99747
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 0.00055,
+      "stoppedWithoutReachingTarget": 4e-05,
+      "touchedBoth": 0.0,
+      "neither": 0.99941
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 0.00019,
+      "stoppedWithoutReachingTarget": 1e-05,
+      "touchedBoth": 0.0,
+      "neither": 0.9998
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 8e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99992
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     }
+    },
     "servedPair": {
      "stopAtr": 1.5,
      "targetAtr": 2.0,
@@ -2436,6 +2756,166 @@
   },
   "sol": {
    "m5": {
+    "rows": 131367,
+    "interval": "5m",
+    "barsAhead": 1,
+    "minutesAhead": 5,
+    "favourableExcursionAtr": {
+     "p25": 0.1918,
+     "median": 0.4118,
+     "p75": 0.732,
+     "p90": 1.1257
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.732,
+     "median": -0.4118,
+     "p75": -0.1918,
+     "p90": -0.0757
+    },
+    "finalMoveAtr": {
+     "median": 0.4118,
+     "p75": 0.732,
+     "p90": 1.1257
+    },
+    "medianAtrPctOfPrice": 0.2499,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.23988,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.76012
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13395,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86605
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13395,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86605
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.04322,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.95678
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13395,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86605
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.04322,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.95678
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01628,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98372
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01628,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98372
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.00368,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99632
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.00132,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99868
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.00132,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99868
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00033,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99967
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 0.00012,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99988
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 1e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99999
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 1e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99999
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 0.0,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 1.0
+     }
+    },
     "servedPair": {
      "stopAtr": 1.0,
      "targetAtr": 1.0,
@@ -2447,10 +2927,332 @@
      "trades": 3196,
      "fold": "validation"
     }
+   },
+   "m15": {
+    "rows": 131363,
+    "interval": "5m",
+    "barsAhead": 3,
+    "minutesAhead": 15,
+    "favourableExcursionAtr": {
+     "p25": 0.5167,
+     "median": 0.8967,
+     "p75": 1.4237,
+     "p90": 2.0914
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.4767,
+     "median": -0.1325,
+     "p75": 0.1886,
+     "p90": 0.5099
+    },
+    "finalMoveAtr": {
+     "median": 0.7231,
+     "p75": 1.2783,
+     "p90": 1.9573
+    },
+    "medianAtrPctOfPrice": 0.2499,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.56401,
+      "stoppedWithoutReachingTarget": 0.07379,
+      "touchedBoth": 0.02941,
+      "neither": 0.3328
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.42174,
+      "stoppedWithoutReachingTarget": 0.08448,
+      "touchedBoth": 0.01872,
+      "neither": 0.47507
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.43201,
+      "stoppedWithoutReachingTarget": 0.03737,
+      "touchedBoth": 0.00845,
+      "neither": 0.52217
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.22118,
+      "stoppedWithoutReachingTarget": 0.04204,
+      "touchedBoth": 0.00378,
+      "neither": 0.733
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.43666,
+      "stoppedWithoutReachingTarget": 0.01523,
+      "touchedBoth": 0.0038,
+      "neither": 0.54431
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.22324,
+      "stoppedWithoutReachingTarget": 0.0173,
+      "touchedBoth": 0.00173,
+      "neither": 0.75773
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.11217,
+      "stoppedWithoutReachingTarget": 0.01813,
+      "touchedBoth": 0.0009,
+      "neither": 0.8688
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.11281,
+      "stoppedWithoutReachingTarget": 0.00328,
+      "touchedBoth": 0.00026,
+      "neither": 0.88365
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.03277,
+      "stoppedWithoutReachingTarget": 0.00081,
+      "touchedBoth": 2e-05,
+      "neither": 0.96639
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.01194,
+      "stoppedWithoutReachingTarget": 0.00083,
+      "touchedBoth": 1e-05,
+      "neither": 0.98722
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.01195,
+      "stoppedWithoutReachingTarget": 0.00012,
+      "touchedBoth": 0.0,
+      "neither": 0.98793
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00295,
+      "stoppedWithoutReachingTarget": 0.00012,
+      "touchedBoth": 0.0,
+      "neither": 0.99693
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 0.0011,
+      "stoppedWithoutReachingTarget": 4e-05,
+      "touchedBoth": 0.0,
+      "neither": 0.99886
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 0.00022,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99978
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 5e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99995
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 5e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99995
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 1e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99999
+     }
+    }
    }
   },
   "xrp": {
    "m5": {
+    "rows": 131367,
+    "interval": "5m",
+    "barsAhead": 1,
+    "minutesAhead": 5,
+    "favourableExcursionAtr": {
+     "p25": 0.1958,
+     "median": 0.4179,
+     "p75": 0.7434,
+     "p90": 1.1455
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.7434,
+     "median": -0.4179,
+     "p75": -0.1958,
+     "p90": -0.077
+    },
+    "finalMoveAtr": {
+     "median": 0.4179,
+     "p75": 0.7434,
+     "p90": 1.1455
+    },
+    "medianAtrPctOfPrice": 0.2153,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.24637,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.75363
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13876,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86124
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13876,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86124
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.04642,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.95358
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13876,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86124
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.04642,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.95358
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01682,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98318
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01682,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98318
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.00362,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99638
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.00135,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99865
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.00135,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99865
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00033,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99967
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 0.00014,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99986
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 3e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99997
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 0.0,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 1.0
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 0.0,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 1.0
+     }
+    },
     "servedPair": {
      "stopAtr": 1.0,
      "targetAtr": 1.0,
@@ -2464,6 +3266,166 @@
     }
    },
    "m15": {
+    "rows": 131363,
+    "interval": "5m",
+    "barsAhead": 3,
+    "minutesAhead": 15,
+    "favourableExcursionAtr": {
+     "p25": 0.5264,
+     "median": 0.918,
+     "p75": 1.4528,
+     "p90": 2.1235
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.4867,
+     "median": -0.1359,
+     "p75": 0.1908,
+     "p90": 0.5213
+    },
+    "finalMoveAtr": {
+     "median": 0.7404,
+     "p75": 1.3031,
+     "p90": 1.9933
+    },
+    "medianAtrPctOfPrice": 0.2153,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.57378,
+      "stoppedWithoutReachingTarget": 0.07619,
+      "touchedBoth": 0.03066,
+      "neither": 0.31937
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.43279,
+      "stoppedWithoutReachingTarget": 0.08748,
+      "touchedBoth": 0.01937,
+      "neither": 0.46036
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.44353,
+      "stoppedWithoutReachingTarget": 0.03872,
+      "touchedBoth": 0.00864,
+      "neither": 0.50912
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.23101,
+      "stoppedWithoutReachingTarget": 0.0437,
+      "touchedBoth": 0.00366,
+      "neither": 0.72163
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.44838,
+      "stoppedWithoutReachingTarget": 0.01624,
+      "touchedBoth": 0.00379,
+      "neither": 0.5316
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.23303,
+      "stoppedWithoutReachingTarget": 0.01839,
+      "touchedBoth": 0.00164,
+      "neither": 0.74694
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.11739,
+      "stoppedWithoutReachingTarget": 0.01918,
+      "touchedBoth": 0.00085,
+      "neither": 0.86258
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.11798,
+      "stoppedWithoutReachingTarget": 0.00361,
+      "touchedBoth": 0.00027,
+      "neither": 0.87815
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.03386,
+      "stoppedWithoutReachingTarget": 0.00103,
+      "touchedBoth": 2e-05,
+      "neither": 0.96509
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.01274,
+      "stoppedWithoutReachingTarget": 0.00104,
+      "touchedBoth": 2e-05,
+      "neither": 0.98621
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.01275,
+      "stoppedWithoutReachingTarget": 0.00017,
+      "touchedBoth": 0.0,
+      "neither": 0.98708
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00282,
+      "stoppedWithoutReachingTarget": 0.00017,
+      "touchedBoth": 0.0,
+      "neither": 0.99702
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 0.00104,
+      "stoppedWithoutReachingTarget": 4e-05,
+      "touchedBoth": 0.0,
+      "neither": 0.99893
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 0.00026,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99974
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 0.00012,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99988
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 7e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99993
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 0.0,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 1.0
+     }
+    },
     "servedPair": {
      "stopAtr": 1.5,
      "targetAtr": 2.0,
@@ -2479,6 +3441,166 @@
   },
   "ada": {
    "m5": {
+    "rows": 131366,
+    "interval": "5m",
+    "barsAhead": 1,
+    "minutesAhead": 5,
+    "favourableExcursionAtr": {
+     "p25": 0.1957,
+     "median": 0.4142,
+     "p75": 0.7368,
+     "p90": 1.1264
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.7368,
+     "median": -0.4142,
+     "p75": -0.1957,
+     "p90": -0.0648
+    },
+    "finalMoveAtr": {
+     "median": 0.4142,
+     "p75": 0.7368,
+     "p90": 1.1264
+    },
+    "medianAtrPctOfPrice": 0.2792,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.24177,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.75823
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13409,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86591
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13409,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86591
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.04223,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.95777
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13409,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86591
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.04223,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.95777
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01541,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98459
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01541,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98459
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.00339,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99661
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.00126,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99874
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.00126,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99874
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.0003,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.9997
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 0.00011,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99989
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 0.0,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 1.0
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 0.0,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 1.0
+     }
+    },
     "servedPair": {
      "stopAtr": 1.0,
      "targetAtr": 1.0,
@@ -2492,6 +3614,166 @@
     }
    },
    "m15": {
+    "rows": 131362,
+    "interval": "5m",
+    "barsAhead": 3,
+    "minutesAhead": 15,
+    "favourableExcursionAtr": {
+     "p25": 0.5138,
+     "median": 0.9032,
+     "p75": 1.4331,
+     "p90": 2.0909
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.4828,
+     "median": -0.1386,
+     "p75": 0.1905,
+     "p90": 0.5131
+    },
+    "finalMoveAtr": {
+     "median": 0.7246,
+     "p75": 1.2824,
+     "p90": 1.9613
+    },
+    "medianAtrPctOfPrice": 0.2792,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.56749,
+      "stoppedWithoutReachingTarget": 0.07629,
+      "touchedBoth": 0.02802,
+      "neither": 0.3282
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.42607,
+      "stoppedWithoutReachingTarget": 0.08667,
+      "touchedBoth": 0.01764,
+      "neither": 0.46963
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.4358,
+      "stoppedWithoutReachingTarget": 0.03783,
+      "touchedBoth": 0.0079,
+      "neither": 0.51846
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.22438,
+      "stoppedWithoutReachingTarget": 0.04231,
+      "touchedBoth": 0.00343,
+      "neither": 0.72988
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.4401,
+      "stoppedWithoutReachingTarget": 0.01591,
+      "touchedBoth": 0.00361,
+      "neither": 0.54038
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.22617,
+      "stoppedWithoutReachingTarget": 0.01788,
+      "touchedBoth": 0.00164,
+      "neither": 0.75431
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.11254,
+      "stoppedWithoutReachingTarget": 0.01869,
+      "touchedBoth": 0.00083,
+      "neither": 0.86794
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.11313,
+      "stoppedWithoutReachingTarget": 0.00324,
+      "touchedBoth": 0.00024,
+      "neither": 0.88339
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.0311,
+      "stoppedWithoutReachingTarget": 0.00073,
+      "touchedBoth": 3e-05,
+      "neither": 0.96813
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.01109,
+      "stoppedWithoutReachingTarget": 0.00074,
+      "touchedBoth": 2e-05,
+      "neither": 0.98815
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.0111,
+      "stoppedWithoutReachingTarget": 0.00014,
+      "touchedBoth": 2e-05,
+      "neither": 0.98875
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00248,
+      "stoppedWithoutReachingTarget": 0.00014,
+      "touchedBoth": 2e-05,
+      "neither": 0.99737
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 0.00108,
+      "stoppedWithoutReachingTarget": 5e-05,
+      "touchedBoth": 0.0,
+      "neither": 0.99887
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 0.00016,
+      "stoppedWithoutReachingTarget": 1e-05,
+      "touchedBoth": 0.0,
+      "neither": 0.99983
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 0.0001,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.9999
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 5e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99995
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     }
+    },
     "servedPair": {
      "stopAtr": 1.5,
      "targetAtr": 2.0,
@@ -2507,6 +3789,166 @@
   },
   "link": {
    "m15": {
+    "rows": 131361,
+    "interval": "5m",
+    "barsAhead": 3,
+    "minutesAhead": 15,
+    "favourableExcursionAtr": {
+     "p25": 0.4828,
+     "median": 0.8508,
+     "p75": 1.3548,
+     "p90": 1.9535
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.459,
+     "median": -0.0773,
+     "p75": 0.2029,
+     "p90": 0.5185
+    },
+    "finalMoveAtr": {
+     "median": 0.6806,
+     "p75": 1.2069,
+     "p90": 1.8318
+    },
+    "medianAtrPctOfPrice": 0.2942,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.54084,
+      "stoppedWithoutReachingTarget": 0.08015,
+      "touchedBoth": 0.0265,
+      "neither": 0.35252
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.3971,
+      "stoppedWithoutReachingTarget": 0.09023,
+      "touchedBoth": 0.01641,
+      "neither": 0.49625
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.40647,
+      "stoppedWithoutReachingTarget": 0.03855,
+      "touchedBoth": 0.00705,
+      "neither": 0.54793
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.19596,
+      "stoppedWithoutReachingTarget": 0.04256,
+      "touchedBoth": 0.00304,
+      "neither": 0.75844
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.41033,
+      "stoppedWithoutReachingTarget": 0.01526,
+      "touchedBoth": 0.00319,
+      "neither": 0.57122
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.19755,
+      "stoppedWithoutReachingTarget": 0.017,
+      "touchedBoth": 0.00145,
+      "neither": 0.784
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.09297,
+      "stoppedWithoutReachingTarget": 0.01775,
+      "touchedBoth": 0.0007,
+      "neither": 0.88858
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.09344,
+      "stoppedWithoutReachingTarget": 0.00292,
+      "touchedBoth": 0.00022,
+      "neither": 0.90342
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.02467,
+      "stoppedWithoutReachingTarget": 0.0006,
+      "touchedBoth": 5e-05,
+      "neither": 0.97468
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.00872,
+      "stoppedWithoutReachingTarget": 0.00064,
+      "touchedBoth": 1e-05,
+      "neither": 0.99063
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.00872,
+      "stoppedWithoutReachingTarget": 0.0001,
+      "touchedBoth": 1e-05,
+      "neither": 0.99117
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00226,
+      "stoppedWithoutReachingTarget": 0.00011,
+      "touchedBoth": 0.0,
+      "neither": 0.99763
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 0.0007,
+      "stoppedWithoutReachingTarget": 3e-05,
+      "touchedBoth": 0.0,
+      "neither": 0.99927
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 0.00018,
+      "stoppedWithoutReachingTarget": 1e-05,
+      "touchedBoth": 0.0,
+      "neither": 0.99981
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 9e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99991
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 4e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99996
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     }
+    },
     "servedPair": {
      "stopAtr": 1.5,
      "targetAtr": 2.0,
@@ -2518,10 +3960,332 @@
      "trades": 4120,
      "fold": "validation"
     }
+   },
+   "m5": {
+    "rows": 131365,
+    "interval": "5m",
+    "barsAhead": 1,
+    "minutesAhead": 5,
+    "favourableExcursionAtr": {
+     "p25": 0.1925,
+     "median": 0.4118,
+     "p75": 0.7179,
+     "p90": 1.0769
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.7179,
+     "median": -0.4118,
+     "p75": -0.1925,
+     "p90": 0.0
+    },
+    "finalMoveAtr": {
+     "median": 0.4118,
+     "p75": 0.7179,
+     "p90": 1.0769
+    },
+    "medianAtrPctOfPrice": 0.2942,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.22974,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.77026
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.12292,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.87708
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.12292,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.87708
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.03546,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.96454
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.12292,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.87708
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.03546,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.96454
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01223,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98777
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01223,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98777
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.00282,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99718
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.00115,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99885
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.00115,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99885
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00028,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99972
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 7e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99993
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 4e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99996
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 0.0,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 1.0
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 0.0,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 1.0
+     }
+    }
    }
   },
   "avax": {
    "m5": {
+    "rows": 131365,
+    "interval": "5m",
+    "barsAhead": 1,
+    "minutesAhead": 5,
+    "favourableExcursionAtr": {
+     "p25": 0.1867,
+     "median": 0.4179,
+     "p75": 0.7273,
+     "p90": 1.12
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.7273,
+     "median": -0.4179,
+     "p75": -0.1867,
+     "p90": 0.0
+    },
+    "finalMoveAtr": {
+     "median": 0.4179,
+     "p75": 0.7273,
+     "p90": 1.12
+    },
+    "medianAtrPctOfPrice": 0.2829,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.23814,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.76186
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13274,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86726
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13274,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86726
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.04098,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.95902
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13274,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86726
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.04098,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.95902
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01442,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98558
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01442,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98558
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.0031,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.9969
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.00123,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99877
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.00123,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99877
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00032,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99968
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 9e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99991
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 1e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99999
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 0.0,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 1.0
+     }
+    },
     "servedPair": {
      "stopAtr": 1.0,
      "targetAtr": 1.0,
@@ -2535,6 +4299,166 @@
     }
    },
    "m15": {
+    "rows": 131361,
+    "interval": "5m",
+    "barsAhead": 3,
+    "minutesAhead": 15,
+    "favourableExcursionAtr": {
+     "p25": 0.4895,
+     "median": 0.875,
+     "p75": 1.4,
+     "p90": 2.0533
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.4719,
+     "median": -0.094,
+     "p75": 0.1892,
+     "p90": 0.5185
+    },
+    "finalMoveAtr": {
+     "median": 0.7,
+     "p75": 1.2557,
+     "p90": 1.9266
+    },
+    "medianAtrPctOfPrice": 0.2829,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.55123,
+      "stoppedWithoutReachingTarget": 0.07728,
+      "touchedBoth": 0.02822,
+      "neither": 0.34327
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.41053,
+      "stoppedWithoutReachingTarget": 0.08738,
+      "touchedBoth": 0.01813,
+      "neither": 0.48397
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.42107,
+      "stoppedWithoutReachingTarget": 0.03865,
+      "touchedBoth": 0.00758,
+      "neither": 0.5327
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.21438,
+      "stoppedWithoutReachingTarget": 0.04274,
+      "touchedBoth": 0.00349,
+      "neither": 0.73939
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.42518,
+      "stoppedWithoutReachingTarget": 0.01539,
+      "touchedBoth": 0.00347,
+      "neither": 0.55596
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.21621,
+      "stoppedWithoutReachingTarget": 0.0172,
+      "touchedBoth": 0.00166,
+      "neither": 0.76493
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.10621,
+      "stoppedWithoutReachingTarget": 0.01803,
+      "touchedBoth": 0.00083,
+      "neither": 0.87493
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.10679,
+      "stoppedWithoutReachingTarget": 0.00285,
+      "touchedBoth": 0.00025,
+      "neither": 0.89011
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.02931,
+      "stoppedWithoutReachingTarget": 0.00053,
+      "touchedBoth": 4e-05,
+      "neither": 0.97012
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.01087,
+      "stoppedWithoutReachingTarget": 0.00054,
+      "touchedBoth": 3e-05,
+      "neither": 0.98856
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.01088,
+      "stoppedWithoutReachingTarget": 0.0001,
+      "touchedBoth": 2e-05,
+      "neither": 0.989
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00257,
+      "stoppedWithoutReachingTarget": 0.00011,
+      "touchedBoth": 2e-05,
+      "neither": 0.99731
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 0.00082,
+      "stoppedWithoutReachingTarget": 2e-05,
+      "touchedBoth": 2e-05,
+      "neither": 0.99914
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 0.00021,
+      "stoppedWithoutReachingTarget": 1e-05,
+      "touchedBoth": 1e-05,
+      "neither": 0.99978
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 8e-05,
+      "stoppedWithoutReachingTarget": 1e-05,
+      "touchedBoth": 1e-05,
+      "neither": 0.99991
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 1e-05,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 1e-05,
+      "stoppedWithoutReachingTarget": 1e-05,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     }
+    },
     "servedPair": {
      "stopAtr": 1.5,
      "targetAtr": 2.0,
@@ -2550,6 +4474,166 @@
   },
   "dot": {
    "m15": {
+    "rows": 131361,
+    "interval": "5m",
+    "barsAhead": 3,
+    "minutesAhead": 15,
+    "favourableExcursionAtr": {
+     "p25": 0.5217,
+     "median": 0.9211,
+     "p75": 1.4627,
+     "p90": 2.1212
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.4956,
+     "median": -0.1181,
+     "p75": 0.2059,
+     "p90": 0.5455
+    },
+    "finalMoveAtr": {
+     "median": 0.7368,
+     "p75": 1.3067,
+     "p90": 2.0
+    },
+    "medianAtrPctOfPrice": 0.2768,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.5721,
+      "stoppedWithoutReachingTarget": 0.08302,
+      "touchedBoth": 0.03179,
+      "neither": 0.31308
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.43383,
+      "stoppedWithoutReachingTarget": 0.09389,
+      "touchedBoth": 0.02093,
+      "neither": 0.45136
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.44586,
+      "stoppedWithoutReachingTarget": 0.043,
+      "touchedBoth": 0.0089,
+      "neither": 0.50225
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.23328,
+      "stoppedWithoutReachingTarget": 0.04807,
+      "touchedBoth": 0.00383,
+      "neither": 0.71482
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.45067,
+      "stoppedWithoutReachingTarget": 0.01865,
+      "touchedBoth": 0.00409,
+      "neither": 0.52659
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.23536,
+      "stoppedWithoutReachingTarget": 0.02099,
+      "touchedBoth": 0.00175,
+      "neither": 0.7419
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.11699,
+      "stoppedWithoutReachingTarget": 0.02181,
+      "touchedBoth": 0.00093,
+      "neither": 0.86027
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.11768,
+      "stoppedWithoutReachingTarget": 0.00392,
+      "touchedBoth": 0.00024,
+      "neither": 0.87816
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.03232,
+      "stoppedWithoutReachingTarget": 0.00094,
+      "touchedBoth": 5e-05,
+      "neither": 0.96669
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.01134,
+      "stoppedWithoutReachingTarget": 0.00095,
+      "touchedBoth": 4e-05,
+      "neither": 0.98768
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.01137,
+      "stoppedWithoutReachingTarget": 0.00015,
+      "touchedBoth": 0.0,
+      "neither": 0.98847
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00233,
+      "stoppedWithoutReachingTarget": 0.00015,
+      "touchedBoth": 0.0,
+      "neither": 0.99752
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 0.00083,
+      "stoppedWithoutReachingTarget": 5e-05,
+      "touchedBoth": 0.0,
+      "neither": 0.99912
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 0.00022,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99978
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 7e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99993
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 5e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99995
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     }
+    },
     "servedPair": {
      "stopAtr": 1.5,
      "targetAtr": 2.0,
@@ -2561,10 +4645,332 @@
      "trades": 19412,
      "fold": "validation"
     }
+   },
+   "m5": {
+    "rows": 131365,
+    "interval": "5m",
+    "barsAhead": 1,
+    "minutesAhead": 5,
+    "favourableExcursionAtr": {
+     "p25": 0.2044,
+     "median": 0.4341,
+     "p75": 0.7597,
+     "p90": 1.1667
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.7597,
+     "median": -0.4341,
+     "p75": -0.2044,
+     "p90": 0.0
+    },
+    "finalMoveAtr": {
+     "median": 0.4341,
+     "p75": 0.7597,
+     "p90": 1.1667
+    },
+    "medianAtrPctOfPrice": 0.2768,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.25568,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.74432
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.14512,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.85488
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.14512,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.85488
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.04558,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.95442
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.14512,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.85488
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.04558,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.95442
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01617,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98383
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01617,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98383
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.00341,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99659
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.0013,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.9987
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.0013,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.9987
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00027,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99973
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 8e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99992
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 3e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99997
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 0.0,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 1.0
+     }
+    }
    }
   },
   "sui": {
    "m5": {
+    "rows": 131360,
+    "interval": "5m",
+    "barsAhead": 1,
+    "minutesAhead": 5,
+    "favourableExcursionAtr": {
+     "p25": 0.1936,
+     "median": 0.4151,
+     "p75": 0.7406,
+     "p90": 1.1382
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.7406,
+     "median": -0.4151,
+     "p75": -0.1936,
+     "p90": -0.0767
+    },
+    "finalMoveAtr": {
+     "median": 0.4151,
+     "p75": 0.7406,
+     "p90": 1.1382
+    },
+    "medianAtrPctOfPrice": 0.308,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.24491,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.75509
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13692,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86308
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13692,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86308
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.04385,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.95615
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.13692,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.86308
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.04385,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.95615
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01701,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98299
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.01701,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.98299
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.00386,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99614
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.0015,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.9985
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.0015,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.9985
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00041,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99959
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 0.00017,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99983
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 0.0,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 1.0
+     }
+    },
     "servedPair": {
      "stopAtr": 1.0,
      "targetAtr": 1.0,
@@ -2578,6 +4984,166 @@
     }
    },
    "m15": {
+    "rows": 131356,
+    "interval": "5m",
+    "barsAhead": 3,
+    "minutesAhead": 15,
+    "favourableExcursionAtr": {
+     "p25": 0.5204,
+     "median": 0.9095,
+     "p75": 1.4444,
+     "p90": 2.1234
+    },
+    "adverseExcursionAtr": {
+     "p25": -0.4828,
+     "median": -0.1328,
+     "p75": 0.1879,
+     "p90": 0.5122
+    },
+    "finalMoveAtr": {
+     "median": 0.7287,
+     "p75": 1.2936,
+     "p90": 1.9871
+    },
+    "medianAtrPctOfPrice": 0.308,
+    "pairs": {
+     "0.5/0.75": {
+      "stopAtr": 0.5,
+      "targetAtr": 0.75,
+      "reachedTargetWithoutTouchingStop": 0.5689,
+      "stoppedWithoutReachingTarget": 0.07449,
+      "touchedBoth": 0.02958,
+      "neither": 0.32703
+     },
+     "0.5/1.0": {
+      "stopAtr": 0.5,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.42939,
+      "stoppedWithoutReachingTarget": 0.0853,
+      "touchedBoth": 0.01877,
+      "neither": 0.46654
+     },
+     "0.75/1.0": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.44003,
+      "stoppedWithoutReachingTarget": 0.03729,
+      "touchedBoth": 0.00812,
+      "neither": 0.51456
+     },
+     "0.75/1.5": {
+      "stopAtr": 0.75,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.22824,
+      "stoppedWithoutReachingTarget": 0.04164,
+      "touchedBoth": 0.00377,
+      "neither": 0.72635
+     },
+     "1.0/1.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.0,
+      "reachedTargetWithoutTouchingStop": 0.44451,
+      "stoppedWithoutReachingTarget": 0.01543,
+      "touchedBoth": 0.00365,
+      "neither": 0.53641
+     },
+     "1.0/1.5": {
+      "stopAtr": 1.0,
+      "targetAtr": 1.5,
+      "reachedTargetWithoutTouchingStop": 0.23027,
+      "stoppedWithoutReachingTarget": 0.01734,
+      "touchedBoth": 0.00174,
+      "neither": 0.75065
+     },
+     "1.0/2.0": {
+      "stopAtr": 1.0,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.11647,
+      "stoppedWithoutReachingTarget": 0.01816,
+      "touchedBoth": 0.00092,
+      "neither": 0.86445
+     },
+     "1.5/2.0": {
+      "stopAtr": 1.5,
+      "targetAtr": 2.0,
+      "reachedTargetWithoutTouchingStop": 0.11709,
+      "stoppedWithoutReachingTarget": 0.00336,
+      "touchedBoth": 0.0003,
+      "neither": 0.87925
+     },
+     "2.0/3.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 3.0,
+      "reachedTargetWithoutTouchingStop": 0.0339,
+      "stoppedWithoutReachingTarget": 0.00088,
+      "touchedBoth": 7e-05,
+      "neither": 0.96515
+     },
+     "2.0/4.0": {
+      "stopAtr": 2.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.01291,
+      "stoppedWithoutReachingTarget": 0.00093,
+      "touchedBoth": 2e-05,
+      "neither": 0.98614
+     },
+     "3.0/4.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 4.0,
+      "reachedTargetWithoutTouchingStop": 0.01293,
+      "stoppedWithoutReachingTarget": 0.00011,
+      "touchedBoth": 0.0,
+      "neither": 0.98696
+     },
+     "3.0/6.0": {
+      "stopAtr": 3.0,
+      "targetAtr": 6.0,
+      "reachedTargetWithoutTouchingStop": 0.00303,
+      "stoppedWithoutReachingTarget": 0.00011,
+      "touchedBoth": 0.0,
+      "neither": 0.99686
+     },
+     "4.0/8.0": {
+      "stopAtr": 4.0,
+      "targetAtr": 8.0,
+      "reachedTargetWithoutTouchingStop": 0.00127,
+      "stoppedWithoutReachingTarget": 2e-05,
+      "touchedBoth": 0.0,
+      "neither": 0.99871
+     },
+     "6.0/12.0": {
+      "stopAtr": 6.0,
+      "targetAtr": 12.0,
+      "reachedTargetWithoutTouchingStop": 0.00028,
+      "stoppedWithoutReachingTarget": 1e-05,
+      "touchedBoth": 0.0,
+      "neither": 0.99971
+     },
+     "8.0/16.0": {
+      "stopAtr": 8.0,
+      "targetAtr": 16.0,
+      "reachedTargetWithoutTouchingStop": 8e-05,
+      "stoppedWithoutReachingTarget": 1e-05,
+      "touchedBoth": 0.0,
+      "neither": 0.99992
+     },
+     "10.0/20.0": {
+      "stopAtr": 10.0,
+      "targetAtr": 20.0,
+      "reachedTargetWithoutTouchingStop": 8e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99992
+     },
+     "15.0/30.0": {
+      "stopAtr": 15.0,
+      "targetAtr": 30.0,
+      "reachedTargetWithoutTouchingStop": 2e-05,
+      "stoppedWithoutReachingTarget": 0.0,
+      "touchedBoth": 0.0,
+      "neither": 0.99998
+     }
+    },
     "servedPair": {
      "stopAtr": 1.5,
      "targetAtr": 2.0,

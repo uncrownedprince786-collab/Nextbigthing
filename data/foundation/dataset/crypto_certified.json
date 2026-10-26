@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-25T14:34:33.453915+00:00",
+ "generatedAt": "2026-10-26T01:32:03.000522+00:00",
  "producedBy": "tools/research/crypto_certify.py",
  "what": "per-coin, per-horizon verdict. A coin absent from a lane's list is served no direction on that lane at all -- not a weaker one.",
  "gates": {
@@ -12,6 +12,12 @@
  "minCalledRows": 500,
  "scoreStride": 1,
  "certifiedByLane": {
+  "ada:m15": [
+   "ADAUSDT"
+  ],
+  "ada:m5": [
+   "ADAUSDT"
+  ],
   "crypto:h1": [
    "BTCUSDT",
    "SUIUSDT"
@@ -187,6 +193,18 @@
    "ZENUSDT",
    "ZKCUSDT",
    "ZKUSDT"
+  ],
+  "eth:m15": [
+   "ETHUSDT"
+  ],
+  "eth:m5": [
+   "ETHUSDT"
+  ],
+  "sol:m5": [
+   "SOLUSDT"
+  ],
+  "xrp:m15": [
+   "XRPUSDT"
   ]
  },
  "coins": {
@@ -642,6 +660,206 @@
     ],
     "convictionFloor": 0.05,
     "floorSource": "coin"
+   },
+   "eth:m5": {
+    "testRows": 23182,
+    "called": 1961,
+    "coverage": 0.08459,
+    "accuracy": 0.564,
+    "ownMajority": 0.50739,
+    "edgeOverMajority": 0.0566,
+    "upRate": 0.49261,
+    "upShareCalled": 0.4258,
+    "bootstrapCi95": [
+     0.02801,
+     0.08364
+    ],
+    "walkForward": "5/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": true,
+    "why": null,
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 22939,
+      "coverage": 1.0,
+      "accuracy": 0.52696
+     },
+     {
+      "floor": 0.01,
+      "rows": 16122,
+      "coverage": 0.70282,
+      "accuracy": 0.53548
+     },
+     {
+      "floor": 0.02,
+      "rows": 11220,
+      "coverage": 0.48912,
+      "accuracy": 0.54554
+     },
+     {
+      "floor": 0.03,
+      "rows": 7713,
+      "coverage": 0.33624,
+      "accuracy": 0.55244
+     },
+     {
+      "floor": 0.04,
+      "rows": 5118,
+      "coverage": 0.22311,
+      "accuracy": 0.56038
+     },
+     {
+      "floor": 0.05,
+      "rows": 3164,
+      "coverage": 0.13793,
+      "accuracy": 0.56163
+     },
+     {
+      "floor": 0.06,
+      "rows": 1829,
+      "coverage": 0.07973,
+      "accuracy": 0.56096
+     },
+     {
+      "floor": 0.075,
+      "rows": 692,
+      "coverage": 0.03017,
+      "accuracy": 0.52601
+     },
+     {
+      "floor": 0.09,
+      "rows": 230,
+      "coverage": 0.01003,
+      "accuracy": 0.57391
+     },
+     {
+      "floor": 0.1,
+      "rows": 100,
+      "coverage": 0.00436,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 3,
+      "coverage": 0.00013,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.06,
+    "floorSource": "coin"
+   },
+   "eth:m15": {
+    "testRows": 23240,
+    "called": 3640,
+    "coverage": 0.15663,
+    "accuracy": 0.56648,
+    "ownMajority": 0.50769,
+    "edgeOverMajority": 0.05879,
+    "upRate": 0.50769,
+    "upShareCalled": 0.63297,
+    "bootstrapCi95": [
+     0.034218,
+     0.08518
+    ],
+    "walkForward": "4/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": true,
+    "why": null,
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 22959,
+      "coverage": 1.0,
+      "accuracy": 0.52925
+     },
+     {
+      "floor": 0.01,
+      "rows": 18324,
+      "coverage": 0.79812,
+      "accuracy": 0.53667
+     },
+     {
+      "floor": 0.02,
+      "rows": 13957,
+      "coverage": 0.60791,
+      "accuracy": 0.5398
+     },
+     {
+      "floor": 0.03,
+      "rows": 10239,
+      "coverage": 0.44597,
+      "accuracy": 0.54654
+     },
+     {
+      "floor": 0.04,
+      "rows": 7197,
+      "coverage": 0.31347,
+      "accuracy": 0.54036
+     },
+     {
+      "floor": 0.05,
+      "rows": 4765,
+      "coverage": 0.20754,
+      "accuracy": 0.54669
+     },
+     {
+      "floor": 0.06,
+      "rows": 2967,
+      "coverage": 0.12923,
+      "accuracy": 0.55679
+     },
+     {
+      "floor": 0.075,
+      "rows": 1206,
+      "coverage": 0.05253,
+      "accuracy": 0.5597
+     },
+     {
+      "floor": 0.09,
+      "rows": 401,
+      "coverage": 0.01747,
+      "accuracy": 0.53117
+     },
+     {
+      "floor": 0.1,
+      "rows": 199,
+      "coverage": 0.00867,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 35,
+      "coverage": 0.00152,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 2,
+      "coverage": 9e-05,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.06,
+    "floorSource": "coin"
    }
   },
   "SOLUSDT": {
@@ -869,6 +1087,106 @@
     ],
     "convictionFloor": 0.05,
     "floorSource": "coin"
+   },
+   "sol:m5": {
+    "testRows": 22356,
+    "called": 1474,
+    "coverage": 0.06593,
+    "accuracy": 0.54817,
+    "ownMajority": 0.50746,
+    "edgeOverMajority": 0.04071,
+    "upRate": 0.49254,
+    "upShareCalled": 0.46947,
+    "bootstrapCi95": [
+     0.007978,
+     0.073944
+    ],
+    "walkForward": "5/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": true,
+    "why": null,
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 22002,
+      "coverage": 1.0,
+      "accuracy": 0.51982
+     },
+     {
+      "floor": 0.01,
+      "rows": 15920,
+      "coverage": 0.72357,
+      "accuracy": 0.52594
+     },
+     {
+      "floor": 0.02,
+      "rows": 10505,
+      "coverage": 0.47746,
+      "accuracy": 0.5326
+     },
+     {
+      "floor": 0.03,
+      "rows": 6210,
+      "coverage": 0.28225,
+      "accuracy": 0.53913
+     },
+     {
+      "floor": 0.04,
+      "rows": 3196,
+      "coverage": 0.14526,
+      "accuracy": 0.53692
+     },
+     {
+      "floor": 0.05,
+      "rows": 1429,
+      "coverage": 0.06495,
+      "accuracy": 0.54654
+     },
+     {
+      "floor": 0.06,
+      "rows": 562,
+      "coverage": 0.02554,
+      "accuracy": 0.55694
+     },
+     {
+      "floor": 0.075,
+      "rows": 135,
+      "coverage": 0.00614,
+      "accuracy": null
+     },
+     {
+      "floor": 0.09,
+      "rows": 30,
+      "coverage": 0.00136,
+      "accuracy": null
+     },
+     {
+      "floor": 0.1,
+      "rows": 9,
+      "coverage": 0.00041,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 2,
+      "coverage": 9e-05,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 1,
+      "coverage": 5e-05,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.05,
+    "floorSource": "coin"
    }
   },
   "XRPUSDT": {
@@ -1085,6 +1403,106 @@
       "floor": 0.125,
       "rows": 6,
       "coverage": 0.00027,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.05,
+    "floorSource": "coin"
+   },
+   "xrp:m15": {
+    "testRows": 22855,
+    "called": 1740,
+    "coverage": 0.07613,
+    "accuracy": 0.56552,
+    "ownMajority": 0.51092,
+    "edgeOverMajority": 0.0546,
+    "upRate": 0.48908,
+    "upShareCalled": 0.44655,
+    "bootstrapCi95": [
+     0.017881,
+     0.089737
+    ],
+    "walkForward": "4/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": true,
+    "why": null,
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 22578,
+      "coverage": 1.0,
+      "accuracy": 0.5264
+     },
+     {
+      "floor": 0.01,
+      "rows": 16344,
+      "coverage": 0.72389,
+      "accuracy": 0.5309
+     },
+     {
+      "floor": 0.02,
+      "rows": 11015,
+      "coverage": 0.48786,
+      "accuracy": 0.54262
+     },
+     {
+      "floor": 0.03,
+      "rows": 6625,
+      "coverage": 0.29343,
+      "accuracy": 0.54853
+     },
+     {
+      "floor": 0.04,
+      "rows": 3514,
+      "coverage": 0.15564,
+      "accuracy": 0.55521
+     },
+     {
+      "floor": 0.05,
+      "rows": 1639,
+      "coverage": 0.07259,
+      "accuracy": 0.56315
+     },
+     {
+      "floor": 0.06,
+      "rows": 646,
+      "coverage": 0.02861,
+      "accuracy": 0.55882
+     },
+     {
+      "floor": 0.075,
+      "rows": 116,
+      "coverage": 0.00514,
+      "accuracy": null
+     },
+     {
+      "floor": 0.09,
+      "rows": 8,
+      "coverage": 0.00035,
+      "accuracy": null
+     },
+     {
+      "floor": 0.1,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 0,
+      "coverage": 0.0,
       "accuracy": null
      },
      {
@@ -1323,6 +1741,206 @@
     ],
     "convictionFloor": 0.06,
     "floorSource": "coin"
+   },
+   "ada:m5": {
+    "testRows": 20906,
+    "called": 1114,
+    "coverage": 0.05329,
+    "accuracy": 0.57271,
+    "ownMajority": 0.52873,
+    "edgeOverMajority": 0.04399,
+    "upRate": 0.52873,
+    "upShareCalled": 0.64004,
+    "bootstrapCi95": [
+     0.009162,
+     0.07959
+    ],
+    "walkForward": "5/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": true,
+    "why": null,
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 19745,
+      "coverage": 1.0,
+      "accuracy": 0.52844
+     },
+     {
+      "floor": 0.01,
+      "rows": 14887,
+      "coverage": 0.75396,
+      "accuracy": 0.53463
+     },
+     {
+      "floor": 0.02,
+      "rows": 10210,
+      "coverage": 0.51709,
+      "accuracy": 0.53996
+     },
+     {
+      "floor": 0.03,
+      "rows": 6095,
+      "coverage": 0.30869,
+      "accuracy": 0.54996
+     },
+     {
+      "floor": 0.04,
+      "rows": 3068,
+      "coverage": 0.15538,
+      "accuracy": 0.56421
+     },
+     {
+      "floor": 0.05,
+      "rows": 1370,
+      "coverage": 0.06938,
+      "accuracy": 0.57007
+     },
+     {
+      "floor": 0.06,
+      "rows": 567,
+      "coverage": 0.02872,
+      "accuracy": 0.55379
+     },
+     {
+      "floor": 0.075,
+      "rows": 163,
+      "coverage": 0.00826,
+      "accuracy": null
+     },
+     {
+      "floor": 0.09,
+      "rows": 62,
+      "coverage": 0.00314,
+      "accuracy": null
+     },
+     {
+      "floor": 0.1,
+      "rows": 29,
+      "coverage": 0.00147,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 5,
+      "coverage": 0.00025,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.05,
+    "floorSource": "coin"
+   },
+   "ada:m15": {
+    "testRows": 21857,
+    "called": 1490,
+    "coverage": 0.06817,
+    "accuracy": 0.56174,
+    "ownMajority": 0.50201,
+    "edgeOverMajority": 0.05973,
+    "upRate": 0.50201,
+    "upShareCalled": 0.32282,
+    "bootstrapCi95": [
+     0.012273,
+     0.107428
+    ],
+    "walkForward": "5/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": true,
+    "why": null,
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 21005,
+      "coverage": 1.0,
+      "accuracy": 0.53049
+     },
+     {
+      "floor": 0.01,
+      "rows": 15980,
+      "coverage": 0.76077,
+      "accuracy": 0.53379
+     },
+     {
+      "floor": 0.02,
+      "rows": 11557,
+      "coverage": 0.5502,
+      "accuracy": 0.53881
+     },
+     {
+      "floor": 0.03,
+      "rows": 7355,
+      "coverage": 0.35015,
+      "accuracy": 0.54684
+     },
+     {
+      "floor": 0.04,
+      "rows": 3823,
+      "coverage": 0.182,
+      "accuracy": 0.55794
+     },
+     {
+      "floor": 0.05,
+      "rows": 1725,
+      "coverage": 0.08212,
+      "accuracy": 0.58145
+     },
+     {
+      "floor": 0.06,
+      "rows": 670,
+      "coverage": 0.0319,
+      "accuracy": 0.58507
+     },
+     {
+      "floor": 0.075,
+      "rows": 91,
+      "coverage": 0.00433,
+      "accuracy": null
+     },
+     {
+      "floor": 0.09,
+      "rows": 3,
+      "coverage": 0.00014,
+      "accuracy": null
+     },
+     {
+      "floor": 0.1,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.05,
+    "floorSource": "coin"
    }
   },
   "LINKUSDT": {
@@ -1539,6 +2157,106 @@
       "floor": 0.125,
       "rows": 5,
       "coverage": 0.00023,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.05,
+    "floorSource": "coin"
+   },
+   "link:m15": {
+    "testRows": 22931,
+    "called": 1298,
+    "coverage": 0.0566,
+    "accuracy": 0.5208,
+    "ownMajority": 0.50308,
+    "edgeOverMajority": 0.01772,
+    "upRate": 0.50308,
+    "upShareCalled": 0.46456,
+    "bootstrapCi95": [
+     -0.022292,
+     0.061071
+    ],
+    "walkForward": "2/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": false,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero, walkForwardMajority failed",
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 22100,
+      "coverage": 1.0,
+      "accuracy": 0.52394
+     },
+     {
+      "floor": 0.01,
+      "rows": 16872,
+      "coverage": 0.76344,
+      "accuracy": 0.52803
+     },
+     {
+      "floor": 0.02,
+      "rows": 11848,
+      "coverage": 0.53611,
+      "accuracy": 0.52971
+     },
+     {
+      "floor": 0.03,
+      "rows": 7318,
+      "coverage": 0.33113,
+      "accuracy": 0.52856
+     },
+     {
+      "floor": 0.04,
+      "rows": 4120,
+      "coverage": 0.18643,
+      "accuracy": 0.52233
+     },
+     {
+      "floor": 0.05,
+      "rows": 1986,
+      "coverage": 0.08986,
+      "accuracy": 0.51158
+     },
+     {
+      "floor": 0.06,
+      "rows": 753,
+      "coverage": 0.03407,
+      "accuracy": 0.51527
+     },
+     {
+      "floor": 0.075,
+      "rows": 30,
+      "coverage": 0.00136,
+      "accuracy": null
+     },
+     {
+      "floor": 0.09,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.1,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 0,
+      "coverage": 0.0,
       "accuracy": null
      },
      {
@@ -1777,6 +2495,206 @@
     ],
     "convictionFloor": 0.06,
     "floorSource": "coin"
+   },
+   "avax:m5": {
+    "testRows": 22436,
+    "called": 1331,
+    "coverage": 0.05932,
+    "accuracy": 0.52667,
+    "ownMajority": 0.50338,
+    "edgeOverMajority": 0.02329,
+    "upRate": 0.50338,
+    "upShareCalled": 0.33208,
+    "bootstrapCi95": [
+     -0.018115,
+     0.062548
+    ],
+    "walkForward": "2/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": false,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero, walkForwardMajority failed",
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 21513,
+      "coverage": 1.0,
+      "accuracy": 0.52261
+     },
+     {
+      "floor": 0.01,
+      "rows": 18704,
+      "coverage": 0.86943,
+      "accuracy": 0.52449
+     },
+     {
+      "floor": 0.02,
+      "rows": 16023,
+      "coverage": 0.74481,
+      "accuracy": 0.52562
+     },
+     {
+      "floor": 0.03,
+      "rows": 13327,
+      "coverage": 0.61949,
+      "accuracy": 0.52885
+     },
+     {
+      "floor": 0.04,
+      "rows": 10598,
+      "coverage": 0.49263,
+      "accuracy": 0.53331
+     },
+     {
+      "floor": 0.05,
+      "rows": 8165,
+      "coverage": 0.37954,
+      "accuracy": 0.53987
+     },
+     {
+      "floor": 0.06,
+      "rows": 5873,
+      "coverage": 0.273,
+      "accuracy": 0.53891
+     },
+     {
+      "floor": 0.075,
+      "rows": 3231,
+      "coverage": 0.15019,
+      "accuracy": 0.54194
+     },
+     {
+      "floor": 0.09,
+      "rows": 1463,
+      "coverage": 0.06801,
+      "accuracy": 0.56118
+     },
+     {
+      "floor": 0.1,
+      "rows": 781,
+      "coverage": 0.0363,
+      "accuracy": 0.59795
+     },
+     {
+      "floor": 0.125,
+      "rows": 97,
+      "coverage": 0.00451,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 5,
+      "coverage": 0.00023,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.09,
+    "floorSource": "coin"
+   },
+   "avax:m15": {
+    "testRows": 22777,
+    "called": 1873,
+    "coverage": 0.08223,
+    "accuracy": 0.52856,
+    "ownMajority": 0.51789,
+    "edgeOverMajority": 0.01068,
+    "upRate": 0.48211,
+    "upShareCalled": 0.21036,
+    "bootstrapCi95": [
+     -0.005745,
+     0.027279
+    ],
+    "walkForward": "3/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": false,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero, walkForwardMajority failed",
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 22061,
+      "coverage": 1.0,
+      "accuracy": 0.52291
+     },
+     {
+      "floor": 0.01,
+      "rows": 16313,
+      "coverage": 0.73945,
+      "accuracy": 0.52988
+     },
+     {
+      "floor": 0.02,
+      "rows": 10647,
+      "coverage": 0.48262,
+      "accuracy": 0.53564
+     },
+     {
+      "floor": 0.03,
+      "rows": 6472,
+      "coverage": 0.29337,
+      "accuracy": 0.54172
+     },
+     {
+      "floor": 0.04,
+      "rows": 3932,
+      "coverage": 0.17823,
+      "accuracy": 0.54425
+     },
+     {
+      "floor": 0.05,
+      "rows": 2198,
+      "coverage": 0.09963,
+      "accuracy": 0.54959
+     },
+     {
+      "floor": 0.06,
+      "rows": 1068,
+      "coverage": 0.04841,
+      "accuracy": 0.56835
+     },
+     {
+      "floor": 0.075,
+      "rows": 222,
+      "coverage": 0.01006,
+      "accuracy": 0.63514
+     },
+     {
+      "floor": 0.09,
+      "rows": 17,
+      "coverage": 0.00077,
+      "accuracy": null
+     },
+     {
+      "floor": 0.1,
+      "rows": 3,
+      "coverage": 0.00014,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.05,
+    "floorSource": "coin"
    }
   },
   "DOTUSDT": {
@@ -2004,6 +2922,106 @@
     ],
     "convictionFloor": 0.075,
     "floorSource": "coin"
+   },
+   "dot:m15": {
+    "testRows": 20096,
+    "called": 1495,
+    "coverage": 0.07439,
+    "accuracy": 0.5592,
+    "ownMajority": 0.52709,
+    "edgeOverMajority": 0.03211,
+    "upRate": 0.52709,
+    "upShareCalled": 0.48896,
+    "bootstrapCi95": [
+     -0.012087,
+     0.07872
+    ],
+    "walkForward": "3/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": false,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bootstrapExcludesZero, walkForwardMajority failed",
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 19412,
+      "coverage": 1.0,
+      "accuracy": 0.53585
+     },
+     {
+      "floor": 0.01,
+      "rows": 15108,
+      "coverage": 0.77828,
+      "accuracy": 0.54415
+     },
+     {
+      "floor": 0.02,
+      "rows": 10969,
+      "coverage": 0.56506,
+      "accuracy": 0.55201
+     },
+     {
+      "floor": 0.03,
+      "rows": 7366,
+      "coverage": 0.37946,
+      "accuracy": 0.56245
+     },
+     {
+      "floor": 0.04,
+      "rows": 4612,
+      "coverage": 0.23758,
+      "accuracy": 0.56592
+     },
+     {
+      "floor": 0.05,
+      "rows": 2648,
+      "coverage": 0.13641,
+      "accuracy": 0.55929
+     },
+     {
+      "floor": 0.06,
+      "rows": 1409,
+      "coverage": 0.07258,
+      "accuracy": 0.55145
+     },
+     {
+      "floor": 0.075,
+      "rows": 385,
+      "coverage": 0.01983,
+      "accuracy": 0.55065
+     },
+     {
+      "floor": 0.09,
+      "rows": 80,
+      "coverage": 0.00412,
+      "accuracy": null
+     },
+     {
+      "floor": 0.1,
+      "rows": 24,
+      "coverage": 0.00124,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.06,
+    "floorSource": "coin"
    }
   },
   "SUIUSDT": {
@@ -2230,6 +3248,206 @@
      }
     ],
     "convictionFloor": 0.05,
+    "floorSource": "coin"
+   },
+   "sui:m5": {
+    "testRows": 22554,
+    "called": 1321,
+    "coverage": 0.05857,
+    "accuracy": 0.5564,
+    "ownMajority": 0.5299,
+    "edgeOverMajority": 0.0265,
+    "upRate": 0.5299,
+    "upShareCalled": 0.80091,
+    "bootstrapCi95": [
+     -0.003381,
+     0.05712
+    ],
+    "walkForward": "4/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": false,
+     "bootstrapExcludesZero": false,
+     "walkForwardMajority": true,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "bothDirectionsCalled, bootstrapExcludesZero failed",
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 22225,
+      "coverage": 1.0,
+      "accuracy": 0.52225
+     },
+     {
+      "floor": 0.01,
+      "rows": 15031,
+      "coverage": 0.67631,
+      "accuracy": 0.53157
+     },
+     {
+      "floor": 0.02,
+      "rows": 8696,
+      "coverage": 0.39127,
+      "accuracy": 0.54186
+     },
+     {
+      "floor": 0.03,
+      "rows": 3947,
+      "coverage": 0.17759,
+      "accuracy": 0.54497
+     },
+     {
+      "floor": 0.04,
+      "rows": 1417,
+      "coverage": 0.06376,
+      "accuracy": 0.54552
+     },
+     {
+      "floor": 0.05,
+      "rows": 398,
+      "coverage": 0.01791,
+      "accuracy": 0.5402
+     },
+     {
+      "floor": 0.06,
+      "rows": 97,
+      "coverage": 0.00436,
+      "accuracy": null
+     },
+     {
+      "floor": 0.075,
+      "rows": 8,
+      "coverage": 0.00036,
+      "accuracy": null
+     },
+     {
+      "floor": 0.09,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.1,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.04,
+    "floorSource": "coin"
+   },
+   "sui:m15": {
+    "testRows": 22832,
+    "called": 2629,
+    "coverage": 0.11515,
+    "accuracy": 0.5504,
+    "ownMajority": 0.50399,
+    "edgeOverMajority": 0.04641,
+    "upRate": 0.50399,
+    "upShareCalled": 0.46444,
+    "bootstrapCi95": [
+     0.010976,
+     0.080542
+    ],
+    "walkForward": "3/5",
+    "gates": {
+     "aboveOwnMajority": true,
+     "bothDirectionsCalled": true,
+     "bootstrapExcludesZero": true,
+     "walkForwardMajority": false,
+     "enoughCalledRows": true
+    },
+    "certified": false,
+    "why": "walkForwardMajority failed",
+    "floorCurve": [
+     {
+      "floor": 0.0,
+      "rows": 22534,
+      "coverage": 1.0,
+      "accuracy": 0.5276
+     },
+     {
+      "floor": 0.01,
+      "rows": 17681,
+      "coverage": 0.78464,
+      "accuracy": 0.52966
+     },
+     {
+      "floor": 0.02,
+      "rows": 12728,
+      "coverage": 0.56484,
+      "accuracy": 0.5381
+     },
+     {
+      "floor": 0.03,
+      "rows": 7335,
+      "coverage": 0.32551,
+      "accuracy": 0.55024
+     },
+     {
+      "floor": 0.04,
+      "rows": 2862,
+      "coverage": 0.12701,
+      "accuracy": 0.54263
+     },
+     {
+      "floor": 0.05,
+      "rows": 725,
+      "coverage": 0.03217,
+      "accuracy": 0.54345
+     },
+     {
+      "floor": 0.06,
+      "rows": 200,
+      "coverage": 0.00888,
+      "accuracy": 0.575
+     },
+     {
+      "floor": 0.075,
+      "rows": 32,
+      "coverage": 0.00142,
+      "accuracy": null
+     },
+     {
+      "floor": 0.09,
+      "rows": 1,
+      "coverage": 4e-05,
+      "accuracy": null
+     },
+     {
+      "floor": 0.1,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.125,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     },
+     {
+      "floor": 0.15,
+      "rows": 0,
+      "coverage": 0.0,
+      "accuracy": null
+     }
+    ],
+    "convictionFloor": 0.04,
     "floorSource": "coin"
    }
   },

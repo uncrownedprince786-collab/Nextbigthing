@@ -211,6 +211,11 @@ def measure(tag: str, symbols: list[str], stride: int, horizons: list[str]) -> d
 def main() -> int:
     ap = argparse.ArgumentParser(description="Measure how far price travels over each window.")
     ap.add_argument("--horizons", nargs="*", default=ORDER)
+    ap.add_argument("--tags", nargs="*", default=["btc", "crypto"],
+                    help="families to measure. The per-coin lanes need their own excursions: "
+                         "the backtest writes them a servedPair and nothing else, so "
+                         "lib/cryptoLevels.bestPair finds no `pairs` table, returns null, and "
+                         "the page shows a direction with no entry, stop or target")
     a = ap.parse_args()
 
     doc = {
@@ -233,7 +238,7 @@ def main() -> int:
     # The same pool and stride the lane was fitted on, read off its manifest. These distances are
     # not the model's output, but they are reported beside it, and measuring them over a different
     # set of rows than the model was trained on would make the two describe different markets.
-    for tag in ("btc", "crypto"):
+    for tag in a.tags:
         print(f"== {tag}", flush=True)
         # Both intervals. The session horizons read the 4-hour corpus and were left out of the
         # first version of this file, which gave `crypto d20` a direction the page could not put
@@ -246,7 +251,25 @@ def main() -> int:
             cfg_i = training_config(tag, keys[0])
             here.update(measure(tag, cfg_i["symbols"], cfg_i["stride"], keys))
         doc["families"][tag] = here
+    # Merged into what is already there, and the served pair preserved.
+    #
+    # This file is regenerated per family now, and it also carries `servedPair` written by
+    # crypto_backtest.py. Overwriting wholesale would drop every family not in this run and
+    # every pair the sweep chose -- which is how the levels vanished from the page once already.
     OUT.parent.mkdir(parents=True, exist_ok=True)
+    if OUT.exists():
+        try:
+            old = json.loads(OUT.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            old = {}
+        merged = old.get("families", {})
+        for fam, hz in doc["families"].items():
+            for h, v in hz.items():
+                prev = (merged.get(fam) or {}).get(h) or {}
+                if prev.get("servedPair") and "servedPair" not in v:
+                    v["servedPair"] = prev["servedPair"]
+                merged.setdefault(fam, {})[h] = v
+        doc["families"] = merged
     OUT.write_text(json.dumps(doc, indent=1), encoding="utf-8")
     print(f"\nwrote {OUT}")
     return 0
