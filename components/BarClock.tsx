@@ -49,7 +49,13 @@ export function BarClock({
   React.useEffect(() => {
     fired.current = false;
     const tick = () => {
-      const due = asOfMs + stepMs + GRACE_MS;
+      // The next read is a whole horizon away, not a bar away.
+      //
+      // Calls are now served on the horizon's own grid -- the fifteen-minute lane reads at :00,
+      // :15, :30 and :45 -- so counting down to the next five-minute bar would promise a refresh
+      // that is not coming and tick to zero four times per call.
+      const period = Math.max(stepMs, (horizonMinutes ?? 0) * 60_000);
+      const due = asOfMs + period + GRACE_MS;
       const ms = due - Date.now();
       setLeft(ms);
       if (ms <= 0 && !fired.current && document.visibilityState === "visible") {
@@ -64,7 +70,7 @@ export function BarClock({
     tick();
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, [asOfMs, stepMs, router]);
+  }, [asOfMs, stepMs, horizonMinutes, router]);
 
   if (left === null) return null;
   const secs = Math.max(0, Math.ceil(left / 1000));
@@ -82,12 +88,10 @@ export function BarClock({
       {left <= 0
         ? "reading the new bar…"
         : horizonMinutes
-          ? // Two facts, and collapsing them was the confusion: a fifteen-minute call that
-            // re-reads in four is not a contradiction, because the model is fitted on
-            // five-minute bars and a fresh one closes every five minutes. The call you are
-            // looking at runs its full fifteen from the bar it was read from; what happens in
-            // four minutes is that a *new* call appears, about a later fifteen minutes.
-            `this call runs to ${endsAt} · next read in ${mm > 0 ? `${mm}m ` : ""}${ss}s`
+          ? // One fact now, because the call and the countdown finally describe the same
+            // window: it was read on the horizon's grid and the next read is the next grid
+            // point, which is also when this call's window closes.
+            `runs to ${endsAt} · ${mm > 0 ? `${mm}m ` : ""}${ss}s left`
           : `this call stands for ${mm > 0 ? `${mm}m ` : ""}${ss}s, then refreshes`}
     </span>
   );

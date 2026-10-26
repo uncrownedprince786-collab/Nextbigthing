@@ -169,6 +169,34 @@ export async function forecastFor(
     return { kind: "data", horizon, lane, why: got.why, tried: got.tried };
   }
   const w = got.window;
+  // Read the bar the horizon lands on, not merely the newest one.
+  //
+  // **A fifteen-minute call was changing every five minutes, and that was wrong rather than
+  // merely confusing.** The model is fitted on five-minute bars with a fifteen-minute forward
+  // label, so it is valid at every bar -- but serving it at every bar produces a rolling
+  // forecast that moves under a reader who is holding the trade it suggested. You enter on UP
+  // at 14:05 for the next fifteen minutes and at 14:10 the page says DOWN, about a *different*
+  // fifteen minutes, with the first call neither resolved nor withdrawn.
+  //
+  // So a call is read from the most recent bar whose close sits on the horizon's own grid: the
+  // fifteen-minute lane reads at :00, :15, :30, :45 and holds between them. The call now lives
+  // exactly as long as the window it describes, and the next one begins where the last ended.
+  //
+  // Nothing about the model changes -- an aligned bar is one of the bars it was fitted on, and
+  // the features are the same features. What changes is which of its opinions is published.
+  const periodMs = horizon.minutes * 60_000;
+  if (periodMs > w.stepMs) {
+    const alignedAsOf = Math.floor(w.asOfMs / periodMs) * periodMs;
+    // Walk back to that bar, keeping the warm-up intact behind it. If the aligned bar is not in
+    // the window -- a venue gap, or a very fresh listing -- the newest bar is served instead,
+    // because a direction from a slightly early bar beats no direction at all.
+    const drop = Math.round((w.asOfMs - alignedAsOf) / w.stepMs);
+    if (drop > 0 && drop < w.bars.length - WARMUP) {
+      w.bars = w.bars.slice(0, w.bars.length - drop);
+      w.asOfMs = alignedAsOf;
+      w.referencePrice = w.bars[w.bars.length - 1].c;
+    }
+  }
   const last = w.bars.length - 1;
   if (!contiguous(w.bars, last, w.stepMs)) {
     return {
