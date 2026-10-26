@@ -167,6 +167,13 @@ def _build_pool(symbols: list[str], interval: str, stride: int, context: bool = 
                          if k in ("completeness", "gapRuns", "missingBars", "first", "last",
                                   "rejected", "conflictingDuplicates", "crossVenue")},
             "_series": (ts, closes, keep),
+            # Highs and lows, for labellers that walk the path rather than read the endpoint.
+            # The triple-barrier label needs to know whether a barrier was *touched* inside the
+            # window, and a close-only series cannot answer that -- it would miss every wick and
+            # under-count both stops and targets, which is the optimistic direction and the one
+            # a backtest must not take.
+            "_high": np.asarray([b["h"] for b in bars], dtype=np.float64),
+            "_low": np.asarray([b["l"] for b in bars], dtype=np.float64),
         }
     return {
         "X": np.vstack(Xs),
@@ -191,7 +198,7 @@ def _save(path: Path, data: dict, symbols: list[str]) -> None:
         arrays[f"s:{s}:ts"] = full_ts
         arrays[f"s:{s}:close"] = full_close
         arrays[f"s:{s}:keep"] = keep
-        meta[s] = {k: v for k, v in m.items() if k != "_series"}
+        meta[s] = {k: v for k, v in m.items() if not k.startswith("_")}
     path.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(path, **arrays)
     path.with_suffix(".meta.json").write_text(

@@ -75,6 +75,8 @@ from crypto_matrix import prepare_cached  # noqa: E402
 from intraday_features import FEATURES, VERSION as FEATURE_VERSION, WARMUP  # noqa: E402
 from market_context import CONTEXT_FEATURES, VERSION as CONTEXT_VERSION  # noqa: E402
 from funding_features import FUNDING_FEATURES, VERSION as FUNDING_VERSION  # noqa: E402
+from triple_barrier import directional_barrier_labels, triple_barrier_labels  # noqa: E402
+from sample_uniqueness import weights_for  # noqa: E402
 from intraday_matrix import build, verify_against_reference  # noqa: E402
 
 CORPUS = ROOT / ".cache" / "foundation" / "intraday"
@@ -446,10 +448,31 @@ def split(ts: np.ndarray, bars_ahead: int, step_ms: int) -> tuple[np.ndarray, np
 
 
 def train_one(data: dict, key: str, tag: str, rounds: int, depth: int,
-              verbose: int = 0) -> dict:
+              verbose: int = 0, labels: str = "sign",
+              stop_atr: float = 1.0, target_atr: float = 1.0) -> dict:
     h = HORIZONS[key]
     bars_ahead = h["bars"]
-    y, usable, zero_moves = labels_for(data, bars_ahead)
+    barrier_stats = None
+    if labels == "dirbarrier":
+        # The symmetric, path-aware directional target: 1 where a long resolves at its target
+        # and a short does not, 0 for the mirror, and rows where neither trade resolves dropped
+        # entirely. Balanced by construction, which the one-sided barrier label was not -- that
+        # one came out 76/24 and the model answered "no" to every row.
+        atr_col = data["X"][:, FEATURES.index("atr14")].astype(np.float64)
+        y, usable, barrier_stats = directional_barrier_labels(
+            data, bars_ahead, atr_col, stop_atr, target_atr)
+        zero_moves = 0
+    elif labels == "barrier":
+        # The triple-barrier target: 1 when the trade this row implies reaches its target before
+        # its stop, 0 when the stop comes first or the window closes on it. The model is being
+        # asked which trades work rather than which closes are higher, which is the question the
+        # backtest has always judged it on and the one it has never been trained for.
+        atr_col = data["X"][:, FEATURES.index("atr14")].astype(np.float64)
+        y, usable, barrier_stats = triple_barrier_labels(
+            data, bars_ahead, atr_col, stop_atr, target_atr)
+        zero_moves = 0
+    else:
+        y, usable, zero_moves = labels_for(data, bars_ahead)
     X, ts = data["X"], data["ts"]
     step_ms = next(iter(data["corpora"].values()))["stepMs"]
 
@@ -483,8 +506,15 @@ def train_one(data: dict, key: str, tag: str, rounds: int, depth: int,
     p_va_lin = logistic_proba(lin, Xva)
     lin_val_acc = float(((p_va_lin >= 0.5).astype(int) == yva).mean())
 
+    # Sample weights for overlapping labels. A fifteen-minute label on five-minute bars shares
+    # two of its three bars with each neighbour, so one move decides three labels and an
+    # unweighted fit counts it three times. Barrier labels make it worse by ending early: a
+    # volatile stretch produces short, nearly-unique labels and a quiet one produces long,
+    # heavily-overlapping ones, so without this the quiet stretches dominate the fit.
+    w_all = weights_for(data, usable, None, bars_ahead)
     tree = gbm.fit(Xtr, ytr, rounds=rounds, depth=depth, lr=0.05, l2=2.0,
-                   X_val=Xva, y_val=yva, early_stop=30, verbose=verbose)
+                   X_val=Xva, y_val=yva, early_stop=30, verbose=verbose,
+                   weights=w_all[tr])
     p_va_gbm = gbm.predict_proba(tree, Xva)
     gbm_val_acc = float(((p_va_gbm >= 0.5).astype(int) == yva).mean())
 
@@ -510,6 +540,8 @@ def train_one(data: dict, key: str, tag: str, rounds: int, depth: int,
         "minutesAhead": h["minutes"],
         "chosenModel": chosen,
         "fitSeconds": round(time.time() - t0, 1),
+        "labelKind": labels,
+        "barrier": barrier_stats,
         "rows": {"train": int(len(tr)), "validation": int(len(va)), "test": int(len(te)),
                  "zeroMoveRowsDropped": zero_moves},
         "split": split_meta,
@@ -635,6 +667,14 @@ def main() -> int:
     ap.add_argument("--context", action="store_true",
                     help="fit on the market-factor block as well (tools/research/market_context.py)")
     ap.add_argument("--verbose", type=int, default=0)
+    ap.add_argument("--labels", default="sign", choices=["sign", "barrier", "dirbarrier"],
+                    help="sign: 1 when the forward close is higher, the target every model here "
+                         "has used. barrier: the triple-barrier label -- 1 when a target at "
+                         "+targetAtr is touched before a stop at -stopAtr, 0 when the stop comes "
+                         "first or the window closes. The second teaches risk; the first does "
+                         "not know what a trade is")
+    ap.add_argument("--stop-atr", type=float, default=1.0)
+    ap.add_argument("--target-atr", type=float, default=1.0)
     ap.add_argument("--funding", action="store_true",
                     help="fit on the perpetual funding block as well "
                          "(tools/research/funding_features.py). Coins with no perpetual lose "
@@ -669,7 +709,8 @@ def main() -> int:
               flush=True)
         for key in here:
             print(f"   -- {key} ({HORIZONS[key]['label']})", flush=True)
-            res = train_one(data, key, a.tag, a.rounds, a.depth, verbose=a.verbose)
+            res = train_one(data, key, a.tag, a.rounds, a.depth, verbose=a.verbose,
+                            labels=a.labels, stop_atr=a.stop_atr, target_atr=a.target_atr)
             res["rowStride"] = a.stride
             schema = FEATURE_VERSION
             if a.context:

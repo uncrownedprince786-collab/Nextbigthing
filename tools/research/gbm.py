@@ -154,7 +154,8 @@ def _apply(tree: dict, codes: np.ndarray) -> np.ndarray:
 def fit(X: np.ndarray, y: np.ndarray, *, bins: int = 64, rounds: int = 300, depth: int = 3,
         lr: float = 0.05, l2: float = 1.0, min_child: float = 50.0, min_rows: int = 200,
         X_val: np.ndarray | None = None, y_val: np.ndarray | None = None,
-        early_stop: int = 40, verbose: int = 0) -> dict:
+        early_stop: int = 40, verbose: int = 0,
+        weights: np.ndarray | None = None) -> dict:
     """Fit a boosted tree. With a validation fold, stops at its best round.
 
     Early stopping is on validation **log loss**, not accuracy: accuracy on a near-balanced binary
@@ -167,7 +168,23 @@ def fit(X: np.ndarray, y: np.ndarray, *, bins: int = 64, rounds: int = 300, dept
     codes = apply_bins(X, edges)
     offsets = (np.arange(X.shape[1], dtype=np.int32) * bins)[None, :]
 
-    base = float(np.clip(y.mean(), 1e-6, 1 - 1e-6))
+    # Sample weights, for labels that overlap in time.
+    #
+    # A fifteen-minute label on five-minute bars shares two of its three bars with each
+    # neighbour, so one price move decides three labels and an unweighted fit counts it three
+    # times -- reading agreement where there is only repetition. The weights carry each row's
+    # average uniqueness; see tools/research/sample_uniqueness.py.
+    #
+    # They enter through the gradient and the hessian, which is where a weight belongs in a
+    # boosted tree: the split search sums both per histogram bin, so a row contributing a third
+    # of a sample moves a split by a third as much. Scaling the *loss* afterwards would change
+    # the reported number without changing a single split.
+    w = (np.ones(len(y), dtype=np.float64) if weights is None
+         else np.asarray(weights, dtype=np.float64))
+    if len(w) != len(y):
+        raise ValueError(f"weights {len(w)} do not match rows {len(y)}")
+
+    base = float(np.clip(np.average(y, weights=w), 1e-6, 1 - 1e-6))
     f0 = float(np.log(base / (1 - base)))
     score = np.full(len(y), f0)
 
@@ -179,8 +196,8 @@ def fit(X: np.ndarray, y: np.ndarray, *, bins: int = 64, rounds: int = 300, dept
     all_rows = np.arange(len(y))
     for t in range(rounds):
         p = 1.0 / (1.0 + np.exp(-score))
-        g = p - y
-        h = np.maximum(p * (1 - p), 1e-6)
+        g = (p - y) * w
+        h = np.maximum(p * (1 - p), 1e-6) * w
         tree = _grow(codes, all_rows, g, h, depth, bins, offsets, l2, min_child, min_rows)
         trees.append(tree)
         score += lr * _apply(tree, codes)
@@ -204,6 +221,7 @@ def fit(X: np.ndarray, y: np.ndarray, *, bins: int = 64, rounds: int = 300, dept
         "lr": lr,
         "edges": edges.tolist(),
         "bins": bins,
+        "weighted": weights is not None,
         "trees": trees[:kept],
         "roundsFitted": len(trees),
         "roundsKept": kept,
